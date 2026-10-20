@@ -1,0 +1,4 @@
+interface:
+  display_name: "Media Math"
+  short_description: "Develop and validate RedTilde media math"
+  default_prompt: "Use $media-math to complete this RedTilde change and validate the affected behavior."

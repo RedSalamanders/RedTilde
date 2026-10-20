@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "status": "diagnostic-only",
+  "fixture": "docs/examples/performance-fixture.md",
+  "fixtureSha256": "B5A59C442AED3DF35CC4D494043AC24D90472E2872032DA03A882B0CA5423497",
+  "baselineBuild": "baseline/build.json",
+  "candidateBuild": "candidate/build.json",
+  "roundsPerBinary": 5,
+  "environment": "Same Windows x64 host, 144 DPI, 2040x1350 hidden ControlHost; concurrent compilation/test activity was present",
+  "metrics": [
+    {
+      "metric": "cleanRenderFps",
+      "baselineMedian": 125.117,
+      "candidateMedian": 125.254,
+      "delta": 0.13700000000000045,
+      "percentChange": 0.10949751033033639
+    },
+    {
+      "metric": "dirtyEditAndRenderMs",
+      "baselineMedian": 0.275129,
+      "candidateMedian": 0.376486,
+      "delta": 0.10135699999999997,
+      "percentChange": 36.839809689273025
+    },
+    {
+      "metric": "privateBytes",
+      "baselineMedian": 73945088,
+      "candidateMedian": 73080832,
+      "delta": -864256,
+      "percentChange": -1.1687808120533938
+    }
+  ],
+  "limitations": [
+    "Forced rendering, not presentation FPS.",
+    "Dirty loop does not wait for full semantic readiness on every edit.",
+    "Identical input source now produces additional native math and diagram objects; work is not equivalent.",
+    "No paired order alternation, clean-host resource trace, acceptance threshold or causal regression claim."
+  ],
+  "followUp": "S5 remains open. Profile fully prepared edits and cache invalidation with an alternating paired fixture; retain the added ~0.10 ms diagnostic cost rather than rebaselining it away."
+}

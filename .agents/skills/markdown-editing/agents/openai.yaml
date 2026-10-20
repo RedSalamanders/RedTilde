@@ -1,0 +1,4 @@
+interface:
+  display_name: "Markdown Editing"
+  short_description: "Develop and validate RedTilde markdown editing"
+  default_prompt: "Use $markdown-editing to complete this RedTilde change and validate the affected behavior."

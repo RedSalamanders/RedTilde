@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "sourceIdentity": "be0310044b18a3c9dd025270a8430c98ec0a91b0ceae7f7f508d8e8a4cdfc0b7",
+  "dependency": "778e8630392812c65da364c778056ff42b862f36",
+  "binarySha256": "4EAA43FF81754BBD5E7D4E0DAC63D7C7EEF0ABA4822D8F3B73D8A4F78E32FB0B",
+  "platform": "x64",
+  "configuration": "ASan Debug",
+  "hostArchitecture": "X64",
+  "suite": "Core",
+  "interactive": false,
+  "environment": {
+    "osVersion": "Microsoft Windows NT 10.0.26300.0",
+    "processor": "AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD",
+    "logicalProcessors": 32,
+    "renderMode": "hidden native ControlHost, default device"
+  },
+  "startedUtc": "2026-10-20T20:29:43.6644732Z",
+  "passed": true,
+  "results": [
+    {
+      "scope": "Core",
+      "failed": 0,
+      "passed": 20
+    },
+    {
+      "scope": "PreferencesProcessExit",
+      "latestStateDurable": true
+    },
+    {
+      "scope": "RecoveryCrashRestart",
+      "originalProtectedBySaveAs": true,
+      "exactSourceRestored": true
+    },
+    {
+      "scope": "PerformanceBaseline",
+      "metrics": {
+        "scenario": "sample-richtext-native-hidden",
+        "cleanFrames": 60,
+        "cleanRenderFps": 125.37,
+        "dirtyFrames": 120,
+        "dirtyEditAndRenderMs": 11.1874,
+        "workingSetBytes": 329441280,
+        "privateBytes": 457715712,
+        "dpi": 144,
+        "widthPx": 2040,
+        "heightPx": 1350,
+        "qualification": "initial application baseline only; forced native renders, not presentation FPS or a paired non-regression claim"
+      }
+    },
+    {
+      "scope": "AddressSanitizer",
+      "heapUseAfterFreeDetected": true,
+      "exitCode": 1
+    }
+  ],
+  "finishedUtc": "2026-10-20T20:29:56.0305211Z"
+}

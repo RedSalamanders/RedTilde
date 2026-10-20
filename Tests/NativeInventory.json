@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "files": [
+    {
+      "path": "Tests/Scope.Tests.Core.cpp",
+      "suite": "Core",
+      "executable": "RedTilde.exe",
+      "arguments": ["--self-test"],
+      "interactive": false
+    }
+  ]
+}

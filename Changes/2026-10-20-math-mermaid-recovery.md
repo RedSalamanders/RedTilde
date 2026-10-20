@@ -1,0 +1,1 @@
+- Add source-preserving in-document mathematics and broader native Mermaid diagrams through the exact tested DxUi feature pin, with per-session debounced recovery, review/restore/discard, protected Save As, and crash/restart validation. Product and upstream qualification gates remain explicit.

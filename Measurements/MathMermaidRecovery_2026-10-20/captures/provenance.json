@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "sourceIdentity": "be0310044b18a3c9dd025270a8430c98ec0a91b0ceae7f7f508d8e8a4cdfc0b7",
+  "dependency": "778e8630392812c65da364c778056ff42b862f36",
+  "configuration": "Release",
+  "platform": "x64",
+  "applicationTestReceipt": "../tests/x64-Release.json",
+  "captureMethod": "nonactivating actual ControlHost diagnostic bitmap; no desktop capture",
+  "captures": [
+    {
+      "file": "compose-dark.png",
+      "sha256": "56439D4001AC9C9E61A875C70413FFA6A55391222E3C4C41E97ABB207B951836"
+    },
+    {
+      "file": "compose-light.png",
+      "sha256": "502F22941DCF40511A1BDE92E4B76D3A63B688F172D803A38BDB6ECA912D090C"
+    },
+    {
+      "file": "context-selection.png",
+      "sha256": "08C4FBD1174F780EAF6424A13B42E08F26337F62CD5C18E3523B9BDE12810CA8"
+    },
+    {
+      "file": "high-contrast.png",
+      "sha256": "42F3B4908062CC49981901ADDB29562945EFEC676B32C16407AB520D9E5D4E89"
+    },
+    {
+      "file": "local-source.png",
+      "sha256": "F843172A9CB28C03B6D8C0D4EFD872DE8E8364617DE14D218A63B56F99F3E9DA"
+    },
+    {
+      "file": "math-dark.png",
+      "sha256": "8778E54D2DD8415D45414B9E2AC887356CB58B06309B03E0B64326FDE470282D"
+    },
+    {
+      "file": "math-device-loss.png",
+      "sha256": "38ACE68400D1358D396D7F0CB453AF92B99EA78F70932B1C0ABBD8817910FD06"
+    },
+    {
+      "file": "math.png",
+      "sha256": "25295592FB273A29D983BE8D0A7F52284F4698A4AC5A04C698952627DB55BF12"
+    },
+    {
+      "file": "mermaid.png",
+      "sha256": "A2AB24593F33FA686F3799A3BC349F4FA2DCB30703A2C022A4D6D014409BCC8B"
+    },
+    {
+      "file": "narrow.png",
+      "sha256": "2EE9C9BA14EAB2FC0800E258348568FB29D86966A61DB0B840CB8A5AC2350DFA"
+    },
+    {
+      "file": "recovery.png",
+      "sha256": "A84F91CB423B62BB740F1335CC49653A030F70DD559203F9079EA215136DFBA8"
+    },
+    {
+      "file": "settings.png",
+      "sha256": "DA151A0839258E1A1E611D8BE3D6A28E0C559EA09056EF2D490DEE415BA7CE5A"
+    },
+    {
+      "file": "source.png",
+      "sha256": "ED2AA3FA23B17DB7BDBA57A2693366F403B7C04F3B083FEEA2503D63D8D3651F"
+    },
+    {
+      "file": "split.png",
+      "sha256": "7DEA6BCF89830ED68227FDFD3741AA1D3F9D1E3488A2AD5B89063D415E9316C6"
+    }
+  ]
+}

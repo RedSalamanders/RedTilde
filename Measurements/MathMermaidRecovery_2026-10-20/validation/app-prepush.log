@@ -1,0 +1,90 @@
+PASS Specifications and links
+PASS Skills and scoped agent guidance
+PASS Exact dependency and capability status
+PASS Six build configurations and native inventory
+PASS PowerShell syntax
+All RedTilde validators passed.
+DxUi pin verified: 778e8630392812c65da364c778056ff42b862f36
+Visual Studio: C:\Program Files\Microsoft Visual Studio\18\Insiders
+MSVC toolset:  14.51.36231, the default MSBuild compiles with; vcpkg is pinned to 14.51
+Overlay triplet Z:\src\RedTilde\.build\dependencies\DxUi\fad02d4c8e5c17ff5ee27b75070b5974ed4041f7c998c81a4e5831b0b8931f26\vcpkg-triplets\x64\x64-windows.cmake unchanged
+Installing DxUi dependencies (x64-windows)
+Detecting compiler hash for triplet x64-windows...
+Compiler found: C:/Program Files/Microsoft Visual Studio/18/Insiders/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe
+The following packages are already installed:
+  * vcpkg-cmake:x64-windows@2024-04-23
+  * vcpkg-cmake-config:x64-windows@2026-07-21
+    wil:x64-windows@1.0.260126.7
+wil provides CMake targets:
+
+  # this is heuristically generated, and may not be correct
+  find_package(wil CONFIG REQUIRED)
+  target_link_libraries(main PRIVATE WIL::WIL)
+
+All requested installations completed successfully in: 283 us
+vcpkg dependencies are ready.
+DxUi 778e8630392812c65da364c778056ff42b862f36, API 4, x64 restored.
+
+  DxUi.vcxproj -> Z:\src\RedTilde\.build\dependencies\DxUi\fad02d4c8e5c17ff5ee27b75070b5974ed4041f7c998c81a4e5831b0b8931f26\x64\Debug\DxUi.lib
+  DxUi pin verified: 778e8630392812c65da364c778056ff42b862f36
+  RedTilde.vcxproj -> Z:\src\RedTilde\.build\x64\Debug\RedTilde.exe
+Built RedTilde: Z:\src\RedTilde\.build\x64\Debug/RedTilde.exe
+20 behavioral tests passed.
+Native forced render: 124,3 FPS; private memory 69,6 MiB; dirty edit/render 2,80 ms. Initial app baseline only.
+Receipt: Z:\src\RedTilde\.build\tests\20261020-222921-200-x64-Debug\receipt.json
+
+  DxUi.vcxproj -> Z:\src\RedTilde\.build\dependencies\DxUi\fad02d4c8e5c17ff5ee27b75070b5974ed4041f7c998c81a4e5831b0b8931f26\x64\Release\DxUi.lib
+  DxUi pin verified: 778e8630392812c65da364c778056ff42b862f36
+  RedTilde.vcxproj -> Z:\src\RedTilde\.build\x64\Release\RedTilde.exe
+Built RedTilde: Z:\src\RedTilde\.build\x64\Release/RedTilde.exe
+20 behavioral tests passed.
+Native forced render: 124,7 FPS; private memory 65,3 MiB; dirty edit/render 0,42 ms. Initial app baseline only.
+13 actual hidden application captures generated.
+Isolated local crash dump and marker verified.
+Receipt: Z:\src\RedTilde\.build\tests\20261020-222929-104-x64-Release\receipt.json
+
+  DxUi.vcxproj -> Z:\src\RedTilde\.build\dependencies\DxUi\fad02d4c8e5c17ff5ee27b75070b5974ed4041f7c998c81a4e5831b0b8931f26\x64\ASan Debug\DxUi.lib
+  DxUi pin verified: 778e8630392812c65da364c778056ff42b862f36
+  RedTilde.vcxproj -> Z:\src\RedTilde\.build\x64\ASan Debug\RedTilde.exe
+Built RedTilde: Z:\src\RedTilde\.build\x64\ASan Debug/RedTilde.exe
+20 behavioral tests passed.
+Native forced render: 125,4 FPS; private memory 436,5 MiB; dirty edit/render 11,19 ms. Initial app baseline only.
+Real AddressSanitizer heap-use-after-free detection verified.
+Receipt: Z:\src\RedTilde\.build\tests\20261020-222943-644-x64-ASan-Debug\receipt.json
+DxUi pin verified: 778e8630392812c65da364c778056ff42b862f36
+Visual Studio: C:\Program Files\Microsoft Visual Studio\18\Insiders
+MSVC toolset:  14.51.36231, the default MSBuild compiles with; vcpkg is pinned to 14.51
+Overlay triplet Z:\src\RedTilde\.build\dependencies\DxUi\4f0303d6d5d14215ba51c1984d7aacb68d336b3b2f3d7e8f3ba00545945d35f7\vcpkg-triplets\ARM64\arm64-windows.cmake unchanged
+Installing DxUi dependencies (arm64-windows)
+Detecting compiler hash for triplet x64-windows...
+Compiler found: C:/Program Files/Microsoft Visual Studio/18/Insiders/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe
+Detecting compiler hash for triplet arm64-windows...
+Compiler found: C:/Program Files/Microsoft Visual Studio/18/Insiders/VC/Tools/MSVC/14.51.36231/bin/Hostx64/arm64/cl.exe
+The following packages are already installed:
+  * vcpkg-cmake:x64-windows@2024-04-23
+  * vcpkg-cmake-config:x64-windows@2026-07-21
+    wil:arm64-windows@1.0.260126.7
+wil provides CMake targets:
+
+  # this is heuristically generated, and may not be correct
+  find_package(wil CONFIG REQUIRED)
+  target_link_libraries(main PRIVATE WIL::WIL)
+
+All requested installations completed successfully in: 238 us
+vcpkg dependencies are ready.
+DxUi 778e8630392812c65da364c778056ff42b862f36, API 4, ARM64 restored.
+
+  DxUi.vcxproj -> Z:\src\RedTilde\.build\dependencies\DxUi\4f0303d6d5d14215ba51c1984d7aacb68d336b3b2f3d7e8f3ba00545945d35f7\ARM64\Debug\DxUi.lib
+  DxUi pin verified: 778e8630392812c65da364c778056ff42b862f36
+  RedTilde.vcxproj -> Z:\src\RedTilde\.build\ARM64\Debug\RedTilde.exe
+Built RedTilde: Z:\src\RedTilde\.build\ARM64\Debug/RedTilde.exe
+
+  DxUi.vcxproj -> Z:\src\RedTilde\.build\dependencies\DxUi\4f0303d6d5d14215ba51c1984d7aacb68d336b3b2f3d7e8f3ba00545945d35f7\ARM64\Release\DxUi.lib
+  DxUi pin verified: 778e8630392812c65da364c778056ff42b862f36
+  RedTilde.vcxproj -> Z:\src\RedTilde\.build\ARM64\Release\RedTilde.exe
+Built RedTilde: Z:\src\RedTilde\.build\ARM64\Release/RedTilde.exe
+
+  DxUi.vcxproj -> Z:\src\RedTilde\.build\dependencies\DxUi\4f0303d6d5d14215ba51c1984d7aacb68d336b3b2f3d7e8f3ba00545945d35f7\ARM64\ASan Debug\DxUi.lib
+  DxUi pin verified: 778e8630392812c65da364c778056ff42b862f36
+  RedTilde.vcxproj -> Z:\src\RedTilde\.build\ARM64\ASan Debug\RedTilde.exe
+Built RedTilde: Z:\src\RedTilde\.build\ARM64\ASan Debug/RedTilde.exe

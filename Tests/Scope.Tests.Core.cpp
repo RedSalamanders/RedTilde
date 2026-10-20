@@ -1,0 +1,602 @@
+#include "RedTilde/Application.h"
+#include <DxUi/RichMath.h>
+#include <DxUi/RichSemanticDocument.h>
+#include <chrono>
+#include <fstream>
+#include <functional>
+#include <stdexcept>
+#include <thread>
+
+namespace RedTilde
+{
+using DxUi::RichText::ParseMath;
+namespace
+{
+void Require(bool condition, std::string_view message)
+{
+    if (!condition)
+        throw std::runtime_error(std::string(message));
+}
+void Success(HRESULT result, std::string_view message)
+{
+    Require(SUCCEEDED(result), message);
+}
+} // namespace
+int RunCoreTests(const std::filesystem::path &root)
+{
+    std::filesystem::create_directories(root);
+    std::ofstream report(root / L"tests.json", std::ios::binary);
+    report << "{\n  \"tests\": [\n";
+    unsigned passed{}, failed{};
+    auto test = [&](std::string_view name, const std::function<void()> &run)
+    {
+        if (passed + failed)
+            report << ",\n";
+        report << "    {\"name\":\"" << name << "\",\"passed\":";
+        try
+        {
+            run();
+            ++passed;
+            report << "true}";
+        }
+        catch (const std::bad_alloc &)
+        {
+            std::terminate();
+        }
+        catch (const std::exception &error)
+        {
+            ++failed;
+            report << "false,\"error\":\"";
+            for (const char c : std::string_view(error.what()))
+                report << (c == '"' ? '\'' : c == '\\' ? '/' : c == '\n' ? ' ' : c);
+            report << "\"}";
+        }
+        report.flush();
+    };
+    test("Utf8.BomUnicodeMixedEolRoundTrip",
+         [&]
+         {
+             const auto path = root / L"Unicode-東京.md";
+             const std::wstring source = L"# Café 東京 😀\r\n\n**β**\rnext\n";
+             FileStamp saved;
+             Success(SaveDocument(path, source, true, nullptr, saved), "save UTF-8 BOM");
+             StoredDocument loaded;
+             Success(LoadDocument(path, loaded), "load UTF-8 BOM");
+             Require(loaded.text == source && loaded.bom && loaded.stamp == saved, "source, BOM and stamp preserved");
+             std::string bytes;
+             Success(ReadBytes(path, bytes), "read saved bytes");
+             Require(bytes.starts_with("\xEF\xBB\xBF"), "BOM bytes preserved");
+         });
+    test("Utf8.InvalidInputDoesNotReplaceOutput",
+         [&]
+         {
+             const auto path = root / L"invalid.md";
+             Success(WriteBytesAtomic(path, "\xF0\x28\x8C\x28"), "create malformed input");
+             StoredDocument loaded{L"retained", true, {}};
+             Require(FAILED(LoadDocument(path, loaded)) && loaded.text == L"retained" && loaded.bom, "invalid UTF-8 leaves output unchanged");
+             Success(WriteBytesAtomic(path, std::string("A\0B", 3)), "create NUL input");
+             Require(FAILED(LoadDocument(path, loaded)) && loaded.text == L"retained", "NUL leaves output unchanged");
+         });
+    test("Storage.AtomicConflictAndFailedSave",
+         [&]
+         {
+             const auto path = root / L"conflict.md";
+             FileStamp saved;
+             Success(SaveDocument(path, L"original", false, nullptr, saved), "create original");
+             Success(WriteBytesAtomic(path, "external"), "simulate external editor");
+             FileStamp unused;
+             Require(SaveDocument(path, L"mine", false, &saved, unused) == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH), "external conflict rejected");
+             StoredDocument loaded;
+             Success(LoadDocument(path, loaded), "read after rejected save");
+             Require(loaded.text == L"external", "external contents retained");
+             Require(FAILED(SaveDocument(root / L"missing" / L"file.md", L"mine", false, nullptr, unused)), "missing-parent failure surfaced");
+             for (const auto &entry : std::filesystem::directory_iterator(root))
+                 Require(entry.path().extension() != L".tmp", "no owned temporary leaked");
+         });
+    test("Storage.CapacityRejectedWithoutTruncation",
+         [&]
+         {
+             const auto path = root / L"oversized.md";
+             Success(WriteBytesAtomic(path, std::string(65537, 'x')), "write oversized input");
+             StoredDocument loaded{L"keep", false, {}};
+             Require(LoadDocument(path, loaded) == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE) && loaded.text == L"keep", "oversized file rejected");
+             FileStamp stamp;
+             Require(FAILED(SaveDocument(path, std::wstring(65537, L'x'), false, nullptr, stamp)), "oversized save rejected");
+         });
+    test("Settings.VersionAndFieldFallback",
+         [&]
+         {
+             Settings value;
+             value.appearance = Appearance::Paper;
+             value.view = EditorView::Split;
+             value.showOutline = false;
+             const auto round = ParseSettings(SerializeSettings(value));
+             Require(round.appearance == value.appearance && round.view == value.view && !round.showOutline, "settings round trip");
+             const auto invalid = ParseSettings("RedTilde.Settings/1\ntheme=2\nview=99\nscale=900\noutline=0\n");
+             Require(invalid.appearance == Appearance::Dark && invalid.view == EditorView::Compose && !invalid.showOutline,
+                     "field fallback isolated");
+             Require(ParseSettings("RedTilde.Settings/9\ntheme=2\n").appearance == Appearance::System, "unknown schema defaults");
+             Success(SaveSettings(root, value), "save preferences");
+             Settings loaded;
+             Success(LoadSettings(root, loaded), "reload preferences");
+             Require(loaded.appearance == Appearance::Paper, "persisted preferences");
+         });
+    test("Outline.FencesAndUnicode",
+         []
+         {
+             const auto info = AnalyzeDocument(L"# 東京\r\n```md\n# hidden\n```\n## Second ##\n~~~\n### hidden too\n~~~\n");
+             Require(info.headings.size() == 2 && info.headings[0].text == L"東京" && info.headings[1].text == L"Second", "only real ATX headings");
+             Require(info.headings[1].level == 2, "heading level retained");
+         });
+    test("Settings.AsyncLatestValueSurvivesWriterClose",
+         [&]
+         {
+             const auto directory = root / L"async-preferences";
+             SettingsWriter writer;
+             writer.Initialize(directory);
+             Settings value;
+             for (unsigned index = 0; index < 50; ++index)
+             {
+                 value.appearance = static_cast<Appearance>(index % 3);
+                 Success(writer.Submit(value), "submit bounded preference update");
+             }
+             value.appearance = Appearance::Paper;
+             value.view = EditorView::Split;
+             value.showOutline = false;
+             Success(writer.Submit(value), "submit final preference state");
+             writer.Close();
+             bool saved{};
+             for (unsigned turn = 0; turn < 400 && !saved; ++turn)
+             {
+                 Settings loaded;
+                 if (SUCCEEDED(LoadSettings(directory, loaded)))
+                     saved = loaded.appearance == Appearance::Paper && loaded.view == EditorView::Split && !loaded.showOutline;
+                 if (!saved)
+                     std::this_thread::sleep_for(std::chrono::milliseconds(5));
+             }
+             Require(saved, "latest admitted preferences persist after UI binding closes");
+         });
+    test("Math.NativeSubsetAndRejection",
+         []
+         {
+             const auto expression = ParseMath(L"x = \\frac{-b+\\sqrt{b^2-4ac}}{2a}");
+             Require(static_cast<bool>(expression), "quadratic formula parses");
+             Require(static_cast<bool>(ParseMath(L"\\sum_{i=0}^{n} i + \\alpha \\leq \\infty")), "scripts and symbols parse");
+             Require(!ParseMath(L"\\include{secrets}") && !ParseMath(L"\\frac{a}") && !ParseMath(L"x}"), "unsupported/malformed input rejected");
+             Require(!ParseMath(std::wstring(4097, L'x')), "capacity bounded");
+             Require(!ParseMath(std::wstring(30, L'{') + L"x" + std::wstring(30, L'}')), "recursion bounded");
+             const std::wstring markdown = L"a $x^2$ b $$ y=\\frac{a}{b} $$";
+             Require(EquationAt(markdown, 4) == L"x^2" && EquationAt(markdown, 20) == L" y=\\frac{a}{b} ", "caret equation extraction");
+         });
+    test("Recovery.StrictEnvelopeAndUnicode",
+         []
+         {
+             RecoverySnapshot value{L"# 東京 😀\r\n$α$\n", L"Z:\\writing\\東京.md", true, {2, 5}, 42};
+             const auto bytes = SerializeRecovery(value);
+             RecoverySnapshot parsed;
+             Success(ParseRecovery(bytes, parsed), "parse recovery envelope");
+             Require(parsed.text == value.text && parsed.originalPath == value.originalPath && parsed.bom && parsed.generation == 42 &&
+                         parsed.selection.anchor == 2 && parsed.selection.caret == 5,
+                     "source, encoding, location and selection round trip");
+             auto corrupt = bytes;
+             corrupt.back() ^= 1;
+             Require(FAILED(ParseRecovery(corrupt, parsed)) && parsed.text == value.text, "checksum failure preserves output");
+             auto corruptMetadata = bytes;
+             const auto bomAt = corruptMetadata.find(" 1 2 5 ");
+             Require(bomAt != corruptMetadata.npos, "test metadata locates the independent encoding field");
+             corruptMetadata[bomAt + 1] = '0';
+             Require(FAILED(ParseRecovery(corruptMetadata, parsed)), "checksum also protects BOM and selection metadata");
+             Require(FAILED(ParseRecovery(bytes.substr(0, bytes.size() - 1), parsed)), "truncated write rejected");
+             Require(FAILED(ParseRecovery("RedTilde.Recovery/9\n", parsed)), "future schema rejected");
+             Require(FAILED(ParseRecovery("RedTilde.Recovery/1\n99999999999999999999999 0 0 0 0 0 0\n", parsed)), "overflow rejected");
+             const RecoverySnapshot maximum{std::wstring(65536, L'界'), {}, false, {65536, 65536}, 100};
+             Success(ParseRecovery(SerializeRecovery(maximum), parsed), "maximum Unicode document fits the recovery envelope");
+             Require(parsed.text == maximum.text, "full-capacity recovery does not truncate source");
+         });
+    test("Recovery.DebounceLeaseCoalescingAndRetirement",
+         [&]
+         {
+             const auto directory = root / L"recovery-service";
+             auto wait = [](const std::function<bool()> &predicate)
+             {
+                 for (unsigned turn = 0; turn < 1000; ++turn)
+                 {
+                     if (predicate())
+                         return;
+                     std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                 }
+                 Require(false, "recovery worker timed out");
+             };
+             RecoveryService writer;
+             Success(writer.Initialize(directory), "initialize worker");
+             wait([&] { return writer.Ready(); });
+             for (unsigned index = 0; index < 50; ++index)
+                 Success(writer.Submit(RecoverySnapshot{L"draft " + std::to_wstring(index), {}, false, {0, 0}, index}), "coalesce rapid edit");
+             Success(writer.Submit(RecoverySnapshot{L"latest 😀\r\n", L"Z:\\unchanged.md", true, {0, 6}, 51}, true), "flush final state");
+             wait([&] { return writer.Settled(); });
+             Success(writer.Status(), "durable checkpoint");
+             std::filesystem::path checkpoint;
+             for (const auto &entry : std::filesystem::directory_iterator(directory / L"Recovery"))
+                 if (entry.path().extension() == L".rtd")
+                     checkpoint = entry.path();
+             Require(!checkpoint.empty(), "checkpoint exists");
+             wil::unique_handle locked(CreateFileW(checkpoint.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr));
+             Require(static_cast<bool>(locked), "hold recovery replacement lock");
+             Success(writer.Submit(RecoverySnapshot{L"blocked replacement", {}, false, {0, 0}, 52}, true), "admit failing checkpoint");
+             wait([&] { return writer.Settled(); });
+             Require(FAILED(writer.Status()), "checkpoint replacement failure is visible");
+             std::string preserved;
+             Success(ReadBytes(checkpoint, preserved), "read retained recovery after failed replacement");
+             RecoverySnapshot retained;
+             Success(ParseRecovery(preserved, retained), "old checkpoint remains complete");
+             Require(retained.text == L"latest 😀\r\n", "failed write cannot destroy the previous recoverable source");
+             locked.reset();
+             Success(writer.Submit(retained, true), "retry checkpoint after releasing lock");
+             wait([&] { return writer.Settled(); });
+             Success(writer.Status(), "successful checkpoint clears prior failure");
+             RecoveryService concurrent;
+             Success(concurrent.Initialize(directory), "second live process identity");
+             wait([&] { return concurrent.Ready(); });
+             Require(concurrent.TakeCandidates().empty(), "active leased snapshot is never offered");
+             concurrent.Stop();
+             wait([&] { return concurrent.Finished(); });
+             writer.Stop();
+             wait([&] { return writer.Finished(); });
+             RecoveryService restart;
+             Success(restart.Initialize(directory), "restart scan");
+             wait([&] { return restart.Ready(); });
+             const auto candidates = restart.TakeCandidates();
+             Require(candidates.size() == 1 && candidates[0].snapshot.text == L"latest 😀\r\n" && candidates[0].snapshot.bom,
+                     "restart discovers exact latest source");
+             Success(restart.Submit(candidates[0].snapshot, true, candidates[0].id), "adopt without overwriting original");
+             wait([&] { return restart.Settled(); });
+             Success(restart.Submit(std::nullopt, true), "matching clean save retires recovery");
+             restart.Stop();
+             wait([&] { return restart.Finished(); });
+             for (const auto &entry : std::filesystem::directory_iterator(directory / L"Recovery"))
+                 Require(entry.path().extension() != L".rtd", "clean session and adopted snapshot retired");
+             Require(FAILED(restart.Discard(L"..\\outside")), "foreign paths cannot be discarded");
+         });
+    test("Recovery.CorruptAndFutureDataQuarantined",
+         [&]
+         {
+             const auto directory = root / L"recovery-corrupt";
+             std::filesystem::create_directories(directory / L"Recovery");
+             const auto path = directory / L"Recovery" / L"session-0123456789abcdef0123456789abcdef.rtd";
+             Success(WriteBytesAtomic(path, "RedTilde.Recovery/9\nkeep these bytes"), "write future snapshot");
+             RecoveryService scanner;
+             Success(scanner.Initialize(directory), "scan unknown schema");
+             for (unsigned turn = 0; turn < 1000 && !scanner.Ready(); ++turn)
+                 std::this_thread::sleep_for(std::chrono::milliseconds(5));
+             Require(scanner.Ready() && scanner.TakeCandidates().empty(), "unknown schema never restores");
+             std::string bytes;
+             Success(ReadBytes(path.native() + L".quarantine", bytes), "quarantined bytes readable");
+             Require(bytes == "RedTilde.Recovery/9\nkeep these bytes", "unreadable snapshot is retained intact");
+             scanner.Stop();
+         });
+    test("Editor.ViewSwitchKeepsSourceSelectionHistory",
+         [&]
+         {
+             LaunchOptions launch;
+             launch.headless = true;
+             launch.dataDirectory = root;
+             Application app(launch);
+             Success(app.Initialize(), "create hidden app");
+             const auto foreground = GetForegroundWindow();
+             app.SetDocument(L"# Hello\n\nUnicode 😀 **words**\n");
+             app.Document().SetSelection({9, 16});
+             Require(app.Document().ReplaceSelection(L"世界"), "edit source");
+             const auto source = app.Document().GetText();
+             const auto selection = app.Document().GetSelection();
+             const auto snapshot = app.Document().Snapshot();
+             app.SetView(EditorView::Source);
+             app.SetView(EditorView::Split);
+             app.SetView(EditorView::Compose);
+             Require(app.Document().GetText() == source && app.Document().GetSelection() == selection, "view switch source/selection unchanged");
+             Require(app.Document().Snapshot().IsSameRevision(snapshot) && app.Document().CanUndo(), "same source revision and history");
+             Require(app.Dirty(), "edited source dirty");
+             Require(app.Document().Undo() && !app.Dirty(), "undo to saved source clears dirty");
+             Require(GetForegroundWindow() == foreground, "hidden app never acquires foreground");
+         });
+    test("Editor.SemanticFormattingUndoAndTheme",
+         [&]
+         {
+             LaunchOptions launch;
+             launch.headless = true;
+             launch.dataDirectory = root;
+             Application app(launch);
+             Success(app.Initialize(), "create formatting app");
+             app.SetDocument(L"Hello world\n");
+             app.Prepare();
+             app.Document().SetSelection({0, 5});
+             app.Execute(Command::Bold);
+             Require(app.Document().GetText() == L"**Hello** world\n", "semantic bold preserves outside source");
+             app.Execute(Command::Undo);
+             Require(app.Document().GetText() == L"Hello world\n" && !app.Dirty(), "exact semantic undo");
+             app.Execute(Command::ThemeDark);
+             Require(app.Host().GetTheme().dark, "dark applies live");
+             app.Execute(Command::ThemeLight);
+             Require(!app.Host().GetTheme().dark, "light applies live");
+             Require(app.Capture(root / L"test-compose.png"), "actual app capture");
+         });
+    test("Editor.LocalDiagramSourceAndLiteralFallback",
+         [&]
+         {
+             LaunchOptions launch;
+             launch.headless = true;
+             launch.dataDirectory = root;
+             Application app(launch);
+             Success(app.Initialize(), "create local-source app");
+             const std::wstring source = L"# Diagram\n\n```mermaid\ngraph LR\nA[Start] --> B[Done]\n```\n\n```mermaid\npie\ntitle Unsupported\n```\n";
+             app.SetDocument(source);
+             app.Prepare(256);
+             const auto semantic = app.Document().GetSemanticDocument();
+             Require(static_cast<bool>(semantic), "semantic publication exists");
+             bool diagram{};
+             for (const auto &element : semantic->Elements())
+                 if (element.role == DxUi::RichText::SemanticRole::Diagram)
+                     diagram = true;
+             Require(diagram, "supported graph becomes native diagram");
+             app.Document().SetSelection({30, 30});
+             app.Execute(Command::LocalSource);
+             app.Prepare();
+             Require(app.Document().GetSemanticSourceRegion().has_value(), "local diagram source region entered");
+             Require(app.Document().GetText() == source && !app.Dirty(), "local presentation preserves exact source/history");
+             Require(app.Document().EndSemanticSourceEdit(app.Host()), "local source exits");
+             Require(app.Document().GetText().find(L"pie\ntitle Unsupported") != std::wstring::npos, "unsupported family exact source retained");
+         });
+    test("Editor.LocalOrdinarySourceCommitCancelAndStale",
+         [&]
+         {
+             LaunchOptions launch;
+             launch.headless = true;
+             launch.dataDirectory = root;
+             Application app(launch);
+             Success(app.Initialize(), "create local draft app");
+             const std::wstring source = L"# Heading\n\nA **careful** paragraph.\n\nUntouched tail.\n";
+             app.SetDocument(source);
+             app.Prepare();
+             const auto begin = source.find(L"A **");
+             app.Document().SetSelection({begin, begin + 24});
+             app.Execute(Command::LocalSource);
+             Require(app.HasBlockDraft() && app.Document().IsReadOnly(), "ordinary source draft preserves rich document around it");
+             app.BlockDraft()->SetText(L"Changed *locally*.");
+             (void)SendMessageW(app.Window(), WM_CLOSE, 0, 0);
+             Require(IsWindow(app.Window()) && app.HasBlockDraft(), "close protects an unapplied source draft");
+             Require(app.Document().GetText() == source && !app.Dirty(), "draft does not mutate source before Apply");
+             app.Execute(Command::ApplyBlock);
+             Require(!app.HasBlockDraft() && !app.Document().IsReadOnly() && app.Dirty(), "Apply closes draft and changes source");
+             Require(app.Document().GetText() == source.substr(0, begin) + L"Changed *locally*." + source.substr(begin + 24),
+                     "only exact selected interval changes");
+             Require(app.Document().Undo() && app.Document().GetText() == source, "one transaction restores exact source");
+             app.Prepare();
+             app.Document().SetSelection({begin, begin + 24});
+             app.Execute(Command::LocalSource);
+             app.BlockDraft()->SetText(L"Cancelled");
+             app.Execute(Command::CloseDrawer);
+             Require(app.Document().GetText() == source && !app.Dirty(), "cancel leaves source and dirty state unchanged");
+             app.Prepare();
+             app.Document().SetSelection({begin, begin + 24});
+             app.Execute(Command::LocalSource);
+             app.BlockDraft()->SetText(L"Stale replacement");
+             app.Document().SetText(L"A different revision");
+             app.Execute(Command::ApplyBlock);
+             Require(app.Document().GetText() == L"A different revision" && app.HasBlockDraft(), "stale draft cannot replace a newer revision");
+             app.Execute(Command::CloseDrawer);
+         });
+    test("Editor.DeviceLossAndLocalImagePixels",
+         [&]
+         {
+             LaunchOptions launch;
+             launch.headless = true;
+             launch.dataDirectory = root;
+             Application app(launch);
+             Success(app.Initialize(), "create resource app");
+             app.SetDocument(L"# Before device loss\n\nA retained document.\n");
+             app.Prepare();
+             const auto source = app.Document().GetText();
+             app.Host().DebugSimulateDeviceLoss();
+             app.Prepare();
+             Require(app.Capture(root / L"after-device-loss.png") && app.Document().GetText() == source,
+                     "device loss recreates pixels and retains source");
+             app.SetDocument(L"# Image\n\n![Actual app capture](test-compose.png)\n", root / L"image-document.md");
+             app.Prepare(512);
+             const auto stats = app.Document().GetImageResourceStatistics();
+             Require(stats.readySources == 1 && stats.decodedBytes > 0, "relative local image decoded through worker and admitted");
+             Require(app.Capture(root / L"test-image.png"), "capture displays prepared local image");
+         });
+    test("Files.AsyncSaveRetainsEditsMadeDuringWrite",
+         [&]
+         {
+             const auto path = root / L"async-save.md";
+             FileStamp original;
+             Success(SaveDocument(path, L"before", false, nullptr, original), "create async destination");
+             LaunchOptions launch;
+             launch.headless = true;
+             launch.dataDirectory = root;
+             Application app(launch);
+             Success(app.Initialize(), "create async save app");
+             app.SetDocument(L"before", path, false, original);
+             app.Document().SetSelection({6, 6});
+             Require(app.Document().ReplaceSelection(L" saved"), "edit before Save");
+             app.Execute(Command::Save);
+             app.Document().SetSelection({12, 12});
+             Require(app.Document().ReplaceSelection(L" later"), "edit during write");
+             app.Prepare(512);
+             StoredDocument loaded;
+             Success(LoadDocument(path, loaded), "read asynchronously saved file");
+             Require(loaded.text == L"before saved", "Save writes the admitted snapshot");
+             Require(app.Document().GetText() == L"before saved later" && app.Dirty(), "later edits remain in editor and dirty");
+         });
+    test("Editor.InDocumentMathLocalSourceAndBroaderMermaid",
+         [&]
+         {
+             using namespace DxUi::RichText;
+             LaunchOptions launch;
+             launch.headless = true;
+             launch.dataDirectory = root / L"math-product";
+             Application app(launch);
+             Success(app.Initialize(), "create native math app");
+             const std::wstring source = L"# Mathematics\r\n\r\nInline $a_i^2$ stays in the line.\r\n\r\n"
+                                         L"$$\\left(\\frac{1}{2}\\right)+\\begin{bmatrix}a&b\\\\c&d\\end{bmatrix}$$\r\n";
+             app.SetDocument(source);
+             app.Prepare(1024);
+             auto semantic = app.Document().GetAcknowledgedSemanticDocument(app.Host());
+             Require(semantic && std::ranges::count(semantic->Elements(), SemanticRole::Math, &SemanticElement::role) == 2,
+                     "both inline and display equations are native document objects");
+             const auto first = source.find(L"$a_i^2$");
+             app.Document().SetSelection({first + 2, first + 2});
+             app.Execute(Command::LocalSource);
+             Require(app.HasBlockDraft() && app.BlockDraft()->GetText() == L"$a_i^2$",
+                     "F2 targets exact math delimiters rather than the whole paragraph");
+             app.BlockDraft()->SetText(L"$a_i^3$");
+             app.Execute(Command::ApplyBlock);
+             Require(app.Document().GetText().find(L"$a_i^3$") != std::wstring::npos && app.Document().Undo() && app.Document().GetText() == source,
+                     "local equation edit and undo preserve the rest and all original EOLs");
+             app.Prepare(1024);
+             app.Host().DebugSimulateDeviceLoss();
+             app.Prepare(1024);
+             Require(app.Document().GetAcknowledgedSemanticDocument(app.Host()) && app.Capture(root / L"math-device-loss.png"),
+                     "math survives native device replacement");
+             for (const auto body : {L"stateDiagram-v2\ndirection LR\n[*] --> Draft\nDraft --> Saved : Save\n",
+                                     L"classDiagram\ndirection LR\nDocument <|-- Markdown\nMarkdown : +save()\n"})
+             {
+                 const auto diagram = L"```mermaid\n" + std::wstring(body) + L"```\n";
+                 app.SetDocument(diagram);
+                 app.Prepare(1024);
+                 semantic = app.Document().GetAcknowledgedSemanticDocument(app.Host());
+                 Require(semantic && std::ranges::count(semantic->Elements(), SemanticRole::Diagram, &SemanticElement::role) == 1 &&
+                             app.Document().GetText() == diagram,
+                         "state/class graph renders without modifying source");
+                 app.Document().SetSelection({20, 20});
+                 app.Execute(Command::LocalSource);
+                 Require(app.Document().GetSemanticSourceRegion().has_value(), "broader Mermaid uses native exact-source editing");
+                 app.Execute(Command::LocalSource);
+             }
+             app.SetDocument(L"Unsupported $\\input{private}$ stays exact.\n");
+             app.Prepare(1024);
+             semantic = app.Document().GetAcknowledgedSemanticDocument(app.Host());
+             Require(semantic && !semantic->Diagnostics().empty() && semantic->Map().Display().find(L"$\\input{private}$") != std::wstring::npos,
+                     "unsupported equation remains literal with diagnostics");
+             const auto oversized = L"$" + std::wstring(65534u, L'x') + L"$";
+             app.SetDocument(oversized);
+             app.Prepare(1024);
+             app.Document().SetSelection({65000, 65000});
+             (void)app.Document().OnKeyDown(app.Host(), VK_LEFT, 0);
+             app.Document().changedSelection(); // The same handler, without swallowing an unexpected callback exception.
+             Require(app.Document().GetText() == oversized && app.EquationPreviewText().empty(),
+                     "maximum-capacity oversized math stays source-exact and cannot overflow the inspector");
+         });
+    test("Recovery.LocalDraftCancelPreviewRestoreProtectsOriginal",
+         [&]
+         {
+             const auto directory = root / L"recovery-product";
+             std::filesystem::create_directories(directory);
+             const auto original = directory / L"original.md";
+             FileStamp identity;
+             Success(SaveDocument(original, L"Original writing", true, nullptr, identity), "save original file");
+             LaunchOptions launch;
+             launch.headless = true;
+             launch.dataDirectory = directory;
+             auto app = std::make_unique<Application>(launch);
+             Success(app->Initialize(), "create recoverable draft app");
+             app->SetDocument(L"Original writing", original, true, identity);
+             app->Prepare();
+             app->Document().SetSelection({0, 8});
+             app->Execute(Command::LocalSource);
+             app->BlockDraft()->SetText(L"Unapplied 東京 😀");
+             app->CheckpointRecovery(true);
+             auto settle = [&]
+             {
+                 for (unsigned turn = 0; turn < 1000 && !app->RecoverySettled(); ++turn)
+                 {
+                     app->Prepare();
+                     std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                 }
+                 Require(app->RecoverySettled(), "draft recovery settled");
+             };
+             settle();
+             Require(app->Document().GetText() == L"Original writing" && !app->Dirty(), "checkpoint does not apply a local draft to live source");
+             app->Execute(Command::CloseDrawer);
+             settle();
+             for (const auto &entry : std::filesystem::directory_iterator(directory / L"Recovery"))
+                 Require(entry.path().extension() != L".rtd", "cancelling a clean draft retires its proposed recovery");
+             app->Execute(Command::LocalSource);
+             app->BlockDraft()->SetText(L"Unapplied 東京 😀");
+             app->CheckpointRecovery(true);
+             settle();
+             app.reset();
+             // Wait for the stopped owner's lease to close, never join the UI or
+             // steal a live session. A process crash closes the same lease in OS.
+             for (unsigned turn = 0; turn < 1000; ++turn)
+             {
+                 bool leased{};
+                 for (const auto &entry : std::filesystem::directory_iterator(directory / L"Recovery"))
+                     if (entry.path().extension() == L".lease")
+                     {
+                         wil::unique_handle probe(CreateFileW(entry.path().c_str(), GENERIC_READ, 0, nullptr, OPEN_EXISTING, 0, nullptr));
+                         leased = leased || !probe;
+                     }
+                 if (!leased)
+                     break;
+                 std::this_thread::sleep_for(std::chrono::milliseconds(5));
+             }
+             app = std::make_unique<Application>(launch);
+             Success(app->Initialize(), "restart app with prior draft");
+             app->Prepare(1024);
+             Require(app->RecoveryCount() == 1, "one prior session available for review");
+             app->Execute(Command::Recovery);
+             app->Execute(Command::LaterRecovery);
+             Require(app->RecoveryCount() == 1 && !app->Dirty(), "keeping for later preserves snapshot and current document");
+             app->Execute(Command::RestoreRecovery);
+             Require(app->Document().GetText() == L"Unapplied 東京 😀 writing" && app->Dirty() && app->RequiresSaveAs(),
+                     "explicit restore produces a dirty copy including the unapplied draft");
+             Require(app->Host().GetFocusControl() == &app->Document(), "restore returns logical keyboard routing to the editor");
+             StoredDocument unchanged;
+             Success(LoadDocument(original, unchanged), "read original after recovery");
+             Require(unchanged.text == L"Original writing" && unchanged.bom, "recovery never overwrites original Markdown");
+         });
+    test("Recovery.DiscardFailureRetainsCandidateAndRetryClearsError",
+         [&]
+         {
+             const auto directory = root / L"recovery-discard";
+             std::filesystem::create_directories(directory / L"Recovery");
+             const auto snapshot = directory / L"Recovery" / L"session-fedcba9876543210fedcba9876543210.rtd";
+             Success(WriteBytesAtomic(snapshot, SerializeRecovery({L"Retained writing 東京", {}, false, {0, 0}, 1})), "seed inactive recovery");
+             LaunchOptions launch;
+             launch.headless = true;
+             launch.dataDirectory = directory;
+             Application app(launch);
+             Success(app.Initialize(), "open recovery review");
+             app.Prepare(1024);
+             Require(app.RecoveryCount() == 1, "inactive candidate available");
+             const auto current = app.Document().GetText();
+             app.Execute(Command::Recovery);
+             wil::unique_handle locked(CreateFileW(snapshot.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr));
+             Require(static_cast<bool>(locked), "prevent candidate deletion");
+             auto settle = [&]
+             {
+                 for (unsigned turn = 0; turn < 1000 && !app.RecoverySettled(); ++turn)
+                 {
+                     app.Prepare();
+                     std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                 }
+                 app.Prepare();
+                 Require(app.RecoverySettled(), "discard worker settled");
+             };
+             app.Execute(Command::DiscardRecovery);
+             settle();
+             Require(app.RecoveryCount() == 1 && FAILED(app.RecoveryStatus()) && std::filesystem::exists(snapshot),
+                     "failed discard retains the reviewable candidate and reports failure");
+             locked.reset();
+             app.Execute(Command::DiscardRecovery);
+             settle();
+             Require(app.RecoveryCount() == 0 && SUCCEEDED(app.RecoveryStatus()) && !std::filesystem::exists(snapshot),
+                     "successful retry removes the candidate and clears the operation error");
+             Require(app.Document().GetText() == current && !app.Dirty(), "discard never replaces the active document");
+             Require(app.Host().GetFocusControl() == &app.Document(), "discarding the final snapshot returns logical focus to the editor");
+         });
+    report << "\n  ],\n  \"passed\": " << passed << ", \"failed\": " << failed << "\n}\n";
+    return failed ? 1 : 0;
+}
+} // namespace RedTilde

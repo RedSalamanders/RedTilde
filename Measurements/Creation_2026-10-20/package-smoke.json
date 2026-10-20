@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "archive": "RedTilde-0.1.0-experimental-x64-20261020-203133-242.zip",
+  "archiveSha256": "72F936C047892CEAE530556880F550500321C0C0CEE39112151810CC8FE4F64C",
+  "binarySha256": "F067F550068DFA3F7EAAA73FFBECADE9251901AB67AE1358BF6BF69514072A85",
+  "workingDirectory": "clean extracted package directory",
+  "passed": 14,
+  "failed": 0,
+  "nativeArchitecture": "x64",
+  "freshVirtualMachine": false,
+  "runtimeRedistributableBundled": false
+}

@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "sourceIdentity": "f371c27f926f9840152596d796c11ceb7bbb8340cc1af366ac1ad610d557ac47",
+  "dependency": "29fc7897b21db3cd1d27f7ec52d6756fe9af36c0",
+  "binarySha256": "F067F550068DFA3F7EAAA73FFBECADE9251901AB67AE1358BF6BF69514072A85",
+  "platform": "x64",
+  "configuration": "Release",
+  "hostArchitecture": "X64",
+  "suite": "All",
+  "interactive": false,
+  "environment": {
+    "processor": "AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD",
+    "logicalProcessors": 32,
+    "renderMode": "hidden native ControlHost, default device",
+    "osVersion": "Microsoft Windows NT 10.0.26300.0"
+  },
+  "startedUtc": "2026-10-20T18:29:45.4135474Z",
+  "passed": true,
+  "results": [
+    {
+      "scope": "Core",
+      "passed": 14,
+      "failed": 0
+    },
+    {
+      "latestStateDurable": true,
+      "scope": "PreferencesProcessExit"
+    },
+    {
+      "metrics": {
+        "scenario": "sample-richtext-native-hidden",
+        "cleanFrames": 60,
+        "cleanRenderFps": 125.856,
+        "dirtyFrames": 120,
+        "dirtyEditAndRenderMs": 0.318525,
+        "workingSetBytes": 55910400,
+        "privateBytes": 68038656,
+        "dpi": 144,
+        "widthPx": 2040,
+        "heightPx": 1350,
+        "qualification": "initial application baseline only; forced native renders, not presentation FPS or a paired non-regression claim"
+      },
+      "scope": "PerformanceBaseline"
+    },
+    {
+      "scope": "Capture",
+      "sha256": "3D5AFE1D2BF9273E6821B1556BC7555F60E26C0483C9DFAFE26E800779761CEE",
+      "scenario": "compose-light"
+    },
+    {
+      "scope": "Capture",
+      "sha256": "5E5ED7FF98676BA6CF993E59F9BDC97D8B4DFEA15C1619DD3B86EE13D6CA2166",
+      "scenario": "compose-dark"
+    },
+    {
+      "scope": "Capture",
+      "sha256": "136090CC376098ED3525DC47A25573A56319D8ACCAC821CB225F7EAD789BA7F3",
+      "scenario": "source"
+    },
+    {
+      "scope": "Capture",
+      "sha256": "A0565D57BFA28BE4A3EAEC3F68BC987CEF66C4F81DF26008ABE56FC014A572CB",
+      "scenario": "split"
+    },
+    {
+      "scope": "Capture",
+      "sha256": "589AA9E827C98755C8FF940C52E627219575FE180E7C3258CE3B76D89924CD48",
+      "scenario": "context-selection"
+    },
+    {
+      "scope": "Capture",
+      "sha256": "A72AB258144E83612EABAD7211AF221056D57A1B4F9C372F5CC16BB306641621",
+      "scenario": "local-source"
+    },
+    {
+      "scope": "Capture",
+      "sha256": "3904DC7EDAC6AAD3304DF776005B8DCA785E24B0D5AA313BC5748900DB839937",
+      "scenario": "settings"
+    },
+    {
+      "scope": "Capture",
+      "sha256": "53E5BF9FF3D40FC95EBAEFD314BBFEE9B5C52A7829D721BBCAEA1D933FF36A67",
+      "scenario": "math"
+    },
+    {
+      "scope": "Capture",
+      "sha256": "033C33CFA7A894A5980BD9EF2768BEFA640BE3900C7B22CA2611EE72ACF8801E",
+      "scenario": "narrow"
+    },
+    {
+      "scope": "Capture",
+      "sha256": "452BC0E5CEE92C84275F5CCDE33DBB0E893BC03FDD01BF77B2B0F931E6013452",
+      "scenario": "high-contrast"
+    },
+    {
+      "pendingMarker": true,
+      "scope": "Crash",
+      "exitCode": -531475201,
+      "dumpSha256": "7E168D2224682561F817CA1A9088D38559FCB1B28F5D61AB25221F19E2632EC6"
+    }
+  ],
+  "finishedUtc": "2026-10-20T18:29:53.1399008Z"
+}

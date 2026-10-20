@@ -1,0 +1,4 @@
+interface:
+  display_name: "Test Harness"
+  short_description: "Develop and validate RedTilde test harness"
+  default_prompt: "Use $test-harness to complete this RedTilde change and validate the affected behavior."
