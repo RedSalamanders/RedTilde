@@ -30,3 +30,9 @@ same-volume move or full independent copy verification; a timestamp or dead PID 
 RedTilde preserves exact build/source/runtime checks. Capture scenarios use separate data directories; stateful crash/restart checks intentionally reuse their one fixture. Owned harness timeouts retain stdout/stderr before reporting failure.
 
 Build logs also use fresh timestamp/GUID names under `.build/logs` so a later build cannot overwrite a failure diagnosis.
+
+Inventory attributes and creation/write times come from pinned file handles, rather than cached directory entries.
+Compare inventories in canonical relative-path and stream-name order without relaxing any identity, hash, attribute,
+time or ACL check. Native moves retain the exact intent and observed post-move inventories before comparison; a
+mismatch retains both snapshots and the payload and refuses completion. Independent regression controls keep
+stale provider metadata and reverse enumeration while verifying the actual file and directory metadata exactly.
