@@ -216,6 +216,12 @@ try{
         Remove-Variable -Name ScopedGateCalls,ScopedGateRoot,ScopedGateMutation,ScopedGateState,ScopedGateError -Scope Global
     }
 
+    Case 'tooling identity includes the selected formatter bytes' {
+        Import-Module (Join-Path $root 'Build/Toolchain.psm1') -Force
+        $formatter=Get-RedTildeClangFormat
+        $expected='formatter='+$formatter+':'+(Get-FileHash -LiteralPath $formatter).Hash
+        Assert ($expected -cin @(Get-ScopedEnvironmentInputs -Tooling)) 'Selected formatter bytes were omitted'
+    }
     Case 'retained CI proof requires all six actual successful native executions' {
         $expected=@($manifest.prCoverage|Where-Object{$_.PSObject.Properties['platform']}|ForEach-Object check)
         $jobs=@($expected|ForEach-Object{[pscustomobject]@{name=$_;status='completed';conclusion='success';steps=@([pscustomobject]@{name='Full native qualification';conclusion='success'})}})
