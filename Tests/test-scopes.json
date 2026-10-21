@@ -1,0 +1,462 @@
+{
+  "version": 1,
+  "project": "RedTilde",
+  "repository": "RedSalamanders/RedTilde",
+  "defaultBranch": "main",
+  "nativeInventory": "Tests/NativeInventory.json",
+  "runtimeFiles": [],
+  "scopes": [
+    {
+      "name": "Storage",
+      "native": true,
+      "reuse": true
+    },
+    {
+      "name": "Settings",
+      "native": true,
+      "reuse": true
+    },
+    {
+      "name": "Recovery",
+      "native": true,
+      "reuse": true
+    },
+    {
+      "name": "Editor",
+      "native": true,
+      "reuse": false
+    },
+    {
+      "name": "Preferences",
+      "native": true,
+      "reuse": true
+    },
+    {
+      "name": "RecoveryRestart",
+      "native": true,
+      "reuse": false
+    },
+    {
+      "name": "Performance",
+      "native": true,
+      "reuse": false
+    },
+    {
+      "name": "Captures",
+      "native": true,
+      "reuse": false
+    },
+    {
+      "name": "Crash",
+      "native": true,
+      "reuse": false
+    },
+    {
+      "name": "Sanitizer",
+      "native": true,
+      "reuse": false,
+      "configurations": [
+        "ASan Debug"
+      ]
+    },
+    {
+      "name": "Tooling",
+      "native": false,
+      "reuse": true,
+      "commands": [
+        {
+          "path": "validate.ps1",
+          "arguments": []
+        }
+      ]
+    },
+    {
+      "name": "Format",
+      "native": false,
+      "reuse": true,
+      "commands": [
+        {
+          "path": "format.ps1",
+          "arguments": [
+            "-Check"
+          ]
+        }
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "pattern": "Common/Storage.cpp",
+      "scopes": [
+        "Storage",
+        "Recovery",
+        "RecoveryRestart"
+      ],
+      "reason": "Unicode and atomic storage; recovery serialization and process restart consumers"
+    },
+    {
+      "pattern": "Common/Settings.cpp",
+      "scopes": [
+        "Settings",
+        "Preferences",
+        "Editor"
+      ],
+      "reason": "settings model, durable process exit and live editor appearance"
+    },
+    {
+      "pattern": "Common/Recovery.cpp",
+      "scopes": [
+        "Recovery",
+        "RecoveryRestart",
+        "Editor"
+      ],
+      "reason": "recovery envelopes, process restart and editor draft/offer integration"
+    },
+    {
+      "pattern": "Common/DocumentInfo.cpp",
+      "scopes": [
+        "Editor"
+      ],
+      "reason": "document-derived outline and editor integration"
+    },
+    {
+      "pattern": "Common/CrashHandler.cpp",
+      "scopes": [
+        "*"
+      ],
+      "reason": "crash installation is shared process bootstrap"
+    },
+    {
+      "pattern": "Common/Storage.h",
+      "scopes": [
+        "Storage",
+        "Recovery",
+        "RecoveryRestart"
+      ],
+      "reason": "Unicode and atomic storage; recovery serialization and process restart consumers"
+    },
+    {
+      "pattern": "Common/Settings.h",
+      "scopes": [
+        "Settings",
+        "Preferences",
+        "Editor"
+      ],
+      "reason": "settings model, durable process exit and live editor appearance"
+    },
+    {
+      "pattern": "Common/Recovery.h",
+      "scopes": [
+        "Recovery",
+        "RecoveryRestart",
+        "Editor"
+      ],
+      "reason": "recovery envelopes, process restart and editor draft/offer integration"
+    },
+    {
+      "pattern": "Common/DocumentInfo.h",
+      "scopes": [
+        "Editor"
+      ],
+      "reason": "document-derived outline and editor integration"
+    },
+    {
+      "pattern": "Common/CrashHandler.h",
+      "scopes": [
+        "*"
+      ],
+      "reason": "crash installation is shared process bootstrap"
+    },
+    {
+      "pattern": "RedTilde/**",
+      "scopes": [
+        "*"
+      ],
+      "reason": "application ownership, shared bootstrap, native command routing and presentation"
+    },
+    {
+      "pattern": "res/**",
+      "scopes": [
+        "*"
+      ],
+      "reason": "embedded chrome, product resources and capture inputs"
+    },
+    {
+      "pattern": "Tests/Application.Tests.Core.cpp",
+      "scopes": [
+        "Storage",
+        "Settings",
+        "Recovery",
+        "Editor",
+        "Tooling"
+      ],
+      "reason": "native behavioral dispatcher and reviewed case partition"
+    },
+    {
+      "pattern": "Tests/Application.Tests.Performance.cpp",
+      "scopes": [
+        "Editor",
+        "Performance",
+        "Tooling"
+      ],
+      "reason": "native completed-frame/resource functions are called by Editor cases and the measurement smoke"
+    },
+    {
+      "pattern": "Tests/*.ps1",
+      "scopes": [
+        "Tooling"
+      ],
+      "reason": "independent numerical/evidence/tooling regressions"
+    },
+    {
+      "pattern": "Tests/NativeInventory.json",
+      "scopes": [
+        "Tooling"
+      ],
+      "reason": "native file membership and scenario inventory"
+    },
+    {
+      "pattern": "Tests/native-case-catalog.json",
+      "scopes": [
+        "Storage",
+        "Settings",
+        "Recovery",
+        "Editor",
+        "Tooling"
+      ],
+      "reason": "source/list/execution union must equal the reviewed case partition"
+    },
+    {
+      "pattern": "**/*.cpp",
+      "scopes": [
+        "Format"
+      ],
+      "reason": "native source formatting"
+    },
+    {
+      "pattern": "**/*.h",
+      "scopes": [
+        "Format"
+      ],
+      "reason": "native header formatting"
+    },
+    {
+      "pattern": ".clang-format",
+      "scopes": [
+        "Format"
+      ],
+      "reason": "formatter policy"
+    },
+    {
+      "pattern": ".agents/**",
+      "scopes": [
+        "Tooling"
+      ],
+      "reason": "repository guidance validation"
+    },
+    {
+      "pattern": "validate*.ps1",
+      "scopes": [
+        "Tooling"
+      ],
+      "reason": "independent validators"
+    },
+    {
+      "pattern": "format.ps1",
+      "scopes": [
+        "Format",
+        "Tooling"
+      ],
+      "reason": "formatter and discovery contract"
+    },
+    {
+      "pattern": "Tests/Tooling.Tests.ScopedTesting.ps1",
+      "scopes": [
+        "Tooling"
+      ],
+      "reason": "scope-selection/evidence/iteration/public-entrypoint regressions"
+    },
+    {
+      "pattern": "Build/**",
+      "scopes": [
+        "*"
+      ],
+      "reason": "shared build, dependency, runner or scope policy"
+    },
+    {
+      "pattern": "Dependencies/**",
+      "scopes": [
+        "*"
+      ],
+      "reason": "shared build, dependency, runner or scope policy"
+    },
+    {
+      "pattern": "Directory.Build.*",
+      "scopes": [
+        "*"
+      ],
+      "reason": "shared build, dependency, runner or scope policy"
+    },
+    {
+      "pattern": "*.vcxproj",
+      "scopes": [
+        "*"
+      ],
+      "reason": "shared build, dependency, runner or scope policy"
+    },
+    {
+      "pattern": "*.sln",
+      "scopes": [
+        "*"
+      ],
+      "reason": "shared build, dependency, runner or scope policy"
+    },
+    {
+      "pattern": "test.ps1",
+      "scopes": [
+        "*"
+      ],
+      "reason": "shared build, dependency, runner or scope policy"
+    },
+    {
+      "pattern": "build.ps1",
+      "scopes": [
+        "*"
+      ],
+      "reason": "shared build, dependency, runner or scope policy"
+    },
+    {
+      "pattern": "restore-dxui.ps1",
+      "scopes": [
+        "*"
+      ],
+      "reason": "shared build, dependency, runner or scope policy"
+    },
+    {
+      "pattern": "Test-Changes.ps1",
+      "scopes": [
+        "*"
+      ],
+      "reason": "shared build, dependency, runner or scope policy"
+    },
+    {
+      "pattern": "Tests/test-scopes.json",
+      "scopes": [
+        "*"
+      ],
+      "reason": "shared build, dependency, runner or scope policy"
+    }
+  ],
+  "toolingCommands": [
+    "validate.ps1",
+    "format.ps1"
+  ],
+  "prCoverage": [
+    {
+      "check": "tooling",
+      "scopes": [
+        "Tooling",
+        "Format"
+      ]
+    },
+    {
+      "check": "native (x64, Debug)",
+      "platform": "x64",
+      "configuration": "Debug",
+      "scopes": [
+        "Storage",
+        "Settings",
+        "Recovery",
+        "Editor",
+        "Preferences",
+        "RecoveryRestart",
+        "Performance",
+        "Captures",
+        "Crash"
+      ]
+    },
+    {
+      "check": "native (x64, Release)",
+      "platform": "x64",
+      "configuration": "Release",
+      "scopes": [
+        "Storage",
+        "Settings",
+        "Recovery",
+        "Editor",
+        "Preferences",
+        "RecoveryRestart",
+        "Performance",
+        "Captures",
+        "Crash"
+      ]
+    },
+    {
+      "check": "native (x64, ASan Debug)",
+      "platform": "x64",
+      "configuration": "ASan Debug",
+      "scopes": [
+        "Storage",
+        "Settings",
+        "Recovery",
+        "Editor",
+        "Preferences",
+        "RecoveryRestart",
+        "Performance",
+        "Captures",
+        "Crash",
+        "Sanitizer"
+      ]
+    },
+    {
+      "check": "native (ARM64, Debug)",
+      "platform": "ARM64",
+      "configuration": "Debug",
+      "scopes": [
+        "Storage",
+        "Settings",
+        "Recovery",
+        "Editor",
+        "Preferences",
+        "RecoveryRestart",
+        "Performance",
+        "Captures",
+        "Crash"
+      ]
+    },
+    {
+      "check": "native (ARM64, Release)",
+      "platform": "ARM64",
+      "configuration": "Release",
+      "scopes": [
+        "Storage",
+        "Settings",
+        "Recovery",
+        "Editor",
+        "Preferences",
+        "RecoveryRestart",
+        "Performance",
+        "Captures",
+        "Crash"
+      ]
+    },
+    {
+      "check": "native (ARM64, ASan Debug)",
+      "platform": "ARM64",
+      "configuration": "ASan Debug",
+      "scopes": [
+        "Storage",
+        "Settings",
+        "Recovery",
+        "Editor",
+        "Preferences",
+        "RecoveryRestart",
+        "Performance",
+        "Captures",
+        "Crash",
+        "Sanitizer"
+      ]
+    }
+  ],
+  "prWorkflowDigest": "88ee6a4ce6332d84134df2ff7f1f3be59d71b11bc4919e0d376d25ce0d42d1e4"
+}

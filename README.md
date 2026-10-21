@@ -25,12 +25,17 @@ not build inputs.
 .\build.ps1 -Configuration Debug
 .\.build\x64\Debug\RedTilde.exe
 .\.build\x64\Debug\RedTilde.exe C:\Notes\idea.md
-.\test.ps1 -Configuration Debug -SkipBuild
 .\Test-Changes.ps1 -Explain
+.\Test-Changes.ps1
 ```
 
 `build.ps1` also accepts `-Platform ARM64` and `-Configuration Release` or `'ASan Debug'`.
 ARM64 runtime tests require a native ARM64 computer. Build/test products are never committed.
+
+Everyday testing selects affected scopes from the last successful default run; unchanged input selects no tests.
+Use `Test-Changes.ps1 -Mode PrePush` to account for local and matching PR obligations without duplicating
+identical CI tests, or `-Mode Full` for an explicit full profile. Pending CI is not a pass. See the
+[test guide](Tests/README.md) for explicit scope selection and exact successful-result reuse.
 
 ## Writing
 

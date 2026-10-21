@@ -2,14 +2,14 @@
   "schemaVersion": 1,
   "files": [
     {
-      "path": "Tests/Scope.Tests.Core.cpp",
+      "path": "Tests/Application.Tests.Core.cpp",
       "suite": "Core",
       "executable": "RedTilde.exe",
       "arguments": ["--self-test"],
       "interactive": false
     },
     {
-      "path": "Tests/Scope.Tests.Performance.cpp",
+      "path": "Tests/Application.Tests.Performance.cpp",
       "suite": "Performance",
       "executable": "RedTilde.exe",
       "arguments": ["--performance-probe"],
