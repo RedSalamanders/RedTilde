@@ -2,6 +2,8 @@
 
 **Words, beautifully in flow.** A native Windows Markdown editor in the RedSalamander, RedXe and RedPrism family.
 
+Source repository: [RedSalamanders/RedTilde](https://github.com/RedSalamanders/RedTilde).
+
 <img src="res/RedTilde.png" alt="RedTilde red tilde icon" width="128" />
 
 RedTilde keeps a single Markdown source and undo history while you switch between **Compose**, **Source** and
