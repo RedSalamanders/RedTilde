@@ -85,3 +85,7 @@ The [remaining-control investigation](Measurements/S5_Controls_2026-10-21/README
 caption writes and adds bounded phase/idle diagnostics. Six builds, 81 x64 cases and 192 newly audited processes
 pass local checks. Noisy controls and a retained small positive Compose frame signal keep performance acceptance
 open; the experimental and hardware/upstream status is unchanged.
+
+## Recording changes
+
+Follow the [Changes workflow](Changes/README.md): validate while editing, then fold before PrePush/final handoff and immediately after integration, even for one fragment.

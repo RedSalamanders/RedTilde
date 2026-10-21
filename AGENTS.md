@@ -38,10 +38,22 @@ DxUi controls, DirectWrite and Direct2D. Read [Specs/README.md](Specs/README.md)
 
 ## Workflow
 
+### Drive-root output policy
+
+Do not create scratch, caches, evidence, copied checkouts, or other output directories directly at a drive root.
+Use repository-local generated outputs or an existing approved workspace. The only permitted new drive-root
+output name is `<Project>.Perf` (for example `RedTilde.Perf`, `RedSalamander.Perf`, or `RedPrism.Perf`), and the
+user must explicitly authorize the exact path before its first creation or initialization. A matching name,
+environment variable, low disk space, or authorization for another drive/project is not authorization.
+Keep outputs beneath the approved root; do not invent sibling root folders. Preserve runner-specific ownership
+markers and authorization. Historical cleanup inventories and preserves useful evidence/recovery data, checks
+process use, repairs live junction/worktree references, and verifies preservation before removal. Never follow
+junctions during cleanup or leave compatibility junctions at forbidden old roots.
+
 Keep multi-step work in one indexed WIP plan. Durable behavior belongs in domain specs, not the plan. Move a
 plan to Done only when its implementation, tests and documentation are complete. Keep upstream, physical
 IME/AT, interactive focus, native ARM64 and release gates explicit; a cross-build is not a runtime pass.
-Record changes as one fragment under `Changes/`; do not hand-edit a generated changelog.
+
 
 Use `Test-Changes.ps1 -Explain` and affected testing while editing. `-Mode PrePush` accounts for enabled CI and
 remaining local obligations. Never reuse evidence without the exact source, pin, toolchain, binary and scenario
@@ -65,3 +77,12 @@ Read the appropriate skill under `.agents/skills/`:
 | [settings-crashes](.agents/skills/settings-crashes/SKILL.md) | Live settings, minidumps and restart recovery |
 | [test-harness](.agents/skills/test-harness/SKILL.md) | Deterministic scenarios, captures and evidence |
 | [spec-workflow](.agents/skills/spec-workflow/SKILL.md) | Contracts, WIP/Done and truthful capabilities |
+
+## Changes workflow
+
+Record each change as one dated Markdown fragment under `Changes/`; follow [Changes/README.md](Changes/README.md)
+and [Specs/Core/Core_Changes.md](Specs/Core/Core_Changes.md). Do not hand-edit generated `CHANGELOG.md` entries.
+Run `Tools/Test-Changelog.ps1` while editing. Before PrePush and final handoff, and immediately after every
+merge/rebase that introduces fragments, run `Tools/Fold-Changelog.ps1` and then `Tools/Fold-Changelog.ps1 -Check`,
+even for one fragment. Include the generated changelog and fragment removals in the current change; do not wait
+for release batches or a separate cleanup PR. Validation is read-only; `-WhatIf` previews folding without writes.

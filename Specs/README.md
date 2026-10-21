@@ -16,3 +16,5 @@ in `Dependencies/DxUi.lock.json`. An intended requirement is not evidence that t
 | [Performance](Testing/Testing_Performance.md) | Completed-frame pairs, provenance and native resource lifecycle |
 
 Active sequencing is indexed in [Plans/WIP](Plans/WIP/README.md); completed records live in [Plans/Done](Plans/Done/README.md).
+
+The [Changes workflow](Core/Core_Changes.md) owns fragment format, validation and immediate folding before PrePush/final handoff and after integration.
