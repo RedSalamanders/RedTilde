@@ -47,11 +47,17 @@ Check 'Six build configurations and native inventory' {
         if (@($project.SelectNodes('//*[local-name()="ProjectConfiguration"]') | Where-Object Include -eq "$configuration|$platform").Count -ne 1) { throw "Missing $configuration|$platform" }
     } }
     foreach ($file in Get-ChildItem (Join-Path $PSScriptRoot 'Tests') -Filter '*.cpp') {
-        if ($file.Name -notmatch '^Scope\.Tests\..+\.cpp$') { throw "Invalid active native test name: $($file.Name)" }
+        if ($file.Name -notmatch '^[A-Za-z][A-Za-z0-9]*\.Tests\..+\.cpp$') { throw "Invalid active native test name: $($file.Name)" }
     }
     $inventory=Get-Content (Join-Path $PSScriptRoot 'Tests/NativeInventory.json') -Raw | ConvertFrom-Json
     $actual=@(Get-ChildItem (Join-Path $PSScriptRoot 'Tests') -Filter '*.cpp' | ForEach-Object { 'Tests/'+$_.Name })
     if (Compare-Object @($inventory.files.path) $actual) { throw 'Native test inventory does not match active files.' }
+}
+Check 'Scope contracts and public runner' {
+    Import-Module (Join-Path $PSScriptRoot 'Build/ScopedTesting.psm1') -Force
+    [void](Assert-ScopedTestNames $PSScriptRoot)
+    & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.ScopedTesting.ps1')
+    if($LASTEXITCODE -ne 0){throw 'Scoped-testing regressions failed.'}
 }
 Check 'PowerShell syntax' {
     $files=@(Get-ChildItem $PSScriptRoot -File | Where-Object Extension -in @('.ps1','.psm1'))

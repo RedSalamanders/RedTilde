@@ -12,7 +12,7 @@ $source=Get-RedTildeSourceIdentity -Root $PSScriptRoot
 if(-not $build.passed -or $build.sourceIdentity -cne $source -or $build.binarySha256 -cne (Get-FileHash $exe).Hash) { throw 'Rebuild the current Release source before measuring.' }
 $fixture=Join-Path $PSScriptRoot 'docs/examples/s5-performance.md'
 $inputs=[ordered]@{}
-foreach($file in @('Tests/Scope.Tests.Performance.cpp','RedTilde/Main.cpp','RedTilde/EditDiagnostics.h','performance-paired.ps1','Build/Performance.psm1','Build/Harness.psm1','docs/examples/s5-performance.md')) {
+foreach($file in @('Tests/Application.Tests.Performance.cpp','RedTilde/Main.cpp','RedTilde/EditDiagnostics.h','performance-paired.ps1','Build/Performance.psm1','Build/Harness.psm1','docs/examples/s5-performance.md')) {
     $inputs[$file]=(Get-FileHash (Join-Path $PSScriptRoot $file)).Hash
 }
 $compiler=Get-RedTildeCompilerProfile -Root $PSScriptRoot

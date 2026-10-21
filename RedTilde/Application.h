@@ -226,6 +226,14 @@ class Application
 };
 [[nodiscard]] std::wstring Resource(unsigned id);
 [[nodiscard]] std::wstring SampleDocument();
-int RunCoreTests(const std::filesystem::path &root);
+enum class CoreTestScope
+{
+    All,
+    Storage,
+    Settings,
+    Recovery,
+    Editor
+};
+int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope = CoreTestScope::All, bool listOnly = false);
 int RunPerformanceProbe(Application &app, const LaunchOptions &options);
 } // namespace RedTilde

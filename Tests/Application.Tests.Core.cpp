@@ -30,16 +30,37 @@ std::wstring WindowCaption(HWND window)
     return std::wstring(text.data(), static_cast<std::size_t>(length));
 }
 } // namespace
-int RunCoreTests(const std::filesystem::path &root)
+int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool listOnly)
 {
     std::filesystem::create_directories(root);
     std::ofstream report(root / L"tests.json", std::ios::binary);
     report << "{\n  \"tests\": [\n";
-    unsigned passed{}, failed{};
+    unsigned passed{}, failed{}, selected{}, registered{};
     auto test = [&](std::string_view name, const std::function<void()> &run)
     {
-        if (passed + failed)
+        ++registered;
+        const auto prefix = name.substr(0, name.find('.'));
+        CoreTestScope owner{};
+        if (prefix == "Utf8" || prefix == "Storage" || prefix == "Files")
+            owner = CoreTestScope::Storage;
+        else if (prefix == "Settings")
+            owner = CoreTestScope::Settings;
+        else if (prefix == "Recovery")
+            owner = CoreTestScope::Recovery;
+        else if (prefix == "Editor" || prefix == "Window" || prefix == "Outline" || prefix == "Math" || prefix == "Performance" ||
+                 prefix == "Rendering")
+            owner = CoreTestScope::Editor;
+        else
+            throw std::invalid_argument("Unmapped native test prefix");
+        if (scope != CoreTestScope::All && owner != scope)
+            return;
+        if (selected++)
             report << ",\n";
+        if (listOnly)
+        {
+            report << "    {\"name\":\"" << name << "\",\"executed\":false}";
+            return;
+        }
         report << "    {\"name\":\"" << name << "\",\"passed\":";
         try
         {
@@ -900,7 +921,8 @@ int RunCoreTests(const std::filesystem::path &root)
                  Require(app.Window() == nullptr && app.Host().GetHwnd() == nullptr, "resource protocol retires its window and native host");
              }
          });
-    report << "\n  ],\n  \"passed\": " << passed << ", \"failed\": " << failed << "\n}\n";
-    return failed ? 1 : 0;
+    report << "\n  ],\n  \"passed\": " << passed << ", \"failed\": " << failed << ", \"selected\": " << selected << ", \"registered\": " << registered
+           << ", \"catalogOnly\": " << (listOnly ? "true" : "false") << "\n}\n";
+    return failed || selected == 0 ? 1 : 0;
 }
 } // namespace RedTilde

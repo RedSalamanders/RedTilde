@@ -4,6 +4,7 @@
 #include <format>
 #include <shellapi.h>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 #include <wil/resource.h>
 
@@ -37,6 +38,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     {
         LaunchOptions options;
         bool sanitizerProbe{};
+        CoreTestScope testScope = CoreTestScope::All;
+        bool testScopeSpecified{}, listTests{};
         int count{};
         wil::unique_hlocal_ptr<wchar_t *[]> arguments(CommandLineToArgvW(GetCommandLineW(), &count));
         if (!arguments)
@@ -90,6 +93,26 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 options.selfTest = true;
                 options.headless = true;
             }
+            else if (argument == L"--test-scope")
+            {
+                if (std::exchange(testScopeSpecified, true))
+                    throw std::invalid_argument("Test scope specified twice");
+                const auto scope = value();
+                if (scope == L"All")
+                    testScope = CoreTestScope::All;
+                else if (scope == L"Storage")
+                    testScope = CoreTestScope::Storage;
+                else if (scope == L"Settings")
+                    testScope = CoreTestScope::Settings;
+                else if (scope == L"Recovery")
+                    testScope = CoreTestScope::Recovery;
+                else if (scope == L"Editor")
+                    testScope = CoreTestScope::Editor;
+                else
+                    throw std::invalid_argument("Unknown test scope");
+            }
+            else if (argument == L"--list-tests")
+                listTests = true;
             else if (argument == L"--crash-probe")
                 options.crashProbe = true;
             else if (argument == L"--recovery-crash-probe" || argument == L"--recovery-restart-probe")
@@ -117,6 +140,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             else
                 throw std::invalid_argument("Only one document can be opened per window");
         }
+        if ((testScopeSpecified || listTests) && !options.selfTest)
+            throw std::invalid_argument("Test scope/list options require --self-test");
         if (options.headless && options.dataDirectory.empty())
             options.dataDirectory = std::filesystem::temp_directory_path() / std::format(L"RedTilde-Harness-{}", GetCurrentProcessId());
         if (options.forceWarp && !options.headless)
@@ -135,7 +160,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             return 1;
         const auto uninitialize = wil::scope_exit([] { CoUninitialize(); });
         if (options.selfTest)
-            return RunCoreTests(options.dataDirectory);
+            return RunCoreTests(options.dataDirectory, testScope, listTests);
         if (!options.headless && std::filesystem::exists(crashes / L"pending.txt"))
         {
             const auto path = crashes.native();

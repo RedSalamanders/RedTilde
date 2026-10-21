@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "name": "Utf8.BomUnicodeMixedEolRoundTrip",
+      "scope": "Storage"
+    },
+    {
+      "name": "Utf8.InvalidInputDoesNotReplaceOutput",
+      "scope": "Storage"
+    },
+    {
+      "name": "Storage.AtomicConflictAndFailedSave",
+      "scope": "Storage"
+    },
+    {
+      "name": "Storage.CapacityRejectedWithoutTruncation",
+      "scope": "Storage"
+    },
+    {
+      "name": "Settings.VersionAndFieldFallback",
+      "scope": "Settings"
+    },
+    {
+      "name": "Outline.FencesAndUnicode",
+      "scope": "Editor"
+    },
+    {
+      "name": "Settings.AsyncLatestValueSurvivesWriterClose",
+      "scope": "Settings"
+    },
+    {
+      "name": "Math.NativeSubsetAndRejection",
+      "scope": "Editor"
+    },
+    {
+      "name": "Recovery.StrictEnvelopeAndUnicode",
+      "scope": "Recovery"
+    },
+    {
+      "name": "Recovery.DebounceLeaseCoalescingAndRetirement",
+      "scope": "Recovery"
+    },
+    {
+      "name": "Recovery.CorruptAndFutureDataQuarantined",
+      "scope": "Recovery"
+    },
+    {
+      "name": "Editor.ViewSwitchKeepsSourceSelectionHistory",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.HiddenMirrorSynchronizesWithoutEditingSource",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.OutlineTracksShiftedOffsetsAndChangedLabels",
+      "scope": "Editor"
+    },
+    {
+      "name": "Window.CaptionSkipsIdenticalWritesAndPreservesImmediateIdentity",
+      "scope": "Editor"
+    },
+    {
+      "name": "Window.CaptionRetriesFailedAndSupersededNativeWrites",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.DirtyCacheTracksDirectResetAndSameLengthUndo",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.SemanticFormattingUndoAndTheme",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.LocalDiagramSourceAndLiteralFallback",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.LocalOrdinarySourceCommitCancelAndStale",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.DeviceLossAndLocalImagePixels",
+      "scope": "Editor"
+    },
+    {
+      "name": "Files.AsyncSaveRetainsEditsMadeDuringWrite",
+      "scope": "Storage"
+    },
+    {
+      "name": "Editor.InDocumentMathLocalSourceAndBroaderMermaid",
+      "scope": "Editor"
+    },
+    {
+      "name": "Recovery.LocalDraftCancelPreviewRestoreProtectsOriginal",
+      "scope": "Recovery"
+    },
+    {
+      "name": "Recovery.DiscardFailureRetainsCandidateAndRetryClearsError",
+      "scope": "Recovery"
+    },
+    {
+      "name": "Performance.NativeCompletedFramesPreserveSourceAndHistory",
+      "scope": "Editor"
+    },
+    {
+      "name": "Rendering.NativeDefaultAndWarpResourceLifecycle",
+      "scope": "Editor"
+    }
+  ]
+}

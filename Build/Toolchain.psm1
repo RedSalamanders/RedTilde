@@ -21,3 +21,16 @@ function Assert-RedTildeOutputNotRunning {
 }
 
 Export-ModuleMember -Function Get-RedTildeMSBuild, Assert-RedTildeOutputNotRunning
+
+function Get-RedTildeClangFormat {
+    $command=Get-Command clang-format.exe -CommandType Application -ErrorAction SilentlyContinue|Select-Object -First 1
+    if($command){return $command.Source}
+    $msbuild=Get-RedTildeMSBuild
+    $installation=([IO.FileInfo]$msbuild).Directory.Parent.Parent.Parent.FullName
+    foreach($relative in @('VC/Tools/Llvm/x64/bin/clang-format.exe','VC/Tools/Llvm/ARM64/bin/clang-format.exe','VC/Tools/Llvm/bin/clang-format.exe')){
+        $candidate=Join-Path $installation $relative
+        if(Test-Path -LiteralPath $candidate -PathType Leaf){return $candidate}
+    }
+    throw 'Install the Visual Studio C++ Clang tools component or put clang-format.exe on PATH.'
+}
+Export-ModuleMember -Function Get-RedTildeClangFormat
