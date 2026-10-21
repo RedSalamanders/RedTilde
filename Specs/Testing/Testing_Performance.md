@@ -60,6 +60,26 @@ the family after seeing results or repeat until a desired result appears. Report
 name the outstanding qualification instead. A toolchain change requires a new retained baseline with the same
 common instrumentation and current compiler; an old compiler's executable cannot be paired with a new one.
 
+The native-v2 fixture (schema 2) keeps two fixed warmup cycles, all timed edit/undo samples and the same twelve
+primary slots. It records command-only owner CPU cycles and owner processor IDs at transaction/frame boundaries
+as diagnostics. Boundary equality does not rule out migrations that return to the same processor. Never infer
+clock frequency or scheduling causality from these observations alone. Report insert/undo medians, chronological
+halves and median absolute deviation separately without replacing the predeclared combined primary median.
+
+Latency snapshots use only cheap process counters, report thread count as unavailable (`null`), and wait for
+successful recovery settlement before the initial/final memory observations. These waits are outside timed
+transactions; normal recovery remains enabled throughout the timed edits. Global thread inventory stays in
+resource-only phases with its collection cost. Both sides require the identical revised harness and a newly
+frozen baseline; native-v1 observations remain immutable and are not directly compared with native-v2 results.
+
+`performance-observed.ps1` collects one serial A/A then A/B study, twelve blocks per view and 64 timed cycles by
+default. Record this scope before running, retain every process and do not repeat until controls pass. Its observer
+starts before either study and records system CPU and selected process deltas. A quiet CPU observation requires at
+least two valid intervals, maximum total busy CPU at most 5%, no selected external CPU and no inaccessible or
+partial processor-group observations. This is an observation, not an exclusive lease or GPU/physical qualification.
+User-directed shared-host execution proceeds with activity recorded; a powerful host is not evidence of quiet.
+Do not change power policy, affinity, priorities, the primary family or investigation bands to force acceptance.
+
 Hidden diagnostics do not establish physical visibility/occlusion, actual device removal, kernel/GPU lifetime,
 real-focus caret/IME/AT behavior or native ARM64 execution. Preserve those gates separately. A cross-build, library
 fixture or screenshot alone cannot close product resource acceptance. Reviewed application receipts belong in

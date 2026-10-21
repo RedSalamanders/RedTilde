@@ -59,6 +59,7 @@ Check 'PowerShell syntax' {
 }
 Check 'Performance protocol' {
     & (Join-Path $PSScriptRoot 'Tests/Scope.Tests.Performance.Tooling.ps1')
+    & (Join-Path $PSScriptRoot 'Tests/Scope.Tests.Performance.Observation.ps1')
     & (Join-Path $PSScriptRoot 'Tests/Scope.Tests.Performance.Evidence.ps1') -SelfTest
 }
 if ($failures.Count) { throw ($failures -join "`n") }

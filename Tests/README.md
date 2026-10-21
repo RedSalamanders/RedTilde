@@ -38,3 +38,11 @@ the policy or compensate for competing activity, unstable controls or unavailabl
 Resource idle CPU is bracketed separately from the expensive process/thread snapshots. Keep both costs and
 unavailable DXGI counters explicit. The reviewed [S5 packet](../Measurements/S5_2026-10-21/Final/README.md)
 includes successful audits, six expected rejection cases and the remaining acceptance gates.
+
+For the native-v2 noise investigation, use `performance-observed.ps1 -Baseline <new-frozen-baseline> -OutputRoot
+<fresh-.build-directory>`. It records one A/A and A/B study (12 blocks/view, 64 cycles each), total CPU and selected
+process activity. The paired judge's family and bands are unchanged. Global thread inventory is confined to resource
+phases; latency memory observations wait for recovery settlement. Command CPU and processor-boundary arrays are
+diagnostics, not new acceptance slots. `Scope.Tests.Performance.Observation.ps1` tests operation/chronological
+diagnostics, legacy parsing, malformed v2 samples and truthful CPU activity classification. Native Core verifies
+settled memory and diagnostic output; all original source/history/resource assertions remain enabled.

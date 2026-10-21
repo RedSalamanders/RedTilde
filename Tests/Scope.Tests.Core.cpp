@@ -741,6 +741,14 @@ int RunCoreTests(const std::filesystem::path &root)
                          "completed frame cycles restore clean source and undo history");
                  Require(app.Document().GetAcknowledgedSemanticDocument(app.Host()) != nullptr,
                          "completed frame has acknowledged current native semantic geometry");
+                 Require(app.RecoverySettled() && SUCCEEDED(app.RecoveryStatus()), "memory sampling waits for successful recovery settlement");
+                 std::string probeReport;
+                 Success(ReadBytes(launch.performance, probeReport), "read completed-frame diagnostics");
+                 Require(probeReport.find("\"schemaVersion\":2") != probeReport.npos && probeReport.find("\"threads\":null") != probeReport.npos &&
+                             probeReport.find("\"commandOwnerCpuCycles\":[") != probeReport.npos &&
+                             probeReport.find("\"ownerProcessorStart\":[") != probeReport.npos &&
+                             probeReport.find("\"recoverySettledAtMemory\":true") != probeReport.npos,
+                         "latency protocol separates cheap settled memory, command CPU and processor-boundary observations");
              }
          });
     test("Rendering.NativeDefaultAndWarpResourceLifecycle",

@@ -11,17 +11,32 @@ function Get-RedTildeMedian {
 
 function Get-RedTildePerformanceMetrics {
     param($Native)
-    if (-not $Native.completed -or $Native.schemaVersion -ne 1 -or $Native.fixture -cne 'redtilde-completed-native-v1' -or
+    $legacy=$Native.schemaVersion -eq 1 -and $Native.fixture -ceq 'redtilde-completed-native-v1'
+    $revised=$Native.schemaVersion -eq 2 -and $Native.fixture -ceq 'redtilde-completed-native-v2'
+    if (-not $Native.completed -or (-not $legacy -and -not $revised) -or
         $Native.view -cnotin @('Compose','Split') -or $Native.renderer -cnotin @('Hardware','WARP') -or
         $Native.cycles -lt 4 -or $Native.cycles -gt 64 -or $Native.widthPx -le 0 -or $Native.heightPx -le 0 -or $Native.dpi -lt 48) {
         throw 'Incomplete or incompatible native performance report.'
     }
     $result=[ordered]@{}
-    foreach($name in @('commandUs','preparationSubmissionUs','gpuWaitUs','completedEditUs','cleanCompletedUs','ownerCpuCycles')) {
+    $timings=@('commandUs','preparationSubmissionUs','gpuWaitUs','completedEditUs','cleanCompletedUs','ownerCpuCycles')
+    if($revised) { $timings+='commandOwnerCpuCycles' }
+    foreach($name in $timings) {
         $values=@($Native.samples.$name)
         $count=if($name -eq 'cleanCompletedUs') { $Native.cycles } else { 2*$Native.cycles }
         if($values.Count -ne $count -or @($values | Where-Object { -not [double]::IsFinite($_) -or $_ -le 0 }).Count) { throw "Invalid $name samples." }
         $result[$name]=Get-RedTildeMedian $values
+    }
+    if($revised) {
+        if($Native.warmupCycles -ne 2 -or -not $Native.recoverySettledAtMemory -or
+            $Native.initial.threadInventoryCollected -or $Native.final.threadInventoryCollected -or
+            $null -ne $Native.initial.threads -or $null -ne $Native.final.threads) { throw 'Latency memory observations require settled recovery and cheap snapshots.' }
+        foreach($name in @('ownerProcessorStart','ownerProcessorEnd')) {
+            $values=@($Native.samples.$name)
+            if($values.Count -ne 2*$Native.cycles -or @($values | Where-Object { -not [double]::IsFinite($_) -or $_ -lt 0 -or $_ -ge 4096 -or $_ -ne [math]::Floor($_) }).Count) {
+                throw 'Invalid processor-boundary diagnostics.'
+            }
+        }
     }
     foreach($name in @('privateBytes','workingSetBytes')) {
         $value=[double]$Native.final.$name

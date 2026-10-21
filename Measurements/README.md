@@ -9,6 +9,9 @@ qualification. Retained packets record source identity, dependency, binary hash,
   default/WARP lifecycle runs and exact capture comparison. No directional change resolved; noisy controls,
   competing activity, policy acceptance and longer-term GPU/physical/platform qualification remain open.
 
+- [S5 noise follow-through, 2026-10-21](S5_Noise_2026-10-21/README.md) — revised native instrumentation,
+  fixed-scope observed A/A and A/B studies and the assessment of remaining control/host uncertainty.
+
 - [Earlier S5 continuation checkpoint](S5_2026-10-21/README.md) — historical handoff, original invalid/corrected
   statistical results, old-toolchain frozen baseline and independent private backup. Superseded by the final assessment.
 

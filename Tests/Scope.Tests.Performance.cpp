@@ -34,6 +34,12 @@ std::uint64_t OwnerCycles()
     Require(QueryThreadCycleTime(GetCurrentThread(), &cycles) != FALSE, "owner CPU cycles unavailable");
     return cycles;
 }
+unsigned OwnerProcessor()
+{
+    PROCESSOR_NUMBER processor{};
+    GetCurrentProcessorNumberEx(&processor);
+    return static_cast<unsigned>(processor.Group) * 64 + processor.Number;
+}
 std::uint64_t ProcessCpu100ns()
 {
     FILETIME created{}, exited{}, kernel{}, user{};
@@ -111,8 +117,9 @@ struct Memory
     DWORD handles{}, gdi{}, user{}, threads{};
     std::uint64_t cpu100ns{}, collectionCpu100ns{};
     double collectionUs{};
+    bool threadInventoryCollected{};
 };
-Memory Snapshot()
+Memory Snapshot(bool collectThreads = false)
 {
     Memory value;
     const auto started = Clock::now();
@@ -123,15 +130,19 @@ Memory Snapshot()
     Require(GetProcessHandleCount(GetCurrentProcess(), &value.handles) != FALSE, "process handle count unavailable");
     value.gdi = GetGuiResources(GetCurrentProcess(), GR_GDIOBJECTS);
     value.user = GetGuiResources(GetCurrentProcess(), GR_USEROBJECTS);
-    wil::unique_handle all(CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0));
-    Require(static_cast<bool>(all), "thread inventory unavailable");
-    THREADENTRY32 entry{sizeof(entry)};
-    if (Thread32First(all.get(), &entry))
-        do
-        {
-            if (entry.th32OwnerProcessID == GetCurrentProcessId())
-                ++value.threads;
-        } while (Thread32Next(all.get(), &entry));
+    if (collectThreads)
+    {
+        wil::unique_handle all(CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0));
+        Require(static_cast<bool>(all), "thread inventory unavailable");
+        THREADENTRY32 entry{sizeof(entry)};
+        if (Thread32First(all.get(), &entry))
+            do
+            {
+                if (entry.th32OwnerProcessID == GetCurrentProcessId())
+                    ++value.threads;
+            } while (Thread32Next(all.get(), &entry));
+        value.threadInventoryCollected = true;
+    }
     value.cpu100ns = ProcessCpu100ns();
     value.collectionCpu100ns = value.cpu100ns - cpu;
     value.collectionUs = Micros(started);
@@ -140,8 +151,12 @@ Memory Snapshot()
 void MemoryJson(std::ostream &out, const Memory &value)
 {
     out << "\"privateBytes\":" << value.process.PrivateUsage << ",\"workingSetBytes\":" << value.process.WorkingSetSize
-        << ",\"handles\":" << value.handles << ",\"gdiObjects\":" << value.gdi << ",\"userObjects\":" << value.user
-        << ",\"threads\":" << value.threads << ",\"processCpu100ns\":" << value.cpu100ns
+        << ",\"handles\":" << value.handles << ",\"gdiObjects\":" << value.gdi << ",\"userObjects\":" << value.user << ",\"threads\":";
+    if (value.threadInventoryCollected)
+        out << value.threads;
+    else
+        out << "null";
+    out << ",\"threadInventoryCollected\":" << (value.threadInventoryCollected ? "true" : "false") << ",\"processCpu100ns\":" << value.cpu100ns
         << ",\"snapshotCollectionCpu100ns\":" << value.collectionCpu100ns << ",\"snapshotCollectionUs\":" << value.collectionUs;
 }
 } // namespace
@@ -207,6 +222,18 @@ class PerformanceProbe
                                               MWMO_INPUTAVAILABLE);
         } while (true);
     }
+    void SettleRecovery()
+    {
+        const auto deadline = GetTickCount64() + 5000;
+        while (!app.recovery.Settled())
+        {
+            Pump();
+            Require(GetTickCount64() < deadline, "memory observation did not reach settled recovery");
+            (void)MsgWaitForMultipleObjectsEx(0, nullptr, 10, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+        }
+        Pump();
+        Require(SUCCEEDED(app.RecoveryStatus()), "recovery failed before memory observation");
+    }
     struct IdleCost
     {
         double wallUs{};
@@ -224,7 +251,7 @@ class PerformanceProbe
     void Resource(std::ostream &out, std::string_view name, const IdleCost *idle = nullptr)
     {
         out << "{\"phase\":\"" << name << "\",";
-        MemoryJson(out, Snapshot());
+        MemoryJson(out, Snapshot(true));
         if (idle)
             out << ",\"idleWallUs\":" << idle->wallUs << ",\"idleProcessCpu100ns\":" << idle->processCpu100ns
                 << ",\"idleOwnerCpuCycles\":" << idle->ownerCpuCycles;
@@ -262,20 +289,23 @@ class PerformanceProbe
         gpu = std::make_unique<GpuFence>(app.host);
         Require(!options.forceWarp || (gpu->adapter.Flags & DXGI_ADAPTER_FLAG_SOFTWARE), "explicit WARP did not create a software adapter");
         gpu->Wait();
-        std::vector<double> command, preparation, completion, total, clean, cpu;
-        for (auto *values : {&command, &preparation, &completion, &total, &clean, &cpu})
+        std::vector<double> command, preparation, completion, total, clean, cpu, commandCpu, processorStart, processorEnd;
+        for (auto *values : {&command, &preparation, &completion, &total, &clean, &cpu, &commandCpu, &processorStart, &processorEnd})
             values->reserve(options.performanceCycles * 2);
         const auto activity = app.activity;
+        SettleRecovery();
         const auto initial = Snapshot();
         for (unsigned cycle = 0; cycle < options.performanceCycles + 2; ++cycle)
         {
             app.editor->SetSelection({at, at});
             for (unsigned undo = 0; undo < 2; ++undo)
             {
+                const auto startingProcessor = OwnerProcessor();
                 const auto start = Clock::now();
                 const auto cpuStart = OwnerCycles();
                 Require(undo ? app.editor->Undo() : app.editor->ReplaceSelection(L"x"), "paired edit/undo was not admitted");
                 const double commandUs = Micros(start);
+                const auto commandCycles = OwnerCycles() - cpuStart;
                 const auto prepare = Clock::now();
                 Ready(undo ? std::wstring_view(source) : std::wstring_view(edited));
                 const double prepareUs = Micros(prepare);
@@ -283,6 +313,7 @@ class PerformanceProbe
                 gpu->Wait();
                 const double gpuUs = Micros(finish), totalUs = Micros(start);
                 const auto cpuCycles = OwnerCycles() - cpuStart;
+                const auto endingProcessor = OwnerProcessor();
                 if (cycle >= 2)
                 {
                     command.push_back(commandUs);
@@ -290,6 +321,9 @@ class PerformanceProbe
                     completion.push_back(gpuUs);
                     total.push_back(totalUs);
                     cpu.push_back(static_cast<double>(cpuCycles));
+                    commandCpu.push_back(static_cast<double>(commandCycles));
+                    processorStart.push_back(startingProcessor);
+                    processorEnd.push_back(endingProcessor);
                 }
             }
             Require(app.editor->GetText() == source && app.editor->GetSelection() == DxUi::RichText::Selection{at, at},
@@ -300,15 +334,19 @@ class PerformanceProbe
             if (cycle >= 2)
                 clean.push_back(Micros(start));
         }
+        SettleRecovery();
+        Require(app.editor->GetText() == source && app.editor->GetSelection() == DxUi::RichText::Selection{at, at},
+                "settled memory observation changed source or selection");
         const auto final = Snapshot();
         std::ofstream out(options.performance, std::ios::binary);
-        out << std::setprecision(12) << "{\"schemaVersion\":1,\"fixture\":\"redtilde-completed-native-v1\",\"view\":\""
+        out << std::setprecision(12) << "{\"schemaVersion\":2,\"fixture\":\"redtilde-completed-native-v2\",\"view\":\""
             << (app.settings.view == EditorView::Split ? "Split" : "Compose") << "\",\"renderer\":\""
             << ((gpu->adapter.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) ? "WARP" : "Hardware") << "\",\"adapter\":";
         Quote(out, gpu->adapter.Description);
         out << ",\"vendorId\":" << gpu->adapter.VendorId << ",\"deviceId\":" << gpu->adapter.DeviceId << ",\"driverVersion\":" << gpu->driver.QuadPart
             << ",\"dpi\":" << app.host.GetDpi() << ",\"widthPx\":" << app.host.DebugGetWidthPx() << ",\"heightPx\":" << app.host.DebugGetHeightPx()
-            << ",\"sourceUnits\":" << source.size() << ",\"cycles\":" << options.performanceCycles << ",\"samples\": {";
+            << ",\"sourceUnits\":" << source.size() << ",\"cycles\":" << options.performanceCycles
+            << ",\"warmupCycles\":2,\"recoverySettledAtMemory\":true,\"samples\": {";
         Samples(out, "commandUs", command);
         out << ',';
         Samples(out, "preparationSubmissionUs", preparation);
@@ -320,6 +358,12 @@ class PerformanceProbe
         Samples(out, "cleanCompletedUs", clean);
         out << ',';
         Samples(out, "ownerCpuCycles", cpu);
+        out << ',';
+        Samples(out, "commandOwnerCpuCycles", commandCpu);
+        out << ',';
+        Samples(out, "ownerProcessorStart", processorStart);
+        out << ',';
+        Samples(out, "ownerProcessorEnd", processorEnd);
         out << "},\"initial\":{";
         MemoryJson(out, initial);
         out << "},\"final\":{";
@@ -401,7 +445,7 @@ class PerformanceProbe
                 Idle(10);
             Require(!app.window && DxUi::DebugGetAttachedWindowHostCount() + 1 == hosts, "native resource close did not retire its host and window");
             out << ",{\"phase\":\"closed\",";
-            MemoryJson(out, Snapshot());
+            MemoryJson(out, Snapshot(true));
             out << ",\"nativeHosts\":" << DxUi::DebugGetAttachedWindowHostCount() << '}';
         }
         out << "],\"completed\":true,\"qualification\":\"hidden native completed frames; physical presentation and input unverified\"}\n";

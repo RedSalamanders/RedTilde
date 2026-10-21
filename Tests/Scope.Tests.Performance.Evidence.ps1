@@ -108,14 +108,28 @@ $results=@(foreach($directory in $StudyPath) {
             $expected=if($study.sameBinaryControl -or $slot.StartsWith('A')) { $study.baseline.build.binarySha256 } else { $study.candidate.build.binarySha256 }
             Require ($receipt.executableSha256 -ceq $expected) 'Native slot executable identity differs.'
             $native=Get-Content $path -Raw | ConvertFrom-Json -AsHashtable
-            Require ($native.completed -and $native.schemaVersion -eq 1 -and $native.fixture -ceq 'redtilde-completed-native-v1' -and
+            $legacy=$native.schemaVersion -eq 1 -and $native.fixture -ceq 'redtilde-completed-native-v1'
+            $revised=$native.schemaVersion -eq 2 -and $native.fixture -ceq 'redtilde-completed-native-v2'
+            Require ($native.completed -and ($legacy -or $revised) -and
                 $native.view -ceq $scheduled.scenario -and $native.cycles -eq $study.cycles) 'Native protocol did not complete its scheduled work.'
             Require ($native.activity.changes -eq 2*($study.cycles+2)) 'Warmup and timed edit/undo counts must be intact.'
+            if($revised) {
+                Require ($native.warmupCycles -eq 2 -and $native.recoverySettledAtMemory -and
+                    -not $native.initial.threadInventoryCollected -and -not $native.final.threadInventoryCollected -and
+                    $null -eq $native.initial.threads -and $null -eq $native.final.threads) 'Revised latency memory observations must be cheap and settled.'
+                foreach($name in @('ownerProcessorStart','ownerProcessorEnd')) {
+                    $processors=[double[]]$native.samples[$name]
+                    Require ($processors.Count -eq 2*$study.cycles -and @($processors | Where-Object {
+                        -not [double]::IsFinite($_) -or $_ -lt 0 -or $_ -ge 4096 -or $_ -ne [math]::Floor($_) }).Count -eq 0) 'Invalid processor boundary observations.'
+                }
+            }
             $nativeIdentity=@($native.fixture,$native.view,$native.renderer,$native.adapter,$native.vendorId,$native.deviceId,$native.driverVersion,
                 $native.dpi,$native.widthPx,$native.heightPx,$native.sourceUnits) | ConvertTo-Json -Compress
             if($identity.ContainsKey($native.view)) { Require ($identity[$native.view] -ceq $nativeIdentity) 'Renderer/driver/DPI/source identity drift.' }
             else { $identity[$native.view]=$nativeIdentity }
-            foreach($metric in @('commandUs','preparationSubmissionUs','gpuWaitUs','completedEditUs','cleanCompletedUs','ownerCpuCycles','privateBytes','workingSetBytes')) {
+            $metrics=@('commandUs','preparationSubmissionUs','gpuWaitUs','completedEditUs','cleanCompletedUs','ownerCpuCycles','privateBytes','workingSetBytes')
+            if($revised) { $metrics+='commandOwnerCpuCycles' }
+            foreach($metric in $metrics) {
                 if($metric -like '*Bytes') { $value=[double]$native.final[$metric] }
                 else {
                     $samples=[double[]]$native.samples[$metric]
