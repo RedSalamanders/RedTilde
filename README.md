@@ -68,3 +68,7 @@ The [math/diagram/recovery validation packet](Measurements/MathMermaidRecovery_2
 that feature slice's tested pin, screenshots, portable smoke test and remaining qualification gates. The
 [S5 performance contract](Specs/Testing/Testing_Performance.md) defines completed native-frame measurements
 and paired controls for the current continuation; the active plan retains its unverified gates.
+The [completed local S5 assessment](Measurements/S5_2026-10-21/Final/README.md) records the current pin's six
+builds, 25 cases per x64 profile, 192 paired processes, default/WARP lifecycle checks and independent audits.
+No directional performance change was resolved; noisy controls, competing activity and an unaccepted judge
+leave performance qualification open. The application remains experimental.

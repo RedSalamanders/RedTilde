@@ -1,5 +1,9 @@
 # RedTilde S5 continuation checkpoint — 2026-10-21
 
+**Historical 08:42 checkpoint.** The [final local execution assessment](Final/README.md) supersedes the pending
+commands and old-toolchain identities below. The resumed work completed the corrected studies and full-fixture
+resource checks with a freshly rebuilt MSVC 14.52.37025 baseline. Qualification gates remain open as recorded there.
+
 The user requested saving everything for another session. **S5 and S6 remain open.** All already-running
 workers finished successfully; no build, test, timing study or activity observer remains active at this checkpoint.
 This is a handoff, not a completed performance/resource qualification packet.

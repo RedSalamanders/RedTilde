@@ -1,0 +1,5 @@
+25 behavioral tests passed.
+Native forced render: 125,8 FPS; private memory 64,8 MiB; dirty edit/render 0,31 ms. Initial app baseline only.
+13 actual hidden application captures generated.
+Isolated local crash dump and marker verified.
+Receipt: Z:\src\RedTilde\.build\tests\20261021-095054-926-x64-Release\receipt.json

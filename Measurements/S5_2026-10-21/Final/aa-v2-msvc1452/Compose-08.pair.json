@@ -1,0 +1,65 @@
+{
+  "scenario": "Compose",
+  "block": 8,
+  "order": "BAAB",
+  "B1": {
+    "commandUs": 172.45,
+    "preparationSubmissionUs": 3122.3,
+    "gpuWaitUs": 5027.25,
+    "completedEditUs": 8337.650000000001,
+    "cleanCompletedUs": 8351.25,
+    "ownerCpuCycles": 12966345.5,
+    "privateBytes": 75026432.0,
+    "workingSetBytes": 61353984.0
+  },
+  "B1Receipt": {
+    "executableSha256": "BFBAFA9213C8A0AB74E70F844C606A0AECEA5464ACA7166229B0EA59DF18BDFD",
+    "sha256": "CE66A38FB6FAC2B8AE33689BA089F6A95FF4A4CB431FB47E1965BB80741F132F",
+    "file": "Compose-08-B1.native.json"
+  },
+  "A1": {
+    "commandUs": 214.75,
+    "preparationSubmissionUs": 3420.05,
+    "gpuWaitUs": 4738.700000000001,
+    "completedEditUs": 8319.65,
+    "cleanCompletedUs": 8376.349999999999,
+    "ownerCpuCycles": 14466828.0,
+    "privateBytes": 74842112.0,
+    "workingSetBytes": 61419520.0
+  },
+  "A1Receipt": {
+    "executableSha256": "BFBAFA9213C8A0AB74E70F844C606A0AECEA5464ACA7166229B0EA59DF18BDFD",
+    "sha256": "8664B0F353251F350838C441E5D927EDCB657ED7E774B05D0212A838A5B220B8",
+    "file": "Compose-08-A1.native.json"
+  },
+  "A2": {
+    "commandUs": 222.75,
+    "preparationSubmissionUs": 3288.75,
+    "gpuWaitUs": 4802.5,
+    "completedEditUs": 8313.55,
+    "cleanCompletedUs": 8330.6,
+    "ownerCpuCycles": 14102653.5,
+    "privateBytes": 74272768.0,
+    "workingSetBytes": 61235200.0
+  },
+  "A2Receipt": {
+    "executableSha256": "BFBAFA9213C8A0AB74E70F844C606A0AECEA5464ACA7166229B0EA59DF18BDFD",
+    "sha256": "C44A3C75439C2F41E451F094204B7A5B35EC748F3466B529D9B96FACF4454458",
+    "file": "Compose-08-A2.native.json"
+  },
+  "B2": {
+    "commandUs": 245.25,
+    "preparationSubmissionUs": 3787.3500000000004,
+    "gpuWaitUs": 4237.049999999999,
+    "completedEditUs": 8310.5,
+    "cleanCompletedUs": 8394.349999999999,
+    "ownerCpuCycles": 15486177.5,
+    "privateBytes": 73924608.0,
+    "workingSetBytes": 61353984.0
+  },
+  "B2Receipt": {
+    "executableSha256": "BFBAFA9213C8A0AB74E70F844C606A0AECEA5464ACA7166229B0EA59DF18BDFD",
+    "sha256": "842C8EF2613BD586D34F179AC4B7E913F49867328DC0CD234C155972BDF0AD05",
+    "file": "Compose-08-B2.native.json"
+  }
+}

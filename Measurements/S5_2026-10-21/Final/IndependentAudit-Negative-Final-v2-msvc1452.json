@@ -1,0 +1,32 @@
+[
+  {
+    "scenario": "altered-Holm-adjustment",
+    "rejected": true,
+    "reason": "Independent Holm result differs."
+  },
+  {
+    "scenario": "altered-investigation-band",
+    "rejected": true,
+    "reason": "Investigation band differs from the fixed family."
+  },
+  {
+    "scenario": "legacy-invalid-judge",
+    "rejected": true,
+    "reason": "Only corrected v2 output can be audited."
+  },
+  {
+    "scenario": "mismatched-compiler-profile",
+    "rejected": true,
+    "reason": "Compiler/dependency identity differs."
+  },
+  {
+    "scenario": "altered-native-bytes",
+    "rejected": true,
+    "reason": "Native bytes do not match their retained hash."
+  },
+  {
+    "scenario": "reused-native-slot",
+    "rejected": true,
+    "reason": "Each native slot requires its own receipt."
+  }
+]

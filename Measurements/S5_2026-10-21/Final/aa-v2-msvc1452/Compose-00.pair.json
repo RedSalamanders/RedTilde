@@ -1,0 +1,65 @@
+{
+  "scenario": "Compose",
+  "block": 0,
+  "order": "BAAB",
+  "B1": {
+    "commandUs": 309.35,
+    "preparationSubmissionUs": 4540.9,
+    "gpuWaitUs": 3456.75,
+    "completedEditUs": 8312.35,
+    "cleanCompletedUs": 8365.3,
+    "ownerCpuCycles": 19619161.0,
+    "privateBytes": 75075584.0,
+    "workingSetBytes": 60809216.0
+  },
+  "B1Receipt": {
+    "executableSha256": "BFBAFA9213C8A0AB74E70F844C606A0AECEA5464ACA7166229B0EA59DF18BDFD",
+    "sha256": "3600D4CF09C73CBDAE0B2C3EAC45CFCE75554533983B5F59E118833EDD628CDC",
+    "file": "Compose-00-B1.native.json"
+  },
+  "A1": {
+    "commandUs": 253.5,
+    "preparationSubmissionUs": 4346.4,
+    "gpuWaitUs": 3744.55,
+    "completedEditUs": 8309.45,
+    "cleanCompletedUs": 8379.9,
+    "ownerCpuCycles": 17126367.5,
+    "privateBytes": 74297344.0,
+    "workingSetBytes": 60076032.0
+  },
+  "A1Receipt": {
+    "executableSha256": "BFBAFA9213C8A0AB74E70F844C606A0AECEA5464ACA7166229B0EA59DF18BDFD",
+    "sha256": "E3863993BBF6A597112F615835CED1D22563F14D5A60F62574AA978533342AE1",
+    "file": "Compose-00-A1.native.json"
+  },
+  "A2": {
+    "commandUs": 280.45,
+    "preparationSubmissionUs": 4570.25,
+    "gpuWaitUs": 3440.3,
+    "completedEditUs": 8322.5,
+    "cleanCompletedUs": 8344.95,
+    "ownerCpuCycles": 19517441.5,
+    "privateBytes": 73732096.0,
+    "workingSetBytes": 61042688.0
+  },
+  "A2Receipt": {
+    "executableSha256": "BFBAFA9213C8A0AB74E70F844C606A0AECEA5464ACA7166229B0EA59DF18BDFD",
+    "sha256": "B3298816AAF02DD4E074B473A1495BFE34FE37D04ED2FAAA4AC1C41BE816E0CF",
+    "file": "Compose-00-A2.native.json"
+  },
+  "B2": {
+    "commandUs": 166.75,
+    "preparationSubmissionUs": 3212.1,
+    "gpuWaitUs": 4972.9,
+    "completedEditUs": 8351.95,
+    "cleanCompletedUs": 8373.65,
+    "ownerCpuCycles": 13571732.5,
+    "privateBytes": 73150464.0,
+    "workingSetBytes": 60481536.0
+  },
+  "B2Receipt": {
+    "executableSha256": "BFBAFA9213C8A0AB74E70F844C606A0AECEA5464ACA7166229B0EA59DF18BDFD",
+    "sha256": "14881992C59A9C7ADABF10ED5C96EAF02945AC0879D50E9685C518D77289C222",
+    "file": "Compose-00-B2.native.json"
+  }
+}

@@ -46,6 +46,20 @@ differences between resource snapshots include collection work and must never be
 judge preserves fractional Holm probabilities; numerical tests include independently counted mixed-sign tails
 and the exact adjusted value. Retain v1 raw studies and invalid judge outputs as investigation history.
 
+Audit collected v2 evidence with `Tests/Scope.Tests.Performance.Evidence.ps1`. Its typed reference calculates
+sign-flip tails by subset expansion and Holm adjustment independently of the production PowerShell judge.
+Check the retained schedule, unique native receipts/hashes, per-side binary/source identities, common harness,
+compiler/dependency/environment metadata, raw sample counts/medians, the fixed family, every control drift and
+directional finding. `validate.ps1` runs its known-value oracles. A numerical match does not approve the policy
+or recreate missing binary/environment provenance. Altered results, bands, native bytes, reused slots, compiler
+profiles and the invalid legacy judge must be rejected.
+
+Record competing build/test activity and the limits of any sampler. A user-directed run may proceed on a shared
+host, but it must retain that overlap and leave affected acceptance open. Do not discard flagged blocks, extend
+the family after seeing results or repeat until a desired result appears. Report the collected observation and
+name the outstanding qualification instead. A toolchain change requires a new retained baseline with the same
+common instrumentation and current compiler; an old compiler's executable cannot be paired with a new one.
+
 Hidden diagnostics do not establish physical visibility/occlusion, actual device removal, kernel/GPU lifetime,
 real-focus caret/IME/AT behavior or native ARM64 execution. Preserve those gates separately. A cross-build, library
 fixture or screenshot alone cannot close product resource acceptance. Reviewed application receipts belong in

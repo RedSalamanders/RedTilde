@@ -1,0 +1,65 @@
+{
+  "scenario": "Compose",
+  "block": 6,
+  "order": "ABBA",
+  "A1": {
+    "commandUs": 201.55,
+    "preparationSubmissionUs": 3036.5,
+    "gpuWaitUs": 5128.85,
+    "completedEditUs": 8324.1,
+    "cleanCompletedUs": 8326.05,
+    "ownerCpuCycles": 12548522.0,
+    "privateBytes": 75096064.0,
+    "workingSetBytes": 61665280.0
+  },
+  "A1Receipt": {
+    "executableSha256": "BFBAFA9213C8A0AB74E70F844C606A0AECEA5464ACA7166229B0EA59DF18BDFD",
+    "sha256": "DF5C61F3049018F9C32EFFDAF8289E7873F45205EE2835EF95EFFF857A5F6DEE",
+    "file": "Compose-06-A1.native.json"
+  },
+  "B1": {
+    "commandUs": 189.35,
+    "preparationSubmissionUs": 3262.7,
+    "gpuWaitUs": 4929.15,
+    "completedEditUs": 8304.45,
+    "cleanCompletedUs": 8383.1,
+    "ownerCpuCycles": 13220004.5,
+    "privateBytes": 74792960.0,
+    "workingSetBytes": 61493248.0
+  },
+  "B1Receipt": {
+    "executableSha256": "336F4A9EC14FB95D3EA734A4885A0DC998634FCA8AB3D1802E17AC7ACAC0C00B",
+    "sha256": "BB99DBBE76842D9EF6977AC1DC95E8B2241780E774F36A978AF706A07CBD98F4",
+    "file": "Compose-06-B1.native.json"
+  },
+  "B2": {
+    "commandUs": 230.5,
+    "preparationSubmissionUs": 3476.0,
+    "gpuWaitUs": 4526.15,
+    "completedEditUs": 8291.8,
+    "cleanCompletedUs": 8394.8,
+    "ownerCpuCycles": 13409924.5,
+    "privateBytes": 75169792.0,
+    "workingSetBytes": 61669376.0
+  },
+  "B2Receipt": {
+    "executableSha256": "336F4A9EC14FB95D3EA734A4885A0DC998634FCA8AB3D1802E17AC7ACAC0C00B",
+    "sha256": "8E4BA284DA06CB8ECB6171D19FAF0DD4906A2E36A2C36E512BD2827A027355D4",
+    "file": "Compose-06-B2.native.json"
+  },
+  "A2": {
+    "commandUs": 259.05,
+    "preparationSubmissionUs": 3351.8500000000004,
+    "gpuWaitUs": 4604.15,
+    "completedEditUs": 8305.95,
+    "cleanCompletedUs": 8369.5,
+    "ownerCpuCycles": 13260992.0,
+    "privateBytes": 75923456.0,
+    "workingSetBytes": 61644800.0
+  },
+  "A2Receipt": {
+    "executableSha256": "BFBAFA9213C8A0AB74E70F844C606A0AECEA5464ACA7166229B0EA59DF18BDFD",
+    "sha256": "052467D95A793B5F11E97C53AF4781B5ED771A7ADABD684DDB152CEE844DFE8F",
+    "file": "Compose-06-A2.native.json"
+  }
+}

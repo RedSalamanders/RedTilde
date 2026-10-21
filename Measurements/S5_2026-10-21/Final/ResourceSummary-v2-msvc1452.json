@@ -1,0 +1,1138 @@
+[
+  {
+    "name": "default-compose-A",
+    "renderer": "Hardware",
+    "sourceUnits": 652,
+    "activity": {
+      "changes": 36,
+      "layouts": 36,
+      "mirrorResets": 36,
+      "recoverySubmissions": 36
+    },
+    "completed": true,
+    "idle": [
+      {
+        "phase": "clean-hidden-idle",
+        "wallUs": 494366.6,
+        "processCpu100ns": 0,
+        "ownerCpuCycles": 1047247,
+        "renders": 61
+      },
+      {
+        "phase": "hidden-notification-idle",
+        "wallUs": 525730.5,
+        "processCpu100ns": 0,
+        "ownerCpuCycles": 1395327,
+        "renders": 61
+      }
+    ],
+    "collection": [
+      {
+        "cpu100ns": 1093750,
+        "wallUs": 114137.6,
+        "phase": "clean-after-dirty"
+      },
+      {
+        "cpu100ns": 1250000,
+        "wallUs": 126166.9,
+        "phase": "clean-hidden-idle"
+      },
+      {
+        "cpu100ns": 937500,
+        "wallUs": 117566.1,
+        "phase": "hidden-notification-idle"
+      },
+      {
+        "cpu100ns": 1093750,
+        "wallUs": 112785.6,
+        "phase": "resumed-forced-frame"
+      },
+      {
+        "cpu100ns": 1093750,
+        "wallUs": 106276.1,
+        "phase": "resized-forced-frame"
+      },
+      {
+        "cpu100ns": 1406250,
+        "wallUs": 137372.6,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 1250000,
+        "wallUs": 131146.6,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 1250000,
+        "wallUs": 132937.6,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 937500,
+        "wallUs": 104968.9,
+        "phase": "closed"
+      }
+    ],
+    "replacements": [
+      {
+        "generation": 4,
+        "privateBytes": 132665344,
+        "workingSetBytes": 113954816,
+        "handles": 681,
+        "gdi": 9,
+        "user": 11,
+        "dxgiLocalUsageBytes": 46620672,
+        "dxgiUsageHresult": 0
+      },
+      {
+        "generation": 6,
+        "privateBytes": 132923392,
+        "workingSetBytes": 114839552,
+        "handles": 681,
+        "gdi": 9,
+        "user": 11,
+        "dxgiLocalUsageBytes": 46620672,
+        "dxgiUsageHresult": 0
+      },
+      {
+        "generation": 8,
+        "privateBytes": 134213632,
+        "workingSetBytes": 115978240,
+        "handles": 681,
+        "gdi": 9,
+        "user": 11,
+        "dxgiLocalUsageBytes": 46620672,
+        "dxgiUsageHresult": 0
+      }
+    ],
+    "exactReplacementPixels": [
+      {
+        "exactPixels": true,
+        "replacement": 0,
+        "sha256": "1DA7EEA14BD7B7A12EF3DE9D96797743C2404E39103442EFB90D38E0C2C863D0"
+      },
+      {
+        "exactPixels": true,
+        "replacement": 1,
+        "sha256": "1DA7EEA14BD7B7A12EF3DE9D96797743C2404E39103442EFB90D38E0C2C863D0"
+      },
+      {
+        "exactPixels": true,
+        "replacement": 2,
+        "sha256": "1DA7EEA14BD7B7A12EF3DE9D96797743C2404E39103442EFB90D38E0C2C863D0"
+      }
+    ],
+    "maxBrushes": 12.0,
+    "maxFormats": 5.0,
+    "decodedImageBytes": 11016000,
+    "closed": {
+      "phase": "closed",
+      "privateBytes": 80691200,
+      "workingSetBytes": 81780736,
+      "handles": 321,
+      "gdiObjects": 9,
+      "userObjects": 6,
+      "threads": 10,
+      "processCpu100ns": 25000000,
+      "snapshotCollectionCpu100ns": 937500,
+      "snapshotCollectionUs": 104968.9,
+      "nativeHosts": 0
+    },
+    "replacementPrivateGrowthBytes": 1548288,
+    "qualification": "observed hidden lifecycle bounds only; three replacements do not qualify long-term kernel/GPU lifetime"
+  },
+  {
+    "name": "default-compose-B",
+    "renderer": "Hardware",
+    "sourceUnits": 652,
+    "activity": {
+      "changes": 36,
+      "layouts": 0,
+      "mirrorResets": 0,
+      "recoverySubmissions": 36
+    },
+    "completed": true,
+    "idle": [
+      {
+        "phase": "clean-hidden-idle",
+        "wallUs": 491906.8,
+        "processCpu100ns": 0,
+        "ownerCpuCycles": 1364856,
+        "renders": 61
+      },
+      {
+        "phase": "hidden-notification-idle",
+        "wallUs": 490382.5,
+        "processCpu100ns": 0,
+        "ownerCpuCycles": 956687,
+        "renders": 61
+      }
+    ],
+    "collection": [
+      {
+        "cpu100ns": 937500,
+        "wallUs": 87625.5,
+        "phase": "clean-after-dirty"
+      },
+      {
+        "cpu100ns": 937500,
+        "wallUs": 83590.6,
+        "phase": "clean-hidden-idle"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 78441.2,
+        "phase": "hidden-notification-idle"
+      },
+      {
+        "cpu100ns": 937500,
+        "wallUs": 83770.5,
+        "phase": "resumed-forced-frame"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 79453.2,
+        "phase": "resized-forced-frame"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 78740.8,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 1406250,
+        "wallUs": 142026.6,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 1562500,
+        "wallUs": 149621.8,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 937500,
+        "wallUs": 104882.7,
+        "phase": "closed"
+      }
+    ],
+    "replacements": [
+      {
+        "generation": 4,
+        "privateBytes": 130740224,
+        "workingSetBytes": 114143232,
+        "handles": 681,
+        "gdi": 9,
+        "user": 11,
+        "dxgiLocalUsageBytes": 46620672,
+        "dxgiUsageHresult": 0
+      },
+      {
+        "generation": 6,
+        "privateBytes": 131096576,
+        "workingSetBytes": 117239808,
+        "handles": 681,
+        "gdi": 9,
+        "user": 11,
+        "dxgiLocalUsageBytes": 46620672,
+        "dxgiUsageHresult": 0
+      },
+      {
+        "generation": 8,
+        "privateBytes": 132276224,
+        "workingSetBytes": 117878784,
+        "handles": 681,
+        "gdi": 9,
+        "user": 11,
+        "dxgiLocalUsageBytes": 46620672,
+        "dxgiUsageHresult": 0
+      }
+    ],
+    "exactReplacementPixels": [
+      {
+        "exactPixels": true,
+        "replacement": 0,
+        "sha256": "1DA7EEA14BD7B7A12EF3DE9D96797743C2404E39103442EFB90D38E0C2C863D0"
+      },
+      {
+        "exactPixels": true,
+        "replacement": 1,
+        "sha256": "1DA7EEA14BD7B7A12EF3DE9D96797743C2404E39103442EFB90D38E0C2C863D0"
+      },
+      {
+        "exactPixels": true,
+        "replacement": 2,
+        "sha256": "1DA7EEA14BD7B7A12EF3DE9D96797743C2404E39103442EFB90D38E0C2C863D0"
+      }
+    ],
+    "maxBrushes": 12.0,
+    "maxFormats": 5.0,
+    "decodedImageBytes": 11016000,
+    "closed": {
+      "phase": "closed",
+      "privateBytes": 78225408,
+      "workingSetBytes": 84135936,
+      "handles": 321,
+      "gdiObjects": 9,
+      "userObjects": 6,
+      "threads": 10,
+      "processCpu100ns": 23281250,
+      "snapshotCollectionCpu100ns": 937500,
+      "snapshotCollectionUs": 104882.7,
+      "nativeHosts": 0
+    },
+    "replacementPrivateGrowthBytes": 1536000,
+    "qualification": "observed hidden lifecycle bounds only; three replacements do not qualify long-term kernel/GPU lifetime"
+  },
+  {
+    "name": "default-split-A",
+    "renderer": "Hardware",
+    "sourceUnits": 652,
+    "activity": {
+      "changes": 36,
+      "layouts": 36,
+      "mirrorResets": 36,
+      "recoverySubmissions": 36
+    },
+    "completed": true,
+    "idle": [
+      {
+        "phase": "clean-hidden-idle",
+        "wallUs": 498217,
+        "processCpu100ns": 0,
+        "ownerCpuCycles": 1044244,
+        "renders": 61
+      },
+      {
+        "phase": "hidden-notification-idle",
+        "wallUs": 492741,
+        "processCpu100ns": 0,
+        "ownerCpuCycles": 1006902,
+        "renders": 61
+      }
+    ],
+    "collection": [
+      {
+        "cpu100ns": 1093750,
+        "wallUs": 113320.5,
+        "phase": "clean-after-dirty"
+      },
+      {
+        "cpu100ns": 1093750,
+        "wallUs": 111559.6,
+        "phase": "clean-hidden-idle"
+      },
+      {
+        "cpu100ns": 1093750,
+        "wallUs": 109678.6,
+        "phase": "hidden-notification-idle"
+      },
+      {
+        "cpu100ns": 1250000,
+        "wallUs": 121938.3,
+        "phase": "resumed-forced-frame"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 79717.3,
+        "phase": "resized-forced-frame"
+      },
+      {
+        "cpu100ns": 1406250,
+        "wallUs": 134122,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 1250000,
+        "wallUs": 133496.2,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 1250000,
+        "wallUs": 132444.8,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 937500,
+        "wallUs": 100685.6,
+        "phase": "closed"
+      }
+    ],
+    "replacements": [
+      {
+        "generation": 4,
+        "privateBytes": 134754304,
+        "workingSetBytes": 114634752,
+        "handles": 681,
+        "gdi": 9,
+        "user": 11,
+        "dxgiLocalUsageBytes": 46620672,
+        "dxgiUsageHresult": 0
+      },
+      {
+        "generation": 6,
+        "privateBytes": 135864320,
+        "workingSetBytes": 127959040,
+        "handles": 681,
+        "gdi": 9,
+        "user": 11,
+        "dxgiLocalUsageBytes": 46620672,
+        "dxgiUsageHresult": 0
+      },
+      {
+        "generation": 8,
+        "privateBytes": 136171520,
+        "workingSetBytes": 131100672,
+        "handles": 681,
+        "gdi": 9,
+        "user": 11,
+        "dxgiLocalUsageBytes": 46620672,
+        "dxgiUsageHresult": 0
+      }
+    ],
+    "exactReplacementPixels": [
+      {
+        "exactPixels": true,
+        "replacement": 0,
+        "sha256": "10516957DC6535685671332D82F47C0B5BB9261F687BCBFCBC88C669866E7955"
+      },
+      {
+        "exactPixels": true,
+        "replacement": 1,
+        "sha256": "10516957DC6535685671332D82F47C0B5BB9261F687BCBFCBC88C669866E7955"
+      },
+      {
+        "exactPixels": true,
+        "replacement": 2,
+        "sha256": "10516957DC6535685671332D82F47C0B5BB9261F687BCBFCBC88C669866E7955"
+      }
+    ],
+    "maxBrushes": 12.0,
+    "maxFormats": 4.0,
+    "decodedImageBytes": 11016000,
+    "closed": {
+      "phase": "closed",
+      "privateBytes": 81809408,
+      "workingSetBytes": 96776192,
+      "handles": 321,
+      "gdiObjects": 9,
+      "userObjects": 6,
+      "threads": 10,
+      "processCpu100ns": 26406250,
+      "snapshotCollectionCpu100ns": 937500,
+      "snapshotCollectionUs": 100685.6,
+      "nativeHosts": 0
+    },
+    "replacementPrivateGrowthBytes": 1417216,
+    "qualification": "observed hidden lifecycle bounds only; three replacements do not qualify long-term kernel/GPU lifetime"
+  },
+  {
+    "name": "default-split-B",
+    "renderer": "Hardware",
+    "sourceUnits": 652,
+    "activity": {
+      "changes": 36,
+      "layouts": 0,
+      "mirrorResets": 36,
+      "recoverySubmissions": 36
+    },
+    "completed": true,
+    "idle": [
+      {
+        "phase": "clean-hidden-idle",
+        "wallUs": 498177.7,
+        "processCpu100ns": 0,
+        "ownerCpuCycles": 1053687,
+        "renders": 61
+      },
+      {
+        "phase": "hidden-notification-idle",
+        "wallUs": 491804.2,
+        "processCpu100ns": 0,
+        "ownerCpuCycles": 1240389,
+        "renders": 61
+      }
+    ],
+    "collection": [
+      {
+        "cpu100ns": 1093750,
+        "wallUs": 113360.5,
+        "phase": "clean-after-dirty"
+      },
+      {
+        "cpu100ns": 1093750,
+        "wallUs": 112384.5,
+        "phase": "clean-hidden-idle"
+      },
+      {
+        "cpu100ns": 1093750,
+        "wallUs": 110269.7,
+        "phase": "hidden-notification-idle"
+      },
+      {
+        "cpu100ns": 1093750,
+        "wallUs": 114929.7,
+        "phase": "resumed-forced-frame"
+      },
+      {
+        "cpu100ns": 937500,
+        "wallUs": 82215.5,
+        "phase": "resized-forced-frame"
+      },
+      {
+        "cpu100ns": 1562500,
+        "wallUs": 157248.5,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 937500,
+        "wallUs": 103888.1,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 937500,
+        "wallUs": 102213.6,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 1718750,
+        "wallUs": 157152.7,
+        "phase": "closed"
+      }
+    ],
+    "replacements": [
+      {
+        "generation": 4,
+        "privateBytes": 134856704,
+        "workingSetBytes": 104202240,
+        "handles": 681,
+        "gdi": 9,
+        "user": 11,
+        "dxgiLocalUsageBytes": 46620672,
+        "dxgiUsageHresult": 0
+      },
+      {
+        "generation": 6,
+        "privateBytes": 135237632,
+        "workingSetBytes": 108269568,
+        "handles": 681,
+        "gdi": 9,
+        "user": 11,
+        "dxgiLocalUsageBytes": 46620672,
+        "dxgiUsageHresult": 0
+      },
+      {
+        "generation": 8,
+        "privateBytes": 134844416,
+        "workingSetBytes": 119709696,
+        "handles": 681,
+        "gdi": 9,
+        "user": 11,
+        "dxgiLocalUsageBytes": 46620672,
+        "dxgiUsageHresult": 0
+      }
+    ],
+    "exactReplacementPixels": [
+      {
+        "exactPixels": true,
+        "replacement": 0,
+        "sha256": "10516957DC6535685671332D82F47C0B5BB9261F687BCBFCBC88C669866E7955"
+      },
+      {
+        "exactPixels": true,
+        "replacement": 1,
+        "sha256": "10516957DC6535685671332D82F47C0B5BB9261F687BCBFCBC88C669866E7955"
+      },
+      {
+        "exactPixels": true,
+        "replacement": 2,
+        "sha256": "10516957DC6535685671332D82F47C0B5BB9261F687BCBFCBC88C669866E7955"
+      }
+    ],
+    "maxBrushes": 12.0,
+    "maxFormats": 4.0,
+    "decodedImageBytes": 11016000,
+    "closed": {
+      "phase": "closed",
+      "privateBytes": 80588800,
+      "workingSetBytes": 85385216,
+      "handles": 321,
+      "gdiObjects": 9,
+      "userObjects": 6,
+      "threads": 10,
+      "processCpu100ns": 29375000,
+      "snapshotCollectionCpu100ns": 1718750,
+      "snapshotCollectionUs": 157152.7,
+      "nativeHosts": 0
+    },
+    "replacementPrivateGrowthBytes": -12288,
+    "qualification": "observed hidden lifecycle bounds only; three replacements do not qualify long-term kernel/GPU lifetime"
+  },
+  {
+    "name": "warp-compose-A",
+    "renderer": "WARP",
+    "sourceUnits": 652,
+    "activity": {
+      "changes": 36,
+      "layouts": 36,
+      "mirrorResets": 36,
+      "recoverySubmissions": 36
+    },
+    "completed": true,
+    "idle": [
+      {
+        "phase": "clean-hidden-idle",
+        "wallUs": 495575.4,
+        "processCpu100ns": 0,
+        "ownerCpuCycles": 1006906,
+        "renders": 61
+      },
+      {
+        "phase": "hidden-notification-idle",
+        "wallUs": 497166.3,
+        "processCpu100ns": 0,
+        "ownerCpuCycles": 952398,
+        "renders": 61
+      }
+    ],
+    "collection": [
+      {
+        "cpu100ns": 937500,
+        "wallUs": 81288.8,
+        "phase": "clean-after-dirty"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 76388.4,
+        "phase": "clean-hidden-idle"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 79479,
+        "phase": "hidden-notification-idle"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 78959.6,
+        "phase": "resumed-forced-frame"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 79495.7,
+        "phase": "resized-forced-frame"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 76572.3,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 78882.4,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 77774.7,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 78459.3,
+        "phase": "closed"
+      }
+    ],
+    "replacements": [
+      {
+        "generation": 4,
+        "privateBytes": 68354048,
+        "workingSetBytes": 99876864,
+        "handles": 305,
+        "gdi": 9,
+        "user": 30,
+        "dxgiLocalUsageBytes": 0,
+        "dxgiUsageHresult": 0
+      },
+      {
+        "generation": 6,
+        "privateBytes": 70340608,
+        "workingSetBytes": 100347904,
+        "handles": 305,
+        "gdi": 9,
+        "user": 30,
+        "dxgiLocalUsageBytes": 0,
+        "dxgiUsageHresult": 0
+      },
+      {
+        "generation": 8,
+        "privateBytes": 68567040,
+        "workingSetBytes": 100237312,
+        "handles": 305,
+        "gdi": 9,
+        "user": 30,
+        "dxgiLocalUsageBytes": 0,
+        "dxgiUsageHresult": 0
+      }
+    ],
+    "exactReplacementPixels": [
+      {
+        "exactPixels": true,
+        "replacement": 0,
+        "sha256": "46614AB7152932495E2411F45A547C36CA6CC7DB737491885CA308BD1A6D3C04"
+      },
+      {
+        "exactPixels": true,
+        "replacement": 1,
+        "sha256": "46614AB7152932495E2411F45A547C36CA6CC7DB737491885CA308BD1A6D3C04"
+      },
+      {
+        "exactPixels": true,
+        "replacement": 2,
+        "sha256": "46614AB7152932495E2411F45A547C36CA6CC7DB737491885CA308BD1A6D3C04"
+      }
+    ],
+    "maxBrushes": 12.0,
+    "maxFormats": 5.0,
+    "decodedImageBytes": 11016000,
+    "closed": {
+      "phase": "closed",
+      "privateBytes": 38461440,
+      "workingSetBytes": 58970112,
+      "handles": 288,
+      "gdiObjects": 9,
+      "userObjects": 27,
+      "threads": 34,
+      "processCpu100ns": 27656250,
+      "snapshotCollectionCpu100ns": 781250,
+      "snapshotCollectionUs": 78459.3,
+      "nativeHosts": 0
+    },
+    "replacementPrivateGrowthBytes": 212992,
+    "qualification": "observed hidden lifecycle bounds only; three replacements do not qualify long-term kernel/GPU lifetime"
+  },
+  {
+    "name": "warp-compose-B",
+    "renderer": "WARP",
+    "sourceUnits": 652,
+    "activity": {
+      "changes": 36,
+      "layouts": 0,
+      "mirrorResets": 0,
+      "recoverySubmissions": 36
+    },
+    "completed": true,
+    "idle": [
+      {
+        "phase": "clean-hidden-idle",
+        "wallUs": 497528.8,
+        "processCpu100ns": 0,
+        "ownerCpuCycles": 1289322,
+        "renders": 61
+      },
+      {
+        "phase": "hidden-notification-idle",
+        "wallUs": 524468.7,
+        "processCpu100ns": 0,
+        "ownerCpuCycles": 950681,
+        "renders": 61
+      }
+    ],
+    "collection": [
+      {
+        "cpu100ns": 781250,
+        "wallUs": 78716,
+        "phase": "clean-after-dirty"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 79703.7,
+        "phase": "clean-hidden-idle"
+      },
+      {
+        "cpu100ns": 1093750,
+        "wallUs": 110564,
+        "phase": "hidden-notification-idle"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 80228,
+        "phase": "resumed-forced-frame"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 83610.7,
+        "phase": "resized-forced-frame"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 80781.6,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 80648.8,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 78334.8,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 1250000,
+        "wallUs": 128647.2,
+        "phase": "closed"
+      }
+    ],
+    "replacements": [
+      {
+        "generation": 4,
+        "privateBytes": 70897664,
+        "workingSetBytes": 99934208,
+        "handles": 301,
+        "gdi": 9,
+        "user": 28,
+        "dxgiLocalUsageBytes": 0,
+        "dxgiUsageHresult": 0
+      },
+      {
+        "generation": 6,
+        "privateBytes": 68546560,
+        "workingSetBytes": 99971072,
+        "handles": 301,
+        "gdi": 9,
+        "user": 28,
+        "dxgiLocalUsageBytes": 0,
+        "dxgiUsageHresult": 0
+      },
+      {
+        "generation": 8,
+        "privateBytes": 66707456,
+        "workingSetBytes": 100130816,
+        "handles": 301,
+        "gdi": 9,
+        "user": 28,
+        "dxgiLocalUsageBytes": 0,
+        "dxgiUsageHresult": 0
+      }
+    ],
+    "exactReplacementPixels": [
+      {
+        "exactPixels": true,
+        "replacement": 0,
+        "sha256": "46614AB7152932495E2411F45A547C36CA6CC7DB737491885CA308BD1A6D3C04"
+      },
+      {
+        "exactPixels": true,
+        "replacement": 1,
+        "sha256": "46614AB7152932495E2411F45A547C36CA6CC7DB737491885CA308BD1A6D3C04"
+      },
+      {
+        "exactPixels": true,
+        "replacement": 2,
+        "sha256": "46614AB7152932495E2411F45A547C36CA6CC7DB737491885CA308BD1A6D3C04"
+      }
+    ],
+    "maxBrushes": 12.0,
+    "maxFormats": 5.0,
+    "decodedImageBytes": 11016000,
+    "closed": {
+      "phase": "closed",
+      "privateBytes": 41361408,
+      "workingSetBytes": 58474496,
+      "handles": 284,
+      "gdiObjects": 9,
+      "userObjects": 25,
+      "threads": 31,
+      "processCpu100ns": 23437500,
+      "snapshotCollectionCpu100ns": 1250000,
+      "snapshotCollectionUs": 128647.2,
+      "nativeHosts": 0
+    },
+    "replacementPrivateGrowthBytes": -4190208,
+    "qualification": "observed hidden lifecycle bounds only; three replacements do not qualify long-term kernel/GPU lifetime"
+  },
+  {
+    "name": "warp-split-A",
+    "renderer": "WARP",
+    "sourceUnits": 652,
+    "activity": {
+      "changes": 36,
+      "layouts": 36,
+      "mirrorResets": 36,
+      "recoverySubmissions": 36
+    },
+    "completed": true,
+    "idle": [
+      {
+        "phase": "clean-hidden-idle",
+        "wallUs": 517615.7,
+        "processCpu100ns": 0,
+        "ownerCpuCycles": 996601,
+        "renders": 61
+      },
+      {
+        "phase": "hidden-notification-idle",
+        "wallUs": 493567.1,
+        "processCpu100ns": 0,
+        "ownerCpuCycles": 1246397,
+        "renders": 61
+      }
+    ],
+    "collection": [
+      {
+        "cpu100ns": 1250000,
+        "wallUs": 120013.5,
+        "phase": "clean-after-dirty"
+      },
+      {
+        "cpu100ns": 1250000,
+        "wallUs": 126295.4,
+        "phase": "clean-hidden-idle"
+      },
+      {
+        "cpu100ns": 1093750,
+        "wallUs": 115510.8,
+        "phase": "hidden-notification-idle"
+      },
+      {
+        "cpu100ns": 1093750,
+        "wallUs": 117503.4,
+        "phase": "resumed-forced-frame"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 79384.4,
+        "phase": "resized-forced-frame"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 78548.7,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 937500,
+        "wallUs": 87632.9,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 1093750,
+        "wallUs": 103304.2,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 1093750,
+        "wallUs": 104510.6,
+        "phase": "closed"
+      }
+    ],
+    "replacements": [
+      {
+        "generation": 4,
+        "privateBytes": 65155072,
+        "workingSetBytes": 99385344,
+        "handles": 303,
+        "gdi": 9,
+        "user": 29,
+        "dxgiLocalUsageBytes": 0,
+        "dxgiUsageHresult": 0
+      },
+      {
+        "generation": 6,
+        "privateBytes": 67973120,
+        "workingSetBytes": 99483648,
+        "handles": 303,
+        "gdi": 9,
+        "user": 29,
+        "dxgiLocalUsageBytes": 0,
+        "dxgiUsageHresult": 0
+      },
+      {
+        "generation": 8,
+        "privateBytes": 69857280,
+        "workingSetBytes": 99987456,
+        "handles": 303,
+        "gdi": 9,
+        "user": 29,
+        "dxgiLocalUsageBytes": 0,
+        "dxgiUsageHresult": 0
+      }
+    ],
+    "exactReplacementPixels": [
+      {
+        "exactPixels": true,
+        "replacement": 0,
+        "sha256": "7EDD5F9437D190146FED1C5C207E0073060183AC8D074866EBFEA51131F401F8"
+      },
+      {
+        "exactPixels": true,
+        "replacement": 1,
+        "sha256": "7EDD5F9437D190146FED1C5C207E0073060183AC8D074866EBFEA51131F401F8"
+      },
+      {
+        "exactPixels": true,
+        "replacement": 2,
+        "sha256": "7EDD5F9437D190146FED1C5C207E0073060183AC8D074866EBFEA51131F401F8"
+      }
+    ],
+    "maxBrushes": 12.0,
+    "maxFormats": 4.0,
+    "decodedImageBytes": 11016000,
+    "closed": {
+      "phase": "closed",
+      "privateBytes": 36802560,
+      "workingSetBytes": 58400768,
+      "handles": 286,
+      "gdiObjects": 9,
+      "userObjects": 26,
+      "threads": 30,
+      "processCpu100ns": 27343750,
+      "snapshotCollectionCpu100ns": 1093750,
+      "snapshotCollectionUs": 104510.6,
+      "nativeHosts": 0
+    },
+    "replacementPrivateGrowthBytes": 4702208,
+    "qualification": "observed hidden lifecycle bounds only; three replacements do not qualify long-term kernel/GPU lifetime"
+  },
+  {
+    "name": "warp-split-B",
+    "renderer": "WARP",
+    "sourceUnits": 652,
+    "activity": {
+      "changes": 36,
+      "layouts": 0,
+      "mirrorResets": 36,
+      "recoverySubmissions": 36
+    },
+    "completed": true,
+    "idle": [
+      {
+        "phase": "clean-hidden-idle",
+        "wallUs": 517420.6,
+        "processCpu100ns": 156250,
+        "ownerCpuCycles": 1486319,
+        "renders": 61
+      },
+      {
+        "phase": "hidden-notification-idle",
+        "wallUs": 502878.9,
+        "processCpu100ns": 0,
+        "ownerCpuCycles": 1384172,
+        "renders": 61
+      }
+    ],
+    "collection": [
+      {
+        "cpu100ns": 1250000,
+        "wallUs": 123751.8,
+        "phase": "clean-after-dirty"
+      },
+      {
+        "cpu100ns": 1250000,
+        "wallUs": 116793,
+        "phase": "clean-hidden-idle"
+      },
+      {
+        "cpu100ns": 1093750,
+        "wallUs": 106569.1,
+        "phase": "hidden-notification-idle"
+      },
+      {
+        "cpu100ns": 1250000,
+        "wallUs": 114628.9,
+        "phase": "resumed-forced-frame"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 79542,
+        "phase": "resized-forced-frame"
+      },
+      {
+        "cpu100ns": 781250,
+        "wallUs": 81247.7,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 937500,
+        "wallUs": 96814.8,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 937500,
+        "wallUs": 98412.2,
+        "phase": "recreated-forced-frame"
+      },
+      {
+        "cpu100ns": 937500,
+        "wallUs": 103160.3,
+        "phase": "closed"
+      }
+    ],
+    "replacements": [
+      {
+        "generation": 4,
+        "privateBytes": 68513792,
+        "workingSetBytes": 98844672,
+        "handles": 303,
+        "gdi": 9,
+        "user": 29,
+        "dxgiLocalUsageBytes": 0,
+        "dxgiUsageHresult": 0
+      },
+      {
+        "generation": 6,
+        "privateBytes": 66789376,
+        "workingSetBytes": 98930688,
+        "handles": 303,
+        "gdi": 9,
+        "user": 29,
+        "dxgiLocalUsageBytes": 0,
+        "dxgiUsageHresult": 0
+      },
+      {
+        "generation": 8,
+        "privateBytes": 66977792,
+        "workingSetBytes": 99422208,
+        "handles": 303,
+        "gdi": 9,
+        "user": 29,
+        "dxgiLocalUsageBytes": 0,
+        "dxgiUsageHresult": 0
+      }
+    ],
+    "exactReplacementPixels": [
+      {
+        "exactPixels": true,
+        "replacement": 0,
+        "sha256": "7EDD5F9437D190146FED1C5C207E0073060183AC8D074866EBFEA51131F401F8"
+      },
+      {
+        "exactPixels": true,
+        "replacement": 1,
+        "sha256": "7EDD5F9437D190146FED1C5C207E0073060183AC8D074866EBFEA51131F401F8"
+      },
+      {
+        "exactPixels": true,
+        "replacement": 2,
+        "sha256": "7EDD5F9437D190146FED1C5C207E0073060183AC8D074866EBFEA51131F401F8"
+      }
+    ],
+    "maxBrushes": 12.0,
+    "maxFormats": 4.0,
+    "decodedImageBytes": 11016000,
+    "closed": {
+      "phase": "closed",
+      "privateBytes": 37404672,
+      "workingSetBytes": 58707968,
+      "handles": 286,
+      "gdiObjects": 9,
+      "userObjects": 26,
+      "threads": 31,
+      "processCpu100ns": 30937500,
+      "snapshotCollectionCpu100ns": 937500,
+      "snapshotCollectionUs": 103160.3,
+      "nativeHosts": 0
+    },
+    "replacementPrivateGrowthBytes": -1536000,
+    "qualification": "observed hidden lifecycle bounds only; three replacements do not qualify long-term kernel/GPU lifetime"
+  }
+]

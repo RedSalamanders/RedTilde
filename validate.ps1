@@ -50,12 +50,16 @@ Check 'Six build configurations and native inventory' {
 Check 'PowerShell syntax' {
     $files=@(Get-ChildItem $PSScriptRoot -File | Where-Object Extension -in @('.ps1','.psm1'))
     $files+=Get-ChildItem (Join-Path $PSScriptRoot 'Build') -Recurse -File | Where-Object Extension -in @('.ps1','.psm1')
+    $files+=Get-ChildItem (Join-Path $PSScriptRoot 'Tests') -Recurse -File | Where-Object Extension -in @('.ps1','.psm1')
     foreach ($file in $files) {
         $tokens=$null; $errors=$null
         [void][Management.Automation.Language.Parser]::ParseFile($file.FullName,[ref]$tokens,[ref]$errors)
         if ($errors.Count) { throw "$($file.Name): $($errors[0].Message)" }
     }
 }
-Check 'Performance protocol' { & (Join-Path $PSScriptRoot 'Tests/Scope.Tests.Performance.Tooling.ps1') }
+Check 'Performance protocol' {
+    & (Join-Path $PSScriptRoot 'Tests/Scope.Tests.Performance.Tooling.ps1')
+    & (Join-Path $PSScriptRoot 'Tests/Scope.Tests.Performance.Evidence.ps1') -SelfTest
+}
 if ($failures.Count) { throw ($failures -join "`n") }
 Write-Host 'All RedTilde validators passed.'

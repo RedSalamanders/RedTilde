@@ -1,0 +1,170 @@
+{
+  "schemaVersion": 1,
+  "baselineCommit": "1ccbdb7ba37621eb8c55e08258a9387463ea6da7",
+  "candidateCommit": "b8a06474de0d7d81498cf21544972fb5aaa7f5b7",
+  "candidateSourceIdentity": "abc1e0fb9c80ca29a26326b8ad2a32ba1d274f9edcb65870547f7007301d717b",
+  "fixtureSha256": "746E1833A4C85ACEC6F59A0BBFF458FB068C9347C9E30B16CFF9DFB32BB11811",
+  "timingUsage": "lifecycle validation only; external compilation active, not part of paired latency studies",
+  "runs": [
+    {
+      "name": "default-compose-A",
+      "role": "A",
+      "binarySha256": "BFBAFA9213C8A0AB74E70F844C606A0AECEA5464ACA7166229B0EA59DF18BDFD",
+      "nativeSha256": "24C9EE87895F38213156C9D7A8E20BFE7EE9D79C129A9DC760B65BDCFAC6403F",
+      "renderer": "Hardware",
+      "adapter": "NVIDIA GeForce RTX 5080",
+      "phases": [
+        "clean-after-dirty",
+        "clean-hidden-idle",
+        "hidden-notification-idle",
+        "resumed-forced-frame",
+        "resized-forced-frame",
+        "recreated-forced-frame",
+        "recreated-forced-frame",
+        "recreated-forced-frame",
+        "closed"
+      ],
+      "completed": true
+    },
+    {
+      "name": "default-compose-B",
+      "role": "B",
+      "binarySha256": "336F4A9EC14FB95D3EA734A4885A0DC998634FCA8AB3D1802E17AC7ACAC0C00B",
+      "nativeSha256": "EB3905FA918099D12BD07E7CA7549A235319FCAA999F9E44AC7575031009C9DC",
+      "renderer": "Hardware",
+      "adapter": "NVIDIA GeForce RTX 5080",
+      "phases": [
+        "clean-after-dirty",
+        "clean-hidden-idle",
+        "hidden-notification-idle",
+        "resumed-forced-frame",
+        "resized-forced-frame",
+        "recreated-forced-frame",
+        "recreated-forced-frame",
+        "recreated-forced-frame",
+        "closed"
+      ],
+      "completed": true
+    },
+    {
+      "name": "default-split-A",
+      "role": "A",
+      "binarySha256": "BFBAFA9213C8A0AB74E70F844C606A0AECEA5464ACA7166229B0EA59DF18BDFD",
+      "nativeSha256": "4751A0FDC7669D78D2C36C56B8EA88E3031081910851A64B7B5A991F9E0F2959",
+      "renderer": "Hardware",
+      "adapter": "NVIDIA GeForce RTX 5080",
+      "phases": [
+        "clean-after-dirty",
+        "clean-hidden-idle",
+        "hidden-notification-idle",
+        "resumed-forced-frame",
+        "resized-forced-frame",
+        "recreated-forced-frame",
+        "recreated-forced-frame",
+        "recreated-forced-frame",
+        "closed"
+      ],
+      "completed": true
+    },
+    {
+      "name": "default-split-B",
+      "role": "B",
+      "binarySha256": "336F4A9EC14FB95D3EA734A4885A0DC998634FCA8AB3D1802E17AC7ACAC0C00B",
+      "nativeSha256": "4877204AA1FCEB01E76F3DFD798BCEF07494F93902AD3A347BA5254E6750149A",
+      "renderer": "Hardware",
+      "adapter": "NVIDIA GeForce RTX 5080",
+      "phases": [
+        "clean-after-dirty",
+        "clean-hidden-idle",
+        "hidden-notification-idle",
+        "resumed-forced-frame",
+        "resized-forced-frame",
+        "recreated-forced-frame",
+        "recreated-forced-frame",
+        "recreated-forced-frame",
+        "closed"
+      ],
+      "completed": true
+    },
+    {
+      "name": "warp-compose-A",
+      "role": "A",
+      "binarySha256": "BFBAFA9213C8A0AB74E70F844C606A0AECEA5464ACA7166229B0EA59DF18BDFD",
+      "nativeSha256": "AFCDEDBB2BCCDF70A21B30BE7A9E94866D5EBD8F26BC4C305D5452BFE51E93B3",
+      "renderer": "WARP",
+      "adapter": "Microsoft Basic Render Driver",
+      "phases": [
+        "clean-after-dirty",
+        "clean-hidden-idle",
+        "hidden-notification-idle",
+        "resumed-forced-frame",
+        "resized-forced-frame",
+        "recreated-forced-frame",
+        "recreated-forced-frame",
+        "recreated-forced-frame",
+        "closed"
+      ],
+      "completed": true
+    },
+    {
+      "name": "warp-compose-B",
+      "role": "B",
+      "binarySha256": "336F4A9EC14FB95D3EA734A4885A0DC998634FCA8AB3D1802E17AC7ACAC0C00B",
+      "nativeSha256": "B1D91A22E7E07E8FE6AD91958ADAF1883CD5C28049D36AA27976DAE719765505",
+      "renderer": "WARP",
+      "adapter": "Microsoft Basic Render Driver",
+      "phases": [
+        "clean-after-dirty",
+        "clean-hidden-idle",
+        "hidden-notification-idle",
+        "resumed-forced-frame",
+        "resized-forced-frame",
+        "recreated-forced-frame",
+        "recreated-forced-frame",
+        "recreated-forced-frame",
+        "closed"
+      ],
+      "completed": true
+    },
+    {
+      "name": "warp-split-A",
+      "role": "A",
+      "binarySha256": "BFBAFA9213C8A0AB74E70F844C606A0AECEA5464ACA7166229B0EA59DF18BDFD",
+      "nativeSha256": "965E54B6903AB87C06CFA78746B679A59975AEF4BF31E35B4DFC4A61B6CEB20A",
+      "renderer": "WARP",
+      "adapter": "Microsoft Basic Render Driver",
+      "phases": [
+        "clean-after-dirty",
+        "clean-hidden-idle",
+        "hidden-notification-idle",
+        "resumed-forced-frame",
+        "resized-forced-frame",
+        "recreated-forced-frame",
+        "recreated-forced-frame",
+        "recreated-forced-frame",
+        "closed"
+      ],
+      "completed": true
+    },
+    {
+      "name": "warp-split-B",
+      "role": "B",
+      "binarySha256": "336F4A9EC14FB95D3EA734A4885A0DC998634FCA8AB3D1802E17AC7ACAC0C00B",
+      "nativeSha256": "62334BDDDABA2B585DD0F060F4B98F8AD432A9F1A04F46FE685C508B65D06633",
+      "renderer": "WARP",
+      "adapter": "Microsoft Basic Render Driver",
+      "phases": [
+        "clean-after-dirty",
+        "clean-hidden-idle",
+        "hidden-notification-idle",
+        "resumed-forced-frame",
+        "resized-forced-frame",
+        "recreated-forced-frame",
+        "recreated-forced-frame",
+        "recreated-forced-frame",
+        "closed"
+      ],
+      "completed": true
+    }
+  ]
+}

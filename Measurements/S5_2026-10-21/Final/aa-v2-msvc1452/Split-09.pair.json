@@ -1,0 +1,65 @@
+{
+  "scenario": "Split",
+  "block": 9,
+  "order": "BAAB",
+  "B1": {
+    "commandUs": 266.0,
+    "preparationSubmissionUs": 4120.9,
+    "gpuWaitUs": 3914.45,
+    "completedEditUs": 8314.4,
+    "cleanCompletedUs": 8364.0,
+    "ownerCpuCycles": 17818237.5,
+    "privateBytes": 76173312.0,
+    "workingSetBytes": 62451712.0
+  },
+  "B1Receipt": {
+    "executableSha256": "BFBAFA9213C8A0AB74E70F844C606A0AECEA5464ACA7166229B0EA59DF18BDFD",
+    "sha256": "468826EDE5310B2005C7106058E2A9BAB95A834BED631B5995846AA71CCA8C88",
+    "file": "Split-09-B1.native.json"
+  },
+  "A1": {
+    "commandUs": 234.25,
+    "preparationSubmissionUs": 4275.15,
+    "gpuWaitUs": 3794.5,
+    "completedEditUs": 8302.55,
+    "cleanCompletedUs": 8351.15,
+    "ownerCpuCycles": 18584574.5,
+    "privateBytes": 76161024.0,
+    "workingSetBytes": 62484480.0
+  },
+  "A1Receipt": {
+    "executableSha256": "BFBAFA9213C8A0AB74E70F844C606A0AECEA5464ACA7166229B0EA59DF18BDFD",
+    "sha256": "F42DF14397635EC17E1AC332D5C0ECA1EB3860A695A2809D7EC5D10D69C2561A",
+    "file": "Split-09-A1.native.json"
+  },
+  "A2": {
+    "commandUs": 279.55,
+    "preparationSubmissionUs": 4343.0,
+    "gpuWaitUs": 3655.15,
+    "completedEditUs": 8299.15,
+    "cleanCompletedUs": 8374.95,
+    "ownerCpuCycles": 18697240.0,
+    "privateBytes": 75583488.0,
+    "workingSetBytes": 63008768.0
+  },
+  "A2Receipt": {
+    "executableSha256": "BFBAFA9213C8A0AB74E70F844C606A0AECEA5464ACA7166229B0EA59DF18BDFD",
+    "sha256": "544CDEE21F9C3117CC4FD51BA2FC5DADCC5851BD07030E471AEA4F349A48EAFA",
+    "file": "Split-09-A2.native.json"
+  },
+  "B2": {
+    "commandUs": 267.70000000000005,
+    "preparationSubmissionUs": 4080.6,
+    "gpuWaitUs": 3923.5,
+    "completedEditUs": 8322.8,
+    "cleanCompletedUs": 8342.6,
+    "ownerCpuCycles": 17207914.5,
+    "privateBytes": 75231232.0,
+    "workingSetBytes": 62234624.0
+  },
+  "B2Receipt": {
+    "executableSha256": "BFBAFA9213C8A0AB74E70F844C606A0AECEA5464ACA7166229B0EA59DF18BDFD",
+    "sha256": "36C740A43EFAA39AC7287D04E1F8B906B63C6945ABD374A5DA245848DCED359A",
+    "file": "Split-09-B2.native.json"
+  }
+}

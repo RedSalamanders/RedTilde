@@ -1,0 +1,6 @@
+{
+  "startUtc": "2026-10-21T07:38:07.8839226Z",
+  "activity": "selected process CPU sampler, not an exclusive-machine lease",
+  "userDirection": "go without waiting",
+  "observer": "Z:\\src\\RedTilde\\.build\\s5-20261021\\activity-v2-msvc1452.jsonl"
+}

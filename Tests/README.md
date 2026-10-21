@@ -23,3 +23,18 @@ an `-OutputRoot` in a fresh `.build` directory. Use `-Baseline <frozen-directory
 then omit that switch for the candidate study. The default has 12 independent blocks per Compose/Split scenario;
 source, native adapter/driver, compiler, pin, fixture, harness and power identities must match. All raw slots
 and failed runs remain under `.build/performance`. The new judge is review-required and cannot close DxUi D4c.
+
+Audit the complete studies independently, including every raw median, receipt hash, control flag and adjusted
+probability:
+
+```powershell
+.\Tests\Scope.Tests.Performance.Evidence.ps1 -SelfTest
+.\Tests\Scope.Tests.Performance.Evidence.ps1 -StudyPath @('.build/performance/aa', '.build/performance/ab') -Output .build/performance/audit.json
+```
+
+The typed subset-expansion reference uses a separate numerical implementation. `validate.ps1` runs its four
+known-value oracles and parses the test scripts. Auditing is a numerical/integrity check; it does not approve
+the policy or compensate for competing activity, unstable controls or unavailable physical/GPU counters.
+Resource idle CPU is bracketed separately from the expensive process/thread snapshots. Keep both costs and
+unavailable DXGI counters explicit. The reviewed [S5 packet](../Measurements/S5_2026-10-21/Final/README.md)
+includes successful audits, six expected rejection cases and the remaining acceptance gates.

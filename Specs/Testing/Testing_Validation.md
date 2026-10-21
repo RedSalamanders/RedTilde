@@ -22,6 +22,11 @@ tests distinguish code from current math syntax and retain the oversized-source 
 and default/WARP resource probes run through the same executable as Core, with their paired study protocol in
 [Testing_Performance.md](Testing_Performance.md).
 
+PowerShell evidence tooling has independent numerical oracles under `Tests/` and is syntax-checked with the
+other scripts. Retain the full v2 study audit and adversarial rejection receipts alongside the raw studies.
+Keep compiler-change failures and new-toolchain builds distinct from earlier successful receipts. A later
+documentation/tooling edit requires a fresh source-bound build receipt even if the native binary stays identical.
+
 The app's `--self-test` and `--capture <path> --scenario <name>` never activate a window, read/write the system
 clipboard or synthesize desktop input. Drive the same app/control commands as the UI. Native rendering captures
 come from the public host's diagnostic bitmap hook and WIC; record the exact binary/dependency/scenario identity.

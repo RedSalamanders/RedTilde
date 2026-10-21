@@ -1,0 +1,65 @@
+{
+  "scenario": "Split",
+  "block": 2,
+  "order": "BAAB",
+  "B1": {
+    "commandUs": 436.4,
+    "preparationSubmissionUs": 5143.45,
+    "gpuWaitUs": 2486.5,
+    "completedEditUs": 8311.75,
+    "cleanCompletedUs": 8363.45,
+    "ownerCpuCycles": 17621663.0,
+    "privateBytes": 77066240.0,
+    "workingSetBytes": 62889984.0
+  },
+  "B1Receipt": {
+    "executableSha256": "336F4A9EC14FB95D3EA734A4885A0DC998634FCA8AB3D1802E17AC7ACAC0C00B",
+    "sha256": "355C0F06E34AF317CF40E82C3753D41EA35B9E44F6A3EE3E410E15FBDECEA6C4",
+    "file": "Split-02-B1.native.json"
+  },
+  "A1": {
+    "commandUs": 496.29999999999995,
+    "preparationSubmissionUs": 5053.7,
+    "gpuWaitUs": 2777.6499999999996,
+    "completedEditUs": 8328.95,
+    "cleanCompletedUs": 8354.35,
+    "ownerCpuCycles": 17300624.0,
+    "privateBytes": 75771904.0,
+    "workingSetBytes": 62373888.0
+  },
+  "A1Receipt": {
+    "executableSha256": "BFBAFA9213C8A0AB74E70F844C606A0AECEA5464ACA7166229B0EA59DF18BDFD",
+    "sha256": "CDDECD98C9E19C4EE706157ABB017EE68E91153E1876AB6B9B129AFE993200FD",
+    "file": "Split-02-A1.native.json"
+  },
+  "A2": {
+    "commandUs": 421.1,
+    "preparationSubmissionUs": 4740.6,
+    "gpuWaitUs": 2986.05,
+    "completedEditUs": 8308.6,
+    "cleanCompletedUs": 8363.3,
+    "ownerCpuCycles": 16864771.5,
+    "privateBytes": 76337152.0,
+    "workingSetBytes": 62111744.0
+  },
+  "A2Receipt": {
+    "executableSha256": "BFBAFA9213C8A0AB74E70F844C606A0AECEA5464ACA7166229B0EA59DF18BDFD",
+    "sha256": "C8458F170F15069ACBCC4BFC0003CB85BC661F607F23F870356D5AC5EA6EE8A0",
+    "file": "Split-02-A2.native.json"
+  },
+  "B2": {
+    "commandUs": 350.5,
+    "preparationSubmissionUs": 4869.0,
+    "gpuWaitUs": 3122.3,
+    "completedEditUs": 8323.95,
+    "cleanCompletedUs": 8324.15,
+    "ownerCpuCycles": 17557926.5,
+    "privateBytes": 74858496.0,
+    "workingSetBytes": 62296064.0
+  },
+  "B2Receipt": {
+    "executableSha256": "336F4A9EC14FB95D3EA734A4885A0DC998634FCA8AB3D1802E17AC7ACAC0C00B",
+    "sha256": "5ECCC83ED97A253D510016D3DED7B3DB8108D912319FC5FAC270257F4102BC22",
+    "file": "Split-02-B2.native.json"
+  }
+}

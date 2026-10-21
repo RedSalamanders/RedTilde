@@ -1,0 +1,15 @@
+{
+  "rawFiles": 244,
+  "nativeSlots": 192,
+  "coreAutoCrlf": true,
+  "allRawBytesPreserved": true,
+  "independentReferenceChecks": 6577,
+  "passed": true,
+  "scope": "raw A/A and A/B study files checked out from the staged index; no source checkout or production binary changed",
+  "earlierAttempt": {
+    "rawEvidenceChanged": false,
+    "reason": "PowerShell native stdin supplied CRLF path terminators; Git treated CR as part of the filename and refused checkout",
+    "passed": false,
+    "correction": "bounded argument batches"
+  }
+}

@@ -1,0 +1,189 @@
+DxUi pin verified: dd619ef0c5855307eb57758072658f2e3b777fd8
+Visual Studio: C:\Program Files\Microsoft Visual Studio\18\Insiders
+MSVC toolset:  14.52.37025, the default MSBuild compiles with; vcpkg is pinned to 14.52
+Cloning pinned vcpkg tooling into Z:\src\RedTilde\.build\dependencies\DxUi\b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad\vcpkg-tool
+Cloning into 'Z:\src\RedTilde\.build\dependencies\DxUi\b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad\vcpkg-tool'...
+Updating files:   0% (1/14366)
+Updating files:   1% (144/14366)
+Updating files:   2% (288/14366)
+Updating files:   3% (431/14366)
+Updating files:   4% (575/14366)
+Updating files:   5% (719/14366)
+Updating files:   6% (862/14366)
+Updating files:   7% (1006/14366)
+Updating files:   8% (1150/14366)
+Updating files:   9% (1293/14366)
+Updating files:  10% (1437/14366)
+Updating files:  11% (1581/14366)
+Updating files:  12% (1724/14366)
+Updating files:  13% (1868/14366)
+Updating files:  14% (2012/14366)
+Updating files:  15% (2155/14366)
+Updating files:  16% (2299/14366)
+Updating files:  17% (2443/14366)
+Updating files:  18% (2586/14366)
+Updating files:  19% (2730/14366)
+Updating files:  20% (2874/14366)
+Updating files:  21% (3017/14366)
+Updating files:  22% (3161/14366)
+Updating files:  23% (3305/14366)
+Updating files:  24% (3448/14366)
+Updating files:  25% (3592/14366)
+Updating files:  26% (3736/14366)
+Updating files:  27% (3879/14366)
+Updating files:  28% (4023/14366)
+Updating files:  29% (4167/14366)
+Updating files:  30% (4310/14366)
+Updating files:  31% (4454/14366)
+Updating files:  32% (4598/14366)
+Updating files:  33% (4741/14366)
+Updating files:  34% (4885/14366)
+Updating files:  35% (5029/14366)
+Updating files:  36% (5172/14366)
+Updating files:  37% (5316/14366)
+Updating files:  38% (5460/14366)
+Updating files:  39% (5603/14366)
+Updating files:  40% (5747/14366)
+Updating files:  41% (5891/14366)
+Updating files:  42% (6034/14366)
+Updating files:  43% (6178/14366)
+Updating files:  43% (6208/14366)
+Updating files:  44% (6322/14366)
+Updating files:  45% (6465/14366)
+Updating files:  46% (6609/14366)
+Updating files:  47% (6753/14366)
+Updating files:  48% (6896/14366)
+Updating files:  49% (7040/14366)
+Updating files:  50% (7183/14366)
+Updating files:  51% (7327/14366)
+Updating files:  52% (7471/14366)
+Updating files:  53% (7614/14366)
+Updating files:  54% (7758/14366)
+Updating files:  55% (7902/14366)
+Updating files:  56% (8045/14366)
+Updating files:  57% (8189/14366)
+Updating files:  58% (8333/14366)
+Updating files:  59% (8476/14366)
+Updating files:  60% (8620/14366)
+Updating files:  61% (8764/14366)
+Updating files:  62% (8907/14366)
+Updating files:  63% (9051/14366)
+Updating files:  64% (9195/14366)
+Updating files:  65% (9338/14366)
+Updating files:  66% (9482/14366)
+Updating files:  67% (9626/14366)
+Updating files:  68% (9769/14366)
+Updating files:  69% (9913/14366)
+Updating files:  70% (10057/14366)
+Updating files:  71% (10200/14366)
+Updating files:  72% (10344/14366)
+Updating files:  73% (10488/14366)
+Updating files:  74% (10631/14366)
+Updating files:  75% (10775/14366)
+Updating files:  76% (10919/14366)
+Updating files:  77% (11062/14366)
+Updating files:  78% (11206/14366)
+Updating files:  79% (11350/14366)
+Updating files:  80% (11493/14366)
+Updating files:  81% (11637/14366)
+Updating files:  82% (11781/14366)
+Updating files:  83% (11924/14366)
+Updating files:  84% (12068/14366)
+Updating files:  85% (12212/14366)
+Updating files:  86% (12355/14366)
+Updating files:  87% (12499/14366)
+Updating files:  88% (12643/14366)
+Updating files:  89% (12786/14366)
+Updating files:  90% (12930/14366)
+Updating files:  91% (13074/14366)
+Updating files:  92% (13217/14366)
+Updating files:  93% (13361/14366)
+Updating files:  94% (13505/14366)
+Updating files:  95% (13648/14366)
+Updating files:  96% (13792/14366)
+Updating files:  97% (13936/14366)
+Updating files:  98% (14079/14366)
+Updating files:  99% (14223/14366)
+Updating files: 100% (14366/14366)
+Updating files: 100% (14366/14366), done.
+Selecting pinned vcpkg commit 9e593bb18ea69cc5095e012465dcd675a822ed0d
+From https://github.com/microsoft/vcpkg
+ * branch                9e593bb18ea69cc5095e012465dcd675a822ed0d -> FETCH_HEAD
+HEAD is now at 9e593bb18 Release vcpkg-tool 2026-07-27. (#53109)
+Bootstrapping vcpkg...
+Downloading https://github.com/microsoft/vcpkg-tool/releases/download/2026-07-27/vcpkg.exe -> Z:\src\RedTilde\.build\dependencies\DxUi\b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad\vcpkg-tool\vcpkg.exe... done.
+Validating signature... done.
+
+vcpkg package management program version 2026-07-27-98d7cb0cf1f4686a3e43aa5672b6230c1d56bce8
+
+See LICENSE.txt for license information.
+Overlay triplet Z:\src\RedTilde\.build\dependencies\DxUi\b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad\vcpkg-triplets\ARM64\arm64-windows.cmake written
+Installing DxUi dependencies (arm64-windows)
+A suitable version of cmake was not found (required v4.4.0).
+Downloading https://github.com/Kitware/CMake/releases/download/v4.4.0/cmake-4.4.0-windows-x86_64.zip -> cmake-4.4.0-windows-x86_64.zip
+Successfully downloaded cmake-4.4.0-windows-x86_64.zip
+Extracting cmake...
+Detecting compiler hash for triplet x64-windows...
+Compiler found: C:/Program Files/Microsoft Visual Studio/18/Insiders/VC/Tools/MSVC/14.52.37025/bin/Hostx64/x64/cl.exe
+Detecting compiler hash for triplet arm64-windows...
+Compiler found: C:/Program Files/Microsoft Visual Studio/18/Insiders/VC/Tools/MSVC/14.52.37025/bin/Hostx64/arm64/cl.exe
+The following packages will be built and installed:
+  * vcpkg-cmake:x64-windows@2024-04-23
+  * vcpkg-cmake-config:x64-windows@2026-07-21
+    wil:arm64-windows@1.0.260126.7
+Additional packages (*) will be modified to complete this operation.
+Restored 0 package(s) from C:\Users\eric\AppData\Local\vcpkg\archives in 17.7 ms. Use --debug to see more details.
+Installing 1/3 vcpkg-cmake-config:x64-windows@2026-07-21...
+vcpkg-cmake-config:x64-windows@2026-07-21 package ABI: b97e1a7e35a6e3a814f08deda1be194c8c4f6fff5d43381f52f2df322f5484c4
+Building vcpkg-cmake-config:x64-windows@2026-07-21...
+-- Installing: Z:/src/RedTilde/.build/dependencies/DxUi/b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad/vcpkg_packages/ARM64/vcpkg-cmake-config_x64-windows/share/vcpkg-cmake-config/vcpkg_cmake_config_fixup.cmake
+-- Installing: Z:/src/RedTilde/.build/dependencies/DxUi/b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad/vcpkg_packages/ARM64/vcpkg-cmake-config_x64-windows/share/vcpkg-cmake-config/vcpkg-port-config.cmake
+-- Installing: Z:/src/RedTilde/.build/dependencies/DxUi/b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad/vcpkg_packages/ARM64/vcpkg-cmake-config_x64-windows/share/vcpkg-cmake-config/copyright
+-- Skipping post-build validation due to VCPKG_POLICY_EMPTY_PACKAGE
+Starting submission of vcpkg-cmake-config:x64-windows@2026-07-21 to 1 binary cache(s) in the background
+Elapsed time to handle vcpkg-cmake-config:x64-windows: 36.8 ms
+Installing 2/3 vcpkg-cmake:x64-windows@2024-04-23...
+vcpkg-cmake:x64-windows@2024-04-23 package ABI: 749336710b38b67a9a5ab7265aba8d4bca9c9836741c93381c4be363bac226b5
+Building vcpkg-cmake:x64-windows@2024-04-23...
+-- Installing: Z:/src/RedTilde/.build/dependencies/DxUi/b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad/vcpkg_packages/ARM64/vcpkg-cmake_x64-windows/share/vcpkg-cmake/vcpkg_cmake_configure.cmake
+-- Installing: Z:/src/RedTilde/.build/dependencies/DxUi/b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad/vcpkg_packages/ARM64/vcpkg-cmake_x64-windows/share/vcpkg-cmake/vcpkg_cmake_build.cmake
+-- Installing: Z:/src/RedTilde/.build/dependencies/DxUi/b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad/vcpkg_packages/ARM64/vcpkg-cmake_x64-windows/share/vcpkg-cmake/vcpkg_cmake_install.cmake
+-- Installing: Z:/src/RedTilde/.build/dependencies/DxUi/b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad/vcpkg_packages/ARM64/vcpkg-cmake_x64-windows/share/vcpkg-cmake/vcpkg-port-config.cmake
+-- Installing: Z:/src/RedTilde/.build/dependencies/DxUi/b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad/vcpkg_packages/ARM64/vcpkg-cmake_x64-windows/share/vcpkg-cmake/copyright
+-- Performing post-build validation
+Starting submission of vcpkg-cmake:x64-windows@2024-04-23 to 1 binary cache(s) in the background
+Elapsed time to handle vcpkg-cmake:x64-windows: 36.9 ms
+Completed submission of vcpkg-cmake-config:x64-windows@2026-07-21 to 1 binary cache(s) in 30.3 ms
+Installing 3/3 wil:arm64-windows@1.0.260126.7...
+wil:arm64-windows@1.0.260126.7 package ABI: a9015109e63e467867d9ba3237224ae6f40aa29ff1ed975b92df0f6f65b0216d
+Building wil:arm64-windows@1.0.260126.7...
+Z:\src\RedTilde\.build\dependencies\DxUi\b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad\vcpkg-triplets\ARM64\arm64-windows.cmake: info: loaded overlay triplet from here
+Downloading https://github.com/Microsoft/wil/archive/v1.0.260126.7.tar.gz -> Microsoft-wil-v1.0.260126.7.tar.gz
+Successfully downloaded Microsoft-wil-v1.0.260126.7.tar.gz
+-- Extracting source Z:/src/RedTilde/.build/dependencies/DxUi/b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad/vcpkg_downloads/Microsoft-wil-v1.0.260126.7.tar.gz
+-- Applying patch cpp14.patch
+-- Using source at Z:/src/RedTilde/.build/dependencies/DxUi/b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad/vcpkg_buildtrees/ARM64/wil/src/0.260126.7-f396d2605e.clean
+-- Configuring arm64-windows
+-- Building arm64-windows-rel
+-- Up-to-date: Z:/src/RedTilde/.build/dependencies/DxUi/b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad/vcpkg_packages/ARM64/wil_arm64-windows/share/wil/natvis
+-- Installing: Z:/src/RedTilde/.build/dependencies/DxUi/b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad/vcpkg_packages/ARM64/wil_arm64-windows/share/wil/natvis/wil.natstepfilter
+-- Installing: Z:/src/RedTilde/.build/dependencies/DxUi/b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad/vcpkg_packages/ARM64/wil_arm64-windows/share/wil/natvis/wil.natvis
+-- Installing: Z:/src/RedTilde/.build/dependencies/DxUi/b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad/vcpkg_packages/ARM64/wil_arm64-windows/share/wil/copyright
+-- Performing post-build validation
+Starting submission of wil:arm64-windows@1.0.260126.7 to 1 binary cache(s) in the background
+Elapsed time to handle wil:arm64-windows: 2 s
+Installed contents are licensed to you by owners. Microsoft is not responsible for, nor does it grant any licenses to, third-party packages.
+Packages installed in this vcpkg installation declare the following licenses:
+MIT
+wil provides CMake targets:
+
+  # this is heuristically generated, and may not be correct
+  find_package(wil CONFIG REQUIRED)
+  target_link_libraries(main PRIVATE WIL::WIL)
+
+Completed submission of vcpkg-cmake:x64-windows@2024-04-23 to 1 binary cache(s) in 33.4 ms
+Waiting for 1 remaining binary cache submissions...
+Completed submission of wil:arm64-windows@1.0.260126.7 to 1 binary cache(s) in 80.5 ms (1/1)
+All requested installations completed successfully in: 2.1 s
+vcpkg dependencies are ready.
+DxUi dd619ef0c5855307eb57758072658f2e3b777fd8, API 4, ARM64 restored.

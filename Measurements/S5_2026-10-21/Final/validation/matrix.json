@@ -1,0 +1,50 @@
+[
+  {
+    "platform": "x64",
+    "profile": "Debug",
+    "buildPassed": true,
+    "sourceIdentity": "79b6c531dd64b093b5e7d06bb965a45d2ea119f06bba6fb3097c67d2eae481f5",
+    "binarySha256": "F97628480B4F7ED060F0F2D51D5BA99158462F0E3D96FCF3197593D7844C8DAB",
+    "testPassed": true,
+    "testReceipt": "20261021-095033-054-x64-Debug/receipt.json"
+  },
+  {
+    "platform": "x64",
+    "profile": "Release",
+    "buildPassed": true,
+    "sourceIdentity": "79b6c531dd64b093b5e7d06bb965a45d2ea119f06bba6fb3097c67d2eae481f5",
+    "binarySha256": "336F4A9EC14FB95D3EA734A4885A0DC998634FCA8AB3D1802E17AC7ACAC0C00B",
+    "testPassed": true,
+    "testReceipt": "20261021-095054-926-x64-Release/receipt.json"
+  },
+  {
+    "platform": "x64",
+    "profile": "ASan Debug",
+    "buildPassed": true,
+    "sourceIdentity": "79b6c531dd64b093b5e7d06bb965a45d2ea119f06bba6fb3097c67d2eae481f5",
+    "binarySha256": "479E7CCEED8907F2AABF74274D7809B24023C9BB67C409EE91E5735F8750DA77",
+    "testPassed": true,
+    "testReceipt": "20261021-095115-164-x64-ASan-Debug/receipt.json"
+  },
+  {
+    "platform": "ARM64",
+    "profile": "Debug",
+    "buildPassed": true,
+    "sourceIdentity": "79b6c531dd64b093b5e7d06bb965a45d2ea119f06bba6fb3097c67d2eae481f5",
+    "binarySha256": "17763B7E3959EBF81A0CFE7E6FDD3DE7B8D5EB216666285727BC290FB731B7BB"
+  },
+  {
+    "platform": "ARM64",
+    "profile": "Release",
+    "buildPassed": true,
+    "sourceIdentity": "79b6c531dd64b093b5e7d06bb965a45d2ea119f06bba6fb3097c67d2eae481f5",
+    "binarySha256": "D0D841074AFD0C2DC229B7A479182FA19370D7EA2FCDB47FB2A54C4A799BC988"
+  },
+  {
+    "platform": "ARM64",
+    "profile": "ASan Debug",
+    "buildPassed": true,
+    "sourceIdentity": "79b6c531dd64b093b5e7d06bb965a45d2ea119f06bba6fb3097c67d2eae481f5",
+    "binarySha256": "2260B88ED0DB978575A0E5910E57BB8B178E1A829B4468C5A6D14C7B1D1FF887"
+  }
+]
