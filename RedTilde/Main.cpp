@@ -79,6 +79,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             }
             else if (argument == L"--warp")
                 options.forceWarp = true;
+            else if (argument == L"--control-diagnostics")
+                options.controlDiagnostics = true;
             else if (argument == L"--data-dir")
                 options.dataDirectory = value();
             else if (argument == L"--document")

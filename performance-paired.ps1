@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param([string]$Baseline='', [string]$OutputRoot='', [switch]$FreezeBaseline, [switch]$SameBinaryControl,
       [ValidateRange(2,16)][int]$Blocks=12,[ValidateRange(0,2147483647)][int]$Seed=20261021,
-      [ValidateRange(4,64)][int]$Cycles=16,[switch]$Warp)
+      [ValidateRange(4,64)][int]$Cycles=16,[switch]$Warp,[switch]$ControlDiagnostics)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
@@ -12,7 +12,7 @@ $source=Get-RedTildeSourceIdentity -Root $PSScriptRoot
 if(-not $build.passed -or $build.sourceIdentity -cne $source -or $build.binarySha256 -cne (Get-FileHash $exe).Hash) { throw 'Rebuild the current Release source before measuring.' }
 $fixture=Join-Path $PSScriptRoot 'docs/examples/s5-performance.md'
 $inputs=[ordered]@{}
-foreach($file in @('Tests/Scope.Tests.Performance.cpp','RedTilde/Main.cpp','performance-paired.ps1','Build/Performance.psm1','Build/Harness.psm1','docs/examples/s5-performance.md')) {
+foreach($file in @('Tests/Scope.Tests.Performance.cpp','RedTilde/Main.cpp','RedTilde/EditDiagnostics.h','performance-paired.ps1','Build/Performance.psm1','Build/Harness.psm1','docs/examples/s5-performance.md')) {
     $inputs[$file]=(Get-FileHash (Join-Path $PSScriptRoot $file)).Hash
 }
 $compiler=Get-RedTildeCompilerProfile -Root $PSScriptRoot
@@ -47,7 +47,7 @@ if(-not $SameBinaryControl -and $base.build.binarySha256 -ceq $build.binarySha25
 $schedule=New-RedTildePerformanceSchedule -Blocks $Blocks -Seed $Seed
 $candidateIdentity=if($SameBinaryControl) { $base } else { @{build=$build;compiler=$compiler;inputs=$inputs;environment=$environment} }
 [ordered]@{protocol='independent-ABBA-BAAB-v1';blocks=$Blocks;seed=$Seed;cycles=$Cycles;sameBinaryControl=[bool]$SameBinaryControl;
-    baseline=$base;candidate=$candidateIdentity;schedule=$schedule} |
+    baseline=$base;candidate=$candidateIdentity;schedule=$schedule;controlDiagnostics=[bool]$ControlDiagnostics} |
     ConvertTo-Json -Depth 18 | Set-Content (Join-Path $OutputRoot 'study.json') -Encoding utf8
 $pairs=[Collections.Generic.List[object]]::new()
 $nativeIdentities=@{}
@@ -63,10 +63,14 @@ foreach($block in $schedule) {
         $arguments=@('--performance-probe',$nativePath,'--document',$fixture,'--scenario',$block.scenario.ToLowerInvariant(),
             '--cycles',$Cycles.ToString(),'--data-dir',(Join-Path $OutputRoot ($name+'-data')))
         if($Warp) { $arguments+='--warp' }
+        if($ControlDiagnostics) { $arguments+='--control-diagnostics' }
         $exit=Invoke-RedTildeHarness -Executable $selected -Arguments $arguments -LogPrefix (Join-Path $OutputRoot $name) -TimeoutSeconds 180
         if($exit -ne 0) { throw "Measured process $name failed ($exit); its original output is retained." }
         if((Get-FileHash $selected).Hash -cne $expected -or (Get-RedTildeSourceIdentity -Root $PSScriptRoot) -cne $source) { throw 'Source or executable changed during a measured slot.' }
         $native=Get-Content $nativePath -Raw | ConvertFrom-Json
+        if($ControlDiagnostics -and ($null -eq $native.controlDiagnostics -or $native.controlDiagnostics.protocol -cne 'app-edit-phases-v2')) {
+            throw 'Requested command-phase diagnostics are missing.'
+        }
         $identity=[ordered]@{}
         foreach($key in @('fixture','view','renderer','adapter','vendorId','deviceId','driverVersion','dpi','widthPx','heightPx','sourceUnits','cycles')) { $identity[$key]=$native.$key }
         $identityJson=$identity | ConvertTo-Json -Compress

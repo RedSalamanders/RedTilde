@@ -28,6 +28,12 @@ Native-v2 diagnostics also require cheap settled-memory snapshots, complete comm
 observer coverage. Observation tests cover process disappearance and single reads of volatile properties, CPU
 classification and UTC/local/JSON date representations. An incomplete trace is retained as a failed collection;
 its native measurements can be audited independently without qualifying host quiet or pooling attempts.
+Optional command diagnostics require complete ordered phases, bounded subphase wall/CPU, reconstructed full
+owner CPU and actual rendered-frame counters. Refuse missing/reordered/negative samples, early global inventory
+and a missing late thread count. Replay older native-v1/native-v2 receipts without optional diagnostics unchanged.
+The hidden native Core probe exercises both views with diagnostics enabled and checks idle quiescence after
+the primary memory observation. New instrumentation requires a common baseline before the production repair.
+
 Keep compiler-change failures and new-toolchain builds distinct from earlier successful receipts. A later
 documentation/tooling edit requires a fresh source-bound build receipt even if the native binary stays identical.
 

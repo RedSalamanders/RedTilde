@@ -88,6 +88,22 @@ A later collection explicitly requested after a reported host-condition change i
 Record that trigger before collection, preserve the earlier studies and assess actual activity anew; do not pool,
 replace unfavorable controls or promote a human report of quiet to a verified quiet observation.
 
+Opt-in `--control-diagnostics` / `-ControlDiagnostics` records bounded synchronous edit subphases in native-v2
+receipts. `app-edit-phases-v2` separates native entry, document analysis, mirror, identity labels, native caption,
+remaining chrome, selection, recovery and native exit. The initial seven-phase v1 prototype remains readable.
+Phase wall/CPU arrays must cover every timed transaction in order, stay within command cost, and reconstruct
+full owner CPU with the preparation/GPU-wait diagnostics. Retain render and preparation counts. Arm the borrowed
+observer only for a synchronous harness transaction, clear it on every exit, and perform no diagnostic clock
+reads during ordinary editing. The optional instrumentation changes observed cost: freeze and measure a matching
+common baseline before a production repair; never compare it directly with uninstrumented acceptance results.
+
+Diagnostic memory is sampled after the primary snapshot, then after 100 and 500 ms of event-driven hidden idle.
+No additional render/preparation is allowed during those waits. Full global thread inventory runs only in the
+last diagnostic observation, with its cost retained after all primary measurements. These observations test
+quiescence and thread-count hypotheses; do not select a more favorable memory sample or replace the original
+primary memory metric/band. Hardware/WARP contrasts perform different work and are diagnostic, not a rebaseline.
+Retain a failed CPU-profiler policy request as unavailable evidence; do not change system profiling policy.
+
 Hidden diagnostics do not establish physical visibility/occlusion, actual device removal, kernel/GPU lifetime,
 real-focus caret/IME/AT behavior or native ARM64 execution. Preserve those gates separately. A cross-build, library
 fixture or screenshot alone cannot close product resource acceptance. Reviewed application receipts belong in

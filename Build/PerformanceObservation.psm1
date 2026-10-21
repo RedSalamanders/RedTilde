@@ -19,6 +19,7 @@ function Get-RedTildeNativeNoise {
             firstHalfMedian=(Get-RedTildeMedian $samples[0..($half-1)]);lastHalfMedian=(Get-RedTildeMedian $samples[$half..($samples.Count-1)])}
     })
     $processors=$null
+    $control=Get-RedTildeControlDiagnostics $Native
     if($Native.schemaVersion -eq 2) {
         $starts=@($Native.samples.ownerProcessorStart); $ends=@($Native.samples.ownerProcessorEnd)
         $changed=0; for($i=0;$i -lt $starts.Count;++$i) { if($starts[$i] -ne $ends[$i]) { ++$changed } }
@@ -26,6 +27,7 @@ function Get-RedTildeNativeNoise {
             scope='boundary observations only; migrations returning to the same processor are not detected'}
     }
     [ordered]@{view=$Native.view;cycles=$Native.cycles;phases=$phases;processors=$processors;initial=$Native.initial;final=$Native.final;
+        controlDiagnostics=$control;
         interpretation='diagnostics only; no sample exclusion, changed family or causal attribution'}
 }
 

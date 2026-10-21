@@ -123,6 +123,49 @@ $results=@(foreach($directory in $StudyPath) {
                         -not [double]::IsFinite($_) -or $_ -lt 0 -or $_ -ge 4096 -or $_ -ne [math]::Floor($_) }).Count -eq 0) 'Invalid processor boundary observations.'
                 }
             }
+            $hasControl=$native.Contains('controlDiagnostics') -and $null -ne $native.controlDiagnostics
+            if($study.Contains('controlDiagnostics')) {
+                Require ($hasControl -eq [bool]$study.controlDiagnostics) 'Native diagnostics differ from the declared study mode.'
+            }
+            if($hasControl) {
+                $diagnostic=$native.controlDiagnostics
+                $phaseNames=@('enter','analysis','mirror','chrome','selection','recovery','exit')
+                if($diagnostic.protocol -ceq 'app-edit-phases-v2') { $phaseNames=@('enter','analysis','mirror','identity','caption','chrome','selection','recovery','exit') }
+                Require ($revised -and $diagnostic.protocol -cin @('app-edit-phases-v1','app-edit-phases-v2') -and
+                    $diagnostic.primaryBeforeInventory -and $diagnostic.phases.Count -eq $phaseNames.Count -and
+                    $diagnostic.postMemory.Count -eq 3) 'Invalid command diagnostic protocol or inventory order.'
+                $sampleCount=2*$study.cycles
+                for($phaseIndex=0;$phaseIndex -lt $phaseNames.Count;++$phaseIndex) {
+                    $phase=$diagnostic.phases[$phaseIndex]
+                    Require ($phase.name -ceq $phaseNames[$phaseIndex]) 'Diagnostic phase names/order differ.'
+                    foreach($phaseMetric in 'wallUs','ownerCpuCycles') {
+                        $values=[double[]]$phase[$phaseMetric]
+                        Require ($values.Count -eq $sampleCount -and @($values | Where-Object {
+                            -not [double]::IsFinite($_) -or $_ -lt 0 }).Count -eq 0) 'Missing or invalid diagnostic phase samples.'
+                    }
+                }
+                foreach($frameMetric in 'preparationOwnerCpuCycles','gpuWaitOwnerCpuCycles','renderCounts','preparationAdvances') {
+                    $values=[double[]]$diagnostic[$frameMetric]
+                    Require ($values.Count -eq $sampleCount -and @($values | Where-Object {
+                        -not [double]::IsFinite($_) -or $_ -lt 0 -or $_ -ne [math]::Floor($_) }).Count -eq 0) 'Missing or invalid frame diagnostic samples.'
+                }
+                for($sampleIndex=0;$sampleIndex -lt $sampleCount;++$sampleIndex) {
+                    $phaseWall=0.0; $phaseCpu=0.0
+                    foreach($phase in $diagnostic.phases) { $phaseWall+=$phase.wallUs[$sampleIndex]; $phaseCpu+=$phase.ownerCpuCycles[$sampleIndex] }
+                    Require ($phaseWall -le $native.samples.commandUs[$sampleIndex]+1e-6 -and
+                        $phaseCpu -le $native.samples.commandOwnerCpuCycles[$sampleIndex] -and $diagnostic.renderCounts[$sampleIndex] -ge 1) 'Diagnostic subphases exceed their command or lack a rendered frame.'
+                    Near ($native.samples.commandOwnerCpuCycles[$sampleIndex]+$diagnostic.preparationOwnerCpuCycles[$sampleIndex]+
+                        $diagnostic.gpuWaitOwnerCpuCycles[$sampleIndex]) $native.samples.ownerCpuCycles[$sampleIndex] 'Diagnostic CPU accounting does not reconstruct the primary sample.'
+                }
+                for($memoryIndex=0;$memoryIndex -lt 3;++$memoryIndex) {
+                    $memory=$diagnostic.postMemory[$memoryIndex]
+                    foreach($memoryMetric in 'privateBytes','workingSetBytes') {
+                        Require ([double]::IsFinite($memory[$memoryMetric]) -and $memory[$memoryMetric] -gt 0) 'Invalid post-primary memory sample.'
+                    }
+                    if($memoryIndex -lt 2) { Require (-not $memory.threadInventoryCollected -and $null -eq $memory.threads) 'Early post-primary snapshots must remain cheap.' }
+                    else { Require ($memory.threadInventoryCollected -and $memory.threads -gt 0) 'Late diagnostic thread inventory is missing.' }
+                }
+            }
             $nativeIdentity=@($native.fixture,$native.view,$native.renderer,$native.adapter,$native.vendorId,$native.deviceId,$native.driverVersion,
                 $native.dpi,$native.widthPx,$native.heightPx,$native.sourceUnits) | ConvertTo-Json -Compress
             if($identity.ContainsKey($native.view)) { Require ($identity[$native.view] -ceq $nativeIdentity) 'Renderer/driver/DPI/source identity drift.' }

@@ -290,8 +290,18 @@ class PerformanceProbe
         Require(!options.forceWarp || (gpu->adapter.Flags & DXGI_ADAPTER_FLAG_SOFTWARE), "explicit WARP did not create a software adapter");
         gpu->Wait();
         std::vector<double> command, preparation, completion, total, clean, cpu, commandCpu, processorStart, processorEnd;
+        std::array<std::vector<double>, EditDiagnostics::Count> phaseWall, phaseCpu;
+        std::vector<double> preparationCpu, completionCpu, renderCounts, preparationCounts;
         for (auto *values : {&command, &preparation, &completion, &total, &clean, &cpu, &commandCpu, &processorStart, &processorEnd})
             values->reserve(options.performanceCycles * 2);
+        if (options.controlDiagnostics)
+        {
+            for (auto *phases : {&phaseWall, &phaseCpu})
+                for (auto &values : *phases)
+                    values.reserve(options.performanceCycles * 2);
+            for (auto *values : {&preparationCpu, &completionCpu, &renderCounts, &preparationCounts})
+                values->reserve(options.performanceCycles * 2);
+        }
         const auto activity = app.activity;
         SettleRecovery();
         const auto initial = Snapshot();
@@ -300,20 +310,32 @@ class PerformanceProbe
             app.editor->SetSelection({at, at});
             for (unsigned undo = 0; undo < 2; ++undo)
             {
+                EditDiagnostics diagnostic;
+                app.editDiagnostics = options.controlDiagnostics ? &diagnostic : nullptr;
+                const auto restoreDiagnostics = wil::scope_exit([&] { app.editDiagnostics = nullptr; });
+                const auto renders = app.host.DebugGetRenderCount();
+                const auto advances = app.editor->DebugGetState().preparationAdvances;
                 const auto startingProcessor = OwnerProcessor();
                 const auto start = Clock::now();
                 const auto cpuStart = OwnerCycles();
+                if (options.controlDiagnostics)
+                    diagnostic.Begin();
                 Require(undo ? app.editor->Undo() : app.editor->ReplaceSelection(L"x"), "paired edit/undo was not admitted");
+                if (options.controlDiagnostics)
+                    diagnostic.Mark(EditPhase::Exit);
+                app.editDiagnostics = nullptr;
                 const double commandUs = Micros(start);
                 const auto commandCycles = OwnerCycles() - cpuStart;
                 const auto prepare = Clock::now();
                 Ready(undo ? std::wstring_view(source) : std::wstring_view(edited));
                 const double prepareUs = Micros(prepare);
+                const auto prepareCycles = options.controlDiagnostics ? OwnerCycles() - cpuStart - commandCycles : 0;
                 const auto finish = Clock::now();
                 gpu->Wait();
                 const double gpuUs = Micros(finish), totalUs = Micros(start);
                 const auto cpuCycles = OwnerCycles() - cpuStart;
                 const auto endingProcessor = OwnerProcessor();
+                Require(!options.controlDiagnostics || diagnostic.Complete(), "command diagnostic phases did not close in order");
                 if (cycle >= 2)
                 {
                     command.push_back(commandUs);
@@ -324,6 +346,18 @@ class PerformanceProbe
                     commandCpu.push_back(static_cast<double>(commandCycles));
                     processorStart.push_back(startingProcessor);
                     processorEnd.push_back(endingProcessor);
+                    if (options.controlDiagnostics)
+                    {
+                        for (unsigned index = 0; index < EditDiagnostics::Count; ++index)
+                        {
+                            phaseWall[index].push_back(diagnostic.wallUs[index]);
+                            phaseCpu[index].push_back(static_cast<double>(diagnostic.cpuCycles[index]));
+                        }
+                        preparationCpu.push_back(static_cast<double>(prepareCycles));
+                        completionCpu.push_back(static_cast<double>(cpuCycles - commandCycles - prepareCycles));
+                        renderCounts.push_back(static_cast<double>(app.host.DebugGetRenderCount() - renders));
+                        preparationCounts.push_back(static_cast<double>(app.editor->DebugGetState().preparationAdvances - advances));
+                    }
                 }
             }
             Require(app.editor->GetText() == source && app.editor->GetSelection() == DxUi::RichText::Selection{at, at},
@@ -338,6 +372,18 @@ class PerformanceProbe
         Require(app.editor->GetText() == source && app.editor->GetSelection() == DxUi::RichText::Selection{at, at},
                 "settled memory observation changed source or selection");
         const auto final = Snapshot();
+        std::array<Memory, 3> postMemory;
+        if (options.controlDiagnostics)
+        {
+            const auto renders = app.host.DebugGetRenderCount(), advances = app.editor->DebugGetState().preparationAdvances;
+            postMemory[0] = Snapshot();
+            Idle(100);
+            postMemory[1] = Snapshot();
+            Idle(400);
+            postMemory[2] = Snapshot(true); // Global inventory is diagnostic-only, after all primary observations.
+            Require(app.host.DebugGetRenderCount() == renders && app.editor->DebugGetState().preparationAdvances == advances,
+                    "post-observation hidden idle requested extra render/preparation");
+        }
         std::ofstream out(options.performance, std::ios::binary);
         out << std::setprecision(12) << "{\"schemaVersion\":2,\"fixture\":\"redtilde-completed-native-v2\",\"view\":\""
             << (app.settings.view == EditorView::Split ? "Split" : "Compose") << "\",\"renderer\":\""
@@ -368,9 +414,47 @@ class PerformanceProbe
         MemoryJson(out, initial);
         out << "},\"final\":{";
         MemoryJson(out, final);
-        out << "},\"activity\":{\"changes\":" << app.activity.changes - activity.changes << ",\"layouts\":" << app.activity.layouts - activity.layouts
+        out << "},\"controlDiagnostics\":";
+        if (options.controlDiagnostics)
+        {
+            constexpr std::array names{"enter", "analysis", "mirror", "identity", "caption", "chrome", "selection", "recovery", "exit"};
+            out << "{\"protocol\":\"app-edit-phases-v2\",\"primaryBeforeInventory\":true,\"phases\":[";
+            for (unsigned index = 0; index < EditDiagnostics::Count; ++index)
+            {
+                if (index)
+                    out << ',';
+                out << "{\"name\":\"" << names[index] << "\",";
+                Samples(out, "wallUs", phaseWall[index]);
+                out << ',';
+                Samples(out, "ownerCpuCycles", phaseCpu[index]);
+                out << '}';
+            }
+            out << "],";
+            Samples(out, "preparationOwnerCpuCycles", preparationCpu);
+            out << ',';
+            Samples(out, "gpuWaitOwnerCpuCycles", completionCpu);
+            out << ',';
+            Samples(out, "renderCounts", renderCounts);
+            out << ',';
+            Samples(out, "preparationAdvances", preparationCounts);
+            out << ",\"postMemory\":[";
+            for (unsigned index = 0; index < postMemory.size(); ++index)
+            {
+                if (index)
+                    out << ',';
+                out << '{';
+                MemoryJson(out, postMemory[index]);
+                out << '}';
+            }
+            out << "]}";
+        }
+        else
+            out << "null";
+        out << ",\"activity\":{\"changes\":" << app.activity.changes - activity.changes << ",\"layouts\":" << app.activity.layouts - activity.layouts
             << ",\"mirrorResets\":" << app.activity.mirrorResets - activity.mirrorResets
-            << ",\"recoverySubmissions\":" << app.activity.recoverySubmissions - activity.recoverySubmissions << "},\"resources\":[";
+            << ",\"recoverySubmissions\":" << app.activity.recoverySubmissions - activity.recoverySubmissions
+            << ",\"captionRequests\":" << app.activity.captionRequests - activity.captionRequests
+            << ",\"captionCalls\":" << app.activity.captionCalls - activity.captionCalls << "},\"resources\":[";
         if (options.resourceProbe)
         {
             const auto image = options.dataDirectory / L"resource-input.png";

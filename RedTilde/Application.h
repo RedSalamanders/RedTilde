@@ -3,6 +3,7 @@
 #include "Common/DocumentInfo.h"
 #include "Common/Recovery.h"
 #include "Common/Settings.h"
+#include "EditDiagnostics.h"
 #include "ImageLoader.h"
 #include "UiControls.h"
 #include <array>
@@ -67,14 +68,14 @@ enum class Command
 struct LaunchOptions
 {
     bool headless{}, selfTest{}, crashProbe{}, preferencesProbe{}, recoveryProbe{}, recoveryRestartProbe{};
-    bool resourceProbe{}, forceWarp{};
+    bool resourceProbe{}, forceWarp{}, controlDiagnostics{};
     unsigned performanceCycles = 12;
     std::wstring scenario = L"compose-light";
     std::filesystem::path document, capture, dataDirectory, benchmark, performance;
 };
 struct ApplicationActivity
 {
-    std::uint64_t changes{}, layouts{}, mirrorResets{}, recoverySubmissions{};
+    std::uint64_t changes{}, layouts{}, mirrorResets{}, recoverySubmissions{}, captionRequests{}, captionCalls{};
 };
 class PerformanceProbe;
 class Application
@@ -150,6 +151,7 @@ class Application
 
   private:
     friend class PerformanceProbe;
+    EditDiagnostics *editDiagnostics{}; // Borrowed only for a synchronous harness transaction.
     ApplicationActivity activity;
     LaunchOptions options;
     Settings settings;

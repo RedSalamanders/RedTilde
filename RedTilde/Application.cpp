@@ -492,6 +492,8 @@ void Application::SetDocument(std::wstring text, std::filesystem::path path, boo
 }
 void Application::Changed()
 {
+    if (editDiagnostics)
+        editDiagnostics->Mark(EditPhase::Enter);
     ++activity.changes;
     const auto &text = CurrentText();
     auto info = AnalyzeDocument(text);
@@ -502,12 +504,22 @@ void Application::Changed()
     // Offsets always follow the current source, even when the outline's labels
     // and indentation can keep their existing bounds.
     documentInfo = std::move(info);
+    if (editDiagnostics)
+        editDiagnostics->Mark(EditPhase::Analysis);
     SynchronizeMirror();
+    if (editDiagnostics)
+        editDiagnostics->Mark(EditPhase::Mirror);
     const auto name = documentPath.empty() ? Resource(IDS_UNTITLED) : documentPath.filename().native();
     title->SetText(name);
     const bool dirty = Dirty();
     saveState->SetText(Resource(dirty ? IDS_CHANGED : IDS_SAVED));
+    if (editDiagnostics)
+        editDiagnostics->Mark(EditPhase::Identity);
+    ++activity.captionRequests;
+    ++activity.captionCalls;
     SetWindowTextW(window.get(), std::format(L"{}{} — RedTilde", dirty ? L"• " : L"", name).c_str());
+    if (editDiagnostics)
+        editDiagnostics->Mark(EditPhase::Caption);
     const auto encodingSuffix = bom ? L" BOM" : L"";
     stats->SetText(std::vformat(Resource(IDS_STATS), std::make_wformat_args(documentInfo.words, documentInfo.characters, encodingSuffix)));
     tools[0]->SetEnabled(editor->CanUndo());
@@ -515,9 +527,15 @@ void Application::Changed()
     floating->SetVisible(false);
     if (outlineChanged)
         Layout();
+    if (editDiagnostics)
+        editDiagnostics->Mark(EditPhase::Chrome);
     SelectionChanged();
+    if (editDiagnostics)
+        editDiagnostics->Mark(EditPhase::Selection);
     if (!initializing)
         CheckpointRecovery();
+    if (editDiagnostics)
+        editDiagnostics->Mark(EditPhase::Recovery);
 }
 
 void Application::CheckpointRecovery(bool immediate)

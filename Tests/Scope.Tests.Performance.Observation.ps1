@@ -39,6 +39,44 @@ Refuse { Get-RedTildePerformanceMetrics $native } 'Missing command CPU samples m
 $native=Native; $native.schemaVersion=1; $native.fixture='redtilde-completed-native-v1'
 $legacy=Get-RedTildePerformanceMetrics $native
 Require ($legacy.commandUs -eq 550) 'Historical native-v1 receipts remain readable.'
+function DiagnosticNative {
+    $result=Native
+    $result.samples.ownerCpuCycles=@($result.samples.commandOwnerCpuCycles | ForEach-Object { $_+60 })
+    $phases=@(foreach($phase in 'enter','analysis','mirror','identity','caption','chrome','selection','recovery','exit') {
+        @{name=$phase;wallUs=@(1,1,1,1,1,1,1,1);ownerCpuCycles=@(1,1,1,1,1,1,1,1)}
+    })
+    $post=@(foreach($index in 0..2) {
+        @{privateBytes=100;workingSetBytes=200;threadInventoryCollected=($index -eq 2);threads=$(if($index -eq 2){10}else{$null})}
+    })
+    $result.controlDiagnostics=@{protocol='app-edit-phases-v2';primaryBeforeInventory=$true;phases=$phases;postMemory=$post;
+        preparationOwnerCpuCycles=@(30,30,30,30,30,30,30,30);gpuWaitOwnerCpuCycles=@(30,30,30,30,30,30,30,30);
+        renderCounts=@(1,1,1,1,1,1,1,1);preparationAdvances=@(2,2,2,2,2,2,2,2)}
+    $result
+}
+$native=DiagnosticNative
+Require ((Get-RedTildeControlDiagnostics $native).phases.Count -eq 9 -and (Get-RedTildePerformanceMetrics $native).commandUs -eq 550) 'Phase observations preserve the primary metric and all nine ordered phases.'
+$native=DiagnosticNative; $native.controlDiagnostics.phases[0].name='chrome'
+Refuse { Get-RedTildePerformanceMetrics $native } 'Reordered or duplicate phases are refused.'
+$native=DiagnosticNative; $native.controlDiagnostics.phases[0].wallUs[0]=101
+Refuse { Get-RedTildePerformanceMetrics $native } 'Subphase time cannot exceed its primary command.'
+$native=DiagnosticNative; $native.controlDiagnostics.phases[0].ownerCpuCycles[0]=101
+Refuse { Get-RedTildePerformanceMetrics $native } 'Subphase CPU cannot exceed its primary command.'
+$native=DiagnosticNative; $native.controlDiagnostics.gpuWaitOwnerCpuCycles[0]=31
+Refuse { Get-RedTildePerformanceMetrics $native } 'CPU phase accounting reconstructs the full primary sample.'
+$native=DiagnosticNative; $native.controlDiagnostics.renderCounts[0]=0
+Refuse { Get-RedTildePerformanceMetrics $native } 'A completed diagnostic sample requires an actual render.'
+$native=DiagnosticNative; $native.controlDiagnostics.preparationAdvances[0]=0.5
+Refuse { Get-RedTildePerformanceMetrics $native } 'Preparation/render counters are integer observations.'
+$native=DiagnosticNative; $native.controlDiagnostics.postMemory[0].threadInventoryCollected=$true
+Refuse { Get-RedTildePerformanceMetrics $native } 'Global inventory remains after primary observations.'
+$native=DiagnosticNative; $native.controlDiagnostics.postMemory[2].threads=0
+Refuse { Get-RedTildePerformanceMetrics $native } 'The final diagnostic inventory cannot report a missing count as zero.'
+$native=DiagnosticNative; $native.controlDiagnostics.primaryBeforeInventory=$false
+Refuse { Get-RedTildePerformanceMetrics $native } 'Diagnostic inventory must not contaminate primary memory.'
+$native=DiagnosticNative; $native.controlDiagnostics.phases[1].wallUs=@(1)
+Refuse { Get-RedTildePerformanceMetrics $native } 'Missing diagnostic phase samples are refused.'
+$native=DiagnosticNative; $native.controlDiagnostics.phases[1].ownerCpuCycles[0]=-1
+Refuse { Get-RedTildePerformanceMetrics $native } 'Negative diagnostic observations are refused.'
 function Sample([double]$Busy=1.0,[object[]]$Processes=@(),[int]$Groups=1) {
     @{systemBusyPercent=$Busy;unavailableProcesses=0;processorGroups=$Groups;processes=$Processes}
 }

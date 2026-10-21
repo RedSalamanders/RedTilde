@@ -38,12 +38,61 @@ function Get-RedTildePerformanceMetrics {
             }
         }
     }
+    $null=Get-RedTildeControlDiagnostics $Native
     foreach($name in @('privateBytes','workingSetBytes')) {
         $value=[double]$Native.final.$name
         if(-not [double]::IsFinite($value) -or $value -le 0) { throw "Invalid $name." }
         $result[$name]=$value
     }
     return $result
+}
+
+function Get-RedTildeControlDiagnostics {
+    param($Native)
+    $diagnostic=if($Native -is [Collections.IDictionary]) { $Native['controlDiagnostics'] } else {
+        $property=$Native.PSObject.Properties['controlDiagnostics']; if($property) { $property.Value } else { $null }
+    }
+    if($null -eq $diagnostic) { return $null }
+    $names=@('enter','analysis','mirror','chrome','selection','recovery','exit')
+    if($diagnostic.protocol -ceq 'app-edit-phases-v2') { $names=@('enter','analysis','mirror','identity','caption','chrome','selection','recovery','exit') }
+    if($Native.schemaVersion -ne 2 -or $diagnostic.protocol -cnotin @('app-edit-phases-v1','app-edit-phases-v2') -or
+        -not $diagnostic.primaryBeforeInventory -or $diagnostic.phases.Count -ne $names.Count -or $diagnostic.postMemory.Count -ne 3) {
+        throw 'Incompatible control diagnostics.'
+    }
+    $count=2*$Native.cycles
+    for($phase=0;$phase -lt $names.Count;++$phase) {
+        if($diagnostic.phases[$phase].name -cne $names[$phase]) { throw 'Control diagnostic phases are missing, reordered or duplicated.' }
+        foreach($key in 'wallUs','ownerCpuCycles') {
+            $values=@($diagnostic.phases[$phase].$key)
+            if($values.Count -ne $count -or @($values | Where-Object { -not [double]::IsFinite($_) -or $_ -lt 0 }).Count) {
+                throw 'Invalid command phase samples.'
+            }
+        }
+    }
+    foreach($key in 'preparationOwnerCpuCycles','gpuWaitOwnerCpuCycles','renderCounts','preparationAdvances') {
+        $values=@($diagnostic.$key)
+        if($values.Count -ne $count -or @($values | Where-Object { -not [double]::IsFinite($_) -or $_ -lt 0 -or $_ -ne [math]::Floor($_) }).Count) {
+            throw 'Invalid frame diagnostic samples.'
+        }
+    }
+    for($sample=0;$sample -lt $count;++$sample) {
+        $wall=0.0; $cpu=0.0
+        foreach($phase in $diagnostic.phases) { $wall+=$phase.wallUs[$sample]; $cpu+=$phase.ownerCpuCycles[$sample] }
+        $frame=$Native.samples.commandOwnerCpuCycles[$sample]+$diagnostic.preparationOwnerCpuCycles[$sample]+$diagnostic.gpuWaitOwnerCpuCycles[$sample]
+        if($wall -gt $Native.samples.commandUs[$sample]+1e-6 -or $cpu -gt $Native.samples.commandOwnerCpuCycles[$sample] -or
+            [math]::Abs($frame-$Native.samples.ownerCpuCycles[$sample]) -gt 0.5 -or $diagnostic.renderCounts[$sample] -lt 1) {
+            throw 'Control diagnostic phases exceed or fail to reconstruct their primary transaction.'
+        }
+    }
+    for($index=0;$index -lt 3;++$index) {
+        $memory=$diagnostic.postMemory[$index]
+        foreach($key in 'privateBytes','workingSetBytes') {
+            if(-not [double]::IsFinite($memory.$key) -or $memory.$key -le 0) { throw 'Invalid post-primary memory observation.' }
+        }
+        if($index -lt 2 -and ($memory.threadInventoryCollected -or $null -ne $memory.threads)) { throw 'Early diagnostic memory must remain cheap.' }
+        if($index -eq 2 -and (-not $memory.threadInventoryCollected -or $memory.threads -le 0)) { throw 'Post-primary thread inventory is missing.' }
+    }
+    return $diagnostic
 }
 
 function New-RedTildePerformanceSchedule {
@@ -134,4 +183,4 @@ function Get-RedTildeCompilerProfile {
     return [ordered]@{sha256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes));commands=$commands;rawSha256=(Get-FileHash $path).Hash}
 }
 
-Export-ModuleMember -Function Get-RedTildeMedian,Get-RedTildePerformanceMetrics,New-RedTildePerformanceSchedule,Get-RedTildeSignFlipP,Compare-RedTildePerformanceBlocks,Get-RedTildeCompilerProfile
+Export-ModuleMember -Function Get-RedTildeMedian,Get-RedTildePerformanceMetrics,Get-RedTildeControlDiagnostics,New-RedTildePerformanceSchedule,Get-RedTildeSignFlipP,Compare-RedTildePerformanceBlocks,Get-RedTildeCompilerProfile

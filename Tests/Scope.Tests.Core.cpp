@@ -730,6 +730,7 @@ int RunCoreTests(const std::filesystem::path &root)
                  launch.headless = true;
                  launch.scenario = view;
                  launch.performanceCycles = 4;
+                 launch.controlDiagnostics = true;
                  launch.dataDirectory = root / (L"completed-" + std::wstring(view));
                  launch.performance = launch.dataDirectory / L"native.json";
                  Application app(launch);
@@ -749,6 +750,10 @@ int RunCoreTests(const std::filesystem::path &root)
                              probeReport.find("\"ownerProcessorStart\":[") != probeReport.npos &&
                              probeReport.find("\"recoverySettledAtMemory\":true") != probeReport.npos,
                          "latency protocol separates cheap settled memory, command CPU and processor-boundary observations");
+                 Require(probeReport.find("\"protocol\":\"app-edit-phases-v2\"") != probeReport.npos &&
+                             probeReport.find("\"name\":\"chrome\"") != probeReport.npos &&
+                             probeReport.find("\"postMemory\":[") != probeReport.npos && probeReport.find("\"renderCounts\":[") != probeReport.npos,
+                         "bounded command phases and post-primary quiescence observations are retained");
              }
          });
     test("Rendering.NativeDefaultAndWarpResourceLifecycle",
