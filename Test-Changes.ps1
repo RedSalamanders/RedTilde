@@ -3,6 +3,7 @@ param([ValidateSet('Affected','PrePush','Full')][string] $Mode='Affected',[switc
       [ValidateSet('Debug','Release','ASan Debug')][string] $Configuration='Debug')
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
+if (-not $Explain -and $Mode -eq 'PrePush') { & (Join-Path $PSScriptRoot 'Tools/Fold-Changelog.ps1') -Check }
 $changes=@(& git -C $PSScriptRoot ls-files --others --exclude-standard)
 $changes+=@(& git -C $PSScriptRoot diff --name-only HEAD 2>$null)
 if ($LASTEXITCODE -ne 0) { $changes+=@(& git -C $PSScriptRoot ls-files --cached) }

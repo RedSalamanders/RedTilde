@@ -7,6 +7,12 @@ function Check([string] $Name,[scriptblock] $Body) {
     try { & $Body; Write-Host "PASS $Name" }
     catch { $failures.Add($Name+': '+$_.Exception.Message); Write-Host ('FAIL '+$failures[-1]) -ForegroundColor Red }
 }
+Check 'Changes workflow' {
+    & (Join-Path $PSScriptRoot 'Tools/Test-Changelog.ps1')
+    $scratch = Join-Path $PSScriptRoot '.build/changelog-fixtures'
+    [void][IO.Directory]::CreateDirectory($scratch)
+    & (Join-Path $PSScriptRoot 'Tools/Test-ChangelogWorkflow.ps1') -ScratchRoot $scratch
+}
 Check 'Specifications and links' {
     $files=@(Get-ChildItem (Join-Path $PSScriptRoot 'Specs'),(Join-Path $PSScriptRoot '.agents') -Recurse -Filter '*.md')
     $files+=Get-Item (Join-Path $PSScriptRoot 'README.md'),(Join-Path $PSScriptRoot 'AGENTS.md')
@@ -51,6 +57,7 @@ Check 'PowerShell syntax' {
     $files=@(Get-ChildItem $PSScriptRoot -File | Where-Object Extension -in @('.ps1','.psm1'))
     $files+=Get-ChildItem (Join-Path $PSScriptRoot 'Build') -Recurse -File | Where-Object Extension -in @('.ps1','.psm1')
     $files+=Get-ChildItem (Join-Path $PSScriptRoot 'Tests') -Recurse -File | Where-Object Extension -in @('.ps1','.psm1')
+    $files+=Get-ChildItem (Join-Path $PSScriptRoot 'Tools') -Recurse -File | Where-Object Extension -in @('.ps1','.psm1')
     foreach ($file in $files) {
         $tokens=$null; $errors=$null
         [void][Management.Automation.Language.Parser]::ParseFile($file.FullName,[ref]$tokens,[ref]$errors)
