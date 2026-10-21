@@ -7,8 +7,10 @@ existing line endings. View changes never reserialize Markdown, reset history or
 
 - **Compose** renders supported Markdown and edits its source through DxUi semantic commands.
 - **Source** displays exact Markdown in the same editor/document/history.
-- **Split** keeps Compose editable and shows a read-only exact-source mirror. Selecting a mirror range may
-  navigate the authoritative editor. The mirror never becomes a second independently editable document.
+- **Split** keeps Compose editable and shows a read-only exact-source mirror. Entering Split synchronizes
+  current source and selection; edits update the mirror while it is visible. Compose/Source defer its hidden
+  updates. Selecting a mirror range may navigate the authoritative editor. The mirror never becomes a second
+  independently editable document.
 - **Local source** uses DxUi's source-region API for a prepared code, HTML, metadata or diagram block. F2 enters;
   Esc/F2/Ctrl+Enter returns. IME composition and stale semantic publications refuse the transition.
   For ordinary text without a native source-region action, open a local source draft for the selected range or
@@ -24,6 +26,8 @@ structural semantic actions require current rich analysis. Unavailable actions e
 Provide New, Open, Save, Save As, undo/redo, bold, italic, strike, inline code, headings, paragraphs, bullets,
 numbered lists, tasks, quotes, links, images, fenced code, tables and table-row/column actions. Commands use the
 public planner when supported. An outline derives from ATX headings outside fences and navigates source ranges.
+Refresh its source offsets on every edit, including prose inserted before a heading; unchanged labels and levels
+do not require chrome layout. Renaming, changing the level or adding/removing a heading updates the visible outline.
 Find operates on source, wraps with a visible result, and selects/reveals the match. Never search rendered-only text.
 
 Shortcuts: Ctrl+N/O/S, Ctrl+Shift+S, Ctrl+Z/Y, Ctrl+B/I, Ctrl+F, Ctrl+1/2/3 for Compose/Source/Split,
@@ -58,6 +62,9 @@ uses cached glyphs/lines and inherits theme/selection brushes. No web runtime, e
 F2 on a math object opens its exact source envelope in the guarded local draft. Apply is one source transaction;
 Cancel preserves source/history. Unsupported/malformed/oversized notation remains exact literal source with a
 diagnostic. Full LaTeX/MathML and arbitrary Mermaid conformance remain separate compatibility goals.
+
+For inspector selection changes, use current Markdown syntax before falling back to bounded delimiter extraction
+while analysis is pending. Current syntax excludes code/escaped notation and covers both dollar and slash delimiters.
 
 Aligned equations share right/left operand edges at each ampersand pair; cases align both columns left and
 ordinary matrices center each column. Oversized notation conservatively keeps the remaining inline physical

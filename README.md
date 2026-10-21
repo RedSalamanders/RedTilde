@@ -65,4 +65,6 @@ Read [the user guide](docs/README.md), [specifications](Specs/README.md), [devel
 [validation](Specs/Testing/Testing_Validation.md) and [measurement index](Measurements/README.md).
 
 The [math/diagram/recovery validation packet](Measurements/MathMermaidRecovery_2026-10-20/README.md) records
-the current tested feature pin, screenshots, portable smoke test and remaining qualification gates.
+that feature slice's tested pin, screenshots, portable smoke test and remaining qualification gates. The
+[S5 performance contract](Specs/Testing/Testing_Performance.md) defines completed native-frame measurements
+and paired controls for the current continuation; the active plan retains its unverified gates.

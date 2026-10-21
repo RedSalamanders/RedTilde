@@ -14,6 +14,14 @@ State/class diagrams must become native objects with exact local source access. 
 envelopes, corruption/future versions, live-session leases, coalescing, cancellation, dirty Save As restoration,
 unapplied drafts, original-file preservation and a real process crash followed by restart.
 
+App-derived work has behavioral coverage: hidden mirrors retain their revision through Compose/Source edits;
+entering Split and subsequent Split edits synchronize source/selection without resetting editable history.
+Prose edits do not relayout chrome, but shifted outline targets still navigate correctly and changed heading
+labels/levels update their controls. Dirty state must survive direct resets and same-length edit/undo. Inspector
+tests distinguish code from current math syntax and retain the oversized-source guard. Native completed-frame
+and default/WARP resource probes run through the same executable as Core, with their paired study protocol in
+[Testing_Performance.md](Testing_Performance.md).
+
 The app's `--self-test` and `--capture <path> --scenario <name>` never activate a window, read/write the system
 clipboard or synthesize desktop input. Drive the same app/control commands as the UI. Native rendering captures
 come from the public host's diagnostic bitmap hook and WIC; record the exact binary/dependency/scenario identity.

@@ -298,6 +298,117 @@ int RunCoreTests(const std::filesystem::path &root)
              Require(app.Document().Undo() && !app.Dirty(), "undo to saved source clears dirty");
              Require(GetForegroundWindow() == foreground, "hidden app never acquires foreground");
          });
+    test("Editor.HiddenMirrorSynchronizesWithoutEditingSource",
+         [&]
+         {
+             LaunchOptions launch;
+             launch.headless = true;
+             launch.dataDirectory = root;
+             Application app(launch);
+             Success(app.Initialize(), "create deferred-mirror app");
+             const std::wstring source = L"# Mirror\n\nBody 東京 😀.\n";
+             app.SetDocument(source);
+             app.Prepare();
+             const auto hidden = app.SourceMirror().Snapshot();
+             const auto before = app.Activity();
+             const auto body = source.find(L"Body");
+             app.Document().SetSelection({body, body});
+             Require(app.Document().ReplaceSelection(L"More "), "edit Compose prose");
+             Require(app.SourceMirror().Snapshot().IsSameRevision(hidden), "hidden mirror retains its prior revision");
+             Require(app.Activity().mirrorResets == before.mirrorResets && app.Activity().layouts == before.layouts,
+                     "ordinary Compose edits do not rebuild the mirror or chrome");
+             Require(app.Document().Undo() && !app.Dirty(), "undo restores saved source");
+             Require(app.Document().Redo(), "redo the edit before switching views");
+             const auto current = app.Document().Snapshot();
+             const auto selection = app.Document().GetSelection();
+             app.SetView(EditorView::Source);
+             Require(app.SourceMirror().Snapshot().IsSameRevision(hidden), "Source also leaves the hidden mirror deferred");
+             app.SetView(EditorView::Split);
+             Require(app.SourceMirror().GetText() == app.Document().GetText() && app.SourceMirror().GetSelection() == selection,
+                     "entering Split synchronizes exact source and selection");
+             Require(app.Document().Snapshot().IsSameRevision(current) && app.Document().CanUndo(),
+                     "synchronization preserves the editable source revision and history");
+             const auto mirrored = app.SourceMirror().Snapshot();
+             app.SetView(EditorView::Split);
+             Require(app.SourceMirror().Snapshot().IsSameRevision(mirrored), "reselecting Split preserves the current mirror revision");
+             const auto split = app.Activity();
+             Require(app.Document().ReplaceSelection(L"Split "), "edit Split prose");
+             Require(app.SourceMirror().GetText() == app.Document().GetText() && app.Activity().mirrorResets == split.mirrorResets + 1,
+                     "each visible Split revision updates its mirror");
+             Require(app.Activity().layouts == split.layouts, "Split prose does not relayout chrome");
+             Require(app.Document().Undo() && app.Document().Undo(), "undo both edits");
+             Require(app.SourceMirror().GetText() == source && !app.Dirty(), "Split undo restores the exact saved source in both panes");
+         });
+    test("Editor.OutlineTracksShiftedOffsetsAndChangedLabels",
+         [&]
+         {
+             LaunchOptions launch;
+             launch.headless = true;
+             launch.dataDirectory = root;
+             Application app(launch);
+             Success(app.Initialize(), "create outline app");
+             const std::wstring source = L"# First\n\nBody.\n\n## Navigation target\n\nTail.\n";
+             app.SetDocument(source);
+             app.Prepare();
+             std::function<DxUi::Button *(DxUi::Control *, std::wstring_view)> find = [&](DxUi::Control *control,
+                                                                                          std::wstring_view name) -> DxUi::Button *
+             {
+                 if (auto *button = dynamic_cast<DxUi::Button *>(control); button && button->GetText() == name)
+                     return button;
+                 for (std::size_t index = 0; index < control->GetLogicalChildCount(); ++index)
+                     if (auto *button = find(control->GetLogicalChild(index), name))
+                         return button;
+                 return nullptr;
+             };
+             auto *target = find(app.Host().GetRoot(), L"Navigation target");
+             Require(target != nullptr, "outline target is present");
+             const auto before = app.Activity();
+             const auto body = source.find(L"Body");
+             app.Document().SetSelection({body, body});
+             Require(app.Document().ReplaceSelection(L"Expanded "), "shift a later heading with prose");
+             Require(app.Activity().layouts == before.layouts, "offset-only changes preserve chrome layout");
+             Require(target->Invoke(app.Host(), false), "invoke outline without taking desktop focus");
+             const auto heading = app.Document().GetText().find(L"## Navigation target");
+             Require(app.Document().GetSelection() == DxUi::RichText::Selection{heading, heading}, "outline navigation follows the new offset");
+             const auto label = heading + 3;
+             app.Document().SetSelection({label, label + std::wstring_view(L"Navigation target").size()});
+             Require(app.Document().ReplaceSelection(L"Renamed target"), "rename the heading");
+             Require(target->GetText() == L"Renamed target" && app.Activity().layouts == before.layouts + 1,
+                     "changed heading text updates the visible label and layout");
+             const auto indented = target->GetBounds().left;
+             app.Document().SetSelection({heading, heading + 1});
+             Require(app.Document().ReplaceSelection(L""), "change heading level");
+             Require(target->GetBounds().left < indented, "changed heading level updates outline indentation");
+             Require(app.Document().Undo() && app.Document().Undo() && app.Document().Undo() && !app.Dirty(),
+                     "outline edits retain exact multi-step undo");
+             app.Document().SetSelection({source.size(), source.size()});
+             Require(app.Document().ReplaceSelection(L"\n### Added heading\n"), "add another heading");
+             auto *added = find(app.Host().GetRoot(), L"Added heading");
+             Require(added && added->IsVisible(), "added heading becomes an outline action");
+             Require(app.Document().Undo() && !added->IsVisible() && !app.Dirty(),
+                     "removing the heading hides its action and preserves saved source");
+         });
+    test("Editor.DirtyCacheTracksDirectResetAndSameLengthUndo",
+         [&]
+         {
+             LaunchOptions launch;
+             launch.headless = true;
+             launch.dataDirectory = root;
+             Application app(launch);
+             Success(app.Initialize(), "create dirty-cache app");
+             app.SetDocument(L"saved");
+             Require(!app.Dirty(), "saved source starts clean");
+             app.Document().SetText(L"other");
+             Require(app.Dirty(), "same-length direct reset invalidates cached source");
+             app.Document().SetText(L"saved");
+             Require(!app.Dirty(), "direct reset to saved bytes is clean");
+             app.Document().SetText(L"");
+             Require(app.Dirty(), "length mismatch is dirty");
+             app.Document().SetText(L"saved");
+             app.Document().SetSelection({4, 5});
+             Require(app.Document().ReplaceSelection(L"s") && app.Dirty(), "same-length transaction is dirty");
+             Require(app.Document().Undo() && !app.Dirty(), "same-length undo to exact saved bytes is clean");
+         });
     test("Editor.SemanticFormattingUndoAndTheme",
          [&]
          {
@@ -478,6 +589,20 @@ int RunCoreTests(const std::filesystem::path &root)
              semantic = app.Document().GetAcknowledgedSemanticDocument(app.Host());
              Require(semantic && !semantic->Diagnostics().empty() && semantic->Map().Display().find(L"$\\input{private}$") != std::wstring::npos,
                      "unsupported equation remains literal with diagnostics");
+             const std::wstring inspector = L"Code `$fake$` and $a_i^2$ and \\(b^3\\).\n";
+             app.SetDocument(inspector);
+             app.Prepare(1024);
+             const auto code = inspector.find(L"fake");
+             app.Document().SetSelection({code, code});
+             app.Document().changedSelection();
+             Require(app.EquationPreviewText().empty(), "current syntax keeps inline code out of the equation inspector");
+             for (const auto &notation : {std::wstring(L"a_i^2"), std::wstring(L"b^3")})
+             {
+                 const auto math = inspector.find(notation);
+                 app.Document().SetSelection({math, math});
+                 app.Document().changedSelection();
+                 Require(app.EquationPreviewText() == L"\\[" + notation + L"\\]", "current syntax drives either math delimiter family");
+             }
              const auto oversized = L"$" + std::wstring(65534u, L'x') + L"$";
              app.SetDocument(oversized);
              app.Prepare(1024);

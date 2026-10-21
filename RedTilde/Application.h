@@ -181,6 +181,9 @@ class Application
     DxUi::Button *outlineToggle{}, *focusToggle{};
     std::filesystem::path documentPath;
     std::wstring savedText;
+    mutable std::optional<DxUi::RichText::SourceSnapshot> cachedSource;
+    mutable std::wstring cachedText;
+    std::optional<DxUi::RichText::SourceSnapshot> mirroredSource;
     bool bom{}, closing{}, initialized{}, initializing{};
     bool waitingForPreferences{};
     FileStamp stamp;
@@ -193,6 +196,8 @@ class Application
     void BuildUi();
     void Layout();
     void ApplyTheme();
+    [[nodiscard]] const std::wstring &CurrentText() const;
+    void SynchronizeMirror();
     void Changed();
     void SelectionChanged();
     void Status(unsigned id);

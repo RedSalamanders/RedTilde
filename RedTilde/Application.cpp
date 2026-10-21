@@ -447,9 +447,31 @@ void Application::ApplyTheme()
     Layout();
 }
 
+const std::wstring &Application::CurrentText() const
+{
+    const auto source = editor->Snapshot();
+    if (!cachedSource || !cachedSource->IsSameRevision(source))
+    {
+        cachedText = source.Text();
+        cachedSource = source;
+    }
+    return cachedText;
+}
 bool Application::Dirty() const
 {
-    return editor && (recovered || editor->GetText() != savedText);
+    return editor && (recovered || editor->Snapshot().Length() != savedText.size() || CurrentText() != savedText);
+}
+void Application::SynchronizeMirror()
+{
+    if (settings.view != EditorView::Split)
+        return;
+    const auto source = editor->Snapshot();
+    if (!mirroredSource || !mirroredSource->IsSameRevision(source))
+    {
+        mirror->SetText(CurrentText());
+        mirroredSource = source;
+        ++activity.mirrorResets;
+    }
 }
 void Application::Status(unsigned id)
 {
@@ -471,20 +493,28 @@ void Application::SetDocument(std::wstring text, std::filesystem::path path, boo
 void Application::Changed()
 {
     ++activity.changes;
-    const auto text = editor->GetText();
-    documentInfo = AnalyzeDocument(text);
-    mirror->SetText(text);
-    ++activity.mirrorResets;
+    const auto &text = CurrentText();
+    auto info = AnalyzeDocument(text);
+    const bool outlineChanged =
+        info.headings.size() != documentInfo.headings.size() ||
+        !std::equal(info.headings.begin(), info.headings.end(), documentInfo.headings.begin(),
+                    [](const Heading &left, const Heading &right) { return left.level == right.level && left.text == right.text; });
+    // Offsets always follow the current source, even when the outline's labels
+    // and indentation can keep their existing bounds.
+    documentInfo = std::move(info);
+    SynchronizeMirror();
     const auto name = documentPath.empty() ? Resource(IDS_UNTITLED) : documentPath.filename().native();
     title->SetText(name);
-    saveState->SetText(Resource(Dirty() ? IDS_CHANGED : IDS_SAVED));
-    SetWindowTextW(window.get(), std::format(L"{}{} — RedTilde", Dirty() ? L"• " : L"", name).c_str());
+    const bool dirty = Dirty();
+    saveState->SetText(Resource(dirty ? IDS_CHANGED : IDS_SAVED));
+    SetWindowTextW(window.get(), std::format(L"{}{} — RedTilde", dirty ? L"• " : L"", name).c_str());
     const auto encodingSuffix = bom ? L" BOM" : L"";
     stats->SetText(std::vformat(Resource(IDS_STATS), std::make_wformat_args(documentInfo.words, documentInfo.characters, encodingSuffix)));
     tools[0]->SetEnabled(editor->CanUndo());
     tools[1]->SetEnabled(editor->CanRedo());
     floating->SetVisible(false);
-    Layout();
+    if (outlineChanged)
+        Layout();
     SelectionChanged();
     if (!initializing)
         CheckpointRecovery();
@@ -493,7 +523,7 @@ void Application::Changed()
 void Application::CheckpointRecovery(bool immediate)
 {
     std::optional<RecoverySnapshot> snapshot;
-    auto text = editor->GetText();
+    auto text = CurrentText();
     auto selection = editor->GetSelection();
     bool needsRecovery = Dirty();
     if (HasBlockDraft() && editor->Snapshot().IsSameRevision(blockDraftSnapshot) && editor->Revision() == blockDraftRevision)
@@ -570,10 +600,11 @@ void Application::SetView(EditorView view)
     // The same editor/document/history survives all global presentation changes.
     settings.view = view;
     editor->SetViewMode(view == EditorView::Source ? DxUi::RichText::ViewMode::Source : DxUi::RichText::ViewMode::Rich);
-    mirror->SetText(editor->GetText());
+    SynchronizeMirror();
     modeHint->SetText(Resource(view == EditorView::Source ? IDS_SOURCEHINT : view == EditorView::Split ? IDS_SPLITHINT : IDS_BANNER));
     floating->SetVisible(false);
     Layout();
+    SelectionChanged();
     host.SetFocusControl(editor, false);
     if (!initializing)
         SavePreferences();
@@ -586,14 +617,18 @@ void Application::SelectionChanged()
         mirror->SetSelection(selection);
         (void)mirror->ScrollSourceRangeIntoView(host, selection.Start(), selection.End(), false);
     }
-    auto expression = EquationAt(editor->GetText(), selection.caret);
+    std::wstring expression;
     if (const auto syntax = editor->GetMarkdownSyntax())
+    {
         for (const auto &node : syntax->Inlines())
             if (node.kind == DxUi::RichText::MarkdownInlineKind::Math && selection.caret >= node.source.first && selection.caret <= node.source.last)
             {
                 expression = node.value.size() <= DxUi::RichText::MathMaximumSourceUnits ? node.value : std::wstring{};
                 break;
             }
+    }
+    else
+        expression = EquationAt(CurrentText(), selection.caret);
     const auto preview = expression.empty() ? std::wstring{} : L"\\[" + expression + L"\\]";
     if (equation->GetText() != preview)
         equation->SetText(preview);

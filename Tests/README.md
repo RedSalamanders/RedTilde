@@ -15,6 +15,9 @@ Each edited sample waits for acknowledged native geometry and GPU completion. Re
 images, hidden idle, resize, exact pixels across three simulated device replacements and asynchronous close.
 The two Core cases run these protocols on both default and WARP hosts without showing a window.
 
+Core also checks deferred hidden mirrors, exact Split synchronization/undo, offset-only outline navigation,
+heading label/level changes, same-length dirty resets and syntax-backed equation inspector selection.
+
 Commit and build the instrumented Release baseline before using `performance-paired.ps1 -FreezeBaseline` with
 an `-OutputRoot` in a fresh `.build` directory. Use `-Baseline <frozen-directory> -SameBinaryControl` for A/A,
 then omit that switch for the candidate study. The default has 12 independent blocks per Compose/Split scenario;
