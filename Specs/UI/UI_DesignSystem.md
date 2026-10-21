@@ -6,6 +6,9 @@ Write naturally. Keep the precision of Markdown. Use Word's familiar text action
 ribbon, pagination controls or modal formatting workflow. A quiet writing surface, one compact formatting row,
 contextual selection tools and an optional outline leave the document dominant.
 
+The native title follows the current filename and dirty marker immediately. Repeated edits with the same displayed
+identity skip redundant native title writes; save-state feedback, Unicode, undo and document replacement stay exact.
+
 Brand: a flowing red tilde, with a restrained scarlet accent. App name is RedTilde. Short product line:
 **Words, beautifully in flow.** The icon must read at 16/24/32 pixels as well as 256; preserve alpha.
 

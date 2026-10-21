@@ -153,6 +153,7 @@ class Application
     friend class PerformanceProbe;
     EditDiagnostics *editDiagnostics{}; // Borrowed only for a synchronous harness transaction.
     ApplicationActivity activity;
+    std::optional<std::wstring> appliedCaption;
     LaunchOptions options;
     Settings settings;
     SettingsWriter preferenceWriter;
@@ -201,6 +202,7 @@ class Application
     [[nodiscard]] const std::wstring &CurrentText() const;
     void SynchronizeMirror();
     void Changed();
+    void UpdateCaption(std::wstring caption);
     void SelectionChanged();
     void Status(unsigned id);
     void SavePreferences();

@@ -33,6 +33,8 @@ owner CPU and actual rendered-frame counters. Refuse missing/reordered/negative 
 and a missing late thread count. Replay older native-v1/native-v2 receipts without optional diagnostics unchanged.
 The hidden native Core probe exercises both views with diagnostics enabled and checks idle quiescence after
 the primary memory observation. New instrumentation requires a common baseline before the production repair.
+Caption regressions cover Unicode names, immediate clean/dirty transitions, same-value dirty edits, source/history
+restoration after a burst, failed Win32 writes and reentrant identity replacement on the app-owned hidden window.
 
 Keep compiler-change failures and new-toolchain builds distinct from earlier successful receipts. A later
 documentation/tooling edit requires a fresh source-bound build receipt even if the native binary stays identical.

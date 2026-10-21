@@ -6,6 +6,7 @@
 #include <functional>
 #include <stdexcept>
 #include <thread>
+#include <utility>
 
 namespace RedTilde
 {
@@ -20,6 +21,13 @@ void Require(bool condition, std::string_view message)
 void Success(HRESULT result, std::string_view message)
 {
     Require(SUCCEEDED(result), message);
+}
+std::wstring WindowCaption(HWND window)
+{
+    std::array<wchar_t, 1024> text{};
+    const int length = GetWindowTextW(window, text.data(), static_cast<int>(text.size()));
+    Require(length > 0, "read native Unicode caption");
+    return std::wstring(text.data(), static_cast<std::size_t>(length));
 }
 } // namespace
 int RunCoreTests(const std::filesystem::path &root)
@@ -387,6 +395,122 @@ int RunCoreTests(const std::filesystem::path &root)
              Require(added && added->IsVisible(), "added heading becomes an outline action");
              Require(app.Document().Undo() && !added->IsVisible() && !app.Dirty(),
                      "removing the heading hides its action and preserves saved source");
+         });
+    test("Window.CaptionSkipsIdenticalWritesAndPreservesImmediateIdentity",
+         [&]
+         {
+             LaunchOptions launch;
+             launch.headless = true;
+             launch.dataDirectory = root / L"caption-cache";
+             Application app(launch);
+             Success(app.Initialize(), "create caption app");
+             app.SetDocument(L"seed", root / L"caption-東京.md");
+             app.Prepare();
+             Require(WindowCaption(app.Window()) == L"caption-東京.md — RedTilde", "initial caption follows the Unicode filename");
+             auto before = app.Activity();
+             app.Document().SetSelection({0, 0});
+             Require(app.Document().ReplaceSelection(L"A") && app.Document().ReplaceSelection(L"B") && app.Document().Undo() && app.Document().Undo(),
+                     "burst edits and undo complete");
+             Require(app.Activity().captionCalls == before.captionCalls + 2 && app.Activity().captionRequests == before.captionRequests + 4 &&
+                         WindowCaption(app.Window()) == L"caption-東京.md — RedTilde",
+                     "only dirty-state transitions write the native caption, synchronously");
+             app.Prepare();
+             Require(app.Activity().captionCalls == before.captionCalls + 2 && WindowCaption(app.Window()) == L"caption-東京.md — RedTilde" &&
+                         !app.Dirty() && app.Document().GetText() == L"seed" && !app.Document().CanUndo(),
+                     "returning to saved source preserves caption, clean state and history without deferred writes");
+             before = app.Activity();
+             Require(app.Document().ReplaceSelection(L"A") && app.Document().ReplaceSelection(L"B"), "dirty burst admitted");
+             app.Prepare();
+             Require(app.Activity().captionCalls == before.captionCalls + 1 && WindowCaption(app.Window()) == L"• caption-東京.md — RedTilde" &&
+                         app.Dirty(),
+                     "dirty burst applies one immediate native identity");
+             before = app.Activity();
+             Require(app.Document().ReplaceSelection(L"C"), "further dirty edit admitted");
+             app.Prepare();
+             Require(app.Activity().captionCalls == before.captionCalls, "an unchanged dirty caption requires no redundant native write");
+             app.SetDocument(L"replacement", root / L"old-name.md");
+             Require(app.Document().ReplaceSelection(L"x"), "old document edit admitted");
+             app.SetDocument(L"latest", root / L"renamed-😀.md");
+             app.Prepare();
+             Require(WindowCaption(app.Window()) == L"renamed-😀.md — RedTilde" && !app.Dirty() && app.Document().GetText() == L"latest",
+                     "native identity follows the newest Unicode filename and clean state");
+         });
+    test("Window.CaptionRetriesFailedAndSupersededNativeWrites",
+         [&]
+         {
+             LaunchOptions launch;
+             launch.headless = true;
+             launch.dataDirectory = root / L"caption-retry";
+             Application app(launch);
+             Success(app.Initialize(), "create caption retry app");
+             app.SetDocument(L"seed", root / L"caption.md");
+             app.Prepare();
+             struct Interception
+             {
+                 Application *app;
+                 WNDPROC previous{};
+                 std::filesystem::path nestedPath;
+                 bool reject{}, reenter{}, failed{};
+                 LRESULT rejection = FALSE;
+             } context{&app, {}, root / L"nested-東京.md"};
+             constexpr auto property = L"RedTilde.CaptionTest";
+             Require(SetPropW(app.Window(), property, &context) != FALSE, "bind owned hidden-window interception");
+             const auto restore = wil::scope_exit(
+                 [&]
+                 {
+                     if (context.previous)
+                         (void)SetWindowLongPtrW(app.Window(), GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(context.previous));
+                     (void)RemovePropW(app.Window(), property);
+                 });
+             WNDPROC intercept = [](HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) noexcept -> LRESULT
+             {
+                 auto &state = *static_cast<Interception *>(GetPropW(hwnd, L"RedTilde.CaptionTest"));
+                 if (message == WM_SETTEXT && std::exchange(state.reject, false))
+                     return state.rejection;
+                 const bool reenter = message == WM_SETTEXT && std::exchange(state.reenter, false);
+                 const auto result = CallWindowProcW(state.previous, hwnd, message, wParam, lParam);
+                 if (reenter)
+                 {
+                     try
+                     {
+                         state.app->SetDocument(L"nested", state.nestedPath);
+                     }
+                     catch (const std::bad_alloc &)
+                     {
+                         std::terminate();
+                     }
+                     catch (const std::exception &)
+                     {
+                         state.failed = true;
+                     }
+                 }
+                 return result;
+             };
+             context.previous = reinterpret_cast<WNDPROC>(SetWindowLongPtrW(app.Window(), GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(intercept)));
+             Require(context.previous != nullptr, "intercept only the app-owned hidden window");
+             context.reject = true;
+             app.Document().SetSelection({0, 0});
+             Require(app.Document().ReplaceSelection(L"A") && WindowCaption(app.Window()) == L"caption.md — RedTilde",
+                     "failed native write leaves the old actual caption");
+             auto before = app.Activity();
+             Require(app.Document().ReplaceSelection(L"B"), "retry edit is admitted");
+             Require(app.Activity().captionCalls == before.captionCalls + 1, "retry edit invokes one native caption write");
+             Require(WindowCaption(app.Window()) == L"• caption.md — RedTilde", "retry applies the expected dirty caption");
+             context.reject = true;
+             context.rejection = -1;
+             app.SetDocument(L"negative", root / L"negative.md");
+             before = app.Activity();
+             app.SetDocument(L"retry", root / L"negative.md");
+             Require(app.Activity().captionCalls == before.captionCalls + 1 && WindowCaption(app.Window()) == L"negative.md — RedTilde",
+                     "a negative receiver result also remains retryable");
+             context.reenter = true;
+             app.SetDocument(L"outer", root / L"outer.md");
+             Require(!context.failed && WindowCaption(app.Window()) == L"nested-東京.md — RedTilde" && app.Document().GetText() == L"nested",
+                     "a native notification may synchronously replace the document identity");
+             before = app.Activity();
+             app.SetDocument(L"fresh", root / L"outer.md");
+             Require(app.Activity().captionCalls == before.captionCalls + 1 && WindowCaption(app.Window()) == L"outer.md — RedTilde",
+                     "superseded native write cannot cache the stale outer identity as applied");
          });
     test("Editor.DirtyCacheTracksDirectResetAndSameLengthUndo",
          [&]

@@ -55,6 +55,9 @@ function DiagnosticNative {
 }
 $native=DiagnosticNative
 Require ((Get-RedTildeControlDiagnostics $native).phases.Count -eq 9 -and (Get-RedTildePerformanceMetrics $native).commandUs -eq 550) 'Phase observations preserve the primary metric and all nine ordered phases.'
+$native=DiagnosticNative; $native.controlDiagnostics.protocol='app-edit-phases-v1'
+$native.controlDiagnostics.phases=@($native.controlDiagnostics.phases | Where-Object name -NotIn @('identity','caption'))
+Require ((Get-RedTildeControlDiagnostics $native).phases.Count -eq 7) 'The initial seven-phase prototype remains readable without rewriting its raw observations.'
 $native=DiagnosticNative; $native.controlDiagnostics.phases[0].name='chrome'
 Refuse { Get-RedTildePerformanceMetrics $native } 'Reordered or duplicate phases are refused.'
 $native=DiagnosticNative; $native.controlDiagnostics.phases[0].wallUs[0]=101

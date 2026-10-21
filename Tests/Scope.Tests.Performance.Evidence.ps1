@@ -134,6 +134,10 @@ $results=@(foreach($directory in $StudyPath) {
                 Require ($revised -and $diagnostic.protocol -cin @('app-edit-phases-v1','app-edit-phases-v2') -and
                     $diagnostic.primaryBeforeInventory -and $diagnostic.phases.Count -eq $phaseNames.Count -and
                     $diagnostic.postMemory.Count -eq 3) 'Invalid command diagnostic protocol or inventory order.'
+                if($diagnostic.protocol -ceq 'app-edit-phases-v2') {
+                    Require ($native.activity.captionRequests -eq $native.activity.changes -and
+                        $native.activity.captionCalls -eq $native.activity.changes) 'The alternating saved/dirty fixture must execute every synchronous native caption write.'
+                }
                 $sampleCount=2*$study.cycles
                 for($phaseIndex=0;$phaseIndex -lt $phaseNames.Count;++$phaseIndex) {
                     $phase=$diagnostic.phases[$phaseIndex]

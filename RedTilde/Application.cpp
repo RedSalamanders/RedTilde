@@ -515,9 +515,7 @@ void Application::Changed()
     saveState->SetText(Resource(dirty ? IDS_CHANGED : IDS_SAVED));
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Identity);
-    ++activity.captionRequests;
-    ++activity.captionCalls;
-    SetWindowTextW(window.get(), std::format(L"{}{} — RedTilde", dirty ? L"• " : L"", name).c_str());
+    UpdateCaption(std::format(L"{}{} — RedTilde", dirty ? L"• " : L"", name));
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Caption);
     const auto encodingSuffix = bom ? L" BOM" : L"";
@@ -536,6 +534,26 @@ void Application::Changed()
         CheckpointRecovery();
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Recovery);
+}
+
+void Application::UpdateCaption(std::wstring caption)
+{
+    ++activity.captionRequests;
+    if (appliedCaption && *appliedCaption == caption)
+        return;
+    // A native write remains synchronous and part of this command's measured
+    // work. Repeated edits while already dirty need no identical Win32 write.
+    // Invalidate before entering Win32 so reentrant requests cannot see stale
+    // cached state; failed or superseded writes must remain retryable.
+    appliedCaption.reset();
+    const auto request = activity.captionRequests;
+    ++activity.captionCalls;
+    // This is our own HWND. Use WM_SETTEXT's explicit acceptance result: the
+    // SetWindowText wrapper may report success for a receiver's zero result.
+    if (SendMessageW(window.get(), WM_SETTEXT, 0, reinterpret_cast<LPARAM>(caption.c_str())) == TRUE && request == activity.captionRequests)
+        appliedCaption = std::move(caption);
+    else
+        appliedCaption.reset();
 }
 
 void Application::CheckpointRecovery(bool immediate)

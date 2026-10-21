@@ -27,6 +27,12 @@ No periodic autosave/polling timer: edited revisions arm one debounced recovery 
 File/decode results carry a document generation and are applied only on the owner. Closing invalidates the window
 binding before workers can post. Image decoding must not join a blocked codec on UI teardown.
 
+Native window captions cache only successfully applied identity text. Skip identical writes during an already-dirty
+typing sequence, but apply filename and dirty-state transitions synchronously. Invalidate the cache before entering
+Win32 and after a failed or reentrantly superseded write, so later requests remain retryable. Require the own-window
+`WM_SETTEXT` receiver's positive acknowledgment before caching a value. Do not defer caption
+work beyond the measured source transaction merely to reduce command latency.
+
 Application-derived text is cached against the editor's immutable source snapshot, never a revision number alone.
 Keep at most one cached string/snapshot and one last-mirrored source snapshot within the admitted document bound.
 Dirty-state checks compare exact source with the last successful save, including same-length edits, undo and
