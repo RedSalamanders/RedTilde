@@ -75,3 +75,8 @@ RedTilde partitions its 27 reviewed native cases into Storage (5), Settings (2),
 CI's native-scope job binds compiled inputs, test/build/workflow code, the version stamp and hosted image descriptor. A documentation-only continuation may retain the original native qualification only from an exact matching producer with all six actual successful Full native steps; skipped, failed, cancelled, incomplete or unavailable evidence cannot authorize it. The original source/profile/binary/environment evidence remains the observation; inherited rows explicitly claim no new execution, resource measurement or clipboard/environment result. Manual dispatch always executes fresh native qualification. Each native checkout verifies the descriptor before building. This also permits a documentation/Done closeout without repeating an identical already-qualified native matrix.
 
 Reusable tooling/formatting evidence also binds the actual selected formatter path and binary hash. Installing a different formatter invalidates that evidence even when source, PATH spelling and Visual Studio metadata are unchanged. This does not change formatter selection or native behavior.
+
+
+## Test-run retention
+
+[Generated test-run evidence](Testing_RunEvidence.md) owns completed, failed and interrupted output storage and verification.

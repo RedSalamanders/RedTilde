@@ -7,7 +7,7 @@ Run `test.ps1 -Configuration Debug -Suite Core`; use `-SkipBuild` for the exact 
 Native cases are compiled from `Application.Tests.Core.cpp` into the same executable and run with `--self-test`.
 Core also runs a hidden child-process probe that changes preferences, closes immediately and verifies the final state after process exit.
 They exercise public controls and app commands without desktop input, clipboard access or foreground activation.
-Receipts and failed logs remain under `.build/tests/<run>`. The validation contract lists broader gates.
+Receipts and failed logs remain under `.build/evidence/test-runs/<id>/payload`. The validation contract lists broader gates.
 
 The S5 harness adds `--performance-probe <json>` and `--resource-probe <json>`, with an explicit `--document`
 fixture containing `S5_EDIT_HERE`, `--scenario compose|split`, `--cycles 4..64` and optional `--warp`.
@@ -63,3 +63,7 @@ regressions; fixture replay is not execution or qualification of a current nativ
 ## Affected testing
 
 Use `.\Test-Changes.ps1 -Explain` from the repository root to see selected scopes, paths and reasons, then `.\Test-Changes.ps1` to execute. `-Scopes A,B` is an explicit partial selection; `-Mode Full` and `-Mode PrePush` retain full applicable obligations. `-Force` bypasses exact result reuse. The next ordinary edit compares against the last successful default affected run, not every older change on the branch. Read [the validation contract](../Specs/Testing/Testing_Validation.md) for mutation barriers, CI_PENDING and qualification limits.
+
+
+Generated test output stays under `.build/evidence/test-runs/<id>/payload` on success, failure and interruption.
+See the [retention contract](../Specs/Testing/Testing_RunEvidence.md) for verification and qualification boundaries.

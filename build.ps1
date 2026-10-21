@@ -9,7 +9,9 @@ Assert-RedTildeOutputNotRunning -OutputDirectory $output
 if (-not $SkipRestore) { & (Join-Path $PSScriptRoot 'restore-dxui.ps1') -Platform $Platform }
 $msbuild=Get-RedTildeMSBuild
 New-Item -ItemType Directory -Force -Path $output | Out-Null
-$log=Join-Path $output 'build.log'
+$logDirectory=Join-Path $PSScriptRoot '.build/logs'
+[void][IO.Directory]::CreateDirectory($logDirectory)
+$log=Join-Path $logDirectory ("build-$Platform-$($Configuration -replace ' ','-')-$([DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ'))-$([guid]::NewGuid().ToString('N')).log")
 $started=[DateTime]::UtcNow
 Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
 $sourceIdentity=Get-RedTildeSourceIdentity -Root $PSScriptRoot
