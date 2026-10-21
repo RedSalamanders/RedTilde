@@ -117,8 +117,8 @@ $results=@(foreach($directory in $StudyPath) {
                 Require ($native.warmupCycles -eq 2 -and $native.recoverySettledAtMemory -and
                     -not $native.initial.threadInventoryCollected -and -not $native.final.threadInventoryCollected -and
                     $null -eq $native.initial.threads -and $null -eq $native.final.threads) 'Revised latency memory observations must be cheap and settled.'
-                foreach($name in @('ownerProcessorStart','ownerProcessorEnd')) {
-                    $processors=[double[]]$native.samples[$name]
+                foreach($processorKey in @('ownerProcessorStart','ownerProcessorEnd')) {
+                    $processors=[double[]]$native.samples[$processorKey]
                     Require ($processors.Count -eq 2*$study.cycles -and @($processors | Where-Object {
                         -not [double]::IsFinite($_) -or $_ -lt 0 -or $_ -ge 4096 -or $_ -ne [math]::Floor($_) }).Count -eq 0) 'Invalid processor boundary observations.'
                 }

@@ -1,0 +1,26 @@
+{
+  "sourceIdentity": "dc8e5470237f08d9842d585b11685a260781bc000ed3604d938258b3a21a76ff",
+  "builds": 6,
+  "x64Cases": 75,
+  "actualCaptures": 39,
+  "baselineCaptureMatches": 13,
+  "portableCases": 25,
+  "observationTests": 24,
+  "newNativeAuditorChecks": 15454,
+  "legacyAuditorChecks": 6577,
+  "newNativeProcesses": 384,
+  "resourceRuns": 8,
+  "malformedNativeV2Rejections": 3,
+  "result": "all local correctness/collection checks passed; quiet-host and policy acceptance remain open",
+  "remaining": [
+    "quiet-host-evidence",
+    "noisy-control-resolution",
+    "new-judge-acceptance",
+    "upstream-D4c",
+    "native-ARM64-runtime",
+    "physical-IME-AT-focus",
+    "actual-device-removal-and-occlusion",
+    "long-term-GPU-kernel-lifetime",
+    "release-handoff"
+  ]
+}

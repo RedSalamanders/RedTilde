@@ -74,3 +74,5 @@ No directional performance change was resolved; noisy controls, competing activi
 leave performance qualification open. The application remains experimental.
 The [S5 noise investigation](Measurements/S5_Noise_2026-10-21/README.md) follows those unresolved controls with
 cheap settled-memory observations, command CPU/residency diagnostics and explicit host activity recording.
+Both new attempts are retained. The replacement has complete observations but reaches 100% CPU under competing
+builds; noisy controls and quiet-host acceptance remain unresolved despite passing local correctness checks.

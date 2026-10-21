@@ -1,0 +1,56 @@
+[
+  {
+    "platform": "x64",
+    "profile": "Debug",
+    "passed": true,
+    "sourceIdentity": "dc8e5470237f08d9842d585b11685a260781bc000ed3604d938258b3a21a76ff",
+    "binarySha256": "5FAC1DF84C05E21FEE62EFF84FCC1C32BA4AA741F3E1B77A15443643E0016D0A",
+    "cases": 25,
+    "captures": 13,
+    "suite": "All",
+    "receipt": "20261021-111311-690-x64-Debug/receipt.json"
+  },
+  {
+    "platform": "x64",
+    "profile": "Release",
+    "passed": true,
+    "sourceIdentity": "dc8e5470237f08d9842d585b11685a260781bc000ed3604d938258b3a21a76ff",
+    "binarySha256": "F326E6E08307C9F6BC87B6311E1760C98A75A7EFA44BB123A369CAC8471DBA5E",
+    "cases": 25,
+    "captures": 13,
+    "suite": "All",
+    "receipt": "20261021-111311-457-x64-Release/receipt.json"
+  },
+  {
+    "platform": "x64",
+    "profile": "ASan Debug",
+    "passed": true,
+    "sourceIdentity": "dc8e5470237f08d9842d585b11685a260781bc000ed3604d938258b3a21a76ff",
+    "binarySha256": "64BBCCBFA5B58F0B957CF1C31B5B27D327850929562F3417A46DA986692353F6",
+    "cases": 25,
+    "captures": 13,
+    "suite": "All",
+    "receipt": "20261021-111311-484-x64-ASan-Debug/receipt.json"
+  },
+  {
+    "platform": "ARM64",
+    "profile": "Debug",
+    "passed": true,
+    "sourceIdentity": "dc8e5470237f08d9842d585b11685a260781bc000ed3604d938258b3a21a76ff",
+    "binarySha256": "8F86FD6DE66D0EA574F9D681BACE8903EAADC14863ADC8EA8728A9F2E709CC74"
+  },
+  {
+    "platform": "ARM64",
+    "profile": "Release",
+    "passed": true,
+    "sourceIdentity": "dc8e5470237f08d9842d585b11685a260781bc000ed3604d938258b3a21a76ff",
+    "binarySha256": "4C11374EB6418B8A668801778B9DE32E6F1EC9180C015296BC02290C33514314"
+  },
+  {
+    "platform": "ARM64",
+    "profile": "ASan Debug",
+    "passed": true,
+    "sourceIdentity": "dc8e5470237f08d9842d585b11685a260781bc000ed3604d938258b3a21a76ff",
+    "binarySha256": "64262E9B65E4D449833D9FA59CBF1233B8B6947D39B0F9858419518D014DE4AC"
+  }
+]

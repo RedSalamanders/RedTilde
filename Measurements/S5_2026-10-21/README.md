@@ -1,5 +1,8 @@
 # RedTilde S5 continuation checkpoint — 2026-10-21
 
+Latest follow-through: [native-v2 noise investigation](../S5_Noise_2026-10-21/README.md), including both retained
+attempts, collector repair, full activity coverage and the still-open quiet-host/hardware/upstream gates.
+
 **Historical 08:42 checkpoint.** The [final local execution assessment](Final/README.md) supersedes the pending
 commands and old-toolchain identities below. The resumed work completed the corrected studies and full-fixture
 resource checks with a freshly rebuilt MSVC 14.52.37025 baseline. Qualification gates remain open as recorded there.

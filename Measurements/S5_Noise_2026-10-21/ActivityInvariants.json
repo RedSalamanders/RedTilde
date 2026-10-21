@@ -1,0 +1,10 @@
+{
+  "processes": 384,
+  "expectedChanges": 132,
+  "everyProcessMatches": true,
+  "baselineLayouts": 132,
+  "candidateLayouts": 0,
+  "baselineMirror": 132,
+  "candidateComposeMirror": 0,
+  "candidateSplitMirror": 132
+}

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "reference": "typed-CSharp-subset-enumeration-v1",
+  "knownValueOracles": true,
+  "checks": 15454,
+  "studies": [
+    {
+      "study": "Z:\\src\\RedTilde\\.build\\s5-20261021\\observed-v3-msvc1452\\aa",
+      "comparisonSha256": "737C70676F155F406EEE99ECA20F94050EA3878102DFDA0C09B83522F68CDBB6",
+      "nativeSlots": 96,
+      "familySize": 12,
+      "independentReferenceMatches": true,
+      "policyAcceptance": "review-required"
+    },
+    {
+      "study": "Z:\\src\\RedTilde\\.build\\s5-20261021\\observed-v3-msvc1452\\ab",
+      "comparisonSha256": "F918CCE0BD88F6531C86DF85631388D5499E121D5523F6F4DA04A6B98CFAFDE7",
+      "nativeSlots": 96,
+      "familySize": 12,
+      "independentReferenceMatches": true,
+      "policyAcceptance": "review-required"
+    },
+    {
+      "study": "Z:\\src\\RedTilde\\.build\\s5-20261021\\observed-v3-repaired-msvc1452\\aa",
+      "comparisonSha256": "390AE963455F5C7469206149ED34BFAE9FA14BD5599F586C977481F9EA38EF8E",
+      "nativeSlots": 96,
+      "familySize": 12,
+      "independentReferenceMatches": true,
+      "policyAcceptance": "review-required"
+    },
+    {
+      "study": "Z:\\src\\RedTilde\\.build\\s5-20261021\\observed-v3-repaired-msvc1452\\ab",
+      "comparisonSha256": "00FFD417DBF3DE7B750B58BF4DAE0A2B82BA2D8F9BCDBC2F520F48D97E005447",
+      "nativeSlots": 96,
+      "familySize": 12,
+      "independentReferenceMatches": true,
+      "policyAcceptance": "review-required"
+    }
+  ],
+  "completedUtc": "2026-10-21T09:03:09.9656334Z",
+  "acceptance": "numerical/integrity audit only; no policy self-approval"
+}

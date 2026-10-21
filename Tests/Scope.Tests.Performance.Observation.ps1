@@ -50,4 +50,24 @@ Require (-not (Get-RedTildeHostActivitySummary @((Sample),(Sample 5.01))).quietC
 Require (-not (Get-RedTildeHostActivitySummary @((Sample))).quietCpuObserved) 'One observation cannot establish a quiet interval.'
 Require (-not (Get-RedTildeHostActivitySummary @((Sample),(Sample -Groups 2))).quietCpuObserved) 'Partial multi-group CPU observations cannot establish whole-host quiet.'
 Refuse { Get-RedTildeHostActivitySummary @((Sample 101)) } 'Invalid CPU percentages are rejected.'
+$previous=@{}
+$process=[pscustomobject]@{Id=10;ProcessName='cl';StartTime=[DateTime]::UtcNow;CPU=1.0}
+Require ((Get-RedTildeProcessObservation $process $previous).available) 'A newly observed process is represented.'
+$process.CPU=2.5
+Require ((Get-RedTildeProcessObservation $process $previous).observation.deltaCpuSeconds -eq 1.5) 'CPU deltas are bound to process creation identity.'
+$process.StartTime=$null
+Require (-not (Get-RedTildeProcessObservation $process $previous).available) 'Disappearing process properties are unavailable rather than fatal or zero.'
+Require (-not (Get-RedTildeProcessObservation $null $previous).available) 'A null process race is tolerated explicitly.'
+$process=[pscustomobject]@{Id=11;ProcessName='cl';CPU=1.0}
+$reads=[Collections.Generic.List[int]]::new()
+$getter={ $reads.Add(1); if($reads.Count -gt 1){ return $null }; return [DateTime]'2026-10-21T08:00:00Z' }.GetNewClosure()
+$process | Add-Member -MemberType ScriptProperty -Name StartTime -Value $getter
+Require ((Get-RedTildeProcessObservation $process $previous).available -and $reads.Count -eq 1) 'Volatile process properties are read once.'
+$start=[DateTime]'2026-10-21T08:00:00Z'; $end=$start.AddSeconds(4)
+$samples=@(@{utc=$start.AddSeconds(1).ToString('o')},@{utc=$start.AddSeconds(2).ToString('o')},@{utc=$start.AddSeconds(3).ToString('o')})
+Require ((Get-RedTildeObserverCoverage $samples $start $end).complete) 'A sampled full window passes its declared coverage bound.'
+$dateObjects=@($samples | ConvertTo-Json | ConvertFrom-Json)
+Require ((Get-RedTildeObserverCoverage $dateObjects $start.ToUniversalTime() $end.ToUniversalTime()).complete) 'JSON date objects, UTC and local representations describe the same window.'
+Require (-not (Get-RedTildeObserverCoverage $samples $start ($end.AddSeconds(10))).complete) 'An observer that dies cannot claim full coverage.'
+Require (-not (Get-RedTildeObserverCoverage @() $start $end).complete) 'No observer data is not a quiet window.'
 Write-Host "Performance observation: $checks behavioral checks passed."

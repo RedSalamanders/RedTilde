@@ -1,0 +1,409 @@
+{
+  "sourceIdentity": "dc8e5470237f08d9842d585b11685a260781bc000ed3604d938258b3a21a76ff",
+  "inputs": [
+    {
+      "path": ".agents/skills/build-redtilde/agents/openai.yaml",
+      "sha256": "9931F4C3C5513401459260D5F7C1C7F98F99C8DF326841FBF6AB33024890DD12"
+    },
+    {
+      "path": ".agents/skills/build-redtilde/SKILL.md",
+      "sha256": "9D3B5FE585FEBF3D70046A4526E644F5DE76AC7FE860867EC1423A8804447510"
+    },
+    {
+      "path": ".agents/skills/consumer-dxui/agents/openai.yaml",
+      "sha256": "D74E63AE59B4D5D855BA16C2D95722571039F0CB75A218C0D91ABD808CD20ED7"
+    },
+    {
+      "path": ".agents/skills/consumer-dxui/SKILL.md",
+      "sha256": "5BB531B0ED7F26E1E14CF772FEE4DA74EB0F41917650C69A857E776477BC7834"
+    },
+    {
+      "path": ".agents/skills/desktop-ui/agents/openai.yaml",
+      "sha256": "B5AAD1F785745965C58454230F25B77F1EF14C492A1F03D89E4A9612EFA9D629"
+    },
+    {
+      "path": ".agents/skills/desktop-ui/SKILL.md",
+      "sha256": "46DA9C5572FB81A78A5DD57C38986FA553CDDF166182D623FE8FAA79599E05C8"
+    },
+    {
+      "path": ".agents/skills/file-safety/agents/openai.yaml",
+      "sha256": "E2ED7CFBEC18A206D487D051D1BC8442D30669DA79C5CDB6729622C35DCDE052"
+    },
+    {
+      "path": ".agents/skills/file-safety/SKILL.md",
+      "sha256": "4A3A96552C78177AD705001BC3D513A7374E026210D974B822F53A02406738ED"
+    },
+    {
+      "path": ".agents/skills/markdown-editing/agents/openai.yaml",
+      "sha256": "F5546779080D22B27595A96BAAA1529D8D4478C610F60D65C0A997E49AE9110B"
+    },
+    {
+      "path": ".agents/skills/markdown-editing/SKILL.md",
+      "sha256": "1281E2593B6A47AA6B67D61F97EEF06534F2F65F39295B20457744C2D047F017"
+    },
+    {
+      "path": ".agents/skills/media-math/agents/openai.yaml",
+      "sha256": "E8F91A63559F63EFE8BFF80EDC0AFB0763FB063438AE9EBB7B4A7283B7B61138"
+    },
+    {
+      "path": ".agents/skills/media-math/SKILL.md",
+      "sha256": "F59DD5676BAF672573FD8FF1973A6D6F0F24DB905FB309BB9647AF99459A8FCF"
+    },
+    {
+      "path": ".agents/skills/settings-crashes/agents/openai.yaml",
+      "sha256": "09AD87822E2FACC29FF0FC509D79C1A855032EDBAB050DAFB673A5028D8391A6"
+    },
+    {
+      "path": ".agents/skills/settings-crashes/SKILL.md",
+      "sha256": "C992AF1A38AAF6787C1D21D1DB085C4CB9D83D0B40501ECBF79C7F089B2FE6D7"
+    },
+    {
+      "path": ".agents/skills/spec-workflow/agents/openai.yaml",
+      "sha256": "872FEB33C8E632520DD1EEB4BD8846E52658A65F4E07674983A876455AA3A54D"
+    },
+    {
+      "path": ".agents/skills/spec-workflow/SKILL.md",
+      "sha256": "3DC7BC196A9E46BC8831C1E7B697D8EF1F49448B436F39993F22C1C1A53FC382"
+    },
+    {
+      "path": ".agents/skills/test-harness/agents/openai.yaml",
+      "sha256": "8FBF7D6D49ACB4BB87DFB58FC823C80E9AA5B3CB4A1DB549564A0A2DFFE02CEA"
+    },
+    {
+      "path": ".agents/skills/test-harness/SKILL.md",
+      "sha256": "1FB52739B67DF9455B976144D46932E4B9ECDEED662B1E6EFC130D62C5906069"
+    },
+    {
+      "path": ".clang-format",
+      "sha256": "A481CFBC2746414009FF3FC5858F507E4F98644B1F96A44C9F945078C2C6EA6E"
+    },
+    {
+      "path": ".gitattributes",
+      "sha256": "314D60704FF4931FF02DD1CE9929E6FB516833A215CD0D73B60D2A2A31F38F39"
+    },
+    {
+      "path": ".gitignore",
+      "sha256": "A35DEEE9F82A5F11739F2D7EC9431654C04D8AD021BA4CF3C5F043362149A4AD"
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "83DA92AD89DF80D1CE9A79D0EA9CEB607DAD56C023AAB17E4E915CB8CEAAF342"
+    },
+    {
+      "path": "build.ps1",
+      "sha256": "ADB1B3ABA65FE0BB067AE6DC8A4AA2433CD74BF03F5ABB5E9D6AD274BB0DB870"
+    },
+    {
+      "path": "Build/Harness.psm1",
+      "sha256": "13C37583DDA37FCCC0CD4187355A09C50EEF5DD8FBF31597656849B71DB47DF9"
+    },
+    {
+      "path": "Build/Performance.psm1",
+      "sha256": "64604B2027963D4AEF9D396A76D65D8A81C6C18F1D9F6D223D536B02C8824980"
+    },
+    {
+      "path": "Build/PerformanceObservation.psm1",
+      "sha256": "416C788D256A4D34C80C107B0DDBA91A2A03F49303D19492DD1ABC4493174D57"
+    },
+    {
+      "path": "Build/RedTilde.DxUi.props",
+      "sha256": "829323BD871F7B476AEB1782713EFEA4B2F8BA9B7A38011071A1D5D81475C2A5"
+    },
+    {
+      "path": "Build/Toolchain.psm1",
+      "sha256": "708EBC66742F90F242478AC6209C3A0C9B3184EFC2AC770798EA1E300CF89284"
+    },
+    {
+      "path": "capabilities.json",
+      "sha256": "1447865DBFDA7F912E9E5C974062424B8D1E01D596D01F7E9F0AAEF7186A7899"
+    },
+    {
+      "path": "Changes/2026-10-20-math-mermaid-recovery.md",
+      "sha256": "57A1E413187B7437F22C40ACFFB34434F3C0D736916774636A7EFFC12F6FDC1F"
+    },
+    {
+      "path": "Changes/2026-10-20-redtilde.md",
+      "sha256": "0C0027279A96A06A96BCA0E8C541A8A682C18C030D59205E2A1D860FF40F451F"
+    },
+    {
+      "path": "Changes/2026-10-21-s5-performance-resources.md",
+      "sha256": "D34499C134C501234DE17839E36596B441C8C8B050FC9A2F163B1250A0A2A9F2"
+    },
+    {
+      "path": "Changes/README.md",
+      "sha256": "163F00D68C1E8EF2FA625597465D25CCB2659CC70696A82A3FD9044F559EBF12"
+    },
+    {
+      "path": "Common/AGENTS.md",
+      "sha256": "51C6EE06ED5B0143219A592C95D2062EB848DCD60D0218FCDA109FC6EB26F56F"
+    },
+    {
+      "path": "Common/CrashHandler.cpp",
+      "sha256": "0EAF0B0C01B3440148BD138CD4229552D6194DBEA6A5AAD6251A8963FC5BD130"
+    },
+    {
+      "path": "Common/CrashHandler.h",
+      "sha256": "5DD60B6E626784AE8C562222EC6F36B4314931C4E03DBF38A28CB8DA0CF47540"
+    },
+    {
+      "path": "Common/DocumentInfo.cpp",
+      "sha256": "99D808E0DB2D7C03E0C4DE437AC91477921A744D596811382340A62FE58C6B1F"
+    },
+    {
+      "path": "Common/DocumentInfo.h",
+      "sha256": "58EE7E63083F26AADEFB3F4AA2A6532C4F7ABF814953E99A5EA1C201E561498E"
+    },
+    {
+      "path": "Common/Recovery.cpp",
+      "sha256": "1B06CF156B54BEA0E9350FF50EE8FAF75A266A866D4AC25DCD2FECE187BC52BB"
+    },
+    {
+      "path": "Common/Recovery.h",
+      "sha256": "D832905E1CA3D1A6D8CABA64ACFE5200CA955DB44F7FD8F00837A356F33E3A86"
+    },
+    {
+      "path": "Common/Settings.cpp",
+      "sha256": "11D32D62D3B3CD9365C5428EDC65D7D207B0661514AA249E3652A65B5475DC67"
+    },
+    {
+      "path": "Common/Settings.h",
+      "sha256": "38EBF4F213E75A7AEF692BED611FADEC6BC17E9E172A16090476D180CEE57361"
+    },
+    {
+      "path": "Common/Storage.cpp",
+      "sha256": "2C3616F2143C67FBC6405B99DB9563765FBE0028934CA4D754DFABC3856EBFEC"
+    },
+    {
+      "path": "Common/Storage.h",
+      "sha256": "34727BDAE45F5A3C1B58673A5DC20A03D0BDCEA8BBE6CA07A7EEEFA1D1D4D7BE"
+    },
+    {
+      "path": "Dependencies/DxUi.lock.json",
+      "sha256": "4E96742268B18964B8CDB874E3EC703428792144E512F397375DE0721168D6D0"
+    },
+    {
+      "path": "Dependencies/Notices.md",
+      "sha256": "3685AE0ADBD6113B7FD88D7FD225F27080182B4E0656D7C1984F5E8AA0A25358"
+    },
+    {
+      "path": "Dependencies/README.md",
+      "sha256": "B5790E374FC240797EC042374286DB933AAB7A0350A76D7393C62FAA60834A6D"
+    },
+    {
+      "path": "Directory.Build.props",
+      "sha256": "877BEB873B9ADD32F1B2F778DE7B0168DC1170C709C2ED54F5D10FAC7C01E4DD"
+    },
+    {
+      "path": "docs/examples/example.md",
+      "sha256": "0D6075DFC826E492F79CB23FE377CE678B0830CA7CA6602DCCE9B511F00DF6E9"
+    },
+    {
+      "path": "docs/examples/performance-fixture.md",
+      "sha256": "B5A59C442AED3DF35CC4D494043AC24D90472E2872032DA03A882B0CA5423497"
+    },
+    {
+      "path": "docs/examples/s5-performance.md",
+      "sha256": "746E1833A4C85ACEC6F59A0BBFF458FB068C9347C9E30B16CFF9DFB32BB11811"
+    },
+    {
+      "path": "docs/examples/technical-notes.md",
+      "sha256": "5421DFA416F12FC23B1D33DAF677380F61F76BF8E33ABE4EF1092F889028E0A3"
+    },
+    {
+      "path": "docs/Portable.md",
+      "sha256": "63BEBAD6542C88130D8C0AD9733238DF16DB0B34E6C165F52C6B0E7BB2316E8B"
+    },
+    {
+      "path": "docs/README.md",
+      "sha256": "03E150A27D91B53F880F6384FB2CAB9546D9CF3AB8EA2A5FB1570BB3EFA4262E"
+    },
+    {
+      "path": "format.ps1",
+      "sha256": "DEF45596A0C87153F65A2364E1BC7A1EC17267B84ADFBBE336535C7F20384C17"
+    },
+    {
+      "path": "LICENSE.txt",
+      "sha256": "DE1D3B6BDEAFEF327008F4678099670E52C658B1BBC1AB261F94619C0F2CB8A9"
+    },
+    {
+      "path": "package.ps1",
+      "sha256": "013AF7FCD11B27239DB638646D8AE2135D6987D7937480EBE2EE3C53258C0993"
+    },
+    {
+      "path": "performance-observed.ps1",
+      "sha256": "BCDC796BCC22BFAAAA938F83C8B79D92887CDDAC13FFD85396806258341BA693"
+    },
+    {
+      "path": "performance-paired.ps1",
+      "sha256": "941463A024B665628D0EC47B384DC0FC4DFEFC24D01255B63506D0429AFC536E"
+    },
+    {
+      "path": "README.md",
+      "sha256": "D1475D93F85008E9A3E23C6EF62A01582FA865EFA1859563525D78CFF0CC0192"
+    },
+    {
+      "path": "RedTilde.sln",
+      "sha256": "486AE6A4AF5381AB043E5CC39AA85520B6BDFBDBAF2D0651DC5FFE4DA1C37475"
+    },
+    {
+      "path": "RedTilde/AGENTS.md",
+      "sha256": "C33D6E3AA955DA96C2821A1E1C513C9D89A9E7C6B2417974990EC436DB1F21B1"
+    },
+    {
+      "path": "RedTilde/Application.cpp",
+      "sha256": "453EF4019FE5D26919C4A5F35B0DEB780475A43DD43EC7E8DA992290712D4DCA"
+    },
+    {
+      "path": "RedTilde/Application.h",
+      "sha256": "EB0F5D078F20C9B34F79AF5AEBB785EA2340CFD0CE916DE83D5CE3A2F209E3CE"
+    },
+    {
+      "path": "RedTilde/AsyncFiles.h",
+      "sha256": "A619CDD1B664ABCB7C9348F46B854E07C49C99A1F223D0047F39344793A21B4E"
+    },
+    {
+      "path": "RedTilde/ImageLoader.h",
+      "sha256": "0B8F5A8ACB260898897D4D360DAD274B31252A0F5E13EBA6B38C0086D79EAA1F"
+    },
+    {
+      "path": "RedTilde/Main.cpp",
+      "sha256": "D5E2BF38FE0DE6F2A1896DF35E453F48FD13BCAD6771FD7FC08765E81EC88A7F"
+    },
+    {
+      "path": "RedTilde/RedTilde.vcxproj",
+      "sha256": "6816C83FE34A9DC1D11B08604A8E2F932061EA6EBA953C26011534B8A0EC15B1"
+    },
+    {
+      "path": "RedTilde/UiControls.h",
+      "sha256": "E1F1E711F2907EB4A904D4203C9E429C9AF9E3A10A81ED0969EDB537080F3C5D"
+    },
+    {
+      "path": "res/AGENTS.md",
+      "sha256": "E9DEB25D1B8592C07DAA1D303A0CBBC3849E5BD99C2E0A83B500C60E0F98AA01"
+    },
+    {
+      "path": "res/Icon-Provenance.md",
+      "sha256": "E3A2B467CBA3F2529F0D2FA7AA855114306B1A704D20EF6306501E53E85BEC70"
+    },
+    {
+      "path": "res/RedTilde.ico",
+      "sha256": "2B44D18F2193C2DA8A2050B292A159C7AEAB5F99CEAE5B5AE8427CA3A53018F6"
+    },
+    {
+      "path": "res/RedTilde.manifest",
+      "sha256": "753981927B7B374CFE9EBBB19D59CBD5CA31EFA51A4B6640E08874D67EA080BE"
+    },
+    {
+      "path": "res/RedTilde.png",
+      "sha256": "02DC508346D6E29859756899D5E5F511F2A375CD1C58ADD01523ACFF6A38D802"
+    },
+    {
+      "path": "res/RedTilde.rc",
+      "sha256": "B4062E764CA8A02C271890CA8DDCC1BF0D99BE5AB665BB4B20A687E72D18FEDB"
+    },
+    {
+      "path": "res/Resource.h",
+      "sha256": "12DEA5497B4359FD052FD76A0F22BB1EA2D19CA3178041A8772DC7FB2C2BF75A"
+    },
+    {
+      "path": "restore-dxui.ps1",
+      "sha256": "D1B88E470FFC71A160D420C8F5A6B4BDB5C01622CA4B5DB1EF5CE0E2F4864E6C"
+    },
+    {
+      "path": "Specs/AGENTS.md",
+      "sha256": "13F80C65C5F0C1911E3590A3CF0B74703AD8AB5C40FE90C1D1BEAA557C155187"
+    },
+    {
+      "path": "Specs/Build/Build_Toolchain.md",
+      "sha256": "89D34B800221B825577CA8F73BE76BCDFA01C9E29AA59F69C31F8142DA088FC0"
+    },
+    {
+      "path": "Specs/Core/Core_Architecture.md",
+      "sha256": "149496E88239EB3962FC91FE79675D35DD917808EA125320C6D66DF907ECB63A"
+    },
+    {
+      "path": "Specs/Core/Core_FileSafety.md",
+      "sha256": "C5BB6ECB75C7BBA72CDCE40BFB470FF7217E128C4E0AD14577B927F166E59BA4"
+    },
+    {
+      "path": "Specs/Core/Core_SettingsAndCrashes.md",
+      "sha256": "809077D1B1676C2E98D67C6765B7B3DD7B9EC7154DE5AC6A198F66521AEE3151"
+    },
+    {
+      "path": "Specs/Editor/Editor_Markdown.md",
+      "sha256": "41CDCCC980EB11AF9AD93438E38CB079BF3F71B944E0DB6CE69C48110F037C6E"
+    },
+    {
+      "path": "Specs/Plans/Done/README.md",
+      "sha256": "5DA6437FA0234BE3623DA062A97414569D15C5BF869359068B7E92D3C1D73D5F"
+    },
+    {
+      "path": "Specs/Plans/WIP/README.md",
+      "sha256": "06FA504996C7C5BBA99246ABE858F56809D949D1CED67920B97EC4E130FA20C3"
+    },
+    {
+      "path": "Specs/Plans/WIP/RedTilde_2026-10-20.md",
+      "sha256": "DCC8CFA253B5793ACB480324E71043F58CECF78C77FD4A6B28AB2B094C2DF391"
+    },
+    {
+      "path": "Specs/README.md",
+      "sha256": "D57ACCD91E99F9E1810BC58433EF028B68CD4FA1FBF6A218C376C47EF693A6DB"
+    },
+    {
+      "path": "Specs/Testing/Testing_Performance.md",
+      "sha256": "388473CD9B66D41D8EC794770366C09F41AC63B73519416F78C98D13D7200174"
+    },
+    {
+      "path": "Specs/Testing/Testing_Validation.md",
+      "sha256": "1586B744C15E7D16C3D1EE6401631F68EB2517E8BDA4EE83EE7EA268F1F4F8BD"
+    },
+    {
+      "path": "Specs/UI/UI_DesignSystem.md",
+      "sha256": "1B853C5FC9CA9028F8B1021722507330220394901DC8ADB25C8F0C8698429C0D"
+    },
+    {
+      "path": "Test-Changes.ps1",
+      "sha256": "62B8CFA8614FD4FBAE91D85E94B694B71B7D5277C3D9D8F050F8FF102D9284AA"
+    },
+    {
+      "path": "test.ps1",
+      "sha256": "95C24BA11A160D7073DCDBAC22B76E42917143D91B5B6ED55B8B9821905553B3"
+    },
+    {
+      "path": "Tests/AGENTS.md",
+      "sha256": "9E569C7C6FCC839354843663784C499B386B7FB51765D5B830C70419C7FD9D72"
+    },
+    {
+      "path": "Tests/NativeInventory.json",
+      "sha256": "B19B0E14C5464ACFC5EB000715F179B3E4E699BC3DA72FF65EA39BE169B4416D"
+    },
+    {
+      "path": "Tests/README.md",
+      "sha256": "BB7FA1F7A66FF3484D0669243BFF573ADE0AEAA4004FFC637AA79A50E8A5139D"
+    },
+    {
+      "path": "Tests/Scope.Tests.Core.cpp",
+      "sha256": "2423B64190A2433221EC798F8F5A02293B386332FA910348AFE93298C9CD0EF2"
+    },
+    {
+      "path": "Tests/Scope.Tests.Performance.cpp",
+      "sha256": "1A385EAAF420711858A4A005C90FE972299AF148518603B2F351A85BF4D21A1E"
+    },
+    {
+      "path": "Tests/Scope.Tests.Performance.Evidence.ps1",
+      "sha256": "E027852D2E6D6F0A617C3537BFD208187A5D80F0B4B492DA4A89EBC80C659522"
+    },
+    {
+      "path": "Tests/Scope.Tests.Performance.Observation.ps1",
+      "sha256": "A11A35E49059E21DD9B953E5AEA6641AADF2D87C89F08FA14BD3E9AEFAB6DB9E"
+    },
+    {
+      "path": "Tests/Scope.Tests.Performance.Tooling.ps1",
+      "sha256": "CC705F574CFA82DAD9E5022907D1B9D4D43E044F7EA42F811F3534B0AF0A590A"
+    },
+    {
+      "path": "validate.ps1",
+      "sha256": "3C0008EDA62F0494FD83A0C8E8BD5A8E99F414792230F4A65EA66239EEA46FDC"
+    }
+  ]
+}

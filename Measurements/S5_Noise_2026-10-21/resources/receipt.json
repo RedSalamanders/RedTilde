@@ -1,0 +1,86 @@
+{
+  "sourceIdentity": "0574cc70b9136489af1118c0a55acec64fa4fe20bf2a5c170d95e6661d5befad",
+  "runs": [
+    {
+      "name": "default-compose-A",
+      "binarySha256": "D314AAE3B854916274D63867899EF41FC3C383A0B744867F44C1C41BA5D0BA7D",
+      "nativeSha256": "C2E87002DEE1BD2228C9926C250CDB47A7EC2D6E699EEC59390F03798AC8B555",
+      "renderer": "Hardware",
+      "completed": true,
+      "replacements": 3,
+      "exactPixels": true,
+      "nativeHostsAfterClose": 0
+    },
+    {
+      "name": "default-compose-B",
+      "binarySha256": "F326E6E08307C9F6BC87B6311E1760C98A75A7EFA44BB123A369CAC8471DBA5E",
+      "nativeSha256": "26095F321DB9600446F9D1955857A43A39AA6D11DAD43583916E8F9B29F0F040",
+      "renderer": "Hardware",
+      "completed": true,
+      "replacements": 3,
+      "exactPixels": true,
+      "nativeHostsAfterClose": 0
+    },
+    {
+      "name": "default-split-A",
+      "binarySha256": "D314AAE3B854916274D63867899EF41FC3C383A0B744867F44C1C41BA5D0BA7D",
+      "nativeSha256": "C5BDAD4D84EA1315EF3955D3F934E3DA98F9EB2E8788A3988ACF5E82EC8EA5DF",
+      "renderer": "Hardware",
+      "completed": true,
+      "replacements": 3,
+      "exactPixels": true,
+      "nativeHostsAfterClose": 0
+    },
+    {
+      "name": "default-split-B",
+      "binarySha256": "F326E6E08307C9F6BC87B6311E1760C98A75A7EFA44BB123A369CAC8471DBA5E",
+      "nativeSha256": "4E255BC8E2B7AD59794605C3A3B3DDA30266A260A2CCC2951209F8631784C61C",
+      "renderer": "Hardware",
+      "completed": true,
+      "replacements": 3,
+      "exactPixels": true,
+      "nativeHostsAfterClose": 0
+    },
+    {
+      "name": "warp-compose-A",
+      "binarySha256": "D314AAE3B854916274D63867899EF41FC3C383A0B744867F44C1C41BA5D0BA7D",
+      "nativeSha256": "502597BE3C45F603E356572ACF618AE07C833BE0B57046D65316F280E97B9E7F",
+      "renderer": "WARP",
+      "completed": true,
+      "replacements": 3,
+      "exactPixels": true,
+      "nativeHostsAfterClose": 0
+    },
+    {
+      "name": "warp-compose-B",
+      "binarySha256": "F326E6E08307C9F6BC87B6311E1760C98A75A7EFA44BB123A369CAC8471DBA5E",
+      "nativeSha256": "E57F55F57D1BF6B92F5834BCCA97F8460705634C54FA9E9C4652268F8348720D",
+      "renderer": "WARP",
+      "completed": true,
+      "replacements": 3,
+      "exactPixels": true,
+      "nativeHostsAfterClose": 0
+    },
+    {
+      "name": "warp-split-A",
+      "binarySha256": "D314AAE3B854916274D63867899EF41FC3C383A0B744867F44C1C41BA5D0BA7D",
+      "nativeSha256": "E0F85E8D679763381C28777FA5E86DC3836A1C854B3453FB542DBECD21E9EF30",
+      "renderer": "WARP",
+      "completed": true,
+      "replacements": 3,
+      "exactPixels": true,
+      "nativeHostsAfterClose": 0
+    },
+    {
+      "name": "warp-split-B",
+      "binarySha256": "F326E6E08307C9F6BC87B6311E1760C98A75A7EFA44BB123A369CAC8471DBA5E",
+      "nativeSha256": "E6466DF74862031F25E836946443FC40D84849CD70CDB3AFD3FBD858091E5069",
+      "renderer": "WARP",
+      "completed": true,
+      "replacements": 3,
+      "exactPixels": true,
+      "nativeHostsAfterClose": 0
+    }
+  ],
+  "scope": "eight full-fixture deterministic native-v2 lifecycle checks; shared host, no latency or long-term GPU qualification"
+}

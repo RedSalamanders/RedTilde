@@ -24,6 +24,10 @@ and default/WARP resource probes run through the same executable as Core, with t
 
 PowerShell evidence tooling has independent numerical oracles under `Tests/` and is syntax-checked with the
 other scripts. Retain the full v2 study audit and adversarial rejection receipts alongside the raw studies.
+Native-v2 diagnostics also require cheap settled-memory snapshots, complete command CPU/processor arrays and
+observer coverage. Observation tests cover process disappearance and single reads of volatile properties, CPU
+classification and UTC/local/JSON date representations. An incomplete trace is retained as a failed collection;
+its native measurements can be audited independently without qualifying host quiet or pooling attempts.
 Keep compiler-change failures and new-toolchain builds distinct from earlier successful receipts. A later
 documentation/tooling edit requires a fresh source-bound build receipt even if the native binary stays identical.
 

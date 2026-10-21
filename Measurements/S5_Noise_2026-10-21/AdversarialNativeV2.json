@@ -1,0 +1,20 @@
+[
+  {
+    "case": "unsettled-memory",
+    "rejected": true,
+    "reason": "Revised latency memory observations must be cheap and settled.",
+    "receiptHashWasUpdated": true
+  },
+  {
+    "case": "invalid-processor",
+    "rejected": true,
+    "reason": "Invalid processor boundary observations.",
+    "receiptHashWasUpdated": true
+  },
+  {
+    "case": "missing-command-cpu",
+    "rejected": true,
+    "reason": "Missing/invalid native samples.",
+    "receiptHashWasUpdated": true
+  }
+]

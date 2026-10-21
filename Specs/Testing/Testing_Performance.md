@@ -77,6 +77,11 @@ default. Record this scope before running, retain every process and do not repea
 starts before either study and records system CPU and selected process deltas. A quiet CPU observation requires at
 least two valid intervals, maximum total busy CPU at most 5%, no selected external CPU and no inaccessible or
 partial processor-group observations. This is an observation, not an exclusive lease or GPU/physical qualification.
+The complete study window must also have no observation gap above 2.5 seconds (including its ends). Missing
+coverage cannot establish quiet. Tolerate disappearing process properties as unavailable observations; read
+volatile values once and retain observer errors. Normalize UTC/local/JSON date representations before checking
+coverage. A failed collector permits a documented replacement collection after repair, with every failed attempt
+retained and no pooling or selection based on its statistical findings.
 User-directed shared-host execution proceeds with activity recorded; a powerful host is not evidence of quiet.
 Do not change power policy, affinity, priorities, the primary family or investigation bands to force acceptance.
 

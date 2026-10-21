@@ -38,6 +38,9 @@ try {
     $passed=$true
 } finally {
     $observerFailed=$job.State -eq 'Failed'
+    $observerErrors=@($job.ChildJobs[0].Error | ForEach-Object { [ordered]@{message=$_.ToString();stack=$_.ScriptStackTrace;
+        position=$(if($_.InvocationInfo){$_.InvocationInfo.PositionMessage}else{$null})} })
+    [ordered]@{state=$job.State;errors=$observerErrors} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $OutputRoot 'observer-status.json') -Encoding utf8
     Stop-Job -Job $job
     Receive-Job -Job $job -ErrorAction Continue | Out-Null
     Remove-Job -Job $job
@@ -49,10 +52,14 @@ try {
 if($observerFailed) { throw 'Observer failure leaves host activity unavailable.' }
 $observations=@(Get-Content $activity | ForEach-Object { $_ | ConvertFrom-Json -AsHashtable })
 $summaries=@(foreach($window in $windows) {
-    $samples=@($observations | Where-Object { $_.utc -ge $window.startUtc -and $_.utc -le $window.endUtc })
-    [ordered]@{study=$window.study;activity=(Get-RedTildeHostActivitySummary $samples)}
+    $start=([DateTime]$window.startUtc).ToUniversalTime(); $end=([DateTime]$window.endUtc).ToUniversalTime()
+    $samples=@($observations | Where-Object { ([DateTime]$_.utc).ToUniversalTime() -ge $start -and ([DateTime]$_.utc).ToUniversalTime() -le $end })
+    $hostActivity=Get-RedTildeHostActivitySummary $samples
+    $coverage=Get-RedTildeObserverCoverage -Samples $samples -StartUtc ([DateTime]$window.startUtc) -EndUtc ([DateTime]$window.endUtc)
+    [ordered]@{study=$window.study;activity=$hostActivity;coverage=$coverage;quietCpuWindowVerified=($hostActivity.quietCpuObserved -and $coverage.complete)}
 })
 $summaries | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $OutputRoot 'host-summary.json') -Encoding utf8
+if(@($summaries | Where-Object { -not $_.coverage.complete }).Count) { throw 'Activity coverage is incomplete; retain this attempt without a quiet-host claim.' }
 $noise=@(foreach($kind in @('aa','ab')) {
     foreach($file in Get-ChildItem (Join-Path $OutputRoot $kind) -Filter '*.native.json' -File) {
         $native=Get-Content $file.FullName -Raw | ConvertFrom-Json

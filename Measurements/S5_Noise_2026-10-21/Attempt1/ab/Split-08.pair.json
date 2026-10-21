@@ -1,0 +1,69 @@
+{
+  "scenario": "Split",
+  "block": 8,
+  "order": "BAAB",
+  "B1": {
+    "commandUs": 156.0,
+    "preparationSubmissionUs": 3300.5,
+    "gpuWaitUs": 4857.65,
+    "completedEditUs": 8311.7,
+    "cleanCompletedUs": 8352.6,
+    "ownerCpuCycles": 13865952.0,
+    "commandOwnerCpuCycles": 509460.5,
+    "privateBytes": 75485184.0,
+    "workingSetBytes": 62869504.0
+  },
+  "B1Receipt": {
+    "sha256": "397494DA33F50EFA37654144DBF81F37D651DEEF5F40A9F7CC4C18AC2DCBC3EC",
+    "executableSha256": "F326E6E08307C9F6BC87B6311E1760C98A75A7EFA44BB123A369CAC8471DBA5E",
+    "file": "Split-08-B1.native.json"
+  },
+  "A1": {
+    "commandUs": 195.65,
+    "preparationSubmissionUs": 4011.95,
+    "gpuWaitUs": 4083.45,
+    "completedEditUs": 8318.150000000001,
+    "cleanCompletedUs": 8336.400000000001,
+    "ownerCpuCycles": 17096537.5,
+    "commandOwnerCpuCycles": 690367.5,
+    "privateBytes": 76201984.0,
+    "workingSetBytes": 63287296.0
+  },
+  "A1Receipt": {
+    "sha256": "46E2D222EA5D467D5DFA9B45C1BB63BC0D5166D569E7A6CF980DF2F30F25E127",
+    "executableSha256": "D314AAE3B854916274D63867899EF41FC3C383A0B744867F44C1C41BA5D0BA7D",
+    "file": "Split-08-A1.native.json"
+  },
+  "A2": {
+    "commandUs": 164.8,
+    "preparationSubmissionUs": 3258.3,
+    "gpuWaitUs": 4865.15,
+    "completedEditUs": 8326.8,
+    "cleanCompletedUs": 8348.900000000001,
+    "ownerCpuCycles": 13767019.5,
+    "commandOwnerCpuCycles": 542938.5,
+    "privateBytes": 76779520.0,
+    "workingSetBytes": 63467520.0
+  },
+  "A2Receipt": {
+    "sha256": "0E6690870E109B285F5E5F1C28E02100B030D1190F195B96566D38E834DF664E",
+    "executableSha256": "D314AAE3B854916274D63867899EF41FC3C383A0B744867F44C1C41BA5D0BA7D",
+    "file": "Split-08-A2.native.json"
+  },
+  "B2": {
+    "commandUs": 153.75,
+    "preparationSubmissionUs": 3338.0,
+    "gpuWaitUs": 4819.9,
+    "completedEditUs": 8330.4,
+    "cleanCompletedUs": 8342.45,
+    "ownerCpuCycles": 14026470.5,
+    "commandOwnerCpuCycles": 520189.0,
+    "privateBytes": 76615680.0,
+    "workingSetBytes": 62881792.0
+  },
+  "B2Receipt": {
+    "sha256": "24960FCF772266323E59CBCFFA91F0E9BA3E07B60CD630F0397549BEE41238FE",
+    "executableSha256": "F326E6E08307C9F6BC87B6311E1760C98A75A7EFA44BB123A369CAC8471DBA5E",
+    "file": "Split-08-B2.native.json"
+  }
+}

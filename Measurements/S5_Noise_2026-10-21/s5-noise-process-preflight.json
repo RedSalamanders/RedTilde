@@ -1,0 +1,67 @@
+{
+  "utc": "2026-10-21T08:37:44.3980607Z",
+  "scope": "one exploratory one-second all-process CPU delta outside timings",
+  "inaccessible": 0,
+  "top": [
+    {
+      "id": 53172,
+      "name": "cl",
+      "deltaCpuSeconds": 2.921875
+    },
+    {
+      "id": 64612,
+      "name": "RedPrism",
+      "deltaCpuSeconds": 1.015625
+    },
+    {
+      "id": 49068,
+      "name": "QmlRenderer",
+      "deltaCpuSeconds": 0.125
+    },
+    {
+      "id": 35364,
+      "name": "ChatGPT",
+      "deltaCpuSeconds": 0.109375
+    },
+    {
+      "id": 11128,
+      "name": "iCUE",
+      "deltaCpuSeconds": 0.109375
+    },
+    {
+      "id": 29116,
+      "name": "ChatGPT",
+      "deltaCpuSeconds": 0.09375
+    },
+    {
+      "id": 46928,
+      "name": "pwsh",
+      "deltaCpuSeconds": 0.0625
+    },
+    {
+      "id": 65196,
+      "name": "Creative Cloud UI Helper",
+      "deltaCpuSeconds": 0.0625
+    },
+    {
+      "id": 21588,
+      "name": "GvFPS",
+      "deltaCpuSeconds": 0.046875
+    },
+    {
+      "id": 39892,
+      "name": "QmlRenderer",
+      "deltaCpuSeconds": 0.046875
+    },
+    {
+      "id": 27904,
+      "name": "msedgewebview2",
+      "deltaCpuSeconds": 0.03125
+    },
+    {
+      "id": 59244,
+      "name": "BingWallpaper",
+      "deltaCpuSeconds": 0.03125
+    }
+  ]
+}

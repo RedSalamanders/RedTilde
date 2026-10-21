@@ -48,6 +48,36 @@ function Get-RedTildeHostActivitySummary {
         limitations='selected names are not exhaustive; process start/exit work can escape deltas; GPU activity and physical occlusion are unmeasured'}
 }
 
+function Get-RedTildeProcessObservation {
+    param($Process,[Collections.IDictionary]$Previous)
+    $missing=[ordered]@{available=$false;observation=$null}
+    try {
+        # Enumerated processes can exit between property reads. Read each once;
+        # an inaccessible/disappeared process is unavailable, never zero CPU.
+        if($null -eq $Process) { return $missing }
+        $identity=$Process.Id; $name=$Process.ProcessName; $started=$Process.StartTime; $cpu=$Process.CPU
+        if($null -eq $identity -or $null -eq $started -or $null -eq $cpu -or -not $name) { return $missing }
+        $key=$identity.ToString()+'-'+$started.ToUniversalTime().Ticks
+        $delta=if($Previous.Contains($key)) { [double]$cpu-$Previous[$key] }else{ $null }
+        if($null -ne $delta -and $delta -lt 0) { return $missing }
+        $Previous[$key]=[double]$cpu
+        [ordered]@{available=$true;observation=[ordered]@{id=$identity;name=$name;startUtc=$started.ToUniversalTime().ToString('o');cpuSeconds=[double]$cpu;deltaCpuSeconds=$delta}}
+    } catch [ComponentModel.Win32Exception] { return $missing }
+      catch [InvalidOperationException] { return $missing }
+      catch [Management.Automation.RuntimeException] { return $missing } # PowerShell adapters can expose null after exit.
+}
+
+function Get-RedTildeObserverCoverage {
+    param([object[]]$Samples,[DateTime]$StartUtc,[DateTime]$EndUtc)
+    $StartUtc=$StartUtc.ToUniversalTime(); $EndUtc=$EndUtc.ToUniversalTime()
+    if($EndUtc -le $StartUtc) { throw 'An ordered observation window is required.' }
+    $points=@($Samples | ForEach-Object { ([DateTime]$_.utc).ToUniversalTime() } | Where-Object { $_ -ge $StartUtc -and $_ -le $EndUtc } | Sort-Object)
+    $previous=$StartUtc; $maximum=0.0
+    foreach($point in $points) { $maximum=[math]::Max($maximum,($point-$previous).TotalSeconds); $previous=$point }
+    $maximum=[math]::Max($maximum,($EndUtc-$previous).TotalSeconds)
+    [ordered]@{maximumGapSeconds=$maximum;samples=$points.Count;complete=($points.Count -ge 2 -and $maximum -le 2.5);maximumAllowedGapSeconds=2.5}
+}
+
 function Write-RedTildeHostActivity {
     param([string]$Path,[string]$ReadyPath)
     Add-Type -TypeDefinition @'
@@ -78,15 +108,8 @@ public static class RedTildeSystemTimes {
         $system=$now; $unavailable=0
         $rows=[Collections.Generic.List[object]]::new()
         foreach($observed in @(Get-Process cl,link,MSBuild,csc,ninja,cmake,RedPrism,RedSalamander,RedXe,RedTilde,DxUi.Tests,DxUiTestHost -ErrorAction SilentlyContinue)) {
-            try {
-                $key=$observed.Id.ToString()+'-'+$observed.StartTime.ToUniversalTime().Ticks
-                $cpu=[double]$observed.CPU
-                $delta=if($previous.ContainsKey($key)) { $cpu-$previous[$key] }else{ $null }
-                if($null -ne $delta -and $delta -lt 0) { throw [InvalidOperationException]::new('Negative process CPU interval.') }
-                $previous[$key]=$cpu
-                $rows.Add([ordered]@{id=$observed.Id;name=$observed.ProcessName;startUtc=$observed.StartTime.ToUniversalTime().ToString('o');cpuSeconds=$cpu;deltaCpuSeconds=$delta})
-            } catch [ComponentModel.Win32Exception] { ++$unavailable }
-              catch [InvalidOperationException] { ++$unavailable }
+            $result=Get-RedTildeProcessObservation -Process $observed -Previous $previous
+            if($result.available) { $rows.Add($result.observation) }else{ ++$unavailable }
         }
         [ordered]@{utc=[DateTime]::UtcNow.ToString('o');systemBusyPercent=$busy;unavailableProcesses=$unavailable;
             processorGroups=[RedTildeSystemTimes]::GetActiveProcessorGroupCount();processes=$rows.ToArray()} |
@@ -95,4 +118,4 @@ public static class RedTildeSystemTimes {
         Start-Sleep -Seconds 1
     }
 }
-Export-ModuleMember -Function Get-RedTildeNativeNoise,Get-RedTildeHostActivitySummary,Write-RedTildeHostActivity
+Export-ModuleMember -Function Get-RedTildeNativeNoise,Get-RedTildeHostActivitySummary,Get-RedTildeProcessObservation,Get-RedTildeObserverCoverage,Write-RedTildeHostActivity

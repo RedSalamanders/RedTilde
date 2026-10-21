@@ -1,0 +1,69 @@
+{
+  "scenario": "Compose",
+  "block": 9,
+  "order": "ABBA",
+  "A1": {
+    "commandUs": 128.64999999999998,
+    "preparationSubmissionUs": 2201.6000000000004,
+    "gpuWaitUs": 5992.45,
+    "completedEditUs": 8331.25,
+    "cleanCompletedUs": 8327.5,
+    "ownerCpuCycles": 9335744.5,
+    "commandOwnerCpuCycles": 423190.5,
+    "privateBytes": 76574720.0,
+    "workingSetBytes": 62902272.0
+  },
+  "A1Receipt": {
+    "sha256": "6F481E92BA82E13448386722865FF120527D58F090506B22CEFB71E0B0CC6A87",
+    "executableSha256": "D314AAE3B854916274D63867899EF41FC3C383A0B744867F44C1C41BA5D0BA7D",
+    "file": "Compose-09-A1.native.json"
+  },
+  "B1": {
+    "commandUs": 129.64999999999998,
+    "preparationSubmissionUs": 2421.75,
+    "gpuWaitUs": 5772.85,
+    "completedEditUs": 8337.8,
+    "cleanCompletedUs": 8325.8,
+    "ownerCpuCycles": 10199506.5,
+    "commandOwnerCpuCycles": 436926.5,
+    "privateBytes": 75931648.0,
+    "workingSetBytes": 62431232.0
+  },
+  "B1Receipt": {
+    "sha256": "79571B1036174C6985F1617D3C6ECE9E30DCA6E20C5D955A500A6830FFAC3787",
+    "executableSha256": "D314AAE3B854916274D63867899EF41FC3C383A0B744867F44C1C41BA5D0BA7D",
+    "file": "Compose-09-B1.native.json"
+  },
+  "B2": {
+    "commandUs": 150.9,
+    "preparationSubmissionUs": 2641.4,
+    "gpuWaitUs": 5521.700000000001,
+    "completedEditUs": 8326.65,
+    "cleanCompletedUs": 8346.95,
+    "ownerCpuCycles": 11055762.0,
+    "commandOwnerCpuCycles": 509031.5,
+    "privateBytes": 75014144.0,
+    "workingSetBytes": 62369792.0
+  },
+  "B2Receipt": {
+    "sha256": "C8D4C378C93A8990C4CB13DD5F97EF858EA835095C088DC46D72ED0BF526D793",
+    "executableSha256": "D314AAE3B854916274D63867899EF41FC3C383A0B744867F44C1C41BA5D0BA7D",
+    "file": "Compose-09-B2.native.json"
+  },
+  "A2": {
+    "commandUs": 154.45,
+    "preparationSubmissionUs": 2704.8,
+    "gpuWaitUs": 5490.25,
+    "completedEditUs": 8338.55,
+    "cleanCompletedUs": 8320.8,
+    "ownerCpuCycles": 11319293.5,
+    "commandOwnerCpuCycles": 512893.5,
+    "privateBytes": 76283904.0,
+    "workingSetBytes": 63238144.0
+  },
+  "A2Receipt": {
+    "sha256": "F05AD0451C02AAD4BD3DFDE2D19715FBDA0C4190DC7F7D6EDD88D37232A16DE9",
+    "executableSha256": "D314AAE3B854916274D63867899EF41FC3C383A0B744867F44C1C41BA5D0BA7D",
+    "file": "Compose-09-A2.native.json"
+  }
+}

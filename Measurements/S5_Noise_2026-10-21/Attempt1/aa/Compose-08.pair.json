@@ -1,0 +1,69 @@
+{
+  "scenario": "Compose",
+  "block": 8,
+  "order": "BAAB",
+  "B1": {
+    "commandUs": 134.5,
+    "preparationSubmissionUs": 2429.9,
+    "gpuWaitUs": 5744.65,
+    "completedEditUs": 8332.150000000001,
+    "cleanCompletedUs": 8337.9,
+    "ownerCpuCycles": 10234273.5,
+    "commandOwnerCpuCycles": 454737.0,
+    "privateBytes": 75014144.0,
+    "workingSetBytes": 62488576.0
+  },
+  "B1Receipt": {
+    "sha256": "BDB11F311C5970D5E125E40EC745C1B0469BE065C7775E293D19CC4F6CC28DD7",
+    "executableSha256": "D314AAE3B854916274D63867899EF41FC3C383A0B744867F44C1C41BA5D0BA7D",
+    "file": "Compose-08-B1.native.json"
+  },
+  "A1": {
+    "commandUs": 138.7,
+    "preparationSubmissionUs": 2516.2,
+    "gpuWaitUs": 5674.55,
+    "completedEditUs": 8331.400000000001,
+    "cleanCompletedUs": 8327.7,
+    "ownerCpuCycles": 10601669.5,
+    "commandOwnerCpuCycles": 452806.0,
+    "privateBytes": 74997760.0,
+    "workingSetBytes": 62394368.0
+  },
+  "A1Receipt": {
+    "sha256": "A18FA590DE930DA904094454C971D2BE6A1C77C6319B5520BC5419D4DB54FAC5",
+    "executableSha256": "D314AAE3B854916274D63867899EF41FC3C383A0B744867F44C1C41BA5D0BA7D",
+    "file": "Compose-08-A1.native.json"
+  },
+  "A2": {
+    "commandUs": 137.7,
+    "preparationSubmissionUs": 2293.95,
+    "gpuWaitUs": 5888.1,
+    "completedEditUs": 8330.0,
+    "cleanCompletedUs": 8340.05,
+    "ownerCpuCycles": 9662797.0,
+    "commandOwnerCpuCycles": 445080.0,
+    "privateBytes": 76009472.0,
+    "workingSetBytes": 62705664.0
+  },
+  "A2Receipt": {
+    "sha256": "BCBAF3DF9966910AC96AD0EE74665AB67A31A1F9D4442627FE15BCE7383EE579",
+    "executableSha256": "D314AAE3B854916274D63867899EF41FC3C383A0B744867F44C1C41BA5D0BA7D",
+    "file": "Compose-08-A2.native.json"
+  },
+  "B2": {
+    "commandUs": 124.75,
+    "preparationSubmissionUs": 2225.45,
+    "gpuWaitUs": 5975.049999999999,
+    "completedEditUs": 8328.35,
+    "cleanCompletedUs": 8327.75,
+    "ownerCpuCycles": 9252695.0,
+    "commandOwnerCpuCycles": 394435.5,
+    "privateBytes": 76476416.0,
+    "workingSetBytes": 62959616.0
+  },
+  "B2Receipt": {
+    "sha256": "CF3C20E632CD60B8F21B6FB3EDC2678E431446408D240152AB25172A5E6B5963",
+    "executableSha256": "D314AAE3B854916274D63867899EF41FC3C383A0B744867F44C1C41BA5D0BA7D",
+    "file": "Compose-08-B2.native.json"
+  }
+}
