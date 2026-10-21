@@ -34,6 +34,13 @@ std::uint64_t OwnerCycles()
     Require(QueryThreadCycleTime(GetCurrentThread(), &cycles) != FALSE, "owner CPU cycles unavailable");
     return cycles;
 }
+std::uint64_t ProcessCpu100ns()
+{
+    FILETIME created{}, exited{}, kernel{}, user{};
+    Require(GetProcessTimes(GetCurrentProcess(), &created, &exited, &kernel, &user) != FALSE, "process CPU unavailable");
+    return (static_cast<std::uint64_t>(kernel.dwHighDateTime) << 32 | kernel.dwLowDateTime) +
+           (static_cast<std::uint64_t>(user.dwHighDateTime) << 32 | user.dwLowDateTime);
+}
 void Quote(std::ostream &out, std::wstring_view value)
 {
     out << '"';
@@ -102,21 +109,20 @@ struct Memory
 {
     PROCESS_MEMORY_COUNTERS_EX process{};
     DWORD handles{}, gdi{}, user{}, threads{};
-    std::uint64_t cpu100ns{};
+    std::uint64_t cpu100ns{}, collectionCpu100ns{};
+    double collectionUs{};
 };
 Memory Snapshot()
 {
     Memory value;
+    const auto started = Clock::now();
+    const auto cpu = ProcessCpu100ns();
     value.process.cb = sizeof(value.process);
     Require(GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS *>(&value.process), sizeof(value.process)) != FALSE,
             "process memory unavailable");
     Require(GetProcessHandleCount(GetCurrentProcess(), &value.handles) != FALSE, "process handle count unavailable");
     value.gdi = GetGuiResources(GetCurrentProcess(), GR_GDIOBJECTS);
     value.user = GetGuiResources(GetCurrentProcess(), GR_USEROBJECTS);
-    FILETIME created{}, exited{}, kernel{}, user{};
-    Require(GetProcessTimes(GetCurrentProcess(), &created, &exited, &kernel, &user) != FALSE, "process CPU unavailable");
-    value.cpu100ns = (static_cast<std::uint64_t>(kernel.dwHighDateTime) << 32 | kernel.dwLowDateTime) +
-                     (static_cast<std::uint64_t>(user.dwHighDateTime) << 32 | user.dwLowDateTime);
     wil::unique_handle all(CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0));
     Require(static_cast<bool>(all), "thread inventory unavailable");
     THREADENTRY32 entry{sizeof(entry)};
@@ -126,13 +132,17 @@ Memory Snapshot()
             if (entry.th32OwnerProcessID == GetCurrentProcessId())
                 ++value.threads;
         } while (Thread32Next(all.get(), &entry));
+    value.cpu100ns = ProcessCpu100ns();
+    value.collectionCpu100ns = value.cpu100ns - cpu;
+    value.collectionUs = Micros(started);
     return value;
 }
 void MemoryJson(std::ostream &out, const Memory &value)
 {
     out << "\"privateBytes\":" << value.process.PrivateUsage << ",\"workingSetBytes\":" << value.process.WorkingSetSize
         << ",\"handles\":" << value.handles << ",\"gdiObjects\":" << value.gdi << ",\"userObjects\":" << value.user
-        << ",\"threads\":" << value.threads << ",\"processCpu100ns\":" << value.cpu100ns;
+        << ",\"threads\":" << value.threads << ",\"processCpu100ns\":" << value.cpu100ns
+        << ",\"snapshotCollectionCpu100ns\":" << value.collectionCpu100ns << ",\"snapshotCollectionUs\":" << value.collectionUs;
 }
 } // namespace
 class PerformanceProbe
@@ -197,10 +207,27 @@ class PerformanceProbe
                                               MWMO_INPUTAVAILABLE);
         } while (true);
     }
-    void Resource(std::ostream &out, std::string_view name)
+    struct IdleCost
+    {
+        double wallUs{};
+        std::uint64_t processCpu100ns{}, ownerCpuCycles{};
+    };
+    IdleCost MeasureIdle(DWORD milliseconds)
+    {
+        const auto cpu = ProcessCpu100ns(), cycles = OwnerCycles();
+        const auto started = Clock::now();
+        Idle(milliseconds);
+        IdleCost result{Micros(started), ProcessCpu100ns() - cpu, OwnerCycles() - cycles};
+        Require(result.wallUs >= milliseconds * 900.0, "idle interval ended before its observation window");
+        return result;
+    }
+    void Resource(std::ostream &out, std::string_view name, const IdleCost *idle = nullptr)
     {
         out << "{\"phase\":\"" << name << "\",";
         MemoryJson(out, Snapshot());
+        if (idle)
+            out << ",\"idleWallUs\":" << idle->wallUs << ",\"idleProcessCpu100ns\":" << idle->processCpu100ns
+                << ",\"idleOwnerCpuCycles\":" << idle->ownerCpuCycles;
         const auto images = app.editor->GetImageResourceStatistics();
         out << ",\"generation\":" << app.host.GetResourceGeneration() << ",\"renders\":" << app.host.DebugGetRenderCount()
             << ",\"brushes\":" << app.host.DebugGetBrushCacheSize() << ",\"formats\":" << app.host.DebugGetConfiguredTextFormatCount()
@@ -313,18 +340,18 @@ class PerformanceProbe
                     "native resource scene did not decode its local image");
             Resource(out, "clean-after-dirty");
             const auto renders = app.host.DebugGetRenderCount(), advances = app.editor->DebugGetState().preparationAdvances;
-            Idle(500);
+            const auto cleanIdle = MeasureIdle(500);
             Require(app.host.DebugGetRenderCount() == renders && app.editor->DebugGetState().preparationAdvances == advances,
                     "clean hidden idle performed unrequested rendering or preparation");
             out << ',';
-            Resource(out, "clean-hidden-idle");
+            Resource(out, "clean-hidden-idle", &cleanIdle);
             (void)SendMessageW(app.window.get(), WM_SHOWWINDOW, FALSE, 0);
             Pump();
             const auto hidden = app.host.DebugGetRenderCount();
-            Idle(500);
+            const auto hiddenIdle = MeasureIdle(500);
             Require(!IsWindowVisible(app.window.get()) && app.host.DebugGetRenderCount() == hidden, "hidden notification did not quiesce rendering");
             out << ',';
-            Resource(out, "hidden-notification-idle");
+            Resource(out, "hidden-notification-idle", &hiddenIdle);
             (void)SendMessageW(app.window.get(), WM_SHOWWINDOW, TRUE, 0);
             Ready(resourceSource);
             gpu->Wait();
