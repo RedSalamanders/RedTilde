@@ -81,7 +81,7 @@ HRESULT Application::Initialize()
                                  cls.hInstance, this));
     if (!window)
         return HRESULT_FROM_WIN32(GetLastError());
-    if (!host.Attach(window.get()))
+    if (!host.Attach(window.get(), {.forceWarp = options.forceWarp}))
         return HRESULT_FROM_WIN32(GetLastError());
     files.Initialize(window.get(), FileReady);
     preferenceWriter.Initialize(options.dataDirectory, window.get(), PreferencesReady);
@@ -286,6 +286,7 @@ void Application::BuildUi()
 
 void Application::Layout()
 {
+    ++activity.layouts;
     if (!root)
         return;
     const auto bounds = host.GetClientBoundsDip();
@@ -469,9 +470,11 @@ void Application::SetDocument(std::wstring text, std::filesystem::path path, boo
 }
 void Application::Changed()
 {
+    ++activity.changes;
     const auto text = editor->GetText();
     documentInfo = AnalyzeDocument(text);
     mirror->SetText(text);
+    ++activity.mirrorResets;
     const auto name = documentPath.empty() ? Resource(IDS_UNTITLED) : documentPath.filename().native();
     title->SetText(name);
     saveState->SetText(Resource(Dirty() ? IDS_CHANGED : IDS_SAVED));
@@ -514,6 +517,7 @@ void Application::CheckpointRecovery(bool immediate)
     if (needsRecovery)
         snapshot = RecoverySnapshot{std::move(text), documentPath, bom, selection, ++recoveryGeneration};
     const bool flush = immediate || !snapshot.has_value();
+    ++activity.recoverySubmissions;
     if (FAILED(recovery.Submit(std::move(snapshot), flush)))
         Status(IDS_RECOVERYFAILED);
 }
@@ -1444,6 +1448,8 @@ bool Application::Capture(const std::filesystem::path &path)
 
 int Application::Run()
 {
+    if (!options.performance.empty())
+        return RunPerformanceProbe(*this, options);
     if (options.recoveryProbe)
     {
         editor->SetSelection({0, 0});

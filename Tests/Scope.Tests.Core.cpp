@@ -596,6 +596,48 @@ int RunCoreTests(const std::filesystem::path &root)
              Require(app.Document().GetText() == current && !app.Dirty(), "discard never replaces the active document");
              Require(app.Host().GetFocusControl() == &app.Document(), "discarding the final snapshot returns logical focus to the editor");
          });
+    test("Performance.NativeCompletedFramesPreserveSourceAndHistory",
+         [&]
+         {
+             for (const auto *view : {L"compose", L"split"})
+             {
+                 LaunchOptions launch;
+                 launch.headless = true;
+                 launch.scenario = view;
+                 launch.performanceCycles = 4;
+                 launch.dataDirectory = root / (L"completed-" + std::wstring(view));
+                 launch.performance = launch.dataDirectory / L"native.json";
+                 Application app(launch);
+                 Success(app.Initialize(), "create completed-frame app");
+                 const std::wstring source = L"# Native frames\n\nS5_EDIT_HERE 東京 😀 and $a_i^2$.\n\n$$\\frac{1}{2}$$\n";
+                 app.SetDocument(source);
+                 Require(RunPerformanceProbe(app, launch) == 0, "native completed-frame protocol succeeds");
+                 Require(app.Document().GetText() == source && !app.Dirty() && !app.Document().CanUndo(),
+                         "completed frame cycles restore clean source and undo history");
+                 Require(app.Document().GetAcknowledgedSemanticDocument(app.Host()) != nullptr,
+                         "completed frame has acknowledged current native semantic geometry");
+             }
+         });
+    test("Rendering.NativeDefaultAndWarpResourceLifecycle",
+         [&]
+         {
+             for (const bool warp : {false, true})
+             {
+                 LaunchOptions launch;
+                 launch.headless = true;
+                 launch.forceWarp = warp;
+                 launch.resourceProbe = true;
+                 launch.performanceCycles = 4;
+                 launch.dataDirectory = root / (warp ? L"resource-warp" : L"resource-default");
+                 launch.performance = launch.dataDirectory / L"native.json";
+                 Application app(launch);
+                 Success(app.Initialize(), "create native resource app");
+                 app.SetDocument(L"# Resource lifecycle\n\nS5_EDIT_HERE and $a_i^2$.\n\n$$\\begin{bmatrix}a&b\\\\c&d\\end{bmatrix}$$\n\n"
+                                 L"```mermaid\nstateDiagram-v2\n[*] --> Draft\nDraft --> Saved : Save\n```\n");
+                 Require(RunPerformanceProbe(app, launch) == 0, "actual native resource, image, resize and device-loss protocol succeeds");
+                 Require(app.Window() == nullptr && app.Host().GetHwnd() == nullptr, "resource protocol retires its window and native host");
+             }
+         });
     report << "\n  ],\n  \"passed\": " << passed << ", \"failed\": " << failed << "\n}\n";
     return failed ? 1 : 0;
 }

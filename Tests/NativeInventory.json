@@ -7,6 +7,13 @@
       "executable": "RedTilde.exe",
       "arguments": ["--self-test"],
       "interactive": false
+    },
+    {
+      "path": "Tests/Scope.Tests.Performance.cpp",
+      "suite": "Performance",
+      "executable": "RedTilde.exe",
+      "arguments": ["--performance-probe"],
+      "interactive": false
     }
   ]
 }

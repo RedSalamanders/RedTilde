@@ -62,6 +62,23 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             }
             else if (argument == L"--scenario")
                 options.scenario = value();
+            else if (argument == L"--performance-probe" || argument == L"--resource-probe")
+            {
+                options.performance = value();
+                options.resourceProbe = argument == L"--resource-probe";
+                options.headless = true;
+            }
+            else if (argument == L"--cycles")
+            {
+                const auto text = value();
+                std::size_t parsed{};
+                const auto cycles = std::stoul(text, &parsed);
+                if (parsed != text.size() || cycles < 4 || cycles > 64)
+                    throw std::invalid_argument("Performance cycles must be 4..64");
+                options.performanceCycles = static_cast<unsigned>(cycles);
+            }
+            else if (argument == L"--warp")
+                options.forceWarp = true;
             else if (argument == L"--data-dir")
                 options.dataDirectory = value();
             else if (argument == L"--document")
@@ -100,6 +117,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         }
         if (options.headless && options.dataDirectory.empty())
             options.dataDirectory = std::filesystem::temp_directory_path() / std::format(L"RedTilde-Harness-{}", GetCurrentProcessId());
+        if (options.forceWarp && !options.headless)
+            throw std::invalid_argument("Explicit WARP is a hidden harness option");
         if (options.dataDirectory.empty())
             options.dataDirectory = DefaultDataDirectory();
         if (sanitizerProbe)

@@ -48,6 +48,7 @@
     <ClCompile Include="..\Common\CrashHandler.cpp" />
     <ClCompile Include="..\Common\Recovery.cpp" />
     <ClCompile Include="..\Tests\Scope.Tests.Core.cpp" />
+    <ClCompile Include="..\Tests\Scope.Tests.Performance.cpp" />
     <ResourceCompile Include="..\res\RedTilde.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

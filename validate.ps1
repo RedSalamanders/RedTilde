@@ -56,5 +56,6 @@ Check 'PowerShell syntax' {
         if ($errors.Count) { throw "$($file.Name): $($errors[0].Message)" }
     }
 }
+Check 'Performance protocol' { & (Join-Path $PSScriptRoot 'Tests/Scope.Tests.Performance.Tooling.ps1') }
 if ($failures.Count) { throw ($failures -join "`n") }
 Write-Host 'All RedTilde validators passed.'

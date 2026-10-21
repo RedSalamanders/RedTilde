@@ -9,3 +9,7 @@ non-activating window. Do not acquire clipboard/foreground/cursor in ordinary te
 never the desktop. Receipts include source/pin/toolchain/binary/scenario; preserve failures and distinguish
 focused tests, builds and qualification. Measure paired Release latency/memory on a fixed fixture. Native
 ARM64, sanitizer detection, physical AT/IME and authorized focus tests remain independent gates.
+
+For S5, follow [the performance contract](../../../Specs/Testing/Testing_Performance.md) and use
+`performance-paired.ps1`. Freeze and measure the instrumented baseline before optimizing. Keep submission/GPU
+wait diagnostics alongside complete latency and owner CPU cycles; retain every A/A and A/B slot and refusal.

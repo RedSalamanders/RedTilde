@@ -1,0 +1,1 @@
+- Add completed native-frame edit/preparation/GPU-wait measurements, provenance-bound paired studies and default/WARP application lifecycle tests; retain unverified performance and physical/platform gates explicitly.

@@ -13,5 +13,6 @@ in `Dependencies/DxUi.lock.json`. An intended requirement is not evidence that t
 | [Design system](UI/UI_DesignSystem.md) | Writing experience, responsive layout and accessibility |
 | [Build](Build/Build_Toolchain.md) | Pinned library and six build configurations |
 | [Validation](Testing/Testing_Validation.md) | Scenario coverage, captures and qualification evidence |
+| [Performance](Testing/Testing_Performance.md) | Completed-frame pairs, provenance and native resource lifecycle |
 
 Active sequencing is indexed in [Plans/WIP](Plans/WIP/README.md); completed records live in [Plans/Done](Plans/Done/README.md).

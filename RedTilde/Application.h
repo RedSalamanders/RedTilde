@@ -67,9 +67,16 @@ enum class Command
 struct LaunchOptions
 {
     bool headless{}, selfTest{}, crashProbe{}, preferencesProbe{}, recoveryProbe{}, recoveryRestartProbe{};
+    bool resourceProbe{}, forceWarp{};
+    unsigned performanceCycles = 12;
     std::wstring scenario = L"compose-light";
-    std::filesystem::path document, capture, dataDirectory, benchmark;
+    std::filesystem::path document, capture, dataDirectory, benchmark, performance;
 };
+struct ApplicationActivity
+{
+    std::uint64_t changes{}, layouts{}, mirrorResets{}, recoverySubmissions{};
+};
+class PerformanceProbe;
 class Application
 {
   public:
@@ -132,8 +139,18 @@ class Application
         return recovered;
     }
     void CheckpointRecovery(bool immediate = false);
+    [[nodiscard]] ApplicationActivity Activity() const noexcept
+    {
+        return activity;
+    }
+    [[nodiscard]] const DxUi::RichTextEditor &SourceMirror() const noexcept
+    {
+        return *mirror;
+    }
 
   private:
+    friend class PerformanceProbe;
+    ApplicationActivity activity;
     LaunchOptions options;
     Settings settings;
     SettingsWriter preferenceWriter;
@@ -201,4 +218,5 @@ class Application
 [[nodiscard]] std::wstring Resource(unsigned id);
 [[nodiscard]] std::wstring SampleDocument();
 int RunCoreTests(const std::filesystem::path &root);
+int RunPerformanceProbe(Application &app, const LaunchOptions &options);
 } // namespace RedTilde
