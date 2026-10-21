@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Resolve explicit relative Changes roots against the current PowerShell location; regression coverage verifies validation, preview and folding leave a different process-directory checkout untouched.
 - Keep new entries under Unreleased when a released heading uses a tab separator, and terminate an owned timed-out tooling fixture child tree before cleanup. Add independent released-heading and process-timeout regressions, and preserve the concurrent top-level drive-root guidance layout.
 - Avoid hidden Split-mirror resets, redundant chrome layout and repeated source materialization on ordinary edits; preserve exact dirty/undo, recovery, outline navigation and current-syntax equation selection. Add completed native-frame/CPU measurements, provenance-bound paired studies and default/WARP lifecycle tests; retain unverified performance and physical/platform gates explicitly.
   - Complete the local S5 evidence packet with a same-toolchain baseline, 192 measured processes, eight default/WARP lifecycle runs, exact capture comparison, six builds and 25 cases per x64 profile. Independently audit raw samples and statistics, reject corrupted evidence, and retain noisy controls/competing activity. No resolved directional change or production performance acceptance is claimed.
