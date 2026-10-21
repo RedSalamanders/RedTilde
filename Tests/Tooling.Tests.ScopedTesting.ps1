@@ -220,6 +220,7 @@ try{
         $expected=@($manifest.prCoverage|Where-Object{$_.PSObject.Properties['platform']}|ForEach-Object check)
         $jobs=@($expected|ForEach-Object{[pscustomobject]@{name=$_;status='completed';conclusion='success';steps=@([pscustomobject]@{name='Full native qualification';conclusion='success'})}})
         Assert (Test-ScopedNativeCiProof $expected $jobs) 'Complete native matrix rejected'
+        Assert (-not(Test-ScopedNativeCiProof @($expected[0],$expected[0],$expected[0],$expected[0],$expected[0],$expected[0]) @($jobs[0]))) 'One successful profile counted six times'
         foreach($outcome in @('failure','cancelled','skipped','timed_out')){
             $jobs[0].conclusion=$outcome;Assert (-not(Test-ScopedNativeCiProof $expected $jobs)) "Nonpassing native result inherited: $outcome"
         }

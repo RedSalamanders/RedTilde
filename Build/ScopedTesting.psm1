@@ -515,7 +515,7 @@ Export-ModuleMember -Function Get-ScopedProjectRules
 
 function Test-ScopedNativeCiProof {
     param([string[]]$ExpectedChecks,[object[]]$Jobs)
-    if($ExpectedChecks.Count -ne 6){return $false}
+    if($ExpectedChecks.Count -ne 6 -or @($ExpectedChecks|Sort-Object -Unique).Count -ne 6){return $false}
     foreach($name in $ExpectedChecks){
         $foundJobs=@($Jobs|Where-Object name -CEQ $name)
         if($foundJobs.Count -ne 1 -or $foundJobs[0].status -cne 'completed' -or $foundJobs[0].conclusion -cne 'success'){return $false}
