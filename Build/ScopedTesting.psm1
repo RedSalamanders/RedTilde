@@ -242,6 +242,17 @@ function Get-ScopedEnvironmentInputs {
         $values += (Get-ChildItem 'HKLM:/SOFTWARE/Microsoft/Windows Kits/Installed Roots' | Sort-Object Name | ForEach-Object Name) -join "`n"
     }
     if ($Tooling) {
+        $discovery = Join-Path $PSScriptRoot 'Toolchain.psm1'
+        $formatter = $null
+        if (Test-Path -LiteralPath $discovery) {
+            Import-Module $discovery -Force
+            try { $formatter = Get-RedTildeClangFormat }
+            catch [System.Management.Automation.RuntimeException] { $formatter = $null }
+        } else {
+            $command = Get-Command clang-format.exe -CommandType Application -ErrorAction SilentlyContinue
+            if ($command) { $formatter = $command.Source }
+        }
+        $values += 'formatter=' + $(if ($formatter) { $formatter + ':' + (Get-FileHash -LiteralPath $formatter).Hash } else { 'absent' })
         # The interpreter validate-skills.ps1 and Invoke-ToolingTests.ps1 select: the py launcher's Python 3, else python.exe.
         $python = Get-Command py.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
         $selector = @(if ($python) { '-3' })

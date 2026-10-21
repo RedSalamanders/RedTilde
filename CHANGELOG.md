@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Bind reusable tooling and formatting evidence to the actual selected formatter path and binary bytes, so tool updates invalidate previous results without changing formatter selection or native behavior.
 - Require explicit user authorization for each exact project-specific `.Perf` root, keep other generated output inside approved workspaces, and preserve evidence and live references during artifact cleanup.
 - Name active native tests by context, run explainable affected scopes from the last successful iteration, reuse exact successful evidence, and qualify full profiles through one PR matrix with explicit pending and manual gates.
 - Resolve explicit relative Changes roots against the current PowerShell location; regression coverage verifies validation, preview and folding leave a different process-directory checkout untouched.
