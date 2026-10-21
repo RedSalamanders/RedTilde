@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "sourceIdentity": "9236fca80489a7e66356cdbf182ef0b7c8b05e880df4a3d5d142e89dd01737e7",
+  "measuredSourceIdentity": "dc8e5470237f08d9842d585b11685a260781bc000ed3604d938258b3a21a76ff",
+  "binarySha256": "F326E6E08307C9F6BC87B6311E1760C98A75A7EFA44BB123A369CAC8471DBA5E",
+  "unchangedExecutable": true,
+  "changedPriorInputs": [
+    "Changes/2026-10-21-s5-performance-resources.md",
+    "README.md",
+    "Specs/Plans/WIP/RedTilde_2026-10-20.md",
+    "Specs/Testing/Testing_Performance.md"
+  ],
+  "scope": "documentation and retained evidence only",
+  "affectedCommand": "Test-Changes.ps1: validate + format, including 24 observation checks and four independent numerical oracles",
+  "nativeTests": "Prior exact measured-source matrix retained; no identical full matrix rerun",
+  "independentAuditChecks": 7729,
+  "sourceBoundReleaseBuild": true
+}

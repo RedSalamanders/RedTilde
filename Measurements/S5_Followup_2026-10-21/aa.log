@@ -1,0 +1,37 @@
+Compose block 1/12 BAAB complete
+Compose block 2/12 BAAB complete
+Compose block 3/12 ABBA complete
+Compose block 4/12 ABBA complete
+Compose block 5/12 ABBA complete
+Compose block 6/12 ABBA complete
+Compose block 7/12 ABBA complete
+Compose block 8/12 BAAB complete
+Compose block 9/12 BAAB complete
+Compose block 10/12 ABBA complete
+Compose block 11/12 BAAB complete
+Compose block 12/12 ABBA complete
+Split block 1/12 BAAB complete
+Split block 2/12 ABBA complete
+Split block 3/12 BAAB complete
+Split block 4/12 ABBA complete
+Split block 5/12 BAAB complete
+Split block 6/12 ABBA complete
+Split block 7/12 ABBA complete
+Split block 8/12 BAAB complete
+Split block 9/12 BAAB complete
+Split block 10/12 BAAB complete
+Split block 11/12 ABBA complete
+Split block 12/12 ABBA complete
+Compose commandUs: 1,40 %, p=1,000000, no-resolved-change, controlsStable=False
+Compose ownerCpuCycles: -0,45 %, p=1,000000, no-resolved-change, controlsStable=False
+Compose completedEditUs: -0,01 %, p=1,000000, no-resolved-change, controlsStable=True
+Compose cleanCompletedUs: 0,01 %, p=1,000000, no-resolved-change, controlsStable=True
+Compose privateBytes: 0,41 %, p=1,000000, no-resolved-change, controlsStable=False
+Compose workingSetBytes: 0,17 %, p=1,000000, no-resolved-change, controlsStable=True
+Split commandUs: 2,02 %, p=1,000000, no-resolved-change, controlsStable=False
+Split ownerCpuCycles: 1,14 %, p=1,000000, no-resolved-change, controlsStable=False
+Split completedEditUs: 0,01 %, p=1,000000, no-resolved-change, controlsStable=True
+Split cleanCompletedUs: -0,04 %, p=1,000000, no-resolved-change, controlsStable=True
+Split privateBytes: 0,03 %, p=1,000000, no-resolved-change, controlsStable=False
+Split workingSetBytes: -0,04 %, p=1,000000, no-resolved-change, controlsStable=True
+Raw paired study: Z:\src\RedTilde\.build\s5-20261021\observed-v3-quiet-1124\aa (acceptance remains review-required)

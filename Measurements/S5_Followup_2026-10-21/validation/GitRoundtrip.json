@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "operation": "git -c core.autocrlf=true checkout-index --prefix=<fresh private directory>",
+  "receiptFilesVerified": 263,
+  "manifestVerified": true,
+  "independentAuditChecks": 7729,
+  "reviewedSourceIdentity": "9236fca80489a7e66356cdbf182ef0b7c8b05e880df4a3d5d142e89dd01737e7",
+  "scope": "All initially staged packet bytes, including native/pair/protocol/activity records. Final added metadata verified again before commit."
+}

@@ -84,6 +84,9 @@ coverage. A failed collector permits a documented replacement collection after r
 retained and no pooling or selection based on its statistical findings.
 User-directed shared-host execution proceeds with activity recorded; a powerful host is not evidence of quiet.
 Do not change power policy, affinity, priorities, the primary family or investigation bands to force acceptance.
+A later collection explicitly requested after a reported host-condition change is a separate fixed-scope cohort.
+Record that trigger before collection, preserve the earlier studies and assess actual activity anew; do not pool,
+replace unfavorable controls or promote a human report of quiet to a verified quiet observation.
 
 Hidden diagnostics do not establish physical visibility/occlusion, actual device removal, kernel/GPU lifetime,
 real-focus caret/IME/AT behavior or native ARM64 execution. Preserve those gates separately. A cross-build, library

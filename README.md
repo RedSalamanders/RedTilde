@@ -76,3 +76,6 @@ The [S5 noise investigation](Measurements/S5_Noise_2026-10-21/README.md) follows
 cheap settled-memory observations, command CPU/residency diagnostics and explicit host activity recording.
 Both new attempts are retained. The replacement has complete observations but reaches 100% CPU under competing
 builds; noisy controls and quiet-host acceptance remain unresolved despite passing local correctness checks.
+The [later user-requested follow-up](Measurements/S5_Followup_2026-10-21/README.md) adds 192 independently audited
+processes. Its measured CPU averages 35.3%/30.2%; noisy controls keep the reported command improvements and
+performance acceptance provisional. Hardware and upstream gates remain open.

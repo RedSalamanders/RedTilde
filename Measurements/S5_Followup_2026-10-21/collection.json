@@ -1,0 +1,21 @@
+{
+  "blocks": 12,
+  "cycles": 64,
+  "seed": 20261021,
+  "passed": true,
+  "observerFailed": false,
+  "windows": [
+    {
+      "study": "aa",
+      "startUtc": "2026-10-21T09:24:24.5506394Z",
+      "endUtc": "2026-10-21T09:27:48.8420445Z"
+    },
+    {
+      "study": "ab",
+      "startUtc": "2026-10-21T09:27:48.8447303Z",
+      "endUtc": "2026-10-21T09:31:16.8800070Z"
+    }
+  ],
+  "direction": "proceed directly; record actual host activity without coordinating or claiming an exclusive lease",
+  "primaryFamily": "unchanged twelve slots, 5% timing/CPU and 2% memory investigation bands; judge review-required"
+}
