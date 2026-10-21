@@ -86,7 +86,7 @@ function Compare-RedTildePerformanceBlocks {
     $sorted=@($rows | Sort-Object { $_.p }); $previous=0.0
     for($index=0;$index -lt $sorted.Count;++$index) {
         $row=$sorted[$index]
-        $adjusted=[math]::Min(1,[math]::Max($previous,$row.p*($sorted.Count-$index)))
+        $adjusted=[math]::Min(1.0,[math]::Max($previous,$row.p*($sorted.Count-$index)))
         $previous=$adjusted; $row.adjustedP=$adjusted
         $row.finding=if($adjusted -le 0.05 -and $row.pairedChange -gt $row.band) { 'regressed' }
             elseif($adjusted -le 0.05 -and $row.pairedChange -lt -$row.band) { 'improved' } else { 'no-resolved-change' }

@@ -40,6 +40,12 @@ working set, handles, GDI/USER objects, host caches and available DXGI usage at 
 is unavailable, never zero. Hidden/clean idle must request no additional preparation or rendering; production
 workers continue blocking on events. Teardown probes retain before/after handle/resource observations.
 
+Bracket each idle interval with cheap process-time and owner-cycle reads. Resource snapshots enumerate system
+threads and can consume significant CPU; record their collection wall/CPU cost separately. Cumulative CPU
+differences between resource snapshots include collection work and must never be labeled idle CPU. The v2
+judge preserves fractional Holm probabilities; numerical tests include independently counted mixed-sign tails
+and the exact adjusted value. Retain v1 raw studies and invalid judge outputs as investigation history.
+
 Hidden diagnostics do not establish physical visibility/occlusion, actual device removal, kernel/GPU lifetime,
 real-focus caret/IME/AT behavior or native ARM64 execution. Preserve those gates separately. A cross-build, library
 fixture or screenshot alone cannot close product resource acceptance. Reviewed application receipts belong in

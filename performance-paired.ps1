@@ -81,7 +81,7 @@ foreach($block in $schedule) {
     Write-Host ($block.scenario+' block '+($block.block+1)+'/'+$Blocks+' '+$block.order+' complete')
 }
 $comparison=Compare-RedTildePerformanceBlocks -Blocks $pairs.ToArray()
-[ordered]@{schemaVersion=1;protocol='independent-ABBA-BAAB-v1';judge='redtilde-paired-log-sign-flip-holm-v1';
+[ordered]@{schemaVersion=1;protocol='independent-ABBA-BAAB-v1';judge='redtilde-paired-log-sign-flip-holm-v2';
     independentBlocksPerScenario=$Blocks;familySize=$comparison.Count;sameBinaryControl=[bool]$SameBinaryControl;
     acceptance='review-required; new app judge does not qualify upstream D4c';metrics=$comparison;
     sourceIdentity=$source;harnessInputs=$inputs;completedUtc=[DateTime]::UtcNow.ToString('o')} |
