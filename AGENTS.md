@@ -36,9 +36,7 @@ DxUi controls, DirectWrite and Direct2D. Read [Specs/README.md](Specs/README.md)
   hidden, non-activating harness, with scenario/build provenance. Never substitute desktop capture.
 - No generated products are committed under `.build`. Do not kill independently launched applications.
 
-## Workflow
-
-### Drive-root output policy
+## Drive-root output policy
 
 Do not create scratch, caches, evidence, copied checkouts, or other output directories directly at a drive root.
 Use repository-local generated outputs or an existing approved workspace. The only permitted new drive-root
@@ -49,6 +47,8 @@ Keep outputs beneath the approved root; do not invent sibling root folders. Pres
 markers and authorization. Historical cleanup inventories and preserves useful evidence/recovery data, checks
 process use, repairs live junction/worktree references, and verifies preservation before removal. Never follow
 junctions during cleanup or leave compatibility junctions at forbidden old roots.
+
+## Workflow
 
 Keep multi-step work in one indexed WIP plan. Durable behavior belongs in domain specs, not the plan. Move a
 plan to Done only when its implementation, tests and documentation are complete. Keep upstream, physical
