@@ -1,0 +1,5 @@
+{
+  "processes": [],
+  "purpose": "Diagnostic CPU and virtual-allocation attribution; profiler overhead prevents acceptance",
+  "ownedSession": "RedTildeS5Controls"
+}

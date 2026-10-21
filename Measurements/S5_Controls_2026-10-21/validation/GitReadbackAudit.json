@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "reference": "typed-CSharp-subset-enumeration-v1",
+  "knownValueOracles": true,
+  "checks": 65139,
+  "studies": [
+    {
+      "study": "C:\\Users\\eric\\Documents\\RedTilde-Checkpoints\\S5_2026-10-21\\Controls_20261021-131015\\GitReadback\\Measurements\\S5_Controls_2026-10-21\\aa",
+      "comparisonSha256": "93A369EC8DE8B9B9C002C86929A9C40C5DBF561E59AAB34EF19639EA60439EFF",
+      "nativeSlots": 96,
+      "familySize": 12,
+      "independentReferenceMatches": true,
+      "policyAcceptance": "review-required"
+    },
+    {
+      "study": "C:\\Users\\eric\\Documents\\RedTilde-Checkpoints\\S5_2026-10-21\\Controls_20261021-131015\\GitReadback\\Measurements\\S5_Controls_2026-10-21\\ab",
+      "comparisonSha256": "18247CDA2EE91FEE0CC41864119E037D257C9ABB0F2D3824693D0E443A5EEA39",
+      "nativeSlots": 96,
+      "familySize": 12,
+      "independentReferenceMatches": true,
+      "policyAcceptance": "review-required"
+    }
+  ],
+  "completedUtc": "2026-10-21T11:40:32.0046919Z",
+  "acceptance": "numerical/integrity audit only; no policy self-approval"
+}

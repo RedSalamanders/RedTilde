@@ -1,0 +1,4 @@
+# Preserve reviewed receipt bytes across checkout.
+* -text -diff
+README.md text diff eol=lf
+.gitattributes text diff eol=lf

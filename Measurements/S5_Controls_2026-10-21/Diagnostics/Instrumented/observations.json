@@ -1,0 +1,802 @@
+[
+  {
+    "view": "Compose",
+    "renderer": "Hardware",
+    "iteration": 0,
+    "file": "Compose-Hardware-0.native.json",
+    "metrics": {
+      "commandUs": 128.8,
+      "preparationSubmissionUs": 2517.05,
+      "gpuWaitUs": 5681.6,
+      "completedEditUs": 8337.4,
+      "cleanCompletedUs": 8343.65,
+      "ownerCpuCycles": 10454882.5,
+      "commandOwnerCpuCycles": 434135.0,
+      "privateBytes": 76509184.0,
+      "workingSetBytes": 62775296.0
+    },
+    "initial": {
+      "privateBytes": 72347648,
+      "workingSetBytes": 58544128,
+      "handles": 658,
+      "gdiObjects": 7,
+      "userObjects": 10,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 2656250,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 14.5
+    },
+    "final": {
+      "privateBytes": 76509184,
+      "workingSetBytes": 62775296,
+      "handles": 663,
+      "gdiObjects": 7,
+      "userObjects": 11,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 6718750,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 18.4
+    },
+    "activity": {
+      "changes": 132,
+      "layouts": 0,
+      "mirrorResets": 0,
+      "recoverySubmissions": 132,
+      "captionRequests": 132,
+      "captionCalls": 132
+    },
+    "nativeSha256": "07F9232823F570A7293A93ABE94569BD8B8CDF684CAF7E8E756C165E27D7CBBF"
+  },
+  {
+    "view": "Compose",
+    "renderer": "WARP",
+    "iteration": 0,
+    "file": "Compose-WARP-0.native.json",
+    "metrics": {
+      "commandUs": 142.8,
+      "preparationSubmissionUs": 3111.55,
+      "gpuWaitUs": 5025.5,
+      "completedEditUs": 8316.55,
+      "cleanCompletedUs": 8351.349999999999,
+      "ownerCpuCycles": 12999395.5,
+      "commandOwnerCpuCycles": 494653.0,
+      "privateBytes": 32579584.0,
+      "workingSetBytes": 63496192.0
+    },
+    "initial": {
+      "privateBytes": 22589440,
+      "workingSetBytes": 46108672,
+      "handles": 237,
+      "gdiObjects": 7,
+      "userObjects": 9,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 1250000,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 7.8
+    },
+    "final": {
+      "privateBytes": 32579584,
+      "workingSetBytes": 63496192,
+      "handles": 288,
+      "gdiObjects": 7,
+      "userObjects": 33,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 18437500,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 9.5
+    },
+    "activity": {
+      "changes": 132,
+      "layouts": 0,
+      "mirrorResets": 0,
+      "recoverySubmissions": 132,
+      "captionRequests": 132,
+      "captionCalls": 132
+    },
+    "nativeSha256": "818777922DDCD55069BBF62FCECC2D779C05FD2CD1561EC29310C5CF15079683"
+  },
+  {
+    "view": "Compose",
+    "renderer": "WARP",
+    "iteration": 1,
+    "file": "Compose-WARP-1.native.json",
+    "metrics": {
+      "commandUs": 140.2,
+      "preparationSubmissionUs": 2987.45,
+      "gpuWaitUs": 5157.85,
+      "completedEditUs": 8318.45,
+      "cleanCompletedUs": 8305.349999999999,
+      "ownerCpuCycles": 12617408.0,
+      "commandOwnerCpuCycles": 482850.5,
+      "privateBytes": 33288192.0,
+      "workingSetBytes": 63840256.0
+    },
+    "initial": {
+      "privateBytes": 23408640,
+      "workingSetBytes": 46350336,
+      "handles": 237,
+      "gdiObjects": 7,
+      "userObjects": 9,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 1718750,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 9.6
+    },
+    "final": {
+      "privateBytes": 33288192,
+      "workingSetBytes": 63840256,
+      "handles": 290,
+      "gdiObjects": 7,
+      "userObjects": 34,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 20156250,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 8.6
+    },
+    "activity": {
+      "changes": 132,
+      "layouts": 0,
+      "mirrorResets": 0,
+      "recoverySubmissions": 132,
+      "captionRequests": 132,
+      "captionCalls": 132
+    },
+    "nativeSha256": "E9FC5B5475903E90FCAA35284C0764FF768F5DB6EC9F657E4A718F76A76A333D"
+  },
+  {
+    "view": "Compose",
+    "renderer": "Hardware",
+    "iteration": 1,
+    "file": "Compose-Hardware-1.native.json",
+    "metrics": {
+      "commandUs": 123.75,
+      "preparationSubmissionUs": 2494.75,
+      "gpuWaitUs": 5708.45,
+      "completedEditUs": 8337.650000000001,
+      "cleanCompletedUs": 8320.099999999999,
+      "ownerCpuCycles": 10653815.5,
+      "commandOwnerCpuCycles": 416539.0,
+      "privateBytes": 77520896.0,
+      "workingSetBytes": 63901696.0
+    },
+    "initial": {
+      "privateBytes": 72855552,
+      "workingSetBytes": 59486208,
+      "handles": 658,
+      "gdiObjects": 7,
+      "userObjects": 10,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 2500000,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 13.3
+    },
+    "final": {
+      "privateBytes": 77520896,
+      "workingSetBytes": 63901696,
+      "handles": 663,
+      "gdiObjects": 7,
+      "userObjects": 11,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 8281250,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 22.7
+    },
+    "activity": {
+      "changes": 132,
+      "layouts": 0,
+      "mirrorResets": 0,
+      "recoverySubmissions": 132,
+      "captionRequests": 132,
+      "captionCalls": 132
+    },
+    "nativeSha256": "99973AAA0F4A11FBD07474EDDC4C77A79985865042C2CE38F86E808FBBE66B55"
+  },
+  {
+    "view": "Compose",
+    "renderer": "Hardware",
+    "iteration": 2,
+    "file": "Compose-Hardware-2.native.json",
+    "metrics": {
+      "commandUs": 147.4,
+      "preparationSubmissionUs": 2784.6000000000004,
+      "gpuWaitUs": 5387.95,
+      "completedEditUs": 8322.7,
+      "cleanCompletedUs": 8338.599999999999,
+      "ownerCpuCycles": 11544623.0,
+      "commandOwnerCpuCycles": 497444.0,
+      "privateBytes": 76431360.0,
+      "workingSetBytes": 62554112.0
+    },
+    "initial": {
+      "privateBytes": 72257536,
+      "workingSetBytes": 58490880,
+      "handles": 658,
+      "gdiObjects": 7,
+      "userObjects": 10,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 2500000,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 10.5
+    },
+    "final": {
+      "privateBytes": 76431360,
+      "workingSetBytes": 62554112,
+      "handles": 663,
+      "gdiObjects": 7,
+      "userObjects": 11,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 7500000,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 27.2
+    },
+    "activity": {
+      "changes": 132,
+      "layouts": 0,
+      "mirrorResets": 0,
+      "recoverySubmissions": 132,
+      "captionRequests": 132,
+      "captionCalls": 132
+    },
+    "nativeSha256": "74D9F6E99BCA4943740FB1CEE9F70A231FE4802427B47170A63169AD6BC38E69"
+  },
+  {
+    "view": "Compose",
+    "renderer": "WARP",
+    "iteration": 2,
+    "file": "Compose-WARP-2.native.json",
+    "metrics": {
+      "commandUs": 136.85,
+      "preparationSubmissionUs": 3151.8,
+      "gpuWaitUs": 5005.75,
+      "completedEditUs": 8314.0,
+      "cleanCompletedUs": 8318.75,
+      "ownerCpuCycles": 13180518.5,
+      "commandOwnerCpuCycles": 463535.0,
+      "privateBytes": 32813056.0,
+      "workingSetBytes": 63897600.0
+    },
+    "initial": {
+      "privateBytes": 23261184,
+      "workingSetBytes": 46100480,
+      "handles": 237,
+      "gdiObjects": 7,
+      "userObjects": 9,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 1406250,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 8.3
+    },
+    "final": {
+      "privateBytes": 32813056,
+      "workingSetBytes": 63897600,
+      "handles": 284,
+      "gdiObjects": 7,
+      "userObjects": 31,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 19218750,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 8.4
+    },
+    "activity": {
+      "changes": 132,
+      "layouts": 0,
+      "mirrorResets": 0,
+      "recoverySubmissions": 132,
+      "captionRequests": 132,
+      "captionCalls": 132
+    },
+    "nativeSha256": "0161C6C56C2F8CA08BDCF3FDEEA7A658B925A79F064157F861F89F4E58DEEEDB"
+  },
+  {
+    "view": "Compose",
+    "renderer": "WARP",
+    "iteration": 3,
+    "file": "Compose-WARP-3.native.json",
+    "metrics": {
+      "commandUs": 138.9,
+      "preparationSubmissionUs": 2944.95,
+      "gpuWaitUs": 5235.8,
+      "completedEditUs": 8345.75,
+      "cleanCompletedUs": 8305.099999999999,
+      "ownerCpuCycles": 12422336.5,
+      "commandOwnerCpuCycles": 469545.0,
+      "privateBytes": 33353728.0,
+      "workingSetBytes": 63942656.0
+    },
+    "initial": {
+      "privateBytes": 24535040,
+      "workingSetBytes": 46370816,
+      "handles": 237,
+      "gdiObjects": 7,
+      "userObjects": 9,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 1406250,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 6.7
+    },
+    "final": {
+      "privateBytes": 33353728,
+      "workingSetBytes": 63942656,
+      "handles": 284,
+      "gdiObjects": 7,
+      "userObjects": 31,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 14531250,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 11.9
+    },
+    "activity": {
+      "changes": 132,
+      "layouts": 0,
+      "mirrorResets": 0,
+      "recoverySubmissions": 132,
+      "captionRequests": 132,
+      "captionCalls": 132
+    },
+    "nativeSha256": "A6C46EFE71D28D483C7ECACB9C52F028F516653720EBB5DE12B2B06646416761"
+  },
+  {
+    "view": "Compose",
+    "renderer": "Hardware",
+    "iteration": 3,
+    "file": "Compose-Hardware-3.native.json",
+    "metrics": {
+      "commandUs": 133.35000000000002,
+      "preparationSubmissionUs": 2706.05,
+      "gpuWaitUs": 5488.549999999999,
+      "completedEditUs": 8327.2,
+      "cleanCompletedUs": 8335.05,
+      "ownerCpuCycles": 11194825.0,
+      "commandOwnerCpuCycles": 471475.0,
+      "privateBytes": 77758464.0,
+      "workingSetBytes": 63795200.0
+    },
+    "initial": {
+      "privateBytes": 72404992,
+      "workingSetBytes": 58974208,
+      "handles": 660,
+      "gdiObjects": 7,
+      "userObjects": 11,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 3281250,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 11.4
+    },
+    "final": {
+      "privateBytes": 77758464,
+      "workingSetBytes": 63795200,
+      "handles": 665,
+      "gdiObjects": 7,
+      "userObjects": 12,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 8593750,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 21.4
+    },
+    "activity": {
+      "changes": 132,
+      "layouts": 0,
+      "mirrorResets": 0,
+      "recoverySubmissions": 132,
+      "captionRequests": 132,
+      "captionCalls": 132
+    },
+    "nativeSha256": "AB59DBC6635DB272621A0C06F956D8BA0E95C8C98151AEEB5EEB2A48D4EAC2DD"
+  },
+  {
+    "view": "Split",
+    "renderer": "Hardware",
+    "iteration": 0,
+    "file": "Split-Hardware-0.native.json",
+    "metrics": {
+      "commandUs": 232.55,
+      "preparationSubmissionUs": 4180.35,
+      "gpuWaitUs": 3844.1499999999996,
+      "completedEditUs": 8321.849999999999,
+      "cleanCompletedUs": 8351.2,
+      "ownerCpuCycles": 17521015.5,
+      "commandOwnerCpuCycles": 811832.0,
+      "privateBytes": 77070336.0,
+      "workingSetBytes": 63524864.0
+    },
+    "initial": {
+      "privateBytes": 72531968,
+      "workingSetBytes": 58949632,
+      "handles": 658,
+      "gdiObjects": 7,
+      "userObjects": 10,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 2500000,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 14
+    },
+    "final": {
+      "privateBytes": 77070336,
+      "workingSetBytes": 63524864,
+      "handles": 663,
+      "gdiObjects": 7,
+      "userObjects": 11,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 10156250,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 25
+    },
+    "activity": {
+      "changes": 132,
+      "layouts": 0,
+      "mirrorResets": 132,
+      "recoverySubmissions": 132,
+      "captionRequests": 132,
+      "captionCalls": 132
+    },
+    "nativeSha256": "5944CB9858E4AE231C37E90964BC03D2719B8CB9D73B954E2999B3978D1549BE"
+  },
+  {
+    "view": "Split",
+    "renderer": "WARP",
+    "iteration": 0,
+    "file": "Split-WARP-0.native.json",
+    "metrics": {
+      "commandUs": 189.85000000000002,
+      "preparationSubmissionUs": 3941.4,
+      "gpuWaitUs": 4201.4,
+      "completedEditUs": 8320.95,
+      "cleanCompletedUs": 8331.150000000001,
+      "ownerCpuCycles": 16295435.5,
+      "commandOwnerCpuCycles": 710109.0,
+      "privateBytes": 33271808.0,
+      "workingSetBytes": 63823872.0
+    },
+    "initial": {
+      "privateBytes": 24031232,
+      "workingSetBytes": 46346240,
+      "handles": 237,
+      "gdiObjects": 7,
+      "userObjects": 9,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 1562500,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 7.8
+    },
+    "final": {
+      "privateBytes": 33271808,
+      "workingSetBytes": 63823872,
+      "handles": 280,
+      "gdiObjects": 7,
+      "userObjects": 29,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 19218750,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 9.1
+    },
+    "activity": {
+      "changes": 132,
+      "layouts": 0,
+      "mirrorResets": 132,
+      "recoverySubmissions": 132,
+      "captionRequests": 132,
+      "captionCalls": 132
+    },
+    "nativeSha256": "79CDCD87EF3D3484FFB75F5F69924A2AD21A85D8BF6AD64517C72A4D025B8827"
+  },
+  {
+    "view": "Split",
+    "renderer": "WARP",
+    "iteration": 1,
+    "file": "Split-WARP-1.native.json",
+    "metrics": {
+      "commandUs": 181.75,
+      "preparationSubmissionUs": 3995.05,
+      "gpuWaitUs": 4101.15,
+      "completedEditUs": 8307.8,
+      "cleanCompletedUs": 8391.3,
+      "ownerCpuCycles": 16989021.0,
+      "commandOwnerCpuCycles": 668693.0,
+      "privateBytes": 31264768.0,
+      "workingSetBytes": 64016384.0
+    },
+    "initial": {
+      "privateBytes": 22196224,
+      "workingSetBytes": 46141440,
+      "handles": 237,
+      "gdiObjects": 7,
+      "userObjects": 9,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 1406250,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 9.4
+    },
+    "final": {
+      "privateBytes": 31264768,
+      "workingSetBytes": 64016384,
+      "handles": 282,
+      "gdiObjects": 7,
+      "userObjects": 30,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 19375000,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 11.5
+    },
+    "activity": {
+      "changes": 132,
+      "layouts": 0,
+      "mirrorResets": 132,
+      "recoverySubmissions": 132,
+      "captionRequests": 132,
+      "captionCalls": 132
+    },
+    "nativeSha256": "2EB885B66A6619E64002BE31481BCDA571C68E6B5C332C13977FC56E59B3F5D5"
+  },
+  {
+    "view": "Split",
+    "renderer": "Hardware",
+    "iteration": 1,
+    "file": "Split-Hardware-1.native.json",
+    "metrics": {
+      "commandUs": 181.0,
+      "preparationSubmissionUs": 3598.0,
+      "gpuWaitUs": 4512.450000000001,
+      "completedEditUs": 8320.650000000001,
+      "cleanCompletedUs": 8346.45,
+      "ownerCpuCycles": 15218789.0,
+      "commandOwnerCpuCycles": 665261.5,
+      "privateBytes": 77062144.0,
+      "workingSetBytes": 62951424.0
+    },
+    "initial": {
+      "privateBytes": 72867840,
+      "workingSetBytes": 58699776,
+      "handles": 660,
+      "gdiObjects": 7,
+      "userObjects": 11,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 2656250,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 14.4
+    },
+    "final": {
+      "privateBytes": 77062144,
+      "workingSetBytes": 62951424,
+      "handles": 665,
+      "gdiObjects": 7,
+      "userObjects": 12,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 9843750,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 26.9
+    },
+    "activity": {
+      "changes": 132,
+      "layouts": 0,
+      "mirrorResets": 132,
+      "recoverySubmissions": 132,
+      "captionRequests": 132,
+      "captionCalls": 132
+    },
+    "nativeSha256": "182FEAE2845DEFB93C344C249A6CB569859B1B3F2E29C75ACB0E3AAD87ED917B"
+  },
+  {
+    "view": "Split",
+    "renderer": "Hardware",
+    "iteration": 2,
+    "file": "Split-Hardware-2.native.json",
+    "metrics": {
+      "commandUs": 182.95,
+      "preparationSubmissionUs": 3545.3,
+      "gpuWaitUs": 4572.85,
+      "completedEditUs": 8314.45,
+      "cleanCompletedUs": 8342.5,
+      "ownerCpuCycles": 14791946.0,
+      "commandOwnerCpuCycles": 660967.5,
+      "privateBytes": 76783616.0,
+      "workingSetBytes": 63287296.0
+    },
+    "initial": {
+      "privateBytes": 72187904,
+      "workingSetBytes": 58912768,
+      "handles": 660,
+      "gdiObjects": 7,
+      "userObjects": 11,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 2500000,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 13.1
+    },
+    "final": {
+      "privateBytes": 76783616,
+      "workingSetBytes": 63287296,
+      "handles": 665,
+      "gdiObjects": 7,
+      "userObjects": 12,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 13750000,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 9.9
+    },
+    "activity": {
+      "changes": 132,
+      "layouts": 0,
+      "mirrorResets": 132,
+      "recoverySubmissions": 132,
+      "captionRequests": 132,
+      "captionCalls": 132
+    },
+    "nativeSha256": "011B2B02758EFF8590D70DF1FF849EFB423A89632CBC0932BE83C14DBB0B53A6"
+  },
+  {
+    "view": "Split",
+    "renderer": "WARP",
+    "iteration": 2,
+    "file": "Split-WARP-2.native.json",
+    "metrics": {
+      "commandUs": 193.45,
+      "preparationSubmissionUs": 3968.65,
+      "gpuWaitUs": 4190.5,
+      "completedEditUs": 8322.849999999999,
+      "cleanCompletedUs": 8316.85,
+      "ownerCpuCycles": 16749103.5,
+      "commandOwnerCpuCycles": 675989.0,
+      "privateBytes": 30232576.0,
+      "workingSetBytes": 63438848.0
+    },
+    "initial": {
+      "privateBytes": 25030656,
+      "workingSetBytes": 46456832,
+      "handles": 237,
+      "gdiObjects": 7,
+      "userObjects": 9,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 1406250,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 7.6
+    },
+    "final": {
+      "privateBytes": 30232576,
+      "workingSetBytes": 63438848,
+      "handles": 282,
+      "gdiObjects": 7,
+      "userObjects": 30,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 27343750,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 11
+    },
+    "activity": {
+      "changes": 132,
+      "layouts": 0,
+      "mirrorResets": 132,
+      "recoverySubmissions": 132,
+      "captionRequests": 132,
+      "captionCalls": 132
+    },
+    "nativeSha256": "81F22018FE57AE418E4ACED59EAF885F7083AB6F015A4791FA00F2475B7FE10F"
+  },
+  {
+    "view": "Split",
+    "renderer": "WARP",
+    "iteration": 3,
+    "file": "Split-WARP-3.native.json",
+    "metrics": {
+      "commandUs": 178.55,
+      "preparationSubmissionUs": 3849.5,
+      "gpuWaitUs": 4244.1,
+      "completedEditUs": 8320.900000000001,
+      "cleanCompletedUs": 8370.8,
+      "ownerCpuCycles": 16117534.5,
+      "commandOwnerCpuCycles": 644015.0,
+      "privateBytes": 31088640.0,
+      "workingSetBytes": 63582208.0
+    },
+    "initial": {
+      "privateBytes": 22859776,
+      "workingSetBytes": 46170112,
+      "handles": 237,
+      "gdiObjects": 7,
+      "userObjects": 9,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 1406250,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 9.9
+    },
+    "final": {
+      "privateBytes": 31088640,
+      "workingSetBytes": 63582208,
+      "handles": 282,
+      "gdiObjects": 7,
+      "userObjects": 30,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 42031250,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 33.2
+    },
+    "activity": {
+      "changes": 132,
+      "layouts": 0,
+      "mirrorResets": 132,
+      "recoverySubmissions": 132,
+      "captionRequests": 132,
+      "captionCalls": 132
+    },
+    "nativeSha256": "50623CE1BE5CA1D85FE863896C3176F70EBC1AB7F2987FA6A0AEB226927A4B5D"
+  },
+  {
+    "view": "Split",
+    "renderer": "Hardware",
+    "iteration": 3,
+    "file": "Split-Hardware-3.native.json",
+    "metrics": {
+      "commandUs": 210.2,
+      "preparationSubmissionUs": 3723.95,
+      "gpuWaitUs": 4386.8,
+      "completedEditUs": 8322.8,
+      "cleanCompletedUs": 8349.45,
+      "ownerCpuCycles": 15655067.5,
+      "commandOwnerCpuCycles": 762473.0,
+      "privateBytes": 77873152.0,
+      "workingSetBytes": 63631360.0
+    },
+    "initial": {
+      "privateBytes": 73912320,
+      "workingSetBytes": 59596800,
+      "handles": 660,
+      "gdiObjects": 7,
+      "userObjects": 11,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 2656250,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 14.8
+    },
+    "final": {
+      "privateBytes": 77873152,
+      "workingSetBytes": 63631360,
+      "handles": 665,
+      "gdiObjects": 7,
+      "userObjects": 12,
+      "threads": null,
+      "threadInventoryCollected": false,
+      "processCpu100ns": 11406250,
+      "snapshotCollectionCpu100ns": 0,
+      "snapshotCollectionUs": 27.5
+    },
+    "activity": {
+      "changes": 132,
+      "layouts": 0,
+      "mirrorResets": 132,
+      "recoverySubmissions": 132,
+      "captionRequests": 132,
+      "captionCalls": 132
+    },
+    "nativeSha256": "2A33522E740FA19E27C512762572D551D603C6B3661C395433E7E6B62959ACDE"
+  }
+]

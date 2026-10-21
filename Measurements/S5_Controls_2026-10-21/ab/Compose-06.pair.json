@@ -1,0 +1,69 @@
+{
+  "scenario": "Compose",
+  "block": 6,
+  "order": "ABBA",
+  "A1": {
+    "commandUs": 192.4,
+    "preparationSubmissionUs": 3048.6000000000004,
+    "gpuWaitUs": 4991.950000000001,
+    "completedEditUs": 8307.400000000001,
+    "cleanCompletedUs": 8375.25,
+    "ownerCpuCycles": 12775996.0,
+    "commandOwnerCpuCycles": 625557.5,
+    "privateBytes": 74874880.0,
+    "workingSetBytes": 62308352.0
+  },
+  "A1Receipt": {
+    "sha256": "0D15D4D8321E4D7F86E12DB713AE4AE53A5E9B61E64C19156D7EE143F8CE5B63",
+    "file": "Compose-06-A1.native.json",
+    "executableSha256": "3ED1312628F78AA7094935FFEC8365BC046CABF77B992D23D11B114054171AC5"
+  },
+  "B1": {
+    "commandUs": 166.2,
+    "preparationSubmissionUs": 2890.8,
+    "gpuWaitUs": 5207.450000000001,
+    "completedEditUs": 8322.95,
+    "cleanCompletedUs": 8348.150000000001,
+    "ownerCpuCycles": 12040348.5,
+    "commandOwnerCpuCycles": 563968.5,
+    "privateBytes": 75739136.0,
+    "workingSetBytes": 62636032.0
+  },
+  "B1Receipt": {
+    "sha256": "7C38DD09EF8694E2CD355E5C05CEA2324F16BB2187C126FCE69E8198B4B8F082",
+    "file": "Compose-06-B1.native.json",
+    "executableSha256": "334A8CBC79DD6F5C6D0BD76CD9FBC62DDEDD715C4FFA4237C07A9208605B4697"
+  },
+  "B2": {
+    "commandUs": 173.60000000000002,
+    "preparationSubmissionUs": 2904.1499999999996,
+    "gpuWaitUs": 5201.75,
+    "completedEditUs": 8324.5,
+    "cleanCompletedUs": 8335.5,
+    "ownerCpuCycles": 12160949.0,
+    "commandOwnerCpuCycles": 566330.0,
+    "privateBytes": 75919360.0,
+    "workingSetBytes": 63246336.0
+  },
+  "B2Receipt": {
+    "sha256": "B30F5348723B8C925E82A6866BD7924DACEE1156820C95733CCF52D5860530CC",
+    "file": "Compose-06-B2.native.json",
+    "executableSha256": "334A8CBC79DD6F5C6D0BD76CD9FBC62DDEDD715C4FFA4237C07A9208605B4697"
+  },
+  "A2": {
+    "commandUs": 183.65,
+    "preparationSubmissionUs": 3087.7,
+    "gpuWaitUs": 5004.5,
+    "completedEditUs": 8321.45,
+    "cleanCompletedUs": 8352.45,
+    "ownerCpuCycles": 12648308.0,
+    "commandOwnerCpuCycles": 595943.5,
+    "privateBytes": 75628544.0,
+    "workingSetBytes": 62287872.0
+  },
+  "A2Receipt": {
+    "sha256": "547565129C5330638CA533670B6416C170CD81BD167C8326DD3D7F47E8BA8B5F",
+    "file": "Compose-06-A2.native.json",
+    "executableSha256": "3ED1312628F78AA7094935FFEC8365BC046CABF77B992D23D11B114054171AC5"
+  }
+}

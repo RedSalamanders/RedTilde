@@ -125,7 +125,8 @@ $results=@(foreach($directory in $StudyPath) {
             }
             $hasControl=$native.Contains('controlDiagnostics') -and $null -ne $native.controlDiagnostics
             if($study.Contains('controlDiagnostics')) {
-                Require ($hasControl -eq [bool]$study.controlDiagnostics) 'Native diagnostics differ from the declared study mode.'
+                Require ($hasControl -eq [bool]$study.controlDiagnostics -and
+                    (-not $study.controlDiagnostics -or $native.controlDiagnostics.protocol -ceq 'app-edit-phases-v2')) 'Native diagnostics differ from the declared study mode.'
             }
             if($hasControl) {
                 $diagnostic=$native.controlDiagnostics

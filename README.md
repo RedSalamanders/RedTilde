@@ -79,3 +79,7 @@ builds; noisy controls and quiet-host acceptance remain unresolved despite passi
 The [later user-requested follow-up](Measurements/S5_Followup_2026-10-21/README.md) adds 192 independently audited
 processes. Its measured CPU averages 35.3%/30.2%; noisy controls keep the reported command improvements and
 performance acceptance provisional. Hardware and upstream gates remain open.
+The [remaining-control investigation](Measurements/S5_Controls_2026-10-21/README.md) removes redundant native
+caption writes and adds bounded phase/idle diagnostics. Six builds, 81 x64 cases and 192 newly audited processes
+pass local checks. Noisy controls and a retained small positive Compose frame signal keep performance acceptance
+open; the experimental and hardware/upstream status is unchanged.

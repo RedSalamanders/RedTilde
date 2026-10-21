@@ -91,6 +91,7 @@ replace unfavorable controls or promote a human report of quiet to a verified qu
 Opt-in `--control-diagnostics` / `-ControlDiagnostics` records bounded synchronous edit subphases in native-v2
 receipts. `app-edit-phases-v2` separates native entry, document analysis, mirror, identity labels, native caption,
 remaining chrome, selection, recovery and native exit. The initial seven-phase v1 prototype remains readable.
+An explicit current diagnostic study requires v2; reject a downgrade even if its edited receipt hashes match.
 Phase wall/CPU arrays must cover every timed transaction in order, stay within command cost, and reconstruct
 full owner CPU with the preparation/GPU-wait diagnostics. Retain render and preparation counts. Arm the borrowed
 observer only for a synchronous harness transaction, clear it on every exit, and perform no diagnostic clock

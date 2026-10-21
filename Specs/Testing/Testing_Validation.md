@@ -35,9 +35,16 @@ The hidden native Core probe exercises both views with diagnostics enabled and c
 the primary memory observation. New instrumentation requires a common baseline before the production repair.
 Caption regressions cover Unicode names, immediate clean/dirty transitions, same-value dirty edits, source/history
 restoration after a burst, failed Win32 writes and reentrant identity replacement on the app-owned hidden window.
+Validator-owned evidence regressions replay the retained small fixture and reject six integrity-consistent
+semantic corruptions for their expected reasons; they never substitute fixture replay for native execution.
+Declared current diagnostics cannot downgrade to the readable legacy prototype to omit caption evidence.
 
 Keep compiler-change failures and new-toolchain builds distinct from earlier successful receipts. A later
 documentation/tooling edit requires a fresh source-bound build receipt even if the native binary stays identical.
+Retain the original runtime receipt/source identity when closing documentation or validation-tool changes. Reuse
+its native result only after proving identical compiled inputs, native harness, dependency, compiler, binary,
+profile, environment and scope; run the changed validation tools separately. Never rewrite a historical receipt
+as new execution. A changed native artifact requires the affected native execution again.
 
 The app's `--self-test` and `--capture <path> --scenario <name>` never activate a window, read/write the system
 clipboard or synthesize desktop input. Drive the same app/control commands as the UI. Native rendering captures

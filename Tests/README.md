@@ -53,3 +53,9 @@ These opt-in clocks change observed cost, so use a new common frozen baseline. K
 the late global inventory never substitutes a more favorable memory result. The independent auditor verifies
 phase accounting and every saved/dirty caption call. Core also exercises immediate Unicode caption identity,
 same-value write elimination and retry after rejected/reentrant native writes on the owned hidden HWND.
+
+`Scope.Tests.Performance.Diagnostics.ps1` audits the retained small protocol fixture and changes its phase order,
+CPU accounting, inventory ordering, caption count and declared mode while updating each native receipt hash.
+The reader also rejects a downgrade to the readable seven-phase prototype when the study requires the current
+protocol. The independent reader must reject each semantic defect for the expected reason. `validate.ps1` runs these six
+regressions; fixture replay is not execution or qualification of a current native binary.

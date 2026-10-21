@@ -1,0 +1,32 @@
+{
+  "tests": [
+    {"name":"Utf8.BomUnicodeMixedEolRoundTrip","passed":true},
+    {"name":"Utf8.InvalidInputDoesNotReplaceOutput","passed":true},
+    {"name":"Storage.AtomicConflictAndFailedSave","passed":true},
+    {"name":"Storage.CapacityRejectedWithoutTruncation","passed":true},
+    {"name":"Settings.VersionAndFieldFallback","passed":true},
+    {"name":"Outline.FencesAndUnicode","passed":true},
+    {"name":"Settings.AsyncLatestValueSurvivesWriterClose","passed":true},
+    {"name":"Math.NativeSubsetAndRejection","passed":true},
+    {"name":"Recovery.StrictEnvelopeAndUnicode","passed":true},
+    {"name":"Recovery.DebounceLeaseCoalescingAndRetirement","passed":true},
+    {"name":"Recovery.CorruptAndFutureDataQuarantined","passed":true},
+    {"name":"Editor.ViewSwitchKeepsSourceSelectionHistory","passed":true},
+    {"name":"Editor.HiddenMirrorSynchronizesWithoutEditingSource","passed":true},
+    {"name":"Editor.OutlineTracksShiftedOffsetsAndChangedLabels","passed":true},
+    {"name":"Window.CaptionSkipsIdenticalWritesAndPreservesImmediateIdentity","passed":true},
+    {"name":"Window.CaptionRetriesFailedAndSupersededNativeWrites","passed":false,"error":"retry edit invokes one native caption write"},
+    {"name":"Editor.DirtyCacheTracksDirectResetAndSameLengthUndo","passed":true},
+    {"name":"Editor.SemanticFormattingUndoAndTheme","passed":true},
+    {"name":"Editor.LocalDiagramSourceAndLiteralFallback","passed":true},
+    {"name":"Editor.LocalOrdinarySourceCommitCancelAndStale","passed":true},
+    {"name":"Editor.DeviceLossAndLocalImagePixels","passed":true},
+    {"name":"Files.AsyncSaveRetainsEditsMadeDuringWrite","passed":true},
+    {"name":"Editor.InDocumentMathLocalSourceAndBroaderMermaid","passed":true},
+    {"name":"Recovery.LocalDraftCancelPreviewRestoreProtectsOriginal","passed":true},
+    {"name":"Recovery.DiscardFailureRetainsCandidateAndRetryClearsError","passed":true},
+    {"name":"Performance.NativeCompletedFramesPreserveSourceAndHistory","passed":true},
+    {"name":"Rendering.NativeDefaultAndWarpResourceLifecycle","passed":true}
+  ],
+  "passed": 26, "failed": 1
+}

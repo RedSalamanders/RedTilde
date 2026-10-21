@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "reference": "typed-CSharp-subset-enumeration-v1",
+  "knownValueOracles": true,
+  "checks": 1712,
+  "studies": [
+    {
+      "study": "Z:\\src\\RedTilde\\.build\\s5-controls-20261021-smoke",
+      "comparisonSha256": "41F24F184B623BBA67183B39ECC7462A4F2B80915748D3CC6B3C4CF2E0EC8935",
+      "nativeSlots": 16,
+      "familySize": 12,
+      "independentReferenceMatches": true,
+      "policyAcceptance": "review-required"
+    }
+  ],
+  "completedUtc": "2026-10-21T10:46:45.9665720Z",
+  "acceptance": "numerical/integrity audit only; no policy self-approval"
+}

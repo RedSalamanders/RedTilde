@@ -1,0 +1,9 @@
+{
+  "machine": "SINON",
+  "cpu": "AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD",
+  "os": "Microsoft Windows NT 10.0.26300.0",
+  "architecture": "X64",
+  "powerPolicy": "Power Scheme GUID: 381b4222-f694-41f0-9685-ff5bb260df2e  (Balanced)",
+  "d3d11": "C9AEE071495039E820CD0BE0AFDEB927B9AD32EDC1D0DAE460B6D64064B524F6",
+  "warp": "8DA8D6AB8D5CA463A421DF65860C7B01D3A4EC18A29E3279CFE63C5EE164300E"
+}

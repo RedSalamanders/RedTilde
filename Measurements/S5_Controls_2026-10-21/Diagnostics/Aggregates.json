@@ -1,0 +1,50 @@
+[
+  {
+    "case": "aa, Compose, baseline",
+    "commandWall": 168.175,
+    "preparationWall": 2922.525,
+    "gpuWaitWall": 5225.724999999999,
+    "derivedCycleCompleteUs": 24985.425000000003,
+    "captionWall": 48.4
+  },
+  {
+    "case": "aa, Split, baseline",
+    "commandWall": 228.97500000000002,
+    "preparationWall": 3776.65,
+    "gpuWaitWall": 4288.625,
+    "derivedCycleCompleteUs": 24988.274999999998,
+    "captionWall": 52.3
+  },
+  {
+    "case": "ab, Compose, baseline",
+    "commandWall": 167.57500000000002,
+    "preparationWall": 2881.95,
+    "gpuWaitWall": 5273.875,
+    "derivedCycleCompleteUs": 24989.125,
+    "captionWall": 47.05
+  },
+  {
+    "case": "ab, Compose, candidate",
+    "commandWall": 161.2,
+    "preparationWall": 2842.3500000000004,
+    "gpuWaitWall": 5305.025,
+    "derivedCycleCompleteUs": 24986.975,
+    "captionWall": 46.625
+  },
+  {
+    "case": "ab, Split, baseline",
+    "commandWall": 193.5,
+    "preparationWall": 3478.5,
+    "gpuWaitWall": 4632.375,
+    "derivedCycleCompleteUs": 24989.199999999997,
+    "captionWall": 39.625
+  },
+  {
+    "case": "ab, Split, candidate",
+    "commandWall": 192.375,
+    "preparationWall": 3524.1749999999997,
+    "gpuWaitWall": 4591.825000000001,
+    "derivedCycleCompleteUs": 24992.800000000003,
+    "captionWall": 41.1
+  }
+]

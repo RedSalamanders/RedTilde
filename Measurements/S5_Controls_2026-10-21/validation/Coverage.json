@@ -1,0 +1,16 @@
+{
+  "builds": 6,
+  "x64BehavioralCases": 81,
+  "actualCaptures": 39,
+  "baselineCaptureMatches": 13,
+  "resourceRuns": 8,
+  "mainNativeProcesses": 192,
+  "mainAuditChecks": 65139,
+  "smokeNativeProcesses": 16,
+  "smokeAuditChecks": 1712,
+  "observationChecks": 37,
+  "semanticRejections": 6,
+  "portableCases": 27,
+  "sourceIdentity": "815a0b7d047415fda63a7bb7acd118c960a17f1cb99e7d843c06f10e0570c805",
+  "result": "local correctness and collection pass; performance acceptance, hardware and upstream remain open"
+}
