@@ -4,7 +4,7 @@ Run `test.ps1 -Configuration Debug -Suite Core`; use `-SkipBuild` for the exact 
 `-Suite Captures` generates non-activating application renders; `-Suite Crash` runs an isolated child fault.
 `-Suite All` includes all three. ASan Core/All must detect an isolated intentional heap-use-after-free.
 
-Native cases are compiled from `Scope.Tests.Core.cpp` into the same executable and run with `--self-test`.
+Native cases are compiled from `Application.Tests.Core.cpp` into the same executable and run with `--self-test`.
 Core also runs a hidden child-process probe that changes preferences, closes immediately and verifies the final state after process exit.
 They exercise public controls and app commands without desktop input, clipboard access or foreground activation.
 Receipts and failed logs remain under `.build/tests/<run>`. The validation contract lists broader gates.
@@ -59,3 +59,7 @@ CPU accounting, inventory ordering, caption count and declared mode while updati
 The reader also rejects a downgrade to the readable seven-phase prototype when the study requires the current
 protocol. The independent reader must reject each semantic defect for the expected reason. `validate.ps1` runs these six
 regressions; fixture replay is not execution or qualification of a current native binary.
+
+## Affected testing
+
+Use `.\Test-Changes.ps1 -Explain` from the repository root to see selected scopes, paths and reasons, then `.\Test-Changes.ps1` to execute. `-Scopes A,B` is an explicit partial selection; `-Mode Full` and `-Mode PrePush` retain full applicable obligations. `-Force` bypasses exact result reuse. The next ordinary edit compares against the last successful default affected run, not every older change on the branch. Read [the validation contract](../Specs/Testing/Testing_Validation.md) for mutation barriers, CI_PENDING and qualification limits.
