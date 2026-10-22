@@ -1,0 +1,134 @@
+<!doctype html>
+<!-- RedTilde design refresh, 2026-10-22: proposal art, not an application capture. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>RedTilde proposal — Compose</title>
+<link rel="stylesheet" href="proposal.css">
+</head>
+<body class="light">
+<svg class="sprite" aria-hidden="true">
+<symbol id="undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+<symbol id="redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></symbol>
+<symbol id="bold" viewBox="0 0 24 24"><path d="M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8"/></symbol>
+<symbol id="italic" viewBox="0 0 24 24"><path d="M19 4h-9"/><path d="M14 20H5"/><path d="M15 4 9 20"/></symbol>
+<symbol id="code" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></symbol>
+<symbol id="link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+<symbol id="list" viewBox="0 0 24 24"><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/></symbol>
+<symbol id="task" viewBox="0 0 24 24"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></symbol>
+<symbol id="plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+<symbol id="chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+<symbol id="focus" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="panel" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></symbol>
+<symbol id="sidebar" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></symbol>
+<symbol id="close" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+<symbol id="folder" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+<symbol id="file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h4"/></symbol>
+<symbol id="right" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+<symbol id="settings" viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></symbol>
+</svg>
+<div class="window">
+
+<header class="docbar">
+<div class="docbar-left"><img class="brand" src="../../../../res/RedTilde.png" alt="RedTilde"><span class="filename">weekly-report-2026-10-15.md</span><span class="chip">Edited</span></div>
+<nav class="tabs" aria-label="View"><button class="tab active" aria-pressed="true">Compose</button><button class="tab" aria-pressed="false">Source</button><button class="tab" aria-pressed="false">Split</button></nav>
+<div class="docbar-right">
+<button class="btn ghost">File<svg class="i sm"><use href="#chevron"/></svg></button>
+<button class="btn primary">Save</button>
+<div class="caption"><button aria-label="Minimize"><svg viewBox="0 0 12 12"><path d="M1 6h10"/></svg></button><button aria-label="Maximize"><svg viewBox="0 0 12 12"><rect x="1.5" y="1.5" width="9" height="9" rx="1.5"/></svg></button><button aria-label="Close"><svg viewBox="0 0 12 12"><path d="M1.5 1.5l9 9M10.5 1.5l-9 9"/></svg></button></div>
+</div>
+</header>
+
+<div class="cmdrow" role="toolbar" aria-label="Formatting">
+<button class="icon-btn pressed" title="Files (Ctrl+Shift+E)" aria-label="Files pane" aria-pressed="true"><svg class="i"><use href="#sidebar"/></svg></button>
+<span class="divider"></span>
+<button class="icon-btn" title="Undo (Ctrl+Z)" aria-label="Undo"><svg class="i"><use href="#undo"/></svg></button>
+<button class="icon-btn" title="Redo (Ctrl+Y)" aria-label="Redo" disabled><svg class="i"><use href="#redo"/></svg></button>
+<span class="divider"></span>
+<button class="btn ghost style-btn">Paragraph<svg class="i sm"><use href="#chevron"/></svg></button>
+<span class="divider"></span>
+<button class="icon-btn" title="Bold (Ctrl+B)" aria-label="Bold"><svg class="i"><use href="#bold"/></svg></button>
+<button class="icon-btn" title="Italic (Ctrl+I)" aria-label="Italic"><svg class="i"><use href="#italic"/></svg></button>
+<button class="icon-btn" title="Inline code (Ctrl+E)" aria-label="Inline code"><svg class="i"><use href="#code"/></svg></button>
+<button class="icon-btn" title="Link (Ctrl+K)" aria-label="Link"><svg class="i"><use href="#link"/></svg></button>
+<span class="divider"></span>
+<button class="icon-btn" title="Bulleted list" aria-label="Bulleted list"><svg class="i"><use href="#list"/></svg></button>
+<button class="icon-btn" title="Task list" aria-label="Task list"><svg class="i"><use href="#task"/></svg></button>
+<span class="divider"></span>
+<button class="btn ghost"><svg class="i sm"><use href="#plus"/></svg>Insert<svg class="i sm"><use href="#chevron"/></svg></button>
+<span class="spacer"></span>
+<button class="btn ghost"><svg class="i sm"><use href="#search"/></svg>Find<span class="kbd">Ctrl+F</span></button>
+<button class="icon-btn" title="Focus mode (F11)" aria-label="Focus mode"><svg class="i"><use href="#focus"/></svg></button>
+<button class="icon-btn" title="Show outline panel" aria-label="Show outline panel"><svg class="i"><use href="#panel"/></svg></button>
+<button class="icon-btn" title="Settings" aria-label="Settings"><svg class="i"><use href="#settings"/></svg></button>
+</div>
+
+<div class="body">
+<aside class="files" aria-label="Markdown files in this folder">
+<div class="files-head">
+<div class="files-title"><h2 class="label">Files</h2><button class="icon-btn sm" aria-label="Close files pane (Ctrl+Shift+E)"><svg class="i sm"><use href="#close"/></svg></button></div>
+<div class="folder-name" title="Folder of the current document"><svg class="i sm"><use href="#folder"/></svg><b>Reports</b></div>
+<input class="field" aria-label="Filter Markdown files" placeholder="Filter">
+</div>
+<div class="tree" role="tree" aria-label="Markdown files">
+<div class="tree-row" role="treeitem" aria-expanded="false" style="--depth: 0"><svg class="i sm"><use href="#right"/></svg><svg class="i sm"><use href="#folder"/></svg><span class="name">archive</span><span class="count">12</span></div>
+<div class="tree-row" role="treeitem" aria-expanded="true" style="--depth: 0"><svg class="i sm"><use href="#chevron"/></svg><svg class="i sm"><use href="#folder"/></svg><span class="name">notes</span></div>
+<div class="tree-row" role="treeitem" style="--depth: 1"><span class="twisty"></span><svg class="i sm"><use href="#file"/></svg><span class="name">risks.md</span></div>
+<div class="tree-row" role="treeitem" style="--depth: 1"><span class="twisty"></span><svg class="i sm"><use href="#file"/></svg><span class="name">semantic-model-ga.md</span></div>
+<div class="tree-row" role="treeitem" aria-expanded="false" style="--depth: 0"><svg class="i sm"><use href="#right"/></svg><svg class="i sm"><use href="#folder"/></svg><span class="name">templates</span><span class="count">2</span></div>
+<div class="tree-row" role="treeitem" style="--depth: 0"><span class="twisty"></span><svg class="i sm"><use href="#file"/></svg><span class="name">README.md</span></div>
+<div class="tree-row" role="treeitem" style="--depth: 0"><span class="twisty"></span><svg class="i sm"><use href="#file"/></svg><span class="name">weekly-report-2026-10-01.md</span></div>
+<div class="tree-row" role="treeitem" style="--depth: 0"><span class="twisty"></span><svg class="i sm"><use href="#file"/></svg><span class="name">weekly-report-2026-10-08.md</span></div>
+<div class="tree-row current" role="treeitem" aria-current="page" aria-selected="true" style="--depth: 0"><span class="twisty"></span><svg class="i sm"><use href="#file"/></svg><span class="name">weekly-report-2026-10-15.md</span><span class="dirty" title="Edited" aria-label="Edited"></span></div>
+</div>
+<div class="files-foot hint">20 Markdown files</div>
+</aside>
+<main class="canvas" aria-label="Markdown document">
+<article class="doc">
+<h1>Weekly report</h1>
+<p class="meta">15 October 2026</p>
+<h2>What changed since last report</h2>
+<ul>
+<li><strong>Status transition:</strong> <a href="#">Surface data contract expectations at data product level [TLV-2642]</a> moved Discovery → Implementation on 2026-10-09 (changelog-verified). <a href="#" class="hover">Schema validation: empty is valid or invalid [TLV-2242]</a> transitioned on 2026-10-08 and was already reflected in the previous report.</li>
+<li><strong>Due-date rebaselines:</strong> <a href="#">MCP: Data Product semantic model tools [TLV-2363]</a> now has a 2026-10-28 due date; <a href="#">Data Product Agent: Semantic model support [TLV-2364]</a> moved 2026-10-30 → 2026-10-28; <a href="#">Deliver public endpoint to CRUD validation rules and semantic types [TLV-2526]</a> moved 2026-10-14 → 2026-10-21.</li>
+<li><strong>Reporting Update changed:</strong> <a href="#">Interoperability with 3rd party semantic models through Ossie [TLV-2293]</a> now says milestones and scope are defined, the import UX was presented, and first-milestone ETA alignment and QAC are next; it replaces the prior warning that the item risked missing the Semantic Model GA.</li>
+<li><strong>Previously reported releases fall off the delta list:</strong> <a href="#">Enable data quality compute on large QVD files (&gt;1GB) [TLV-2524]</a> (released 2026-10-07), <a href="#">Stewards can create and reply to comments at cell level [TLV-1893]</a> and <a href="#">Notify data stewards about assignation or sprint updates [TLV-2010]</a> (released 2026-10-08) are not repeated.</li>
+<li>No other status, RAG, assignee, summary, or Reporting Update changes were detected in the report snapshot.<span class="caret"></span></li>
+</ul>
+<h2>In progress</h2>
+<ul>
+<li><a href="#">Deliver public endpoint to CRUD validation rules and semantic types [TLV-2526]</a> · Implementation · due 2026-10-21 <em>(due date moved 2026-10-14 → 2026-10-21)</em></li>
+<li><a href="#">Improve the understanding of impact analysis of semantic types [TLV-1740]</a> · Implementation · due 2026-10-31</li>
+<li><a href="#">Schema validation: empty is valid or invalid [TLV-2242]</a> · Implementation · due 2026-12-17</li>
+</ul>
+</article>
+</main>
+
+<aside class="panel" aria-label="Outline and block tools">
+<section class="section">
+<div class="section-head"><h2 class="label">Outline</h2><span class="hint">7 headings</span></div>
+<button class="outline-row l1">Weekly report</button>
+<button class="outline-row l2 current" aria-current="location">What changed since last report</button>
+<button class="outline-row l2">In progress</button>
+<button class="outline-row l2">Short-term priorities</button>
+<button class="outline-row l2">RAG summary</button>
+<button class="outline-row l2">Watch items</button>
+<button class="outline-row l2">Coverage check</button>
+</section>
+<section class="section">
+<div class="section-head"><h2 class="label">Current block</h2></div>
+<div class="block-kind"><svg class="i sm"><use href="#list"/></svg><b>Bulleted list</b><span class="hint">5 items</span></div>
+<div style="padding: 4px 8px 0"><button class="btn outline full">Edit block source</button></div>
+</section>
+</aside>
+</div>
+
+<footer class="status">
+<div><span>5,875 words</span><span>38,482 characters</span><span>24 min read</span></div>
+<div><span>Ln 18, Col 42</span><span>UTF-8</span><span>CRLF</span></div>
+</footer>
+</div>
+</body>
+</html>
