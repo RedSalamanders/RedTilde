@@ -30,8 +30,11 @@ Import-Module (Join-Path $PSScriptRoot 'Build/ScopedTesting.psm1') -Force
 if(-not $built.PSObject.Properties['artifactIdentity'] -or $built.artifactIdentity -cne (Get-ScopedArtifactIdentity $PSScriptRoot $Platform $Configuration)){
     throw 'The complete executable/runtime closure does not match its successful build. Rebuild before -SkipBuild.'
 }
-$run=Join-Path $PSScriptRoot ('.build/tests/'+(Get-Date -Format 'yyyyMMdd-HHmmss-fff')+'-'+$Platform+'-'+($Configuration -replace ' ','-'))
-New-Item -ItemType Directory -Force -Path $run | Out-Null
+Import-Module (Join-Path $PSScriptRoot 'Build/TestRunEvidence.psm1') -Force
+$evidence=Start-TestRunEvidence -Repository $PSScriptRoot -Context @{project='RedTilde';platform=$Platform;configuration=$Configuration;suites=$Suites;sourceIdentity=$sourceIdentity;binarySha256=$built.binarySha256}
+$run=$evidence.Path
+$receipt=$null
+try {
 $pin=Get-Content (Join-Path $PSScriptRoot 'Dependencies/DxUi.lock.json') -Raw | ConvertFrom-Json
 $receipt=[ordered]@{schemaVersion=1; sourceIdentity=$sourceIdentity; dependency=$pin.commit;
     binarySha256=(Get-FileHash $exe).Hash; platform=$Platform; configuration=$Configuration; hostArchitecture=$architecture;
@@ -107,7 +110,7 @@ try {
         $scenarios=@('compose-light','compose-dark','source','split','context-selection','local-source','settings','math','math-dark','mermaid','recovery','narrow','high-contrast')
         foreach ($scenario in $scenarios) {
             $output=Join-Path $run ($scenario+'.png')
-            $exit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--capture',$output,'--scenario',$scenario,'--data-dir',(Join-Path $run 'capture-data')) -LogPrefix (Join-Path $run $scenario)
+            $exit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--capture',$output,'--scenario',$scenario,'--data-dir',(Join-Path $run ('capture-data-'+$scenario))) -LogPrefix (Join-Path $run $scenario)
             if ($exit -ne 0 -or -not (Test-Path -LiteralPath $output)) { throw "Capture '$scenario' failed ($exit)." }
             $receipt.results+=@{scope='Capture';scenario=$scenario;sha256=(Get-FileHash $output).Hash}
         }
@@ -137,3 +140,5 @@ try {
     $receipt | ConvertTo-Json -Depth 9 | Set-Content -LiteralPath $receiptPath -Encoding utf8
     Write-Host "Receipt: $receiptPath"
 }
+
+} finally { Complete-TestRunEvidence -Run $evidence -Passed ([bool]($receipt -and $receipt.passed)) }

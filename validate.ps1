@@ -53,6 +53,7 @@ Check 'Six build configurations and native inventory' {
     $actual=@(Get-ChildItem (Join-Path $PSScriptRoot 'Tests') -Filter '*.cpp' | ForEach-Object { 'Tests/'+$_.Name })
     if (Compare-Object @($inventory.files.path) $actual) { throw 'Native test inventory does not match active files.' }
 }
+Check 'Run evidence retention' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.RunEvidence.ps1') }
 Check 'Scope contracts and public runner' {
     Import-Module (Join-Path $PSScriptRoot 'Build/ScopedTesting.psm1') -Force
     [void](Assert-ScopedTestNames $PSScriptRoot)

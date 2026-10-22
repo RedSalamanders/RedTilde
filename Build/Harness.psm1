@@ -29,6 +29,8 @@ function Invoke-RedTildeHarness {
         if (-not $process.WaitForExit($TimeoutSeconds*1000)) {
             $process.Kill($true)
             $process.WaitForExit()
+            [IO.File]::WriteAllText($LogPrefix+'.stdout.log',$stdout.GetAwaiter().GetResult())
+            [IO.File]::WriteAllText($LogPrefix+'.stderr.log',$stderr.GetAwaiter().GetResult())
             throw "Owned harness process timed out after $TimeoutSeconds seconds."
         }
         [IO.File]::WriteAllText($LogPrefix+'.stdout.log',$stdout.GetAwaiter().GetResult())
