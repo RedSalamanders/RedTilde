@@ -4,6 +4,17 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Made the design refresh plan self-contained: seven offline proposal pages, their shared stylesheet and PNGs
+  rendered from them now sit beside the plan, using the shipped red-tilde icon and RedTilde theme values. The
+  plan also specifies an optional left Files pane (Ctrl+Shift+E) listing Markdown files in the current document's
+  folder and subfolders, with a filter, worker enumeration, event-driven refresh and no reparse-point traversal.
+  Documentation only; implementation, actual harness captures and C5 keyboard acceptance remain open.
+- Added the proposed design refresh as a WIP plan: merged document bar with the shipped red-tilde icon, one
+  grouped command row with file commands in a File menu, an unframed 760-DIP writing surface, an outline panel
+  with real hierarchy, docked Find/Replace and selection tools, focus mode, a settings drawer and F2 equation
+  editing, plus links marked by the accent color with an underline only on hover or keyboard focus.
+  Documentation only: product behavior, capabilities and the DxUi pin are unchanged. Owner review, decisions
+  D1–D4, the upstream DxUi link-decoration change, actual harness captures and C5 keyboard acceptance remain open.
 - Verify retained run inventories using fresh pinned-handle metadata and stable path/stream ordering; preserve before/after move diagnostics and exact safety checks, with stale-metadata and reversed-enumeration regressions.
 - Preserve unique completed, failed and interrupted test output in verified per-run evidence without modifying shared read-only files or weakening qualification checks.
 - Bind reusable tooling and formatting evidence to the actual selected formatter path and binary bytes, so tool updates invalidate previous results without changing formatter selection or native behavior.

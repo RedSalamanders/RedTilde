@@ -1,0 +1,116 @@
+<!doctype html>
+<!-- RedTilde design refresh, 2026-10-22: proposal art, not an application capture. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1440">
+<title>RedTilde proposal — Settings drawer</title>
+<link rel="stylesheet" href="proposal.css">
+</head>
+<body class="light">
+<svg class="sprite" aria-hidden="true">
+<symbol id="undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+<symbol id="redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></symbol>
+<symbol id="bold" viewBox="0 0 24 24"><path d="M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8"/></symbol>
+<symbol id="italic" viewBox="0 0 24 24"><path d="M19 4h-9"/><path d="M14 20H5"/><path d="M15 4 9 20"/></symbol>
+<symbol id="code" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></symbol>
+<symbol id="link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+<symbol id="list" viewBox="0 0 24 24"><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/></symbol>
+<symbol id="task" viewBox="0 0 24 24"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></symbol>
+<symbol id="plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+<symbol id="chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="close" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+<symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+<symbol id="focus" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="panel" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></symbol>
+<symbol id="sidebar" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></symbol>
+<symbol id="settings" viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></symbol>
+</svg>
+<div class="window">
+
+<header class="docbar">
+<div class="docbar-left"><img class="brand" src="../../../../res/RedTilde.png" alt="RedTilde"><span class="filename">weekly-report-2026-10-15.md</span><span class="chip">Edited</span></div>
+<nav class="tabs" aria-label="View"><button class="tab active" aria-pressed="true">Compose</button><button class="tab" aria-pressed="false">Source</button><button class="tab" aria-pressed="false">Split</button></nav>
+<div class="docbar-right">
+<button class="btn ghost">File<svg class="i sm"><use href="#chevron"/></svg></button>
+<button class="btn primary">Save</button>
+<div class="caption"><button aria-label="Minimize"><svg viewBox="0 0 12 12"><path d="M1 6h10"/></svg></button><button aria-label="Maximize"><svg viewBox="0 0 12 12"><rect x="1.5" y="1.5" width="9" height="9" rx="1.5"/></svg></button><button aria-label="Close"><svg viewBox="0 0 12 12"><path d="M1.5 1.5l9 9M10.5 1.5l-9 9"/></svg></button></div>
+</div>
+</header>
+
+<div class="cmdrow" role="toolbar" aria-label="Formatting">
+<button class="icon-btn" title="Files (Ctrl+Shift+E)" aria-label="Files pane" aria-pressed="false"><svg class="i"><use href="#sidebar"/></svg></button>
+<span class="divider"></span>
+<button class="icon-btn" title="Undo (Ctrl+Z)" aria-label="Undo"><svg class="i"><use href="#undo"/></svg></button>
+<button class="icon-btn" title="Redo (Ctrl+Y)" aria-label="Redo" disabled><svg class="i"><use href="#redo"/></svg></button>
+<span class="divider"></span>
+<button class="btn ghost style-btn">Paragraph<svg class="i sm"><use href="#chevron"/></svg></button>
+<span class="divider"></span>
+<button class="icon-btn" title="Bold (Ctrl+B)" aria-label="Bold"><svg class="i"><use href="#bold"/></svg></button>
+<button class="icon-btn" title="Italic (Ctrl+I)" aria-label="Italic"><svg class="i"><use href="#italic"/></svg></button>
+<button class="icon-btn" title="Inline code (Ctrl+E)" aria-label="Inline code"><svg class="i"><use href="#code"/></svg></button>
+<button class="icon-btn" title="Link (Ctrl+K)" aria-label="Link"><svg class="i"><use href="#link"/></svg></button>
+<span class="divider"></span>
+<button class="icon-btn" title="Bulleted list" aria-label="Bulleted list"><svg class="i"><use href="#list"/></svg></button>
+<button class="icon-btn" title="Task list" aria-label="Task list"><svg class="i"><use href="#task"/></svg></button>
+<span class="divider"></span>
+<button class="btn ghost"><svg class="i sm"><use href="#plus"/></svg>Insert<svg class="i sm"><use href="#chevron"/></svg></button>
+<span class="spacer"></span>
+<button class="btn ghost"><svg class="i sm"><use href="#search"/></svg>Find<span class="kbd">Ctrl+F</span></button>
+<button class="icon-btn" title="Focus mode (F11)" aria-label="Focus mode"><svg class="i"><use href="#focus"/></svg></button>
+<button class="icon-btn" title="Show outline panel" aria-label="Show outline panel"><svg class="i"><use href="#panel"/></svg></button>
+<button class="icon-btn pressed" title="Close settings" aria-label="Settings" aria-pressed="true"><svg class="i"><use href="#settings"/></svg></button>
+</div>
+
+<div class="body">
+<main class="canvas" aria-label="Markdown document">
+<article class="doc">
+<h1>Weekly report</h1>
+<p class="meta">15 October 2026</p>
+<h2>What changed since last report</h2>
+<ul>
+<li><strong>Status transition:</strong> <a href="#">Surface data contract expectations at data product level [TLV-2642]</a> moved Discovery → Implementation on 2026-10-09 (changelog-verified). <a href="#">Schema validation: empty is valid or invalid [TLV-2242]</a> transitioned on 2026-10-08 and was already reflected in the previous report.</li>
+<li><strong>Due-date rebaselines:</strong> <a href="#">MCP: Data Product semantic model tools [TLV-2363]</a> now has a 2026-10-28 due date; <a href="#">Data Product Agent: Semantic model support [TLV-2364]</a> moved 2026-10-30 → 2026-10-28; <a href="#">Deliver public endpoint to CRUD validation rules and semantic types [TLV-2526]</a> moved 2026-10-14 → 2026-10-21.</li>
+<li><strong>Reporting Update changed:</strong> <a href="#">Interoperability with 3rd party semantic models through Ossie [TLV-2293]</a> now says milestones and scope are defined, the import UX was presented, and first-milestone ETA alignment and QAC are next.</li>
+<li>No other status, RAG, assignee, summary, or Reporting Update changes were detected in the report snapshot.</li>
+</ul>
+</article>
+</main>
+
+<aside class="drawer" aria-labelledby="settings-title">
+<div class="drawer-head"><h2 id="settings-title">Settings</h2><button class="icon-btn" aria-label="Close settings (Esc)"><svg class="i"><use href="#close"/></svg></button></div>
+<div class="drawer-body">
+<section class="group">
+<h3 class="label">Appearance</h3>
+<div class="legend">Theme</div>
+<div class="theme-grid" role="radiogroup" aria-label="Theme">
+<div class="tile"><div class="preview"><span style="background: #ffffff"><i style="background: #cdcdcd"></i><i style="background: #cdcdcd"></i></span><span style="background: #22252b"><i style="background: #4a4a52"></i><i style="background: #4a4a52"></i></span></div><div class="radio" role="radio" aria-checked="false"><span class="dot"></span>System</div></div>
+<div class="tile on"><div class="preview"><span style="background: #ffffff"><i style="background: #cdcdcd"></i><i style="background: #cdcdcd"></i></span></div><div class="radio on" role="radio" aria-checked="true"><span class="dot"></span>Light</div></div>
+<div class="tile"><div class="preview"><span style="background: #22252b"><i style="background: #4a4a52"></i><i style="background: #4a4a52"></i></span></div><div class="radio" role="radio" aria-checked="false"><span class="dot"></span>Dark</div></div>
+<div class="tile"><div class="preview"><span style="background: #fffaef"><i style="background: #d8cfbd"></i><i style="background: #d8cfbd"></i></span></div><div class="radio" role="radio" aria-checked="false"><span class="dot"></span>Paper</div></div>
+</div>
+<div class="select-field"><label>Reading width</label><div class="select-box" role="combobox" aria-label="Reading width">Comfortable (760)<svg class="i sm"><use href="#chevron"/></svg></div></div>
+<div class="select-field"><label>Text size</label><div class="select-box" role="combobox" aria-label="Text size">100%<svg class="i sm"><use href="#chevron"/></svg></div></div>
+</section>
+<section class="group">
+<h3 class="label">Writing</h3>
+<div class="switch" role="switch" aria-checked="false"><span class="track"></span>Focus mode</div>
+<span class="hint">Hides the toolbars and panels while you write.</span>
+</section>
+<section class="group">
+<h3 class="label">Privacy</h3>
+<div class="switch" role="switch" aria-checked="false"><span class="track"></span>Load images from the internet</div>
+<span class="hint">Off by default. Local images always show.</span>
+</section>
+<span class="hint">Changes apply right away.</span>
+</div>
+</aside>
+</div>
+
+<footer class="status">
+<div><span>5,875 words</span><span>38,482 characters</span><span>24 min read</span></div>
+<div><span>Ln 18, Col 42</span><span>UTF-8</span><span>CRLF</span></div>
+</footer>
+</div>
+</body>
+</html>
