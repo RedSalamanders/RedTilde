@@ -28,7 +28,9 @@
     "native-inline-display-math-and-matrices",
     "bounded-native-mermaid-state-and-class-diagrams",
     "debounced-session-recovery-preview-restore-discard",
-    "recovered-copy-requires-save-as"
+    "recovered-copy-requires-save-as",
+    "bounded-labelled-redmonitor-producer",
+    "header-only-redmonitor-client-and-installed-release-helper"
   ],
   "pending": [
     "upstream-pr89-merge-and-performance-qualification",

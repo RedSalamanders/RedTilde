@@ -4,6 +4,8 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Share only the pinned RedMonitor client header and MIT notice, verify them offline during builds, and discover the separately installed production Release helper for explicit launch or optional bare Debug startup; keep normalized bounded diagnostics and application-only packages.
+- Add the exact pinned RedMonitor producer SDK, bounded application-labelled diagnostics and explicit optional adjacent viewer command; preserve existing logs, crash handling and application ownership, with consumer qualification tracked separately.
 - Made the design refresh plan self-contained: seven offline proposal pages, their shared stylesheet and PNGs
   rendered from them now sit beside the plan, using the shipped red-tilde icon and RedTilde theme values. The
   plan also specifies an optional left Files pane (Ctrl+Shift+E) listing Markdown files in the current document's

@@ -44,3 +44,5 @@ apply immediately. High contrast takes precedence.
 
 See [example.md](examples/example.md), [technical notes](examples/technical-notes.md), [the design system](../Specs/UI/UI_DesignSystem.md),
 [actual captures](../Measurements/README.md) and [current capability status](../capabilities.json).
+
+[RedMonitor diagnostics](Diagnostics.md) explains the optional viewer and application logging.

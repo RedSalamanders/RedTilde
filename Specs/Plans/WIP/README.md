@@ -10,3 +10,5 @@
   command row, optional Files pane for Markdown in the document's folder tree, outline panel, contextual
   find/selection tools, focus mode, settings drawer, F2 equation editing and hover-underlined links. Offline
   proposal pages and pictures are in its folder. Not implemented; start at R0 and open decisions D1–D5.
+
+- [RedMonitor adoption](RedMonitor_Adoption_2026-10-23.md) — pinned producer, optional viewer and consumer qualification.

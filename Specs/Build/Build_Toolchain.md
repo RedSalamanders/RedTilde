@@ -12,3 +12,5 @@ Support x64/ARM64 Debug, Release and ASan Debug. ASan Debug must have compiler i
 staged runtime. Native tests must execute on the target architecture. `build.ps1` rejects a running executable
 from its selected output directory and does not terminate it. Packaging produces a portable app with examples,
 license notices and a capability-status note. A release cannot depend on an unqualified moving PR branch.
+
+RedMonitor is installed independently. Builds verify the local pinned client header/license and never compile or package the helper; see [RedMonitor integration](../Core/Core_RedMonitorIntegration.md).

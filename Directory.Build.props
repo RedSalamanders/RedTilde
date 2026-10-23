@@ -25,4 +25,5 @@
     <EnableASAN>true</EnableASAN>
     <CopyAsanBinariesToOutDir>true</CopyAsanBinariesToOutDir>
   </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)Build\RedMonitor.props" />
 </Project>
