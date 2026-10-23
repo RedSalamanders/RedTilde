@@ -13,10 +13,22 @@ without a chance to edit the destination.
 tasks. Insert offers link, image, table, Mermaid, equation, quote and code. The context menu adds strike,
 numbered lists and table row/column commands. Unavailable structural actions retain source and explain context.
 
+**Files pane:** press Ctrl+Shift+E to list Markdown files in the saved document's folder and subfolders. Filter by
+name, expand directories, and open a file with a single click or Enter. Opening follows the normal unsaved-changes
+prompt and file-safety rules. The pane is listing/opening only; it does not manage files. Untitled documents show
+why there is no listing yet. At most 5,000 directory entries are examined to depth 8; the pane reports the actual
+Markdown result count separately from traversal-limit or access errors.
+
 **Images:** save the document first when you want relative image paths. Insert an image from file or paste an
 Explorer file path in rich text. RedTilde references that file; it does not copy the asset into a new folder.
 The image must remain available when reopening the Markdown. Supported files decode asynchronously and
-unsupported/missing images retain alt text. Links stay inert.
+unsupported/missing images retain alt text. Internet images are off by default. Enable “Load images from the
+internet” in Settings only when you want to contact the image servers named by the document; turning it off
+removes remote images immediately. Links stay inert.
+
+The HTTP client loads on demand on the image worker when a permitted image first needs it. Its system-library
+imports stay loaded until exit so outstanding callbacks can retire safely. Windows library loading itself cannot
+be interrupted; cancellation and the request deadline are checked before contacting the image server.
 
 **Equations:** use `$...$` / `\(...\)` inline and `$$...$$` / `\[...\]` for display notation. Fractions,
 indexed roots, simultaneous scripts, Greek/operators, named functions, text, alphabets, accents, scalable

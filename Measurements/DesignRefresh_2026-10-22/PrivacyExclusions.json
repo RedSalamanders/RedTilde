@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "notice": {
+    "publication": "The selected public packet omits these ten raw files.",
+    "privateVerification": "The original bytes were privately verified against the staged copies; nine refusal records also matched their private producer-run copies.",
+    "producerLedgers": "Original raw producer ledgers are retained unchanged.",
+    "membership": "Archive counts and checksums describe the producer set before selection. They are not a complete membership claim for the selected public packet."
+  },
+  "entries": [
+    {
+      "path": "history-a57/native/x64-ASan-Debug/payload/interactive-refusal.json",
+      "length": 5651,
+      "sha256": "9f1466d1dfca695d991170210f77100ddf2cfbd3df299d86fd562c41d4cf6427",
+      "reasonCategory": "machine-name-shaped token in refusal diagnostic"
+    },
+    {
+      "path": "history-a57/native/x64-Debug/payload/interactive-refusal.json",
+      "length": 5651,
+      "sha256": "9f1466d1dfca695d991170210f77100ddf2cfbd3df299d86fd562c41d4cf6427",
+      "reasonCategory": "machine-name-shaped token in refusal diagnostic"
+    },
+    {
+      "path": "history-a57/native/x64-Release/payload/interactive-refusal.json",
+      "length": 5651,
+      "sha256": "9f1466d1dfca695d991170210f77100ddf2cfbd3df299d86fd562c41d4cf6427",
+      "reasonCategory": "machine-name-shaped token in refusal diagnostic"
+    },
+    {
+      "path": "native/1cff-x64-ASan-Debug/payload/interactive-refusal.json",
+      "length": 5651,
+      "sha256": "9f1466d1dfca695d991170210f77100ddf2cfbd3df299d86fd562c41d4cf6427",
+      "reasonCategory": "machine-name-shaped token in refusal diagnostic"
+    },
+    {
+      "path": "native/1cff-x64-Debug/payload/interactive-refusal.json",
+      "length": 5651,
+      "sha256": "9f1466d1dfca695d991170210f77100ddf2cfbd3df299d86fd562c41d4cf6427",
+      "reasonCategory": "machine-name-shaped token in refusal diagnostic"
+    },
+    {
+      "path": "native/1cff-x64-Release/payload/interactive-refusal.json",
+      "length": 5651,
+      "sha256": "9f1466d1dfca695d991170210f77100ddf2cfbd3df299d86fd562c41d4cf6427",
+      "reasonCategory": "machine-name-shaped token in refusal diagnostic"
+    },
+    {
+      "path": "native/x64-ASan-Debug/payload/interactive-refusal.json",
+      "length": 5651,
+      "sha256": "9f1466d1dfca695d991170210f77100ddf2cfbd3df299d86fd562c41d4cf6427",
+      "reasonCategory": "machine-name-shaped token in refusal diagnostic"
+    },
+    {
+      "path": "native/x64-Debug/payload/interactive-refusal.json",
+      "length": 5651,
+      "sha256": "9f1466d1dfca695d991170210f77100ddf2cfbd3df299d86fd562c41d4cf6427",
+      "reasonCategory": "machine-name-shaped token in refusal diagnostic"
+    },
+    {
+      "path": "native/x64-Release/payload/interactive-refusal.json",
+      "length": 5651,
+      "sha256": "9f1466d1dfca695d991170210f77100ddf2cfbd3df299d86fd562c41d4cf6427",
+      "reasonCategory": "machine-name-shaped token in refusal diagnostic"
+    },
+    {
+      "path": "baseline/preparation/restore-x64.log",
+      "length": 8312,
+      "sha256": "6d90367bda723fb9ae185ff1ce36409a5ad82b3e6a7ac9a370f2380677062093",
+      "reasonCategory": "absolute user-profile path in restore diagnostic"
+    }
+  ]
+}

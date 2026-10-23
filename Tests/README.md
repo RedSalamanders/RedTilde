@@ -67,3 +67,20 @@ Use `.\Test-Changes.ps1 -Explain` from the repository root to see selected scope
 
 Generated test output stays under `.build/evidence/test-runs/<id>/payload` on success, failure and interruption.
 See the [retention contract](../Specs/Testing/Testing_RunEvidence.md) for verification and qualification boundaries.
+
+## Design refresh interaction and captures
+
+`test.ps1 -Suite Captures` generates 20 actual hidden renders: the normal presentation scenes plus Files,
+Find/Replace, Focus and exact equation source, with narrow 96/144/192-DPI variants. Every PNG has a scenario
+sidecar with requested and actual viewport/DPI, native window DPI, simulation state and invented fixture name.
+The receipt binds both files to the exact build, source and DxUi pin. Simulated DPI exercises layout; physical
+monitor acceptance remains separate. Files captures retire their owned junction before evidence sealing while
+retaining the proved immutable tree model. No capture activates a window or takes a desktop screenshot.
+
+After agreeing with the person at the desktop, run `test-interactive.ps1 -Configuration Release -SkipBuild`.
+`-InteractiveAutoStart` is allowed only with explicit prior agreement and displays the canonical 30-second Start
+countdown. It builds/reuses the exact pinned DxUi lease executable; the lease owns the session warning,
+watchdog and verified focus/foreground/pointer restoration. The child refuses to show or inject input without
+that visible owning parent. Nine real keyboard stages cover editor input/undo, Files, Find, Settings, Focus,
+selection tools, F2, File menu and asynchronous close. The probe and restoration receipts remain separate;
+physical IME, touch and assistive technology still require their independent acceptance.

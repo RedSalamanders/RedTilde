@@ -1,0 +1,9 @@
+{
+  "phase": "green2",
+  "exitCode": 0,
+  "registered": 52,
+  "selected": 33,
+  "passed": 33,
+  "failed": 0,
+  "failures": []
+}

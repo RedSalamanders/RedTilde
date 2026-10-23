@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "selection": "Exact six-profile build receipts, original native source/compiled identity, wrapper logs and cross-profile pixel/hash inventories. Runtime receipts remain under native/; private binaries remain under .build.",
+  "files": [
+    {
+      "path": "ARM64-ASan-Debug-build.json",
+      "originalPath": ".build/design-refresh/final-e62dd9d9a91a/ARM64-ASan-Debug-build.json",
+      "length": 1530,
+      "sha256": "EC31BBAB4764FED7530F949396A8594EADA61ACCFEBACEDC7682980BEB1B0640"
+    },
+    {
+      "path": "ARM64-ASan-Debug-build.log",
+      "originalPath": ".build/design-refresh/final-e62dd9d9a91a/ARM64-ASan-Debug-build.log",
+      "length": 2697,
+      "sha256": "16B97AED0585C1BD1F53EF619CDD251053029F4680DDB84054787231B4FCCA3C"
+    },
+    {
+      "path": "ARM64-Debug-build.json",
+      "originalPath": ".build/design-refresh/final-e62dd9d9a91a/ARM64-Debug-build.json",
+      "length": 1525,
+      "sha256": "E825622F7A3D2891EC4630A5D6381D1088BA1B3E3909CCD0D319BB64A59BB0E7"
+    },
+    {
+      "path": "ARM64-Debug-build.log",
+      "originalPath": ".build/design-refresh/final-e62dd9d9a91a/ARM64-Debug-build.log",
+      "length": 2662,
+      "sha256": "BF07AB941AE9CB1191262D4C3489EF0B21ED4EBDD86F55AA1B2CD8A6FEA5BF68"
+    },
+    {
+      "path": "ARM64-Release-build.json",
+      "originalPath": ".build/design-refresh/final-e62dd9d9a91a/ARM64-Release-build.json",
+      "length": 1527,
+      "sha256": "C1C3CB28715C30B7FA85973272E499502ACB218DB4A283BB18FB888F08345906"
+    },
+    {
+      "path": "ARM64-Release-build.log",
+      "originalPath": ".build/design-refresh/final-e62dd9d9a91a/ARM64-Release-build.log",
+      "length": 2676,
+      "sha256": "CAF33DF68FCF815299F7F1363AFAE917F954A8EB401F33595203FD3852EE49FF"
+    },
+    {
+      "path": "capture-profile-equality.json",
+      "originalPath": ".build/design-refresh/final-e62dd9d9a91a/capture-profile-equality.json",
+      "length": 6626,
+      "sha256": "C6005D59F13CD33122B171F709A91C1682E0FF2E508EF73A776E47E92AB10776"
+    },
+    {
+      "path": "keyboard-Release.log",
+      "originalPath": ".build/design-refresh/final-e62dd9d9a91a/keyboard-Release.log",
+      "length": 712,
+      "sha256": "452F64A5EBB20D94E0522F4376FECE2BEA16FAB3ED7F19F2059964FB7F1FA7D7"
+    },
+    {
+      "path": "runtime-summary.json",
+      "originalPath": ".build/design-refresh/final-e62dd9d9a91a/runtime-summary.json",
+      "length": 3016,
+      "sha256": "F63F557B3C2F5283C78BC9B73DBC572BDA5B35C586E9784FFB70F22F5A1AB3C3"
+    },
+    {
+      "path": "x64-ASan-Debug-build.json",
+      "originalPath": ".build/design-refresh/final-e62dd9d9a91a/x64-ASan-Debug-build.json",
+      "length": 1526,
+      "sha256": "1FABD50DE28A1FD56D2B4F395C1B937573958DB636AA8AF7643B58A2C0D05984"
+    },
+    {
+      "path": "x64-ASan-Debug-build.log",
+      "originalPath": ".build/design-refresh/final-e62dd9d9a91a/x64-ASan-Debug-build.log",
+      "length": 2683,
+      "sha256": "9EA878267902ED81118E6DB19D3570DA932691AF87D0A64C8C167A8576C2357A"
+    },
+    {
+      "path": "x64-ASan-Debug-full.log",
+      "originalPath": ".build/design-refresh/final-e62dd9d9a91a/x64-ASan-Debug-full.log",
+      "length": 699,
+      "sha256": "CB44C64B5024C69EDE46FC3C60BC607D7D6BB85803125EF0E1F32A593BA1D361"
+    },
+    {
+      "path": "x64-ASan-Debug-runtime-build.json",
+      "originalPath": ".build/design-refresh/final-e62dd9d9a91a/x64-ASan-Debug-runtime-build.json",
+      "length": 1526,
+      "sha256": "1FABD50DE28A1FD56D2B4F395C1B937573958DB636AA8AF7643B58A2C0D05984"
+    },
+    {
+      "path": "x64-Debug-build.json",
+      "originalPath": ".build/design-refresh/final-e62dd9d9a91a/x64-Debug-build.json",
+      "length": 1521,
+      "sha256": "6A34E6D4D5E817F2CA15ECA9A087FDBC3760C83631F1E3A923D0ECD6AD2BE4FD"
+    },
+    {
+      "path": "x64-Debug-build.log",
+      "originalPath": ".build/design-refresh/final-e62dd9d9a91a/x64-Debug-build.log",
+      "length": 2648,
+      "sha256": "A2B6D35CA0EB4A6F4495077645019BA1822694C01F1EB77DD6937BB2224495B3"
+    },
+    {
+      "path": "x64-Debug-full.log",
+      "originalPath": ".build/design-refresh/final-e62dd9d9a91a/x64-Debug-full.log",
+      "length": 634,
+      "sha256": "49DA0CD98D152580D74F8740FD09D822D319598CA1EADC2003231879F85B65BA"
+    },
+    {
+      "path": "x64-Debug-runtime-build.json",
+      "originalPath": ".build/design-refresh/final-e62dd9d9a91a/x64-Debug-runtime-build.json",
+      "length": 1521,
+      "sha256": "6A34E6D4D5E817F2CA15ECA9A087FDBC3760C83631F1E3A923D0ECD6AD2BE4FD"
+    },
+    {
+      "path": "x64-Release-build.json",
+      "originalPath": ".build/design-refresh/final-e62dd9d9a91a/x64-Release-build.json",
+      "length": 1523,
+      "sha256": "8E4EE59DEF59E79D7FE1F760A2DEAE581A32A2412EE7ACF7CDB61DDD0321B9C1"
+    },
+    {
+      "path": "x64-Release-build.log",
+      "originalPath": ".build/design-refresh/final-e62dd9d9a91a/x64-Release-build.log",
+      "length": 2662,
+      "sha256": "3EC1DFAE9E1EF112131E9E02DEED09020BDAAAA99661A940C2DCCEC51A97BD2E"
+    },
+    {
+      "path": "x64-Release-full.log",
+      "originalPath": ".build/design-refresh/final-e62dd9d9a91a/x64-Release-full.log",
+      "length": 634,
+      "sha256": "2BEF2632E0932A5602BF8172238B0E10614263A814EFA92EEF3E5ECE063BB801"
+    },
+    {
+      "path": "x64-Release-runtime-build.json",
+      "originalPath": ".build/design-refresh/final-e62dd9d9a91a/x64-Release-runtime-build.json",
+      "length": 1523,
+      "sha256": "8E4EE59DEF59E79D7FE1F760A2DEAE581A32A2412EE7ACF7CDB61DDD0321B9C1"
+    },
+    {
+      "path": "final-source-freeze-e62dd9d9.json",
+      "originalPath": ".build/design-refresh/final-source-freeze-e62dd9d9.json",
+      "length": 11386,
+      "sha256": "0FBC85F1EEE0FC866FCC7D943955D453E025EF9979DAFCABA4BB2FF74DE2C602"
+    },
+    {
+      "path": "artifacts-and-source.json",
+      "originalPath": ".build/design-refresh/final-e62-runtime/files.json",
+      "length": 21192,
+      "sha256": "EBA39B1E23614C12BCDC2E9BEC57D023B26E2DB43E70B6AA725773353399E112"
+    }
+  ]
+}

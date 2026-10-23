@@ -108,6 +108,106 @@
     {
       "name": "Rendering.NativeDefaultAndWarpResourceLifecycle",
       "scope": "Editor"
+    },
+    {
+      "name": "Files.MarkdownTreeNaturalOrderAndFilter",
+      "scope": "Storage"
+    },
+    {
+      "name": "Files.BoundedTraversalCancellationAndErrors",
+      "scope": "Storage"
+    },
+    {
+      "name": "Files.ReparseLeavesNeverTraverse",
+      "scope": "Storage"
+    },
+    {
+      "name": "Files.AsyncRerootChangeNotificationsAndClose",
+      "scope": "Storage"
+    },
+    {
+      "name": "Files.CoalescedNotificationAndStaleResult",
+      "scope": "Storage"
+    },
+    {
+      "name": "Settings.DesignRefreshPreferencesRoundTrip",
+      "scope": "Settings"
+    },
+    {
+      "name": "Settings.DesignRefreshFieldFallback",
+      "scope": "Settings"
+    },
+    {
+      "name": "Window.DesignRefreshMergedFrameHitTests",
+      "scope": "Editor"
+    },
+    {
+      "name": "Window.DesignRefreshResponsiveLayoutAndDpi",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.DesignRefreshFocusViewsAndToggleStates",
+      "scope": "Editor"
+    },
+    {
+      "name": "Outline.DesignRefreshHierarchyCurrentAndFindCounts",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.DesignRefreshFindReplaceUndoAndCapacity",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.DesignRefreshEquationContextAndDraftGuards",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.DesignRefreshFilesRerootFilterAndDirtyOpen",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.DesignRefreshFilesAdmissionErrorsAndRootActions",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.DesignRefreshLiveSettingsAndEscape",
+      "scope": "Editor"
+    },
+    {
+      "name": "Rendering.DesignRefreshTypographyAndThemeRoles",
+      "scope": "Editor"
+    },
+    {
+      "name": "Window.DesignRefreshPersistentStatusFacts",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.DesignRefreshTransientSurfacesAndClose",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.HttpAnonymousFetchAndNativeDecode",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.HttpRedirectAuthBoundsAndFailures",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.HttpCancellationDeadlineAndOwnerClose",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.RemoteImagePrivacyOptInRevocationAndShutdown",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.DocumentPositionIndexAndNewlineFacts",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.DesignRefreshDeferredSelectionToolsFocus",
+      "scope": "Editor"
     }
   ]
 }

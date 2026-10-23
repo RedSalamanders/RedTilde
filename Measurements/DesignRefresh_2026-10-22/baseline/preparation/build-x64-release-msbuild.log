@@ -1,0 +1,171 @@
+Build started 10/23/2026 2:57:26 AM.
+Logging verbosity is set to: Normal.
+     1>Project "D:\RedTilde\.build\base\RedTilde\RedTilde.vcxproj" on node 1 (default targets).
+     1>Project "D:\RedTilde\.build\base\RedTilde\RedTilde.vcxproj" (1) is building "D:\RedTilde\.build\base\.build\dependencies\DxUi\source\e62dd9d9a91a6ad68d88f7f01a6dd075ae31dbd3\src\DxUi.vcxproj" (2) on node 1 (default targets).
+     2>PrepareForBuild:
+         Creating directory "D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\".
+         Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details.
+         Creating directory "D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\x64\Release\".
+         Creating directory "D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.tlog\".
+       InitializeBuildStatus:
+         Creating "D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.tlog\unsuccessfulbuild" because "AlwaysCreate" was specified.
+         Touching "D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.tlog\unsuccessfulbuild".
+       FxCompile:
+         C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x86\fxc.exe /nologo /E"VSMain" /T vs_5_0 /Fh "D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUiCompositeVS.h" /Fo "D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUiCompositeVS.cso" /Vn "g_DxUiCompositeVS" /Ges /O3 /Qstrip_debug /Qstrip_reflect /Qstrip_priv Rendering\CompositeVS.hlsl 
+         compilation header save succeeded; see D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUiCompositeVS.h
+         compilation object save succeeded; see D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUiCompositeVS.cso
+         C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x86\fxc.exe /nologo /E"PSMain" /T ps_5_0 /Fh "D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUiCompositePS.h" /Fo "D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUiCompositePS.cso" /Vn "g_DxUiCompositePS" /Ges /O3 /Qstrip_debug /Qstrip_reflect /Qstrip_priv Rendering\CompositePS.hlsl 
+         compilation header save succeeded; see D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUiCompositePS.h
+         compilation object save succeeded; see D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUiCompositePS.cso
+       ComputeStdModulesCompileInputs:
+         Reading library manifest file 'C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.51.36231\modules\modules.json' which provides data for library 'microsoft/STL'.
+         Adding module source 'C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.51.36231\modules\std.ixx' from library 'microsoft/STL' to be built with this project.
+         Adding module source 'C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.51.36231\modules\std.compat.ixx' from library 'microsoft/STL' to be built with this project.
+       MakeDirsForCl:
+         Creating directory "D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\microsoft\STL".
+       SetModuleDependencies:
+         Creating directory "D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi_MD.tlog\".
+       ClCompile:
+         C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.51.36231\bin\HostX86\x64\CL.exe /c /ID:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\ /ID:\RedTilde\.build\base\.build\dependencies\DxUi\source\e62dd9d9a91a6ad68d88f7f01a6dd075ae31dbd3\include /I"D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\vcpkg_installed\x64\x64-windows\include" /Zi /nologo /W4 /WX /diagnostics:column /sdl /O2 /D NDEBUG /D UNICODE /D _UNICODE /D WIN32_LEAN_AND_MEAN /D NOMINMAX /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /std:c++latest /permissive- /Fo"D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\\" /Fd"D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\x64\Release\DxUi.pdb" /external:W4 /Gd /TP /FC /errorReport:queue /utf-8 /Zc:preprocessor Controls\DxUi.RichDocument.cpp Controls\DxUi.RichMarkdownProjection.cpp Controls\DxUi.RichSemantic.cpp Controls\DxUi.RichTextCommands.cpp Controls\DxUi.RichSemanticDocument.cpp Controls\DxUi.RichSemanticGeometry.cpp Controls\DxUi.MarkdownSyntax.cpp Controls\DxUi.NativeFlowchart.cpp Controls\DxUi.NativeMath.cpp Controls\DxUi.NativeFlowchartLayout.cpp Controls\DxUi.PreparedFlowchart.cpp Controls\DxUi.RichTextLayout.cpp Controls\DxUi.RichDocumentLayout.cpp Controls\DxUi.RichTextEditor.cpp Controls\DxUi.RichImage.cpp Controls\ControlCatalog.cpp Controls\NativeMenuInterop.cpp Rendering\Embedded.cpp Foundation\FrameRuntime.cpp Controls\DxUi.Accessibility.cpp Controls\DxUi.ComboBox.cpp Controls\DxUi.Controls.cpp Controls\DxUi.Layout.cpp Controls\DxUi.Forms.cpp Controls\DxUi.EditorControls.cpp Controls\DxUi.cpp Controls\DxUi.Grid.cpp Controls\DxUi.Menu.cpp Controls\DxUi.NativeTextInput.cpp Controls\DxUi.PointerInput.cpp Controls\DxUi.Scrollbar.cpp Controls\DxUi.SingleLineTextEditing.cpp Controls\DxUi.TextInput.cpp Controls\DxUi.TextStoreACP.cpp Controls\TextInputServices.cpp Controls\TextClipboard.cpp Controls\DxUi.Theme.cpp Controls\DxUi.Tree.cpp Controls\DxUi.Typeahead.cpp Controls\DxUi.WindowHost.cpp Controls\DxUi.TextElements.cpp
+         DxUi.RichDocument.cpp
+         DxUi.RichMarkdownProjection.cpp
+         DxUi.RichSemantic.cpp
+         DxUi.RichTextCommands.cpp
+         DxUi.RichSemanticDocument.cpp
+         DxUi.RichSemanticGeometry.cpp
+         DxUi.MarkdownSyntax.cpp
+         DxUi.NativeFlowchart.cpp
+         DxUi.NativeMath.cpp
+         DxUi.NativeFlowchartLayout.cpp
+         DxUi.PreparedFlowchart.cpp
+         DxUi.RichTextLayout.cpp
+         DxUi.RichDocumentLayout.cpp
+         DxUi.RichTextEditor.cpp
+         DxUi.RichImage.cpp
+         ControlCatalog.cpp
+         NativeMenuInterop.cpp
+         Embedded.cpp
+         FrameRuntime.cpp
+         DxUi.Accessibility.cpp
+         Generating Code...
+         Compiling...
+         DxUi.ComboBox.cpp
+         DxUi.Controls.cpp
+         DxUi.Layout.cpp
+         DxUi.Forms.cpp
+         DxUi.EditorControls.cpp
+         DxUi.cpp
+         DxUi.Grid.cpp
+         DxUi.Menu.cpp
+         DxUi.NativeTextInput.cpp
+         DxUi.PointerInput.cpp
+         DxUi.Scrollbar.cpp
+         DxUi.SingleLineTextEditing.cpp
+         DxUi.TextInput.cpp
+         DxUi.TextStoreACP.cpp
+         TextInputServices.cpp
+         TextClipboard.cpp
+         DxUi.Theme.cpp
+         DxUi.Tree.cpp
+         DxUi.Typeahead.cpp
+         DxUi.WindowHost.cpp
+         Generating Code...
+         Compiling...
+         DxUi.TextElements.cpp
+         Generating Code...
+       Lib:
+         C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.51.36231\bin\HostX86\x64\Lib.exe /OUT:"D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\x64\Release\DxUi.lib" /NOLOGO /MACHINE:X64 D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.RichDocument.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.RichMarkdownProjection.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.RichSemantic.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.RichTextCommands.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.RichSemanticDocument.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.RichSemanticGeometry.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.MarkdownSyntax.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.NativeFlowchart.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.NativeMath.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.NativeFlowchartLayout.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.PreparedFlowchart.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.RichTextLayout.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.RichDocumentLayout.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.RichTextEditor.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.RichImage.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\ControlCatalog.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\NativeMenuInterop.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\Embedded.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\FrameRuntime.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.Accessibility.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.ComboBox.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.Controls.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.Layout.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.Forms.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.EditorControls.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.Grid.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.Menu.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.NativeTextInput.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.PointerInput.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.Scrollbar.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.SingleLineTextEditing.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.TextInput.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.TextStoreACP.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\TextInputServices.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\TextClipboard.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.Theme.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.Tree.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.Typeahead.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.WindowHost.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.TextElements.obj
+         DxUi.vcxproj -> D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\x64\Release\DxUi.lib
+       FinalizeBuildStatus:
+         Deleting file "D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.tlog\unsuccessfulbuild".
+         Touching "D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\Intermediate\x64\Release\DxUi\DxUi.tlog\DxUi.lastbuildstate".
+     2>Done Building Project "D:\RedTilde\.build\base\.build\dependencies\DxUi\source\e62dd9d9a91a6ad68d88f7f01a6dd075ae31dbd3\src\DxUi.vcxproj" (default targets).
+     1>ValidateDxUiConsumerPin:
+         powershell.exe -NoProfile -ExecutionPolicy Bypass -File "D:\RedTilde\.build\base\.build\dependencies\DxUi\source\e62dd9d9a91a6ad68d88f7f01a6dd075ae31dbd3\Tools\validate_consumer.ps1" -DxUiRoot "D:\RedTilde\.build\base\.build\dependencies\DxUi\source\e62dd9d9a91a6ad68d88f7f01a6dd075ae31dbd3" -LockFile "D:\RedTilde\.build\base\Dependencies\DxUi.lock.json"
+         DxUi pin verified: e62dd9d9a91a6ad68d88f7f01a6dd075ae31dbd3
+       PrepareForBuild:
+         Structured output is enabled. The formatting of compiler diagnostics will reflect the error hierarchy. See https://aka.ms/cpp/structured-output for more details.
+       InitializeBuildStatus:
+         Creating "D:\RedTilde\.build\base\.build\obj\x64\Release\RedTilde\RedTilde.tlog\unsuccessfulbuild" because "AlwaysCreate" was specified.
+         Touching "D:\RedTilde\.build\base\.build\obj\x64\Release\RedTilde\RedTilde.tlog\unsuccessfulbuild".
+       ComputeStdModulesCompileInputs:
+         Reading library manifest file 'C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.51.36231\modules\modules.json' which provides data for library 'microsoft/STL'.
+         Adding module source 'C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.51.36231\modules\std.ixx' from library 'microsoft/STL' to be built with this project.
+         Adding module source 'C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.51.36231\modules\std.compat.ixx' from library 'microsoft/STL' to be built with this project.
+       ClCompile:
+         All outputs are up-to-date.
+         C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.51.36231\bin\HostX86\x64\CL.exe /c /ID:\RedTilde\.build\base\.build\dependencies\DxUi\source\e62dd9d9a91a6ad68d88f7f01a6dd075ae31dbd3\include /I"D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\vcpkg_installed\x64\x64-windows\include" /ID:\RedTilde\.build\base\ /Zi /nologo /W4 /WX /diagnostics:column /sdl /MP /O2 /D NDEBUG /D _UNICODE /D UNICODE /D UNICODE /D _UNICODE /D WIN32_LEAN_AND_MEAN /D NOMINMAX /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /std:c++latest /permissive- /Fo"D:\RedTilde\.build\base\.build\obj\x64\Release\RedTilde\\" /Fd"D:\RedTilde\.build\base\.build\obj\x64\Release\RedTilde\vc145.pdb" /external:W4 /Gd /TP /FC /errorReport:queue /utf-8 /permissive- /Zc:preprocessor Main.cpp Application.cpp ..\Common\Storage.cpp ..\Common\DocumentInfo.cpp ..\Common\Settings.cpp ..\Common\CrashHandler.cpp ..\Common\Recovery.cpp ..\Tests\Application.Tests.Core.cpp ..\Tests\Application.Tests.Performance.cpp
+         Main.cpp
+         Application.cpp
+         Storage.cpp
+         DocumentInfo.cpp
+         Settings.cpp
+         CrashHandler.cpp
+         Recovery.cpp
+         Application.Tests.Core.cpp
+         Application.Tests.Performance.cpp
+       ResourceCompile:
+         All outputs are up-to-date.
+       Link:
+         C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.51.36231\bin\HostX86\x64\link.exe /ERRORREPORT:QUEUE /OUT:"D:\RedTilde\.build\base\.build\x64\Release\RedTilde.exe" /INCREMENTAL:NO /NOLOGO d3d11.lib dxgi.lib d2d1.lib dwrite.lib ole32.lib shell32.lib uuid.lib advapi32.lib user32.lib gdi32.lib comctl32.lib windowscodecs.lib dwmapi.lib shcore.lib dbghelp.lib bcrypt.lib imm32.lib uiautomationcore.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /manifest:embed /manifestinput:..\res\RedTilde.manifest /DEBUG /PDB:"D:\RedTilde\.build\base\.build\x64\Release\RedTilde.pdb" /SUBSYSTEM:WINDOWS /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"D:\RedTilde\.build\base\.build\x64\Release\RedTilde.lib" /MACHINE:X64 D:\RedTilde\.build\base\.build\obj\x64\Release\RedTilde\RedTilde.res
+         D:\RedTilde\.build\base\.build\obj\x64\Release\RedTilde\Main.obj
+         D:\RedTilde\.build\base\.build\obj\x64\Release\RedTilde\Application.obj
+         D:\RedTilde\.build\base\.build\obj\x64\Release\RedTilde\Storage.obj
+         D:\RedTilde\.build\base\.build\obj\x64\Release\RedTilde\DocumentInfo.obj
+         D:\RedTilde\.build\base\.build\obj\x64\Release\RedTilde\Settings.obj
+         D:\RedTilde\.build\base\.build\obj\x64\Release\RedTilde\CrashHandler.obj
+         D:\RedTilde\.build\base\.build\obj\x64\Release\RedTilde\Recovery.obj
+         D:\RedTilde\.build\base\.build\obj\x64\Release\RedTilde\Application.Tests.Core.obj
+         D:\RedTilde\.build\base\.build\obj\x64\Release\RedTilde\Application.Tests.Performance.obj
+         D:\RedTilde\.build\base\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\x64\Release\DxUi.lib
+         RedTilde.vcxproj -> D:\RedTilde\.build\base\.build\x64\Release\RedTilde.exe
+       FinalizeBuildStatus:
+         Deleting file "D:\RedTilde\.build\base\.build\obj\x64\Release\RedTilde\RedTilde.tlog\unsuccessfulbuild".
+         Touching "D:\RedTilde\.build\base\.build\obj\x64\Release\RedTilde\RedTilde.tlog\RedTilde.lastbuildstate".
+     1>Done Building Project "D:\RedTilde\.build\base\RedTilde\RedTilde.vcxproj" (default targets).
+
+Build succeeded.
+    0 Warning(s)
+    0 Error(s)
+
+Time Elapsed 00:02:21.99

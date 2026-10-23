@@ -86,6 +86,77 @@
   ],
   "rules": [
     {
+      "pattern": "Common/Files.*",
+      "scopes": [
+        "Storage",
+        "Editor"
+      ],
+      "reason": "bounded folder service and UI owner adoption"
+    },
+    {
+      "pattern": "Common/RemoteImage.*",
+      "scopes": [
+        "Storage",
+        "Editor"
+      ],
+      "reason": "bounded anonymous image transport and editor policy adoption"
+    },
+    {
+      "pattern": "Tests/Application.Tests.Files.*",
+      "scopes": [
+        "Storage",
+        "Settings",
+        "Editor"
+      ],
+      "reason": "Files, versioned preferences and revision-bound document-position registration units"
+    },
+    {
+      "pattern": "Tests/Application.Tests.DesignRefresh.*",
+      "scopes": [
+        "Editor"
+      ],
+      "reason": "hidden design refresh behavior and native presentation"
+    },
+    {
+      "pattern": "Tests/Application.Tests.DesignInteractive.*",
+      "scopes": [
+        "Editor",
+        "Tooling"
+      ],
+      "reason": "interactive child fail-closed guard; authorized real desktop gate stays separate"
+    },
+    {
+      "pattern": "Tests/Application.Tests.RemoteImages.*",
+      "scopes": [
+        "Storage",
+        "Editor"
+      ],
+      "reason": "loopback transport and live remote-image policy regressions"
+    },
+    {
+      "pattern": "Tests/Support/Support.Tests.FilesFixtures.h",
+      "scopes": [
+        "Storage",
+        "Editor",
+        "Captures"
+      ],
+      "reason": "shared invented folder fixtures and bounded reparse leaves"
+    },
+    {
+      "pattern": "Tests/README.md",
+      "scopes": [
+        "Tooling"
+      ],
+      "reason": "test workflow documentation"
+    },
+    {
+      "pattern": "test-interactive.ps1",
+      "scopes": [
+        "*"
+      ],
+      "reason": "source-bound artifact preflight and canonical desktop lease runner"
+    },
+    {
       "pattern": "Common/Storage.cpp",
       "scopes": [
         "Storage",

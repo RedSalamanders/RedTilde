@@ -1,6 +1,11 @@
 #include "RedTilde/Application.h"
+#include "Application.Tests.DesignRefresh.h"
+#include "Application.Tests.Files.h"
+#include "Application.Tests.RemoteImages.h"
+#include "Support/Support.Tests.TextServices.h"
 #include <DxUi/RichMath.h>
 #include <DxUi/RichSemanticDocument.h>
+#include <array>
 #include <chrono>
 #include <fstream>
 #include <functional>
@@ -13,6 +18,8 @@ namespace RedTilde
 using DxUi::RichText::ParseMath;
 namespace
 {
+using Testing::TextServiceImportProbe;
+
 void Require(bool condition, std::string_view message)
 {
     if (!condition)
@@ -82,6 +89,9 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
         }
         report.flush();
     };
+    RegisterFilesTests(root, test);
+    RegisterDesignRefreshTests(root, test);
+    RegisterRemoteImageTests(root, test);
     test("Utf8.BomUnicodeMixedEolRoundTrip",
          [&]
          {
@@ -365,8 +375,155 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Require(app.SourceMirror().GetText() == app.Document().GetText() && app.Activity().mirrorResets == split.mirrorResets + 1,
                      "each visible Split revision updates its mirror");
              Require(app.Activity().layouts == split.layouts, "Split prose does not relayout chrome");
+             const auto committed = app.Activity();
+             const auto committedSource = app.Document().Snapshot();
+             const auto committedSelection = app.Document().GetSelection();
+             app.Prepare();
+             const auto prepared = app.Activity();
+             Require(prepared.syntaxPresentationUpdates > committed.syntaxPresentationUpdates &&
+                         prepared.selectionPresentationUpdates == committed.selectionPresentationUpdates &&
+                         prepared.mirrorSelectionUpdates == committed.mirrorSelectionUpdates,
+                     "new syntax refreshes context without repeating unchanged mirror selection or position facts");
+             Require(app.Document().Snapshot().IsSameRevision(committedSource) && app.Document().GetSelection() == committedSelection &&
+                         app.SourceMirror().GetSelection() == committedSelection && app.SourceMirror().GetText() == app.Document().GetText() &&
+                         app.Document().CanUndo(),
+                     "syntax publication preserves exact editable and mirror source, ACP selection and history");
              Require(app.Document().Undo() && app.Document().Undo(), "undo both edits");
              Require(app.SourceMirror().GetText() == source && !app.Dirty(), "Split undo restores the exact saved source in both panes");
+
+             struct ImeMirrorFixture
+             {
+                 std::wstring_view name;
+                 std::wstring source;
+                 DxUi::RichText::Selection selection;
+                 std::wstring composition;
+                 std::size_t cursorInComposition;
+             };
+             const std::array<ImeMirrorFixture, 3> fixtures{{
+                 {L"ime-preview-growth", L"abc", {3, 3}, L"X\U0001F600\r\nZ", 6},
+                 {L"ime-preview-emoji-replacement", L"\U0001F600z", {0, 2}, L"ab", 1},
+                 {L"ime-preview-crlf-replacement", L"\r\nz", {0, 2}, L"ab", 1},
+             }};
+             for (const auto &fixture : fixtures)
+             {
+                 const HWND foregroundBefore = GetForegroundWindow();
+                 HWND appWindow{};
+                 {
+                     LaunchOptions imeLaunch;
+                     imeLaunch.headless = true;
+                     imeLaunch.dataDirectory = root / std::wstring(fixture.name);
+                     Application imeApp(imeLaunch);
+                     Success(imeApp.Initialize(), "initialize hidden text-service mirror app");
+                     appWindow = imeApp.Window();
+                     Require(appWindow && !IsWindowVisible(appWindow), "text-service mirror window remains hidden");
+                     imeApp.SetDocument(fixture.source);
+                     imeApp.SetView(EditorView::Split);
+                     imeApp.Prepare();
+                     Require(imeApp.SourceMirror().GetText() == fixture.source, "Split begins with the exact fixture source");
+
+                     // Seed one redo record without changing the fixture's source bytes.
+                     auto seededText = fixture.source;
+                     const auto lastUnit = seededText.size() - 1;
+                     imeApp.Document().SetSelection({lastUnit, seededText.size()});
+                     Require(imeApp.Document().ReplaceSelection(L"q"), "seed one reversible source edit");
+                     seededText.back() = L'q';
+                     Require(imeApp.Document().Undo() && imeApp.Document().GetText() == fixture.source && imeApp.Document().CanRedo(),
+                             "restore fixture source while retaining a redo record");
+                     imeApp.Document().SetSelection(fixture.selection);
+                     Require(imeApp.SourceMirror().GetText() == fixture.source && imeApp.SourceMirror().GetSelection() == fixture.selection,
+                             "seeded history leaves the hidden mirror at the fixture source and ACPs");
+
+                     const auto historyCanUndo = imeApp.Document().CanUndo();
+                     const auto historyCanRedo = imeApp.Document().CanRedo();
+                     const auto beforePreview = imeApp.Activity();
+                     auto previewText = fixture.source;
+                     previewText.replace(fixture.selection.Start(), fixture.selection.End() - fixture.selection.Start(), fixture.composition);
+                     const DxUi::RichText::Selection previewSelection{fixture.selection.Start() + fixture.cursorInComposition,
+                                                                      fixture.selection.Start() + fixture.cursorInComposition};
+                     DxUi::TextInputState entry;
+                     entry.text = fixture.source;
+                     entry.multiline = true;
+                     entry.caretIndex = fixture.selection.caret;
+                     if (fixture.selection.anchor != fixture.selection.caret)
+                         entry.selectionAnchorIndex = fixture.selection.anchor;
+                     auto preview = entry;
+                     preview.text = previewText;
+                     preview.caretIndex = previewSelection.caret;
+                     preview.selectionAnchorIndex.reset();
+                     Require((imeApp.Document().*TextServiceImportProbe::Import)(imeApp.Host(), preview, false),
+                             "canonical text-service preview is accepted on the attached editor");
+                     Require(imeApp.Document().GetText() == previewText, "text-service preview changes the live source view");
+                     Require(imeApp.SourceMirror().GetText() == previewText, "Split mirror synchronizes the live IME preview text");
+                     Require(imeApp.Document().GetSelection() == previewSelection && imeApp.SourceMirror().GetSelection() == previewSelection,
+                             "Split mirror and source expose the same preview ACP");
+                     Require(imeApp.Activity().changes == beforePreview.changes &&
+                                 imeApp.Activity().recoverySubmissions == beforePreview.recoverySubmissions,
+                             "silent IME preview does not publish a document edit or recovery snapshot");
+                     Require(imeApp.Document().CanUndo() == historyCanUndo && imeApp.Document().CanRedo() == historyCanRedo,
+                             "silent IME preview does not alter seeded undo or redo history");
+
+                     auto nextPreview = preview;
+                     nextPreview.text[fixture.selection.Start()] = L'Y';
+                     Require((imeApp.Document().*TextServiceImportProbe::Import)(imeApp.Host(), nextPreview, false),
+                             "successive same-ACP text-service candidate is accepted");
+                     Require(imeApp.Document().GetText() == nextPreview.text && imeApp.SourceMirror().GetText() == nextPreview.text &&
+                                 imeApp.Document().GetSelection() == previewSelection && imeApp.SourceMirror().GetSelection() == previewSelection,
+                             "successive text-service candidate synchronizes its source even with unchanged ACPs");
+                     Require(imeApp.Activity().changes == beforePreview.changes &&
+                                 imeApp.Activity().recoverySubmissions == beforePreview.recoverySubmissions &&
+                                 imeApp.Document().CanUndo() == historyCanUndo && imeApp.Document().CanRedo() == historyCanRedo,
+                             "successive same-ACP preview preserves committed activity and history");
+
+                     Require((imeApp.Document().*TextServiceImportProbe::Import)(imeApp.Host(), entry, false),
+                             "canonical text-service cancellation restores the entry state");
+                     Require(imeApp.Document().GetText() == fixture.source && imeApp.Document().GetSelection() == fixture.selection,
+                             "IME cancellation restores the exact original source and selection");
+                     Require(imeApp.SourceMirror().GetText() == fixture.source && imeApp.SourceMirror().GetSelection() == fixture.selection,
+                             "Split mirror follows IME cancellation text and ACPs");
+                     Require(imeApp.Activity().changes == beforePreview.changes &&
+                                 imeApp.Activity().recoverySubmissions == beforePreview.recoverySubmissions &&
+                                 imeApp.Document().CanUndo() == historyCanUndo && imeApp.Document().CanRedo() == historyCanRedo,
+                             "IME cancellation preserves activity, recovery count and seeded history");
+                     Require(imeApp.Document().Redo() && imeApp.Document().GetText() == seededText, "redo remains usable after IME cancellation");
+                     Require(imeApp.Document().Undo() && imeApp.Document().GetText() == fixture.source,
+                             "undo restores the fixture source after the preserved redo");
+
+                     // Re-run the same composition as a result commit. It must be one source transaction.
+                     imeApp.Document().SetSelection(fixture.selection);
+                     const auto beforeCommit = imeApp.Activity();
+                     Require((imeApp.Document().*TextServiceImportProbe::Import)(imeApp.Host(), preview, false),
+                             "canonical preview before commit is accepted");
+                     Require(imeApp.Document().GetText() == previewText && imeApp.SourceMirror().GetText() == previewText &&
+                                 imeApp.Activity().changes == beforeCommit.changes &&
+                                 imeApp.Activity().recoverySubmissions == beforeCommit.recoverySubmissions,
+                             "preview before result remains synchronized without committing source or recovery");
+                     // The native/TSF host restores its entry text before the
+                     // notifying result import, so history records one edit.
+                     Require((imeApp.Document().*TextServiceImportProbe::Import)(imeApp.Host(), entry, false),
+                             "canonical commit protocol restores entry without notification");
+                     auto result = preview;
+                     result.caretIndex = fixture.selection.Start() + fixture.composition.size();
+                     Require((imeApp.Document().*TextServiceImportProbe::Import)(imeApp.Host(), result, true), "canonical result commit is accepted");
+                     Require(imeApp.Document().GetText() == previewText && imeApp.SourceMirror().GetText() == previewText,
+                             "committed IME result synchronizes source and Split mirror");
+                     Require(imeApp.SourceMirror().GetSelection() == imeApp.Document().GetSelection() &&
+                                 imeApp.Document().GetSelection().caret == fixture.selection.Start() + fixture.composition.size(),
+                             "committed IME result leaves both panes at the result's exact ending ACP");
+                     Require(imeApp.Activity().changes == beforeCommit.changes + 1 &&
+                                 imeApp.Activity().recoverySubmissions == beforeCommit.recoverySubmissions + 1,
+                             "IME result is exactly one notifying edit and recovery submission");
+                     Require(imeApp.Document().CanUndo() && !imeApp.Document().CanRedo(),
+                             "IME result creates one undo record and replaces the redo branch");
+                     Require(imeApp.Document().Undo() && imeApp.Document().GetText() == fixture.source &&
+                                 imeApp.SourceMirror().GetText() == fixture.source,
+                             "one undo restores committed IME source in both panes");
+                     Require(imeApp.Document().Redo() && imeApp.Document().GetText() == previewText && imeApp.SourceMirror().GetText() == previewText,
+                             "redo restores committed IME source in both panes");
+                     Require(!IsWindowVisible(appWindow) && GetForegroundWindow() == foregroundBefore,
+                             "hidden IME regression never shows or activates its app window");
+                 }
+                 Require(GetForegroundWindow() == foregroundBefore, "IME regression restores the original foreground window");
+             }
          });
     test("Editor.OutlineTracksShiftedOffsetsAndChangedLabels",
          [&]
@@ -379,42 +536,59 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              const std::wstring source = L"# First\n\nBody.\n\n## Navigation target\n\nTail.\n";
              app.SetDocument(source);
              app.Prepare();
-             std::function<DxUi::Button *(DxUi::Control *, std::wstring_view)> find = [&](DxUi::Control *control,
-                                                                                          std::wstring_view name) -> DxUi::Button *
+             std::function<DxUi::Tree *(DxUi::Control *)> findTree = [&](DxUi::Control *control) -> DxUi::Tree *
              {
-                 if (auto *button = dynamic_cast<DxUi::Button *>(control); button && button->GetText() == name)
-                     return button;
-                 for (std::size_t index = 0; index < control->GetLogicalChildCount(); ++index)
-                     if (auto *button = find(control->GetLogicalChild(index), name))
-                         return button;
+                 if (auto *tree = dynamic_cast<DxUi::Tree *>(control); tree && tree->GetAccessibleName() == L"Document outline")
+                     return tree;
+                 for (std::size_t i = 0; i < control->GetLogicalChildCount(); ++i)
+                     if (auto *tree = findTree(control->GetLogicalChild(i)))
+                         return tree;
                  return nullptr;
              };
-             auto *target = find(app.Host().GetRoot(), L"Navigation target");
-             Require(target != nullptr, "outline target is present");
+             auto *target = findTree(app.Host().GetRoot());
+             Require(target && target->GetModel(), "semantic outline tree is present");
+             auto row = [&](std::wstring_view name) -> std::optional<std::size_t>
+             {
+                 for (std::size_t i = 0; i < target->GetModel()->GetVisibleItemCount(); ++i)
+                 {
+                     DxUi::TreeItemData item;
+                     target->GetModel()->GetVisibleItem(i, item);
+                     if (item.text == name)
+                         return i;
+                 }
+                 return {};
+             };
+             Require(row(L"Navigation target").has_value(), "outline target is present");
              const auto before = app.Activity();
              const auto body = source.find(L"Body");
              app.Document().SetSelection({body, body});
              Require(app.Document().ReplaceSelection(L"Expanded "), "shift a later heading with prose");
              Require(app.Activity().layouts == before.layouts, "offset-only changes preserve chrome layout");
-             Require(target->Invoke(app.Host(), false), "invoke outline without taking desktop focus");
+             Require(target->RequestSelectVisibleItem(row(L"Navigation target").value()) && target->OnKeyDown(app.Host(), VK_RETURN, 0),
+                     "invoke outline without taking desktop focus");
              const auto heading = app.Document().GetText().find(L"## Navigation target");
              Require(app.Document().GetSelection() == DxUi::RichText::Selection{heading, heading}, "outline navigation follows the new offset");
              const auto label = heading + 3;
              app.Document().SetSelection({label, label + std::wstring_view(L"Navigation target").size()});
              Require(app.Document().ReplaceSelection(L"Renamed target"), "rename the heading");
-             Require(target->GetText() == L"Renamed target" && app.Activity().layouts == before.layouts + 1,
-                     "changed heading text updates the visible label and layout");
-             const auto indented = target->GetBounds().left;
+             Require(row(L"Renamed target").has_value() && !row(L"Navigation target").has_value() && app.Activity().layouts == before.layouts,
+                     "changed heading text refreshes visible rows without recomputing window geometry");
+             Require(target->RequestSelectVisibleItem(row(L"Renamed target").value()) && target->OnKeyDown(app.Host(), VK_RETURN, 0) &&
+                         app.Document().GetSelection() == DxUi::RichText::Selection{heading, heading},
+                     "the renamed outline action retains the exact current source offset");
+             DxUi::TreeItemData renamed;
+             target->GetModel()->GetVisibleItem(row(L"Renamed target").value(), renamed);
+             const auto indented = renamed.depth;
              app.Document().SetSelection({heading, heading + 1});
              Require(app.Document().ReplaceSelection(L""), "change heading level");
-             Require(target->GetBounds().left < indented, "changed heading level updates outline indentation");
+             target->GetModel()->GetVisibleItem(row(L"Renamed target").value(), renamed);
+             Require(renamed.depth < indented, "changed heading level updates outline indentation");
              Require(app.Document().Undo() && app.Document().Undo() && app.Document().Undo() && !app.Dirty(),
                      "outline edits retain exact multi-step undo");
              app.Document().SetSelection({source.size(), source.size()});
              Require(app.Document().ReplaceSelection(L"\n### Added heading\n"), "add another heading");
-             auto *added = find(app.Host().GetRoot(), L"Added heading");
-             Require(added && added->IsVisible(), "added heading becomes an outline action");
-             Require(app.Document().Undo() && !added->IsVisible() && !app.Dirty(),
+             Require(row(L"Added heading").has_value(), "added heading becomes an outline row");
+             Require(app.Document().Undo() && !row(L"Added heading").has_value() && !app.Dirty(),
                      "removing the heading hides its action and preserves saved source");
          });
     test("Window.CaptionSkipsIdenticalWritesAndPreservesImmediateIdentity",
@@ -739,13 +913,11 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              app.Prepare(1024);
              const auto code = inspector.find(L"fake");
              app.Document().SetSelection({code, code});
-             app.Document().changedSelection();
              Require(app.EquationPreviewText().empty(), "current syntax keeps inline code out of the equation inspector");
              for (const auto &notation : {std::wstring(L"a_i^2"), std::wstring(L"b^3")})
              {
                  const auto math = inspector.find(notation);
                  app.Document().SetSelection({math, math});
-                 app.Document().changedSelection();
                  Require(app.EquationPreviewText() == L"\\[" + notation + L"\\]", "current syntax drives either math delimiter family");
              }
              const auto oversized = L"$" + std::wstring(65534u, L'x') + L"$";
@@ -753,7 +925,6 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              app.Prepare(1024);
              app.Document().SetSelection({65000, 65000});
              (void)app.Document().OnKeyDown(app.Host(), VK_LEFT, 0);
-             app.Document().changedSelection(); // The same handler, without swallowing an unexpected callback exception.
              Require(app.Document().GetText() == oversized && app.EquationPreviewText().empty(),
                      "maximum-capacity oversized math stays source-exact and cannot overflow the inspector");
          });

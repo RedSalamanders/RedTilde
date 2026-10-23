@@ -16,6 +16,7 @@ foreach($file in @('Tests/Application.Tests.Performance.cpp','RedTilde/Main.cpp'
     $inputs[$file]=(Get-FileHash (Join-Path $PSScriptRoot $file)).Hash
 }
 $compiler=Get-RedTildeCompilerProfile -Root $PSScriptRoot
+$rawCompiler=Join-Path $PSScriptRoot '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
 $power=(& powercfg /getactivescheme | Out-String).Trim()
 if($LASTEXITCODE -ne 0 -or -not $power) { throw 'Power policy identity is unavailable.' }
 $environment=[ordered]@{machine=$env:COMPUTERNAME;cpu=$env:PROCESSOR_IDENTIFIER;os=[Environment]::OSVersion.VersionString;
@@ -31,6 +32,8 @@ if($FreezeBaseline) {
     if(@(& git -C $PSScriptRoot status --porcelain).Count) { throw 'Commit the instrumented baseline before freezing it.' }
     Copy-Item -LiteralPath $exe -Destination (Join-Path $OutputRoot 'RedTilde.exe')
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot '.build/x64/Release/build-receipt.json') -Destination (Join-Path $OutputRoot 'build.json')
+    Copy-Item -LiteralPath $rawCompiler -Destination (Join-Path $OutputRoot 'compiler-command.tlog')
+    $compiler['rawFile']='compiler-command.tlog'
     [ordered]@{schemaVersion=1;commit=(& git -C $PSScriptRoot rev-parse HEAD);build=$build;compiler=$compiler;inputs=$inputs;environment=$environment} |
         ConvertTo-Json -Depth 14 | Set-Content (Join-Path $OutputRoot 'baseline.json') -Encoding utf8
     Write-Host "Immutable instrumented baseline: $OutputRoot"
@@ -46,8 +49,21 @@ if($base.build.binarySha256 -cne (Get-FileHash $baselinePath).Hash -or $base.com
 if(-not $SameBinaryControl -and $base.build.binarySha256 -ceq $build.binarySha256) { throw 'Use SameBinaryControl for the same executable.' }
 $schedule=New-RedTildePerformanceSchedule -Blocks $Blocks -Seed $Seed
 $candidateIdentity=if($SameBinaryControl) { $base } else { @{build=$build;compiler=$compiler;inputs=$inputs;environment=$environment} }
+$compilerReceipts=[ordered]@{}
+foreach($side in @('baseline','candidate')) {
+    $profile=if($side -ceq 'baseline'){$base.compiler}else{$candidateIdentity.compiler}
+    if(-not $profile.Contains('schemaVersion') -or $profile.schemaVersion -ne 2) {throw 'A fresh compiler-profile-v2 baseline is required.'}
+    $rawPath=if($side -ceq 'baseline' -or $SameBinaryControl) {
+        if([IO.Path]::GetFileName([string]$profile.rawFile) -cne $profile.rawFile){throw 'Invalid baseline compiler receipt path.'}
+        Join-Path $Baseline $profile.rawFile
+    }else{$rawCompiler}
+    if((Get-FileHash -LiteralPath $rawPath).Hash -cne $profile.rawSha256){throw 'Raw compiler command bytes changed.'}
+    $leaf=$side+'-compiler-command.tlog'
+    Copy-Item -LiteralPath $rawPath -Destination (Join-Path $OutputRoot $leaf)
+    $compilerReceipts[$side]=[ordered]@{file=$leaf;sha256=$profile.rawSha256}
+}
 [ordered]@{protocol='independent-ABBA-BAAB-v1';blocks=$Blocks;seed=$Seed;cycles=$Cycles;sameBinaryControl=[bool]$SameBinaryControl;
-    baseline=$base;candidate=$candidateIdentity;schedule=$schedule;controlDiagnostics=[bool]$ControlDiagnostics} |
+    baseline=$base;candidate=$candidateIdentity;compilerReceipts=$compilerReceipts;schedule=$schedule;controlDiagnostics=[bool]$ControlDiagnostics} |
     ConvertTo-Json -Depth 18 | Set-Content (Join-Path $OutputRoot 'study.json') -Encoding utf8
 $pairs=[Collections.Generic.List[object]]::new()
 $nativeIdentities=@{}

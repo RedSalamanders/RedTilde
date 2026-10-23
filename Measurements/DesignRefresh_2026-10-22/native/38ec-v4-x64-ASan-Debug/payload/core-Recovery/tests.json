@@ -1,0 +1,10 @@
+{
+  "tests": [
+    {"name":"Recovery.StrictEnvelopeAndUnicode","passed":true},
+    {"name":"Recovery.DebounceLeaseCoalescingAndRetirement","passed":true},
+    {"name":"Recovery.CorruptAndFutureDataQuarantined","passed":true},
+    {"name":"Recovery.LocalDraftCancelPreviewRestoreProtectsOriginal","passed":true},
+    {"name":"Recovery.DiscardFailureRetainsCandidateAndRetryClearsError","passed":true}
+  ],
+  "passed": 5, "failed": 0, "selected": 5, "registered": 52, "catalogOnly": false
+}

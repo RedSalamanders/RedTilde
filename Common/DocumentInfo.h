@@ -12,11 +12,38 @@ struct Heading
     std::size_t offset{};
     std::wstring text;
 };
+enum class DocumentNewlineKind
+{
+    None,
+    Lf,
+    CrLf,
+    Cr,
+    Mixed
+};
+struct DocumentLine
+{
+    std::size_t offset{}, length{}; // Source UTF-16 content, excluding CR/LF.
+    bool operator==(const DocumentLine &) const noexcept = default;
+};
 struct DocumentInfo
 {
     std::size_t words{}, characters{}, lines{};
     std::vector<Heading> headings;
+    // Facts belong to the same source revision as characters/headings. Empty
+    // source and a final newline each retain their real empty physical line.
+    std::vector<DocumentLine> lineIndex;
+    DocumentNewlineKind newlineKind = DocumentNewlineKind::None;
+};
+struct DocumentPosition
+{
+    std::size_t line = 1, column = 1; // One-based source UTF-16 positions.
+    std::size_t lineOffset{}, lineCharacters{};
+    bool operator==(const DocumentPosition &) const noexcept = default;
 };
 [[nodiscard]] DocumentInfo AnalyzeDocument(std::wstring_view text);
+// Logarithmic read of the analyzed revision: no source scan or allocation.
+// Oversized ACPs clamp to source end. An ACP between CR/LF stays at the prior
+// line's content end; the following line begins only after the complete pair.
+[[nodiscard]] DocumentPosition DocumentPositionAt(const DocumentInfo &info, std::size_t caret) noexcept;
 [[nodiscard]] std::wstring EquationAt(std::wstring_view text, std::size_t caret);
 } // namespace RedTilde

@@ -1,6 +1,7 @@
 #include "DocumentInfo.h"
 #include <algorithm>
 #include <cwctype>
+#include <iterator>
 
 namespace RedTilde
 {
@@ -19,10 +20,11 @@ DocumentInfo AnalyzeDocument(std::wstring_view text)
     wchar_t fence{};
     std::size_t fenceLength{};
     std::size_t offset{};
-    while (offset < text.size())
+    bool crlf{}, cr{}, lf{};
+    for (;;)
     {
-        ++result.lines;
         const auto end = text.find_first_of(L"\r\n", offset);
+        result.lineIndex.push_back({offset, (end == text.npos ? text.size() : end) - offset});
         auto line = text.substr(offset, end == text.npos ? text.size() - offset : end - offset);
         std::size_t indent{};
         while (indent < line.size() && indent < 4 && line[indent] == L' ')
@@ -61,7 +63,7 @@ DocumentInfo AnalyzeDocument(std::wstring_view text)
                     while (!body.empty() && iswspace(body.back()))
                         body.remove_suffix(1);
                 }
-                if (result.headings.size() < 128)
+                if (!body.empty() && result.headings.size() < 128)
                     result.headings.push_back({static_cast<unsigned>(count), offset + indent, std::wstring(body)});
             }
         }
@@ -69,9 +71,35 @@ DocumentInfo AnalyzeDocument(std::wstring_view text)
             break;
         offset = end + 1;
         if (text[end] == L'\r' && offset < text.size() && text[offset] == L'\n')
+        {
+            crlf = true;
             ++offset;
+        }
+        else if (text[end] == L'\r')
+            cr = true;
+        else
+            lf = true;
     }
+    result.lines = result.lineIndex.size();
+    const auto kinds = static_cast<unsigned>(crlf) + static_cast<unsigned>(cr) + static_cast<unsigned>(lf);
+    result.newlineKind = kinds > 1 ? DocumentNewlineKind::Mixed
+                         : crlf    ? DocumentNewlineKind::CrLf
+                         : cr      ? DocumentNewlineKind::Cr
+                         : lf      ? DocumentNewlineKind::Lf
+                                   : DocumentNewlineKind::None;
     return result;
+}
+
+DocumentPosition DocumentPositionAt(const DocumentInfo &info, std::size_t caret) noexcept
+{
+    if (info.lineIndex.empty())
+        return {};
+    caret = std::min(caret, info.characters);
+    const auto after = std::upper_bound(info.lineIndex.begin(), info.lineIndex.end(), caret,
+                                        [](std::size_t offset, const DocumentLine &line) { return offset < line.offset; });
+    const auto current = after == info.lineIndex.begin() ? after : std::prev(after);
+    return {static_cast<std::size_t>(current - info.lineIndex.begin()) + 1, std::min(caret - current->offset, current->length) + 1, current->offset,
+            current->length};
 }
 
 std::wstring EquationAt(std::wstring_view text, std::size_t caret)

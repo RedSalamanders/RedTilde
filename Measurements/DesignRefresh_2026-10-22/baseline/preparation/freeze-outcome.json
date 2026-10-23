@@ -1,0 +1,26 @@
+{
+  "passed": true,
+  "exitCode": 0,
+  "commit": "d3e80a3cbd8d0e74a67d16c5f98b738dab42dce9",
+  "sourceIdentity": "4ef3aa833e2795243055a6fbff3b2cbfae53732720f49fc57da265154ab32cb6",
+  "binarySha256": "DA5CE23C925543A5A32D73E58D3FD69C13DEB82D4154DCF776F3AF27D071DE9F",
+  "dependency": {
+    "commit": "e62dd9d9a91a6ad68d88f7f01a6dd075ae31dbd3",
+    "apiRevision": 4,
+    "platform": "x64",
+    "toolset": "v145",
+    "vcToolsVersion": "14.51.36231",
+    "windowsSdkVersion": "10.0.26100.0",
+    "runtimeFamily": "MD",
+    "preferredToolArchitecture": "x86",
+    "disableStlAnnotations": false,
+    "msbuildSha256": "5F1F3AFBF86DBD8DDEB130367AE62A3B8B9750810DEB5BA1C89F20B3F9D7E878",
+    "compilerSha256": "454912D4C941D57B336125B2BCA78D9D24043E1842625E7C341DF32A733E89E2",
+    "linkerSha256": "49FF747F22B070AC4B29BA3F74DB05D219C724CC0FDB64FC910A63CA94864CE3",
+    "windowsHeaderSha256": "B337D661D03A4ABEFB7B86A2742CE1AD5D19B57CD8B858BD13E7BBCC1DBEEAAA",
+    "kernel32Sha256": "341C7D56125A03B458E4D5093E4C79B33123CCFDFD610FE236937B8E6F3134BB",
+    "ucrtSha256": "7EF4EAC926BF597D2F243F16CDFED7E0DB22CB3CA34A1D7E088A84C994A03D66"
+  },
+  "frozenDirectory": "D:\\RedTilde\\.build\\base\\.build\\frozen-design-baseline-v4",
+  "completedUtc": "2026-10-23T00:59:58.4429783Z"
+}

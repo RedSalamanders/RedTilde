@@ -17,19 +17,10 @@ if (-not $SkipBuild) { & (Join-Path $PSScriptRoot 'build.ps1') -Platform $Platfo
 $architecture=[Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
 if ($Platform -eq 'ARM64' -and $architecture -ne 'Arm64') { throw 'ARM64 runtime tests require a native ARM64 host.' }
 Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
-$exe=Join-Path $PSScriptRoot ".build/$Platform/$Configuration/RedTilde.exe"
-$buildReceipt=Join-Path $PSScriptRoot ".build/$Platform/$Configuration/build-receipt.json"
-if (-not (Test-Path -LiteralPath $buildReceipt)) { throw 'No successful build identity exists. Run build.ps1 before testing this artifact.' }
-$built=Get-Content $buildReceipt -Raw | ConvertFrom-Json
-$sourceIdentity=Get-RedTildeSourceIdentity -Root $PSScriptRoot
-if (-not $built.passed -or $built.sourceIdentity -cne $sourceIdentity -or $built.platform -cne $Platform -or
-    $built.configuration -cne $Configuration -or $built.binarySha256 -cne (Get-FileHash $exe).Hash) {
-    throw 'The existing executable does not match the current source/profile/build receipt. Rebuild it before using -SkipBuild.'
-}
-Import-Module (Join-Path $PSScriptRoot 'Build/ScopedTesting.psm1') -Force
-if(-not $built.PSObject.Properties['artifactIdentity'] -or $built.artifactIdentity -cne (Get-ScopedArtifactIdentity $PSScriptRoot $Platform $Configuration)){
-    throw 'The complete executable/runtime closure does not match its successful build. Rebuild before -SkipBuild.'
-}
+$artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
+$exe=$artifact.Executable
+$built=$artifact.Build
+$sourceIdentity=$artifact.SourceIdentity
 Import-Module (Join-Path $PSScriptRoot 'Build/TestRunEvidence.psm1') -Force
 $evidence=Start-TestRunEvidence -Repository $PSScriptRoot -Context @{project='RedTilde';platform=$Platform;configuration=$Configuration;suites=$Suites;sourceIdentity=$sourceIdentity;binarySha256=$built.binarySha256}
 $run=$evidence.Path
@@ -37,7 +28,8 @@ $receipt=$null
 try {
 $pin=Get-Content (Join-Path $PSScriptRoot 'Dependencies/DxUi.lock.json') -Raw | ConvertFrom-Json
 $receipt=[ordered]@{schemaVersion=1; sourceIdentity=$sourceIdentity; dependency=$pin.commit;
-    binarySha256=(Get-FileHash $exe).Hash; platform=$Platform; configuration=$Configuration; hostArchitecture=$architecture;
+    binarySha256=(Get-FileHash $exe).Hash; buildReceiptSha256=$artifact.ReceiptSha256;toolchain=$built.dependency.Identity;
+    platform=$Platform; configuration=$Configuration; hostArchitecture=$architecture;
     suite=($Suites -join ','); interactive=$false; environment=@{osVersion=[Environment]::OSVersion.VersionString;processor=$env:PROCESSOR_IDENTIFIER;
     logicalProcessors=[Environment]::ProcessorCount;renderMode='hidden native ControlHost, default device'};
     startedUtc=[DateTime]::UtcNow.ToString('o'); passed=$false; results=@()}
@@ -78,6 +70,14 @@ try {
                 $exit=Invoke-RedTildeHarness -Executable $exe -Arguments ($bad.arguments+@('--data-dir',(Join-Path $run ('bad-'+$bad.name)))) -LogPrefix (Join-Path $run ('bad-'+$bad.name))
                 if($exit -ne 1){throw "Native scope argument refusal failed: $($bad.name) ($exit)"}
             }
+            $refusal=Join-Path $run 'interactive-refusal.json'
+            $exit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--design-interactive-probe',$refusal,'--data-dir',(Join-Path $run 'interactive-refusal-data')) -LogPrefix (Join-Path $run 'interactive-refusal')
+            $refused=Get-Content -LiteralPath $refusal -Raw|ConvertFrom-Json
+            if($exit -ne 1 -or $refused.passed -or $refused.leaseGuarded -or $refused.realKeyboardInput -or
+                $refused.injectedEvents -ne 0 -or @($refused.tests).Count -ne 1 -or $refused.tests[0].name -cne 'Lease.Setup'){
+                throw 'An unleased interactive child did not refuse before showing or injecting input.'
+            }
+            $receipt.results+=@{scope='InteractiveProbeRefusal';noLeaseNoInput=$true;childSha256=(Get-FileHash -LiteralPath $refusal).Hash}
         }
     }
     if('Preferences' -in $Suites){
@@ -107,14 +107,29 @@ try {
         Write-Host ("Native forced render: {0:N1} FPS; private memory {1:N1} MiB; dirty edit/render {2:N2} ms. Initial app baseline only." -f $metrics.cleanRenderFps,($metrics.privateBytes/1MB),$metrics.dirtyEditAndRenderMs)
     }
     if ('Captures' -in $Suites) {
-        $scenarios=@('compose-light','compose-dark','source','split','context-selection','local-source','settings','math','math-dark','mermaid','recovery','narrow','high-contrast')
-        foreach ($scenario in $scenarios) {
-            $output=Join-Path $run ($scenario+'.png')
-            $exit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--capture',$output,'--scenario',$scenario,'--data-dir',(Join-Path $run ('capture-data-'+$scenario))) -LogPrefix (Join-Path $run $scenario)
+        $scenarios=@('compose-light','compose-dark','source','split','context-selection','local-source','settings','math','math-dark','mermaid','recovery','narrow','high-contrast','files','find','focus','equation')
+        $captures=@($scenarios|ForEach-Object{@{name=$_;scenario=$_;arguments=@()}})
+        $captures+=@(96,144,192|ForEach-Object{@{name="narrow-dpi-$_";scenario='narrow';arguments=@('--capture-dpi',"$_")}})
+        foreach ($capture in $captures) {
+            $scenario=$capture.scenario
+            $name=$capture.name
+            $output=Join-Path $run ($name+'.png')
+            $exit=Invoke-RedTildeHarness -Executable $exe -Arguments (@('--capture',$output,'--scenario',$scenario,'--data-dir',(Join-Path $run ('capture-data-'+$name)))+$capture.arguments) -LogPrefix (Join-Path $run $name)
             if ($exit -ne 0 -or -not (Test-Path -LiteralPath $output)) { throw "Capture '$scenario' failed ($exit)." }
-            $receipt.results+=@{scope='Capture';scenario=$scenario;sha256=(Get-FileHash $output).Hash}
+            $sidecar=$output+'.scenario.json'
+            $geometry=Get-Content -LiteralPath $sidecar -Raw|ConvertFrom-Json
+            if($geometry.schemaVersion -ne 1 -or $geometry.scenario -cne $scenario -or -not $geometry.hidden -or
+                $geometry.actualWidthDip -lt 800 -or $geometry.actualHeightDip -lt 560 -or
+                ($geometry.requestedDpi -and $geometry.requestedDpi -ne $geometry.actualHostDpi)) { throw "Capture '$name' has invalid geometry provenance." }
+            $png=[IO.File]::ReadAllBytes($output)
+            if($png.Length -lt 24 -or [Convert]::ToHexString($png[0..7]) -cne '89504E470D0A1A0A'){throw "Capture '$name' has no PNG header."}
+            $width=[uint32]$png[16]*16777216+[uint32]$png[17]*65536+[uint32]$png[18]*256+[uint32]$png[19]
+            $height=[uint32]$png[20]*16777216+[uint32]$png[21]*65536+[uint32]$png[22]*256+[uint32]$png[23]
+            if($width -ne $geometry.actualWidthPx -or $height -ne $geometry.actualHeightPx) { throw "Capture '$name' pixels differ from their scenario provenance." }
+            $receipt.results+=@{scope='Capture';name=$name;scenario=$scenario;sha256=(Get-FileHash $output).Hash;
+                provenanceSha256=(Get-FileHash $sidecar).Hash;geometry=$geometry}
         }
-        Write-Host "$($scenarios.Count) actual hidden application captures generated."
+        Write-Host "$($captures.Count) actual hidden application captures generated with viewport/DPI provenance."
     }
     if ('Crash' -in $Suites) {
         $crashData=Join-Path $run 'crash-probe'

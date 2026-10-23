@@ -47,8 +47,19 @@ try{
             Assert ('Captures' -notin $plan.scopes -and 'Editor' -notin $plan.scopes) 'Storage-only edit selected unrelated native render cases'
             $plan=Get-ScopedTestPlan $manifest @('Tests/Application.Tests.Performance.cpp')
             Assert ('Editor' -in $plan.scopes -and 'Performance' -in $plan.scopes) 'Native performance helper lost its behavioral consumer'
+            foreach($path in @('Common/Files.cpp','Common/Files.h','Common/RemoteImage.cpp','Common/RemoteImage.h')){
+                $plan=Get-ScopedTestPlan $manifest @($path)
+                Assert ('Storage' -in $plan.scopes -and 'Editor' -in $plan.scopes -and 'Crash' -notin $plan.scopes) "Service consumer omitted or widened: $path"
+            }
+            $plan=Get-ScopedTestPlan $manifest @('Tests/Support/Support.Tests.FilesFixtures.h')
+            Assert ('Storage' -in $plan.scopes -and 'Editor' -in $plan.scopes -and 'Captures' -in $plan.scopes) 'Shared folder fixture lost a consumer'
             $catalog=Get-Content (Join-Path $root 'Tests/native-case-catalog.json') -Raw|ConvertFrom-Json
-            $declared=@([regex]::Matches([IO.File]::ReadAllText((Join-Path $root 'Tests/Application.Tests.Core.cpp')),'\btest\("([^"]+)"')|ForEach-Object{$_.Groups[1].Value})
+            # The reviewed native inventory owns registration units, including
+            # split suites; a single-file scan silently omitted new Core cases.
+            $native=Get-Content (Join-Path $root $manifest.nativeInventory) -Raw|ConvertFrom-Json
+            $declared=@(foreach($unit in @($native.files|Where-Object{$_.suite -ceq 'Core' -and $_.path.EndsWith('.cpp')})){
+                [regex]::Matches([IO.File]::ReadAllText((Join-Path $root $unit.path)),'\btest\s*\(\s*"([^"]+)"')|ForEach-Object{$_.Groups[1].Value}
+            })
             Assert (-not(Compare-Object $declared @($catalog.cases.name))) 'Reviewed native catalog differs from source'
             Assert (@($catalog.cases.name|Sort-Object -Unique).Count -eq $declared.Count) 'Duplicate native case'
         }
@@ -239,7 +250,7 @@ try{
     Put (Join-Path $public 'Tests/native-test-files.json') '["Tests/Example.Tests.Case.cpp","Tests/Other.Tests.Case.cpp"]'
     Copy-Item -LiteralPath (Join-Path $root 'Test-Changes.ps1') -Destination (Join-Path $public 'Test-Changes.ps1')
     Put (Join-Path $public 'Build/ScopedTesting.psm1') ([IO.File]::ReadAllText((Join-Path $root 'Build/ScopedTesting.psm1')))
-    $mini.runtimeFiles=@();$mini.scopes=@(@{name='Example';native=$true;reuse=$true},@{name='Other';native=$true;reuse=$true},@{name='Tooling';native=$false;reuse=$true;commands=@(@{path='validate.ps1';arguments=@()})})
+    $mini.runtimeFiles=@();$mini.scopes=@(@{name='Example';native=$true;reuse=$true},@{name='Other';native=$true;reuse=$true},@{name='Tooling';native=$false;reuse=$true;commands=@(@{path='validate.ps1';arguments=@()},@{path='switch.ps1';arguments=@('-Expected')})})
     $mini.rules=@(@{pattern='Tests/Example.Tests.Case.cpp';scopes=@('Example');reason='example owner'},@{pattern='Tests/Other.Tests.Case.cpp';scopes=@('Other');reason='other owner'})
     Put (Join-Path $public 'Tests/test-scopes.json') ($mini|ConvertTo-Json -Depth 8)
     Put (Join-Path $public 'build.ps1') @'
@@ -257,16 +268,34 @@ if(Test-Path (Join-Path $PSScriptRoot '.build/fail')){exit 1}
 if(Test-Path (Join-Path $PSScriptRoot '.build/mutate')){[IO.File]::AppendAllText((Join-Path $PSScriptRoot 'Tests/Other.Tests.Case.cpp'),'mutated')}
 exit 0
 '@
-    Put (Join-Path $public 'validate.ps1') "[IO.File]::AppendAllText((Join-Path `$PSScriptRoot '.build/tooling.txt'),`"run``n`")"
+    Put (Join-Path $public 'validate.ps1') @'
+[CmdletBinding()]
+param()
+[void](New-Item -ItemType Directory -Path (Join-Path $PSScriptRoot '.build') -Force)
+[IO.File]::WriteAllText((Join-Path $PSScriptRoot '.build/no-arguments.txt'),'ran')
+'@
+    Put (Join-Path $public 'switch.ps1') @'
+[CmdletBinding()]
+param([switch]$Expected)
+if(-not $Expected){throw 'The manifest switch was not bound'}
+[void](New-Item -ItemType Directory -Path (Join-Path $PSScriptRoot '.build') -Force)
+[IO.File]::WriteAllText((Join-Path $PSScriptRoot '.build/explicit-switch.txt'),'ran')
+'@
     Invoke-FixtureGit $public @('add','-A');Invoke-FixtureGit $public @('commit','-qm','baseline');Invoke-FixtureGit $public @('update-ref','refs/remotes/origin/main','HEAD');Invoke-FixtureGit $public @('switch','-qc','candidate')
     $platform=if([Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString() -eq 'Arm64'){'ARM64'}else{'x64'}
     $state=Join-Path $public ".build/reports/scoped-tests/$platform-Debug/iteration.json"
-    function Run([string[]]$Arguments=@()){
+    function Run([string[]]$Arguments=@(),[string]$Directory=$public){
         $binary=Join-Path $PSHOME $(if($IsWindows){'pwsh.exe'}else{'pwsh'})
         $start=[Diagnostics.ProcessStartInfo]::new($binary);$start.UseShellExecute=$false;$start.RedirectStandardOutput=$true;$start.RedirectStandardError=$true
-        foreach($arg in @('-NoProfile','-File',(Join-Path $public 'Test-Changes.ps1'),'-Platform',$platform)+$Arguments){$start.ArgumentList.Add($arg)}
+        foreach($arg in @('-NoProfile','-File',(Join-Path $Directory 'Test-Changes.ps1'),'-Platform',$platform)+$Arguments){$start.ArgumentList.Add($arg)}
         $process=[Diagnostics.Process]::Start($start)
         try{$out=$process.StandardOutput.ReadToEndAsync();$err=$process.StandardError.ReadToEndAsync();if(-not $process.WaitForExit(120000)){$process.Kill($true);throw 'Owned protocol fixture timed out'};[pscustomobject]@{Exit=$process.ExitCode;Text=$out.GetAwaiter().GetResult()+$err.GetAwaiter().GetResult()}}finally{$process.Dispose()}
+    }
+    Case 'public runner expands empty and explicit tooling argument arrays exactly' {
+        $r=Run @('-Scopes','Tooling')
+        Assert ($r.Exit -eq 0) "Strict tooling commands failed through the public runner: $($r.Text)"
+        Assert ((Get-Content (Join-Path $public '.build/no-arguments.txt') -Raw) -ceq 'ran') 'Empty manifest arguments reached the strict no-parameter script as an argument'
+        Assert ((Get-Content (Join-Path $public '.build/explicit-switch.txt') -Raw) -ceq 'ran') 'Named manifest switch did not bind in the strict script'
     }
     Case 'public default records a successful affected baseline and then runs nothing unchanged' {
         Put (Join-Path $public 'Tests/Example.Tests.Case.cpp') 'example changed'

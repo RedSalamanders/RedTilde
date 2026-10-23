@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "scenario": "narrow",
+  "fixtureBasename": "Writing",
+  "requestedDpi": 192,
+  "nativeWindowDpi": 144,
+  "actualHostDpi": 192,
+  "simulatedDpi": true,
+  "requestedWidthPx": 1600,
+  "requestedHeightPx": 1120,
+  "actualWidthPx": 1600,
+  "actualHeightPx": 1120,
+  "actualWidthDip": 800,
+  "actualHeightDip": 560,
+  "filesModelFrozen": true,
+  "reparseFixtureRemoved": true,
+  "hidden": true,
+  "qualification": "Owned hidden application render; no physical-monitor or native-platform acceptance"
+}

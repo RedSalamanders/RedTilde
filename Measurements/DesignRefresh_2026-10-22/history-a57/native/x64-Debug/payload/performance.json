@@ -1,0 +1,13 @@
+{
+  "scenario":"sample-richtext-native-hidden",
+  "cleanFrames":60,
+  "cleanRenderFps":62.6062,
+  "dirtyFrames":120,
+  "dirtyEditAndRenderMs":3.61647,
+  "workingSetBytes":59600896,
+  "privateBytes":52121600,
+  "dpi":144,
+  "widthPx":1924,
+  "heightPx":1170,
+  "qualification":"initial application baseline only; forced native renders, not presentation FPS or a paired non-regression claim"
+}

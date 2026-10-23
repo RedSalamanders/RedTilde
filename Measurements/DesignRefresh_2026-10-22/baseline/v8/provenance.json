@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "kind": "Selected baseline-v8 provenance",
+  "createdUtc": "2026-10-23T08:42:41.1102022+00:00",
+  "originalSourceCommit": "f819395d36c55b93e3bf9559d12d0ec401e42b3d",
+  "baselineCommit": "b6c9dfefa163c4abd0bfbe23554d357e1a851ea8",
+  "priorBaselineCommit": "fd245010a7ab8090e33f4eb44ce8c114b262cb0a",
+  "baselineClean": true,
+  "baseline": {
+    "platform": "x64",
+    "configuration": "Release",
+    "sourceIdentity": "6c4dbf5ed70799d58a3b6d1509e06800146601fd8bca797148b5caf6b81c5e00",
+    "artifactIdentity": "0473b583643ce2c2089c9a8bac89913e92a622bac60904bdddf54b173ee5483f",
+    "exeSha256": "BC589A3046663A19942D1049FF0DC6984488376F51344DF6D0CAB4E47AE717DD",
+    "exeBytes": 4203520,
+    "binaryIncluded": false,
+    "binaryFreshlyRehashed": false
+  },
+  "dependency": {
+    "commit": "38ec36be42bf693dc649f1fe6b1dfc6cf34d4064",
+    "fingerprint": "6dc95341fc7befc869f6d03ed17300c4d0b6c2e5ea5f916fcf91269b7e1dc6c3",
+    "apiRevision": 4,
+    "platform": "x64",
+    "toolset": "v145",
+    "vcToolsVersion": "14.51.36231",
+    "windowsSdkVersion": "10.0.26100.0",
+    "runtimeFamily": "MD",
+    "preferredToolArchitecture": "x86",
+    "disableStlAnnotations": false,
+    "msbuildSha256": "5F1F3AFBF86DBD8DDEB130367AE62A3B8B9750810DEB5BA1C89F20B3F9D7E878",
+    "compilerSha256": "454912D4C941D57B336125B2BCA78D9D24043E1842625E7C341DF32A733E89E2",
+    "linkerSha256": "49FF747F22B070AC4B29BA3F74DB05D219C724CC0FDB64FC910A63CA94864CE3",
+    "windowsHeaderSha256": "B337D661D03A4ABEFB7B86A2742CE1AD5D19B57CD8B858BD13E7BBCC1DBEEAAA",
+    "kernel32Sha256": "341C7D56125A03B458E4D5093E4C79B33123CCFDFD610FE236937B8E6F3134BB",
+    "ucrtSha256": "7EF4EAC926BF597D2F243F16CDFED7E0DB22CB3CA34A1D7E088A84C994A03D66"
+  },
+  "commonInputs": [
+    {
+      "path": "Tests/Application.Tests.Performance.cpp",
+      "bytes": 29748,
+      "sha256": "AC7F6912CCE121AF62752A2E606ECE5C40BD37A9BEBCD81EB299A9782FCBB164",
+      "manifestSha256": "AC7F6912CCE121AF62752A2E606ECE5C40BD37A9BEBCD81EB299A9782FCBB164",
+      "baselineSha256": "AC7F6912CCE121AF62752A2E606ECE5C40BD37A9BEBCD81EB299A9782FCBB164",
+      "candidateSha256": "AC7F6912CCE121AF62752A2E606ECE5C40BD37A9BEBCD81EB299A9782FCBB164",
+      "candidateFrozenSha256": "AC7F6912CCE121AF62752A2E606ECE5C40BD37A9BEBCD81EB299A9782FCBB164",
+      "exactMatch": true
+    },
+    {
+      "path": "RedTilde/Main.cpp",
+      "bytes": 9248,
+      "sha256": "7918862FD087DE59C563B21C9BE196D6C1F4A620C2F66468A1914D72D0F070AF",
+      "manifestSha256": "7918862FD087DE59C563B21C9BE196D6C1F4A620C2F66468A1914D72D0F070AF",
+      "baselineSha256": "7918862FD087DE59C563B21C9BE196D6C1F4A620C2F66468A1914D72D0F070AF",
+      "candidateSha256": "7918862FD087DE59C563B21C9BE196D6C1F4A620C2F66468A1914D72D0F070AF",
+      "candidateFrozenSha256": "7918862FD087DE59C563B21C9BE196D6C1F4A620C2F66468A1914D72D0F070AF",
+      "exactMatch": true
+    },
+    {
+      "path": "RedTilde/EditDiagnostics.h",
+      "bytes": 1818,
+      "sha256": "B789D0A0DBD16E5936582719915CF873F63E672F0BDA009D4DF02CA7B5CFAB48",
+      "manifestSha256": "B789D0A0DBD16E5936582719915CF873F63E672F0BDA009D4DF02CA7B5CFAB48",
+      "baselineSha256": "B789D0A0DBD16E5936582719915CF873F63E672F0BDA009D4DF02CA7B5CFAB48",
+      "candidateSha256": "B789D0A0DBD16E5936582719915CF873F63E672F0BDA009D4DF02CA7B5CFAB48",
+      "candidateFrozenSha256": "B789D0A0DBD16E5936582719915CF873F63E672F0BDA009D4DF02CA7B5CFAB48",
+      "exactMatch": true
+    },
+    {
+      "path": "performance-paired.ps1",
+      "bytes": 9827,
+      "sha256": "EC17F60BE95D513C6DB4314EBE78201FC680DA795563C835EB1241517640777B",
+      "manifestSha256": "EC17F60BE95D513C6DB4314EBE78201FC680DA795563C835EB1241517640777B",
+      "baselineSha256": "EC17F60BE95D513C6DB4314EBE78201FC680DA795563C835EB1241517640777B",
+      "candidateSha256": "EC17F60BE95D513C6DB4314EBE78201FC680DA795563C835EB1241517640777B",
+      "candidateFrozenSha256": "EC17F60BE95D513C6DB4314EBE78201FC680DA795563C835EB1241517640777B",
+      "exactMatch": true
+    },
+    {
+      "path": "Build/Performance.psm1",
+      "bytes": 15228,
+      "sha256": "A5850D16712CC8D8C7AE494EB3366BE791805FC933E3BD9DC15CC4AAB49396CB",
+      "manifestSha256": "A5850D16712CC8D8C7AE494EB3366BE791805FC933E3BD9DC15CC4AAB49396CB",
+      "baselineSha256": "A5850D16712CC8D8C7AE494EB3366BE791805FC933E3BD9DC15CC4AAB49396CB",
+      "candidateSha256": "A5850D16712CC8D8C7AE494EB3366BE791805FC933E3BD9DC15CC4AAB49396CB",
+      "candidateFrozenSha256": "A5850D16712CC8D8C7AE494EB3366BE791805FC933E3BD9DC15CC4AAB49396CB",
+      "exactMatch": true
+    },
+    {
+      "path": "Build/Harness.psm1",
+      "bytes": 3762,
+      "sha256": "E53552E8CF7002F52A09CDCA5D593757365919C646C76C5031804CBB267F454E",
+      "manifestSha256": "E53552E8CF7002F52A09CDCA5D593757365919C646C76C5031804CBB267F454E",
+      "baselineSha256": "E53552E8CF7002F52A09CDCA5D593757365919C646C76C5031804CBB267F454E",
+      "candidateSha256": "E53552E8CF7002F52A09CDCA5D593757365919C646C76C5031804CBB267F454E",
+      "candidateFrozenSha256": "E53552E8CF7002F52A09CDCA5D593757365919C646C76C5031804CBB267F454E",
+      "exactMatch": true
+    },
+    {
+      "path": "docs/examples/s5-performance.md",
+      "bytes": 700,
+      "sha256": "9CE1CA2DE3983070C40DC5A9DF331C9AA386FE796371E5527BF370AC70D3A10E",
+      "manifestSha256": "9CE1CA2DE3983070C40DC5A9DF331C9AA386FE796371E5527BF370AC70D3A10E",
+      "baselineSha256": "9CE1CA2DE3983070C40DC5A9DF331C9AA386FE796371E5527BF370AC70D3A10E",
+      "candidateSha256": "9CE1CA2DE3983070C40DC5A9DF331C9AA386FE796371E5527BF370AC70D3A10E",
+      "candidateFrozenSha256": "9CE1CA2DE3983070C40DC5A9DF331C9AA386FE796371E5527BF370AC70D3A10E",
+      "exactMatch": true
+    }
+  ],
+  "candidateReference": {
+    "sourceIdentity": "0f429dc7d7264c12522c49b15e8de5ad768b49f31c3903ef8fdd86004ac25460",
+    "compiledIdentity": "57703bf17b7de4d8c701699f8c564158801d3bd038499f875a9fcf65518bcfc5",
+    "freezeOrigin": {
+      "origin": ".build/design-refresh/final-source-freeze-38ec36be-v4.json",
+      "bytes": 11609,
+      "sha256": "2E7CA23E3E37B1A0EA94DF6E3D5F38C7223D4EE6EDD3904DA7E0967671AB1474",
+      "freshlyHashed": true,
+      "publicCopy": false
+    },
+    "basis": "Exact retained v4 freeze record; current ready-candidate build comparison remains separately labeled."
+  },
+  "sourceScope": {
+    "v7ToV8ChangedPaths": [
+      "Dependencies/DxUi.lock.json"
+    ],
+    "onlyDependencyLockChangedFromV7": true,
+    "originalImplementationClosure": [
+      "RedTilde/Application.cpp",
+      "RedTilde/UiControls.h",
+      "Common",
+      "res",
+      "RedTilde/RedTilde.vcxproj"
+    ],
+    "originalImplementationClosureUnchanged": true,
+    "originalToBaselineReviewedInstrumentationPaths": [
+      "Build/Harness.psm1",
+      "Build/Performance.psm1",
+      "CHANGELOG.md",
+      "Dependencies/DxUi.lock.json",
+      "RedTilde/Application.h",
+      "RedTilde/Main.cpp",
+      "Tests/Application.Tests.Performance.cpp",
+      "Tests/Scope.Tests.Performance.Evidence.ps1",
+      "Tests/Scope.Tests.Performance.Tooling.ps1",
+      "performance-paired.ps1"
+    ]
+  },
+  "compiler": {
+    "schemaVersion": 2,
+    "profileSha256": "E41449E6BB2488861A84F7D1C74000D37118C193EBF502475522D7689029754B",
+    "rawTlogSha256": "C423940617129F274CA99E90310EDDDEED09D5BF27B962691D09F93737177D8E",
+    "translationUnitCount": 9,
+    "optionsIdenticalToV7ExceptExactPinFingerprintPaths": true,
+    "toolchainHashesUnchangedFromV7": true,
+    "rawCommandsIncluded": false
+  },
+  "candidateComparison": {
+    "status": "EXACT PROFILE AND FROZEN COMPILED INPUT MATCH",
+    "frozenSourceIdentity": "0f429dc7d7264c12522c49b15e8de5ad768b49f31c3903ef8fdd86004ac25460",
+    "frozenCompiledIdentity": "57703bf17b7de4d8c701699f8c564158801d3bd038499f875a9fcf65518bcfc5",
+    "candidateSourceIdentity": "0f429dc7d7264c12522c49b15e8de5ad768b49f31c3903ef8fdd86004ac25460",
+    "candidateCompiledIdentity": "57703bf17b7de4d8c701699f8c564158801d3bd038499f875a9fcf65518bcfc5",
+    "candidateSourceIdentityEqualsFreeze": true,
+    "candidateArtifactIdentity": "a34f872555152fd630ef75ae4a556d22402ca7171ef18b567dea3da13b3a289e",
+    "candidateBinarySha256Quoted": "7588BAAEAB459A9CA325C6B606CBA806EDAADBA2E1E27E3488F73F6068949A7B",
+    "profileSha256": "E41449E6BB2488861A84F7D1C74000D37118C193EBF502475522D7689029754B",
+    "rawCompilerSha256": "4FC54561910164695DBE5A43AAD63104C3218DB662A944A56CFFCC2C3BFB48BF",
+    "candidateBuildReceipt": {
+      "origin": ".build/x64/Release/build-receipt.json",
+      "bytes": 1523,
+      "sha256": "E3E3A423599962D312C606DA9429412AAF34015A1B753659304A1084FCC9752B",
+      "freshlyHashed": true,
+      "publicCopy": false
+    },
+    "basis": "Actual current candidate Release compiler/source receipt and exact frozen v4 compiled map checked. Full source identity may differ for documented source-only checkpoint changes; both identities are retained. Binary/runtime are not requalified here; canonical paired preflight must still verify binary, environment and fixture."
+  },
+  "bundle": {
+    "file": "baseline-v8.bundle",
+    "bytes": 16607,
+    "sha256": "D0FBBF4F6C4308CA3EF4208FB057D2DA88A3F711D8B1160A2D7224378A5CB3E2",
+    "prerequisiteCommit": "f819395d36c55b93e3bf9559d12d0ec401e42b3d",
+    "tipCommit": "b6c9dfefa163c4abd0bfbe23554d357e1a851ea8",
+    "verified": true,
+    "heads": [
+      "b6c9dfefa163c4abd0bfbe23554d357e1a851ea8 refs/heads/codex/design-refresh-performance-baseline"
+    ],
+    "commits": [
+      "19a0f88d211f95c5b9878b3ba2f20c8061f7c31b",
+      "98d03b2e18ef2c532eaa4c915dd64f8f0f36aaa6",
+      "d41d01874e47fcd18149da4327a9e623e9ac6c8f",
+      "d3e80a3cbd8d0e74a67d16c5f98b738dab42dce9",
+      "c867b3b4056dcaca65052ffa33d154ed2805ffc5",
+      "bffc12d7b89ae52fb4b54f94e4736b9cb23202c6",
+      "fd245010a7ab8090e33f4eb44ce8c114b262cb0a",
+      "b6c9dfefa163c4abd0bfbe23554d357e1a851ea8"
+    ]
+  },
+  "rawInputs": [
+    {
+      "origin": ".build/base/.build/frozen-design-baseline-v8/baseline.json",
+      "bytes": 10792,
+      "sha256": "24A28E1CFF6469AADF84730AED2535679E632DD1D4B113C0B6111B6CFE132926",
+      "freshlyHashed": true,
+      "publicCopy": false
+    },
+    {
+      "origin": ".build/base/.build/frozen-design-baseline-v8/build.json",
+      "bytes": 1523,
+      "sha256": "87608159BFB0840573050BB177283E3DD26E0862C47112F9F0CA824361E25AC5",
+      "freshlyHashed": true,
+      "publicCopy": false
+    },
+    {
+      "origin": ".build/base/.build/frozen-design-baseline-v8/compiler-command.tlog",
+      "bytes": 14898,
+      "sha256": "C423940617129F274CA99E90310EDDDEED09D5BF27B962691D09F93737177D8E",
+      "freshlyHashed": true,
+      "publicCopy": false
+    },
+    {
+      "origin": ".build/base/.build/frozen-design-baseline-v8/RedTilde.exe",
+      "bytes": 4203520,
+      "sha256": "BC589A3046663A19942D1049FF0DC6984488376F51344DF6D0CAB4E47AE717DD",
+      "freshlyHashed": false,
+      "publicCopy": false,
+      "authority": "Quoted from matching actual baseline.json/build.json receipts; actual executable is not rehashed by this invocation."
+    },
+    {
+      "origin": ".build/design-refresh/common-harness-v2.json",
+      "bytes": 950,
+      "sha256": "4A0ABFC8097AD7A0CC1DAAECBEAC3927B81C611FA873C0E8DAD99C396140A51E",
+      "freshlyHashed": true,
+      "publicCopy": false
+    },
+    {
+      "origin": ".build/base/.build/x64/Release/build-receipt.json",
+      "bytes": 1523,
+      "sha256": "87608159BFB0840573050BB177283E3DD26E0862C47112F9F0CA824361E25AC5",
+      "freshlyHashed": true,
+      "publicCopy": false
+    },
+    {
+      "origin": ".build/base/.build/frozen-design-baseline-v7/baseline.json",
+      "bytes": 10792,
+      "sha256": "45AE56B6D7871C8BC49B8217F81EC398641AB59BD95DFE3E948EDEDD9808896C",
+      "freshlyHashed": true,
+      "publicCopy": false
+    },
+    {
+      "origin": ".build/design-refresh/final-source-freeze-38ec36be-v4.json",
+      "bytes": 11609,
+      "sha256": "2E7CA23E3E37B1A0EA94DF6E3D5F38C7223D4EE6EDD3904DA7E0967671AB1474",
+      "freshlyHashed": true,
+      "publicCopy": false
+    },
+    {
+      "origin": ".build/design-refresh/baseline-v8-preparation/private-proof/baseline-v8.bundle",
+      "bytes": 16607,
+      "sha256": "D0FBBF4F6C4308CA3EF4208FB057D2DA88A3F711D8B1160A2D7224378A5CB3E2",
+      "freshlyHashed": true,
+      "publicCopy": true
+    }
+  ],
+  "evidenceBoundary": {
+    "buildLaunched": false,
+    "restoreLaunched": false,
+    "nativeExecuted": false,
+    "measurementCollected": false,
+    "performanceAcceptanceClaimed": false,
+    "rawHostCpuEnvironmentIncluded": false,
+    "absolutePathsIncluded": false,
+    "publicationPerformed": false
+  },
+  "limitations": [
+    "The source bundle includes ordinary Git source-history commit metadata. Review it before public publication; raw machine/CPU/environment records and compiler commands remain private.",
+    "This is provenance/integrity evidence, not independent replay without the private raw receipts and executable.",
+    "Future actual paired preflight must reverify executable, full dependency, exact compiler profile, seven common inputs and environment; an optional metadata comparison cannot replace it."
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "comparisonScope": "original RedTilde UI versus refreshed UI on one common updated DxUi dependency",
+  "originalSource": "f819395d36c55b93e3bf9559d12d0ec401e42b3d",
+  "baselineCommit": "d3e80a3cbd8d0e74a67d16c5f98b738dab42dce9",
+  "origin": "https://github.com/RedSalamanders/RedTilde.git",
+  "dependency": {
+    "repository": "https://github.com/RedSalamanders/DxUi",
+    "commit": "e62dd9d9a91a6ad68d88f7f01a6dd075ae31dbd3",
+    "apiRevision": 4,
+    "targets": [
+      "DxUi"
+    ]
+  },
+  "commonInputs": [
+    {
+      "path": "Tests/Application.Tests.Performance.cpp",
+      "recorded": "AC7F6912CCE121AF62752A2E606ECE5C40BD37A9BEBCD81EB299A9782FCBB164",
+      "candidate": "AC7F6912CCE121AF62752A2E606ECE5C40BD37A9BEBCD81EB299A9782FCBB164",
+      "baseline": "AC7F6912CCE121AF62752A2E606ECE5C40BD37A9BEBCD81EB299A9782FCBB164"
+    },
+    {
+      "path": "RedTilde/Main.cpp",
+      "recorded": "7918862FD087DE59C563B21C9BE196D6C1F4A620C2F66468A1914D72D0F070AF",
+      "candidate": "7918862FD087DE59C563B21C9BE196D6C1F4A620C2F66468A1914D72D0F070AF",
+      "baseline": "7918862FD087DE59C563B21C9BE196D6C1F4A620C2F66468A1914D72D0F070AF"
+    },
+    {
+      "path": "RedTilde/EditDiagnostics.h",
+      "recorded": "B789D0A0DBD16E5936582719915CF873F63E672F0BDA009D4DF02CA7B5CFAB48",
+      "candidate": "B789D0A0DBD16E5936582719915CF873F63E672F0BDA009D4DF02CA7B5CFAB48",
+      "baseline": "B789D0A0DBD16E5936582719915CF873F63E672F0BDA009D4DF02CA7B5CFAB48"
+    },
+    {
+      "path": "performance-paired.ps1",
+      "recorded": "EC17F60BE95D513C6DB4314EBE78201FC680DA795563C835EB1241517640777B",
+      "candidate": "EC17F60BE95D513C6DB4314EBE78201FC680DA795563C835EB1241517640777B",
+      "baseline": "EC17F60BE95D513C6DB4314EBE78201FC680DA795563C835EB1241517640777B"
+    },
+    {
+      "path": "Build/Performance.psm1",
+      "recorded": "A5850D16712CC8D8C7AE494EB3366BE791805FC933E3BD9DC15CC4AAB49396CB",
+      "candidate": "A5850D16712CC8D8C7AE494EB3366BE791805FC933E3BD9DC15CC4AAB49396CB",
+      "baseline": "A5850D16712CC8D8C7AE494EB3366BE791805FC933E3BD9DC15CC4AAB49396CB"
+    },
+    {
+      "path": "Build/Harness.psm1",
+      "recorded": "E53552E8CF7002F52A09CDCA5D593757365919C646C76C5031804CBB267F454E",
+      "candidate": "E53552E8CF7002F52A09CDCA5D593757365919C646C76C5031804CBB267F454E",
+      "baseline": "E53552E8CF7002F52A09CDCA5D593757365919C646C76C5031804CBB267F454E"
+    },
+    {
+      "path": "docs/examples/s5-performance.md",
+      "recorded": "9CE1CA2DE3983070C40DC5A9DF331C9AA386FE796371E5527BF370AC70D3A10E",
+      "candidate": "9CE1CA2DE3983070C40DC5A9DF331C9AA386FE796371E5527BF370AC70D3A10E",
+      "baseline": "9CE1CA2DE3983070C40DC5A9DF331C9AA386FE796371E5527BF370AC70D3A10E"
+    }
+  ],
+  "originalUiClosure": {
+    "comparedAgainst": "f819395d36c55b93e3bf9559d12d0ec401e42b3d",
+    "unchanged": [
+      "RedTilde/Application.cpp",
+      "RedTilde/UiControls.h",
+      "Common",
+      "res",
+      "RedTilde/RedTilde.vcxproj"
+    ],
+    "verified": true
+  },
+  "scopedDelta": [
+    "Build/Harness.psm1",
+    "Build/Performance.psm1",
+    "CHANGELOG.md",
+    "Dependencies/DxUi.lock.json",
+    "RedTilde/Application.h",
+    "RedTilde/Main.cpp",
+    "Tests/Application.Tests.Performance.cpp",
+    "Tests/Scope.Tests.Performance.Evidence.ps1",
+    "Tests/Scope.Tests.Performance.Tooling.ps1",
+    "performance-paired.ps1"
+  ],
+  "runtimeMeasured": false,
+  "recordedUtc": "2026-10-23T01:00:22.9801433Z"
+}

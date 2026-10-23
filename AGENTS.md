@@ -13,7 +13,8 @@ DxUi controls, DirectWrite and Direct2D. Read [Specs/README.md](Specs/README.md)
 - The rich editor owns the authoritative source and undo history. View switches never serialize rendered text.
   A read-only split mirror and equation inspector are derived views. No second editable document may diverge.
 - App policy, paths, settings, file commands and release decisions stay here. A library change never updates
-  this consumer implicitly. PR #89 is an experimental dependency until its upstream gates close.
+  this consumer implicitly. Rich-text PR #89 is merged; its performance and product qualification gates remain
+  separate from that merge and from this consumer's exact-pin adoption.
 
 ## Engineering
 

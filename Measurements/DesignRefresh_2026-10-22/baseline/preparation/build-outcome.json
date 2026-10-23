@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "sourceIdentity": "4ef3aa833e2795243055a6fbff3b2cbfae53732720f49fc57da265154ab32cb6",
+  "platform": "x64",
+  "configuration": "Release",
+  "dependencyCommit": "e62dd9d9a91a6ad68d88f7f01a6dd075ae31dbd3",
+  "binarySha256": "DA5CE23C925543A5A32D73E58D3FD69C13DEB82D4154DCF776F3AF27D071DE9F",
+  "artifactIdentity": "dc4c7b46f3d58ca3883f75a78c79ba230cf79fb626d6894930b4b1efb0a346f5",
+  "receiptSha256": "BD196007D9E6F22FC2BD78E5B1865C9E3A523EAEF73F7088924499E00C0B897D",
+  "canonicalBuildLog": "build-x64-release-msbuild.log",
+  "canonicalBuildLogSha256": "B086343BBF61CC7BC3DC9DB6884DA87761D9A9E0DE864128D5048ADF6BD20AA7",
+  "completedUtc": "2026-10-23T00:59:48.7880347Z"
+}

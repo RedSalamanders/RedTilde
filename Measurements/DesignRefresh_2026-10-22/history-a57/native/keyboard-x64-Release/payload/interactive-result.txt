@@ -1,0 +1,15 @@
+state: completed
+exit: 0
+confirmation: autostarted
+confirmation.autoStart: 1
+confirmation.seconds: 30
+foreground.saved: class 'Chrome_WidgetWin_1' of ChatGPT.exe (process 27404)
+focus.capture.reason: recorded
+focus.capture.error: 0
+restoration.foreground: unchanged
+restoration.focus: unchanged
+restoration.cursor: unchanged
+cursor.saved: 1264,1153
+cursor.atExit: 1264,1153
+restoration.runMovedSomething: 0
+child: RedTildeDesignInteractive launched=1 exit=0 seconds=2.5 timedout=0 interrupted=0

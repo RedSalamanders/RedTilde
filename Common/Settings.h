@@ -25,6 +25,12 @@ struct Settings
     EditorView view = EditorView::Compose;
     bool focusMode = false;
     bool showOutline = true;
+    bool showFiles = false;
+    unsigned filesWidth = 280;
+    unsigned readingWidth = 760;
+    unsigned textScale = 100;
+    bool dimInactiveBlocks = true;
+    bool allowRemoteImages = false;
 };
 [[nodiscard]] Settings ParseSettings(std::string_view bytes);
 [[nodiscard]] std::string SerializeSettings(const Settings &settings);

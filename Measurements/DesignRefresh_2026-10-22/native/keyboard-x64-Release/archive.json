@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "runId": "20261023T010652825Z-42672-2a670837116f4587aee51aca7feb34f0",
+  "profile": "keyboard-x64-Release",
+  "selection": "Raw JSON records and top-level PNG/log files; original outer manifest is retained as metadata. Private fixtures, binaries and crash dumps are omitted.",
+  "files": [
+    {
+      "path": "started.json",
+      "length": 484,
+      "sha256": "4954116C1EDB6A0CA98A7A011649C096ED68D6674BDD636B93A58941461F655F"
+    },
+    {
+      "path": "completed.json",
+      "length": 9492,
+      "sha256": "6D9433DF7AC4A576CA79639E0D7AA207CCF6CD53C25EAA34F345283F4A3E4150"
+    },
+    {
+      "path": "payload/child.log",
+      "length": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "path": "payload/design-interactive.json",
+      "length": 1011,
+      "sha256": "77929A10DF962AE78C4B76F71344615815C783577DA657338D0AE8C31AA07280"
+    },
+    {
+      "path": "payload/receipt.json",
+      "length": 2863,
+      "sha256": "6C50F1DE3846DBB14A55F51E671378D6D0637CE0F73338FC1650844ED63D35BA"
+    }
+  ]
+}

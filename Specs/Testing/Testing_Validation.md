@@ -16,6 +16,10 @@ unapplied drafts, original-file preservation and a real process crash followed b
 
 App-derived work has behavioral coverage: hidden mirrors retain their revision through Compose/Source edits;
 entering Split and subsequent Split edits synchronize source/selection without resetting editable history.
+Attached hidden text-service import/app-callback integration covers growing previews, equal-length scalar and
+CRLF boundary replacement, cancellation retaining seeded undo/redo, and one result commit followed by undo/redo.
+It uses the actual editor and installed application callbacks; it does not qualify OS IME message delivery or
+physical composition. Hidden native-message attempts that the host correctly refuses remain failed fixtures.
 Prose edits do not relayout chrome, but shifted outline targets still navigate correctly and changed heading
 labels/levels update their controls. Dirty state must survive direct resets and same-length edit/undo. Inspector
 tests distinguish code from current math syntax and retain the oversized-source guard. Native completed-frame
@@ -24,6 +28,10 @@ and default/WARP resource probes run through the same executable as Core, with t
 
 PowerShell evidence tooling has independent numerical oracles under `Tests/` and is syntax-checked with the
 other scripts. Retain the full v2 study audit and adversarial rejection receipts alongside the raw studies.
+Independent scope commands pass their manifest `arguments` as command-line tokens to the current PowerShell
+engine running the target script with `-File`. Empty arrays invoke strict no-parameter scripts, and named
+switches bind as declared. The scoped-testing fixture exercises both cases through the public
+`Test-Changes.ps1` runner.
 Native-v2 diagnostics also require cheap settled-memory snapshots, complete command CPU/processor arrays and
 observer coverage. Observation tests cover process disappearance and single reads of volatile properties, CPU
 classification and UTC/local/JSON date representations. An incomplete trace is retained as a failed collection;
@@ -68,9 +76,16 @@ Only exact successful reusable scope results may be reused: source/dependency/bu
 
 The PR workflow runs independent tooling once and full native tests in x64/ARM64 Debug, Release and ASan Debug. ARM64 execution is native on its hosted ARM64 runner; cross-builds alone never qualify runtime behavior. Every named PR check must succeed on the candidate before merge. The current private-repository account cannot enforce protected-branch checks; the merge procedure must verify the checks explicitly. Visibility is unchanged. There is no automatic main-push rerun of an identical validated merge tree. A changed integration tree, source, runner, profile, environment investigation or unresolved failure requires its corresponding new qualification. Manual dispatch remains available.
 
+The first HTTP case directly supplies synthetic Windows/MSVC ABI records to the internal remote-image import
+filter, without raising exceptions or changing DLLs. Independent encoded expectations cover module/procedure
+fallbacks, captured access-denied errors, zero/missing/malformed error metadata, and unchanged output plus
+continued search for unrelated access-violation/C++ exceptions. Early URI/limit/cancel/abort checks preserve
+caller bytes and existing network-module identities before the owned loopback request exercises real first use.
+These record oracles establish error mapping, not recovery from an actually missing Windows system DLL.
+
 Physical focus/IME/AT, release/package acceptance, hardware-specific qualification and paired resource/performance studies retain their owning gates. Hidden/scoped/native CI passes never close those gates. Native test basenames use contextual `Scope.Tests.Something.h/.cpp`; inventories cover active files only. Immutable historical receipts, archived source and legacy references are not renamed or rewritten.
 
-RedTilde partitions its 27 reviewed native cases into Storage (5), Settings (2), Recovery (5) and Editor (15). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
+RedTilde partitions its 52 reviewed native cases into Storage (10), Settings (4), Recovery (5) and Editor (33). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
 
 CI's native-scope job binds compiled inputs, test/build/workflow code, the version stamp and hosted image descriptor. A documentation-only continuation may retain the original native qualification only from an exact matching producer with all six actual successful Full native steps; skipped, failed, cancelled, incomplete or unavailable evidence cannot authorize it. The original source/profile/binary/environment evidence remains the observation; inherited rows explicitly claim no new execution, resource measurement or clipboard/environment result. Manual dispatch always executes fresh native qualification. Each native checkout verifies the descriptor before building. This also permits a documentation/Done closeout without repeating an identical already-qualified native matrix.
 
@@ -80,3 +95,40 @@ Reusable tooling/formatting evidence also binds the actual selected formatter pa
 ## Test-run retention
 
 [Generated test-run evidence](Testing_RunEvidence.md) owns completed, failed and interrupted output storage and verification.
+
+## Design refresh scenarios
+
+The hidden capture obligation now contains 20 PNG/sidecar pairs: 17 named scenes including Files, Find,
+Focus and equation-source editing, plus narrow 96/144/192-DPI layout variants. Each sidecar records requested,
+native and host DPI, actual pixels/DIP, simulation state and invented fixture basename; the runner verifies PNG
+IHDR dimensions and binds both hashes, toolchain, binary, source and pin in the receipt. Captures never activate
+or publish environment-derived identifiers. The Files fixture freezes its proved model and retires only its
+owned junction leaf before sealing evidence; the target and synthetic ordinary files remain in the run.
+
+Hidden preparation reconciles newly published immutable syntax with derived chrome before declaring the
+scene settled, and paints that chrome on a following native frame. Device-replacement checks compare exact
+pixels from the same settled scene and normalized client viewport; stale context labels are a failure.
+Syntax-only reconciliation must preserve an explicit dismissal of the selected-text toolbar.
+Spacing assertions measure full semantic frames or equal-font caret-top advances against the configured
+line advance. DirectWrite caret hit-test height may be shorter than the line box; subtracting its bottom
+cannot establish a paragraph or list margin. Viewport-clipped element bounds require explicit full-visibility
+checks. Keep exact ACP, selection and history checks alongside the geometry oracle.
+Hidden toolbar regressions use the canonical pretranslation hook with a native activation message and inspect
+the real message queue across the callback's editor-focus transition. Command activation must generate no
+character, preserve exact formatted source and remain one undo; a same-owner editor Space must still produce
+its ordinary translated character. Real keyboard coverage must exercise the same pump. A direct keydown-only
+control invocation does not establish translation ownership.
+
+Hidden composition regressions reuse `Tests/Support/Support.Tests.TextServices.h` to call the canonical protected
+text-service import on the actual editor through its base member pointer. They construct no derived editor,
+replace no callback and acquire no visible IME session. Preview, successive same-ACP revision, cancellation and
+result tests retain exact source/selection plus both history directions and committed-change/recovery counts.
+
+`test-interactive.ps1` is an explicit, time-authorized obligation outside the ordinary hidden/Full suites.
+It compiles the canonical exact-pinned DxUi InteractiveLease target into the consumer's fingerprint output and
+uses that library's runner/protocol for consent, warning, session ownership, watchdog and verified restoration.
+The child verifies its visible direct-parent warning and held session mutex before showing or injecting; each
+input sequence also checks process-owned foreground. `-InteractiveAutoStart` requires prior explicit agreement
+and records the visible 30-second countdown. The nine real keyboard stages exercise the same shortcut routing
+as the ordinary message loop, preserve exact source/history and check native focus, including close. Failed
+children, absent stages or unverified restoration cannot pass. This does not qualify physical IME/touch/AT.

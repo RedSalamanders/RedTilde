@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "id": "20261023T044448296Z-8748-3304e5e5ee8741d1b43c7d6cbcbfaa34",
+  "repository": "D:\\RedTilde",
+  "owner": 8748,
+  "ownerStartedTicks": 639283274861444674,
+  "startedUtc": "2026-10-23T04:44:48.3133345Z",
+  "context": {
+    "binarySha256": "F2204E3973325EED01C74AC3A27F0C38134304504657055BD10A234486ACB4F6",
+    "suites": [
+      "Captures",
+      "Crash",
+      "Editor",
+      "Performance",
+      "Preferences",
+      "Recovery",
+      "RecoveryRestart",
+      "Settings",
+      "Storage"
+    ],
+    "sourceIdentity": "81c7e7b0077fbba5817d0634d931b39ecb4b406bbfceea441b29ab27167c3c2d",
+    "project": "RedTilde",
+    "platform": "x64",
+    "configuration": "Debug"
+  }
+}
