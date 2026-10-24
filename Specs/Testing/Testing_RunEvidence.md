@@ -1,7 +1,7 @@
 # Generated test-run evidence
 
 Status: normative current tooling contract
-Last reviewed: 2026-10-21
+Last reviewed: 2026-10-23
 
 After argument, desktop and build preflight, native test execution writes each invocation under `.build/evidence/test-runs/<UTC-pid-guid>/payload`.
 It creates a new directory and exclusive owner lease; it never reuses an old run directory or sweeps older runs.
@@ -36,3 +36,8 @@ Compare inventories in canonical relative-path and stream-name order without rel
 time or ACL check. Native moves retain the exact intent and observed post-move inventories before comparison; a
 mismatch retains both snapshots and the payload and refuses completion. Independent regression controls keep
 stale provider metadata and reverse enumeration while verifying the actual file and directory metadata exactly.
+
+The NTFS shared-file regression uses extended Win32 paths for both arguments to the PowerShell hard-link
+provider. A long checkout prefix must not prevent creation of its owned fixture before the retention assertions
+run. The alias and target remain inside the same fixture root; the test does not shorten, relocate or omit the
+long-path evidence cases, and the production evidence module keeps its existing native path and stream checks.

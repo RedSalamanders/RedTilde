@@ -1,0 +1,15 @@
+{
+  "tests": [
+    {"name":"Files.MarkdownTreeNaturalOrderAndFilter","executed":false},
+    {"name":"Files.BoundedTraversalCancellationAndErrors","executed":false},
+    {"name":"Files.ReparseLeavesNeverTraverse","executed":false},
+    {"name":"Files.AsyncRerootChangeNotificationsAndClose","executed":false},
+    {"name":"Files.CoalescedNotificationAndStaleResult","executed":false},
+    {"name":"Utf8.BomUnicodeMixedEolRoundTrip","executed":false},
+    {"name":"Utf8.InvalidInputDoesNotReplaceOutput","executed":false},
+    {"name":"Storage.AtomicConflictAndFailedSave","executed":false},
+    {"name":"Storage.CapacityRejectedWithoutTruncation","executed":false},
+    {"name":"Files.AsyncSaveRetainsEditsMadeDuringWrite","executed":false}
+  ],
+  "passed": 0, "failed": 0, "selected": 10, "registered": 52, "catalogOnly": true
+}

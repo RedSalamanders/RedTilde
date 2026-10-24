@@ -36,4 +36,157 @@ Require ([math]::Abs($row.adjustedP-0.462890625) -lt 1e-12 -and $row.finding -ce
 $invalid=Pair 1.0; $invalid[0].B1.commandUs=0.0
 $rejected=$false; try { Compare-RedTildePerformanceBlocks $invalid | Out-Null } catch { $rejected=$true }
 Require $rejected 'Missing/zero metrics cannot become an accepted comparison.'
-Write-Host 'Performance tooling: median, schedule, exact inference, Holm family, direction and invalid-metric checks passed.'
+$fixtureRoot=Join-Path $PSScriptRoot ('../.build/performance-tooling/'+[guid]::NewGuid().ToString('N'))
+function Write-CompilerFixture([string]$Name,[string[]]$Files,[string[]]$Flags) {
+    $directory=[IO.Path]::GetFullPath((Join-Path $fixtureRoot $Name))
+    $projectDirectory=Join-Path $directory 'RedTilde'
+    $logs=Join-Path $directory '.build/obj/x64/Release/RedTilde/RedTilde.tlog'
+    [void][IO.Directory]::CreateDirectory($projectDirectory)
+    [void][IO.Directory]::CreateDirectory($logs)
+    $items=($Files|ForEach-Object{'<ClCompile Include="'+$_+'" />'}) -join ''
+    '<Project><ItemGroup>'+$items+'</ItemGroup></Project>'|Set-Content (Join-Path $projectDirectory 'RedTilde.vcxproj')
+    $lines=@(for($index=0;$index -lt $Files.Count;++$index) {
+        $source=Join-Path $projectDirectory $Files[$index]
+        '^'+$source.ToUpperInvariant()
+        '/c /I"'+$directory.ToUpperInvariant()+'\INCLUDE" '+$Flags[$index]+' /Fo"'+$directory.ToUpperInvariant()+'\.BUILD\OBJ\\" "'+$source.ToUpperInvariant()+'"'
+    })
+    $lines|Set-Content (Join-Path $logs 'CL.command.1.tlog')
+    return $directory
+}
+$profileA=Get-RedTildeCompilerProfile (Write-CompilerFixture 'baseline' @('A.cpp','B.cpp') @('/O2 /W4 /WX','/O2 /W4 /WX'))
+$profileB=Get-RedTildeCompilerProfile (Write-CompilerFixture 'candidate' @('A.cpp','B.cpp','New.cpp') @('/O2 /W4 /WX','/O2 /W4 /WX','/O2 /W4 /WX'))
+Require ($profileA.schemaVersion -eq 2 -and $profileA.sha256 -ceq $profileB.sha256 -and
+    $profileA.rawSha256 -cne $profileB.rawSha256 -and $profileA.translationUnits.Count -eq 2 -and $profileB.translationUnits.Count -eq 3) `
+    'Only repository placement and translation-unit identity normalize; raw provenance remains distinct.'
+foreach($flag in @('/Od /W4 /WX','/O2 /W3 /WX','/O2 /W4 /WX /D NEW_BEHAVIOR','/O2 /W4 /WX /fsanitize=address','/O2 /W4 /WX /IC:\External')) {
+    $changed=Get-RedTildeCompilerProfile (Write-CompilerFixture ('changed-'+[guid]::NewGuid().ToString('N')) @('A.cpp') @($flag))
+    Require ($profileA.sha256 -cne $changed.sha256) 'Optimization, diagnostics, macros, sanitizer and external includes remain exact.'
+}
+$mixed=Write-CompilerFixture 'mixed' @('A.cpp','B.cpp') @('/O2 /W4 /WX','/Od /W4 /WX')
+$missing=Write-CompilerFixture 'missing' @('A.cpp') @('/O2 /W4 /WX')
+$missingLog=Join-Path $missing '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
+Set-Content $missingLog '^MISSING.CPP'
+$duplicate=Write-CompilerFixture 'duplicate' @('A.cpp') @('/O2 /W4 /WX')
+$duplicateLog=Join-Path $duplicate '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
+@(Get-Content $duplicateLog;Get-Content $duplicateLog)|Set-Content $duplicateLog
+$forced=Write-CompilerFixture 'forced' @('A.cpp') @('/O2 /W4 /WX /FIforced.h')
+$wrongSource=Write-CompilerFixture 'wrong-source' @('A.cpp','B.cpp') @('/O2 /W4 /WX','/O2 /W4 /WX')
+$wrongLog=Join-Path $wrongSource '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
+$wrongLines=@(Get-Content $wrongLog);$wrongLines[1]=$wrongLines[1].Replace('\A.CPP','\B.CPP');$wrongLines|Set-Content $wrongLog
+$unexpected=Write-CompilerFixture 'unexpected-source' @('A.cpp') @('/O2 /W4 /WX C:\Unreviewed.cpp')
+$macroRootA=[IO.Path]::GetFullPath((Join-Path $fixtureRoot 'macro-a'))
+$macroRootB=[IO.Path]::GetFullPath((Join-Path $fixtureRoot 'macro-b'))
+$macroA=Get-RedTildeCompilerProfile (Write-CompilerFixture 'macro-a' @('A.cpp') @('/O2 /D "ASSET_ROOT='+$macroRootA+'\Fixture"'))
+$macroB=Get-RedTildeCompilerProfile (Write-CompilerFixture 'macro-b' @('A.cpp') @('/O2 /D "ASSET_ROOT='+$macroRootB+'\Fixture"'))
+Require ($macroA.sha256 -cne $macroB.sha256) 'Repository-like path bytes in macro values are never normalized.'
+foreach($directory in @($mixed,$missing,$duplicate,$forced,$wrongSource,$unexpected)) {
+    $rejected=$false
+    try {Get-RedTildeCompilerProfile $directory|Out-Null} catch {$rejected=$true}
+    Require $rejected 'Mixed, missing, duplicate, wrong-source, extra-source and forced-include commands refuse comparison.'
+}
+foreach($flag in @('/O2 "@C:\External\options.rsp"','/O2 @relative.rsp','/O2 "/FIforced.h"',
+    '/O2 ..\External.cpp','/O2 External.cc','/O2 "TEXT=\"a  b\""','/O2 /D "TEXT=\"a b\""','/O2 /D"TEXT=\"a  b\""')) {
+    $directory=Write-CompilerFixture ('unsupported-'+[guid]::NewGuid().ToString('N')) @('A.cpp') @($flag)
+    $rejected=$false
+    try {Get-RedTildeCompilerProfile $directory|Out-Null} catch {$rejected=$true}
+    Require $rejected 'Quoted response/forced include, relative sources and escaped embedded quotes fail closed.'
+}
+$macroSpacesA=Get-RedTildeCompilerProfile (Write-CompilerFixture 'macro-spaces-a' @('A.cpp') @('/O2 /D "TEXT=a  b"'))
+$macroSpacesB=Get-RedTildeCompilerProfile (Write-CompilerFixture 'macro-spaces-b' @('A.cpp') @('/O2 /D "TEXT=a b"'))
+Require ($macroSpacesA.sha256 -cne $macroSpacesB.sha256) 'Supported quoted macro whitespace remains byte-exact.'
+$pathProfiles=@(foreach($name in 'path operand a','path operand b') {
+    $directory=[IO.Path]::GetFullPath((Join-Path $fixtureRoot $name))
+    Get-RedTildeCompilerProfile (Write-CompilerFixture $name @('A.cpp') @('/O2 /I "'+$directory+'\Headers with spaces" /Fd"'+$directory+'\symbols.pdb"'))
+})
+Require ($pathProfiles[0].sha256 -ceq $pathProfiles[1].sha256) 'Only reviewed include/output path operands normalize in relocated roots with spaces.'
+$nearProfiles=@(foreach($name in 'near-a','near-b') {
+    $directory=[IO.Path]::GetFullPath((Join-Path $fixtureRoot $name))
+    Get-RedTildeCompilerProfile (Write-CompilerFixture $name @('A.cpp') @('/O2 /I"'+$directory+'-external\Headers"'))
+})
+Require ($nearProfiles[0].sha256 -cne $nearProfiles[1].sha256) 'A root-prefix near miss remains an exact external include path.'
+
+# Run the actual auditor's identity boundary against synthetic metadata/raw commands. Its typed tokenizer
+# is independent of the production profile builder; these fixtures qualify neither a native measurement nor policy.
+. (Join-Path $PSScriptRoot 'Scope.Tests.Performance.Evidence.ps1') -SelfTest
+function Copy-IdentityFixture($Value) { return $Value|ConvertTo-Json -Depth 20|ConvertFrom-Json -AsHashtable }
+$auditRoot=Join-Path $fixtureRoot 'identity-audit'
+[void][IO.Directory]::CreateDirectory($auditRoot)
+$profileRoot=Write-CompilerFixture 'audit-source' @('A.cpp','B.cpp') @('/O2 /W4 /WX','/O2 /W4 /WX')
+$auditProfile=Get-RedTildeCompilerProfile $profileRoot
+$groupedRoot=Write-CompilerFixture 'grouped-source' @('A.cpp','B.cpp') @('/O2 /W4 /WX','/O2 /W4 /WX')
+$groupedLog=Join-Path $groupedRoot '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
+$groupedLines=@(Get-Content -LiteralPath $groupedLog)
+$groupedLines=@(($groupedLines[0]+'|'+$groupedLines[2].Substring(1)),($groupedLines[1]+' "'+$groupedLines[2].Substring(1)+'"'))
+$groupedLines|Set-Content -LiteralPath $groupedLog
+$grouped=Get-RedTildeCompilerProfile $groupedRoot
+Require ($grouped.translationUnits.Count -eq 2 -and $grouped.sha256 -ceq $auditProfile.sha256) 'Grouped MSBuild headings retain both own-source bindings and one homogeneous option profile.'
+[RedTilde.PairedEvidenceReference]::VerifyCompilerCommands([string[]]@(Get-Content -LiteralPath $groupedLog),$grouped.sourceRoot,
+    [string[]]@($grouped.translationUnits|ForEach-Object source),[string]$grouped.commands[0])
+$auditStudy=[ordered]@{baseline=@{compiler=(Copy-IdentityFixture $auditProfile)};candidate=@{compiler=(Copy-IdentityFixture $auditProfile)};
+    compilerReceipts=[ordered]@{}}
+foreach($side in 'baseline','candidate') {
+    $leaf=$side+'-compiler-command.tlog'
+    Copy-Item -LiteralPath (Join-Path $profileRoot '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog') -Destination (Join-Path $auditRoot $leaf)
+    $auditStudy.compilerReceipts[$side]=@{file=$leaf;sha256=$auditProfile.rawSha256}
+}
+Assert-CompilerProfileEvidence -Study $auditStudy -Root $auditRoot
+function Require-RejectedCompilerEvidence([string]$Name,[scriptblock]$Mutation) {
+    $changed=Copy-IdentityFixture $auditStudy
+    & $Mutation $changed
+    $rejected=$false
+    try {Assert-CompilerProfileEvidence -Study $changed -Root $auditRoot} catch {$rejected=$true}
+    Require $rejected "Independent compiler identity audit rejects $Name."
+}
+Require-RejectedCompilerEvidence 'normalized digest corruption' {param($study) $study.baseline.compiler.sha256='0'*64}
+Require-RejectedCompilerEvidence 'missing raw metadata' {param($study) $study.compilerReceipts.Remove('baseline')}
+Require-RejectedCompilerEvidence 'raw path traversal' {param($study) $study.compilerReceipts.baseline.file='..\elsewhere.tlog'}
+Require-RejectedCompilerEvidence 'raw digest corruption' {param($study) $study.compilerReceipts.baseline.sha256='0'*64}
+Require-RejectedCompilerEvidence 'empty TU inventory' {param($study) $study.baseline.compiler.translationUnits=@()}
+Require-RejectedCompilerEvidence 'TU flag mismatch' {param($study) $study.baseline.compiler.translationUnits[0].command='/Od'}
+Require-RejectedCompilerEvidence 'case-only duplicate TU' {param($study)
+    $profile=$study.baseline.compiler;$copy=Copy-IdentityFixture $profile.translationUnits[0]
+    $copy.source=$copy.source.ToUpperInvariant();$profile.translationUnits+=@($copy)
+}
+Require-RejectedCompilerEvidence 'separator-alias duplicate TU' {param($study)
+    $profile=$study.baseline.compiler;$copy=Copy-IdentityFixture $profile.translationUnits[0]
+    $copy.source=$copy.source.Replace('\','/');$profile.translationUnits+=@($copy)
+}
+Require-RejectedCompilerEvidence 'relative parent traversal' {param($study) $study.baseline.compiler.translationUnits[0].source='..\A.cpp'}
+Require-RejectedCompilerEvidence 'relative dot alias' {param($study) $study.baseline.compiler.translationUnits[0].source='RedTilde\.\A.cpp'}
+Require-RejectedCompilerEvidence 'wrong recorded checkout root' {param($study) $study.baseline.compiler.sourceRoot=Join-Path $fixtureRoot 'other-source'}
+Require-RejectedCompilerEvidence 'one-side schema downgrade' {param($study) $study.baseline.compiler.Remove('schemaVersion')}
+Require-RejectedCompilerEvidence 'both-side schema downgrade' {param($study)
+    $study.baseline.compiler.Remove('schemaVersion');$study.candidate.compiler.Remove('schemaVersion')
+}
+Require-RejectedCompilerEvidence 'self-consistent invented normalized command' {param($study)
+    $profile=$study.baseline.compiler;$profile.commands=@('/c /Od')
+    foreach($unit in $profile.translationUnits){$unit.command='/c /Od'}
+    $profile.sha256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes("redtilde-release-compiler-profile-v2`n/c /Od")))
+}
+Require-RejectedCompilerEvidence 'self-consistent changed raw optimization' {param($study)
+    $raw=Join-Path $auditRoot 'altered-compiler.tlog'
+    $text=[IO.File]::ReadAllText((Join-Path $auditRoot 'baseline-compiler-command.tlog')).Replace('/O2','/Od')
+    [IO.File]::WriteAllText($raw,$text)
+    $hash=(Get-FileHash -LiteralPath $raw).Hash
+    $study.baseline.compiler.rawSha256=$hash;$study.compilerReceipts.baseline=@{file='altered-compiler.tlog';sha256=$hash}
+}
+Require-RejectedCompilerEvidence 'unsupported quoted compiler switch with consistent digests' {param($study)
+    $raw=Join-Path $auditRoot 'quoted-compiler.tlog'
+    $text=[IO.File]::ReadAllText((Join-Path $auditRoot 'baseline-compiler-command.tlog')).Replace('/O2','"/O2"')
+    [IO.File]::WriteAllText($raw,$text)
+    $profile=$study.baseline.compiler;$command=$profile.commands[0].Replace('/O2','"/O2"');$profile.commands=@($command)
+    foreach($unit in $profile.translationUnits){$unit.command=$command}
+    $profile.sha256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes("redtilde-release-compiler-profile-v2`n"+$command)))
+    $hash=(Get-FileHash -LiteralPath $raw).Hash
+    $profile.rawSha256=$hash;$study.compilerReceipts.baseline=@{file='quoted-compiler.tlog';sha256=$hash}
+}
+$legacyRoot=Join-Path $fixtureRoot 'legacy-audit'
+[void][IO.Directory]::CreateDirectory($legacyRoot)
+$legacy=[ordered]@{baseline=@{compiler=@{sha256='historical';commands=@('historical commands');rawSha256='historical'}};
+    candidate=@{compiler=@{sha256='historical';commands=@('historical commands');rawSha256='historical'}}}
+Assert-CompilerProfileEvidence -Study $legacy -Root $legacyRoot
+[IO.File]::WriteAllText((Join-Path $legacyRoot 'baseline-compiler-command.tlog'),'synthetic new artifact')
+$rejected=$false
+try {Assert-CompilerProfileEvidence -Study $legacy -Root $legacyRoot} catch {$rejected=$true}
+Require $rejected 'Raw command artifacts cannot masquerade as schema-less legacy evidence.'
+Write-Host "Performance tooling: numerical policy and independent compiler identity checks passed ($script:checks reference/audit assertions)."

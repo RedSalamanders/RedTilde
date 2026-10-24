@@ -38,4 +38,23 @@ function Invoke-RedTildeHarness {
         return $process.ExitCode
     } finally { $process.Dispose() }
 }
-Export-ModuleMember -Function Get-RedTildeSourceIdentity,Invoke-RedTildeHarness
+function Assert-RedTildeTestArtifact {
+    param([Parameter(Mandatory)][string] $Root,
+          [Parameter(Mandatory)][string] $Platform,
+          [Parameter(Mandatory)][string] $Configuration)
+    $executable=Join-Path $Root ".build/$Platform/$Configuration/RedTilde.exe"
+    $receipt=Join-Path $Root ".build/$Platform/$Configuration/build-receipt.json"
+    if (-not (Test-Path -LiteralPath $receipt -PathType Leaf)) { throw 'No successful build identity exists. Run build.ps1 before testing this artifact.' }
+    $built=Get-Content -LiteralPath $receipt -Raw | ConvertFrom-Json
+    $source=Get-RedTildeSourceIdentity -Root $Root
+    if (-not $built.passed -or $built.sourceIdentity -cne $source -or $built.platform -cne $Platform -or
+        $built.configuration -cne $Configuration -or $built.binarySha256 -cne (Get-FileHash -LiteralPath $executable).Hash) {
+        throw 'The existing executable does not match the current source/profile/build receipt. Rebuild it before testing.'
+    }
+    Import-Module (Join-Path $Root 'Build/ScopedTesting.psm1') -Force
+    if (-not $built.PSObject.Properties['artifactIdentity'] -or $built.artifactIdentity -cne (Get-ScopedArtifactIdentity $Root $Platform $Configuration)) {
+        throw 'The complete executable/runtime closure does not match its successful build. Rebuild before testing.'
+    }
+    [pscustomobject]@{Executable=$executable;Build=$built;SourceIdentity=$source;ReceiptSha256=(Get-FileHash -LiteralPath $receipt).Hash}
+}
+Export-ModuleMember -Function Get-RedTildeSourceIdentity,Invoke-RedTildeHarness,Assert-RedTildeTestArtifact

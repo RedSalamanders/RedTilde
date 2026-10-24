@@ -1,0 +1,190 @@
+{
+  "schema": 1,
+  "id": "20261022T215719296Z-43944-85336cee450d48e89b82344df4a42afb",
+  "outcome": "failed-or-interrupted",
+  "completedUtc": "2026-10-22T21:57:56.7569455Z",
+  "payload": [
+    {
+      "path": "app-data",
+      "directory": true,
+      "identity": "D058D7B558D79914:00000000001D81CB0000000000000000",
+      "attributes": 16,
+      "createdTicks": 639283030697626090,
+      "writtenTicks": 639283030711122640,
+      "security": "O:S-1-12-1-1111686858-1084963619-2141528728-2484757103G:S-1-12-1-1111686858-1084963619-2141528728-2484757103D:(A;OICIID;FA;;;BA)(A;ID;FA;;;SY)(A;OICIIOID;GA;;;SY)(A;ID;0x1301bf;;;AU)(A;OICIIOID;SDGXGWGR;;;AU)(A;ID;0x1200a9;;;BU)(A;OICIIOID;GXGR;;;BU)"
+    },
+    {
+      "path": "app-data\\Crashes",
+      "directory": true,
+      "identity": "D058D7B558D79914:00000000001D81CC0000000000000000",
+      "attributes": 16,
+      "createdTicks": 639283030697631386,
+      "writtenTicks": 639283030697631386,
+      "security": "O:S-1-12-1-1111686858-1084963619-2141528728-2484757103G:S-1-12-1-1111686858-1084963619-2141528728-2484757103D:(A;OICIID;FA;;;BA)(A;ID;FA;;;SY)(A;OICIIOID;GA;;;SY)(A;ID;0x1301bf;;;AU)(A;OICIIOID;SDGXGWGR;;;AU)(A;ID;0x1200a9;;;BU)(A;OICIIOID;GXGR;;;BU)"
+    },
+    {
+      "path": "app-data\\DesignInteractiveFixture",
+      "directory": true,
+      "identity": "D058D7B558D79914:00000000001D81CE0000000000000000",
+      "attributes": 16,
+      "createdTicks": 639283030700017734,
+      "writtenTicks": 639283030700032832,
+      "security": "O:S-1-12-1-1111686858-1084963619-2141528728-2484757103G:S-1-12-1-1111686858-1084963619-2141528728-2484757103D:(A;OICIID;FA;;;BA)(A;ID;FA;;;SY)(A;OICIIOID;GA;;;SY)(A;ID;0x1301bf;;;AU)(A;OICIIOID;SDGXGWGR;;;AU)(A;ID;0x1200a9;;;BU)(A;OICIIOID;GXGR;;;BU)"
+    },
+    {
+      "path": "app-data\\DesignInteractiveFixture\\Writing",
+      "directory": true,
+      "identity": "D058D7B558D79914:00000000001D81CF0000000000000000",
+      "attributes": 16,
+      "createdTicks": 639283030700032832,
+      "writtenTicks": 639283030700092910,
+      "security": "O:S-1-12-1-1111686858-1084963619-2141528728-2484757103G:S-1-12-1-1111686858-1084963619-2141528728-2484757103D:(A;OICIID;FA;;;BA)(A;ID;FA;;;SY)(A;OICIIOID;GA;;;SY)(A;ID;0x1301bf;;;AU)(A;OICIIOID;SDGXGWGR;;;AU)(A;ID;0x1200a9;;;BU)(A;OICIIOID;GXGR;;;BU)"
+    },
+    {
+      "path": "app-data\\DesignInteractiveFixture\\Writing\\Drafts",
+      "directory": true,
+      "identity": "D058D7B558D79914:00000000001D81D00000000000000000",
+      "attributes": 16,
+      "createdTicks": 639283030700032832,
+      "writtenTicks": 639283030700052916,
+      "security": "O:S-1-12-1-1111686858-1084963619-2141528728-2484757103G:S-1-12-1-1111686858-1084963619-2141528728-2484757103D:(A;OICIID;FA;;;BA)(A;ID;FA;;;SY)(A;OICIIOID;GA;;;SY)(A;ID;0x1301bf;;;AU)(A;OICIIOID;SDGXGWGR;;;AU)(A;ID;0x1200a9;;;BU)(A;OICIIOID;GXGR;;;BU)"
+    },
+    {
+      "path": "app-data\\DesignInteractiveFixture\\Writing\\Drafts\\Chapter2.md",
+      "directory": false,
+      "identity": "D058D7B558D79914:00000000001D81D00000000000000002",
+      "attributes": 32,
+      "createdTicks": 639283030700032832,
+      "writtenTicks": 639283030700042919,
+      "security": "O:S-1-12-1-1111686858-1084963619-2141528728-2484757103G:S-1-12-1-1111686858-1084963619-2141528728-2484757103D:(A;ID;FA;;;BA)(A;ID;FA;;;SY)(A;ID;0x1301bf;;;AU)(A;ID;0x1200a9;;;BU)",
+      "streams": [
+        {
+          "Name": "::$DATA",
+          "Length": 17,
+          "Sha256": "3f9c00560510e07c44a5b87d8a686cd60abdd34b1df648963f63c3591e2ad1e6"
+        }
+      ]
+    },
+    {
+      "path": "app-data\\DesignInteractiveFixture\\Writing\\Ideas.md",
+      "directory": false,
+      "identity": "D058D7B558D79914:00000000001D81CF0000000000000003",
+      "attributes": 32,
+      "createdTicks": 639283030700082916,
+      "writtenTicks": 639283030700082916,
+      "security": "O:S-1-12-1-1111686858-1084963619-2141528728-2484757103G:S-1-12-1-1111686858-1084963619-2141528728-2484757103D:(A;ID;FA;;;BA)(A;ID;FA;;;SY)(A;ID;0x1301bf;;;AU)(A;ID;0x1200a9;;;BU)",
+      "streams": [
+        {
+          "Name": "::$DATA",
+          "Length": 165,
+          "Sha256": "3889466936dff4b50c634a649eaa417d8599eaa90791d570436f1ed44ef10fa4"
+        }
+      ]
+    },
+    {
+      "path": "app-data\\DesignInteractiveFixture\\Writing\\Outline.md",
+      "directory": false,
+      "identity": "D058D7B558D79914:00000000001D81CF0000000000000002",
+      "attributes": 32,
+      "createdTicks": 639283030700062900,
+      "writtenTicks": 639283030700072925,
+      "security": "O:S-1-12-1-1111686858-1084963619-2141528728-2484757103G:S-1-12-1-1111686858-1084963619-2141528728-2484757103D:(A;ID;FA;;;BA)(A;ID;FA;;;SY)(A;ID;0x1301bf;;;AU)(A;ID;0x1200a9;;;BU)",
+      "streams": [
+        {
+          "Name": "::$DATA",
+          "Length": 22,
+          "Sha256": "92b417f9e13eff5ecb189ca098271533467135f2a65e8f09e04fdb42035f25bc"
+        }
+      ]
+    },
+    {
+      "path": "app-data\\Recovery",
+      "directory": true,
+      "identity": "D058D7B558D79914:00000000001D81CD0000000000000000",
+      "attributes": 16,
+      "createdTicks": 639283030697765754,
+      "writtenTicks": 639283030763995761,
+      "security": "O:S-1-12-1-1111686858-1084963619-2141528728-2484757103G:S-1-12-1-1111686858-1084963619-2141528728-2484757103D:(A;OICIID;FA;;;BA)(A;ID;FA;;;SY)(A;OICIIOID;GA;;;SY)(A;ID;0x1301bf;;;AU)(A;OICIIOID;SDGXGWGR;;;AU)(A;ID;0x1200a9;;;BU)(A;OICIIOID;GXGR;;;BU)"
+    },
+    {
+      "path": "app-data\\RedTilde.settings",
+      "directory": false,
+      "identity": "D058D7B558D79914:00000000001D81CB0000000000000015",
+      "attributes": 32,
+      "createdTicks": 639283030700102898,
+      "writtenTicks": 639283030711092669,
+      "security": "O:S-1-12-1-1111686858-1084963619-2141528728-2484757103G:S-1-12-1-1111686858-1084963619-2141528728-2484757103D:AI(A;ID;FA;;;BA)(A;ID;FA;;;SY)(A;ID;0x1301bf;;;AU)(A;ID;0x1200a9;;;BU)",
+      "streams": [
+        {
+          "Name": "::$DATA",
+          "Length": 125,
+          "Sha256": "c48225d5524e2d08f480b149200cf07a8f7c04f45f040faec1e731544f4eed98"
+        }
+      ]
+    },
+    {
+      "path": "child.log",
+      "directory": false,
+      "identity": "D058D7B558D79914:00000000001D81CA0000000000000003",
+      "attributes": 32,
+      "createdTicks": 639283030696764336,
+      "writtenTicks": 639283030696764336,
+      "security": "O:S-1-12-1-1111686858-1084963619-2141528728-2484757103G:S-1-12-1-1111686858-1084963619-2141528728-2484757103D:(A;ID;FA;;;BA)(A;ID;FA;;;SY)(A;ID;0x1301bf;;;AU)(A;ID;0x1200a9;;;BU)",
+      "streams": [
+        {
+          "Name": "::$DATA",
+          "Length": 0,
+          "Sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    {
+      "path": "design-interactive.json",
+      "directory": false,
+      "identity": "D058D7B558D79914:00000000001D81CA0000000000000004",
+      "attributes": 32,
+      "createdTicks": 639283030764530898,
+      "writtenTicks": 639283030764530898,
+      "security": "O:S-1-12-1-1111686858-1084963619-2141528728-2484757103G:S-1-12-1-1111686858-1084963619-2141528728-2484757103D:(A;ID;FA;;;BA)(A;ID;FA;;;SY)(A;ID;0x1301bf;;;AU)(A;ID;0x1200a9;;;BU)",
+      "streams": [
+        {
+          "Name": "::$DATA",
+          "Length": 854,
+          "Sha256": "562eff40face3ab7ab76debda33f8203577fedc6686c03a2aedf184597f26843"
+        }
+      ]
+    },
+    {
+      "path": "interactive-plan.txt",
+      "directory": false,
+      "identity": "D058D7B558D79914:00000000001D81CA0000000000000002",
+      "attributes": 32,
+      "createdTicks": 639283030393701007,
+      "writtenTicks": 639283030393710999,
+      "security": "O:S-1-12-1-1111686858-1084963619-2141528728-2484757103G:S-1-12-1-1111686858-1084963619-2141528728-2484757103D:(A;ID;FA;;;BA)(A;ID;FA;;;SY)(A;ID;0x1301bf;;;AU)(A;ID;0x1200a9;;;BU)",
+      "streams": [
+        {
+          "Name": "::$DATA",
+          "Length": 468,
+          "Sha256": "87c3360a0abb7fdbd517b8ef52ebbb6889065c58d208d212ad65eb1b5e8c06a3"
+        }
+      ]
+    },
+    {
+      "path": "interactive-result.txt",
+      "directory": false,
+      "identity": "D058D7B558D79914:00000000001D81CA0000000000000005",
+      "attributes": 32,
+      "createdTicks": 639283030765061077,
+      "writtenTicks": 639283030765071054,
+      "security": "O:S-1-12-1-1111686858-1084963619-2141528728-2484757103G:S-1-12-1-1111686858-1084963619-2141528728-2484757103D:(A;ID;FA;;;BA)(A;ID;FA;;;SY)(A;ID;0x1301bf;;;AU)(A;ID;0x1200a9;;;BU)",
+      "streams": [
+        {
+          "Name": "::$DATA",
+          "Length": 493,
+          "Sha256": "c06a84e0ff8fa9d9581682fad58bd911638545fd4b13242c7d619ac6ed65720d"
+        }
+      ]
+    }
+  ]
+}

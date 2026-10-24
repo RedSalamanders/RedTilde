@@ -13,6 +13,11 @@ the cross-process check/replace race; a stronger conditional-write protocol is a
 
 New/Open/Close prompt Save, Discard, Cancel when dirty. Save As cancellation cancels the original action. Undo
 back to saved text clears dirty; the saved baseline is exact source content, not just a transaction counter.
+The application may reuse that exact dirty result only for the same immutable source revision, saved baseline
+and recovered-copy state. Replacing the saved baseline invalidates the result, including successful asynchronous
+save completion without another live edit. Equal-length replacements, direct resets, undo/redo and text-service
+previews/cancellation must still compare exact content when the fact is no longer current. Length mismatch may
+short-circuit that comparison; source revision alone never establishes that a document is clean.
 
 Recovery is an independent per-session UTF-8 snapshot under LocalAppData, containing document path/encoding and
 source. It must never replace the user's Markdown file automatically. A clean save retires the matching snapshot.
@@ -28,6 +33,10 @@ Recovery failure is visible and leaves editing and explicit Save available.
 An unapplied local source draft is checkpointed as a proposed replacement in the recovery copy. The live source
 and history remain unchanged. Restart previews that proposed text before Restore; Cancel retires it when the
 authoritative source is clean. Invalid or oversized drafts retain the last valid checkpoint and show failure.
+Decide whether a checkpoint needs source before copying the cached flattened text. A clean document with no
+changed, snapshot-guarded local draft still submits the same immediate null retirement request, without making
+a recovery text copy. Changed valid drafts produce the same validated proposed source and selection; this must
+not change live source/history, worker validation, latest-value coalescing or the quiet interval.
 
 Snapshots are strict versioned UTF-8 envelopes with bounded path/source lengths, BOM, selection, generation and
 a payload checksum. Partial/corrupt or newer-version data is renamed `.quarantine` without overwriting it.

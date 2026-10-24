@@ -1,0 +1,23 @@
+
+  DxUi.vcxproj -> D:\RedTilde\.build\dependencies\DxUi\0632048be703648368de6ee349f5ffcaf0c1c7fb6e670d36dccec87120a772ec\x64\Debug\DxUi.lib
+  DxUi pin verified: a17f7d7b59536741a0496638ac44d0968bf74e78
+  Files.cpp
+  Application.Tests.Core.cpp
+  Application.Tests.DesignInteractive.cpp
+  Application.Tests.DesignRefresh.cpp
+  Application.Tests.Files.cpp
+  Application.Tests.Performance.cpp
+  Application.Tests.RemoteImages.cpp
+  Application.CaptureScenarios.cpp
+  Application.Chrome.cpp
+  Application.Navigation.cpp
+  Application.cpp
+  Main.cpp
+D:\RedTilde\RedTilde\Application.Chrome.cpp(534,34): error C2220: the following warning is treated as an error [D:\RedTilde\RedTilde\RedTilde.vcxproj]
+D:\RedTilde\RedTilde\Application.Chrome.cpp(534,34): warning C4244: '=': conversion from 'const float' to 'UINT', possible loss of data [D:\RedTilde\RedTilde\RedTilde.vcxproj]
+Exception: D:\RedTilde\build.ps1:19
+Line |
+  19 |  … DE -ne 0) { throw "RedTilde $Platform $Configuration build failed. Se …
+     |                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | RedTilde x64 Debug build failed. See
+     | 'D:\RedTilde\.build\logs\build-x64-Debug-20261023T000517192Z-ff7377c43d08447180951793122bfa14.log'.

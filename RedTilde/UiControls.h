@@ -17,68 +17,40 @@ class Surface : public DxUi::Panel
         Floating
     };
     explicit Surface(Kind value = Kind::Chrome) : kind(value) {}
+    // Product region boundaries; child control chrome remains library-owned.
+    bool borderLeft{}, borderRight{}, borderBottom{};
     void Paint(DxUi::ControlHost &host) const override
     {
         auto *target = host.GetDeviceContext();
         if (!target)
             return;
         const auto &theme = host.GetTheme();
-        const auto color = kind == Kind::Canvas ? theme.cardBackground : kind == Kind::Floating ? theme.overlayBackground : theme.surfaceBackground;
         const auto bounds = GetBounds();
-        target->FillRectangle(bounds, host.GetSolidBrush(color));
         if (kind == Kind::Floating)
-            target->DrawRoundedRectangle(D2D1::RoundedRect(bounds, 8, 8), host.GetSolidBrush(theme.borderDefault));
+        {
+            DxUi::TransientSurfaceOptions options;
+            options.cornerRadiusDip = 10;
+            DxUi::PaintTransientSurface(host, bounds, options);
+        }
+        else
+        {
+            const auto color = kind == Kind::Canvas ? theme.cardBackground : kind == Kind::Chrome ? theme.windowBackground : theme.surfaceBackground;
+            target->FillRectangle(bounds, host.GetSolidBrush(color));
+            if (auto *line = host.GetSolidBrush(theme.borderDefault))
+            {
+                if (borderLeft)
+                    target->DrawLine(D2D1::Point2F(bounds.left, bounds.top), D2D1::Point2F(bounds.left, bounds.bottom), line);
+                if (borderRight)
+                    target->DrawLine(D2D1::Point2F(bounds.right - 1, bounds.top), D2D1::Point2F(bounds.right - 1, bounds.bottom), line);
+                if (borderBottom)
+                    target->DrawLine(D2D1::Point2F(bounds.left, bounds.bottom - 1), D2D1::Point2F(bounds.right, bounds.bottom - 1), line);
+            }
+        }
         DxUi::Panel::Paint(host);
     }
     Kind kind;
 };
 
-class Editor final : public DxUi::RichTextEditor
-{
-  public:
-    using DxUi::RichTextEditor::RichTextEditor;
-    std::function<void()> changedSelection;
-    void Paint(DxUi::ControlHost &host) const override
-    {
-        DxUi::RichTextEditor::Paint(host);
-        // Keep a visible focus ring for keyboard navigation. Pointer-led writing
-        // uses the caret, so the page need not look like a form input.
-        if (!host.IsKeyboardFocusVisible() && !host.GetTheme().highContrast)
-            if (auto *target = host.GetDeviceContext())
-                target->DrawRoundedRectangle(D2D1::RoundedRect(GetBounds(), 4, 4), host.GetSolidBrush(host.GetTheme().cardBackground), 2.0f);
-    }
-    bool OnMouseUp(DxUi::ControlHost &host, D2D1_POINT_2F point, bool right, UINT modifiers) noexcept override
-    {
-        const bool result = DxUi::RichTextEditor::OnMouseUp(host, point, right, modifiers);
-        Notify();
-        return result;
-    }
-    bool OnKeyDown(DxUi::ControlHost &host, UINT key, UINT modifiers) noexcept override
-    {
-        const bool result = DxUi::RichTextEditor::OnKeyDown(host, key, modifiers);
-        Notify();
-        return result;
-    }
-
-  private:
-    void Notify() noexcept
-    {
-        // App callbacks do not destroy their sender. Allocation failure is fatal;
-        // unexpected application errors end this callback without unwinding Win32.
-        try
-        {
-            if (changedSelection)
-                changedSelection();
-        }
-        catch (const std::bad_alloc &)
-        {
-            std::terminate();
-        }
-        catch (const std::exception &)
-        {
-            OutputDebugStringW(L"RedTilde selection callback failed\n");
-        }
-    }
-};
+using Editor = DxUi::RichTextEditor;
 
 } // namespace RedTilde

@@ -1,0 +1,9 @@
+# Baseline v8 — original UI with common 38ec dependency
+
+This selected provenance packet describes the original RedTilde UI plus the reviewed common performance instrumentation, frozen at `b6c9dfefa163c4abd0bfbe23554d357e1a851ea8` with exact DxUi pin `38ec36be42bf693dc649f1fe6b1dfc6cf34d4064`. The v7-to-v8 source delta is limited to Dependencies/DxUi.lock.json. The original implementation closure is unchanged from `f819395d36c55b93e3bf9559d12d0ec401e42b3d`.
+
+[provenance.json](provenance.json) records actual frozen Release source/artifact/executable identities, all seven raw common input hashes, compiler-profile identity and the hashes/lengths of all four private freeze files. The executable hash is explicitly labeled as either quoted from matching actual receipts or freshly checked before performance starts; the executable is not included. Compiler commands and raw baseline/build receipts remain private because they include environment and absolute-path data.
+
+[baseline-v8.bundle](baseline-v8.bundle) contains the exact reviewed baseline/common-instrumentation/pin history since the prerequisite original commit. It was checked with git bundle verify and list-heads. Restore it only in a separate checkout with the prerequisite commit; the bundle is source recovery evidence, not an executable or full replay bundle.
+
+[inventory.json](inventory.json) records selected-public file hashes and private raw-input provenance. Compiler-profile comparison with a future ready candidate is explicitly pending unless the optional comparison was performed. Actual performance-paired.ps1 must still reverify exact source, dependency, compiler, fixture, environment and executable identities before collection. This packet establishes no native test, paired performance, quiet-host, platform, CI, policy-acceptance or release result.

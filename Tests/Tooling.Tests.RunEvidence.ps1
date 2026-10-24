@@ -144,7 +144,9 @@ if ($volume.FileSystem -eq 'NTFS') {
         $shared = Join-Path $outside 'shared.bin'
         [IO.File]::WriteAllText($shared, 'shared payload')
         $alias = Join-Path $run.Path 'shared.bin'
-        [void](New-Item -ItemType HardLink -Path $alias -Target $shared)
+        # The PowerShell hard-link provider needs explicit extended Win32 paths
+        # when an otherwise ordinary fixture inherits a long checkout prefix.
+        [void](New-Item -ItemType HardLink -Path ('\\?\'+[IO.Path]::GetFullPath($alias)) -Target ('\\?\'+[IO.Path]::GetFullPath($shared)))
         [IO.File]::SetAttributes($shared, [IO.FileAttributes]::ReadOnly)
         $handle = [TestRunEvidenceV2.Native]::Pin($shared, $false)
         try { $identity = [TestRunEvidenceV2.Native]::Identity($handle) } finally { $handle.Dispose() }

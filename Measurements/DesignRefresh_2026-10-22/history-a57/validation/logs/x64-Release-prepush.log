@@ -1,0 +1,41 @@
+Changelog is valid and fully folded.
+Native test naming: 11 files checked.
+Test plan: PrePush (x64 Release); baseline: explicit scope/full obligation; scopes: Storage, Settings, Recovery, Editor, Preferences, RecoveryRestart, Performance, Captures, Crash, Tooling, Format
+CI policy: the working tree has uncommitted or untracked changes, and a PR runs committed bytes only
+DxUi pin verified: a17f7d7b59536741a0496638ac44d0968bf74e78
+Visual Studio: C:\Program Files\Microsoft Visual Studio\18\Insiders
+MSVC toolset:  14.51.36231, the default MSBuild compiles with; vcpkg is pinned to 14.51
+Overlay triplet D:\RedTilde\.build\dependencies\DxUi\0632048be703648368de6ee349f5ffcaf0c1c7fb6e670d36dccec87120a772ec\vcpkg-triplets\x64\x64-windows.cmake unchanged
+Installing DxUi dependencies (x64-windows)
+Detecting compiler hash for triplet x64-windows...
+Compiler found: C:/Program Files/Microsoft Visual Studio/18/Insiders/VC/Tools/MSVC/14.51.36231/bin/Hostx64/x64/cl.exe
+The following packages are already installed:
+  * vcpkg-cmake:x64-windows@2024-04-23
+  * vcpkg-cmake-config:x64-windows@2026-07-21
+    wil:x64-windows@1.0.260126.7
+wil provides CMake targets:
+
+  # this is heuristically generated, and may not be correct
+  find_package(wil CONFIG REQUIRED)
+  target_link_libraries(main PRIVATE WIL::WIL)
+
+All requested installations completed successfully in: 292 us
+vcpkg dependencies are ready.
+DxUi a17f7d7b59536741a0496638ac44d0968bf74e78, API 4, x64 restored.
+
+  DxUi.vcxproj -> D:\RedTilde\.build\dependencies\DxUi\0632048be703648368de6ee349f5ffcaf0c1c7fb6e670d36dccec87120a772ec\x64\Release\DxUi.lib
+  DxUi pin verified: a17f7d7b59536741a0496638ac44d0968bf74e78
+  RedTilde.vcxproj -> D:\RedTilde\.build\x64\Release\RedTilde.exe
+Built RedTilde: D:\RedTilde\.build\x64\Release/RedTilde.exe
+REUSED Tooling (identical successful evidence)
+REUSED Format (identical successful evidence)
+Run evidence: D:\RedTilde\.build\evidence\test-runs\20261022T232233547Z-42564-4fa9be39948a48fcb2d614eb157e9055
+10 behavioral tests passed (Storage).
+4 behavioral tests passed (Settings).
+5 behavioral tests passed (Recovery).
+33 behavioral tests passed (Editor).
+Native forced render: 61.9 FPS; private memory 43.5 MiB; dirty edit/render 0.37 ms. Initial app baseline only.
+20 actual hidden application captures generated with viewport/DPI provenance.
+Isolated local crash dump and marker verified.
+Receipt: D:\RedTilde\.build\evidence\test-runs\20261022T232233547Z-42564-4fa9be39948a48fcb2d614eb157e9055\payload\receipt.json
+FULL_NONINTERACTIVE_PASSED; manual/platform/resource qualification remains separate

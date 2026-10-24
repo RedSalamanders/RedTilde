@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "commit": "d3e80a3cbd8d0e74a67d16c5f98b738dab42dce9",
+  "frozenDirectory": "D:\\RedTilde\\.build\\base\\.build\\frozen-design-baseline-v4",
+  "buildPassed": true,
+  "platform": "x64",
+  "configuration": "Release",
+  "sourceIdentity": "4ef3aa833e2795243055a6fbff3b2cbfae53732720f49fc57da265154ab32cb6",
+  "dependency": {
+    "commit": "e62dd9d9a91a6ad68d88f7f01a6dd075ae31dbd3",
+    "apiRevision": 4,
+    "platform": "x64",
+    "toolset": "v145",
+    "vcToolsVersion": "14.51.36231",
+    "windowsSdkVersion": "10.0.26100.0",
+    "runtimeFamily": "MD",
+    "preferredToolArchitecture": "x86",
+    "disableStlAnnotations": false,
+    "msbuildSha256": "5F1F3AFBF86DBD8DDEB130367AE62A3B8B9750810DEB5BA1C89F20B3F9D7E878",
+    "compilerSha256": "454912D4C941D57B336125B2BCA78D9D24043E1842625E7C341DF32A733E89E2",
+    "linkerSha256": "49FF747F22B070AC4B29BA3F74DB05D219C724CC0FDB64FC910A63CA94864CE3",
+    "windowsHeaderSha256": "B337D661D03A4ABEFB7B86A2742CE1AD5D19B57CD8B858BD13E7BBCC1DBEEAAA",
+    "kernel32Sha256": "341C7D56125A03B458E4D5093E4C79B33123CCFDFD610FE236937B8E6F3134BB",
+    "ucrtSha256": "7EF4EAC926BF597D2F243F16CDFED7E0DB22CB3CA34A1D7E088A84C994A03D66"
+  },
+  "binarySha256": "DA5CE23C925543A5A32D73E58D3FD69C13DEB82D4154DCF776F3AF27D071DE9F",
+  "compilerProfile": {
+    "schemaVersion": 2,
+    "sourceRoot": "D:\\RedTilde\\.build\\base",
+    "sha256": "58EC394ED741D9820D0C616450D992658CD6467585B9E1CA76751735C52C100F",
+    "commands": [
+      "/c /I<ROOT>\\.BUILD\\DEPENDENCIES\\DXUI\\SOURCE\\E62DD9D9A91A6AD68D88F7F01A6DD075AE31DBD3\\INCLUDE /I\"<ROOT>\\.BUILD\\DEPENDENCIES\\DXUI\\C9906D30668E0E302ED4F12E92151DC2447447A3D677A94EBA36B922DB42EFD2\\VCPKG_INSTALLED\\X64\\X64-WINDOWS\\INCLUDE\" /I<ROOT>\\ /Zi /nologo /W4 /WX /diagnostics:column /sdl /O2 /D NDEBUG /D _UNICODE /D UNICODE /D UNICODE /D _UNICODE /D WIN32_LEAN_AND_MEAN /D NOMINMAX /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /std:c++latest /permissive- /Fo\"<ROOT>\\.BUILD\\OBJ\\X64\\RELEASE\\REDTILDE\\\\\" /Fd\"<ROOT>\\.BUILD\\OBJ\\X64\\RELEASE\\REDTILDE\\VC145.PDB\" /external:W4 /Gd /TP /FC /utf-8 /permissive- /Zc:preprocessor"
+    ],
+    "translationUnits": [
+      {
+        "source": "RedTilde\\Main.cpp",
+        "command": "/c /I<ROOT>\\.BUILD\\DEPENDENCIES\\DXUI\\SOURCE\\E62DD9D9A91A6AD68D88F7F01A6DD075AE31DBD3\\INCLUDE /I\"<ROOT>\\.BUILD\\DEPENDENCIES\\DXUI\\C9906D30668E0E302ED4F12E92151DC2447447A3D677A94EBA36B922DB42EFD2\\VCPKG_INSTALLED\\X64\\X64-WINDOWS\\INCLUDE\" /I<ROOT>\\ /Zi /nologo /W4 /WX /diagnostics:column /sdl /O2 /D NDEBUG /D _UNICODE /D UNICODE /D UNICODE /D _UNICODE /D WIN32_LEAN_AND_MEAN /D NOMINMAX /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /std:c++latest /permissive- /Fo\"<ROOT>\\.BUILD\\OBJ\\X64\\RELEASE\\REDTILDE\\\\\" /Fd\"<ROOT>\\.BUILD\\OBJ\\X64\\RELEASE\\REDTILDE\\VC145.PDB\" /external:W4 /Gd /TP /FC /utf-8 /permissive- /Zc:preprocessor"
+      },
+      {
+        "source": "RedTilde\\Application.cpp",
+        "command": "/c /I<ROOT>\\.BUILD\\DEPENDENCIES\\DXUI\\SOURCE\\E62DD9D9A91A6AD68D88F7F01A6DD075AE31DBD3\\INCLUDE /I\"<ROOT>\\.BUILD\\DEPENDENCIES\\DXUI\\C9906D30668E0E302ED4F12E92151DC2447447A3D677A94EBA36B922DB42EFD2\\VCPKG_INSTALLED\\X64\\X64-WINDOWS\\INCLUDE\" /I<ROOT>\\ /Zi /nologo /W4 /WX /diagnostics:column /sdl /O2 /D NDEBUG /D _UNICODE /D UNICODE /D UNICODE /D _UNICODE /D WIN32_LEAN_AND_MEAN /D NOMINMAX /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /std:c++latest /permissive- /Fo\"<ROOT>\\.BUILD\\OBJ\\X64\\RELEASE\\REDTILDE\\\\\" /Fd\"<ROOT>\\.BUILD\\OBJ\\X64\\RELEASE\\REDTILDE\\VC145.PDB\" /external:W4 /Gd /TP /FC /utf-8 /permissive- /Zc:preprocessor"
+      },
+      {
+        "source": "Common\\Storage.cpp",
+        "command": "/c /I<ROOT>\\.BUILD\\DEPENDENCIES\\DXUI\\SOURCE\\E62DD9D9A91A6AD68D88F7F01A6DD075AE31DBD3\\INCLUDE /I\"<ROOT>\\.BUILD\\DEPENDENCIES\\DXUI\\C9906D30668E0E302ED4F12E92151DC2447447A3D677A94EBA36B922DB42EFD2\\VCPKG_INSTALLED\\X64\\X64-WINDOWS\\INCLUDE\" /I<ROOT>\\ /Zi /nologo /W4 /WX /diagnostics:column /sdl /O2 /D NDEBUG /D _UNICODE /D UNICODE /D UNICODE /D _UNICODE /D WIN32_LEAN_AND_MEAN /D NOMINMAX /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /std:c++latest /permissive- /Fo\"<ROOT>\\.BUILD\\OBJ\\X64\\RELEASE\\REDTILDE\\\\\" /Fd\"<ROOT>\\.BUILD\\OBJ\\X64\\RELEASE\\REDTILDE\\VC145.PDB\" /external:W4 /Gd /TP /FC /utf-8 /permissive- /Zc:preprocessor"
+      },
+      {
+        "source": "Common\\DocumentInfo.cpp",
+        "command": "/c /I<ROOT>\\.BUILD\\DEPENDENCIES\\DXUI\\SOURCE\\E62DD9D9A91A6AD68D88F7F01A6DD075AE31DBD3\\INCLUDE /I\"<ROOT>\\.BUILD\\DEPENDENCIES\\DXUI\\C9906D30668E0E302ED4F12E92151DC2447447A3D677A94EBA36B922DB42EFD2\\VCPKG_INSTALLED\\X64\\X64-WINDOWS\\INCLUDE\" /I<ROOT>\\ /Zi /nologo /W4 /WX /diagnostics:column /sdl /O2 /D NDEBUG /D _UNICODE /D UNICODE /D UNICODE /D _UNICODE /D WIN32_LEAN_AND_MEAN /D NOMINMAX /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /std:c++latest /permissive- /Fo\"<ROOT>\\.BUILD\\OBJ\\X64\\RELEASE\\REDTILDE\\\\\" /Fd\"<ROOT>\\.BUILD\\OBJ\\X64\\RELEASE\\REDTILDE\\VC145.PDB\" /external:W4 /Gd /TP /FC /utf-8 /permissive- /Zc:preprocessor"
+      },
+      {
+        "source": "Common\\Settings.cpp",
+        "command": "/c /I<ROOT>\\.BUILD\\DEPENDENCIES\\DXUI\\SOURCE\\E62DD9D9A91A6AD68D88F7F01A6DD075AE31DBD3\\INCLUDE /I\"<ROOT>\\.BUILD\\DEPENDENCIES\\DXUI\\C9906D30668E0E302ED4F12E92151DC2447447A3D677A94EBA36B922DB42EFD2\\VCPKG_INSTALLED\\X64\\X64-WINDOWS\\INCLUDE\" /I<ROOT>\\ /Zi /nologo /W4 /WX /diagnostics:column /sdl /O2 /D NDEBUG /D _UNICODE /D UNICODE /D UNICODE /D _UNICODE /D WIN32_LEAN_AND_MEAN /D NOMINMAX /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /std:c++latest /permissive- /Fo\"<ROOT>\\.BUILD\\OBJ\\X64\\RELEASE\\REDTILDE\\\\\" /Fd\"<ROOT>\\.BUILD\\OBJ\\X64\\RELEASE\\REDTILDE\\VC145.PDB\" /external:W4 /Gd /TP /FC /utf-8 /permissive- /Zc:preprocessor"
+      },
+      {
+        "source": "Common\\CrashHandler.cpp",
+        "command": "/c /I<ROOT>\\.BUILD\\DEPENDENCIES\\DXUI\\SOURCE\\E62DD9D9A91A6AD68D88F7F01A6DD075AE31DBD3\\INCLUDE /I\"<ROOT>\\.BUILD\\DEPENDENCIES\\DXUI\\C9906D30668E0E302ED4F12E92151DC2447447A3D677A94EBA36B922DB42EFD2\\VCPKG_INSTALLED\\X64\\X64-WINDOWS\\INCLUDE\" /I<ROOT>\\ /Zi /nologo /W4 /WX /diagnostics:column /sdl /O2 /D NDEBUG /D _UNICODE /D UNICODE /D UNICODE /D _UNICODE /D WIN32_LEAN_AND_MEAN /D NOMINMAX /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /std:c++latest /permissive- /Fo\"<ROOT>\\.BUILD\\OBJ\\X64\\RELEASE\\REDTILDE\\\\\" /Fd\"<ROOT>\\.BUILD\\OBJ\\X64\\RELEASE\\REDTILDE\\VC145.PDB\" /external:W4 /Gd /TP /FC /utf-8 /permissive- /Zc:preprocessor"
+      },
+      {
+        "source": "Common\\Recovery.cpp",
+        "command": "/c /I<ROOT>\\.BUILD\\DEPENDENCIES\\DXUI\\SOURCE\\E62DD9D9A91A6AD68D88F7F01A6DD075AE31DBD3\\INCLUDE /I\"<ROOT>\\.BUILD\\DEPENDENCIES\\DXUI\\C9906D30668E0E302ED4F12E92151DC2447447A3D677A94EBA36B922DB42EFD2\\VCPKG_INSTALLED\\X64\\X64-WINDOWS\\INCLUDE\" /I<ROOT>\\ /Zi /nologo /W4 /WX /diagnostics:column /sdl /O2 /D NDEBUG /D _UNICODE /D UNICODE /D UNICODE /D _UNICODE /D WIN32_LEAN_AND_MEAN /D NOMINMAX /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /std:c++latest /permissive- /Fo\"<ROOT>\\.BUILD\\OBJ\\X64\\RELEASE\\REDTILDE\\\\\" /Fd\"<ROOT>\\.BUILD\\OBJ\\X64\\RELEASE\\REDTILDE\\VC145.PDB\" /external:W4 /Gd /TP /FC /utf-8 /permissive- /Zc:preprocessor"
+      },
+      {
+        "source": "Tests\\Application.Tests.Core.cpp",
+        "command": "/c /I<ROOT>\\.BUILD\\DEPENDENCIES\\DXUI\\SOURCE\\E62DD9D9A91A6AD68D88F7F01A6DD075AE31DBD3\\INCLUDE /I\"<ROOT>\\.BUILD\\DEPENDENCIES\\DXUI\\C9906D30668E0E302ED4F12E92151DC2447447A3D677A94EBA36B922DB42EFD2\\VCPKG_INSTALLED\\X64\\X64-WINDOWS\\INCLUDE\" /I<ROOT>\\ /Zi /nologo /W4 /WX /diagnostics:column /sdl /O2 /D NDEBUG /D _UNICODE /D UNICODE /D UNICODE /D _UNICODE /D WIN32_LEAN_AND_MEAN /D NOMINMAX /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /std:c++latest /permissive- /Fo\"<ROOT>\\.BUILD\\OBJ\\X64\\RELEASE\\REDTILDE\\\\\" /Fd\"<ROOT>\\.BUILD\\OBJ\\X64\\RELEASE\\REDTILDE\\VC145.PDB\" /external:W4 /Gd /TP /FC /utf-8 /permissive- /Zc:preprocessor"
+      },
+      {
+        "source": "Tests\\Application.Tests.Performance.cpp",
+        "command": "/c /I<ROOT>\\.BUILD\\DEPENDENCIES\\DXUI\\SOURCE\\E62DD9D9A91A6AD68D88F7F01A6DD075AE31DBD3\\INCLUDE /I\"<ROOT>\\.BUILD\\DEPENDENCIES\\DXUI\\C9906D30668E0E302ED4F12E92151DC2447447A3D677A94EBA36B922DB42EFD2\\VCPKG_INSTALLED\\X64\\X64-WINDOWS\\INCLUDE\" /I<ROOT>\\ /Zi /nologo /W4 /WX /diagnostics:column /sdl /O2 /D NDEBUG /D _UNICODE /D UNICODE /D UNICODE /D _UNICODE /D WIN32_LEAN_AND_MEAN /D NOMINMAX /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Zc:inline /std:c++latest /permissive- /Fo\"<ROOT>\\.BUILD\\OBJ\\X64\\RELEASE\\REDTILDE\\\\\" /Fd\"<ROOT>\\.BUILD\\OBJ\\X64\\RELEASE\\REDTILDE\\VC145.PDB\" /external:W4 /Gd /TP /FC /utf-8 /permissive- /Zc:preprocessor"
+      }
+    ],
+    "rawSha256": "8222013890A67195DC8BF557A954D63B478C17CF52B47CECA182A9C458A40122",
+    "rawFile": "compiler-command.tlog"
+  },
+  "commonInputs": {
+    "Tests/Application.Tests.Performance.cpp": "AC7F6912CCE121AF62752A2E606ECE5C40BD37A9BEBCD81EB299A9782FCBB164",
+    "RedTilde/Main.cpp": "7918862FD087DE59C563B21C9BE196D6C1F4A620C2F66468A1914D72D0F070AF",
+    "RedTilde/EditDiagnostics.h": "B789D0A0DBD16E5936582719915CF873F63E672F0BDA009D4DF02CA7B5CFAB48",
+    "performance-paired.ps1": "EC17F60BE95D513C6DB4314EBE78201FC680DA795563C835EB1241517640777B",
+    "Build/Performance.psm1": "A5850D16712CC8D8C7AE494EB3366BE791805FC933E3BD9DC15CC4AAB49396CB",
+    "Build/Harness.psm1": "E53552E8CF7002F52A09CDCA5D593757365919C646C76C5031804CBB267F454E",
+    "docs/examples/s5-performance.md": "9CE1CA2DE3983070C40DC5A9DF331C9AA386FE796371E5527BF370AC70D3A10E"
+  },
+  "files": [
+    {
+      "file": "baseline.json",
+      "sha256": "532788F1CE17026BC80356A2D23D83D7F4706AA405F9E83D191209D18A7A8740",
+      "bytes": 10792,
+      "sourcePath": "D:\\RedTilde\\.build\\base\\.build\\frozen-design-baseline-v4\\baseline.json"
+    },
+    {
+      "file": "build.json",
+      "sha256": "BD196007D9E6F22FC2BD78E5B1865C9E3A523EAEF73F7088924499E00C0B897D",
+      "bytes": 1523,
+      "sourcePath": "D:\\RedTilde\\.build\\base\\.build\\frozen-design-baseline-v4\\build.json"
+    },
+    {
+      "file": "compiler-command.tlog",
+      "sha256": "8222013890A67195DC8BF557A954D63B478C17CF52B47CECA182A9C458A40122",
+      "bytes": 14898,
+      "sourcePath": "D:\\RedTilde\\.build\\base\\.build\\frozen-design-baseline-v4\\compiler-command.tlog"
+    },
+    {
+      "file": "RedTilde.exe",
+      "sha256": "DA5CE23C925543A5A32D73E58D3FD69C13DEB82D4154DCF776F3AF27D071DE9F",
+      "bytes": 4203008,
+      "sourcePath": "D:\\RedTilde\\.build\\base\\.build\\frozen-design-baseline-v4\\RedTilde.exe"
+    }
+  ],
+  "baselineWorkingTreeClean": true,
+  "comparisonScope": "original RedTilde UI versus refreshed UI on one common updated DxUi dependency",
+  "performanceCohortExecuted": false,
+  "origin": "https://github.com/RedSalamanders/RedTilde.git",
+  "prerequisite": "f819395d36c55b93e3bf9559d12d0ec401e42b3d",
+  "includedCommits": [
+    "19a0f88d211f95c5b9878b3ba2f20c8061f7c31b",
+    "98d03b2e18ef2c532eaa4c915dd64f8f0f36aaa6",
+    "d41d01874e47fcd18149da4327a9e623e9ac6c8f",
+    "d3e80a3cbd8d0e74a67d16c5f98b738dab42dce9"
+  ],
+  "completedUtc": "2026-10-23T01:00:22.9801433Z"
+}

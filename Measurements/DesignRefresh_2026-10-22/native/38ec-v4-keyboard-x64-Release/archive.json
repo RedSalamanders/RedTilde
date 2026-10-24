@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "runId": "20261023T084521062Z-49632-502854989a2f4490a09796b6887e5d10",
+  "profile": "38ec-v4-keyboard-x64-Release",
+  "selection": "Byte-exact selected JSON and top-level PNG/log files. Producer completion ledger remains unchanged; private fixtures, binaries, crash dumps and desktop refusal diagnostics are omitted.",
+  "files": [
+    {
+      "path": "started.json",
+      "length": 484,
+      "sha256": "A05660D77D9026EDCF6AA95BEFE495A176C9A758502817131B416A6E1B5D4BC2"
+    },
+    {
+      "path": "completed.json",
+      "length": 9492,
+      "sha256": "C02C10E2C20AB028C2F91443979E5476554AD0F74EB26B2BFB0DA3C1DB3B9078"
+    },
+    {
+      "path": "payload/child.log",
+      "length": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "path": "payload/design-interactive.json",
+      "length": 1011,
+      "sha256": "77929A10DF962AE78C4B76F71344615815C783577DA657338D0AE8C31AA07280"
+    },
+    {
+      "path": "payload/receipt.json",
+      "length": 2859,
+      "sha256": "85A151BE10906E12C18824E18FBB9D865292CF68F9FEEB6C0161EACB35077019"
+    }
+  ],
+  "omittedPrivateFiles": []
+}

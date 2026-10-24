@@ -1,14 +1,12 @@
 # Design refresh — 2026-10-22
 
-Status: PROPOSED; not implemented. Owner: RedTilde application UI (layout, commands, theme adapter, Files pane),
-with DxUi owning shared controls and rich-text link rendering. No product behavior, capability status or pin
-changes yet.
+Status: IMPLEMENTED; owner requested publication and merge on 2026-10-24 with the disclosed performance and qualification holds. The latest complete whole-feature comparison reports seven regressions; performance optimization/advice and R10 closeout remain OPEN. WIP retained. Owner: RedTilde application UI (layout, commands, theme adapter, Files pane),
+with DxUi owning shared controls and rich-text link rendering. Implementation, dependency adoption and qualification are tracked below.
 
-The owner judged the current window "not nice" and asked for a much better design, saved here for future
-implementation. This plan is the implementation specification for that proposal and is complete without any
-external link. When a slice is accepted and implemented, move its lasting rules into
-[the design system](../../UI/UI_DesignSystem.md); until then that contract remains authoritative and this plan only
-proposes changes to it.
+The owner judged the previous window "not nice" and requested this design and its complete implementation.
+Accepted lasting rules now live in [the design system](../../UI/UI_DesignSystem.md) and the owning Editor,
+Core and Testing specifications. This plan retains the self-contained proposal, implementation decisions and
+qualification record; it is not the sole normative home for implemented behavior.
 
 ## Proposal art
 
@@ -49,19 +47,30 @@ and these files supersede it wherever they differ.
 
 ## Checklist
 
-- [ ] R0: owner review; resolve D1–D5 below.
-- [ ] R1: merged document bar (identity, dirty state, view selector, File menu, Save, caption buttons).
-- [ ] R2: one grouped command row; file commands leave it; Files toggle at its start.
-- [ ] R3: writing surface without nested frames; 760-DIP measure and document type scale.
-- [ ] R4: optional left Files pane for Markdown in the document's folder and subfolders.
-- [ ] R5: right panel with real outline hierarchy, current section and contextual block/equation tools.
-- [ ] R6: status bar content and placement of transient messages.
-- [ ] R7: contextual tools: selection toolbar and docked Find/Replace.
-- [ ] R8: Focus mode, Settings drawer and F2 equation editor presentation.
-- [ ] R9: link presentation (DxUi rich text upstream, then pin adoption).
-- [ ] R10: fold accepted rules into the design system contract, actual captures, tests, C5 acceptance; move to Done.
+- [x] V1 (2026-10-23): reproduce the owner's image 2 with the same visible weekly-report source, 1440x900 pixels, 96 DPI, dark theme and Files/outline panes. Use actual hidden harness captures; preserve truthful document totals and label unseen fixture continuation.
+- [x] V2: add shared DxUi subtle/outline/tab button presentation, decorated text buttons, frameless trees and opt-out editor focus chrome while preserving high contrast, keyboard and UI Automation.
+- [x] V3: adopt an exact SDK commit, correct header/command/pane geometry and review the matched capture alongside the target. Recheck 150/200% DPI and narrow layouts.
+- [x] V4: archive source-bound native/capture evidence, six build profiles, focused SDK checks and documentation. Keep prior R10 performance and broader input/platform/release gates explicit.
 
-## Problems in the current build
+The [visual-fidelity packet](../../../Measurements/VisualFidelity_2026-10-23/README.md) retains the actual matched
+report, three DPI variants, six application builds and three complete x64 53-case/23-capture runs, including real
+ASan detection. The SDK pin is `903643b4a2bc2f6d75250ff5e6834513c96432c4`; the original full report was not supplied,
+so unseen continuation is invented and totals remain truthful. Native glyph/text rendering is not pixel-identical
+to browser proposal art. V1–V4 complete this visual correction; R10 and the parent plan's qualification holds remain open.
+
+- [x] R0: implementation authorized on 2026-10-22; D1–D5 resolved below.
+- [x] R1: merged document bar (identity, dirty state, view selector, File menu, Save, caption buttons).
+- [x] R2: one grouped command row; file commands leave it; Files toggle at its start.
+- [x] R3: writing surface without nested frames; 760-DIP measure and document type scale.
+- [x] R4: optional left Files pane for Markdown in the document's folder and subfolders.
+- [x] R5: right panel with real outline hierarchy, current section and contextual block/equation tools.
+- [x] R6: status bar content and placement of transient messages.
+- [x] R7: contextual tools: selection toolbar and docked Find/Replace; the current nine-stage app keyboard slice passes, with broader C5 acceptance separate.
+- [x] R8: Focus mode, Settings drawer and F2 equation editor presentation.
+- [x] R9: link presentation (DxUi rich text upstream, then pin adoption).
+- [ ] R10: resolve the performance optimization/advice gate and final qualification before scoped closeout. The [2026-10-24 checkpoint](../../../Measurements/DesignRefresh_2026-10-24/README.md) records seven regressions in the latest complete comparison; the earlier v5r3 cohort retains its eight-regression result. Publication does not accept the cost. Retain this plan in WIP and keep parent requirements open.
+
+## Observed problems before implementation
 
 Observed in the owner's 2026-10-22 screenshot of Compose (dark) with `weekly-report-2026-10-15.md`:
 
@@ -133,7 +142,7 @@ files in the current document's folder and its subfolders.
   discarding unsaved changes and keeps every file-safety rule. Arrow keys move, Left/Right collapse/expand,
   Home/End and type-ahead work; the tree exposes UIA Tree/TreeItem with ExpandCollapse and SelectionItem.
 - Work: enumeration runs on an application worker, never the UI thread, with bounded results (depth 8 and 5,000
-  entries by default; the footer then says "Showing the first 5,000 Markdown files"). Publish on the UI owner,
+  entries by default; the footer then says "Showing the actual Markdown count (5,000 examined-entry traversal limit)"). Publish on the UI owner,
   cancel by request/root identity and reject stale completions. Refresh is event-driven from directory change
   notifications, coalesced; no polling timer. Access errors and offline paths show inline in the pane and never
   block editing.
@@ -155,8 +164,7 @@ defaults; high contrast overrides all of them. Chrome = `windowBackground`, File
 | Selection, current row, pressed toggle | `#F2CFD3`, label `#A12A34` | same | `#A63B46`, white label |
 | Find: other matches | neutral subtle fill, distinct in lightness from selection | same | same |
 
-- DxUi values (text, subdued text, dividers, borders) were read from DxUi `b69f452f`; re-verify them at the pinned
-  commit. Headings and strong text use the document text ink, not a lighter gray.
+- The proposal originally used DxUi `b69f452f` theme values; implemented role bindings now use canonical exact pin `38ec36be42bf693dc649f1fe6b1dfc6cf34d4064` and current three-profile app tests/captures. Headings and strong text use the document text ink, not a lighter gray.
 - Document scale: H1 34/1.2 bold, H2 23/1.3 bold, body 16/1.65, list items 10 apart, paragraph bottom margin 1 line.
   Split preview uses 15 body. Focus mode uses 18 body in a 680 measure. Source uses the monospace role at
   13.5/1.75, with subdued delimiters, accent heading/list markers and link-colored URLs.
@@ -196,22 +204,15 @@ Requested by the owner on 2026-10-22: color alone marks a link; the underline ap
   `#EBEDF2` text, so dark needs D3.
 - High contrast keeps the system hyperlink color and a persistent underline.
 - Source view is unchanged: link syntax stays visible, delimiters subdued, URL in the link color, no underline.
-- Today DxUi underlines every `Link` run (`DxUi.RichTextLayout.cpp:264` at `b69f452f`) and reports UIA
-  `UnderlineStyle` Single for links (`DxUi.Accessibility.cpp:5848`). The change belongs in the canonical DxUi
-  repository: a hover/caret-dependent decoration that keeps layout metrics, hit testing and UIA link exposure
-  stable, followed by a reviewed pin update here. Never patch or copy DxUi sources into this app.
+- Canonical DxUi at the current exact pin implements opt-in hover/caret link decoration, current UIA underline state, high-contrast defaults and stable source geometry/history. The app adopts those shared APIs; no DxUi sources are copied or patched locally.
 
-## Open decisions
+## Resolved implementation decisions
 
-- D1: replace the native title bar with the merged document bar. This needs a custom non-client frame, caption
-  hit testing including the Windows 11 maximize snap flyout, drag regions, DPI handling and UIA for caption
-  buttons. The alternative keeps the native title bar and drops only the duplicated identity row.
-- D2: view selector style: underline tabs (pages) or a segmented control. Either stays visible and exclusive.
-- D3: dark-theme links: accept color-only links below 3:1 against text, keep a persistent underline in Dark, or
-  find a dark link/text pair that meets both 4.5:1 on the page and 3:1 against text.
-- D4: right panel width: the contract says 240 and the pages use 240; keep it unless captures show truncation.
-- D5: Files pane scope: listing and opening only (this plan), or later file operations such as new, rename,
-  delete or reveal in File Explorer, which need their own file-safety and explicit-navigation rules.
+- D1: use the merged document bar. RedTilde owns non-client HWND sizing, drag/resize regions, system caption hit targets and taskbar identity. Shared controls, UIA and text services stay in canonical DxUi. Preserve the maximize hit target for the Windows 11 snap flyout.
+- D2: the 2026-10-23 image-2 correction uses three mutually exclusive underlined view commands with named UIA toggle state. Ctrl+1/2/3 and ordinary keyboard navigation remain available.
+- D3: the 2026-10-23 image-2 correction uses hover/caret-dependent decoration in ordinary themes, including Dark. High contrast retains persistent underlines. Shared rendering stays in DxUi with exact-pin adoption here.
+- D4: retain the 240-DIP document panel; narrow layouts collapse it before reducing the reading measure.
+- D5: Files is listing/opening only. File creation, rename, delete and external navigation are separate future work.
 
 ## Acceptance
 
@@ -230,3 +231,99 @@ Requested by the owner on 2026-10-22: color alone marks a link; the underline ap
   not qualify.
 - Link hover/caret underline in Compose and Split preview, unchanged source and history, and UIA link exposure.
 - Icon legibility and alpha at 16/24/32 DIP in the document bar and taskbar.
+
+## Implementation and evidence record
+
+The implementation is split between RedTilde's application composition and canonical DxUi controls. `Application.Chrome.cpp` owns layout and command composition; `Application.Navigation.cpp` adapts document/path models and source Find/Replace; `Common/Files.*` owns bounded enumeration and event-driven refresh. Editor typography, borderless focus, source highlights, focus dimming, link decoration and accessible toggle/single-click control behavior are shared DxUi APIs rather than consumer paint workarounds.
+
+The Files service starts only while a saved document's Files pane is open. It retains one worker, latest request and result, rejects stale generations, closes its notification binding before teardown and drains owned I/O away from the UI thread. The 5,000 limit counts examined entries, including irrelevant names; the footer reports the actual returned Markdown count and any depth/entry/error limitation. Find matches cache one immutable source/query identity; section totals use sorted range queries rather than rescanning all matches for every heading on caret moves. Search/history stay source-exact.
+
+The original baseline executable/build receipt and observations remain retained locally. A separate original-UI worktree carries the common 1440x900-DIP completed-frame harness and exact candidate dependency; its first instrumented baseline commit is `19a0f88`. The original requirement for a replacement final-pin baseline is historical: baseline v8 now carries the common harness and exact current pin; the fixed v5r3 primary study has completed with eight recorded regressions and an open optimization/advice gate. Passing compile probes or historical upstream tests do not establish candidate runtime, physical keyboard/IME/AT or ARM64 acceptance. Source-bound evidence is retained in [the design-refresh packet](../../../Measurements/DesignRefresh_2026-10-22/README.md).
+
+Internet images are an explicit persisted opt-in. Canonical DxUi owns request admission/cancellation and source identity; the application image worker owns bounded anonymous HTTP(S) transport and decode publication. Loopback tests exercise default refusal, opt-in, failures and teardown without live internet requests.
+
+Historical first warned real-keyboard run: it passed editor typing/undo, Files, Find, Settings and Focus, then found a canonical input ownership defect: a button activation returns editor focus before its already translated Enter/Space character is dispatched, allowing a second editor insertion. The failed lease restored foreground/focus and preserved the cursor. A hidden native TranslateMessage/DispatchMessage regression independently reproduces the failure. That repair was implemented in canonical DxUi and adopted; current v5r3 functional and app keyboard results are recorded below. The original failure remains unchanged; broader physical/clipboard/IME/AT, native ARM64 and performance gates remain separate.
+
+
+## Current v5r3 qualification and pending closeout
+
+Exact app source `538dd84941293cff8e7ecc6d2f8535cb597f0c0baea295e560cd795a0a221873`, compiled inputs `fde0747ac8b8100d67949d68a20e58fa2103e9b375f17fb0f22791b829c68270`, exact canonical DxUi pin `38ec36be42bf693dc649f1fe6b1dfc6cf34d4064`.
+
+All six app build receipts pass: x64/ARM64 Debug, Release and ASan Debug. ARM64 entries are cross-builds, not native execution. Each of three x64 Full runs passes 52 cases and 20 harness captures. Real sanitizer detection and isolated crash dump/marker probes pass as separate obligations in the ASan run. These observations identify the original runtime source; a later documentation continuation does not constitute another native execution.
+
+The app keyboard receipt records nine stages and 168 injected events passing under the approved AutoStart=true, 30-second countdown. Actual Confirmation is `started` because the user clicked Start during that countdown. Foreground and focus are `unchanged`; cursor is `restored`. Do not relabel it `autostarted` or claim broader clipboard/physical IME/touch/AT acceptance.
+
+All 60 capture bytes equal the previously reviewed images. The current visual record is an exact-file review continuation, not new direct inspection. The private runtime/source inventory records 117 preserved physical copies. Current selected archive member counts are 130/130/132 for ordinary profiles and 5 keyboard files. Each ordinary archive withholds exactly one preserved private refusal payload (3 total); keyboard withholds zero. These are selected publication counts, not exhaustive producer-set publication. Historical ten exclusions, 2f-v3's three omissions and v4's three omissions are distinct preserved sets.
+
+| Current profile | Run ID | Original receipt SHA-256 |
+| --- | --- | --- |
+| `38ec-v5r3-x64-Debug` | `20261023T103625474Z-42592-f8f60c78ecfa4007991ee83faa8674f7` | `6649260AC561911982DA55EAD8980AA21A58AECEB89C3636419EA81A4E484F76` |
+| `38ec-v5r3-x64-Release` | `20261023T103707729Z-42592-fa085c4e66d54c7f8233c8ded75f0efc` | `A45D18040D84F2FA6678C1E7C70714223FD11DAF48598A45D383C0C34C6D81AC` |
+| `38ec-v5r3-x64-ASan-Debug` | `20261023T103748474Z-42592-055ff651355343829ac26ca9fa8683e2` | `288A3F786ABF716786F8F67B45C6E0F1ED1E8C8D57BDC8D65458913053AEB060` |
+| `38ec-v5r3-keyboard-x64-Release` | `20261023T104103480Z-49464-29b64c11682946e995ffbd68d338c84c` | `D8CBF79234917E9345CF4B91D172FD4924DCE05E31F61F5B21EF32E9A3B67D76` |
+
+## History and open decisions
+
+V5 first Full Debug's remote-image close combined assertion failed (32/33 Editor cases), despite an earlier focused 33-case pass. Timing and focus were subsequently split without weakening the <500ms or full-case focus assertions; the original failure remains unattributed. V5r2's x64/ARM64 Debug C2664 diagnostic-authoring compile failures remain preserved. V5r3 correction has the passing current receipts above; no later pass rewrites those failures. Prior v4/e62/1cff/2f packets and all unfavorable performance cohorts remain unchanged.
+
+Exact-pin SDK owner results are six builds, 62 ordinary + 12 foreground zero-skip suites, three separate expected ASan failures and reviewed gallery continuation/publication. They do not close application or shared SDK performance, physical-input/AT, native ARM64, CI or release gates.
+
+SDK documentation commit `9dec55676ac60332315d898f75af49250d952b96` normally continues the exact 38ec producer; its four final checks and private exact docs-only continuation pass. [SDK draft PR #99](https://github.com/RedSalamanders/DxUi/pull/99) is open. No SDK merge, app execution or performance acceptance is implied by that documentation continuation.
+
+## Completed fixed v5r3 primary cohort — performance gate open
+
+The predeclared fixed AA/AB collection completed successfully with no observer
+failure. AA ran 2026-10-23 10:52:47–10:59:11 UTC and AB 10:59:11–11:05:36 UTC:
+96 native slots per study, 192 total, 12 blocks per view, 64 cycles, seed 20261022.
+This is the retained original cohort, unpooled with predecessors. The independent
+typed C# numerical/integrity audit matches all 7,988 checks; it does not self-approve
+the performance policy or establish improvement causality.
+
+AA resolves no directional change in its twelve metrics. Command/CPU/private-memory
+controls remain unstable; working-set and completed-frame controls are stable.
+AB reports eight regressions. Completed-frame medians remain about 16.6 ms and clean
+preparation about 17 ms without a resolved directional finding. Functional success
+and these frame observations do not remove command CPU or retained-memory findings.
+
+The following is a derived Markdown projection of the two original comparison
+records. Values retain the stored metric units; change is the stored paired estimate,
+not the ratio of displayed medians. No raw receipt or judge metadata is rewritten.
+
+| Study | View | Metric | Baseline median | Candidate median | Paired change % | Adjusted p | Controls stable | Finding |
+| --- | --- | --- | ---: | ---: | ---: | ---: | --- | --- |
+| AA | Compose | `commandUs` | 301.65 | 311.9 | 0.8844797646 | 1 | False | no-resolved-change |
+| AA | Compose | `ownerCpuCycles` | 7657952 | 7672373.75 | -0.347941491917 | 1 | False | no-resolved-change |
+| AA | Compose | `completedEditUs` | 16584.675 | 16591.5 | 0.0904913819598 | 1 | True | no-resolved-change |
+| AA | Compose | `cleanCompletedUs` | 16918.75 | 16901.775 | -0.124341330497 | 1 | True | no-resolved-change |
+| AA | Compose | `privateBytes` | 45338624 | 45287424 | -0.163753009681 | 1 | False | no-resolved-change |
+| AA | Compose | `workingSetBytes` | 54198272 | 54298624 | 0.15589751985 | 1 | True | no-resolved-change |
+| AA | Split | `commandUs` | 353.7 | 352.4 | 0.448994836606 | 1 | False | no-resolved-change |
+| AA | Split | `ownerCpuCycles` | 9848463 | 9965377.75 | 0.473884705704 | 1 | False | no-resolved-change |
+| AA | Split | `completedEditUs` | 16527.275 | 16540.5 | 0.0332943403101 | 1 | True | no-resolved-change |
+| AA | Split | `cleanCompletedUs` | 17042.075 | 16975.4 | -0.262824201514 | 1 | True | no-resolved-change |
+| AA | Split | `privateBytes` | 45551616 | 45076480 | -0.722468221115 | 1 | False | no-resolved-change |
+| AA | Split | `workingSetBytes` | 54548480 | 54501376 | -0.160295476382 | 1 | True | no-resolved-change |
+| AB | Compose | `commandUs` | 304.2 | 351.8 | 15.3122496301 | 0.005859375 | False | regressed |
+| AB | Compose | `ownerCpuCycles` | 7634151 | 8142184 | 5.80605185096 | 0.009765625 | False | regressed |
+| AB | Compose | `completedEditUs` | 16574.125 | 16563.6 | -0.00361137085094 | 1 | True | no-resolved-change |
+| AB | Compose | `cleanCompletedUs` | 16908.25 | 17023.55 | 0.140640804956 | 1 | True | no-resolved-change |
+| AB | Compose | `privateBytes` | 44883968 | 49682432 | 10.427869688 | 0.005859375 | False | regressed |
+| AB | Compose | `workingSetBytes` | 54200320 | 56166400 | 3.55054340712 | 0.005859375 | True | regressed |
+| AB | Split | `commandUs` | 360.05 | 390.575 | 9.7936920256 | 0.005859375 | False | regressed |
+| AB | Split | `ownerCpuCycles` | 9704452.75 | 11301005 | 16.6372233743 | 0.005859375 | False | regressed |
+| AB | Split | `completedEditUs` | 16589.7 | 16521.8 | -0.332573419995 | 0.228515625 | True | no-resolved-change |
+| AB | Split | `cleanCompletedUs` | 16922.875 | 16943.875 | -0.130491614825 | 1 | True | no-resolved-change |
+| AB | Split | `privateBytes` | 45305856 | 50378752 | 11.3333101601 | 0.005859375 | False | regressed |
+| AB | Split | `workingSetBytes` | 54544384 | 57016320 | 4.60329047642 | 0.005859375 | True | regressed |
+
+Both host records have complete 378-sample coverage. AA maximum sample gap is 1.0328 s, mean total busy 9.0984%, maximum 29.1866%; AB maximum gap is 1.0307 s, mean 9.3312%, maximum 36.8269%. Neither window is verified quiet or exclusive. Selected-process observations are incomplete measures of competing work; GPU activity and physical occlusion are unmeasured. These limitations do not erase the recorded regression findings or establish their cause.
+
+The reviewed [derived v5r3 projection](../../../Measurements/DesignRefresh_2026-10-22/performance/observed-38ec-v5r3/README.md) retains the safe numeric samples and integrity references. Original metadata stays private at `.build/paired-design-refresh-38ec36be-app-v5r3-20261023/{aa,ab}/comparison.json`, `.build/paired-design-refresh-38ec36be-app-v5r3-20261023/collection.json` and `.build/paired-design-refresh-38ec36be-app-v5r3-20261023/host-summary.json`. The independent audit is `.build/design-refresh/performance-investigation-38ec-v5r3/independent-audit.json`. These private paths are source-bound evidence references, not links to absent checkout payloads.
+
+**Disposition: performance optimization/advice gate OPEN; R10 and this plan remain WIP.** No cost acceptance, threshold relaxation, silent rebaseline, quiet-host claim, improvement attribution or trusted non-regression verdict is recorded. Current code may be published for review in a DRAFT PR while deeper memory diagnosis continues. An ablation/diagnostic is not this fixed primary cohort and cannot replace or be pooled with it.
+
+## Documentation continuation contract
+
+The native and performance records identify tested source `538dd84941293cff8e7ecc6d2f8535cb597f0c0baea295e560cd795a0a221873`, compiled inputs `fde0747ac8b8100d67949d68a20e58fa2103e9b375f17fb0f22791b829c68270` and DxUi pin `38ec36be42bf693dc649f1fe6b1dfc6cf34d4064`. They are not execution of a later documentation commit. Documentation changes alter the full source identity: obtain fresh source-bound receipts for all six build profiles and prove the relevant compiled inputs, dependency, harness, compiler, native binaries, environment, profile and scope identical before retaining native observations. Run changed documentation/format/link/changelog tools separately. Record the actual continuation and check results in [the evidence summary](../../../Measurements/DesignRefresh_2026-10-22/README.md). A documentation continuation supplies no new native execution or CI qualification; hosted six-Full-step continuation remains a separate contract.
+
+Creation-plan C1–C12 and S5/S6, broader C5 keyboard/menu/clipboard/physical IME/touch/AT, native ARM64 runtime, shared SDK policy, CI and release requirements remain open under their owning conditions. No parent checklist or active plan link changes here.

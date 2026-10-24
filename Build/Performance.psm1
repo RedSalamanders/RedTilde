@@ -160,6 +160,19 @@ function Compare-RedTildePerformanceBlocks {
 
 function Get-RedTildeCompilerProfile {
     param([string]$Root)
+    $rootPath=[IO.Path]::GetFullPath($Root).TrimEnd('\','/')
+    function Normalize-PathOperand([string]$Operand) {
+        $quoted=$Operand.StartsWith('"') -and $Operand.EndsWith('"')
+        $value=if($quoted){$Operand.Substring(1,$Operand.Length-2)}else{$Operand}
+        if($value.Contains('"')){throw 'Unsupported compiler path quoting.'}
+        if($value.Equals($rootPath,[StringComparison]::OrdinalIgnoreCase) -or
+            $value.StartsWith($rootPath+'\',[StringComparison]::OrdinalIgnoreCase) -or
+            $value.StartsWith($rootPath+'/',[StringComparison]::OrdinalIgnoreCase)) {
+            $value='<ROOT>'+$value.Substring($rootPath.Length)
+        }
+        if($quoted){return '"'+$value+'"'}
+        return $value
+    }
     $path=Join-Path $Root '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
     if(-not (Test-Path -LiteralPath $path)) { throw 'The Release compiler command inventory is missing.' }
     [xml]$project=Get-Content -LiteralPath (Join-Path $Root 'RedTilde/RedTilde.vcxproj')
@@ -167,20 +180,66 @@ function Get-RedTildeCompilerProfile {
         [IO.Path]::GetFullPath((Join-Path (Join-Path $Root 'RedTilde') $_.Include))
     })
     $lines=@(Get-Content -LiteralPath $path)
-    $commands=foreach($source in $sources) {
-        $found=$null
-        for($index=0;$index -lt $lines.Count-1;++$index) {
-            if($lines[$index].StartsWith('^') -and $source -iin @($lines[$index].Substring(1).Split('|'))) { $found=$lines[$index+1] }
-        }
-        if(-not $found -or $found -match '(?i)/FI\b') { throw "Missing or unsupported compiler command for $source." }
-        foreach($input in $sources) { $found=$found -ireplace ('\s+"?'+[regex]::Escape($input)+'"?(?=\s|$)'),' ' }
-        $found=$found.Trim()
-        $source.ToUpperInvariant()+' '+$found
+    if(-not $sources.Count -or @($sources|Sort-Object -Unique).Count -ne $sources.Count) {
+        throw 'The Release project must list unique translation units.'
     }
-    $commands=@($commands | Sort-Object -Unique)
-    if(-not $commands.Count) { throw 'The Release compiler command inventory is empty.' }
-    $bytes=[Text.Encoding]::UTF8.GetBytes(($commands -join "`n"))
-    return [ordered]@{sha256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes));commands=$commands;rawSha256=(Get-FileHash $path).Hash}
+    $inventory=foreach($source in $sources) {
+        $commandRows=@(
+        for($index=0;$index -lt $lines.Count-1;++$index) {
+            if($lines[$index].StartsWith('^') -and $source -iin @($lines[$index].Substring(1).Split('|'))) { $lines[$index+1] }
+        }
+        )
+        if($commandRows.Count -ne 1 -or -not $commandRows[0] -or $commandRows[0] -match '(?i)(?:^|\s)/FI') {
+            throw "Missing, duplicate or unsupported compiler command for $source."
+        }
+        $original=$commandRows[0]
+        if($original -match '(?<!\\)(?:\\\\)*\\"') {throw 'Escaped compiler quotes require a separately reviewed parser.'}
+        $tokenPattern='(?:[^\s"]+|"[^"]*")+'
+        if([regex]::Replace($original,$tokenPattern,'').Trim()) {throw 'Unsupported compiler command quoting.'}
+        $tokens=@([regex]::Matches($original,$tokenPattern)|ForEach-Object Value)
+        $options=[Collections.Generic.List[string]]::new()
+        $ownSource=0
+        for($tokenIndex=0;$tokenIndex -lt $tokens.Count;++$tokenIndex) {
+            $token=$tokens[$tokenIndex]
+            # Macro values are opaque, even when they happen to contain a root
+            # path or resemble a source filename. Never rewrite their bytes.
+            if($token -cmatch '^/[DU]$') {
+                if(++$tokenIndex -ge $tokens.Count){throw 'Missing compiler macro operand.'}
+                $options.Add($token);$options.Add($tokens[$tokenIndex]);continue
+            }
+            $argument=$token.Trim('"')
+            if($token.StartsWith('"') -and $argument.StartsWith('/')) {throw 'Quoted compiler switches are unsupported.'}
+            if($argument -match '^/FI' -or $argument.StartsWith('@') -or $argument -cmatch '^/(?:Tp|Tc)') {
+                throw 'Unreviewed compiler source/response/forced-include argument.'
+            }
+            $pathFlag=[regex]::Match($token,'^(?<flag>/I|/Fo|/Fd)(?<path>.*)$')
+            if($pathFlag.Success) {
+                $operand=$pathFlag.Groups['path'].Value
+                if(-not $operand) {
+                    if(++$tokenIndex -ge $tokens.Count){throw 'Missing compiler path operand.'}
+                    $options.Add($token);$options.Add((Normalize-PathOperand $tokens[$tokenIndex]))
+                } else {$options.Add($pathFlag.Groups['flag'].Value+(Normalize-PathOperand $operand))}
+                continue
+            }
+            if($argument -iin $sources) {
+                if($argument -ieq $source){++$ownSource}
+                continue
+            }
+            if(-not $argument.StartsWith('/') -and [IO.Path]::GetExtension($argument) -iin @('.cpp','.c','.cc','.cxx')) {
+                throw 'Unreviewed compiler source/response argument.'
+            }
+            $options.Add($token)
+        }
+        if($ownSource -ne 1) {throw "The compiler command must contain its own source exactly once for $source."}
+        # Preserve every option, normalize only reviewed include/object/PDB path
+        # operands, and retain external paths and macros exactly.
+        [ordered]@{source=[IO.Path]::GetRelativePath($rootPath,$source);command=($options -join ' ')}
+    }
+    $commands=@($inventory.command | Sort-Object -Unique)
+    if($commands.Count -ne 1) { throw 'Mixed per-file compiler options require a separately reviewed comparison protocol.' }
+    $bytes=[Text.Encoding]::UTF8.GetBytes("redtilde-release-compiler-profile-v2`n"+$commands[0])
+    return [ordered]@{schemaVersion=2;sourceRoot=$rootPath;sha256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes));
+        commands=$commands;translationUnits=@($inventory);rawSha256=(Get-FileHash $path).Hash}
 }
 
 Export-ModuleMember -Function Get-RedTildeMedian,Get-RedTildePerformanceMetrics,Get-RedTildeControlDiagnostics,New-RedTildePerformanceSchedule,Get-RedTildeSignFlipP,Compare-RedTildePerformanceBlocks,Get-RedTildeCompilerProfile

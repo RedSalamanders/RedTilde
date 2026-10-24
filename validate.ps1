@@ -46,12 +46,10 @@ Check 'Six build configurations and native inventory' {
     foreach ($platform in @('x64','ARM64')) { foreach ($configuration in @('Debug','Release','ASan Debug')) {
         if (@($project.SelectNodes('//*[local-name()="ProjectConfiguration"]') | Where-Object Include -eq "$configuration|$platform").Count -ne 1) { throw "Missing $configuration|$platform" }
     } }
-    foreach ($file in Get-ChildItem (Join-Path $PSScriptRoot 'Tests') -Filter '*.cpp') {
-        if ($file.Name -notmatch '^[A-Za-z][A-Za-z0-9]*\.Tests\..+\.cpp$') { throw "Invalid active native test name: $($file.Name)" }
-    }
-    $inventory=Get-Content (Join-Path $PSScriptRoot 'Tests/NativeInventory.json') -Raw | ConvertFrom-Json
-    $actual=@(Get-ChildItem (Join-Path $PSScriptRoot 'Tests') -Filter '*.cpp' | ForEach-Object { 'Tests/'+$_.Name })
-    if (Compare-Object @($inventory.files.path) $actual) { throw 'Native test inventory does not match active files.' }
+    # The shared checker covers both translation units and contextual support headers,
+    # including added/untracked files; do not maintain a narrower cpp-only inventory.
+    Import-Module (Join-Path $PSScriptRoot 'Build/ScopedTesting.psm1') -Force
+    [void](Assert-ScopedTestNames $PSScriptRoot)
 }
 Check 'Run evidence retention' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.RunEvidence.ps1') }
 Check 'Scope contracts and public runner' {

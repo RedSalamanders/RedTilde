@@ -58,10 +58,30 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                 options.capture = value();
                 options.headless = true;
             }
+            else if (argument == L"--design-interactive-probe")
+                options.designInteractive = value();
             else if (argument == L"--benchmark")
             {
                 options.benchmark = value();
                 options.headless = true;
+            }
+            else if (argument == L"--capture-dpi" || argument == L"--viewport-width" || argument == L"--viewport-height")
+            {
+                const auto text = value();
+                std::size_t parsed{};
+                const auto number = std::stoul(text, &parsed);
+                if (parsed != text.size() || number > 8192 || number == 0)
+                    throw std::invalid_argument("Invalid capture dimensions");
+                if (argument == L"--capture-dpi")
+                {
+                    if (number != 96 && number != 144 && number != 192)
+                        throw std::invalid_argument("Capture DPI must be 96, 144 or 192");
+                    options.captureDpi = number;
+                }
+                else if (argument == L"--viewport-width")
+                    options.viewportWidthPx = number;
+                else
+                    options.viewportHeightPx = number;
             }
             else if (argument == L"--scenario")
                 options.scenario = value();
@@ -142,10 +162,15 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         }
         if ((testScopeSpecified || listTests) && !options.selfTest)
             throw std::invalid_argument("Test scope/list options require --self-test");
+        if (!options.designInteractive.empty() && (options.headless || options.crashProbe || options.preferencesProbe || options.recoveryProbe ||
+                                                   options.recoveryRestartProbe || options.dataDirectory.empty()))
+            throw std::invalid_argument("Interactive probe requires an explicit data directory and an ordinary visible host");
         if (options.headless && options.dataDirectory.empty())
             options.dataDirectory = std::filesystem::temp_directory_path() / std::format(L"RedTilde-Harness-{}", GetCurrentProcessId());
         if (options.forceWarp && !options.headless)
             throw std::invalid_argument("Explicit WARP is a hidden harness option");
+        if ((options.captureDpi || options.viewportWidthPx || options.viewportHeightPx) && (!options.headless || !options.performance.empty()))
+            throw std::invalid_argument("Capture geometry requires a hidden non-performance harness");
         if (options.dataDirectory.empty())
             options.dataDirectory = DefaultDataDirectory();
         if (sanitizerProbe)

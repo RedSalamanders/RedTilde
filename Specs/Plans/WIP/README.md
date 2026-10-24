@@ -5,8 +5,12 @@
   main/source checkpoint, recovery locations and C1–C12 work register: performance/policy, resources/hardware,
   upstream/platform/input, save-race hardening, capacity, typography, compatibility, assets and release closeout.
   Bounded native math/diagrams/recovery and local S5 execution are implemented; S5 qualification and S6 remain open.
-  The PR consolidation checkpoint records the blocked DxUi #89–#91 stack and preserved baseline archive tags.
-- [Design refresh](DesignRefresh_2026-10-22.md) — proposed layout and visual refresh: merged document bar, grouped
+  Its PR consolidation checkpoint is historical: DxUi #89–#91 merged on 2026-10-21; their separate performance
+  and product qualification remains open. The preserved baseline archive tags still identify the original evidence.
+
+- [Design refresh](DesignRefresh_2026-10-22.md) — implemented layout and visual refresh: merged document bar, grouped
   command row, optional Files pane for Markdown in the document's folder tree, outline panel, contextual
   find/selection tools, focus mode, settings drawer, F2 equation editing and hover-underlined links. Offline
-  proposal pages and pictures are in its folder. Not implemented; start at R0 and open decisions D1–D5.
+  proposal pages and pictures are in its folder. R1–R9 and the image-2 visual correction V1–V4 are implemented;
+  source-bound six-profile builds, x64 native tests and matched captures are archived. R10 performance and
+  broader input/platform/CI/release qualification keep this parent plan active.

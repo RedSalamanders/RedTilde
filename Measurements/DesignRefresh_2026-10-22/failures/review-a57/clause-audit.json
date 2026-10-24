@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "reviewedUtc": "2026-10-23T00:11:58.1564442Z",
+  "kind": "implementation clause audit and source-bound focused diagnostics only",
+  "candidateSourceIdentity": "8f137ee8a85887fe21b2b746886315dd8f6b9857492169c961bc62566f851b4e",
+  "greenSourceIdentity": "8f137ee8a85887fe21b2b746886315dd8f6b9857492169c961bc62566f851b4e",
+  "sameAsGreen": true,
+  "appRepairsFrozen": true,
+  "nativeRegistered": 52,
+  "editorPassed": 33,
+  "storagePassed": 10,
+  "canonicalCommit": "a17f7d7b59536741a0496638ac44d0968bf74e78",
+  "remainingSharedFinding": "Semantic non-table gap fixed at8DIP; accepted10DIP list gap and one-line paragraph bottom-space lack public policy",
+  "finalQualification": "HELD pending canonical lifetime and typography resolution; no final matrix claimed",
+  "commonHarness": [
+    {
+      "path": "Tests/Application.Tests.Performance.cpp",
+      "expected": "AC7F6912CCE121AF62752A2E606ECE5C40BD37A9BEBCD81EB299A9782FCBB164",
+      "actual": "AC7F6912CCE121AF62752A2E606ECE5C40BD37A9BEBCD81EB299A9782FCBB164",
+      "equal": true
+    },
+    {
+      "path": "RedTilde/Main.cpp",
+      "expected": "7918862FD087DE59C563B21C9BE196D6C1F4A620C2F66468A1914D72D0F070AF",
+      "actual": "7918862FD087DE59C563B21C9BE196D6C1F4A620C2F66468A1914D72D0F070AF",
+      "equal": true
+    },
+    {
+      "path": "RedTilde/EditDiagnostics.h",
+      "expected": "B789D0A0DBD16E5936582719915CF873F63E672F0BDA009D4DF02CA7B5CFAB48",
+      "actual": "B789D0A0DBD16E5936582719915CF873F63E672F0BDA009D4DF02CA7B5CFAB48",
+      "equal": true
+    },
+    {
+      "path": "performance-paired.ps1",
+      "expected": "EC17F60BE95D513C6DB4314EBE78201FC680DA795563C835EB1241517640777B",
+      "actual": "EC17F60BE95D513C6DB4314EBE78201FC680DA795563C835EB1241517640777B",
+      "equal": true
+    },
+    {
+      "path": "Build/Performance.psm1",
+      "expected": "A5850D16712CC8D8C7AE494EB3366BE791805FC933E3BD9DC15CC4AAB49396CB",
+      "actual": "A5850D16712CC8D8C7AE494EB3366BE791805FC933E3BD9DC15CC4AAB49396CB",
+      "equal": true
+    },
+    {
+      "path": "Build/Harness.psm1",
+      "expected": "E53552E8CF7002F52A09CDCA5D593757365919C646C76C5031804CBB267F454E",
+      "actual": "E53552E8CF7002F52A09CDCA5D593757365919C646C76C5031804CBB267F454E",
+      "equal": true
+    },
+    {
+      "path": "docs/examples/s5-performance.md",
+      "expected": "9CE1CA2DE3983070C40DC5A9DF331C9AA386FE796371E5527BF370AC70D3A10E",
+      "actual": "9CE1CA2DE3983070C40DC5A9DF331C9AA386FE796371E5527BF370AC70D3A10E",
+      "equal": true
+    }
+  ],
+  "files": [
+    {
+      "path": "RedTilde/Application.Navigation.cpp",
+      "sha256": "3CECBBF9A990AEF862DD38A45A1BD7679F9BE5E71E1D6A747D17B3E4238BAB2B"
+    },
+    {
+      "path": "RedTilde/Application.cpp",
+      "sha256": "8F4F3A5172B3C50ECF816BFA005F475608A6CCB1FA741877D1B227B3B2A6CA78"
+    },
+    {
+      "path": "RedTilde/Application.Chrome.cpp",
+      "sha256": "92FC26BC857872FD2210875A1F173753121D86AB5971112EDA408E60A2D12EF3"
+    },
+    {
+      "path": "RedTilde/Application.h",
+      "sha256": "2CBA4ED1EB685E8AB2CD97BAA6C4CF89B3AE30FD10E0AD854928D6811D7E83E3"
+    },
+    {
+      "path": "Common/Files.h",
+      "sha256": "D106C31E926C6B2C2D46F21F91E0A8C9F4B561EA0A52D0DC284ED9E90EB82FF8"
+    },
+    {
+      "path": "Common/Files.cpp",
+      "sha256": "2FE058F47A1359DE520BFDEF29812E70BFD664513ECE9B60DFCF50A8C7EBD238"
+    },
+    {
+      "path": "Tests/Application.Tests.DesignRefresh.cpp",
+      "sha256": "08B1EA7DEF277A139A587750D72173E9D72C035C69C03190C198F26D15D7605E"
+    },
+    {
+      "path": "Tests/Application.Tests.Files.cpp",
+      "sha256": "0ACA1514534999A558CA88A2463A25656726DC10959C84E1C2F7DF9E0220E09C"
+    },
+    {
+      "path": "res/Resource.h",
+      "sha256": "B3DC71AFFD5609DC6D70B2A9AC2F3E09FCF2C12EAEE27EFB30772D1DD63E646B"
+    },
+    {
+      "path": "res/RedTilde.rc",
+      "sha256": "27BBC396899C2D31387422C6999EDD0D87A8A626F6DB51E5825801096B33DECC"
+    },
+    {
+      "path": "Specs/UI/UI_DesignSystem.md",
+      "sha256": "2E39026A95939411AAE113910332E1A858568ACF193DD773ADA8368F0647662D"
+    },
+    {
+      "path": "Specs/Editor/Editor_Markdown.md",
+      "sha256": "53CBBFB9D7DDE6B437B72CB60835431E388D7FC9F33310C046660E0C7C282CDD"
+    },
+    {
+      "path": "Changes/2026-10-23-design-refresh-interaction-closeout.md",
+      "sha256": "BB4DCA7CD323C2A91EB3967A6239EF7723AEB17B87D04D44AA5886BAC21CF528"
+    }
+  ],
+  "auditSha256": "B6693A4325CE1807047F2F91EA64D7CDB9A46D3AA80C10838F6A63A8FF43C021"
+}

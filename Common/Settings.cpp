@@ -31,6 +31,18 @@ Settings ParseSettings(std::string_view bytes)
                     settings.view = static_cast<EditorView>(number);
                 if (key == "outline" && number <= 1)
                     settings.showOutline = number != 0;
+                if (key == "files" && number <= 1)
+                    settings.showFiles = number != 0;
+                if (key == "filesWidth" && number >= 200 && number <= 400)
+                    settings.filesWidth = number;
+                if (key == "readingWidth" && number >= 480 && number <= 1040)
+                    settings.readingWidth = number;
+                if (key == "scale" && number >= 75 && number <= 200)
+                    settings.textScale = number;
+                if (key == "focusDimming" && number <= 1)
+                    settings.dimInactiveBlocks = number != 0;
+                if (key == "remoteImages" && number <= 1)
+                    settings.allowRemoteImages = number != 0;
             }
         }
         if (end == bytes.npos)
@@ -43,8 +55,10 @@ Settings ParseSettings(std::string_view bytes)
 
 std::string SerializeSettings(const Settings &settings)
 {
-    return std::format("RedTilde.Settings/1\ntheme={}\nview={}\noutline={}\n", static_cast<unsigned>(settings.appearance),
-                       static_cast<unsigned>(settings.view), settings.showOutline ? 1 : 0);
+    return std::format(
+        "RedTilde.Settings/1\ntheme={}\nview={}\noutline={}\nfiles={}\nfilesWidth={}\nreadingWidth={}\nscale={}\nfocusDimming={}\nremoteImages={}\n",
+        static_cast<unsigned>(settings.appearance), static_cast<unsigned>(settings.view), settings.showOutline ? 1 : 0, settings.showFiles ? 1 : 0,
+        settings.filesWidth, settings.readingWidth, settings.textScale, settings.dimInactiveBlocks ? 1 : 0, settings.allowRemoteImages ? 1 : 0);
 }
 
 HRESULT LoadSettings(const std::filesystem::path &directory, Settings &settings) noexcept

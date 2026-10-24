@@ -10,9 +10,10 @@ RedTilde keeps a single Markdown source and undo history while you switch betwee
 **Split**. Select text for contextual tools, navigate the outline, edit a block's source, insert local images,
 or draw supported Mermaid flowchart, state and class diagrams. Inline/display equations render natively in the document. Your files stay local.
 
-This is an **experimental 0.1 application**, built against an exact commit of
-[DxUi's rich-text PR #89](https://github.com/RedSalamanders/DxUi/pull/89) plus its tested native math/diagram
-feature revision. Full language compatibility, large files and final product qualification remain open. Current limits and gates are in
+This is an **experimental 0.1 application**, built against an exact DxUi API-4 commit with native rich text,
+math/diagrams and shared presentation APIs. [Rich-text PR #89](https://github.com/RedSalamanders/DxUi/pull/89)
+merged on 2026-10-21; upstream performance and final product qualification remain separate open gates.
+Full language compatibility and large files also remain open. Current limits and gates are in
 [capabilities.json](capabilities.json) and the [active plan](Specs/Plans/WIP/RedTilde_2026-10-20.md).
 
 ## Build and run
@@ -45,6 +46,7 @@ identical CI tests, or `-Mode Full` for an explicit full profile. Pending CI is 
 | Compose / Source / Split | Ctrl+1 / Ctrl+2 / Ctrl+3 |
 | Bold / Italic / Undo / Redo | Ctrl+B / Ctrl+I / Ctrl+Z / Ctrl+Y |
 | Local block source | F2 |
+| Toggle Files listing | Ctrl+Shift+E |
 | Apply ordinary source draft / cancel | Ctrl+Enter / Esc |
 | Find / settings / focus mode | Ctrl+F / Ctrl+, / F11 |
 | Focus selected-text tools | Alt+F10 |
@@ -54,6 +56,10 @@ draft; Apply commits one undoable edit and Esc cancels. Split's source mirror is
 Right-click or use the context-menu key for headings, inline styles, lists, insertion and table-row/column actions.
 Theme and outline preferences apply to the running window and persist under `%LOCALAPPDATA%\RedTilde`.
 
+The optional Files pane lists Markdown in the current document's folder and subfolders. Single-click or Enter
+opens through the existing Open and unsaved-changes flow; it does not manage files. See the
+[design contract](Specs/UI/UI_DesignSystem.md) and [active design-refresh plan](Specs/Plans/WIP/DesignRefresh_2026-10-22.md).
+
 Open/save preserves UTF-8 BOM and existing line endings. Invalid UTF-8/NUL and documents above 65,536 UTF-16
 units are rejected without replacing the current source. Saves are atomic and check for external modifications;
 New/Open/Close protect unsaved edits. Crash reports stay under `RedTilde\Crashes` and are never uploaded.
@@ -62,7 +68,8 @@ Debounced session snapshots offer review, restore or discard after a crash. Rest
 ## Media and previews
 
 Local PNG/JPEG/BMP/GIF/TIFF images resolve relative to the document file and decode on a worker. Missing or
-unsupported images retain their alternative text. Network paths and remote resources are declined by default.
+unsupported images retain their alternative text. Network paths and remote resources are declined by default. Settings can explicitly enable bounded anonymous
+HTTP(S) image loading; switching it off cancels remote work and removes remote pixels. Links remain inert.
 Mermaid supports the pinned native flowchart, state and class subsets; unsupported syntax stays editable fenced source.
 Inline/display mathematics supports fractions, indexed roots, simultaneous scripts, symbols, text, alphabets,
 accents, paired delimiters, matrices, cases and aligned/gathered rows, preserving `$...$`/`$$...$$` and slash delimiters.

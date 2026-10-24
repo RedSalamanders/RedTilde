@@ -1,0 +1,9 @@
+Run evidence: D:\RedTilde\.build\evidence\test-runs\20261023T010157518Z-44088-12806e08d6304481bf12f020761a3c65
+10 behavioral tests passed (Storage).
+4 behavioral tests passed (Settings).
+5 behavioral tests passed (Recovery).
+33 behavioral tests passed (Editor).
+Native forced render: 62.5 FPS; private memory 50.3 MiB; dirty edit/render 5.35 ms. Initial app baseline only.
+20 actual hidden application captures generated with viewport/DPI provenance.
+Isolated local crash dump and marker verified.
+Receipt: D:\RedTilde\.build\evidence\test-runs\20261023T010157518Z-44088-12806e08d6304481bf12f020761a3c65\payload\receipt.json

@@ -14,7 +14,10 @@ function Invoke-FixtureGit([string]$Directory,[string[]]$Arguments){& git -C $Di
 function New-Repository([string]$Directory){
     [void](New-Item -ItemType Directory -Path $Directory -Force)
     Put (Join-Path $Directory '.gitignore') ".build/`n"
-    Invoke-FixtureGit $Directory @('init','-q','-b','main');Invoke-FixtureGit $Directory @('config','user.name','Scope fixture');Invoke-FixtureGit $Directory @('config','user.email','fixture@example.invalid')
+    Invoke-FixtureGit $Directory @('init','-q','-b','main')
+    # Each nested repository has its own config; the checkout's Git config is not inherited.
+    Invoke-FixtureGit $Directory @('config','core.longpaths','true')
+    Invoke-FixtureGit $Directory @('config','user.name','Scope fixture');Invoke-FixtureGit $Directory @('config','user.email','fixture@example.invalid')
 }
 try{
     Case 'active native naming and inventory are contextual and complete' {
@@ -28,9 +31,16 @@ try{
             Assert ((Get-ScopedTestPlan $manifest @($path)).full) "Unmapped input narrowed coverage: $path"
         }
     }
-    Case 'prose omits native tests, embedded Markdown does not, and empty changes select nothing' {
-        $plan=Get-ScopedTestPlan $manifest @('README.md','CHANGELOG.md')
+    Case 'prose omits native tests, declared runtime Markdown selects its consumer, and empty changes select nothing' {
+        $plan=Get-ScopedTestPlan $manifest @('README.md','CHANGELOG.md','docs/examples/ordinary-notes.md')
         Assert (@($manifest.scopes|Where-Object{$_.native -and $_.name -in $plan.scopes}).Count -eq 0) 'Prose selected native tests'
+        foreach($scope in @('Tooling','Format')){Assert ($scope -in $plan.scopes) "Prose validation omitted: $scope"}
+        if($manifest.project -ceq 'RedTilde'){
+            $plan=Get-ScopedTestPlan $manifest @('docs/examples/weekly-report-2026-10-15.md')
+            foreach($scope in @('Captures','Tooling','Format')){Assert ($scope -in $plan.scopes) "Runtime capture fixture consumer omitted: $scope"}
+            $native=@($manifest.scopes|Where-Object{$_.native -and $_.name -in $plan.scopes})
+            Assert (-not $plan.full -and $native.Count -eq 1 -and $native[0].name -ceq 'Captures') 'Runtime fixture widened unrelated native coverage'
+        }
         Assert ((Get-ScopedTestPlan $manifest @('res/Welcome.md')).full) 'Embedded content mistaken for prose'
         Assert ((Get-ScopedTestPlan $manifest @()).scopes.Count -eq 0) 'Empty changes selected tests'
     }
@@ -47,8 +57,19 @@ try{
             Assert ('Captures' -notin $plan.scopes -and 'Editor' -notin $plan.scopes) 'Storage-only edit selected unrelated native render cases'
             $plan=Get-ScopedTestPlan $manifest @('Tests/Application.Tests.Performance.cpp')
             Assert ('Editor' -in $plan.scopes -and 'Performance' -in $plan.scopes) 'Native performance helper lost its behavioral consumer'
+            foreach($path in @('Common/Files.cpp','Common/Files.h','Common/RemoteImage.cpp','Common/RemoteImage.h')){
+                $plan=Get-ScopedTestPlan $manifest @($path)
+                Assert ('Storage' -in $plan.scopes -and 'Editor' -in $plan.scopes -and 'Crash' -notin $plan.scopes) "Service consumer omitted or widened: $path"
+            }
+            $plan=Get-ScopedTestPlan $manifest @('Tests/Support/Support.Tests.FilesFixtures.h')
+            Assert ('Storage' -in $plan.scopes -and 'Editor' -in $plan.scopes -and 'Captures' -in $plan.scopes) 'Shared folder fixture lost a consumer'
             $catalog=Get-Content (Join-Path $root 'Tests/native-case-catalog.json') -Raw|ConvertFrom-Json
-            $declared=@([regex]::Matches([IO.File]::ReadAllText((Join-Path $root 'Tests/Application.Tests.Core.cpp')),'\btest\("([^"]+)"')|ForEach-Object{$_.Groups[1].Value})
+            # The reviewed native inventory owns registration units, including
+            # split suites; a single-file scan silently omitted new Core cases.
+            $native=Get-Content (Join-Path $root $manifest.nativeInventory) -Raw|ConvertFrom-Json
+            $declared=@(foreach($unit in @($native.files|Where-Object{$_.suite -ceq 'Core' -and $_.path.EndsWith('.cpp')})){
+                [regex]::Matches([IO.File]::ReadAllText((Join-Path $root $unit.path)),'\btest\s*\(\s*"([^"]+)"')|ForEach-Object{$_.Groups[1].Value}
+            })
             Assert (-not(Compare-Object $declared @($catalog.cases.name))) 'Reviewed native catalog differs from source'
             Assert (@($catalog.cases.name|Sort-Object -Unique).Count -eq $declared.Count) 'Duplicate native case'
         }
@@ -61,7 +82,24 @@ try{
     }
     $gitRoot=Join-Path $fixture 'discovery';New-Repository $gitRoot
     foreach($name in @('code.cpp','staged.cpp','deleted.cpp','rename 東京.cpp')){Put (Join-Path $gitRoot $name) 'initial'}
-    Invoke-FixtureGit $gitRoot @('add','-A');Invoke-FixtureGit $gitRoot @('commit','-qm','baseline')
+    $longName='long.cpp';$longSegments=[System.Collections.Generic.List[string]]::new()
+    $longPath=Join-Path $gitRoot $longName
+    while ([IO.Path]::GetFullPath($longPath).Length -le 260 -and $longSegments.Count -lt 8) {
+        $segment=('segment{0:D2}-' -f ($longSegments.Count+1))+('x'*20)
+        $longSegments.Add($segment)
+        $longPath=$gitRoot
+        foreach($part in $longSegments){$longPath=Join-Path $longPath $part}
+        $longPath=Join-Path $longPath $longName
+    }
+    $longRelative=(@($longSegments.ToArray())+@($longName)) -join '/'
+    $components=@($longSegments.ToArray())+@($longName)
+    Assert ($longSegments.Count -le 8 -and [IO.Path]::GetFullPath($longPath).Length -gt 260) 'Long-path fixture did not exceed the Windows path limit within eight segments'
+    Assert (@($components|Where-Object{$_.Length -ge 255}).Count -eq 0) 'Long-path fixture component exceeded the Windows filename limit'
+    Put $longPath 'tracked long-path fixture'
+    Invoke-FixtureGit $gitRoot @('add','-A');Invoke-FixtureGit $gitRoot @('commit','-qm','baseline with long path')
+    $tracked=@(& git -C $gitRoot ls-tree -r --name-only HEAD)
+    if($LASTEXITCODE -ne 0){throw 'Fixture Git failed: ls-tree'}
+    Assert ($longRelative -cin $tracked) 'Long-path fixture was not committed'
     $base=(& git -C $gitRoot rev-parse HEAD).Trim()
     Put (Join-Path $gitRoot 'committed.cpp') 'committed';Invoke-FixtureGit $gitRoot @('add','-A');Invoke-FixtureGit $gitRoot @('commit','-qm','candidate')
     Put (Join-Path $gitRoot 'staged.cpp') 'staged';Invoke-FixtureGit $gitRoot @('add','staged.cpp');Put (Join-Path $gitRoot 'staged.cpp') 'initial'
@@ -239,7 +277,7 @@ try{
     Put (Join-Path $public 'Tests/native-test-files.json') '["Tests/Example.Tests.Case.cpp","Tests/Other.Tests.Case.cpp"]'
     Copy-Item -LiteralPath (Join-Path $root 'Test-Changes.ps1') -Destination (Join-Path $public 'Test-Changes.ps1')
     Put (Join-Path $public 'Build/ScopedTesting.psm1') ([IO.File]::ReadAllText((Join-Path $root 'Build/ScopedTesting.psm1')))
-    $mini.runtimeFiles=@();$mini.scopes=@(@{name='Example';native=$true;reuse=$true},@{name='Other';native=$true;reuse=$true},@{name='Tooling';native=$false;reuse=$true;commands=@(@{path='validate.ps1';arguments=@()})})
+    $mini.runtimeFiles=@();$mini.scopes=@(@{name='Example';native=$true;reuse=$true},@{name='Other';native=$true;reuse=$true},@{name='Tooling';native=$false;reuse=$true;commands=@(@{path='validate.ps1';arguments=@()},@{path='switch.ps1';arguments=@('-Expected')})})
     $mini.rules=@(@{pattern='Tests/Example.Tests.Case.cpp';scopes=@('Example');reason='example owner'},@{pattern='Tests/Other.Tests.Case.cpp';scopes=@('Other');reason='other owner'})
     Put (Join-Path $public 'Tests/test-scopes.json') ($mini|ConvertTo-Json -Depth 8)
     Put (Join-Path $public 'build.ps1') @'
@@ -257,16 +295,34 @@ if(Test-Path (Join-Path $PSScriptRoot '.build/fail')){exit 1}
 if(Test-Path (Join-Path $PSScriptRoot '.build/mutate')){[IO.File]::AppendAllText((Join-Path $PSScriptRoot 'Tests/Other.Tests.Case.cpp'),'mutated')}
 exit 0
 '@
-    Put (Join-Path $public 'validate.ps1') "[IO.File]::AppendAllText((Join-Path `$PSScriptRoot '.build/tooling.txt'),`"run``n`")"
+    Put (Join-Path $public 'validate.ps1') @'
+[CmdletBinding()]
+param()
+[void](New-Item -ItemType Directory -Path (Join-Path $PSScriptRoot '.build') -Force)
+[IO.File]::WriteAllText((Join-Path $PSScriptRoot '.build/no-arguments.txt'),'ran')
+'@
+    Put (Join-Path $public 'switch.ps1') @'
+[CmdletBinding()]
+param([switch]$Expected)
+if(-not $Expected){throw 'The manifest switch was not bound'}
+[void](New-Item -ItemType Directory -Path (Join-Path $PSScriptRoot '.build') -Force)
+[IO.File]::WriteAllText((Join-Path $PSScriptRoot '.build/explicit-switch.txt'),'ran')
+'@
     Invoke-FixtureGit $public @('add','-A');Invoke-FixtureGit $public @('commit','-qm','baseline');Invoke-FixtureGit $public @('update-ref','refs/remotes/origin/main','HEAD');Invoke-FixtureGit $public @('switch','-qc','candidate')
     $platform=if([Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString() -eq 'Arm64'){'ARM64'}else{'x64'}
     $state=Join-Path $public ".build/reports/scoped-tests/$platform-Debug/iteration.json"
-    function Run([string[]]$Arguments=@()){
+    function Run([string[]]$Arguments=@(),[string]$Directory=$public){
         $binary=Join-Path $PSHOME $(if($IsWindows){'pwsh.exe'}else{'pwsh'})
         $start=[Diagnostics.ProcessStartInfo]::new($binary);$start.UseShellExecute=$false;$start.RedirectStandardOutput=$true;$start.RedirectStandardError=$true
-        foreach($arg in @('-NoProfile','-File',(Join-Path $public 'Test-Changes.ps1'),'-Platform',$platform)+$Arguments){$start.ArgumentList.Add($arg)}
+        foreach($arg in @('-NoProfile','-File',(Join-Path $Directory 'Test-Changes.ps1'),'-Platform',$platform)+$Arguments){$start.ArgumentList.Add($arg)}
         $process=[Diagnostics.Process]::Start($start)
         try{$out=$process.StandardOutput.ReadToEndAsync();$err=$process.StandardError.ReadToEndAsync();if(-not $process.WaitForExit(120000)){$process.Kill($true);throw 'Owned protocol fixture timed out'};[pscustomobject]@{Exit=$process.ExitCode;Text=$out.GetAwaiter().GetResult()+$err.GetAwaiter().GetResult()}}finally{$process.Dispose()}
+    }
+    Case 'public runner expands empty and explicit tooling argument arrays exactly' {
+        $r=Run @('-Scopes','Tooling')
+        Assert ($r.Exit -eq 0) "Strict tooling commands failed through the public runner: $($r.Text)"
+        Assert ((Get-Content (Join-Path $public '.build/no-arguments.txt') -Raw) -ceq 'ran') 'Empty manifest arguments reached the strict no-parameter script as an argument'
+        Assert ((Get-Content (Join-Path $public '.build/explicit-switch.txt') -Raw) -ceq 'ran') 'Named manifest switch did not bind in the strict script'
     }
     Case 'public default records a successful affected baseline and then runs nothing unchanged' {
         Put (Join-Path $public 'Tests/Example.Tests.Case.cpp') 'example changed'

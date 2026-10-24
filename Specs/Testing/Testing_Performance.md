@@ -60,6 +60,19 @@ the family after seeing results or repeat until a desired result appears. Report
 name the outstanding qualification instead. A toolchain change requires a new retained baseline with the same
 common instrumentation and current compiler; an old compiler's executable cannot be paired with a new one.
 
+Compiler profile schema 2 compares the complete common Release invocation after removing reviewed source-file
+arguments and replacing only the exact repository prefix in reviewed include/object/PDB path operands with
+`<ROOT>`. Macro values and external paths stay byte-exact. Translation-unit inventories, raw command bytes and
+their hashes remain recorded separately, so a code change or isolated worktree is not mistaken for a
+toolchain change. Every project translation unit must have exactly one command and the same normalized flags;
+mixed, missing, duplicate or forced-include commands refuse comparison. All optimization, diagnostic, macro,
+sanitizer, include and output options remain in the profile. External paths stay exact. The separate dependency
+identity still requires identical compiler/linker/MSBuild binaries, SDK headers/libraries, runtime, architecture
+and exact DxUi pin. Both sides use this common instrumented protocol before a new baseline is frozen.
+The evidence auditor recomputes the normalized profile hash, checks the unique homogeneous source inventory
+and verifies each retained raw command file. Historical schema-less receipts remain readable as historical
+evidence; new paired collection requires a freshly frozen schema-2 compiler profile.
+
 The native-v2 fixture (schema 2) keeps two fixed warmup cycles, all timed edit/undo samples and the same twelve
 primary slots. It records command-only owner CPU cycles and owner processor IDs at transaction/frame boundaries
 as diagnostics. Boundary equality does not rule out migrations that return to the same processor. Never infer
@@ -109,3 +122,13 @@ Hidden diagnostics do not establish physical visibility/occlusion, actual device
 real-focus caret/IME/AT behavior or native ARM64 execution. Preserve those gates separately. A cross-build, library
 fixture or screenshot alone cannot close product resource acceptance. Reviewed application receipts belong in
 `Measurements/`; all generated processes, executables, logs and private data stay in `.build`.
+
+### Design refresh comparison viewport
+
+The common native performance harness normalizes the owned hidden client area to exactly 1440 by 900 DIP at
+the recorded native window DPI before warmup, without activation. It adjusts only outer window extents until
+the actual client pixels match. Baseline native-caption and candidate merged-caption frames therefore measure
+the same viewport. Freeze a new common instrumented baseline with this harness; older runs are not pooled.
+The existing strict fixture, pin, compiler, renderer, native geometry and harness identity checks remain enabled.
+For a dependency adoption, first compare original application chrome and refreshed chrome on the same new exact
+DxUi pin; upstream library changes retain their independent baseline and qualification.

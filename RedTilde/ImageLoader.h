@@ -1,4 +1,5 @@
 #pragma once
+#include "Common/RemoteImage.h"
 #include <DxUi/RichImage.h>
 #include <algorithm>
 #include <array>
@@ -6,6 +7,11 @@
 #include <wil/com.h>
 #include <wil/resource.h>
 #include <wincodec.h>
+
+namespace RedTilde
+{
+class DesignRefreshProbe;
+}
 
 // Sample application service for one editor. The library/control owns no worker.
 // One threadpool callback decodes at a time; fixed queues and a 64-MiB completion
@@ -37,6 +43,9 @@ class RichImageLoader final
         state->message = message;
         state->cookie = cookie;
         state->allowNetworkFiles = allowNetworkFiles;
+        state->networkAbort.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+        if (!state->networkAbort)
+            return HRESULT_FROM_WIN32(GetLastError());
         state->work.reset(CreateThreadpoolWork(&State::Worker, state.get(), nullptr));
         if (!state->work)
             return HRESULT_FROM_WIN32(GetLastError());
@@ -55,6 +64,7 @@ class RichImageLoader final
         {
             std::lock_guard lock(state_->mutex);
             state_->closing = true;
+            (void)SetEvent(state_->networkAbort.get());
             state_->window = nullptr;
             state_->jobCount = 0u;
             for (auto &job : state_->jobs)
@@ -108,6 +118,9 @@ class RichImageLoader final
         if (!state_)
             return;
         std::lock_guard lock(state_->mutex);
+        // Empty requests are cancelled too; only a live remote transfer owns this wake.
+        if (state_->current.SourceKind() == DxUi::RichText::RichImageSourceKind::RemoteHttp && state_->current.Cancelled())
+            (void)SetEvent(state_->networkAbort.get());
         std::size_t count{};
         for (std::size_t index = 0u; index < state_->jobCount; ++index)
             if (!state_->jobs[index].Cancelled())
@@ -162,12 +175,14 @@ class RichImageLoader final
     }
 
   private:
+    friend class RedTilde::DesignRefreshProbe;
     struct State
     {
         static constexpr std::size_t MaximumJobs = MaximumResults, MaximumResultBytes = 67108864u,
                                      MaximumImageBytes = static_cast<std::size_t>(DxUi::RichText::RichImage::MaximumPixels) * 4u;
         using Work = wil::unique_any<PTP_WORK, decltype(&CloseThreadpoolWork), CloseThreadpoolWork>;
         Work work;
+        wil::unique_handle networkAbort;
         std::mutex mutex;
         std::array<DxUi::RichText::RichImageRequest, MaximumJobs> jobs{};
         std::array<Result, MaximumJobs> results{};
@@ -220,6 +235,7 @@ class RichImageLoader final
                     }
                     request = state.jobs[0u];
                     state.current = request;
+                    (void)ResetEvent(state.networkAbort.get());
                     for (std::size_t index = 1u; index < state.jobCount; ++index)
                         state.jobs[index - 1u] = state.jobs[index];
                     state.jobs[--state.jobCount] = {};
@@ -231,10 +247,21 @@ class RichImageLoader final
                     continue;
                 }
                 std::shared_ptr<const DxUi::RichText::RichImage> image;
-                const auto status = !state.allowNetworkFiles && request.FilePath().starts_with(L"\\\\") ? E_ACCESSDENIED
-                                    : SUCCEEDED(factoryResult)
-                                        ? DxUi::RichText::RichImage::LoadFile(factory.get(), request.FilePath(), image, request.Cancellation())
-                                        : factoryResult;
+                HRESULT status = factoryResult;
+                if (SUCCEEDED(status))
+                {
+                    if (request.SourceKind() == DxUi::RichText::RichImageSourceKind::RemoteHttp)
+                    {
+                        std::vector<std::byte> encoded;
+                        status = RedTilde::FetchRemoteImage(request.Source(), encoded, request.Cancellation(), state.networkAbort.get());
+                        if (SUCCEEDED(status))
+                            status = DxUi::RichText::RichImage::Decode(factory.get(), encoded, image, request.Cancellation());
+                    }
+                    else
+                        status = !state.allowNetworkFiles && request.FilePath().starts_with(L"\\\\")
+                                     ? E_ACCESSDENIED
+                                     : DxUi::RichText::RichImage::LoadFile(factory.get(), request.FilePath(), image, request.Cancellation());
+                }
                 {
                     std::lock_guard lock(state.mutex);
                     state.current = {};

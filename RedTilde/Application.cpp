@@ -20,6 +20,108 @@
 
 namespace RedTilde
 {
+namespace
+{
+// App-local display categories over the canonical immutable tree, not a parser.
+unsigned CurrentBlockResourceAt(const DxUi::RichText::MarkdownSyntax &syntax, std::size_t caret,
+                                std::optional<std::pair<unsigned, std::size_t>> *listSummary = nullptr) noexcept
+{
+    using namespace DxUi::RichText;
+    const auto source = syntax.Source();
+    const auto &nodes = syntax.Nodes();
+    unsigned resource = IDS_BLOCKPARAGRAPH;
+    if (nodes.empty() || source.empty())
+        return resource;
+    auto position = std::min(caret, source.size());
+    if (position == source.size())
+    {
+        // A final unterminated line retains its block at the insertion ACP.
+        // A real trailing terminator instead exposes the new blank writing line.
+        if (source.back() == L'\r' || source.back() == L'\n')
+            return resource;
+        --position;
+    }
+    // Published child/sibling links are acyclic and source-ordered. Visit only
+    // preceding siblings and the containing path; vector append order is not source order.
+    auto index = nodes[0].firstChild;
+    while (index != MarkdownNoNode)
+    {
+        const auto &node = nodes[index];
+        if (position < node.block.source.first)
+            break;
+        if (position >= node.block.source.last)
+        {
+            index = node.nextSibling;
+            continue;
+        }
+        switch (node.block.kind)
+        {
+        case MarkdownBlockKind::AtxHeading:
+        case MarkdownBlockKind::SetextHeading:
+            resource = IDS_BLOCKHEADING;
+            break;
+        case MarkdownBlockKind::FencedCode:
+        case MarkdownBlockKind::IndentedCode:
+            resource = IDS_BLOCKCODE;
+            break;
+        case MarkdownBlockKind::List:
+            resource = IDS_BLOCKLISTCONTAINER;
+            if (listSummary)
+            {
+                std::size_t count{};
+                unsigned kind = IDS_BLOCKBULLETLIST;
+                for (auto child = node.firstChild; child != MarkdownNoNode; child = nodes[child].nextSibling)
+                    if (nodes[child].block.kind == MarkdownBlockKind::ListItem)
+                    {
+                        const auto marker = nodes[child].block.info.first;
+                        if (marker < source.size() && source[marker] >= L'0' && source[marker] <= L'9')
+                            kind = IDS_BLOCKNUMBEREDLIST;
+                        ++count;
+                    }
+                *listSummary = std::pair{kind, count};
+            }
+            break;
+        case MarkdownBlockKind::ListItem:
+            resource = IDS_BLOCKLIST;
+            break;
+        case MarkdownBlockKind::Table:
+        case MarkdownBlockKind::TableRow:
+        case MarkdownBlockKind::TableCell:
+            resource = IDS_BLOCKTABLE;
+            break;
+        case MarkdownBlockKind::BlockQuote:
+            resource = IDS_BLOCKQUOTE;
+            break;
+        case MarkdownBlockKind::ThematicBreak:
+            resource = IDS_BLOCKDIVIDER;
+            break;
+        case MarkdownBlockKind::HtmlBlock:
+            resource = IDS_BLOCKHTML;
+            break;
+        case MarkdownBlockKind::ReferenceDefinition:
+            resource = IDS_BLOCKLINKDEFINITION;
+            break;
+        case MarkdownBlockKind::FrontMatter:
+            resource = IDS_BLOCKMETADATA;
+            break;
+        case MarkdownBlockKind::FootnoteDefinition:
+            resource = IDS_BLOCKFOOTNOTE;
+            break;
+        case MarkdownBlockKind::SourceEditor:
+            resource = IDS_BLOCKSOURCE;
+            break;
+        case MarkdownBlockKind::Document:
+        case MarkdownBlockKind::Paragraph:
+        case MarkdownBlockKind::BlankLine:
+            // Ordinary leaf prose retains a recognized list/quote ancestor.
+            break;
+        }
+        index = node.firstChild;
+    }
+    return resource;
+}
+} // namespace
+
 std::wstring Resource(unsigned id)
 {
     const wchar_t *value{};
@@ -53,6 +155,7 @@ Application::~Application()
     preferenceWriter.Close();
     recovery.Close();
     files.Close();
+    folderFiles.Close();
     images.Shutdown();
     host.Detach();
     window.reset();
@@ -84,11 +187,16 @@ HRESULT Application::Initialize()
     if (!host.Attach(window.get(), {.forceWarp = options.forceWarp}))
         return HRESULT_FROM_WIN32(GetLastError());
     files.Initialize(window.get(), FileReady);
+    const MARGINS frame{1, 1, 1, 1};
+    (void)DwmExtendFrameIntoClientArea(window.get(), &frame);
+    SetWindowPos(window.get(), nullptr, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
     preferenceWriter.Initialize(options.dataDirectory, window.get(), PreferencesReady);
     RETURN_IF_FAILED(recovery.Initialize(options.dataDirectory, window.get(), RecoveryReadyMessage));
     RETURN_IF_FAILED(images.Initialize(window.get(), ImageReady, 0x5254));
     initialized = true;
     initializing = true;
+    // BuildUi is the sole creation site for the label whose localized facts we cache.
+    currentBlockPublishedFacts.reset();
     BuildUi();
     ApplyTheme();
     SetDocument(SampleDocument());
@@ -116,299 +224,31 @@ DxUi::Label *Application::Label(DxUi::Panel &parent, unsigned label, DxUi::FontR
 {
     auto *result = parent.AddChild<DxUi::Label>(Resource(label));
     result->SetFontRole(role);
+    if (role == DxUi::FontRole::Small)
+        THROW_IF_FAILED(result->SetTypographyOverride(DxUi::LabelTypography{13.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
+    else if (role == DxUi::FontRole::Body)
+        THROW_IF_FAILED(result->SetTypographyOverride(DxUi::LabelTypography{14.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
     return result;
 }
 DxUi::Button *Application::Action(DxUi::Panel &parent, unsigned label, Command command, std::wstring tooltip)
 {
     auto *button = parent.AddChild<DxUi::Button>(Resource(label));
+    THROW_IF_FAILED(button->SetContentFontSizeDip(14.f));
     button->SetAccessibleName(Resource(label));
     button->SetTooltipText(tooltip.empty() ? Resource(label) : std::move(tooltip));
     button->SetOnClick([this, command] { Execute(command); });
     return button;
 }
 
-void Application::BuildUi()
-{
-    auto tree = std::make_unique<Surface>();
-    root = tree.get();
-    documentBar = root->AddChild<Surface>();
-    auto *brand = Label(*documentBar, IDS_APP, DxUi::FontRole::Subtitle);
-    brand->SetText(L"~  " + Resource(IDS_APP));
-    brand->SetTextColor(D2D1::ColorF(0xC83C46));
-    brand->SetBounds(D2D1::RectF(24, 12, 180, 48));
-    title = Label(*documentBar, IDS_UNTITLED, DxUi::FontRole::BodyStrong);
-    saveState = Label(*documentBar, IDS_SAVED, DxUi::FontRole::Small);
-    topActions.push_back(Action(*documentBar, IDS_NEW, Command::New, L"New · Ctrl+N"));
-    topActions.push_back(Action(*documentBar, IDS_OPEN, Command::Open, L"Open · Ctrl+O"));
-    topActions.push_back(Action(*documentBar, IDS_SAVE, Command::Save, L"Save · Ctrl+S"));
-    topActions.back()->SetPrimary(true);
-    topActions.push_back(Action(*documentBar, IDS_SAVEAS, Command::SaveAs, L"Save as · Ctrl+Shift+S"));
-    commandBar = root->AddChild<Surface>();
-    const std::array<std::pair<unsigned, Command>, 13> buttons{{{IDS_UNDO, Command::Undo},
-                                                                {IDS_REDO, Command::Redo},
-                                                                {IDS_HEADING, Command::Heading},
-                                                                {IDS_BOLD, Command::Bold},
-                                                                {IDS_ITALIC, Command::Italic},
-                                                                {IDS_CODE, Command::Code},
-                                                                {IDS_BULLETS, Command::Bullets},
-                                                                {IDS_TASK, Command::Task},
-                                                                {IDS_INSERT, Command::Insert},
-                                                                {IDS_FIND, Command::Find},
-                                                                {IDS_LOCAL, Command::LocalSource},
-                                                                {IDS_FOCUS, Command::Focus},
-                                                                {IDS_SETTINGS, Command::Settings}}};
-    for (const auto &[id, command] : buttons)
-        tools.push_back(Action(*commandBar, id, command));
-    for (unsigned index = 0; index < 3; ++index)
-        modeButtons[index] = Action(*root, IDS_COMPOSE + index, static_cast<Command>(static_cast<unsigned>(Command::Compose) + index));
-    modeHint = Label(*root, IDS_BANNER, DxUi::FontRole::Small);
-    page = root->AddChild<Surface>(Surface::Kind::Canvas);
-    editor = page->AddChild<Editor>();
-    editor->SetAccessibleName(Resource(IDS_DOC));
-    editor->SetAccessibleAutomationId(L"RedTilde.Document");
-    editor->SetMarkdownAnalysisProfile(DxUi::RichText::MarkdownProfile::RichMarkdown);
-    editor->SetMarkdownRenderingEnabled(true);
-    editor->SetViewMode(DxUi::RichText::ViewMode::Rich);
-    editor->SetOnTextChanged([this] { Changed(); });
-    editor->changedSelection = [this] { SelectionChanged(); };
-    editor->SetOnContextMenu([this](POINT point, bool) { Menu(point); });
-    mirror = root->AddChild<DxUi::RichTextEditor>();
-    mirror->SetReadOnly(true);
-    mirror->SetViewMode(DxUi::RichText::ViewMode::Source);
-    mirror->SetAccessibleName(Resource(IDS_MIRROR));
-    mirror->SetVisible(false);
-    sidebar = root->AddChild<Surface>(Surface::Kind::Sidebar);
-    outlineTitle = Label(*sidebar, IDS_OUTLINE, DxUi::FontRole::BodyStrong);
-    for (unsigned index = 0; index < 12; ++index)
-    {
-        auto *button = sidebar->AddChild<DxUi::Button>();
-        button->SetOnClick(
-            [this, index]
-            {
-                if (index >= documentInfo.headings.size())
-                    return;
-                const auto offset = documentInfo.headings[index].offset;
-                editor->SetSelection({offset, offset});
-                (void)editor->ScrollSourceRangeIntoView(host, offset, offset, true);
-                host.SetFocusControl(editor, !options.headless);
-                SelectionChanged();
-            });
-        outlineButtons.push_back(button);
-    }
-    equationHelp = Label(*sidebar, IDS_PREVIEW, DxUi::FontRole::BodyStrong);
-    equation = sidebar->AddChild<DxUi::RichTextEditor>();
-    equation->SetReadOnly(true);
-    equation->SetMarkdownAnalysisProfile(DxUi::RichText::MarkdownProfile::RichMarkdown);
-    equation->SetMarkdownRenderingEnabled(true);
-    equation->SetAccessibleName(Resource(IDS_PREVIEW));
-    equation->SetText(L"$x = \\frac{-b + \\sqrt{b^2 - 4ac}}{2a}$");
-    auto *mathHelp = Label(*sidebar, IDS_MATHLIMIT, DxUi::FontRole::Small);
-    mathHelp->SetMultiline(true);
-    mathHelp->SetBounds(D2D1::RectF(0, 0, 0, 0)); // arranged below with the panel's other labels
-    drawer = root->AddChild<Surface>(Surface::Kind::Floating);
-    drawer->SetVisible(false);
-    Label(*drawer, IDS_SETTINGS, DxUi::FontRole::Subtitle);
-    const std::array<unsigned, 4> themeIds{IDS_SYSTEM, IDS_LIGHT, IDS_DARK, IDS_PAPER};
-    for (unsigned index = 0; index < 4; ++index)
-        themeButtons.push_back(Action(*drawer, themeIds[index], static_cast<Command>(static_cast<unsigned>(Command::ThemeSystem) + index)));
-    outlineToggle = Action(*drawer, IDS_VIEWTOOLS, Command::Outline);
-    focusToggle = Action(*drawer, IDS_FOCUS, Command::Focus);
-    Action(*drawer, IDS_RECOVERY, Command::Recovery);
-    Action(*drawer, IDS_CLOSE, Command::CloseDrawer);
-    findBar = root->AddChild<Surface>(Surface::Kind::Floating);
-    findBar->SetVisible(false);
-    findText = findBar->AddChild<DxUi::TextField>();
-    findText->SetAccessibleName(Resource(IDS_FINDHINT));
-    findText->SetOnSubmitted([this] { FindNext(); });
-    Action(*findBar, IDS_FINDNEXT, Command::FindNext);
-    Action(*findBar, IDS_CLOSE, Command::CloseDrawer);
-    blockDraft = root->AddChild<Surface>(Surface::Kind::Floating);
-    blockDraft->SetVisible(false);
-    Label(*blockDraft, IDS_LOCAL, DxUi::FontRole::Subtitle);
-    Label(*blockDraft, IDS_BLOCKHELP, DxUi::FontRole::Small);
-    blockDraftText = blockDraft->AddChild<DxUi::TextField>();
-    blockDraftText->SetMultiline(true);
-    blockDraftText->SetAccessibleName(Resource(IDS_LOCAL));
-    blockDraftText->SetOnTextChanged(
-        [this](std::wstring_view)
-        {
-            if (HasBlockDraft())
-                CheckpointRecovery();
-        });
-    blockDraftText->SetOnPreviewKeyDown(
-        [this](DxUi::ControlHost &, UINT key, UINT modifiers)
-        {
-            if (key == VK_RETURN && (modifiers & MK_CONTROL))
-            {
-                Execute(Command::ApplyBlock);
-                return true;
-            }
-            return false;
-        });
-    Action(*blockDraft, IDS_APPLY, Command::ApplyBlock)->SetPrimary(true);
-    Action(*blockDraft, IDS_CLOSE, Command::CloseDrawer);
-    recoveryPanel = root->AddChild<Surface>(Surface::Kind::Floating);
-    recoveryPanel->SetVisible(false);
-    Label(*recoveryPanel, IDS_RECOVERY, DxUi::FontRole::Subtitle);
-    recoveryDescription = Label(*recoveryPanel, IDS_RECOVERYHELP, DxUi::FontRole::Small);
-    recoveryDescription->SetMultiline(true);
-    recoveryPreview = recoveryPanel->AddChild<DxUi::TextField>();
-    recoveryPreview->SetMultiline(true);
-    recoveryPreview->SetReadOnly(true);
-    recoveryPreview->SetAccessibleName(Resource(IDS_RECOVERY));
-    Action(*recoveryPanel, IDS_RESTORE, Command::RestoreRecovery)->SetPrimary(true);
-    Action(*recoveryPanel, IDS_DISCARD, Command::DiscardRecovery);
-    Action(*recoveryPanel, IDS_LATER, Command::LaterRecovery);
-    stats = Label(*root, IDS_SAVED, DxUi::FontRole::Small);
-    feedback = Label(*root, IDS_FOOTERHINT, DxUi::FontRole::Small);
-    floating = root->AddChild<Surface>(Surface::Kind::Floating);
-    for (const auto &[id, command] : std::array<std::pair<unsigned, Command>, 5>{{{IDS_BOLD, Command::Bold},
-                                                                                  {IDS_ITALIC, Command::Italic},
-                                                                                  {IDS_CODE, Command::Code},
-                                                                                  {IDS_LINK, Command::Link},
-                                                                                  {IDS_LOCAL, Command::LocalSource}}})
-        floatingActions.push_back(Action(*floating, id, command));
-    floating->SetVisible(false);
-    host.SetRoot(std::move(tree));
-    host.SetOnEscape(
-        [this]
-        {
-            if (drawer->IsVisible() || findBar->IsVisible() || floating->IsVisible() || blockDraft->IsVisible() || recoveryPanel->IsVisible())
-            {
-                CloseDrawers();
-                return true;
-            }
-            if (editor->GetSemanticSourceRegion())
-                return editor->EndSemanticSourceEdit(host);
-            return false;
-        });
-}
-
-void Application::Layout()
-{
-    ++activity.layouts;
-    if (!root)
-        return;
-    const auto bounds = host.GetClientBoundsDip();
-    const float width = bounds.right, height = bounds.bottom;
-    root->SetBounds(bounds);
-    const bool focus = settings.focusMode;
-    documentBar->SetVisible(!focus);
-    commandBar->SetVisible(!focus);
-    documentBar->SetBounds(D2D1::RectF(0, 0, width, 62));
-    title->SetBounds(D2D1::RectF(196, 10, std::max(300.f, width - 430), 32));
-    saveState->SetBounds(D2D1::RectF(196, 32, std::max(300.f, width - 430), 52));
-    const std::array<float, 4> topWidths{54, 60, 68, 86};
-    float x = width - 312;
-    for (std::size_t index = 0; index < topActions.size(); ++index)
-    {
-        topActions[index]->SetBounds(D2D1::RectF(x, 14, x + topWidths[index], 48));
-        x += topWidths[index] + 8;
-    }
-    commandBar->SetBounds(D2D1::RectF(0, 62, width, 110));
-    const bool compact = width < 1120;
-    const std::array<float, 13> toolWidths{52, 52, 92, 50, 50, 50, 64, 48, 62, 48, 126, 88, 72};
-    const std::array<float, 13> compactWidths{46, 46, 84, 44, 44, 44, 56, 44, 56, 44, 44, 44, 66};
-    x = 20;
-    for (std::size_t index = 0; index < tools.size(); ++index)
-    {
-        const float itemWidth = compact ? compactWidths[index] : toolWidths[index];
-        tools[index]->SetText(index == 10 && compact ? L"F2"
-                              : index == 11 && compact
-                                  ? L"F11"
-                                  : Resource(std::array<unsigned, 13>{IDS_UNDO, IDS_REDO, IDS_HEADING, IDS_BOLD, IDS_ITALIC, IDS_CODE, IDS_BULLETS,
-                                                                      IDS_TASK, IDS_INSERT, IDS_FIND, IDS_LOCAL, IDS_FOCUS, IDS_SETTINGS}[index]));
-        tools[index]->SetBounds(D2D1::RectF(x, 70, x + itemWidth, 102));
-        x += itemWidth + 5;
-    }
-    const float viewY = focus ? 12.f : 124.f;
-    for (unsigned index = 0; index < 3; ++index)
-    {
-        modeButtons[index]->SetBounds(D2D1::RectF(24 + index * 91.f, viewY, 109 + index * 91.f, viewY + 32));
-        modeButtons[index]->SetPrimary(static_cast<unsigned>(settings.view) == index);
-    }
-    modeHint->SetBounds(D2D1::RectF(316, viewY, width - 24, viewY + 32));
-    const float top = viewY + 48, bottom = height - 66;
-    const bool showSidebar = settings.showOutline && width >= 1120 && !focus && settings.view != EditorView::Split;
-    sidebar->SetVisible(showSidebar);
-    const float right = showSidebar ? width - 278 : width - 24;
-    const bool split = settings.view == EditorView::Split;
-    const float left = split ? 24.f : std::max(24.f, (right - 24 - 800) / 2 + 24);
-    const float pageRight = split ? (width - 36) / 2 : std::min(right, left + 800);
-    page->SetBounds(D2D1::RectF(left, top, pageRight, bottom));
-    const float padding = split ? 20.f : 32.f;
-    editor->SetBounds(D2D1::RectF(left + padding, top + 20, pageRight - padding, bottom - 16));
-    mirror->SetVisible(split);
-    mirror->SetBounds(D2D1::RectF(pageRight + 16, top, width - 24, bottom));
-    sidebar->SetBounds(D2D1::RectF(width - 262, top, width - 16, bottom));
-    outlineTitle->SetBounds(D2D1::RectF(width - 246, top + 14, width - 30, top + 44));
-    float outlineY = top + 54;
-    for (std::size_t index = 0; index < outlineButtons.size(); ++index)
-    {
-        auto *button = outlineButtons[index];
-        const bool visible = index < documentInfo.headings.size();
-        button->SetVisible(visible);
-        if (visible)
-        {
-            const auto &heading = documentInfo.headings[index];
-            button->SetText(heading.text);
-            button->SetAccessibleName(heading.text);
-            button->SetBounds(D2D1::RectF(width - 246 + std::min(heading.level - 1, 3u) * 10, outlineY, width - 30, outlineY + 34));
-            outlineY += 42;
-        }
-    }
-    const float equationY = std::min(bottom - 230, std::max(top + 280, outlineY + 32));
-    equationHelp->SetBounds(D2D1::RectF(width - 246, equationY, width - 30, equationY + 28));
-    equation->SetBounds(D2D1::RectF(width - 246, equationY + 38, width - 30, equationY + 148));
-    if (auto *help = sidebar->GetLogicalChild(sidebar->GetLogicalChildCount() - 1))
-        help->SetBounds(D2D1::RectF(width - 246, equationY + 150, width - 30, equationY + 208));
-    const float drawerLeft = std::max(24.f, width - 372);
-    drawer->SetBounds(D2D1::RectF(drawerLeft, 118, width - 24, 478));
-    drawer->GetLogicalChild(0)->SetBounds(D2D1::RectF(drawerLeft + 20, 134, width - 44, 170));
-    for (unsigned index = 0; index < 4; ++index)
-    {
-        themeButtons[index]->SetBounds(D2D1::RectF(drawerLeft + 20 + (index % 2) * 154.f, 188.f + (index / 2) * 44.f,
-                                                   drawerLeft + 162 + (index % 2) * 154.f, 222.f + (index / 2) * 44.f));
-        themeButtons[index]->SetPrimary(static_cast<unsigned>(settings.appearance) == index);
-    }
-    outlineToggle->SetBounds(D2D1::RectF(drawerLeft + 20, 286, width - 44, 320));
-    outlineToggle->SetPrimary(settings.showOutline);
-    focusToggle->SetBounds(D2D1::RectF(drawerLeft + 20, 330, width - 44, 364));
-    drawer->GetLogicalChild(drawer->GetLogicalChildCount() - 2)->SetBounds(D2D1::RectF(drawerLeft + 20, 380, width - 44, 414));
-    drawer->GetLogicalChild(drawer->GetLogicalChildCount() - 1)->SetBounds(D2D1::RectF(drawerLeft + 20, 428, width - 44, 462));
-    findBar->SetBounds(D2D1::RectF(std::max(24.f, width - 550), viewY + 40, width - 24, viewY + 96));
-    findText->SetBounds(D2D1::RectF(std::max(36.f, width - 538), viewY + 50, width - 182, viewY + 84));
-    findBar->GetLogicalChild(1)->SetBounds(D2D1::RectF(width - 172, viewY + 50, width - 108, viewY + 84));
-    findBar->GetLogicalChild(2)->SetBounds(D2D1::RectF(width - 100, viewY + 50, width - 36, viewY + 84));
-    const float draftLeft = std::max(24.f, (width - 680) / 2), draftRight = std::min(width - 24, draftLeft + 680);
-    blockDraft->SetBounds(D2D1::RectF(draftLeft, top + 24, draftRight, bottom - 24));
-    blockDraft->GetLogicalChild(0)->SetBounds(D2D1::RectF(draftLeft + 20, top + 36, draftRight - 20, top + 72));
-    blockDraft->GetLogicalChild(1)->SetBounds(D2D1::RectF(draftLeft + 20, top + 78, draftRight - 20, top + 108));
-    blockDraftText->SetBounds(D2D1::RectF(draftLeft + 20, top + 120, draftRight - 20, bottom - 92));
-    blockDraft->GetLogicalChild(3)->SetBounds(D2D1::RectF(draftRight - 244, bottom - 74, draftRight - 112, bottom - 40));
-    blockDraft->GetLogicalChild(4)->SetBounds(D2D1::RectF(draftRight - 100, bottom - 74, draftRight - 20, bottom - 40));
-    recoveryPanel->SetBounds(D2D1::RectF(draftLeft, top + 8, draftRight, bottom - 8));
-    recoveryPanel->GetLogicalChild(0)->SetBounds(D2D1::RectF(draftLeft + 20, top + 24, draftRight - 20, top + 60));
-    recoveryDescription->SetBounds(D2D1::RectF(draftLeft + 20, top + 68, draftRight - 20, top + 128));
-    recoveryPreview->SetBounds(D2D1::RectF(draftLeft + 20, top + 136, draftRight - 20, bottom - 80));
-    for (unsigned index = 0; index < 3; ++index)
-        recoveryPanel->GetLogicalChild(index + 3)->SetBounds(
-            D2D1::RectF(draftLeft + 20 + index * 208.f, bottom - 62, draftLeft + 220 + index * 208.f, bottom - 28));
-    stats->SetBounds(D2D1::RectF(24, height - 52, width / 2, height - 24));
-    feedback->SetBounds(D2D1::RectF(width / 2, height - 52, width - 24, height - 24));
-    host.Invalidate();
-}
-
 void Application::ApplyTheme()
 {
-    bool dark = settings.appearance == Appearance::Dark;
-    if (settings.appearance == Appearance::System)
-    {
-        DWORD value = 1, size = sizeof(value);
-        (void)RegGetValueW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize", L"AppsUseLightTheme",
-                           RRF_RT_REG_DWORD, nullptr, &value, &size);
-        dark = value == 0;
-    }
+    // Cache the system preference independently of the selected appearance so the
+    // System preview remains truthful without registry reads during layout.
+    DWORD value = 1, size = sizeof(value);
+    const auto preference = RegGetValueW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                                         L"AppsUseLightTheme", RRF_RT_REG_DWORD, nullptr, &value, &size);
+    systemDark = preference == ERROR_SUCCESS && value == 0;
+    const bool dark = settings.appearance == Appearance::Dark || (settings.appearance == Appearance::System && systemDark);
     auto theme = DxUi::MakeDefaultThemePalette(dark);
     HIGHCONTRASTW contrast{sizeof(contrast)};
     (void)SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(contrast), &contrast, 0);
@@ -423,15 +263,18 @@ void Application::ApplyTheme()
         theme.highContrast = true;
         theme.windowBackground = theme.surfaceBackground = theme.cardBackground = systemColor(COLOR_WINDOW);
         theme.text = systemColor(COLOR_WINDOWTEXT);
-        theme.selectionFill = theme.accent = systemColor(COLOR_HIGHLIGHT);
+        theme.selectionFill = theme.selectionInactiveFill = systemColor(COLOR_HIGHLIGHT);
+        theme.accent = systemColor(COLOR_HOTLIGHT);
+        theme.selectionText = systemColor(COLOR_HIGHLIGHTTEXT);
+        theme.focusStroke = systemColor(COLOR_HOTLIGHT);
     }
     else
     {
         theme.accent = D2D1::ColorF(dark ? 0xFF7778 : 0xC83C46);
         theme.accentHover = D2D1::ColorF(dark ? 0xFF999A : 0xB6303C);
         theme.accentPressed = D2D1::ColorF(dark ? 0xFFABAC : 0xA12A34);
-        theme.selectionFill = D2D1::ColorF(dark ? 0xA63B46 : 0xF2CFD3);
-        theme.selectionText = theme.text;
+        theme.selectionFill = theme.selectionInactiveFill = D2D1::ColorF(dark ? 0xA63B46 : 0xF2CFD3);
+        theme.selectionText = D2D1::ColorF(dark ? 0xFFFFFF : 0xA12A34);
         theme.focusStroke = theme.accent;
         theme.windowBackground = D2D1::ColorF(dark ? 0x17191E : settings.appearance == Appearance::Paper ? 0xEDE6D8 : 0xF0F1F4);
         theme.surfaceBackground = D2D1::ColorF(dark ? 0x1C1F25 : settings.appearance == Appearance::Paper ? 0xF3EDDF : 0xF8F8FA);
@@ -441,7 +284,12 @@ void Application::ApplyTheme()
     BOOL animation = TRUE;
     (void)SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &animation, 0);
     theme.reducedMotion = !animation || options.headless;
+    theme.primaryButtonFill = D2D1::ColorF(0xC83C46);
+    theme.primaryButtonText = D2D1::ColorF(D2D1::ColorF::White);
     host.SetTheme(theme);
+    const auto underline = highContrast ? DxUi::RichTextLinkUnderlinePolicy::Always : DxUi::RichTextLinkUnderlinePolicy::HoverOrCaret;
+    for (auto *target : {static_cast<DxUi::RichTextEditor *>(editor), mirror, equation})
+        target->SetLinkUnderlinePolicy(underline);
     const BOOL nativeDark = dark;
     (void)DwmSetWindowAttribute(window.get(), DWMWA_USE_IMMERSIVE_DARK_MODE, &nativeDark, sizeof(nativeDark));
     Layout();
@@ -459,7 +307,106 @@ const std::wstring &Application::CurrentText() const
 }
 bool Application::Dirty() const
 {
-    return editor && (recovered || editor->Snapshot().Length() != savedText.size() || CurrentText() != savedText);
+    if (!editor)
+        return false;
+    const auto source = editor->Snapshot();
+    if (dirtyFact && dirtyFact->recovered == recovered && dirtyFact->source.IsSameRevision(source))
+        return dirtyFact->dirty;
+    bool dirty = recovered || source.Length() != savedText.size();
+    if (!dirty)
+    {
+        ++activity.dirtyTextComparisons;
+        dirty = CurrentText() != savedText;
+    }
+    dirtyFact = DirtyFact{source, recovered, dirty};
+    return dirty;
+}
+void Application::RefreshDocumentAnalysis(const DxUi::RichText::SourceSnapshot &source, bool committed)
+{
+    const auto sameOutline = [](const std::vector<Heading> &left, const std::vector<Heading> &right)
+    {
+        return left.size() == right.size() && std::equal(left.begin(), left.end(), right.begin(),
+                                                         [](const Heading &a, const Heading &b) { return a.level == b.level && a.text == b.text; });
+    };
+    const auto matchesCommittedOutline = [](const std::vector<Heading> &headings, const std::vector<std::pair<unsigned, std::wstring>> &identity)
+    {
+        return headings.size() == identity.size() &&
+               std::equal(headings.begin(), headings.end(), identity.begin(),
+                          [](const Heading &heading, const auto &item) { return heading.level == item.first && heading.text == item.second; });
+    };
+
+    const bool newSourceRevision = !documentAnalysisSource || !documentAnalysisSource->IsSameRevision(source);
+    if (!newSourceRevision && !committed)
+        return;
+
+    const std::wstring *text{};
+    if (newSourceRevision)
+        text = &CurrentText();
+    const bool sourceMatchesCommitted = !committed && newSourceRevision && committedAnalysisSource && *text == committedAnalysisSource->Text();
+    const bool returningToCommitted = !committed && newSourceRevision && sourceMatchesCommitted;
+    const bool transientSource = !committed && newSourceRevision && committedAnalysisSource && !sourceMatchesCommitted;
+    if (transientSource && !previewCollapsedHeadings)
+    {
+        previewCollapsedHeadings = collapsedHeadings;
+        previewCommittedOutline.emplace();
+        previewCommittedOutline->reserve(documentInfo.headings.size());
+        for (const auto &heading : documentInfo.headings)
+            previewCommittedOutline->emplace_back(heading.level, heading.text);
+    }
+
+    std::optional<DocumentInfo> nextInfo;
+    const DocumentInfo *analysis = &documentInfo;
+    bool outlineRowsChanged{};
+    if (newSourceRevision)
+    {
+        nextInfo.emplace(AnalyzeDocument(*text, documentInfo.lines));
+        outlineRowsChanged = !sameOutline(nextInfo->headings, documentInfo.headings);
+        analysis = &*nextInfo;
+    }
+
+    bool collapseStateChanged{};
+    if ((committed || returningToCommitted) && previewCollapsedHeadings && collapsedHeadings != *previewCollapsedHeadings)
+    {
+        collapsedHeadings = *previewCollapsedHeadings;
+        collapseStateChanged = true;
+    }
+    if (transientSource && previewCollapsedHeadings && previewCommittedOutline && outlineRowsChanged)
+    {
+        const auto desired =
+            matchesCommittedOutline(analysis->headings, *previewCommittedOutline) ? *previewCollapsedHeadings : std::set<std::uint64_t>{};
+        if (collapsedHeadings != desired)
+        {
+            collapsedHeadings = desired;
+            collapseStateChanged = true;
+        }
+    }
+    if (committed)
+    {
+        const bool sameAsPrior =
+            previewCommittedOutline ? matchesCommittedOutline(analysis->headings, *previewCommittedOutline) : !outlineRowsChanged;
+        if (!sameAsPrior && !collapsedHeadings.empty())
+        {
+            collapsedHeadings.clear();
+            collapseStateChanged = true;
+        }
+        committedAnalysisSource = source;
+        previewCollapsedHeadings.reset();
+        previewCommittedOutline.reset();
+    }
+    else if (returningToCommitted)
+    {
+        previewCollapsedHeadings.reset();
+        previewCommittedOutline.reset();
+    }
+
+    if (newSourceRevision)
+    {
+        documentInfo = std::move(*nextInfo);
+        documentAnalysisSource = source;
+        ++activity.documentAnalysisUpdates;
+    }
+    if (outlineRowsChanged || collapseStateChanged)
+        RefreshOutline();
 }
 void Application::SynchronizeMirror()
 {
@@ -486,45 +433,43 @@ void Application::SetDocument(std::wstring text, std::filesystem::path path, boo
     bom = hasBom;
     stamp = identity;
     savedText = editor->GetText();
+    dirtyFact.reset();
     editor->SetDocumentFilePath(documentPath.native());
     SetView(settings.view);
     Changed();
+    RefreshFiles(true);
 }
 void Application::Changed()
 {
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Enter);
     ++activity.changes;
-    const auto &text = CurrentText();
-    auto info = AnalyzeDocument(text);
-    const bool outlineChanged =
-        info.headings.size() != documentInfo.headings.size() ||
-        !std::equal(info.headings.begin(), info.headings.end(), documentInfo.headings.begin(),
-                    [](const Heading &left, const Heading &right) { return left.level == right.level && left.text == right.text; });
-    // Offsets always follow the current source, even when the outline's labels
-    // and indentation can keep their existing bounds.
-    documentInfo = std::move(info);
+    const auto source = editor->Snapshot();
+    RefreshDocumentAnalysis(source, true);
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Analysis);
     SynchronizeMirror();
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Mirror);
     const auto name = documentPath.empty() ? Resource(IDS_UNTITLED) : documentPath.filename().native();
-    title->SetText(name);
     const bool dirty = Dirty();
+    const auto displayedName = settings.focusMode && dirty ? name + L" · " + Resource(IDS_CHANGED) : name;
+    const bool identityLayoutChanged = title->GetText() != displayedName;
+    title->SetText(displayedName);
     saveState->SetText(Resource(dirty ? IDS_CHANGED : IDS_SAVED));
+    if (identityLayoutChanged)
+        Layout();
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Identity);
     UpdateCaption(std::format(L"{}{} — RedTilde", dirty ? L"• " : L"", name));
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Caption);
-    const auto encodingSuffix = bom ? L" BOM" : L"";
-    stats->SetText(std::vformat(Resource(IDS_STATS), std::make_wformat_args(documentInfo.words, documentInfo.characters, encodingSuffix)));
+    UpdateCounts();
     tools[0]->SetEnabled(editor->CanUndo());
     tools[1]->SetEnabled(editor->CanRedo());
     floating->SetVisible(false);
-    if (outlineChanged)
-        Layout();
+    if (settings.showFiles && dirty != lastFilesDirty)
+        RefreshFiles();
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Chrome);
     SelectionChanged();
@@ -534,6 +479,20 @@ void Application::Changed()
         CheckpointRecovery();
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Recovery);
+}
+
+void Application::UpdateCounts()
+{
+    if (settings.focusMode)
+    {
+        const auto state = Resource(Dirty() ? IDS_CHANGED : IDS_SAVED);
+        stats->SetText(std::vformat(Resource(IDS_FOCUSCOUNTS), std::make_wformat_args(documentInfo.words, state)));
+    }
+    else
+    {
+        const auto readingMinutes = std::max(std::size_t{1}, (documentInfo.words + 199) / 200);
+        stats->SetText(std::vformat(Resource(IDS_STATUSCOUNTS), std::make_wformat_args(documentInfo.words, documentInfo.characters, readingMinutes)));
+    }
 }
 
 void Application::UpdateCaption(std::wstring caption)
@@ -559,29 +518,39 @@ void Application::UpdateCaption(std::wstring caption)
 void Application::CheckpointRecovery(bool immediate)
 {
     std::optional<RecoverySnapshot> snapshot;
-    auto text = CurrentText();
     auto selection = editor->GetSelection();
     bool needsRecovery = Dirty();
+    std::wstring_view draft;
+    bool changedDraft{};
     if (HasBlockDraft() && editor->Snapshot().IsSameRevision(blockDraftSnapshot) && editor->Revision() == blockDraftRevision)
     {
-        const std::wstring draft(blockDraftText->GetText());
-        if (draft != text.substr(blockDraftRange.first, blockDraftRange.last - blockDraftRange.first))
+        draft = blockDraftText->GetText();
+        const std::wstring_view source = CurrentText();
+        if (draft != source.substr(blockDraftRange.first, blockDraftRange.last - blockDraftRange.first))
         {
             if (!DxUi::RichText::IsValidUtf16(draft) ||
-                text.size() - (blockDraftRange.last - blockDraftRange.first) + draft.size() > DxUi::RichText::Document::MaximumUnits)
+                source.size() - (blockDraftRange.last - blockDraftRange.first) + draft.size() > DxUi::RichText::Document::MaximumUnits)
             {
                 Status(IDS_RECOVERYFAILED);
                 return;
             }
-            // Recovery is a previewable copy of the proposed edit. The live
-            // authoritative source/history remain untouched until Apply.
-            text.replace(blockDraftRange.first, blockDraftRange.last - blockDraftRange.first, draft);
-            selection = {blockDraftRange.first, blockDraftRange.first + draft.size()};
+            changedDraft = true;
             needsRecovery = true;
         }
     }
     if (needsRecovery)
+    {
+        auto text = CurrentText();
+        ++activity.recoveryTextCopies;
+        if (changedDraft)
+        {
+            // Recovery is a previewable copy of the proposed edit. The live
+            // authoritative source/history remain untouched until Apply.
+            text.replace(blockDraftRange.first, blockDraftRange.last - blockDraftRange.first, draft);
+            selection = {blockDraftRange.first, blockDraftRange.first + draft.size()};
+        }
         snapshot = RecoverySnapshot{std::move(text), documentPath, bom, selection, ++recoveryGeneration};
+    }
     const bool flush = immediate || !snapshot.has_value();
     ++activity.recoverySubmissions;
     if (FAILED(recovery.Submit(std::move(snapshot), flush)))
@@ -633,6 +602,7 @@ void Application::ShowRecovery()
 }
 void Application::SetView(EditorView view)
 {
+    selectionToolsFocus.reset();
     // The same editor/document/history survives all global presentation changes.
     settings.view = view;
     editor->SetViewMode(view == EditorView::Source ? DxUi::RichText::ViewMode::Source : DxUi::RichText::ViewMode::Rich);
@@ -645,50 +615,212 @@ void Application::SetView(EditorView view)
     if (!initializing)
         SavePreferences();
 }
-void Application::SelectionChanged()
+void Application::SelectionChanged(bool refreshTools)
 {
-    const auto selection = editor->GetSelection();
-    if (settings.view == EditorView::Split)
+    if (closing || !floating)
+        return;
+    if (editor->IsSelectionGestureActive())
     {
-        mirror->SetSelection(selection);
-        (void)mirror->ScrollSourceRangeIntoView(host, selection.Start(), selection.End(), false);
+        // Shared editor owns every selection route and the final release event.
+        // Keep pointer movement O(1); derived facts and placement update on release.
+        pendingSelectionTools = false;
+        selectionToolsFocus.reset();
+        floating->SetVisible(false);
+        return;
     }
-    std::wstring expression;
-    if (const auto syntax = editor->GetMarkdownSyntax())
+    const auto selection = editor->GetSelection();
+    const auto source = editor->Snapshot();
+    RefreshDocumentAnalysis(source, false);
+    const auto syntax = editor->GetMarkdownSyntax();
+    if (selectionToolsFocus && (!selectionToolsFocus->source.IsSameRevision(source) || selectionToolsFocus->selection != selection ||
+                                selectionToolsFocus->view != settings.view))
+        selectionToolsFocus.reset();
+    const bool selectionChanged = !selectionFactsSource || !selectionFactsSource->IsSameRevision(source) || selectionFactsSelection != selection ||
+                                  selectionFactsView != settings.view || selectionFactsAnalysis != activity.changes;
+    if (selectionChanged || selectionFactsSyntax != syntax)
     {
-        for (const auto &node : syntax->Inlines())
-            if (node.kind == DxUi::RichText::MarkdownInlineKind::Math && selection.caret >= node.source.first && selection.caret <= node.source.last)
+        if (selectionChanged)
+            ++activity.selectionPresentationUpdates;
+        else
+            ++activity.syntaxPresentationUpdates;
+        if (selectionChanged && settings.view == EditorView::Split)
+        {
+            // Text-service previews and cancellation notify selection without
+            // a committed edit. Match source identity before using their ACPs;
+            // equal-length previews can also change Unicode/CRLF boundaries.
+            SynchronizeMirror();
+            mirror->SetSelection(selection);
+            (void)mirror->ScrollSourceRangeIntoView(host, selection.Start(), selection.End(), false);
+            ++activity.mirrorSelectionUpdates;
+        }
+        std::wstring expression;
+        std::array<bool, 4> formats{};
+        if (syntax)
+        {
+            for (const auto &node : syntax->Inlines())
+                if (selection.caret >= node.source.first && selection.caret <= node.source.last)
+                {
+                    using Kind = DxUi::RichText::MarkdownInlineKind;
+                    if (node.kind == Kind::Math && node.value.size() <= DxUi::RichText::MathMaximumSourceUnits)
+                        expression = node.value;
+                    if (node.kind == Kind::Strong)
+                        formats[0] = true;
+                    if (node.kind == Kind::Emphasis)
+                        formats[1] = true;
+                    if (node.kind == Kind::Code)
+                        formats[2] = true;
+                    if (node.kind == Kind::Link)
+                        formats[3] = true;
+                }
+        }
+        const auto preview = expression.empty() ? std::wstring{} : L"\\[" + expression + L"\\]";
+        if (equation->GetText() != preview)
+            equation->SetText(preview);
+        const bool layoutChanged = equationContext != !expression.empty();
+        equationContext = !expression.empty();
+        for (unsigned i = 0; i < 4; ++i)
+        {
+            auto *button = tools[i == 3 ? 13 : i + 3];
+            button->SetEnabled(!equationContext);
+            button->SetToggleState(formats[i]);
+        }
+        tools[2]->SetText(Resource(equationContext ? IDS_MATH : IDS_PARAGRAPH));
+        if (selectionChanged)
+        {
+            currentHeading.reset();
+            for (std::size_t i = 0; i < documentInfo.headings.size(); ++i)
+                if (documentInfo.headings[i].offset <= selection.caret)
+                    currentHeading = i;
+            const auto headingId = currentHeading ? std::optional<std::uint64_t>(currentHeading.value() + 1) : std::nullopt;
+            // Model refresh already reconciles and reveals surviving focused rows.
+            // Republish only an actual selection or focus transition.
+            if (outlineTree->GetSelectedItemId() != headingId || outlineTree->GetFocusedItemId() != headingId)
             {
-                expression = node.value.size() <= DxUi::RichText::MathMaximumSourceUnits ? node.value : std::wstring{};
+                ++activity.outlineSelectionUpdates;
+                outlineTree->SetSelectedItemId(headingId);
+            }
+        }
+        const auto position = DocumentPositionAt(documentInfo, selection.caret);
+        const auto count = position.lineCharacters;
+        std::optional<std::pair<unsigned, std::size_t>> listFacts;
+        unsigned blockResourceId = syntax ? CurrentBlockResourceAt(*syntax, selection.caret, &listFacts) : IDS_BLOCKPARAGRAPH;
+        if (equationContext)
+            blockResourceId = IDS_MATH;
+        const bool showListSummary = listFacts && (blockResourceId == IDS_BLOCKLIST || blockResourceId == IDS_BLOCKLISTCONTAINER);
+        listSummary->SetVisible(showListSummary);
+        listSummaryIcon->SetVisible(showListSummary);
+        currentBlock->SetVisible(!showListSummary);
+        if (showListSummary && listSummaryFacts != listFacts)
+        {
+            const auto kind = Resource(listFacts.value().first);
+            const auto items = listFacts.value().second;
+            const auto request = ++listSummaryPublication;
+            listSummaryFacts.reset();
+            listSummary->SetText(std::vformat(Resource(IDS_BLOCKITEMINFO), std::make_wformat_args(kind, items)));
+            if (listSummaryPublication == request)
+                listSummaryFacts = listFacts;
+        }
+        const CurrentBlockLabelFacts blockFacts{blockResourceId, count};
+        if (!currentBlockPublishedFacts || currentBlockPublishedFacts.value() != blockFacts)
+        {
+            const auto blockType = Resource(blockResourceId);
+            auto text = std::vformat(Resource(IDS_BLOCKINFO), std::make_wformat_args(blockType, count));
+            const auto request = ++activity.currentBlockLabelConstructions;
+            currentBlockPublishedFacts.reset();
+            currentBlock->SetText(std::move(text));
+            // A nested publication owns its newer facts, just as a nested caption request does.
+            if (activity.currentBlockLabelConstructions == request)
+                currentBlockPublishedFacts = blockFacts;
+        }
+        if (selectionChanged)
+        {
+            const auto selected = selection.End() - selection.Start();
+            const auto encoding = bom ? L" BOM" : L"";
+            unsigned eolId = IDS_EOLNONE;
+            switch (documentInfo.newlineKind)
+            {
+            case DocumentNewlineKind::CrLf:
+                eolId = IDS_EOLCRLF;
+                break;
+            case DocumentNewlineKind::Lf:
+                eolId = IDS_EOLLF;
+                break;
+            case DocumentNewlineKind::Cr:
+                eolId = IDS_EOLCR;
+                break;
+            case DocumentNewlineKind::Mixed:
+                eolId = IDS_EOLMIXED;
+                break;
+            case DocumentNewlineKind::None:
                 break;
             }
+            const auto eol = Resource(eolId);
+            positionStatus->SetText(
+                std::vformat(Resource(IDS_STATUSPOSITION), std::make_wformat_args(selected, position.line, position.column, encoding, eol)));
+        }
+        RefreshFind();
+        selectionFactsSyntax = syntax;
+        selectionFactsSource = source;
+        selectionFactsSelection = selection;
+        selectionFactsView = settings.view;
+        selectionFactsAnalysis = activity.changes;
+        if (layoutChanged)
+            Layout();
     }
-    else
-        expression = EquationAt(CurrentText(), selection.caret);
-    const auto preview = expression.empty() ? std::wstring{} : L"\\[" + expression + L"\\]";
-    if (equation->GetText() != preview)
-        equation->SetText(preview);
+    // Syntax publication refreshes facts, but must not reopen tools dismissed
+    // by Escape or an explicit navigation command.
+    if (!refreshTools)
+        return;
     if (selection.Start() == selection.End() || settings.view == EditorView::Source || drawer->IsVisible() || findBar->IsVisible() ||
-        blockDraft->IsVisible())
+        blockDraft->IsVisible() || settings.focusMode || equationContext)
     {
+        pendingSelectionTools = false;
+        selectionToolsFocus.reset();
         floating->SetVisible(false);
         return;
     }
     const auto rectangles = editor->TryGetTextInputRangeRects(host, selection.Start(), selection.End());
-    if (!rectangles || rectangles->empty())
-        return;
-    const auto first = rectangles->front();
-    const float left = std::clamp(first.left, 24.f, std::max(24.f, host.GetClientBoundsDip().right - 460));
-    const float top = std::max(editor->GetBounds().top + 4, first.top - 46);
-    floating->SetBounds(D2D1::RectF(left, top, left + 436, top + 40));
-    const std::array<float, 5> widths{58, 58, 58, 58, 164};
-    float x = left + 8;
-    for (std::size_t index = 0; index < floatingActions.size(); ++index)
+    if (!rectangles)
     {
-        floatingActions[index]->SetBounds(D2D1::RectF(x, top + 4, x + widths[index], top + 36));
-        x += widths[index] + 4;
+        pendingSelectionTools = true;
+        return;
     }
+    pendingSelectionTools = false;
+    if (rectangles->empty())
+    {
+        // A prepared hidden-only source range has no painted anchor. It is not
+        // pending work and must not create a permanent invalidation loop.
+        selectionToolsFocus.reset();
+        floating->SetVisible(false);
+        return;
+    }
+    const auto first = rectangles->front();
+    const float viewport = host.GetClientBoundsDip().right;
+    const float left = std::clamp(first.left, 16.f, std::max(16.f, viewport - 452));
+    const float minimumTop = editor->GetBounds().top + 4;
+    const float top = std::clamp(first.top - 52, minimumTop, std::max(minimumTop, page->GetBounds().bottom - 52));
+    floating->SetBounds(D2D1::RectF(left, top, left + 436, top + 44));
+    const std::array<float, 5> widths{112, 56, 56, 56, 56};
+    float x = left + 8;
+    for (std::size_t i = 0; i < floatingActions.size(); ++i)
+    {
+        floatingActions[i]->SetBounds(D2D1::RectF(x, top + 6, x + widths[i], top + 38));
+        x += widths[i] + 4;
+    }
+    selectionHintChip->SetBounds(D2D1::RectF(left + 372, top + 10, left + 428, top + 34));
+    selectionHint->SetBounds(D2D1::RectF(left + 376, top + 12, left + 424, top + 32));
     floating->SetVisible(true);
+    if (selectionToolsFocus)
+    {
+        selectionToolsFocus.reset();
+        host.SetFocusControl(floatingActions.front(), !options.headless);
+    }
+}
+
+void Application::FocusSelectionTools()
+{
+    selectionToolsFocus = SelectionToolsFocusRequest{editor->Snapshot(), editor->GetSelection(), settings.view};
+    SelectionChanged();
 }
 
 void Application::SavePreferences()
@@ -701,12 +833,20 @@ void Application::SavePreferences()
 }
 void Application::CloseDrawers()
 {
+    const bool hadBlockDraft = blockDraft->IsVisible();
+    pendingSelectionTools = false;
+    pendingBlockPlacement = false;
+    selectionToolsFocus.reset();
     drawer->SetVisible(false);
     findBar->SetVisible(false);
     floating->SetVisible(false);
     blockDraft->SetVisible(false);
     recoveryPanel->SetVisible(false);
     editor->SetReadOnly(false);
+    if (hadBlockDraft)
+        editor->SetSourceHighlights({});
+    RefreshFind();
+    Layout();
     host.SetFocusControl(editor, !options.headless);
     if (!initializing && !closing)
         CheckpointRecovery();
@@ -719,6 +859,7 @@ void Application::Execute(Command command)
     DxUi::NativeTextInputState native;
     if (host.TryReadNativeTextInputState(host.GetFocusControl(), native) && native.compositionStartIndex)
         return;
+    selectionToolsFocus.reset();
     if (blockDraft->IsVisible() && command != Command::ApplyBlock && command != Command::CloseDrawer)
     {
         Status(IDS_BLOCKPENDING);
@@ -728,6 +869,54 @@ void Application::Execute(Command command)
     bool semantic = true;
     switch (command)
     {
+    case Command::FileMenu:
+        FileMenu();
+        return;
+    case Command::Overflow:
+        FileMenu(true);
+        return;
+    case Command::Files:
+        pendingSelectionTools = false;
+        floating->SetVisible(false);
+        settings.showFiles = !settings.showFiles;
+        RefreshFiles(true);
+        Layout();
+        SavePreferences();
+        host.SetFocusControl(settings.showFiles ? static_cast<DxUi::Control *>(filesTree) : editor, !options.headless);
+        return;
+    case Command::Minimize:
+        if (!options.headless)
+            ShowWindow(window.get(), SW_MINIMIZE);
+        return;
+    case Command::Maximize:
+        if (!options.headless)
+            ShowWindow(window.get(), IsZoomed(window.get()) ? SW_RESTORE : SW_MAXIMIZE);
+        return;
+    case Command::Close:
+        SendMessageW(window.get(), WM_CLOSE, 0, 0);
+        return;
+    case Command::FindPrevious:
+        FindNext(true);
+        return;
+    case Command::Replace:
+        ReplaceFind(false);
+        return;
+    case Command::ReplaceAll:
+        ReplaceFind(true);
+        return;
+    case Command::RemoteImages:
+        settings.allowRemoteImages = !settings.allowRemoteImages;
+        editor->SetRemoteImagesEnabled(settings.allowRemoteImages);
+        images.DiscardCancelled();
+        remoteImagesToggle->SetToggleState(settings.allowRemoteImages);
+        ServiceImages();
+        SavePreferences();
+        return;
+    case Command::DimBlocks:
+        settings.dimInactiveBlocks = !settings.dimInactiveBlocks;
+        Layout();
+        SavePreferences();
+        return;
     case Command::Recovery:
         ShowRecovery();
         return;
@@ -803,8 +992,10 @@ void Application::Execute(Command command)
         break;
     case Command::Heading:
     case Command::Insert:
-        Menu(host.DipPointToScreenPoint({command == Command::Heading ? 140.f : 650.f, 108.f}), command == Command::Insert,
-             command == Command::Heading);
+    {
+        const auto bounds = tools[command == Command::Heading ? 2 : 8]->GetBounds();
+        Menu(host.DipPointToScreenPoint({bounds.left, bounds.bottom}), command == Command::Insert, command == Command::Heading);
+    }
         return;
     case Command::Bold:
     case Command::Italic:
@@ -911,6 +1102,7 @@ void Application::Execute(Command command)
         floating->SetVisible(false);
         findBar->SetVisible(true);
         Layout();
+        RefreshFind();
         host.SetFocusControl(findText, !options.headless);
         return;
     case Command::FindNext:
@@ -918,6 +1110,7 @@ void Application::Execute(Command command)
         return;
     case Command::Settings:
         findBar->SetVisible(false);
+        RefreshFind();
         floating->SetVisible(false);
         drawer->SetVisible(!drawer->IsVisible());
         Layout();
@@ -925,6 +1118,7 @@ void Application::Execute(Command command)
         return;
     case Command::Focus:
         settings.focusMode = !settings.focusMode;
+        CloseDrawers();
         Layout();
         SavePreferences();
         return;
@@ -982,8 +1176,10 @@ void Application::LocalSource()
     }
     const auto source = editor->GetText();
     std::size_t first = selection.Start(), last = selection.End();
-    if (semantic)
-        for (const auto &element : semantic->Elements())
+    // Exact math source is a syntax fact; an unrelated preview may still be
+    // preparing. Raster acknowledgment is required only for in-document editors.
+    if (const auto document = editor->GetSemanticDocument())
+        for (const auto &element : document->Elements())
             if (element.role == DxUi::RichText::SemanticRole::Math && selection.caret >= element.source.first &&
                 selection.caret <= element.source.last)
             {
@@ -991,6 +1187,16 @@ void Application::LocalSource()
                 last = element.source.last;
                 break;
             }
+    if (first == last)
+        if (const auto syntax = editor->GetMarkdownSyntax())
+            for (const auto &node : syntax->Inlines())
+                if (node.kind == DxUi::RichText::MarkdownInlineKind::Math && selection.caret >= node.source.first &&
+                    selection.caret <= node.source.last)
+                {
+                    first = node.source.first;
+                    last = node.source.last;
+                    break;
+                }
     if (first == last)
     {
         first = first ? source.find_last_of(L"\r\n", first - 1) : source.npos;
@@ -1004,9 +1210,17 @@ void Application::LocalSource()
     blockDraftText->SetText(source.substr(first, last - first));
     drawer->SetVisible(false);
     findBar->SetVisible(false);
+    RefreshFind();
     floating->SetVisible(false);
+    blockDraft->GetLogicalChild(0)->SetAccessibleName(Resource(equationContext ? IDS_BLOCKEQUATION : IDS_LOCAL));
+    static_cast<DxUi::Label *>(blockDraft->GetLogicalChild(0))->SetText(Resource(equationContext ? IDS_BLOCKEQUATION : IDS_LOCAL));
     blockDraft->SetVisible(true);
     editor->SetReadOnly(true);
+    if (last > first)
+    {
+        const DxUi::RichTextSourceHighlight block{first, last - first, true};
+        editor->SetSourceHighlights(std::span(&block, 1));
+    }
     Layout();
     host.SetFocusControl(blockDraftText, !options.headless);
     CheckpointRecovery();
@@ -1222,7 +1436,7 @@ void Application::FileCompleted()
         const auto message = std::vformat(Resource(result.saving ? IDS_SAVEFAILED : IDS_OPENFAILED), std::make_wformat_args(error));
         if (!options.headless)
             MessageBoxW(window.get(), message.c_str(), Resource(IDS_ERROR).c_str(), MB_OK | MB_ICONERROR);
-        Status(result.saving ? IDS_SAVEFAILED : IDS_OPENFAILED);
+        feedback->SetText(message);
         afterSave = {};
         return;
     }
@@ -1230,7 +1444,9 @@ void Application::FileCompleted()
     {
         recovered = false;
         savedText = std::move(result.document.text);
+        dirtyFact.reset();
         documentPath = std::move(result.path);
+        RefreshFiles(true);
         stamp = result.document.stamp;
         editor->SetDocumentFilePath(documentPath.native());
         Changed();
@@ -1259,24 +1475,6 @@ void Application::FileCompleted()
         openingSnapshot.reset();
     }
 }
-void Application::FindNext()
-{
-    const std::wstring needle(findText->GetText());
-    if (needle.empty())
-        return;
-    const auto text = editor->GetText();
-    auto match = text.find(needle, editor->GetSelection().End());
-    if (match == text.npos)
-        match = text.find(needle);
-    if (match == text.npos)
-    {
-        Status(IDS_NOMATCH);
-        return;
-    }
-    editor->SetSelection({match, match + needle.size()});
-    (void)editor->ScrollSourceRangeIntoView(host, match, match + needle.size(), false);
-    Status(IDS_FOUND);
-}
 void Application::ServiceImages()
 {
     if (!editor || closing)
@@ -1304,6 +1502,17 @@ LRESULT CALLBACK Application::WindowProc(HWND hwnd, UINT message, WPARAM wParam,
     auto *app = reinterpret_cast<Application *>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
     try
     {
+        if (app && message == WM_NCCALCSIZE && wParam)
+        {
+            auto *size = reinterpret_cast<NCCALCSIZE_PARAMS *>(lParam);
+            if (IsZoomed(hwnd))
+            {
+                const UINT dpi = GetDpiForWindow(hwnd);
+                const int edge = GetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
+                InflateRect(&size->rgrc[0], -edge, -edge);
+            }
+            return 0;
+        }
         if (app && app->initialized)
             return app->HandleMessage(hwnd, message, wParam, lParam);
     }
@@ -1325,6 +1534,7 @@ void Application::BeginClose()
     recovery.Stop();
     closing = true;
     files.Close();
+    folderFiles.Close();
     images.Shutdown();
     host.Detach();
     waitingForPreferences = preferenceWriter.Busy() || !recovery.Finished();
@@ -1381,6 +1591,10 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         AskThen([this] { BeginClose(); });
         return 0;
     }
+    if (message == WM_NCHITTEST)
+        return FrameHitTest(hwnd, lParam);
+    if (message == WM_NCACTIVATE)
+        return DefWindowProcW(hwnd, message, wParam, -1);
     if (message == WM_DESTROY)
     {
         if (!options.headless)
@@ -1389,6 +1603,8 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
     }
     if (message == WM_NCDESTROY)
     {
+        folderFiles.Close();
+        folderFilesActive = false;
         host.Detach();
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
         return DefWindowProcW(hwnd, message, wParam, lParam);
@@ -1417,6 +1633,11 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
     }
     if (closing)
         return DefWindowProcW(hwnd, message, wParam, lParam);
+    if (message == FolderReady)
+    {
+        FolderCompleted();
+        return 0;
+    }
     if (message == FileReady)
     {
         FileCompleted();
@@ -1432,30 +1653,62 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         ApplyTheme();
     bool handled{};
     const auto result = host.HandleMessage(hwnd, message, wParam, lParam, handled);
-    if (message == WM_SIZE || message == WM_DPICHANGED)
+    if (message == WM_SIZE || message == WM_DPICHANGED ||
+        ((message == WM_MOUSEWHEEL || message == WM_MOUSEHWHEEL) && blockDraft && blockDraft->IsVisible()))
         Layout();
     if (message == WM_PAINT)
+    {
         ServiceImages();
+        // Published syntax can arrive after a committed source/selection event.
+        // Observe its immutable identity once; never parse in the paint path.
+        if (!closing && (pendingSelectionTools || editor->GetMarkdownSyntax() != selectionFactsSyntax))
+            SelectionChanged(pendingSelectionTools || floating->IsVisible());
+        if (!closing && pendingBlockPlacement)
+            Layout();
+    }
     return handled ? result : DefWindowProcW(hwnd, message, wParam, lParam);
 }
 
 void Application::Prepare(unsigned turns)
 {
+    if (closing || !host.GetRoot())
+        return;
     for (unsigned index = 0; index < turns; ++index)
     {
         (void)host.RenderInitialFrameForShow();
+        const bool identityRelayout = identityMeasure.typographyRevision != host.GetTypographyRevision();
+        if (identityRelayout)
+            Layout();
         ServiceImages();
         MSG message{};
         unsigned processed{};
         while (processed++ < 64 && PeekMessageW(&message, window.get(), 0, 0, PM_REMOVE))
         {
-            TranslateMessage(&message);
-            DispatchMessageW(&message);
+            if (!host.DispatchKeyboardMessage(message))
+            {
+                TranslateMessage(&message);
+                DispatchMessageW(&message);
+            }
         }
+        if (closing || !host.GetRoot())
+            return;
         if (files.Busy())
             FileCompleted(); // also drains a result if its post met a full queue
         RecoveryCompleted();
-        if (!host.HasPendingContentPreparation() && editor->GetImageResourceStatistics().pendingSources == 0 && !files.Busy() && recovery.Ready())
+        FolderCompleted();
+        if (closing || !host.GetRoot())
+            return;
+        // A render may publish new immutable syntax. Reconcile dependent chrome
+        // before declaring quiescence, then paint it on the next turn. Hidden
+        // hosts deliberately do not receive invalidation-driven WM_PAINT.
+        const bool refreshFacts = pendingSelectionTools || editor->GetMarkdownSyntax() != selectionFactsSyntax;
+        const bool refreshed = refreshFacts || pendingBlockPlacement || identityRelayout;
+        if (refreshFacts)
+            SelectionChanged(pendingSelectionTools || floating->IsVisible());
+        if (pendingBlockPlacement)
+            Layout();
+        if (!refreshed && !host.HasPendingContentPreparation() && editor->GetImageResourceStatistics().pendingSources == 0 && !files.Busy() &&
+            recovery.Ready() && (!folderFilesActive || folderSnapshot || FAILED(folderFiles.Status())))
             break;
         // Harness-only bounded event wait; production blocks in GetMessage.
         (void)MsgWaitForMultipleObjectsEx(0, nullptr, 5, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
@@ -1517,8 +1770,74 @@ bool Application::Capture(const std::filesystem::path &path)
     return SUCCEEDED(frame->Commit()) && SUCCEEDED(encoder->Commit());
 }
 
+bool Application::RouteShortcut(const MSG &message)
+{
+    bool shortcut{};
+    if ((message.message == WM_KEYDOWN || message.message == WM_SYSKEYDOWN) && (message.hwnd == window.get() || IsChild(window.get(), message.hwnd)))
+    {
+        const bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0, shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0,
+                   alt = (GetKeyState(VK_MENU) & 0x8000) != 0;
+        std::optional<Command> command;
+        if (ctrl && !alt)
+        {
+            switch (message.wParam)
+            {
+            case 'N':
+                command = Command::New;
+                break;
+            case 'O':
+                command = Command::Open;
+                break;
+            case 'S':
+                command = shift ? Command::SaveAs : Command::Save;
+                break;
+            case 'E':
+                command = shift ? Command::Files : Command::Code;
+                break;
+            case 'K':
+                command = Command::Link;
+                break;
+            case 'F':
+                command = Command::Find;
+                break;
+            case '1':
+                command = Command::Compose;
+                break;
+            case '2':
+                command = Command::Source;
+                break;
+            case '3':
+                command = Command::Split;
+                break;
+            case VK_OEM_COMMA:
+                command = Command::Settings;
+                break;
+            }
+        }
+        if (message.wParam == VK_F3 && !ctrl && !alt)
+            command = shift ? Command::FindPrevious : Command::FindNext;
+        if (message.wParam == VK_F2 && !ctrl && !shift && !alt)
+            command = Command::LocalSource;
+        if (message.wParam == VK_F11 && !ctrl && !shift && !alt)
+            command = Command::Focus;
+        if (message.wParam == VK_F10 && alt && !ctrl && !shift)
+        {
+            FocusSelectionTools();
+            shortcut = true;
+        }
+        if (command)
+        {
+            Execute(command.value());
+            shortcut = true;
+        }
+    }
+    return shortcut;
+}
+
 int Application::Run()
 {
+    if (!options.designInteractive.empty())
+        return RunDesignInteractiveProbe(*this, options);
     if (!options.performance.empty())
         return RunPerformanceProbe(*this, options);
     if (options.recoveryProbe)
@@ -1557,14 +1876,19 @@ int Application::Run()
         MSG message{};
         while (window && GetMessageW(&message, nullptr, 0, 0) > 0)
         {
-            TranslateMessage(&message);
-            DispatchMessageW(&message);
+            if (!host.DispatchKeyboardMessage(message))
+            {
+                TranslateMessage(&message);
+                DispatchMessageW(&message);
+            }
         }
         return 0;
     }
     if (options.headless)
     {
-        settings.appearance = options.scenario == L"compose-dark" || options.scenario == L"math-dark" ? Appearance::Dark : Appearance::Light;
+        settings.appearance = options.scenario == L"compose-dark" || options.scenario == L"math-dark" || options.scenario == L"reference-dark"
+                                  ? Appearance::Dark
+                                  : Appearance::Light;
         ApplyTheme();
         if (options.scenario == L"math" || options.scenario == L"math-dark")
             SetDocument(L"# Mathematics, in the flow\n\nInline $E=mc^2$ shares the text baseline. Exact TeX stays one F2 away.\n\n"
@@ -1652,69 +1976,22 @@ int Application::Run()
                 SelectionChanged();
             }
         }
+        PrepareDesignScenario();
         return options.capture.empty() || Capture(options.capture) ? 0 : 3;
     }
     (void)host.PrimeForShow();
+    if (identityMeasure.typographyRevision != host.GetTypographyRevision())
+    {
+        Layout();
+        (void)host.PrimeForShow();
+    }
     ShowWindow(window.get(), SW_SHOWNORMAL);
     UpdateWindow(window.get());
     host.SetFocusControl(editor, true);
     MSG message{};
     while (GetMessageW(&message, nullptr, 0, 0) > 0)
     {
-        bool shortcut{};
-        if ((message.message == WM_KEYDOWN || message.message == WM_SYSKEYDOWN) &&
-            (message.hwnd == window.get() || IsChild(window.get(), message.hwnd)))
-        {
-            const bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0, shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
-            std::optional<Command> command;
-            if (ctrl)
-            {
-                switch (message.wParam)
-                {
-                case 'N':
-                    command = Command::New;
-                    break;
-                case 'O':
-                    command = Command::Open;
-                    break;
-                case 'S':
-                    command = shift ? Command::SaveAs : Command::Save;
-                    break;
-                case 'F':
-                    command = Command::Find;
-                    break;
-                case '1':
-                    command = Command::Compose;
-                    break;
-                case '2':
-                    command = Command::Source;
-                    break;
-                case '3':
-                    command = Command::Split;
-                    break;
-                case VK_OEM_COMMA:
-                    command = Command::Settings;
-                    break;
-                }
-            }
-            if (message.wParam == VK_F2)
-                command = Command::LocalSource;
-            if (message.wParam == VK_F11)
-                command = Command::Focus;
-            if (message.wParam == VK_F10 && (GetKeyState(VK_MENU) & 0x8000))
-            {
-                SelectionChanged();
-                if (floating->IsVisible())
-                    host.SetFocusControl(floatingActions[0], true);
-                shortcut = true;
-            }
-            if (command)
-            {
-                Execute(command.value());
-                shortcut = true;
-            }
-        }
-        if (!shortcut)
+        if (!RouteShortcut(message) && !host.DispatchKeyboardMessage(message))
         {
             TranslateMessage(&message);
             DispatchMessageW(&message);

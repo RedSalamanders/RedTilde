@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "kind": "Derived documentation-only continuation summary",
+  "status": "VERIFIED",
+  "originalRuntimeSource": "538dd84941293cff8e7ecc6d2f8535cb597f0c0baea295e560cd795a0a221873",
+  "documentationSource": "b97be14e8cda559f4a2fec1e7db4b7231b6be88821d4e913550439afb2ff57c6",
+  "compiledIdentity": "fde0747ac8b8100d67949d68a20e58fa2103e9b375f17fb0f22791b829c68270",
+  "dependency": "38ec36be42bf693dc649f1fe6b1dfc6cf34d4064",
+  "sixFreshSourceBoundBuildReceipts": true,
+  "identicalCompiledInputs": 97,
+  "identicalCommonHarnessInputs": 7,
+  "identicalRequiredAppBinaryPairs": 14,
+  "originalRuntimeRunIds": [
+    "20261023T103625474Z-42592-f8f60c78ecfa4007991ee83faa8674f7",
+    "20261023T103707729Z-42592-fa085c4e66d54c7f8233c8ded75f0efc",
+    "20261023T103748474Z-42592-055ff651355343829ac26ca9fa8683e2",
+    "20261023T104103480Z-49464-29b64c11682946e995ffbd68d338c84c"
+  ],
+  "originalReceiptSha256": [
+    "6649260AC561911982DA55EAD8980AA21A58AECEB89C3636419EA81A4E484F76",
+    "A45D18040D84F2FA6678C1E7C70714223FD11DAF48598A45D383C0C34C6D81AC",
+    "288A3F786ABF716786F8F67B45C6E0F1ED1E8C8D57BDC8D65458913053AEB060",
+    "D8CBF79234917E9345CF4B91D172FD4924DCE05E31F61F5B21EF32E9A3B67D76"
+  ],
+  "retainedObservations": "Three original x64 Full runs and original keyboard slice only; original identities/outcomes unchanged",
+  "checks": [
+    {
+      "logSha256": "6C02EDE7DA320B0A4D18C1796FE9B47085552EE9DE4F146BB00690DA957DA8B3",
+      "name": "validate",
+      "outcomeSha256": "967B21E8510CAE1FE84C00BB2FF6188F22DAB0D7A9A28336238D098102FE88F8",
+      "exitCode": 0
+    },
+    {
+      "logSha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+      "name": "format-check",
+      "outcomeSha256": "A6DD9711ADDBFB7171AB619EC0C2F857975821ABD67EA755FDD1ADC3559D8637",
+      "exitCode": 0
+    },
+    {
+      "logSha256": "18D0D16B7456E7FA71E54EFCD10A0B975762D2F1829F4A7228809D517B7C8C89",
+      "name": "scope-explain",
+      "outcomeSha256": "27BB7ABC37CAEB85F5C0FF6CBE9ABFF57B2E97797909A22711ADE2348F4CA0DE",
+      "exitCode": 0
+    },
+    {
+      "logSha256": "3FEF1F4DFF4C61C49466CB43CBEF74C967E80D4792496016AD9AB29F64FAD699",
+      "name": "fold-check",
+      "outcomeSha256": "182378BAD3424E6818771700C71CDFC662CC6EF7F16E080DE57EC1BBF9734A57",
+      "exitCode": 0
+    }
+  ],
+  "integrityReferences": [
+    {
+      "bytes": 21575,
+      "sha256": "9BE22B3580F00DB5A4EA6AEBB6DD9BB2E00700E949BA204EDAB6C82B619067A0",
+      "path": ".build/design-refresh/final-38ec-v5r3-runtime/files.json"
+    },
+    {
+      "bytes": 11609,
+      "sha256": "A8DA789720D4E52606BDF2A31AC2B6C330EFADA9E5BB3E63CDE76C1D2777FBD5",
+      "path": ".build/design-refresh/final-source-freeze-38ec36be-v5r3.json"
+    },
+    {
+      "bytes": 11609,
+      "sha256": "52A72BD882F09EC6C13A847D24A9AD7682C0BC15039297F64CDD8E53E36109B2",
+      "path": ".build/design-refresh/final-source-freeze-38ec36be-v5r3-docs-r1.json"
+    },
+    {
+      "bytes": 950,
+      "sha256": "4A0ABFC8097AD7A0CC1DAAECBEAC3927B81C611FA873C0E8DAD99C396140A51E",
+      "path": ".build/design-refresh/common-harness-v2.json"
+    },
+    {
+      "bytes": 1323,
+      "sha256": "077079E85A566D7106051FC2F6B2EF2C9934D1F2E3E80C5D07DF5F6A793BF899",
+      "path": ".build/design-refresh/final-38ec36be-v5r3/qualified-runs.json"
+    },
+    {
+      "path": ".build/design-refresh/docs-continuation-v5r3-preparation/verified-private-proof.json",
+      "bytes": 10864,
+      "sha256": "B9590C7806C06AB095450218B84087EC0F470C39776DDD7586101DBAB3621517"
+    }
+  ],
+  "sameOriginalCheckoutOnly": true,
+  "crossCheckoutQualification": false,
+  "newNativeExecution": false,
+  "newResourceCaptureClipboardEnvironmentResults": false,
+  "nativeArm64Runtime": false,
+  "performanceAccepted": false,
+  "limitations": "Same original checkout only; identical bytes do not qualify another checkout. Preserves source-bound observations, not fresh native/physical/ARM64/CI/release or performance acceptance. Environment joins are derived, not original receipt fields."
+}

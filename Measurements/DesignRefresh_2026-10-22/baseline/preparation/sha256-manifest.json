@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "createdUtc": "2026-10-23T01:00:22.9801433Z",
+  "files": [
+    {
+      "file": "baseline-v4.bundle",
+      "bytes": 14872,
+      "sha256": "7BC40EAE1E9FF76B4CE44A73C66382CDE6696B3DBA4F857CDDE910290342BC3A"
+    },
+    {
+      "file": "build-outcome.json",
+      "bytes": 705,
+      "sha256": "52BEF5FBD8BFE6BA6F043367539883FBEE3649FACB4A981CD8D4430B743809AE"
+    },
+    {
+      "file": "build-receipt.json",
+      "bytes": 1523,
+      "sha256": "BD196007D9E6F22FC2BD78E5B1865C9E3A523EAEF73F7088924499E00C0B897D"
+    },
+    {
+      "file": "build-x64-release-msbuild.log",
+      "bytes": 22012,
+      "sha256": "B086343BBF61CC7BC3DC9DB6884DA87761D9A9E0DE864128D5048ADF6BD20AA7"
+    },
+    {
+      "file": "build-x64-release-wrapper.log",
+      "bytes": 2471,
+      "sha256": "E6A313B6F301ED7376DC128EBB7EE38CCB55ED5C6B50B78E6FCE977D60AAC3F0"
+    },
+    {
+      "file": "bundle-create.log",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "file": "bundle-verify.log",
+      "bytes": 337,
+      "sha256": "EA20072118D2FF8EF254821780861E9984F16093B8F29DCC4EE22DE2F9D4C697"
+    },
+    {
+      "file": "bundle.json",
+      "bytes": 639,
+      "sha256": "7AACD502B74C5DB1EAE55F60C6B479AEED64098815ED6CC883C5B05949194E27"
+    },
+    {
+      "file": "completed.json",
+      "bytes": 11611,
+      "sha256": "AA0D97153EA9ED2A30574CA3AEE759562942B78432F061B73772E977C6295698"
+    },
+    {
+      "file": "freeze-baseline.log",
+      "bytes": 91,
+      "sha256": "C1F20CF85851F48C3F43A8C766B7B96EDC28C6F9C1EC506C110BD6C7B8EC811D"
+    },
+    {
+      "file": "freeze-outcome.json",
+      "bytes": 1297,
+      "sha256": "FA315345714C471362236898AE73B010F1B73838A8FE944B790D5E3D85BFD579"
+    },
+    {
+      "file": "preparation.json",
+      "bytes": 3537,
+      "sha256": "07D0E9F03D7CE05540BA7E0B34943676E4CAB613D9793A5FDB26BF7DF16CB05D"
+    },
+    {
+      "file": "restore-exit.json",
+      "bytes": 147,
+      "sha256": "4244CF42E243C372172F881A720AE19B9B09270AB83C30717BFA5278C9DED21D"
+    },
+    {
+      "file": "restore-x64.log",
+      "bytes": 8312,
+      "sha256": "6D90367BDA723FB9AE185FF1CE36409A5AD82B3E6A7AC9A370F2380677062093"
+    }
+  ],
+  "frozenArtifacts": [
+    {
+      "file": "baseline.json",
+      "sha256": "532788F1CE17026BC80356A2D23D83D7F4706AA405F9E83D191209D18A7A8740",
+      "bytes": 10792,
+      "sourcePath": "D:\\RedTilde\\.build\\base\\.build\\frozen-design-baseline-v4\\baseline.json"
+    },
+    {
+      "file": "build.json",
+      "sha256": "BD196007D9E6F22FC2BD78E5B1865C9E3A523EAEF73F7088924499E00C0B897D",
+      "bytes": 1523,
+      "sourcePath": "D:\\RedTilde\\.build\\base\\.build\\frozen-design-baseline-v4\\build.json"
+    },
+    {
+      "file": "compiler-command.tlog",
+      "sha256": "8222013890A67195DC8BF557A954D63B478C17CF52B47CECA182A9C458A40122",
+      "bytes": 14898,
+      "sourcePath": "D:\\RedTilde\\.build\\base\\.build\\frozen-design-baseline-v4\\compiler-command.tlog"
+    },
+    {
+      "file": "RedTilde.exe",
+      "sha256": "DA5CE23C925543A5A32D73E58D3FD69C13DEB82D4154DCF776F3AF27D071DE9F",
+      "bytes": 4203008,
+      "sourcePath": "D:\\RedTilde\\.build\\base\\.build\\frozen-design-baseline-v4\\RedTilde.exe"
+    }
+  ]
+}

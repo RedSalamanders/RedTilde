@@ -173,8 +173,11 @@ class PerformanceProbe
         {
             ++count;
             Require(message.message != WM_QUIT, "unexpected process quit during native probe");
-            TranslateMessage(&message);
-            DispatchMessageW(&message);
+            if (!app.Host().DispatchKeyboardMessage(message))
+            {
+                TranslateMessage(&message);
+                DispatchMessageW(&message);
+            }
         }
         if (app.closing)
         {
@@ -277,6 +280,33 @@ class PerformanceProbe
     PerformanceProbe(Application &value, const LaunchOptions &launch) : app(value), options(launch) {}
     int Run()
     {
+        // Freeze client pixels before warmup. Native and merged non-client
+        // chrome reserve different frame extents; measuring outer-window sizes
+        // would silently compare different document viewports.
+        const auto dpi = GetDpiForWindow(app.Window());
+        const int targetWidth = MulDiv(1440, static_cast<int>(dpi), 96), targetHeight = MulDiv(900, static_cast<int>(dpi), 96);
+        bool sized{};
+        for (unsigned attempt = 0; attempt < 3; ++attempt)
+        {
+            RECT client{}, frame{};
+            Require(GetClientRect(app.Window(), &client) && GetWindowRect(app.Window(), &frame), "read owned performance viewport");
+            if (client.right == targetWidth && client.bottom == targetHeight)
+            {
+                sized = true;
+                break;
+            }
+            Require(SetWindowPos(app.Window(), nullptr, 0, 0, frame.right - frame.left + targetWidth - client.right,
+                                 frame.bottom - frame.top + targetHeight - client.bottom,
+                                 SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSENDCHANGING) != FALSE,
+                    "normalize the owned hidden performance viewport");
+            Pump();
+        }
+        RECT actualViewport{};
+        Require(GetClientRect(app.Window(), &actualViewport), "read final performance viewport");
+        Require(sized && !IsWindowVisible(app.Window()),
+                std::format("performance viewport must be hidden and exactly {}x{} pixels (1440x900 DIP at {} DPI); actual {}x{}, visible={}",
+                            targetWidth, targetHeight, dpi, actualViewport.right, actualViewport.bottom, IsWindowVisible(app.Window()))
+                    .c_str());
         app.settings.appearance = Appearance::Light;
         app.ApplyTheme();
         app.SetView(options.scenario == L"split" ? EditorView::Split : EditorView::Compose);
@@ -488,17 +518,21 @@ class PerformanceProbe
             RECT outer{};
             Require(GetWindowRect(app.window.get(), &outer) != FALSE, "native resource window bounds unavailable");
             Require(SetWindowPos(app.window.get(), nullptr, 0, 0, outer.right - outer.left - 120, outer.bottom - outer.top - 80,
-                                 SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE) != FALSE,
+                                 SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSENDCHANGING) != FALSE,
                     "native resource resize failed");
             Ready(resourceSource);
             gpu->Wait();
             out << ',';
             Resource(out, "resized-forced-frame");
             Require(SetWindowPos(app.window.get(), nullptr, 0, 0, outer.right - outer.left, outer.bottom - outer.top,
-                                 SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE) != FALSE,
+                                 SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSENDCHANGING) != FALSE,
                     "native resource size restore failed");
             Ready(resourceSource);
             gpu->Wait();
+            RECT restoredViewport{};
+            Require(GetClientRect(app.Window(), &restoredViewport) && restoredViewport.right == targetWidth &&
+                        restoredViewport.bottom == targetHeight,
+                    "native resource restore must preserve the exact normalized client viewport");
             const auto before = options.dataDirectory / L"resource-before.png";
             Require(app.Capture(before), "pre-replacement native capture failed");
             std::string pixels;

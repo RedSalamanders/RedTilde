@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "scope": "Source-bound diagnostic history only",
+  "sdkSuccessorQualified": false,
+  "independentRebuildReplayBundle": false,
+  "sourceAndBinaryCopiesIncluded": false,
+  "nativeExecutionPerformedForStaging": false,
+  "cases": [
+    {
+      "id": "hidden-message-refusal",
+      "run": "20261023T040931973Z-44496-7f4c6411c1d64bc88fc57619cb8c6c71",
+      "interpretation": "Draft hidden WM_IME fixture refused by the native host; the intended production defect was not reached.",
+      "sourceIdentity": "4e3e7d959a569b12863fde4360a759dfdc49a33a45447a85f041006dfa9df3e7",
+      "compiledIdentity": "4a7ecde6d94fb836cdf0695fa3e45d7400482855a4666309abf288299515e1af",
+      "dependencyCommit": "5a2131adf734cb91dcc350da888dcd2c0a71e986",
+      "binarySha256": "E4837B33FA7D8EB6F86B947AD838EFCD3C7DDAC64AC4218982AB858470AECEA1",
+      "buildReceiptSha256": "264C573BE48332F2B3A58F3F6D4DF6E1DB00A8FFEF515357474F2392DAB3DE9B",
+      "platform": "x64",
+      "configuration": "Release",
+      "suite": "Editor",
+      "interactive": false,
+      "status": "FAILED",
+      "passed": 32,
+      "failed": 1,
+      "selected": 33,
+      "registered": 52,
+      "errors": [
+        {
+          "test": "Editor.HiddenMirrorSynchronizesWithoutEditingSource",
+          "error": "native IME preview changes the live source view"
+        }
+      ],
+      "result": {
+        "path": "cases/hidden-message-refusal/tests.json",
+        "length": 2678,
+        "sha256": "FA614D57946243C065973B744441F1422247767BE25F9DD510A861956B6FEF9B",
+        "origin": ".build/evidence/test-runs/20261023T040931973Z-44496-7f4c6411c1d64bc88fc57619cb8c6c71/payload/core-Editor/tests.json"
+      },
+      "receiptOrigin": ".build/evidence/test-runs/20261023T040931973Z-44496-7f4c6411c1d64bc88fc57619cb8c6c71/payload/receipt.json",
+      "sourceFreezeOrigin": ".build/design-refresh/ime-mirror-regression-20261023/source-before-fix.json",
+      "buildMetadataOrigin": ".build/design-refresh/ime-mirror-regression-20261023/build-before-fix.json",
+      "outcomeOrigin": ".build/design-refresh/ime-mirror-regression-20261023/hidden-message-attempt-outcome.json",
+      "interpretationOrigin": null
+    },
+    {
+      "id": "growth-mirror-failure",
+      "run": "20261023T041231399Z-38880-0e5f37ba1c4a4ee884eb36106e6e1f3f",
+      "interpretation": "Actual attached-editor text-service import reaches a transient source/selection revision before the Split mirror matches it.",
+      "sourceIdentity": "0e7eabf62fa0d1c6e01dd521aadefe7e58fbaab199ef34e2ec5ea239fea52ea1",
+      "compiledIdentity": "c270cb00fc6993c660af8e574588cbe6029ec3f72abd829635c2882ea44a32a7",
+      "dependencyCommit": "5a2131adf734cb91dcc350da888dcd2c0a71e986",
+      "binarySha256": "19B4DF53866B254E4E9C996995BE4DFB61A44F3024A86527B2F89691DCD1AB85",
+      "buildReceiptSha256": "1E0F48A9ECF5696F3CC5CC0CBE4A5124A682411375DC44F537036C622DAF9A42",
+      "platform": "x64",
+      "configuration": "Release",
+      "suite": "Editor",
+      "interactive": false,
+      "status": "FAILED",
+      "passed": 32,
+      "failed": 1,
+      "selected": 33,
+      "registered": 52,
+      "errors": [
+        {
+          "test": "Editor.HiddenMirrorSynchronizesWithoutEditingSource",
+          "error": "Split mirror synchronizes the live IME preview text"
+        }
+      ],
+      "result": {
+        "path": "cases/growth-mirror-failure/tests.json",
+        "length": 2682,
+        "sha256": "CDC057DDC317ECED1E254EBBDB1DC05B42F7C95E509C70F3D129902EE549EC75",
+        "origin": ".build/evidence/test-runs/20261023T041231399Z-38880-0e5f37ba1c4a4ee884eb36106e6e1f3f/payload/core-Editor/tests.json"
+      },
+      "receiptOrigin": ".build/evidence/test-runs/20261023T041231399Z-38880-0e5f37ba1c4a4ee884eb36106e6e1f3f/payload/receipt.json",
+      "sourceFreezeOrigin": ".build/design-refresh/ime-mirror-regression-20261023/service-before-fix-source.json",
+      "buildMetadataOrigin": ".build/design-refresh/ime-mirror-regression-20261023/service-before-fix-build.json",
+      "outcomeOrigin": ".build/design-refresh/ime-mirror-regression-20261023/service-before-fix-outcome.json",
+      "interpretationOrigin": ".build/design-refresh/ime-mirror-regression-20261023/service-before-fix-interpretation.json"
+    },
+    {
+      "id": "single-preview-repair-pass",
+      "run": "20261023T041339168Z-22800-e6c4a9e1dc6745eaa36949c32008b316",
+      "interpretation": "One-call app mirror synchronization passes the limited single-preview, cancellation and commit fixture; this does not cover successive unchanged-ACP candidates.",
+      "sourceIdentity": "be62ed0277c9eeb907d8f47aafaf2171a0e9f30a0ba76727ac24253272787369",
+      "compiledIdentity": "1ca7a17aaae0da18c1d13af4f2d334661dc994fdcefa95426843a78417d5f8f0",
+      "dependencyCommit": "5a2131adf734cb91dcc350da888dcd2c0a71e986",
+      "binarySha256": "C60E20C88A9E1230B85FCEDEF14634DB445F7D1B96E25AE1A98E26017585F3CF",
+      "buildReceiptSha256": "C550B65C4B75579C2186373E26F2CA73B844123AB6919F257D2813EA79F1752B",
+      "platform": "x64",
+      "configuration": "Release",
+      "suite": "Editor",
+      "interactive": false,
+      "status": "PASSED",
+      "passed": 33,
+      "failed": 0,
+      "selected": 33,
+      "registered": 52,
+      "errors": [],
+      "result": {
+        "path": "cases/single-preview-repair-pass/tests.json",
+        "length": 2619,
+        "sha256": "0B0E0077055E4352D5C334BCA46E254C374A73A68CF6C928273937221AF0DBB9",
+        "origin": ".build/evidence/test-runs/20261023T041339168Z-22800-e6c4a9e1dc6745eaa36949c32008b316/payload/core-Editor/tests.json"
+      },
+      "receiptOrigin": ".build/evidence/test-runs/20261023T041339168Z-22800-e6c4a9e1dc6745eaa36949c32008b316/payload/receipt.json",
+      "sourceFreezeOrigin": ".build/design-refresh/ime-mirror-regression-20261023/service-after-fix-source.json",
+      "buildMetadataOrigin": ".build/design-refresh/ime-mirror-regression-20261023/service-after-fix-build.json",
+      "outcomeOrigin": ".build/design-refresh/ime-mirror-regression-20261023/service-after-fix-outcome.json",
+      "interpretationOrigin": null
+    },
+    {
+      "id": "same-acp-revision-failure",
+      "run": "20261023T041639697Z-45636-d49ed120a5894c34b3e7a9c507d418f3",
+      "interpretation": "Successive transient source revisions at unchanged ACPs are deduplicated by canonical selection publication. Mirror synchronization can be delayed until later analysis reconciliation; permanent staleness is not established.",
+      "sourceIdentity": "3b582ed73c55ef98b5a1b44c76e38a5506f181e24273a2f9a75e7744cec39feb",
+      "compiledIdentity": "6888289a58152d1001c0b9c130d2a3708febbf7e159bbadaf0daa0f123ad03d6",
+      "dependencyCommit": "5a2131adf734cb91dcc350da888dcd2c0a71e986",
+      "binarySha256": "B872480436A767DB560AAE9DD127334615FE93B672857EE1BD748706B46F6DD8",
+      "buildReceiptSha256": "CCF03A719C25286C13F3F531D10CCA24BB9276693A9307EE4C151A96702CE066",
+      "platform": "x64",
+      "configuration": "Release",
+      "suite": "Editor",
+      "interactive": false,
+      "status": "FAILED",
+      "passed": 32,
+      "failed": 1,
+      "selected": 33,
+      "registered": 52,
+      "errors": [
+        {
+          "test": "Editor.HiddenMirrorSynchronizesWithoutEditingSource",
+          "error": "successive text-service candidate synchronizes its source even with unchanged ACPs"
+        }
+      ],
+      "result": {
+        "path": "cases/same-acp-revision-failure/tests.json",
+        "length": 2713,
+        "sha256": "D2A8981E140D1860C85C5B8175C4B90650969906FD71B14E702AF5384241803B",
+        "origin": ".build/evidence/test-runs/20261023T041639697Z-45636-d49ed120a5894c34b3e7a9c507d418f3/payload/core-Editor/tests.json"
+      },
+      "receiptOrigin": ".build/evidence/test-runs/20261023T041639697Z-45636-d49ed120a5894c34b3e7a9c507d418f3/payload/receipt.json",
+      "sourceFreezeOrigin": ".build/design-refresh/ime-mirror-regression-20261023/same-acp-before-sdk-fix-source.json",
+      "buildMetadataOrigin": ".build/design-refresh/ime-mirror-regression-20261023/same-acp-before-sdk-fix-build.json",
+      "outcomeOrigin": ".build/design-refresh/ime-mirror-regression-20261023/same-acp-before-sdk-fix-outcome.json",
+      "interpretationOrigin": ".build/design-refresh/ime-mirror-regression-20261023/same-acp-before-sdk-fix-interpretation.json"
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "notice": {
+    "publication": "The selected public packet additionally omits exactly these three machine-identifier metadata files.",
+    "privateVerification": "The D originals were verified against their unchanged producer archive records; the public-copy auditor verifies their exact paths are absent.",
+    "producerLedgers": "Original raw producer ledgers remain unchanged and retain preselection membership records.",
+    "membership": "Producer archive counts and checksums continue to describe the original producer sets, not complete selected-public membership."
+  },
+  "entries": [
+    {
+      "path": "baseline/frozen/baseline.json",
+      "length": 10792,
+      "sha256": "532788F1CE17026BC80356A2D23D83D7F4706AA405F9E83D191209D18A7A8740",
+      "reasonCategory": "machine-identifier in baseline machine metadata",
+      "fieldPath": "environment.machine",
+      "sourcePath": "Measurements/DesignRefresh_2026-10-22/baseline/frozen/baseline.json",
+      "producerLedger": "Measurements/DesignRefresh_2026-10-22/baseline/archive.json",
+      "producerCollection": "copiedFiles",
+      "producerMemberPath": "frozen/baseline.json",
+      "producerLedgerLength": 6161,
+      "producerLedgerSha256": "8B49D7894E1BA8685B7B179C20869575D525A43514376431A63D24B8D660A6DD"
+    },
+    {
+      "path": "history-a57/baseline/baseline.json",
+      "length": 10792,
+      "sha256": "FC4BF5A68913629DC3D55D72D82ADBD76EDA219A2264B27B62C65B430A262825",
+      "reasonCategory": "machine-identifier in baseline machine metadata",
+      "fieldPath": "environment.machine",
+      "sourcePath": "Measurements/DesignRefresh_2026-10-22/history-a57/baseline/baseline.json",
+      "producerLedger": "Measurements/DesignRefresh_2026-10-22/history-a57/baseline/archive.json",
+      "producerCollection": "files",
+      "producerMemberPath": "baseline.json",
+      "producerLedgerLength": 1621,
+      "producerLedgerSha256": "2ACC1CB8E78EFA222801B5C1793AB5B3343D906BF417F973BCF706B640C28437"
+    },
+    {
+      "path": "history-a57/baseline/paired-preflight-20261022T231604937Z.json",
+      "length": 39699,
+      "sha256": "7AA216AB67A6ED213E6F5CDB1850AC718E836E89076FABE50EF16F556AD463BE",
+      "reasonCategory": "machine-identifier in candidate machine metadata",
+      "fieldPath": "candidateEnvironment.machine",
+      "sourcePath": "Measurements/DesignRefresh_2026-10-22/history-a57/baseline/paired-preflight-20261022T231604937Z.json",
+      "producerLedger": "Measurements/DesignRefresh_2026-10-22/history-a57/baseline/archive.json",
+      "producerCollection": "files",
+      "producerMemberPath": "paired-preflight-20261022T231604937Z.json",
+      "producerLedgerLength": 1621,
+      "producerLedgerSha256": "2ACC1CB8E78EFA222801B5C1793AB5B3343D906BF417F973BCF706B640C28437"
+    }
+  ]
+}
