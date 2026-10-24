@@ -1,5 +1,6 @@
 <Project>
   <PropertyGroup>
+    <RequiredMsvcToolsVersion>14.52</RequiredMsvcToolsVersion>
     <OutDir>$(MSBuildThisFileDirectory).build\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(MSBuildThisFileDirectory).build\obj\$(Platform)\$(Configuration)\$(MSBuildProjectName)\</IntDir>
     <VcpkgEnabled>false</VcpkgEnabled>
@@ -24,5 +25,8 @@
   <PropertyGroup Condition="'$(Configuration)'=='ASan Debug'">
     <EnableASAN>true</EnableASAN>
     <CopyAsanBinariesToOutDir>true</CopyAsanBinariesToOutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
 </Project>

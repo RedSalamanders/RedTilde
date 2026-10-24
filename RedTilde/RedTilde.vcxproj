@@ -63,5 +63,5 @@
     <ResourceCompile Include="..\res\RedTilde.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
-  <Import Project="$(DxUiRoot)\Build\DxUi.Consumer.targets" Condition="'$(DxUiRoot)'!=''" />
+  <Import Project="..\Build\RedTilde.DxUi.targets" />
 </Project>

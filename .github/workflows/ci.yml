@@ -41,6 +41,10 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Prepare required MSVC 14.52 tools
+        uses: ./.github/actions/setup-msvc
+        with:
+          platform: x64
       - name: Independent tooling
         shell: pwsh
         run: ./validate.ps1
@@ -68,6 +72,11 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Prepare required MSVC 14.52 tools
+        if: needs.native-scope.outputs.native == 'true'
+        uses: ./.github/actions/setup-msvc
+        with:
+          platform: ${{ matrix.platform }}
       - name: Verify native checkout inputs
         if: needs.native-scope.outputs.native == 'true'
         shell: pwsh
