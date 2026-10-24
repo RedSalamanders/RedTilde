@@ -1,5 +1,9 @@
 # Design refresh — 2026-10-22
 
+The [24 October completion coordinator](RedesignCompletionAndRendering_2026-10-24.md) now sequences the
+remaining review, correction, compatibility and R10 qualification work. This plan retains the accepted design,
+implemented R/V history and its R10 summary gate; do not open a second optimization backlog here.
+
 Status: IMPLEMENTED; owner requested publication and merge on 2026-10-24 with the disclosed performance and qualification holds. The latest complete whole-feature comparison reports seven regressions; performance optimization/advice and R10 closeout remain OPEN. WIP retained. Owner: RedTilde application UI (layout, commands, theme adapter, Files pane),
 with DxUi owning shared controls and rich-text link rendering. Implementation, dependency adoption and qualification are tracked below.
 
