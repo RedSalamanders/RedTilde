@@ -31,7 +31,9 @@ other scripts. Retain the full v2 study audit and adversarial rejection receipts
 Independent scope commands pass their manifest `arguments` as command-line tokens to the current PowerShell
 engine running the target script with `-File`. Empty arrays invoke strict no-parameter scripts, and named
 switches bind as declared. The scoped-testing fixture exercises both cases through the public
-`Test-Changes.ps1` runner.
+`Test-Changes.ps1` runner. Each temporary Git repository sets `core.longpaths=true` locally
+before staging; a tracked and committed fixture path exceeds the Windows path limit without
+changing global Git configuration.
 Native-v2 diagnostics also require cheap settled-memory snapshots, complete command CPU/processor arrays and
 observer coverage. Observation tests cover process disappearance and single reads of volatile properties, CPU
 classification and UTC/local/JSON date representations. An incomplete trace is retained as a failed collection;
@@ -58,6 +60,8 @@ The app's `--self-test` and `--capture <path> --scenario <name>` never activate 
 clipboard or synthesize desktop input. Drive the same app/control commands as the UI. Native rendering captures
 come from the public host's diagnostic bitmap hook and WIC; record the exact binary/dependency/scenario identity.
 No desktop screenshot or Computer Use capture establishes app correctness.
+`docs/examples/weekly-report-2026-10-15.md` is a runtime input to the reference-dark DPI captures;
+its edits select `Captures` in addition to normal Tooling/Format validation, rather than prose-only coverage.
 
 Final gates: validator/format, x64 Debug/Release/ASan tests, real sanitizer detection, all ARM64 builds, native
 ARM64 execution for runtime claims, paired Release resource/latency evidence, WARP/device-loss/hidden/dirty
@@ -85,7 +89,7 @@ These record oracles establish error mapping, not recovery from an actually miss
 
 Physical focus/IME/AT, release/package acceptance, hardware-specific qualification and paired resource/performance studies retain their owning gates. Hidden/scoped/native CI passes never close those gates. Native test basenames use contextual `Scope.Tests.Something.h/.cpp`; inventories cover active files only. Immutable historical receipts, archived source and legacy references are not renamed or rewritten.
 
-RedTilde partitions its 52 reviewed native cases into Storage (10), Settings (4), Recovery (5) and Editor (33). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
+RedTilde partitions its 53 reviewed native cases into Storage (10), Settings (4), Recovery (5) and Editor (34). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
 
 CI's native-scope job binds compiled inputs, test/build/workflow code, the version stamp and hosted image descriptor. A documentation-only continuation may retain the original native qualification only from an exact matching producer with all six actual successful Full native steps; skipped, failed, cancelled, incomplete or unavailable evidence cannot authorize it. The original source/profile/binary/environment evidence remains the observation; inherited rows explicitly claim no new execution, resource measurement or clipboard/environment result. Manual dispatch always executes fresh native qualification. Each native checkout verifies the descriptor before building. This also permits a documentation/Done closeout without repeating an identical already-qualified native matrix.
 
@@ -104,6 +108,13 @@ native and host DPI, actual pixels/DIP, simulation state and invented fixture ba
 IHDR dimensions and binds both hashes, toolchain, binary, source and pin in the receipt. Captures never activate
 or publish environment-derived identifiers. The Files fixture freezes its proved model and retires only its
 owned junction leaf before sealing evidence; the target and synthetic ordinary files remain in the run.
+The Settings capture fixes its System preview to synthetic Light, independently of the ambient Windows
+preference, before final layout/render. Its sidecar declares `effectiveSystemPreference=light` and
+`systemPreferenceSource=synthetic-fixture`; other captures identify the Windows-preference-or-Light-fallback
+origin. The existing theme regression starts the Settings fixture from both cached preference values,
+requires identical actual PNG bytes and explicit provenance, and retains source/selection/history and
+hidden-window focus assertions. Historical ambient captures remain unchanged observations with that limitation;
+their missing preference provenance cannot establish a registry change or read failure.
 
 Hidden preparation reconciles newly published immutable syntax with derived chrome before declaring the
 scene settled, and paints that chrome on a following native frame. Device-replacement checks compare exact

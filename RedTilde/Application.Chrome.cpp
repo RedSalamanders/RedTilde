@@ -72,14 +72,21 @@ void Application::BuildUi()
     documentBar = root->AddChild<Surface>();
     brandMark = documentBar->AddChild<BrandMark>();
     title = Label(*documentBar, IDS_UNTITLED, DxUi::FontRole::BodyStrong);
-    saveState = Label(*documentBar, IDS_SAVED, DxUi::FontRole::Small);
+    THROW_IF_FAILED(title->SetTypographyOverride(DxUi::LabelTypography{14.f, DWRITE_FONT_WEIGHT_SEMI_BOLD, 0}));
+    saveStateChip = documentBar->AddChild<DxUi::CardPanel>();
+    saveStateChip->SetCornerRadius(10.f);
+    saveState = Label(*saveStateChip, IDS_SAVED, DxUi::FontRole::Small);
+    THROW_IF_FAILED(saveState->SetTypographyOverride(DxUi::LabelTypography{12.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
+    saveState->SetAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
     for (unsigned index = 0; index < 3; ++index)
     {
         modeButtons[index] = Action(*documentBar, IDS_COMPOSE + index, static_cast<Command>(static_cast<unsigned>(Command::Compose) + index));
         modeButtons[index]->SetAccessibleAutomationId(std::format(L"RedTilde.View{}", index));
+        modeButtons[index]->SetAppearance(DxUi::ButtonAppearance::Tab);
     }
     fileMenu = Action(*documentBar, IDS_FILE, Command::FileMenu);
     fileMenu->SetVariant(DxUi::ButtonVariant::DropDown);
+    fileMenu->SetAppearance(DxUi::ButtonAppearance::Subtle);
     saveButton = Action(*documentBar, IDS_SAVE, Command::Save, Resource(IDS_TIP_SAVE));
     saveButton->SetPrimary(true);
     exitFocus = Action(*documentBar, IDS_EXITFOCUS, Command::Focus);
@@ -89,7 +96,13 @@ void Application::BuildUi()
     Icon(minimizeButton, L"\xE921");
     Icon(maximizeButton, L"\xE922");
     Icon(closeButton, L"\xE8BB");
+    for (auto *caption : {minimizeButton, maximizeButton, closeButton})
+    {
+        caption->SetAppearance(DxUi::ButtonAppearance::Subtle);
+        THROW_IF_FAILED(caption->SetContentFontSizeDip(12.f));
+    }
     commandBar = root->AddChild<Surface>();
+    commandBar->borderBottom = true;
     const std::array<std::pair<unsigned, Command>, 14> buttons{{{IDS_UNDO, Command::Undo},
                                                                 {IDS_REDO, Command::Redo},
                                                                 {IDS_HEADING, Command::Heading},
@@ -106,6 +119,8 @@ void Application::BuildUi()
                                                                 {IDS_LINK, Command::Link}}};
     for (const auto &[id, command] : buttons)
         tools.push_back(Action(*commandBar, id, command));
+    for (auto *tool : tools)
+        tool->SetAppearance(DxUi::ButtonAppearance::Subtle);
     tools[2]->SetVariant(DxUi::ButtonVariant::DropDown);
     tools[8]->SetVariant(DxUi::ButtonVariant::DropDown);
     const std::array<std::pair<unsigned, const wchar_t *>, 10> glyphs{{{0, L"\xE7A7"},
@@ -124,14 +139,21 @@ void Application::BuildUi()
     tools[4]->SetTooltipText(Resource(IDS_TIP_ITALIC));
     tools[5]->SetTooltipText(Resource(IDS_TIP_CODE));
     tools[13]->SetTooltipText(Resource(IDS_TIP_LINK));
-    tools[9]->SetText(Resource(IDS_FINDKEY));
+    tools[8]->SetLeadingIcon(L"\xE710");
+    tools[9]->SetText(Resource(IDS_FIND));
+    tools[9]->SetLeadingIcon(L"\xE721");
+    tools[9]->SetShortcutText(Resource(IDS_FIND_SHORTCUT));
     settingsToggle = tools[12];
     filesToggle = Action(*commandBar, IDS_FILES, Command::Files, Resource(IDS_TIP_FILES));
-    Icon(filesToggle, L"\xE8B7");
+    Icon(filesToggle, L"\xE90C");
+    filesToggle->SetAppearance(DxUi::ButtonAppearance::Subtle);
     panelToggle = Action(*commandBar, IDS_PANEL, Command::Outline);
-    Icon(panelToggle, L"\xE8A0");
+    Icon(panelToggle, L"\xE90D");
+    panelToggle->SetVariant(DxUi::ButtonVariant::Disclosure);
+    panelToggle->SetAppearance(DxUi::ButtonAppearance::Subtle);
     overflowButton = Action(*commandBar, IDS_MORE, Command::Overflow);
     Icon(overflowButton, L"\xE712");
+    overflowButton->SetAppearance(DxUi::ButtonAppearance::Subtle);
     for (auto &divider : commandDividers)
         divider = commandBar->AddChild<DxUi::Separator>();
     modeHint = Label(*root, IDS_BANNER, DxUi::FontRole::Small);
@@ -154,13 +176,15 @@ void Application::BuildUi()
     mirror->SetViewMode(DxUi::RichText::ViewMode::Source);
     mirror->SetAccessibleName(Resource(IDS_MIRROR));
     sidebar = root->AddChild<Surface>(Surface::Kind::Sidebar);
+    sidebar->borderLeft = true;
     outlineTitle = Label(*sidebar, IDS_OUTLINESECTION, DxUi::FontRole::Small);
     Section(outlineTitle);
     outlineTree = sidebar->AddChild<DxUi::Tree>();
     outlineTree->SetModel(&outlineModel);
     outlineTree->SetDelegate(&outlineModel);
-    outlineTree->SetRowHeightDip(36);
+    outlineTree->SetRowHeightDip(42);
     outlineTree->SetIndentDip(14);
+    outlineTree->SetAppearance({.drawBackground = false, .drawBorder = false, .showExpanders = false});
     THROW_IF_FAILED(
         outlineTree->SetTypographyOverride(DxUi::Tree::TypographyOverride{13.f, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_WEIGHT_SEMI_BOLD}));
     outlineTree->SetInvokeOnSingleClick(true);
@@ -187,8 +211,14 @@ void Application::BuildUi()
         RefreshOutline();
     };
     currentBlock = Label(*sidebar, IDS_CURRENTBLOCK, DxUi::FontRole::Small);
+    listSummary = Label(*sidebar, IDS_BLOCKBULLETLIST, DxUi::FontRole::Small);
+    THROW_IF_FAILED(listSummary->SetTypographyOverride(DxUi::LabelTypography{13.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
+    listSummaryIcon = sidebar->AddChild<DxUi::Label>(L"\xE8FD");
+    listSummaryIcon->SetFontRole(DxUi::FontRole::Icon);
+    listSummaryIcon->SetAccessibleName(Resource(IDS_BLOCKLIST));
     THROW_IF_FAILED(currentBlock->SetTypographyOverride(DxUi::LabelTypography{13.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
-    Action(*sidebar, IDS_LOCAL, Command::LocalSource);
+    blockSourceAction = Action(*sidebar, IDS_LOCAL, Command::LocalSource);
+    blockSourceAction->SetAppearance(DxUi::ButtonAppearance::Outline);
     equationHelp = Label(*sidebar, IDS_EQUATIONSECTION, DxUi::FontRole::Small);
     Section(equationHelp);
     equation = sidebar->AddChild<DxUi::RichTextEditor>();
@@ -199,24 +229,43 @@ void Application::BuildUi()
 
     currentBlockTitle = Label(*sidebar, IDS_CURRENTSECTION, DxUi::FontRole::Small);
     Section(currentBlockTitle);
+    outlineCount = Label(*sidebar, IDS_OUTLINECOUNT, DxUi::FontRole::Small);
+    THROW_IF_FAILED(outlineCount->SetTypographyOverride(DxUi::LabelTypography{11.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
+    outlineCount->SetAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
+    contextDivider = sidebar->AddChild<DxUi::Separator>();
     equationReadOnly = Label(*sidebar, IDS_READONLYSHORT, DxUi::FontRole::Small);
     filesPane = root->AddChild<Surface>(Surface::Kind::Sidebar);
+    filesPane->borderRight = true;
     filesTitle = Label(*filesPane, IDS_FILES, DxUi::FontRole::BodyStrong);
+    THROW_IF_FAILED(filesTitle->SetTypographyOverride(DxUi::LabelTypography{13.f, DWRITE_FONT_WEIGHT_SEMI_BOLD, 0}));
+    filesRootIcon = filesPane->AddChild<DxUi::Label>(L"\xE8B7");
+    filesRootIcon->SetFontRole(DxUi::FontRole::Icon);
+    filesRootIcon->SetAccessibleName(Resource(IDS_FILES));
+    filesSectionTitle = Label(*filesPane, IDS_FILESSECTION, DxUi::FontRole::Small);
+    Section(filesSectionTitle);
+    closeFiles = Action(*filesPane, IDS_CLOSEFILES, Command::Files);
+    Icon(closeFiles, L"\xE8BB");
+    closeFiles->SetAppearance(DxUi::ButtonAppearance::Subtle);
+    THROW_IF_FAILED(closeFiles->SetContentFontSizeDip(12.f));
     filesFilter = filesPane->AddChild<DxUi::TextField>();
     filesFilter->SetAccessibleName(Resource(IDS_FILTERFILES));
-    filesFilter->SetPlaceholder(Resource(IDS_FILTERFILES));
+    filesFilter->SetPlaceholder(Resource(IDS_FILTERSHORT));
     filesFilter->SetOnTextChanged([this](std::wstring_view) { RefreshFiles(); });
     filesTree = filesPane->AddChild<DxUi::Tree>();
     filesTree->SetModel(&filesModel);
     filesTree->SetDelegate(&filesModel);
     filesTree->SetAccessibleName(Resource(IDS_FILES));
-    filesTree->SetRowHeightDip(36);
-    filesTree->SetIndentDip(14);
+    filesTree->SetRowHeightDip(31);
+    filesTree->SetIndentDip(16);
+    filesTree->SetAppearance({.drawBackground = false, .drawBorder = false, .reserveExpanderSpace = true, .neutralDecorations = true});
     THROW_IF_FAILED(filesTree->SetTypographyOverride(DxUi::Tree::TypographyOverride{13.f, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_WEIGHT_SEMI_BOLD}));
     filesTree->SetInvokeOnSingleClick(true);
     filesTree->SetEmptyStateText(Resource(IDS_FILESUNTITLED));
     filesCount = Label(*filesPane, IDS_FILESUNTITLED, DxUi::FontRole::Small);
+    THROW_IF_FAILED(filesCount->SetTypographyOverride(DxUi::LabelTypography{12.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
     filesCount->SetMultiline(true);
+    filesFooterDivider = filesPane->AddChild<DxUi::Separator>();
+    filesFooterDivider->SetOrientation(DxUi::SeparatorOrientation::Horizontal);
     filesModel.invoked = [this](std::uint64_t id)
     {
         if (id && id <= visibleFilePaths.size())
@@ -234,6 +283,7 @@ void Application::BuildUi()
         RefreshFiles();
     };
     filesSplitter = root->AddChild<DxUi::Splitter>();
+    filesSplitter->SetSubtle(true);
     filesSplitter->SetAccessibleName(Resource(IDS_FILESWIDTH));
     filesSplitter->SetMinimumFirstPane(200);
     filesSplitter->SetOnChange(
@@ -352,7 +402,9 @@ void Application::BuildUi()
     Action(*recoveryPanel, IDS_LATER, Command::LaterRecovery);
     focusPill = root->AddChild<Surface>(Surface::Kind::Floating);
     stats = Label(*focusPill, IDS_SAVED, DxUi::FontRole::Small);
+    THROW_IF_FAILED(stats->SetTypographyOverride(DxUi::LabelTypography{12.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
     positionStatus = Label(*root, IDS_SAVED, DxUi::FontRole::Small);
+    THROW_IF_FAILED(positionStatus->SetTypographyOverride(DxUi::LabelTypography{12.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
     positionStatus->SetAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
     feedback = Label(*root, IDS_EMPTY, DxUi::FontRole::Small);
     for (auto *label : {stats, positionStatus, feedback})
@@ -391,67 +443,79 @@ void Application::Layout()
     brandMark->SetVisible(!focus);
     brandMark->SetBounds(D2D1::RectF(16, 14, 44, 42));
     const bool compactHeader = width < 1040;
-    title->SetBounds(D2D1::RectF(focus ? 20.f : 56.f, focus ? 6.f : 8.f,
-                                 focus           ? width - 320
-                                 : compactHeader ? width - 526
-                                                 : width / 2 - 144,
-                                 focus ? 34.f : 30.f));
-    saveState->SetVisible(!focus);
-    saveState->SetBounds(D2D1::RectF(56, 30, compactHeader ? width - 526 : width / 2 - 144, 50));
+    const float tabsLeft = compactHeader ? width - 520 : width / 2 - 104;
+    const float titleLimit = std::max(56.f, tabsLeft - 120.f);
+    const auto typography = host.GetTypographyRevision();
+    const float identityWidth = titleLimit - 54.f;
+    if (typography && (identityMeasure.textRevision != title->GetMeasureRevision() || identityMeasure.typographyRevision != typography ||
+                       identityMeasure.availableWidth != identityWidth || identityMeasure.dpi != host.GetDpi()))
+    {
+        DxUi::DesiredSize identitySize;
+        THROW_IF_FAILED(DxUi::MeasureControl(*title, {host}, DxUi::LayoutConstraints::AtMost(identityWidth), identitySize));
+        identityMeasure = {title->GetMeasureRevision(), host.GetTypographyRevision(), identityWidth, identitySize.sizeDip.width, host.GetDpi()};
+    }
+    const float titleRight = typography ? std::min(titleLimit, 54.f + identityMeasure.width) : titleLimit;
+    title->SetBounds(focus ? D2D1::RectF(20, 6, width - 320, 34) : D2D1::RectF(54, 16, titleRight, 40));
+    saveStateChip->SetVisible(!focus);
+    saveStateChip->SetBounds(D2D1::RectF(titleRight + 10, 18, titleRight + 62, 38));
+    saveState->SetBounds(D2D1::RectF(titleRight + 14, 18, titleRight + 58, 38));
+    constexpr std::array<float, 3> tabOffsets{0.f, 92.f, 170.f}, tabWidths{88.f, 74.f, 54.f};
     for (unsigned index = 0; index < 3; ++index)
     {
         modeButtons[index]->SetVisible(!focus);
-        const float x = compactHeader ? width - 520 : width / 2 - 132;
-        modeButtons[index]->SetBounds(D2D1::RectF(x + index * 78, 10, x + index * 78 + 74, 46));
+        modeButtons[index]->SetBounds(D2D1::RectF(tabsLeft + tabOffsets[index], 8, tabsLeft + tabOffsets[index] + tabWidths[index], 46));
         modeButtons[index]->SetToggleState(static_cast<unsigned>(settings.view) == index);
     }
     fileMenu->SetVisible(!focus);
-    fileMenu->SetBounds(D2D1::RectF(width - 276, 8, width - 212, 48));
+    fileMenu->SetBounds(D2D1::RectF(width - 294, 8, width - 230, 48));
     saveButton->SetVisible(!focus);
-    saveButton->SetBounds(D2D1::RectF(width - 204, 8, width - 136, 48));
+    saveButton->SetBounds(D2D1::RectF(width - 217, 8, width - 146, 48));
     exitFocus->SetVisible(focus);
     exitFocus->SetBounds(D2D1::RectF(width - 288, 4, width - 144, 36));
     const std::array<DxUi::Button *, 3> captions{minimizeButton, maximizeButton, closeButton};
     for (unsigned i = 0; i < 3; ++i)
-        captions[i]->SetBounds(D2D1::RectF(width - 132 + i * 44, 0, width - 88 + i * 44, bar));
-    Icon(maximizeButton, IsZoomed(window.get()) ? L"\xE923" : L"\xE922");
+        captions[i]->SetBounds(D2D1::RectF(width - 138 + i * 46, 0, width - 92 + i * 46, std::min(36.f, bar)));
+    maximizeButton->SetText(IsZoomed(window.get()) ? L"\xE923" : L"\xE922");
     float x = 12;
     auto place = [&](DxUi::Button *button, float w)
     {
         button->SetBounds(D2D1::RectF(x, 62, x + w, 98));
-        x += w + 4;
+        x += w + 2;
     };
     place(filesToggle, 36);
     auto divide = [&](unsigned index)
     {
         commandDividers[index]->SetVisible(true);
-        commandDividers[index]->SetBounds(D2D1::RectF(x + 4, 64, x + 5, 96));
-        x += 12;
+        commandDividers[index]->SetBounds(D2D1::RectF(x + 8, 70, x + 9, 90));
+        x += 19;
     };
     divide(0);
     place(tools[0], 36);
     place(tools[1], 36);
     divide(1);
-    place(tools[2], 104);
-    const float commandLimit = width - 292;
-    commandDividers[2]->SetVisible(false);
+    place(tools[2], 128);
+    divide(2);
+    const float commandLimit = width - 248;
     commandDividers[3]->SetVisible(false);
+    commandDividers[4]->SetVisible(false);
     for (const unsigned i : {3u, 4u, 5u, 13u, 6u, 7u, 8u})
     {
-        const float w = i == 8 ? 76.f : 36.f;
+        const float w = i == 8 ? 100.f : 36.f;
         const bool fits = x + w + 44 <= commandLimit;
         tools[i]->SetVisible(fits);
         if (fits)
             place(tools[i], w);
         if ((i == 13 || i == 7) && fits)
-            divide(i == 13 ? 2 : 3);
+            divide(i == 13 ? 3 : 4);
     }
     tools[10]->SetVisible(false);
-    overflowButton->SetVisible(true);
-    place(overflowButton, 36);
-    commandDividers[4]->SetBounds(D2D1::RectF(width - 294, 64, width - 293, 96));
-    x = width - 284;
-    place(tools[9], 112);
+    const bool overflow = std::ranges::any_of(std::array<unsigned, 7>{3, 4, 5, 13, 6, 7, 8}, [this](unsigned i) { return !tools[i]->IsVisible(); });
+    overflowButton->SetVisible(overflow);
+    if (overflow)
+        place(overflowButton, 36);
+    commandDividers[5]->SetVisible(false);
+    x = width - 248;
+    place(tools[9], 120);
     place(tools[11], 36);
     place(panelToggle, 36);
     place(settingsToggle, 36);
@@ -461,35 +525,42 @@ void Application::Layout()
     tools[11]->SetToggleState(focus);
     const bool fileOverlay = settings.showFiles && width < static_cast<float>(settings.readingWidth + settings.filesWidth + 96 + 6);
     const float filesWidth = static_cast<float>(settings.filesWidth);
-    const float left = settings.showFiles && !fileOverlay && !focus ? filesWidth + 6 : 0;
+    const float left = settings.showFiles && !fileOverlay && !focus ? filesWidth : 0;
     const bool showSidebar = settings.showOutline && !focus && !fileOverlay && width - left >= static_cast<float>(settings.readingWidth + 336) &&
                              settings.view != EditorView::Split;
     const float right = showSidebar ? width - 240 : width;
     sidebar->SetVisible(showSidebar);
     sidebar->SetBounds(D2D1::RectF(width - 240, top, width, bottom));
     const float side = width - 224;
-    outlineTitle->SetBounds(D2D1::RectF(side, top + 16, width - 16, top + 40));
+    outlineTitle->SetBounds(D2D1::RectF(side + 4, top + 16, width - 100, top + 40));
+    outlineCount->SetBounds(D2D1::RectF(width - 104, top + 16, width - 16, top + 40));
     const float contextHeight = equationContext ? 260.f : 128.f;
-    const float outlineBottom = std::max(top + 92, bottom - contextHeight);
-    outlineTree->SetBounds(D2D1::RectF(side - 8, top + 48, width - 8, outlineBottom));
-    currentBlockTitle->SetBounds(D2D1::RectF(side, outlineBottom + 8, width - 16, outlineBottom + 28));
-    currentBlock->SetBounds(D2D1::RectF(side, outlineBottom + 32, width - 16, outlineBottom + 56));
-    sidebar->GetLogicalChild(3)->SetBounds(D2D1::RectF(side, outlineBottom + 64, width - 16, outlineBottom + 100));
+    const float outlineHeight = std::max(40.f, static_cast<float>(outlineModel.rows.size()) * 42.f + 4.f);
+    const float outlineBottom = std::min(top + 44 + outlineHeight, std::max(top + 92, bottom - contextHeight));
+    outlineTree->SetBounds(D2D1::RectF(side - 4, top + 44, width - 8, outlineBottom));
+    contextDivider->SetBounds(D2D1::RectF(side + 4, outlineBottom + 12, width - 12, outlineBottom + 13));
+    contextDivider->SetOrientation(DxUi::SeparatorOrientation::Horizontal);
+    currentBlockTitle->SetBounds(D2D1::RectF(side + 4, outlineBottom + 28, width - 16, outlineBottom + 48));
+    currentBlock->SetBounds(D2D1::RectF(side + 4, outlineBottom + 52, width - 16, outlineBottom + 76));
+    listSummaryIcon->SetBounds(D2D1::RectF(side + 4, outlineBottom + 52, side + 20, outlineBottom + 76));
+    listSummary->SetBounds(D2D1::RectF(side + 28, outlineBottom + 52, width - 16, outlineBottom + 76));
+    blockSourceAction->SetBounds(D2D1::RectF(side + 4, outlineBottom + 84, width - 20, outlineBottom + 116));
     equationHelp->SetVisible(equationContext);
     equation->SetVisible(equationContext);
     equationReadOnly->SetVisible(equationContext);
-    equationHelp->SetBounds(D2D1::RectF(side, outlineBottom + 116, width - 100, outlineBottom + 140));
-    equationReadOnly->SetBounds(D2D1::RectF(width - 96, outlineBottom + 116, width - 16, outlineBottom + 140));
-    equation->SetBounds(D2D1::RectF(side, outlineBottom + 148, width - 16, bottom - 16));
+    equationHelp->SetBounds(D2D1::RectF(side, outlineBottom + 132, width - 100, outlineBottom + 156));
+    equationReadOnly->SetBounds(D2D1::RectF(width - 96, outlineBottom + 132, width - 16, outlineBottom + 156));
+    equation->SetBounds(D2D1::RectF(side, outlineBottom + 164, width - 16, bottom - 16));
     page->SetBounds(D2D1::RectF(left, top, right, bottom));
     const bool split = settings.view == EditorView::Split;
     const float mid = (left + right) / 2;
     const float gutter = focus ? 32.f : split ? 24.f : 48.f;
-    editor->SetBounds(D2D1::RectF(left + gutter, top + (focus ? 36.f : 56.f), (split ? mid : right) - gutter, bottom - 24));
+    editor->SetBounds(D2D1::RectF(left + gutter, top + (focus ? 36.f : 60.f), (split ? mid : right) - gutter, bottom));
     mirror->SetVisible(split);
     mirror->SetBounds(D2D1::RectF(mid + 24, top + 56, right - 24, bottom - 24));
     DxUi::RichTextEditorAppearance appearance;
     appearance.drawBorder = false;
+    appearance.drawFocusIndicator = false;
     appearance.useAccentLinkColor = true;
     appearance.paddingDip = 0;
     appearance.maximumTextWidthDip = focus ? 680.f : static_cast<float>(settings.readingWidth);
@@ -499,8 +570,10 @@ void Application::Layout()
     appearance.headingFontSizeDip = {34.f * settings.textScale / 100.f, 23.f * settings.textScale / 100.f, 20.f * settings.textScale / 100.f,
                                      18.f * settings.textScale / 100.f, 16.f * settings.textScale / 100.f, 16.f * settings.textScale / 100.f};
     appearance.headingLineHeightMultiplier = {1.2f, 1.3f, 1.3f, 1.3f, 1.3f, 1.3f};
-    appearance.paragraphSpacingAfterLines = 1.f;
+    appearance.paragraphSpacingAfterLines = 18.f / 26.4f;
     appearance.listItemSpacingDip = 10.f;
+    appearance.semanticSpacing = DxUi::RichText::SemanticSpacing{
+        .headingBeforeDip = {0.f, 40.f, 32.f, 24.f, 20.f, 20.f}, .headingAfterDip = {0.f, 14.f, 14.f, 14.f, 14.f, 14.f}, .containerIndentDip = 10.f};
     auto sourceAppearance = appearance;
     sourceAppearance.bodyFontSizeDip = appearance.codeFontSizeDip;
     sourceAppearance.colorizeMarkdownSource = true;
@@ -513,9 +586,13 @@ void Application::Layout()
     mirror->SetAppearance(sourceAppearance);
     equation->SetAppearance(appearance);
     filesPane->SetVisible(settings.showFiles && !focus);
+    filesPane->borderRight = fileOverlay;
     filesPane->SetBounds(D2D1::RectF(0, top, filesWidth, bottom));
-    filesTitle->SetBounds(D2D1::RectF(16, top + 16, filesWidth - 16, top + 44));
-    filesFilter->SetBounds(D2D1::RectF(12, top + 56, filesWidth - 12, top + 92));
+    filesSectionTitle->SetBounds(D2D1::RectF(20, top + 16, filesWidth - 52, top + 40));
+    closeFiles->SetBounds(D2D1::RectF(filesWidth - 44, top + 14, filesWidth - 12, top + 46));
+    filesRootIcon->SetBounds(D2D1::RectF(20, top + 52, 36, top + 78));
+    filesTitle->SetBounds(D2D1::RectF(44, top + 52, filesWidth - 16, top + 78));
+    filesFilter->SetBounds(D2D1::RectF(20, top + 84, filesWidth - 12, top + 114));
     const float footerWidth = filesWidth - 24;
     const auto footerRevision = filesCount->GetMeasureRevision(), typographyRevision = host.GetTypographyRevision();
     const auto footerDpi = host.GetDpi();
@@ -530,7 +607,7 @@ void Application::Layout()
             std::terminate();
         THROW_IF_FAILED(measured);
         filesFooterMeasure.widthDip = footerWidth;
-        filesFooterMeasure.heightDip = std::max(52.f, std::ceil(desired.sizeDip.height));
+        filesFooterMeasure.heightDip = std::max(24.f, std::ceil(desired.sizeDip.height));
         filesFooterMeasure.textRevision = footerRevision;
         // A cold MeasureControl may initialize the host's typography itself.
         filesFooterMeasure.typographyRevision = host.GetTypographyRevision();
@@ -538,7 +615,8 @@ void Application::Layout()
         ++filesFooterMeasure.measurements;
     }
     const float footerTop = bottom - 8 - filesFooterMeasure.heightDip;
-    filesTree->SetBounds(D2D1::RectF(4, top + 104, filesWidth - 4, footerTop - 4));
+    filesFooterDivider->SetBounds(D2D1::RectF(0, footerTop - 8, filesWidth, footerTop - 7));
+    filesTree->SetBounds(D2D1::RectF(4, top + 122, filesWidth - 4, footerTop - 4));
     filesCount->SetBounds(D2D1::RectF(12, footerTop, filesWidth - 12, bottom - 8));
     filesSplitter->SetVisible(settings.showFiles && !focus && !fileOverlay);
     filesSplitter->SetBounds(D2D1::RectF(0, top, width, bottom));

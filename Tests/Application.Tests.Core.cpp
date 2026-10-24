@@ -585,6 +585,20 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Require(renamed.depth < indented, "changed heading level updates outline indentation");
              Require(app.Document().Undo() && app.Document().Undo() && app.Document().Undo() && !app.Dirty(),
                      "outline edits retain exact multi-step undo");
+             Require(app.Document().GetText() == source && row(L"Navigation target").has_value() &&
+                         target->RequestSelectVisibleItem(row(L"Navigation target").value()) && target->OnKeyDown(app.Host(), VK_RETURN, 0) &&
+                         app.Document().GetSelection() ==
+                             DxUi::RichText::Selection{source.find(L"## Navigation target"), source.find(L"## Navigation target")},
+                     "undo restores the exact heading label and navigation offset after committed analysis");
+             Require(app.Document().Redo() && app.Document().Redo() && app.Document().Redo() && row(L"Renamed target").has_value(),
+                     "redo republishes the offset, label and level changes through the same analysis path");
+             const auto replayedHeading = app.Document().GetText().find(L"# Renamed target");
+             target->GetModel()->GetVisibleItem(row(L"Renamed target").value(), renamed);
+             Require(renamed.depth < indented && target->RequestSelectVisibleItem(row(L"Renamed target").value()) &&
+                         target->OnKeyDown(app.Host(), VK_RETURN, 0) &&
+                         app.Document().GetSelection() == DxUi::RichText::Selection{replayedHeading, replayedHeading} && app.Document().Undo() &&
+                         app.Document().Undo() && app.Document().Undo() && app.Document().GetText() == source && !app.Dirty(),
+                     "replayed heading facts and their subsequent undo remain exact without rebuilding fixed regions");
              app.Document().SetSelection({source.size(), source.size()});
              Require(app.Document().ReplaceSelection(L"\n### Added heading\n"), "add another heading");
              Require(row(L"Added heading").has_value(), "added heading becomes an outline row");
@@ -717,16 +731,68 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Success(app.Initialize(), "create dirty-cache app");
              app.SetDocument(L"saved");
              Require(!app.Dirty(), "saved source starts clean");
+             auto requireCached = [&](bool dirty)
+             {
+                 Require(app.Dirty() == dirty, "exact content determines dirty state");
+                 const auto comparisons = app.Activity().dirtyTextComparisons;
+                 Require(app.Dirty() == dirty && app.Dirty() == dirty && app.Activity().dirtyTextComparisons == comparisons,
+                         "repeated dirty queries reuse one immutable-source fact");
+             };
+             requireCached(false);
+             auto before = app.Activity();
+             app.CheckpointRecovery();
+             app.CheckpointRecovery();
+             Require(app.Activity().recoverySubmissions == before.recoverySubmissions + 2 &&
+                         app.Activity().recoveryTextCopies == before.recoveryTextCopies &&
+                         app.Activity().dirtyTextComparisons == before.dirtyTextComparisons,
+                     "clean checkpoints still submit retirement without copying or comparing source again");
              app.Document().SetText(L"other");
              Require(app.Dirty(), "same-length direct reset invalidates cached source");
+             Require(app.Activity().dirtyTextComparisons == before.dirtyTextComparisons + 1,
+                     "same-length direct reset performs a new exact comparison");
+             requireCached(true);
              app.Document().SetText(L"saved");
              Require(!app.Dirty(), "direct reset to saved bytes is clean");
+             requireCached(false);
+             before = app.Activity();
              app.Document().SetText(L"");
              Require(app.Dirty(), "length mismatch is dirty");
+             Require(app.Activity().dirtyTextComparisons == before.dirtyTextComparisons, "length mismatch retains the comparison short circuit");
+             requireCached(true);
              app.Document().SetText(L"saved");
              app.Document().SetSelection({4, 5});
              Require(app.Document().ReplaceSelection(L"s") && app.Dirty(), "same-length transaction is dirty");
              Require(app.Document().Undo() && !app.Dirty(), "same-length undo to exact saved bytes is clean");
+             requireCached(false);
+             before = app.Activity();
+             app.CheckpointRecovery();
+             Require(app.Activity().recoveryTextCopies == before.recoveryTextCopies, "clean undo checkpoint does not copy text before retirement");
+             Require(app.Document().Redo() && app.Dirty(), "same-length redo remains dirty");
+             requireCached(true);
+             Require(app.Document().Undo() && !app.Dirty(), "second undo restores saved content");
+             app.Document().SetSelection({5, 5});
+             const auto canUndo = app.Document().CanUndo(), canRedo = app.Document().CanRedo();
+             DxUi::TextInputState entry;
+             entry.text = L"saved";
+             entry.multiline = true;
+             entry.caretIndex = 5;
+             auto preview = entry;
+             preview.text = L"saver";
+             before = app.Activity();
+             Require((app.Document().*TextServiceImportProbe::Import)(app.Host(), preview, false) && app.Dirty(),
+                     "silent same-length same-ACP preview invalidates the dirty fact");
+             requireCached(true);
+             Require((app.Document().*TextServiceImportProbe::Import)(app.Host(), entry, false) && !app.Dirty(),
+                     "silent cancellation restores exact saved content");
+             requireCached(false);
+             Require(app.Document().GetText() == entry.text && app.Document().GetSelection() == DxUi::RichText::Selection{5, 5} &&
+                         app.Document().CanUndo() == canUndo && app.Document().CanRedo() == canRedo && app.Activity().changes == before.changes &&
+                         app.Activity().recoverySubmissions == before.recoverySubmissions,
+                     "dirty queries preserve preview/cancel source, selection, history and committed activity");
+             app.SetDocument(L"other");
+             requireCached(false);
+             app.Document().SetText(L"saved");
+             requireCached(true);
          });
     test("Editor.SemanticFormattingUndoAndTheme",
          [&]
@@ -857,6 +923,28 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Success(LoadDocument(path, loaded), "read asynchronously saved file");
              Require(loaded.text == L"before saved", "Save writes the admitted snapshot");
              Require(app.Document().GetText() == L"before saved later" && app.Dirty(), "later edits remain in editor and dirty");
+             app.Execute(Command::Save);
+             Require(app.Dirty(), "in-flight save retains the previous dirty baseline");
+             const auto admitted = app.Document().Snapshot();
+             app.Prepare(512);
+             Success(LoadDocument(path, loaded), "read second asynchronously saved file");
+             Require(loaded.text == L"before saved later" && app.Document().Snapshot().IsSameRevision(admitted) && !app.Dirty(),
+                     "save completion invalidates dirty facts even when live source did not change");
+             const auto comparisons = app.Activity().dirtyTextComparisons;
+             Require(!app.Dirty() && app.Activity().dirtyTextComparisons == comparisons, "the new saved baseline reuses its exact clean fact");
+             Require(app.Document().Undo() && app.Dirty(), "undo away from the newly saved baseline is dirty");
+             Require(app.Document().Redo() && !app.Dirty(), "redo to the newly saved baseline is clean");
+             app.Document().SetSelection({0, 1});
+             Require(app.Document().ReplaceSelection(L"B") && app.Dirty(), "admit a same-length save candidate");
+             app.Execute(Command::Save);
+             app.Document().SetSelection({0, 1});
+             Require(app.Document().ReplaceSelection(L"b") && !app.Dirty(), "same-length in-flight edit can return to the previous saved bytes");
+             app.Prepare(512);
+             Success(LoadDocument(path, loaded), "read same-length asynchronously saved file");
+             Require(loaded.text == L"Before saved later" && app.Document().GetText() == L"before saved later" && app.Dirty(),
+                     "save completion invalidates a cached clean fact against the old baseline");
+             Require(app.Document().Undo() && !app.Dirty(), "undo to the admitted save bytes is clean");
+             Require(app.Document().Redo() && app.Dirty(), "redo to the in-flight edit is dirty");
          });
     test("Editor.InDocumentMathLocalSourceAndBroaderMermaid",
          [&]
@@ -944,9 +1032,17 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              app->SetDocument(L"Original writing", original, true, identity);
              app->Prepare();
              app->Document().SetSelection({0, 8});
+             auto before = app->Activity();
              app->Execute(Command::LocalSource);
+             Require(app->HasBlockDraft() && app->Activity().recoveryTextCopies == before.recoveryTextCopies,
+                     "opening an unchanged clean draft submits retirement without copying source");
+             const auto selection = app->Document().GetSelection();
+             const auto canUndo = app->Document().CanUndo(), canRedo = app->Document().CanRedo();
              app->BlockDraft()->SetText(L"Unapplied 東京 😀");
+             before = app->Activity();
              app->CheckpointRecovery(true);
+             Require(app->Activity().recoveryTextCopies == before.recoveryTextCopies + 1,
+                     "a changed guarded draft creates one previewable source copy");
              auto settle = [&]
              {
                  for (unsigned turn = 0; turn < 1000 && !app->RecoverySettled(); ++turn)
@@ -958,7 +1054,27 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              };
              settle();
              Require(app->Document().GetText() == L"Original writing" && !app->Dirty(), "checkpoint does not apply a local draft to live source");
+             Require(app->Document().GetSelection() == selection && app->Document().CanUndo() == canUndo && app->Document().CanRedo() == canRedo,
+                     "checkpoint preview preserves authoritative selection and undo/redo");
+             unsigned checkpoints{};
+             for (const auto &entry : std::filesystem::directory_iterator(directory / L"Recovery"))
+                 if (entry.path().extension() == L".rtd")
+                 {
+                     std::string bytes;
+                     RecoverySnapshot proposed;
+                     Success(ReadBytes(entry.path(), bytes), "read proposed draft checkpoint");
+                     Success(ParseRecovery(bytes, proposed), "validate proposed draft checkpoint");
+                     Require(proposed.text == L"Unapplied 東京 😀 writing" && proposed.originalPath == original && proposed.bom &&
+                                 proposed.selection == DxUi::RichText::Selection{0, std::wstring_view(L"Unapplied 東京 😀").size()},
+                             "recovery retains exact proposed source, selection, path and encoding");
+                     ++checkpoints;
+                 }
+             Require(checkpoints == 1, "one live-session draft checkpoint exists");
+             before = app->Activity();
              app->Execute(Command::CloseDrawer);
+             Require(app->Activity().recoverySubmissions == before.recoverySubmissions + 1 &&
+                         app->Activity().recoveryTextCopies == before.recoveryTextCopies,
+                     "cancelling a clean draft submits immediate retirement without copying text");
              settle();
              for (const auto &entry : std::filesystem::directory_iterator(directory / L"Recovery"))
                  Require(entry.path().extension() != L".rtd", "cancelling a clean draft retires its proposed recovery");
@@ -992,10 +1108,15 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              app->Execute(Command::RestoreRecovery);
              Require(app->Document().GetText() == L"Unapplied 東京 😀 writing" && app->Dirty() && app->RequiresSaveAs(),
                      "explicit restore produces a dirty copy including the unapplied draft");
+             const auto comparisons = app->Activity().dirtyTextComparisons;
+             Require(app->Dirty() && app->Dirty() && app->Activity().dirtyTextComparisons == comparisons,
+                     "restored state overrides the clean baseline without repeated comparisons");
              Require(app->Host().GetFocusControl() == &app->Document(), "restore returns logical keyboard routing to the editor");
              StoredDocument unchanged;
              Success(LoadDocument(original, unchanged), "read original after recovery");
              Require(unchanged.text == L"Original writing" && unchanged.bom, "recovery never overwrites original Markdown");
+             app->SetDocument(L"Unapplied 東京 😀 writing");
+             Require(!app->Dirty() && !app->RequiresSaveAs(), "explicit document replacement clears the recovered-state dirty fact");
          });
     test("Recovery.DiscardFailureRetainsCandidateAndRetryClearsError",
          [&]

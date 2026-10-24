@@ -23,7 +23,8 @@ namespace RedTilde
 namespace
 {
 // App-local display categories over the canonical immutable tree, not a parser.
-unsigned CurrentBlockResourceAt(const DxUi::RichText::MarkdownSyntax &syntax, std::size_t caret) noexcept
+unsigned CurrentBlockResourceAt(const DxUi::RichText::MarkdownSyntax &syntax, std::size_t caret,
+                                std::optional<std::pair<unsigned, std::size_t>> *listSummary = nullptr) noexcept
 {
     using namespace DxUi::RichText;
     const auto source = syntax.Source();
@@ -65,6 +66,20 @@ unsigned CurrentBlockResourceAt(const DxUi::RichText::MarkdownSyntax &syntax, st
             break;
         case MarkdownBlockKind::List:
             resource = IDS_BLOCKLISTCONTAINER;
+            if (listSummary)
+            {
+                std::size_t count{};
+                unsigned kind = IDS_BLOCKBULLETLIST;
+                for (auto child = node.firstChild; child != MarkdownNoNode; child = nodes[child].nextSibling)
+                    if (nodes[child].block.kind == MarkdownBlockKind::ListItem)
+                    {
+                        const auto marker = nodes[child].block.info.first;
+                        if (marker < source.size() && source[marker] >= L'0' && source[marker] <= L'9')
+                            kind = IDS_BLOCKNUMBEREDLIST;
+                        ++count;
+                    }
+                *listSummary = std::pair{kind, count};
+            }
             break;
         case MarkdownBlockKind::ListItem:
             resource = IDS_BLOCKLIST;
@@ -272,7 +287,7 @@ void Application::ApplyTheme()
     theme.primaryButtonFill = D2D1::ColorF(0xC83C46);
     theme.primaryButtonText = D2D1::ColorF(D2D1::ColorF::White);
     host.SetTheme(theme);
-    const auto underline = dark || highContrast ? DxUi::RichTextLinkUnderlinePolicy::Always : DxUi::RichTextLinkUnderlinePolicy::HoverOrCaret;
+    const auto underline = highContrast ? DxUi::RichTextLinkUnderlinePolicy::Always : DxUi::RichTextLinkUnderlinePolicy::HoverOrCaret;
     for (auto *target : {static_cast<DxUi::RichTextEditor *>(editor), mirror, equation})
         target->SetLinkUnderlinePolicy(underline);
     const BOOL nativeDark = dark;
@@ -292,7 +307,19 @@ const std::wstring &Application::CurrentText() const
 }
 bool Application::Dirty() const
 {
-    return editor && (recovered || editor->Snapshot().Length() != savedText.size() || CurrentText() != savedText);
+    if (!editor)
+        return false;
+    const auto source = editor->Snapshot();
+    if (dirtyFact && dirtyFact->recovered == recovered && dirtyFact->source.IsSameRevision(source))
+        return dirtyFact->dirty;
+    bool dirty = recovered || source.Length() != savedText.size();
+    if (!dirty)
+    {
+        ++activity.dirtyTextComparisons;
+        dirty = CurrentText() != savedText;
+    }
+    dirtyFact = DirtyFact{source, recovered, dirty};
+    return dirty;
 }
 void Application::RefreshDocumentAnalysis(const DxUi::RichText::SourceSnapshot &source, bool committed)
 {
@@ -332,7 +359,7 @@ void Application::RefreshDocumentAnalysis(const DxUi::RichText::SourceSnapshot &
     bool outlineRowsChanged{};
     if (newSourceRevision)
     {
-        nextInfo.emplace(AnalyzeDocument(*text));
+        nextInfo.emplace(AnalyzeDocument(*text, documentInfo.lines));
         outlineRowsChanged = !sameOutline(nextInfo->headings, documentInfo.headings);
         analysis = &*nextInfo;
     }
@@ -355,8 +382,8 @@ void Application::RefreshDocumentAnalysis(const DxUi::RichText::SourceSnapshot &
     }
     if (committed)
     {
-        const bool sameAsPrior = previewCommittedOutline ? matchesCommittedOutline(analysis->headings, *previewCommittedOutline)
-                                                         : sameOutline(analysis->headings, documentInfo.headings);
+        const bool sameAsPrior =
+            previewCommittedOutline ? matchesCommittedOutline(analysis->headings, *previewCommittedOutline) : !outlineRowsChanged;
         if (!sameAsPrior && !collapsedHeadings.empty())
         {
             collapsedHeadings.clear();
@@ -406,6 +433,7 @@ void Application::SetDocument(std::wstring text, std::filesystem::path path, boo
     bom = hasBom;
     stamp = identity;
     savedText = editor->GetText();
+    dirtyFact.reset();
     editor->SetDocumentFilePath(documentPath.native());
     SetView(settings.view);
     Changed();
@@ -425,8 +453,12 @@ void Application::Changed()
         editDiagnostics->Mark(EditPhase::Mirror);
     const auto name = documentPath.empty() ? Resource(IDS_UNTITLED) : documentPath.filename().native();
     const bool dirty = Dirty();
-    title->SetText(settings.focusMode && dirty ? name + L" · " + Resource(IDS_CHANGED) : name);
+    const auto displayedName = settings.focusMode && dirty ? name + L" · " + Resource(IDS_CHANGED) : name;
+    const bool identityLayoutChanged = title->GetText() != displayedName;
+    title->SetText(displayedName);
     saveState->SetText(Resource(dirty ? IDS_CHANGED : IDS_SAVED));
+    if (identityLayoutChanged)
+        Layout();
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Identity);
     UpdateCaption(std::format(L"{}{} — RedTilde", dirty ? L"• " : L"", name));
@@ -486,29 +518,39 @@ void Application::UpdateCaption(std::wstring caption)
 void Application::CheckpointRecovery(bool immediate)
 {
     std::optional<RecoverySnapshot> snapshot;
-    auto text = CurrentText();
     auto selection = editor->GetSelection();
     bool needsRecovery = Dirty();
+    std::wstring_view draft;
+    bool changedDraft{};
     if (HasBlockDraft() && editor->Snapshot().IsSameRevision(blockDraftSnapshot) && editor->Revision() == blockDraftRevision)
     {
-        const std::wstring draft(blockDraftText->GetText());
-        if (draft != text.substr(blockDraftRange.first, blockDraftRange.last - blockDraftRange.first))
+        draft = blockDraftText->GetText();
+        const std::wstring_view source = CurrentText();
+        if (draft != source.substr(blockDraftRange.first, blockDraftRange.last - blockDraftRange.first))
         {
             if (!DxUi::RichText::IsValidUtf16(draft) ||
-                text.size() - (blockDraftRange.last - blockDraftRange.first) + draft.size() > DxUi::RichText::Document::MaximumUnits)
+                source.size() - (blockDraftRange.last - blockDraftRange.first) + draft.size() > DxUi::RichText::Document::MaximumUnits)
             {
                 Status(IDS_RECOVERYFAILED);
                 return;
             }
-            // Recovery is a previewable copy of the proposed edit. The live
-            // authoritative source/history remain untouched until Apply.
-            text.replace(blockDraftRange.first, blockDraftRange.last - blockDraftRange.first, draft);
-            selection = {blockDraftRange.first, blockDraftRange.first + draft.size()};
+            changedDraft = true;
             needsRecovery = true;
         }
     }
     if (needsRecovery)
+    {
+        auto text = CurrentText();
+        ++activity.recoveryTextCopies;
+        if (changedDraft)
+        {
+            // Recovery is a previewable copy of the proposed edit. The live
+            // authoritative source/history remain untouched until Apply.
+            text.replace(blockDraftRange.first, blockDraftRange.last - blockDraftRange.first, draft);
+            selection = {blockDraftRange.first, blockDraftRange.first + draft.size()};
+        }
         snapshot = RecoverySnapshot{std::move(text), documentPath, bom, selection, ++recoveryGeneration};
+    }
     const bool flush = immediate || !snapshot.has_value();
     ++activity.recoverySubmissions;
     if (FAILED(recovery.Submit(std::move(snapshot), flush)))
@@ -642,7 +684,7 @@ void Application::SelectionChanged(bool refreshTools)
             button->SetEnabled(!equationContext);
             button->SetToggleState(formats[i]);
         }
-        tools[2]->SetText(Resource(equationContext ? IDS_MATH : IDS_HEADING));
+        tools[2]->SetText(Resource(equationContext ? IDS_MATH : IDS_PARAGRAPH));
         if (selectionChanged)
         {
             currentHeading.reset();
@@ -660,9 +702,24 @@ void Application::SelectionChanged(bool refreshTools)
         }
         const auto position = DocumentPositionAt(documentInfo, selection.caret);
         const auto count = position.lineCharacters;
-        unsigned blockResourceId = syntax ? CurrentBlockResourceAt(*syntax, selection.caret) : IDS_BLOCKPARAGRAPH;
+        std::optional<std::pair<unsigned, std::size_t>> listFacts;
+        unsigned blockResourceId = syntax ? CurrentBlockResourceAt(*syntax, selection.caret, &listFacts) : IDS_BLOCKPARAGRAPH;
         if (equationContext)
             blockResourceId = IDS_MATH;
+        const bool showListSummary = listFacts && (blockResourceId == IDS_BLOCKLIST || blockResourceId == IDS_BLOCKLISTCONTAINER);
+        listSummary->SetVisible(showListSummary);
+        listSummaryIcon->SetVisible(showListSummary);
+        currentBlock->SetVisible(!showListSummary);
+        if (showListSummary && listSummaryFacts != listFacts)
+        {
+            const auto kind = Resource(listFacts.value().first);
+            const auto items = listFacts.value().second;
+            const auto request = ++listSummaryPublication;
+            listSummaryFacts.reset();
+            listSummary->SetText(std::vformat(Resource(IDS_BLOCKITEMINFO), std::make_wformat_args(kind, items)));
+            if (listSummaryPublication == request)
+                listSummaryFacts = listFacts;
+        }
         const CurrentBlockLabelFacts blockFacts{blockResourceId, count};
         if (!currentBlockPublishedFacts || currentBlockPublishedFacts.value() != blockFacts)
         {
@@ -1387,6 +1444,7 @@ void Application::FileCompleted()
     {
         recovered = false;
         savedText = std::move(result.document.text);
+        dirtyFact.reset();
         documentPath = std::move(result.path);
         RefreshFiles(true);
         stamp = result.document.stamp;
@@ -1618,6 +1676,9 @@ void Application::Prepare(unsigned turns)
     for (unsigned index = 0; index < turns; ++index)
     {
         (void)host.RenderInitialFrameForShow();
+        const bool identityRelayout = identityMeasure.typographyRevision != host.GetTypographyRevision();
+        if (identityRelayout)
+            Layout();
         ServiceImages();
         MSG message{};
         unsigned processed{};
@@ -1641,7 +1702,7 @@ void Application::Prepare(unsigned turns)
         // before declaring quiescence, then paint it on the next turn. Hidden
         // hosts deliberately do not receive invalidation-driven WM_PAINT.
         const bool refreshFacts = pendingSelectionTools || editor->GetMarkdownSyntax() != selectionFactsSyntax;
-        const bool refreshed = refreshFacts || pendingBlockPlacement;
+        const bool refreshed = refreshFacts || pendingBlockPlacement || identityRelayout;
         if (refreshFacts)
             SelectionChanged(pendingSelectionTools || floating->IsVisible());
         if (pendingBlockPlacement)
@@ -1825,7 +1886,9 @@ int Application::Run()
     }
     if (options.headless)
     {
-        settings.appearance = options.scenario == L"compose-dark" || options.scenario == L"math-dark" ? Appearance::Dark : Appearance::Light;
+        settings.appearance = options.scenario == L"compose-dark" || options.scenario == L"math-dark" || options.scenario == L"reference-dark"
+                                  ? Appearance::Dark
+                                  : Appearance::Light;
         ApplyTheme();
         if (options.scenario == L"math" || options.scenario == L"math-dark")
             SetDocument(L"# Mathematics, in the flow\n\nInline $E=mc^2$ shares the text baseline. Exact TeX stays one F2 away.\n\n"
@@ -1917,6 +1980,11 @@ int Application::Run()
         return options.capture.empty() || Capture(options.capture) ? 0 : 3;
     }
     (void)host.PrimeForShow();
+    if (identityMeasure.typographyRevision != host.GetTypographyRevision())
+    {
+        Layout();
+        (void)host.PrimeForShow();
+    }
     ShowWindow(window.get(), SW_SHOWNORMAL);
     UpdateWindow(window.get());
     host.SetFocusControl(editor, true);

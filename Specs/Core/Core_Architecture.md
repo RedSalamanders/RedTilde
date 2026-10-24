@@ -67,6 +67,12 @@ line content length excludes CR/LF. Empty source has one empty line and a final 
 line. A CRLF pair is one terminator: an invalid ACP inside the pair clamps to the preceding content end, and
 the next line begins only after both units. Oversized offsets clamp to source end. Newline facts distinguish
 none, LF, CRLF, lone CR and mixed kinds. The line count agrees with the index, and the heading limit remains 128.
+The prior revision's physical line count may hint the next index allocation, bounded by the incoming source's
+UTF-16 length plus one and the vector's representable capacity. This hint changes no metadata: scan the complete
+incoming source and publish the completed replacement as before. Do not retain the predecessor's large index
+storage after a small replacement or keep a second document-analysis/text cache. Reuse the current refresh's
+heading-identity comparison for ordinary commit reconciliation; an active preview still compares against its
+saved committed outline so cancellation, collapse restoration and result commits retain their existing behavior.
 
 Refresh the read-only source mirror only while Split is visible and its source snapshot has changed. Entering
 Split synchronizes source and selection before revealing it without resetting the editable history. Ordinary

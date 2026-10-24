@@ -97,6 +97,8 @@ struct ApplicationActivity
     std::uint64_t findMatchRebuilds{}, findHighlightUpdates{}, findSectionCountRebuilds{};
     std::uint64_t selectionPresentationUpdates{}, syntaxPresentationUpdates{}, mirrorSelectionUpdates{}, outlineSelectionUpdates{};
     std::uint64_t currentBlockLabelConstructions{};
+    mutable std::uint64_t dirtyTextComparisons{};
+    std::uint64_t recoveryTextCopies{};
 };
 class PerformanceProbe;
 class Application
@@ -196,7 +198,20 @@ class Application
     DxUi::Splitter *filesSplitter{};
     DxUi::Label *filesTitle{}, *filesCount{}, *currentBlock{}, *positionStatus{}, *findCount{}, *drawerHelp{}, *currentBlockTitle{},
         *equationReadOnly{}, *writingTitle{};
-    std::array<DxUi::Separator *, 5> commandDividers{};
+    std::array<DxUi::Separator *, 6> commandDividers{};
+    DxUi::CardPanel *saveStateChip{};
+    DxUi::Label *filesSectionTitle{}, *outlineCount{}, *filesRootIcon{}, *listSummaryIcon{};
+    DxUi::Button *closeFiles{}, *blockSourceAction{};
+    DxUi::Separator *contextDivider{}, *filesFooterDivider{};
+    DxUi::Label *listSummary{};
+    std::optional<std::pair<unsigned, std::size_t>> listSummaryFacts;
+    std::uint64_t listSummaryPublication{};
+    // Header measurement waits for the host's first typography preparation; cold layout reserves explicit bounds.
+    struct IdentityMeasure
+    {
+        std::uint64_t textRevision{}, typographyRevision{};
+        float availableWidth = -1.f, width{}, dpi{};
+    } identityMeasure;
     DxUi::TextField *filesFilter{}, *replaceText{};
     DxUi::Button *filesToggle{}, *panelToggle{}, *settingsToggle{}, *overflowButton{}, *exitFocus{}, *fileMenu{}, *saveButton{}, *minimizeButton{},
         *maximizeButton{}, *closeButton{}, *dimToggle{}, *remoteImagesToggle{};
@@ -252,6 +267,13 @@ class Application
     } filesFooterMeasure;
     std::set<std::uint64_t> collapsedHeadings;
     std::wstring savedText;
+    struct DirtyFact
+    {
+        DxUi::RichText::SourceSnapshot source;
+        bool recovered{}, dirty{};
+    };
+    // Saved-baseline replacement invalidates this fact without copying savedText.
+    mutable std::optional<DirtyFact> dirtyFact;
     mutable std::optional<DxUi::RichText::SourceSnapshot> cachedSource;
     mutable std::wstring cachedText;
     std::optional<DxUi::RichText::SourceSnapshot> mirroredSource, selectionFactsSource;

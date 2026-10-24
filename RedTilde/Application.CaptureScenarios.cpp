@@ -15,7 +15,7 @@ void RequireCapture(bool condition, const char *message)
     if (!condition)
         throw std::runtime_error(message);
 }
-void CaptureWrite(const std::filesystem::path &path, std::string_view text)
+void CaptureWrite(const std::filesystem::path &path, std::string_view text = "# Invented reference notes\n")
 {
     std::filesystem::create_directories(path.parent_path());
     RequireCapture(SUCCEEDED(WriteBytesAtomic(path, text)), "Cannot seed the owned design-capture fixture");
@@ -67,9 +67,10 @@ void Application::PrepareDesignScenario()
     Layout();
 
     const auto &scenario = options.scenario;
+    const bool reference = scenario == L"reference-dark";
     const bool fixtureScene = scenario == L"compose-light" || scenario == L"compose-dark" || scenario == L"source" || scenario == L"split" ||
                               scenario == L"settings" || scenario == L"narrow" || scenario == L"high-contrast" || scenario == L"files" ||
-                              scenario == L"find" || scenario == L"focus" || scenario == L"equation";
+                              scenario == L"find" || scenario == L"focus" || scenario == L"equation" || reference;
     std::wstring fixtureName;
     bool frozenFilesModel{}, reparseRemoved{};
     if (fixtureScene)
@@ -80,21 +81,37 @@ void Application::PrepareDesignScenario()
             std::filesystem::absolute(options.dataDirectory) /
             std::format(L"CaptureFixture-{:08x}-{:04x}-{:04x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}", id.Data1, id.Data2, id.Data3,
                         id.Data4[0], id.Data4[1], id.Data4[2], id.Data4[3], id.Data4[4], id.Data4[5], id.Data4[6], id.Data4[7]);
-        const auto writing = fixture / L"Writing";
-        CaptureWrite(writing / L"Drafts/Chapter2.md", "# The first conversation\n\nA small beginning for an invented story.\n");
-        CaptureWrite(writing / L"Drafts/Chapter10.md", "# The journey home\n\nA later chapter with a little room to grow.\n");
-        CaptureWrite(writing / L"Research/Reading notes.markdown", "# Reading notes\n\nA collection of invented references and questions.\n");
-        CaptureWrite(writing / L"Archive/Early draft.md", "# An early draft\n\nKeep the version that helped the idea begin.\n");
-        CaptureWrite(writing / L"Outline.md", "# The next draft\n\n## Beginning\n\n## Middle\n\n## Ending\n");
-        CaptureWrite(writing / L"Assets/cover.txt", "Synthetic non-Markdown fixture; this folder must be pruned.\n");
-        CaptureWrite(writing / L"Private notes.md", "# Hidden fixture\n\nThis hidden entry is deliberately excluded.\n");
-        CaptureWrite(writing / L"System notes.md", "# System fixture\n\nThis system entry is deliberately excluded.\n");
-        RequireCapture(SetFileAttributesW((writing / L"Private notes.md").c_str(), FILE_ATTRIBUTE_HIDDEN) != FALSE &&
-                           SetFileAttributesW((writing / L"System notes.md").c_str(), FILE_ATTRIBUTE_SYSTEM) != FALSE,
-                       "Cannot mark excluded Files-pane capture entries");
+        const auto writing = fixture / (reference ? L"Reports" : L"Writing");
+        if (reference)
+        {
+            RequireCapture(!options.document.empty(), "The reference capture requires its exact reviewed report document");
+            for (unsigned index = 1; index <= 12; ++index)
+                CaptureWrite(writing / L"archive" / std::format(L"report-{:02}.md", index));
+            CaptureWrite(writing / L"notes/risks.md");
+            CaptureWrite(writing / L"notes/semantic-model-ga.md");
+            CaptureWrite(writing / L"templates/weekly.md");
+            CaptureWrite(writing / L"templates/review.md");
+            CaptureWrite(writing / L"README.md");
+            CaptureWrite(writing / L"weekly-report-2026-10-01.md");
+            CaptureWrite(writing / L"weekly-report-2026-10-08.md");
+        }
+        else
+        {
+            CaptureWrite(writing / L"Drafts/Chapter2.md", "# The first conversation\n\nA small beginning for an invented story.\n");
+            CaptureWrite(writing / L"Drafts/Chapter10.md", "# The journey home\n\nA later chapter with a little room to grow.\n");
+            CaptureWrite(writing / L"Research/Reading notes.markdown", "# Reading notes\n\nA collection of invented references and questions.\n");
+            CaptureWrite(writing / L"Archive/Early draft.md", "# An early draft\n\nKeep the version that helped the idea begin.\n");
+            CaptureWrite(writing / L"Outline.md", "# The next draft\n\n## Beginning\n\n## Middle\n\n## Ending\n");
+            CaptureWrite(writing / L"Assets/cover.txt", "Synthetic non-Markdown fixture; this folder must be pruned.\n");
+            CaptureWrite(writing / L"Private notes.md", "# Hidden fixture\n\nThis hidden entry is deliberately excluded.\n");
+            CaptureWrite(writing / L"System notes.md", "# System fixture\n\nThis system entry is deliberately excluded.\n");
+            RequireCapture(SetFileAttributesW((writing / L"Private notes.md").c_str(), FILE_ATTRIBUTE_HIDDEN) != FALSE &&
+                               SetFileAttributesW((writing / L"System notes.md").c_str(), FILE_ATTRIBUTE_SYSTEM) != FALSE,
+                           "Cannot mark excluded Files-pane capture entries");
+        }
         const auto target = fixture / L"Reference target";
         CaptureWrite(target / L"Not followed.md", "# Reparse target\n\nThe Files tree must never visit this entry.\n");
-        const auto link = writing / L"Linked notes";
+        const auto link = (reference ? fixture : writing) / L"Linked notes";
         RequireCapture(SUCCEEDED(Testing::CreateFixtureJunction(fixture, link, target)), "Cannot create the owned reparse-point capture fixture");
         auto removeOwnedLink = wil::scope_exit(
             [&]
@@ -104,18 +121,18 @@ void Application::PrepareDesignScenario()
                 if (!RemoveDirectoryW(link.c_str()) && GetLastError() != ERROR_FILE_NOT_FOUND && GetLastError() != ERROR_PATH_NOT_FOUND)
                     OutputDebugStringW(L"RedTilde capture could not remove its owned reparse fixture leaf.\n");
             });
-        auto source = WritingFixture();
+        auto source = reference ? CurrentText() : WritingFixture();
         if (scenario == L"equation")
             source = L"# The shape of an idea\n\n"
                      L"A few symbols can make a complicated thought feel clear. Keep the exact source one step away.\n\n"
                      L"$$x=\\frac{-b+\\sqrt{b^2-4ac}}{2a}$$\n\n"
                      L"## Keep the meaning\n\n"
                      L"The rendered equation and its source are two views of the same idea. Apply a change, or cancel and keep writing.\n";
-        const auto path = writing / (scenario == L"equation" ? L"Equation notes.md" : L"Ideas.md");
+        const auto path = writing / (reference ? L"weekly-report-2026-10-15.md" : scenario == L"equation" ? L"Equation notes.md" : L"Ideas.md");
         FileStamp identity;
         RequireCapture(SUCCEEDED(SaveDocument(path, source, false, nullptr, identity)), "Cannot stage the synthetic capture document");
         SetDocument(std::move(source), path, false, identity);
-        fixtureName = L"Writing";
+        fixtureName = reference ? L"weekly-report-2026-10-15.md" : L"Writing";
         if (scenario != L"focus" && scenario != L"equation" && scenario != L"settings" && !settings.showFiles)
             Execute(Command::Files);
         if (settings.showFiles)
@@ -131,9 +148,16 @@ void Application::PrepareDesignScenario()
             RequireCapture(folderSnapshot && folderSnapshot->root == writing && !folderFiles.Busy() && SUCCEEDED(folderSnapshot->status) &&
                                SUCCEEDED(folderSnapshot->watchStatus),
                            "The owned Files capture fixture did not complete its bounded scan/watch preparation");
-            RequireCapture(folderSnapshot->markdownCount == 6 &&
+            RequireCapture(folderSnapshot->markdownCount == (reference ? 20 : 6) &&
                                std::ranges::none_of(folderSnapshot->entries, [](const auto &entry) { return entry.name == L"Not followed.md"; }),
                            "Files capture fixture included a hidden/system/non-Markdown/reparse-target entry");
+            if (reference)
+            {
+                collapsedFolders.insert(writing / L"archive");
+                collapsedFolders.insert(writing / L"templates");
+                collapsedFolders.erase(writing / L"notes");
+                RefreshFiles();
+            }
             const auto draft = std::find_if(filesModel.rows.begin(), filesModel.rows.end(), [](const auto &row) { return row.text == L"Drafts"; });
             if (draft != filesModel.rows.end())
                 filesModel.OnTreeToggleExpanded(draft->id, true);
@@ -148,11 +172,23 @@ void Application::PrepareDesignScenario()
         removeOwnedLink.release();
         const auto end = editor->Snapshot().Length();
         editor->SetSelection({end, end});
-        RequireCapture(editor->ReplaceSelection(L"\n"), "Cannot stage the synthetic Edited state");
+        RequireCapture(editor->ReplaceSelection(reference ? L"\r\n" : L"\n"), "Cannot stage the synthetic Edited state");
         editor->SetSelection({0, 0});
         SelectionChanged();
         (void)editor->ScrollSourceRangeIntoView(host, 0, 0, true);
         Prepare(512);
+        if (reference)
+        {
+            const auto anchor = editor->GetText().find(L"report snapshot.");
+            RequireCapture(anchor != std::wstring::npos, "Reference report caret anchor must exist");
+            const auto caret = anchor + std::wstring_view(L"report snapshot.").size();
+            RequireCapture(caret < editor->Snapshot().Length(), "Reference report caret anchor must exist");
+            editor->SetSelection({caret, caret});
+            SelectionChanged();
+            host.SetFocusControl(editor, false);
+            RequireCapture(documentInfo.headings.size() == 7 && outlineTree->GetSelectedItemId() == 2,
+                           "Reference report exposes the same seven headings and current section as image 2");
+        }
         if (scenario == L"find")
         {
             Execute(Command::Find);
@@ -194,6 +230,11 @@ void Application::PrepareDesignScenario()
         if (scenario == L"files" || scenario == L"compose-light" || scenario == L"compose-dark")
             host.SetFocusControl(editor, false);
     }
+    // The published Settings fixture declares System Light rather than inheriting
+    // the user's ambient preference. Normal ApplyTheme keeps resolving Windows
+    // outside this headless capture path, which already excludes performance.
+    if (scenario == L"settings")
+        systemDark = false;
     Layout();
     Prepare(512);
     RequireCapture(!IsWindowVisible(window.get()) && host.RenderInitialFrameForShow(), "Design captures must render on an owned hidden window");
@@ -202,13 +243,15 @@ void Application::PrepareDesignScenario()
     const auto fixtureUtf8 = DxUi::RichText::EncodeUtf8(fixtureName);
     const auto metadata = std::format(
         "{{\n  \"schemaVersion\": 1,\n  \"scenario\": \"{}\",\n  \"fixtureBasename\": \"{}\",\n"
+        "  \"effectiveSystemPreference\": \"{}\",\n  \"systemPreferenceSource\": \"{}\",\n"
         "  \"requestedDpi\": {},\n  \"nativeWindowDpi\": {},\n  \"actualHostDpi\": {},\n  \"simulatedDpi\": {},\n"
         "  \"requestedWidthPx\": {},\n  \"requestedHeightPx\": {},\n  \"actualWidthPx\": {},\n  \"actualHeightPx\": {},\n"
         "  \"actualWidthDip\": {},\n  \"actualHeightDip\": {},\n  \"filesModelFrozen\": {},\n  \"reparseFixtureRemoved\": {},\n  \"hidden\": true,\n"
         "  \"qualification\": \"Owned hidden application render; no physical-monitor or native-platform acceptance\"\n}}\n",
-        scenarioUtf8, fixtureUtf8, options.captureDpi, nativeDpi, host.GetDpi(), requestedDpi != nativeDpi ? "true" : "false", widthPx, heightPx,
-        host.DebugGetWidthPx(), host.DebugGetHeightPx(), actual.right - actual.left, actual.bottom - actual.top, frozenFilesModel ? "true" : "false",
-        reparseRemoved ? "true" : "false");
+        scenarioUtf8, fixtureUtf8, systemDark ? "dark" : "light",
+        scenario == L"settings" ? "synthetic-fixture" : "windows-preference-or-light-fallback", options.captureDpi, nativeDpi, host.GetDpi(),
+        requestedDpi != nativeDpi ? "true" : "false", widthPx, heightPx, host.DebugGetWidthPx(), host.DebugGetHeightPx(), actual.right - actual.left,
+        actual.bottom - actual.top, frozenFilesModel ? "true" : "false", reparseRemoved ? "true" : "false");
     auto sidecar = options.capture;
     sidecar += L".scenario.json";
     RequireCapture(SUCCEEDED(WriteBytesAtomic(sidecar, metadata)), "Cannot preserve the capture's actual viewport/DPI/scenario provenance");

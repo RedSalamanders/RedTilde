@@ -14,7 +14,10 @@ function Invoke-FixtureGit([string]$Directory,[string[]]$Arguments){& git -C $Di
 function New-Repository([string]$Directory){
     [void](New-Item -ItemType Directory -Path $Directory -Force)
     Put (Join-Path $Directory '.gitignore') ".build/`n"
-    Invoke-FixtureGit $Directory @('init','-q','-b','main');Invoke-FixtureGit $Directory @('config','user.name','Scope fixture');Invoke-FixtureGit $Directory @('config','user.email','fixture@example.invalid')
+    Invoke-FixtureGit $Directory @('init','-q','-b','main')
+    # Each nested repository has its own config; the checkout's Git config is not inherited.
+    Invoke-FixtureGit $Directory @('config','core.longpaths','true')
+    Invoke-FixtureGit $Directory @('config','user.name','Scope fixture');Invoke-FixtureGit $Directory @('config','user.email','fixture@example.invalid')
 }
 try{
     Case 'active native naming and inventory are contextual and complete' {
@@ -28,9 +31,16 @@ try{
             Assert ((Get-ScopedTestPlan $manifest @($path)).full) "Unmapped input narrowed coverage: $path"
         }
     }
-    Case 'prose omits native tests, embedded Markdown does not, and empty changes select nothing' {
-        $plan=Get-ScopedTestPlan $manifest @('README.md','CHANGELOG.md')
+    Case 'prose omits native tests, declared runtime Markdown selects its consumer, and empty changes select nothing' {
+        $plan=Get-ScopedTestPlan $manifest @('README.md','CHANGELOG.md','docs/examples/ordinary-notes.md')
         Assert (@($manifest.scopes|Where-Object{$_.native -and $_.name -in $plan.scopes}).Count -eq 0) 'Prose selected native tests'
+        foreach($scope in @('Tooling','Format')){Assert ($scope -in $plan.scopes) "Prose validation omitted: $scope"}
+        if($manifest.project -ceq 'RedTilde'){
+            $plan=Get-ScopedTestPlan $manifest @('docs/examples/weekly-report-2026-10-15.md')
+            foreach($scope in @('Captures','Tooling','Format')){Assert ($scope -in $plan.scopes) "Runtime capture fixture consumer omitted: $scope"}
+            $native=@($manifest.scopes|Where-Object{$_.native -and $_.name -in $plan.scopes})
+            Assert (-not $plan.full -and $native.Count -eq 1 -and $native[0].name -ceq 'Captures') 'Runtime fixture widened unrelated native coverage'
+        }
         Assert ((Get-ScopedTestPlan $manifest @('res/Welcome.md')).full) 'Embedded content mistaken for prose'
         Assert ((Get-ScopedTestPlan $manifest @()).scopes.Count -eq 0) 'Empty changes selected tests'
     }
@@ -72,7 +82,24 @@ try{
     }
     $gitRoot=Join-Path $fixture 'discovery';New-Repository $gitRoot
     foreach($name in @('code.cpp','staged.cpp','deleted.cpp','rename 東京.cpp')){Put (Join-Path $gitRoot $name) 'initial'}
-    Invoke-FixtureGit $gitRoot @('add','-A');Invoke-FixtureGit $gitRoot @('commit','-qm','baseline')
+    $longName='long.cpp';$longSegments=[System.Collections.Generic.List[string]]::new()
+    $longPath=Join-Path $gitRoot $longName
+    while ([IO.Path]::GetFullPath($longPath).Length -le 260 -and $longSegments.Count -lt 8) {
+        $segment=('segment{0:D2}-' -f ($longSegments.Count+1))+('x'*20)
+        $longSegments.Add($segment)
+        $longPath=$gitRoot
+        foreach($part in $longSegments){$longPath=Join-Path $longPath $part}
+        $longPath=Join-Path $longPath $longName
+    }
+    $longRelative=(@($longSegments.ToArray())+@($longName)) -join '/'
+    $components=@($longSegments.ToArray())+@($longName)
+    Assert ($longSegments.Count -le 8 -and [IO.Path]::GetFullPath($longPath).Length -gt 260) 'Long-path fixture did not exceed the Windows path limit within eight segments'
+    Assert (@($components|Where-Object{$_.Length -ge 255}).Count -eq 0) 'Long-path fixture component exceeded the Windows filename limit'
+    Put $longPath 'tracked long-path fixture'
+    Invoke-FixtureGit $gitRoot @('add','-A');Invoke-FixtureGit $gitRoot @('commit','-qm','baseline with long path')
+    $tracked=@(& git -C $gitRoot ls-tree -r --name-only HEAD)
+    if($LASTEXITCODE -ne 0){throw 'Fixture Git failed: ls-tree'}
+    Assert ($longRelative -cin $tracked) 'Long-path fixture was not committed'
     $base=(& git -C $gitRoot rev-parse HEAD).Trim()
     Put (Join-Path $gitRoot 'committed.cpp') 'committed';Invoke-FixtureGit $gitRoot @('add','-A');Invoke-FixtureGit $gitRoot @('commit','-qm','candidate')
     Put (Join-Path $gitRoot 'staged.cpp') 'staged';Invoke-FixtureGit $gitRoot @('add','staged.cpp');Put (Join-Path $gitRoot 'staged.cpp') 'initial'

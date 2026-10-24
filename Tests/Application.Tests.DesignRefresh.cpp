@@ -190,6 +190,50 @@ class DesignRefreshProbe final
   public:
     static void Register(const std::filesystem::path &root, const std::function<void(std::string_view, const std::function<void()> &)> &test)
     {
+        test("Window.Image2QuietChromeAndCompactInspector",
+             [&]
+             {
+                 const auto foreground = GetForegroundWindow();
+                 Application app(Options(root, L"image2-visual"));
+                 Success(app.Initialize(), "create the hidden image-2 comparison app");
+                 app.SetDocument(L"# Weekly report\n\n15 October 2026\n\n## What changed since last report\n\n- First item\n- Second item\n\n## In "
+                                 L"progress\n\nNext.\n");
+                 app.Execute(Command::Files);
+                 app.Prepare(256);
+                 const auto listCaret = app.Document().GetText().find(L"Second item");
+                 app.Document().SetSelection({listCaret, listCaret});
+                 app.SelectionChanged();
+                 const auto listKind = Resource(IDS_BLOCKBULLETLIST);
+                 const std::size_t listItems = 2;
+                 Require(app.listSummary->IsVisible() && !app.currentBlock->IsVisible() &&
+                             app.listSummary->GetText() == std::vformat(Resource(IDS_BLOCKITEMINFO), std::make_wformat_args(listKind, listItems)),
+                         "the inspector shows the actual enclosing list count from the canonical syntax tree");
+                 const auto source = app.Document().Snapshot();
+                 const auto selection = app.Document().GetSelection();
+                 for (const UINT dpi : {96u, 144u, 192u})
+                 {
+                     Resize(app, 1440, 900, dpi);
+                     CheckChrome(app);
+                     for (const auto *mode : app.modeButtons)
+                         Require(mode->GetAppearance() == DxUi::ButtonAppearance::Tab, "view commands use the shared underlined-tab appearance");
+                     Require(app.filesToggle->GetAppearance() == DxUi::ButtonAppearance::Subtle &&
+                                 app.tools[9]->GetShortcutText() == Resource(IDS_FIND_SHORTCUT) &&
+                                 app.blockSourceAction->GetAppearance() == DxUi::ButtonAppearance::Outline,
+                             "formatting, Find hints and inspector actions adopt shared quiet controls");
+                     Require(!app.Document().GetAppearance().drawBorder && !app.Document().GetAppearance().drawFocusIndicator &&
+                                 !app.outlineTree->GetAppearance().drawBackground && !app.outlineTree->GetAppearance().drawBorder &&
+                                 !app.outlineTree->GetAppearance().showExpanders && !app.filesTree->GetAppearance().drawBorder,
+                             "document and navigation panes have no nested input frames");
+                     const auto identity = app.title->GetBounds(), state = app.saveStateChip->GetBounds();
+                     Require(Near((identity.top + identity.bottom) / 2, (state.top + state.bottom) / 2) && state.left > identity.right,
+                             "filename and save-state chip share the same header baseline");
+                     Require(app.blockSourceAction->GetBounds().bottom < 500 && !app.overflowButton->IsVisible() && app.closeFiles->IsVisible(),
+                             "short outlines keep block tools nearby and a full-width toolbar needs no overflow button");
+                     Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selection,
+                             "visual layout and DPI changes preserve the authoritative document and selection");
+                 }
+                 Require(GetForegroundWindow() == foreground && !IsWindowVisible(app.Window()), "image-2 verification preserves the desktop");
+             });
         test("Window.DesignRefreshMergedFrameHitTests",
              [&]
              {
@@ -247,8 +291,13 @@ class DesignRefreshProbe final
                          if (actual.right < 1142)
                          {
                              Require(!app.sidebar->IsVisible() && !app.filesSplitter->IsVisible() && app.filesPane->IsVisible() &&
-                                         Near(app.page->GetBounds().left, 0) && app.overflowButton->IsVisible(),
-                                     "narrowing through the exact Files fit threshold keeps the right panel collapsed and uses an overlay");
+                                         Near(app.page->GetBounds().left, 0),
+                                     std::format("Files overlay width={} dpi={} files={} reading={} sidebar={} splitter={} pane={} left={}",
+                                                 actual.right, dpi, app.settings.filesWidth, app.settings.readingWidth, app.sidebar->IsVisible(),
+                                                 app.filesSplitter->IsVisible(), app.filesPane->IsVisible(), app.page->GetBounds().left)
+                                         .c_str());
+                             if (width == 800)
+                                 Require(app.overflowButton->IsVisible(), "the minimum-width command row moves hidden groups into overflow");
                          }
                          if (actual.right >= 1382)
                              Require(app.sidebar->IsVisible() && app.filesPane->IsVisible() && app.filesSplitter->IsVisible() &&
@@ -674,6 +723,35 @@ class DesignRefreshProbe final
                  Require(previewApp.Activity().changes == committedChanges && previewApp.Activity().recoverySubmissions == committedRecovery &&
                              previewApp.Document().CanUndo() == committedUndo && previewApp.Document().CanRedo() == committedRedo,
                          "transient heading previews and cancellation preserve committed activity, recovery and undo/redo history");
+                 const auto unchangedAnalysis = previewApp.Activity().documentAnalysisUpdates;
+                 previewApp.Changed();
+                 Require(previewApp.Activity().documentAnalysisUpdates == unchangedAnalysis && previewApp.outlineModel.rows.size() == 1 &&
+                             !previewApp.outlineModel.rows.front().expanded && previewApp.Document().GetText() == previewSource &&
+                             previewApp.Document().GetSelection() == committedSelection && previewApp.Document().CanUndo() == committedUndo &&
+                             previewApp.Document().CanRedo() == committedRedo,
+                         "same-revision committed analysis retains the collapsed outline and exact source/history");
+                 auto committedHeadingPreview = headingPreviewEntry;
+                 committedHeadingPreview.text.replace(2, 4, L"Tree");
+                 Require((previewApp.Document().*Testing::TextServiceImportProbe::Import)(previewApp.Host(), committedHeadingPreview, false) &&
+                             previewApp.documentInfo.headings[0].text == L"Tree" && previewApp.outlineModel.rows.size() == 2,
+                         "a changed heading preview temporarily exposes its current outline");
+                 Require((previewApp.Document().*Testing::TextServiceImportProbe::Import)(previewApp.Host(), headingPreviewEntry, false) &&
+                             previewApp.outlineModel.rows.size() == 1 && !previewApp.outlineModel.rows.front().expanded,
+                         "restore-entry reinstates the committed collapse before the result transaction");
+                 Require((previewApp.Document().*Testing::TextServiceImportProbe::Import)(previewApp.Host(), committedHeadingPreview, true) &&
+                             previewApp.documentInfo.headings[0].text == L"Tree" && previewApp.outlineModel.rows.size() == 2 &&
+                             previewApp.Document().GetSelection() == committedSelection && previewApp.Document().Undo() &&
+                             previewApp.Document().GetText() == previewSource && !previewApp.Document().CanUndo() &&
+                             previewApp.documentInfo.headings[0].text == L"Root" && previewApp.Document().Redo() &&
+                             previewApp.Document().GetText() == committedHeadingPreview.text && previewApp.documentInfo.headings[0].text == L"Tree",
+                         "preview result commit clears changed collapse identity and remains exactly one source undo/redo transaction");
+                 previewApp.SetDocument(std::wstring(2048, L'\n'));
+                 const auto manyLineCapacity = previewApp.documentInfo.lineIndex.capacity();
+                 previewApp.SetDocument(L"Z\r\n");
+                 Require(previewApp.documentInfo.lineIndex == std::vector<DocumentLine>{{0, 1}, {3, 0}} &&
+                             previewApp.documentInfo.lineIndex.capacity() <= 4 && previewApp.documentInfo.lineIndex.capacity() < manyLineCapacity &&
+                             previewApp.Document().GetText() == L"Z\r\n" && !previewApp.Document().CanUndo() && !previewApp.Document().CanRedo(),
+                         "small document replacement releases the predecessor's large line index and retains exact clean history");
              });
         test("Editor.DesignRefreshFindReplaceUndoAndCapacity",
              [&]
@@ -1015,8 +1093,8 @@ class DesignRefreshProbe final
                  snapshot.status = snapshot.watchStatus = S_OK;
                  snapshot.errorCount = 0;
                  app.RefreshFiles();
-                 Require(Near(app.filesCount->GetBounds().bottom - app.filesCount->GetBounds().top, 52),
-                         "the ordinary short-count footer retains its established 52-DIP minimum");
+                 Require(Near(app.filesCount->GetBounds().bottom - app.filesCount->GetBounds().top, 24),
+                         "the ordinary short-count footer uses the compact image-2 minimum");
                  const auto retainedSource = app.Document().Snapshot();
                  const auto retainedRevision = app.Document().Revision();
                  const auto retainedSelection = app.Document().GetSelection();
@@ -1059,7 +1137,8 @@ class DesignRefreshProbe final
                          "an unchanged visible layout reuses the measurement acquired on reopening");
                  app.settings.focusMode = true;
                  app.Layout();
-                 app.filesCount->SetText(Resource(IDS_FILESUNTITLED));
+                 const std::size_t emptyFiles = 0;
+                 app.filesCount->SetText(std::vformat(Resource(IDS_FILESCOUNT), std::make_wformat_args(emptyFiles)));
                  app.settings.filesWidth = 220;
                  app.Layout();
                  Require(!app.filesPane->IsVisible() && app.filesFooterMeasure.measurements == hiddenMeasures + 1,
@@ -1067,7 +1146,7 @@ class DesignRefreshProbe final
                  app.settings.focusMode = false;
                  app.Layout();
                  Require(app.filesPane->IsVisible() && app.filesFooterMeasure.measurements == hiddenMeasures + 2 &&
-                             Near(app.filesCount->GetBounds().bottom - app.filesCount->GetBounds().top, 52),
+                             Near(app.filesCount->GetBounds().bottom - app.filesCount->GetBounds().top, 24),
                          "leaving Focus measures a stale short footer once and restores its minimum height");
                  Require(app.Document().Snapshot().IsSameRevision(retainedSource) && app.Document().Revision() == retainedRevision &&
                              app.Document().GetSelection() == retainedSelection && app.Document().CanUndo() == retainedUndo &&
@@ -1269,9 +1348,9 @@ class DesignRefreshProbe final
                      // Native hit-test caret extents can be shorter than the
                      // configured line advance. Equal-font top insets cancel;
                      // compare complete row advances, without clipped UIA bounds.
-                     Require(type.paragraphSpacingAfterLines == 1.f && type.listItemSpacingDip == 10.f && firstItem && secondItem && firstParagraph &&
-                                 secondParagraph && firstItem->bottom > firstItem->top && firstParagraph->bottom > firstParagraph->top &&
-                                 Near(secondItem->top - firstItem->top - bodyLine, 10) &&
+                     Require(type.paragraphSpacingAfterLines == 18.f / 26.4f && type.listItemSpacingDip == 10.f && firstItem && secondItem &&
+                                 firstParagraph && secondParagraph && firstItem->bottom > firstItem->top &&
+                                 firstParagraph->bottom > firstParagraph->top && Near(secondItem->top - firstItem->top - bodyLine, 10) &&
                                  Near(secondParagraph->top - firstParagraph->top, 2 * bodyLine),
                              "native rich geometry uses ten-DIP item gaps and credits one real blank line toward its body-line paragraph margin");
                      Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().Revision() == sourceRevision &&
@@ -1284,8 +1363,8 @@ class DesignRefreshProbe final
                              Near(app.modeButtons[0]->GetContentFontSizeDip().value_or(0), 14) &&
                              Near(app.tools[2]->GetContentFontSizeDip().value_or(0), 14) &&
                              Near(app.tools[3]->GetContentFontSizeDip().value_or(0), 18) &&
-                             Near(app.minimizeButton->GetContentFontSizeDip().value_or(0), 18),
-                         "chrome text and glyphs use the shared Button font-size contract at 14 and 18 DIP");
+                             Near(app.minimizeButton->GetContentFontSizeDip().value_or(0), 12),
+                         "chrome uses shared 14-DIP labels, 18-DIP command glyphs and compact 12-DIP native caption glyphs");
                  app.Execute(Command::ThemeLight);
                  if (!app.Host().GetTheme().highContrast)
                  {
@@ -1329,10 +1408,55 @@ class DesignRefreshProbe final
                  Require(systemPreviewOnDark.has_value() && updatedDarkPreview.has_value() && updatedLightPreview.has_value() &&
                              systemPreviewOnDark.value() == updatedDarkPreview.value() && systemPreviewOnDark.value() != updatedLightPreview.value(),
                          "System appearance preview uses the cached dark system preference while explicit Light is selected");
+                 const auto captureForeground = GetForegroundWindow();
+                 std::string firstSettingsCapture;
+                 for (const bool initialSystemDark : {false, true})
+                 {
+                     auto captureOptions =
+                         Options(root, initialSystemDark ? L"settings-capture-from-dark" : L"settings-capture-from-light", L"settings");
+                     captureOptions.capture = captureOptions.dataDirectory / L"settings.png";
+                     Application captureApp(captureOptions);
+                     Success(captureApp.Initialize(), "create a hidden Settings capture fixture");
+                     captureApp.Execute(Command::ThemeLight);
+                     captureApp.systemDark = initialSystemDark;
+                     captureApp.PrepareDesignScenario();
+                     const auto capturedSystemPreview = captureApp.themeButtons[0]->GetThemePreview();
+                     const auto capturedLightPreview = captureApp.themeButtons[1]->GetThemePreview();
+                     Require(!captureApp.systemDark && capturedSystemPreview.has_value() && capturedLightPreview.has_value() &&
+                                 capturedSystemPreview.value() == capturedLightPreview.value(),
+                             "the Settings fixture resolves both cached starting preferences to declared System Light");
+                     std::string captureMetadata;
+                     auto captureSidecar = captureOptions.capture;
+                     captureSidecar += L".scenario.json";
+                     Success(ReadBytes(captureSidecar, captureMetadata), "read the actual Settings fixture provenance");
+                     Require(captureMetadata.find("\"effectiveSystemPreference\": \"light\"") != std::string::npos &&
+                                 captureMetadata.find("\"systemPreferenceSource\": \"synthetic-fixture\"") != std::string::npos,
+                             "Settings provenance declares the effective synthetic System preference");
+                     Require(captureApp.Document().ReplaceSelection(L"!") && captureApp.Document().Undo() && captureApp.Document().CanRedo(),
+                             "the seeded Settings document retains a real redo transaction before capture");
+                     const auto captureSource = captureApp.Document().Snapshot();
+                     const auto captureRevision = captureApp.Document().Revision();
+                     const auto captureSelection = captureApp.Document().GetSelection();
+                     const bool captureUndo = captureApp.Document().CanUndo();
+                     const auto captureFocus = captureApp.Host().GetFocusControl();
+                     captureApp.Layout();
+                     captureApp.Prepare(512);
+                     Require(captureApp.Capture(captureOptions.capture), "capture the actual hidden Settings render");
+                     Require(captureApp.Document().Snapshot().IsSameRevision(captureSource) && captureApp.Document().Revision() == captureRevision &&
+                                 captureApp.Document().GetSelection() == captureSelection && captureApp.Document().CanUndo() == captureUndo &&
+                                 captureApp.Document().CanRedo() && captureApp.Host().GetFocusControl() == captureFocus &&
+                                 GetForegroundWindow() == captureForeground && !IsWindowVisible(captureApp.Window()),
+                             "Settings fixture rendering preserves source, selection, both history directions and hidden logical focus");
+                     std::string settingsCapture;
+                     Success(ReadBytes(captureOptions.capture, settingsCapture), "read the actual Settings PNG");
+                     Require(!settingsCapture.empty() && (firstSettingsCapture.empty() || settingsCapture == firstSettingsCapture),
+                             "Settings capture bytes are identical for initially Light and Dark cached preferences");
+                     firstSettingsCapture = std::move(settingsCapture);
+                 }
                  app.Execute(Command::ThemeDark);
-                 Require(app.Document().GetLinkUnderlinePolicy() == DxUi::RichTextLinkUnderlinePolicy::Always &&
-                             app.mirror->GetLinkUnderlinePolicy() == DxUi::RichTextLinkUnderlinePolicy::Always,
-                         "Dark retains the accepted persistent non-color link cue in Compose and Split");
+                 Require(app.Document().GetLinkUnderlinePolicy() == DxUi::RichTextLinkUnderlinePolicy::HoverOrCaret &&
+                             app.mirror->GetLinkUnderlinePolicy() == DxUi::RichTextLinkUnderlinePolicy::HoverOrCaret,
+                         "Dark matches the reference with hover/caret link underlining in Compose and Split");
                  const auto &appearance = app.Document().GetAppearance();
                  Require(!appearance.drawBorder && appearance.useAccentLinkColor && Near(appearance.paddingDip, 0) &&
                              Near(appearance.maximumTextWidthDip, 760) && Near(appearance.bodyFontSizeDip, 16) &&

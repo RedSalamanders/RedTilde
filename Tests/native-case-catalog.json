@@ -2,6 +2,10 @@
   "version": 1,
   "cases": [
     {
+      "name": "Window.Image2QuietChromeAndCompactInspector",
+      "scope": "Editor"
+    },
+    {
       "name": "Utf8.BomUnicodeMixedEolRoundTrip",
       "scope": "Storage"
     },

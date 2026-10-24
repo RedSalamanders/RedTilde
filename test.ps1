@@ -110,6 +110,7 @@ try {
         $scenarios=@('compose-light','compose-dark','source','split','context-selection','local-source','settings','math','math-dark','mermaid','recovery','narrow','high-contrast','files','find','focus','equation')
         $captures=@($scenarios|ForEach-Object{@{name=$_;scenario=$_;arguments=@()}})
         $captures+=@(96,144,192|ForEach-Object{@{name="narrow-dpi-$_";scenario='narrow';arguments=@('--capture-dpi',"$_")}})
+        $captures+=@(96,144,192|ForEach-Object{@{name="reference-dark-dpi-$_";scenario='reference-dark';arguments=@('--capture-dpi',"$_",'--document',(Join-Path $PSScriptRoot 'docs/examples/weekly-report-2026-10-15.md'))}})
         foreach ($capture in $captures) {
             $scenario=$capture.scenario
             $name=$capture.name

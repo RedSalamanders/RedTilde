@@ -1,6 +1,6 @@
 # Design refresh — 2026-10-22
 
-Status: IMPLEMENTED; current v5r3 functional qualification complete; fixed primary reports eight regressions; performance optimization/advice and R10 closeout OPEN. WIP retained. Owner: RedTilde application UI (layout, commands, theme adapter, Files pane),
+Status: IMPLEMENTED; owner requested publication and merge on 2026-10-24 with the disclosed performance and qualification holds. The latest complete whole-feature comparison reports seven regressions; performance optimization/advice and R10 closeout remain OPEN. WIP retained. Owner: RedTilde application UI (layout, commands, theme adapter, Files pane),
 with DxUi owning shared controls and rich-text link rendering. Implementation, dependency adoption and qualification are tracked below.
 
 The owner judged the previous window "not nice" and requested this design and its complete implementation.
@@ -47,6 +47,17 @@ and these files supersede it wherever they differ.
 
 ## Checklist
 
+- [x] V1 (2026-10-23): reproduce the owner's image 2 with the same visible weekly-report source, 1440x900 pixels, 96 DPI, dark theme and Files/outline panes. Use actual hidden harness captures; preserve truthful document totals and label unseen fixture continuation.
+- [x] V2: add shared DxUi subtle/outline/tab button presentation, decorated text buttons, frameless trees and opt-out editor focus chrome while preserving high contrast, keyboard and UI Automation.
+- [x] V3: adopt an exact SDK commit, correct header/command/pane geometry and review the matched capture alongside the target. Recheck 150/200% DPI and narrow layouts.
+- [x] V4: archive source-bound native/capture evidence, six build profiles, focused SDK checks and documentation. Keep prior R10 performance and broader input/platform/release gates explicit.
+
+The [visual-fidelity packet](../../../Measurements/VisualFidelity_2026-10-23/README.md) retains the actual matched
+report, three DPI variants, six application builds and three complete x64 53-case/23-capture runs, including real
+ASan detection. The SDK pin is `903643b4a2bc2f6d75250ff5e6834513c96432c4`; the original full report was not supplied,
+so unseen continuation is invented and totals remain truthful. Native glyph/text rendering is not pixel-identical
+to browser proposal art. V1–V4 complete this visual correction; R10 and the parent plan's qualification holds remain open.
+
 - [x] R0: implementation authorized on 2026-10-22; D1–D5 resolved below.
 - [x] R1: merged document bar (identity, dirty state, view selector, File menu, Save, caption buttons).
 - [x] R2: one grouped command row; file commands leave it; Files toggle at its start.
@@ -57,7 +68,7 @@ and these files supersede it wherever they differ.
 - [x] R7: contextual tools: selection toolbar and docked Find/Replace; the current nine-stage app keyboard slice passes, with broader C5 acceptance separate.
 - [x] R8: Focus mode, Settings drawer and F2 equation editor presentation.
 - [x] R9: link presentation (DxUi rich text upstream, then pin adoption).
-- [ ] R10: resolve the performance optimization/advice gate and final documentation checks before scoped closeout. The fixed v5r3 cohort reports eight regressions; retain this plan in WIP and keep parent requirements open. Current app functional/capture/keyboard evidence is recorded below.
+- [ ] R10: resolve the performance optimization/advice gate and final qualification before scoped closeout. The [2026-10-24 checkpoint](../../../Measurements/DesignRefresh_2026-10-24/README.md) records seven regressions in the latest complete comparison; the earlier v5r3 cohort retains its eight-regression result. Publication does not accept the cost. Retain this plan in WIP and keep parent requirements open.
 
 ## Observed problems before implementation
 
@@ -198,8 +209,8 @@ Requested by the owner on 2026-10-22: color alone marks a link; the underline ap
 ## Resolved implementation decisions
 
 - D1: use the merged document bar. RedTilde owns non-client HWND sizing, drag/resize regions, system caption hit targets and taskbar identity. Shared controls, UIA and text services stay in canonical DxUi. Preserve the maximize hit target for the Windows 11 snap flyout.
-- D2: use a compact segmented row of three mutually exclusive command buttons with named UIA toggle state. Ctrl+1/2/3 and ordinary keyboard navigation remain available.
-- D3: Dark and high contrast retain a persistent underline. Light and Paper use hover/caret-dependent decoration in canonical DxUi, followed by exact-pin adoption here.
+- D2: the 2026-10-23 image-2 correction uses three mutually exclusive underlined view commands with named UIA toggle state. Ctrl+1/2/3 and ordinary keyboard navigation remain available.
+- D3: the 2026-10-23 image-2 correction uses hover/caret-dependent decoration in ordinary themes, including Dark. High contrast retains persistent underlines. Shared rendering stays in DxUi with exact-pin adoption here.
 - D4: retain the 240-DIP document panel; narrow layouts collapse it before reducing the reading measure.
 - D5: Files is listing/opening only. File creation, rename, delete and external navigation are separate future work.
 
@@ -316,4 +327,3 @@ The reviewed [derived v5r3 projection](../../../Measurements/DesignRefresh_2026-
 The native and performance records identify tested source `538dd84941293cff8e7ecc6d2f8535cb597f0c0baea295e560cd795a0a221873`, compiled inputs `fde0747ac8b8100d67949d68a20e58fa2103e9b375f17fb0f22791b829c68270` and DxUi pin `38ec36be42bf693dc649f1fe6b1dfc6cf34d4064`. They are not execution of a later documentation commit. Documentation changes alter the full source identity: obtain fresh source-bound receipts for all six build profiles and prove the relevant compiled inputs, dependency, harness, compiler, native binaries, environment, profile and scope identical before retaining native observations. Run changed documentation/format/link/changelog tools separately. Record the actual continuation and check results in [the evidence summary](../../../Measurements/DesignRefresh_2026-10-22/README.md). A documentation continuation supplies no new native execution or CI qualification; hosted six-Full-step continuation remains a separate contract.
 
 Creation-plan C1–C12 and S5/S6, broader C5 keyboard/menu/clipboard/physical IME/touch/AT, native ARM64 runtime, shared SDK policy, CI and release requirements remain open under their owning conditions. No parent checklist or active plan link changes here.
-

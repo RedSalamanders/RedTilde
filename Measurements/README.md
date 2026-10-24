@@ -4,7 +4,11 @@ Reviewed RedTilde measurements and actual application captures belong here. Gene
 intermediate images stay under `.build`. Do not use DxUi or another Red application's receipts as product
 qualification. Retained packets record source identity, dependency, binary hash, profile, scenario and limitations.
 
-- [Design refresh, 2026-10-22](DesignRefresh_2026-10-22/README.md) — current v5r3 six builds, three x64 Full 52-case/20-capture runs and the nine-stage keyboard slice pass. Its completed fixed AA/AB cohort retains eight AB regressions and shared-host limitations; performance optimization/advice and R10 stay open. Historical failures/cohorts and parent product/platform holds remain distinct.
+- [Design refresh integration, 2026-10-24](DesignRefresh_2026-10-24/README.md) — latest optimization and publication checkpoint; seven regressions remain in the last complete whole-feature comparison. R10 and final qualification remain open.
+
+- [Image-2 visual fidelity, 2026-10-23](VisualFidelity_2026-10-23/README.md) — matched hidden report captures, source-bound six-profile build evidence and three x64 53-case/23-capture runs for the recorded SDK revision. Later dependency pins require their own qualification.
+
+- [Design refresh, 2026-10-22](DesignRefresh_2026-10-22/README.md) — historical v5r3 six builds, three x64 Full 52-case/20-capture runs and the nine-stage keyboard slice. Its eight-regression cohort and earlier failures remain preserved separately from the latest comparison.
 
 - [S5 local execution and final assessment, 2026-10-21](S5_2026-10-21/Final/README.md) — six current-toolchain
   builds, 25 cases per x64 profile, 192 paired processes, independent numerical/integrity audit, eight

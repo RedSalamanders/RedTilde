@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "kind": "Documentation-only continuation; no new native execution",
+  "testedSourceIdentity": "0bb249e4f97c16a3110a937918fd6501efcd357d2ce108ade0ba0516aa1c7eae",
+  "currentSourceIdentity": "dee218d40874284ec9f4fee7b1edc1102c76ab37c67ab8d09fc76bb444c85772",
+  "compiledIdentity": "4707803ead07239c2e2b2062d84e0e430aaa0811b7a2de54066d0cb3c0de6fe8",
+  "environmentIdentity": "915e18f00d4ade812f404f27127b8deedfdf14934308150f0e2a5f54f82ed54c",
+  "dependency": "903643b4a2bc2f6d75250ff5e6834513c96432c4",
+  "proofs": [
+    {
+      "testedReceipt": "builds/x64-Debug.json",
+      "currentReceipt": "continuation/x64-Debug.json",
+      "binarySha256": "68F84D3B589F1AB9D9101C1E91A877BA3A783A00489F631FAB330ACD237F61B8",
+      "profile": "x64-Debug",
+      "testedReceiptSha256": "49D644721E7546E75E28FBC32BF9A233AC06B3EBD16B7F189745C5A643C86E42",
+      "currentReceiptSha256": "1A690411B5610FBEC20A976BC8AC964EA95AF00AE1E2770F580B425C1106F6B1",
+      "identical": true,
+      "artifactIdentity": "da4c6dce156e9c35ae4b310adb94b58e959e4d201459f0f0878848c51d17e1c7"
+    },
+    {
+      "testedReceipt": "builds/x64-Release.json",
+      "currentReceipt": "continuation/x64-Release.json",
+      "binarySha256": "FB56A3B3449AAD917586D6B50362910EE0327B7D1724094D458D6EC8CEAAD92F",
+      "profile": "x64-Release",
+      "testedReceiptSha256": "82FC14928E48E96C95D3A126AEEB2CC7DDE8DE5F541CFC17788C7AFB58C60418",
+      "currentReceiptSha256": "FC591D333726A2E33C7CFBFA502B938467C76BD8AAF6C7992A6C021A28035B9B",
+      "identical": true,
+      "artifactIdentity": "4ec2244c89bf7707c7eb81de1ba52fb47f665259d30c9c669e9551628a634064"
+    },
+    {
+      "testedReceipt": "builds/x64-ASan-Debug.json",
+      "currentReceipt": "continuation/x64-ASan-Debug.json",
+      "binarySha256": "136ECFACC7D51901D6958DE04E0B04A97DE9BF9A5D506625B3CF61A5448E39F6",
+      "profile": "x64-ASan-Debug",
+      "testedReceiptSha256": "5C1411922B2018E0980BB12015F6081CDADEE8CD835948DE80EADE6FB31CF9AA",
+      "currentReceiptSha256": "475CC06EBA93F17A2AF1D9CA6C269EC1103F6192933C9B072D3B4DE74799F5CC",
+      "identical": true,
+      "artifactIdentity": "cca855aeb4ba02e188b6e528c98ea478c5d98d799ccbf6d765dbe2a55b0dc94f"
+    },
+    {
+      "testedReceipt": "builds/ARM64-Debug.json",
+      "currentReceipt": "continuation/ARM64-Debug.json",
+      "binarySha256": "39782EEC501679A5FD47874E2A11B21489D3A63BF4AF4AAC3D38BEA921CDD2F6",
+      "profile": "ARM64-Debug",
+      "testedReceiptSha256": "2E0F7D7601B0B87B4003A539AAC47F90B735CC07D64BCCAF7D7E552E975F2E40",
+      "currentReceiptSha256": "78105B1FE8DA44080D861AB2404942656AE21EB2F009EE9A54AE46D145473614",
+      "identical": true,
+      "artifactIdentity": "2bc62e27404d19d6a57f549c03937d7755e46fd0d59582c8a36e602b47287be0"
+    },
+    {
+      "testedReceipt": "builds/ARM64-Release.json",
+      "currentReceipt": "continuation/ARM64-Release.json",
+      "binarySha256": "F61E5978D93FD651064AB1141BBFBE8DD187049F3B25A99B74C92517922E96F5",
+      "profile": "ARM64-Release",
+      "testedReceiptSha256": "F63063C942EC27564B9E53C2D27C4ABD749F6C71F8969CA8937CF55A09A75768",
+      "currentReceiptSha256": "DAA2757B63A3467039E0AC7DFCFB996A94172832DCBE18C8E8573351DEEA9C64",
+      "identical": true,
+      "artifactIdentity": "2b08c60736d4a07921d0a179fe24674210abd3732e77ad3ae40b43a52e264f4f"
+    },
+    {
+      "testedReceipt": "builds/ARM64-ASan-Debug.json",
+      "currentReceipt": "continuation/ARM64-ASan-Debug.json",
+      "binarySha256": "5D8DE498C2FFC799E7F8892F041C6C793B4A7C9BBA4BBCC3A03D605A79D6B4C1",
+      "profile": "ARM64-ASan-Debug",
+      "testedReceiptSha256": "21FF29AC045051D5EA8CAD79C22BCB286FCA8B80EFF9B3963064B2FF7DB27712",
+      "currentReceiptSha256": "A304410D6B096B91D7E3DC16515E5B82FFCEB510A5963D5EE506B1FFF81A0DC7",
+      "identical": true,
+      "artifactIdentity": "b4e3e017683c6ea2c9b71eeda7580f6cae8f254a9dbf2c9fc84bcb2c6b733f3a"
+    }
+  ],
+  "nativeEvidence": "verification.json",
+  "qualification": "Earlier exact native observations retained for identical compiled inputs and native artifacts; no CI or physical/platform/performance acceptance"
+}

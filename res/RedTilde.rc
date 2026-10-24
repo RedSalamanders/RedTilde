@@ -30,6 +30,14 @@ BEGIN
 END
 STRINGTABLE
 BEGIN
+    IDS_FIND_SHORTCUT "Ctrl+F"
+    IDS_FILESSECTION "FILES"
+    IDS_FILTERSHORT "Filter"
+    IDS_BLOCKBULLETLIST "Bulleted list"
+    IDS_BLOCKNUMBEREDLIST "Numbered list"
+    IDS_BLOCKITEMINFO "{0} · {1} items"
+    IDS_OUTLINECOUNT "{0} headings"
+    IDS_CLOSEFILES "Close Files pane"
 IDS_APP "RedTilde"
 IDS_NEW "New"
 IDS_OPEN "Open"

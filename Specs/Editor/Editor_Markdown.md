@@ -26,6 +26,10 @@ existing line endings. View changes never reserialize Markdown, reset history or
   physical line. The rest stays rendered; Apply/Ctrl+Enter commits one snapshot-guarded source transaction,
   Esc cancels, and the main editor is read-only while the draft is open. A draft is not a second committed document.
 
+Dirty-state and recovery-copy reuse follow the [file-safety contract](../Core/Core_FileSafety.md). Silent source
+replacement and text-service preview/cancellation participate through immutable source identity; cached facts
+never make a new revision clean without checking its exact saved content and recovered-copy state.
+
 All commands preserve selection while opening a toolbar/menu. Apply one source transaction per user action,
 restore editor focus, and keep exact undo. Source view formatting may use the editor's source marker commands;
 structural semantic actions require current rich analysis. Unavailable actions explain the compatible context.
@@ -92,6 +96,11 @@ The persistent status line shows word count, character count and estimated readi
 selection length, line/column, UTF-8 BOM state and line-ending kind. Transient command feedback appears in the
 document footer without replacing those facts. Focus mode hides position status and keeps the count/save summary
 in its bottom pill.
+
+Word count is a simple source-unit run count, not full Unicode word segmentation. ASCII A–Z, a–z and 0–9 are
+word units; non-ASCII UTF-16 units retain the existing C-runtime `iswalnum` or U+2E80-and-above rule. Consecutive
+word units count once; any other unit separates runs. Supplementary scalars are classified as their two UTF-16
+units, consistent with the editor's source positions. Full language compatibility remains a separate gate.
 
 Position and current physical-line length come from the source revision's `DocumentInfo` index, using a
 logarithmic `DocumentPositionAt` query on caret movement. Do not scan the complete document again for status,

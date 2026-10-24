@@ -48,6 +48,8 @@ later; reopen pending snapshots from Settings. Restored copies require Save As a
 Unapplied local drafts are preserved as proposed edits in the previewable recovery copy. Cancelling a clean
 draft retires that proposed snapshot. Another live app's snapshots are excluded. Corrupt/newer data is retained
 as `.quarantine` under `RedTilde\Recovery`. A crash before the quiet interval can lose the newest keystrokes.
+Undoing to the exact saved text clears dirty state; edits made during a save remain protected against the text
+actually written.
 Files over 65,536 UTF-16 units and malformed
 UTF-8 are rejected, never truncated. Save As can preserve a separate version when another app changed the file.
 Crash reports remain local, with a notification on the next launch. A dump may contain document text; sharing

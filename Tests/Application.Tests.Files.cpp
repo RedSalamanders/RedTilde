@@ -7,9 +7,11 @@
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cwctype>
 #include <format>
 #include <limits>
 #include <stdexcept>
+#include <string_view>
 #include <thread>
 #include <utility>
 #include <wil/resource.h>
@@ -48,65 +50,125 @@ FilesSnapshot AwaitSnapshot(FilesService &service, const std::function<bool(cons
 
 void RegisterFilesTests(const std::filesystem::path &root, const std::function<void(std::string_view, const std::function<void()> &)> &test)
 {
-    test("Editor.DocumentPositionIndexAndNewlineFacts",
-         []
-         {
-             const auto empty = AnalyzeDocument(L"");
-             Require(empty.lines == 1 && empty.lineIndex == std::vector<DocumentLine>{{0, 0}} && empty.newlineKind == DocumentNewlineKind::None &&
-                         DocumentPositionAt(empty, 0) == DocumentPosition{1, 1, 0, 0} &&
-                         DocumentPositionAt(empty, std::numeric_limits<std::size_t>::max()) == DocumentPosition{1, 1, 0, 0},
-                     "an empty revision retains one empty line and clamps oversized source ACPs");
-             const auto mixed = AnalyzeDocument(L"A😀\r\nB\n\rC\r\n");
-             const std::vector<DocumentLine> lines{{0, 3}, {5, 1}, {7, 0}, {8, 1}, {11, 0}};
-             const std::array<DocumentPosition, 12> positions{{{1, 1, 0, 3},
-                                                               {1, 2, 0, 3},
-                                                               {1, 3, 0, 3},
-                                                               {1, 4, 0, 3},
-                                                               {1, 4, 0, 3},
-                                                               {2, 1, 5, 1},
-                                                               {2, 2, 5, 1},
-                                                               {3, 1, 7, 0},
-                                                               {4, 1, 8, 1},
-                                                               {4, 2, 8, 1},
-                                                               {4, 2, 8, 1},
-                                                               {5, 1, 11, 0}}};
-             Require(mixed.characters == 11 && mixed.lines == lines.size() && mixed.lineIndex == lines &&
-                         mixed.newlineKind == DocumentNewlineKind::Mixed,
-                     "the revision-bound index preserves UTF-16 lengths, all three newline kinds, blank and final lines");
-             for (std::size_t caret = 0; caret < positions.size(); ++caret)
-                 Require(DocumentPositionAt(mixed, caret) == positions[caret], "every mixed-EOL ACP matches independent line/column/count oracles");
-             Require(DocumentPositionAt(mixed, std::numeric_limits<std::size_t>::max()) == positions.back(),
-                     "an oversized ACP cannot overflow the terminal physical-line query");
-             for (const auto &[text, kind] : std::array<std::pair<std::wstring_view, DocumentNewlineKind>, 4>{{{L"word", DocumentNewlineKind::None},
-                                                                                                               {L"\n", DocumentNewlineKind::Lf},
-                                                                                                               {L"\r", DocumentNewlineKind::Cr},
-                                                                                                               {L"\r\n", DocumentNewlineKind::CrLf}}})
-             {
-                 const auto info = AnalyzeDocument(text);
-                 Require(info.newlineKind == kind && info.lines == info.lineIndex.size(), "pure newline kinds remain distinct and line facts agree");
-                 Require(DocumentPositionAt(info, text.size()).line == (kind == DocumentNewlineKind::None ? 1u : 2u),
-                         "each complete final terminator exposes an empty final physical line");
-             }
-             const auto crlf = AnalyzeDocument(L"a\r\nb\r\n");
-             Require(crlf.lineIndex == std::vector<DocumentLine>{{0, 1}, {3, 1}, {6, 0}} &&
-                         DocumentPositionAt(crlf, 1) == DocumentPosition{1, 2, 0, 1} && DocumentPositionAt(crlf, 2) == DocumentPosition{1, 2, 0, 1} &&
-                         DocumentPositionAt(crlf, 3) == DocumentPosition{2, 1, 3, 1},
-                     "CRLF is one indivisible terminator, never a third visible column or an early next-line start");
-             std::wstring maximumLines(65536, L'\n');
-             const auto large = AnalyzeDocument(maximumLines);
-             Require(large.lines == 65537 && large.lineIndex.size() == 65537 && large.newlineKind == DocumentNewlineKind::Lf &&
-                         DocumentPositionAt(large, 32768) == DocumentPosition{32769, 1, 32768, 0} &&
-                         DocumentPositionAt(large, 65536) == DocumentPosition{65537, 1, 65536, 0},
-                     "the admitted worst-case line count has exact bounded index/position facts");
-             std::wstring headings;
-             for (unsigned index = 0; index < 140; ++index)
-                 headings += L"# Heading\n";
-             const auto capped = AnalyzeDocument(headings);
-             Require(capped.headings.size() == 128 && capped.lines == 141 && capped.lineIndex.size() == 141 &&
-                         DocumentPositionAt(capped, headings.size()) == DocumentPosition{141, 1, headings.size(), 0} &&
-                         DocumentPositionAt(mixed, 5) == positions[5],
-                     "new revision facts retain the 128-heading bound and never mutate an older analyzed revision");
-         });
+    test(
+        "Editor.DocumentPositionIndexAndNewlineFacts",
+        []
+        {
+            const auto referenceWordCount = [](std::wstring_view text)
+            {
+                std::size_t words{};
+                bool inWord{};
+                for (wchar_t value : text)
+                {
+                    const bool current = iswalnum(value) != 0 || value >= 0x2E80;
+                    if (current && !inWord)
+                        ++words;
+                    inWord = current;
+                }
+                return words;
+            };
+            for (unsigned value = 0; value < 128; ++value)
+            {
+                const wchar_t unit = static_cast<wchar_t>(value);
+                const std::wstring_view sample(&unit, 1);
+                Require(AnalyzeDocument(sample).words == referenceWordCount(sample), "each ASCII code unit preserves the legacy word classification");
+            }
+            for (unsigned first = 0; first < 128; ++first)
+                for (unsigned second = 0; second < 128; ++second)
+                {
+                    const std::array<wchar_t, 2> pair{static_cast<wchar_t>(first), static_cast<wchar_t>(second)};
+                    const std::wstring_view sample(pair.data(), pair.size());
+                    Require(AnalyzeDocument(sample).words == referenceWordCount(sample),
+                            "every ordered ASCII pair preserves legacy word-run boundaries");
+                }
+            Require(AnalyzeDocument(L"\u2E80\u2E81").words == 1, "the existing U+2E80-and-above rule keeps adjacent units in one word run");
+            const std::wstring crossScript = L"A\u00E9B \u03B1\u03B2 \u6771\u6772 A\U0001F600B\r\nC";
+            const auto crossScriptInfo = AnalyzeDocument(crossScript);
+            Require(crossScriptInfo.words == referenceWordCount(crossScript) &&
+                        crossScriptInfo.lineIndex == std::vector<DocumentLine>{{0, 14}, {16, 1}},
+                    "non-ASCII classification, supplementary UTF-16 units and CRLF retain legacy word and line facts");
+            const auto empty = AnalyzeDocument(L"");
+            Require(empty.lines == 1 && empty.lineIndex == std::vector<DocumentLine>{{0, 0}} && empty.newlineKind == DocumentNewlineKind::None &&
+                        DocumentPositionAt(empty, 0) == DocumentPosition{1, 1, 0, 0} &&
+                        DocumentPositionAt(empty, std::numeric_limits<std::size_t>::max()) == DocumentPosition{1, 1, 0, 0},
+                    "an empty revision retains one empty line and clamps oversized source ACPs");
+            const auto mixed = AnalyzeDocument(L"A😀\r\nB\n\rC\r\n");
+            const std::vector<DocumentLine> lines{{0, 3}, {5, 1}, {7, 0}, {8, 1}, {11, 0}};
+            const std::array<DocumentPosition, 12> positions{{{1, 1, 0, 3},
+                                                              {1, 2, 0, 3},
+                                                              {1, 3, 0, 3},
+                                                              {1, 4, 0, 3},
+                                                              {1, 4, 0, 3},
+                                                              {2, 1, 5, 1},
+                                                              {2, 2, 5, 1},
+                                                              {3, 1, 7, 0},
+                                                              {4, 1, 8, 1},
+                                                              {4, 2, 8, 1},
+                                                              {4, 2, 8, 1},
+                                                              {5, 1, 11, 0}}};
+            Require(mixed.characters == 11 && mixed.lines == lines.size() && mixed.lineIndex == lines &&
+                        mixed.newlineKind == DocumentNewlineKind::Mixed,
+                    "the revision-bound index preserves UTF-16 lengths, all three newline kinds, blank and final lines");
+            for (std::size_t caret = 0; caret < positions.size(); ++caret)
+                Require(DocumentPositionAt(mixed, caret) == positions[caret], "every mixed-EOL ACP matches independent line/column/count oracles");
+            Require(DocumentPositionAt(mixed, std::numeric_limits<std::size_t>::max()) == positions.back(),
+                    "an oversized ACP cannot overflow the terminal physical-line query");
+            for (const auto &[text, kind] : std::array<std::pair<std::wstring_view, DocumentNewlineKind>, 4>{{{L"word", DocumentNewlineKind::None},
+                                                                                                              {L"\n", DocumentNewlineKind::Lf},
+                                                                                                              {L"\r", DocumentNewlineKind::Cr},
+                                                                                                              {L"\r\n", DocumentNewlineKind::CrLf}}})
+            {
+                const auto info = AnalyzeDocument(text);
+                Require(info.newlineKind == kind && info.lines == info.lineIndex.size(), "pure newline kinds remain distinct and line facts agree");
+                Require(DocumentPositionAt(info, text.size()).line == (kind == DocumentNewlineKind::None ? 1u : 2u),
+                        "each complete final terminator exposes an empty final physical line");
+            }
+            const auto crlf = AnalyzeDocument(L"a\r\nb\r\n");
+            Require(crlf.lineIndex == std::vector<DocumentLine>{{0, 1}, {3, 1}, {6, 0}} &&
+                        DocumentPositionAt(crlf, 1) == DocumentPosition{1, 2, 0, 1} && DocumentPositionAt(crlf, 2) == DocumentPosition{1, 2, 0, 1} &&
+                        DocumentPositionAt(crlf, 3) == DocumentPosition{2, 1, 3, 1},
+                    "CRLF is one indivisible terminator, never a third visible column or an early next-line start");
+            std::wstring maximumLines(65536, L'\n');
+            const auto large = AnalyzeDocument(maximumLines);
+            Require(large.lines == 65537 && large.lineIndex.size() == 65537 && large.newlineKind == DocumentNewlineKind::Lf &&
+                        DocumentPositionAt(large, 32768) == DocumentPosition{32769, 1, 32768, 0} &&
+                        DocumentPositionAt(large, 65536) == DocumentPosition{65537, 1, 65536, 0},
+                    "the admitted worst-case line count has exact bounded index/position facts");
+            std::wstring headings;
+            for (unsigned index = 0; index < 140; ++index)
+                headings += L"# Heading\n";
+            const auto capped = AnalyzeDocument(headings);
+            Require(capped.headings.size() == 128 && capped.lines == 141 && capped.lineIndex.size() == 141 &&
+                        DocumentPositionAt(capped, headings.size()) == DocumentPosition{141, 1, headings.size(), 0} &&
+                        DocumentPositionAt(mixed, 5) == positions[5],
+                    "new revision facts retain the 128-heading bound and never mutate an older analyzed revision");
+            const auto sameMetadata = [](const DocumentInfo &left, const DocumentInfo &right)
+            {
+                return left.words == right.words && left.characters == right.characters && left.lines == right.lines &&
+                       left.newlineKind == right.newlineKind && left.lineIndex == right.lineIndex && left.headings.size() == right.headings.size() &&
+                       std::equal(left.headings.begin(), left.headings.end(), right.headings.begin(),
+                                  [](const Heading &a, const Heading &b) { return a.level == b.level && a.offset == b.offset && a.text == b.text; });
+            };
+            for (const std::wstring_view sample :
+                 {std::wstring_view{}, std::wstring_view{L"\n"}, std::wstring_view{L"\r"}, std::wstring_view{L"\r\n"},
+                  std::wstring_view{L"A😀\r\nB\n\rC\r\n"}, std::wstring_view{crossScript}, std::wstring_view{headings},
+                  std::wstring_view{maximumLines}, std::wstring_view{L"# 東京\r\n```md\n# hidden\n```\n## Tail ##\r"}})
+            {
+                const auto reference = AnalyzeDocument(sample);
+                for (const auto hint : {std::size_t{}, std::size_t{1}, reference.lines, std::numeric_limits<std::size_t>::max()})
+                {
+                    const auto hinted = AnalyzeDocument(sample, hint);
+                    Require(sameMetadata(hinted, reference), "zero, stale, exact and oversized capacity hints preserve every derived metadata field");
+                    for (std::size_t caret = 0; caret <= sample.size(); ++caret)
+                        Require(DocumentPositionAt(hinted, caret) == DocumentPositionAt(reference, caret),
+                                "a capacity hint never changes any source ACP's physical-line facts");
+                }
+            }
+            const auto smaller = AnalyzeDocument(L"A😀\r\nB", large.lines);
+            Require(smaller.lineIndex == std::vector<DocumentLine>{{0, 3}, {5, 1}} && smaller.lineIndex.capacity() <= 7 &&
+                        smaller.lineIndex.capacity() < large.lineIndex.size() && large.lineIndex.size() == 65537,
+                    "a many-line predecessor cannot retain its large line storage in a small replacement or mutate the older result");
+        });
     test("Files.MarkdownTreeNaturalOrderAndFilter",
          [&]
          {

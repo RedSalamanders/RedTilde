@@ -12,11 +12,39 @@ for taskbar and Alt+Tab identity. The app owns non-client hit testing, caption a
 and caption-button UI Automation; DxUi's host owns only the client area and must not paint over or compete with the
 app frame. Repeated edits with the same displayed identity skip redundant native title writes; save-state feedback,
 Unicode, undo and document replacement stay exact.
+Cold header layout reserves bounded identity space without initializing host typography. Once the host prepares
+typography, measure the filename canonically and reuse it until text, available width, typography revision or DPI changes.
 
 Brand: a flowing red tilde, with a restrained scarlet accent. App name is RedTilde. Short product line:
 **Words, beautifully in flow.** The icon must read at 16/24/32 pixels as well as 256; preserve alpha.
 
 ## Layout
+
+The owner's image-2 Compose proposal is the visual target for the 2026-10-23 fidelity correction. The document
+identity and small save-state chip share one baseline. View commands use underlined tabs; toolbar and caption
+commands use subtle chrome, with persistent selection fill for checked toolbar commands. Only Save is a filled
+primary action. Find has a leading search glyph and a separate keyboard hint. The Files pane has its own section
+label, close action, root label, filter and aligned file/folder icons. Both navigation trees expose the pane ground
+without an outer input frame. Block tools follow a short outline immediately; a long outline scrolls within the
+space left for the inspector. A full-width command row omits overflow when every command fits.
+
+The document's outer focus rectangle is decorative and omitted in ordinary themes. The editor retains its real
+caret, selection, text services and keyboard routing; high contrast forces the shared focus indicator. In ordinary
+light/dark themes links underline on hover or caret, with persistent underlines in high contrast.
+
+The `reference-dark` harness scene uses the visible weekly-report source from image 2 with invented continuation,
+the same twenty-file tree, seven headings and current section. Its canonical comparison is 1440x900 pixels at
+96 DPI; additional 144/192-DPI captures keep the same DIP viewport. Source, pane state, requested/actual dimensions,
+theme and SDK identity must accompany actual captures. Document counts always reflect the real fixture; the
+proposal's illustrative word/character totals and unseen source are not fabricated.
+
+Native document typography uses independent heading minima and a 10-DIP container indent; paragraph minima
+are 18 DIP and list-item gaps 10 DIP. Real source blank lines remain navigable and contribute their actual height.
+The reference fixture uses compact Markdown after headings rather than removing source sites. The inspector
+shows the enclosing list's actual item count for list content, with the source-line diagnostic retained internally;
+the visible and accessible label identifies bulleted versus numbered lists. File counts are quiet badges on
+collapsed folders; the current edited file uses a dot with the textual Edited accessibility description. The
+six-DIP splitter hit region remains usable while the idle presentation is a thin seam at the pane boundary.
 
 The 56-DIP document bar groups brand, file identity/dirty state, global view selector, File menu, primary Save and
 caption controls. A 48-DIP command row groups Files, text structure, inline emphasis, lists, insertion and contextual
@@ -30,7 +58,7 @@ before an open Files pane overlays the canvas; the reading measure is reduced on
 commands that do not fit move into overflow instead of wrapping or clipping. Focus mode hides optional chrome. No
 overlapping or off-screen commands at 100/150/200% DPI.
 
-Compose/Source/Split are visible, mutually exclusive segmented command buttons with accessible names, mutually
+Compose/Source/Split are visible, mutually exclusive underlined view commands with accessible names, mutually
 exclusive toggle state exposed to UI Automation, and Ctrl+1/2/3. They are command buttons, not a RadioGroup; the
 application enforces exclusivity. Use canonical DxUi Button toggle semantics; add shared support upstream and
 consume its public API rather than copying control code into RedTilde. Theme and
@@ -86,15 +114,16 @@ shared CardPanel chip. Use 18-DIP Fluent line glyphs and 36-DIP command buttons 
 with 40-DIP primary actions. The brand is 28 DIP in the document bar; its WIC source is premultiplied before
 D2D upload and retained across device replacement. UTF-8 resource scripts declare code page 65001 explicitly.
 
-In Light and Paper themes, rich-text links use the theme link color without a persistent underline; underline on
-pointer hover or while keyboard focus/caret is within the link. Dark and high-contrast themes keep a persistent
-underline. High contrast uses the system hyperlink color. Link rendering must retain hit testing, layout metrics,
+In Light, Paper and Dark themes, rich-text links use the theme link color without a persistent underline; underline on
+pointer hover or while keyboard focus/caret is within the link. High contrast keeps a persistent underline and
+uses the system hyperlink color. Link rendering must retain hit testing, layout metrics,
 semantic link exposure and keyboard navigation. The shared rich-text change belongs in canonical DxUi and is
 consumed through its reviewed dependency pin; RedTilde must not fork or copy shared control implementation.
 
-The 240-DIP right panel has a shared hierarchical Tree with 36-DIP rows, level indentation, semibold current
+The 240-DIP right panel has a shared hierarchical Tree with 42-DIP rows, level indentation, semibold current
 section and named UIA current state. Empty headings do not produce blank rows. Current block names its actual
-Markdown kind and physical-line character count; equation controls appear only in current mathematical context.
+Markdown kind and physical-line character count, or enclosing list kind and item count for list content;
+equation controls appear only in current mathematical context.
 Its read-only equation preview uses the same shared engine as the document and is labelled explicitly.
 
 Derive the current block from the source-current canonical syntax tree's child/sibling links, whose source
@@ -152,7 +181,7 @@ Enumeration runs on a bounded application worker, never on the UI thread. Traver
 5,000 total entries. When the visit limit is reached, the footer reports the actual number of Markdown files
 returned and that traversal stopped at the 5,000-entry limit; it must not label the entry limit as a file count.
 Report every applicable access/watch error and the snapshot's actual entry/depth bounds together; canonically measure
-the wrapped footer and reserve its full height, with a 52-DIP minimum, even in a 200-DIP pane.
+the wrapped footer and reserve its full height, with a 24-DIP minimum for a simple count, even in a 200-DIP pane.
 Measure the footer while the Files pane is logically visible, and refresh stale width, text, typography and DPI
 keys before arranging a reopened pane. Hidden layout retains its bounded cached geometry without requesting
 text resources. Resolve Source and Split's monospace family from the public DxUi typography specification;
@@ -167,6 +196,9 @@ all file-safety checks.
 Settings are a non-modal right drawer with immediate effect. Appearance offers System, Light, Dark and Paper as
 preview tiles. The System tile previews Windows' current light/dark preference independently of the selected
 appearance; cache that preference at theme changes rather than reading the registry during layout.
+The hidden Settings capture instead seeds a synthetic System Light preference before layout and rendering,
+and declares that effective preference and fixture origin in its sidecar. This capture input does not change
+the normal Windows-derived System preview or write the user's appearance preference.
 reading width defaults to 760 DIP and is limited to 480–1040 DIP; text scale defaults to 100% and is limited to
 75–200%; dimming inactive blocks is enabled by default.
 The Files pane has an open/closed preference (closed by default) and a 200–400-DIP width
@@ -191,6 +223,7 @@ Additional deterministic scenarios: `math`, `math-dark`, `mermaid`, `recovery`. 
 seeded synthetic candidate to show the actual sheet; crash/restart tests separately establish storage behavior.
 
 The app harness owns `compose-light`, `compose-dark`, `source`, `split`, `context-selection`, `settings`,
-`local-source`, `mermaid`, `math`, `math-dark`, `recovery`, `narrow`, `high-contrast`, `files`, `find`, `focus` and `equation`. Captures must be actual application renders, tagged
+`local-source`, `mermaid`, `math`, `math-dark`, `recovery`, `narrow`, `high-contrast`, `files`, `find`, `focus`, `equation`
+and `reference-dark`. Captures must be actual application renders, tagged
 with dependency SHA, source identity, binary hash, dimensions, theme and scenario. Proposal art is separately
 labelled. Physical screen-reader/IME/touch acceptance and real focus restoration require separate evidence.

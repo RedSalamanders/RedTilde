@@ -5,14 +5,19 @@
 
 namespace RedTilde
 {
-DocumentInfo AnalyzeDocument(std::wstring_view text)
+DocumentInfo AnalyzeDocument(std::wstring_view text, std::size_t previousPhysicalLineCount)
 {
     DocumentInfo result;
+    // Every source unit could be a terminator, followed by one empty line. The
+    // vector bound also keeps length + 1 safe for any representable input view.
+    const auto maximumLineCapacity = text.size() < result.lineIndex.max_size() ? text.size() + 1 : result.lineIndex.max_size();
+    result.lineIndex.reserve(std::min(previousPhysicalLineCount, maximumLineCapacity));
     result.characters = text.size();
     bool word = false;
     for (wchar_t value : text)
     {
-        const bool current = iswalnum(value) != 0 || value >= 0x2E80;
+        const bool current = value <= 0x7f ? (value >= L'A' && value <= L'Z') || (value >= L'a' && value <= L'z') || (value >= L'0' && value <= L'9')
+                                           : iswalnum(value) != 0 || value >= 0x2E80;
         if (current && !word)
             ++result.words;
         word = current;

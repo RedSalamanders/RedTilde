@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Complete the design refresh with the matched report fixture, deterministic System-theme capture, bounded document-analysis allocation and dirty/recovery reuse, exact shared DxUi adoption and regression coverage; preserve the seven latest measured performance regressions and outstanding qualification gates after the owner's requested integration.
 - Keep the evidence-retention NTFS hard-link fixture runnable from long checkout paths by passing extended Win32 paths to the PowerShell provider. Preserve the same sandbox, identity, stream, attribute and retention assertions.
 - Derive Current block from the canonical nested Markdown tree, including source-edit regions and final-line boundaries; avoid repeated localized label construction and empty image-loader abort wakes while preserving formatting, equation context, cancellation and queued remote work. Native regression coverage exercises the actual controls and worker; final profile and performance qualification remain separate.
 - Avoid repeated outline selection publication within the same heading and hidden Files-footer measurement, and use DxUi's public monospace specification during layout. Preserve synchronous heading reveal, fresh footer sizing on reopening, and source/undo history; adopt the canonical transient rich-text raster reset repair through an exact SDK pin. Performance acceptance remains separate from functional and build qualification.

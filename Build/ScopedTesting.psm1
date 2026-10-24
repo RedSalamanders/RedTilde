@@ -145,14 +145,15 @@ function Get-ScopedTestPlan {
     if (-not $Scopes.Count -and -not $Full) {
         foreach ($path in $ChangedPaths) {
             if ($path -match '(^/|(^|/)\.\.(/|$)|:|\\)') { throw "Expected a repository-relative Git path: $path" }
+            $allRules=@($Manifest.rules);if($Manifest.PSObject.Properties['liveRules']){$allRules+=@($Manifest.liveRules)}
+            $matched = @($allRules | Where-Object { Test-ScopedPattern $path $_.pattern })
             if ($path -match '(^(README|CHANGELOG)\.md$|(^|/)AGENTS\.md$|^(docs|Specs|\.agents|Changes)/.*\.md$)') {
                 $targets = @($Manifest.scopes | Where-Object { -not $_.native } | ForEach-Object name)
                 foreach ($name in $targets) { [void]$selected.Add($name) }
-                $reasons.Add([pscustomobject]@{path=$path; scopes=$targets; reason='documentation/skill validation; no native test input'})
-                continue
+                $reasons.Add([pscustomobject]@{path=$path; scopes=$targets; reason='documentation/skill validation'})
+                # Declared runtime Markdown inputs add their reviewed scopes to ordinary prose validation.
+                if (-not $matched.Count) { continue }
             }
-            $allRules=@($Manifest.rules);if($Manifest.PSObject.Properties['liveRules']){$allRules+=@($Manifest.liveRules)}
-            $matched = @($allRules | Where-Object { Test-ScopedPattern $path $_.pattern })
             if(-not @($matched|Where-Object{$_.pattern -notin @('**/*.cpp','**/*.h')}).Count){$matched=@()}
             if ($matched.Count) {
                 foreach ($rule in $matched) {

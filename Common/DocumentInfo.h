@@ -40,7 +40,9 @@ struct DocumentPosition
     std::size_t lineOffset{}, lineCharacters{};
     bool operator==(const DocumentPosition &) const noexcept = default;
 };
-[[nodiscard]] DocumentInfo AnalyzeDocument(std::wstring_view text);
+// A previous revision's physical line count is only an allocation hint, bounded
+// by the incoming source. It never supplies or preserves any metadata/storage.
+[[nodiscard]] DocumentInfo AnalyzeDocument(std::wstring_view text, std::size_t previousPhysicalLineCount = 0);
 // Logarithmic read of the analyzed revision: no source scan or allocation.
 // Oversized ACPs clamp to source end. An ACP between CR/LF stays at the prior
 // line's content end; the following line begins only after the complete pair.

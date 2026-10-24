@@ -86,6 +86,13 @@
   ],
   "rules": [
     {
+      "pattern": "docs/examples/weekly-report-2026-10-15.md",
+      "scopes": [
+        "Captures"
+      ],
+      "reason": "runtime source fixture for reference-dark DPI captures"
+    },
+    {
       "pattern": "Common/Files.*",
       "scopes": [
         "Storage",

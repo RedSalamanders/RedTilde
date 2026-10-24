@@ -23,6 +23,7 @@ bool Application::PreviewOutlineMatchesCommitted() const
 void Application::RefreshOutline()
 {
     ++outlineRowsRevision;
+    const auto previousRows = outlineModel.rows.size();
     outlineModel.rows.clear();
     std::vector<std::pair<unsigned, std::uint64_t>> ancestors;
     for (std::size_t i = 0; i < documentInfo.headings.size(); ++i)
@@ -47,6 +48,10 @@ void Application::RefreshOutline()
         ancestors.emplace_back(heading.level, i + 1);
     }
     outlineTree->NotifyDataChanged();
+    const auto headingCount = documentInfo.headings.size();
+    outlineCount->SetText(Text(IDS_OUTLINECOUNT, headingCount));
+    if (outlineModel.rows.size() != previousRows)
+        Layout();
     if (findBar->IsVisible())
         RefreshFind();
 }
@@ -123,16 +128,20 @@ void Application::RefreshFiles(bool rootChanged)
         DxUi::TreeItemData item;
         item.id = index + 1;
         item.text = entry.name;
+        item.iconText = entry.directory ? L"\xE8B7" : L"\xE8A5";
         item.tooltipText = entry.path.native();
         item.depth = entry.depth;
         if (entry.parent != NoFilesParent)
             item.parentId = entry.parent + 1;
         item.hasChildren = entry.directory && !entry.reparsePoint && entry.markdownCount > 0;
         item.expanded = item.hasChildren && (!filter.empty() || !collapsedFolders.contains(entry.path));
-        if (entry.directory)
+        if (entry.directory && !item.expanded)
             item.badgeText = std::to_wstring(entry.markdownCount);
         else if (MatchesFilesPath(snapshot, entry.path, documentPath) && Dirty())
+        {
             item.badgeText = Resource(IDS_FILESEDITED);
+            item.badgeIsDot = true;
+        }
         filesModel.rows.push_back(std::move(item));
     }
     filesTree->SetEmptyStateText(Resource(IDS_NOMATCH));
