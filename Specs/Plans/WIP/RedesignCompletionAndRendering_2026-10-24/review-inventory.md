@@ -7,7 +7,7 @@ Machine-readable review data for the parent plan. All rows start pending; source
   "schemaVersion": 1,
   "date": "2026-10-24",
   "status": "SOURCE_REVIEW_COMPLETE_RUNTIME_AND_PERFORMANCE_QUALIFICATION_OPEN",
-  "description": "Execution inventory reconciled with b06 file renames and new first-party inputs; reviewed rows require four substantive review notes and tests or explicit gaps. Pending hashes remain planning/admission identities, not completed reviews. RedTilde report merged; DxUi review in progress.",
+  "description": "All checkpoint rows have four substantive review notes and tests or explicit qualification gaps at their recorded hashes. Lead reviewed the 8a38 generator and native brand-pixel deltas; later SDK batching/prune deltas are in progress and require reconciliation before final qualification.",
   "plannedAt": {
     "RedTilde": "c7456854c8f964bb9ea067295e6435f99d426515",
     "DxUi": "ceffe76a429d15039ceff1f7dfae7e1d7126323e"
@@ -711,21 +711,22 @@ Machine-readable review data for the parent plan. All rows start pending; source
     {
       "repository": "RedTilde",
       "path": "RedTilde/Application.Chrome.cpp",
-      "sha256": "120f54db0480f599508e3919028b2c76645987c007c0d0694e3a0660caf34770",
+      "sha256": "2c3ba038f9a33f7ef3772604e95f21a6828a285138957a834d0665e2810a5eff",
       "category": "production",
       "generated": false,
       "reviewStatus": "reviewed",
-      "reviewer": "review_ledger",
+      "reviewer": "lead-and-independent-delta-review",
       "testIds": [
-        "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster"
+        "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+        "Rendering.DesignRefreshTypographyAndThemeRoles"
       ],
       "findingIds": [],
       "disposition": "reviewed-no-confirmed-finding",
       "reviewNotes": {
-        "callers": "Application::BuildChrome creates BrandMark; DxUi visual preparation invokes its public hook.",
-        "ownershipAndLifetime": "Retains WIC source over device replacement; D2D bitmap stamped with host resource generation and cleared on preparation cancellation; Paint draws only current-generation bitmap.",
-        "failureAndCancellation": "Creation failure leaves no drawable bitmap; generation guard suppresses stale resource. No device COM query/create/retry in Paint.",
-        "testCoverage": "New registered hidden case compares raster before/after device loss and repeated warm render. Not built/run; this is a rendering-contract correction, not evidence of 4 MiB cause/reduction."
+        "callers": "BuildChrome creates BrandMark; visual-content preparation creates the generation-bound D2D bitmap. LoadBrandMarkPixels is also called by the independent resource oracle.",
+        "ownershipAndLifetime": "Borrowed module HICON; WIL owns GetIconInfo color/mask bitmaps and DC. Retains at most 256 KiB of premultiplied BGRA pixels across device replacement; no ordinary-startup WIC converter.",
+        "failureAndCancellation": "Rejects absent, non-32-bit and out-of-bounds icon data and incomplete scan reads; preparation failure leaves no current bitmap. Paint only draws a generation-matched bitmap; no allocation or resource query in Paint.",
+        "testCoverage": "Release Editor 35/35 passes in run 20261024T200629511Z-52096-a8d90cadfef246058b36c087141dc788. All seven sizes match independent WIC PBGRA bytes; device-loss and repeated warm raster equality pass. Unpaired memory probes do not establish performance acceptance or 4 MiB attribution."
       },
       "plannedSha256": "fcbc97ceb109675cada7090c1c0fb556cb2c9aff62d1fd33f1cc8243b54e7f6e"
     },
@@ -903,19 +904,22 @@ Machine-readable review data for the parent plan. All rows start pending; source
     {
       "repository": "RedTilde",
       "path": "RedTilde/UiControls.h",
-      "sha256": "de0e8d6bdf69a6f0bb88c2b2d53beffd87a43b2ed03aba45d7372ece05bff780",
+      "sha256": "0e7a81ccebab26a1320c766cdd90be7bc2d40ae6d674c1f0d8e62d32af03a43b",
       "category": "production",
       "generated": false,
       "reviewStatus": "reviewed",
-      "reviewer": "review_ledger",
-      "testIds": [],
+      "reviewer": "lead-and-independent-delta-review",
+      "testIds": [
+        "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+        "Rendering.DesignRefreshTypographyAndThemeRoles"
+      ],
       "findingIds": [],
       "disposition": "reviewed-no-confirmed-finding",
       "reviewNotes": {
-        "callers": "Defines inspector/find controls used by Application.",
-        "ownershipAndLifetime": "UI control tree owns controls; callbacks route to Application.",
-        "failureAndCancellation": "Find snapshot/query cache is bounded; highlight cap is 4096 and active range remains visible.",
-        "testCoverage": "Core and interactive tests cover selection/find/replace; focus-taking suite not run."
+        "callers": "Declares app-owned inspector/find controls and bounded BrandMarkPixels extraction used by Chrome and native resource tests.",
+        "ownershipAndLifetime": "Control tree owns controls and routes callbacks to Application. BrandMarkPixels owns CPU bytes only; extraction borrows HICON and is scoped to the app alpha asset, not a generic decoder.",
+        "failureAndCancellation": "Find snapshot/query cache and active highlights remain bounded. Native pixel extraction throws on unsupported resource shape; no GDI/COM handle escapes.",
+        "testCoverage": "Current Release Editor 35/35 passes, including seven-size independent pixel parity and device-loss raster retention; earlier authorized nine-stage keyboard evidence remains separately source-bound."
       },
       "plannedSha256": "de0e8d6bdf69a6f0bb88c2b2d53beffd87a43b2ed03aba45d7372ece05bff780"
     },
@@ -1144,22 +1148,23 @@ Machine-readable review data for the parent plan. All rows start pending; source
     {
       "repository": "RedTilde",
       "path": "Tests/Application.Tests.DesignRefresh.cpp",
-      "sha256": "ea4fb87c93ff5c2662653711505b7441b4d85f004556f16dc6c46c5b0ec75110",
+      "sha256": "a5825083191f44679a8b284754faa72164693373b94617bbc39f20c7008406f4",
       "category": "tests",
       "generated": false,
       "reviewStatus": "reviewed",
-      "reviewer": "review_ledger",
+      "reviewer": "lead-and-independent-delta-review",
       "testIds": [
         "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+        "Rendering.DesignRefreshTypographyAndThemeRoles",
         "Editor.DesignRefreshEquationContextAndDraftGuards"
       ],
       "findingIds": [],
       "disposition": "reviewed-no-confirmed-finding",
       "reviewNotes": {
-        "callers": "Registers Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster and Editor.DesignRefreshEquationContextAndDraftGuards.",
-        "ownershipAndLifetime": "Hidden app, WIC decoder, pixel arrays and capture paths local to test-owned fixture root.",
-        "failureAndCancellation": "Raster must remain exact after resource reset/rebuild and warm re-render; draft cancellation preserves history; apply is undoable.",
-        "testCoverage": "Adds warm repeated capture equality plus Source/Split/Compose and F2 cancel/apply/undo/redo parent-title checks. Case not built/run."
+        "callers": "Registers hidden app design, rendering, source/history and contextual-command regressions in the reviewed native catalog.",
+        "ownershipAndLifetime": "Hidden app, WIL-owned icon/COM decoders, independent WIC BGRA/PBGRA converters and pixel arrays use fixture-local capture paths.",
+        "failureAndCancellation": "Byte equality covers zero/partial/opaque alpha at seven sizes. Existing small-icon silhouette threshold remains on 16/24/32; its invalid extension to the unchanged 128-pixel asset is retained as a test-authoring failure. Raster remains exact across resource reset and warm rendering.",
+        "testCoverage": "Official Release Editor 35/35 passes in run 20261024T200629511Z-52096-a8d90cadfef246058b36c087141dc788. Source/Split/Compose and F2 cancel/apply/undo/redo remain covered. Cross-version full-raster DPI parity and final new-pin platform tests remain separate gates."
       },
       "plannedSha256": "f6b00df14da0d41ddc4d0d2a4aa5fb1a17f8795da1e3ce7efa71aa40f9b5989e"
     },
@@ -5169,11 +5174,11 @@ Machine-readable review data for the parent plan. All rows start pending; source
     {
       "repository": "DxUi",
       "path": "Tests/Controls/DxUi.Tests.Gallery.cpp",
-      "sha256": "bf347dc6504c79219af9f8de0a7d0490273b417f1c890d9c71c1ed774acdabd0",
+      "sha256": "5c2d51685f5c19a38132321f54e5c5b773cc673120b3393964a0cf3e156e749d",
       "category": "tests",
       "generated": false,
       "reviewStatus": "reviewed",
-      "reviewer": "review_ledger",
+      "reviewer": "lead-delta-review",
       "testIds": [
         "RunGalleryGenerator",
         "RunGalleryGeneratorPerTheme",
@@ -5182,10 +5187,10 @@ Machine-readable review data for the parent plan. All rows start pending; source
       "findingIds": null,
       "disposition": "source-read-and-reviewed-no-runtime-qualification",
       "reviewNotes": {
-        "callers": "Generator entrypoints are invoked by the test executable/tooling-selected gallery and contrast-audit modes, not DXUI_RUN_TEST registrations. RunGalleryGenerator builds five deterministic theme scenes; menu/combo bitmap capture is driven from a dedicated owner HWND plus a joined background popup-window observer.",
-        "ownershipAndLifetime": "GalleryScene owns the control tree and models via unique_ptr; model pointers are borrowed by Tree/Grid and remain alive through capture. GalleryBitmapPreview owns capture bytes and caches device-specific D2D bitmap/device via wil::com_ptr, replacing cache when host device changes. Popup capture uses stack AttachedHostWindow, a driver thread joined before local teardown, and scope_exit to dismiss owned popup chain.",
-        "failureAndCancellation": "Popup waits have finite deadlines and bounded polling; capture validates visible/nontransparent pixels before composition. Thread driver records failure text and is joined before Require. Output paths are made absolute, existing output is removed, then PNG write/existence checked; this is a generator side effect that depends on caller-provided output directory. No build or runtime qualification performed.",
-        "testCoverage": "Gallery content spans control variants, themes, RTL/localized forms, rich text/math/diagram previews, popup snapshots, and button-contrast calculations. Source tests verify scene expectations and output checks, but no dedicated unit registration or assertion independently validates capture-thread timeout cleanup or pixel provenance; no execution result claimed."
+        "callers": "Generator entrypoints are invoked by the test executable/tooling-selected gallery and contrast-audit modes, not DXUI_RUN_TEST registrations. RunGalleryGenerator builds five deterministic theme scenes; menu/combo bitmap capture is driven from a dedicated owner HWND plus a joined background popup-window observer. Lead reviewed 94bf9801 to 8a38e598: generator-only ordering change; production src/include/Build/Samples are identical.",
+        "ownershipAndLifetime": "GalleryScene owns the control tree and models via unique_ptr; model pointers are borrowed by Tree/Grid and remain alive through capture. GalleryBitmapPreview owns capture bytes and caches device-specific D2D bitmap/device via wil::com_ptr, replacing cache when host device changes. Popup capture uses stack AttachedHostWindow, a driver thread joined before local teardown, and scope_exit to dismiss owned popup chain. Posted WM_MOUSELEAVE uses no payload, only the owned fixture HWND; final tooltip content is synthetic and installed synchronously after the pump.",
+        "failureAndCancellation": "Popup waits have finite deadlines and bounded polling; capture validates visible/nontransparent pixels before composition. Thread driver records failure text and is joined before Require. Output paths are made absolute, existing output is removed, then PNG write/existence checked; this is a generator side effect that depends on caller-provided output directory. No build or runtime qualification performed. New assertions require the earlier interleaved tooltip to clear and exact final tooltip state before capture; they establish handler ordering, not physical TrackMouseEvent behavior or the historical omission cause.",
+        "testCoverage": "Gallery content spans control variants, themes, RTL/localized forms, rich text/math/diagram previews, popup snapshots, and button-contrast calculations. Source tests verify scene expectations and output checks, but no dedicated unit registration or assertion independently validates capture-thread timeout cleanup or pixel provenance; no execution result claimed. Current-head gallery generation and PNG review remain pending; the earlier SDK94 gallery and independent corrected cold review are retained privately."
       },
       "plannedSha256": "16577e6990042b855b94ba6e710a3a7c92c7772a532b9fbf68313ab941aaa56a",
       "reviewEvidence": "review-general-controls-supplement.md"

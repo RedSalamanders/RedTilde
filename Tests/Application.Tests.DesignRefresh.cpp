@@ -93,10 +93,27 @@ void CheckBrandIconResource(HINSTANCE module, unsigned requestedSize)
             }
         }
     }
-    const auto pixelsPerDimension = static_cast<std::size_t>(requestedSize);
-    Require(transparent > 0 && opaque > 0 && ink > pixelsPerDimension * pixelsPerDimension / 4 && opaque < pixelsPerDimension * pixelsPerDimension &&
-                right - left >= requestedSize * 3 / 5 && bottom - top >= requestedSize * 2 / 5,
-            "icon resource retains a wide tilde silhouette with transparent and opaque pixels at each size");
+    Require(transparent > 0 && opaque > 0, "every icon size retains transparent background and opaque ink");
+    if (requestedSize <= 32)
+    {
+        // Preserve the existing small-icon legibility oracle. Larger frames have
+        // less antialias coverage, so their ink area is not the same percentage.
+        const auto pixelsPerDimension = static_cast<std::size_t>(requestedSize);
+        Require(ink > pixelsPerDimension * pixelsPerDimension / 4 && opaque < pixelsPerDimension * pixelsPerDimension &&
+                    right - left >= requestedSize * 3 / 5 && bottom - top >= requestedSize * 2 / 5,
+                std::format("icon {} silhouette: transparent={}, opaque={}, ink={}, width={}, height={}", requestedSize, transparent, opaque, ink,
+                            right - left, bottom - top));
+    }
+
+    wil::com_ptr<IWICFormatConverter> premultiplied;
+    Success(factory->CreateFormatConverter(premultiplied.put()), "create an independent premultiplied icon reference");
+    Success(premultiplied->Initialize(bitmap.get(), GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom),
+            "prepare the independent WIC premultiplied reference for the native brand resource");
+    Success(premultiplied->CopyPixels(nullptr, requestedSize * 4, static_cast<UINT>(pixels.size()), pixels.data()),
+            "read the independent premultiplied icon reference");
+    const auto nativePixels = LoadBrandMarkPixels(icon.get());
+    Require(nativePixels.width == width && nativePixels.height == height && nativePixels.bgra == pixels,
+            "bounded native brand extraction matches every WIC reference byte, including partial and zero alpha");
 }
 std::vector<BYTE> ReadBrandMarkRaster(const std::filesystem::path &path, float dpi)
 {
@@ -1610,7 +1627,7 @@ class DesignRefreshProbe final
                  Require(contrast.Document().GetLinkUnderlinePolicy() == DxUi::RichTextLinkUnderlinePolicy::Always,
                          "high contrast always retains an underline");
                  const auto module = GetModuleHandleW(nullptr);
-                 for (const unsigned size : {16u, 24u, 32u})
+                 for (const unsigned size : {16u, 24u, 32u, 48u, 64u, 128u, 256u})
                      CheckBrandIconResource(module, size);
                  Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().Revision() == sourceRevision &&
                              app.Document().GetSelection() == retainedSelection && !app.Document().CanUndo() && app.Document().CanRedo(),

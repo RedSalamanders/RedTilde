@@ -23,10 +23,14 @@ unreported regressions. The detailed math and Mermaid dispositions retain their 
 | Supposed unreferenced CountingWriteFactory/Footnotes helpers | Refuted by current renamed includes and their native/embedded callers; original review notes corrected. |
 | Extra PowerShell assertion for descendant completion | Unnecessary: its required successful native `--self-test` already executes PID/creation-verified descendant completion checks and propagates failures. |
 | Menu mnemonic lifetime concern and partial-Code entity corruption | Refuted or unconfirmed after caller/lifetime review; no speculative production fix is introduced. |
-| Seven historical performance regressions, including about 11% private memory | Open until a fresh complete same-SDK actual-base comparison and independent audit. The 4 MiB owner remains unproved. No rebaseline or cost acceptance is implied. |
+| Seven original-base performance regressions | Fresh same-SDK actual-base and starting-redesign cohorts complete and independent audits pass. The actual-base cohort still reports seven regressions, including +12.23%/+12.68% private memory. The retained 4 MiB region has no allocation-stack attribution; production fixes require new paired evidence. No rebaseline or cost acceptance is implied. |
+| Brand WIC activation and bitmap lifecycle | Retain bounded native premultiplied pixels instead of a WIC converter at ordinary startup. Seven-size independent WIC byte parity and device-loss/warm-raster tests pass in Release Editor 35/35. Earlier small-icon heuristic extension failures remain test-authoring evidence, not a production defect. Memory observations remain unpaired. |
 
 The SDK implementation checkpoint is `f5a2cea9ff798dcb0aa29a37766bcec460f41864`; qualification and both app arms
 pin `94bf9801f51a544422ecb8aa6ae86d2e33aadcb2`, which also corrects the narrow descendant source guard. The original
 source-guard failure, subsequent stale-build refusal, focused 7/7 pass and independent mutation probe are retained.
-Both repositories' validators and the final source-bound x64 Release SDK rebuild pass. Runtime, remaining platform builds, authorized input,
-renderer resources and performance gates remain on the coordinator checklist until their actual results exist.
+Both repositories' checkpoint validators and source-bound x64 Release runs pass, including the authorized app
+keyboard and four SDK foreground suites with restoration. SDK `8a38e598` additionally passes all six official builds
+and all 19 ordinary suites in both x64 Debug and ASan Debug, plus the sanitizer detection probe. Hosted x64 Debug
+and Release pass; native ARM64 and the newer rendering/tooling changes require their own final-source evidence.
+Final pin adoption, resources, input, documentation and performance gates remain on the coordinator checklist.

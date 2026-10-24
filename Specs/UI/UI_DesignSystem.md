@@ -17,9 +17,11 @@ typography, measure the filename canonically and reuse it until text, available 
 
 Brand: a flowing red tilde, with a restrained scarlet accent. App name is RedTilde. Short product line:
 **Words, beautifully in flow.** The icon must read at 16/24/32 pixels as well as 256; preserve alpha.
-The application retains the decoded WIC source across device replacement and prepares its device-dependent
-Direct2D bitmap through DxUi visual-content preparation. Paint only draws a bitmap stamped for the host's current
-resource generation; COM queries and bitmap creation stay out of paint.
+The application extracts and retains bounded premultiplied BGRA pixels from its own 32-bit alpha icon resource
+across device replacement; ordinary branding does not instantiate WIC. Native extraction must match the independent
+WIC reference byte for byte, including transparent and partially transparent pixels, at 16/24/32/48/64/128/256 pixels.
+It prepares the device-dependent Direct2D bitmap through DxUi visual-content preparation. Paint only draws a bitmap
+stamped for the host's current resource generation; resource queries and bitmap creation stay out of paint.
 
 ## Layout
 

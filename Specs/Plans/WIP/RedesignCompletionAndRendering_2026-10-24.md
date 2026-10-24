@@ -18,6 +18,15 @@
 - [x] A7: characterize interested focus-update work, reuse validated published paths and pass stale-path/hidden-focus regression checks.
 - [x] A0 controls: reproduce and fix missing ProgressBar range events with a real subscribed client regression.
 - [x] A9 tooling: reproduce uncontained interactive child admission and descendant completion races; pass the retained 98-check lease diagnostic.
+- [x] A6/A9 Release: pass 54 app cases, 23 captures, crash/recovery probes and all 19 normal SDK suites with zero skips.
+- [x] A6/A9 input: pass the nine-stage app keyboard slice and all four SDK foreground suites with verified desktop restoration.
+- [x] A8 collection: complete both same-SDK 192-process app studies and pass their independent integrity/numerical audits; seven original-base regressions remain.
+- [x] A0 delta: re-review SDK `8a38e598` gallery ordering and reconcile its current source hash; new gallery execution remains pending.
+- [x] A9 Debug: current-head SDK `8a38e598` passes all 19 ordinary x64 Debug suites with zero skips.
+- [x] A9 checkpoint builds: SDK `8a38e598` passes all six x64/ARM64 Debug, Release and ASan Debug builds with zero warnings/errors.
+- [x] A9 checkpoint ASan: SDK `8a38e598` passes the real detection probe and all 19 ordinary x64 ASan Debug suites with zero skips.
+- [x] A7 branding: remove ordinary-startup WIC conversion, retain the prepared bitmap and pass seven-size independent pixel parity plus device-loss/warm-raster tests (Release Editor 35/35).
+- [x] A8 archive: publish the reviewed aggregate projection of all 48 current A/A/A/B metric rows, with source/audit bindings and explicit exclusions.
 - [ ] A1: fix table command memory safety and other reproduced data/selection corruption before refactoring.
 - [ ] A2: contain preparation failures per object, preserve accessible ownership and characterize shutdown completion handling.
 - [ ] A3: correct math recognition and accepted-but-wrong notation; reconcile capability/target data.
@@ -154,6 +163,90 @@ completed item. A checked item needs evidence, not just edited code.
   RedTilde's final static/tooling validators and pinned formatter also pass. Both app baselines and the candidate
   restore that same pin and the same WIL package ABI.
   Their seven common performance-harness inputs match byte-for-byte; the original-UI header delta is CLI-only.
+- App code checkpoint `fa0757d568652560ea05563d09ab3bb6f46298b8` passes all 54 native cases (Editor now 35),
+  23 captures, recovery restart and isolated crash checks. Its nine keyboard/focus stages pass; the SDK's Menu,
+  NativeTextInput, MenuResources and MenuResourceScaling pass with zero skips and verified desktop restoration.
+  Independent reviewers verify receipts, executable hashes, catalog union and capture hashes. Exact Release binaries
+  and PDBs are retained before further diagnostic builds. Later documentation does not rewrite those observations.
+- Both fresh app cohorts complete on SDK `94bf9801`: original PR-base UI `b5e15cc0` versus `fa0757d`, and starting
+  redesign `3128855e` versus `fa0757d`, each with separate 96-process A/A and 96-process A/B studies. The independent
+  auditor passes 7,988 and 8,015 checks respectively. The original-base A/B still reports seven regressions:
+  Compose/Split command time +16.77%/+20.48%, private bytes +12.23%/+12.68%, working set +4.63%/+4.61%, and
+  Split owner CPU +11.62%. The incremental study resolves no directional change. All observations stay retained;
+  controls are not uniformly stable and neither host window is verified quiet. R10 is still open.
+- Continue memory attribution with a separately labelled diagnostic: three fixed Compose trials at 64 cycles for
+  each of current raster behavior, bitmap preparation without drawing, WIC construction without bitmap preparation,
+  and a control with no WIC/bitmap resources. Preserve every variant source/binary/receipt before replacement.
+  These feature ablations cannot replace the primary study, prove a 4 MiB allocation owner by themselves, or
+  establish timing/working-set acceptance while other builds run. No new dependency or profiling-policy bypass.
+- The exact SDK94 scoped-tooling fixture passes 36/36 under portable official PowerShell 7.6.8 in Ubuntu 24.04,
+  including the assertion that failed in the older hosted main run. Files were on the WSL NTFS mount; this is
+  current non-reproduction, not an explanation of the historical failure or full hosted CI. A separate harness-only
+  SDK checkpoint `8a38e598` corrects synthetic gallery tooltip capture ordering; its native verification is pending.
+  Production `src`, `include`, `Build` and samples are identical to SDK94, so the app's exact runtime pin stays94.
+
+### Current qualification and memory investigation — 24 October, 19:50 UTC
+
+SDK draft [PR #100](https://github.com/RedSalamanders/DxUi/pull/100) carries `8a38e598` for hosted qualification.
+Its production `src/include/Build/Samples` inputs are identical to the app's exact `94bf9801` pin; the later
+commit changes only the gallery fixture and documentation. The current x64 Debug Full run passes all 19 normal
+suites with zero capability skips. ASan Debug has passed its real isolated detection probe and is still running
+its ordinary suites. Four of six current SDK build profiles pass. Hosted native jobs, including ARM64, are running;
+they are not yet passes. Ubuntu validation found a broken sibling-checkout reference and the retained scoped
+identity fixture failure. A separate isolated tooling checkout investigates that failure without mutating running
+qualification inputs. The proposed policy remains unqualified and the PR remains draft.
+
+The [reviewed performance projection](../../../Measurements/RedesignCompletion_2026-10-24/performance-fa0757d/README.md)
+retains all 48 aggregate metric rows across both completed cohorts' A/A and A/B phases. It binds the original
+comparison/audit hashes, preserves the actual-base lineage and starting-redesign distinction, and names excluded
+private producer records. Neither current nor historical regressions were accepted or replaced.
+
+Private staged diagnostics locate the retained memory difference after the first native frame: the added tree
+accounts for about 0.2 MiB before rendering, while the original arm has one and the candidate two retained
+4,198,400-byte private regions in three trials. Removing brand construction, icon text, DWM extension, outline
+painting or the sidebar does not remove the private-byte difference. Omitting WIC construction consistently lowers
+absolute working set by about 1.6–1.8 MiB, which warrants a separate module/pixel-path investigation. It does not
+explain the extra private region. The initial brand control source representation was LF-normalized; a separate
+correction retains the byte-exact original alongside its frozen executable without rewriting raw observations.
+
+Per-control initial-frame submission reduces the retained private-region count to one in all three instrumented
+trials. One submission before or after the editor, and both together, do not reproduce that reduction. Submitting
+the initial frame after each visible top-level app surface does reduce final private bytes to about 44–45 MiB in
+three further trials while retaining the full UI. These are unpaired diagnostic contrasts during concurrent SDK
+work, not allocation-stack attribution or performance acceptance. Rendering policy remains owned by DxUi; no
+diagnostic flush or feature-removal variant is a production fix. All modified production files were byte-restored;
+the app output executable must be rebuilt from restored source before any new acceptance run.
+
+Candidate-only edit-phase diagnostics retain three Compose and three Split trials. Ordinary prose edits perform
+zero layouts; Split's mirror work and alternating dirty/title/count/undo states are required. The source review
+and phase data have not established a substantial redundant operation that explains the original-base command
+regression. Do not remove recovery freshness, source/history, accessible updates or visible context to improve it.
+
+### Branding and qualification checkpoint — 24 October, 20:12 UTC
+
+All six official SDK `8a38e598` builds pass with zero warnings/errors. Both current-head x64 Debug and ASan
+Debug Full runs pass all 19 ordinary suites with zero skips; ASan's real use-after-free child is detected. Their
+private receipts and the six-profile build matrix remain retained separately from performance acceptance.
+Hosted x64 Debug and Release also pass. ARM64 runtime lanes and the hosted paired comparison are still running.
+Hosted validation identifies a broken cross-repository Markdown link; the Ubuntu tooling fixture also exposes
+an exact-case path-identity hazard. The focused correction preserves ordinal Git identities without changing
+case-insensitive scope matching. A local reproduction has not established the complete hosted failure cause.
+
+The production brand mark now retains bounded, premultiplied BGRA pixels from its own alpha icon instead of a
+WIC converter. WIL owns the temporary bitmaps/DC; the generation-bound D2D bitmap still prepares outside Paint
+and rebuilds after device loss. Release Editor passes 35/35, including independent WIC byte equality at
+16/24/32/48/64/128/256 pixels and device-loss/warm-raster retention, in run
+`20261024T200629511Z-52096-a8d90cadfef246058b36c087141dc788`. The first extended test incorrectly applied
+the existing small-icon 25% ink threshold to the unchanged 128-pixel asset (23.5%); its failures remain retained.
+The original 16/24/32 legibility oracle is unchanged, and full-byte conversion parity now covers all seven sizes.
+Independent source review finds no concrete extraction/lifetime defect; this does not prove a full cross-version
+raster/DPI matrix. Three unpaired memory probes are retained in `.build/qualification-20261024/brand-native-pixels`.
+They are diagnostics, not a paired benefit or an explanation of the additional private region.
+
+The successful top-level initial-frame submission diagnostic motivates a default-off, bounded, native-only
+DxUi option. Its implementation and deterministic lifetime/error/order/recovery tests are in progress. No app
+diagnostic flush is adopted as product policy. All final-source matrix, input and paired gates remain open;
+the seven-regression cohort is preserved and no cost or policy has been accepted.
 
 ## Objective and starting point
 

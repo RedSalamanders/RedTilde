@@ -4,7 +4,9 @@ Reviewed RedTilde measurements and actual application captures belong here. Gene
 intermediate images stay under `.build`. Do not use DxUi or another Red application's receipts as product
 qualification. Retained packets record source identity, dependency, binary hash, profile, scenario and limitations.
 
-- [Design refresh integration, 2026-10-24](DesignRefresh_2026-10-24/README.md) — latest optimization and publication checkpoint; seven regressions remain in the last complete whole-feature comparison. R10 and final qualification remain open.
+- [Redesign completion comparison, 2026-10-24](RedesignCompletion_2026-10-24/performance-fa0757d/README.md) — reviewed projection of all 48 A/A and A/B metric rows against the actual PR-base lineage and the separate starting redesign, on one common SDK. Seven actual-base regressions remain; R10 and final qualification are open.
+
+- [Design refresh integration, 2026-10-24](DesignRefresh_2026-10-24/README.md) — historical optimization and publication checkpoint, retained separately from the later complete comparison and its exact source bindings.
 
 - [Image-2 visual fidelity, 2026-10-23](VisualFidelity_2026-10-23/README.md) — matched hidden report captures, source-bound six-profile build evidence and three x64 53-case/23-capture runs for the recorded SDK revision. Later dependency pins require their own qualification.
 

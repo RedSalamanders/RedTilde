@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Prepare the brand mark from owned, bounded premultiplied icon pixels without activating a WIC converter at ordinary startup. Preserve the cached device bitmap and device-loss recovery, with independent WIC byte comparisons at seven icon sizes and the existing raster-retention test; paired performance qualification remains required.
 - Document the supported shorter dependency-build/cache workflow for nested workspaces, retaining the original compiler failure and requiring a successful canonical exact-pin restore with matching package ABI.
 - Expanded native math and diagram integration checks for typed notation, whitespace-tolerant slash delimiters, exact rejected-source fallback, view changes, and F2 draft history. Removed the unused syntax-independent `EquationAt` helper. Prepared the brand bitmap outside paint, tied it to the host resource generation, and added a hidden raster check across device replacement; build/runtime validation remains pending the final DxUi pin.
 - Plan the remaining RedTilde redesign and canonical DxUi work with a progress checklist, current-source defect review, file review inventory, expanded Mermaid and math compatibility tests, and separate performance/platform/release gates. This planning change does not implement fixes or establish new native qualification.
