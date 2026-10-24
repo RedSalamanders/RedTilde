@@ -7,6 +7,8 @@ architecture, runtime (/MDd Debug/ASan, /MD Release) and SDK. Outputs are privat
 `restore-dxui.ps1` validates the exact lock, creates an isolated detached checkout and invokes the supported
 consumer build-identity and dependency-restore APIs. It never resets/cleans a sibling checkout. Fingerprint source,
 API, toolchain, platform and flags. Import the public consumer props/targets and reference the single archive.
+The initial-frame host option is adopted only with its exact SDK revision and a complete consumer rebuild;
+API revision 4 alone does not permit mixing a newer host header with an older static library or consumer object.
 
 Deeply nested workspaces can exceed the compiler's path limit while CMake probes the dependency build, even
 with Git long paths enabled. Retain the original configure/compiler logs. The pinned SDK's supported

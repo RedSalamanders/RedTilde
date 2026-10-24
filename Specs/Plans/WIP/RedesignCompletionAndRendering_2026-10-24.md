@@ -27,6 +27,8 @@
 - [x] A9 checkpoint ASan: SDK `8a38e598` passes the real detection probe and all 19 ordinary x64 ASan Debug suites with zero skips.
 - [x] A7 branding: remove ordinary-startup WIC conversion, retain the prepared bitmap and pass seven-size independent pixel parity plus device-loss/warm-raster tests (Release Editor 35/35).
 - [x] A8 archive: publish the reviewed aggregate projection of all 48 current A/A/A/B metric rows, with source/audit bindings and explicit exclusions.
+- [ ] A7 host delta: qualify bounded initial-frame submissions and safe message-prune reuse, including live controls moved out of legacy owning slots.
+- [ ] A8 resource delta: measure initial, resize and device-recreation completion costs alongside retained memory before a fresh whole-feature comparison.
 - [ ] A1: fix table command memory safety and other reproduced data/selection corruption before refactoring.
 - [ ] A2: contain preparation failures per object, preserve accessible ownership and characterize shutdown completion handling.
 - [ ] A3: correct math recognition and accepted-but-wrong notation; reconcile capability/target data.
@@ -52,6 +54,11 @@ completed item. A checked item needs evidence, not just edited code.
   assemblies and additional Mermaid families are outside this completion scope; they remain owned by the existing
   DxUi rich-text audit/language roadmap. The broader design below is retained as future direction, not a claim that
   current profiles support it. Closing this coordinator cannot close those parent roadmap items or claim full parity.
+- The next SDK host diagnostic first stopped at four test-access compilation errors; no runtime regression result
+  is claimed for that attempt. Its source was restored and the failed build retained. Review also found that a live
+  control moved out through legacy `GetChildren()` can retain its identity, token and interaction revision. Cache
+  reuse must therefore validate bounded logical membership paths, with a full-prune fallback when a path cannot
+  be represented; token/revision equality alone is insufficient. Final-source red/green and platform runs remain open.
 - The owner explicitly retained the seven last-complete performance regressions, including roughly 11% higher
   private memory. An extra retained 4 MiB allocation and shared DxUi focus-update cost are investigation leads,
   not proven causes. Recent optimizations require a fresh complete same-SDK comparison against the actual PR base.
@@ -247,6 +254,27 @@ The successful top-level initial-frame submission diagnostic motivates a default
 DxUi option. Its implementation and deterministic lifetime/error/order/recovery tests are in progress. No app
 diagnostic flush is adopted as product policy. All final-source matrix, input and paired gates remain open;
 the seven-regression cohort is preserved and no cost or policy has been accepted.
+
+### Host cache and batching diagnostic checkpoint — 24 October
+
+The retained `host-regressions-red-v2` run records 13 selected outcomes, including two expected-exit
+mismatches; it is not an all-green result. The separate membership/reset red run matched its 9/9 expected
+outcomes and restored the source afterward. The first production-green host run matched 12/13 expectations.
+Its tab-reorder case did not actually reorder because the interaction landed exactly on the strict midpoint
+boundary. The corrected fixture performs and asserts the page identity swap from index 0 to index 1; it passed
+in the current-source green-v2 run.
+
+The interaction-epoch red matched 2/2 expectations: the focus-only case exposed the unnecessary full-tree
+scan, and the corrected tab case passed its actual identity-swap assertion. The green-v2 run then passed all 14
+selected Release cases at 21:29 UTC against WindowHost source SHA-256
+`866fb8fc62eb06756f65845e5130a10a8e8bb4fb3a805deba0ebd0ccc7713187`. SDK commit
+`cfe875fd815b0a39336100df9bde8f29ea2f0aa0` is clean and committed; RedTilde now pins that exact API-4
+revision in `Dependencies/DxUi.lock.json`. The x64 and ARM64 SDK matrix is running on this commit. The pinned
+formatter passed; final `fullvalidate` is still running. The earlier `validate-host-final.log` records a bounded
+all-six-validator/tooling pass at its then-current revision, not final validation of cfe. The app exact-pin
+restore/build and resource harness have not run on cfe. This focused result does not close the native/platform,
+consumer or performance gates. Keep the seven whole-feature regressions open; no cost or allocation cause is
+accepted.
 
 ## Objective and starting point
 

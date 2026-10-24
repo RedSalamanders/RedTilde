@@ -23,6 +23,12 @@ WIC reference byte for byte, including transparent and partially transparent pix
 It prepares the device-dependent Direct2D bitmap through DxUi visual-content preparation. Paint only draws a bitmap
 stamped for the host's current resource generation; resource queries and bitmap creation stay out of paint.
 
+The native host opts into DxUi's bounded initial root-child submission policy after swap-chain creation or resize.
+Only the first successfully completed D2D draw uses intermediate submissions, including when the hidden harness
+reports occluded presentation. Warm frames keep the ordinary final submission. Flush/EndDraw failures retain retry
+and device-loss recovery; source, draw order, overlays, focus and accessibility stay identical. Qualification includes
+initial/reset completed work and retained memory alongside the fixed warm edit/frame comparison.
+
 ## Layout
 
 The owner's image-2 Compose proposal is the visual target for the 2026-10-23 fidelity correction. The document

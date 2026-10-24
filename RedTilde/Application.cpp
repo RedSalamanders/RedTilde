@@ -184,7 +184,7 @@ HRESULT Application::Initialize()
                                  cls.hInstance, this));
     if (!window)
         return HRESULT_FROM_WIN32(GetLastError());
-    if (!host.Attach(window.get(), {.forceWarp = options.forceWarp}))
+    if (!host.Attach(window.get(), {.forceWarp = options.forceWarp, .batchInitialRootChildren = true}))
         return HRESULT_FROM_WIN32(GetLastError());
     files.Initialize(window.get(), FileReady);
     const MARGINS frame{1, 1, 1, 1};

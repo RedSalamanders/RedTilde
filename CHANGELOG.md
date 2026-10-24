@@ -4,6 +4,8 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Record GPU-completed initial preparation, resize and device-recreation wall/CPU costs and intermediate native batch counts in resource-only probes. Preserve the fixed paired edit/frame family and require the identical common harness on both baseline lineages; native validation awaits the updated exact SDK pin.
+- Enable the SDK's bounded first-draw submission policy for the native editor host, including resize and device recovery, while keeping warm frames unchanged. Adopt it through an exact SDK pin and rebuilt consumer; final input, resource and paired performance qualification remains pending.
 - Prepare the brand mark from owned, bounded premultiplied icon pixels without activating a WIC converter at ordinary startup. Preserve the cached device bitmap and device-loss recovery, with independent WIC byte comparisons at seven icon sizes and the existing raster-retention test; paired performance qualification remains required.
 - Document the supported shorter dependency-build/cache workflow for nested workspaces, retaining the original compiler failure and requiring a successful canonical exact-pin restore with matching package ABI.
 - Expanded native math and diagram integration checks for typed notation, whitespace-tolerant slash delimiters, exact rejected-source fallback, view changes, and F2 draft history. Removed the unused syntax-independent `EquationAt` helper. Prepared the brand bitmap outside paint, tied it to the host resource generation, and added a hidden raster check across device replacement; build/runtime validation remains pending the final DxUi pin.

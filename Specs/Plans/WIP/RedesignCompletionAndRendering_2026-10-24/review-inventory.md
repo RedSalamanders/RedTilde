@@ -7,13 +7,13 @@ Machine-readable review data for the parent plan. All rows start pending; source
   "schemaVersion": 1,
   "date": "2026-10-24",
   "status": "SOURCE_REVIEW_COMPLETE_RUNTIME_AND_PERFORMANCE_QUALIFICATION_OPEN",
-  "description": "All checkpoint rows have four substantive review notes and tests or explicit qualification gaps at their recorded hashes. Lead reviewed the 8a38 generator and native brand-pixel deltas; later SDK batching/prune deltas are in progress and require reconciliation before final qualification.",
+  "description": "The inventory contains 446 tracked first-party source/build/test/resource reviews, 36 generated-fixture provenance reviews, and seven narrowly scoped 24 October documentation delta rows (six documents plus one generated changelog). Remaining focused execution, final-source platform qualification, and performance acceptance remain separately pending.",
   "plannedAt": {
     "RedTilde": "c7456854c8f964bb9ea067295e6435f99d426515",
     "DxUi": "ceffe76a429d15039ceff1f7dfae7e1d7126323e"
   },
-  "scope": "Tracked first-party C/C++ headers and sources, scripts, build/workflow inputs, JSON data/manifests and native resources; plus the exact DxUi consumer lock. Generated code stays listed for generator/provenance review. Vendored source/corpora, skills, documentation, assets and ignored products are not a line-by-line audit target; their ownership/provenance and boundary behavior still require review.",
-  "entryCount": 482,
+  "scope": "Tracked first-party C/C++ headers and sources, scripts, build/workflow inputs, JSON data/manifests and native resources; generated code is listed for generator/provenance review. Vendored source/corpora, skills, historical Measurements evidence, general documentation, assets and ignored products are not line-by-line targets. Explicit exception for this 24 October delta: six named normative/planning documents and one generated changelog row are included as documentation/provenance review only.",
+  "entryCount": 489,
   "files": [
     {
       "repository": "RedTilde",
@@ -546,7 +546,7 @@ Machine-readable review data for the parent plan. All rows start pending; source
     {
       "repository": "RedTilde",
       "path": "Dependencies/DxUi.lock.json",
-      "sha256": "781d418d147fbb0abb7dd88c76b735b8d5f5b8d634f6b6d2b44523834c3334b1",
+      "sha256": "68030a34af7a455feb489acaa844f721f904f5e63f45812277f6f0307d3b228e",
       "category": "data-or-resources",
       "generated": false,
       "reviewStatus": "reviewed",
@@ -560,10 +560,10 @@ Machine-readable review data for the parent plan. All rows start pending; source
         "callers": "restore-dxui validates repository, exact commit, API revision and target; tests/package record pin.",
         "ownershipAndLifetime": "Pin resolves source/dependency output under repo .build.",
         "failureAndCancellation": "Malformed pin refuses; clone/checkout/consumer failures stop before resolved props.",
-        "testCoverage": "JSON pin/capability validator passed; no network restore executed."
+        "testCoverage": "The lock JSON now names the committed SDK revision; previous pin/capability validation does not qualify the updated lock. Current final SDK validation and RedTilde restore/build remain pending."
       },
       "plannedSha256": "74f687de9d4c5ab7a7601035da3ae61a13194e81f6fd4dc226362f98dc995d70",
-      "leadDeltaReview": "Reviewed immutable SDK adoption at API revision 4: 94bf9801f51a544422ecb8aa6ae86d2e33aadcb2, with no added package dependency. Clean canonical source pin and x64 restore validated; final app profiles remain pending."
+      "leadDeltaReview": "Reviewed RedTilde adoption of the committed API-4 SDK pin cfe875fd815b0a39336100df9bde8f29ea2f0aa0. The focused SDK host regression run passes 14/14 targeted Release cases; the full x64/ARM64 SDK matrix is pending. RedTilde exact-pin restore, app build, and resource harness have not run on this revision; no package was added."
     },
     {
       "repository": "RedTilde",
@@ -733,21 +733,24 @@ Machine-readable review data for the parent plan. All rows start pending; source
     {
       "repository": "RedTilde",
       "path": "RedTilde/Application.cpp",
-      "sha256": "15e84820a8ab6a9cda325ecfe7877dc154312cf4b4b7941d444ba35ff8f46b1e",
+      "sha256": "c04f564481816fcb5b92445a38dd09de8a15c931127a2302e30f3a37b4822528",
       "category": "production",
       "generated": false,
       "reviewStatus": "reviewed",
       "reviewer": "review_ledger",
-      "testIds": [],
+      "testIds": [
+        "Rendering.NativeDefaultAndWarpResourceLifecycle"
+      ],
       "findingIds": [],
-      "disposition": "reviewed-no-confirmed-finding",
+      "disposition": "source-read-and-reviewed-runtime-and-performance-qualification-pending",
       "reviewNotes": {
-        "callers": "Orchestrates services, save, find/replace and 13 SetFocusControl call sites, each on a UI transition; no exact redundant app-command call proven.",
-        "ownershipAndLifetime": "Owns service lifetimes; BeginClose retires recovery/stops services/detaches host; saves recheck baseline.",
-        "failureAndCancellation": "Stale async results filtered; close completion polled after messages; queue-full post failure not established as hang.",
-        "testCoverage": "Core/files/find tests cover app paths; performance tests measure process/UI metrics but no allocation-stack causality."
+        "callers": "Application.Initialize opts app-owned host into root-child batching at its attach call; other hosts default off.",
+        "ownershipAndLifetime": "Native host owns option for swapchain; app owns window and teardown.",
+        "failureAndCancellation": "Attach failure returns HRESULT and aborts init; no memory benefit inferred.",
+        "testCoverage": "Lifecycle test covers default/WARP probe; review did not execute or qualify final profiles."
       },
-      "plannedSha256": "15e84820a8ab6a9cda325ecfe7877dc154312cf4b4b7941d444ba35ff8f46b1e"
+      "plannedSha256": "15e84820a8ab6a9cda325ecfe7877dc154312cf4b4b7941d444ba35ff8f46b1e",
+      "reviewEvidence": "review-delta-20261024.md"
     },
     {
       "repository": "RedTilde",
@@ -1084,24 +1087,24 @@ Machine-readable review data for the parent plan. All rows start pending; source
     {
       "repository": "RedTilde",
       "path": "Tests/Application.Tests.Core.cpp",
-      "sha256": "bd9c68c5165837348ff81b3228998035238ab1c564be50e123b07971eedebf62",
+      "sha256": "89028b4d5a61351e8e65c0eb1484e68adfb5fc33e6bf344b9ff593d9a2d0023d",
       "category": "tests",
       "generated": false,
       "reviewStatus": "reviewed",
       "reviewer": "review_ledger",
       "testIds": [
-        "Math.NativeSubsetAndRejection",
-        "Editor.InDocumentMathLocalSourceAndBroaderMermaid"
+        "Rendering.NativeDefaultAndWarpResourceLifecycle"
       ],
       "findingIds": [],
-      "disposition": "reviewed-no-confirmed-finding",
+      "disposition": "source-read-and-reviewed-tests-and-qualification-pending",
       "reviewNotes": {
-        "callers": "Registers Math.NativeSubsetAndRejection and Editor.InDocumentMathLocalSourceAndBroaderMermaid only in native self-test runner.",
-        "ownershipAndLifetime": "Local sources/apps and immutable semantic publications; no new persistent state.",
-        "failureAndCancellation": "Checks over-limit parser rejection, unsupported exact-source fallback, neighboring links/syntax and unchanged authoritative source.",
-        "testCoverage": "4096 boundary now uses one coalesced text node; typed classes/styles/operator limits/matrix capacity covered; whitespace slash math and true parent-link-enclosed rejected math assert exact source and Bold semantic display run. Not built/run."
+        "callers": "Core selftest runs existing resource probe for default adapter and explicit WARP.",
+        "ownershipAndLifetime": "Fixture reads owned report and verifies app/host close; JSON inspection bounded and dependency-free.",
+        "failureAndCancellation": "Rejects unknown renderer, invalid timing/counters, flush outside bounds, missing three device-loss preparations, incomplete report.",
+        "testCoverage": "New assertions pending; output diagnostic only, not acceptance."
       },
-      "plannedSha256": "8e6ae80baa9edc6b4154a4623b195075167ec72f3d97ac5eef2ac0066de2e3b8"
+      "plannedSha256": "8e6ae80baa9edc6b4154a4623b195075167ec72f3d97ac5eef2ac0066de2e3b8",
+      "reviewEvidence": "review-delta-20261024.md"
     },
     {
       "repository": "RedTilde",
@@ -1234,23 +1237,24 @@ Machine-readable review data for the parent plan. All rows start pending; source
     {
       "repository": "RedTilde",
       "path": "Tests/Application.Tests.Performance.cpp",
-      "sha256": "ac7f6912cce121af62752a2e606ece5c40bd37a9bebcd81eb299a9782fcbb164",
+      "sha256": "57e16f6d2641a22624da7cbfcf50ff939261252119a4d197c328a599fc2726d6",
       "category": "tests",
       "generated": false,
       "reviewStatus": "reviewed",
       "reviewer": "review_ledger",
       "testIds": [
-        "Tests/Application.Tests.Performance.cpp"
+        "Rendering.NativeDefaultAndWarpResourceLifecycle"
       ],
       "findingIds": [],
-      "disposition": "reviewed-no-confirmed-finding",
+      "disposition": "source-read-and-reviewed-performance-probe-qualification-pending",
       "reviewNotes": {
-        "callers": "Performance scenario collects private bytes/working set/resources/frame timing/CPU by scenario.",
-        "ownershipAndLifetime": "Metrics and scenario artifacts owned by harness run.",
-        "failureAndCancellation": "Scenario has bounded cycles and reports missing/invalid metrics; no heap stack trace in this implementation.",
-        "testCoverage": "Perf instrumentation exists; seven historical regressions remain open and current diagnostic lacks allocation stack."
+        "callers": "Resource probe records first, resize, and recreation preparation; paired edit/frame path unchanged.",
+        "ownershipAndLifetime": "MeasureCompleted wraps operation/GPU fence in wall/process/owner timing; records are not acceptance samples.",
+        "failureAndCancellation": "Require propagates action/wait failure; counters don't establish raster/perf cause.",
+        "testCoverage": "Core case validates fields; no new cohort/performance qualification."
       },
-      "plannedSha256": "ac7f6912cce121af62752a2e606ece5c40bd37a9bebcd81eb299a9782fcbb164"
+      "plannedSha256": "ac7f6912cce121af62752a2e606ece5c40bd37a9bebcd81eb299a9782fcbb164",
+      "reviewEvidence": "review-delta-20261024.md"
     },
     {
       "repository": "RedTilde",
@@ -2054,29 +2058,29 @@ Machine-readable review data for the parent plan. All rows start pending; source
     {
       "repository": "DxUi",
       "path": "include/DxUi/DxUi.h",
-      "sha256": "346892bee7804141d3ab97f03a60bedc55329935a4eb8150a0c06b1f6c74bb8e",
+      "sha256": "b7e8896fcb394eef14e0d2ca3bdd7799fde2753b3e09ad962cc98c506eda8615",
       "category": "production",
       "generated": false,
       "reviewStatus": "reviewed",
-      "reviewer": "structural_executor",
+      "reviewer": "review_ledger",
       "testIds": [
-        "TestWindowHostDetachDeactivatesSecureTextInputBeforeDestroyingRoot",
-        "TestWindowHostProcessExitDetachAbandonsRetainedControlObserversBeforeNativeTeardown",
-        "TestWindowHostKeyboardMessageRejectsRetiredForeignAndFailedOwners",
-        "TestNativeTextInputBackendImeCompositionPayloadPreviewsAndCancelRestoresBase",
-        "TestNativeTextInputBackendUndoRedoAndRedoClear",
-        "TestWindowHostAccessibilityRegistrationFailureRollsBackAndAllowsRetry"
+        "TestWindowHostMessagePruneCacheTracksObserverLifetimeAndSetterChanges",
+        "TestWindowHostMessagePruneCacheRevalidatesLiveMovedObserver",
+        "TestWindowHostMessagePruneCachePathOverflowUsesFullPruneFallback",
+        "TestWindowHostMessagePruneCacheDoesNotPublishAcrossReentrantPruning",
+        "TestAttachedHostInitialRootChildBatchesAreBoundedAndResetScoped",
+        "TestWindowHostMessagePruneCacheRejectsChangesDuringPathValidation"
       ],
-      "findingIds": null,
-      "disposition": "source-read-and-reviewed-no-runtime-qualification",
+      "findingIds": [],
+      "disposition": "source-read-and-reviewed-runtime-and-performance-qualification-pending",
       "reviewNotes": {
-        "callers": "Full public header read (6,090 lines). Reviewed ControlHost API, focus/input/IME dispatch declarations, posted-work diagnostics, rendering/presentation lifecycle and embedded/animation hooks against current host and test surfaces; this header declares contracts only, with implementation in DxUi.WindowHost.cpp and DxUi.NativeTextInput.cpp.",
-        "ownershipAndLifetime": "The header documents _root-owned control tree, non-owning interaction observers, weak lifetimes for retained text-input/tooltip targets, posted text-store cookie, COM resource ownership, detach and process-exit observer abandonment. The declarations were checked against these stated boundaries; no source-confirmed defect found.",
-        "failureAndCancellation": "Reviewed declarations for detach, capture/focus pruning, prepared-content cancellation, text-store deferred-work invalidation, IME composition cancellation and rendering/resource recovery. This is a source review only; no build or runtime behavior was tested.",
-        "testCoverage": "Relevant named coverage in current tests includes TestWindowHostDetachDeactivatesSecureTextInputBeforeDestroyingRoot, TestWindowHostProcessExitDetachAbandonsRetainedControlObserversBeforeNativeTeardown, TestWindowHostKeyboardMessageRejectsRetiredForeignAndFailedOwners, TestNativeTextInputBackendImeCompositionPayloadPreviewsAndCancelRestoresBase, TestNativeTextInputBackendUndoRedoAndRedoClear and TestWindowHostAccessibilityRegistrationFailureRollsBackAndAllowsRetry. No tests were executed by this reviewer."
+        "callers": "Private cache proof types serve HandleMessage pruning; AttachOptions batching is consumed by native attach/render and defaults off.",
+        "ownershipAndLifetime": "Weak root/observer tokens and fixed 64-index paths validate membership and interactivity; query methods are contractually stable read-only borrowed traversal queries. Batch frame pointer is stack-local and scope-exit cleared.",
+        "failureAndCancellation": "Path overflow, expired lifetimes, path/identity mismatch, and state changes during validation fall back to full prune; serial blocks stale publication. Bounded Flush balances EndDraw and retries failures; embedded hosts are excluded.",
+        "testCoverage": "Message-prune lifetime/setter/live-move/overflow/reentry and during-query hidden-capture/revision-change variants are registered. The green-v2 run passed all 14 selected Release cases; the full SDK matrix and performance qualification remain pending."
       },
       "plannedSha256": "4369858bb69ebdf89a13b20c37b32011e5c1b94b8156d2c6ce885912260ea369",
-      "reviewEvidence": "review-host-controls-current.md"
+      "reviewEvidence": "review-delta-20261024.md"
     },
     {
       "repository": "DxUi",
@@ -2843,25 +2847,26 @@ Machine-readable review data for the parent plan. All rows start pending; source
     {
       "repository": "DxUi",
       "path": "src/Controls/DxUi.Controls.cpp",
-      "sha256": "debb6a7397f3f7bd81989d91f5bcfe40f063800387eb0777b04942b763fb24f7",
+      "sha256": "96fab1cbfe0e631cc1ba2086ea9865ddac7535e914f3f04112086fadc25d4bee",
       "category": "production",
       "generated": false,
       "reviewStatus": "reviewed",
-      "reviewer": "structural_executor",
+      "reviewer": "review_ledger",
       "testIds": [
-        "TestAccessibilityProviderExposesGridCellToggleAndRangePatterns",
-        "TestAccessibilityRangeValueChangesReachSubscribedClient"
+        "TestWindowHostMessagePruneCacheRevalidatesLiveMovedObserver",
+        "TestWindowHostBatchingStopsAfterCompactionAndTabReorder",
+        "CaptureDiscardsFrameWhenPaintMutatesTheChildTree"
       ],
-      "findingIds": null,
-      "disposition": "reviewed-source; confirmed ProgressBar RangeValue bound-change publication gap; no runtime claim",
+      "findingIds": [],
+      "disposition": "source-read-and-reviewed-runtime-and-performance-qualification-pending",
       "reviewNotes": {
-        "callers": "Reviewed all 11,788 lines plus the Control::RequestInvalidate caller/implementation in DxUi.cpp. ProgressBar SetMinimum/SetMaximum call only RequestInvalidate, which reaches ControlHost::Invalidate but not accessibility publication; SetValue explicitly refreshes the WindowHost snapshot.",
-        "ownershipAndLifetime": "Reviewed callback and weak-lifetime paths across container, selection, capture, and tooltip code. No confirmed ownership/lifetime defect in this file; ProgressBar bound setters retain the control and publish through the attached host when present.",
-        "failureAndCancellation": "Range setters reject non-finite inputs, then mutate the bound; refresh gap can leave the immutable accessibility snapshot and subscribed RangeValue properties stale until an unrelated refresh. This is source-backed; no test/build executed here.",
-        "testCoverage": "Existing TestAccessibilityProviderExposesGridCellToggleAndRangePatterns covers progress-cell RangeValue; TestAccessibilityRangeValueChangesReachSubscribedClient covers ProgressBar value events but its minimum/maximum checks target Slider. No current ProgressBar bound-change regression; patch artifacts under .build/audit-20261024 cover actual-client events and provider getters."
+        "callers": "Panel compaction and TabControl order changes update retained interaction/frame revision, consumed by host prune and batch validation.",
+        "ownershipAndLifetime": "Logical children remain uniquely owned; no additional owner or retained pointer is introduced.",
+        "failureAndCancellation": "Mutation during paint invalidates the mixed frame and stops later batch Flush calls.",
+        "testCoverage": "Live-move, compaction/reorder, and paint-mutation cases are registered; compile/runtime and paired performance remain pending."
       },
       "plannedSha256": "6ba631060b799191acbdcc47819ff70bc857f39d9b6f93033a89611a8f96e121",
-      "reviewEvidence": "review-host-controls-current.md",
+      "reviewEvidence": "review-delta-20261024.md",
       "leadDeltaReview": "Lead reviewed current delta: ProgressBar min/max setters publish accessible changes by the same host refresh path as SetValue. Real subscribed-client regression fails before and passes after; Embedded preparation contract unchanged."
     },
     {
@@ -3255,31 +3260,25 @@ Machine-readable review data for the parent plan. All rows start pending; source
     {
       "repository": "DxUi",
       "path": "src/Controls/DxUi.Menu.cpp",
-      "sha256": "9f731027bb7bb884dab21c69267ca59a1bf00d3db0730833959882282844fec1",
+      "sha256": "5cee2b4f1056a2607c4d77de45d1f1000dcd4e8cce5fbe807b6fbd5536932be0",
       "category": "production",
       "generated": false,
       "reviewStatus": "reviewed",
-      "reviewer": "structural_executor",
+      "reviewer": "review_ledger",
       "testIds": [
-        "TestMenuDebugStateProbeBoundsWedgedWindowThread",
-        "TestMenuKeyboardNavigationSkipsInfoRows",
-        "TestMenuModalLoopPeeksOnlyLivePopupsWhenAPeekClosesASubmenu",
-        "TestMenuHoveringSiblingClosesOpenSubmenuAfterDelay",
-        "TestMenuPopupRelayoutsOnDpiChanged",
-        "TestContextMenuShowAsyncKeepsOwnerPaintableWhileOpen",
-        "TestMenuNativeFocusSelectsNoRowAndRestoresTheChosenOne",
-        "TestMenuPointerCursorIsArrowOverPopupsAndTheWindowsOwnOutside"
+        "TestSplitButtonContextMenuOwnerMessageFloodDoesNotStarvePointerInput",
+        "MenuHoverTraceForTest marker map"
       ],
-      "findingIds": null,
-      "disposition": "source-read-and-reviewed-no-runtime-qualification",
+      "findingIds": [],
+      "disposition": "source-read-and-reviewed-trace-only-runtime-qualification-pending",
       "reviewNotes": {
-        "callers": "Full source read (6,853 lines). Traced ContextMenu::Show/ShowAsync, CreateMenuPopupWindow, modal and async dispatch loops, popup WndProc, pointer/keyboard routing, submenu timers, DPI reflow, UIA invoke/focus posts, rendering and debug probes.",
-        "ownershipAndLifetime": "MenuController owns popup chain and root item copies; each MenuPopup owns its copied rows, ControlHost, layouts, backdrop snapshot, and device-bound resources. DestroyMenuPopupWindow marks controller-initiated teardown around synchronous DestroyWindow reentry, then detaches the host. Posted UIA/debug requests use the bounded payload registry drained on WM_NCDESTROY; cross-thread debug dispatch is shared state with bounded waits and abandonment. No source-confirmed defect found in this pass.",
-        "failureAndCancellation": "Reviewed popup-creation/reflow failure paths, failed description preparation fallback/rejection, async finalization idempotence, process-exit shutdown, capture/focus restoration, timer cancellation and posted-payload drain. No build or runtime failure injection was performed.",
-        "testCoverage": "Current menu coverage includes TestMenuDebugStateProbeBoundsWedgedWindowThread, TestMenuKeyboardNavigationSkipsInfoRows, TestMenuModalLoopPeeksOnlyLivePopupsWhenAPeekClosesASubmenu, TestMenuHoveringSiblingClosesOpenSubmenuAfterDelay, TestMenuPopupRelayoutsOnDpiChanged, TestContextMenuShowAsyncKeepsOwnerPaintableWhileOpen, TestMenuNativeFocusSelectsNoRowAndRestoresTheChosenOne and TestMenuPointerCursorIsArrowOverPopupsAndTheWindowsOwnOutside. No tests were executed by this reviewer."
+        "callers": "Adds trace-only markers for activation/cancel, capture loss, outside pointer, Escape/Alt/Tab/F10; routing decisions remain unchanged.",
+        "ownershipAndLifetime": "Transient event data only; no retained state, callback, or resource owner.",
+        "failureAndCancellation": "Dismissal, async finalization and recovery are unchanged; missing trace capture cannot establish a cause.",
+        "testCoverage": "Trace helper recognizes markers, but no per-cause runtime assertion exists; no runtime claim."
       },
       "plannedSha256": "dc274149227c2a842429ea49e337f93b8421864e0a4abbad92e5ea9077699324",
-      "reviewEvidence": "review-host-controls-current.md"
+      "reviewEvidence": "review-delta-20261024.md"
     },
     {
       "repository": "DxUi",
@@ -4252,22 +4251,33 @@ Machine-readable review data for the parent plan. All rows start pending; source
     {
       "repository": "DxUi",
       "path": "src/Controls/DxUi.WindowHost.cpp",
-      "sha256": "3100948f5cf940ce39903fc5f1b548de4ec87ae2439c5add83004820de9d2aec",
+      "sha256": "866fb8fc62eb06756f65845e5130a10a8e8bb4fb3a805deba0ebd0ccc7713187",
       "category": "production",
       "generated": false,
       "reviewStatus": "reviewed",
-      "reviewer": "structural_executor",
-      "testIds": [],
-      "findingIds": null,
-      "disposition": "source-read-and-reviewed-no-runtime-qualification",
+      "reviewer": "review_ledger",
+      "testIds": [
+        "TestWindowHostLogicalEditorFocusCanAvoidNativeActivation",
+        "TestWindowHostMessagePruneCacheTracksObserverLifetimeAndSetterChanges",
+        "TestWindowHostMessagePruneCacheRevalidatesLiveMovedObserver",
+        "TestWindowHostMessagePruneCachePathOverflowUsesFullPruneFallback",
+        "TestWindowHostMessagePruneCacheDoesNotPublishAcrossReentrantPruning",
+        "TestWindowHostBatchingStopsAfterCompactionAndTabReorder",
+        "TestAttachedHostInitialRootChildBatchesAreBoundedAndResetScoped",
+        "TestAttachedHostInitialRootChildBatchFlushFailuresRecover",
+        "TestAttachedHostNestedCaptureAbortsTheActiveInitialBatch",
+        "TestWindowHostMessagePruneCacheRejectsChangesDuringPathValidation"
+      ],
+      "findingIds": [],
+      "disposition": "source-read-and-reviewed-runtime-and-performance-qualification-pending",
       "reviewNotes": {
-        "callers": "Full file read for this review slice; caller/entry paths were traced where invoked by the reviewed host, input, UIA, or embedded paths. No repository-wide caller inventory is claimed.",
-        "ownershipAndLifetime": "Reviewed ownership/lifetime boundaries in the available source context; no confirmed defect recorded for this path in this pass.",
-        "failureAndCancellation": "Reviewed failure/cancellation transitions in the available source context. Runtime behavior remains unverified because no build or tests were run by this reviewer.",
-        "testCoverage": "No direct case name is asserted from this file-only review; focused test linkage remains a gap. No tests were executed."
+        "callers": "Message-entry pruning uses the cache before HandleMessage dispatch; other prune call sites keep full validation. Batch hooks apply to eligible native Panel-root initial/reset frames.",
+        "ownershipAndLifetime": "Weak observer lifetimes are checked before bounded logical child paths, ancestor interactivity and final identity; batch frame state is stack-local and children are revalidated around callbacks.",
+        "failureAndCancellation": "Reviewed intended-green WindowHost snapshot SHA-256 866fb8fc62eb06756f65845e5130a10a8e8bb4fb3a805deba0ebd0ccc7713187; its bytes match the committed SDK source. Cache publication remains guarded by entry root, interaction revision, pass serial, and observer identities/lifetimes. Batch failure retains first Flush HRESULT, balances EndDraw, suppresses capture/presentation on failure, retries, and consumes quota after successful draw even if Present is occluded.",
+        "testCoverage": "The green-v2 Release run passed all 14 selected host/rendering cases, including cache lifetime/setter/live-move/path-overflow/reentry and batching compaction/reorder/native-host coverage. Epoch-cost red matched 2/2 expectations. Red-v2 mismatches remain historical counterfactual evidence; the full SDK matrix, consumer restore and performance qualification remain pending."
       },
       "plannedSha256": "ed1f004aabd559c69ce2d3665363ff74a3d86bf659d6b3be71f3667c1dde9880",
-      "reviewEvidence": "review-host-controls-current.md"
+      "reviewEvidence": "review-delta-20261024.md"
     },
     {
       "repository": "DxUi",
@@ -4823,27 +4833,25 @@ Machine-readable review data for the parent plan. All rows start pending; source
     {
       "repository": "DxUi",
       "path": "Tests/Controls/Controls.Tests.DxUiTestHelpers.h",
-      "sha256": "7b6c7349a11dcc9b48ac5a3f129beb784025fd048de9ccefead49162eb200c6a",
+      "sha256": "9493f733b4a079d0a7ed278ffbba3c4c2af62759f1abd4a31da16e6d8be163a1",
       "category": "tests",
       "generated": false,
       "reviewStatus": "reviewed",
       "reviewer": "review_ledger",
       "testIds": [
-        "TestGridMultilineDecomposedAccentsPaintLikePrecomposed",
-        "TestNativeTransitionStartsOnTheDispatcherTimelineAfterAStall",
-        "TestApplicationTextServiceLifecycle",
-        "TestHostFocusReplacementLeavesControlAlone"
+        "TestAttachedHostInitialRootChildBatchesAreBoundedAndResetScoped",
+        "TestWindowHostBatchingStopsAfterCompactionAndTabReorder"
       ],
-      "findingIds": null,
-      "disposition": "source-read-and-reviewed-no-runtime-qualification",
+      "findingIds": [],
+      "disposition": "source-read-and-reviewed-tests-pending",
       "reviewNotes": {
-        "callers": "Shared include for Controls test translation units; AttachedHostWindow routes WndProc through WindowHost::HandleMessage, then optional application callback. DispatchQueuedMessageForTest is used by host and animation tests; foreground helpers back native-TSF activation tests; RequireFocusReplacementLeavesControlAlone is used by Controls and native text-input regression tests.",
-        "ownershipAndLifetime": "AttachedHostWindow owns HWND via wil::unique_hwnd and WindowHost, explicitly detaches before resetting HWND, and stores callbacks capturing test state only while fixture lives. COM/WIC helpers use wil::com_ptr and scope_exit for VARIANT/BSTR/SAFEARRAY/IMM context cleanup. Grid models are borrowed by grids and fixture member order ensures model outlives window-owned tree. Test artifact helper creates a PID-specific directory under repo .build and is used for animation/windowhost logs and gallery captures; consult the DxUi runner sandbox/output contract before treating it as authorized test scratch.",
-        "failureAndCancellation": "Message pumps cap at 4096 messages and optional duration; bounded preparation loops cap at 1024. Wait helpers use absolute deadlines and report wait errors. Foreground retry caps attempts at five; repeated observed thieves are capability skips, activation refusal fails. Potential policy issue: GetDxUiTestArtifactDirectory writes under .build without an ownership marker in this helper; assess against the selected test-runner sandbox contract, since this review did not execute it.",
-        "testCoverage": "Helper coverage is indirect: named grid multiline, native dispatcher-stall, application TSF lifecycle and focus-replacement tests consume it. The shared fixture also provides test filtering/watchdog, bitmap compare, text/grid/tree models and input/foreground instrumentation; no helper-only test proves every branch. No execution/build performed."
+        "callers": "Selected native rendering fixtures opt into root-child batching; other helpers preserve default-off behavior.",
+        "ownershipAndLifetime": "Existing RAII owns HWND/host; non-activating display avoids global focus and fixture lifetime remains local.",
+        "failureAndCancellation": "Attach failure is asserted at fixture creation; default behavior remains unchanged for callers without opt-in.",
+        "testCoverage": "Registered batching and compaction/reorder cases use these helpers; green runtime proof remains pending."
       },
       "plannedSha256": "7b6c7349a11dcc9b48ac5a3f129beb784025fd048de9ccefead49162eb200c6a",
-      "reviewEvidence": "review-general-controls-supplement.md"
+      "reviewEvidence": "review-delta-20261024.md"
     },
     {
       "repository": "DxUi",
@@ -5250,41 +5258,25 @@ Machine-readable review data for the parent plan. All rows start pending; source
     {
       "repository": "DxUi",
       "path": "Tests/Controls/DxUi.Tests.Menu.cpp",
-      "sha256": "1c919be05e8a211aaa1d158349e0fff31c5376f213b2129801282ad61d8b0576",
+      "sha256": "c1eec07f2257945d8f4a4e18ead37bdb00c9a9da12f6c07c76e57a530b043e78",
       "category": "tests",
       "generated": false,
       "reviewStatus": "reviewed",
       "reviewer": "review_ledger",
       "testIds": [
-        "TestDescribedMenuAccessibilityInvokesAndDisconnects",
-        "TestDescribedMenuAccessibilityInvokeReportsPayloadSaturationAndRecovers",
-        "TestDescribedMenuPointerAndCancelledQueuedInvoke",
-        "TestDescribedMenuSubmenuKeepsSessionAndIdentity",
-        "TestDescribedMenuScrollRepublishesAccessibleGeometry",
-        "TestPlainMenuAccessibilityInvokesAndDisconnects",
-        "TestPlainMenuAccessibilityScrollsFocusedRow",
-        "TestMenuNativeFocusSelectsNoRowAndRestoresTheChosenOne",
-        "TestMenuSurvivesAWindowClosingItFromSetCursor",
-        "TestMenuForegroundWitnessReacquiresFocusAfterPreparedSetup",
-        "TestDescribedMenuReleasesItsMemoryWhenItCloses",
-        "TestDescribedRowsHoldOneLayoutEach",
-        "TestDescribedMenuDrawsItsDescriptionAgainAfterDeviceLoss",
-        "TestLargeMenuPaintsOnlyVisibleRowsWithCachedOffsets",
-        "TestModalMenuDismissesOnSentCancellationAndDeactivation",
-        "TestMenuLoopEndsWhenAnotherThreadDismissesIt",
-        "TestNativeMenuBarNestedPopupCanDestroyHostSafely",
-        "TestMenuExitLifetime"
+        "TestSplitButtonContextMenuOwnerMessageFloodDoesNotStarvePointerInput",
+        "MenuHoverTraceForTest marker map"
       ],
-      "findingIds": null,
-      "disposition": "source-read-and-reviewed-no-runtime-qualification",
+      "findingIds": [],
+      "disposition": "source-read-and-reviewed-trace-only-runtime-qualification-pending",
       "reviewNotes": {
-        "callers": "RunMenuTests dispatches RunNewControlCapturingMenuTests and RunMenuDescriptionTests; RunMenuDescriptionTests registers accessibility, modal and async menu, UIA, scroll, focus, DPI, layout, rendering, and lifetime cases. Menu callbacks are invoked by popup message handling and posted payload dispatch.",
-        "ownershipAndLifetime": "Fixtures own AttachedHostWindow, popup UIA COM providers, test payloads, and foreground witness threads with WIL/jthread scopes. Tests verify retained providers disconnect after popup teardown, payload registry saturation/release and owner drain, queued invoke cancellation on WM_NCDESTROY, layout/accessibility resource return while providers remain held, and process-exit suppression of callbacks. No defect confirmed from the complete source read.",
-        "failureAndCancellation": "Coverage exercises payload-post saturation HRESULT and recovery, failed optional description prep with recovery, Escape dismissal before queued UIA action dispatch, submenu close without ending parent session, foreign-thread dismissal, device-loss redraw, and foreground loss/retry. Interactive/focus/cursor tests use the foreground-held helpers or explicitly skip without the desktop; code review only, no test execution.",
-        "testCoverage": "Meaningful exact cases include TestDescribedMenuAccessibilityInvokeReportsPayloadSaturationAndRecovers, TestDescribedMenuPointerAndCancelledQueuedInvoke, TestPlainMenuAccessibilityScrollsFocusedRow, TestMenuSurvivesAWindowClosingItFromSetCursor, TestNativeMenuBarNestedPopupCanDestroyHostSafely, and TestLargeMenuPaintsOnlyVisibleRowsWithCachedOffsets. Additional registrations cover exact layout geometry, 50/128/200-row behavior, both visual themes, fractional DPI, and process exit; no runtime or pass claim."
+        "callers": "Existing diagnostics sink and trace fixture consume marker names while preserving route filters.",
+        "ownershipAndLifetime": "Thread-local trace pointer is restored by scope-exit; no control or popup ownership is retained.",
+        "failureAndCancellation": "Markers remain observational; fixture lacks one-to-one cause assertions.",
+        "testCoverage": "Named route/helper coverage exists, but cause-specific assertion and runtime result are absent."
       },
       "plannedSha256": "d79f1e0391190a70a1749a8d84cb47871871ac1be30e17a49c44b2fd1f8f4d14",
-      "reviewEvidence": "review-general-controls-supplement.md"
+      "reviewEvidence": "review-delta-20261024.md"
     },
     {
       "repository": "DxUi",
@@ -5432,30 +5424,28 @@ Machine-readable review data for the parent plan. All rows start pending; source
     {
       "repository": "DxUi",
       "path": "Tests/Controls/DxUi.Tests.Rendering.cpp",
-      "sha256": "14cacc34b997268a61073866c1be75ad97795530b9b1d7b961ef5155ad501461",
+      "sha256": "2378006d2b03717dda0543019e83accea477c6b2adb99ee6460eb64258e6da9a",
       "category": "tests",
       "generated": false,
       "reviewStatus": "reviewed",
-      "reviewer": "mermaid_executor",
+      "reviewer": "review_ledger",
       "testIds": [
-        "TestGridMultilineLayoutsSurviveRepaintForEveryDistinctVisibleCell",
-        "TestGridReleasesItsLayoutsWhenItStopsPainting",
-        "TestGridMultilineOversizedValueShapesOnlyItsVisiblePrefix",
-        "TestThroughputGraphHueChurnPerformanceScenario",
-        "TestAttachedLargeGridLongRunScrollingStaysBoundedWithoutResizeChurn",
-        "TestAttachedHostFirstPartialPaintPresentsFullAfterCreateAndResize",
-        "TestAttachedHostRecoversAfterSimulatedDeviceLoss"
+        "TestAttachedHostInitialRootChildBatchesAreBoundedAndResetScoped",
+        "TestAttachedHostInitialRootChildBatchingUsesNativePaintAndExcludesNestedPanels",
+        "TestAttachedHostInitialRootChildBatchFlushFailuresRecover",
+        "TestAttachedHostNestedCaptureAbortsTheActiveInitialBatch",
+        "TestAttachedHostFirstPartialPaintPresentsFullAfterCreateAndResize"
       ],
       "findingIds": [],
-      "disposition": "No confirmed defect from the full test-file review. One performance-specific graph scenario is environment-gated by DXUI_GRAPH_PERF=1; ordinary graph rendering and pixel coverage are separately registered. No tests were run as part of this review.",
+      "disposition": "source-read-and-reviewed-tests-pending",
       "reviewNotes": {
-        "callers": "Tests/Controls/DxUi.Tests.Runner.cpp declares and invokes RunRenderingTests; this file registers the rendering group through DXUI_RUN_TEST. It also includes Controls.Tests.GridMultilineRendering.h, whose tests run in the same group.",
-        "ownershipAndLifetime": "The attached-host cases use AttachedHostWindow; the relevant helper destructor calls _host.Detach() before host-window teardown. Grid tests cover cache release when hidden, detached, remodeled, moved between hosts, or no longer visible, as well as device-loss recovery.",
-        "failureAndCancellation": "The test group exercises bounded shaping of oversized text, clipping, device loss, and first partial presentation after create/resize. No cancellation behavior is applicable in this rendering test file; device loss is simulated and verified through host recovery cases.",
-        "testCoverage": "Coverage spans cache identity/invalidation, multiline clamping and ellipsis, RTL/emoji/grapheme/surrogate handling, theme/DPI changes, transient surfaces and high contrast, graph bands, large attached-grid visible-work bounds, same-size redraw without resize, resize flush, and device loss. The DXUI_GRAPH_PERF-gated hue-churn measurement is optional; functional graph pixel/band tests remain independent. This is source review only; none of these tests were executed here."
+        "callers": "Rendering suite exercises native rendering, capture, partial paint, and nested-host paths; capture remains distinct from WM_PAINT.",
+        "ownershipAndLifetime": "Fixtures own host/capture and show native windows with SW_SHOWNOACTIVATE without pumping away initial-frame state.",
+        "failureAndCancellation": "Failures preserve retry; successful draw followed by occluded Present consumes quota; nested capture aborts the outer batch.",
+        "testCoverage": "Four selected Rendering cases passed in green-v2: bounded/reset scope, native paint/nested-panel exclusion, Flush failure/recovery, and nested-capture abort. The separate first-partial-paint-after-create/resize case was not part of this 14-case run; the full SDK matrix remains pending."
       },
       "plannedSha256": "475f4313f36544c2f363b0e39cf08001b4ab945a37e2ba9eeabbe4533cba68f1",
-      "reviewEvidence": "review-general-controls-final-supplement.md"
+      "reviewEvidence": "review-delta-20261024.md"
     },
     {
       "repository": "DxUi",
@@ -5596,22 +5586,29 @@ Machine-readable review data for the parent plan. All rows start pending; source
     {
       "repository": "DxUi",
       "path": "Tests/Controls/DxUi.Tests.WindowHost.cpp",
-      "sha256": "88406d96395137ea565a5a0bc38abd626fd96a0bc9a2e16aa1c1a4bc661bafed",
+      "sha256": "2193eaef6aa69fcb41658444ec5f011497efc37731794c07c0d8aae19ded525c",
       "category": "tests",
       "generated": false,
       "reviewStatus": "reviewed",
-      "reviewer": "structural_executor",
-      "testIds": [],
-      "findingIds": null,
-      "disposition": "source-read-and-reviewed-no-runtime-qualification",
+      "reviewer": "review_ledger",
+      "testIds": [
+        "TestWindowHostMessagePruneCacheRejectsChangesDuringPathValidation",
+        "TestWindowHostMessagePruneCacheTracksObserverLifetimeAndSetterChanges",
+        "TestWindowHostMessagePruneCacheRevalidatesLiveMovedObserver",
+        "TestWindowHostMessagePruneCachePathOverflowUsesFullPruneFallback",
+        "TestWindowHostMessagePruneCacheDoesNotPublishAcrossReentrantPruning",
+        "TestWindowHostBatchingStopsAfterCompactionAndTabReorder"
+      ],
+      "findingIds": [],
+      "disposition": "source-read-and-reviewed-tests-pending",
       "reviewNotes": {
-        "callers": "Full file read for this review slice; caller/entry paths were traced where invoked by the reviewed host, input, UIA, or embedded paths. No repository-wide caller inventory is claimed.",
-        "ownershipAndLifetime": "Reviewed ownership/lifetime boundaries in the available source context; no confirmed defect recorded for this path in this pass.",
-        "failureAndCancellation": "Reviewed failure/cancellation transitions in the available source context. Runtime behavior remains unverified because no build or tests were run by this reviewer.",
-        "testCoverage": "Full file read; test case IDs are not enumerated here. No tests were executed by this reviewer."
+        "callers": "WindowHost suite warms cache through public message entry, then exercises observer mutations, tree changes, reentry, root replacement, compaction and tab order.",
+        "ownershipAndLifetime": "Live GetChildren move keeps same revision and live weak token; cached logical path must detect membership loss without manufactured counter resets.",
+        "failureAndCancellation": "Query-time hidden-capture identity change and unrelated interaction-revision change each reject a cache hit and cause fresh pruning; focused state remains valid while hidden capture is cleared. These two variants test a normally read-only query fault, not destructive getter reentry.",
+        "testCoverage": "Green-v2 passed all 10 selected WindowHost cases; the other four selected cases are the registered Rendering batching cases. Epoch-cost red matched 2/2 expectations, including the actual tab identity swap. The full SDK matrix remains pending."
       },
       "plannedSha256": "44dc726ecf7a6b22e40b3dcd7a854c3693f3f67acebe9342793c03edc2597d2e",
-      "reviewEvidence": "review-host-controls-current.md"
+      "reviewEvidence": "review-delta-20261024.md"
     },
     {
       "repository": "DxUi",
@@ -8387,26 +8384,25 @@ Machine-readable review data for the parent plan. All rows start pending; source
     {
       "repository": "DxUi",
       "path": "Tests/test-scopes.json",
-      "sha256": "4f6d27688ec59e3c65c8a71d63127de02de91607f35d5f528e9ec1dfe13b1067",
-      "category": "tests",
+      "sha256": "f30ecafe7645dae250486e8cf7415619fe67c909018971b28bee026aa40eb50d",
+      "category": "build-and-tooling",
       "generated": false,
       "reviewStatus": "reviewed",
       "reviewer": "review_ledger",
       "testIds": [
-        "Test-NativeScope.ps1",
-        "Test-InteractiveMode.ps1",
-        "Test-ScopedTesting.ps1"
+        "Test-ScopedTesting path normalization",
+        "Test-NativeScope workflow scope consumer"
       ],
       "findingIds": [],
-      "disposition": "Reviewed policy data and listed direct tooling consumers; no specific invalid entry found.",
+      "disposition": "reviewed-tooling-input-qualification-pending",
       "reviewNotes": {
-        "callers": "Tools/ScopedTesting.psm1 consumes standalone scopes; Test-NativeScope.ps1 validates PR contract metadata; Test-InteractiveMode.ps1 and Test-ScopedTesting.ps1 use isolated fixtures.",
-        "ownershipAndLifetime": "Tracked declarative scope, rule, interactive-obligation, PR coverage, and contract-file metadata; no runtime ownership.",
-        "failureAndCancellation": "Schema/semantic validation failures stop scoped test planning; invalid scope and coverage entries do not silently become runnable obligations.",
-        "testCoverage": "Test-NativeScope.ps1, Test-InteractiveMode.ps1, and Test-ScopedTesting.ps1 provide consumer-specific metadata validation."
+        "callers": "Scoped source identity and PR workflow digest are consumed by tooling scope validation and native-scope selection.",
+        "ownershipAndLifetime": "JSON owns declarations/digest inputs; module calculates identity; delta updates workflow digest.",
+        "failureAndCancellation": "Stale digest/unknown scope rejected by existing validation; no hosted run inferred.",
+        "testCoverage": "Test-ScopedTesting and Test-NativeScope relevant; execution pending."
       },
       "plannedSha256": "a35b8619f45aa872b026a5dc978d5d6dff54ebc0ff2f2e9fadadca6413bf8c65",
-      "reviewEvidence": "review-general-tests-current.md"
+      "reviewEvidence": "review-delta-20261024.md"
     },
     {
       "repository": "DxUi",
@@ -9010,26 +9006,26 @@ Machine-readable review data for the parent plan. All rows start pending; source
     {
       "repository": "DxUi",
       "path": "Tools/ScopedTesting.psm1",
-      "sha256": "fe0b19b877fb59b3647d4345ad2c7c53b053efd1f328f7c9ba2ed8756fe1fe86",
+      "sha256": "bd8bdae656bf08317aa6d40eefcc7b8f921e72217f77ccac5532da73ea7d805e",
       "category": "build-and-tooling",
       "generated": false,
       "reviewStatus": "reviewed",
       "reviewer": "review_ledger",
       "testIds": [
-        "Test-ScopedTesting",
+        "Test-ScopedTesting case-distinct/ordinal-order/rename/Unicode",
         "Test-NativeScope",
         "Test-BuildMatrix"
       ],
       "findingIds": [],
-      "disposition": "reviewed-no-confirmed-finding",
+      "disposition": "source-read-and-reviewed-runtime-qualification-pending",
       "reviewNotes": {
-        "testCoverage": "Tools/tests/Test-ScopedTesting.ps1 covers changed path matching, identity invalidation, dependency/artifact changes, PR contract and receipt behavior; Test-NativeScope and Test-BuildMatrix cover related scope/build-map helpers.",
-        "failureAndCancellation": "Unknown scopes, unsafe paths, missing installed dependency metadata or absent artifacts fail closed; stale/corrupt receipts miss cache; PR proof must match clean branch/workflow/head/base and is double-checked after query.",
-        "callers": "Imported by test.ps1, build.ps1, test-consumer.ps1 and paired driver; derives changed-path plan, obligations, source/dependency/artifact/environment/tool identities and PR coverage.",
-        "ownershipAndLifetime": "Git child process disposed; receipts are per scope/profile; source and dependencies hashed, opt-in values hashed; PR external gh queries only decide reusable delegated coverage."
+        "callers": "Tracked/changed path getters call Get-ScopedOrdinalUniquePaths; matcher stays case-insensitive.",
+        "ownershipAndLifetime": "Copies paths into ordinal SortedSet, exact-dedupes and orders independently of filesystem behavior.",
+        "failureAndCancellation": "NUL-separated Git output uses existing errors; empty entries ignored; rename sides retained.",
+        "testCoverage": "Linux 36/36 used SDK94 older source; does not qualify 392b0135. No final run/perf claim."
       },
       "plannedSha256": "fd728facd01e19100b7b01234a4808c52e003628076ab0cda7ab42e09ab43a5e",
-      "reviewEvidence": "review-dxui-tooling-20261024.md"
+      "reviewEvidence": "review-delta-20261024.md"
     },
     {
       "repository": "DxUi",
@@ -9620,26 +9616,26 @@ Machine-readable review data for the parent plan. All rows start pending; source
     {
       "repository": "DxUi",
       "path": "Tools/tests/Test-ScopedTesting.ps1",
-      "sha256": "84af30b91e6cae7974f513121320de122a67c0e61d623d624fd561e9c308adaf",
-      "category": "tests",
+      "sha256": "7175c3e332eb975c80572eb4e5b0668498162830cc829647dcd58ae7fa3a6e0d",
+      "category": "build-and-tooling",
       "generated": false,
       "reviewStatus": "reviewed",
       "reviewer": "review_ledger",
       "testIds": [
-        "Test-ScopedTesting.ps1: scope and interactive obligations",
-        "Test-ScopedTesting.ps1: source/artifact/dependency identities and stale receipt rejection",
-        "Test-ScopedTesting.ps1: PR delegation contract and runner lifecycle"
+        "Test-ScopedTesting ordinal paths/rename/Unicode",
+        "scope obligations",
+        "stale receipts"
       ],
       "findingIds": [],
-      "disposition": "reviewed-no-confirmed-finding",
+      "disposition": "source-read-and-reviewed-runtime-qualification-pending",
       "reviewNotes": {
-        "callers": "Tooling dispatcher invokes this PowerShell test; it imports Tools/ScopedTesting.psm1 and the public Test-Changes.ps1 runner in a repository-local fixture.",
-        "ownershipAndLifetime": "Creates a unique fixture below .build/ToolTests, a nested isolated Git repository and dependency/artifact files; snapshots PATH and instrumentation environment and restores them in finally; cleanup verifies the resolved fixture remains below the owned root.",
-        "failureAndCancellation": "Exercises invalid paths/rules, stale/corrupt receipts, source/library/runtime/dependency mutation, concurrent PR state changes, capability skips and post-run mutation. Nested fake public-runner subprocesses have no explicit WaitForExit timeout; fixture commands are deterministic local PowerShell only.",
-        "testCoverage": "Named cases cover scalar/batched globs, interactive obligations, all six profiles, clean/staged/unstaged/deleted/renamed paths, identity closure, platform-specific vcpkg evidence, PR delegation, and cached runner failure. Read only; not executed."
+        "callers": "Invoked by tooling suite and scoped entrypoints; cases exercise tracked enumeration and pure normalizer.",
+        "ownershipAndLifetime": "Fixtures stay in owned temp repo and existing cleanup; case-distinct files are distinct Git identities.",
+        "failureAndCancellation": "Asserts exact identity, strict ordinal order, Unicode variants, rename sides.",
+        "testCoverage": "Commit-specific run not claimed; older Linux result does not qualify later hash."
       },
       "plannedSha256": "6930ecce087d0cf9e52b1f1bdb4c7435655f5dba2d6a7da065b30d8c1bffc4f9",
-      "reviewEvidence": "review-general-tests-current.md"
+      "reviewEvidence": "review-delta-20261024.md"
     },
     {
       "repository": "DxUi",
@@ -11130,6 +11126,163 @@ Machine-readable review data for the parent plan. All rows start pending; source
       "addedAt": "execution-2026-10-24",
       "plannedSha256": "3e0be1acecdf04598563465c72144478f6bca29f04146caa64cbcc2998b4df90",
       "reviewEvidence": "review-dxui-rich-20261024.md"
+    },
+    {
+      "repository": "DxUi",
+      "path": "CHANGELOG.md",
+      "sha256": "a35681d6487b3d59bcac6d0ef2b25aa956ae235fca223ba1d4ba0921cf00c00b",
+      "category": "build-and-tooling",
+      "generated": true,
+      "reviewStatus": "reviewed",
+      "reviewer": "review_ledger",
+      "testIds": [
+        "Fold-Changelog.ps1",
+        "Fold-Changelog.ps1 -Check",
+        "Tools/Test-Changelog.ps1"
+      ],
+      "findingIds": [],
+      "disposition": "generated-provenance-reviewed-qualification-pending",
+      "reviewNotes": {
+        "callers": "Generated by the SDK fragment fold; current Unreleased entries cover path identity, interactive lease, host message pruning and bounded initial-root batching.",
+        "ownershipAndLifetime": "Generated output only; durable policy and implementation details remain in the authoritative validation, control/layout, rendering and performance specifications plus dated fragments.",
+        "failureAndCancellation": "Generated provenance row; the retained fold/check logs say the changelog is valid and fully folded. The current validate-host-final.log also records all six validators and tooling tests passed; neither result qualifies the new native runtime.",
+        "testCoverage": "Fold and -Check completed successfully. Green-v2 passed 14/14 selected Release host/rendering cases; the current full SDK x64/ARM64 matrix and consumer restore remain pending."
+      },
+      "reviewEvidence": "review-delta-20261024.md"
+    },
+    {
+      "repository": "DxUi",
+      "path": "Specs/Plans/WIP/RichTextAudit_2026-10-21/RedTildeCompletion_2026-10-24.md",
+      "sha256": "9dac898b33fde7c97dc12889b3481cb0516dfeefc863ba074952fbd29f671499",
+      "category": "build-and-tooling",
+      "generated": false,
+      "reviewStatus": "reviewed",
+      "reviewer": "review_ledger",
+      "testIds": [
+        "host-regressions-green-v2: 14 targeted Release cases passed",
+        "epoch-cost red: 2/2 expected outcomes matched"
+      ],
+      "findingIds": [],
+      "disposition": "reviewed-planning-document-no-runtime-qualification",
+      "reviewNotes": {
+        "callers": "Planning appendix points to RedTilde coordinator for cross-repository sequencing and qualification.",
+        "ownershipAndLifetime": "Planning-only; no product ownership or acceptance authority.",
+        "failureAndCancellation": "Revised wording avoids relative path resolving inside wrong checkout; final profile/perf remain open.",
+        "testCoverage": "The appendix records 14/14 targeted Release outcomes at source SHA-256 866fb8fc62eb06756f65845e5130a10a8e8bb4fb3a805deba0ebd0ccc7713187 and the 2/2 epoch-cost red outcomes. Full SDK x64/ARM64 matrix, RedTilde pin restore/build, foreground suites, and whole-feature performance comparison remain pending."
+      },
+      "reviewEvidence": "review-delta-20261024.md"
+    },
+    {
+      "repository": "DxUi",
+      "path": "Specs/Testing/Testing_Validation.md",
+      "sha256": "866c5c52b1578310ac287c6f951c933860634e96f67e0218d99dce157d19a077",
+      "category": "build-and-tooling",
+      "generated": false,
+      "reviewStatus": "reviewed",
+      "reviewer": "review_ledger",
+      "testIds": [
+        "Test-ScopedTesting case-distinct paths",
+        "ordinal order, rename sides, Unicode"
+      ],
+      "findingIds": [],
+      "disposition": "reviewed-normative-tooling-contract-qualification-pending",
+      "reviewNotes": {
+        "callers": "Defines ordinal case-sensitive Git path identity consumed by ScopedTesting; scope-pattern matching remains case-insensitive.",
+        "ownershipAndLifetime": "Changed-path collector owns copied strings in ordinal SortedSet; Git owns repository enumeration.",
+        "failureAndCancellation": "Separates identity from pattern matching; existing Git errors remain failure path.",
+        "testCoverage": "Named fixtures relevant; review did not execute them. Full profile and performance qualification separate."
+      },
+      "reviewEvidence": "review-delta-20261024.md"
+    },
+    {
+      "repository": "DxUi",
+      "path": "Tools/README.md",
+      "sha256": "529b27c80f15f3b466f99454ed81bcbff730791071fb7bae2d9a6af1c2693d28",
+      "category": "build-and-tooling",
+      "generated": false,
+      "reviewStatus": "reviewed",
+      "reviewer": "review_ledger",
+      "testIds": [
+        "Test-ScopedTesting ordinal identity fixtures"
+      ],
+      "findingIds": [],
+      "disposition": "reviewed-tooling-document-qualification-pending",
+      "reviewNotes": {
+        "callers": "Documents Test-Changes, Test-PrePush, scoped path discovery.",
+        "ownershipAndLifetime": "Documentation routes existing commands; adds no command/dependency.",
+        "failureAndCancellation": "Distinguishes ordinal path identity from case-insensitive scope matching; no new failure behavior.",
+        "testCoverage": "README is not executable; related fixtures listed; current run not claimed."
+      },
+      "reviewEvidence": "review-delta-20261024.md"
+    },
+    {
+      "repository": "DxUi",
+      "path": "Specs/Core/Core_PerformanceAndResources.md",
+      "sha256": "8878706396171181f5958ab641f062073508c521ea2ccf7b1de0c70b2b2ebccf",
+      "category": "documentation",
+      "generated": false,
+      "reviewStatus": "reviewed",
+      "reviewer": "review_ledger",
+      "testIds": [
+        "WindowHost message-prune cache cases",
+        "Native initial root-child batch cases"
+      ],
+      "findingIds": [],
+      "disposition": "reviewed-normative-contract-runtime-and-performance-qualification-pending",
+      "reviewNotes": {
+        "callers": "Normative policy defines narrow message-entry cache; other prune sites stay full. Performance requirements keep initial native batching opt-in.",
+        "ownershipAndLifetime": "Requires weak lifetime and logical membership proof; initial native batching is bounded to eight root-child boundaries.",
+        "failureAndCancellation": "A changed or expired observer/root, membership/interactivity mismatch, path overflow, or state change during validation falls back to full prune; the entry revision and serial guard publication. Initial-frame Flush/EndDraw failure suppresses capture/presentation and retries; embedded contexts are excluded.",
+        "testCoverage": "The 14 targeted green-v2 Release cache/batching cases pass, and the epoch-cost red matched 2/2 expectations. Full SDK x64/ARM64 and consumer qualification remain pending; no whole-feature performance acceptance is claimed."
+      },
+      "reviewEvidence": "review-delta-20261024.md"
+    },
+    {
+      "repository": "DxUi",
+      "path": "Specs/Rendering/Rendering_Win32Host.md",
+      "sha256": "13dd38284f6c7422c954aeaa4f090800f804c35e23381540b80f1a037294b039",
+      "category": "documentation",
+      "generated": false,
+      "reviewStatus": "reviewed",
+      "reviewer": "review_ledger",
+      "testIds": [
+        "TestAttachedHostInitialRootChildBatchesAreBoundedAndResetScoped",
+        "TestAttachedHostInitialRootChildBatchingUsesNativePaintAndExcludesNestedPanels",
+        "TestAttachedHostInitialRootChildBatchFlushFailuresRecover",
+        "TestAttachedHostNestedCaptureAbortsTheActiveInitialBatch"
+      ],
+      "findingIds": [],
+      "disposition": "reviewed-normative-contract-runtime-and-performance-qualification-pending",
+      "reviewNotes": {
+        "callers": "Documents native first full-frame batching; embedded hosts remain without swapchains.",
+        "ownershipAndLifetime": "Opt-in default off; max eight boundaries per reset frame; no application-specific per-control API.",
+        "failureAndCancellation": "Flush failure suppresses capture/present and balances EndDraw; successful draw consumes quota even on occlusion.",
+        "testCoverage": "Four selected native batching Rendering cases passed in green-v2, including WM_PAINT Flush/EndDraw retry. The separate partial-paint-after-create/resize case was not selected; full SDK matrix and consumer qualification remain pending."
+      },
+      "reviewEvidence": "review-delta-20261024.md"
+    },
+    {
+      "repository": "DxUi",
+      "path": "Specs/UI/UI_ControlsAndLayout.md",
+      "sha256": "d0407883c00d8f129307d436895ad3af7f216aed990bff71a82e1e9fbe412748",
+      "category": "documentation",
+      "generated": false,
+      "reviewStatus": "reviewed",
+      "reviewer": "review_ledger",
+      "testIds": [
+        "TestWindowHostMessagePruneCacheRejectsChangesDuringPathValidation",
+        "TestWindowHostMessagePruneCacheRevalidatesLiveMovedObserver",
+        "TestWindowHostMessagePruneCachePathOverflowUsesFullPruneFallback"
+      ],
+      "findingIds": [],
+      "disposition": "reviewed-normative-contract-runtime-and-performance-qualification-pending",
+      "reviewNotes": {
+        "callers": "The stable logical-child query contract applies to every retained-tree traversal, including membership resolution and cached-path revalidation.",
+        "ownershipAndLifetime": "GetLogicalChildCount/GetLogicalChild are read-only owning-UI-thread queries; returned pointers are borrowed until supported mutation. Traversals rely on query purity and do not support destructive getter reentry.",
+        "failureAndCancellation": "The message-prune cache validates bounded logical paths and falls back to the full resolver on overflow, expired tokens, changed identity/interactivity, or state change during path validation.",
+        "testCoverage": "Green-v2 passed the query-time observer/epoch mutation cases, live GetChildren move, and path-overflow fallback within the 14 selected Release cases. Full SDK matrix and performance qualification remain pending."
+      },
+      "reviewEvidence": "review-delta-20261024.md"
     }
   ],
   "reviewStatusValues": [
@@ -11139,7 +11292,23 @@ Machine-readable review data for the parent plan. All rows start pending; source
   ],
   "executionAt": {
     "RedTilde": "d53b4c6dc382ca87d3229c2c970eaaff0d07dbf5",
-    "DxUi": "94bf9801f51a544422ecb8aa6ae86d2e33aadcb2"
+    "DxUi": "cfe875fd815b0a39336100df9bde8f29ea2f0aa0"
+  },
+  "rowCounts": {
+    "firstPartySourceBuildTestResourceRows": 446,
+    "generatedFixtureProvenanceRows": 36,
+    "explicitDocumentationRows": 6,
+    "generatedChangelogRows": 1,
+    "total": 489
+  },
+  "selectionAudit": {
+    "method": "Compared tracked paths from git ls-files in both candidate worktrees against the inventory selection using first-party code/build/test/config/manifest/resource extensions and exclusions stated in scope; no original full inventory generator was present under .build/audit-20261024 (only a targeted row updater).",
+    "primaryTrackedInputs": 482,
+    "primaryRows": 482,
+    "unexplainedOmissions": 0,
+    "deltaDocumentationRows": 7,
+    "vendoredCorporaAndAssetsExpanded": false,
+    "hashComparison": "All 489 inventory hashes match current tracked files or the newest intended-green host-regressions-green-v2/WindowHost.green.cpp snapshot, whose bytes match the committed SDK source."
   }
 }
 ```

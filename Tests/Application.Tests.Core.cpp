@@ -6,11 +6,15 @@
 #include <DxUi/RichMath.h>
 #include <DxUi/RichSemanticDocument.h>
 #include <array>
+#include <charconv>
 #include <chrono>
+#include <cmath>
+#include <cstdint>
 #include <fstream>
 #include <functional>
 #include <ranges>
 #include <stdexcept>
+#include <string_view>
 #include <thread>
 #include <utility>
 
@@ -36,6 +40,122 @@ std::wstring WindowCaption(HWND window)
     const int length = GetWindowTextW(window, text.data(), static_cast<int>(text.size()));
     Require(length > 0, "read native Unicode caption");
     return std::wstring(text.data(), static_cast<std::size_t>(length));
+}
+// Inspect the compact native report's selected members without adding a product JSON dependency.
+std::string_view JsonObjectAt(std::string_view source, std::size_t open)
+{
+    Require(open < source.size() && source[open] == '{', "resource probe JSON object starts");
+    unsigned depth{};
+    bool quoted{}, escaped{};
+    for (std::size_t index = open; index < source.size(); ++index)
+    {
+        const char value = source[index];
+        if (quoted)
+        {
+            if (escaped)
+                escaped = false;
+            else if (value == '\\')
+                escaped = true;
+            else if (value == '"')
+                quoted = false;
+            continue;
+        }
+        if (value == '"')
+            quoted = true;
+        else if (value == '{')
+            ++depth;
+        else if (value == '}' && --depth == 0)
+            return source.substr(open, index - open + 1);
+    }
+    throw std::runtime_error("resource probe JSON object is terminated");
+}
+std::string_view JsonObjectAfter(std::string_view source, std::string_view marker)
+{
+    const auto markerAt = source.find(marker);
+    Require(markerAt != source.npos, "resource probe JSON object marker is present");
+    const auto open = source.find_first_not_of(" \t\r\n", markerAt + marker.size());
+    return JsonObjectAt(source, open);
+}
+std::string_view JsonObjectContaining(std::string_view source, std::size_t markerAt)
+{
+    Require(markerAt < source.size(), "resource probe JSON object member is present");
+    std::array<std::size_t, 32> objects{};
+    std::size_t depth{};
+    bool quoted{}, escaped{};
+    for (std::size_t index = 0; index < markerAt; ++index)
+    {
+        const char value = source[index];
+        if (quoted)
+        {
+            if (escaped)
+                escaped = false;
+            else if (value == '\\')
+                escaped = true;
+            else if (value == '"')
+                quoted = false;
+            continue;
+        }
+        if (value == '"')
+            quoted = true;
+        else if (value == '{')
+        {
+            Require(depth < objects.size(), "resource probe JSON nesting is bounded");
+            objects[depth++] = index;
+        }
+        else if (value == '}')
+        {
+            Require(depth > 0, "resource probe JSON braces are balanced");
+            --depth;
+        }
+    }
+    Require(depth > 0, "resource probe member is inside an object");
+    return JsonObjectAt(source, objects[depth - 1]);
+}
+std::string_view JsonNumberToken(std::string_view object, std::string_view field)
+{
+    const auto marker = std::format("\"{}\":", field);
+    const auto at = object.find(marker);
+    Require(at != object.npos, "resource probe numeric field is present");
+    auto value = object.substr(at + marker.size());
+    const auto end = value.find_first_of(",}");
+    Require(end != value.npos, "resource probe numeric member is delimited");
+    value = value.substr(0, end);
+    const auto begin = value.find_first_not_of(" \t\r\n");
+    Require(begin != value.npos, "resource probe numeric member is nonempty");
+    value.remove_prefix(begin);
+    return value.substr(0, value.find_last_not_of(" \t\r\n") + 1);
+}
+std::uint64_t JsonUnsigned(std::string_view object, std::string_view field)
+{
+    const auto token = JsonNumberToken(object, field);
+    std::uint64_t result{};
+    const auto [parsed, error] = std::from_chars(token.data(), token.data() + token.size(), result);
+    Require(error == std::errc{} && parsed == token.data() + token.size(), "resource probe unsigned field is valid");
+    return result;
+}
+double JsonPositiveFinite(std::string_view object, std::string_view field)
+{
+    const auto token = JsonNumberToken(object, field);
+    double result{};
+    const auto [parsed, error] = std::from_chars(token.data(), token.data() + token.size(), result);
+    Require(!token.empty() && error == std::errc{} && parsed == token.data() + token.size() && std::isfinite(result) && result > 0,
+            "resource probe timing field is positive and finite");
+    return result;
+}
+void RequireCompletedResourceCost(std::string_view cost, std::string_view description)
+{
+    (void)JsonPositiveFinite(cost, "completedWallUs");
+    (void)JsonUnsigned(cost, "processCpu100ns");
+    (void)JsonUnsigned(cost, "ownerCpuCycles");
+    const auto flushes = JsonUnsigned(cost, "rootChildFlushes");
+    Require(flushes > 0 && flushes <= 8, description);
+}
+void RequireResourcePhase(std::string_view report, std::string_view phase, bool completed)
+{
+    const auto marker = std::format("\"phase\":\"{}\"", phase);
+    const auto entry = JsonObjectContaining(report, report.find(marker));
+    if (completed)
+        RequireCompletedResourceCost(JsonObjectAfter(entry, "\"preparation\":"), "reset frame flush count is in the bounded root-child range");
 }
 } // namespace
 int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool listOnly)
@@ -1322,6 +1442,32 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                  app.SetDocument(L"# Resource lifecycle\n\nS5_EDIT_HERE and $a_i^2$.\n\n$$\\begin{bmatrix}a&b\\\\c&d\\end{bmatrix}$$\n\n"
                                  L"```mermaid\nstateDiagram-v2\n[*] --> Draft\nDraft --> Saved : Save\n```\n");
                  Require(RunPerformanceProbe(app, launch) == 0, "actual native resource, image, resize and device-loss protocol succeeds");
+                 std::string probeReport;
+                 Success(ReadBytes(launch.performance, probeReport), "read native resource lifecycle diagnostics");
+                 const bool reportsWarp = probeReport.find("\"renderer\":\"WARP\"") != probeReport.npos;
+                 const bool reportsHardware = probeReport.find("\"renderer\":\"Hardware\"") != probeReport.npos;
+                 Require(reportsWarp || reportsHardware, "resource probe reports a recognized adapter mode");
+                 Require(!warp || reportsWarp, "resource probe honors the explicit WARP adapter request");
+                 const auto firstPreparation = JsonObjectAfter(probeReport, "\"firstCompletedPreparation\":");
+                 RequireCompletedResourceCost(firstPreparation, "initial reset frame flush count is in the bounded root-child range");
+                 RequireResourcePhase(probeReport, "clean-after-dirty", false);
+                 RequireResourcePhase(probeReport, "clean-hidden-idle", false);
+                 RequireResourcePhase(probeReport, "hidden-notification-idle", false);
+                 RequireResourcePhase(probeReport, "resumed-forced-frame", false);
+                 RequireResourcePhase(probeReport, "resized-forced-frame", true);
+                 std::size_t recreated{};
+                 constexpr std::string_view recreatedMarker = "\"phase\":\"recreated-forced-frame\"";
+                 for (auto at = probeReport.find(recreatedMarker); at != probeReport.npos;
+                      at = probeReport.find(recreatedMarker, at + recreatedMarker.size()))
+                 {
+                     const auto entry = JsonObjectContaining(probeReport, at);
+                     RequireCompletedResourceCost(JsonObjectAfter(entry, "\"preparation\":"),
+                                                  "device-loss reset frame flush count is in the bounded root-child range");
+                     ++recreated;
+                 }
+                 Require(recreated == 3, "resource probe records all three device-loss recovery preparations");
+                 RequireResourcePhase(probeReport, "closed", false);
+                 Require(probeReport.find("\"completed\":true") != probeReport.npos, "resource probe report is complete");
                  Require(app.Window() == nullptr && app.Host().GetHwnd() == nullptr, "resource protocol retires its window and native host");
              }
          });

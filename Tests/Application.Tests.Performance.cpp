@@ -237,27 +237,53 @@ class PerformanceProbe
         Pump();
         Require(SUCCEEDED(app.RecoveryStatus()), "recovery failed before memory observation");
     }
-    struct IdleCost
+    struct OperationCost
     {
         double wallUs{};
         std::uint64_t processCpu100ns{}, ownerCpuCycles{};
+        std::uint64_t rootChildFlushes{};
     };
-    IdleCost MeasureIdle(DWORD milliseconds)
+    OperationCost MeasureIdle(DWORD milliseconds)
     {
         const auto cpu = ProcessCpu100ns(), cycles = OwnerCycles();
         const auto started = Clock::now();
         Idle(milliseconds);
-        IdleCost result{Micros(started), ProcessCpu100ns() - cpu, OwnerCycles() - cycles};
+        OperationCost result{Micros(started), ProcessCpu100ns() - cpu, OwnerCycles() - cycles};
         Require(result.wallUs >= milliseconds * 900.0, "idle interval ended before its observation window");
         return result;
     }
-    void Resource(std::ostream &out, std::string_view name, const IdleCost *idle = nullptr)
+    // Resource diagnostics time the complete native preparation and GPU fence;
+    // they are separate from the unchanged paired edit/frame metric family.
+    template <typename Action> OperationCost MeasureCompleted(Action &&action)
+    {
+        const auto cpu = ProcessCpu100ns(), cycles = OwnerCycles();
+        const auto flushes = app.host.DebugGetInitialRootChildBatchFlushCount();
+        const auto started = Clock::now();
+        action();
+        gpu->Wait();
+        OperationCost result{Micros(started), ProcessCpu100ns() - cpu, OwnerCycles() - cycles,
+                             app.host.DebugGetInitialRootChildBatchFlushCount() - flushes};
+        Require(result.wallUs > 0, "completed native resource preparation must have a positive observation interval");
+        return result;
+    }
+    static void CompletedCostJson(std::ostream &out, const OperationCost &cost)
+    {
+        out << "\"completedWallUs\":" << cost.wallUs << ",\"processCpu100ns\":" << cost.processCpu100ns
+            << ",\"ownerCpuCycles\":" << cost.ownerCpuCycles << ",\"rootChildFlushes\":" << cost.rootChildFlushes;
+    }
+    void Resource(std::ostream &out, std::string_view name, const OperationCost *idle = nullptr, const OperationCost *completed = nullptr)
     {
         out << "{\"phase\":\"" << name << "\",";
         MemoryJson(out, Snapshot(true));
         if (idle)
             out << ",\"idleWallUs\":" << idle->wallUs << ",\"idleProcessCpu100ns\":" << idle->processCpu100ns
                 << ",\"idleOwnerCpuCycles\":" << idle->ownerCpuCycles;
+        if (completed)
+        {
+            out << ",\"preparation\":{";
+            CompletedCostJson(out, *completed);
+            out << '}';
+        }
         const auto images = app.editor->GetImageResourceStatistics();
         out << ",\"generation\":" << app.host.GetResourceGeneration() << ",\"renders\":" << app.host.DebugGetRenderCount()
             << ",\"brushes\":" << app.host.DebugGetBrushCacheSize() << ",\"formats\":" << app.host.DebugGetConfiguredTextFormatCount()
@@ -315,10 +341,20 @@ class PerformanceProbe
         Require(at != source.npos, "paired fixture is missing its fixed prose edit site");
         auto edited = source;
         edited.insert(at, 1, L'x');
-        Ready(source);
-        gpu = std::make_unique<GpuFence>(app.host);
-        Require(!options.forceWarp || (gpu->adapter.Flags & DXGI_ADAPTER_FLAG_SOFTWARE), "explicit WARP did not create a software adapter");
-        gpu->Wait();
+        const auto prepareInitialFrame = [&]
+        {
+            Ready(source);
+            gpu = std::make_unique<GpuFence>(app.host);
+            Require(!options.forceWarp || (gpu->adapter.Flags & DXGI_ADAPTER_FLAG_SOFTWARE), "explicit WARP did not create a software adapter");
+        };
+        OperationCost firstCompletedPreparation{};
+        if (options.resourceProbe)
+            firstCompletedPreparation = MeasureCompleted(prepareInitialFrame);
+        else
+        {
+            prepareInitialFrame();
+            gpu->Wait();
+        }
         std::vector<double> command, preparation, completion, total, clean, cpu, commandCpu, processorStart, processorEnd;
         std::array<std::vector<double>, EditDiagnostics::Count> phaseWall, phaseCpu;
         std::vector<double> preparationCpu, completionCpu, renderCounts, preparationCounts;
@@ -422,7 +458,14 @@ class PerformanceProbe
         out << ",\"vendorId\":" << gpu->adapter.VendorId << ",\"deviceId\":" << gpu->adapter.DeviceId << ",\"driverVersion\":" << gpu->driver.QuadPart
             << ",\"dpi\":" << app.host.GetDpi() << ",\"widthPx\":" << app.host.DebugGetWidthPx() << ",\"heightPx\":" << app.host.DebugGetHeightPx()
             << ",\"sourceUnits\":" << source.size() << ",\"cycles\":" << options.performanceCycles
-            << ",\"warmupCycles\":2,\"recoverySettledAtMemory\":true,\"samples\": {";
+            << ",\"warmupCycles\":2,\"recoverySettledAtMemory\":true";
+        if (options.resourceProbe)
+        {
+            out << ",\"firstCompletedPreparation\":{";
+            CompletedCostJson(out, firstCompletedPreparation);
+            out << '}';
+        }
+        out << ",\"samples\": {";
         Samples(out, "commandUs", command);
         out << ',';
         Samples(out, "preparationSubmissionUs", preparation);
@@ -517,13 +560,16 @@ class PerformanceProbe
             Resource(out, "resumed-forced-frame");
             RECT outer{};
             Require(GetWindowRect(app.window.get(), &outer) != FALSE, "native resource window bounds unavailable");
-            Require(SetWindowPos(app.window.get(), nullptr, 0, 0, outer.right - outer.left - 120, outer.bottom - outer.top - 80,
-                                 SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSENDCHANGING) != FALSE,
-                    "native resource resize failed");
-            Ready(resourceSource);
-            gpu->Wait();
+            const auto resizeCost = MeasureCompleted(
+                [&]
+                {
+                    Require(SetWindowPos(app.window.get(), nullptr, 0, 0, outer.right - outer.left - 120, outer.bottom - outer.top - 80,
+                                         SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSENDCHANGING) != FALSE,
+                            "native resource resize failed");
+                    Ready(resourceSource);
+                });
             out << ',';
-            Resource(out, "resized-forced-frame");
+            Resource(out, "resized-forced-frame", nullptr, &resizeCost);
             Require(SetWindowPos(app.window.get(), nullptr, 0, 0, outer.right - outer.left, outer.bottom - outer.top,
                                  SWP_NOACTIVATE | SWP_NOZORDER | SWP_NOMOVE | SWP_NOSENDCHANGING) != FALSE,
                     "native resource size restore failed");
@@ -540,11 +586,14 @@ class PerformanceProbe
             for (unsigned cycle = 0; cycle < 3; ++cycle)
             {
                 const auto generation = app.host.GetResourceGeneration();
-                gpu.reset();
-                app.host.DebugSimulateDeviceLoss();
-                Ready(resourceSource);
-                gpu = std::make_unique<GpuFence>(app.host);
-                gpu->Wait();
+                const auto recreateCost = MeasureCompleted(
+                    [&]
+                    {
+                        gpu.reset();
+                        app.host.DebugSimulateDeviceLoss();
+                        Ready(resourceSource);
+                        gpu = std::make_unique<GpuFence>(app.host);
+                    });
                 Require(app.host.GetResourceGeneration() != generation, "device replacement did not advance generation");
                 const auto after = options.dataDirectory / (L"resource-after-" + std::to_wstring(cycle) + L".png");
                 Require(app.Capture(after), "post-replacement native capture failed");
@@ -552,7 +601,7 @@ class PerformanceProbe
                 Check(ReadBytes(after, actual), "post-replacement capture unavailable");
                 Require(actual == pixels, "device replacement changed exact native pixels");
                 out << ',';
-                Resource(out, "recreated-forced-frame");
+                Resource(out, "recreated-forced-frame", nullptr, &recreateCost);
             }
             Require(app.editor->GetText() == resourceSource, "resource lifecycle changed source");
             const auto hosts = DxUi::DebugGetAttachedWindowHostCount();
