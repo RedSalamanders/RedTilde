@@ -4,6 +4,8 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Document the supported shorter dependency-build/cache workflow for nested workspaces, retaining the original compiler failure and requiring a successful canonical exact-pin restore with matching package ABI.
+- Expanded native math and diagram integration checks for typed notation, whitespace-tolerant slash delimiters, exact rejected-source fallback, view changes, and F2 draft history. Removed the unused syntax-independent `EquationAt` helper. Prepared the brand bitmap outside paint, tied it to the host resource generation, and added a hidden raster check across device replacement; build/runtime validation remains pending the final DxUi pin.
 - Plan the remaining RedTilde redesign and canonical DxUi work with a progress checklist, current-source defect review, file review inventory, expanded Mermaid and math compatibility tests, and separate performance/platform/release gates. This planning change does not implement fixes or establish new native qualification.
 - Complete the design refresh with the matched report fixture, deterministic System-theme capture, bounded document-analysis allocation and dirty/recovery reuse, exact shared DxUi adoption and regression coverage; preserve the seven latest measured performance regressions and outstanding qualification gates after the owner's requested integration.
 - Keep the evidence-retention NTFS hard-link fixture runnable from long checkout paths by passing extended Win32 paths to the PowerShell provider. Preserve the same sandbox, identity, stream, attribute and retention assertions.

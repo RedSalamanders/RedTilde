@@ -3,6 +3,7 @@
 #include <DxUi/Typography.h>
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <format>
 #include <wil/result.h>
 #include <wincodec.h>
@@ -16,12 +17,13 @@ namespace
 class BrandMark final : public DxUi::Control
 {
     wil::com_ptr<IWICBitmapSource> source;
-    mutable wil::com_ptr<ID2D1Bitmap1> bitmap;
-    mutable wil::com_ptr<ID2D1Device> device;
+    wil::com_ptr<ID2D1Bitmap1> bitmap;
+    std::uint64_t bitmapGeneration{};
 
   public:
     BrandMark()
     {
+        EnableVisualContentPreparation();
         wil::com_ptr<IWICImagingFactory> factory;
         THROW_IF_FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(factory.put())));
         // LoadIcon returns a module-owned shared icon. WIC retains pixels, not
@@ -36,19 +38,26 @@ class BrandMark final : public DxUi::Control
             converter->Initialize(native.get(), GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom));
         source = converter;
     }
+    void PrepareVisualContent(DxUi::ControlHost &host) noexcept override
+    {
+        const auto generation = host.GetResourceGeneration();
+        if (bitmap && bitmapGeneration == generation)
+            return;
+        bitmap.reset();
+        bitmapGeneration = 0;
+        auto *target = host.GetDeviceContext();
+        if (target && source && SUCCEEDED(target->CreateBitmapFromWicBitmap(source.get(), nullptr, bitmap.put())))
+            bitmapGeneration = generation;
+    }
+    void CancelVisualContentPreparation() noexcept override
+    {
+        bitmap.reset();
+        bitmapGeneration = 0;
+    }
     void Paint(DxUi::ControlHost &host) const override
     {
         auto *target = host.GetDeviceContext();
-        if (!target || !source)
-            return;
-        wil::com_ptr<ID2D1Device> current;
-        target->GetDevice(current.put());
-        if (current.get() != device.get())
-        {
-            bitmap.reset();
-            device = current;
-        }
-        if (!bitmap && FAILED(target->CreateBitmapFromWicBitmap(source.get(), nullptr, bitmap.put())))
+        if (!target || !bitmap || bitmapGeneration != host.GetResourceGeneration())
             return;
         target->DrawBitmap(bitmap.get(), GetBounds());
     }

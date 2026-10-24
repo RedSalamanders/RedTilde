@@ -127,8 +127,11 @@ states, block class declarations, namespaces, multiplicities, styles and directi
 Mathematics uses native source-backed objects throughout the document and in the read-only inspector. RichMarkdown
 recognizes inline `$...$` / `\(...\)` and display `$$...$$` / `\[...\]` inside one logical Markdown paragraph.
 Code, escaped delimiters and CommonMark/GFM profiles retain literal interpretation. Single-dollar notation has
-nonspace content edges and cannot close immediately before a digit. A formula reserves its full native height,
-shares an inline baseline and exposes its TeX notation through semantic accessibility. View changes do not edit it.
+nonspace content edges and cannot close immediately before a digit. Explicit slash delimiters allow whitespace
+around the formula and use their own closing-delimiter rules, independent of dollar-currency heuristics. `\text{...}`
+preserves internal spaces as upright text. Typed atom classes, display/text/script styles and explicit operator
+limits survive parsing into native layout. A formula reserves its full native height, shares an inline baseline and
+exposes its TeX notation through semantic accessibility. View changes do not edit it.
 
 The library parser handles fractions, indexed roots, simultaneous scripts, Greek/operators, named functions,
 text and alphabets, accents, scalable paired delimiters, matrices, cases and aligned/gathered rows. Limits are

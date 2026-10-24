@@ -7,12 +7,22 @@
 - [x] P0: reconcile ownership with the existing design, creation and DxUi rich-text audit plans.
 - [x] P0: write the implementation sequence, file inventory, compatibility matrices, test gates and stop conditions.
 - [x] P0: pass both repositories' validators/format checks, verify inventory integrity, and resolve the independent cold review.
-- [ ] A0: revalidate drift, retain baselines, finish the file-by-file review ledger and classify every old finding.
+- [x] A0: revalidate drift, retain baselines, finish the file-by-file review ledger and classify current-profile findings.
+- [x] A0: reconcile all 482 file reviews (446 source and 36 generated provenance) and record lead finding dispositions.
+- [x] A0: verify design PR #10's actual base and retain the separate starting app Release baseline.
+- [x] A1/A3/A5: reproduce table bounds failure, math ownership/limits/recognition defects and corrected Mermaid outcome mismatch before fixes.
+- [x] A1/A2/A3/A5: pass 24 combined Debug regression diagnostics, including source/history, local fallback and UIA ownership; retain their original failures.
+- [x] A3/A5: reproduce and correct shared-budget root degrees and hollow inheritance-line rendering; full affected-suite rerun remains open.
+- [x] A8 tooling: reproduce overlay rollback losing later edits; preserve created/replaced edits and pass all 34 paired-run tooling cases.
+- [x] A5: reproduce and correct state-description label semantics and a Debug allocation-failure termination; pass normalized model and expanded parser failure sweeps.
+- [x] A7: characterize interested focus-update work, reuse validated published paths and pass stale-path/hidden-focus regression checks.
+- [x] A0 controls: reproduce and fix missing ProgressBar range events with a real subscribed client regression.
+- [x] A9 tooling: reproduce uncontained interactive child admission and descendant completion races; pass the retained 98-check lease diagnostic.
 - [ ] A1: fix table command memory safety and other reproduced data/selection corruption before refactoring.
 - [ ] A2: contain preparation failures per object, preserve accessible ownership and characterize shutdown completion handling.
 - [ ] A3: correct math recognition and accepted-but-wrong notation; reconcile capability/target data.
-- [ ] A4: implement TeX layout fundamentals and qualify the expanded KaTeX compatibility profile.
-- [ ] A5: correct Mermaid semantics, build complete outcome coverage and expand diagram rendering in ordered slices.
+- [ ] A4: qualify the implemented bounded math profile, its TeX layout fundamentals and honest KaTeX compatibility claims.
+- [ ] A5: qualify corrected Mermaid semantics and complete outcome coverage for the current native profiles.
 - [ ] A6: finish RedTilde interaction, responsive layout, accessible presentation and exact-pin integration tests.
 - [ ] A7: simplify measured hotspots and qualify incremental preparation without changing source/history behavior.
 - [ ] A8: repeat the current-source whole-feature and library performance studies; resolve R10/D4c advice gates.
@@ -26,6 +36,13 @@ completed item. A checked item needs evidence, not just edited code.
 
 ### Execution checkpoint — 2026-10-24
 
+- The owner clarified that no new dependency is wanted. Extract useful algorithms and independent test ideas
+  into the owned implementation. MicroTeX, Mermaid renderers and KaTeX are reference material only; dependency
+  adoption, Rust/FFI backends and imported rendering/font packages are outside this execution.
+- The owner explicitly selected **finish current profiles and qualification** on 24 October. Full TeX font
+  assemblies and additional Mermaid families are outside this completion scope; they remain owned by the existing
+  DxUi rich-text audit/language roadmap. The broader design below is retained as future direction, not a claim that
+  current profiles support it. Closing this coordinator cannot close those parent roadmap items or claim full parity.
 - The owner explicitly retained the seven last-complete performance regressions, including roughly 11% higher
   private memory. An extra retained 4 MiB allocation and shared DxUi focus-update cost are investigation leads,
   not proven causes. Recent optimizations require a fresh complete same-SDK comparison against the actual PR base.
@@ -39,6 +56,104 @@ completed item. A checked item needs evidence, not just edited code.
 - Isolate execution beneath `C:\Users\PVB\.codex\worktrees\rt24` in the existing Codex worktree workspace.
   Repository-local `.build` directories there own new outputs. D: has less than 4 GiB free; no retained evidence
   or independently launched application is removed to make room.
+- GitHub confirms design PR #10 merged as `c7456854` with actual base
+  `f819395d36c55b93e3bf9559d12d0ec401e42b3d`. Preserve that original UI closure for the final whole-feature
+  comparison, with the reviewed common harness and identical final SDK on both sides. The separate starting
+  redesign baseline is `d53b4c6` (documentation-only continuation of `c7456854`); it cannot replace the original UI.
+- Baseline app Release built and passed Core: Storage 10, Settings 4, Recovery 5 and Editor 34. Its immutable
+  freeze is `.build/performance-20261024-start/frozen` in the isolated baseline checkout. The independent DxUi
+  Release baseline built and retained `.build/reports/baseline-20261024-Default.json`; that single benchmark is
+  explicitly unpaired. The source-identical library suite baseline is collected separately.
+- The candidate Debug tests-before-fix diagnostic is retained in `.build/regression-20261024-red` in DxUi.
+  Four independent math tests fail, table and retained structural tests assert on a vector bounds violation,
+  and the corrected Mermaid model/outcome test fails. The first Mermaid run had a golden separator typo;
+  it is a test-authoring failure, not parser evidence. Its corrected test-only build and failing run are retained.
+- First implementation slices cover structural command corruption, per-object geometry fallback, typed math
+  atoms/styles/limits, native math box preparation, shared Mermaid label validation, typed inheritance and
+  real stadium shapes. They remain pending combined native verification and independent review corrections.
+  Do not check the parent acceptance rows from source edits or offline generator checks alone.
+- The first combined diagnostic build passed. Whitespace, operator modifiers, explicit delimiters, the 30-formula
+  bounded compatibility corpus, matrix alignment and all pinned Mermaid outcomes passed individually. Its remaining
+  failures included inline nested-list outdent and geometry fallback after a local font change. Both have corrections
+  awaiting the next combined run. Two additional failures were independent test-oracle errors (paragraph terminal LF,
+  canonical materialization of an absent table cell); their original logs remain unchanged. The reported partial-Code
+  conversion defect was refuted by re-reading `CodeValue`; characterization tests now cover the resolved entity path.
+- The next Mermaid slice expands grouped/chained flowchart endpoints into stable bounded edge products. State/class
+  groups remain outside their admitted grammar. All 105 pinned flowcharts and all 20 actual family examples remain
+  represented; the support matrix still names the unsupported families rather than claiming full Mermaid parity.
+- The independent baseline DxUi runner passed all tooling, then refused its benchmark `SkipBuild` gate. A read-only
+  recomputation matches the current receipt/source/dependency/artifact identities; the historical cause is unknown.
+  Retain this failure and retry native baseline suites separately with the already-passed tooling omitted.
+- The owned-child DbgEng diagnostic produced no allocation stack. A separate helper attempt was stopped by the
+  Windows security scanner before a source file or child was created; it is not bypassed. Memory attribution remains
+  open. No diagnostic attempt replaces the required fresh paired comparison.
+- Windows denied heap-stack tracing (`0x80070005`) before recording. The original refusal is retained in
+  `.build/performance-20261024-memory`; the unique diagnostic image remains unconfigured. Continue with an
+  owned-child non-admin diagnostic. No 4 MiB attribution or performance acceptance has been established.
+- The `combined-8` diagnostic in DxUi passes all 24 focused cases, including every original Mermaid outcome and
+  admitted graph routing, structural transactions, math spacing/scripts/limits, local fallback and UIA. The full
+  Accessibility suite also passes (122.6 s). EditorControls/Embedded expose an older whole-document capacity
+  expectation that must follow A2's local-source contract, plus an inheritance triangle crossed by its connector.
+  Their failed logs are retained; these are not full-suite passes. A separate first suite invocation had a shell
+  argument-array authoring error; its logs are not product failures.
+- The follow-up root-degree test fails before the parser fix and passes after it. Nested optional degrees now
+  use the existing parser/depth/node budget instead of a fresh parser on the first raw closing bracket; matrix
+  cell admission happens before parsing/pushing the next cell. Hollow inheritance raster checks now cover all
+  four directions and pass; the new capsule raster oracle is still being corrected/qualified.
+- Independent pinned `flow.jison` review establishes `(-text-)` as ellipse and `[|field:value|text]` as a property
+  production. Their former silent rounded/rectangle admission is reproduced, then rejected locally with an
+  UnsupportedShape explanation. Quoted literal controls remain admitted. The earlier planning-only uncertainty
+  about the ellipse spelling is superseded by this primary-source evidence.
+- The paired harness rollback regression reproduces deletion of a later edit at an overlay-created path. The
+  corrected runner records actual installed bytes, preserves/report later edits at created and replaced paths,
+  retains original backups, continues unaffected restorations and passes all 34 `Test-PairedRun` cases. This
+  changes the harness source identity; it does not change random assignment, metric bands or approve a policy.
+- The full EditorControls diagnostic passes in `combined-14` (69.9 s). An earlier Embedded run ended with exit 3;
+  its log and source/artifact hashes were preserved, but its matching executable/PDB had already been replaced
+  by the next diagnostic build. A focused reproduction retained the exact executable/PDB and terminates at
+  injected allocation 6/62. Offline symbol resolution identifies the new endpoint-group vector's Debug proxy
+  allocation inside a noexcept default constructor. Explicit fallible empty construction restores the existing
+  failure-atomic boundary. The expanded sweep passes seven parser scenarios and 322 allocation points, plus
+  layout/paint/semantic/scoped-source sweeps. These are diagnostics, not final-profile qualification.
+- The pinned Mermaid state implementation replaces the implicit ID on its first nonempty description and
+  appends later descriptions. The new test fails before the correction and passes afterward for both orders
+  of alias/colon declarations, repeated descriptions, an ID-equal description, empty descriptions and the full
+  label limit. Class members retain their separate ID-plus-member rule. The complete Embedded diagnostic passes
+  455,446 checks in 55.2 s, with zero C++ allocations in 1,000 warm composites.
+- The next A7 diagnostic establishes 66,048 focus-resolution visits for 128 interested label mutations with
+  512 unrelated siblings. Reusing the existing validated published-path helper reduces this to 1,792 visits;
+  shifted paths fall back to live search and hidden focus stays unavailable. No new cache or dependency is added.
+  This deterministic work result does not establish app latency/memory improvement or close R10.
+- Broader review reproduces missing ProgressBar minimum/maximum accessibility events. A real subscribed client
+  fails before the setter publication fix; its failed run and matching executable/PDB are retained. The fix
+  passes its after-run in `combined-17`. Full tooling exposed two additional failures: the rollback repair changed the proposed
+  unqualified assignment-source hash, and a nested test closure lost its fixture in composed invocation. Their
+  failures are retained; updating the review target keeps `qualified=false` and all judgment rules unchanged.
+  The 39 policy tests and composed ConsumerUpdate tests now pass.
+- The reconciled inventory has 446 source-reviewed rows and 36 generated-provenance-verified rows, with no pending
+  file rows. Hash equality alone does not complete review. All supplements are archived beside the ledger; lead
+  delta review covers subsequent focus/range/lease changes and the unqualified policy identity correction. The
+  [finding disposition](RedesignCompletionAndRendering_2026-10-24/review-disposition.md) separates confirmed fixes,
+  refuted concerns, nonblocking maintenance and explicitly owned future work.
+- The lease previously resumed a child even when job creation/configuration/assignment failed; injected denials
+  reproduce this in `combined-17`. Required admission corrects those failures. A new real descendant fixture then
+  exposes job accounting reaching zero before its process handle signals. Capturing verified member handles before
+  terminating the job corrects the observed completion race; `combined-19` passes all 98 checks. This is not an atomic
+  whole-process-tree join, and capture/wait failures remain failures. The first broader Accessibility invocation omitted
+  the required `--no-activate` flag and failed its native-focus invariant; its log and exact binary are retained as an
+  invocation error, separately from the governed rerun. Final-profile qualification remains open.
+- The governed full Accessibility rerun passes in 123.6 s. Both repositories' validators pass; the installed CMake
+  also passes the 12 triplet checks separately. SDK checkpoint `f5a2cea9ff798dcb0aa29a37766bcec460f41864` is clean and
+  committed, its official x64 Release build passes, and RedTilde adopts that exact API-4 pin. No dependency is added.
+- The first official Full run catches an obsolete termination source guard; the native lease self-test itself passes.
+  Its correction permits only the creation-time-verified descendant fixture cleanup, keeps all other ownership bans,
+  passes 7/7 and independently rejects unrelated-handle and removed-identity-barrier mutations. A stale build receipt
+  is then refused as required. Final SDK pin `94bf9801f51a544422ecb8aa6ae86d2e33aadcb2` passes the official Release rebuild;
+  its Full run passes all 19 requested suites with zero capability skips, retained in DxUi
+  `.build/evidence/test-runs/20261024T181402400Z-48140-c06d963691f94f6e92c7b8b1155e002c`.
+  RedTilde's final static/tooling validators and pinned formatter also pass. Both app baselines and the candidate
+  restore that same pin and the same WIL package ABI.
+  Their seven common performance-harness inputs match byte-for-byte; the original-UI header delta is CLI-only.
 
 ## Objective and starting point
 
@@ -207,7 +322,7 @@ Priority P0; M–L depending on reproduced W1.1/W1.3 findings; medium risk. Requ
   Add each confirmed regression to the existing command/parser fixtures before fixing it. Test capacity at
   limit-minus-one/limit/limit-plus-one, including padded cells and reference/inline node admission.
 - Use `src/Controls/DxUi.RichTextCommands.cpp`, Markdown block/inline units and the existing
-  `Tests/Support/Scope.Tests.RichSemantic*.h` planner fixtures. Extend retained native and embedded editor cases
+  `Tests/Support/Support.Tests.RichSemantic*.h` planner fixtures. Extend retained native and embedded editor cases
   for the same commands; a planner-only pass does not prove input/history integration.
 
 Verify: DxUi `./test.ps1 -Configuration Debug -Platform x64 -Suites EditorControls,Embedded,Accessibility`, then
@@ -249,6 +364,10 @@ then Release/ASan Debug. No activation or real clipboard is needed for these reg
 ## A3/A4 — KaTeX compatibility with correct native mathematics
 
 Priority P1; A3 M, A4 L; medium/high risk. Existing owners W1.6/W1.12/T1/T4/C4/C5.
+
+Execution scope selected by the owner: finish and qualify the current bounded profile. Full TeX font assemblies,
+MathKern/variant expansion and other excluded notation in the planning direction below stay with the existing
+language roadmap. Their exclusion remains explicit in the supported/target data and prevents a full KaTeX claim.
 
 Implementation anchors in DxUi: `DxUi.NativeMath.cpp` Parser::GroupText/Matrix/Atom/Row and ParseMath own grammar;
 `include/DxUi/RichMath.h` owns public data/limits; `DxUi.PreparedMath.h` PreparedMath::Gather/Measure/Place/Advance
@@ -301,9 +420,9 @@ Add a stable AST serializer test oracle and prepared glyph/line placement oracle
 accepted output was wrong. Run the same fixtures native/embedded at 96/144/192 DPI; add fractional-DPI rule and
 clipping cases at 120/168. Raster checks supplement semantic/geometry tests and account for pinned font/OS identity.
 
-Use existing `Tests/Controls/Scope.Tests.RichSemanticDocument.cpp`, `Scope.Tests.RichSemanticGeometry.cpp`,
-`Scope.Tests.RichTextEditor.cpp`, `Scope.Tests.RichTextAccessibility.cpp` and Embedded resource fixtures; add
-`Tests/Support/Scope.Tests.MathCorpus.h` only if needed and register new active files. Tests must fail for wrong
+Use existing `Tests/Controls/Controls.Tests.RichSemanticDocument.cpp`, `Controls.Tests.RichSemanticGeometry.cpp`,
+`Controls.Tests.RichTextEditor.cpp`, `Controls.Tests.RichTextAccessibility.cpp` and Embedded resource fixtures; add
+`Tests/Support/Support.Tests.MathCorpus.h` only if needed and register new active files. Tests must fail for wrong
 spacing/limit placement and parent-title corruption, not merely for parse failure.
 
 **MicroTeX decision:** recommended path is to retain the owned bounded engine and borrow reviewed ideas. The
@@ -312,8 +431,8 @@ shows atom classification, unary/binary adjustment and font kerning;
 its [delimiter factory](https://github.com/NanoMichael/MicroTeX/blob/0e3707f6dafebb121d98b53c64364d16fefe481d/src/box/box_factory.cpp)
 illustrates larger glyph/extension assembly. Its [README](https://github.com/NanoMichael/MicroTeX/blob/0e3707f6dafebb121d98b53c64364d16fefe481d/README.md)
 documents C++17/CMake and a GDI+ Windows path; its [main license](https://github.com/NanoMichael/MicroTeX/blob/0e3707f6dafebb121d98b53c64364d16fefe481d/LICENSE)
-is MIT. Direct adoption is an alternative spike, not an assumed shortcut to KaTeX compatibility. Audit font/data
-licenses separately and do not import global mutable state, unsafe ownership or backend assumptions.
+is MIT. The owner's implementation constraint excludes direct adoption. Reimplement the useful principles
+with the existing native stack; do not import code, font packages, mutable global state or backend assumptions.
 
 Verify after each slice: DxUi A1 suites, deterministic corpus generation/checks, all original 1,324 Markdown
 vectors, every chosen profile row and the resource sweeps; then RedTilde Math/Editor integration through A6.
@@ -323,6 +442,10 @@ The [KaTeX supported functions](https://katex.org/docs/supported.html) and
 ## A5 — Mermaid behavior, layout and broader coverage
 
 Priority P1; L; medium/high risk. Existing owners W1.7/T2/T4/C6/C7/C8.
+
+Execution scope selected by the owner: finish and qualify the current native flowchart, limited state and limited
+class profiles. New diagram families and excluded grammar below remain future direction for the existing language
+roadmap; no current-profile closeout can claim complete Mermaid support.
 
 Implementation anchors in DxUi: `DxUi.NativeFlowchart.h/.cpp` NativeFlowchartParser::Preparation::Label/Node/
 Statement own current grammar/model; `DxUi.NativeFlowchartLayout.h/.cpp` own CPU placement/routing;
@@ -368,8 +491,8 @@ oracle packet; never compare an unpinned live renderer to native output and call
 | Source/editor/UIA | list/quote fences and CRLF, complete source spans/diagnostics, object caret/hit/selection, F2 apply/cancel/undo/redo, exact copy/source fallback and accessible alternatives |
 | Rendering | native/embedded retained resources, shape-specific raster assertions, theme/high contrast/RTL, 96/144/192 and fractional DPI, WARP/device loss; approved upstream references with pinned fonts |
 
-Use `Tests/Support/Scope.Tests.NativeFlowchartCorpus.h`, `Scope.Tests.MarkdownBlocks.h`,
-`Scope.Tests.FlowchartLayout.h`, `Scope.Tests.PreparedFlowchart.h`, `Scope.Tests.SemanticDiagrams.h`, and
+Use `Tests/Support/Support.Tests.NativeFlowchartCorpus.h`, `Support.Tests.MarkdownBlocks.h`,
+`Support.Tests.FlowchartLayout.h`, `Support.Tests.PreparedFlowchart.h`, `Support.Tests.SemanticDiagrams.h`, and
 the RichMarkdown/SemanticDocument/SemanticGeometry/RichTextEditor control suites. Register added state/class/
 sequence corpus fixtures in `Tests/native-test-files.json`. New generator/tool changes follow Tools governance,
 inventory/help/callers and offline deterministic tests; do not modify generated expected data by hand.
@@ -381,8 +504,8 @@ identifies Rust 2024, version 0.3.1 and MIT. Study its
 [stage validation](https://github.com/1jehuang/mermaid-rs-renderer/blob/3726ccbffe0e8032361eb9668694b24f77858060/src/layout/flowchart/stage_validation.rs)
 for missing/invalid nodes, ports and routes, and
 [route-label obstacles](https://github.com/1jehuang/mermaid-rs-renderer/blob/3726ccbffe0e8032361eb9668694b24f77858060/src/layout/flowchart/route_labels.rs)
-for label clearance. Implement only the reviewed useful ideas with DxUi's ownership/source/UIA model. A Rust/FFI
-or SVG backend would add a new build/resource/accessibility boundary and requires an explicit comparison spike.
+for label clearance. Implement only the reviewed useful ideas with DxUi's ownership/source/UIA model.
+No Rust/FFI, SVG rendering backend or new package is admitted by this plan.
 Do not inherit its advertised speedups as evidence for this product.
 
 Verify each accepted family with the A1 library suites and named corpus cases, then A6 consumer tests/captures.
@@ -501,8 +624,7 @@ restoration and preserve refusals. Physical IME, touch, AT, monitor DPI, actual 
 native ARM64 execution are independent gates; a synthetic event, simulated DPI or cross-build does not close them.
 
 Update `Tests/NativeInventory.json`, `Tests/native-case-catalog.json` and `Tests/test-scopes.json` in RedTilde,
-and `Tests/native-test-files.json`/`Tests/test-scopes.json` in DxUi for new cases/files. New files follow
-`Scope.Tests.Something.h/.cpp`. In particular, confirm Rich/public-header changes select Accessibility as well
+and `Tests/native-test-files.json`/`Tests/test-scopes.json` in DxUi for new cases/files. New files follow their repository's real component context (`Controls.Tests`, `Support.Tests`, or `Application.Tests`) and inventory. In particular, confirm Rich/public-header changes select Accessibility as well
 as EditorControls/Embedded; the existing audit's T3 records that scope gap. Use meaningful user-visible/source/
 geometry/resource oracles, independent expected data and failure injection instead of implementation-mirroring tests.
 
@@ -510,9 +632,9 @@ geometry/resource oracles, independent expected data and failure injection inste
 
 | Choice | Default and tradeoff | When to reconsider |
 | --- | --- | --- |
-| Native engines versus replacement | extend the owned C++ pipeline and use references for tested algorithms; preserves bounded source/edit/UIA ownership | a measured spike proves a dependency improves correctness and total integration cost |
-| MicroTeX adoption | investigate parser/box ideas first; no wholesale import | compare fixed formulas, font/data licenses, allocation/cancel/device lifetimes and native backend effort |
-| Rust/SVG Mermaid backend | offline differential/reference tool first | a separate build/ABI/source-map/UIA plan is accepted and proves benefits on target platforms |
+| Owned native engines | extend the existing C++ pipeline and use references for tested algorithms; preserve bounded source/edit/UIA ownership | implementation choice is fixed by the owner: no new dependencies |
+| MicroTeX reference | derive atom, box, style and delimiter ideas, then independently implement and test them | reference algorithms must fit the existing ownership/resource contracts |
+| Mermaid renderer references | derive parsing, stage-validation and routing test ideas in the existing native renderer | reference behavior is checked against pinned Mermaid semantics; no backend adoption |
 | Full parity versus a named profile | overall goal is broader safe compatibility; each supported slice needs semantic/render/editor/resource tests | any excluded family/command must stay visible in the matrix; full compatibility cannot be claimed while it remains |
 | Large documents/typography/assets | retain C7/C8/C10 ownership; review their current state and necessary public API seams | explicit product target and paired capacity/resource evidence; no arbitrary constant increase |
 | Save-race guarantee | C6 must state an achievable cooperating/noncooperating-writer contract | do not invent compare-and-swap from a second file-stamp check |
@@ -528,15 +650,15 @@ by changed inputs or an unresolved concern; preserve exact reusable evidence und
   AddRef/Release. Review actual ownership rather than mass-replacing them.
 - The Mermaid direction-substring expression is not established memory corruption. Whitespace behavior needs
   grammar tests; default-direction/new alias differences need a pinned-version comparison.
-- A proposed ellipse spelling was not established by the local 11.4.1 documentation. Keep it in the version-
-  upgrade probe, not the confirmed-defect count.
+- The initial ellipse uncertainty was superseded during execution by pinned `flow.jison` evidence and a failing
+  admission regression. The unsupported ellipse/property-vertex guards now have source-bound diagnostic coverage.
 - App shutdown already checks completion after each dispatched message. The agent's queue-exhaustion hang claim
   is not established because a full queue supplies dispatch work. F08 is an investigation; do not schedule a
   message-loop rewrite solely because a PostMessage return value is ignored.
 - A capture, 13 accepted graphs, 1,324 Markdown vectors, older audit count or a green Release build cannot prove
   whole-language compatibility, coverage completeness or current six-profile product qualification.
-- Three focused agent audits and lead source rechecks are not a completed line-by-line review of every inventory
-  file. A0 remains unchecked. No native tests, builds, interactive captures or performance studies ran in planning.
+- The three initial focused agent audits were planning evidence only. Execution subsequently completed all 482
+  inventory rows with full source/provenance notes; runtime and performance qualification remain separate gates.
 
 ## A9 — completion and handoff
 

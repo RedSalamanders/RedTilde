@@ -9,6 +9,7 @@
 #include <format>
 #include <initializer_list>
 #include <mutex>
+#include <ranges>
 #include <stdexcept>
 #include <thread>
 #include <tuple>
@@ -96,6 +97,44 @@ void CheckBrandIconResource(HINSTANCE module, unsigned requestedSize)
     Require(transparent > 0 && opaque > 0 && ink > pixelsPerDimension * pixelsPerDimension / 4 && opaque < pixelsPerDimension * pixelsPerDimension &&
                 right - left >= requestedSize * 3 / 5 && bottom - top >= requestedSize * 2 / 5,
             "icon resource retains a wide tilde silhouette with transparent and opaque pixels at each size");
+}
+std::vector<BYTE> ReadBrandMarkRaster(const std::filesystem::path &path, float dpi)
+{
+    wil::com_ptr<IWICImagingFactory> factory;
+    Success(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(factory.put())),
+            "create a WIC decoder for the hidden application capture");
+    wil::com_ptr<IWICBitmapDecoder> decoder;
+    Success(factory->CreateDecoderFromFilename(path.c_str(), nullptr, GENERIC_READ, WICDecodeMetadataCacheOnLoad, decoder.put()),
+            "open the hidden application capture");
+    wil::com_ptr<IWICBitmapFrameDecode> frame;
+    Success(decoder->GetFrame(0, frame.put()), "read the hidden application capture frame");
+    wil::com_ptr<IWICFormatConverter> converter;
+    Success(factory->CreateFormatConverter(converter.put()), "create the capture pixel view");
+    Success(converter->Initialize(frame.get(), GUID_WICPixelFormat32bppBGRA, WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom),
+            "convert the hidden capture to BGRA pixels");
+    UINT width{}, height{};
+    Success(converter->GetSize(&width, &height), "read the hidden capture dimensions");
+    std::vector<BYTE> pixels(static_cast<std::size_t>(width) * height * 4);
+    Success(converter->CopyPixels(nullptr, width * 4, static_cast<UINT>(pixels.size()), pixels.data()), "read hidden capture pixels");
+    const auto pixelScale = dpi / 96.f;
+    const auto left = static_cast<UINT>(12.f * pixelScale), top = static_cast<UINT>(10.f * pixelScale);
+    const auto right = std::min(width, static_cast<UINT>(48.f * pixelScale)), bottom = std::min(height, static_cast<UINT>(46.f * pixelScale));
+    Require(right > left && bottom > top, "brand-mark capture crop fits the hidden viewport");
+    const auto backgroundOffset = (static_cast<std::size_t>(2u) * width + 2u) * 4;
+    std::size_t visible{};
+    std::vector<BYTE> region;
+    region.reserve(static_cast<std::size_t>(right - left) * (bottom - top) * 4);
+    for (UINT y = top; y < bottom; ++y)
+        for (UINT x = left; x < right; ++x)
+        {
+            const auto offset = (static_cast<std::size_t>(y) * width + x) * 4;
+            region.insert(region.end(), pixels.begin() + static_cast<std::ptrdiff_t>(offset),
+                          pixels.begin() + static_cast<std::ptrdiff_t>(offset + 4));
+            visible += !std::equal(pixels.begin() + static_cast<std::ptrdiff_t>(offset), pixels.begin() + static_cast<std::ptrdiff_t>(offset + 3),
+                                   pixels.begin() + static_cast<std::ptrdiff_t>(backgroundOffset));
+        }
+    Require(visible > 16, "the brand-mark region contains rendered icon pixels");
+    return region;
 }
 void WriteFixture(const std::filesystem::path &path, std::string_view contents = "# Invented notes\n")
 {
@@ -801,6 +840,28 @@ class DesignRefreshProbe final
                              app.Host().RenderInitialFrameForShow() && app.Document().GetSelection().Start() == 4999,
                          "a current match beyond the bounded highlight prefix stays selected and renderable with cached exact source ranges");
              });
+        test("Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+             [&]
+             {
+                 Application app(Options(root, L"design-brand-mark"));
+                 Success(app.Initialize(), "create hidden brand-mark raster app");
+                 app.SetDocument(L"Prepared content remains independent of the retained brand resource.\n");
+                 app.Prepare(512);
+                 const auto beforePath = root / L"brand-mark-before-device-loss.png";
+                 Require(app.Capture(beforePath), "capture the prepared brand mark before device replacement");
+                 const auto before = ReadBrandMarkRaster(beforePath, app.Host().GetDpi());
+                 app.Host().DebugSimulateDeviceLoss();
+                 app.Prepare(512);
+                 const auto afterPath = root / L"brand-mark-after-device-loss.png";
+                 Require(app.Capture(afterPath), "capture the re-prepared brand mark after device replacement");
+                 const auto after = ReadBrandMarkRaster(afterPath, app.Host().GetDpi());
+                 Require(before == after, "device recreation preserves the exact hidden brand-mark raster");
+                 app.Prepare(512);
+                 const auto repeatedPath = root / L"brand-mark-repeated-render.png";
+                 Require(app.Capture(repeatedPath), "capture the warm brand mark after a repeated render");
+                 const auto repeated = ReadBrandMarkRaster(repeatedPath, app.Host().GetDpi());
+                 Require(after == repeated, "warm repeated rendering preserves the exact prepared brand-mark raster");
+             });
         test("Editor.DesignRefreshEquationContextAndDraftGuards",
              [&]
              {
@@ -865,6 +926,57 @@ class DesignRefreshProbe final
                  app.Execute(Command::ApplyBlock);
                  Require(app.Document().GetText() == L"First words." && app.Document().Undo() && app.Document().GetText().empty(),
                          "the empty-source draft creates one undoable authoritative transaction");
+
+                 const std::wstring linkedEquation = L"[Parent](https://example.test \"Parent title\") and $a_i^2$.\n";
+                 app.SetDocument(linkedEquation);
+                 app.Prepare(512);
+                 const auto equationAt = linkedEquation.find(L"a_i^2");
+                 app.Document().SetSelection({equationAt, equationAt});
+                 const auto linkedSource = app.Document().Snapshot();
+                 const auto linkedSelection = app.Document().GetSelection();
+                 const bool linkedUndo = app.Document().CanUndo(), linkedRedo = app.Document().CanRedo();
+                 app.Execute(Command::Source);
+                 app.Prepare(512);
+                 Require(app.Preferences().view == EditorView::Source && app.Document().GetViewMode() == DxUi::RichText::ViewMode::Source &&
+                             app.Document().Snapshot().IsSameRevision(linkedSource) && app.Document().GetSelection() == linkedSelection,
+                         "Source view keeps the exact linked equation revision and selection");
+                 app.Execute(Command::Split);
+                 app.Prepare(512);
+                 Require(app.Preferences().view == EditorView::Split && app.SourceMirror().GetText() == linkedEquation &&
+                             app.Document().Snapshot().IsSameRevision(linkedSource) && app.Document().GetSelection() == linkedSelection,
+                         "Split mirrors linked math without creating another editable source");
+                 app.Execute(Command::Compose);
+                 app.Prepare(512);
+                 auto linkedSemantic = app.Document().GetAcknowledgedSemanticDocument(app.Host());
+                 Require(static_cast<bool>(linkedSemantic), "linked Compose semantic publication exists");
+                 const auto preservedLink = std::ranges::find_if(linkedSemantic->Elements(), [](const auto &element)
+                                                                 { return element.role == DxUi::RichText::SemanticRole::Link; });
+                 Require(app.Preferences().view == EditorView::Compose && app.Document().GetViewMode() == DxUi::RichText::ViewMode::Rich &&
+                             app.Document().Snapshot().IsSameRevision(linkedSource) && app.Document().GetSelection() == linkedSelection &&
+                             app.Document().CanUndo() == linkedUndo && app.Document().CanRedo() == linkedRedo &&
+                             preservedLink != linkedSemantic->Elements().end() && preservedLink->title == L"Parent title",
+                         "Compose restores native math while preserving parent link title and both history directions");
+                 app.Execute(Command::LocalSource);
+                 Require(app.HasBlockDraft() && app.BlockDraft()->GetText() == L"$a_i^2$", "F2 opens the exact linked equation envelope");
+                 app.BlockDraft()->SetTextAndNotify(L"$a_i^3$");
+                 app.Execute(Command::CloseDrawer);
+                 Require(!app.HasBlockDraft() && app.Document().GetText() == linkedEquation && !app.Dirty() &&
+                             app.Document().CanUndo() == linkedUndo && app.Document().CanRedo() == linkedRedo,
+                         "canceling linked equation source leaves its text and history untouched");
+                 app.Execute(Command::LocalSource);
+                 app.BlockDraft()->SetTextAndNotify(L"$a_i^3$");
+                 app.Execute(Command::ApplyBlock);
+                 const std::wstring editedLinkedEquation = L"[Parent](https://example.test \"Parent title\") and $a_i^3$.\n";
+                 Require(app.Document().GetText() == editedLinkedEquation && app.Document().Undo() && app.Document().GetText() == linkedEquation &&
+                             app.Document().Redo() && app.Document().GetText() == editedLinkedEquation,
+                         "F2 apply is one undoable linked equation edit with exact surrounding source");
+                 app.Prepare(512);
+                 linkedSemantic = app.Document().GetAcknowledgedSemanticDocument(app.Host());
+                 Require(static_cast<bool>(linkedSemantic), "edited linked semantic publication exists");
+                 const auto retainedLink = std::ranges::find_if(linkedSemantic->Elements(), [](const auto &element)
+                                                                { return element.role == DxUi::RichText::SemanticRole::Link; });
+                 Require(retainedLink != linkedSemantic->Elements().end() && retainedLink->title == L"Parent title",
+                         "apply/undo/redo preserves the neighboring parent link title");
              });
         test("Editor.DesignRefreshFilesRerootFilterAndDirtyOpen",
              [&]

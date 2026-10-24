@@ -166,6 +166,10 @@
       "scope": "Editor"
     },
     {
+      "name": "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+      "scope": "Editor"
+    },
+    {
       "name": "Editor.DesignRefreshFilesRerootFilterAndDirtyOpen",
       "scope": "Editor"
     },

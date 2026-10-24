@@ -47,5 +47,4 @@ struct DocumentPosition
 // Oversized ACPs clamp to source end. An ACP between CR/LF stays at the prior
 // line's content end; the following line begins only after the complete pair.
 [[nodiscard]] DocumentPosition DocumentPositionAt(const DocumentInfo &info, std::size_t caret) noexcept;
-[[nodiscard]] std::wstring EquationAt(std::wstring_view text, std::size_t caret);
 } // namespace RedTilde
