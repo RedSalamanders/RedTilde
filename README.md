@@ -94,3 +94,5 @@ open; the experimental and hardware/upstream status is unchanged.
 ## Recording changes
 
 Follow the [Changes workflow](Changes/README.md): validate while editing, then fold before PrePush/final handoff and immediately after integration, even for one fragment.
+
+Builds require the default MSVC **14.52.x** tools (v145). Release uses /Gy /GL and final /OPT:REF /LTCG; archive and final-link tools must match exactly. The build contract documents the preserved API pin, explicit archive forwarding and policy-specific output identity.
