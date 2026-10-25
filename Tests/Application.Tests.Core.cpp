@@ -1,6 +1,7 @@
 #include "RedTilde/Application.h"
 #include "Application.Tests.DesignRefresh.h"
 #include "Application.Tests.Files.h"
+#include "Application.Tests.HeapDiagnostic.h"
 #include "Application.Tests.RemoteImages.h"
 #include "Support/Support.Tests.TextServices.h"
 #include <DxUi/RichMath.h>
@@ -13,6 +14,7 @@
 #include <fstream>
 #include <functional>
 #include <ranges>
+#include <sstream>
 #include <stdexcept>
 #include <string_view>
 #include <thread>
@@ -1429,6 +1431,83 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Require(app.Document().GetText() == current && !app.Dirty(), "discard never replaces the active document");
              Require(app.Host().GetFocusControl() == &app.Document(), "discarding the final snapshot returns logical focus to the editor");
          });
+    test("Performance.OwnedHeapDiagnosticDistinguishesBusyFreeAndPartialCoverage",
+         [&]
+         {
+             wil::unique_hheap heap(HeapCreate(0, 0, 0));
+             Require(static_cast<bool>(heap), "create an isolated test-owned heap");
+             const std::array<HANDLE, 1> handles{heap.get()};
+             const auto sample = [&](std::size_t entryLimit = Test::MaximumDiagnosticEntriesPerHeap)
+             {
+                 std::ostringstream report;
+                 const bool complete = Test::WriteOwnedHeapDiagnostic(report, handles, entryLimit);
+                 return std::pair{complete, report.str()};
+             };
+             const auto before = sample();
+             Require(before.first && JsonUnsigned(before.second, "actualWalkedHeapCount") == 1 &&
+                         JsonUnsigned(before.second, "completeHeapCount") == 1,
+                     "the explicit owned heap completes without claiming process-wide coverage");
+             const auto beforeBusy = JsonUnsigned(JsonObjectAfter(before.second, "\"totals\":"), "busyPayloadBytes");
+             constexpr std::size_t allocationBytes = 64 * 1024;
+             bool allocationReleased{};
+             {
+                 auto *allocation = HeapAlloc(heap.get(), 0, allocationBytes);
+                 Require(allocation != nullptr, "allocate a known payload in the owned heap");
+                 const auto freeAllocation = wil::scope_exit([&] { allocationReleased = HeapFree(heap.get(), 0, allocation) != FALSE; });
+                 const auto busy = sample();
+                 Require(busy.first && JsonUnsigned(JsonObjectAfter(busy.second, "\"totals\":"), "busyPayloadBytes") >= beforeBusy + allocationBytes,
+                         "heap payload reports the live owned allocation without equating it to process private bytes");
+                 const auto partial = sample(1);
+                 Require(!partial.first && partial.second.find("\"budgetExceeded\":true") != partial.second.npos &&
+                             JsonUnsigned(partial.second, "entryLimit") == 1,
+                         "a bounded partial walk retains its explicit truncation instead of claiming complete coverage");
+                 const auto row = JsonObjectContaining(busy.second, busy.second.find("\"index\":0"));
+                 const auto exact = sample(static_cast<std::size_t>(JsonUnsigned(row, "walkedEntries")));
+                 Require(exact.first, "an exact entry-limit boundary recognizes end-of-heap after the final allowed entry");
+             }
+             const auto freed = sample();
+             // Sanitizer quarantine and heap managers may retain physical blocks after a successful logical free.
+             Require(allocationReleased && freed.first,
+                     "release succeeds and physical heap state remains measurable without requiring purge or working-set trimming");
+             const std::array<HANDLE, 2> duplicate{heap.get(), heap.get()};
+             std::ostringstream duplicateReport;
+             Require(!Test::WriteOwnedHeapDiagnostic(duplicateReport, duplicate) && JsonUnsigned(duplicateReport.str(), "attemptedHeapCount") == 1 &&
+                         JsonUnsigned(duplicateReport.str(), "actualWalkedHeapCount") == 1,
+                     "duplicate handles cannot double-count the same physical heap");
+             std::array<HANDLE, Test::MaximumDiagnosticHeaps + 1> absent{};
+             std::ostringstream absentReport;
+             Require(
+                 !Test::WriteOwnedHeapDiagnostic(absentReport, absent) && JsonUnsigned(absentReport.str(), "requestedHeapCount") == absent.size() &&
+                     JsonUnsigned(absentReport.str(), "boundedHeapCount") == Test::MaximumDiagnosticHeaps &&
+                     JsonUnsigned(absentReport.str(), "attemptedHeapCount") == 0 && JsonUnsigned(absentReport.str(), "actualWalkedHeapCount") == 0,
+                 "invalid and over-limit inputs distinguish requested, bounded and actual heap walks");
+         });
+    test("Performance.SelectionDiagnosticRejectsReentryAndUnwinding",
+         [&]
+         {
+             EditDiagnostics diagnostic;
+             {
+                 auto arm = diagnostic.ArmSelection();
+                 auto invocation = diagnostic.EnterSelection();
+                 {
+                     auto outer = diagnostic.MeasureSelection(SelectionComponent::Find);
+                     auto nested = diagnostic.MeasureSelection(SelectionComponent::Outline);
+                 }
+             }
+             Require(!diagnostic.selection.complete, "overlapping selection components cannot produce an attributed timing record");
+             EditDiagnostics unwinding;
+             try
+             {
+                 auto arm = unwinding.ArmSelection();
+                 auto invocation = unwinding.EnterSelection();
+                 throw std::runtime_error("expected diagnostic unwind");
+             }
+             catch (const std::runtime_error &)
+             {
+                 // This deliberate local exception verifies diagnostic invalidation; it is not an application failure.
+             }
+             Require(!unwinding.selection.complete, "an unwound selection is reported incomplete instead of inventing phase durations");
+         });
     test("Performance.NativeCompletedFramesPreserveSourceAndHistory",
          [&]
          {
@@ -1462,6 +1541,11 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                              probeReport.find("\"name\":\"chrome\"") != probeReport.npos &&
                              probeReport.find("\"postMemory\":[") != probeReport.npos && probeReport.find("\"renderCounts\":[") != probeReport.npos,
                          "bounded command phases and post-primary quiescence observations are retained");
+                 Require(probeReport.find("\"protocol\":\"app-selection-components-v1\"") != probeReport.npos &&
+                             probeReport.find("\"parentReconciliation\":") != probeReport.npos &&
+                             probeReport.find("\"appBuffersAfterPrimary\":") != probeReport.npos &&
+                             probeReport.find("\"heapDiagnosticCoverage\":\"explicit-default-and-crt-only\"") != probeReport.npos,
+                         "nested selection attribution and after-primary storage have distinct bounded diagnostic records");
              }
          });
     test("Rendering.NativeDefaultAndWarpResourceLifecycle",

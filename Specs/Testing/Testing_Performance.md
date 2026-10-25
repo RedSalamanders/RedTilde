@@ -119,6 +119,22 @@ observer only for a synchronous harness transaction, clear it on every exit, and
 reads during ordinary editing. The optional instrumentation changes observed cost: freeze and measure a matching
 common baseline before a production repair; never compare it directly with uninstrumented acceptance results.
 
+Current opt-in reports also retain `app-selection-components-v1`: twelve disjoint selection components, ordered
+per-transaction raw wall/cycle/call records and their enclosing selection interval. Arm it only around the
+synchronous `Changed` selection publication, reject reentry/unwinding or failed clock reads, and mark unexecuted
+components unavailable rather than supplying invented durations. Component sums must fit both their whole
+invocation and the parent selection phase; the retained remainder must reconstruct that parent. Historical
+reports without this optional object remain readable; a current study that declares it must retain it.
+
+After the primary memory observations, opt-in app storage records report known buffer sizes/capacities and
+snapshot lengths without flattening source. Missing members in a historical implementation remain unavailable.
+After all primary, idle and resource observations, an optional heap walk may inspect only the explicitly supplied,
+long-lived default/CRT heaps; deduplicate handles and report incomplete coverage, per-heap errors and capture-only
+cost separately from serialization. The app test-layer helper caps storage at 32 handles and each walk at one
+million entries. Its aggregate busy/free/committed bytes are not process-private bytes, working set or allocation
+ownership. No purge, trimming, affinity, priority or power-policy change is permitted. Include this helper in the
+matched harness input closure before freezing a new baseline; retain the prior seven-input freezes as history.
+
 Diagnostic memory is sampled after the primary snapshot, then after 100 and 500 ms of event-driven hidden idle.
 No additional render/preparation is allowed during those waits. Full global thread inventory runs only in the
 last diagnostic observation, with its cost retained after all primary measurements. These observations test

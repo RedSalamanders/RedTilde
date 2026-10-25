@@ -26,6 +26,20 @@ $cases=@(
         $native.activity.captionCalls=0
     }}
 )
+$selectionFixture=Get-Content (Join-Path $source 'Compose-00-A1.native.json') -Raw|ConvertFrom-Json -AsHashtable
+if($selectionFixture.controlDiagnostics.Contains('selectionComponents')) {
+    $cases+=@(
+        @{name='selection-declared-missing';expected='Declared nested selection diagnostics are missing.';mutate={param($native) $native.controlDiagnostics.selectionComponents=$null}},
+        @{name='selection-protocol';expected='Invalid selection diagnostic protocol or transaction count.';mutate={param($native) $native.controlDiagnostics.selectionComponents.protocol='unknown'}},
+        @{name='selection-incomplete';expected='Selection diagnostics must contain exactly one complete invocation.';mutate={param($native) $native.controlDiagnostics.selectionComponents.transactions[0].complete=$false}},
+        @{name='selection-reentry';expected='Selection diagnostics must contain exactly one complete invocation.';mutate={param($native) $native.controlDiagnostics.selectionComponents.transactions[0].invocations=2}},
+        @{name='selection-order';expected='Selection component names or ordering differ.';mutate={param($native) $native.controlDiagnostics.selectionComponents.transactions[0].components[0].name='find'}},
+        @{name='selection-remainder';expected='Selection component reconciliation differs.';mutate={param($native) ++$native.controlDiagnostics.selectionComponents.transactions[0].parentReconciliation.ownerCpuCycles}},
+        @{name='selection-null-work';expected='Unexecuted selection components must remain unavailable.';mutate={param($native)
+            $native.controlDiagnostics.selectionComponents.transactions[0].components[0].calls=0
+        }}
+    )
+}
 $rows=@(foreach($case in $cases) {
     $target=Join-Path $OutputRoot $case.name
     New-Item -ItemType Directory -Path $target | Out-Null

@@ -1,12 +1,16 @@
 #include "RedTilde/Application.h"
+#include "Application.Tests.HeapDiagnostic.h"
 #include <DxUi/RichSemanticDocument.h>
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <d2d1_3.h>
 #include <dxgi1_6.h>
 #include <fstream>
 #include <iomanip>
+#include <malloc.h>
 #include <psapi.h>
+#include <span>
 #include <stdexcept>
 #include <tlhelp32.h>
 
@@ -302,6 +306,207 @@ class PerformanceProbe
         Require(images.decodedBytes <= 128ull * DxUi::RichText::RichImage::MaximumPixels * 4, "native decoded images exceeded their bound");
     }
 
+    template <typename App> static void WriteAppBuffers(std::ostream &out, const App &application)
+    {
+        bool first = true;
+        const auto prefix = [&](const char *name, bool available)
+        {
+            if (!first)
+                out << ',';
+            first = false;
+            out << '"' << name << "Available\":" << (available ? "true" : "false") << ",\"" << name << "\":";
+        };
+        const auto number = [&](const char *name, auto value)
+        {
+            prefix(name, true);
+            out << value;
+        };
+        const auto boolean = [&](const char *name, bool value)
+        {
+            prefix(name, true);
+            out << (value ? "true" : "false");
+        };
+        const auto unavailable = [&](const char *name)
+        {
+            prefix(name, false);
+            out << "null";
+        };
+        out << '{';
+        if constexpr (requires { application.documentInfo.characters; })
+            number("sourceUnits", application.documentInfo.characters);
+        else
+            unavailable("sourceUnits");
+        if constexpr (requires {
+                          application.savedText.size();
+                          application.savedText.capacity();
+                      })
+        {
+            number("savedTextUnits", application.savedText.size());
+            number("savedTextCapacityUnits", application.savedText.capacity());
+        }
+        else
+        {
+            unavailable("savedTextUnits");
+            unavailable("savedTextCapacityUnits");
+        }
+        if constexpr (requires {
+                          application.cachedText.size();
+                          application.cachedText.capacity();
+                      })
+        {
+            number("cachedTextUnits", application.cachedText.size());
+            number("cachedTextCapacityUnits", application.cachedText.capacity());
+        }
+        else
+        {
+            unavailable("cachedTextUnits");
+            unavailable("cachedTextCapacityUnits");
+        }
+        if constexpr (requires {
+                          application.documentInfo.lineIndex.size();
+                          application.documentInfo.lineIndex.capacity();
+                      })
+        {
+            number("lineIndexItems", application.documentInfo.lineIndex.size());
+            number("lineIndexCapacityItems", application.documentInfo.lineIndex.capacity());
+        }
+        else
+        {
+            unavailable("lineIndexItems");
+            unavailable("lineIndexCapacityItems");
+        }
+        if constexpr (requires {
+                          application.documentInfo.headings.size();
+                          application.documentInfo.headings.capacity();
+                          application.documentInfo.headings[std::size_t{}].text.size();
+                          application.documentInfo.headings[std::size_t{}].text.capacity();
+                      })
+        {
+            std::size_t textUnits{}, textCapacityUnits{};
+            for (const auto &heading : application.documentInfo.headings)
+            {
+                textUnits += heading.text.size();
+                textCapacityUnits += heading.text.capacity();
+            }
+            number("headingItems", application.documentInfo.headings.size());
+            number("headingCapacityItems", application.documentInfo.headings.capacity());
+            number("headingTextUnits", textUnits);
+            number("headingTextCapacityUnits", textCapacityUnits);
+        }
+        else
+        {
+            unavailable("headingItems");
+            unavailable("headingCapacityItems");
+            unavailable("headingTextUnits");
+            unavailable("headingTextCapacityUnits");
+        }
+        if constexpr (requires {
+                          application.visibleFilePaths.size();
+                          application.visibleFilePaths.capacity();
+                      })
+        {
+            number("visibleFilePathItems", application.visibleFilePaths.size());
+            number("visibleFilePathCapacityItems", application.visibleFilePaths.capacity());
+        }
+        else
+        {
+            unavailable("visibleFilePathItems");
+            unavailable("visibleFilePathCapacityItems");
+        }
+        if constexpr (requires {
+                          application.imageRequests.size();
+                          application.imageRequests.capacity();
+                      })
+        {
+            number("imageRequestItems", application.imageRequests.size());
+            number("imageRequestCapacityItems", application.imageRequests.capacity());
+        }
+        else
+        {
+            unavailable("imageRequestItems");
+            unavailable("imageRequestCapacityItems");
+        }
+        if constexpr (requires {
+                          application.cachedSource.has_value();
+                          application.cachedSource->Length();
+                      })
+        {
+            boolean("cachedSourcePresent", application.cachedSource.has_value());
+            number("cachedSourceUnits", application.cachedSource ? application.cachedSource->Length() : 0);
+        }
+        else
+        {
+            unavailable("cachedSourcePresent");
+            unavailable("cachedSourceUnits");
+        }
+        if constexpr (requires {
+                          application.mirroredSource.has_value();
+                          application.mirroredSource->Length();
+                      })
+        {
+            boolean("mirroredSourcePresent", application.mirroredSource.has_value());
+            number("mirroredSourceUnits", application.mirroredSource ? application.mirroredSource->Length() : 0);
+        }
+        else
+        {
+            unavailable("mirroredSourcePresent");
+            unavailable("mirroredSourceUnits");
+        }
+        if constexpr (requires {
+                          application.selectionFactsSource.has_value();
+                          application.selectionFactsSource->Length();
+                      })
+        {
+            boolean("selectionFactsSourcePresent", application.selectionFactsSource.has_value());
+            number("selectionFactsSourceUnits", application.selectionFactsSource ? application.selectionFactsSource->Length() : 0);
+        }
+        else
+        {
+            unavailable("selectionFactsSourcePresent");
+            unavailable("selectionFactsSourceUnits");
+        }
+        if constexpr (requires {
+                          application.documentAnalysisSource.has_value();
+                          application.documentAnalysisSource->Length();
+                      })
+        {
+            boolean("documentAnalysisSourcePresent", application.documentAnalysisSource.has_value());
+            number("documentAnalysisSourceUnits", application.documentAnalysisSource ? application.documentAnalysisSource->Length() : 0);
+        }
+        else
+        {
+            unavailable("documentAnalysisSourcePresent");
+            unavailable("documentAnalysisSourceUnits");
+        }
+        if constexpr (requires {
+                          application.committedAnalysisSource.has_value();
+                          application.committedAnalysisSource->Length();
+                      })
+        {
+            boolean("committedAnalysisSourcePresent", application.committedAnalysisSource.has_value());
+            number("committedAnalysisSourceUnits", application.committedAnalysisSource ? application.committedAnalysisSource->Length() : 0);
+        }
+        else
+        {
+            unavailable("committedAnalysisSourcePresent");
+            unavailable("committedAnalysisSourceUnits");
+        }
+        if constexpr (requires {
+                          application.selectionFactsSyntax->Nodes().size();
+                          application.selectionFactsSyntax->Inlines().size();
+                      })
+        {
+            number("selectionSyntaxNodes", application.selectionFactsSyntax ? application.selectionFactsSyntax->Nodes().size() : 0);
+            number("selectionSyntaxInlines", application.selectionFactsSyntax ? application.selectionFactsSyntax->Inlines().size() : 0);
+        }
+        else
+        {
+            unavailable("selectionSyntaxNodes");
+            unavailable("selectionSyntaxInlines");
+        }
+        out << '}';
+    }
+
   public:
     PerformanceProbe(Application &value, const LaunchOptions &launch) : app(value), options(launch) {}
     int Run()
@@ -357,6 +562,7 @@ class PerformanceProbe
         }
         std::vector<double> command, preparation, completion, total, clean, cpu, commandCpu, processorStart, processorEnd;
         std::array<std::vector<double>, EditDiagnostics::Count> phaseWall, phaseCpu;
+        std::vector<EditDiagnostics::SelectionRecord> selectionComponents;
         std::vector<double> preparationCpu, completionCpu, renderCounts, preparationCounts;
         for (auto *values : {&command, &preparation, &completion, &total, &clean, &cpu, &commandCpu, &processorStart, &processorEnd})
             values->reserve(options.performanceCycles * 2);
@@ -367,6 +573,7 @@ class PerformanceProbe
                     values.reserve(options.performanceCycles * 2);
             for (auto *values : {&preparationCpu, &completionCpu, &renderCounts, &preparationCounts})
                 values->reserve(options.performanceCycles * 2);
+            selectionComponents.reserve(options.performanceCycles * 2);
         }
         const auto activity = app.activity;
         SettleRecovery();
@@ -423,6 +630,7 @@ class PerformanceProbe
                         completionCpu.push_back(static_cast<double>(cpuCycles - commandCycles - prepareCycles));
                         renderCounts.push_back(static_cast<double>(app.host.DebugGetRenderCount() - renders));
                         preparationCounts.push_back(static_cast<double>(app.editor->DebugGetState().preparationAdvances - advances));
+                        selectionComponents.push_back(diagnostic.selection);
                     }
                 }
             }
@@ -487,7 +695,14 @@ class PerformanceProbe
         MemoryJson(out, initial);
         out << "},\"final\":{";
         MemoryJson(out, final);
-        out << "},\"controlDiagnostics\":";
+        out << "},";
+        if (options.controlDiagnostics)
+        {
+            out << "\"appBuffersAfterPrimary\":";
+            WriteAppBuffers(out, app);
+            out << ',';
+        }
+        out << "\"controlDiagnostics\":";
         if (options.controlDiagnostics)
         {
             constexpr std::array names{"enter", "analysis", "mirror", "identity", "caption", "chrome", "selection", "recovery", "exit"};
@@ -510,7 +725,55 @@ class PerformanceProbe
             Samples(out, "renderCounts", renderCounts);
             out << ',';
             Samples(out, "preparationAdvances", preparationCounts);
-            out << ",\"postMemory\":[";
+            constexpr std::array selectionNames{"selection-snapshot",
+                                                "document-analysis-refresh",
+                                                "selection-facts-cache",
+                                                "mirror",
+                                                "inline-semantics",
+                                                "tool-caption-publication",
+                                                "outline",
+                                                "block-lookup",
+                                                "block-labels",
+                                                "position-status",
+                                                "find",
+                                                "routing"};
+            out << ",\"selectionComponents\":{\"protocol\":\"app-selection-components-v1\",\"transactions\":[";
+            for (unsigned transaction = 0; transaction < selectionComponents.size(); ++transaction)
+            {
+                if (transaction)
+                    out << ',';
+                const auto &record = selectionComponents[transaction];
+                double measuredWall{}, measuredCycles{};
+                for (unsigned component = 0; component < EditDiagnostics::SelectionCount; ++component)
+                {
+                    measuredWall += record.wallUs[component];
+                    measuredCycles += static_cast<double>(record.cpuCycles[component]);
+                }
+                out << "{\"complete\":" << (record.complete ? "true" : "false") << ",\"invocations\":" << record.invocations
+                    << ",\"wallTotalUs\":" << record.wallTotalUs << ",\"ownerCpuCyclesTotal\":" << record.cpuTotalCycles << ",\"components\":[";
+                for (unsigned component = 0; component < EditDiagnostics::SelectionCount; ++component)
+                {
+                    if (component)
+                        out << ',';
+                    out << "{\"name\":\"" << selectionNames[component] << "\",\"calls\":" << record.calls[component] << ",\"wallUs\":";
+                    if (record.calls[component])
+                        out << record.wallUs[component];
+                    else
+                        out << "null";
+                    out << ",\"ownerCpuCycles\":";
+                    if (record.calls[component])
+                        out << record.cpuCycles[component];
+                    else
+                        out << "null";
+                    out << '}';
+                }
+                const auto parentWall = phaseWall[static_cast<unsigned>(EditPhase::Selection)][transaction];
+                const auto parentCycles = phaseCpu[static_cast<unsigned>(EditPhase::Selection)][transaction];
+                out << "],\"parentReconciliation\":{\"wallUs\":" << parentWall - measuredWall
+                    << ",\"ownerCpuCycles\":" << parentCycles - measuredCycles << "}}";
+            }
+            out << "]},";
+            out << "\"postMemory\":[";
             for (unsigned index = 0; index < postMemory.size(); ++index)
             {
                 if (index)
@@ -615,7 +878,26 @@ class PerformanceProbe
             MemoryJson(out, Snapshot(true));
             out << ",\"nativeHosts\":" << DxUi::DebugGetAttachedWindowHostCount() << '}';
         }
-        out << "],\"completed\":true,\"qualification\":\"hidden native completed frames; physical presentation and input unverified\"}\n";
+        out << ']';
+        if (options.controlDiagnostics)
+        {
+            std::array<HANDLE, 2> ownedHeaps{};
+            std::size_t ownedHeapCount{};
+            const auto defaultHeap = GetProcessHeap();
+            if (defaultHeap != nullptr)
+                ownedHeaps[ownedHeapCount++] = defaultHeap;
+            const auto crtHeapValue = _get_heap_handle();
+            if (crtHeapValue != 0 && crtHeapValue != static_cast<decltype(crtHeapValue)>(-1))
+            {
+                const auto crtHeap = reinterpret_cast<HANDLE>(crtHeapValue);
+                if (crtHeap != nullptr &&
+                    std::find(ownedHeaps.begin(), ownedHeaps.begin() + ownedHeapCount, crtHeap) == ownedHeaps.begin() + ownedHeapCount)
+                    ownedHeaps[ownedHeapCount++] = crtHeap;
+            }
+            out << ",\"heapDiagnosticCoverage\":\"explicit-default-and-crt-only\",\"ownedHeapDiagnostics\":";
+            (void)Test::WriteOwnedHeapDiagnostic(out, std::span<const HANDLE>(ownedHeaps.data(), ownedHeapCount));
+        }
+        out << ",\"completed\":true,\"qualification\":\"hidden native completed frames; physical presentation and input unverified\"}\n";
         Require(static_cast<bool>(out), "native probe report write failed");
         return 0;
     }

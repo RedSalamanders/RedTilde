@@ -2,6 +2,16 @@
 
 ## Progress checklist
 
+- [x] P10 integration: at the owner's explicit 25 October request, push and merge DxUi PR #100 as `dc67aed6` and RedTilde PR #11 as `72d5152`. Both merge trees exactly match the previously qualified documentation heads. Integration does not accept performance costs, pending CI or product qualification.
+- [x] P10 baseline preservation: retain the original-UI, starting-redesign and SDK actual-base packets and frozen artifacts; continue on `codex/performance-closeout-20261025` in both managed worktrees without changing the primary checkouts.
+- [x] P10 CI checkpoint: RedTilde workflow `40188473067` executes zero steps because of the account payment/spending restriction; hosted RedTilde ARM64 stays open. At 11:46 UTC, the latest SDK workflow `40187599911` passes x64 Debug/Release and static/tooling checks while ASan, ARM64 and paired collection remain pending.
+- [x] P10 later SDK native checkpoint: workflow `40187599911` subsequently passes all six native jobs, including ARM64 and ASan; paired collection remains running. These are the merged implementation's `9a642c52` checks, not tests of new diagnostic source.
+- [x] P10 diagnostic Release checkpoint: 38 Editor cases pass, including the new owned-heap and invalid-selection-attribution cases. Preserve the first catalog-admission refusal before updating the two new case registrations; it executed no behavioral cases.
+- [ ] P10 diagnostics: characterize selection substeps and after-primary heap/storage on the fixed existing app fixture, with opt-in instrumentation, bounded storage and unchanged primary metrics. Freeze the instrumented pre-optimization revision before any repair.
+- [ ] P10 app repair: identify and remove measured avoidable work/retention, preserve source/history/UIA/captions/focus and independently verify the five original-UI slots with a fresh fixed cohort. A source hypothesis or isolated microbenchmark is not resolution.
+- [ ] P10 SDK controls: independently analyze every same-side control by metric, chronology and block order; distinguish timer/collector/fixture effects from host variability. Preserve raw data, exact budgets and the unqualified policy; change neither thresholds nor the baseline to obtain a pass.
+- [ ] P10 qualification: complete affected regressions, required build/runtime/resource checks and fixed paired comparisons after the final repair; keep RedTilde hosted ARM64 open if billing still blocks it.
+- [ ] P10 publication: refresh the changed-file review ledger, synchronize domain specs and folded changelogs, push and merge the reviewed follow-up, and retain every unsuccessful attempt and unresolved gate.
 - [x] P0: inspect both clean checkouts, exact dependency pin, existing plans and current qualification packets.
 - [x] P0: complete three cheaper-agent read-only reviews; lead re-read the admitted findings and primary references.
 - [x] P0: reconcile ownership with the existing design, creation and DxUi rich-text audit plans.
@@ -9,7 +19,7 @@
 - [x] P0: pass both repositories' validators/format checks, verify inventory integrity, and resolve the independent cold review.
 - [x] A0: revalidate drift, retain baselines, finish the file-by-file review ledger and classify current-profile findings.
 - [x] A0 initial inventory: reconcile all 482 file reviews (446 source and 36 generated provenance) and record lead finding dispositions.
-- [x] A0 final inventory: reconcile the late source/documentation review deltas and refresh all 536 current path hashes after the final evidence/docs commit, including the changed historical measurement projections. The applied audit and lead hash replay have no missing or unresolved paths; runtime, performance and hosted ARM64 qualification remain separate.
+- [x] A0 prior final inventory at `83d3b1a`: reconcile the late source/documentation review deltas and verify all 536 recorded path hashes, including the changed historical measurement projections. The applied audit and lead replay have no missing or unresolved paths at that revision; P10 owns review of subsequent changes.
 - [x] A0: verify design PR #10's actual base and retain the separate starting app Release baseline.
 - [x] A1/A3/A5: reproduce table bounds failure, math ownership/limits/recognition defects and corrected Mermaid outcome mismatch before fixes.
 - [x] A1/A2/A3/A5: pass 24 combined Debug regression diagnostics, including source/history, local fallback and UIA ownership; retain their original failures.
@@ -1112,7 +1122,7 @@ by changed inputs or an unresolved concern; preserve exact reusable evidence und
 
 All must hold before calling the requested work finished:
 
-- [x] Every first-party review-inventory row has a current hash, reviewer, relevant tests and finding/disposition.
+- [ ] Every first-party review-inventory row has a current hash, reviewer, relevant tests and finding/disposition after P10 changes; the `83d3b1a` 536-file audit remains retained as prior evidence.
 - [ ] Every mandatory confirmed defect has a fail-before/pass-after regression; disputed/refuted rows retain evidence.
 - [ ] Supported Mermaid and math profile rows pass independent semantics, geometry/rendering, source/history,
   UIA, negative/admission, cancellation and resource tests. Deferred parity remains named and prevents a full-parity claim.

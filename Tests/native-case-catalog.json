@@ -2,6 +2,14 @@
   "version": 1,
   "cases": [
     {
+      "name": "Performance.OwnedHeapDiagnosticDistinguishesBusyFreeAndPartialCoverage",
+      "scope": "Editor"
+    },
+    {
+      "name": "Performance.SelectionDiagnosticRejectsReentryAndUnwinding",
+      "scope": "Editor"
+    },
+    {
       "name": "Window.Image2QuietChromeAndCompactInspector",
       "scope": "Editor"
     },

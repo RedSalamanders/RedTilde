@@ -12,7 +12,7 @@ $source=Get-RedTildeSourceIdentity -Root $PSScriptRoot
 if(-not $build.passed -or $build.sourceIdentity -cne $source -or $build.binarySha256 -cne (Get-FileHash $exe).Hash) { throw 'Rebuild the current Release source before measuring.' }
 $fixture=Join-Path $PSScriptRoot 'docs/examples/s5-performance.md'
 $inputs=[ordered]@{}
-foreach($file in @('Tests/Application.Tests.Performance.cpp','RedTilde/Main.cpp','RedTilde/EditDiagnostics.h','performance-paired.ps1','Build/Performance.psm1','Build/Harness.psm1','docs/examples/s5-performance.md')) {
+foreach($file in @('Tests/Application.Tests.Performance.cpp','Tests/Application.Tests.HeapDiagnostic.h','RedTilde/Main.cpp','RedTilde/EditDiagnostics.h','performance-paired.ps1','Build/Performance.psm1','Build/Harness.psm1','docs/examples/s5-performance.md')) {
     $inputs[$file]=(Get-FileHash (Join-Path $PSScriptRoot $file)).Hash
 }
 $compiler=Get-RedTildeCompilerProfile -Root $PSScriptRoot
@@ -63,7 +63,8 @@ foreach($side in @('baseline','candidate')) {
     $compilerReceipts[$side]=[ordered]@{file=$leaf;sha256=$profile.rawSha256}
 }
 [ordered]@{protocol='independent-ABBA-BAAB-v1';blocks=$Blocks;seed=$Seed;cycles=$Cycles;sameBinaryControl=[bool]$SameBinaryControl;
-    baseline=$base;candidate=$candidateIdentity;compilerReceipts=$compilerReceipts;schedule=$schedule;controlDiagnostics=[bool]$ControlDiagnostics} |
+    baseline=$base;candidate=$candidateIdentity;compilerReceipts=$compilerReceipts;schedule=$schedule;controlDiagnostics=[bool]$ControlDiagnostics;
+    selectionDiagnosticsProtocol=$(if($ControlDiagnostics){'app-selection-components-v1'}else{$null})} |
     ConvertTo-Json -Depth 18 | Set-Content (Join-Path $OutputRoot 'study.json') -Encoding utf8
 $pairs=[Collections.Generic.List[object]]::new()
 $nativeIdentities=@{}
@@ -86,6 +87,10 @@ foreach($block in $schedule) {
         $native=Get-Content $nativePath -Raw | ConvertFrom-Json
         if($ControlDiagnostics -and ($null -eq $native.controlDiagnostics -or $native.controlDiagnostics.protocol -cne 'app-edit-phases-v2')) {
             throw 'Requested command-phase diagnostics are missing.'
+        }
+        if($ControlDiagnostics -and (-not $native.controlDiagnostics.PSObject.Properties['selectionComponents'] -or
+            $native.controlDiagnostics.selectionComponents.protocol -cne 'app-selection-components-v1')) {
+            throw 'Requested nested selection diagnostics are missing.'
         }
         $identity=[ordered]@{}
         foreach($key in @('fixture','view','renderer','adapter','vendorId','deviceId','driverVersion','dpi','widthPx','heightPx','sourceUnits','cycles')) { $identity[$key]=$native.$key }

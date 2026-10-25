@@ -149,6 +149,10 @@ function Require([bool]$Condition,[string]$Message) {
 function Near([double]$Actual,[double]$Expected,[string]$Message) {
     Require ([double]::IsFinite($Actual) -and [math]::Abs($Actual-$Expected) -le 1e-10*[math]::Max(1.0,[math]::Abs($Expected))) $Message
 }
+function Test-NonnegativeEvidenceNumber([object]$Value) {
+    return ($Value -is [int] -or $Value -is [long] -or $Value -is [double] -or $Value -is [decimal] -or $Value -is [bigint]) -and
+        [double]::IsFinite([double]$Value) -and [double]$Value -ge 0
+}
 Near ([RedTilde.PairedEvidenceReference]::Median(@(4.0,1.0,3.0,2.0))) 2.5 'Reference even median.'
 $signs=[double[]]@(1,1,1,1,1,1,1,1,1,1,-1,-1)
 Near ([RedTilde.PairedEvidenceReference]::Tail($signs)) (158.0/4096) 'Independent binomial-tail oracle.'
@@ -304,6 +308,50 @@ $results=@(foreach($directory in $StudyPath) {
                     }
                     if($memoryIndex -lt 2) { Require (-not $memory.threadInventoryCollected -and $null -eq $memory.threads) 'Early post-primary snapshots must remain cheap.' }
                     else { Require ($memory.threadInventoryCollected -and $memory.threads -gt 0) 'Late diagnostic thread inventory is missing.' }
+                }
+                $hasSelection=$diagnostic.Contains('selectionComponents') -and $null -ne $diagnostic.selectionComponents
+                if($study.Contains('selectionDiagnosticsProtocol') -and $null -ne $study.selectionDiagnosticsProtocol) {
+                    Require ($study.selectionDiagnosticsProtocol -ceq 'app-selection-components-v1' -and $hasSelection) 'Declared nested selection diagnostics are missing.'
+                }
+                if($hasSelection) {
+                    $detail=$diagnostic.selectionComponents
+                    $componentNames=@('selection-snapshot','document-analysis-refresh','selection-facts-cache','mirror','inline-semantics',
+                        'tool-caption-publication','outline','block-lookup','block-labels','position-status','find','routing')
+                    Require ($diagnostic.protocol -ceq 'app-edit-phases-v2' -and $detail.protocol -ceq 'app-selection-components-v1' -and
+                        $detail.transactions.Count -eq $sampleCount) 'Invalid selection diagnostic protocol or transaction count.'
+                    for($sampleIndex=0;$sampleIndex -lt $sampleCount;++$sampleIndex) {
+                        $transaction=$detail.transactions[$sampleIndex]
+                        Require ($transaction.complete -is [bool] -and $transaction.complete -and
+                            (Test-NonnegativeEvidenceNumber $transaction.invocations) -and $transaction.invocations -eq 1 -and
+                            $transaction.components.Count -eq $componentNames.Count) 'Selection diagnostics must contain exactly one complete invocation.'
+                        $componentWall=0.0; $componentCpu=0.0
+                        for($componentIndex=0;$componentIndex -lt $componentNames.Count;++$componentIndex) {
+                            $component=$transaction.components[$componentIndex]
+                            Require ($component.name -ceq $componentNames[$componentIndex]) 'Selection component names or ordering differ.'
+                            Require ((Test-NonnegativeEvidenceNumber $component.calls) -and
+                                $component.calls -eq [math]::Floor($component.calls)) 'Invalid selection component call count.'
+                            if($component.calls -eq 0) {
+                                Require ($null -eq $component.wallUs -and $null -eq $component.ownerCpuCycles) 'Unexecuted selection components must remain unavailable.'
+                                continue
+                            }
+                            foreach($value in @($component.wallUs,$component.ownerCpuCycles)) {
+                                Require (Test-NonnegativeEvidenceNumber $value) 'Invalid selection component samples.'
+                            }
+                            Require ($component.ownerCpuCycles -eq [math]::Floor($component.ownerCpuCycles)) 'Selection CPU cycles must be integral.'
+                            $componentWall+=[double]$component.wallUs; $componentCpu+=[double]$component.ownerCpuCycles
+                        }
+                        $parentWall=[double]$diagnostic.phases[6].wallUs[$sampleIndex]
+                        $parentCpu=[double]$diagnostic.phases[6].ownerCpuCycles[$sampleIndex]
+                        Require ((Test-NonnegativeEvidenceNumber $transaction.wallTotalUs) -and
+                            (Test-NonnegativeEvidenceNumber $transaction.ownerCpuCyclesTotal) -and
+                            $transaction.ownerCpuCyclesTotal -eq [math]::Floor($transaction.ownerCpuCyclesTotal) -and
+                            $componentWall -le $transaction.wallTotalUs+1e-6 -and $componentCpu -le $transaction.ownerCpuCyclesTotal -and
+                            $transaction.wallTotalUs -le $parentWall+1e-6 -and $transaction.ownerCpuCyclesTotal -le $parentCpu) 'Selection component totals exceed their enclosing selection.'
+                        Near ($componentWall+[double]$transaction.parentReconciliation.wallUs) $parentWall 'Selection component reconciliation differs.'
+                        Near ($componentCpu+[double]$transaction.parentReconciliation.ownerCpuCycles) $parentCpu 'Selection component reconciliation differs.'
+                    }
+                    Require ($native.Contains('appBuffersAfterPrimary') -and $native.appBuffersAfterPrimary.sourceUnits -eq $native.sourceUnits -and
+                        $native.heapDiagnosticCoverage -ceq 'explicit-default-and-crt-only') 'Selection storage diagnostics do not match their source or heap coverage.'
                 }
             }
             $nativeIdentity=@($native.fixture,$native.view,$native.renderer,$native.adapter,$native.vendorId,$native.deviceId,$native.driverVersion,
