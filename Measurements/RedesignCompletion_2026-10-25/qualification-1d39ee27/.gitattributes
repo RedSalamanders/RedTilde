@@ -1,0 +1,3 @@
+*.json -text -whitespace
+*.csv -text -whitespace
+README.md -text -whitespace
