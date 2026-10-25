@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Correct the heap diagnostic's sanitizer test oracle: record whether Windows actually exposes the requested allocation in the supplied heap instead of equating logical ASan allocation bytes to native heap payload. Keep ordinary allocator growth, complete and bounded walks, invalid/duplicate handles and exact-limit checks covered.
 - Add an explicit dependency-adoption performance comparison against the actual pull-request base. Keep the default same-pin guard, compiler/environment/fixture checks and existing metric bands; permit only the pinned SDK commit/fingerprint to differ with matching clean public-header inventories and API/build metadata. Keep original-UI and upstream qualification results separate.
 - Pin the native accessibility content-update coalescing fix to exact DxUi commit `1714f8b0` without adding dependencies or changing API revision 4. Preserve coherent UIA text/toggle queries and immediate general focus changes. Keep adoption experimental until fresh consumer builds, editing/storage/capture/resource checks and paired performance qualification complete.
 - Avoid temporary copies of localized block, position and count templates during editing. Borrow executable resource text while preserving owned formatted labels, per-request language selection, missing-resource behavior and positional translations. Add lifetime and formatting coverage; performance qualification remains open pending the fixed paired comparisons.

@@ -1484,9 +1484,47 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                  auto *allocation = HeapAlloc(heap.get(), 0, allocationBytes);
                  Require(allocation != nullptr, "allocate a known payload in the owned heap");
                  const auto freeAllocation = wil::scope_exit([&] { allocationReleased = HeapFree(heap.get(), 0, allocation) != FALSE; });
+                 std::fill_n(static_cast<std::byte *>(allocation), allocationBytes, std::byte{0x5A});
                  const auto busy = sample();
-                 Require(busy.first && JsonUnsigned(JsonObjectAfter(busy.second, "\"totals\":"), "busyPayloadBytes") >= beforeBusy + allocationBytes,
-                         "heap payload reports the live owned allocation without equating it to process private bytes");
+                 // Independent membership oracle, rather than a second implementation of byte accounting.
+                 const auto nativeOwnership = [&]
+                 {
+                     if (!HeapLock(heap.get()))
+                         return std::pair{false, false};
+                     const auto unlock = wil::scope_exit([&] { (void)HeapUnlock(heap.get()); });
+                     PROCESS_HEAP_ENTRY entry{};
+                     bool represented{};
+                     const auto address = reinterpret_cast<std::uintptr_t>(allocation);
+                     for (std::size_t index = 0; index <= Test::MaximumDiagnosticEntriesPerHeap; ++index)
+                     {
+                         if (!HeapWalk(heap.get(), &entry))
+                             return std::pair{GetLastError() == ERROR_NO_MORE_ITEMS, represented};
+                         if (index == Test::MaximumDiagnosticEntriesPerHeap)
+                             return std::pair{false, represented};
+                         const auto first = reinterpret_cast<std::uintptr_t>(entry.lpData);
+                         if ((entry.wFlags & PROCESS_HEAP_ENTRY_BUSY) && entry.cbData >= allocationBytes && address >= first &&
+                             address - first <= entry.cbData - allocationBytes)
+                             represented = true;
+                     }
+                     return std::pair{false, represented};
+                 }();
+                 const auto busyBytes = JsonUnsigned(JsonObjectAfter(busy.second, "\"totals\":"), "busyPayloadBytes");
+#if defined(__SANITIZE_ADDRESS__)
+                 // ASan may redirect HeapAlloc and quarantine physical storage outside the supplied native heap.
+                 constexpr bool sanitizerAllocator = true;
+#else
+                 constexpr bool sanitizerAllocator = false;
+#endif
+                 Require(busy.first && nativeOwnership.first, "both the owned-heap capture and independent membership walk complete");
+                 if constexpr (!sanitizerAllocator)
+                     Require(nativeOwnership.second && busyBytes >= beforeBusy + allocationBytes,
+                             "native heap payload includes the independently observed live allocation");
+                 Success(
+                     WriteBytesAtomic(root / L"owned-heap-allocation-observation.json",
+                                      std::format("{{\"sanitizerAllocator\":{},\"logicalAllocationBytes\":{},\"nativeHeapRepresentsAllocation\":{},"
+                                                  "\"busyPayloadBefore\":{},\"busyPayloadAfter\":{}}}",
+                                                  sanitizerAllocator, allocationBytes, nativeOwnership.second, beforeBusy, busyBytes)),
+                     "retain physical versus logical heap observation without claiming process-wide coverage");
                  const auto partial = sample(1);
                  Require(!partial.first && partial.second.find("\"budgetExceeded\":true") != partial.second.npos &&
                              JsonUnsigned(partial.second, "entryLimit") == 1,

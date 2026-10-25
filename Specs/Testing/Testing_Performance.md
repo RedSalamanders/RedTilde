@@ -137,6 +137,10 @@ matched harness input closure before freezing a new baseline; retain the prior s
 Post-primary host counters may record configured text formats, brushes and direct logical root children. These
 are object counts rather than retained bytes or a complete control-tree inventory. Sampling follows the heap
 observation, so the counters cannot change that observation or any primary metric.
+Heap-diagnostic tests distinguish logical allocation requests from native heap storage. Sanitizer interception
+may redirect or quarantine the physical allocation; retain an independent range-membership observation and
+require native-payload growth only for the ordinary native allocator. Keep the complete-walk, budget, duplicate,
+invalid-handle and exact-boundary assertions active in every profile.
 
 Diagnostic memory is sampled after the primary snapshot, then after 100 and 500 ms of event-driven hidden idle.
 No additional render/preparation is allowed during those waits. Full global thread inventory runs only in the
