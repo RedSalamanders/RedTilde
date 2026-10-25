@@ -36,6 +36,46 @@ Require ([math]::Abs($row.adjustedP-0.462890625) -lt 1e-12 -and $row.finding -ce
 $invalid=Pair 1.0; $invalid[0].B1.commandUs=0.0
 $rejected=$false; try { Compare-RedTildePerformanceBlocks $invalid | Out-Null } catch { $rejected=$true }
 Require $rejected 'Missing/zero metrics cannot become an accepted comparison.'
+$publicHeaders='a'*64
+$dependencyA=[ordered]@{Fingerprint=('1'*64);Identity=[ordered]@{commit=('a'*40);apiRevision=4;platform='x64';toolset='v145';runtimeFamily='MD';compilerSha256=('b'*64)}}
+$dependencyB=[ordered]@{Fingerprint=('2'*64);Identity=[ordered]@{commit=('c'*40);apiRevision=4;platform='x64';toolset='v145';runtimeFamily='MD';compilerSha256=('b'*64)}}
+Assert-RedTildeDependencyComparison $dependencyA $dependencyA $publicHeaders $publicHeaders
+Assert-RedTildeDependencyComparison $dependencyA $dependencyB $publicHeaders $publicHeaders -DependencyAdoption
+Assert-RedTildeDependencyComparison $dependencyA $dependencyA $publicHeaders $publicHeaders -DependencyAdoption
+$dependencyAPscustom=ConvertFrom-Json -InputObject (ConvertTo-Json -InputObject $dependencyA -Depth 10)
+$dependencyBPscustom=ConvertFrom-Json -InputObject (ConvertTo-Json -InputObject $dependencyB -Depth 10)
+Assert-RedTildeDependencyComparison $dependencyAPscustom $dependencyBPscustom $publicHeaders $publicHeaders -DependencyAdoption
+function Require-DependencyRejected([string]$Name,$Baseline,$Candidate,[string]$BaselineHeaders=$publicHeaders,[string]$CandidateHeaders=$publicHeaders,[switch]$Adoption) {
+    $rejected=$false
+    try {
+        if($Adoption) { Assert-RedTildeDependencyComparison $Baseline $Candidate $BaselineHeaders $CandidateHeaders -DependencyAdoption }
+        else { Assert-RedTildeDependencyComparison $Baseline $Candidate $BaselineHeaders $CandidateHeaders }
+    } catch { $rejected=$true }
+    Require $rejected "Dependency comparison rejects $Name."
+}
+Require-DependencyRejected 'unqualified dependency change' $dependencyA $dependencyB
+$unexpectedDependency=[ordered]@{Fingerprint=('2'*64);Identity=[ordered]@{commit=('c'*40);apiRevision=4;platform='x64';toolset='v145';runtimeFamily='MD';compilerSha256=('b'*64)};newField='changed'}
+Require-DependencyRejected 'unexpected outer field' $dependencyA $unexpectedDependency $publicHeaders $publicHeaders -Adoption
+$changedToolset=[ordered]@{Fingerprint=('2'*64);Identity=[ordered]@{commit=('c'*40);apiRevision=4;platform='x64';toolset='v146';runtimeFamily='MD';compilerSha256=('b'*64)}}
+Require-DependencyRejected 'toolchain field change' $dependencyA $changedToolset $publicHeaders $publicHeaders -Adoption
+$changedRuntime=[ordered]@{Fingerprint=('2'*64);Identity=[ordered]@{commit=('c'*40);apiRevision=4;platform='x64';toolset='v145';runtimeFamily='MT';compilerSha256=('b'*64)}}
+Require-DependencyRejected 'runtime field change' $dependencyA $changedRuntime $publicHeaders $publicHeaders -Adoption
+$changedApi=[ordered]@{Fingerprint=('2'*64);Identity=[ordered]@{commit=('c'*40);apiRevision=5;platform='x64';toolset='v145';runtimeFamily='MD';compilerSha256=('b'*64)}}
+Require-DependencyRejected 'API revision change' $dependencyA $changedApi $publicHeaders $publicHeaders -Adoption
+Require-DependencyRejected 'public header digest change' $dependencyA $dependencyB $publicHeaders ('d'*64) -Adoption
+$missingMetadata=[ordered]@{Fingerprint=('2'*64);Identity=[ordered]@{commit=('c'*40);apiRevision=4;platform='x64';toolset='v145';runtimeFamily='MD'}}
+Require-DependencyRejected 'missing compiler identity metadata' $dependencyA $missingMetadata $publicHeaders $publicHeaders -Adoption
+$missingCommit=[ordered]@{Fingerprint=('2'*64);Identity=[ordered]@{apiRevision=4;platform='x64';toolset='v145';runtimeFamily='MD';compilerSha256=('b'*64)}}
+Require-DependencyRejected 'missing dependency commit' $dependencyA $missingCommit $publicHeaders $publicHeaders -Adoption
+$missingFingerprint=[ordered]@{Identity=[ordered]@{commit=('c'*40);apiRevision=4;platform='x64';toolset='v145';runtimeFamily='MD';compilerSha256=('b'*64)}}
+Require-DependencyRejected 'missing dependency fingerprint' $dependencyA $missingFingerprint $publicHeaders $publicHeaders -Adoption
+$invalidCommit=[ordered]@{Fingerprint=('2'*64);Identity=[ordered]@{commit='not-a-commit';apiRevision=4;platform='x64';toolset='v145';runtimeFamily='MD';compilerSha256=('b'*64)}}
+Require-DependencyRejected 'malformed adoption commit' $dependencyA $invalidCommit $publicHeaders $publicHeaders -Adoption
+$beforeA=ConvertTo-Json -InputObject $dependencyA -Depth 10 -Compress
+$beforeB=ConvertTo-Json -InputObject $dependencyB -Depth 10 -Compress
+Assert-RedTildeDependencyComparison $dependencyA $dependencyB $publicHeaders $publicHeaders -DependencyAdoption
+Require ((ConvertTo-Json -InputObject $dependencyA -Depth 10 -Compress) -ceq $beforeA -and
+    (ConvertTo-Json -InputObject $dependencyB -Depth 10 -Compress) -ceq $beforeB) 'Dependency adoption comparisons leave caller-owned objects unchanged.'
 $fixtureRoot=Join-Path $PSScriptRoot ('../.build/performance-tooling/'+[guid]::NewGuid().ToString('N'))
 function Write-CompilerFixture([string]$Name,[string[]]$Files,[string[]]$Flags) {
     $directory=[IO.Path]::GetFullPath((Join-Path $fixtureRoot $Name))
@@ -108,6 +148,28 @@ Require ($nearProfiles[0].sha256 -cne $nearProfiles[1].sha256) 'A root-prefix ne
 # Run the actual auditor's identity boundary against synthetic metadata/raw commands. Its typed tokenizer
 # is independent of the production profile builder; these fixtures qualify neither a native measurement nor policy.
 . (Join-Path $PSScriptRoot 'Scope.Tests.Performance.Evidence.ps1') -SelfTest
+$headerRow=[ordered]@{path='include/DxUi/Fixture.h';sha256=('F'*64)}
+$headerDigest=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($headerRow.path+':'+$headerRow.sha256)))
+$headerEvidence=[ordered]@{schemaVersion=1;sha256=$headerDigest;files=@($headerRow)}
+$dependencyStudy=[ordered]@{dependencyComparisonMode='sdk-adoption';
+    baseline=[ordered]@{build=@{dependency=$dependencyA};publicHeaders=$headerEvidence};
+    candidate=[ordered]@{build=@{dependency=$dependencyB};publicHeaders=$headerEvidence}}
+$dependencyComparison=@{dependencyComparisonMode='sdk-adoption'}
+Assert-DependencyEvidence $dependencyStudy $dependencyComparison
+function Require-RejectedDependencyEvidence([string]$Name,[scriptblock]$Mutation) {
+    $copy=$dependencyStudy|ConvertTo-Json -Depth 30|ConvertFrom-Json -AsHashtable
+    & $Mutation $copy
+    $rejected=$false
+    try {Assert-DependencyEvidence $copy $dependencyComparison} catch {$rejected=$true}
+    Require $rejected ('Independent dependency evidence rejects '+$Name)
+}
+Require-RejectedDependencyEvidence 'missing header inventory' {param($study) $study.candidate.Remove('publicHeaders')}
+Require-RejectedDependencyEvidence 'corrupt header checksum' {param($study) $study.candidate.publicHeaders.sha256='0'*64}
+Require-RejectedDependencyEvidence 'header path traversal' {param($study) $study.candidate.publicHeaders.files[0].path='include/../Fixture.h'}
+Require-RejectedDependencyEvidence 'unknown ABI field' {param($study) $study.candidate.build.dependency.Identity.newFlag=$true}
+Require-RejectedDependencyEvidence 'runtime change' {param($study) $study.candidate.build.dependency.Identity.runtimeFamily='MDd'}
+Require-RejectedDependencyEvidence 'API change' {param($study) $study.candidate.build.dependency.Identity.apiRevision=5}
+Require-RejectedDependencyEvidence 'mode downgrade' {param($study) $study.dependencyComparisonMode='same-pin'}
 function Copy-IdentityFixture($Value) { return $Value|ConvertTo-Json -Depth 20|ConvertFrom-Json -AsHashtable }
 $auditRoot=Join-Path $fixtureRoot 'identity-audit'
 [void][IO.Directory]::CreateDirectory($auditRoot)

@@ -57,4 +57,27 @@ function Assert-RedTildeTestArtifact {
     }
     [pscustomobject]@{Executable=$executable;Build=$built;SourceIdentity=$source;ReceiptSha256=(Get-FileHash -LiteralPath $receipt).Hash}
 }
-Export-ModuleMember -Function Get-RedTildeSourceIdentity,Invoke-RedTildeHarness,Assert-RedTildeTestArtifact
+function Get-RedTildeDependencyPublicHeaders {
+    param([Parameter(Mandatory)][string]$Root,[Parameter(Mandatory)]$Dependency)
+    $commit=[string]$Dependency.Identity.commit
+    if($commit -cnotmatch '^[0-9a-f]{40}$') {throw 'Exact dependency commit is required for public-header evidence.'}
+    $include=Join-Path $Root ".build/dependencies/DxUi/source/$commit/include"
+    if(-not (Test-Path -LiteralPath $include -PathType Container)) {throw 'Pinned public-header source is missing.'}
+    $sdk=Split-Path $include -Parent
+    $head=@(& git -C $sdk rev-parse HEAD)
+    if($LASTEXITCODE -ne 0 -or $head.Count -ne 1 -or $head[0] -cne $commit) {throw 'Public-header checkout differs from the compiled dependency commit.'}
+    $dirty=@(& git -C $sdk status --porcelain --untracked-files=all -- include)
+    if($LASTEXITCODE -ne 0 -or $dirty.Count) {throw 'Public-header checkout has uncommitted changes.'}
+    if((Get-Item -LiteralPath $include).Attributes -band [IO.FileAttributes]::ReparsePoint) {throw 'Public-header root cannot be a reparse point.'}
+    $entries=@(Get-ChildItem -LiteralPath $include -Recurse -Force -ErrorAction Stop)
+    if(@($entries | Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint }).Count) {throw 'Public-header evidence cannot follow reparse points.'}
+    $files=@($entries | Where-Object {-not $_.PSIsContainer} | ForEach-Object {
+        [ordered]@{path=('include/'+[IO.Path]::GetRelativePath($include,$_.FullName).Replace('\','/'));sha256=(Get-FileHash -LiteralPath $_.FullName).Hash}
+    } | Sort-Object path -CaseSensitive)
+    if(-not $files.Count) {throw 'Pinned public-header source is empty.'}
+    $rows=[string[]]@($files | ForEach-Object {$_.path+':'+$_.sha256})
+    [Array]::Sort($rows,[StringComparer]::Ordinal)
+    $hash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($rows -join "`n"))))
+    [ordered]@{schemaVersion=1;sha256=$hash;files=$files}
+}
+Export-ModuleMember -Function Get-RedTildeSourceIdentity,Invoke-RedTildeHarness,Assert-RedTildeTestArtifact,Get-RedTildeDependencyPublicHeaders

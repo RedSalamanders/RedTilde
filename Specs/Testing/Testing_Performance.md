@@ -159,3 +159,9 @@ the same viewport. Freeze a new common instrumented baseline with this harness; 
 The existing strict fixture, pin, compiler, renderer, native geometry and harness identity checks remain enabled.
 For a dependency adoption, first compare original application chrome and refreshed chrome on the same new exact
 DxUi pin; upstream library changes retain their independent baseline and qualification.
+An additional actual-PR-base adoption study may explicitly select `-DependencyAdoption`. The default still refuses
+different dependencies. Adoption permits only the exact dependency commit/fingerprint pair to change: API revision,
+platform, runtime, compiler, SDK, flags and every other dependency field must match. Retain and independently replay
+the matching public-header inventory from each clean pinned source checkout. Reject missing/changed header bytes.
+This mode measures the complete follow-up, including the SDK adoption; it never replaces the original-UI comparison
+on one common pin, changes a metric/band, qualifies the upstream policy or accepts a new ABI.

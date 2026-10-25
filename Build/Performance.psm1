@@ -242,4 +242,93 @@ function Get-RedTildeCompilerProfile {
         commands=$commands;translationUnits=@($inventory);rawSha256=(Get-FileHash $path).Hash}
 }
 
-Export-ModuleMember -Function Get-RedTildeMedian,Get-RedTildePerformanceMetrics,Get-RedTildeControlDiagnostics,New-RedTildePerformanceSchedule,Get-RedTildeSignFlipP,Compare-RedTildePerformanceBlocks,Get-RedTildeCompilerProfile
+function Assert-RedTildeDependencyComparison {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] $BaselineDependency,
+        [Parameter(Mandatory)] $CandidateDependency,
+        [Parameter(Mandatory)][AllowEmptyString()][string] $BaselinePublicHeadersSha256,
+        [Parameter(Mandatory)][AllowEmptyString()][string] $CandidatePublicHeadersSha256,
+        [switch] $DependencyAdoption
+    )
+    function ConvertTo-DependencyJson($Value) {
+        return ConvertTo-Json -InputObject $Value -Depth 100 -Compress
+    }
+    function Get-DependencyField($Value,[string]$Name) {
+        if($Value -is [Collections.IDictionary]) {
+            foreach($key in $Value.Keys) { if([string]$key -ceq $Name) { return $Value[$key] } }
+            return $null
+        }
+        $property=$null
+        foreach($candidate in $Value.PSObject.Properties) { if($candidate.Name -ceq $Name) { $property=$candidate; break } }
+        if($property) { return $property.Value }
+        return $null
+    }
+    function Test-DependencyHasExactField($Value,[string]$Name) {
+        if($Value -is [Collections.IDictionary]) {
+            foreach($key in $Value.Keys) { if([string]$key -ceq $Name) { return $true } }
+            return $false
+        }
+        foreach($candidate in $Value.PSObject.Properties) { if($candidate.Name -ceq $Name) { return $true } }
+        return $false
+    }
+    $baselineJson=ConvertTo-DependencyJson $BaselineDependency
+    $candidateJson=ConvertTo-DependencyJson $CandidateDependency
+    if($baselineJson -ceq $candidateJson) {
+        if($DependencyAdoption) {
+            if($BaselinePublicHeadersSha256 -cnotmatch '^[0-9a-fA-F]{64}$' -or
+                $CandidatePublicHeadersSha256 -cnotmatch '^[0-9a-fA-F]{64}$' -or
+                $BaselinePublicHeadersSha256 -ine $CandidatePublicHeadersSha256) {
+                throw 'Dependency adoption requires matching, valid public-header SHA-256 digests.'
+            }
+            $baselineIdentity=Get-DependencyField $BaselineDependency 'Identity'
+            $candidateIdentity=Get-DependencyField $CandidateDependency 'Identity'
+            if((Get-DependencyField $baselineIdentity 'apiRevision') -ne 4 -or
+                (Get-DependencyField $candidateIdentity 'apiRevision') -ne 4) {
+                throw 'Dependency adoption requires API revision 4 on both sides.'
+            }
+        }
+        return
+    }
+    if(-not $DependencyAdoption) { throw 'Baseline and candidate dependency identities differ.' }
+
+    if($BaselinePublicHeadersSha256 -cnotmatch '^[0-9a-fA-F]{64}$' -or
+        $CandidatePublicHeadersSha256 -cnotmatch '^[0-9a-fA-F]{64}$' -or
+        $BaselinePublicHeadersSha256 -ine $CandidatePublicHeadersSha256) {
+        throw 'Dependency adoption requires matching, valid public-header SHA-256 digests.'
+    }
+    $baselineFingerprint=Get-DependencyField $BaselineDependency 'Fingerprint'
+    $candidateFingerprint=Get-DependencyField $CandidateDependency 'Fingerprint'
+    $baselineIdentity=Get-DependencyField $BaselineDependency 'Identity'
+    $candidateIdentity=Get-DependencyField $CandidateDependency 'Identity'
+    $baselineCommit=Get-DependencyField $baselineIdentity 'commit'
+    $candidateCommit=Get-DependencyField $candidateIdentity 'commit'
+    if($baselineFingerprint -isnot [string] -or $baselineFingerprint -cnotmatch '^[0-9a-fA-F]{64}$' -or
+        $candidateFingerprint -isnot [string] -or $candidateFingerprint -cnotmatch '^[0-9a-fA-F]{64}$' -or
+        $baselineCommit -isnot [string] -or $baselineCommit -cnotmatch '^[0-9a-f]{40}$' -or
+        $candidateCommit -isnot [string] -or $candidateCommit -cnotmatch '^[0-9a-f]{40}$' -or
+        $baselineFingerprint -ieq $candidateFingerprint -or $baselineCommit -ceq $candidateCommit -or
+        (Get-DependencyField $baselineIdentity 'apiRevision') -ne 4 -or
+        (Get-DependencyField $candidateIdentity 'apiRevision') -ne 4) {
+        throw 'Dependency adoption metadata is missing, malformed, unchanged or has an unsupported API revision.'
+    }
+
+    # Work on JSON clones so this guard never edits either caller-owned object. Only the
+    # reviewed dependency commit/fingerprint pair is omitted from the adoption comparison.
+    $baselineClone=ConvertFrom-Json -InputObject $baselineJson -AsHashtable
+    $candidateClone=ConvertFrom-Json -InputObject $candidateJson -AsHashtable
+    if(-not ($baselineClone -is [Collections.IDictionary]) -or -not ($candidateClone -is [Collections.IDictionary]) -or
+        -not (Test-DependencyHasExactField $baselineClone 'Identity') -or -not (Test-DependencyHasExactField $candidateClone 'Identity') -or
+        -not ($baselineClone.Identity -is [Collections.IDictionary]) -or -not ($candidateClone.Identity -is [Collections.IDictionary]) -or
+        -not (Test-DependencyHasExactField $baselineClone.Identity 'commit') -or -not (Test-DependencyHasExactField $candidateClone.Identity 'commit') -or
+        -not (Test-DependencyHasExactField $baselineClone 'Fingerprint') -or -not (Test-DependencyHasExactField $candidateClone 'Fingerprint')) {
+        throw 'Dependency adoption metadata must contain outer Fingerprint and nested Identity.commit fields.'
+    }
+    $baselineClone.Remove('Fingerprint'); $candidateClone.Remove('Fingerprint')
+    $baselineClone.Identity.Remove('commit'); $candidateClone.Identity.Remove('commit')
+    if((ConvertTo-DependencyJson $baselineClone) -cne (ConvertTo-DependencyJson $candidateClone)) {
+        throw 'Dependency adoption changed fields beyond the pinned commit and dependency fingerprint.'
+    }
+}
+
+Export-ModuleMember -Function Get-RedTildeMedian,Get-RedTildePerformanceMetrics,Get-RedTildeControlDiagnostics,New-RedTildePerformanceSchedule,Get-RedTildeSignFlipP,Compare-RedTildePerformanceBlocks,Get-RedTildeCompilerProfile,Assert-RedTildeDependencyComparison

@@ -200,6 +200,52 @@ function Assert-CompilerProfileEvidence {
     }
 }
 
+function Assert-DependencyEvidence($Study,$Comparison) {
+    $base=$Study.baseline.build.dependency; $candidate=$Study.candidate.build.dependency
+    if(-not $Study.Contains('dependencyComparisonMode')) {
+        Require ($base.Fingerprint -ceq $candidate.Fingerprint) 'Compiler/dependency identity differs.'
+        return
+    }
+    $mode=$Study.dependencyComparisonMode
+    Require ($mode -cin @('same-pin','sdk-adoption') -and $Comparison.dependencyComparisonMode -ceq $mode) 'Invalid dependency comparison mode.'
+    foreach($side in @('baseline','candidate')) {
+        Require ($Study[$side].Contains('publicHeaders')) 'Declared dependency header inventory is missing.'
+        $headers=$Study[$side].publicHeaders
+        Require ($headers.schemaVersion -eq 1 -and $headers.files.Count -gt 0 -and $headers.sha256 -cmatch '^[0-9A-F]{64}$') 'Invalid public-header evidence.'
+        $paths=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+        $rows=[string[]]@(foreach($file in $headers.files) {
+            Require ($file.path -cmatch '^include/[^:\\]+$' -and $file.path -notmatch '(^|/)\.\.?(/|$)' -and
+                $paths.Add($file.path) -and $file.sha256 -cmatch '^[0-9A-F]{64}$') 'Invalid public-header inventory row.'
+            $file.path+':'+$file.sha256
+        })
+        [Array]::Sort($rows,[StringComparer]::Ordinal)
+        $digest=[Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($rows -join "`n")))
+        Require ([Convert]::ToHexString($digest) -ceq $headers.sha256) 'Public-header inventory checksum differs.'
+    }
+    if($mode -ceq 'same-pin') {
+        Require (($base|ConvertTo-Json -Depth 100 -Compress) -ceq ($candidate|ConvertTo-Json -Depth 100 -Compress)) 'Same-pin dependency metadata differs.'
+        return
+    }
+    Require ($Study.baseline.publicHeaders.sha256 -ceq $Study.candidate.publicHeaders.sha256 -and
+        $base.Identity.apiRevision -eq 4 -and $candidate.Identity.apiRevision -eq 4) 'Adoption public-header/API identity differs.'
+    Require ($base.Fingerprint -cmatch '^[0-9a-fA-F]{64}$' -and $candidate.Fingerprint -cmatch '^[0-9a-fA-F]{64}$' -and
+        $base.Identity.commit -cmatch '^[0-9a-f]{40}$' -and $candidate.Identity.commit -cmatch '^[0-9a-f]{40}$') 'Invalid adoption dependency metadata.'
+    Require ((@($base.Keys|Sort-Object)|ConvertTo-Json -Compress) -ceq (@($candidate.Keys|Sort-Object)|ConvertTo-Json -Compress) -and
+        (@($base.Identity.Keys|Sort-Object)|ConvertTo-Json -Compress) -ceq (@($candidate.Identity.Keys|Sort-Object)|ConvertTo-Json -Compress)) 'Adoption dependency field sets differ.'
+    foreach($key in $base.Keys) {
+        if($key -ceq 'Fingerprint'){continue}
+        if($key -ceq 'Identity') {
+            foreach($field in $base.Identity.Keys) {
+                if($field -ceq 'commit'){continue}
+                Require (($base.Identity[$field]|ConvertTo-Json -Depth 100 -Compress) -ceq
+                    ($candidate.Identity[$field]|ConvertTo-Json -Depth 100 -Compress)) 'Adoption changed dependency build or ABI fields.'
+            }
+        } else {
+            Require (($base[$key]|ConvertTo-Json -Depth 100 -Compress) -ceq ($candidate[$key]|ConvertTo-Json -Depth 100 -Compress)) 'Adoption changed outer dependency fields.'
+        }
+    }
+    Require (($base.Identity.commit -ceq $candidate.Identity.commit) -eq ($base.Fingerprint -ceq $candidate.Fingerprint)) 'Adoption commit/fingerprint changes must agree.'
+}
 $results=@(foreach($directory in $StudyPath) {
     $root=[IO.Path]::GetFullPath($directory).TrimEnd('\','/')
     $study=Get-Content (Join-Path $root 'study.json') -Raw | ConvertFrom-Json -AsHashtable
@@ -215,8 +261,8 @@ $results=@(foreach($directory in $StudyPath) {
         Require ($study[$side].build.passed -and $study[$side].build.platform -ceq 'x64' -and
             $study[$side].build.configuration -ceq 'Release') 'Successful x64 Release identities are required.'
     }
-    Require ($study.baseline.compiler.sha256 -ceq $study.candidate.compiler.sha256 -and
-        $study.baseline.build.dependency.Fingerprint -ceq $study.candidate.build.dependency.Fingerprint) 'Compiler/dependency identity differs.'
+    Require ($study.baseline.compiler.sha256 -ceq $study.candidate.compiler.sha256) 'Compiler/dependency identity differs.'
+    Assert-DependencyEvidence $study $comparison
     Assert-CompilerProfileEvidence -Study $study -Root $root
     foreach($key in $study.baseline.inputs.Keys) {
         Require ($study.baseline.inputs[$key] -ceq $study.candidate.inputs[$key] -and

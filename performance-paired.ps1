@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param([string]$Baseline='', [string]$OutputRoot='', [switch]$FreezeBaseline, [switch]$SameBinaryControl,
       [ValidateRange(2,16)][int]$Blocks=12,[ValidateRange(0,2147483647)][int]$Seed=20261021,
-      [ValidateRange(4,64)][int]$Cycles=16,[switch]$Warp,[switch]$ControlDiagnostics)
+      [ValidateRange(4,64)][int]$Cycles=16,[switch]$Warp,[switch]$ControlDiagnostics,[switch]$DependencyAdoption)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
@@ -16,6 +16,7 @@ foreach($file in @('Tests/Application.Tests.Performance.cpp','Tests/Application.
     $inputs[$file]=(Get-FileHash (Join-Path $PSScriptRoot $file)).Hash
 }
 $compiler=Get-RedTildeCompilerProfile -Root $PSScriptRoot
+$publicHeaders=Get-RedTildeDependencyPublicHeaders -Root $PSScriptRoot -Dependency $build.dependency
 $rawCompiler=Join-Path $PSScriptRoot '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
 $power=(& powercfg /getactivescheme | Out-String).Trim()
 if($LASTEXITCODE -ne 0 -or -not $power) { throw 'Power policy identity is unavailable.' }
@@ -34,7 +35,7 @@ if($FreezeBaseline) {
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot '.build/x64/Release/build-receipt.json') -Destination (Join-Path $OutputRoot 'build.json')
     Copy-Item -LiteralPath $rawCompiler -Destination (Join-Path $OutputRoot 'compiler-command.tlog')
     $compiler['rawFile']='compiler-command.tlog'
-    [ordered]@{schemaVersion=1;commit=(& git -C $PSScriptRoot rev-parse HEAD);build=$build;compiler=$compiler;inputs=$inputs;environment=$environment} |
+    [ordered]@{schemaVersion=1;commit=(& git -C $PSScriptRoot rev-parse HEAD);build=$build;compiler=$compiler;inputs=$inputs;environment=$environment;publicHeaders=$publicHeaders} |
         ConvertTo-Json -Depth 14 | Set-Content (Join-Path $OutputRoot 'baseline.json') -Encoding utf8
     Write-Host "Immutable instrumented baseline: $OutputRoot"
     return
@@ -43,12 +44,13 @@ if(-not $Baseline) { throw 'Baseline must name a frozen instrumented baseline di
 $baselinePath=Join-Path $Baseline 'RedTilde.exe'
 $base=Get-Content (Join-Path $Baseline 'baseline.json') -Raw | ConvertFrom-Json -AsHashtable
 if($base.build.binarySha256 -cne (Get-FileHash $baselinePath).Hash -or $base.compiler.sha256 -cne $compiler.sha256 -or
-    ($base.build.dependency | ConvertTo-Json -Depth 12 -Compress) -cne ($build.dependency | ConvertTo-Json -Depth 12 -Compress) -or
     ($base.inputs | ConvertTo-Json -Compress) -cne ($inputs | ConvertTo-Json -Compress) -or
     ($base.environment | ConvertTo-Json -Compress) -cne ($environment | ConvertTo-Json -Compress)) { throw 'Baseline/candidate harness, compiler, dependency, environment or binary identity differs.' }
+$baseHeaderHash=if($base.Contains('publicHeaders')){[string]$base.publicHeaders.sha256}else{''}
+Assert-RedTildeDependencyComparison -BaselineDependency $base.build.dependency -CandidateDependency $build.dependency -BaselinePublicHeadersSha256 $baseHeaderHash -CandidatePublicHeadersSha256 $publicHeaders.sha256 -DependencyAdoption:$DependencyAdoption
 if(-not $SameBinaryControl -and $base.build.binarySha256 -ceq $build.binarySha256) { throw 'Use SameBinaryControl for the same executable.' }
 $schedule=New-RedTildePerformanceSchedule -Blocks $Blocks -Seed $Seed
-$candidateIdentity=if($SameBinaryControl) { $base } else { @{build=$build;compiler=$compiler;inputs=$inputs;environment=$environment} }
+$candidateIdentity=if($SameBinaryControl) { $base } else { @{build=$build;compiler=$compiler;inputs=$inputs;environment=$environment;publicHeaders=$publicHeaders} }
 $compilerReceipts=[ordered]@{}
 foreach($side in @('baseline','candidate')) {
     $profile=if($side -ceq 'baseline'){$base.compiler}else{$candidateIdentity.compiler}
@@ -64,6 +66,7 @@ foreach($side in @('baseline','candidate')) {
 }
 [ordered]@{protocol='independent-ABBA-BAAB-v1';blocks=$Blocks;seed=$Seed;cycles=$Cycles;sameBinaryControl=[bool]$SameBinaryControl;
     baseline=$base;candidate=$candidateIdentity;compilerReceipts=$compilerReceipts;schedule=$schedule;controlDiagnostics=[bool]$ControlDiagnostics;
+    dependencyComparisonMode=$(if($DependencyAdoption){'sdk-adoption'}else{'same-pin'});
     selectionDiagnosticsProtocol=$(if($ControlDiagnostics){'app-selection-components-v1'}else{$null})} |
     ConvertTo-Json -Depth 18 | Set-Content (Join-Path $OutputRoot 'study.json') -Encoding utf8
 $pairs=[Collections.Generic.List[object]]::new()
@@ -109,6 +112,7 @@ $comparison=Compare-RedTildePerformanceBlocks -Blocks $pairs.ToArray()
 [ordered]@{schemaVersion=1;protocol='independent-ABBA-BAAB-v1';judge='redtilde-paired-log-sign-flip-holm-v2';
     independentBlocksPerScenario=$Blocks;familySize=$comparison.Count;sameBinaryControl=[bool]$SameBinaryControl;
     acceptance='review-required; new app judge does not qualify upstream D4c';metrics=$comparison;
+    dependencyComparisonMode=$(if($DependencyAdoption){'sdk-adoption'}else{'same-pin'});
     sourceIdentity=$source;harnessInputs=$inputs;completedUtc=[DateTime]::UtcNow.ToString('o')} |
     ConvertTo-Json -Depth 14 | Set-Content (Join-Path $OutputRoot 'comparison.json') -Encoding utf8
 $comparison | ForEach-Object { Write-Host ('{0} {1}: {2:P2}, p={3:N6}, {4}, controlsStable={5}' -f $_.scenario,$_.metric,$_.pairedChange,$_.adjustedP,$_.finding,$_.controlsStable) }
