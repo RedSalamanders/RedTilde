@@ -1614,6 +1614,15 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                              probeReport.find("\"appBuffersAfterPrimary\":") != probeReport.npos &&
                              probeReport.find("\"heapDiagnosticCoverage\":\"explicit-default-and-crt-only\"") != probeReport.npos,
                          "nested selection attribution and after-primary storage have distinct bounded diagnostic records");
+                 const auto frameDiagnostics = JsonObjectAfter(probeReport, "\"frameDiagnostics\":");
+                 const auto editTransactions = frameDiagnostics.find("\"editTransactions\":[");
+                 const auto cleanTransactions = frameDiagnostics.find("\"cleanTransactions\":[");
+                 Require(frameDiagnostics.find("\"protocol\":\"dxui-frame-metrics-v1\"") != frameDiagnostics.npos &&
+                             frameDiagnostics.find("\"wallDurationOnly\":true") != frameDiagnostics.npos &&
+                             editTransactions != frameDiagnostics.npos && cleanTransactions != frameDiagnostics.npos &&
+                             frameDiagnostics.find("\"complete\":true,\"attemptCount\":", editTransactions) != frameDiagnostics.npos &&
+                             frameDiagnostics.find("\"complete\":true,\"attemptCount\":", cleanTransactions) != frameDiagnostics.npos,
+                         "opt-in DxUi frame timing retains complete edit and clean frame sequences as wall durations");
                  const auto hostCounters = JsonObjectAfter(probeReport, "\"hostCacheCounters\":");
                  Require(JsonUnsigned(hostCounters, "configuredTextFormats") == app.Host().DebugGetConfiguredTextFormatCount() &&
                              JsonUnsigned(hostCounters, "cachedBrushes") == app.Host().DebugGetBrushCacheSize() &&

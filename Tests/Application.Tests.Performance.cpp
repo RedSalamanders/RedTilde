@@ -1,5 +1,6 @@
 #include "RedTilde/Application.h"
 #include "Application.Tests.HeapDiagnostic.h"
+#include <DxUi/FrameRuntime.h>
 #include <DxUi/RichSemanticDocument.h>
 #include <algorithm>
 #include <array>
@@ -8,7 +9,9 @@
 #include <dxgi1_6.h>
 #include <fstream>
 #include <iomanip>
+#include <limits>
 #include <malloc.h>
+#include <optional>
 #include <psapi.h>
 #include <span>
 #include <stdexcept>
@@ -73,6 +76,210 @@ void Samples(std::ostream &out, std::string_view name, const std::vector<double>
         if (i)
             out << ',';
         out << values[i];
+    }
+    out << ']';
+}
+constexpr std::size_t FrameMetricCapacity = 64;
+// Three independently rounded microsecond stages may exceed their whole-frame duration by at most 3 us.
+constexpr std::uint64_t FrameMetricRoundingToleranceUs = 3;
+struct FrameMetricRecord
+{
+    std::uint64_t totalUs{}, updateUs{}, renderUs{}, presentUs{};
+};
+struct FrameMetricBatch
+{
+    std::array<FrameMetricRecord, FrameMetricCapacity> frames{};
+    std::size_t frameCount{}, hostRenderCount{}, requestedAttempts{}, nextMetric{};
+    bool valid{true};
+    void Record(std::wstring_view metric, std::uint64_t value) noexcept
+    {
+        unsigned index{};
+        if (metric == L"dxui.frame.total_us")
+            index = 0;
+        else if (metric == L"dxui.frame.update_us")
+            index = 1;
+        else if (metric == L"dxui.frame.render_us")
+            index = 2;
+        else if (metric == L"dxui.frame.present_us")
+            index = 3;
+        else
+            return;
+        if (!valid)
+            return;
+        if (index != nextMetric || (index == 0 && frameCount == frames.size()))
+        {
+            valid = false;
+            return;
+        }
+        auto &frame = frames[frameCount];
+        switch (index)
+        {
+        case 0:
+            frame.totalUs = value;
+            break;
+        case 1:
+            frame.updateUs = value;
+            break;
+        case 2:
+            frame.renderUs = value;
+            break;
+        case 3:
+            frame.presentUs = value;
+            ++frameCount;
+            break;
+        default:
+            valid = false;
+            return;
+        }
+        nextMetric = (index + 1) % 4;
+    }
+    bool Complete() const noexcept
+    {
+        if (!valid || nextMetric != 0 || frameCount == 0 || frameCount != requestedAttempts || hostRenderCount == 0 || hostRenderCount > frameCount)
+            return false;
+        constexpr auto maximum = std::numeric_limits<std::uint64_t>::max();
+        for (std::size_t index = 0; index < frameCount; ++index)
+        {
+            const auto &frame = frames[index];
+            if (frame.updateUs > maximum - frame.renderUs)
+                return false;
+            const auto updateAndRenderUs = frame.updateUs + frame.renderUs;
+            if (updateAndRenderUs > maximum - frame.presentUs)
+                return false;
+            const auto stageTotalUs = updateAndRenderUs + frame.presentUs;
+            if (stageTotalUs > frame.totalUs && stageTotalUs - frame.totalUs > FrameMetricRoundingToleranceUs)
+                return false;
+        }
+        return true;
+    }
+    static void Sink(void *context, std::wstring_view metric, std::uint64_t value) noexcept
+    {
+        static_cast<FrameMetricBatch *>(context)->Record(metric, value);
+    }
+};
+class FrameMetricSinkScope
+{
+    bool active{};
+
+  public:
+    explicit FrameMetricSinkScope(FrameMetricBatch *batch) noexcept : active(batch != nullptr)
+    {
+        if (active)
+            DxUi::SetFrameMetricSink(&FrameMetricBatch::Sink, batch);
+    }
+    FrameMetricSinkScope(const FrameMetricSinkScope &) = delete;
+    FrameMetricSinkScope &operator=(const FrameMetricSinkScope &) = delete;
+    void Reset() noexcept
+    {
+        if (active)
+        {
+            DxUi::SetFrameMetricSink(nullptr, nullptr);
+            active = false;
+        }
+    }
+    ~FrameMetricSinkScope()
+    {
+        Reset();
+    }
+};
+bool FrameMetricCollectorOracle() noexcept
+{
+    constexpr std::array<std::wstring_view, 4> events{L"dxui.frame.total_us", L"dxui.frame.update_us", L"dxui.frame.render_us",
+                                                      L"dxui.frame.present_us"};
+    FrameMetricBatch empty;
+    if (empty.Complete() || !empty.valid || empty.frameCount != 0)
+        return false;
+    FrameMetricBatch full;
+    full.Record(L"dxui.frame.future_metric", 99);
+    constexpr std::array<std::array<std::uint64_t, 4>, 2> validValues{{{{10, 2, 3, 4}}, {{24, 5, 6, 7}}}};
+    for (const auto &frame : validValues)
+        for (std::size_t metric = 0; metric < events.size(); ++metric)
+            full.Record(events[metric], frame[metric]);
+    full.hostRenderCount = 2;
+    full.requestedAttempts = 2;
+    if (!full.Complete() || full.frameCount != 2 || full.frames[0].totalUs != 10 || full.frames[0].updateUs != 2 || full.frames[0].renderUs != 3 ||
+        full.frames[0].presentUs != 4 || full.frames[1].totalUs != 24 || full.frames[1].updateUs != 5 || full.frames[1].renderUs != 6 ||
+        full.frames[1].presentUs != 7)
+        return false;
+    full.hostRenderCount = 3;
+    if (full.Complete())
+        return false;
+    full.hostRenderCount = 2;
+    // Update preparation can return before the host's render counter advances. Keep both attempts.
+    full.hostRenderCount = 1;
+    if (!full.Complete())
+        return false;
+    full.requestedAttempts = 3;
+    if (full.Complete())
+        return false;
+    full.requestedAttempts = 2;
+    FrameMetricBatch overflow;
+    overflow.Record(events[0], std::numeric_limits<std::uint64_t>::max());
+    overflow.Record(events[1], std::numeric_limits<std::uint64_t>::max());
+    overflow.Record(events[2], 1);
+    overflow.Record(events[3], 0);
+    overflow.hostRenderCount = 1;
+    overflow.requestedAttempts = 1;
+    if (overflow.Complete())
+        return false;
+    FrameMetricBatch rounding;
+    rounding.Record(events[0], 6);
+    rounding.Record(events[1], 2);
+    rounding.Record(events[2], 3);
+    rounding.Record(events[3], 4);
+    rounding.hostRenderCount = 1;
+    rounding.requestedAttempts = 1;
+    if (!rounding.Complete())
+        return false;
+    FrameMetricBatch excess;
+    excess.Record(events[0], 5);
+    excess.Record(events[1], 2);
+    excess.Record(events[2], 3);
+    excess.Record(events[3], 4);
+    excess.hostRenderCount = 1;
+    excess.requestedAttempts = 1;
+    if (excess.Complete())
+        return false;
+    FrameMetricBatch malformed;
+    malformed.Record(events[1], 1);
+    if (malformed.valid || malformed.Complete())
+        return false;
+    FrameMetricBatch partial;
+    partial.Record(events[0], 1);
+    if (partial.Complete() || !partial.valid)
+        return false;
+    FrameMetricBatch capacity;
+    constexpr std::array<std::uint64_t, 4> capacityFrame{10, 2, 3, 4};
+    for (std::size_t frame = 0; frame < FrameMetricCapacity; ++frame)
+        for (std::size_t metric = 0; metric < events.size(); ++metric)
+            capacity.Record(events[metric], capacityFrame[metric]);
+    capacity.hostRenderCount = FrameMetricCapacity;
+    capacity.requestedAttempts = FrameMetricCapacity;
+    if (!capacity.Complete() || capacity.frameCount != FrameMetricCapacity)
+        return false;
+    capacity.Record(events[0], 1);
+    return capacity.frameCount == FrameMetricCapacity && !capacity.valid && !capacity.Complete();
+}
+void WriteFrameMetricTransactions(std::ostream &out, std::string_view name, const std::vector<FrameMetricBatch> &batches)
+{
+    out << '"' << name << "\":[";
+    for (std::size_t i = 0; i < batches.size(); ++i)
+    {
+        if (i)
+            out << ',';
+        const auto &batch = batches[i];
+        out << "{\"complete\":" << (batch.Complete() ? "true" : "false") << ",\"attemptCount\":" << batch.frameCount
+            << ",\"requestedAttemptCount\":" << batch.requestedAttempts << ",\"hostRenderCount\":" << batch.hostRenderCount
+            << ",\"attemptCountMinusHostRenderCount\":" << batch.frameCount - batch.hostRenderCount << ",\"attempts\":[";
+        for (std::size_t frameIndex = 0; frameIndex < batch.frameCount; ++frameIndex)
+        {
+            if (frameIndex)
+                out << ',';
+            const auto &frame = batch.frames[frameIndex];
+            out << "{\"totalUs\":" << frame.totalUs << ",\"updateUs\":" << frame.updateUs << ",\"renderUs\":" << frame.renderUs
+                << ",\"presentUs\":" << frame.presentUs << '}';
+        }
+        out << "]}";
     }
     out << ']';
 }
@@ -194,11 +401,13 @@ class PerformanceProbe
         app.RecoveryCompleted();
         return count;
     }
-    void Ready(std::wstring_view expected)
+    std::size_t Ready(std::wstring_view expected)
     {
+        std::size_t attempts{};
         const auto deadline = GetTickCount64() + 5000;
         do
         {
+            ++attempts;
             Require(app.host.RenderInitialFrameForShow(), "native frame submission failed");
             const auto processed = Pump();
             const auto semantic = app.editor->GetAcknowledgedSemanticDocument(app.host);
@@ -209,7 +418,7 @@ class PerformanceProbe
                 app.recovery.Ready())
             {
                 Require(app.host.DebugGetPresentFailureCount() == 0, "native presentation reported a failed frame");
-                return;
+                return attempts;
             }
             if (!processed && app.editor->GetImageResourceStatistics().pendingSources)
                 (void)MsgWaitForMultipleObjectsEx(0, nullptr, 5, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
@@ -564,6 +773,7 @@ class PerformanceProbe
         std::array<std::vector<double>, EditDiagnostics::Count> phaseWall, phaseCpu;
         std::vector<EditDiagnostics::SelectionRecord> selectionComponents;
         std::vector<double> preparationCpu, completionCpu, renderCounts, preparationCounts;
+        std::vector<FrameMetricBatch> editFrameMetrics, cleanFrameMetrics;
         for (auto *values : {&command, &preparation, &completion, &total, &clean, &cpu, &commandCpu, &processorStart, &processorEnd})
             values->reserve(options.performanceCycles * 2);
         if (options.controlDiagnostics)
@@ -574,6 +784,11 @@ class PerformanceProbe
             for (auto *values : {&preparationCpu, &completionCpu, &renderCounts, &preparationCounts})
                 values->reserve(options.performanceCycles * 2);
             selectionComponents.reserve(options.performanceCycles * 2);
+            editFrameMetrics.reserve(options.performanceCycles * 2);
+            cleanFrameMetrics.reserve(options.performanceCycles);
+            Require(editFrameMetrics.capacity() == options.performanceCycles * 2 && cleanFrameMetrics.capacity() == options.performanceCycles,
+                    "frame diagnostic vector capacities exceed the declared retention bound");
+            Require(FrameMetricCollectorOracle(), "frame metric collector oracle failed");
         }
         const auto activity = app.activity;
         SettleRecovery();
@@ -589,6 +804,13 @@ class PerformanceProbe
                 const auto renders = app.host.DebugGetRenderCount();
                 const auto advances = app.editor->DebugGetState().preparationAdvances;
                 const auto startingProcessor = OwnerProcessor();
+                std::unique_ptr<FrameMetricBatch> frameMetrics;
+                std::optional<FrameMetricSinkScope> frameSink;
+                if (options.controlDiagnostics)
+                {
+                    frameMetrics = std::make_unique<FrameMetricBatch>();
+                    frameSink.emplace(frameMetrics.get());
+                }
                 const auto start = Clock::now();
                 const auto cpuStart = OwnerCycles();
                 if (options.controlDiagnostics)
@@ -600,7 +822,7 @@ class PerformanceProbe
                 const double commandUs = Micros(start);
                 const auto commandCycles = OwnerCycles() - cpuStart;
                 const auto prepare = Clock::now();
-                Ready(undo ? std::wstring_view(source) : std::wstring_view(edited));
+                const auto requestedAttempts = Ready(undo ? std::wstring_view(source) : std::wstring_view(edited));
                 const double prepareUs = Micros(prepare);
                 const auto prepareCycles = options.controlDiagnostics ? OwnerCycles() - cpuStart - commandCycles : 0;
                 const auto finish = Clock::now();
@@ -608,6 +830,26 @@ class PerformanceProbe
                 const double gpuUs = Micros(finish), totalUs = Micros(start);
                 const auto cpuCycles = OwnerCycles() - cpuStart;
                 const auto endingProcessor = OwnerProcessor();
+                const auto frameRenderCount = options.controlDiagnostics ? app.host.DebugGetRenderCount() - renders : 0;
+                if (frameMetrics)
+                {
+                    frameMetrics->hostRenderCount = frameRenderCount;
+                    frameMetrics->requestedAttempts = requestedAttempts;
+                }
+                if (frameSink)
+                    frameSink->Reset();
+                if (options.controlDiagnostics && !frameMetrics->Complete())
+                {
+                    std::ostringstream reason;
+                    reason << "edit DxUi frame metrics: frames=" << frameMetrics->frameCount << " host=" << frameRenderCount
+                           << " requested=" << requestedAttempts << " next=" << frameMetrics->nextMetric << " valid=" << frameMetrics->valid;
+                    for (std::size_t index = 0; index < frameMetrics->frameCount; ++index)
+                    {
+                        const auto &frame = frameMetrics->frames[index];
+                        reason << " [" << frame.totalUs << ',' << frame.updateUs << ',' << frame.renderUs << ',' << frame.presentUs << ']';
+                    }
+                    throw std::runtime_error(reason.str());
+                }
                 Require(!options.controlDiagnostics || diagnostic.Complete(), "command diagnostic phases did not close in order");
                 if (cycle >= 2)
                 {
@@ -631,17 +873,44 @@ class PerformanceProbe
                         renderCounts.push_back(static_cast<double>(app.host.DebugGetRenderCount() - renders));
                         preparationCounts.push_back(static_cast<double>(app.editor->DebugGetState().preparationAdvances - advances));
                         selectionComponents.push_back(diagnostic.selection);
+                        editFrameMetrics.push_back(*frameMetrics);
                     }
                 }
             }
             Require(app.editor->GetText() == source && app.editor->GetSelection() == DxUi::RichText::Selection{at, at},
                     "paired undo changed source or selection");
-            const auto start = Clock::now();
-            Require(app.host.RenderInitialFrameForShow(), "clean native frame failed");
-            gpu->Wait();
-            if (cycle >= 2)
-                clean.push_back(Micros(start));
+            if (!options.controlDiagnostics)
+            {
+                const auto start = Clock::now();
+                Require(app.host.RenderInitialFrameForShow(), "clean native frame failed");
+                gpu->Wait();
+                if (cycle >= 2)
+                    clean.push_back(Micros(start));
+            }
+            else
+            {
+                const auto renders = app.host.DebugGetRenderCount();
+                auto frameMetrics = std::make_unique<FrameMetricBatch>();
+                FrameMetricSinkScope frameSink(frameMetrics.get());
+                const auto start = Clock::now();
+                Require(app.host.RenderInitialFrameForShow(), "clean native frame failed");
+                gpu->Wait();
+                const auto cleanUs = Micros(start);
+                const auto frameRenderCount = app.host.DebugGetRenderCount() - renders;
+                frameMetrics->hostRenderCount = frameRenderCount;
+                frameMetrics->requestedAttempts = 1;
+                frameSink.Reset();
+                Require(frameMetrics->Complete(), "clean DxUi frame metrics did not match the host render count or had invalid timing");
+                if (cycle >= 2)
+                {
+                    clean.push_back(cleanUs);
+                    cleanFrameMetrics.push_back(*frameMetrics);
+                }
+            }
         }
+        if (options.controlDiagnostics)
+            Require(editFrameMetrics.size() == options.performanceCycles * 2 && cleanFrameMetrics.size() == options.performanceCycles,
+                    "frame diagnostics must retain every measured edit and clean transaction");
         SettleRecovery();
         Require(app.editor->GetText() == source && app.editor->GetSelection() == DxUi::RichText::Selection{at, at},
                 "settled memory observation changed source or selection");
@@ -783,6 +1052,26 @@ class PerformanceProbe
                 out << '}';
             }
             out << "]}";
+        }
+        else
+            out << "null";
+        out << ",\"frameDiagnostics\":";
+        if (options.controlDiagnostics)
+        {
+            const auto reservedBytes = (editFrameMetrics.capacity() + cleanFrameMetrics.capacity()) * sizeof(FrameMetricBatch);
+            const auto capacityBoundBytes = (static_cast<std::size_t>(options.performanceCycles) * 3) * sizeof(FrameMetricBatch);
+            Require(reservedBytes == capacityBoundBytes, "frame diagnostic storage exceeds the declared capacity bound");
+            out << "{\"protocol\":\"dxui-frame-metrics-v1\",\"source\":\"DxUi.FrameRuntime.FrameMetricSink\",\"units\":\"microseconds\","
+                   "\"wallDurationOnly\":true,\"storage\":{\"reservedBytes\":"
+                << reservedBytes << ",\"capacityBoundBytes\":" << capacityBoundBytes << ",\"editTransactionCapacity\":" << editFrameMetrics.capacity()
+                << ",\"cleanTransactionCapacity\":" << cleanFrameMetrics.capacity()
+                << ",\"maxTransactions\":" << static_cast<std::size_t>(options.performanceCycles) * 3
+                << ",\"maxAttemptsPerTransaction\":" << FrameMetricCapacity << ",\"activeBatchBytes\":" << sizeof(FrameMetricBatch)
+                << ",\"postMemoryIncludesReservedBytes\":true,\"allocatorMetadataIncluded\":false},";
+            WriteFrameMetricTransactions(out, "editTransactions", editFrameMetrics);
+            out << ",";
+            WriteFrameMetricTransactions(out, "cleanTransactions", cleanFrameMetrics);
+            out << "}";
         }
         else
             out << "null";

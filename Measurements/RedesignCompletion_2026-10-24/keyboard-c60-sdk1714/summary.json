@@ -1,0 +1,187 @@
+{
+  "schema": "redtilde-keyboard-c60-sdk1714-public-v1",
+  "publicationStatus": "curated historical native evidence; not performance or platform acceptance",
+  "source": {
+    "commit": "c60e9ca678ad76460e4b0783622c87099af66ed2",
+    "worktreeSnapshot": "dirty documentation",
+    "sourceIdentity": "1e56f0fad0b920d7ec3c0337c714b3726d1defb48fe98785306063ed32c290ae",
+    "trackedDirtyFiles": [
+      {
+        "path": "CHANGELOG.md",
+        "workingTree": "modified",
+        "sha256": "eb8e03cd7c7909464e4106cb407b4ec1c07ce0df24e067bfb184f47aeb4695ef"
+      },
+      {
+        "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
+        "workingTree": "modified",
+        "sha256": "aef34759219501966abfcee1e518cd687a14490eac6a8847097600e789853491"
+      },
+      {
+        "path": "Specs/Testing/Testing_Performance.md",
+        "workingTree": "modified",
+        "sha256": "01625aaf5bd8c4ba7d7ed6d4b59ce1cbb68438b4f2559e5075752c4e2db4e16e"
+      }
+    ],
+    "untrackedMeasurementOutputs": [
+      {
+        "path": "Measurements/RedesignCompletion_2026-10-24/local-qualification-33481d3-c60e9ca/README.md",
+        "bytes": 2201,
+        "sha256": "cd5339d064689449a3321a8def87bc42aa7595d27cb5534d39bdb68e1e9b2668"
+      },
+      {
+        "path": "Measurements/RedesignCompletion_2026-10-24/local-qualification-33481d3-c60e9ca/summary.json",
+        "bytes": 60931,
+        "sha256": "c79d6b3cf969fe8a062795fd4b7ce06c2651433088e31dabfb628c30a43390f6"
+      },
+      {
+        "path": "Measurements/RedesignCompletion_2026-10-24/performance-c60e9ca/metric-rows.csv",
+        "bytes": 12647,
+        "sha256": "a5d9e9f7a71f7f51b9f5f12801edf9a153f51c8fcf32bdd099d10daec9d28e2e"
+      },
+      {
+        "path": "Measurements/RedesignCompletion_2026-10-24/performance-c60e9ca/README.md",
+        "bytes": 12887,
+        "sha256": "db192faad44820b33e0207b046c71846a46755d3a2a560ba132d8725ca7ea48e"
+      },
+      {
+        "path": "Measurements/RedesignCompletion_2026-10-24/performance-c60e9ca/summary.json",
+        "bytes": 109609,
+        "sha256": "f1e41734f8e1cdcca50e628809395c59805346f955bc380e3bbeb3fd186d05cc"
+      }
+    ]
+  },
+  "build": {
+    "platform": "x64",
+    "configuration": "Release",
+    "sourceIdentity": "1e56f0fad0b920d7ec3c0337c714b3726d1defb48fe98785306063ed32c290ae",
+    "sourceIdentityRecomputed": "1e56f0fad0b920d7ec3c0337c714b3726d1defb48fe98785306063ed32c290ae",
+    "buildReceiptSha256": "BA62EC292C79B5405A7C3CA98DE97BE9B2F04A0EAEA1DF6CFAC48FBB79997BDA",
+    "buildReceiptMatchesRun": true,
+    "executableSha256": "1c21cb4f64bf4245f2ddda164fb7a6d929e34d99d0c5a055027f110d2c11eef0",
+    "executableMatchesRun": true,
+    "artifactIdentity": "fdeb779f97ab015f1882392b8f15bd61d43e363285dad09c20c2c94ec0bac0ca",
+    "dependency": {
+      "commit": "1714f8b0c0fa628bcef56de76078f85c869fc50c",
+      "apiRevision": 4,
+      "fingerprint": "131218b59ad3af52001dcff36bff1f48704a3db253c17a666e1dd57b2d4af8c2",
+      "librarySha256": "2126df8686619badd65465f7f22d277df7b0b5ccd3fa6c06b1eccf397ae5afc2"
+    },
+    "interactiveLeaseExecutableSha256": "de60e72b3c150fe3d0ca8d15493c4d10a73d21a715dd8a06643606b827f1af71",
+    "interactiveLeaseExecutableMatchesRun": true
+  },
+  "interactiveRun": {
+    "startedUtc": "2026-10-25T16:17:25.3261173Z",
+    "completedUtc": "2026-10-25T16:17:31.3460733Z",
+    "configuration": "x64 Release",
+    "suite": "DesignInteractive",
+    "result": "passed",
+    "passed": true,
+    "automaticStart": true,
+    "automaticStartChoice": "started",
+    "confirmationWindowSeconds": 30,
+    "stageCount": 9,
+    "passedStages": 9,
+    "stageNames": [
+      "NativeEditor.KeyboardTextAndUndo",
+      "Files.ShortcutFocusAndEscape",
+      "Find.TypedQueryTraversalAndEscape",
+      "Settings.KeyboardDrawerAndEscape",
+      "Focus.KeyboardToggleAndEscape",
+      "SelectionToolbar.AltF10TabEnterEscape",
+      "Equation.F2ApplyUndoAndCancel",
+      "FileMenu.KeyboardOpenAndDismiss",
+      "Window.AltF4AsyncClose"
+    ],
+    "injectedInputEvents": 168,
+    "clipboardTouched": false,
+    "physicalImeOrAccessibilityQualified": false,
+    "desktopRestoration": {
+      "foreground": "unchanged",
+      "focus": "unchanged",
+      "focusCaptureReason": "recorded",
+      "focusCaptureError": 0,
+      "cursor": "restored",
+      "runMovedPointer": true,
+      "childExitCode": 0
+    },
+    "payloadStreamCount": 9,
+    "payloadStreamsMatch": true
+  },
+  "priorQualifications": {
+    "commit": "33481d3372f529fd28827ac98c56095d65fbb61d",
+    "relation": "The three x64 Full runs and six-profile build matrix remain bound to their earlier source identity. The c60 docs rebind is a separate build-artifact rebind. This interactive run is bound only to the current dirty-document source identity above.",
+    "arm64Runtime": "not claimed",
+    "performance": "not an acceptance result"
+  },
+  "limits": [
+    "One x64 Release DesignInteractive suite only; not a full suite.",
+    "No physical IME or assistive-technology qualification.",
+    "No ARM64 runtime claim.",
+    "Existing performance acceptance remains separate and open.",
+    "Current CI is not inferred from this local interactive run.",
+    "No prior full-suite run or baseline runtime is retagged to this dirty-document identity.",
+    "The dirty-doc build receipt digest was independently verified before a later build replaced the standalone receipt file. Its original bytes were not separately frozen; retained completed-run metadata and the frozen exact c60 executable remain available."
+  ],
+  "evidenceIntegrity": {
+    "buildReceiptMatchesRun": true,
+    "executableMatchesRun": true,
+    "sourceIdentityMatchesRun": true,
+    "leaseExecutableMatchesRun": true,
+    "payloadStreams": [
+      {
+        "ordinal": 1,
+        "sha256": "3f9c00560510e07c44a5b87d8a686cd60abdd34b1df648963f63c3591e2ad1e6",
+        "manifestSha256": "3f9c00560510e07c44a5b87d8a686cd60abdd34b1df648963f63c3591e2ad1e6",
+        "matches": true
+      },
+      {
+        "ordinal": 2,
+        "sha256": "3889466936dff4b50c634a649eaa417d8599eaa90791d570436f1ed44ef10fa4",
+        "manifestSha256": "3889466936dff4b50c634a649eaa417d8599eaa90791d570436f1ed44ef10fa4",
+        "matches": true
+      },
+      {
+        "ordinal": 3,
+        "sha256": "92b417f9e13eff5ecb189ca098271533467135f2a65e8f09e04fdb42035f25bc",
+        "manifestSha256": "92b417f9e13eff5ecb189ca098271533467135f2a65e8f09e04fdb42035f25bc",
+        "matches": true
+      },
+      {
+        "ordinal": 4,
+        "sha256": "c48225d5524e2d08f480b149200cf07a8f7c04f45f040faec1e731544f4eed98",
+        "manifestSha256": "c48225d5524e2d08f480b149200cf07a8f7c04f45f040faec1e731544f4eed98",
+        "matches": true
+      },
+      {
+        "ordinal": 5,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "manifestSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "matches": true
+      },
+      {
+        "ordinal": 6,
+        "sha256": "77929a10df962ae78c4b76f71344615815c783577da657338d0ae8c31aa07280",
+        "manifestSha256": "77929a10df962ae78c4b76f71344615815c783577da657338d0ae8c31aa07280",
+        "matches": true
+      },
+      {
+        "ordinal": 7,
+        "sha256": "511b7a09f276245f1c9cdfe3ffe14b767fff082e23bfa30a22dd0e454f4bad68",
+        "manifestSha256": "511b7a09f276245f1c9cdfe3ffe14b767fff082e23bfa30a22dd0e454f4bad68",
+        "matches": true
+      },
+      {
+        "ordinal": 8,
+        "sha256": "9a73f128a22a8c7aef81c55d6fe19990bf5fc0a9cf79824417277654df22c859",
+        "manifestSha256": "9a73f128a22a8c7aef81c55d6fe19990bf5fc0a9cf79824417277654df22c859",
+        "matches": true
+      },
+      {
+        "ordinal": 9,
+        "sha256": "ad9e22edface59a5c2e6aa640f0fafda86e0d9cedb0d95140abdff90bd00b2b7",
+        "manifestSha256": "ad9e22edface59a5c2e6aa640f0fafda86e0d9cedb0d95140abdff90bd00b2b7",
+        "matches": true
+      }
+    ]
+  }
+}

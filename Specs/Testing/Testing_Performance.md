@@ -109,8 +109,33 @@ A later collection explicitly requested after a reported host-condition change i
 Record that trigger before collection, preserve the earlier studies and assess actual activity anew; do not pool,
 replace unfavorable controls or promote a human report of quiet to a verified quiet observation.
 
-Opt-in `--control-diagnostics` / `-ControlDiagnostics` records bounded synchronous edit subphases in native-v2
-receipts. `app-edit-phases-v2` separates native entry, document analysis, mirror, identity labels, native caption,
+When one candidate is compared against multiple references, report each cohort and its A/A and A/B phase separately.
+Bind the baseline source/build identity, measured overlay, dependency adoption mode, candidate source/build identity,
+compiler profile, common harness inputs and raw receipts independently; keep a source anchor distinct from the measured
+overlay commit. Do not substitute a later merged base for an original reference or combine cohorts into a single
+acceptance result. Summaries retain every primary metric row, same-side control status and drift observations for each
+cohort. A curated public projection may expose aggregate evidence hashes and synthetic workload identity, but must
+exclude local absolute paths, machine/process names and raw receipt filenames; the private audit retains the full
+receipt/path bindings. Unstable controls, missing quiet coverage or an unqualified upstream policy keep acceptance
+open even when another cohort has improvements or no resolved regressions.
+
+Opt-in `--control-diagnostics` / `-ControlDiagnostics` records bounded synchronous edit subphases in native-v2 receipts.
+
+The same option may retain the existing DxUi frame metric sink's total/update/render/present wall durations. This sink is
+borrowed on the UI thread only inside each edit or clean transaction and is cleared on every exit; the hidden
+probe owns the sole registration in that process. Its callback allocates nothing and never reenters controls.
+Keep at most 64 complete four-value attempt records per transaction and match the count to the probe's explicit
+render requests. The sole owned hidden host's render-count delta must be positive and no greater than that count.
+Update preparation may return before its render counter advances; retain those attempts too. Raw zero stage
+values on early returns may represent unassigned timings and must not be treated as measured zero-cost work.
+Reject missing, reordered, partial or overflowing sequences, mismatched request/host counts
+and stage sums beyond total plus the declared 3-microsecond rounding allowance. Record vector capacities and
+reserved payload bytes: diagnostic memory observations include that storage, while allocator metadata is not
+accounted for. Frame durations are wall-time diagnostics, not owner-CPU attribution or completed GPU latency.
+They never replace any primary outcome. A study declaring `dxui-frame-metrics-v1` requires every edit and clean
+record and its storage metadata; historical receipts without this optional diagnostic remain readable.
+
+`app-edit-phases-v2` separates native entry, document analysis, mirror, identity labels, native caption,
 remaining chrome, selection, recovery and native exit. The initial seven-phase v1 prototype remains readable.
 An explicit current diagnostic study requires v2; reject a downgrade even if its edited receipt hashes match.
 Phase wall/CPU arrays must cover every timed transaction in order, stay within command cost, and reconstruct
