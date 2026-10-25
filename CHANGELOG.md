@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Synchronize the validation guide with all 58 registered native cases, including 39 Editor cases, and record the completed local profile matrix while retaining separate performance, foreground and hosted ARM64 gates.
 - Verify dependency-adoption comparisons against both source and installed package header bytes. Permit only the two exact SDK include operands to differ in otherwise identical compiler profiles, independently reconstruct retained raw commands, and recheck headers after collection. Preserve strict same-pin defaults and reject malformed or coerced metadata; focused tooling passes 415 assertions and the independent reference checks.
 - Correct the heap diagnostic's sanitizer test oracle: record whether Windows actually exposes the requested allocation in the supplied heap instead of equating logical ASan allocation bytes to native heap payload. Keep ordinary allocator growth, complete and bounded walks, invalid/duplicate handles and exact-limit checks covered.
 - Add an explicit dependency-adoption performance comparison against the actual pull-request base. Keep the default same-pin guard, compiler/environment/fixture checks and existing metric bands; permit only the pinned SDK commit/fingerprint to differ with matching clean public-header inventories and API/build metadata. Keep original-UI and upstream qualification results separate.
