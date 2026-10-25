@@ -1,0 +1,13 @@
+{
+  "schema": "redtilde-9025-native-matrix-lead-projection-replay-v1",
+  "passed": true,
+  "unchangedRootPropertiesChecked": 8,
+  "frozenArtifactsRehashed": 20,
+  "completedPayloadFilesRehashed": 1862,
+  "ordinaryCases": 174,
+  "originalProjectionSha256": "4F0650079D392D7BB3BB7CCCD733562AA4B3BE70C4746262DDBB68FA98C05B17",
+  "publicProjectionSha256": "A5BD6DBB1C9BBF48AC61AC5F69E4EE93225F9DED340ED8B5EDF4F0EB62ED8730",
+  "priorLeadReplaySha256": "1942A1F1D2C89B874CF22F6CC27E173FF3FEE6E35DC976CB548B856CDED6A3A6",
+  "reviewedDifference": "Only openGates wording updated after completed reference preflight; no source, artifact, payload, capture, outcome or matrix data changed.",
+  "scope": "Binds the completed frozen-matrix byte replay to this public projection; no additional runtime or performance acceptance."
+}

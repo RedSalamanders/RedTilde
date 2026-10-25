@@ -4,7 +4,15 @@ Reviewed RedTilde measurements and actual application captures belong here. Gene
 intermediate images stay under `.build`. Do not use DxUi or another Red application's receipts as product
 qualification. Retained packets record source identity, dependency, binary hash, profile, scenario and limitations.
 
-- [Final keyboard qualification, 2026-10-25](RedesignCompletion_2026-10-24/keyboard-da8aafb/README.md) — all nine
+- [Final local 9025be4 matrix and performance study, 2026-10-25](RedesignCompletion_2026-10-25/README.md) — six local
+  builds and three noninteractive x64 Full profiles on SDK `2fed8246`, plus 576 reports across separate original-UI,
+  starting-redesign and actual PR13-base lineages. Five original-UI A/B regressions remain; actual PR13-base A/B
+  has no resolved change and does not close the original-UI gate. Hosted CI, focus, native ARM64 and performance
+  acceptance remain separate.
+- [9025be4 interactive keyboard input](RedesignCompletion_2026-10-25/input-9025be4/README.md) — nine keyboard stages
+  pass with 168 injected events under the authorized interactive lease; broader focus and physical IME/AT coverage
+  remain separate.
+- [Earlier keyboard qualification at da8aafb](RedesignCompletion_2026-10-24/keyboard-da8aafb/README.md) — all nine
   stages pass at app `da8aafb` / SDK `baff43d8` through the authorized canonical countdown, with 168 real events
   and verified desktop restoration. The earlier setup failure and pre-launch prompt timeout remain separate.
 

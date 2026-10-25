@@ -1,0 +1,13 @@
+# RedTilde 9025be4 local native matrix
+
+This packet records fresh local qualification for source `9025be4b1dcf2753e0cab70cdcd355e219c879fb`, source identity `95566c5748fbfe5e76cb61fc3c8c57ec478337aa415828ae9d03b317690b6fc7`, and DxUi `2fed82465dcee9f213753754e0e8e54f353cf38f` (API revision 4). It is a new execution on this exact source and dependency pin.
+
+All six local build profiles passed. The three x64 Full runs passed noninteractively: the same 58 behavioral cases in each run, including 39 Editor cases and 23 hidden captures. The default/WARP resource lifecycle, frame-metric and selection diagnostics, crash/recovery checks passed. The x64 ASan profile detected the intentional heap-use-after-free probe. Independent verification matched all 20 frozen artifact digests and PE architectures, all six source/dependency receipts, and all 1,862 payload file hashes. All 69 capture images and scenario sidecars matched the receipt digests.
+
+The first Release attempt is retained separately. Three hidden-focus checks failed while an SDK foreground lease overlapped: `Window.DesignRefreshMergedFrameHitTests`, `Editor.DesignRefreshFocusViewsAndToggleStates`, and `Outline.DesignRefreshHierarchyCurrentAndFindCounts`. A later serial Full run passed all 39 Editor cases with the same Release executable; source and assertions were unchanged. The overlap is consistent with possible test interference, but the missing per-case event trace does not prove an application activation event or establish root cause.
+
+The three-reference preflight verifies eight common inputs and compiler/header compatibility for original UI and starting redesign on DxUi 2fed, and performs explicit dependency-adoption validation for the actual PR13 base plus its harness-only overlay from DxUi 1714 to 2fed. It is preflight only: no process was measured and no acceptance follows from it.
+
+Public-safe artifact records use ordinal, role, size and digest. Payload and capture records use ordinals, sizes and digests without source filenames or local paths. The summary contains no local file-system names, execution identifiers, environment-derived host names or screen coordinates.
+
+ARM64 is cross-build only. The runs are noninteractive and do not establish focus or foreground qualification for this source/pin. Performance acceptance remains open, including the five original-UI flags and unstable controls. Hosted CI and native ARM64 remain separate open gates. The earlier 4faf ARM64 Debug Menu failure is not explained by these local results.

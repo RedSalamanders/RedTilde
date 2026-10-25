@@ -109,8 +109,33 @@ A later collection explicitly requested after a reported host-condition change i
 Record that trigger before collection, preserve the earlier studies and assess actual activity anew; do not pool,
 replace unfavorable controls or promote a human report of quiet to a verified quiet observation.
 
-Opt-in `--control-diagnostics` / `-ControlDiagnostics` records bounded synchronous edit subphases in native-v2
-receipts. `app-edit-phases-v2` separates native entry, document analysis, mirror, identity labels, native caption,
+When one candidate is compared against multiple references, report each cohort and its A/A and A/B phase separately.
+Bind the baseline source/build identity, measured overlay, dependency adoption mode, candidate source/build identity,
+compiler profile, common harness inputs and raw receipts independently; keep a source anchor distinct from the measured
+overlay commit. Do not substitute a later merged base for an original reference or combine cohorts into a single
+acceptance result. Summaries retain every primary metric row, same-side control status and drift observations for each
+cohort. A curated public projection may expose aggregate evidence hashes and synthetic workload identity, but must
+exclude local absolute paths, machine/process names and raw receipt filenames; the private audit retains the full
+receipt/path bindings. Unstable controls, missing quiet coverage or an unqualified upstream policy keep acceptance
+open even when another cohort has improvements or no resolved regressions.
+
+Opt-in `--control-diagnostics` / `-ControlDiagnostics` records bounded synchronous edit subphases in native-v2 receipts.
+
+The same option may retain the existing DxUi frame metric sink's total/update/render/present wall durations. This sink is
+borrowed on the UI thread only inside each edit or clean transaction and is cleared on every exit; the hidden
+probe owns the sole registration in that process. Its callback allocates nothing and never reenters controls.
+Keep at most 64 complete four-value attempt records per transaction and match the count to the probe's explicit
+render requests. The sole owned hidden host's render-count delta must be positive and no greater than that count.
+Update preparation may return before its render counter advances; retain those attempts too. Raw zero stage
+values on early returns may represent unassigned timings and must not be treated as measured zero-cost work.
+Reject missing, reordered, partial or overflowing sequences, mismatched request/host counts
+and stage sums beyond total plus the declared 3-microsecond rounding allowance. Record vector capacities and
+reserved payload bytes: diagnostic memory observations include that storage, while allocator metadata is not
+accounted for. Frame durations are wall-time diagnostics, not owner-CPU attribution or completed GPU latency.
+They never replace any primary outcome. A study declaring `dxui-frame-metrics-v1` requires every edit and clean
+record and its storage metadata; historical receipts without this optional diagnostic remain readable.
+
+`app-edit-phases-v2` separates native entry, document analysis, mirror, identity labels, native caption,
 remaining chrome, selection, recovery and native exit. The initial seven-phase v1 prototype remains readable.
 An explicit current diagnostic study requires v2; reject a downgrade even if its edited receipt hashes match.
 Phase wall/CPU arrays must cover every timed transaction in order, stay within command cost, and reconstruct
@@ -175,3 +200,21 @@ operand, quote and flag spelling remains exact. Historical schema-one source-onl
 same-pin studies only; it cannot qualify dependency adoption.
 This mode measures the complete follow-up, including the SDK adoption; it never replaces the original-UI comparison
 on one common pin, changes a metric/band, qualifies the upstream policy or accepts a new ABI.
+
+### 2026-10-25 local source-bound evidence
+
+The [9025be4 local paired study](../../Measurements/RedesignCompletion_2026-10-25/performance-9025be4/README.md)
+uses 576 hash-verified native reports, 72 metric rows, 864 paired block effects and 1,728 same-side drift values.
+It keeps original UI, starting redesign and actual PR13-base as separate cohorts, and keeps A/A controls separate
+from A/B candidate comparisons. Original-UI A/B retains five resolved regressions: Compose command time +7.4456%,
+private bytes +2.1001%; Split command time +9.3709%, owner CPU cycles +12.0103% and working set +2.2311%.
+Starting-redesign A/B has four resolved memory improvements and no regressions. Actual PR13-base A/B has no
+resolved changes; this explicit dependency-adoption result does not resolve the original-UI regression gate.
+
+The matching [local native matrix](../../Measurements/RedesignCompletion_2026-10-25/qualification-9025be4/README.md)
+passes six local builds and three noninteractive x64 Full runs; ARM64 is cross-build only. Three hidden-focus
+checks failed in the first Release attempt while an SDK foreground lease overlapped. A later serial Full run with
+the same executable and unchanged source/assertions passed all 39 Editor cases. The overlap does not establish
+an application activation event or root cause because no per-case event trace was captured. All six observer
+windows report complete sample coverage but no verified quiet CPU window. These observations do not establish
+causality, performance acceptance, hosted CI, real-focus qualification or native ARM64 execution.
