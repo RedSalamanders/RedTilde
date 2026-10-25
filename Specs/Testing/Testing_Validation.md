@@ -56,6 +56,16 @@ its native result only after proving identical compiled inputs, native harness, 
 profile, environment and scope; run the changed validation tools separately. Never rewrite a historical receipt
 as new execution. A changed native artifact requires the affected native execution again.
 
+Current build receipts are schema 2 and bind the full source identity, byte-hashed compiled first-party inputs,
+exact clean DxUi lock commit and source tree, source/package public-header inventories, resolved consumer-properties
+bytes and evaluated dependency paths, selected compiler context, and complete output artifact closure. Before touching
+the receipt or restoring dependencies, `build.ps1` rejects reparse points in the output, intermediate and
+dependency-restore ancestry. It then revokes the prior successful receipt; every failure leaves the profile ineligible
+for `-SkipBuild`. Unknown or mismatched build inputs require a verified
+app-profile clean before compilation; documentation-only changes may reuse identical compiled outputs while updating
+the full source binding. Tests, packaging and performance runs must use the shared artifact admission check. Old
+receipts remain historical evidence only and cannot admit a current executable.
+
 The app's `--self-test` and `--capture <path> --scenario <name>` never activate a window, read/write the system
 clipboard or synthesize desktop input. Drive the same app/control commands as the UI. Native rendering captures
 come from the public host's diagnostic bitmap hook and WIC; record the exact binary/dependency/scenario identity.
@@ -89,7 +99,7 @@ These record oracles establish error mapping, not recovery from an actually miss
 
 Physical focus/IME/AT, release/package acceptance, hardware-specific qualification and paired resource/performance studies retain their owning gates. Hidden/scoped/native CI passes never close those gates. Native test basenames use contextual `Scope.Tests.Something.h/.cpp`; inventories cover active files only. Immutable historical receipts, archived source and legacy references are not renamed or rewritten.
 
-RedTilde partitions its 58 registered native cases into Storage (10), Settings (4), Recovery (5) and Editor (39). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
+RedTilde partitions its 59 registered native cases into Storage (10), Settings (4), Recovery (5) and Editor (40). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
 
 The Files dirty-transition regression uses a nontrivial invented folder model, a separately selected/focused row
 and a nonzero scroll position. Dirty/undo must change only the visible current-file badge without rebuilding the

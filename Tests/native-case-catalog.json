@@ -18,6 +18,10 @@
       "scope": "Editor"
     },
     {
+      "name": "Editor.HiddenCurrentBlockPublishesLatestOnReveal",
+      "scope": "Editor"
+    },
+    {
       "name": "Utf8.BomUnicodeMixedEolRoundTrip",
       "scope": "Storage"
     },

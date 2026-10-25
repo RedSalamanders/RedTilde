@@ -4,10 +4,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 if (-not $SkipBuild) { & (Join-Path $PSScriptRoot 'build.ps1') -Platform $Platform -Configuration Release }
 Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
-$exe=Join-Path $PSScriptRoot ".build/$Platform/Release/RedTilde.exe"
-$built=Get-Content (Join-Path $PSScriptRoot ".build/$Platform/Release/build-receipt.json") -Raw | ConvertFrom-Json
-if (-not $built.passed -or $built.sourceIdentity -cne (Get-RedTildeSourceIdentity -Root $PSScriptRoot) -or
-    $built.binarySha256 -cne (Get-FileHash $exe).Hash) { throw 'Package source/binary identity is stale. Rebuild Release first.' }
+$artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform $Platform -Configuration Release
+$exe=$artifact.Executable
+$built=$artifact.Build
 $output=Join-Path $PSScriptRoot '.build/package'
 $stage=Join-Path $output ('RedTilde-0.1.0-experimental-'+$Platform+'-'+(Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
 New-Item -ItemType Directory -Force -Path $stage | Out-Null

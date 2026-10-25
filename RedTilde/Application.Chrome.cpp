@@ -567,7 +567,15 @@ void Application::Layout()
     const bool showSidebar = settings.showOutline && !focus && !fileOverlay && width - left >= static_cast<float>(settings.readingWidth + 336) &&
                              settings.view != EditorView::Split;
     const float right = showSidebar ? width - 240 : width;
+    const auto layoutRequest = activity.layouts;
+    const bool sidebarWasVisible = sidebar->IsVisible();
+    if (showSidebar && !sidebarWasVisible && !PublishCurrentBlockLabelIfVisible(true))
+        return;
+    if (activity.layouts != layoutRequest)
+        return;
     sidebar->SetVisible(showSidebar);
+    if (activity.layouts != layoutRequest)
+        return;
     sidebar->SetBounds(D2D1::RectF(width - 240, top, width, bottom));
     const float side = width - 224;
     outlineTitle->SetBounds(D2D1::RectF(side + 4, top + 16, width - 100, top + 40));
@@ -580,6 +588,10 @@ void Application::Layout()
     contextDivider->SetOrientation(DxUi::SeparatorOrientation::Horizontal);
     currentBlockTitle->SetBounds(D2D1::RectF(side + 4, outlineBottom + 28, width - 16, outlineBottom + 48));
     currentBlock->SetBounds(D2D1::RectF(side + 4, outlineBottom + 52, width - 16, outlineBottom + 76));
+    if (showSidebar && !PublishCurrentBlockLabelIfVisible())
+        return;
+    if (activity.layouts != layoutRequest)
+        return;
     listSummaryIcon->SetBounds(D2D1::RectF(side + 4, outlineBottom + 52, side + 20, outlineBottom + 76));
     listSummary->SetBounds(D2D1::RectF(side + 28, outlineBottom + 52, width - 16, outlineBottom + 76));
     blockSourceAction->SetBounds(D2D1::RectF(side + 4, outlineBottom + 84, width - 20, outlineBottom + 116));

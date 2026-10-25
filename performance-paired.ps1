@@ -7,9 +7,9 @@ $ErrorActionPreference='Stop'
 Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'Build/Performance.psm1') -Force
 $exe=Join-Path $PSScriptRoot '.build/x64/Release/RedTilde.exe'
-$build=Get-Content (Join-Path $PSScriptRoot '.build/x64/Release/build-receipt.json') -Raw | ConvertFrom-Json
-$source=Get-RedTildeSourceIdentity -Root $PSScriptRoot
-if(-not $build.passed -or $build.sourceIdentity -cne $source -or $build.binarySha256 -cne (Get-FileHash $exe).Hash) { throw 'Rebuild the current Release source before measuring.' }
+$artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform x64 -Configuration Release
+$build=$artifact.Build
+$source=$artifact.SourceIdentity
 $fixture=Join-Path $PSScriptRoot 'docs/examples/s5-performance.md'
 $inputs=[ordered]@{}
 foreach($file in @('Tests/Application.Tests.Performance.cpp','Tests/Application.Tests.HeapDiagnostic.h','RedTilde/Main.cpp','RedTilde/EditDiagnostics.h','performance-paired.ps1','Build/Performance.psm1','Build/Harness.psm1','docs/examples/s5-performance.md')) {
