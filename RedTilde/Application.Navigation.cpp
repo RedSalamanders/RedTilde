@@ -55,6 +55,57 @@ void Application::RefreshOutline()
     if (findBar->IsVisible())
         RefreshFind();
 }
+void Application::UpdateCurrentFileDirtyBadge(bool dirty)
+{
+    lastFilesDirty = dirty;
+    const auto requested = settings.showFiles ? documentPath.parent_path() : std::filesystem::path{};
+    if (requested != folderRoot)
+    {
+        RefreshFiles();
+        return;
+    }
+    if (!folderSnapshot || folderSnapshot->root != requested)
+        return;
+    const auto *const model = filesTree->GetModel();
+    if (model != &filesModel)
+    {
+        RefreshFiles();
+        return;
+    }
+
+    const auto &snapshot = folderSnapshot.value();
+    const auto entry = std::find_if(snapshot.entries.begin(), snapshot.entries.end(), [&](const auto &candidate)
+                                    { return !candidate.directory && MatchesFilesPath(snapshot, candidate.path, documentPath); });
+    if (entry == snapshot.entries.end())
+        return;
+    const auto itemId = static_cast<std::uint64_t>(std::distance(snapshot.entries.begin(), entry) + 1);
+    auto row = std::find_if(filesModel.rows.begin(), filesModel.rows.end(), [&](const auto &candidate) { return candidate.id == itemId; });
+    if (row == filesModel.rows.end())
+        return; // Filtering or a future visibility rule hides this file; a later structural refresh reads Dirty().
+
+    const auto badgeText = dirty ? Resource(IDS_FILESEDITED) : std::wstring{};
+    if (row->badgeText == badgeText && row->badgeIsDot == dirty)
+        return;
+    row->badgeText = badgeText;
+    row->badgeIsDot = dirty;
+
+    const auto snapshotGeneration = snapshot.generation;
+    const auto snapshotRevision = snapshot.revision;
+    const auto modelRebuilds = activity.filesModelRebuilds;
+    if (filesTree->NotifyItemPresentationChanged(itemId))
+        return;
+
+    // UI Automation callbacks can re-enter the app. Fall back to a full refresh
+    // only while the exact snapshot/model publication we just changed is still current.
+    if (model != &filesModel || filesTree->GetModel() != model || !folderSnapshot || folderSnapshot->root != requested ||
+        folderSnapshot->generation != snapshotGeneration || folderSnapshot->revision != snapshotRevision || Dirty() != dirty ||
+        lastFilesDirty != dirty || activity.filesModelRebuilds != modelRebuilds)
+        return;
+    const auto currentRow =
+        std::find_if(filesModel.rows.begin(), filesModel.rows.end(), [&](const auto &candidate) { return candidate.id == itemId; });
+    if (currentRow != filesModel.rows.end() && currentRow->badgeText == badgeText && currentRow->badgeIsDot == dirty)
+        RefreshFiles();
+}
 void Application::RefreshFiles(bool rootChanged)
 {
     const auto setFooter = [&](std::wstring text)
@@ -96,6 +147,7 @@ void Application::RefreshFiles(bool rootChanged)
     filesTitle->SetTooltipText(requested.native());
     filesTitle->SetAccessibleHelpText(requested.native());
     lastFilesDirty = Dirty();
+    ++activity.filesModelRebuilds;
     filesModel.rows.clear();
     visibleFilePaths.clear();
     if (!folderSnapshot)

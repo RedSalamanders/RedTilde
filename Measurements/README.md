@@ -4,7 +4,11 @@ Reviewed RedTilde measurements and actual application captures belong here. Gene
 intermediate images stay under `.build`. Do not use DxUi or another Red application's receipts as product
 qualification. Retained packets record source identity, dependency, binary hash, profile, scenario and limitations.
 
-- [Redesign completion comparison, 2026-10-24](RedesignCompletion_2026-10-24/performance-fa0757d/README.md) — reviewed projection of all 48 A/A and A/B metric rows against the actual PR-base lineage and the separate starting redesign, on one common SDK. Seven actual-base regressions remain; R10 and final qualification are open.
+- [Fresh redesign comparison, 2026-10-25](RedesignCompletion_2026-10-24/performance-fd24623/README.md) — all 48 A/A and A/B metric rows at app `fd24623` / SDK `cfe875fd`, with 384 native runs and 16,003 independent checks. Five original-UI regression flags remain; the actual starting-redesign comparison has zero regressions and three improvements. Controls, observed host load and verified audit-file hashes remain explicit; final qualification is pending. Later source fixes are not measured by this packet.
+
+- [Resource and stage diagnostics, 2026-10-25](RedesignCompletion_2026-10-24/resource-and-stage-fd24623/README.md) — 24 hardware/WARP resource processes and 16 separate stage processes at the same frozen source. Every cost/memory cell and stage median is retained. Results are descriptive, initial preparation excludes initialization, and no allocation attribution or cost acceptance is claimed.
+
+- [Earlier redesign completion comparison, 2026-10-24](RedesignCompletion_2026-10-24/performance-fa0757d/README.md) — retained historical 48-row projection with seven original-base regressions. It is not pooled with the later collection.
 
 - [Design refresh integration, 2026-10-24](DesignRefresh_2026-10-24/README.md) — historical optimization and publication checkpoint, retained separately from the later complete comparison and its exact source bindings.
 

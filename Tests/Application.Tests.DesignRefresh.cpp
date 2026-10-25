@@ -2,6 +2,7 @@
 #include "RedTilde/Application.h"
 #include "Support/Support.Tests.TextServices.h"
 #include "res/Resource.h"
+#include <UIAutomation.h>
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -13,6 +14,8 @@
 #include <stdexcept>
 #include <thread>
 #include <tuple>
+#include <wil/com.h>
+#include <wil/resource.h>
 #include <wincodec.h>
 #include <windowsx.h>
 
@@ -1119,6 +1122,208 @@ class DesignRefreshProbe final
                              app.Document().GetSelection() == selection,
                          "closing Files restores the editor's selection and logical routing");
              });
+        test("Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
+             [&]
+             {
+                 const auto directory = root / L"files-dirty-badge-fixture";
+                 const auto document = directory / L"current.md";
+                 WriteFixture(document, "# Current document\n");
+                 for (unsigned index = 0; index < 96; ++index)
+                     WriteFixture(directory / std::format(L"note-{:03}.md", index));
+                 WriteFixture(directory / L"archive/retained.md");
+
+                 Application app(Options(root, L"files-dirty-badge"));
+                 Success(app.Initialize(), "create the hidden large Files-pane app");
+                 StoredDocument loaded;
+                 Success(LoadDocument(document, loaded), "read the current document fixture");
+                 app.SetDocument(loaded.text, document, loaded.bom, loaded.stamp);
+                 app.Execute(Command::Files);
+                 Await(app, [&] { return app.folderSnapshot && app.folderSnapshot->root == directory && !app.folderFiles.Busy(); });
+                 Require(app.filesModel.rows.size() == 98, "the synthetic Files model contains a nontrivial set of visible rows");
+                 const auto collapsed =
+                     std::find_if(app.filesModel.rows.begin(), app.filesModel.rows.end(), [](const auto &row) { return row.text == L"archive"; });
+                 Require(collapsed != app.filesModel.rows.end() && !collapsed->expanded && collapsed->badgeText == L"1",
+                         "the fixture includes a collapsed directory with an independent count badge");
+
+                 const auto current =
+                     std::find_if(app.filesModel.rows.begin(), app.filesModel.rows.end(), [](const auto &row) { return row.text == L"current.md"; });
+                 Require(current != app.filesModel.rows.end() && current->badgeText.empty() && !current->badgeIsDot,
+                         "the clean current document starts without the Edited dot");
+                 const auto currentId = current->id;
+                 const auto selectedId = app.filesModel.rows.back().id;
+                 app.filesTree->SetSelectedItemId(selectedId);
+                 app.filesTree->SetFocusedItemId(selectedId);
+                 const auto treeBounds = app.filesTree->GetBounds();
+                 const auto wheelPoint = D2D1::Point2F(treeBounds.left + 20.f, treeBounds.top + 20.f);
+                 for (unsigned step = 0; step < 6; ++step)
+                     Require(app.filesTree->OnMouseWheel(app.Host(), wheelPoint, static_cast<float>(WHEEL_DELTA), 0),
+                             "scroll the tree away from its focused last row");
+                 const auto firstVisible = app.filesTree->GetFirstVisibleItemIndex();
+                 Require(firstVisible > 0 && firstVisible < app.filesModel.rows.size() - 1 &&
+                             app.filesTree->GetSelectedItemId() == std::optional(selectedId) &&
+                             app.filesTree->GetFocusedItemId() == std::optional(selectedId),
+                         "the fixture has an offscreen focused row and a separately observable scroll position");
+
+                 struct TreeItemProperties
+                 {
+                     std::wstring name, itemStatus;
+                 };
+                 const auto readStringProperty = [](IRawElementProviderSimple *provider, PROPERTYID property, std::string_view message)
+                 {
+                     wil::unique_variant value;
+                     Success(provider->GetPropertyValue(property, &value), message);
+                     if (value.vt == VT_EMPTY || value.vt == VT_NULL)
+                         return std::wstring{};
+                     Require(value.vt == VT_BSTR, message);
+                     return std::wstring(value.bstrVal ? value.bstrVal : L"");
+                 };
+                 app.Prepare(256);
+                 wil::com_ptr_nothrow<IRawElementProviderFragmentRoot> accessibilityRoot;
+                 accessibilityRoot.attach(DxUi::CreateWindowHostAccessibilityProvider(app.Host().GetHwnd()));
+                 Require(accessibilityRoot != nullptr, "the attached application window exposes its canonical UI Automation root");
+                 wil::com_ptr_nothrow<IRawElementProviderFragment> rootFragment;
+                 Success(accessibilityRoot.query_to(rootFragment.put()), "the canonical UI Automation root supports fragment navigation");
+                 const auto findTreeItem = [&](std::wstring_view expectedName)
+                 {
+                     std::optional<TreeItemProperties> result;
+                     std::size_t visited{};
+                     const auto visit = [&](auto &&self, IRawElementProviderFragment *current, std::size_t depth) -> bool
+                     {
+                         if (!current || depth > 64u || visited >= 4096u)
+                             return false;
+                         ++visited;
+                         wil::com_ptr_nothrow<IRawElementProviderSimple> simple;
+                         Success(current->QueryInterface(IID_PPV_ARGS(simple.put())), "query the UI Automation fragment's simple provider");
+                         wil::unique_variant controlType;
+                         Success(simple->GetPropertyValue(UIA_ControlTypePropertyId, &controlType),
+                                 "read the current UI Automation fragment's control type");
+                         Require(controlType.vt == VT_I4, "UI Automation control type uses its documented integer value");
+                         if (controlType.lVal == UIA_TreeItemControlTypeId)
+                         {
+                             const auto name = readStringProperty(simple.get(), UIA_NamePropertyId, "read a Files TreeItem name");
+                             if (name == expectedName)
+                             {
+                                 result = TreeItemProperties{
+                                     name, readStringProperty(simple.get(), UIA_ItemStatusPropertyId, "read a Files TreeItem status")};
+                                 return true;
+                             }
+                         }
+                         wil::com_ptr_nothrow<IRawElementProviderFragment> child;
+                         Success(current->Navigate(NavigateDirection_FirstChild, child.put()), "navigate to the first UI Automation child");
+                         while (child && visited < 4096u)
+                         {
+                             if (self(self, child.get(), depth + 1u))
+                                 return true;
+                             wil::com_ptr_nothrow<IRawElementProviderFragment> sibling;
+                             Success(child->Navigate(NavigateDirection_NextSibling, sibling.put()), "navigate to the next UI Automation sibling");
+                             child = std::move(sibling);
+                         }
+                         return false;
+                     };
+                     Require(visit(visit, rootFragment.get(), 0u), "find the named Files TreeItem in the bounded provider tree");
+                     return result.value();
+                 };
+                 const auto cleanProvider = findTreeItem(L"current.md");
+                 const auto initialArchiveProvider = findTreeItem(L"archive");
+                 Require(cleanProvider.name == L"current.md" && cleanProvider.itemStatus.empty() && initialArchiveProvider.name == L"archive" &&
+                             initialArchiveProvider.itemStatus == L"1",
+                         "the real UI Automation providers expose a clean file and the collapsed archive's count badge");
+
+                 const auto rowSnapshot = app.filesModel.rows;
+                 const auto folderGeneration = app.folderSnapshot->generation;
+                 const auto folderRevision = app.folderSnapshot->revision;
+                 const auto folderStatus = app.folderSnapshot->status;
+                 const auto watchStatus = app.folderSnapshot->watchStatus;
+                 const auto footer = std::wstring(app.filesCount->GetText());
+                 const auto rebuilds = app.Activity().filesModelRebuilds;
+                 Require(app.Document().ReplaceSelection(L"x"), "make the current document dirty");
+                 Require(app.Activity().filesModelRebuilds == rebuilds && app.filesModel.rows.size() == rowSnapshot.size(),
+                         "dirty state changes update the existing row model without rebuilding it");
+                 for (std::size_t index = 0; index < rowSnapshot.size(); ++index)
+                 {
+                     const auto &before = rowSnapshot[index];
+                     const auto &after = app.filesModel.rows[index];
+                     const bool isCurrent = before.id == currentId;
+                     Require(before.id == after.id && before.parentId == after.parentId && before.text == after.text &&
+                                 before.iconText == after.iconText && before.tooltipText == after.tooltipText && before.depth == after.depth &&
+                                 before.hasChildren == after.hasChildren && before.expanded == after.expanded &&
+                                 before.badgeTone == after.badgeTone &&
+                                 (isCurrent || (before.badgeText == after.badgeText && before.badgeIsDot == after.badgeIsDot)),
+                             "only the current file row presentation changes on the dirty transition");
+                 }
+                 const auto edited =
+                     std::find_if(app.filesModel.rows.begin(), app.filesModel.rows.end(), [&](const auto &row) { return row.id == currentId; });
+                 Require(edited != app.filesModel.rows.end() && edited->badgeText == Resource(IDS_FILESEDITED) && edited->badgeIsDot,
+                         "the current file receives the localized accessible dot status");
+                 app.Prepare(256);
+                 const auto editedProvider = findTreeItem(L"current.md");
+                 const auto dirtyArchiveProvider = findTreeItem(L"archive");
+                 Require(editedProvider.name == L"current.md" && editedProvider.itemStatus == Resource(IDS_FILESEDITED) &&
+                             dirtyArchiveProvider.name == L"archive" && dirtyArchiveProvider.itemStatus == initialArchiveProvider.itemStatus,
+                         "the live UI Automation providers expose the localized Edited status only on the current file");
+                 Require(app.filesTree->GetSelectedItemId() == std::optional(selectedId) &&
+                             app.filesTree->GetFocusedItemId() == std::optional(selectedId) &&
+                             app.filesTree->GetFirstVisibleItemIndex() == firstVisible && app.filesCount->GetText() == footer &&
+                             app.folderSnapshot->generation == folderGeneration && app.folderSnapshot->revision == folderRevision &&
+                             app.folderSnapshot->status == folderStatus && app.folderSnapshot->watchStatus == watchStatus,
+                         "a dirty badge update preserves tree selection, focus, scroll, footer and watcher snapshot");
+
+                 Require(app.Document().Undo() && !app.Dirty(), "undo restores the exact clean document state");
+                 Require(app.Activity().filesModelRebuilds == rebuilds && app.filesTree->GetSelectedItemId() == std::optional(selectedId) &&
+                             app.filesTree->GetFocusedItemId() == std::optional(selectedId) &&
+                             app.filesTree->GetFirstVisibleItemIndex() == firstVisible,
+                         "undo removes the dot without rebuilding or moving the user's tree state");
+                 app.Prepare(256);
+                 const auto restoredProvider = findTreeItem(L"current.md");
+                 const auto restoredArchiveProvider = findTreeItem(L"archive");
+                 Require(restoredProvider.name == L"current.md" && restoredProvider.itemStatus.empty() &&
+                             restoredArchiveProvider.name == L"archive" && restoredArchiveProvider.itemStatus == initialArchiveProvider.itemStatus,
+                         "undo clears only the current file's live UI Automation status and preserves the neighboring count");
+                 const auto restored =
+                     std::find_if(app.filesModel.rows.begin(), app.filesModel.rows.end(), [&](const auto &row) { return row.id == currentId; });
+                 Require(restored != app.filesModel.rows.end() && restored->badgeText.empty() && !restored->badgeIsDot,
+                         "the current file dot clears when its source becomes clean");
+
+                 app.filesFilter->SetTextAndNotify(L"note-");
+                 Require(std::ranges::none_of(app.filesModel.rows, [](const auto &row) { return row.text == L"current.md"; }),
+                         "the filter hides the current file row without changing the snapshot");
+                 const auto filteredRebuilds = app.Activity().filesModelRebuilds;
+                 Require(app.Document().ReplaceSelection(L"y"), "dirty the current document while its row is filtered out");
+                 Require(app.Activity().filesModelRebuilds == filteredRebuilds &&
+                             std::ranges::none_of(app.filesModel.rows, [](const auto &row) { return row.text == L"current.md"; }),
+                         "a filtered-out current file updates bookkeeping without rebuilding visible rows");
+                 Require(app.Document().Undo() && !app.Dirty(), "filtered current document returns to its clean state");
+                 app.filesFilter->SetTextAndNotify(L"");
+                 Require(app.Document().ReplaceSelection(L"z"), "dirty the document before replacing it with a different root");
+                 const auto nextDirectory = root / L"files-dirty-badge-next-root";
+                 const auto nextDocument = nextDirectory / L"renamed.md";
+                 WriteFixture(nextDocument, "# Renamed document\n");
+                 StoredDocument next;
+                 Success(LoadDocument(nextDocument, next), "read the replacement root fixture");
+                 app.SetDocument(next.text, nextDocument, next.bom, next.stamp);
+                 Await(app, [&] { return app.folderSnapshot && app.folderSnapshot->root == nextDirectory && !app.folderFiles.Busy(); });
+                 const auto renamed =
+                     std::find_if(app.filesModel.rows.begin(), app.filesModel.rows.end(), [](const auto &row) { return row.text == L"renamed.md"; });
+                 Require(app.folderRoot == nextDirectory && !app.Dirty() && !app.lastFilesDirty && renamed != app.filesModel.rows.end() &&
+                             renamed->badgeText.empty() && !renamed->badgeIsDot,
+                         "a dirty-to-clean document replacement uses the full root refresh and publishes the new clean row");
+
+                 Application untitled(Options(root, L"files-dirty-no-snapshot"));
+                 Success(untitled.Initialize(), "create the hidden untitled Files-pane app");
+                 untitled.Execute(Command::Files);
+                 Require(!untitled.folderSnapshot && untitled.filesModel.rows.empty() && !untitled.folderFilesActive,
+                         "the untitled Files pane has no folder snapshot or worker");
+                 const auto emptyFooter = std::wstring(untitled.filesCount->GetText());
+                 const auto emptyRebuilds = untitled.Activity().filesModelRebuilds;
+                 Require(untitled.Document().ReplaceSelection(L"x") && untitled.Dirty() && untitled.lastFilesDirty,
+                         "dirty bookkeeping updates while the Files pane has no snapshot");
+                 Require(untitled.Activity().filesModelRebuilds == emptyRebuilds && untitled.filesModel.rows.empty() &&
+                             untitled.filesCount->GetText() == emptyFooter,
+                         "an empty-root dirty transition leaves the empty model and localized footer intact");
+                 Require(untitled.Document().Undo() && !untitled.Dirty() && !untitled.lastFilesDirty &&
+                             untitled.Activity().filesModelRebuilds == emptyRebuilds,
+                         "undo synchronizes clean bookkeeping without a synthetic folder refresh");
+             });
         test("Editor.DesignRefreshFilesAdmissionErrorsAndRootActions",
              [&]
              {
@@ -1889,6 +2094,9 @@ class DesignRefreshProbe final
                 app.Host().SetFocusControl(&app.Document(), false);
                 app.Prepare(256);
                 expectBlock(IDS_BLOCKPARAGRAPH, 5, "the preview entry is a five-character paragraph");
+                const auto paragraphCaptionConstructions = app.Activity().selectionCaptionConstructions;
+                Require(app.tools[2]->GetText() == Resource(IDS_PARAGRAPH) && app.tools[2]->GetAccessibleName() == Resource(IDS_HEADING),
+                        "the visible toolbar caption follows paragraph context while its command name stays Heading");
                 const auto previewChanges = app.Activity().changes;
                 const auto previewUndo = app.Document().CanUndo(), previewRedo = app.Document().CanRedo();
                 const auto paragraphConstructions = app.Activity().currentBlockLabelConstructions;
@@ -1926,20 +2134,37 @@ class DesignRefreshProbe final
                         "import an equal-length mathematical context at the same ACP");
                 app.Prepare(512);
                 expectBlock(IDS_MATH, 5, "the mathematical context overrides the paragraph's localized kind");
-                Require(app.equationContext && app.equation->GetText() == L"\\[x+y\\]" && !app.tools[3]->IsEnabled(),
-                        "equation source and action enablement stay synchronous with ready syntax");
+                Require(app.equationContext && app.equation->GetText() == L"\\[x+y\\]" && !app.tools[3]->IsEnabled() &&
+                            app.tools[2]->GetText() == Resource(IDS_MATH) && app.tools[2]->GetAccessibleName() == Resource(IDS_HEADING) &&
+                            app.Activity().selectionCaptionConstructions == paragraphCaptionConstructions + 1,
+                        "equation source/action state and localized visible caption change once while the command name stays Heading");
+                const auto firstMathCaptionConstructions = app.Activity().selectionCaptionConstructions;
                 preview.text = L"  $x$\n";
                 Require((app.Document().*Testing::TextServiceImportProbe::Import)(app.Host(), preview, false),
                         "shift the mathematical source range without changing caret ACP or physical-line length");
+                Require(!app.Document().GetMarkdownSyntax() && !app.equationContext && app.equation->GetText().empty() &&
+                            app.tools[2]->GetText() == Resource(IDS_PARAGRAPH) &&
+                            app.Activity().selectionCaptionConstructions == firstMathCaptionConstructions + 1,
+                        "pending replacement syntax clears stale math and publishes the paragraph caption once");
                 app.Prepare(512);
                 expectBlock(IDS_MATH, 5, "a shifted same-ACP math range preserves the actual kind and count");
-                Require(app.equationContext && app.equation->GetText() == L"\\[x\\]",
-                        "equal localized facts never suppress the new exact equation source");
+                Require(app.equationContext && app.equation->GetText() == L"\\[x\\]" && app.tools[2]->GetText() == Resource(IDS_MATH) &&
+                            app.tools[2]->GetAccessibleName() == Resource(IDS_HEADING) &&
+                            app.Activity().selectionCaptionConstructions == firstMathCaptionConstructions + 2,
+                        "ready replacement syntax publishes its exact equation and restores the math caption once");
+                const auto settledMathCaptionConstructions = app.Activity().selectionCaptionConstructions;
+                app.SelectionChanged(false);
+                app.Prepare(32);
+                Require(app.Activity().selectionCaptionConstructions == settledMathCaptionConstructions && app.equationContext &&
+                            app.equation->GetText() == L"\\[x\\]" && app.tools[2]->GetAccessibleName() == Resource(IDS_HEADING),
+                        "repeating current ready math facts reuses the caption and preserves the exact equation and command name");
                 Require((app.Document().*Testing::TextServiceImportProbe::Import)(app.Host(), entry, false),
                         "cancel all transient previews back to the entry source");
                 app.Prepare(256);
                 expectBlock(IDS_BLOCKPARAGRAPH, 5, "preview cancellation restores the exact paragraph facts");
-                Require(!app.equationContext && app.equation->GetText().empty() && app.tools[3]->IsEnabled() &&
+                Require(!app.equationContext && app.equation->GetText().empty() && app.tools[2]->GetText() == Resource(IDS_PARAGRAPH) &&
+                            app.tools[2]->GetAccessibleName() == Resource(IDS_HEADING) &&
+                            app.Activity().selectionCaptionConstructions == settledMathCaptionConstructions + 1 && app.tools[3]->IsEnabled() &&
                             app.tools[3]->GetToggleState() == std::optional<bool>{false} &&
                             app.tools[5]->GetToggleState() == std::optional<bool>{false} && app.Document().GetText() == entry.text &&
                             app.Document().GetSelection() == DxUi::RichText::Selection{2, 2} && app.Activity().changes == previewChanges &&

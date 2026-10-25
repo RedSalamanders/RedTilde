@@ -829,18 +829,24 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              {
                  Application *app;
                  WNDPROC previous{};
-                 std::filesystem::path nestedPath;
-                 bool reject{}, reenter{}, failed{};
+                 std::filesystem::path nestedPath, nestedClosePath;
+                 HWND window{};
+                 bool reject{}, reenter{}, closeAfterCaption{}, failed{}, cleanBeforeClose{}, closeDispatched{}, hostDetachedDuringCallback{};
                  LRESULT rejection = FALSE;
              } context{&app, {}, root / L"nested-東京.md"};
+             context.window = app.Window();
+             context.nestedClosePath = root / L"nested-close.md";
              constexpr auto property = L"RedTilde.CaptionTest";
              Require(SetPropW(app.Window(), property, &context) != FALSE, "bind owned hidden-window interception");
              const auto restore = wil::scope_exit(
                  [&]
                  {
-                     if (context.previous)
-                         (void)SetWindowLongPtrW(app.Window(), GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(context.previous));
-                     (void)RemovePropW(app.Window(), property);
+                     if (IsWindow(context.window))
+                     {
+                         if (context.previous)
+                             (void)SetWindowLongPtrW(context.window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(context.previous));
+                         (void)RemovePropW(context.window, property);
+                     }
                  });
              WNDPROC intercept = [](HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) noexcept -> LRESULT
              {
@@ -848,12 +854,32 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                  if (message == WM_SETTEXT && std::exchange(state.reject, false))
                      return state.rejection;
                  const bool reenter = message == WM_SETTEXT && std::exchange(state.reenter, false);
+                 const bool closeAfterCaption = message == WM_SETTEXT && std::exchange(state.closeAfterCaption, false);
                  const auto result = CallWindowProcW(state.previous, hwnd, message, wParam, lParam);
                  if (reenter)
                  {
                      try
                      {
                          state.app->SetDocument(L"nested", state.nestedPath);
+                     }
+                     catch (const std::bad_alloc &)
+                     {
+                         std::terminate();
+                     }
+                     catch (const std::exception &)
+                     {
+                         state.failed = true;
+                     }
+                 }
+                 if (closeAfterCaption)
+                 {
+                     try
+                     {
+                         state.app->SetDocument(L"saved before nested close", state.nestedClosePath);
+                         state.cleanBeforeClose = !state.app->Dirty();
+                         (void)SendMessageW(hwnd, WM_CLOSE, 0, 0);
+                         state.closeDispatched = true;
+                         state.hostDetachedDuringCallback = state.app->Host().GetHwnd() == nullptr && state.app->Host().GetRoot() == nullptr;
                      }
                      catch (const std::bad_alloc &)
                      {
@@ -891,6 +917,19 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              app.SetDocument(L"fresh", root / L"outer.md");
              Require(app.Activity().captionCalls == before.captionCalls + 1 && WindowCaption(app.Window()) == L"outer.md — RedTilde",
                      "superseded native write cannot cache the stale outer identity as applied");
+             const HWND hiddenWindow = app.Window();
+             const HWND foreground = GetForegroundWindow();
+             context.closeAfterCaption = true;
+             app.Document().SetSelection({0, 0});
+             Require(app.Document().ReplaceSelection(L"trigger"), "caption-triggered nested-close edit is admitted");
+             Require(!context.failed && context.cleanBeforeClose && context.closeDispatched && context.hostDetachedDuringCallback,
+                     "the owned WM_SETTEXT callback marks source clean and synchronously detaches the host on accepted Close");
+             Require(app.Host().GetHwnd() == nullptr && app.Host().GetRoot() == nullptr,
+                     "nested Close retires the controls before WM_SETTEXT resumes");
+             Require((app.Window() == nullptr && !IsWindow(hiddenWindow)) ||
+                         (app.Window() == hiddenWindow && IsWindow(hiddenWindow) && !IsWindowVisible(hiddenWindow)),
+                     "accepted Close destroys the owned window or retains it hidden while admitted persistence finishes");
+             Require(GetForegroundWindow() == foreground, "hidden native-close regression preserves foreground focus");
          });
     test("Editor.DirtyCacheTracksDirectResetAndSameLengthUndo",
          [&]

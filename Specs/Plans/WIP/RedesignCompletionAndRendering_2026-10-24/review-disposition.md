@@ -1,4 +1,72 @@
-# Review disposition — 24 October 2026
+# Review disposition — 25 October 2026
+
+## Current checkpoint
+
+The last completed native snapshot is RedTilde `fd24623` with DxUi `cfe875fd`. Both repositories pass six
+local builds and all ordinary x64 Debug, Release and ASan runtime profiles, with real ASan detection probes.
+The owner-started app keyboard and four SDK foreground suites pass with desktop restoration. All six SDK
+hosted Full native profiles pass; optional per-profile instances and compiled checkout identities retain their
+own receipts. RedTilde's hosted run never started because of the account payment/spending restriction. The owner
+explicitly chose to keep that native ARM64 gate open. Cross-builds do not close it.
+
+Fresh app cohorts retain 384 native runs and 16,003 independent checks. Against the actual starting redesign,
+all twelve A/B slots have no new regression flag. Against the original UI, five flags remain: Compose command
++12.54% and private memory +2.013%; Split command +14.58%, owner CPU +13.44% and working set +2.61%.
+Only the flagged Split working-set control is stable. These observed-load results supersede the earlier seven
+flags without accepting the remaining costs or attributing the retained allocation. The separate sixteen-run
+diagnostic concentrates about 23 microseconds of additional command work in selection/status presentation;
+it is descriptive evidence, not the primary family or a causal trace. The 24-process hardware/WARP resource
+study is likewise descriptive, with mixed n=3 results; only its corrected independent audit is accepted.
+
+The bounded Tree badge ItemStatus correction and Files dirty-transition update are now source changes awaiting
+red/green execution and fresh qualification. They do not inherit the frozen snapshot's execution results. The
+Files pane is disabled in the headless benchmark, so its rebuild is not the cause of those five app flags.
+The inventory must be reconciled again after these edits. The SDK A/A calibration at explicit revision
+`cfe875fd` and actual-base A/B qualification remain separate; the measured-base policy is unqualified.
+SDK hosted paired collection has since completed, but the verdict step reports inconclusive because the base
+policy lacks independent qualification; its overall workflow fails. All six native jobs remain successful. The
+completed paired artifact is now provider-digest-bound, preserved locally and independently recomputed across
+144 receipts and all 78 slots, with no resolved regression. Its controls are predominantly unstable. The baseline
+library fingerprint matches the clean actual PR base with Windows checkout attributes, while `sourceDirty=true`
+is consistent with three recorded tooling overlays outside that scope; no complete dirty-path listing is retained.
+The separate 144-receipt same-executable
+calibration also recomputes all 78 slots; its observer audit passes under roughly 25% mean system CPU load.
+Each calibration scenario has 24/24 unstable within-side controls, so this collection does not qualify a noise floor.
+The one legacy/migrated disagreement is improved versus within-noise, with zero regressions in both judges.
+All six hosted Full payload inventories were byte-replayed, with the two deliberate ASan detection probes
+validated separately. These results do not qualify policy or execute the later source changes.
+
+| Review delta | Current disposition |
+| --- | --- |
+| Tree state dots/count text omitted from UIA | Confirmed against the documented contract. Publish owned badge text as TreeItem ItemStatus with stable Name and a real subscribed-client property-event regression. Source patch pending execution. |
+| Files dirty transition rebuilds the model and resets tree state | Confirmed source path through `Changed`/`RefreshFiles`. A targeted badge update and a nontrivial synthetic-folder regression are patched; runtime red/green and source-bound pin adoption remain pending. |
+| Label text/multiline setters continue after embedded root retirement | Confirmed source callback path through intrinsic-measure invalidation. Match the existing Button/typography weak-lifetime boundary, extend the existing retirement case, and retain separate original-setter ASan diagnostics and final-source qualification. Source patch is unrun; guard cost is unmeasured. |
+| F08 completion-post shutdown-hang suspicion | Investigated/refuted as the alleged missing-wake mechanism. `Application::Run` checks writer/recovery completion after every dispatched message; a full queue that rejects a post has queued work which triggers that check. `BeginClose` stops producers and retains the notification HWND until both services finish; `FinishClose` requires both finished states before retirement. |
+| F08 evidence limits | Existing settings, recovery, hidden close and foreground Alt+F4 cases cover persistence and service retirement, but do not deliberately force both completion orders or queue saturation. No impossible empty-queue post-failure seam or message-loop rewrite is introduced. A2's independent preparation/factory/upload failure obligations remain under review. |
+| Native math line-metrics HRESULT converted to capacity rejection | Confirmed source defect in `PreparedMath::Advance`: `FAILED(hr)` shares the permanent capacity branch with a genuine multi-line leaf. Separate native error propagation from that structural rejection, retain the OOM/device error channel, and add injected-failure regression evidence before closing A2. |
+
+### F08 completion-order characterization
+
+The current source has one retirement predicate: preferences idle **and** recovery finished. `BeginClose` stops
+producers before reading those states, retains a hidden notification HWND while either is pending, and detaches
+the editor host. Both completion notifications and the dispatch-level check reach `FinishClose`; worker state is
+published under the owning lock before completion notification. This is source reasoning, not a new runtime run.
+
+| Order observed by the UI | Current source behavior |
+| --- | --- |
+| Preferences finish first | Recovery remains pending, so `FinishClose` retains the HWND; recovery completion permits retirement. |
+| Recovery finishes first | The writer remains busy, so `FinishClose` retains the HWND; preferences completion permits retirement. |
+| Both finish before the initial check | `BeginClose` closes the idle writer binding and destroys the window directly. Recovery has already finished. |
+| Completion post is rejected by a full queue | Existing queued messages supply dispatch work; the level check reads both completion states after each dispatch. This does not establish an empty-queue missing wake. |
+
+The durable close/HWND ownership contract now lives in `Specs/Core/Core_SettingsAndCrashes.md`. The existing
+`Settings.AsyncLatestValueSurvivesWriterClose`, `Recovery.DebounceLeaseCoalescingAndRetirement`,
+`Editor.DesignRefreshTransientSurfacesAndClose` and `Window.AltF4AsyncClose` cases passed at the frozen sources.
+Their evidence does not force the above service orders or queue saturation. No loop rewrite or synthetic
+empty-queue post-failure hook is justified by the refuted mechanism. This disposition does not close the separate
+native preparation failure tests or any final-source qualification gate.
+
+## Retained 24 October review
 
 The inventory records 446 first-party source/build/test/resource reviews and 36 generated-fixture provenance reviews (482 primary inputs). It also contains seven narrowly scoped 24 October documentation delta rows: six normative/planning documents and one generated changelog. These seven rows are an explicit exception to the general documentation exclusion; they are not counted as source reviews. The 21-row delta reconciles fourteen existing source/test/spec rows at updated hashes plus those seven document/provenance rows. All 489 hashes were checked against tracked files, using the newest intended-green WindowHost.cpp snapshot (which byte-matches the frozen live file); the selection audit found 482/482 first-party tracked code/build/test/config/manifest/resource inputs represented, with no unexplained omissions under the declared exclusions. Every inventory row has four substantive notes; source review remains separate from native execution and performance acceptance.
 Every row has its current source hash and four review notes. Source review is separate from native execution;

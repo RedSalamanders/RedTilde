@@ -2,6 +2,10 @@
 
 Machine-readable review data for the parent plan. All rows start pending; source hashes do not establish review completion. Keep this fenced JSON under the documentation tree so planning records are validated as documentation. The parent plan defines the required review evidence and completion check.
 
+The table below retains the completed 24 October source review. The uncommitted 25 October Tree badge, Files
+badge, caption and native HRESULT corrections have separate source-review notes and unrun regressions. Their
+hashes and affected rows must be refreshed after the active frozen calibration; this table does not yet bind those edits.
+
 ```json
 {
   "schemaVersion": 1,

@@ -86,8 +86,9 @@ editing.
 
 The tree supports arrow navigation, Left/Right collapse and expand, Home/End, type-ahead, and Tree/TreeItem UI
 Automation with ExpandCollapse and SelectionItem. Opening moves focus into the tree. Escape/close restores focus to
-the authoritative editor without changing its source selection. The active file and dirty state are exposed as
-text, not by color alone. A row invokes on single-click release; file rows open through the guarded Open flow,
+the authoritative editor without changing its source selection. The active file keeps its filename as the TreeItem
+Name; when edited, its localized state text is exposed as UI Automation ItemStatus, not by color alone. A row invokes
+on single-click release; file rows open through the guarded Open flow,
 while directory rows are ignored by the application and their separate disclosure target expands/collapses.
 Arrow keys navigate/select; Enter invokes the selected row. Outline rows also invoke on single-click release and
 navigate to the source heading, including headings with descendants.

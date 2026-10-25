@@ -12,7 +12,7 @@
 - [x] A0: verify design PR #10's actual base and retain the separate starting app Release baseline.
 - [x] A1/A3/A5: reproduce table bounds failure, math ownership/limits/recognition defects and corrected Mermaid outcome mismatch before fixes.
 - [x] A1/A2/A3/A5: pass 24 combined Debug regression diagnostics, including source/history, local fallback and UIA ownership; retain their original failures.
-- [x] A3/A5: reproduce and correct shared-budget root degrees and hollow inheritance-line rendering; full affected-suite rerun remains open.
+- [x] A3/A5: reproduce and correct shared-budget root degrees and hollow inheritance-line rendering; frozen SDK `cfe875fd` passes all six hosted Full native profiles.
 - [x] A8 tooling: reproduce overlay rollback losing later edits; preserve created/replaced edits and pass all 34 paired-run tooling cases.
 - [x] A5: reproduce and correct state-description label semantics and a Debug allocation-failure termination; pass normalized model and expanded parser failure sweeps.
 - [x] A7: characterize interested focus-update work, reuse validated published paths and pass stale-path/hidden-focus regression checks.
@@ -20,30 +20,228 @@
 - [x] A9 tooling: reproduce uncontained interactive child admission and descendant completion races; pass the retained 98-check lease diagnostic.
 - [x] A6/A9 Release: pass 54 app cases, 23 captures, crash/recovery probes and all 19 normal SDK suites with zero skips.
 - [x] A6/A9 input: pass the nine-stage app keyboard slice and all four SDK foreground suites with verified desktop restoration.
-- [x] A8 collection: complete both same-SDK 192-process app studies and pass their independent integrity/numerical audits; seven original-base regressions remain.
+- [x] A8 prior collection: retain both earlier 192-process app studies and their independent audits, including the historical seven original-base regressions.
 - [x] A0 delta: re-review SDK `8a38e598` gallery ordering and reconcile its current source hash; new gallery execution remains pending.
-- [x] A9 Debug: current-head SDK `8a38e598` passes all 19 ordinary x64 Debug suites with zero skips.
+- [x] A9 checkpoint Debug: SDK `8a38e598` passes all 19 ordinary x64 Debug suites with zero skips.
 - [x] A9 checkpoint builds: SDK `8a38e598` passes all six x64/ARM64 Debug, Release and ASan Debug builds with zero warnings/errors.
 - [x] A9 checkpoint ASan: SDK `8a38e598` passes the real detection probe and all 19 ordinary x64 ASan Debug suites with zero skips.
 - [x] A7 branding: remove ordinary-startup WIC conversion, retain the prepared bitmap and pass seven-size independent pixel parity plus device-loss/warm-raster tests (Release Editor 35/35).
-- [x] A8 archive: publish the reviewed aggregate projection of all 48 current A/A/A/B metric rows, with source/audit bindings and explicit exclusions.
-- [ ] A7 host delta: qualify bounded initial-frame submissions and safe message-prune reuse, including live controls moved out of legacy owning slots.
-- [ ] A8 resource delta: measure initial, resize and device-recreation completion costs alongside retained memory before a fresh whole-feature comparison.
-- [ ] A1: fix table command memory safety and other reproduced data/selection corruption before refactoring.
+- [x] A8 prior archive: publish all 48 `fa0757d` A/A/A/B metric rows with source/audit bindings and explicit exclusions; preserve this historical projection.
+- [x] A7 host functional delta: pass all 14 targeted red/green cases and final frozen-source profiles for bounded submissions and live logical membership; performance acceptance remains A8-owned.
+- [x] A8 resource delta: retain 24 processes covering initial, resize and three device recreations on hardware/WARP; n=3 results are mixed descriptive evidence, not acceptance.
+- [x] A1: fix the reproduced table command memory-safety and data/selection defects; frozen-source native profiles pass.
 - [ ] A2: contain preparation failures per object, preserve accessible ownership and characterize shutdown completion handling.
-- [ ] A3: correct math recognition and accepted-but-wrong notation; reconcile capability/target data.
-- [ ] A4: qualify the implemented bounded math profile, its TeX layout fundamentals and honest KaTeX compatibility claims.
-- [ ] A5: qualify corrected Mermaid semantics and complete outcome coverage for the current native profiles.
+- [ ] A2 fault delta: preserve failed native line-metrics HRESULTs, classify only formula-local unsupported operations as persistent, and prove same-key suppression/retry plus changed-key recovery with injected failures.
+- [x] A2 focused Debug: pass the injected math failure-containment case and full Embedded suite on the retained late-source build; counterfactuals and final-profile qualification remain open.
+- [x] A2 counterfactuals: reproduce the exact line-metrics, HRESULT-preservation and formula-local unsupported-operation failures, with independently replayed source/build/native bindings.
+- [x] A3: correct math recognition and accepted-but-wrong notation; reconcile bounded capability/target data at frozen SDK `cfe875fd`.
+- [x] A4: qualify the current bounded math profile on the named native profiles; full KaTeX/TeX font assemblies remain explicitly outside scope.
+- [x] A5: qualify corrected Mermaid semantics and current-profile outcomes; retain MM-36 and the separately owned broader-family roadmap.
+- [x] A9 frozen matrix: both repositories pass six local builds; x64 Debug/Release/ASan runtime and real ASan probes pass at app `fd24623` / SDK `cfe875fd`.
+- [x] A9 frozen input: the owner clicked Start for the current nine-stage app keyboard run and four SDK foreground suites; restoration passed and earlier timeouts remain retained.
+- [x] A9 frozen SDK hosted matrix: `cfe875fd` source tree passes all six Full native profiles, relocated consumers and galleries; per-profile optional skips are recorded separately.
+- [x] A8 fresh app collection: retain 384 native runs and 16,003 independent checks; actual-starting-base comparison has no new flags, original-design comparison retains five.
+- [x] A8 stage diagnostic: retain 16 separate descriptive runs and 5,589 integrity/numerical checks; additional command work concentrates in selection/status publication.
+- [x] A8 frozen SDK evidence: retain 144 same-executable calibration receipts and 144 hosted actual-base receipts, independently recompute both 78-slot families, and retain policy/control/provenance limits.
+- [ ] A0/A6 review delta: correct Tree badge accessibility publication and the Files dirty-transition selection/scroll/model-rebuild behavior, then qualify the resulting source.
+- [x] A0 Tree regression: reproduce the missing dot-badge ItemStatus against the exact original accessibility source and independently verify the Release executable/run binding; fixed-source and prepared-row execution remain separate.
+- [x] A0 Tree focused Debug: pass both corrected subscribed-client and prepared-row cases with zero skips; final-source matrix/performance qualification remains open.
+- [ ] A0 shared-control delta: guard Label text/multiline setters against embedded root retirement; retain separate sanitizer red/green evidence and qualify the final source.
+- [x] A0 Label focused ASan: pass the retirement regression for both setters with zero skips; original-setter counterfactuals and the final matrix remain separate gates.
+- [x] A0 Label counterfactuals: reproduce each original setter's ASan use-after-free separately, then pass the same focused case with both guards restored.
+- [ ] A2 reentrant close delta: stop document-change publication after a native caption notification accepts Close; prove synchronous host retirement without assuming immediate notification-window destruction, including sanitizer red/green evidence.
+- [x] A2 caption-close regression: reproduce the resumed `Changed` status-label use-after-free under ASan by removing only the post-caption closing guard; fixed-source Editor execution remains separate.
+- [x] A2/A6 focused consumer ASan: pass all 36 Editor cases at the exact reviewed SDK pin, including Files accessibility, pending/ready caption facts and the corrected caption-close regression.
+- [ ] A9 late SDK source: complete the six-profile local matrix at `baff43d8`, correct and revalidate the hosted gated-notification test timeout, and retain the actual hosted outcomes.
+- [x] A6 consumer counterfactuals: finish the exact Files/caption Release negative controls and intended-source green run; preserve the first wrapper receipt-binding failure separately.
+- [x] A2 caller review: guard the continuation after Files badge publication if a conditional synchronous accessibility flush accepts Close; final-matrix execution remains required and no separate runtime reproduction is claimed.
+- [x] A0 late validation: pass pinned-format checking, all RedTilde validators and the folded-changelog checks before the final source freeze.
+- [x] A8 baseline refresh: independently verify the original-UI and actual-starting-redesign Release/Core freezes at SDK `baff43d8`, including all seven common harness inputs and compiler profiles.
+- [ ] A7 caption delta: publish localized Paragraph/Math text only on context transitions, retain exact equation updates and stable command Name, and measure the final source.
+- [ ] A8 fresh archive: publish the reviewed `fd24623` 48-row projection and bind source, frozen inputs, host observations and independent audits.
 - [ ] A6: finish RedTilde interaction, responsive layout, accessible presentation and exact-pin integration tests.
 - [ ] A7: simplify measured hotspots and qualify incremental preparation without changing source/history behavior.
 - [ ] A8: repeat the current-source whole-feature and library performance studies; resolve R10/D4c advice gates.
 - [ ] A9: complete the final-source build/runtime, input, platform, documentation and release dispositions.
 - [ ] Closeout: every required row has evidence; update domain specs and capability claims, then move completed plans to Done.
 
-Status: **IMPLEMENTING; implementation and qualification remain open**. The owner authorized execution on
+Status: **BOUNDED PROFILES IMPLEMENTED; REVIEW DELTA, QUALIFICATION AND CLOSEOUT OPEN**. The owner authorized execution on
 2026-10-24. The completed planning-only pass is retained below; execution needs its own source-bound native and
 performance evidence. Update this checklist with the precise change, regression case and receipt for each
 completed item. A checked item needs evidence, not just edited code.
+
+### Qualification checkpoint — 2026-10-25
+
+The preceding completed full runtime snapshot is app `fd24623a9f27d04b85deb27a43a9af724dc030ca` with
+SDK `cfe875fd815b0a39336100df9bde8f29ea2f0aa0` (API 4). The following observations belong to those frozen
+sources; later review changes require their own build/runtime disposition and must not inherit a new execution claim.
+
+| Gate | Retained result and boundary |
+| --- | --- |
+| Local build matrix | All six x64/ARM64 Debug, Release and ASan Debug builds pass in each repository. ARM64 cross-builds are not native execution. |
+| App x64 runtime | Each profile passes 54 cases, 23 deterministic captures and recovery/crash/native-object probes. Runs: Release `20261024T214136040Z-34848-1634d1ea10a14d8aa34c4a2dbdc75950`, Debug `20261024T214623780Z-54152-b9213f1c4f9f4446a49f2868eefaa397`, ASan `20261024T215036320Z-54152-c63966abd6b7487eb893da9dbf9e9a12`. |
+| SDK x64 runtime | All 19 ordinary suites pass with zero skips in Debug, Release and ASan Debug, including the real ASan detection probe. The serialized ASan retry is `20261024T220924385Z-51868-e09ec2547ede441489d629a7bf367d5c`. |
+| Human-confirmed input | App nine-stage keyboard run `20261024T222243673Z-34040-0f7867fcb7a74c5ea9c558069fc831b0` and SDK four-suite run `20261024T222331185Z-43520-f649944f551e4e21bc67cbda8cbedb59` pass with foreground/focus/cursor restoration. Earlier prompt timeouts executed no native cases and remain retained. |
+| SDK hosted | PR #100 head `cfe875fd`, workflow `40135398414`: all six Full native steps and native jobs, relocated consumers and galleries pass. Annotations-disabled consumer runs on x64 Debug, x64 ASan and ARM64 ASan; menu resource scaling runs on x64 Release. Other optional instances are skipped. Ubuntu validation/native-scope, Windows tooling and format pass. Paired acceptance is separate. Six ZIPs match their provider digests. |
+| App hosted ARM64 | Workflow `40135560498` never started its jobs because GitHub reported an account payment/spending-limit restriction. On 25 October the owner explicitly chose **keep the hosted ARM64 gate open**. This is an acknowledged open gate, not a waiver or pass. |
+
+The six SDK native receipts identify compiled merge ref `0d484babceb62f7191dc464c329ec46269affe92`, whose
+parents are the actual PR base `b06f534b` and head `cfe875fd`. Its Git tree
+`3bfa95c60deee0bf07794fb40ac22bbff1200e3c` exactly equals the head's tree. Preserve the actual compiled commit in
+the receipts; this verifies source-tree equivalence without rewriting it as a head checkout.
+
+Private source-bound audits, original receipts, copied native artifacts and failed attempts remain beneath
+`.build/qualification-20261024` and `.build/audit-20261024` in the isolated owning checkouts. Preserve the original
+SDK shared-test-lock refusal and app wrapper bookkeeping failures: the later additive successful runs and independent
+payload checks establish only what they actually executed. The ARM64 short restore/cache workaround changes no source,
+dependency ABI or platform claim.
+
+The fresh common-harness app freezes are original UI `ca19da7`, starting redesign `bbc9525` and candidate `fd24623`,
+all using SDK `cfe875fd`, seven identical harness inputs and compiler profile SHA-256
+`490bb8b4cc127227adbbede387cde236b7a208bbedeba25bb86ed7be9e77c9313`.
+`common-harness-frozen-host-policy-bindings-20261025.json` retains their full receipt/artifact/source bindings.
+
+- Original-design cohort: 96 A/A plus 96 A/B native runs, 12 blocks/view, 64 cycles, seed 20261024; the independent
+  typed reference passes 7,988 checks. A/B flags Compose command +12.54% and private memory +2.013%, and Split
+  command +14.58%, owner CPU +13.44% and working set +2.61%. Only the flagged Split working-set control is stable;
+  do not erase the other flags or their control uncertainty. This supersedes the historical seven-flag result.
+- Actual starting-redesign cohort: the same complete protocol, 8,015 independent checks. All 12 A/B slots have no
+  new regression finding. Private memory improves 9.19% in Compose and 7.98% in Split; Compose working set improves
+  2.45%. Controls remain mixed. Both cohorts have complete host observations, mean total CPU around 19–21%, and no
+  verified quiet window. These are reviewed measurements under observed load, not approved non-regression policy.
+- The separate 16-process, two-block stage diagnostic passes 5,589 integrity/numerical checks. Its descriptive
+  medians concentrate roughly 23 microseconds of additional command work in selection/status presentation, while
+  Split preparation also costs more. It is not a new primary family, significance test, or causal allocation trace.
+- The 24-process hardware/WARP resource-cost study is n=3 per actor/view/adapter, with mixed initial-preparation/reset results.
+  Use only `resource-cost-independent-audit-corrected-20261025`; its sorted triples and medians supersede the
+  unaccepted first private draft. It grants no cost acceptance or 4 MiB allocation ownership claim.
+
+SDK same-executable A/A calibration completed at explicit revision `cfe875fd` in one separate physical worktree;
+both role labels used that one executable. All 144 receipts are retained and the independent reference recomputes
+all 78 metric slots with no resolved regression. The observer audit passes: 7,158 samples, 99.982304% collection
+coverage, weighted CPU 25.083073% and maximum UTC sample-start period 1.2089528 seconds. This is observed load,
+not a quiet-host result. The legacy judge calls one distinct-grid dirty composition slot improved while the
+migrated judge calls it within noise; both report zero regressions, and the disagreement remains recorded.
+All 24 within-side control comparisons are unstable in each of the three A/A scenarios. The completed
+collection therefore does not qualify a noise floor or establish performance acceptance.
+The current measured-base policy remains unqualified. Final-source library A/B, publication and R10/D4c
+dispositions remain open.
+The SDK hosted paired collection subsequently completed, but its verdict step failed with **inconclusive** because
+the base policy is not independently qualified. Overall workflow `40135398414` therefore fails despite its six
+successful native profiles. Its provider-bound artifact is now preserved locally and independently audited:
+144 receipts and all 78 slots match the numerical reference, with no resolved regression. The 24 side-control
+comparisons per scenario contain 23 unstable in Default, 23 in MultilineGrid and 22 in MultilineGridDistinct.
+The measured baseline identifies `b06f534b` with `sourceDirty=true`; the lead and independent reviewer reproduced
+its library fingerprint exactly from the clean actual-base checkout with the correct Windows CRLF attributes.
+The retained manifest identifies three intentional tooling overlays outside that fingerprint scope. The archive
+has no complete dirty-path listing, so no claim is made that those were the only working-tree changes, and no
+separate compiler/source byte archive is inferred from a reported digest. This frozen evidence
+does not measure the later fixes. Do not describe the workflow as green or alter candidate policy to approve itself.
+
+A late source review also confirmed that documented Tree state-dot text is absent from UIA snapshot publication.
+The bounded correction and Files dirty-badge update are being developed in the non-measured working checkouts.
+The label text/multiline paths also need weak-lifetime guards after synchronous embedded preparation can retire
+their owning root. The existing retirement test covers both setters and passes with zero skips in official x64
+ASan Debug run `20261025T022224940Z-19880-ef222af848c049d0a63c5171d80a5a17`.
+Attempt `review-delta-LabelGreen-20261025T021509802Z` binds executable SHA-256
+`639F0788D8B0D5F1F3E59609147BA524776200DA6D3D3A562877990B972130F5`, canonical build identity
+`a8fdb41131019d9867658ac0d83275af341e29879b69788758c1fc386f7e8fcd` and exact source restoration.
+The separate original-setter sanitizer diagnostics are now retained; final-source matrix execution remains pending.
+No measured guard-cost or frozen-source pass is inferred.
+The Files pane is disabled in the headless performance fixture, so its rebuild cannot explain the five app flags.
+The late Tree counterfactual now has a retained native red result: run
+`20261025T014211314Z-2752-b42c53974c4b43de80bcde585f4b5c7b` fails at the missing dot-badge ItemStatus assertion.
+Its executed accessibility source exactly matches the original `cfe875fd` Git blob and its x64 Release executable
+matches the native receipt. Only the first selected test starts before failure; the prepared-row test is not
+claimed as executed. `accessibility-red-independent-20261025` records the independent audit. Earlier build-only
+failures remain retained and count as no native red result. Fixed-source attempt
+`review-delta-Green-20261025T014741080Z` built successfully, but the Tree test exposed an incorrect style-only
+getter oracle: an unchanged Saved badge still exposes Saved even when no new ItemStatus event is expected.
+That failed attempt is a test-authoring failure. After correcting the oracle, both named cases start and finish
+successfully in official Debug run `20261025T021304993Z-27628-17cf022cb9d24837bad2d536b899bb18`, with zero skips.
+Attempt `review-delta-AccessibilityGreen-20261025T020600631Z` binds executable SHA-256
+`D16F722CD16D57F12249CF7CE2968B738519DE9E48B67FE63DD52E720BEBF14B` and canonical build identity
+`97960e264bbaa380d89a242a7a076865eecef18771000a77474509b41c2cc1e8`; exact source restoration passes.
+The same build passes the injected math containment case in official Debug run
+`20261025T015619165Z-47744-17c82175da7846ef9b9048f8a2372f5b` and the full Embedded suite in
+`20261025T015815367Z-45528-48a04e2b701849a08533f314b035b44d` (455,561 checks). These are focused
+late-source results, not a final matrix or performance verdict.
+F08's alleged completion-post missing wake is refuted by the dispatch-level completion check and worker/HWND
+retirement ordering. Existing tests cover persistence and close; explicit queue saturation and both service finish
+orders are not claimed. A2's native-object persistent HRESULT/factory/upload coverage still needs its own disposition.
+The separate caption callback can synchronously re-enter accepted Close before `Changed` resumes. A post-caption
+closing guard and an extension to `Window.CaptionRetriesFailedAndSupersededNativeWrites` are source-reviewed.
+The regression asserts immediate host/control retirement while allowing the notification HWND to be destroyed
+or retained hidden for admitted persistence. The original immediate-destruction assertion was corrected during
+independent review before execution; the subsequent sanitizer results are recorded below and final-source qualification remains open.
+The subsequent exact guard-removal counterfactual reproduces an ASan heap-use-after-free in `Label::SetText`,
+called by `Application::UpdateCounts` and `Changed`, with the caption case at `Application.Tests.Core.cpp:924`.
+Official run `20261025T023443744Z-20388-06c01651c30b403d8f52a2793f5b8d97` binds variant source
+`3d81f332176d61324a541e890a8e6559a27930d1c5f28100f46220a1d1db277e`, SDK `baff43d8` and executable SHA-256
+`86D64D2DD278998B48330C319574644030E393ABDD4F8B0898F298E45D813E68`. Post-test canonical artifact/source
+verification and exact source restoration pass. The native runner does not flush a literal case name before an
+ASan abort; the verified source-span stack identifies the case. The preceding build-only WIL variant test error
+is retained separately and counts as no native proof.
+Fixed-source x64 ASan Debug run `20261025T064635182Z-26416-0a107f273b514f2488e25aa25fbbf315` subsequently
+passes all 36 selected Editor cases (55 registered), including the caption-close case. It binds source
+`86eb21cfe8414c0c3ee04aeda3d238e7b64fa5392023b55f33c7dce43d5db845`, SDK `baff43d8` and executable
+`1728CAD020DA77983D4896F47EDBE96B201948530DA7980F94F52E989AD60A7C`; post-test binding and restoration pass.
+The preceding 35/36 attempt is retained: its caption-close case passed, while the new caption test incorrectly
+omitted the real pending-syntax Paragraph transition. The corrected test asserts stale-math clearing, current
+ready restoration and allocation-free caption reuse for repeated ready facts. Production behavior is unchanged
+by that test correction; the final matrix and paired performance gates remain open.
+The review found that `PreparedMath::Advance` converts any failed `GetLineMetrics` HRESULT into a capacity
+exception. This can incorrectly memoize a memory or temporary native failure as permanent formula rejection.
+The bounded correction must propagate that HRESULT, preserve allocation/device recovery, and use the existing
+complete rejection key only for a genuinely unsupported operation within one formula's native preparation.
+The three retained math counterfactuals now each fail at their intended assertion. The two separate original
+Label setter variants each reproduce an ASan use-after-free, and the following Label green control passes with
+zero capability skips. `late-counterfactual-independent-20261025` replays all six source snapshots, successful
+build identities, executable hashes, native outcomes and exact restoration. Its author discloses authorship of
+the math implementation; independent source review remains the lead's responsibility.
+
+At SDK `baff43d8`, hosted workflow `40154492633` passes the four ordinary x64/ARM64 Debug and Release native
+jobs. Both ASan jobs pass the detection probe but fail the new intentionally gated, multi-publication Embedded
+Tree notification test's three-second delivery wait. Failure diagnostics contain all four expected first/final
+statuses after the deadline and no sanitizer memory report. This is a retained timing/assertion failure, not a
+full native pass. The ordinary status-only wait and all identity/coalescing/pruning assertions must remain;
+the bounded correction is reviewed separately from performance acceptance. The paired collection completes,
+but its verdict remains rejected because the measured-base policy is unqualified. Fresh local SDK matrices
+are running; neither those jobs nor a future correction inherit a pass from the earlier source.
+
+The first Release Files negative control builds and executes 36 Editor cases: exactly
+`Editor.FilesDirtyBadgeUpdatesOneVisibleRow` fails, at the existing-row/no-rebuild assertion. Its private wrapper
+then incorrectly requires an individual suite receipt which the official runner does not produce. Preserve
+attempt `review-delta-FilesRed-20261025T064810689Z` and official run
+`20261025T065126884Z-14528-4bdc2035602e4ed9a5712cda8808de07`; source restoration passes. Correct the private
+binding wrapper to use the real run, catalog, native report and executable/build receipts before claiming the
+completed diagnostic queue. This wrapper failure does not invalidate or convert the retained native result.
+The corrected private wrapper subsequently completes all three source-bound Release diagnostics. FilesRed run
+`20261025T070100746Z-49404-38f5c073899744d78acc94be9966964d` fails only the no-rebuild Files assertion;
+CaptionRed run `20261025T070206463Z-50068-872fc7d139e6445da97b46b414dc889d` fails only the persistent-status
+caption assertion. Intended-source Green run `20261025T070354514Z-53832-d6bb4c93b846443d83f4b9a8856da4ef`
+passes all 36 Editor cases (55 registered), at SDK `baff43d8`, with executable SHA-256
+`21284104806ADDD253C8076E50771D35DF4E17B6A2A29250543D9A0A665C3C21`. Each exact single source transformation,
+official source/build/executable receipt, pre/post canonical verification and restoration is independently replayed
+in `review-delta-regression-queue-20261025`. This is focused evidence, not the final matrix or performance result.
+
+A subsequent caller review traces a conditional synchronous WindowHost accessibility flush when focus changes.
+That publication can dispatch an accepted Close. Although `SelectionChanged` already returns when closing,
+the later recovery checkpoint dereferences the cached editor. `Changed` now returns immediately if closing
+became true during its Files badge update. The stable-focus route posts publication instead. This is a bounded
+source-reviewed defense, not a newly reproduced runtime failure; the preceding focused runs predate this guard
+and the next matrix must execute the final source. It adds no new test seam, dependency or benchmark hook.
+
+Pinned-format checking, the complete RedTilde validators and all four folded changelog entries pass after the
+Editor test-oracle correction. The refreshed starting baseline `0acee29a0e597bfd5367265ff4c7d44b91f4a649`
+and original-UI baseline `c04ea1e2f57fd4f323ddfc04c57b09611f17f147` each build x64 Release and pass their own
+complete Core catalogues (53/53 and 27/27). `review-baseline-independent-20261025` verifies their SDK pin,
+source/executable/build identities, compiler profile and seven identical harness inputs. The original baseline's
+older Core receipt omits the newer build-receipt digest field; the audit retains that limitation and verifies its
+other identity fields against the standalone build record. Both fresh freezes are separate from the preserved
+`cfe875fd` freezes. The next current-source matrix and observed comparisons must use the reviewed new freezes.
+No derived-snapshot API, new language family, full TeX font assembly or external dependency is authorized by this
+checkpoint. Keep the plan in WIP until its remaining source, test, evidence, documentation and owner gates close.
 
 ### Execution checkpoint — 2026-10-24
 
@@ -462,9 +660,12 @@ Priority P1; M–L; medium risk. Depends on A0a; may run alongside A1 in disjoin
 2. Create an owned semantic Math element for both success and rejection; diagnostics attach to it. Preserve
    parent link title/destination and its UIA HelpText. Share the native-object admission ledger for images/math/
    diagrams only after their different lifetime/resource semantics are made explicit.
-3. Add injected persistent layout/upload/factory failures and repeated idle turns. Assert bounded attempt counts,
-   stable source/history, valid source/caret map, local fallback, repaint/readiness and recovery after a changed key.
-   Include a newline/control in math text and an oversized prepared object in otherwise valid Markdown.
+3. Inject a formula-local unsupported native operation and repeated idle turns. Assert one rejection per complete
+   key, stable source/history/selection and source/caret map, local fallback beside other rich content, and recovery
+   after a changed key. Separately inject transient factory/line-metrics errors and allocation failure: preserve
+   the original HRESULT and permit same-key retry. Image upload/device-target failures belong to resource recovery,
+   not a persistent formula rejection cache; exercise their retry and resource-generation sweep. Include a
+   newline/control in math text and an oversized prepared object in otherwise valid Markdown.
 4. In RedTilde, investigate F08 before changing the loop. Inspect `Application::Run`, BeginClose/FinishClose,
    SettingsWriter and RecoveryService together. Queue exhaustion has an existing dispatch backlog and therefore
    does not demonstrate a missing wake in the current loop; a fake post failure with an empty queue alone does

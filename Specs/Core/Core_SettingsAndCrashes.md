@@ -16,6 +16,15 @@ through the same atomic writer as documents. Settings errors must not prevent ed
 persistence uses one active application worker and one coalesced latest pending state. Admitted writes finish after
 the window closes without joining storage on the UI thread; notifications lose their window binding.
 
+After accepting Close, stop producers and detach the editor host. If an admitted preferences write or recovery
+retirement is still pending, hide the application window and retain its notification HWND until the preferences
+writer is idle and recovery has finished. Recheck both states after dispatched messages as well as completion
+notifications; either service may finish first. Window destruction requires both finished states; service closure
+clears its notification binding. Do not join storage on the UI thread or retire the HWND after only one service completes.
+Synchronous native window and accessibility notifications during document-change publication may re-enter
+accepted Close; resumed updates must stop before using controls detached by that Close. This includes the
+Files badge publication before selection synchronization and recovery checkpointing.
+
 Install local crash handlers before UI/workers. Record a uniquely named `.dmp` with a bounded crash path and a
 pending marker; do not allocate while formatting crash metadata. DbgHelp is loaded before the fault. Handle
 unhandled SEH, terminate, invalid CRT parameters, pure virtual calls and abort. A reentrant crash must not recurse.

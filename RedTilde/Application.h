@@ -97,6 +97,8 @@ struct ApplicationActivity
     std::uint64_t findMatchRebuilds{}, findHighlightUpdates{}, findSectionCountRebuilds{};
     std::uint64_t selectionPresentationUpdates{}, syntaxPresentationUpdates{}, mirrorSelectionUpdates{}, outlineSelectionUpdates{};
     std::uint64_t currentBlockLabelConstructions{};
+    std::uint64_t selectionCaptionConstructions{};
+    std::uint64_t filesModelRebuilds{};
     mutable std::uint64_t dirtyTextComparisons{};
     std::uint64_t recoveryTextCopies{};
 };
@@ -237,6 +239,7 @@ class Application
         bool operator==(const CurrentBlockLabelFacts &) const noexcept = default;
     };
     std::optional<CurrentBlockLabelFacts> currentBlockPublishedFacts;
+    std::optional<bool> selectionCaptionPublishedEquationContext;
     bool updatingFind{}, equationContext{}, pendingSelectionTools{}, pendingBlockPlacement{}, systemDark{};
     AsyncFiles files;
     RichImageLoader images;
@@ -307,6 +310,7 @@ class Application
     void RefreshOutline();
     [[nodiscard]] bool PreviewOutlineMatchesCommitted() const;
     void RefreshFiles(bool rootChanged = false);
+    void UpdateCurrentFileDirtyBadge(bool dirty);
     void FolderCompleted();
     void OpenPath(const std::filesystem::path &path);
     void RefreshFind();

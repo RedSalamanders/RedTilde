@@ -137,6 +137,11 @@ Markdown kind and physical-line character count, or enclosing list kind and item
 equation controls appear only in current mathematical context.
 Its read-only equation preview uses the same shared engine as the document and is labelled explicitly.
 
+Localize and publish the visible Paragraph/Math toolbar caption on initial synchronization and published context
+transitions; its accessible command name remains Heading. Pending replacement syntax clears stale math and
+temporarily publishes Paragraph, then current ready math restores Math. Repeating unchanged ready facts reuses
+the caption while the equation preview still follows the exact current expression.
+
 Derive the current block from the source-current canonical syntax tree's child/sibling links, whose source
 order can differ from node-vector order. Descend the containing half-open source ranges; the deepest recognized
 category wins, while ordinary paragraph/blank leaves retain their list-item or quote context. Categories include
@@ -181,8 +186,9 @@ List `.md` and `.markdown` files. Exclude hidden and system entries. Show a dire
 below it, directories before files, and natural Explorer-style ordering within each kind. Expand ancestors of the
 current file; other directories start collapsed and show their Markdown file count. Reparse points may appear as
 entries but are never traversed. A name filter retains matching files and their ancestor directories; Escape
-clears the filter before dismissing the pane. The current file uses selection styling and exposes current/dirty
-state as text through UI Automation. Tree navigation supports arrows, Left/Right expansion, Home/End and type-ahead;
+clears the filter before dismissing the pane. The current file uses selection styling and keeps its filename as the
+stable TreeItem Name. When edited, its localized state text is exposed through UI Automation ItemStatus. Tree
+navigation supports arrows, Left/Right expansion, Home/End and type-ahead;
 UI Automation exposes Tree/TreeItem, ExpandCollapse and SelectionItem. A completed single click invokes a file row
 on release; the disclosure target continues to expand/collapse only, and keyboard activation remains Enter.
 Notification refreshes preserve surviving expansion choices, initialize newly discovered directories collapsed and
