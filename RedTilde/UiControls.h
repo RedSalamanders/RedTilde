@@ -1,11 +1,22 @@
 #pragma once
 #include <DxUi/DxUi.h>
 #include <algorithm>
+#include <cstdint>
 #include <functional>
+#include <vector>
 #include <wil/com.h>
 
 namespace RedTilde
 {
+struct BrandMarkPixels
+{
+    UINT width{}, height{};
+    std::vector<std::uint8_t> bgra;
+};
+// The application's bounded 32-bit alpha icon resource, not a general icon decoder.
+// The handle is borrowed; returned premultiplied pixels own no GDI/COM resource.
+[[nodiscard]] BrandMarkPixels LoadBrandMarkPixels(HICON icon);
+
 class Surface : public DxUi::Panel
 {
   public:

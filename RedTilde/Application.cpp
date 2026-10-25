@@ -184,7 +184,7 @@ HRESULT Application::Initialize()
                                  cls.hInstance, this));
     if (!window)
         return HRESULT_FROM_WIN32(GetLastError());
-    if (!host.Attach(window.get(), {.forceWarp = options.forceWarp}))
+    if (!host.Attach(window.get(), {.forceWarp = options.forceWarp, .batchInitialRootChildren = true}))
         return HRESULT_FROM_WIN32(GetLastError());
     files.Initialize(window.get(), FileReady);
     const MARGINS frame{1, 1, 1, 1};
@@ -462,6 +462,10 @@ void Application::Changed()
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Identity);
     UpdateCaption(std::format(L"{}{} — RedTilde", dirty ? L"• " : L"", name));
+    // Sending WM_SETTEXT to our own HWND is synchronous and can re-enter Close.
+    // BeginClose detaches the host, so do not touch cached controls after it returns.
+    if (closing)
+        return;
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Caption);
     UpdateCounts();
@@ -469,7 +473,12 @@ void Application::Changed()
     tools[1]->SetEnabled(editor->CanRedo());
     floating->SetVisible(false);
     if (settings.showFiles && dirty != lastFilesDirty)
-        RefreshFiles();
+    {
+        UpdateCurrentFileDirtyBadge(dirty);
+        // A synchronous accessibility publication can dispatch Close and detach the host.
+        if (closing)
+            return;
+    }
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Chrome);
     SelectionChanged();
@@ -676,15 +685,23 @@ void Application::SelectionChanged(bool refreshTools)
         const auto preview = expression.empty() ? std::wstring{} : L"\\[" + expression + L"\\]";
         if (equation->GetText() != preview)
             equation->SetText(preview);
-        const bool layoutChanged = equationContext != !expression.empty();
-        equationContext = !expression.empty();
+        const bool nextEquationContext = !expression.empty();
+        const bool layoutChanged = equationContext != nextEquationContext;
+        equationContext = nextEquationContext;
         for (unsigned i = 0; i < 4; ++i)
         {
             auto *button = tools[i == 3 ? 13 : i + 3];
             button->SetEnabled(!equationContext);
             button->SetToggleState(formats[i]);
         }
-        tools[2]->SetText(Resource(equationContext ? IDS_MATH : IDS_PARAGRAPH));
+        if (!selectionCaptionPublishedEquationContext || selectionCaptionPublishedEquationContext.value() != nextEquationContext)
+        {
+            const auto request = ++activity.selectionCaptionConstructions;
+            selectionCaptionPublishedEquationContext.reset();
+            tools[2]->SetText(Resource(nextEquationContext ? IDS_MATH : IDS_PARAGRAPH));
+            if (activity.selectionCaptionConstructions == request)
+                selectionCaptionPublishedEquationContext = nextEquationContext;
+        }
         if (selectionChanged)
         {
             currentHeading.reset();

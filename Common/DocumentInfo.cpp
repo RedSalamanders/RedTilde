@@ -107,35 +107,4 @@ DocumentPosition DocumentPositionAt(const DocumentInfo &info, std::size_t caret)
             current->length};
 }
 
-std::wstring EquationAt(std::wstring_view text, std::size_t caret)
-{
-    // Deliberately bounded inspector extraction, not a Markdown parser. The selected
-    // equation must enclose the caret; escaped dollars and code fences are ignored.
-    bool fenced{};
-    std::size_t opening = text.npos, delimiter{};
-    for (std::size_t index = 0; index < text.size(); ++index)
-    {
-        if ((index == 0 || text[index - 1] == L'\n') && text.substr(index, 3) == L"```")
-        {
-            fenced = !fenced;
-            opening = text.npos;
-        }
-        if (fenced || text[index] != L'$' || (index && text[index - 1] == L'\\'))
-            continue;
-        const std::size_t width = text.substr(index, 2) == L"$$" ? 2u : 1u;
-        if (opening == text.npos)
-        {
-            opening = index;
-            delimiter = width;
-        }
-        else if (width == delimiter)
-        {
-            if (caret >= opening && caret <= index + width && index - opening <= 2048)
-                return std::wstring(text.substr(opening + width, index - opening - width));
-            opening = text.npos;
-        }
-        index += width - 1;
-    }
-    return {};
-}
 } // namespace RedTilde

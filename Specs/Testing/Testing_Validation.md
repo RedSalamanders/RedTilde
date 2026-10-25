@@ -89,7 +89,16 @@ These record oracles establish error mapping, not recovery from an actually miss
 
 Physical focus/IME/AT, release/package acceptance, hardware-specific qualification and paired resource/performance studies retain their owning gates. Hidden/scoped/native CI passes never close those gates. Native test basenames use contextual `Scope.Tests.Something.h/.cpp`; inventories cover active files only. Immutable historical receipts, archived source and legacy references are not renamed or rewritten.
 
-RedTilde partitions its 53 reviewed native cases into Storage (10), Settings (4), Recovery (5) and Editor (34). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
+RedTilde partitions its 55 registered native cases into Storage (10), Settings (4), Recovery (5) and Editor (36). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
+
+The Files dirty-transition regression uses a nontrivial invented folder model, a separately selected/focused row
+and a nonzero scroll position. Dirty/undo must change only the visible current-file badge without rebuilding the
+model or altering selection, focus, scroll, footer or watcher snapshot. The canonical native TreeItem providers
+must expose stable filename Name and empty/Edited/empty ItemStatus across dirty/undo, while a neighboring folder's
+count status stays unchanged. SDK subscribed-client tests separately cover status event delivery. Filtered and
+absent snapshots update bookkeeping; root changes retain full refresh. Context-caption coverage checks first synchronization, math entry,
+same-context syntax changes and cancellation, with transition-bounded construction and the command's stable
+accessible Name. These registered obligations require fresh execution for the source/pin under qualification.
 
 CI's native-scope job binds compiled inputs, test/build/workflow code, the version stamp and hosted image descriptor. A documentation-only continuation may retain the original native qualification only from an exact matching producer with all six actual successful Full native steps; skipped, failed, cancelled, incomplete or unavailable evidence cannot authorize it. The original source/profile/binary/environment evidence remains the observation; inherited rows explicitly claim no new execution, resource measurement or clipboard/environment result. Manual dispatch always executes fresh native qualification. Each native checkout verifies the descriptor before building. This also permits a documentation/Done closeout without repeating an identical already-qualified native matrix.
 
@@ -102,8 +111,8 @@ Reusable tooling/formatting evidence also binds the actual selected formatter pa
 
 ## Design refresh scenarios
 
-The hidden capture obligation now contains 20 PNG/sidecar pairs: 17 named scenes including Files, Find,
-Focus and equation-source editing, plus narrow 96/144/192-DPI layout variants. Each sidecar records requested,
+The hidden capture obligation contains 23 PNG/sidecar pairs: 17 named scenes including Files, Find,
+Focus and equation-source editing, plus narrow and reference-document 96/144/192-DPI variants. Each sidecar records requested,
 native and host DPI, actual pixels/DIP, simulation state and invented fixture basename; the runner verifies PNG
 IHDR dimensions and binds both hashes, toolchain, binary, source and pin in the receipt. Captures never activate
 or publish environment-derived identifiers. The Files fixture freezes its proved model and retires only its

@@ -40,6 +40,14 @@ working set, handles, GDI/USER objects, host caches and available DXGI usage at 
 is unavailable, never zero. Hidden/clean idle must request no additional preparation or rendering; production
 workers continue blocking on events. Teardown probes retain before/after handle/resource observations.
 
+Resource-only native reports also retain `firstCompletedPreparation` and a `preparation` object on resize and
+device-recreation phases. Each brackets the operation, cooperative native preparation and a GPU completion fence,
+then records completed wall time, owner cycles, process CPU and intermediate root-child Flush count. Snapshot
+collection and post-replacement capture comparisons occur after that interval. Initial preparation includes GPU
+fence setup; recreation includes retiring and rebuilding that fence. These observations measure hidden completed
+work, not startup-to-visible or physical presentation latency. They stay outside the fixed twelve primary slots;
+baseline and candidate require the identical revised common harness before comparison.
+
 Bracket each idle interval with cheap process-time and owner-cycle reads. Resource snapshots enumerate system
 threads and can consume significant CPU; record their collection wall/CPU cost separately. Cumulative CPU
 differences between resource snapshots include collection work and must never be labeled idle CPU. The v2

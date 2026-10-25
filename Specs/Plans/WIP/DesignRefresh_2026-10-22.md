@@ -1,6 +1,10 @@
 # Design refresh — 2026-10-22
 
-Status: IMPLEMENTED; owner requested publication and merge on 2026-10-24 with the disclosed performance and qualification holds. The latest complete whole-feature comparison reports seven regressions; performance optimization/advice and R10 closeout remain OPEN. WIP retained. Owner: RedTilde application UI (layout, commands, theme adapter, Files pane),
+The [24 October completion coordinator](RedesignCompletionAndRendering_2026-10-24.md) now sequences the
+remaining review, correction, compatibility and R10 qualification work. This plan retains the accepted design,
+implemented R/V history and its R10 summary gate; do not open a second optimization backlog here.
+
+Status: IMPLEMENTED; owner requested publication and merge on 2026-10-24 with the disclosed performance and qualification holds. The final production-code `138a648` comparison reports five original-UI regression flags; the source-derived starting-redesign comparison has none and four improvements. Both baselines use the same exact SDK and common-harness overlays. Performance optimization/advice and final-source qualification remain OPEN. WIP retained. Owner: RedTilde application UI (layout, commands, theme adapter, Files pane),
 with DxUi owning shared controls and rich-text link rendering. Implementation, dependency adoption and qualification are tracked below.
 
 The owner judged the previous window "not nice" and requested this design and its complete implementation.
@@ -68,7 +72,14 @@ to browser proposal art. V1–V4 complete this visual correction; R10 and the pa
 - [x] R7: contextual tools: selection toolbar and docked Find/Replace; the current nine-stage app keyboard slice passes, with broader C5 acceptance separate.
 - [x] R8: Focus mode, Settings drawer and F2 equation editor presentation.
 - [x] R9: link presentation (DxUi rich text upstream, then pin adoption).
-- [ ] R10: resolve the performance optimization/advice gate and final qualification before scoped closeout. The [2026-10-24 checkpoint](../../../Measurements/DesignRefresh_2026-10-24/README.md) records seven regressions in the latest complete comparison; the earlier v5r3 cohort retains its eight-regression result. Publication does not accept the cost. Retain this plan in WIP and keep parent requirements open.
+- [ ] R10: resolve the performance optimization/advice gate and final qualification before scoped closeout. The [final production-code comparison](../../../Measurements/RedesignCompletion_2026-10-24/performance-138a648/README.md) retains five original-UI regression flags, mixed controls and loaded-host observations. The source-derived starting-redesign comparison has zero regressions and four improvements. Both common-SDK baseline lineages are disclosed in the packet. The earlier `fd24623` collection, [2026-10-24 checkpoint](../../../Measurements/DesignRefresh_2026-10-24/README.md), seven-flag `fa0757d` cohort and eight-flag v5r3 cohort remain historical evidence. Publication accepts no cost. Late source changes need their own qualification; RedTilde hosted ARM64 remains explicitly open by the owner's decision. Retain this plan in WIP and keep parent requirements open.
+
+The [current keyboard packet](../../../Measurements/RedesignCompletion_2026-10-24/keyboard-da8aafb/README.md)
+records all nine stages at `da8aafb` / SDK `baff43d8`, with exact artifact continuity to the functional and
+performance builds. The [fresh SDK comparison](../../../Measurements/RedesignCompletion_2026-10-24/sdk-594d67fb/README.md)
+retains all 78 rows and 144 receipts at `594d67fb` against its actual PR base. Zero SDK regression flags coexist
+with 69/72 unstable controls, observer cadence breaches and an unqualified policy; that result does not close
+R10 or accept the app's five original-UI flags. The account-blocked RedTilde hosted ARM64 gate remains open.
 
 ## Observed problems before implementation
 
