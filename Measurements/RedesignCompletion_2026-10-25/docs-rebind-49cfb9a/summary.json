@@ -1,0 +1,73 @@
+{
+  "schema": "redtilde-49cfb9a-docs-only-rebind-public-v1",
+  "sourceCommit": "49cfb9a2e391b245cb3f7e951453fd02f290a7e4",
+  "priorRuntimeCommit": "1d39ee27ee63aedb01197b230f399963e0caad9f",
+  "sdkCommit": "2fed82465dcee9f213753754e0e8e54f353cf38f",
+  "sourceIdentity": "e0d6a2b56476611429cf51a4065847a09a9c3d44cb720dc50bc72757705d5cb3",
+  "compiledSourceIdentity": "e26a49f1f6481609206484349c4a3b2c42e092ad5ba0fb40a496a189ac4881c0",
+  "nativeMatrixSha256": "34f83f3a34962e560fb73460abdf13c1e5539f0a9c3c1b8194e1a856058dd36b",
+  "rebindReceiptSha256": "749874aef25d96160ffbf81698d371c53fc1820b2f4dd8b26b7bb0b37ed5910f",
+  "profiles": [
+    {
+      "platform": "x64",
+      "configuration": "Release",
+      "nativeQualification": "Retained prior x64 Full run; no tests rerun on docs source.",
+      "profileArtifactCount": 3,
+      "liveNativeArtifactCount": 2,
+      "buildReceiptSha256": "df3ae4e7e01bda26fe82c7c514c02c6e1f97ff7e2d8ce2f2729f597eed84f5c3",
+      "artifactIdentity": "3de78e25260c8853c5041a76b482fa61f4be86f33d89b7fa61268e98f207047e"
+    },
+    {
+      "platform": "x64",
+      "configuration": "Debug",
+      "nativeQualification": "Retained prior x64 Full run; no tests rerun on docs source.",
+      "profileArtifactCount": 3,
+      "liveNativeArtifactCount": 2,
+      "buildReceiptSha256": "23c4944360110c8d2b46b06ff98cc13ca04479abda976cac22d41d01e80fddf9",
+      "artifactIdentity": "329b12596a5be6f139b3938ea3f2a300f67c5773b97b606ecb3806733314cf90"
+    },
+    {
+      "platform": "x64",
+      "configuration": "ASan Debug",
+      "nativeQualification": "Retained prior x64 Full run; no tests rerun on docs source.",
+      "profileArtifactCount": 4,
+      "liveNativeArtifactCount": 3,
+      "buildReceiptSha256": "5a2efe0e67605760e7eaa42128f74b55c8fa6aa32a82fdcd1456e9e412dbae8e",
+      "artifactIdentity": "063e9241850f103cbfc8cad570044ed13aacfcaae3f532a8a885722de806c951"
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Release",
+      "nativeQualification": "Cross-build only; no ARM64 native execution.",
+      "profileArtifactCount": 3,
+      "liveNativeArtifactCount": 2,
+      "buildReceiptSha256": "61578c3d5c6c635283c8aeab90837f9441dda971464f944163a05719c126ab64",
+      "artifactIdentity": "35115085d62100a42ec2a420622b4f10bf97c1ba5755a88ea6c815f1f493d33c"
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Debug",
+      "nativeQualification": "Cross-build only; no ARM64 native execution.",
+      "profileArtifactCount": 3,
+      "liveNativeArtifactCount": 2,
+      "buildReceiptSha256": "4372bcb38c29398302da2f83b00b10b91738df7f5667d2acd08983607cfd4451",
+      "artifactIdentity": "6e4ab694890f380531b10ace487021d9c8d81034b6d54469df096cc74c8076f5"
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "ASan Debug",
+      "nativeQualification": "Cross-build only; no ARM64 native execution.",
+      "profileArtifactCount": 4,
+      "liveNativeArtifactCount": 3,
+      "buildReceiptSha256": "e30de8cca4588bc8e72f606b187494f962009db0eaacd2bfd5000b25b7435791",
+      "artifactIdentity": "6249a2366873ea4a2244d966eb8813932c5c08a085e53944895e8fded79bb2b0"
+    }
+  ],
+  "frozenMatrixArtifactsRehashed": 20,
+  "liveExecutableDebugArtifactFilesRehashed": 14,
+  "newBuildReceiptsRehashed": 6,
+  "runtimeExecuted": false,
+  "nativeTestsRunOnDocumentationSource": false,
+  "performanceRunOnDocumentationSource": false,
+  "scope": "Documentation-only source rebind. Six canonical build receipts identify the new docs source while compiled source identity and all frozen EXE/PDB/ASan DLL bytes remain unchanged. Prior x64 native qualification is retained without rerun; ARM64 is cross-build only. This is not a new native or performance qualification."
+}

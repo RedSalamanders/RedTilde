@@ -36,3 +36,5 @@ performance acceptance or the WIP plan.
 
 Observer windows do not establish a quiet CPU window. Hosted CI, native ARM64, physical IME/assistive technology
 and performance acceptance retain their own gates. The required nine-stage keyboard run is recorded separately above.
+
+- [Documentation-only 49cf continuation](docs-rebind-49cfb9a/README.md): six new receipts with identical qualified native bytes; no repeated runtime or performance execution.

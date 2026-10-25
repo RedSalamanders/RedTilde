@@ -2,10 +2,12 @@
 
 ## Progress checklist
 
+- [x] P12 documentation continuation: six canonical builds at `49cfb9a` preserve the exact compiled identity and all qualified EXE/PDB/ASan DLL bytes from `1d39ee27`. Independent replay checks six new receipts, 20 frozen artifacts and 14 live native files. See the [documentation rebind](../../../Measurements/RedesignCompletion_2026-10-25/docs-rebind-49cfb9a/README.md); no tests or performance workloads reran on this documentation source.
+
 - [x] P11 local matrix and input: source `1d39ee27` passes six canonical builds and three x64 Full runs (59 cases and 23 captures each), including real ASan detection. Independent and root replay bind 20 artifacts, 1,862 payload streams and 69 capture pairs. The separate automatic-start keyboard run passes all nine stages/168 events with no clipboard use, unchanged foreground/focus and restored pointer. See the [matrix](../../../Measurements/RedesignCompletion_2026-10-25/qualification-1d39ee27/README.md) and [input](../../../Measurements/RedesignCompletion_2026-10-25/input-1d39ee27/README.md) packets; ARM64 remains cross-build only.
 - [x] P11 fresh comparison: the fixed 576-process `1d39ee27` study and its three independent audits complete. Root replay matches all 72 rows, 864 effects, 1,728 drifts and 936 CSV cells. [Original-UI A/B](../../../Measurements/RedesignCompletion_2026-10-25/performance-1d39ee27/README.md) retains four findings: Compose command +10.8579%, Split command +7.1672%, Split CPU cycles +12.3126%, Split working set +2.0204%. Private bytes are within the investigation band in this cohort; no across-study causal improvement is claimed. Starting-redesign A/B has four memory improvements/eight no-resolved-change rows; actual PR14-base A/B has twelve no-resolved-change rows. All six envelopes lack a verified quiet CPU window; 36/72 metric controls are unstable.
 - [ ] P12 remaining performance: investigate and optimize the four original-UI findings without rebaselining or changing bands/family. Source review identifies duplicated mirror syntax parsing and per-revision line-index allocation as hypotheses; neither is attributed a measured cost. Preserve bounded storage, source/selection/history, pending previews and source-color parity.
-- [ ] P12 current SDK CI: retain main `b6060881` run `40234392025`, where five native profiles pass and ARM64 Release Menu fails its unhovered acrylic-capture predicate. The report cannot distinguish geometry from hover or prove pointer causality. Qualify the test-only physical-pointer fixture/diagnostic repair with negative controls, local profiles and fresh hosted evidence; do not erase the actual failure or alter production Menu behavior.
+- [ ] P12 current SDK CI: retain main `b6060881` run `40234392025`, where five native profiles pass and ARM64 Release Menu fails its unhovered acrylic-capture predicate. The report cannot distinguish geometry from hover or prove pointer causality. Test-only PR #104 at `30fccffe` now passes focused Release light/dark row-hover then physical-pointer parking/clear checks with verified desktop restoration. Complete Menu/local profile qualification and fresh hosted evidence remain pending; production Menu behavior, baseline and tolerances are unchanged.
 - [x] P11 SDK evidence integration: DxUi PR #103 merges as `b6060881`, with the same tree as reviewed `24b963e4`. The SDK main `97b26bad` run also completes all six native profiles successfully. The separate paired benchmark policy and unstable controls remain unresolved.
 - [x] P11 build attestation repair: bind schema-2 receipts to compiled first-party bytes, the exact clean SDK source, source/package headers, resolved consumer properties and evaluated compiler context. All 38 focused tooling cases and six real compiler preflights pass. The canonical guard rebuilds restored source whose timestamp predates the counterfactual objects. Final matrix qualification remains below; retain every earlier failed or invalid attempt.
 - [x] P11 integration checkpoint: DxUi PR #102 merges as `97b26bad` and RedTilde PR #13 as `661858a2`; both provider trees exactly match their reviewed heads. Six documentation-only RedTilde builds at `ce53d57` preserve all native bytes from tested `9025be4`. The primary checkouts remain untouched; integration does not accept the five original-UI findings or billing-blocked hosted ARM64.
@@ -129,8 +131,14 @@ performance evidence. Update this checklist with the precise change, regression 
 completed item. A checked item needs evidence, not just edited code.
 
 ### Current qualification continuation — 2026-10-25
+Current native code is `1d39ee27` on SDK `2fed8246`: six builds, all three x64 Full profiles, nine keyboard stages,
+and the fresh 576-process study are published in the latest packets linked at the top. The `49cfb9a` documentation
+continuation retains exactly those native bytes. The latest study has four original-UI findings; performance
+acceptance remains open. RedTilde workflow `40242127778` at `49cfb9a` cannot start because of the explicit billing
+annotations, so hosted native ARM64 remains OPEN. DxUi PR #104 is separately qualifying its test-fixture repair.
 
-The latest local qualification, interactive input and paired study are published as the [9025be4 native matrix](../../../Measurements/RedesignCompletion_2026-10-25/qualification-9025be4/README.md),
+
+The prior local qualification, interactive input and paired study are published as the [9025be4 native matrix](../../../Measurements/RedesignCompletion_2026-10-25/qualification-9025be4/README.md),
 the [9025be4 keyboard input packet](../../../Measurements/RedesignCompletion_2026-10-25/input-9025be4/README.md),
 and [9025be4 performance packet](../../../Measurements/RedesignCompletion_2026-10-25/performance-9025be4/README.md).
 They supersede earlier local snapshots only for this source and SDK pin; they do not supersede prior cohort
