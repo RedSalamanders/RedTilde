@@ -55,8 +55,10 @@
 - [x] A2/A6 focused consumer ASan: pass all 36 Editor cases at the exact reviewed SDK pin, including Files accessibility, pending/ready caption facts and the corrected caption-close regression.
 - [x] A9 late local matrix: app `fa492ab` and SDK `baff43d8` pass all six builds and all applicable ordinary x64 suites; both real ASan detection probes pass. ARM64 evidence is cross-build only.
 - [x] A9 SDK failure diagnosis: preserve the baff43d8 and be1ad177 failures; local and hosted ASan traces at be1ad177 omit Beta's first event because row enqueues are not an atomic batch. A longer timeout does not repair that fixture assumption.
-- [ ] A9 SDK current matrix: validate the deterministic test-only correction at `594d67fb` across all 19 ordinary x64 suites, six builds and the hosted native profiles; local ASan and all ARM64 cross-builds pass, hosted all six Full native steps pass, and local Debug/Release plus hosted consumer checks remain running.
-- [ ] A9 current input: run the final nine-stage app keyboard and four-suite SDK menu/input profiles after a current agreement to time and normal Start prompts; earlier frozen-source passes remain separate.
+- [x] A9 SDK current matrix: validate the deterministic test-only correction at `594d67fb` across all 19 ordinary x64 suites, six builds and all six hosted native profiles. Local suites have zero capability skips; the real ASan probe passes. All hosted consumer/gallery steps pass, with optional instances reported separately.
+- [x] A9 SDK hosted publication: independently replay 496 Full payload files, all 126 suite outcomes and both deliberate ASan probes; publish exact head/merge bindings and the native-binary/optional-payload retention limits.
+- [ ] A8 fresh SDK final comparison: retain and independently replay the current actual-base hosted paired study when it completes; the fixed `594d67fb` collection is still running and no source push will interrupt it.
+- [ ] A9 current input: complete the agreed final nine-stage app keyboard and four-suite SDK menu/input profiles with normal Start prompts; earlier frozen-source passes remain separate.
 - [x] A6 consumer counterfactuals: finish the exact Files/caption Release negative controls and intended-source green run; preserve the first wrapper receipt-binding failure separately.
 - [x] A2 caller review: guard the continuation after Files badge publication if a conditional synchronous accessibility flush accepts Close; all three final app profiles pass after the guard. No dedicated notification-close reproduction is claimed.
 - [x] A0 late validation: pass pinned-format checking, all RedTilde validators and the folded-changelog checks before the final source freeze.
@@ -86,11 +88,21 @@ Gamma event while queuing middle/final values and replacing Gamma's ID. A separa
 the exact first/final counts, superseded-value rejection, stale-ID rejection and replacement getter remain.
 The active Gamma event is outside pending-queue pruning and has no delivery assertion. Runtime code, public APIs,
 dependencies and the existing gated allowance are unchanged. Full static/tooling validation, pinned format and
-official changelog folding pass. Local ASan passes all 19 ordinary suites with zero capability skips and the
-real detection probe; all three ARM64 cross-builds pass. Local Debug/Release qualification continues. Hosted
-workflow `40177964080` passes all six actual Full native steps at this head (compiled merge `8c78b5ad`, whose
-tree matches the head); ARM64 consumer checks and the paired benchmark continue. Neither complete matrix is
-claimed passed yet. Hosted RedTilde ARM64 is a different gate and remains blocked below.
+official changelog folding pass. The final local matrix passes all six builds and all 19 ordinary suites in
+each x64 Debug, Release and ASan profile with zero capability skips and real ASan detection. Independent replay
+verifies 74 artifacts, all 57 suite/executable bindings and 288 completed payload files without a mismatch.
+Local ARM64 evidence is cross-build only. Hosted workflow `40177964080` passes all six actual Full native
+steps and native jobs at this head (compiled merge `8c78b5ad`, whose tree matches the head), plus every relocated
+consumer and gallery. The optional STL-annotations-disabled consumer runs in both ASan profiles only;
+menu-resource scaling runs in x64 Release only. Other optional instances are skipped. The
+[SDK hosted native packet](../../../../DxUi/Measurements/RedTildeCompletion_2026-10-24/hosted-594d67fb/README.md)
+retains six matching provider ZIP digests, all 126 Full-suite outcomes, independent replay of 496 payload files,
+both deliberate ASan probes and the lead's repeated verification. Hosted Full includes Menu and NativeTextInput
+under the runner's owned lease (21 suites); the local noninteractive catalogue has 19. Native build binaries
+are not retained in these ZIPs, so reported compiler/executable digests are not independently rehashed binary
+artifacts; optional payload inventories are not separately replayed. Its paired benchmark continues, so no
+overall workflow or performance pass is claimed. Hosted RedTilde ARM64 is a
+different gate and remains blocked below.
 
 The final app measurements bind `138a648b292af0f810286ded05f59f37ee737f8f`, source identity
 `12b446ab071132d0ead4254ee5083b50bb1e15c5a9d71ddca8cb9cb99d28d2ab`, and SDK `baff43d8`. The docs-only
@@ -124,9 +136,17 @@ stable-focus label updates defer and coalesce layout/UIA work; a whole-bucket in
 focus-resolution defect. No option is silently accepted, and the unchanged primary study will not be repeated
 until it produces a preferred result.
 
-Current app workflow `40174110913` at `138a648` executes no steps because of the account payment/spending limit;
-native jobs are skipped. Hosted RedTilde ARM64 remains **OPEN**, as requested. Current input-time agreement is
-still pending. The coordinator stays in WIP while those gates and R10/D4c remain open.
+The documentation-only app checkpoint `be415641b5c8c07773d5674b3d8e6bb8a0178d02` passes six fresh build-only
+profiles with zero warnings/errors and byte-identical EXE/PDB/ASan-runtime artifacts to `138a648`, transitively
+matching the tested `fa492ab` artifacts. Its aggregate source identity is
+`ffe8c8d65c6d295584f2df2607bda615dcaa8f906af181f9c1c2d8ce7e232b81`. This is an explicit unchanged-input/artifact
+check, not new ordinary, sanitizer, interaction or performance execution. The current private build-only wrapper
+also corrects its misleading inherited ordinary-suite console wording; the original logs/records remain intact.
+
+App workflow `40182090717` at `be41564` again executes no steps because of the account payment/spending limit;
+native jobs are skipped. Earlier workflow `40174110913` at `138a648` has the same restriction. Hosted RedTilde
+ARM64 remains **OPEN**, as requested. Current input-time agreement has been received; final input results remain open. The coordinator stays in
+WIP while those gates and R10/D4c remain open.
 
 ### Final production-code local checkpoint — 2026-10-25
 
