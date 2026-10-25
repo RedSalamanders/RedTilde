@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Publish the source-bound six-build, three-x64-Full qualification and fixed render-attempt diagnostic for bae1572. Replayed data retains every attempt and separates A/A from A/B, per-attempt values from transaction totals, and raw zero stage fields from unavailable timing. The original five performance findings, quiet-host/policy acceptance, final exact-pin checks and billing-blocked hosted ARM64 remain open.
 - Add opt-in collection of existing DxUi frame wall metrics with bounded storage, owner-render count binding and malformed-sequence checks. Preserve ordinary timing paths and historical primary comparisons; collector memory and wall durations remain separate from allocation ownership, CPU attribution and performance acceptance. Fresh native qualification remains required.
 - Publish independently replayed three-cohort RedTilde performance evidence and the six-profile local build/runtime packet. The original-UI comparison retains five regression findings; starting-redesign memory improves and the actual PR-base comparison has no resolved regression. Keep the latest DxUi ARM64 Debug menu failure, unstable controls, performance acceptance, final foreground checks and billing-blocked hosted RedTilde ARM64 open.
 - Synchronize the validation guide with all 58 registered native cases, including 39 Editor cases, and record the completed local profile matrix while retaining separate performance, foreground and hosted ARM64 gates.
