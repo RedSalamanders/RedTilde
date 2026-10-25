@@ -9,7 +9,7 @@
 - [x] P0: pass both repositories' validators/format checks, verify inventory integrity, and resolve the independent cold review.
 - [x] A0: revalidate drift, retain baselines, finish the file-by-file review ledger and classify current-profile findings.
 - [x] A0 initial inventory: reconcile all 482 file reviews (446 source and 36 generated provenance) and record lead finding dispositions.
-- [x] A0 final inventory: reconcile the late source/documentation review deltas and refresh all 534 current path hashes after the final evidence/docs commit. The applied audit and lead hash replay have no missing or unresolved paths; runtime, performance and hosted ARM64 qualification remain separate.
+- [x] A0 final inventory: reconcile the late source/documentation review deltas and refresh all 536 current path hashes after the final evidence/docs commit, including the changed historical measurement projections. The applied audit and lead hash replay have no missing or unresolved paths; runtime, performance and hosted ARM64 qualification remain separate.
 - [x] A0: verify design PR #10's actual base and retain the separate starting app Release baseline.
 - [x] A1/A3/A5: reproduce table bounds failure, math ownership/limits/recognition defects and corrected Mermaid outcome mismatch before fixes.
 - [x] A1/A2/A3/A5: pass 24 combined Debug regression diagnostics, including source/history, local fallback and UIA ownership; retain their original failures.
