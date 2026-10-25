@@ -1576,6 +1576,11 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                              probeReport.find("\"appBuffersAfterPrimary\":") != probeReport.npos &&
                              probeReport.find("\"heapDiagnosticCoverage\":\"explicit-default-and-crt-only\"") != probeReport.npos,
                          "nested selection attribution and after-primary storage have distinct bounded diagnostic records");
+                 const auto hostCounters = JsonObjectAfter(probeReport, "\"hostCacheCounters\":");
+                 Require(JsonUnsigned(hostCounters, "configuredTextFormats") == app.Host().DebugGetConfiguredTextFormatCount() &&
+                             JsonUnsigned(hostCounters, "cachedBrushes") == app.Host().DebugGetBrushCacheSize() &&
+                             JsonUnsigned(hostCounters, "rootLogicalChildren") == app.Host().GetRoot()->GetLogicalChildCount(),
+                         "post-primary cache counts describe the owned host without claiming allocation ownership");
              }
          });
     test("Rendering.NativeDefaultAndWarpResourceLifecycle",

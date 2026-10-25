@@ -134,6 +134,9 @@ cost separately from serialization. The app test-layer helper caps storage at 32
 million entries. Its aggregate busy/free/committed bytes are not process-private bytes, working set or allocation
 ownership. No purge, trimming, affinity, priority or power-policy change is permitted. Include this helper in the
 matched harness input closure before freezing a new baseline; retain the prior seven-input freezes as history.
+Post-primary host counters may record configured text formats, brushes and direct logical root children. These
+are object counts rather than retained bytes or a complete control-tree inventory. Sampling follows the heap
+observation, so the counters cannot change that observation or any primary metric.
 
 Diagnostic memory is sampled after the primary snapshot, then after 100 and 500 ms of event-driven hidden idle.
 No additional render/preparation is allowed during those waits. Full global thread inventory runs only in the

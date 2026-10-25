@@ -896,6 +896,11 @@ class PerformanceProbe
             }
             out << ",\"heapDiagnosticCoverage\":\"explicit-default-and-crt-only\",\"ownedHeapDiagnostics\":";
             (void)Test::WriteOwnedHeapDiagnostic(out, std::span<const HANDLE>(ownedHeaps.data(), ownedHeapCount));
+            const auto *const root = app.host.GetRoot();
+            out << ",\"hostCacheCounters\":{\"scope\":\"after primary and heap; object counts, not allocation ownership\",\"attached\":"
+                << (app.host.GetHwnd() ? "true" : "false") << ",\"rootLogicalChildren\":" << (root ? root->GetLogicalChildCount() : 0u)
+                << ",\"configuredTextFormats\":" << app.host.DebugGetConfiguredTextFormatCount()
+                << ",\"cachedBrushes\":" << app.host.DebugGetBrushCacheSize() << '}';
         }
         out << ",\"completed\":true,\"qualification\":\"hidden native completed frames; physical presentation and input unverified\"}\n";
         Require(static_cast<bool>(out), "native probe report write failed");
