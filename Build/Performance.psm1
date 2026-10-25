@@ -272,6 +272,10 @@ function Assert-RedTildeDependencyComparison {
         foreach($candidate in $Value.PSObject.Properties) { if($candidate.Name -ceq $Name) { return $true } }
         return $false
     }
+    function Test-DependencyApi4($Value) {
+        $api=Get-DependencyField $Value 'apiRevision'
+        return (($api -is [int] -or $api -is [long]) -and $api -eq 4)
+    }
     $baselineJson=ConvertTo-DependencyJson $BaselineDependency
     $candidateJson=ConvertTo-DependencyJson $CandidateDependency
     if($baselineJson -ceq $candidateJson) {
@@ -283,8 +287,7 @@ function Assert-RedTildeDependencyComparison {
             }
             $baselineIdentity=Get-DependencyField $BaselineDependency 'Identity'
             $candidateIdentity=Get-DependencyField $CandidateDependency 'Identity'
-            if((Get-DependencyField $baselineIdentity 'apiRevision') -ne 4 -or
-                (Get-DependencyField $candidateIdentity 'apiRevision') -ne 4) {
+            if(-not (Test-DependencyApi4 $baselineIdentity) -or -not (Test-DependencyApi4 $candidateIdentity)) {
                 throw 'Dependency adoption requires API revision 4 on both sides.'
             }
         }
@@ -308,8 +311,7 @@ function Assert-RedTildeDependencyComparison {
         $baselineCommit -isnot [string] -or $baselineCommit -cnotmatch '^[0-9a-f]{40}$' -or
         $candidateCommit -isnot [string] -or $candidateCommit -cnotmatch '^[0-9a-f]{40}$' -or
         $baselineFingerprint -ieq $candidateFingerprint -or $baselineCommit -ceq $candidateCommit -or
-        (Get-DependencyField $baselineIdentity 'apiRevision') -ne 4 -or
-        (Get-DependencyField $candidateIdentity 'apiRevision') -ne 4) {
+        -not (Test-DependencyApi4 $baselineIdentity) -or -not (Test-DependencyApi4 $candidateIdentity)) {
         throw 'Dependency adoption metadata is missing, malformed, unchanged or has an unsupported API revision.'
     }
 

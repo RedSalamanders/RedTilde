@@ -208,6 +208,10 @@ function Assert-DependencyEvidence($Study,$Comparison) {
     }
     $mode=$Study.dependencyComparisonMode
     Require ($mode -cin @('same-pin','sdk-adoption') -and $Comparison.dependencyComparisonMode -ceq $mode) 'Invalid dependency comparison mode.'
+    foreach($dependency in @($base,$candidate)) {
+        Require ($dependency.Fingerprint -cmatch '^[0-9a-fA-F]{64}$' -and $dependency.Identity.commit -cmatch '^[0-9a-f]{40}$' -and
+            ($dependency.Identity.apiRevision -is [int] -or $dependency.Identity.apiRevision -is [long]) -and $dependency.Identity.apiRevision -eq 4) 'Invalid dependency build metadata.'
+    }
     foreach($side in @('baseline','candidate')) {
         Require ($Study[$side].Contains('publicHeaders')) 'Declared dependency header inventory is missing.'
         $headers=$Study[$side].publicHeaders

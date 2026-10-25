@@ -62,6 +62,9 @@ $changedRuntime=[ordered]@{Fingerprint=('2'*64);Identity=[ordered]@{commit=('c'*
 Require-DependencyRejected 'runtime field change' $dependencyA $changedRuntime $publicHeaders $publicHeaders -Adoption
 $changedApi=[ordered]@{Fingerprint=('2'*64);Identity=[ordered]@{commit=('c'*40);apiRevision=5;platform='x64';toolset='v145';runtimeFamily='MD';compilerSha256=('b'*64)}}
 Require-DependencyRejected 'API revision change' $dependencyA $changedApi $publicHeaders $publicHeaders -Adoption
+$booleanApi=$dependencyB|ConvertTo-Json -Depth 10|ConvertFrom-Json -AsHashtable
+$booleanApi.Identity.apiRevision=$true
+Require-DependencyRejected 'boolean API revision coercion' $dependencyA $booleanApi $publicHeaders $publicHeaders -Adoption
 Require-DependencyRejected 'public header digest change' $dependencyA $dependencyB $publicHeaders ('d'*64) -Adoption
 $missingMetadata=[ordered]@{Fingerprint=('2'*64);Identity=[ordered]@{commit=('c'*40);apiRevision=4;platform='x64';toolset='v145';runtimeFamily='MD'}}
 Require-DependencyRejected 'missing compiler identity metadata' $dependencyA $missingMetadata $publicHeaders $publicHeaders -Adoption
@@ -169,6 +172,7 @@ Require-RejectedDependencyEvidence 'header path traversal' {param($study) $study
 Require-RejectedDependencyEvidence 'unknown ABI field' {param($study) $study.candidate.build.dependency.Identity.newFlag=$true}
 Require-RejectedDependencyEvidence 'runtime change' {param($study) $study.candidate.build.dependency.Identity.runtimeFamily='MDd'}
 Require-RejectedDependencyEvidence 'API change' {param($study) $study.candidate.build.dependency.Identity.apiRevision=5}
+Require-RejectedDependencyEvidence 'boolean API coercion' {param($study) $study.candidate.build.dependency.Identity.apiRevision=$true}
 Require-RejectedDependencyEvidence 'mode downgrade' {param($study) $study.dependencyComparisonMode='same-pin'}
 function Copy-IdentityFixture($Value) { return $Value|ConvertTo-Json -Depth 20|ConvertFrom-Json -AsHashtable }
 $auditRoot=Join-Path $fixtureRoot 'identity-audit'
