@@ -1,4 +1,5 @@
 #include "RedTilde/Application.h"
+#include "../res/Resource.h"
 #include "Application.Tests.DesignRefresh.h"
 #include "Application.Tests.Files.h"
 #include "Application.Tests.HeapDiagnostic.h"
@@ -11,6 +12,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <format>
 #include <fstream>
 #include <functional>
 #include <ranges>
@@ -1430,6 +1432,34 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                      "successful retry removes the candidate and clears the operation error");
              Require(app.Document().GetText() == current && !app.Dirty(), "discard never replaces the active document");
              Require(app.Host().GetFocusControl() == &app.Document(), "discarding the final snapshot returns logical focus to the editor");
+         });
+    test("Editor.LocalizedResourceViewsRetainStorageAndFormatting",
+         []
+         {
+             const auto blockFormat = ResourceView(IDS_BLOCKINFO);
+             const auto positionFormat = ResourceView(IDS_STATUSPOSITION);
+             const std::wstring retainedBlockFormat(blockFormat), retainedPositionFormat(positionFormat);
+             Require(!blockFormat.empty() && !positionFormat.empty() && ResourceView(0xFFFFu).empty() && Resource(0xFFFFu).empty(),
+                     "known localized templates are present and missing resources stay empty");
+             // A view must not borrow a temporary owning string or a buffer reused by the next lookup.
+             for (unsigned index = 0; index < 64; ++index)
+             {
+                 const auto other = Resource(index % 2 ? IDS_BLOCKPARAGRAPH : IDS_STATUSCOUNTS);
+                 Require(!other.empty(), "subsequent resource lookups remain valid");
+             }
+             Require(blockFormat == retainedBlockFormat && positionFormat == retainedPositionFormat,
+                     "borrowed templates survive subsequent resource allocations");
+             const auto blockType = ResourceView(IDS_BLOCKPARAGRAPH);
+             const auto eol = ResourceView(IDS_EOLCRLF);
+             const std::size_t characters = 42, selected = 3, line = 7, column = 11;
+             const auto encoding = L" BOM";
+             Require(std::vformat(blockFormat, std::make_wformat_args(blockType, characters)) ==
+                             std::vformat(retainedBlockFormat, std::make_wformat_args(blockType, characters)) &&
+                         std::vformat(positionFormat, std::make_wformat_args(selected, line, column, encoding, eol)) ==
+                             std::vformat(retainedPositionFormat, std::make_wformat_args(selected, line, column, encoding, eol)),
+                     "borrowed localized templates preserve positional formatting and owned output");
+             Require(std::vformat(L"{1}: {0}", std::make_wformat_args(blockType, characters)) == L"42: " + std::wstring(blockType),
+                     "borrowed resource arguments permit translated placeholder reordering");
          });
     test("Performance.OwnedHeapDiagnosticDistinguishesBusyFreeAndPartialCoverage",
          [&]

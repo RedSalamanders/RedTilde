@@ -122,11 +122,17 @@ unsigned CurrentBlockResourceAt(const DxUi::RichText::MarkdownSyntax &syntax, st
 }
 } // namespace
 
-std::wstring Resource(unsigned id)
+std::wstring_view ResourceView(unsigned id)
 {
     const wchar_t *value{};
     const int length = LoadStringW(GetModuleHandleW(nullptr), id, reinterpret_cast<LPWSTR>(&value), 0);
-    return length > 0 ? std::wstring(value, static_cast<std::size_t>(length)) : std::wstring{};
+    // The executable owns this immutable resource storage for the process lifetime.
+    // Resolve each request so the calling thread's resource language still applies.
+    return length > 0 ? std::wstring_view(value, static_cast<std::size_t>(length)) : std::wstring_view{};
+}
+std::wstring Resource(unsigned id)
+{
+    return std::wstring(ResourceView(id));
 }
 
 std::wstring SampleDocument()
@@ -500,13 +506,14 @@ void Application::UpdateCounts()
 {
     if (settings.focusMode)
     {
-        const auto state = Resource(Dirty() ? IDS_CHANGED : IDS_SAVED);
-        stats->SetText(std::vformat(Resource(IDS_FOCUSCOUNTS), std::make_wformat_args(documentInfo.words, state)));
+        const auto state = ResourceView(Dirty() ? IDS_CHANGED : IDS_SAVED);
+        stats->SetText(std::vformat(ResourceView(IDS_FOCUSCOUNTS), std::make_wformat_args(documentInfo.words, state)));
     }
     else
     {
         const auto readingMinutes = std::max(std::size_t{1}, (documentInfo.words + 199) / 200);
-        stats->SetText(std::vformat(Resource(IDS_STATUSCOUNTS), std::make_wformat_args(documentInfo.words, documentInfo.characters, readingMinutes)));
+        stats->SetText(
+            std::vformat(ResourceView(IDS_STATUSCOUNTS), std::make_wformat_args(documentInfo.words, documentInfo.characters, readingMinutes)));
     }
 }
 
@@ -770,19 +777,19 @@ void Application::SelectionChanged(bool refreshTools)
             currentBlock->SetVisible(!showListSummary);
             if (showListSummary && listSummaryFacts != listFacts)
             {
-                const auto kind = Resource(listFacts.value().first);
+                const auto kind = ResourceView(listFacts.value().first);
                 const auto items = listFacts.value().second;
                 const auto request = ++listSummaryPublication;
                 listSummaryFacts.reset();
-                listSummary->SetText(std::vformat(Resource(IDS_BLOCKITEMINFO), std::make_wformat_args(kind, items)));
+                listSummary->SetText(std::vformat(ResourceView(IDS_BLOCKITEMINFO), std::make_wformat_args(kind, items)));
                 if (listSummaryPublication == request)
                     listSummaryFacts = listFacts;
             }
             const CurrentBlockLabelFacts blockFacts{blockResourceId, count};
             if (!currentBlockPublishedFacts || currentBlockPublishedFacts.value() != blockFacts)
             {
-                const auto blockType = Resource(blockResourceId);
-                auto text = std::vformat(Resource(IDS_BLOCKINFO), std::make_wformat_args(blockType, count));
+                const auto blockType = ResourceView(blockResourceId);
+                auto text = std::vformat(ResourceView(IDS_BLOCKINFO), std::make_wformat_args(blockType, count));
                 const auto request = ++activity.currentBlockLabelConstructions;
                 currentBlockPublishedFacts.reset();
                 currentBlock->SetText(std::move(text));
@@ -814,9 +821,9 @@ void Application::SelectionChanged(bool refreshTools)
             case DocumentNewlineKind::None:
                 break;
             }
-            const auto eol = Resource(eolId);
+            const auto eol = ResourceView(eolId);
             positionStatus->SetText(
-                std::vformat(Resource(IDS_STATUSPOSITION), std::make_wformat_args(selected, position.line, position.column, encoding, eol)));
+                std::vformat(ResourceView(IDS_STATUSPOSITION), std::make_wformat_args(selected, position.line, position.column, encoding, eol)));
         }
         {
             EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::Find);

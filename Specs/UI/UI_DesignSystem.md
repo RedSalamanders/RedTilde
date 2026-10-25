@@ -91,6 +91,9 @@ Markdown body uses DxUi typography, source uses its monospace role. Target at le
 40-DIP primary actions. Colors derive from one host theme; respect high contrast and visible keyboard focus.
 Do not communicate dirty/errors/mode only by color. UIA names identify mode buttons, formatting commands and
 the Markdown document. Error messages explain the failed action and leave the source editable.
+Hot localized status formatting borrows immutable executable resource text for the duration of formatting;
+formatted control text remains owned. Resolve resources for each request rather than caching a thread's language.
+Missing resource identifiers remain empty, and translated positional placeholders retain their order and meaning.
 
 The application theme adapter supplies these default product roles over the pinned DxUi palette. System mode
 chooses Light or Dark from the system setting; high contrast replaces product colors with system colors.

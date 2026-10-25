@@ -10,7 +10,7 @@ namespace
 {
 template <class... Args> std::wstring Text(unsigned id, Args &&...args)
 {
-    return std::vformat(Resource(id), std::make_wformat_args(args...));
+    return std::vformat(ResourceView(id), std::make_wformat_args(args...));
 }
 } // namespace
 bool Application::PreviewOutlineMatchesCommitted() const
