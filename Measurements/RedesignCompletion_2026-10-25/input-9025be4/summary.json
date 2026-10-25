@@ -1,0 +1,180 @@
+{
+  "schema": "redtilde-9025be4-interactive-keyboard-public-v1",
+  "publicationStatus": "source-bound x64 Release interactive keyboard qualification; physical IME/AT and broader focus qualification remain separate",
+  "source": {
+    "commit": "9025be4b1dcf2753e0cab70cdcd355e219c879fb",
+    "sourceIdentitySha256": "95566c5748fbfe5e76cb61fc3c8c57ec478337aa415828ae9d03b317690b6fc7",
+    "dxUiCommit": "2fed82465dcee9f213753754e0e8e54f353cf38f",
+    "dxUiApiRevision": 4
+  },
+  "application": {
+    "profile": "x64 Release",
+    "binarySha256": "703938CF34FD67010D5BAA58EBFD6ACB72DF1D18A0E397A03200C906D0B6E691",
+    "buildReceiptSha256": "32F9BC306287C1952C3BB40110D704C2C762AD58C0F7031A6A2487B6989977BE"
+  },
+  "lease": {
+    "state": "completed",
+    "exitCode": 0,
+    "startMode": "authorized automatic start",
+    "countdownSeconds": 30,
+    "childExitCode": 0,
+    "childElapsedSeconds": 2.7,
+    "childTimedOut": false,
+    "childInterrupted": false,
+    "leaseBinarySha256": "2B761418B0293E75E420508BA70E235EFCEBF373B591B33C70F78B02B5446598",
+    "foreground": "unchanged",
+    "focus": "unchanged",
+    "cursor": "unchanged",
+    "restorationProblems": 0
+  },
+  "interaction": {
+    "keyboardEvents": 168,
+    "clipboardTouched": false,
+    "physicalImeOrAtQualified": false,
+    "requiredStageCount": 9,
+    "stages": [
+      {
+        "name": "NativeEditor.KeyboardTextAndUndo",
+        "passed": true
+      },
+      {
+        "name": "Files.ShortcutFocusAndEscape",
+        "passed": true
+      },
+      {
+        "name": "Find.TypedQueryTraversalAndEscape",
+        "passed": true
+      },
+      {
+        "name": "Settings.KeyboardDrawerAndEscape",
+        "passed": true
+      },
+      {
+        "name": "Focus.KeyboardToggleAndEscape",
+        "passed": true
+      },
+      {
+        "name": "SelectionToolbar.AltF10TabEnterEscape",
+        "passed": true
+      },
+      {
+        "name": "Equation.F2ApplyUndoAndCancel",
+        "passed": true
+      },
+      {
+        "name": "FileMenu.KeyboardOpenAndDismiss",
+        "passed": true
+      },
+      {
+        "name": "Window.AltF4AsyncClose",
+        "passed": true
+      }
+    ],
+    "payloadFileCount": 9,
+    "payloadDigests": [
+      {
+        "ordinal": 1,
+        "bytes": 17,
+        "sha256": "3f9c00560510e07c44a5b87d8a686cd60abdd34b1df648963f63c3591e2ad1e6"
+      },
+      {
+        "ordinal": 2,
+        "bytes": 165,
+        "sha256": "3889466936dff4b50c634a649eaa417d8599eaa90791d570436f1ed44ef10fa4"
+      },
+      {
+        "ordinal": 3,
+        "bytes": 22,
+        "sha256": "92b417f9e13eff5ecb189ca098271533467135f2a65e8f09e04fdb42035f25bc"
+      },
+      {
+        "ordinal": 4,
+        "bytes": 125,
+        "sha256": "c48225d5524e2d08f480b149200cf07a8f7c04f45f040faec1e731544f4eed98"
+      },
+      {
+        "ordinal": 5,
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      {
+        "ordinal": 6,
+        "bytes": 1011,
+        "sha256": "77929a10df962ae78c4b76f71344615815c783577da657338d0ae8c31aa07280"
+      },
+      {
+        "ordinal": 7,
+        "bytes": 604,
+        "sha256": "8b73c1d7fd86c24910ea00180e745a68347811609180d5398ebb78de1a47754a"
+      },
+      {
+        "ordinal": 8,
+        "bytes": 491,
+        "sha256": "c1be5c4302206fb7fe027255b40509480c62d1cfbda4e1a92c3dc30a0c70122d"
+      },
+      {
+        "ordinal": 9,
+        "bytes": 2939,
+        "sha256": "666b67eefb8f5862a3f418451040d5881876801422052b719f5147ac557b519e"
+      }
+    ]
+  },
+  "custody": {
+    "sourceInputInventoryFileCount": 168,
+    "sourceInputInventorySha256": "b54286095a6e1b6c5c91f90af168965d9ed6e168b62a512d1c5d494161e8537c",
+    "appBuildReceiptSha256": "32F9BC306287C1952C3BB40110D704C2C762AD58C0F7031A6A2487B6989977BE",
+    "appExecutableSha256": "703938CF34FD67010D5BAA58EBFD6ACB72DF1D18A0E397A03200C906D0B6E691",
+    "leaseExecutableSha256": "2b761418b0293e75e420508ba70e235efcebf373b591b33c70f78b02b5446598",
+    "leasePdbSha256": "6f90e4a9b4c1bfcc1817dd974bf4bd1e90d1d5bea1ee1a405dfba3104f781184",
+    "leaseBuildReceiptPresent": false,
+    "leaseBuildReceiptNote": "No lease build receipt was emitted by the canonical test-interactive protocol or present in its resolved consumer output.",
+    "custodyCopyDigests": [
+      {
+        "role": "app-executable",
+        "sha256": "703938cf34fd67010d5baa58ebfd6acb72df1d18a0e397a03200c906d0b6e691",
+        "bytes": 5150720
+      },
+      {
+        "role": "app-debug-symbols",
+        "sha256": "4a9b774d504f84b1fc399f22039e95904ba8f0d9bc27338abf050fedf8e66df4",
+        "bytes": 48263168
+      },
+      {
+        "role": "app-build-receipt",
+        "sha256": "32f9bc306287c1952c3bb40110d704c2c762ad58c0f7031a6a2487b6989977be",
+        "bytes": 1523
+      },
+      {
+        "role": "lease-executable",
+        "sha256": "2b761418b0293e75e420508ba70e235efcebf373b591b33c70f78b02b5446598",
+        "bytes": 972288
+      },
+      {
+        "role": "lease-debug-symbols",
+        "sha256": "6f90e4a9b4c1bfcc1817dd974bf4bd1e90d1d5bea1ee1a405dfba3104f781184",
+        "bytes": 7327744
+      },
+      {
+        "role": "dependency-lock",
+        "sha256": "95dc73a9c2ac86faf6d08e3b6dea77c4dcdd080da84728e2461113791f4dd2a4",
+        "bytes": 176
+      },
+      {
+        "role": "dependency-resolved-properties",
+        "sha256": "61582f256464870d79c0dad61447c148393243b5c773b569a6e3b72bb66100a8",
+        "bytes": 750
+      },
+      {
+        "role": "interactive-run-receipt",
+        "sha256": "666b67eefb8f5862a3f418451040d5881876801422052b719f5147ac557b519e",
+        "bytes": 2939
+      },
+      {
+        "role": "interactive-result",
+        "sha256": "77929a10df962ae78c4b76f71344615815c783577da657338d0ae8c31aa07280",
+        "bytes": 1011
+      }
+    ]
+  },
+  "evidencePrivacy": "Projection omits absolute paths, run/process identifiers, fixture and payload filenames, saved cursor coordinates, and saved foreground application identity."
+}

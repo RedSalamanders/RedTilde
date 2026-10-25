@@ -200,3 +200,21 @@ operand, quote and flag spelling remains exact. Historical schema-one source-onl
 same-pin studies only; it cannot qualify dependency adoption.
 This mode measures the complete follow-up, including the SDK adoption; it never replaces the original-UI comparison
 on one common pin, changes a metric/band, qualifies the upstream policy or accepts a new ABI.
+
+### 2026-10-25 local source-bound evidence
+
+The [9025be4 local paired study](../../Measurements/RedesignCompletion_2026-10-25/performance-9025be4/README.md)
+uses 576 hash-verified native reports, 72 metric rows, 864 paired block effects and 1,728 same-side drift values.
+It keeps original UI, starting redesign and actual PR13-base as separate cohorts, and keeps A/A controls separate
+from A/B candidate comparisons. Original-UI A/B retains five resolved regressions: Compose command time +7.4456%,
+private bytes +2.1001%; Split command time +9.3709%, owner CPU cycles +12.0103% and working set +2.2311%.
+Starting-redesign A/B has four resolved memory improvements and no regressions. Actual PR13-base A/B has no
+resolved changes; this explicit dependency-adoption result does not resolve the original-UI regression gate.
+
+The matching [local native matrix](../../Measurements/RedesignCompletion_2026-10-25/qualification-9025be4/README.md)
+passes six local builds and three noninteractive x64 Full runs; ARM64 is cross-build only. Three hidden-focus
+checks failed in the first Release attempt while an SDK foreground lease overlapped. A later serial Full run with
+the same executable and unchanged source/assertions passed all 39 Editor cases. The overlap does not establish
+an application activation event or root cause because no per-case event trace was captured. All six observer
+windows report complete sample coverage but no verified quiet CPU window. These observations do not establish
+causality, performance acceptance, hosted CI, real-focus qualification or native ARM64 execution.
