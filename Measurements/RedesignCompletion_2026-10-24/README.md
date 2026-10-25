@@ -3,6 +3,12 @@
 These packets retain separate observations; they do not establish performance acceptance or close the WIP plan.
 Each packet names its exact source, dependency and executable. Later edits require their own qualification.
 
+- [Final production-code local matrix](qualification-fa492ab/README.md): app `fa492ab` at SDK `baff43d8` passes
+  all six builds and all 55 ordinary cases in each x64 profile, with real ASan detection and 23 captures per
+  profile. ARM64 is cross-build only; hosted execution, current input and performance acceptance remain open.
+- [SDK paired comparison at baff43d8](sdk-baff43d8/README.md): all 78 metric rows against the actual library
+  PR base, with zero regression findings, 71/72 unstable controls and unqualified policy. The canonical packet
+  lives in DxUi; this exact mirror preserves the measured source and distinct test-executable boundary.
 - [Fresh frozen comparison](performance-fd24623/README.md): 384 native processes, all 48 metric rows and 16,003
   independent audit checks. Five original-UI regression flags remain; the actual starting-redesign cohort has no
   regression findings and three improvements. Loaded-host observations and control instability remain explicit.

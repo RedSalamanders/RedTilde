@@ -1,0 +1,162 @@
+{
+  "schemaVersion": 1,
+  "status": "local-x64-matrix-passed-arm64-cross-builds-passed-review-required",
+  "source": {
+    "repository": "RedTilde",
+    "commit": "fa492ab3947ec309cd3bc52d782e58063aebf962",
+    "sourceIdentitySha256": "a9443c02f50d522a48c2128e1b234ef6d72a1906d1c46328997c28be098febdd"
+  },
+  "dependency": {
+    "repository": "DxUi",
+    "commit": "baff43d8c8402258f17aa77f7b790166d57eabc9"
+  },
+  "profiles": [
+    {
+      "platform": "x64",
+      "configuration": "Debug",
+      "buildReceiptSha256": "14DD2EBDB4C5E0F92EF9516B0FBB81F8684590AA0037B989933D630B8031DF01",
+      "executableSha256": "F754ECC5605AF6D4D5A24E60DE0DAA1B90999088489A197963BA351CD00C4F7F",
+      "pdbSha256": "60E2E705D6AD583120AAEF875CA0A9B8741D6A2C2E1062A5C894C38ED7742273",
+      "officialTestRunId": "20261025T071413628Z-47444-7adb8394833c4908a7cd75cdd171ef9a",
+      "testReceiptSha256": "0A2C690B1169E9A90FE57F68C7D982CE5F9574789118309E7C0FB8DEB51F11E5",
+      "ordinaryCasesPassed": {
+        "Storage": 10,
+        "Settings": 4,
+        "Recovery": 5,
+        "Editor": 36
+      },
+      "ordinaryCaseTotal": 55,
+      "captures": 23,
+      "captureSidecars": 23,
+      "verifiedPayloadFileStreams": 619,
+      "payloadHashMismatches": 0,
+      "recoveryRestartCrashCoverage": "passed",
+      "rendererResourceProbe": "default-and-WARP-passed",
+      "asanPositiveDetection": "not-applicable",
+      "sourceCommit": "fa492ab3947ec309cd3bc52d782e58063aebf962",
+      "sourceIdentitySha256": "a9443c02f50d522a48c2128e1b234ef6d72a1906d1c46328997c28be098febdd",
+      "sdkCommit": "baff43d8c8402258f17aa77f7b790166d57eabc9"
+    },
+    {
+      "platform": "x64",
+      "configuration": "Release",
+      "buildReceiptSha256": "8E093BE22ABAED99629F449098123DF103F3FDE690FF8CF8F10A5E9CA02143EB",
+      "executableSha256": "0513C865FFCFA715A48F575A26B40C514A9D134190FD886DB8304B6A10C55863",
+      "pdbSha256": "E8699F4713C1A63B5A420D2787E165761ADE57A0C6CFEE1E888409AE0725092F",
+      "officialTestRunId": "20261025T071550494Z-47444-5cda364c1d70453fb785ad0fdaa5e0bb",
+      "testReceiptSha256": "379B8CD1EC34F9979D3655BC913E6F88393F4356AA3851A5D04D2DF33C12B9D0",
+      "ordinaryCasesPassed": {
+        "Storage": 10,
+        "Settings": 4,
+        "Recovery": 5,
+        "Editor": 36
+      },
+      "ordinaryCaseTotal": 55,
+      "captures": 23,
+      "captureSidecars": 23,
+      "verifiedPayloadFileStreams": 619,
+      "payloadHashMismatches": 0,
+      "recoveryRestartCrashCoverage": "passed",
+      "rendererResourceProbe": "default-and-WARP-passed",
+      "asanPositiveDetection": "not-applicable",
+      "sourceCommit": "fa492ab3947ec309cd3bc52d782e58063aebf962",
+      "sourceIdentitySha256": "a9443c02f50d522a48c2128e1b234ef6d72a1906d1c46328997c28be098febdd",
+      "sdkCommit": "baff43d8c8402258f17aa77f7b790166d57eabc9"
+    },
+    {
+      "platform": "x64",
+      "configuration": "ASan Debug",
+      "buildReceiptSha256": "FD8A8CCD978FC533D7717182DE673B80270515DD7A300BA24CFB6B06144EC3D8",
+      "executableSha256": "81CCE7E1A7A5266BF236AF27D96A649EECFBD99B6B1E4FBCCAC4018323AC4AFC",
+      "pdbSha256": "4568E00BBE22141349E0C5A4013FDE0B0C0F962558EF036E6846298E564AA0B8",
+      "asanRuntimeSha256": "2B952AA118F22FA330069C27CA42C79D94B654F369787B89BF3A495774D66DAC",
+      "officialTestRunId": "20261025T071716727Z-47444-bc26a72d55264ddd9b15e5a97de736b4",
+      "testReceiptSha256": "7FCAB0C14318B7764FB5683F2ABA7D6056E5675D953B1D683DE354C103702A13",
+      "ordinaryCasesPassed": {
+        "Storage": 10,
+        "Settings": 4,
+        "Recovery": 5,
+        "Editor": 36
+      },
+      "ordinaryCaseTotal": 55,
+      "captures": 23,
+      "captureSidecars": 23,
+      "verifiedPayloadFileStreams": 621,
+      "payloadHashMismatches": 0,
+      "recoveryRestartCrashCoverage": "passed",
+      "rendererResourceProbe": "default-and-WARP-passed",
+      "asanPositiveDetection": "expected-heap-use-after-free-detected",
+      "sourceCommit": "fa492ab3947ec309cd3bc52d782e58063aebf962",
+      "sourceIdentitySha256": "a9443c02f50d522a48c2128e1b234ef6d72a1906d1c46328997c28be098febdd",
+      "sdkCommit": "baff43d8c8402258f17aa77f7b790166d57eabc9"
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Debug",
+      "buildReceiptSha256": "83E0C93A075F9EC0F7D9B78AAAA225DE83FA30B75B122E43AB986FE702C63102",
+      "executableSha256": "9F016B9E7ADB4AC426F62FFE1D2F88314C79C869D82C2FC097D4E7E000A9FC9A",
+      "pdbSha256": "6BCA9DB88625F8AE6DA51281AFC91062305CF25DA8DEC3F59665023863C8C395",
+      "testExecution": "not-run-cross-build-only",
+      "sourceCommit": "fa492ab3947ec309cd3bc52d782e58063aebf962",
+      "sourceIdentitySha256": "a9443c02f50d522a48c2128e1b234ef6d72a1906d1c46328997c28be098febdd",
+      "sdkCommit": "baff43d8c8402258f17aa77f7b790166d57eabc9"
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Release",
+      "buildReceiptSha256": "E929761544C35FEF909B0C1B2A6EE35FEBB07BC3E6EA018A4D04193E2661C58B",
+      "executableSha256": "15069B3FBC11CE7BFFCB0691C57405603085ECFE3D3B995C4B467B6B0FD25D84",
+      "pdbSha256": "58513D95A29007FBDAD4406576DB09CBDD66968B805D18E04524A98DBE3A3D33",
+      "testExecution": "not-run-cross-build-only",
+      "sourceCommit": "fa492ab3947ec309cd3bc52d782e58063aebf962",
+      "sourceIdentitySha256": "a9443c02f50d522a48c2128e1b234ef6d72a1906d1c46328997c28be098febdd",
+      "sdkCommit": "baff43d8c8402258f17aa77f7b790166d57eabc9"
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "ASan Debug",
+      "buildReceiptSha256": "7AD9B09F611A83C146006B6256CF48473CAD17905ED32BD3E03FA5011F674C90",
+      "executableSha256": "01CAC33B3796D77F1B0F67DBB6082B18DF3A046FDFF9B729F59D808035DB5971",
+      "pdbSha256": "3C1FCF26E56BC6282534120AC771DA94D8BBC73B3AB89CE29637D051F32A5F81",
+      "asanRuntimeSha256": "C8D6EE580003316179EA4718C268230FF23A17CF1AD791D9FEB8AD779C3044CB",
+      "testExecution": "not-run-cross-build-only",
+      "sourceCommit": "fa492ab3947ec309cd3bc52d782e58063aebf962",
+      "sourceIdentitySha256": "a9443c02f50d522a48c2128e1b234ef6d72a1906d1c46328997c28be098febdd",
+      "sdkCommit": "baff43d8c8402258f17aa77f7b790166d57eabc9"
+    }
+  ],
+  "captureContinuity": {
+    "baselineCommit": "fd24623a9f27d04b85deb27a43a9af724dc030ca",
+    "candidateCommit": "fa492ab3947ec309cd3bc52d782e58063aebf962",
+    "profilesCompared": 3,
+    "pngsPerProfileByteIdentical": 23,
+    "sidecarsPerProfile": 23,
+    "sidecarsIdenticalPerProfile": 1,
+    "sidecarsDifferingOnlyByEffectiveSystemPreferencePerProfile": 22,
+    "baselineEffectiveSystemPreference": "dark",
+    "candidateEffectiveSystemPreference": "light",
+    "scopeLimit": "retained capture continuity only; not full image-2 parity"
+  },
+  "localSdkQualificationReferences": {
+    "sdkCommit": "baff43d8c8402258f17aa77f7b790166d57eabc9",
+    "matrixRunIds": [
+      "20261024T213016285Z-10a03302075146ae924e80c028ce5057",
+      "20261024T213016340Z-d91b131d849442f8a269dc10639eff1a",
+      "20261025T064724718Z-85e0604dd2bd43699f7c18dc82480b70",
+      "20261025T064724820Z-5539b27478cc4dfc869213746fe1eec0"
+    ],
+    "evidenceClass": "independent local SDK matrix audits; not hosted CI results"
+  },
+  "hostedWorkflow": {
+    "runId": "40171816856",
+    "executedSteps": 0,
+    "reason": "billing-blocked",
+    "hostedArm64": "open"
+  },
+  "unresolved": [
+    "Latest input/performance qualification is pending.",
+    "No exact fresh documentation-validation run is claimed; documentation receipts are being refreshed separately.",
+    "No interactive keyboard qualification is claimed."
+  ],
+  "policyAcceptance": "not-evaluated"
+}

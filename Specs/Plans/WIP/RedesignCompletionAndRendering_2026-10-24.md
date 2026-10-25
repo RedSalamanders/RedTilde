@@ -31,7 +31,7 @@
 - [x] A8 resource delta: retain 24 processes covering initial, resize and three device recreations on hardware/WARP; n=3 results are mixed descriptive evidence, not acceptance.
 - [x] A1: fix the reproduced table command memory-safety and data/selection defects; frozen-source native profiles pass.
 - [ ] A2: contain preparation failures per object, preserve accessible ownership and characterize shutdown completion handling.
-- [ ] A2 fault delta: preserve failed native line-metrics HRESULTs, classify only formula-local unsupported operations as persistent, and prove same-key suppression/retry plus changed-key recovery with injected failures.
+- [x] A2 fault delta: preserve failed native line-metrics HRESULTs, classify only formula-local unsupported operations as persistent, and prove same-key suppression/retry plus changed-key recovery with injected failures; counterfactuals and all three local SDK profiles pass at `baff43d8`.
 - [x] A2 focused Debug: pass the injected math failure-containment case and full Embedded suite on the retained late-source build; counterfactuals and final-profile qualification remain open.
 - [x] A2 counterfactuals: reproduce the exact line-metrics, HRESULT-preservation and formula-local unsupported-operation failures, with independently replayed source/build/native bindings.
 - [x] A3: correct math recognition and accepted-but-wrong notation; reconcile bounded capability/target data at frozen SDK `cfe875fd`.
@@ -43,22 +43,26 @@
 - [x] A8 fresh app collection: retain 384 native runs and 16,003 independent checks; actual-starting-base comparison has no new flags, original-design comparison retains five.
 - [x] A8 stage diagnostic: retain 16 separate descriptive runs and 5,589 integrity/numerical checks; additional command work concentrates in selection/status publication.
 - [x] A8 frozen SDK evidence: retain 144 same-executable calibration receipts and 144 hosted actual-base receipts, independently recompute both 78-slot families, and retain policy/control/provenance limits.
-- [ ] A0/A6 review delta: correct Tree badge accessibility publication and the Files dirty-transition selection/scroll/model-rebuild behavior, then qualify the resulting source.
+- [x] A0/A6 functional review delta: qualify Tree badge accessibility publication and Files dirty-transition selection/scroll/model-rebuild behavior in the final local SDK/app matrices; performance acceptance remains A8-owned.
 - [x] A0 Tree regression: reproduce the missing dot-badge ItemStatus against the exact original accessibility source and independently verify the Release executable/run binding; fixed-source and prepared-row execution remain separate.
 - [x] A0 Tree focused Debug: pass both corrected subscribed-client and prepared-row cases with zero skips; final-source matrix/performance qualification remains open.
-- [ ] A0 shared-control delta: guard Label text/multiline setters against embedded root retirement; retain separate sanitizer red/green evidence and qualify the final source.
+- [x] A0 shared-control delta: guard Label text/multiline setters against embedded root retirement; retain separate sanitizer red/green evidence and pass the final `baff43d8` local matrix.
 - [x] A0 Label focused ASan: pass the retirement regression for both setters with zero skips; original-setter counterfactuals and the final matrix remain separate gates.
 - [x] A0 Label counterfactuals: reproduce each original setter's ASan use-after-free separately, then pass the same focused case with both guards restored.
-- [ ] A2 reentrant close delta: stop document-change publication after a native caption notification accepts Close; prove synchronous host retirement without assuming immediate notification-window destruction, including sanitizer red/green evidence.
+- [x] A2 reentrant close delta: stop document-change publication after a native caption notification accepts Close; prove synchronous host retirement without assuming immediate notification-window destruction, including sanitizer red/green evidence and the final `fa492ab` local matrix.
 - [x] A2 caption-close regression: reproduce the resumed `Changed` status-label use-after-free under ASan by removing only the post-caption closing guard; fixed-source Editor execution remains separate.
 - [x] A2/A6 focused consumer ASan: pass all 36 Editor cases at the exact reviewed SDK pin, including Files accessibility, pending/ready caption facts and the corrected caption-close regression.
-- [ ] A9 late SDK source: complete the six-profile local matrix at `baff43d8`, correct and revalidate the hosted gated-notification test timeout, and retain the actual hosted outcomes.
+- [x] A9 late local matrix: app `fa492ab` and SDK `baff43d8` pass all six builds and all applicable ordinary x64 suites; both real ASan detection probes pass. ARM64 evidence is cross-build only.
+- [ ] A9 SDK hosted follow-up: preserve the two ASan gated-notification deadline failures at `baff43d8`; validate the narrow test-only request-allowance correction locally and on hosted ARM64.
+- [ ] A9 current input: run the final nine-stage app keyboard and four-suite SDK menu/input profiles after a current agreement to time and normal Start prompts; earlier frozen-source passes remain separate.
 - [x] A6 consumer counterfactuals: finish the exact Files/caption Release negative controls and intended-source green run; preserve the first wrapper receipt-binding failure separately.
-- [x] A2 caller review: guard the continuation after Files badge publication if a conditional synchronous accessibility flush accepts Close; final-matrix execution remains required and no separate runtime reproduction is claimed.
+- [x] A2 caller review: guard the continuation after Files badge publication if a conditional synchronous accessibility flush accepts Close; all three final app profiles pass after the guard. No dedicated notification-close reproduction is claimed.
 - [x] A0 late validation: pass pinned-format checking, all RedTilde validators and the folded-changelog checks before the final source freeze.
 - [x] A8 baseline refresh: independently verify the original-UI and actual-starting-redesign Release/Core freezes at SDK `baff43d8`, including all seven common harness inputs and compiler profiles.
-- [ ] A7 caption delta: publish localized Paragraph/Math text only on context transitions, retain exact equation updates and stable command Name, and measure the final source.
-- [ ] A8 fresh archive: publish the reviewed `fd24623` 48-row projection and bind source, frozen inputs, host observations and independent audits.
+- [x] A7 caption functional delta: publish localized Paragraph/Math text only on context transitions, retain exact equation updates and stable command Name; pending/ready oracle and all final local profiles pass. Fresh measurement remains below.
+- [x] A8 prior archive: publish the reviewed `fd24623` 48-row projection and bind source, frozen inputs, host observations and independent audits.
+- [x] A8 current SDK collection: retain and independently recompute the `baff43d8` actual-base hosted 144-receipt, 78-row comparison; zero regression findings coexist with 71/72 unstable controls and an unqualified acceptance policy.
+- [ ] A8 current app collection: compare the tested final production code against both refreshed `baff43d8` original-UI and actual-starting-redesign freezes, retaining all 384 runs and independent audits.
 - [ ] A6: finish RedTilde interaction, responsive layout, accessible presentation and exact-pin integration tests.
 - [ ] A7: simplify measured hotspots and qualify incremental preparation without changing source/history behavior.
 - [ ] A8: repeat the current-source whole-feature and library performance studies; resolve R10/D4c advice gates.
@@ -70,7 +74,37 @@ Status: **BOUNDED PROFILES IMPLEMENTED; REVIEW DELTA, QUALIFICATION AND CLOSEOUT
 performance evidence. Update this checklist with the precise change, regression case and receipt for each
 completed item. A checked item needs evidence, not just edited code.
 
-### Qualification checkpoint — 2026-10-25
+### Final production-code local checkpoint — 2026-10-25
+
+RedTilde `fa492ab3947ec309cd3bc52d782e58063aebf962` at SDK
+`baff43d8c8402258f17aa77f7b790166d57eabc9` passes x64 Debug, Release and ASan Debug with 55 ordinary cases
+per profile (Storage 10, Settings 4, Recovery 5, Editor 36), 23 captures and sidecars, recovery/crash probes,
+and native default/WARP lifecycle coverage. The ASan detection probe reports its expected heap-use-after-free.
+All three ARM64 cross-builds pass. Independent audits verify every artifact and completed payload: 619, 619
+and 621 payload files respectively, with no missing entries or hash mismatches. The additional Files callback
+closing guard is present in this matrix; its own notification-close path has no dedicated runtime reproduction.
+The Files regression establishes no model rebuild on badge changes, not constant-time lookup.
+
+SDK `baff43d8` passes all 19 ordinary suites in each x64 profile with zero capability skips and all three ARM64
+cross-builds. Its hosted workflow `40154492633` passes four ordinary native profiles but fails both ASan Embedded
+jobs on the held four-notification batch's 3-second deadline; expected events arrive later and no sanitizer
+memory report occurs. A narrowly scoped test adjustment uses the existing 20-second request allowance only after
+that artificial gate, preserving the ordinary deadline and every coalescing/identity/pruning assertion. Fresh
+test-source validation remains open. Its production library fingerprint and all six declared benchmark inputs
+are unchanged; a rebuilt Embedded test executable is a distinct artifact.
+
+The current SDK paired packet reports zero regression findings in 78 rows, but controls and unqualified policy
+prevent an accepted verdict. Older `cfe875fd` calibration and `fd24623` app measurements below remain historical.
+Both refreshed app baselines use `baff43d8` and the identical common harness/compiler profile. The final app
+comparison has not started. A premature documentation checkpoint edit was caught before any timed collection;
+its patch and failed byte-restoration checks are retained. This deliberate checklist update requires fresh
+build receipts and an explicit unchanged-compiled-input/artifact check before measuring.
+
+App workflow `40171816856` again executes zero steps because of the payment/spending restriction. Hosted native
+ARM64 stays **OPEN** as requested. Current interactive time agreement is pending; earlier Start-confirmed runs
+do not establish a new-source execution claim. These limits keep R10/D4c and plan closeout open.
+
+### Earlier frozen-source qualification checkpoint — 2026-10-25
 
 The preceding completed full runtime snapshot is app `fd24623a9f27d04b85deb27a43a9af724dc030ca` with
 SDK `cfe875fd815b0a39336100df9bde8f29ea2f0aa0` (API 4). The following observations belong to those frozen
