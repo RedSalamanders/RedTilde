@@ -333,4 +333,109 @@ function Assert-RedTildeDependencyComparison {
     }
 }
 
-Export-ModuleMember -Function Get-RedTildeMedian,Get-RedTildePerformanceMetrics,Get-RedTildeControlDiagnostics,New-RedTildePerformanceSchedule,Get-RedTildeSignFlipP,Compare-RedTildePerformanceBlocks,Get-RedTildeCompilerProfile,Assert-RedTildeDependencyComparison
+
+function Assert-RedTildeCompilerComparison {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] $BaselineCompiler,
+        [Parameter(Mandatory)] $CandidateCompiler,
+        [Parameter(Mandatory)] $BaselineDependency,
+        [Parameter(Mandatory)] $CandidateDependency,
+        [switch] $DependencyAdoption
+    )
+    function Get-CompilerComparisonField($Value,[string]$Name) {
+        if($Value -is [Collections.IDictionary]) {
+            foreach($key in $Value.Keys) { if([string]$key -ceq $Name) { return $Value[$key] } }
+            return $null
+        }
+        foreach($property in $Value.PSObject.Properties) { if($property.Name -ceq $Name) { return $property.Value } }
+        return $null
+    }
+    function Get-AdoptionIncludePaths($Dependency) {
+        $fingerprint=Get-CompilerComparisonField $Dependency 'Fingerprint'
+        $identity=Get-CompilerComparisonField $Dependency 'Identity'
+        $commit=Get-CompilerComparisonField $identity 'commit'
+        $platform=Get-CompilerComparisonField $identity 'platform'
+        if($fingerprint -isnot [string] -or $fingerprint -cnotmatch '^[0-9a-fA-F]{64}$' -or
+            $commit -isnot [string] -or $commit -cnotmatch '^[0-9a-f]{40}$' -or $platform -cnotin @('x64','ARM64')) {
+            throw 'Dependency adoption requires a valid DxUi fingerprint, lowercase commit and platform.'
+        }
+        $triplet=if($platform -ceq 'ARM64') { 'arm64-windows' } else { 'x64-windows' }
+        return @{
+            source='<ROOT>\.BUILD\DEPENDENCIES\DXUI\SOURCE\'+$commit+'\INCLUDE'
+            package='<ROOT>\.BUILD\DEPENDENCIES\DXUI\'+$fingerprint+'\VCPKG_INSTALLED\'+$platform+'\'+$triplet+'\INCLUDE'
+        }
+    }
+    function Normalize-AdoptionCommand([string]$Command,$ExpectedPaths) {
+        if($Command -match '(?<!\\)(?:\\\\)*\\"') { throw 'Escaped compiler quotes require a separately reviewed parser.' }
+        $tokenPattern='(?:[^\s"]+|"[^"]*")+'
+        if([regex]::Replace($Command,$tokenPattern,'').Trim()) { throw 'Unsupported compiler command quoting.' }
+        $tokens=@([regex]::Matches($Command,$tokenPattern)|ForEach-Object Value)
+        $options=[Collections.Generic.List[string]]::new()
+        $sourceCount=0; $packageCount=0
+        for($index=0;$index -lt $tokens.Count;++$index) {
+            $token=$tokens[$index]
+            $separateIncludeFlag=$false
+            if($token -cmatch '^/[DU]$') {
+                if(++$index -ge $tokens.Count) { throw 'Missing compiler macro operand.' }
+                $options.Add($token);$options.Add($tokens[$index]);continue
+            }
+            if($token.StartsWith('"') -and $token.Trim('"').StartsWith('/')) { throw 'Quoted compiler switches are unsupported.' }
+            if($token -cmatch '^/I$') {
+                if(++$index -ge $tokens.Count) { throw 'Missing compiler include operand.' }
+                $flag=$token;$operand=$tokens[$index];$separateIncludeFlag=$true
+            } else {
+                $includeFlag=[regex]::Match($token,'^(?<flag>/I)(?<operand>.*)$')
+                if(-not $includeFlag.Success) { $options.Add($token);continue }
+                $flag=$includeFlag.Groups['flag'].Value;$operand=$includeFlag.Groups['operand'].Value
+                if(-not $operand) { throw 'Missing compiler include operand.' }
+            }
+            $quoted=$operand.StartsWith('"') -and $operand.EndsWith('"')
+            $path=if($quoted) { $operand.Substring(1,$operand.Length-2) } else { $operand }
+            if($path.Contains('"')) { throw 'Unsupported compiler include quoting.' }
+            if($path.Equals($ExpectedPaths.source,[StringComparison]::OrdinalIgnoreCase)) {
+                ++$sourceCount;$marker='<DXUI_SOURCE_INCLUDE>'
+            } elseif($path.Equals($ExpectedPaths.package,[StringComparison]::OrdinalIgnoreCase)) {
+                ++$packageCount;$marker='<DXUI_PACKAGE_INCLUDE>'
+            } else {
+                if($separateIncludeFlag) { $options.Add($flag);$options.Add($operand) }
+                else { $options.Add($flag+$operand) }
+                continue
+            }
+            $normalizedOperand=if($quoted) { '"'+$marker+'"' } else { $marker }
+            if($token -cmatch '^/I$') { $options.Add($flag);$options.Add($normalizedOperand) }
+            else { $options.Add($flag+$normalizedOperand) }
+        }
+        if($sourceCount -ne 1 -or $packageCount -ne 1) {
+            throw 'Each compiler command must contain exactly one declared DxUi source include and package include.'
+        }
+        return $options -join ' '
+    }
+
+    $baselineSha=Get-CompilerComparisonField $BaselineCompiler 'sha256'
+    $candidateSha=Get-CompilerComparisonField $CandidateCompiler 'sha256'
+    if($baselineSha -isnot [string] -or $candidateSha -isnot [string]) { throw 'Compiler profile SHA-256 metadata is missing.' }
+    if($baselineSha -ceq $candidateSha) { return }
+    if(-not $DependencyAdoption) { throw 'Baseline and candidate compiler profiles differ.' }
+    $baselineSchema=Get-CompilerComparisonField $BaselineCompiler 'schemaVersion'
+    $candidateSchema=Get-CompilerComparisonField $CandidateCompiler 'schemaVersion'
+    if(($baselineSchema -isnot [int] -and $baselineSchema -isnot [long]) -or $baselineSchema -ne 2 -or
+        ($candidateSchema -isnot [int] -and $candidateSchema -isnot [long]) -or $candidateSchema -ne 2 -or
+        $baselineSha -cnotmatch '^[0-9a-fA-F]{64}$' -or $candidateSha -cnotmatch '^[0-9a-fA-F]{64}$') {
+        throw 'Compiler adoption requires valid v2 compiler profiles.'
+    }
+    $baselineCommands=@(Get-CompilerComparisonField $BaselineCompiler 'commands')
+    $candidateCommands=@(Get-CompilerComparisonField $CandidateCompiler 'commands')
+    if($baselineCommands.Count -ne 1 -or $candidateCommands.Count -ne 1 -or
+        $baselineCommands[0] -isnot [string] -or $candidateCommands[0] -isnot [string]) {
+        throw 'Compiler adoption requires one homogeneous normalized command on each side.'
+    }
+    $baselinePaths=Get-AdoptionIncludePaths $BaselineDependency
+    $candidatePaths=Get-AdoptionIncludePaths $CandidateDependency
+    $normalizedBaseline=Normalize-AdoptionCommand $baselineCommands[0] $baselinePaths
+    $normalizedCandidate=Normalize-AdoptionCommand $candidateCommands[0] $candidatePaths
+    if($normalizedBaseline -cne $normalizedCandidate) {
+        throw 'Compiler adoption changed options beyond the declared DxUi include operands.'
+    }
+}
+Export-ModuleMember -Function Get-RedTildeMedian,Get-RedTildePerformanceMetrics,Get-RedTildeControlDiagnostics,New-RedTildePerformanceSchedule,Get-RedTildeSignFlipP,Compare-RedTildePerformanceBlocks,Get-RedTildeCompilerProfile,Assert-RedTildeDependencyComparison,Assert-RedTildeCompilerComparison

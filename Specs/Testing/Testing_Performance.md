@@ -164,8 +164,14 @@ The existing strict fixture, pin, compiler, renderer, native geometry and harnes
 For a dependency adoption, first compare original application chrome and refreshed chrome on the same new exact
 DxUi pin; upstream library changes retain their independent baseline and qualification.
 An additional actual-PR-base adoption study may explicitly select `-DependencyAdoption`. The default still refuses
-different dependencies. Adoption permits only the exact dependency commit/fingerprint pair to change: API revision,
-platform, runtime, compiler, SDK, flags and every other dependency field must match. Retain and independently replay
-the matching public-header inventory from each clean pinned source checkout. Reject missing/changed header bytes.
+different dependencies and compiler profiles. Adoption permits only the exact dependency commit/fingerprint pair to
+change: API revision, platform, runtime, compiler, SDK, flags and every other dependency field must match. Retain and
+independently replay separate public-header inventories for both the clean pinned source checkout and the actual
+platform/triplet package include directory selected by the dependency fingerprint. Reject missing/changed bytes in
+either inventory. When the compiler profile differs, permit only the exact SDK source include and fingerprinted
+package include operands to vary; require one of each on both sides, retain the raw compiler command receipts, and
+independently verify those raw commands reproduce the recorded profiles. Every other compiler option, macro, include
+operand, quote and flag spelling remains exact. Historical schema-one source-only header evidence remains readable for
+same-pin studies only; it cannot qualify dependency adoption.
 This mode measures the complete follow-up, including the SDK adoption; it never replaces the original-UI comparison
 on one common pin, changes a metric/band, qualifies the upstream policy or accepts a new ABI.

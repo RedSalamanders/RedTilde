@@ -121,8 +121,45 @@ public static class PairedEvidenceReference {
         if(own != 1) throw new ArgumentException("Each compiler row must contain its own source exactly once.");
         return string.Join(" ",options);
     }
-    public static void VerifyCompilerCommands(string[] lines,string root,string[] relativeSources,string expected) {
+    static string NeutralizeDependencyIncludes(string command,string sourceInclude,string packageInclude) {
+        string[] tokens = CompilerTokens(command);
+        var options = new List<string>();
+        int sourceCount = 0, packageCount = 0;
+        for(int index=0; index<tokens.Length; ++index) {
+            string token=tokens[index], flag, operand;
+            bool separate=false;
+            if(token == "/D" || token == "/U") {
+                if(index+1 == tokens.Length) throw new ArgumentException("Missing macro operand.");
+                options.Add(token); options.Add(tokens[++index]); continue;
+            }
+            if(token == "/I") {
+                if(index+1 == tokens.Length) throw new ArgumentException("Missing include operand.");
+                flag=token; operand=tokens[++index]; separate=true;
+            } else if(token.StartsWith("/I",StringComparison.Ordinal)) {
+                flag="/I"; operand=token.Substring(2);
+                if(operand.Length == 0) throw new ArgumentException("Missing include operand.");
+            } else { options.Add(token); continue; }
+            bool quoted=operand.Length >= 2 && operand[0] == '"' && operand[operand.Length-1] == '"';
+            string path=Unquote(operand), marker=null;
+            if(path.IndexOf('"') >= 0) throw new ArgumentException("Unsupported include quoting.");
+            if(string.Equals(path,sourceInclude,StringComparison.OrdinalIgnoreCase)) { ++sourceCount; marker="<DXUI_SOURCE_INCLUDE>"; }
+            else if(string.Equals(path,packageInclude,StringComparison.OrdinalIgnoreCase)) { ++packageCount; marker="<DXUI_PACKAGE_INCLUDE>"; }
+            if(marker == null) {
+                if(separate) { options.Add(flag); options.Add(operand); }
+                else options.Add(flag+operand);
+                continue;
+            }
+            string normalized=quoted ? "\""+marker+"\"" : marker;
+            if(separate) { options.Add(flag); options.Add(normalized); }
+            else options.Add(flag+normalized);
+        }
+        if(sourceCount != 1 || packageCount != 1)
+            throw new ArgumentException("Each command must contain exactly one declared DxUi source and package include.");
+        return string.Join(" ",options);
+    }
+    public static string VerifyCompilerCommands(string[] lines,string root,string[] relativeSources,string expected,string[] adoptionIncludes=null) {
         string[] reviewed = relativeSources.Select(value => root.TrimEnd('\\','/')+"\\"+value.Replace('/','\\')).ToArray();
+        string adopted = null;
         foreach(string source in reviewed) {
             var commands = new List<string>();
             for(int index = 0; index+1 < lines.Length; ++index) {
@@ -135,7 +172,16 @@ public static class PairedEvidenceReference {
             string normalized = NormalizeCompilerCommand(commands[0],root,source,reviewed);
             if(!string.Equals(normalized,expected,StringComparison.Ordinal))
                 throw new ArgumentException("Raw compiler options do not reproduce the recorded normalized profile.");
+            string candidate=adoptionIncludes == null ? normalized :
+                NeutralizeDependencyIncludes(normalized,adoptionIncludes[0],adoptionIncludes[1]);
+            if(adopted != null && !string.Equals(adopted,candidate,StringComparison.Ordinal))
+                throw new ArgumentException("Per-source compiler commands differ after exact dependency include normalization.");
+            adopted=candidate;
         }
+        return adopted;
+    }
+    public static string NeutralizeCompilerProfile(string command,string sourceInclude,string packageInclude) {
+        return NeutralizeDependencyIncludes(command,sourceInclude,packageInclude);
     }
 }
 }
@@ -173,9 +219,12 @@ function Assert-CompilerProfileEvidence {
         if(Test-Path -LiteralPath (Join-Path $Root $leaf)) {$current=$true}
     }
     if(-not $current) {return}
+    $adoption=$Study.Contains('dependencyComparisonMode') -and $Study.dependencyComparisonMode -ceq 'sdk-adoption'
+    $adoptionCommands=[ordered]@{}
     foreach($side in 'baseline','candidate') {
         $profile=$Study[$side].compiler
-        Require ($profile.Contains('schemaVersion') -and $profile.schemaVersion -eq 2 -and @($profile.commands).Count -eq 1 -and
+        Require ($profile.Contains('schemaVersion') -and ($profile.schemaVersion -is [int] -or $profile.schemaVersion -is [long]) -and
+            $profile.schemaVersion -eq 2 -and @($profile.commands).Count -eq 1 -and
             @($profile.translationUnits).Count -gt 0 -and $profile.Contains('sourceRoot') -and
             [IO.Path]::IsPathFullyQualified([string]$profile.sourceRoot)) 'Compiler profile schema/inventory is incomplete or downgraded.'
         $command=[string]$profile.commands[0]
@@ -195,9 +244,20 @@ function Assert-CompilerProfileEvidence {
         Require ($raw.file -and [IO.Path]::GetFileName([string]$raw.file) -ceq $raw.file -and
             $raw.sha256 -ceq $profile.rawSha256 -and
             (Get-FileHash -LiteralPath (Join-Path $Root $raw.file)).Hash -ceq $raw.sha256) 'Raw compiler command bytes differ from their profile.'
-        [RedTilde.PairedEvidenceReference]::VerifyCompilerCommands([string[]]@(Get-Content -LiteralPath (Join-Path $Root $raw.file)),
-            [string]$profile.sourceRoot,[string[]]@($profile.translationUnits|ForEach-Object source),$command)
+        $adoptionIncludes=$null
+        if($adoption) {
+            $dependency=$Study[$side].build.dependency
+            $platform=[string]$dependency.Identity.platform
+            $triplet=if($platform -ceq 'ARM64') { 'arm64-windows' } else { 'x64-windows' }
+            $sourceInclude='<ROOT>\.BUILD\DEPENDENCIES\DXUI\SOURCE\'+[string]$dependency.Identity.commit+'\INCLUDE'
+            $packageInclude='<ROOT>\.BUILD\DEPENDENCIES\DXUI\'+[string]$dependency.Fingerprint+'\VCPKG_INSTALLED\'+$platform+'\'+$triplet+'\INCLUDE'
+            $adoptionIncludes=[string[]]@($sourceInclude,$packageInclude)
+        }
+        $adoptionCommands[$side]=[RedTilde.PairedEvidenceReference]::VerifyCompilerCommands(
+            [string[]]@(Get-Content -LiteralPath (Join-Path $Root $raw.file)),[string]$profile.sourceRoot,
+            [string[]]@($profile.translationUnits|ForEach-Object source),$command,$adoptionIncludes)
     }
+    if($adoption) { Require ($adoptionCommands.baseline -ceq $adoptionCommands.candidate) 'Raw compiler commands differ beyond the two declared SDK include paths.' }
 }
 
 function Assert-DependencyEvidence($Study,$Comparison) {
@@ -212,25 +272,47 @@ function Assert-DependencyEvidence($Study,$Comparison) {
         Require ($dependency.Fingerprint -cmatch '^[0-9a-fA-F]{64}$' -and $dependency.Identity.commit -cmatch '^[0-9a-f]{40}$' -and
             ($dependency.Identity.apiRevision -is [int] -or $dependency.Identity.apiRevision -is [long]) -and $dependency.Identity.apiRevision -eq 4) 'Invalid dependency build metadata.'
     }
+    Require ($base.Identity.platform -ceq $Study.baseline.build.platform -and $candidate.Identity.platform -ceq $Study.candidate.build.platform -and
+        $Study.baseline.build.platform -ceq 'x64' -and $Study.candidate.build.platform -ceq 'x64') 'Dependency platform must match the measured x64 build.'
+    $inventories=[ordered]@{}
     foreach($side in @('baseline','candidate')) {
         Require ($Study[$side].Contains('publicHeaders')) 'Declared dependency header inventory is missing.'
         $headers=$Study[$side].publicHeaders
-        Require ($headers.schemaVersion -eq 1 -and $headers.files.Count -gt 0 -and $headers.sha256 -cmatch '^[0-9A-F]{64}$') 'Invalid public-header evidence.'
+        Require (($headers.schemaVersion -is [int] -or $headers.schemaVersion -is [long]) -and
+            $headers.schemaVersion -cin @(1,2) -and $headers.files.Count -gt 0 -and $headers.sha256 -cmatch '^[0-9A-F]{64}$') 'Invalid public-header evidence.'
+        if($mode -ceq 'sdk-adoption') { Require ($headers.schemaVersion -eq 2) 'SDK adoption requires source and package header inventories.' }
         $paths=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
-        $rows=[string[]]@(foreach($file in $headers.files) {
-            Require ($file.path -cmatch '^include/[^:\\]+$' -and $file.path -notmatch '(^|/)\.\.?(/|$)' -and
+        $sourceRows=[Collections.Generic.List[string]]::new();$packageRows=[Collections.Generic.List[string]]::new();$allRows=[Collections.Generic.List[string]]::new()
+        foreach($file in $headers.files) {
+            $validPath=if($headers.schemaVersion -eq 1) { $file.path -cmatch '^include/[^:\\]+$' } else { $file.path -cmatch '^(?:include|package-include)/[^:\\]+$' }
+            Require ($validPath -and $file.path -notmatch '(^|/)\.\.?(/|$)' -and
                 $paths.Add($file.path) -and $file.sha256 -cmatch '^[0-9A-F]{64}$') 'Invalid public-header inventory row.'
-            $file.path+':'+$file.sha256
-        })
-        [Array]::Sort($rows,[StringComparer]::Ordinal)
-        $digest=[Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($rows -join "`n")))
-        Require ([Convert]::ToHexString($digest) -ceq $headers.sha256) 'Public-header inventory checksum differs.'
+            $row=$file.path+':'+$file.sha256;$allRows.Add($row)
+            if($file.path.StartsWith('include/',[StringComparison]::Ordinal)) {$sourceRows.Add($row)} else {$packageRows.Add($row)}
+        }
+        [string[]]$sourceArray=$sourceRows.ToArray();[string[]]$packageArray=$packageRows.ToArray();[string[]]$allArray=$allRows.ToArray()
+        [Array]::Sort($sourceArray,[StringComparer]::Ordinal);[Array]::Sort($packageArray,[StringComparer]::Ordinal);[Array]::Sort($allArray,[StringComparer]::Ordinal)
+        $hashRows={param([string[]]$Rows) [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($Rows -join "`n"))))}
+        Require ((& $hashRows $allArray) -ceq $headers.sha256) 'Public-header inventory checksum differs.'
+        if($headers.schemaVersion -eq 2) {
+            Require ($sourceArray.Count -gt 0 -and $packageArray.Count -gt 0 -and
+                $headers.sourceSha256 -cmatch '^[0-9A-F]{64}$' -and $headers.packageSha256 -cmatch '^[0-9A-F]{64}$' -and
+                ((& $hashRows $sourceArray) -ceq $headers.sourceSha256) -and ((& $hashRows $packageArray) -ceq $headers.packageSha256)) 'Source or package header inventory checksum differs.'
+        } else { Require ($sourceArray.Count -gt 0 -and $packageArray.Count -eq 0) 'Schema-one header inventories cover source headers only.' }
+        $sourceHash=if($headers.Contains('sourceSha256')) {[string]$headers.sourceSha256} else {''}
+        $packageHash=if($headers.Contains('packageSha256')) {[string]$headers.packageSha256} else {''}
+        $inventories[$side]=[ordered]@{schemaVersion=$headers.schemaVersion;source=$sourceArray;package=$packageArray;sourceSha256=$sourceHash;packageSha256=$packageHash}
     }
     if($mode -ceq 'same-pin') {
         Require (($base|ConvertTo-Json -Depth 100 -Compress) -ceq ($candidate|ConvertTo-Json -Depth 100 -Compress)) 'Same-pin dependency metadata differs.'
+        Require (($inventories.baseline.source -join "`n") -ceq ($inventories.candidate.source -join "`n") -and
+            ($inventories.baseline.package -join "`n") -ceq ($inventories.candidate.package -join "`n")) 'Same-pin public header bytes differ.'
         return
     }
-    Require ($Study.baseline.publicHeaders.sha256 -ceq $Study.candidate.publicHeaders.sha256 -and
+    Require ($Study.baseline.publicHeaders.sourceSha256 -ceq $Study.candidate.publicHeaders.sourceSha256 -and
+        $Study.baseline.publicHeaders.packageSha256 -ceq $Study.candidate.publicHeaders.packageSha256 -and
+        ($inventories.baseline.source -join "`n") -ceq ($inventories.candidate.source -join "`n") -and
+        ($inventories.baseline.package -join "`n") -ceq ($inventories.candidate.package -join "`n") -and
         $base.Identity.apiRevision -eq 4 -and $candidate.Identity.apiRevision -eq 4) 'Adoption public-header/API identity differs.'
     Require ($base.Fingerprint -cmatch '^[0-9a-fA-F]{64}$' -and $candidate.Fingerprint -cmatch '^[0-9a-fA-F]{64}$' -and
         $base.Identity.commit -cmatch '^[0-9a-f]{40}$' -and $candidate.Identity.commit -cmatch '^[0-9a-f]{40}$') 'Invalid adoption dependency metadata.'
@@ -265,7 +347,8 @@ $results=@(foreach($directory in $StudyPath) {
         Require ($study[$side].build.passed -and $study[$side].build.platform -ceq 'x64' -and
             $study[$side].build.configuration -ceq 'Release') 'Successful x64 Release identities are required.'
     }
-    Require ($study.baseline.compiler.sha256 -ceq $study.candidate.compiler.sha256) 'Compiler/dependency identity differs.'
+    $compilerAdoption=$study.Contains('dependencyComparisonMode') -and $study.dependencyComparisonMode -ceq 'sdk-adoption'
+    if(-not $compilerAdoption) { Require ($study.baseline.compiler.sha256 -ceq $study.candidate.compiler.sha256) 'Compiler/dependency identity differs.' }
     Assert-DependencyEvidence $study $comparison
     Assert-CompilerProfileEvidence -Study $study -Root $root
     foreach($key in $study.baseline.inputs.Keys) {

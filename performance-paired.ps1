@@ -43,11 +43,12 @@ if($FreezeBaseline) {
 if(-not $Baseline) { throw 'Baseline must name a frozen instrumented baseline directory.' }
 $baselinePath=Join-Path $Baseline 'RedTilde.exe'
 $base=Get-Content (Join-Path $Baseline 'baseline.json') -Raw | ConvertFrom-Json -AsHashtable
-if($base.build.binarySha256 -cne (Get-FileHash $baselinePath).Hash -or $base.compiler.sha256 -cne $compiler.sha256 -or
+if($base.build.binarySha256 -cne (Get-FileHash $baselinePath).Hash -or
     ($base.inputs | ConvertTo-Json -Compress) -cne ($inputs | ConvertTo-Json -Compress) -or
     ($base.environment | ConvertTo-Json -Compress) -cne ($environment | ConvertTo-Json -Compress)) { throw 'Baseline/candidate harness, compiler, dependency, environment or binary identity differs.' }
 $baseHeaderHash=if($base.Contains('publicHeaders')){[string]$base.publicHeaders.sha256}else{''}
 Assert-RedTildeDependencyComparison -BaselineDependency $base.build.dependency -CandidateDependency $build.dependency -BaselinePublicHeadersSha256 $baseHeaderHash -CandidatePublicHeadersSha256 $publicHeaders.sha256 -DependencyAdoption:$DependencyAdoption
+Assert-RedTildeCompilerComparison -BaselineCompiler $base.compiler -CandidateCompiler $compiler -BaselineDependency $base.build.dependency -CandidateDependency $build.dependency -DependencyAdoption:$DependencyAdoption
 if(-not $SameBinaryControl -and $base.build.binarySha256 -ceq $build.binarySha256) { throw 'Use SameBinaryControl for the same executable.' }
 $schedule=New-RedTildePerformanceSchedule -Blocks $Blocks -Seed $Seed
 $candidateIdentity=if($SameBinaryControl) { $base } else { @{build=$build;compiler=$compiler;inputs=$inputs;environment=$environment;publicHeaders=$publicHeaders} }
@@ -109,6 +110,10 @@ foreach($block in $schedule) {
     Write-Host ($block.scenario+' block '+($block.block+1)+'/'+$Blocks+' '+$block.order+' complete')
 }
 $comparison=Compare-RedTildePerformanceBlocks -Blocks $pairs.ToArray()
+$finalPublicHeaders=Get-RedTildeDependencyPublicHeaders -Root $PSScriptRoot -Dependency $build.dependency
+if(($finalPublicHeaders|ConvertTo-Json -Depth 10 -Compress) -cne ($publicHeaders|ConvertTo-Json -Depth 10 -Compress)) {
+    throw 'Source or package public headers changed during the paired study.'
+}
 [ordered]@{schemaVersion=1;protocol='independent-ABBA-BAAB-v1';judge='redtilde-paired-log-sign-flip-holm-v2';
     independentBlocksPerScenario=$Blocks;familySize=$comparison.Count;sameBinaryControl=[bool]$SameBinaryControl;
     acceptance='review-required; new app judge does not qualify upstream D4c';metrics=$comparison;
