@@ -245,6 +245,40 @@ class DesignRefreshProbe final
         const auto bounds = control->GetBounds();
         return Hit(app, {(bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2});
     }
+    static bool AccessibilityContainsName(Application &app, std::wstring_view expected)
+    {
+        wil::com_ptr_nothrow<IRawElementProviderFragmentRoot> root;
+        root.attach(DxUi::CreateWindowHostAccessibilityProvider(app.Host().GetHwnd()));
+        Require(root != nullptr, "the application exposes its current UI Automation root");
+        wil::com_ptr_nothrow<IRawElementProviderFragment> rootFragment;
+        Success(root.query_to(rootFragment.put()), "the UI Automation root supports fragment navigation");
+        std::size_t visited{};
+        const auto visit = [&](auto &&self, IRawElementProviderFragment *current, std::size_t depth) -> bool
+        {
+            if (!current || depth > 64u || visited >= 4096u)
+                return false;
+            ++visited;
+            wil::com_ptr_nothrow<IRawElementProviderSimple> simple;
+            Success(current->QueryInterface(IID_PPV_ARGS(simple.put())), "query a UI Automation fragment's simple provider");
+            wil::unique_variant value;
+            Success(simple->GetPropertyValue(UIA_NamePropertyId, &value), "read a UI Automation fragment's accessible Name");
+            if (value.vt == VT_BSTR && std::wstring_view(value.bstrVal ? value.bstrVal : L"") == expected)
+                return true;
+
+            wil::com_ptr_nothrow<IRawElementProviderFragment> child;
+            Success(current->Navigate(NavigateDirection_FirstChild, child.put()), "navigate to the first UI Automation child");
+            while (child && visited < 4096u)
+            {
+                if (self(self, child.get(), depth + 1u))
+                    return true;
+                wil::com_ptr_nothrow<IRawElementProviderFragment> sibling;
+                Success(child->Navigate(NavigateDirection_NextSibling, sibling.put()), "navigate to the next UI Automation sibling");
+                child = std::move(sibling);
+            }
+            return false;
+        };
+        return visit(visit, rootFragment.get(), 0u);
+    }
 
   public:
     static void Register(const std::filesystem::path &root, const std::function<void(std::string_view, const std::function<void()> &)> &test)
@@ -292,6 +326,172 @@ class DesignRefreshProbe final
                              "visual layout and DPI changes preserve the authoritative document and selection");
                  }
                  Require(GetForegroundWindow() == foreground && !IsWindowVisible(app.Window()), "image-2 verification preserves the desktop");
+             });
+        test("Editor.HiddenCurrentBlockPublishesLatestOnReveal",
+             [&]
+             {
+                 const auto foreground = GetForegroundWindow();
+                 Application app(Options(root, L"hidden-current-block", L"narrow"));
+                 Success(app.Initialize(), "create the hidden current-block publication app");
+                 Resize(app, 820, 560, 96, false);
+                 const auto hiddenPriorText = std::wstring(app.currentBlock->GetText());
+                 const auto initiallyHiddenConstructions = app.Activity().currentBlockLabelConstructions;
+                 const std::wstring source = L"First paragraph.\n\n- List alpha\n- List beta\n\nSecond paragraph is longer.\n";
+                 app.SetDocument(source);
+                 app.Prepare(256);
+                 const auto first = source.find(L"First paragraph.");
+                 const auto list = source.find(L"List alpha");
+                 const auto second = source.find(L"Second paragraph");
+                 Require(first != std::wstring::npos && list != std::wstring::npos && second != std::wstring::npos,
+                         "the synthetic source contains distinct paragraph and list contexts");
+                 const auto setCaret = [&](std::size_t caret)
+                 {
+                     app.Document().SetSelection({caret, caret});
+                     app.SelectionChanged(false);
+                 };
+                 const auto expectedParagraph = [&]
+                 {
+                     const auto position = DocumentPositionAt(app.documentInfo, app.Document().GetSelection().caret);
+                     const auto format = Resource(IDS_BLOCKINFO);
+                     const auto kind = Resource(IDS_BLOCKPARAGRAPH);
+                     return std::vformat(format, std::make_wformat_args(kind, position.lineCharacters));
+                 };
+                 const auto title = std::wstring(app.currentBlockTitle->GetText());
+                 setCaret(first + 3);
+                 const auto firstFacts = expectedParagraph();
+                 Require(!app.sidebar->IsVisible() && app.currentBlock->IsVisible() && app.currentBlock->GetText() == hiddenPriorText &&
+                             app.Activity().currentBlockLabelConstructions == initiallyHiddenConstructions &&
+                             !AccessibilityContainsName(app, firstFacts),
+                         "the 820-DIP initial layout retains paragraph facts without exposing a hidden label to UI Automation");
+
+                 Resize(app, 1440, 900, 96, false);
+                 Require(app.sidebar->IsVisible() && app.Activity().currentBlockLabelConstructions == initiallyHiddenConstructions + 1 &&
+                             app.currentBlock->GetText() == firstFacts && AccessibilityContainsName(app, firstFacts),
+                         "the first sidebar reveal publishes the latest localized paragraph before the first render/provider read");
+
+                 const auto entrySource = app.Document().Snapshot();
+                 const auto entrySelection = app.Document().GetSelection();
+                 app.settings.focusMode = true;
+                 app.Layout();
+                 Require(!app.sidebar->IsVisible(), "Focus mode hides the sidebar before repeated source edits");
+                 const auto hiddenConstructions = app.Activity().currentBlockLabelConstructions;
+                 const auto entryUndo = app.Document().CanUndo();
+                 for (unsigned cycle = 0; cycle < 64; ++cycle)
+                 {
+                     Require(app.Document().ReplaceSelection(L"x"), "admit a hidden paragraph character");
+                     Require(app.Document().Undo(), "undo the hidden paragraph character immediately");
+                     Require(app.Document().Snapshot().IsSameRevision(entrySource) && app.Document().GetSelection() == entrySelection &&
+                                 app.Document().CanUndo() == entryUndo && app.Document().CanRedo(),
+                             "hidden edit/undo cycles restore the exact source, caret and undo admission");
+                     Require(app.Activity().currentBlockLabelConstructions == hiddenConstructions,
+                             "hidden edit/undo cycles do not format or publish current-block text");
+                 }
+
+                 app.Prepare(256);
+                 Require(app.Document().Snapshot().IsSameRevision(entrySource) &&
+                             app.Activity().currentBlockLabelConstructions == hiddenConstructions,
+                         "settling the restored syntax while hidden preserves source and still defers label publication");
+                 setCaret(list + 5);
+                 const auto listKind = Resource(IDS_BLOCKBULLETLIST);
+                 const std::size_t listItems = 2;
+                 const auto listText = std::vformat(Resource(IDS_BLOCKITEMINFO), std::make_wformat_args(listKind, listItems));
+                 Require(
+                     !app.currentBlock->IsVisible() && app.listSummary->IsVisible() && app.listSummary->GetText() == listText &&
+                         app.Activity().currentBlockLabelConstructions == hiddenConstructions,
+                     "hidden list context still updates its immediate local visibility and item summary without constructing the hidden block label");
+                 setCaret(second + 3);
+                 const auto latestFacts = expectedParagraph();
+                 Require(latestFacts != firstFacts && app.currentBlock->IsVisible() && !app.sidebar->IsVisible() &&
+                             app.currentBlock->GetText() == firstFacts && !AccessibilityContainsName(app, latestFacts) &&
+                             app.Activity().currentBlockLabelConstructions == hiddenConstructions,
+                         "a later paragraph replaces hidden pending list facts without publishing early");
+                 app.settings.focusMode = false;
+                 app.Layout();
+                 Require(app.sidebar->IsVisible() && app.Activity().currentBlockLabelConstructions == hiddenConstructions + 1 &&
+                             app.currentBlock->GetText() == latestFacts && AccessibilityContainsName(app, latestFacts),
+                         "revealing Focus publishes the newest paragraph rather than stale list or prior paragraph facts");
+                 Require(app.currentBlockTitle->GetText() == title, "deferred label publication preserves the static current-block title resource");
+
+                 const auto visibleListConstructions = app.Activity().currentBlockLabelConstructions;
+                 setCaret(list + 5);
+                 Require(!app.currentBlock->IsVisible() && app.listSummary->IsVisible() && app.listSummary->GetText() == listText &&
+                             app.Activity().currentBlockLabelConstructions == visibleListConstructions,
+                         "visible sidebar list selection keeps the list summary immediate and does not publish a locally hidden block label");
+                 const auto beforeVisibleParagraph = app.Activity().currentBlockLabelConstructions;
+                 setCaret(first + 3);
+                 auto visibleFacts = expectedParagraph();
+                 Require(app.currentBlock->IsVisible() && app.currentBlock->GetText() == visibleFacts &&
+                             app.Activity().currentBlockLabelConstructions == beforeVisibleParagraph + 1,
+                         "returning from list context publishes the current paragraph immediately");
+
+                 const auto editSource = app.Document().Snapshot();
+                 const auto editSelection = app.Document().GetSelection();
+                 Require(app.Document().ReplaceSelection(L"z"), "edit a visible current-block paragraph");
+                 visibleFacts = expectedParagraph();
+                 Require(app.currentBlock->GetText() == visibleFacts, "a visible paragraph edit updates its label synchronously");
+                 Require(app.Document().Undo(), "undo the visible paragraph edit");
+                 visibleFacts = expectedParagraph();
+                 Require(app.currentBlock->GetText() == visibleFacts && app.Document().Snapshot().IsSameRevision(editSource) &&
+                             app.Document().GetSelection() == editSelection && app.Document().CanRedo(),
+                         "visible undo immediately restores the exact label, source, caret and redo admission");
+                 Require(app.Document().Redo(), "redo the visible paragraph edit");
+                 visibleFacts = expectedParagraph();
+                 Require(app.currentBlock->GetText() == visibleFacts, "visible redo immediately republishes its paragraph facts");
+                 Require(app.Document().Undo(), "restore the source after the visible redo oracle");
+                 visibleFacts = expectedParagraph();
+                 Require(app.currentBlock->GetText() == visibleFacts && app.Document().Snapshot().IsSameRevision(editSource) &&
+                             app.Document().GetSelection() == editSelection,
+                         "the complete visible edit/undo/redo sequence restores the original revision and caret");
+
+                 bool selectFirst{};
+                 const auto exerciseHiddenReveal = [&](const std::function<void()> &hide, const std::function<void()> &reveal, std::string_view cause)
+                 {
+                     hide();
+                     Require(!app.sidebar->IsVisible(), cause);
+                     const auto before = app.Activity().currentBlockLabelConstructions;
+                     setCaret((selectFirst ? first : second) + 3);
+                     selectFirst = !selectFirst;
+                     Require(app.Activity().currentBlockLabelConstructions == before && app.currentBlock->IsVisible(),
+                             "each hidden visibility cause defers a changed paragraph's label construction");
+                     const auto pending = expectedParagraph();
+                     reveal();
+                     Require(app.sidebar->IsVisible() && app.Activity().currentBlockLabelConstructions == before + 1 &&
+                                 app.currentBlock->GetText() == pending && AccessibilityContainsName(app, pending),
+                             "each sidebar reveal publishes current text to the label and UI Automation");
+                 };
+                 exerciseHiddenReveal(
+                     [&]
+                     {
+                         app.settings.showOutline = false;
+                         app.Layout();
+                     },
+                     [&]
+                     {
+                         app.settings.showOutline = true;
+                         app.Layout();
+                     },
+                     "outline-off hides the sidebar");
+                 exerciseHiddenReveal([&] { app.SetView(EditorView::Split); }, [&] { app.SetView(EditorView::Compose); },
+                                      "Split view hides the sidebar");
+                 exerciseHiddenReveal([&] { Resize(app, 800, 560, 96, false); }, [&] { Resize(app, 1440, 900, 96, false); },
+                                      "the narrow viewport hides the sidebar");
+                 exerciseHiddenReveal(
+                     [&]
+                     {
+                         app.settings.showFiles = true;
+                         Resize(app, 1024, 900, 96, false);
+                         Require(app.filesPane->IsVisible() && app.filesPane->borderRight && !app.filesSplitter->IsVisible(),
+                                 "the file-overlay fixture is active rather than a normal left Files pane");
+                     },
+                     [&]
+                     {
+                         app.settings.showFiles = false;
+                         Resize(app, 1440, 900, 96, false);
+                     },
+                     "the narrow Files overlay hides the sidebar");
+                 Require(app.Document().Snapshot().IsSameRevision(entrySource) && app.currentBlockTitle->GetText() == title &&
+                             GetForegroundWindow() == foreground && !IsWindowVisible(app.Window()),
+                         "all reveal paths preserve the document and static title without activating the hidden app");
              });
         test("Window.DesignRefreshMergedFrameHitTests",
              [&]
@@ -2193,21 +2393,58 @@ class DesignRefreshProbe final
                                 backwardLink || (nodes[index].nextSibling != DxUi::RichText::MarkdownNoNode && nodes[index].nextSibling < index);
                         Require(backwardLink, "reference extraction actually creates source-order links that differ from vector append order");
                     }
+                    std::optional<std::pair<unsigned, std::size_t>> lastVisibleFacts;
+                    const auto firstPosition = *positions.begin();
+                    const auto firstFacts = std::pair{std::get<1>(firstPosition), std::get<2>(firstPosition)};
+                    const auto initialConstructions = app.Activity().currentBlockLabelConstructions;
+                    app.Document().SetSelection({std::get<0>(firstPosition), std::get<0>(firstPosition)});
+                    app.SelectionChanged(false);
+                    const auto initialLatestFacts = app.currentBlockLatestFacts;
+                    Require(initialLatestFacts && initialLatestFacts.value().resourceId == firstFacts.first &&
+                                initialLatestFacts.value().lineCharacterCount == firstFacts.second,
+                            "the first independently specified source position matches retained canonical facts");
+                    if (app.sidebar->IsVisible() && app.currentBlock->IsVisible())
+                    {
+                        expectBlock(firstFacts.first, firstFacts.second, "the first source-position oracle is published when its label is visible");
+                        lastVisibleFacts = firstFacts;
+                    }
+                    else
+                    {
+                        Require(app.Activity().currentBlockLabelConstructions == initialConstructions,
+                                "classifying the first hidden source position does not construct its current-block label");
+                        if (!app.currentBlock->IsVisible())
+                            Require(app.listSummary->IsVisible() && !app.listSummary->GetText().empty(),
+                                    "the first hidden list position retains its visible nonempty list summary");
+                    }
                     const auto snapshot = app.Document().Snapshot();
                     const auto changes = app.Activity().changes;
                     const auto canUndo = app.Document().CanUndo(), canRedo = app.Document().CanRedo();
-                    std::optional<std::pair<unsigned, std::size_t>> previousFacts;
                     for (const auto [caret, id, characters] : positions)
                     {
                         const auto constructions = app.Activity().currentBlockLabelConstructions;
                         app.Document().SetSelection({caret, caret});
                         app.SelectionChanged(false);
-                        expectBlock(id, characters, "the actual containing canonical block kind and physical-line count are exact");
                         const auto facts = std::pair{id, characters};
-                        if (previousFacts)
-                            Require(app.Activity().currentBlockLabelConstructions == constructions + (previousFacts.value() == facts ? 0 : 1),
-                                    "ready nested-kind/count transitions construct once while equal marker/cell facts construct nothing");
-                        previousFacts = facts;
+                        const auto latestFacts = app.currentBlockLatestFacts;
+                        Require(latestFacts && latestFacts.value().resourceId == id && latestFacts.value().lineCharacterCount == characters,
+                                "the independently specified source position matches the retained canonical block kind and line count");
+                        const bool labelPublished = app.sidebar->IsVisible() && app.currentBlock->IsVisible();
+                        if (labelPublished)
+                        {
+                            expectBlock(id, characters, "the visible label matches the literal source-position kind and physical-line count");
+                            const auto expectedConstructions = lastVisibleFacts && lastVisibleFacts.value() == facts ? 0u : 1u;
+                            Require(app.Activity().currentBlockLabelConstructions == constructions + expectedConstructions,
+                                    "visible nested-kind/count transitions publish once relative to the last visible literal facts");
+                            lastVisibleFacts = facts;
+                        }
+                        else
+                        {
+                            Require(app.Activity().currentBlockLabelConstructions == constructions,
+                                    "hidden current-block labels do not construct text for a newly classified source position");
+                            if (!app.currentBlock->IsVisible())
+                                Require(app.listSummary->IsVisible() && !app.listSummary->GetText().empty(),
+                                        "a locally hidden list block retains its visible nonempty list summary");
+                        }
                         Require(app.Document().Snapshot().IsSameRevision(snapshot) &&
                                     app.Document().GetSelection() == DxUi::RichText::Selection{caret, caret} && app.Document().CanUndo() == canUndo &&
                                     app.Document().CanRedo() == canRedo && app.Activity().changes == changes &&
@@ -2298,10 +2535,21 @@ class DesignRefreshProbe final
                 nestedEntry.caretIndex = 4;
                 auto nestedPreview = nestedEntry;
                 nestedPreview.text = L"> - one\n";
+                const auto beforeNestedListConstructions = app.Activity().currentBlockLabelConstructions;
                 Require((app.Document().*Testing::TextServiceImportProbe::Import)(app.Host(), nestedPreview, false),
                         "preview a nested list item at the same ACP and physical-line length");
+                expectBlock(IDS_BLOCKPARAGRAPH, 7, "the pending nested-list preview publishes its visible paragraph facts");
+                Require(app.Activity().currentBlockLabelConstructions == beforeNestedListConstructions + 1,
+                        "invalidating the ready quote publishes the different visible pending kind once");
+                const auto pendingNestedListConstructions = app.Activity().currentBlockLabelConstructions;
                 app.Prepare(512);
-                expectBlock(IDS_BLOCKLIST, 7, "the deeper list item replaces the quote category despite an unchanged line count");
+                Require(app.currentBlockLatestFacts && app.currentBlockLatestFacts.value().resourceId == IDS_BLOCKLIST &&
+                            app.currentBlockLatestFacts.value().lineCharacterCount == 7,
+                        "ready nested-list syntax retains its literal source kind and physical-line count");
+                Require(!app.currentBlock->IsVisible() && app.listSummary->IsVisible() && !app.listSummary->GetText().empty(),
+                        "the visible nested-list summary replaces its hidden current-block label");
+                Require(app.Activity().currentBlockLabelConstructions == pendingNestedListConstructions,
+                        "ready nested-list syntax does not construct the now-hidden current-block label");
                 const auto nestedConstructions = app.Activity().currentBlockLabelConstructions;
                 nestedPreview.text = L"> # one\n";
                 Require((app.Document().*Testing::TextServiceImportProbe::Import)(app.Host(), nestedPreview, false),

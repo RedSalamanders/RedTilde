@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "sourceCommit": "1d39ee27ee63aedb01197b230f399963e0caad9f",
+  "profiles": 6,
+  "x64FullRuns": 3,
+  "artifactsRehashed": 20,
+  "payloadStreamsRehashed": 1862,
+  "ordinaryCases": 177,
+  "captureScenarioPairsRehashed": 69,
+  "genuineAsanProbe": true,
+  "projectionFileSha256": "971C15C28BE8B6EB121F28D0A89A19F1A345CA5C8A37821718A8F2E9E555EC1C",
+  "scope": "Independent root replay of exact native artifacts, every payload and published binding. Cross-builds do not establish ARM64 runtime; input/performance/hosted gates remain separate."
+}

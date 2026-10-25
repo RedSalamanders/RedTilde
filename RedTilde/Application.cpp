@@ -202,6 +202,7 @@ HRESULT Application::Initialize()
     initialized = true;
     initializing = true;
     // BuildUi is the sole creation site for the label whose localized facts we cache.
+    currentBlockLatestFacts.reset();
     currentBlockPublishedFacts.reset();
     BuildUi();
     ApplyTheme();
@@ -517,6 +518,36 @@ void Application::UpdateCounts()
     }
 }
 
+bool Application::PublishCurrentBlockLabelIfVisible(bool sidebarWillBeVisible)
+{
+    if (closing)
+        return false;
+    if (!root || !sidebar || !currentBlock)
+        return false;
+    if ((!sidebar->IsVisible() && !sidebarWillBeVisible) || !currentBlock->IsVisible() || !currentBlockLatestFacts ||
+        currentBlockPublishedFacts == currentBlockLatestFacts)
+        return true;
+
+    const auto facts = currentBlockLatestFacts.value();
+    const auto blockType = ResourceView(facts.resourceId);
+    auto text = std::vformat(ResourceView(IDS_BLOCKINFO), std::make_wformat_args(blockType, facts.lineCharacterCount));
+    const auto request = ++activity.currentBlockLabelConstructions;
+    currentBlockPublishedFacts.reset();
+    auto *const publishedLabel = currentBlock;
+    auto *const publishedRoot = root;
+    const auto labelLifetime = GetControlLifetimeToken(*publishedLabel);
+    const auto rootLifetime = GetControlLifetimeToken(*publishedRoot);
+    publishedLabel->SetText(std::move(text));
+    // SetText can reenter and retire either control or install newer requested facts.
+    if (closing || labelLifetime.expired() || rootLifetime.expired() || currentBlock != publishedLabel || root != publishedRoot ||
+        host.GetRoot() != publishedRoot)
+        return false;
+    // A nested callback can update the requested facts without publishing while hidden.
+    if (activity.currentBlockLabelConstructions == request && currentBlockLatestFacts == facts)
+        currentBlockPublishedFacts = facts;
+    return true;
+}
+
 void Application::UpdateCaption(std::wstring caption)
 {
     ++activity.captionRequests;
@@ -771,6 +802,7 @@ void Application::SelectionChanged(bool refreshTools)
         }
         {
             EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::BlockLabels);
+            currentBlockLatestFacts = CurrentBlockLabelFacts{blockResourceId, count};
             const bool showListSummary = listFacts && (blockResourceId == IDS_BLOCKLIST || blockResourceId == IDS_BLOCKLISTCONTAINER);
             listSummary->SetVisible(showListSummary);
             listSummaryIcon->SetVisible(showListSummary);
@@ -785,18 +817,8 @@ void Application::SelectionChanged(bool refreshTools)
                 if (listSummaryPublication == request)
                     listSummaryFacts = listFacts;
             }
-            const CurrentBlockLabelFacts blockFacts{blockResourceId, count};
-            if (!currentBlockPublishedFacts || currentBlockPublishedFacts.value() != blockFacts)
-            {
-                const auto blockType = ResourceView(blockResourceId);
-                auto text = std::vformat(ResourceView(IDS_BLOCKINFO), std::make_wformat_args(blockType, count));
-                const auto request = ++activity.currentBlockLabelConstructions;
-                currentBlockPublishedFacts.reset();
-                currentBlock->SetText(std::move(text));
-                // A nested publication owns its newer facts, just as a nested caption request does.
-                if (activity.currentBlockLabelConstructions == request)
-                    currentBlockPublishedFacts = blockFacts;
-            }
+            if (!PublishCurrentBlockLabelIfVisible())
+                return;
         }
         if (selectionChanged)
         {

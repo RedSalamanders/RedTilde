@@ -139,6 +139,10 @@ section and named UIA current state. Empty headings do not produce blank rows. C
 Markdown kind and physical-line character count, or enclosing list kind and item count for list content;
 equation controls appear only in current mathematical context.
 Its read-only equation preview uses the same shared engine as the document and is labelled explicitly.
+When the current-block label or its sidebar is hidden, retain the newest source-localized block facts without
+formatting or publishing the label. Publish those facts before the sidebar becomes visible so the first paint and
+UI Automation snapshot expose the current selection. The list summary and static current-block title retain their
+existing immediate behavior.
 
 Localize and publish the visible Paragraph/Math toolbar caption on initial synchronization and published context
 transitions; its accessible command name remains Heading. Pending replacement syntax clears stale math and

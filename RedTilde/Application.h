@@ -239,6 +239,7 @@ class Application
         bool operator==(const CurrentBlockLabelFacts &) const noexcept = default;
     };
     std::optional<CurrentBlockLabelFacts> currentBlockPublishedFacts;
+    std::optional<CurrentBlockLabelFacts> currentBlockLatestFacts;
     std::optional<bool> selectionCaptionPublishedEquationContext;
     bool updatingFind{}, equationContext{}, pendingSelectionTools{}, pendingBlockPlacement{}, systemDark{};
     AsyncFiles files;
@@ -327,6 +328,7 @@ class Application
     void UpdateCounts();
     void UpdateCaption(std::wstring caption);
     void SelectionChanged(bool refreshTools = true);
+    [[nodiscard]] bool PublishCurrentBlockLabelIfVisible(bool sidebarWillBeVisible = false);
     void FocusSelectionTools();
     void Status(unsigned id);
     void SavePreferences();

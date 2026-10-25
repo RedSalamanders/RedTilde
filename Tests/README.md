@@ -7,6 +7,7 @@ Run `test.ps1 -Configuration Debug -Suite Core`; use `-SkipBuild` for the exact 
 Native cases are compiled from `Application.Tests.Core.cpp` into the same executable and run with `--self-test`.
 Core also runs a hidden child-process probe that changes preferences, closes immediately and verifies the final state after process exit.
 They exercise public controls and app commands without desktop input, clipboard access or foreground activation.
+The native catalog contains 59 cases: Storage (10), Settings (4), Recovery (5) and Editor (40).
 Receipts and failed logs remain under `.build/evidence/test-runs/<id>/payload`. The validation contract lists broader gates.
 
 The S5 harness adds `--performance-probe <json>` and `--resource-probe <json>`, with an explicit `--document`

@@ -40,6 +40,12 @@ working set, handles, GDI/USER objects, host caches and available DXGI usage at 
 is unavailable, never zero. Hidden/clean idle must request no additional preparation or rendering; production
 workers continue blocking on events. Teardown probes retain before/after handle/resource observations.
 
+A separately declared virtual-memory census is a diagnostic, not a substitute for those process counters.
+`MEM_PRIVATE`-type committed ranges are not process-private bytes, mapped image size is not resident working set,
+and an additional font mapping does not identify a causal allocation owner. Preserve unresolved mapping identities
+and empty/exit snapshots explicitly. Suspension-based sampling must report bracket coverage and its missing costs;
+intrusive stack walks and sparse instruction pointers cannot be presented as CPU shares or causal attribution.
+
 Resource-only native reports also retain `firstCompletedPreparation` and a `preparation` object on resize and
 device-recreation phases. Each brackets the operation, cooperative native preparation and a GPU completion fence,
 then records completed wall time, owner cycles, process CPU and intermediate root-child Flush count. Snapshot

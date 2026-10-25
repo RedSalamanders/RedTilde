@@ -21,3 +21,24 @@ Support x64/ARM64 Debug, Release and ASan Debug. ASan Debug must have compiler i
 staged runtime. Native tests must execute on the target architecture. `build.ps1` rejects a running executable
 from its selected output directory and does not terminate it. Packaging produces a portable app with examples,
 license notices and a capability-status note. A release cannot depend on an unqualified moving PR branch.
+
+`build.ps1` hashes the compiled first-party source map by file bytes, so restored or preserved timestamps cannot make
+changed source appear current. Before MSBuild it verifies the exact DxUi lock commit and a clean pinned source checkout,
+binds that dependency identity, its source/package public-header inventories and the resolved consumer properties file,
+then evaluates the selected compiler context and verifies the effective output and intermediate directories
+are the owned profile paths. Before writing a receipt or restoring the dependency, it rejects reparse points anywhere
+in the repository's output, intermediate or dependency-restore path ancestry. A missing or changed prior input identity,
+an old receipt, or changed output closure causes an app-project-only `Clean` with project-reference builds disabled
+before the normal build. If the clean boundary or required input identity cannot be verified, the build fails closed.
+An unchanged compiled-input identity permits incremental reuse, including documentation-only edits; the receipt still
+updates its full source identity.
+
+After path preflight, each build attempt revokes the profile's prior successful receipt before dependency restore or
+MSBuild. Only a completed build whose source, dependency headers, compiler context, output closure and executable remain
+unchanged receives a schema-2 passed receipt. Failed or interrupted attempts leave no reusable success. Test, package
+and performance entrypoints admit an existing executable only through that current receipt and matching artifact
+closure. Historical evidence retains its original receipt protocol and is not rewritten. The guard binds first-party
+compiled-source bytes, the exact clean DxUi source commit, its source/package public headers, resolved consumer-property
+bytes and evaluated source/output/lock properties, plus the MSBuild/compiler/linker/resource-compiler context. It uses
+the first matching executable in MSBuild's evaluated tool search path and refuses an unowned first match; it does not
+claim to fingerprint arbitrary external imports outside those declared inputs.

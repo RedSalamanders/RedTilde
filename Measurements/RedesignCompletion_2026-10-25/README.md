@@ -1,5 +1,24 @@
 # Redesign completion evidence — 2026-10-25
 
+The current checkpoint is source `1d39ee27` at DxUi `2fed8246`:
+
+- [Local matrix](qualification-1d39ee27/README.md): six builds and three x64 Full runs, with 59 ordinary cases
+  and 23 hidden captures per run; genuine ASan detection passes. ARM64 is cross-build only.
+- [Keyboard/menu input](input-1d39ee27/README.md): nine stages and 168 events pass through the authorized
+  automatic-start lease; foreground/focus are unchanged and the pointer is restored.
+- [Fresh performance](performance-1d39ee27/README.md): all 576 reports and 72 rows replay independently.
+  Four original-UI findings remain; starting-redesign has four memory improvements and no regression findings,
+  and the actual PR14-base comparison has twelve no-resolved-change rows. These comparisons remain separate.
+
+Latest SDK main `b6060881` passes five native profiles and fails ARM64 Release in the Menu acrylic-capture
+fixture. Its cause and the fixture repair's qualification remain open. RedTilde hosted ARM64 remains blocked
+by billing; neither local cross-builds nor earlier green SDK runs replace those observations.
+
+The [separate resource diagnostics](diagnostics-9025be4/README.md) retain the earlier committed-region census
+and intrusive-sampler limits. Mapping categories do not identify an allocation owner.
+
+## Earlier checkpoint
+
 These packets retain separate local native qualification and paired-performance evidence for application source
 `9025be4b1dcf2753e0cab70cdcd355e219c879fb` / DxUi `2fed82465dcee9f213753754e0e8e54f353cf38f`. They do not close
 performance acceptance or the WIP plan.
@@ -15,5 +34,7 @@ performance acceptance or the WIP plan.
   1,728 same-side drifts. Five original-UI A/B regressions remain. The actual PR13-base A/B has no resolved change
   and does not close that original-UI gate.
 
-Observer windows have complete sample coverage but no verified quiet CPU window. Hosted CI, focus, native ARM64
-and performance acceptance remain separate gates.
+Observer windows do not establish a quiet CPU window. Hosted CI, native ARM64, physical IME/assistive technology
+and performance acceptance retain their own gates. The required nine-stage keyboard run is recorded separately above.
+
+- [Documentation-only 49cf continuation](docs-rebind-49cfb9a/README.md): six new receipts with identical qualified native bytes; no repeated runtime or performance execution.
