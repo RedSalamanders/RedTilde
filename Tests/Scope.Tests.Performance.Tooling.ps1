@@ -36,6 +36,90 @@ Require ([math]::Abs($row.adjustedP-0.462890625) -lt 1e-12 -and $row.finding -ce
 $invalid=Pair 1.0; $invalid[0].B1.commandUs=0.0
 $rejected=$false; try { Compare-RedTildePerformanceBlocks $invalid | Out-Null } catch { $rejected=$true }
 Require $rejected 'Missing/zero metrics cannot become an accepted comparison.'
+$publicHeaders='a'*64
+$dependencyA=[ordered]@{Fingerprint=('1'*64);Identity=[ordered]@{commit=('a'*40);apiRevision=4;platform='x64';toolset='v145';runtimeFamily='MD';compilerSha256=('b'*64)}}
+$dependencyB=[ordered]@{Fingerprint=('2'*64);Identity=[ordered]@{commit=('c'*40);apiRevision=4;platform='x64';toolset='v145';runtimeFamily='MD';compilerSha256=('b'*64)}}
+Assert-RedTildeDependencyComparison $dependencyA $dependencyA $publicHeaders $publicHeaders
+Assert-RedTildeDependencyComparison $dependencyA $dependencyB $publicHeaders $publicHeaders -DependencyAdoption
+Assert-RedTildeDependencyComparison $dependencyA $dependencyA $publicHeaders $publicHeaders -DependencyAdoption
+$dependencyAPscustom=ConvertFrom-Json -InputObject (ConvertTo-Json -InputObject $dependencyA -Depth 10)
+$dependencyBPscustom=ConvertFrom-Json -InputObject (ConvertTo-Json -InputObject $dependencyB -Depth 10)
+Assert-RedTildeDependencyComparison $dependencyAPscustom $dependencyBPscustom $publicHeaders $publicHeaders -DependencyAdoption
+function Require-DependencyRejected([string]$Name,$Baseline,$Candidate,[string]$BaselineHeaders=$publicHeaders,[string]$CandidateHeaders=$publicHeaders,[switch]$Adoption) {
+    $rejected=$false
+    try {
+        if($Adoption) { Assert-RedTildeDependencyComparison $Baseline $Candidate $BaselineHeaders $CandidateHeaders -DependencyAdoption }
+        else { Assert-RedTildeDependencyComparison $Baseline $Candidate $BaselineHeaders $CandidateHeaders }
+    } catch { $rejected=$true }
+    Require $rejected "Dependency comparison rejects $Name."
+}
+Require-DependencyRejected 'unqualified dependency change' $dependencyA $dependencyB
+$unexpectedDependency=[ordered]@{Fingerprint=('2'*64);Identity=[ordered]@{commit=('c'*40);apiRevision=4;platform='x64';toolset='v145';runtimeFamily='MD';compilerSha256=('b'*64)};newField='changed'}
+Require-DependencyRejected 'unexpected outer field' $dependencyA $unexpectedDependency $publicHeaders $publicHeaders -Adoption
+$changedToolset=[ordered]@{Fingerprint=('2'*64);Identity=[ordered]@{commit=('c'*40);apiRevision=4;platform='x64';toolset='v146';runtimeFamily='MD';compilerSha256=('b'*64)}}
+Require-DependencyRejected 'toolchain field change' $dependencyA $changedToolset $publicHeaders $publicHeaders -Adoption
+$changedRuntime=[ordered]@{Fingerprint=('2'*64);Identity=[ordered]@{commit=('c'*40);apiRevision=4;platform='x64';toolset='v145';runtimeFamily='MT';compilerSha256=('b'*64)}}
+Require-DependencyRejected 'runtime field change' $dependencyA $changedRuntime $publicHeaders $publicHeaders -Adoption
+$changedApi=[ordered]@{Fingerprint=('2'*64);Identity=[ordered]@{commit=('c'*40);apiRevision=5;platform='x64';toolset='v145';runtimeFamily='MD';compilerSha256=('b'*64)}}
+Require-DependencyRejected 'API revision change' $dependencyA $changedApi $publicHeaders $publicHeaders -Adoption
+$booleanApi=$dependencyB|ConvertTo-Json -Depth 10|ConvertFrom-Json -AsHashtable
+$booleanApi.Identity.apiRevision=$true
+Require-DependencyRejected 'boolean API revision coercion' $dependencyA $booleanApi $publicHeaders $publicHeaders -Adoption
+Require-DependencyRejected 'public header digest change' $dependencyA $dependencyB $publicHeaders ('d'*64) -Adoption
+$missingMetadata=[ordered]@{Fingerprint=('2'*64);Identity=[ordered]@{commit=('c'*40);apiRevision=4;platform='x64';toolset='v145';runtimeFamily='MD'}}
+Require-DependencyRejected 'missing compiler identity metadata' $dependencyA $missingMetadata $publicHeaders $publicHeaders -Adoption
+$missingCommit=[ordered]@{Fingerprint=('2'*64);Identity=[ordered]@{apiRevision=4;platform='x64';toolset='v145';runtimeFamily='MD';compilerSha256=('b'*64)}}
+Require-DependencyRejected 'missing dependency commit' $dependencyA $missingCommit $publicHeaders $publicHeaders -Adoption
+$missingFingerprint=[ordered]@{Identity=[ordered]@{commit=('c'*40);apiRevision=4;platform='x64';toolset='v145';runtimeFamily='MD';compilerSha256=('b'*64)}}
+Require-DependencyRejected 'missing dependency fingerprint' $dependencyA $missingFingerprint $publicHeaders $publicHeaders -Adoption
+$invalidCommit=[ordered]@{Fingerprint=('2'*64);Identity=[ordered]@{commit='not-a-commit';apiRevision=4;platform='x64';toolset='v145';runtimeFamily='MD';compilerSha256=('b'*64)}}
+Require-DependencyRejected 'malformed adoption commit' $dependencyA $invalidCommit $publicHeaders $publicHeaders -Adoption
+$beforeA=ConvertTo-Json -InputObject $dependencyA -Depth 10 -Compress
+$beforeB=ConvertTo-Json -InputObject $dependencyB -Depth 10 -Compress
+Assert-RedTildeDependencyComparison $dependencyA $dependencyB $publicHeaders $publicHeaders -DependencyAdoption
+Require ((ConvertTo-Json -InputObject $dependencyA -Depth 10 -Compress) -ceq $beforeA -and
+    (ConvertTo-Json -InputObject $dependencyB -Depth 10 -Compress) -ceq $beforeB) 'Dependency adoption comparisons leave caller-owned objects unchanged.'
+function New-CompilerComparisonFixture([string]$Commit,[string]$Fingerprint,[string]$Suffix,[string[]]$Extra=@()) {
+    $source='<ROOT>\.BUILD\DEPENDENCIES\DXUI\SOURCE\'+$Commit+'\INCLUDE'
+    $package='<ROOT>\.BUILD\DEPENDENCIES\DXUI\'+$Fingerprint+'\VCPKG_INSTALLED\X64\X64-WINDOWS\INCLUDE'
+    $command='/c /I'+$source+' /I"'+$package+'" /I<ROOT>\include /O2 /MD /D TEXT=<ROOT>\opaque '+($Extra -join ' ')
+    $sha=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($Suffix+$command)))
+    return [ordered]@{schemaVersion=2;sha256=$sha;commands=@($command)}
+}
+$compilerA=New-CompilerComparisonFixture ('a'*40) ('1'*64) 'a'
+$compilerB=New-CompilerComparisonFixture ('c'*40) ('2'*64) 'b'
+Assert-RedTildeCompilerComparison $compilerA $compilerA $dependencyA $dependencyA
+Assert-RedTildeCompilerComparison $compilerA $compilerB $dependencyA $dependencyB -DependencyAdoption
+function Require-CompilerRejected([string]$Name,$Baseline,$Candidate,$BaselinePin=$dependencyA,$CandidatePin=$dependencyB) {
+    $rejected=$false
+    try { Assert-RedTildeCompilerComparison $Baseline $Candidate $BaselinePin $CandidatePin -DependencyAdoption } catch {$rejected=$true}
+    Require $rejected "Compiler adoption rejects $Name."
+}
+Require-CompilerRejected 'optimization change' $compilerA (New-CompilerComparisonFixture ('c'*40) ('2'*64) 'c' @('/Od'))
+Require-CompilerRejected 'runtime change' $compilerA (New-CompilerComparisonFixture ('c'*40) ('2'*64) 'd' @('/MT'))
+Require-CompilerRejected 'macro change' $compilerA (New-CompilerComparisonFixture ('c'*40) ('2'*64) 'e' @('/D TEXT=<ROOT>\changed'))
+Require-CompilerRejected 'boolean compiler schema version' $compilerA ([ordered]@{schemaVersion=$true;sha256=('f'*64);commands=@($compilerB.commands[0])})
+Require-CompilerRejected 'unknown include path change' $compilerA (New-CompilerComparisonFixture ('c'*40) ('2'*64) 'f' @('/I<ROOT>\different'))
+$separateUnknownA=New-CompilerComparisonFixture ('a'*40) ('1'*64) 'j'
+$separateUnknownB=New-CompilerComparisonFixture ('c'*40) ('2'*64) 'k'
+$separateUnknownA.commands=@($separateUnknownA.commands[0].Replace('/I<ROOT>\include','/I <ROOT>\shared'))
+$separateUnknownB.commands=@($separateUnknownB.commands[0].Replace('/I<ROOT>\include','/I <ROOT>\shared'))
+Assert-RedTildeCompilerComparison $separateUnknownA $separateUnknownB $dependencyA $dependencyB -DependencyAdoption
+$changedSeparateUnknown=New-CompilerComparisonFixture ('c'*40) ('2'*64) 'l'
+$changedSeparateUnknown.commands=@($changedSeparateUnknown.commands[0].Replace('/I<ROOT>\include','/I <ROOT>\different'))
+Require-CompilerRejected 'changed separate unknown include operand' $separateUnknownA $changedSeparateUnknown
+$missingSource=New-CompilerComparisonFixture ('c'*40) ('2'*64) 'g'
+$missingSource.commands=@($missingSource.commands[0].Replace('/I<ROOT>\.BUILD\DEPENDENCIES\DXUI\SOURCE\'+('c'*40)+'\INCLUDE ',''))
+Require-CompilerRejected 'missing declared source include' $compilerA $missingSource
+$missingPackage=New-CompilerComparisonFixture ('c'*40) ('2'*64) 'h'
+$missingPackage.commands=@($missingPackage.commands[0].Replace('/I"<ROOT>\.BUILD\DEPENDENCIES\DXUI\'+('2'*64)+'\VCPKG_INSTALLED\X64\X64-WINDOWS\INCLUDE" ',''))
+Require-CompilerRejected 'missing declared package include' $compilerA $missingPackage
+$duplicateInclude=New-CompilerComparisonFixture ('c'*40) ('2'*64) 'i'
+$duplicateInclude.commands=@($duplicateInclude.commands[0].Replace('/I"<ROOT>\.BUILD\DEPENDENCIES\DXUI\'+('2'*64)+'\VCPKG_INSTALLED\X64\X64-WINDOWS\INCLUDE" ',
+    '/I"<ROOT>\.BUILD\DEPENDENCIES\DXUI\'+('2'*64)+'\VCPKG_INSTALLED\X64\X64-WINDOWS\INCLUDE" /I"<ROOT>\.BUILD\DEPENDENCIES\DXUI\'+('2'*64)+'\VCPKG_INSTALLED\X64\X64-WINDOWS\INCLUDE" '))
+Require-CompilerRejected 'duplicate expected package include' $compilerA $duplicateInclude
+$missingIdentity=[ordered]@{Fingerprint=('2'*64);Identity=[ordered]@{apiRevision=4}}
+Require-CompilerRejected 'missing dependency identity commit' $compilerA $compilerB $dependencyA $missingIdentity
 $fixtureRoot=Join-Path $PSScriptRoot ('../.build/performance-tooling/'+[guid]::NewGuid().ToString('N'))
 function Write-CompilerFixture([string]$Name,[string[]]$Files,[string[]]$Flags) {
     $directory=[IO.Path]::GetFullPath((Join-Path $fixtureRoot $Name))
@@ -108,6 +192,75 @@ Require ($nearProfiles[0].sha256 -cne $nearProfiles[1].sha256) 'A root-prefix ne
 # Run the actual auditor's identity boundary against synthetic metadata/raw commands. Its typed tokenizer
 # is independent of the production profile builder; these fixtures qualify neither a native measurement nor policy.
 . (Join-Path $PSScriptRoot 'Scope.Tests.Performance.Evidence.ps1') -SelfTest
+$sourceIncludeA='<ROOT>\.BUILD\DEPENDENCIES\DXUI\SOURCE\'+('a'*40)+'\INCLUDE'
+$packageIncludeA='<ROOT>\.BUILD\DEPENDENCIES\DXUI\'+('1'*64)+'\VCPKG_INSTALLED\x64\x64-windows\INCLUDE'
+$sourceIncludeB='<ROOT>\.BUILD\DEPENDENCIES\DXUI\SOURCE\'+('c'*40)+'\INCLUDE'
+$packageIncludeB='<ROOT>\.BUILD\DEPENDENCIES\DXUI\'+('2'*64)+'\VCPKG_INSTALLED\x64\x64-windows\INCLUDE'
+$rawProfileA='/c /I'+$sourceIncludeA+' /I"'+$packageIncludeA+'" /I <ROOT>\shared /D TEXT=<ROOT>\opaque'
+$rawProfileB='/c /I'+$sourceIncludeB+' /I"'+$packageIncludeB+'" /I <ROOT>\shared /D TEXT=<ROOT>\opaque'
+$neutralA=[RedTilde.PairedEvidenceReference]::NeutralizeCompilerProfile($rawProfileA,$sourceIncludeA,$packageIncludeA)
+$neutralB=[RedTilde.PairedEvidenceReference]::NeutralizeCompilerProfile($rawProfileB,$sourceIncludeB,$packageIncludeB)
+Require ($neutralA -ceq '/c /I<DXUI_SOURCE_INCLUDE> /I"<DXUI_PACKAGE_INCLUDE>" /I <ROOT>\shared /D TEXT=<ROOT>\opaque' -and $neutralA -ceq $neutralB) `
+    'Independent adoption parser changes only the exact source/package /I operands; separate unknown /I and macros remain byte-exact.'
+$unknownChanged=[RedTilde.PairedEvidenceReference]::NeutralizeCompilerProfile($rawProfileB.Replace('/I <ROOT>\shared','/I <ROOT>\other'),$sourceIncludeB,$packageIncludeB)
+Require ($unknownChanged -cne $neutralA) 'Independent adoption parser retains changed unknown separate include operands.'
+$duplicateAdoptionRejected=$false
+try {
+    [RedTilde.PairedEvidenceReference]::NeutralizeCompilerProfile($rawProfileA.Replace('/I"'+$packageIncludeA+'"','/I"'+$packageIncludeA+'" /I"'+$packageIncludeA+'"'),$sourceIncludeA,$packageIncludeA)|Out-Null
+} catch {$duplicateAdoptionRejected=$true}
+Require $duplicateAdoptionRejected 'Independent adoption parser rejects duplicate expected package include operands.'
+$sourceHeaderRow=[ordered]@{path='include/DxUi/Fixture.h';sha256=('F'*64)}
+$packageHeaderRow=[ordered]@{path='package-include/wil/Fixture.h';sha256=('E'*64)}
+function Get-HeaderFixtureDigest($Rows) {
+    $lines=[string[]]@($Rows|ForEach-Object{$_.path+':'+$_.sha256});[Array]::Sort($lines,[StringComparer]::Ordinal)
+    return [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($lines -join "`n"))))
+}
+$headerDigest=Get-HeaderFixtureDigest @($sourceHeaderRow,$packageHeaderRow)
+$sourceHeaderDigest=Get-HeaderFixtureDigest @($sourceHeaderRow)
+$packageHeaderDigest=Get-HeaderFixtureDigest @($packageHeaderRow)
+$headerEvidence=[ordered]@{schemaVersion=2;sha256=$headerDigest;sourceSha256=$sourceHeaderDigest;packageSha256=$packageHeaderDigest;files=@($sourceHeaderRow,$packageHeaderRow)}
+$dependencyStudy=[ordered]@{dependencyComparisonMode='sdk-adoption';
+    baseline=[ordered]@{build=@{platform='x64';dependency=$dependencyA};publicHeaders=$headerEvidence};
+    candidate=[ordered]@{build=@{platform='x64';dependency=$dependencyB};publicHeaders=$headerEvidence}}
+$dependencyComparison=@{dependencyComparisonMode='sdk-adoption'}
+Assert-DependencyEvidence $dependencyStudy $dependencyComparison
+function Require-RejectedDependencyEvidence([string]$Name,[scriptblock]$Mutation) {
+    $copy=$dependencyStudy|ConvertTo-Json -Depth 30|ConvertFrom-Json -AsHashtable
+    & $Mutation $copy
+    $rejected=$false
+    try {Assert-DependencyEvidence $copy $dependencyComparison} catch {$rejected=$true}
+    Require $rejected ('Independent dependency evidence rejects '+$Name)
+}
+Require-RejectedDependencyEvidence 'missing header inventory' {param($study) $study.candidate.Remove('publicHeaders')}
+Require-RejectedDependencyEvidence 'corrupt header checksum' {param($study) $study.candidate.publicHeaders.sha256='0'*64}
+Require-RejectedDependencyEvidence 'header path traversal' {param($study) $study.candidate.publicHeaders.files[0].path='include/../Fixture.h'}
+Require-RejectedDependencyEvidence 'package header path traversal' {param($study) $study.candidate.publicHeaders.files[1].path='package-include/../Fixture.h'}
+Require-RejectedDependencyEvidence 'source header digest corruption' {param($study) $study.candidate.publicHeaders.sourceSha256='0'*64}
+Require-RejectedDependencyEvidence 'boolean header schema version' {param($study) $study.candidate.publicHeaders.schemaVersion=$true}
+Require-RejectedDependencyEvidence 'missing package inventory' {param($study) $study.candidate.publicHeaders.files=@($study.candidate.publicHeaders.files|Where-Object{$_.path -notlike 'package-include/*'})}
+Require-RejectedDependencyEvidence 'valid but changed package bytes' {param($study)
+    $row=$study.candidate.publicHeaders.files|Where-Object{$_.path -like 'package-include/*'}|Select-Object -First 1
+    $row.sha256='A'*64
+    $source=@($study.candidate.publicHeaders.files|Where-Object{$_.path -like 'include/*'})
+    $package=@($study.candidate.publicHeaders.files|Where-Object{$_.path -like 'package-include/*'})
+    $study.candidate.publicHeaders.sourceSha256=Get-HeaderFixtureDigest $source
+    $study.candidate.publicHeaders.packageSha256=Get-HeaderFixtureDigest $package
+    $study.candidate.publicHeaders.sha256=Get-HeaderFixtureDigest (@($source)+@($package))
+}
+Require-RejectedDependencyEvidence 'unknown ABI field' {param($study) $study.candidate.build.dependency.Identity.newFlag=$true}
+Require-RejectedDependencyEvidence 'runtime change' {param($study) $study.candidate.build.dependency.Identity.runtimeFamily='MDd'}
+Require-RejectedDependencyEvidence 'API change' {param($study) $study.candidate.build.dependency.Identity.apiRevision=5}
+Require-RejectedDependencyEvidence 'boolean API coercion' {param($study) $study.candidate.build.dependency.Identity.apiRevision=$true}
+Require-RejectedDependencyEvidence 'mode downgrade' {param($study) $study.dependencyComparisonMode='same-pin'}
+Require-RejectedDependencyEvidence 'build/dependency platform mismatch' {param($study) $study.candidate.build.platform='ARM64'}
+$legacyHeaderEvidence=[ordered]@{schemaVersion=1;sha256=(Get-HeaderFixtureDigest @($sourceHeaderRow));files=@($sourceHeaderRow)}
+$samePinStudy=[ordered]@{dependencyComparisonMode='same-pin';baseline=[ordered]@{build=@{platform='x64';dependency=$dependencyA};publicHeaders=$legacyHeaderEvidence};
+    candidate=[ordered]@{build=@{platform='x64';dependency=$dependencyA};publicHeaders=$legacyHeaderEvidence}}
+Assert-DependencyEvidence $samePinStudy @{dependencyComparisonMode='same-pin'}
+$legacyAdoptionStudy=[ordered]@{dependencyComparisonMode='sdk-adoption';baseline=[ordered]@{build=@{platform='x64';dependency=$dependencyA};publicHeaders=$legacyHeaderEvidence};
+    candidate=[ordered]@{build=@{platform='x64';dependency=$dependencyB};publicHeaders=$legacyHeaderEvidence}}
+$rejected=$false;try {Assert-DependencyEvidence $legacyAdoptionStudy $dependencyComparison}catch{$rejected=$true}
+Require $rejected 'Historical schema-one headers remain same-pin-only.'
 function Copy-IdentityFixture($Value) { return $Value|ConvertTo-Json -Depth 20|ConvertFrom-Json -AsHashtable }
 $auditRoot=Join-Path $fixtureRoot 'identity-audit'
 [void][IO.Directory]::CreateDirectory($auditRoot)
@@ -130,6 +283,43 @@ foreach($side in 'baseline','candidate') {
     $auditStudy.compilerReceipts[$side]=@{file=$leaf;sha256=$auditProfile.rawSha256}
 }
 Assert-CompilerProfileEvidence -Study $auditStudy -Root $auditRoot
+function New-RawAdoptionProfile([string]$Name,$Dependency,[string]$UnknownInclude='C:\AuditorFixture\Shared',[string]$Tail='/O2 /MD /D TEXT=<ROOT>\opaque') {
+    $sourceRoot=[IO.Path]::GetFullPath((Join-Path $fixtureRoot $Name))
+    $triplet='x64-windows'
+    $sourceInclude=Join-Path $sourceRoot ('.build/dependencies/DxUi/source/'+$Dependency.Identity.commit+'/include')
+    $packageInclude=Join-Path $sourceRoot ('.build/dependencies/DxUi/'+$Dependency.Fingerprint+'/vcpkg_installed/x64/'+$triplet+'/include')
+    $flags=$Tail+' /I"'+$sourceInclude+'" /I"'+$packageInclude+'" /I '+$UnknownInclude
+    $root=Write-CompilerFixture $Name @('A.cpp','B.cpp') @($flags,$flags)
+    return [ordered]@{root=$root;profile=(Get-RedTildeCompilerProfile $root)}
+}
+$rawAdoptionA=New-RawAdoptionProfile 'raw-adopt-a' $dependencyA
+$rawAdoptionB=New-RawAdoptionProfile 'raw-adopt-b' $dependencyB
+$rawAdoptionStudy=[ordered]@{dependencyComparisonMode='sdk-adoption';baseline=[ordered]@{build=@{dependency=$dependencyA};compiler=$rawAdoptionA.profile};
+    candidate=[ordered]@{build=@{dependency=$dependencyB};compiler=$rawAdoptionB.profile};compilerReceipts=[ordered]@{}}
+foreach($side in 'baseline','candidate') {
+    $item=if($side -ceq 'baseline'){$rawAdoptionA}else{$rawAdoptionB}
+    $leaf='raw-adoption-'+$side+'-compiler-command.tlog'
+    $from=Join-Path $item.root '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
+    Copy-Item -LiteralPath $from -Destination (Join-Path $auditRoot $leaf)
+    $rawAdoptionStudy.compilerReceipts[$side]=@{file=$leaf;sha256=$item.profile.rawSha256}
+}
+Assert-CompilerProfileEvidence -Study $rawAdoptionStudy -Root $auditRoot
+$rawChangedUnknown=New-RawAdoptionProfile 'raw-adopt-unknown' $dependencyB 'C:\AuditorFixture\Different'
+$rawChangedStudy=Copy-IdentityFixture $rawAdoptionStudy
+$rawChangedStudy.candidate.compiler=$rawChangedUnknown.profile
+$rawChangedLeaf='raw-adoption-changed-unknown-compiler-command.tlog'
+Copy-Item -LiteralPath (Join-Path $rawChangedUnknown.root '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog') -Destination (Join-Path $auditRoot $rawChangedLeaf)
+$rawChangedStudy.compilerReceipts.candidate=@{file=$rawChangedLeaf;sha256=$rawChangedUnknown.profile.rawSha256}
+$rawChangedRejected=$false;try {Assert-CompilerProfileEvidence -Study $rawChangedStudy -Root $auditRoot}catch{$rawChangedRejected=$true}
+Require $rawChangedRejected 'Independent raw-command adoption audit rejects a changed unknown separate include operand.'
+$rawChangedMacro=New-RawAdoptionProfile 'raw-adopt-macro' $dependencyB 'C:\AuditorFixture\Shared' '/O2 /MD /D TEXT=<ROOT>\different'
+$rawChangedStudy=Copy-IdentityFixture $rawAdoptionStudy
+$rawChangedStudy.candidate.compiler=$rawChangedMacro.profile
+$rawChangedLeaf='raw-adoption-changed-macro-compiler-command.tlog'
+Copy-Item -LiteralPath (Join-Path $rawChangedMacro.root '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog') -Destination (Join-Path $auditRoot $rawChangedLeaf)
+$rawChangedStudy.compilerReceipts.candidate=@{file=$rawChangedLeaf;sha256=$rawChangedMacro.profile.rawSha256}
+$rawChangedRejected=$false;try {Assert-CompilerProfileEvidence -Study $rawChangedStudy -Root $auditRoot}catch{$rawChangedRejected=$true}
+Require $rawChangedRejected 'Independent raw-command adoption audit rejects changed macro bytes.'
 function Require-RejectedCompilerEvidence([string]$Name,[scriptblock]$Mutation) {
     $changed=Copy-IdentityFixture $auditStudy
     & $Mutation $changed
@@ -155,6 +345,7 @@ Require-RejectedCompilerEvidence 'relative parent traversal' {param($study) $stu
 Require-RejectedCompilerEvidence 'relative dot alias' {param($study) $study.baseline.compiler.translationUnits[0].source='RedTilde\.\A.cpp'}
 Require-RejectedCompilerEvidence 'wrong recorded checkout root' {param($study) $study.baseline.compiler.sourceRoot=Join-Path $fixtureRoot 'other-source'}
 Require-RejectedCompilerEvidence 'one-side schema downgrade' {param($study) $study.baseline.compiler.Remove('schemaVersion')}
+Require-RejectedCompilerEvidence 'boolean schema version' {param($study) $study.baseline.compiler.schemaVersion=$true}
 Require-RejectedCompilerEvidence 'both-side schema downgrade' {param($study)
     $study.baseline.compiler.Remove('schemaVersion');$study.candidate.compiler.Remove('schemaVersion')
 }

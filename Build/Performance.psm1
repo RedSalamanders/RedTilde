@@ -242,4 +242,200 @@ function Get-RedTildeCompilerProfile {
         commands=$commands;translationUnits=@($inventory);rawSha256=(Get-FileHash $path).Hash}
 }
 
-Export-ModuleMember -Function Get-RedTildeMedian,Get-RedTildePerformanceMetrics,Get-RedTildeControlDiagnostics,New-RedTildePerformanceSchedule,Get-RedTildeSignFlipP,Compare-RedTildePerformanceBlocks,Get-RedTildeCompilerProfile
+function Assert-RedTildeDependencyComparison {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] $BaselineDependency,
+        [Parameter(Mandatory)] $CandidateDependency,
+        [Parameter(Mandatory)][AllowEmptyString()][string] $BaselinePublicHeadersSha256,
+        [Parameter(Mandatory)][AllowEmptyString()][string] $CandidatePublicHeadersSha256,
+        [switch] $DependencyAdoption
+    )
+    function ConvertTo-DependencyJson($Value) {
+        return ConvertTo-Json -InputObject $Value -Depth 100 -Compress
+    }
+    function Get-DependencyField($Value,[string]$Name) {
+        if($Value -is [Collections.IDictionary]) {
+            foreach($key in $Value.Keys) { if([string]$key -ceq $Name) { return $Value[$key] } }
+            return $null
+        }
+        $property=$null
+        foreach($candidate in $Value.PSObject.Properties) { if($candidate.Name -ceq $Name) { $property=$candidate; break } }
+        if($property) { return $property.Value }
+        return $null
+    }
+    function Test-DependencyHasExactField($Value,[string]$Name) {
+        if($Value -is [Collections.IDictionary]) {
+            foreach($key in $Value.Keys) { if([string]$key -ceq $Name) { return $true } }
+            return $false
+        }
+        foreach($candidate in $Value.PSObject.Properties) { if($candidate.Name -ceq $Name) { return $true } }
+        return $false
+    }
+    function Test-DependencyApi4($Value) {
+        $api=Get-DependencyField $Value 'apiRevision'
+        return (($api -is [int] -or $api -is [long]) -and $api -eq 4)
+    }
+    $baselineJson=ConvertTo-DependencyJson $BaselineDependency
+    $candidateJson=ConvertTo-DependencyJson $CandidateDependency
+    if($baselineJson -ceq $candidateJson) {
+        if($DependencyAdoption) {
+            if($BaselinePublicHeadersSha256 -cnotmatch '^[0-9a-fA-F]{64}$' -or
+                $CandidatePublicHeadersSha256 -cnotmatch '^[0-9a-fA-F]{64}$' -or
+                $BaselinePublicHeadersSha256 -ine $CandidatePublicHeadersSha256) {
+                throw 'Dependency adoption requires matching, valid public-header SHA-256 digests.'
+            }
+            $baselineIdentity=Get-DependencyField $BaselineDependency 'Identity'
+            $candidateIdentity=Get-DependencyField $CandidateDependency 'Identity'
+            if(-not (Test-DependencyApi4 $baselineIdentity) -or -not (Test-DependencyApi4 $candidateIdentity)) {
+                throw 'Dependency adoption requires API revision 4 on both sides.'
+            }
+        }
+        return
+    }
+    if(-not $DependencyAdoption) { throw 'Baseline and candidate dependency identities differ.' }
+
+    if($BaselinePublicHeadersSha256 -cnotmatch '^[0-9a-fA-F]{64}$' -or
+        $CandidatePublicHeadersSha256 -cnotmatch '^[0-9a-fA-F]{64}$' -or
+        $BaselinePublicHeadersSha256 -ine $CandidatePublicHeadersSha256) {
+        throw 'Dependency adoption requires matching, valid public-header SHA-256 digests.'
+    }
+    $baselineFingerprint=Get-DependencyField $BaselineDependency 'Fingerprint'
+    $candidateFingerprint=Get-DependencyField $CandidateDependency 'Fingerprint'
+    $baselineIdentity=Get-DependencyField $BaselineDependency 'Identity'
+    $candidateIdentity=Get-DependencyField $CandidateDependency 'Identity'
+    $baselineCommit=Get-DependencyField $baselineIdentity 'commit'
+    $candidateCommit=Get-DependencyField $candidateIdentity 'commit'
+    if($baselineFingerprint -isnot [string] -or $baselineFingerprint -cnotmatch '^[0-9a-fA-F]{64}$' -or
+        $candidateFingerprint -isnot [string] -or $candidateFingerprint -cnotmatch '^[0-9a-fA-F]{64}$' -or
+        $baselineCommit -isnot [string] -or $baselineCommit -cnotmatch '^[0-9a-f]{40}$' -or
+        $candidateCommit -isnot [string] -or $candidateCommit -cnotmatch '^[0-9a-f]{40}$' -or
+        $baselineFingerprint -ieq $candidateFingerprint -or $baselineCommit -ceq $candidateCommit -or
+        -not (Test-DependencyApi4 $baselineIdentity) -or -not (Test-DependencyApi4 $candidateIdentity)) {
+        throw 'Dependency adoption metadata is missing, malformed, unchanged or has an unsupported API revision.'
+    }
+
+    # Work on JSON clones so this guard never edits either caller-owned object. Only the
+    # reviewed dependency commit/fingerprint pair is omitted from the adoption comparison.
+    $baselineClone=ConvertFrom-Json -InputObject $baselineJson -AsHashtable
+    $candidateClone=ConvertFrom-Json -InputObject $candidateJson -AsHashtable
+    if(-not ($baselineClone -is [Collections.IDictionary]) -or -not ($candidateClone -is [Collections.IDictionary]) -or
+        -not (Test-DependencyHasExactField $baselineClone 'Identity') -or -not (Test-DependencyHasExactField $candidateClone 'Identity') -or
+        -not ($baselineClone.Identity -is [Collections.IDictionary]) -or -not ($candidateClone.Identity -is [Collections.IDictionary]) -or
+        -not (Test-DependencyHasExactField $baselineClone.Identity 'commit') -or -not (Test-DependencyHasExactField $candidateClone.Identity 'commit') -or
+        -not (Test-DependencyHasExactField $baselineClone 'Fingerprint') -or -not (Test-DependencyHasExactField $candidateClone 'Fingerprint')) {
+        throw 'Dependency adoption metadata must contain outer Fingerprint and nested Identity.commit fields.'
+    }
+    $baselineClone.Remove('Fingerprint'); $candidateClone.Remove('Fingerprint')
+    $baselineClone.Identity.Remove('commit'); $candidateClone.Identity.Remove('commit')
+    if((ConvertTo-DependencyJson $baselineClone) -cne (ConvertTo-DependencyJson $candidateClone)) {
+        throw 'Dependency adoption changed fields beyond the pinned commit and dependency fingerprint.'
+    }
+}
+
+
+function Assert-RedTildeCompilerComparison {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)] $BaselineCompiler,
+        [Parameter(Mandatory)] $CandidateCompiler,
+        [Parameter(Mandatory)] $BaselineDependency,
+        [Parameter(Mandatory)] $CandidateDependency,
+        [switch] $DependencyAdoption
+    )
+    function Get-CompilerComparisonField($Value,[string]$Name) {
+        if($Value -is [Collections.IDictionary]) {
+            foreach($key in $Value.Keys) { if([string]$key -ceq $Name) { return $Value[$key] } }
+            return $null
+        }
+        foreach($property in $Value.PSObject.Properties) { if($property.Name -ceq $Name) { return $property.Value } }
+        return $null
+    }
+    function Get-AdoptionIncludePaths($Dependency) {
+        $fingerprint=Get-CompilerComparisonField $Dependency 'Fingerprint'
+        $identity=Get-CompilerComparisonField $Dependency 'Identity'
+        $commit=Get-CompilerComparisonField $identity 'commit'
+        $platform=Get-CompilerComparisonField $identity 'platform'
+        if($fingerprint -isnot [string] -or $fingerprint -cnotmatch '^[0-9a-fA-F]{64}$' -or
+            $commit -isnot [string] -or $commit -cnotmatch '^[0-9a-f]{40}$' -or $platform -cnotin @('x64','ARM64')) {
+            throw 'Dependency adoption requires a valid DxUi fingerprint, lowercase commit and platform.'
+        }
+        $triplet=if($platform -ceq 'ARM64') { 'arm64-windows' } else { 'x64-windows' }
+        return @{
+            source='<ROOT>\.BUILD\DEPENDENCIES\DXUI\SOURCE\'+$commit+'\INCLUDE'
+            package='<ROOT>\.BUILD\DEPENDENCIES\DXUI\'+$fingerprint+'\VCPKG_INSTALLED\'+$platform+'\'+$triplet+'\INCLUDE'
+        }
+    }
+    function Normalize-AdoptionCommand([string]$Command,$ExpectedPaths) {
+        if($Command -match '(?<!\\)(?:\\\\)*\\"') { throw 'Escaped compiler quotes require a separately reviewed parser.' }
+        $tokenPattern='(?:[^\s"]+|"[^"]*")+'
+        if([regex]::Replace($Command,$tokenPattern,'').Trim()) { throw 'Unsupported compiler command quoting.' }
+        $tokens=@([regex]::Matches($Command,$tokenPattern)|ForEach-Object Value)
+        $options=[Collections.Generic.List[string]]::new()
+        $sourceCount=0; $packageCount=0
+        for($index=0;$index -lt $tokens.Count;++$index) {
+            $token=$tokens[$index]
+            $separateIncludeFlag=$false
+            if($token -cmatch '^/[DU]$') {
+                if(++$index -ge $tokens.Count) { throw 'Missing compiler macro operand.' }
+                $options.Add($token);$options.Add($tokens[$index]);continue
+            }
+            if($token.StartsWith('"') -and $token.Trim('"').StartsWith('/')) { throw 'Quoted compiler switches are unsupported.' }
+            if($token -cmatch '^/I$') {
+                if(++$index -ge $tokens.Count) { throw 'Missing compiler include operand.' }
+                $flag=$token;$operand=$tokens[$index];$separateIncludeFlag=$true
+            } else {
+                $includeFlag=[regex]::Match($token,'^(?<flag>/I)(?<operand>.*)$')
+                if(-not $includeFlag.Success) { $options.Add($token);continue }
+                $flag=$includeFlag.Groups['flag'].Value;$operand=$includeFlag.Groups['operand'].Value
+                if(-not $operand) { throw 'Missing compiler include operand.' }
+            }
+            $quoted=$operand.StartsWith('"') -and $operand.EndsWith('"')
+            $path=if($quoted) { $operand.Substring(1,$operand.Length-2) } else { $operand }
+            if($path.Contains('"')) { throw 'Unsupported compiler include quoting.' }
+            if($path.Equals($ExpectedPaths.source,[StringComparison]::OrdinalIgnoreCase)) {
+                ++$sourceCount;$marker='<DXUI_SOURCE_INCLUDE>'
+            } elseif($path.Equals($ExpectedPaths.package,[StringComparison]::OrdinalIgnoreCase)) {
+                ++$packageCount;$marker='<DXUI_PACKAGE_INCLUDE>'
+            } else {
+                if($separateIncludeFlag) { $options.Add($flag);$options.Add($operand) }
+                else { $options.Add($flag+$operand) }
+                continue
+            }
+            $normalizedOperand=if($quoted) { '"'+$marker+'"' } else { $marker }
+            if($token -cmatch '^/I$') { $options.Add($flag);$options.Add($normalizedOperand) }
+            else { $options.Add($flag+$normalizedOperand) }
+        }
+        if($sourceCount -ne 1 -or $packageCount -ne 1) {
+            throw 'Each compiler command must contain exactly one declared DxUi source include and package include.'
+        }
+        return $options -join ' '
+    }
+
+    $baselineSha=Get-CompilerComparisonField $BaselineCompiler 'sha256'
+    $candidateSha=Get-CompilerComparisonField $CandidateCompiler 'sha256'
+    if($baselineSha -isnot [string] -or $candidateSha -isnot [string]) { throw 'Compiler profile SHA-256 metadata is missing.' }
+    if($baselineSha -ceq $candidateSha) { return }
+    if(-not $DependencyAdoption) { throw 'Baseline and candidate compiler profiles differ.' }
+    $baselineSchema=Get-CompilerComparisonField $BaselineCompiler 'schemaVersion'
+    $candidateSchema=Get-CompilerComparisonField $CandidateCompiler 'schemaVersion'
+    if(($baselineSchema -isnot [int] -and $baselineSchema -isnot [long]) -or $baselineSchema -ne 2 -or
+        ($candidateSchema -isnot [int] -and $candidateSchema -isnot [long]) -or $candidateSchema -ne 2 -or
+        $baselineSha -cnotmatch '^[0-9a-fA-F]{64}$' -or $candidateSha -cnotmatch '^[0-9a-fA-F]{64}$') {
+        throw 'Compiler adoption requires valid v2 compiler profiles.'
+    }
+    $baselineCommands=@(Get-CompilerComparisonField $BaselineCompiler 'commands')
+    $candidateCommands=@(Get-CompilerComparisonField $CandidateCompiler 'commands')
+    if($baselineCommands.Count -ne 1 -or $candidateCommands.Count -ne 1 -or
+        $baselineCommands[0] -isnot [string] -or $candidateCommands[0] -isnot [string]) {
+        throw 'Compiler adoption requires one homogeneous normalized command on each side.'
+    }
+    $baselinePaths=Get-AdoptionIncludePaths $BaselineDependency
+    $candidatePaths=Get-AdoptionIncludePaths $CandidateDependency
+    $normalizedBaseline=Normalize-AdoptionCommand $baselineCommands[0] $baselinePaths
+    $normalizedCandidate=Normalize-AdoptionCommand $candidateCommands[0] $candidatePaths
+    if($normalizedBaseline -cne $normalizedCandidate) {
+        throw 'Compiler adoption changed options beyond the declared DxUi include operands.'
+    }
+}
+Export-ModuleMember -Function Get-RedTildeMedian,Get-RedTildePerformanceMetrics,Get-RedTildeControlDiagnostics,New-RedTildePerformanceSchedule,Get-RedTildeSignFlipP,Compare-RedTildePerformanceBlocks,Get-RedTildeCompilerProfile,Assert-RedTildeDependencyComparison,Assert-RedTildeCompilerComparison

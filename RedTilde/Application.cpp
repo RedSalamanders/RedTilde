@@ -122,11 +122,17 @@ unsigned CurrentBlockResourceAt(const DxUi::RichText::MarkdownSyntax &syntax, st
 }
 } // namespace
 
-std::wstring Resource(unsigned id)
+std::wstring_view ResourceView(unsigned id)
 {
     const wchar_t *value{};
     const int length = LoadStringW(GetModuleHandleW(nullptr), id, reinterpret_cast<LPWSTR>(&value), 0);
-    return length > 0 ? std::wstring(value, static_cast<std::size_t>(length)) : std::wstring{};
+    // The executable owns this immutable resource storage for the process lifetime.
+    // Resolve each request so the calling thread's resource language still applies.
+    return length > 0 ? std::wstring_view(value, static_cast<std::size_t>(length)) : std::wstring_view{};
+}
+std::wstring Resource(unsigned id)
+{
+    return std::wstring(ResourceView(id));
 }
 
 std::wstring SampleDocument()
@@ -481,7 +487,13 @@ void Application::Changed()
     }
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Chrome);
-    SelectionChanged();
+    if (editDiagnostics)
+    {
+        auto selectionArm = editDiagnostics->ArmSelection();
+        SelectionChanged();
+    }
+    else
+        SelectionChanged();
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Selection);
     if (!initializing)
@@ -494,13 +506,14 @@ void Application::UpdateCounts()
 {
     if (settings.focusMode)
     {
-        const auto state = Resource(Dirty() ? IDS_CHANGED : IDS_SAVED);
-        stats->SetText(std::vformat(Resource(IDS_FOCUSCOUNTS), std::make_wformat_args(documentInfo.words, state)));
+        const auto state = ResourceView(Dirty() ? IDS_CHANGED : IDS_SAVED);
+        stats->SetText(std::vformat(ResourceView(IDS_FOCUSCOUNTS), std::make_wformat_args(documentInfo.words, state)));
     }
     else
     {
         const auto readingMinutes = std::max(std::size_t{1}, (documentInfo.words + 199) / 200);
-        stats->SetText(std::vformat(Resource(IDS_STATUSCOUNTS), std::make_wformat_args(documentInfo.words, documentInfo.characters, readingMinutes)));
+        stats->SetText(
+            std::vformat(ResourceView(IDS_STATUSCOUNTS), std::make_wformat_args(documentInfo.words, documentInfo.characters, readingMinutes)));
     }
 }
 
@@ -626,6 +639,7 @@ void Application::SetView(EditorView view)
 }
 void Application::SelectionChanged(bool refreshTools)
 {
+    EditDiagnostics::SelectionInvocation selectionInvocation(editDiagnostics);
     if (closing || !floating)
         return;
     if (editor->IsSelectionGestureActive())
@@ -637,15 +651,34 @@ void Application::SelectionChanged(bool refreshTools)
         floating->SetVisible(false);
         return;
     }
-    const auto selection = editor->GetSelection();
-    const auto source = editor->Snapshot();
-    RefreshDocumentAnalysis(source, false);
-    const auto syntax = editor->GetMarkdownSyntax();
-    if (selectionToolsFocus && (!selectionToolsFocus->source.IsSameRevision(source) || selectionToolsFocus->selection != selection ||
-                                selectionToolsFocus->view != settings.view))
-        selectionToolsFocus.reset();
-    const bool selectionChanged = !selectionFactsSource || !selectionFactsSource->IsSameRevision(source) || selectionFactsSelection != selection ||
-                                  selectionFactsView != settings.view || selectionFactsAnalysis != activity.changes;
+    const auto selection = [&]
+    {
+        EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::SelectionSnapshot);
+        return editor->GetSelection();
+    }();
+    const auto source = [&]
+    {
+        EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::SelectionSnapshot);
+        return editor->Snapshot();
+    }();
+    {
+        EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::DocumentAnalysisRefresh);
+        RefreshDocumentAnalysis(source, false);
+    }
+    const auto syntax = [&]
+    {
+        EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::SelectionSnapshot);
+        return editor->GetMarkdownSyntax();
+    }();
+    bool selectionChanged{};
+    {
+        EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::SelectionFactsCache);
+        if (selectionToolsFocus && (!selectionToolsFocus->source.IsSameRevision(source) || selectionToolsFocus->selection != selection ||
+                                    selectionToolsFocus->view != settings.view))
+            selectionToolsFocus.reset();
+        selectionChanged = !selectionFactsSource || !selectionFactsSource->IsSameRevision(source) || selectionFactsSelection != selection ||
+                           selectionFactsView != settings.view || selectionFactsAnalysis != activity.changes;
+    }
     if (selectionChanged || selectionFactsSyntax != syntax)
     {
         if (selectionChanged)
@@ -657,6 +690,7 @@ void Application::SelectionChanged(bool refreshTools)
             // Text-service previews and cancellation notify selection without
             // a committed edit. Match source identity before using their ACPs;
             // equal-length previews can also change Unicode/CRLF boundaries.
+            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::Mirror);
             SynchronizeMirror();
             mirror->SetSelection(selection);
             (void)mirror->ScrollSourceRangeIntoView(host, selection.Start(), selection.End(), false);
@@ -664,46 +698,52 @@ void Application::SelectionChanged(bool refreshTools)
         }
         std::wstring expression;
         std::array<bool, 4> formats{};
-        if (syntax)
         {
-            for (const auto &node : syntax->Inlines())
-                if (selection.caret >= node.source.first && selection.caret <= node.source.last)
-                {
-                    using Kind = DxUi::RichText::MarkdownInlineKind;
-                    if (node.kind == Kind::Math && node.value.size() <= DxUi::RichText::MathMaximumSourceUnits)
-                        expression = node.value;
-                    if (node.kind == Kind::Strong)
-                        formats[0] = true;
-                    if (node.kind == Kind::Emphasis)
-                        formats[1] = true;
-                    if (node.kind == Kind::Code)
-                        formats[2] = true;
-                    if (node.kind == Kind::Link)
-                        formats[3] = true;
-                }
+            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::InlineSemantics);
+            if (syntax)
+                for (const auto &node : syntax->Inlines())
+                    if (selection.caret >= node.source.first && selection.caret <= node.source.last)
+                    {
+                        using Kind = DxUi::RichText::MarkdownInlineKind;
+                        if (node.kind == Kind::Math && node.value.size() <= DxUi::RichText::MathMaximumSourceUnits)
+                            expression = node.value;
+                        if (node.kind == Kind::Strong)
+                            formats[0] = true;
+                        if (node.kind == Kind::Emphasis)
+                            formats[1] = true;
+                        if (node.kind == Kind::Code)
+                            formats[2] = true;
+                        if (node.kind == Kind::Link)
+                            formats[3] = true;
+                    }
         }
-        const auto preview = expression.empty() ? std::wstring{} : L"\\[" + expression + L"\\]";
-        if (equation->GetText() != preview)
-            equation->SetText(preview);
-        const bool nextEquationContext = !expression.empty();
-        const bool layoutChanged = equationContext != nextEquationContext;
-        equationContext = nextEquationContext;
-        for (unsigned i = 0; i < 4; ++i)
+        bool layoutChanged{};
         {
-            auto *button = tools[i == 3 ? 13 : i + 3];
-            button->SetEnabled(!equationContext);
-            button->SetToggleState(formats[i]);
-        }
-        if (!selectionCaptionPublishedEquationContext || selectionCaptionPublishedEquationContext.value() != nextEquationContext)
-        {
-            const auto request = ++activity.selectionCaptionConstructions;
-            selectionCaptionPublishedEquationContext.reset();
-            tools[2]->SetText(Resource(nextEquationContext ? IDS_MATH : IDS_PARAGRAPH));
-            if (activity.selectionCaptionConstructions == request)
-                selectionCaptionPublishedEquationContext = nextEquationContext;
+            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::ToolCaptionPublication);
+            const auto preview = expression.empty() ? std::wstring{} : L"\\[" + expression + L"\\]";
+            if (equation->GetText() != preview)
+                equation->SetText(preview);
+            const bool nextEquationContext = !expression.empty();
+            layoutChanged = equationContext != nextEquationContext;
+            equationContext = nextEquationContext;
+            for (unsigned i = 0; i < 4; ++i)
+            {
+                auto *button = tools[i == 3 ? 13 : i + 3];
+                button->SetEnabled(!equationContext);
+                button->SetToggleState(formats[i]);
+            }
+            if (!selectionCaptionPublishedEquationContext || selectionCaptionPublishedEquationContext.value() != nextEquationContext)
+            {
+                const auto request = ++activity.selectionCaptionConstructions;
+                selectionCaptionPublishedEquationContext.reset();
+                tools[2]->SetText(Resource(nextEquationContext ? IDS_MATH : IDS_PARAGRAPH));
+                if (activity.selectionCaptionConstructions == request)
+                    selectionCaptionPublishedEquationContext = nextEquationContext;
+            }
         }
         if (selectionChanged)
         {
+            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::Outline);
             currentHeading.reset();
             for (std::size_t i = 0; i < documentInfo.headings.size(); ++i)
                 if (documentInfo.headings[i].offset <= selection.caret)
@@ -717,40 +757,50 @@ void Application::SelectionChanged(bool refreshTools)
                 outlineTree->SetSelectedItemId(headingId);
             }
         }
-        const auto position = DocumentPositionAt(documentInfo, selection.caret);
-        const auto count = position.lineCharacters;
+        DocumentPosition position;
         std::optional<std::pair<unsigned, std::size_t>> listFacts;
-        unsigned blockResourceId = syntax ? CurrentBlockResourceAt(*syntax, selection.caret, &listFacts) : IDS_BLOCKPARAGRAPH;
-        if (equationContext)
-            blockResourceId = IDS_MATH;
-        const bool showListSummary = listFacts && (blockResourceId == IDS_BLOCKLIST || blockResourceId == IDS_BLOCKLISTCONTAINER);
-        listSummary->SetVisible(showListSummary);
-        listSummaryIcon->SetVisible(showListSummary);
-        currentBlock->SetVisible(!showListSummary);
-        if (showListSummary && listSummaryFacts != listFacts)
+        unsigned blockResourceId{};
+        std::size_t count{};
         {
-            const auto kind = Resource(listFacts.value().first);
-            const auto items = listFacts.value().second;
-            const auto request = ++listSummaryPublication;
-            listSummaryFacts.reset();
-            listSummary->SetText(std::vformat(Resource(IDS_BLOCKITEMINFO), std::make_wformat_args(kind, items)));
-            if (listSummaryPublication == request)
-                listSummaryFacts = listFacts;
+            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::BlockLookup);
+            position = DocumentPositionAt(documentInfo, selection.caret);
+            count = position.lineCharacters;
+            blockResourceId = syntax ? CurrentBlockResourceAt(*syntax, selection.caret, &listFacts) : IDS_BLOCKPARAGRAPH;
+            if (equationContext)
+                blockResourceId = IDS_MATH;
         }
-        const CurrentBlockLabelFacts blockFacts{blockResourceId, count};
-        if (!currentBlockPublishedFacts || currentBlockPublishedFacts.value() != blockFacts)
         {
-            const auto blockType = Resource(blockResourceId);
-            auto text = std::vformat(Resource(IDS_BLOCKINFO), std::make_wformat_args(blockType, count));
-            const auto request = ++activity.currentBlockLabelConstructions;
-            currentBlockPublishedFacts.reset();
-            currentBlock->SetText(std::move(text));
-            // A nested publication owns its newer facts, just as a nested caption request does.
-            if (activity.currentBlockLabelConstructions == request)
-                currentBlockPublishedFacts = blockFacts;
+            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::BlockLabels);
+            const bool showListSummary = listFacts && (blockResourceId == IDS_BLOCKLIST || blockResourceId == IDS_BLOCKLISTCONTAINER);
+            listSummary->SetVisible(showListSummary);
+            listSummaryIcon->SetVisible(showListSummary);
+            currentBlock->SetVisible(!showListSummary);
+            if (showListSummary && listSummaryFacts != listFacts)
+            {
+                const auto kind = ResourceView(listFacts.value().first);
+                const auto items = listFacts.value().second;
+                const auto request = ++listSummaryPublication;
+                listSummaryFacts.reset();
+                listSummary->SetText(std::vformat(ResourceView(IDS_BLOCKITEMINFO), std::make_wformat_args(kind, items)));
+                if (listSummaryPublication == request)
+                    listSummaryFacts = listFacts;
+            }
+            const CurrentBlockLabelFacts blockFacts{blockResourceId, count};
+            if (!currentBlockPublishedFacts || currentBlockPublishedFacts.value() != blockFacts)
+            {
+                const auto blockType = ResourceView(blockResourceId);
+                auto text = std::vformat(ResourceView(IDS_BLOCKINFO), std::make_wformat_args(blockType, count));
+                const auto request = ++activity.currentBlockLabelConstructions;
+                currentBlockPublishedFacts.reset();
+                currentBlock->SetText(std::move(text));
+                // A nested publication owns its newer facts, just as a nested caption request does.
+                if (activity.currentBlockLabelConstructions == request)
+                    currentBlockPublishedFacts = blockFacts;
+            }
         }
         if (selectionChanged)
         {
+            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::PositionStatus);
             const auto selected = selection.End() - selection.Start();
             const auto encoding = bom ? L" BOM" : L"";
             unsigned eolId = IDS_EOLNONE;
@@ -771,11 +821,15 @@ void Application::SelectionChanged(bool refreshTools)
             case DocumentNewlineKind::None:
                 break;
             }
-            const auto eol = Resource(eolId);
+            const auto eol = ResourceView(eolId);
             positionStatus->SetText(
-                std::vformat(Resource(IDS_STATUSPOSITION), std::make_wformat_args(selected, position.line, position.column, encoding, eol)));
+                std::vformat(ResourceView(IDS_STATUSPOSITION), std::make_wformat_args(selected, position.line, position.column, encoding, eol)));
         }
-        RefreshFind();
+        {
+            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::Find);
+            RefreshFind();
+        }
+        EditDiagnostics::SelectionMeasure routingMeasure(editDiagnostics, SelectionComponent::Routing);
         selectionFactsSyntax = syntax;
         selectionFactsSource = source;
         selectionFactsSelection = selection;

@@ -119,6 +119,29 @@ observer only for a synchronous harness transaction, clear it on every exit, and
 reads during ordinary editing. The optional instrumentation changes observed cost: freeze and measure a matching
 common baseline before a production repair; never compare it directly with uninstrumented acceptance results.
 
+Current opt-in reports also retain `app-selection-components-v1`: twelve disjoint selection components, ordered
+per-transaction raw wall/cycle/call records and their enclosing selection interval. Arm it only around the
+synchronous `Changed` selection publication, reject reentry/unwinding or failed clock reads, and mark unexecuted
+components unavailable rather than supplying invented durations. Component sums must fit both their whole
+invocation and the parent selection phase; the retained remainder must reconstruct that parent. Historical
+reports without this optional object remain readable; a current study that declares it must retain it.
+
+After the primary memory observations, opt-in app storage records report known buffer sizes/capacities and
+snapshot lengths without flattening source. Missing members in a historical implementation remain unavailable.
+After all primary, idle and resource observations, an optional heap walk may inspect only the explicitly supplied,
+long-lived default/CRT heaps; deduplicate handles and report incomplete coverage, per-heap errors and capture-only
+cost separately from serialization. The app test-layer helper caps storage at 32 handles and each walk at one
+million entries. Its aggregate busy/free/committed bytes are not process-private bytes, working set or allocation
+ownership. No purge, trimming, affinity, priority or power-policy change is permitted. Include this helper in the
+matched harness input closure before freezing a new baseline; retain the prior seven-input freezes as history.
+Post-primary host counters may record configured text formats, brushes and direct logical root children. These
+are object counts rather than retained bytes or a complete control-tree inventory. Sampling follows the heap
+observation, so the counters cannot change that observation or any primary metric.
+Heap-diagnostic tests distinguish logical allocation requests from native heap storage. Sanitizer interception
+may redirect or quarantine the physical allocation; retain an independent range-membership observation and
+require native-payload growth only for the ordinary native allocator. Keep the complete-walk, budget, duplicate,
+invalid-handle and exact-boundary assertions active in every profile.
+
 Diagnostic memory is sampled after the primary snapshot, then after 100 and 500 ms of event-driven hidden idle.
 No additional render/preparation is allowed during those waits. Full global thread inventory runs only in the
 last diagnostic observation, with its cost retained after all primary measurements. These observations test
@@ -140,3 +163,15 @@ the same viewport. Freeze a new common instrumented baseline with this harness; 
 The existing strict fixture, pin, compiler, renderer, native geometry and harness identity checks remain enabled.
 For a dependency adoption, first compare original application chrome and refreshed chrome on the same new exact
 DxUi pin; upstream library changes retain their independent baseline and qualification.
+An additional actual-PR-base adoption study may explicitly select `-DependencyAdoption`. The default still refuses
+different dependencies and compiler profiles. Adoption permits only the exact dependency commit/fingerprint pair to
+change: API revision, platform, runtime, compiler, SDK, flags and every other dependency field must match. Retain and
+independently replay separate public-header inventories for both the clean pinned source checkout and the actual
+platform/triplet package include directory selected by the dependency fingerprint. Reject missing/changed bytes in
+either inventory. When the compiler profile differs, permit only the exact SDK source include and fingerprinted
+package include operands to vary; require one of each on both sides, retain the raw compiler command receipts, and
+independently verify those raw commands reproduce the recorded profiles. Every other compiler option, macro, include
+operand, quote and flag spelling remains exact. Historical schema-one source-only header evidence remains readable for
+same-pin studies only; it cannot qualify dependency adoption.
+This mode measures the complete follow-up, including the SDK adoption; it never replaces the original-UI comparison
+on one common pin, changes a metric/band, qualifies the upstream policy or accepts a new ABI.

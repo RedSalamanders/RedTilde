@@ -348,6 +348,7 @@ class Application
     DxUi::Button *Action(DxUi::Panel &parent, unsigned label, Command command, std::wstring tooltip = {});
     DxUi::Label *Label(DxUi::Panel &parent, unsigned label, DxUi::FontRole role = DxUi::FontRole::Body);
 };
+[[nodiscard]] std::wstring_view ResourceView(unsigned id);
 [[nodiscard]] std::wstring Resource(unsigned id);
 [[nodiscard]] std::wstring SampleDocument();
 enum class CoreTestScope

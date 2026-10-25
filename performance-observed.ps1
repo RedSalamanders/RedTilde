@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][string]$Baseline,[Parameter(Mandatory)][string]$OutputRoot,
     [ValidateRange(2,16)][int]$Blocks=12,[ValidateRange(4,64)][int]$Cycles=64,
-    [ValidateRange(0,2147483647)][int]$Seed=20261021,[switch]$ControlDiagnostics)
+    [ValidateRange(0,2147483647)][int]$Seed=20261021,[switch]$ControlDiagnostics,[switch]$DependencyAdoption)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 Import-Module (Join-Path $PSScriptRoot 'Build/PerformanceObservation.psm1') -Force
@@ -30,6 +30,7 @@ try {
         $windows.Add($window)
         $arguments=@{Baseline=$Baseline;OutputRoot=(Join-Path $OutputRoot $kind);Blocks=$Blocks;Cycles=$Cycles;Seed=$Seed}
         if($ControlDiagnostics) { $arguments.ControlDiagnostics=$true }
+        if($DependencyAdoption) { $arguments.DependencyAdoption=$true }
         if($kind -ceq 'aa') { $arguments.SameBinaryControl=$true }
         & (Join-Path $PSScriptRoot 'performance-paired.ps1') @arguments *> (Join-Path $OutputRoot ($kind+'.log'))
         $window.endUtc=[DateTime]::UtcNow.ToString('o')
