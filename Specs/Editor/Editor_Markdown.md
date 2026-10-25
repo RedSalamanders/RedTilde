@@ -111,6 +111,15 @@ LF. An interior CRLF offset reports the preceding line's content end. Empty sour
 content; a final CR, LF or CRLF exposes an empty final line. Newline facts remain revision-bound and distinguish
 no terminator, LF, CRLF, lone CR and mixed kinds.
 
+Analysis stages the next revision's complete facts while the previous `DocumentInfo` remains published, then
+swaps them without throwing. The application may reuse one retired physical-line index. Its retained spare
+capacity is at most `min(16384, max(64, 2 * currentLineCount))` entries; oversized retired buffers are released
+at publication. The active index is bounded to `max(64, 2 * currentLineCount)` entries after analysis. Capacity
+bounds do not truncate source or lines. Reserve hints are capped by the incoming source length plus one;
+documents above the spare limit retain that hint rather than repeatedly growing from zero. Caret-only refreshes
+do not consume storage or reanalyze source. Preview, cancellation, commit and undo/redo each publish exact
+source-bound facts, with no changes to the editor's source, selection or history.
+
 ## Images, diagrams and mathematics
 
 Use the pinned native image API with an explicit absolute document path. Relative paths resolve from the

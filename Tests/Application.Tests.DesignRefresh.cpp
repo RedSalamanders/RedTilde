@@ -953,6 +953,7 @@ class DesignRefreshProbe final
                              previewApp.Document().GetText() == firstPreview.text && previewApp.Document().GetSelection() == committedSelection &&
                              previewApp.documentInfo.headings.size() == 1 && previewApp.documentInfo.headings.front().text == L"Child" &&
                              previewApp.documentInfo.headings.front().offset == firstPreview.text.find(L"## Child") &&
+                             previewApp.documentInfo.lineIndex == AnalyzeDocument(firstPreview.text).lineIndex &&
                              previewApp.outlineModel.rows.size() == 1 && previewApp.outlineModel.rows.front().text == L"Child" &&
                              previewApp.outlineModel.rows.front().badgeText == L"1" &&
                              previewApp.Activity().documentAnalysisUpdates == analysisBaseline + 1,
@@ -963,6 +964,7 @@ class DesignRefreshProbe final
                  const auto secondPreviewAnalysis = previewApp.Activity().documentAnalysisUpdates;
                  Require((previewApp.Document().*Testing::TextServiceImportProbe::Import)(previewApp.Host(), shiftedPreview, false) &&
                              previewApp.documentInfo.headings.size() == 1 && previewApp.documentInfo.headings.front().offset == childHeading + 1 &&
+                             previewApp.documentInfo.lineIndex == AnalyzeDocument(shiftedPreview.text).lineIndex &&
                              previewApp.outlineModel.rows.size() == 1 && previewApp.outlineModel.rows.front().text == L"Child" &&
                              previewApp.outlineModel.rows.front().badgeText == L"1" &&
                              previewApp.Activity().documentAnalysisUpdates == secondPreviewAnalysis + 1,
@@ -973,7 +975,8 @@ class DesignRefreshProbe final
                          previewApp.Document().GetText() == committedSnapshot.Text() && previewApp.Document().GetSelection() == committedSelection &&
                          previewApp.documentInfo.headings.size() == 2 && previewApp.documentInfo.headings[0].text == L"Root" &&
                          previewApp.documentInfo.headings[0].offset == 0 && previewApp.documentInfo.headings[1].text == L"Child" &&
-                         previewApp.documentInfo.headings[1].offset == previewSource.find(L"## Child") && previewApp.outlineModel.rows.size() == 1 &&
+                         previewApp.documentInfo.headings[1].offset == previewSource.find(L"## Child") &&
+                         previewApp.documentInfo.lineIndex == AnalyzeDocument(previewSource).lineIndex && previewApp.outlineModel.rows.size() == 1 &&
                          previewApp.outlineModel.rows.front().text == L"Root" && !previewApp.outlineModel.rows.front().expanded &&
                          previewApp.outlineModel.rows.front().badgeText == L"2" && previewApp.findMatches.size() == 2 && previewApp.findSource &&
                          previewApp.findSource->IsSameRevision(previewApp.Document().Snapshot()) &&
@@ -1002,15 +1005,72 @@ class DesignRefreshProbe final
                              previewApp.Document().GetSelection() == committedSelection && previewApp.Document().Undo() &&
                              previewApp.Document().GetText() == previewSource && !previewApp.Document().CanUndo() &&
                              previewApp.documentInfo.headings[0].text == L"Root" && previewApp.Document().Redo() &&
-                             previewApp.Document().GetText() == committedHeadingPreview.text && previewApp.documentInfo.headings[0].text == L"Tree",
+                             previewApp.Document().GetText() == committedHeadingPreview.text && previewApp.documentInfo.headings[0].text == L"Tree" &&
+                             previewApp.documentInfo.lineIndex == AnalyzeDocument(committedHeadingPreview.text).lineIndex,
                          "preview result commit clears changed collapse identity and remains exactly one source undo/redo transaction");
                  previewApp.SetDocument(std::wstring(2048, L'\n'));
                  const auto manyLineCapacity = previewApp.documentInfo.lineIndex.capacity();
                  previewApp.SetDocument(L"Z\r\n");
                  Require(previewApp.documentInfo.lineIndex == std::vector<DocumentLine>{{0, 1}, {3, 0}} &&
-                             previewApp.documentInfo.lineIndex.capacity() <= 4 && previewApp.documentInfo.lineIndex.capacity() < manyLineCapacity &&
-                             previewApp.Document().GetText() == L"Z\r\n" && !previewApp.Document().CanUndo() && !previewApp.Document().CanRedo(),
+                             previewApp.documentInfo.lineIndex.capacity() <= 64 && previewApp.documentInfo.lineIndex.capacity() < manyLineCapacity &&
+                             previewApp.documentLineIndexStorage.Stats().spareCapacity <= 64 && previewApp.Document().GetText() == L"Z\r\n" &&
+                             !previewApp.Document().CanUndo() && !previewApp.Document().CanRedo(),
                          "small document replacement releases the predecessor's large line index and retains exact clean history");
+             });
+        test("Editor.DocumentAnalysisReusesBoundedLineIndexStorage",
+             [&]
+             {
+                 Application app(Options(root, L"design-line-index-reuse"));
+                 Success(app.Initialize(), "create hidden line-index storage app");
+                 const std::wstring source = L"α cat 😀 cat\r\ncat";
+                 app.SetDocument(source);
+                 app.Prepare(128);
+                 const auto warmAt = source.find(L"cat");
+                 app.Document().SetSelection({warmAt, warmAt + 3});
+                 Require(app.Document().ReplaceSelection(L"dog") && app.Document().Undo() && app.Document().GetText() == source,
+                         "one fixture edit/undo warms the application storage path");
+                 app.SetDocument(source);
+                 app.Prepare(128);
+                 Require(!app.Document().CanUndo() && !app.Document().CanRedo(), "the storage fixture starts with clean source history");
+                 const auto initialSnapshot = app.Document().Snapshot();
+                 const auto initialStats = app.documentLineIndexStorage.Stats();
+                 const auto initialAnalysisUpdates = app.Activity().documentAnalysisUpdates;
+                 const auto matchesAnalysisFacts = [&](std::wstring_view text)
+                 {
+                     const auto expected = AnalyzeDocument(text);
+                     return app.documentInfo.words == expected.words && app.documentInfo.characters == expected.characters &&
+                            app.documentInfo.lines == expected.lines && app.documentInfo.newlineKind == expected.newlineKind &&
+                            app.documentInfo.lineIndex == expected.lineIndex && app.documentInfo.headings.size() == expected.headings.size();
+                 };
+                 app.Document().SetSelection({0, 0});
+                 app.SelectionChanged();
+                 Require(app.Document().Snapshot().IsSameRevision(initialSnapshot) && app.documentAnalysisSource &&
+                             app.documentAnalysisSource->IsSameRevision(initialSnapshot) && matchesAnalysisFacts(source) &&
+                             app.Activity().documentAnalysisUpdates == initialAnalysisUpdates && !app.Document().CanUndo() &&
+                             !app.Document().CanRedo(),
+                         "caret-only refresh preserves the published source facts and clean history");
+                 for (unsigned cycle = 0; cycle < 4; ++cycle)
+                 {
+                     const auto editAt = source.find(L"cat");
+                     app.Document().SetSelection({editAt, editAt + 3});
+                     auto editedSource = source;
+                     editedSource.replace(editAt, 3, L"dog");
+                     Require(app.Document().ReplaceSelection(L"dog") && app.Document().GetText() == editedSource &&
+                                 matchesAnalysisFacts(editedSource) && app.documentAnalysisSource &&
+                                 app.documentAnalysisSource->IsSameRevision(app.Document().Snapshot()),
+                             "each same-line-count edit publishes exact facts for its source revision");
+                     Require(app.Document().Undo() && app.Document().GetText() == source && matchesAnalysisFacts(source) &&
+                                 app.documentAnalysisSource && app.documentAnalysisSource->IsSameRevision(app.Document().Snapshot()) &&
+                                 !app.Document().CanUndo() && app.Document().CanRedo(),
+                             "undo restores exact published line facts and source text");
+                 }
+                 const auto reusedStats = app.documentLineIndexStorage.Stats();
+                 Require(reusedStats.reuseCount >= initialStats.reuseCount + 8 &&
+                             reusedStats.capacityGrowthCount == initialStats.capacityGrowthCount &&
+                             reusedStats.capacityNormalizationCount == initialStats.capacityNormalizationCount &&
+                             app.Activity().documentAnalysisUpdates == initialAnalysisUpdates + 8 && app.Document().GetText() == source &&
+                             matchesAnalysisFacts(source) && !app.Document().CanUndo() && app.Document().CanRedo(),
+                         "application edit/undo transactions reuse warmed bounded storage without changing exact source facts");
              });
         test("Editor.DesignRefreshFindReplaceUndoAndCapacity",
              [&]

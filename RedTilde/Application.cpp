@@ -14,12 +14,14 @@
 #include <psapi.h>
 #include <shobjidl.h>
 #include <thread>
+#include <type_traits>
 #include <wil/result.h>
 #include <wincodec.h>
 #include <windowsx.h>
 
 namespace RedTilde
 {
+static_assert(std::is_nothrow_swappable_v<DocumentInfo>, "analysis facts must publish without throwing");
 namespace
 {
 // App-local display categories over the canonical immutable tree, not a parser.
@@ -366,7 +368,7 @@ void Application::RefreshDocumentAnalysis(const DxUi::RichText::SourceSnapshot &
     bool outlineRowsChanged{};
     if (newSourceRevision)
     {
-        nextInfo.emplace(AnalyzeDocument(*text, documentInfo.lines));
+        nextInfo.emplace(documentLineIndexStorage.Analyze(*text, documentInfo.lines));
         outlineRowsChanged = !sameOutline(nextInfo->headings, documentInfo.headings);
         analysis = &*nextInfo;
     }
@@ -408,7 +410,9 @@ void Application::RefreshDocumentAnalysis(const DxUi::RichText::SourceSnapshot &
 
     if (newSourceRevision)
     {
-        documentInfo = std::move(*nextInfo);
+        using std::swap;
+        swap(documentInfo, *nextInfo);
+        documentLineIndexStorage.Retire(std::move(nextInfo->lineIndex), documentInfo.lines);
         documentAnalysisSource = source;
         ++activity.documentAnalysisUpdates;
     }

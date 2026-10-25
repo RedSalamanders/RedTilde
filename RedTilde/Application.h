@@ -299,6 +299,7 @@ class Application
     bool waitingForPreferences{};
     FileStamp stamp;
     DocumentInfo documentInfo;
+    DocumentLineIndexStorage documentLineIndexStorage;
     std::function<void()> afterSave;
     std::optional<DxUi::RichText::SourceSnapshot> openingSnapshot;
     static constexpr UINT ImageReady = WM_APP + 401, FileReady = WM_APP + 402, PreferencesReady = WM_APP + 403, RecoveryReadyMessage = WM_APP + 404,
