@@ -43,7 +43,9 @@ if($selectionFixture.controlDiagnostics.Contains('selectionComponents')) {
 $rows=@(foreach($case in $cases) {
     $target=Join-Path $OutputRoot $case.name
     New-Item -ItemType Directory -Path $target | Out-Null
-    Get-ChildItem -LiteralPath $source -File -Filter '*.json' | Copy-Item -Destination $target
+    # Compiler command receipts are part of a current study's identity too.
+    # Preserve all top-level evidence so each mutation reaches its semantic guard.
+    Get-ChildItem -LiteralPath $source -File | Copy-Item -Destination $target
     $path=Join-Path $target 'Compose-00-A1.native.json'
     $native=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json -AsHashtable
     & $case.mutate $native | Out-Null
