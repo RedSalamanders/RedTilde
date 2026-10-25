@@ -74,6 +74,13 @@ to browser proposal art. V1–V4 complete this visual correction; R10 and the pa
 - [x] R9: link presentation (DxUi rich text upstream, then pin adoption).
 - [ ] R10: resolve the performance optimization/advice gate and final qualification before scoped closeout. The [final production-code comparison](../../../Measurements/RedesignCompletion_2026-10-24/performance-138a648/README.md) retains five original-UI regression flags, mixed controls and loaded-host observations. The source-derived starting-redesign comparison has zero regressions and four improvements. Both common-SDK baseline lineages are disclosed in the packet. The earlier `fd24623` collection, [2026-10-24 checkpoint](../../../Measurements/DesignRefresh_2026-10-24/README.md), seven-flag `fa0757d` cohort and eight-flag v5r3 cohort remain historical evidence. Publication accepts no cost. Late source changes need their own qualification; RedTilde hosted ARM64 remains explicitly open by the owner's decision. Retain this plan in WIP and keep parent requirements open.
 
+The [current keyboard packet](../../../Measurements/RedesignCompletion_2026-10-24/keyboard-da8aafb/README.md)
+records all nine stages at `da8aafb` / SDK `baff43d8`, with exact artifact continuity to the functional and
+performance builds. The [fresh SDK comparison](../../../Measurements/RedesignCompletion_2026-10-24/sdk-594d67fb/README.md)
+retains all 78 rows and 144 receipts at `594d67fb` against its actual PR base. Zero SDK regression flags coexist
+with 69/72 unstable controls, observer cadence breaches and an unqualified policy; that result does not close
+R10 or accept the app's five original-UI flags. The account-blocked RedTilde hosted ARM64 gate remains open.
+
 ## Observed problems before implementation
 
 Observed in the owner's 2026-10-22 screenshot of Compose (dark) with `weekly-report-2026-10-15.md`:

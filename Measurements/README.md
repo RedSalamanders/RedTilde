@@ -4,6 +4,14 @@ Reviewed RedTilde measurements and actual application captures belong here. Gene
 intermediate images stay under `.build`. Do not use DxUi or another Red application's receipts as product
 qualification. Retained packets record source identity, dependency, binary hash, profile, scenario and limitations.
 
+- [Final keyboard qualification, 2026-10-25](RedesignCompletion_2026-10-24/keyboard-da8aafb/README.md) — all nine
+  stages pass at app `da8aafb` / SDK `baff43d8` through the authorized canonical countdown, with 168 real events
+  and verified desktop restoration. The earlier setup failure and pre-launch prompt timeout remain separate.
+
+- [Fresh SDK actual-base comparison, 2026-10-25](RedesignCompletion_2026-10-24/sdk-594d67fb/README.md) — exact
+  mirror of the library's 78-row/144-receipt packet. Zero flags coexist with 69/72 unstable controls, observer
+  cadence breaches and an unqualified policy; this is library evidence with an inconclusive verdict.
+
 - [Final production-code redesign comparison, 2026-10-25](RedesignCompletion_2026-10-24/performance-138a648/README.md)
   — 384 processes, all 48 primary/control rows and 16,003 independent checks at app `138a648` / SDK `baff43d8`.
   Five original-UI flags remain; the starting-redesign comparison has zero flags and four improvements.

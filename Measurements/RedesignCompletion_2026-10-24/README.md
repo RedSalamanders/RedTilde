@@ -3,6 +3,13 @@
 These packets retain separate observations; they do not establish performance acceptance or close the WIP plan.
 Each packet names its exact source, dependency and executable. Later edits require their own qualification.
 
+- [Final app keyboard qualification](keyboard-da8aafb/README.md): all nine stages pass at `da8aafb` / SDK
+  `baff43d8` with 168 real events under the authorized canonical countdown. Independent and lead payload replay
+  preserve exact build/source bindings, desktop restoration and the two earlier unsuccessful attempts.
+- [Fresh SDK actual-base comparison](sdk-594d67fb/README.md): exact mirror of the canonical library packet at
+  head `594d67fb` / compiled merge `8c78b5ad`. All 78 rows, 144 receipts and both measured executables are verified;
+  zero flags coexist with 69/72 unstable controls and an inconclusive policy gate. Observer cadence and source
+  inventory limits remain explicit. This is separate from application performance acceptance.
 - [Final production-code comparison](performance-138a648/README.md): 384 native runs at app `138a648` / SDK
   `baff43d8`, all 48 rows and 16,003 independent checks. The source-derived original-UI cohort retains five flags;
   the source-derived starting-redesign cohort has zero flags and four improvements. All host windows have complete
@@ -12,7 +19,8 @@ Each packet names its exact source, dependency and executable. Later edits requi
   descriptively; no allocation ownership, causal attribution, quiet-host or primary-family acceptance is claimed.
 - [Final production-code local matrix](qualification-fa492ab/README.md): app `fa492ab` at SDK `baff43d8` passes
   all six builds and all 55 ordinary cases in each x64 profile, with real ASan detection and 23 captures per
-  profile. ARM64 is cross-build only; hosted execution, current input and performance acceptance remain open.
+  profile. ARM64 is cross-build only; app hosted execution and performance acceptance remain open. The later
+  byte-equivalent documentation build has the separate keyboard packet above.
 - [SDK paired comparison at baff43d8](sdk-baff43d8/README.md): all 78 metric rows against the actual library
   PR base, with zero regression findings, 71/72 unstable controls and unqualified policy. The canonical packet
   lives in DxUi; this exact mirror preserves the measured source and distinct test-executable boundary.

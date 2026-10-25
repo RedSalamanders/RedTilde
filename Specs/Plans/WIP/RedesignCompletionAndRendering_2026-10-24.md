@@ -57,8 +57,9 @@
 - [x] A9 SDK failure diagnosis: preserve the baff43d8 and be1ad177 failures; local and hosted ASan traces at be1ad177 omit Beta's first event because row enqueues are not an atomic batch. A longer timeout does not repair that fixture assumption.
 - [x] A9 SDK current matrix: validate the deterministic test-only correction at `594d67fb` across all 19 ordinary x64 suites, six builds and all six hosted native profiles. Local suites have zero capability skips; the real ASan probe passes. All hosted consumer/gallery steps pass, with optional instances reported separately.
 - [x] A9 SDK hosted publication: independently replay 496 Full payload files, all 126 suite outcomes and both deliberate ASan probes; publish exact head/merge bindings and the native-binary/optional-payload retention limits.
-- [ ] A8 fresh SDK final comparison: retain and independently replay the current actual-base hosted paired study when it completes; the fixed `594d67fb` collection is still running and no source push will interrupt it.
-- [ ] A9 current input: complete the agreed final nine-stage app keyboard and four-suite SDK menu/input profiles with normal Start prompts; earlier frozen-source passes remain separate.
+- [x] A8 fresh SDK final publication: publish the `594d67fb` actual-base 78-row/936-effect/144-receipt study and its exact mirror, with repeated lead arithmetic/projection checks and both measured executable byte bindings. Preserve zero flags, 69/72 unstable controls, observer cadence breaches and the inconclusive policy gate.
+- [x] A9 current input execution: the four SDK suites pass after normal Start confirmation; the nine app stages pass at `da8aafb` through the canonical visible 30-second countdown following the owner's instruction to start them. Both leases restore desktop state. Preserve the first app setup failure and the unused normal-prompt timeout separately.
+- [x] A9 current input publication: publish both independently audited foreground packets; lead replay verifies the app's nine and SDK's 17 completed payload files without retagging earlier attempts.
 - [x] A6 consumer counterfactuals: finish the exact Files/caption Release negative controls and intended-source green run; preserve the first wrapper receipt-binding failure separately.
 - [x] A2 caller review: guard the continuation after Files badge publication if a conditional synchronous accessibility flush accepts Close; all three final app profiles pass after the guard. No dedicated notification-close reproduction is claimed.
 - [x] A0 late validation: pass pinned-format checking, all RedTilde validators and the folded-changelog checks before the final source freeze.
@@ -95,13 +96,20 @@ Local ARM64 evidence is cross-build only. Hosted workflow `40177964080` passes a
 steps and native jobs at this head (compiled merge `8c78b5ad`, whose tree matches the head), plus every relocated
 consumer and gallery. The optional STL-annotations-disabled consumer runs in both ASan profiles only;
 menu-resource scaling runs in x64 Release only. Other optional instances are skipped. The
-[SDK hosted native packet](../../../../DxUi/Measurements/RedTildeCompletion_2026-10-24/hosted-594d67fb/README.md)
+[SDK hosted native packet](https://github.com/RedSalamanders/DxUi/blob/9a642c5243d44b3637d14dc93d4bb82bbaf0ae6f/Measurements/RedTildeCompletion_2026-10-24/hosted-594d67fb/README.md)
 retains six matching provider ZIP digests, all 126 Full-suite outcomes, independent replay of 496 payload files,
 both deliberate ASan probes and the lead's repeated verification. Hosted Full includes Menu and NativeTextInput
 under the runner's owned lease (21 suites); the local noninteractive catalogue has 19. Native build binaries
 are not retained in these ZIPs, so reported compiler/executable digests are not independently rehashed binary
-artifacts; optional payload inventories are not separately replayed. Its paired benchmark continues, so no
-overall workflow or performance pass is claimed. Hosted RedTilde ARM64 is a
+artifacts; optional payload inventories are not separately replayed. Its
+[fresh paired packet and exact app mirror](../../../Measurements/RedesignCompletion_2026-10-24/sdk-594d67fb/README.md)
+retain all 78 rows/936 block effects and 144 receipt hashes after repeated independent and lead checks. The paired
+ZIP retains 24 EXE/PDB/library files, including both exact measured EmbeddedTests binaries; it has no source/object
+or compiler/linker bytes. Baseline receipts report a dirty checkout with no complete dirty-path inventory;
+candidate receipts report a clean compiled merge. The study has zero regression flags and 69/72 unstable controls,
+while the policy gate is inconclusive. Observer replay finds 28 QPC and 29 UTC sample-start periods above the
+retained 2.5-second consistency bound and about 36.6% whole-machine weighted CPU; neither continuous/quiet-host
+coverage nor total observer overhead is qualified. No overall workflow or performance pass is claimed. Hosted RedTilde ARM64 is a
 different gate and remains blocked below.
 
 The final app measurements bind `138a648b292af0f810286ded05f59f37ee737f8f`, source identity
@@ -145,7 +153,16 @@ also corrects its misleading inherited ordinary-suite console wording; the origi
 
 App workflow `40182090717` at `be41564` again executes no steps because of the account payment/spending limit;
 native jobs are skipped. Earlier workflow `40174110913` at `138a648` has the same restriction. Hosted RedTilde
-ARM64 remains **OPEN**, as requested. Current input-time agreement has been received; final input results remain open. The coordinator stays in
+ARM64 remains **OPEN**, as requested. The current input runs have completed: SDK passes all four suites after
+normal Start confirmation, and app `da8aafb` passes all nine stages with 168 injected events through the
+canonical visible 30-second countdown, following the owner's instruction to start it. Both preserve or restore
+foreground, focus and pointer. The first app attempt fails the composite setup-focus predicate before sending
+any key; a second normal prompt times out without launching a child. Those attempts remain retained. The later
+exact-build pass does not establish the first failure's cause or claim a source fix. The
+[app keyboard packet](../../../Measurements/RedesignCompletion_2026-10-24/keyboard-da8aafb/README.md) and
+[SDK foreground packet](https://github.com/RedSalamanders/DxUi/blob/9a642c5243d44b3637d14dc93d4bb82bbaf0ae6f/Measurements/RedTildeCompletion_2026-10-24/foreground-594d67fb/README.md)
+retain separate source/build and lease bindings; independent plus lead replay verifies all nine and 17 payload
+files respectively. The coordinator stays in
 WIP while those gates and R10/D4c remain open.
 
 ### Final production-code local checkpoint — 2026-10-25
