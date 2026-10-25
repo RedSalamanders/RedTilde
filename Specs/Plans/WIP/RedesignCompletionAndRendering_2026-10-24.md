@@ -8,7 +8,8 @@
 - [x] P0: write the implementation sequence, file inventory, compatibility matrices, test gates and stop conditions.
 - [x] P0: pass both repositories' validators/format checks, verify inventory integrity, and resolve the independent cold review.
 - [x] A0: revalidate drift, retain baselines, finish the file-by-file review ledger and classify current-profile findings.
-- [x] A0: reconcile all 482 file reviews (446 source and 36 generated provenance) and record lead finding dispositions.
+- [x] A0 initial inventory: reconcile all 482 file reviews (446 source and 36 generated provenance) and record lead finding dispositions.
+- [ ] A0 final inventory: reconcile late review deltas and refresh current source hashes after the final evidence/docs commit; the read-only preview has no unresolved or missing paths.
 - [x] A0: verify design PR #10's actual base and retain the separate starting app Release baseline.
 - [x] A1/A3/A5: reproduce table bounds failure, math ownership/limits/recognition defects and corrected Mermaid outcome mismatch before fixes.
 - [x] A1/A2/A3/A5: pass 24 combined Debug regression diagnostics, including source/history, local fallback and UIA ownership; retain their original failures.
@@ -18,10 +19,10 @@
 - [x] A7: characterize interested focus-update work, reuse validated published paths and pass stale-path/hidden-focus regression checks.
 - [x] A0 controls: reproduce and fix missing ProgressBar range events with a real subscribed client regression.
 - [x] A9 tooling: reproduce uncontained interactive child admission and descendant completion races; pass the retained 98-check lease diagnostic.
-- [x] A6/A9 Release: pass 54 app cases, 23 captures, crash/recovery probes and all 19 normal SDK suites with zero skips.
-- [x] A6/A9 input: pass the nine-stage app keyboard slice and all four SDK foreground suites with verified desktop restoration.
+- [x] A6/A9 prior Release: pass 54 app cases, 23 captures, crash/recovery probes and all 19 normal SDK suites with zero skips.
+- [x] A6/A9 prior input: pass the nine-stage app keyboard slice and all four SDK foreground suites with verified desktop restoration.
 - [x] A8 prior collection: retain both earlier 192-process app studies and their independent audits, including the historical seven original-base regressions.
-- [x] A0 delta: re-review SDK `8a38e598` gallery ordering and reconcile its current source hash; new gallery execution remains pending.
+- [x] A0 delta: re-review SDK `8a38e598` gallery ordering and its then-current source hash; subsequent frozen `cfe875fd` hosted gallery execution passes.
 - [x] A9 checkpoint Debug: SDK `8a38e598` passes all 19 ordinary x64 Debug suites with zero skips.
 - [x] A9 checkpoint builds: SDK `8a38e598` passes all six x64/ARM64 Debug, Release and ASan Debug builds with zero warnings/errors.
 - [x] A9 checkpoint ASan: SDK `8a38e598` passes the real detection probe and all 19 ordinary x64 ASan Debug suites with zero skips.
@@ -32,16 +33,16 @@
 - [x] A1: fix the reproduced table command memory-safety and data/selection defects; frozen-source native profiles pass.
 - [ ] A2: contain preparation failures per object, preserve accessible ownership and characterize shutdown completion handling.
 - [x] A2 fault delta: preserve failed native line-metrics HRESULTs, classify only formula-local unsupported operations as persistent, and prove same-key suppression/retry plus changed-key recovery with injected failures; counterfactuals and all three local SDK profiles pass at `baff43d8`.
-- [x] A2 focused Debug: pass the injected math failure-containment case and full Embedded suite on the retained late-source build; counterfactuals and final-profile qualification remain open.
+- [x] A2 focused Debug: pass the injected math failure-containment case and full Embedded suite on the retained late-source build; counterfactuals and later profile qualification are recorded separately below.
 - [x] A2 counterfactuals: reproduce the exact line-metrics, HRESULT-preservation and formula-local unsupported-operation failures, with independently replayed source/build/native bindings.
 - [x] A3: correct math recognition and accepted-but-wrong notation; reconcile bounded capability/target data at frozen SDK `cfe875fd`.
 - [x] A4: qualify the current bounded math profile on the named native profiles; full KaTeX/TeX font assemblies remain explicitly outside scope.
 - [x] A5: qualify corrected Mermaid semantics and current-profile outcomes; retain MM-36 and the separately owned broader-family roadmap.
 - [x] A9 frozen matrix: both repositories pass six local builds; x64 Debug/Release/ASan runtime and real ASan probes pass at app `fd24623` / SDK `cfe875fd`.
-- [x] A9 frozen input: the owner clicked Start for the current nine-stage app keyboard run and four SDK foreground suites; restoration passed and earlier timeouts remain retained.
+- [x] A9 frozen input: the owner clicked Start for the then-current nine-stage app keyboard run and four SDK foreground suites; restoration passed and earlier timeouts remain retained.
 - [x] A9 frozen SDK hosted matrix: `cfe875fd` source tree passes all six Full native profiles, relocated consumers and galleries; per-profile optional skips are recorded separately.
-- [x] A8 fresh app collection: retain 384 native runs and 16,003 independent checks; actual-starting-base comparison has no new flags, original-design comparison retains five.
-- [x] A8 stage diagnostic: retain 16 separate descriptive runs and 5,589 integrity/numerical checks; additional command work concentrates in selection/status publication.
+- [x] A8 fd24623 collection: retain 384 native runs and 16,003 independent checks; starting-redesign comparison has no new flags, original-design comparison retains five.
+- [x] A8 fd24623 stage diagnostic: retain 16 separate descriptive runs and 5,589 integrity/numerical checks; additional command work concentrates in selection/status publication.
 - [x] A8 frozen SDK evidence: retain 144 same-executable calibration receipts and 144 hosted actual-base receipts, independently recompute both 78-slot families, and retain policy/control/provenance limits.
 - [x] A0/A6 functional review delta: qualify Tree badge accessibility publication and Files dirty-transition selection/scroll/model-rebuild behavior in the final local SDK/app matrices; performance acceptance remains A8-owned.
 - [x] A0 Tree regression: reproduce the missing dot-badge ItemStatus against the exact original accessibility source and independently verify the Release executable/run binding; fixed-source and prepared-row execution remain separate.
@@ -53,7 +54,8 @@
 - [x] A2 caption-close regression: reproduce the resumed `Changed` status-label use-after-free under ASan by removing only the post-caption closing guard; fixed-source Editor execution remains separate.
 - [x] A2/A6 focused consumer ASan: pass all 36 Editor cases at the exact reviewed SDK pin, including Files accessibility, pending/ready caption facts and the corrected caption-close regression.
 - [x] A9 late local matrix: app `fa492ab` and SDK `baff43d8` pass all six builds and all applicable ordinary x64 suites; both real ASan detection probes pass. ARM64 evidence is cross-build only.
-- [ ] A9 SDK hosted follow-up: preserve the two ASan gated-notification deadline failures at `baff43d8`; validate the narrow test-only request-allowance correction locally and on hosted ARM64.
+- [x] A9 SDK failure diagnosis: preserve the baff43d8 and be1ad177 failures; local and hosted ASan traces at be1ad177 omit Beta's first event because row enqueues are not an atomic batch. A longer timeout does not repair that fixture assumption.
+- [ ] A9 SDK current matrix: validate the deterministic test-only correction at `594d67fb` across all 19 ordinary x64 suites, six builds and the hosted native profiles; local ASan and all ARM64 cross-builds pass, hosted all six Full native steps pass, and local Debug/Release plus hosted consumer checks remain running.
 - [ ] A9 current input: run the final nine-stage app keyboard and four-suite SDK menu/input profiles after a current agreement to time and normal Start prompts; earlier frozen-source passes remain separate.
 - [x] A6 consumer counterfactuals: finish the exact Files/caption Release negative controls and intended-source green run; preserve the first wrapper receipt-binding failure separately.
 - [x] A2 caller review: guard the continuation after Files badge publication if a conditional synchronous accessibility flush accepts Close; all three final app profiles pass after the guard. No dedicated notification-close reproduction is claimed.
@@ -62,10 +64,12 @@
 - [x] A7 caption functional delta: publish localized Paragraph/Math text only on context transitions, retain exact equation updates and stable command Name; pending/ready oracle and all final local profiles pass. Fresh measurement remains below.
 - [x] A8 prior archive: publish the reviewed `fd24623` 48-row projection and bind source, frozen inputs, host observations and independent audits.
 - [x] A8 current SDK collection: retain and independently recompute the `baff43d8` actual-base hosted 144-receipt, 78-row comparison; zero regression findings coexist with 71/72 unstable controls and an unqualified acceptance policy.
-- [ ] A8 current app collection: compare the tested final production code against both refreshed `baff43d8` original-UI and actual-starting-redesign freezes, retaining all 384 runs and independent audits.
+- [x] A8 current app collection: retain all 384 runs at `138a648`/SDK `baff43d8` and 16,003 independent checks. The starting-redesign comparison has zero flags and four improvements; the original-UI comparison retains five flags. Both use source-derived freezes with the common SDK/harness overlays.
+- [x] A8 current phase collection: retain and independently audit a separate, fixed 16-process, two-block `app-edit-phases-v2` diagnostic at `138a648`; all native/sample/source bindings pass, with no primary-family pooling or allocation-ownership claim.
+- [x] A8 current publication: independently review and publish all 48 current primary rows, source/artifact bindings, host observations and the separate phase diagnostic. The lead matches all 36,864 phase values, 36 summary rows and eight collection digests; performance acceptance remains open.
 - [ ] A6: finish RedTilde interaction, responsive layout, accessible presentation and exact-pin integration tests.
 - [ ] A7: simplify measured hotspots and qualify incremental preparation without changing source/history behavior.
-- [ ] A8: repeat the current-source whole-feature and library performance studies; resolve R10/D4c advice gates.
+- [ ] A8: finish current-source whole-feature and library performance qualification; resolve R10/D4c advice gates without repeating unchanged-host studies until a preferred outcome appears.
 - [ ] A9: complete the final-source build/runtime, input, platform, documentation and release dispositions.
 - [ ] Closeout: every required row has evidence; update domain specs and capability claims, then move completed plans to Done.
 
@@ -73,6 +77,56 @@ Status: **BOUNDED PROFILES IMPLEMENTED; REVIEW DELTA, QUALIFICATION AND CLOSEOUT
 2026-10-24. The completed planning-only pass is retained below; execution needs its own source-bound native and
 performance evidence. Update this checklist with the precise change, regression case and receipt for each
 completed item. A checked item needs evidence, not just edited code.
+
+### Current qualification continuation — 2026-10-25
+
+The remaining SDK fixture failure is corrected at `594d67fb0fcc3829541211a7c8f100df046c87e3`. The test first
+receives Alpha and Beta's first statuses within the unchanged ordinary 3-second deadline, then holds one unrelated
+Gamma event while queuing middle/final values and replacing Gamma's ID. A separate mark preserves held silence;
+the exact first/final counts, superseded-value rejection, stale-ID rejection and replacement getter remain.
+The active Gamma event is outside pending-queue pruning and has no delivery assertion. Runtime code, public APIs,
+dependencies and the existing gated allowance are unchanged. Full static/tooling validation, pinned format and
+official changelog folding pass. Local ASan passes all 19 ordinary suites with zero capability skips and the
+real detection probe; all three ARM64 cross-builds pass. Local Debug/Release qualification continues. Hosted
+workflow `40177964080` passes all six actual Full native steps at this head (compiled merge `8c78b5ad`, whose
+tree matches the head); ARM64 consumer checks and the paired benchmark continue. Neither complete matrix is
+claimed passed yet. Hosted RedTilde ARM64 is a different gate and remains blocked below.
+
+The final app measurements bind `138a648b292af0f810286ded05f59f37ee737f8f`, source identity
+`12b446ab071132d0ead4254ee5083b50bb1e15c5a9d71ddca8cb9cb99d28d2ab`, and SDK `baff43d8`. The docs-only
+refresh at that head preserves the exact six-profile `fa492ab` code artifacts and their runtime evidence.
+The common-SDK original-UI freeze derives from PR #10 base `f819395d` through the disclosed harness/pin overlays
+to `c04ea1e`; the starting-redesign freeze derives from PR #11 base `c7456854`, its docs-only `d53b4c6` continuation
+and harness/pin overlays to `0acee29`. Neither measured freeze is an untouched PR-base checkout.
+
+Both cohorts retain 96 A/A and 96 A/B processes, 12 blocks per view, 64 cycles and seed 20261024. Independent
+audits pass 7,988 and 8,015 checks. Original-UI A/B flags Compose command +12.364%, Split command +18.747%,
+Split owner CPU +13.756%, Split private memory +2.143% and Split working set +2.145%; only the flagged working-set
+control is stable. The starting-redesign A/B family has zero regression findings and four improvements: private
+memory -8.729%/-9.194% and working set -2.460%/-2.473% in Compose/Split. Completed-frame timing has no resolved
+change in either cohort. All observer windows have complete coverage; mean system CPU spans 17.2–18.4%, with no
+verified quiet window. These observations preserve every flag and do not close performance advice or policy.
+The separate 16-process phase diagnostic passes its source/receipt/sample audit: 18,432 wall and 18,432 CPU
+phase values, plus 2,048 reconstructed CPU transactions, have no binding, range, order or reconstruction failures.
+Its descriptive four-process medians place 18.400 microseconds of additional Compose work and 24.075
+microseconds in Split in Selection. This is not attribution or an achievable saving; the diagnostic has two
+blocks per view and no independent host observer. It does not attribute the historical 4 MiB allocation or
+replace any primary metric. The [public phase packet](../../../Measurements/RedesignCompletion_2026-10-24/command-phases-138a648/README.md)
+retains all 36,864 raw phase values; the lead compares every value, all 36 summary rows and eight collection
+digests to the source-bound originals, with no mismatch or private identifiers.
+
+The current [performance advice](../../../Measurements/RedesignCompletion_2026-10-24/performance-138a648/README.md)
+retains three concrete options: split Selection/status diagnostics before another optimization; obtain allocation
+ownership before removing retained facts/caches; or make an explicit owner scope/deferral decision. The original
+UI private-byte medians increase by 987,136 bytes in Compose and 1,040,384 bytes in Split, while the starting
+redesign memory improves. Current Selection additionally publishes caret/EOL, block and search facts. Ordinary
+stable-focus label updates defer and coalesce layout/UIA work; a whole-bucket increase does not identify a shared
+focus-resolution defect. No option is silently accepted, and the unchanged primary study will not be repeated
+until it produces a preferred result.
+
+Current app workflow `40174110913` at `138a648` executes no steps because of the account payment/spending limit;
+native jobs are skipped. Hosted RedTilde ARM64 remains **OPEN**, as requested. Current input-time agreement is
+still pending. The coordinator stays in WIP while those gates and R10/D4c remain open.
 
 ### Final production-code local checkpoint — 2026-10-25
 
@@ -96,9 +150,10 @@ are unchanged; a rebuilt Embedded test executable is a distinct artifact.
 The current SDK paired packet reports zero regression findings in 78 rows, but controls and unqualified policy
 prevent an accepted verdict. Older `cfe875fd` calibration and `fd24623` app measurements below remain historical.
 Both refreshed app baselines use `baff43d8` and the identical common harness/compiler profile. The final app
-comparison has not started. A premature documentation checkpoint edit was caught before any timed collection;
+comparison had not started at this checkpoint; the later `138a648` collection is recorded above. A premature documentation checkpoint edit was caught before any timed collection;
 its patch and failed byte-restoration checks are retained. This deliberate checklist update requires fresh
-build receipts and an explicit unchanged-compiled-input/artifact check before measuring.
+build receipts and an explicit unchanged-compiled-input/artifact check before measuring; that six-profile refresh
+subsequently passed with byte-identical `fa492ab` artifacts.
 
 App workflow `40171816856` again executes zero steps because of the payment/spending restriction. Hosted native
 ARM64 stays **OPEN** as requested. Current interactive time agreement is pending; earlier Start-confirmed runs
@@ -301,8 +356,8 @@ checkpoint. Keep the plan in WIP until its remaining source, test, evidence, doc
 - DxUi advanced from the planning revision to `b06f534b36ffc2c0c9671a142d1e51545480be22` before execution.
   Reconcile the new host/focus changes and the Controls.Tests/Support.Tests/Embedded.Tests renames before fixes;
   retain the original planned-at identities as history. RedTilde remains at `c7456854c8f964bb9ea067295e6435f99d426515`.
-- Isolate execution beneath `C:\Users\PVB\.codex\worktrees\rt24` in the existing Codex worktree workspace.
-  Repository-local `.build` directories there own new outputs. D: has less than 4 GiB free; no retained evidence
+- Isolate execution in the existing managed Codex worktree workspace; exact local paths remain in private audit records.
+  Repository-local `.build` directories own new outputs. The primary volume has less than 4 GiB free; no retained evidence
   or independently launched application is removed to make room.
 - GitHub confirms design PR #10 merged as `c7456854` with actual base
   `f819395d36c55b93e3bf9559d12d0ec401e42b3d`. Preserve that original UI closure for the final whole-feature
