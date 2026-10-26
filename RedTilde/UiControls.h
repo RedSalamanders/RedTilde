@@ -63,20 +63,31 @@ class Surface : public DxUi::Panel
     Kind kind;
 };
 
-using Editor = DxUi::RichTextEditor;
+class Editor final : public DxUi::RichTextEditor
+{
+  public:
+    using DxUi::RichTextEditor::RichTextEditor;
+
+  private:
+    [[nodiscard]] bool IsAttachedTo(const DxUi::ControlHost &host, const DxUi::Control *parent) const noexcept
+    {
+        return GetHost() == &host && GetParent() == parent;
+    }
+    friend class SourceMirrorEditor;
+};
 
 // Read-only derived Source view. The primary pointer is borrowed for this
 // control's lifetime and is checked before each opportunistic syntax adoption.
 class SourceMirrorEditor final : public DxUi::RichTextEditor
 {
   public:
-    explicit SourceMirrorEditor(DxUi::RichTextEditor &primary) : primary_(&primary), primaryLifetime_(GetControlLifetimeToken(primary)) {}
+    explicit SourceMirrorEditor(Editor &primary) : primary_(&primary), primaryLifetime_(GetControlLifetimeToken(primary)) {}
 
   protected:
     [[nodiscard]] HRESULT PrepareContent(DxUi::ControlHost &host) noexcept override;
 
   private:
-    DxUi::RichTextEditor *primary_{};
+    Editor *primary_{};
     std::weak_ptr<int> primaryLifetime_;
 };
 

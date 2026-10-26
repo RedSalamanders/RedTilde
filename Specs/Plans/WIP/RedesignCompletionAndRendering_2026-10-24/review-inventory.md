@@ -1205,7 +1205,7 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "RedTilde/Application.Chrome.cpp",
-      "sha256": "37b11426c327ffd96ce2a7d7b22de3bc4459ec92a151d62ccbad93b1816579c8",
+      "sha256": "5661b33826a83dbbeea7d52d23e400e6067db39f9ca45ec1f1a9bd90a4b10387",
       "category": "production",
       "generated": false,
       "reviewStatus": "reviewed-delta",
@@ -1272,6 +1272,35 @@ the current performance policy or accept the remaining regressions.
             "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
             "testCoverage": "The hidden-current-block case exercises first reveal plus outline-off/on, Split/Compose, narrow/wide, and Files-overlay reveal flows without desktop activation.",
             "qualificationBoundary": "Source review only. Runtime/platform/performance evidence and remaining gates are recorded separately in the coordinator; this ledger update confers no execution pass."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T08:06:19.1562608Z",
+          "priorReviewBaseCommit": null,
+          "path": "RedTilde/Application.Chrome.cpp",
+          "sha256": "37b11426c327ffd96ce2a7d7b22de3bc4459ec92a151d62ccbad93b1816579c8",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p18-delta-review",
+          "testIds": [
+            "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+            "Rendering.DesignRefreshTypographyAndThemeRoles",
+            "Editor.HiddenCurrentBlockPublishesLatestOnReveal"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "BuildChrome creates BrandMark; visual-content preparation creates the generation-bound D2D bitmap. LoadBrandMarkPixels is also called by the independent resource oracle.",
+            "ownershipAndLifetime": "Borrowed module HICON; WIL owns GetIconInfo color/mask bitmaps and DC. Retains at most 256 KiB of premultiplied BGRA pixels across device replacement; no ordinary-startup WIC converter.",
+            "failureAndCancellation": "Rejects absent, non-32-bit and out-of-bounds icon data and incomplete scan reads; preparation failure leaves no current bitmap. Paint only draws a generation-matched bitmap; no allocation or resource query in Paint.",
+            "testCoverage": "Release Editor 35/35 passes in run 20261024T200629511Z-52096-a8d90cadfef246058b36c087141dc788. All seven sizes match independent WIC PBGRA bytes; device-loss and repeated warm raster equality pass. Unpaired memory probes do not establish performance acceptance or 4 MiB attribution."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "App-owned SourceMirrorEditor opportunistically adopts completed syntax only for compatible visible read-only Source mirrors; ordinary Rich/incompatible/hidden behavior remains independent/deferred.",
+            "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+            "lifetime": "Weak primary/self/root tokens plus host/parent/source/revision/mode/profile checks guard the final reentrant preparation request. The allocating base constructor is not declared noexcept.",
+            "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+            "testCoverage": "App source tests assert canonical storage sharing with distinct local wrapper/revision/document identity, exact source/history and independent fallback/hidden reveal. Consumer build/execution at SDK407 is pending.",
+            "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
           }
         }
       ],
@@ -1759,7 +1788,7 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "RedTilde/UiControls.h",
-      "sha256": "a8303b26aa0a904e90c6554f7f40492ad23b8168b3b15d03b421dfa597ca9b83",
+      "sha256": "8f6c991f3b91ff77572e0964b6ca7a3bc70ee63e0251668cf3f210c5dedead79",
       "category": "production",
       "generated": false,
       "reviewStatus": "reviewed-delta",
@@ -1798,6 +1827,34 @@ the current performance policy or accept the remaining regressions.
             "testCoverage": "Current Release Editor 35/35 passes, including seven-size independent pixel parity and device-loss raster retention; earlier authorized nine-stage keyboard evidence remains separately source-bound."
           },
           "reviewDeltaNotes": null
+        },
+        {
+          "recordedUtc": "2026-10-26T08:06:19.1562608Z",
+          "priorReviewBaseCommit": null,
+          "path": "RedTilde/UiControls.h",
+          "sha256": "a8303b26aa0a904e90c6554f7f40492ad23b8168b3b15d03b421dfa597ca9b83",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p18-delta-review",
+          "testIds": [
+            "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+            "Rendering.DesignRefreshTypographyAndThemeRoles"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "Declares app-owned inspector/find controls and bounded BrandMarkPixels extraction used by Chrome and native resource tests.",
+            "ownershipAndLifetime": "Control tree owns controls and routes callbacks to Application. BrandMarkPixels owns CPU bytes only; extraction borrows HICON and is scoped to the app alpha asset, not a generic decoder.",
+            "failureAndCancellation": "Find snapshot/query cache and active highlights remain bounded. Native pixel extraction throws on unsupported resource shape; no GDI/COM handle escapes.",
+            "testCoverage": "Current Release Editor 35/35 passes, including seven-size independent pixel parity and device-loss raster retention; earlier authorized nine-stage keyboard evidence remains separately source-bound."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "App-owned SourceMirrorEditor opportunistically adopts completed syntax only for compatible visible read-only Source mirrors; ordinary Rich/incompatible/hidden behavior remains independent/deferred.",
+            "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+            "lifetime": "Weak primary/self/root tokens plus host/parent/source/revision/mode/profile checks guard the final reentrant preparation request. The allocating base constructor is not declared noexcept.",
+            "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+            "testCoverage": "App source tests assert canonical storage sharing with distinct local wrapper/revision/document identity, exact source/history and independent fallback/hidden reveal. Consumer build/execution at SDK407 is pending.",
+            "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
+          }
         }
       ],
       "reviewDeltaDate": "2026-10-26",
@@ -15332,7 +15389,7 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
-      "sha256": "2e41d262ded3a5810a72a436065587624f998aa23ce3858f69228872290ae742",
+      "sha256": "96467052080c6be3ac082a647017327db4ed79e3fe3b509f26ecb8d972650f45",
       "category": "planning-document",
       "generated": false,
       "reviewStatus": "reviewed-delta",
@@ -15622,6 +15679,58 @@ the current performance policy or accept the remaining regressions.
             "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
             "testCoverage": "The named tests are added/expanded obligations but remain unrun for the late source. Previously frozen counts and run identities are described as prior evidence only. TestLabelAndSeparatorTypographySurviveEmbeddedMeasureAndRetirementCallbacks now includes text and multiline changes. These assertions and guard costs remain unrun/unmeasured. Later frozen SDK collection evidence retains AA144 and hosted AB144 receipts with 78 slots each independently recomputed; host coverage passes under load, all six Full hosted payload inventories are replayed, and expected ASan probes are distinct. Policy, unstable controls, baseline overlay provenance and late-source execution remain separate. Documentation review only; no test/build claimed. Reviewed against the current caller and exact lines 57-58; no additional test result inferred from checked plan status. Contains recorded Release frame 39/39 pass and earlier two 38/39 collector attempts, plus 334/c60 ordinary profile and 576-run projection status; no execution by this review. Reports 226,562 audit checks and six builds/three x64 Full runs. Matrix claims were independently hash-replayed; this delta review does not qualify the new SDK candidate or finish the root frame32 offline audit. The two Control/Label cases passed in x64 Release with exit 0 and no skips in the preserved filtered report for 20261025T173947011Z-50056-bdcb586627424546b66301fa47cd66f6. The WindowHost alias case passed in x64 Release with exit 0 and no skips in 20261025T174212111Z-33716-97a55521244e45989086aca1ce46da31. These are focused tests only; no wider matrix or perf acceptance is inferred. References the specific focused red/green and guard-preflight evidence; this plan is not itself a pass. It records 1d39 qualification, and the later 49cf docs-only rebind preserved all six EXE/PDB/ASan artifact hashes. No tests or performance runs were made on 49cf. Full validate.ps1 passes after this delta:38scope cases,415performance assertions,37observer checks,1713independent checks and6malformed rejection cases. Fold/check, Test-Changelog and diffcheck pass.",
             "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T08:06:19.1562608Z",
+          "priorReviewBaseCommit": null,
+          "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
+          "sha256": "2e41d262ded3a5810a72a436065587624f998aa23ce3858f69228872290ae742",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p18-delta-review",
+          "testIds": [
+            "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
+            "Editor.DesignRefreshEquationContextAndDraftGuards",
+            "TestTreeBadgeStatusUpdatesReachSubscribedClientWithoutStructureChange",
+            "TestPreparedTreeExpansionOfTheFocusedItemReachesAClient",
+            "TestEmbeddedTreeBadgeStatusNotificationsArePerItemCoalescedAndPruned",
+            "TestLabelAndSeparatorTypographySurviveEmbeddedMeasureAndRetirementCallbacks",
+            "SDK hosted packet lead check PASS: 6 profiles, 126 suites, 496 payload files, 2 ASan probes",
+            "SDK local matrix independently audited: 57 suite bindings, 288 payload files",
+            "App performance projection lead check: 48 rows, 16,003 independent primary checks",
+            "be41564 BuildOnly equivalence audit: six profiles, byte-identical artifacts",
+            "review-ledger-20261025T110505Z-0d7973e4ce1e47bf8b8ef685df64cec7.json: applied,534 entries,88 reviewed delta paths,zero unresolved",
+            "final-ledger-first-apply-lead-replay-20261025.json: 534 current SHA-256/reviewer/unique-path checks",
+            "review-ledger-20261025T111413Z-ed595c21ff2c4af7b630c64589e6454f.json: applied,536 entries,90 reviewed delta paths,zero unresolved",
+            "final-ledger-missing-projection-rows-v2-20261025.json: both 78-row baff43d8 projections reviewed against existing numeric evidence and mirror bytes",
+            "app-bae1572-x64-Release-test.log",
+            "app-bae1572-x64-Debug-test.log",
+            "app-bae1572-x64-ASan-Debug-test.log",
+            "performance-c60e9ca",
+            "fixed 32-process frame diagnostic cohort",
+            "bae1572 x64 Release/Debug/ASan Full",
+            "TestLabelZeroSpacingOverrideMatchesDefaultLayout",
+            "TestLabelTypographyCharacterSpacingUsesRequestedTotal",
+            "TestWindowHostConfiguredTextFormatsAliasExactRoleDefaults",
+            "Editor.HiddenCurrentBlockPublishesLatestOnReveal",
+            "Tooling.SourceAwareBuildReceiptAdmission",
+            "Qualification.DocsOnlySixProfileRebind"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Reviewed the current explicit source/documentation delta and preserved historical notes/hashes.",
+            "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+            "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+            "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+            "testCoverage": "Source review only unless the named P18 checkpoint states an actual executed result.",
+            "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
           }
         }
       ],

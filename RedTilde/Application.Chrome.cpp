@@ -51,7 +51,7 @@ HRESULT SourceMirrorEditor::PrepareContent(DxUi::ControlHost &host) noexcept
     const auto primaryLifetime = primaryLifetime_;
     auto *const owner = host.GetRoot();
     if (!primary || primaryLifetime.expired() || !owner || !IsVisible() || !IsReadOnly() || GetViewMode() != DxUi::RichText::ViewMode::Source ||
-        GetHost() != &host || primary->GetHost() != &host || primary->GetParent() != GetParent())
+        GetHost() != &host || !primary->IsAttachedTo(host, GetParent()))
         return DxUi::RichTextEditor::PrepareContent(host);
 
     const auto ownerLifetime = GetControlLifetimeToken(*owner);
@@ -78,7 +78,7 @@ HRESULT SourceMirrorEditor::PrepareContent(DxUi::ControlHost &host) noexcept
             // still belong to this host before the ordinary preparation call.
             if (selfLifetime.expired() || primaryLifetime.expired() || ownerLifetime.expired())
                 return S_FALSE;
-            if (GetHost() != &host || primary->GetHost() != &host || primary->GetParent() != GetParent() || host.GetRoot() != owner ||
+            if (GetHost() != &host || !primary->IsAttachedTo(host, GetParent()) || host.GetRoot() != owner ||
                 !source.IsSameRevision(primary->Snapshot()) || primary->Revision() != primaryRevision)
                 return S_FALSE;
             if (result == S_OK &&
