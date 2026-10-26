@@ -380,4 +380,125 @@ Assert-CompilerProfileEvidence -Study $legacy -Root $legacyRoot
 $rejected=$false
 try {Assert-CompilerProfileEvidence -Study $legacy -Root $legacyRoot} catch {$rejected=$true}
 Require $rejected 'Raw command artifacts cannot masquerade as schema-less legacy evidence.'
+$profilePath=Join-Path $PSScriptRoot '../Build/ReviewedHeaderDeltaProfile.json'
+$blockedProfile=Get-Content $profilePath -Raw|ConvertFrom-Json -AsHashtable
+$blockedProfile.status='blocked-until-root-review-and-reference-refresh'
+$blockedRoot=Join-Path $fixtureRoot 'blocked-reviewed-header-profile';$blockedBuild=Join-Path $blockedRoot 'Build'
+[void][IO.Directory]::CreateDirectory($blockedBuild)
+$blockedProfile|ConvertTo-Json -Depth 30|Set-Content -LiteralPath (Join-Path $blockedBuild 'ReviewedHeaderDeltaProfile.json') -Encoding utf8
+$blocked=$false
+try { Get-RedTildeReviewedHeaderDeltaProfile -Root $blockedRoot } catch { $blocked=$true }
+Require $blocked 'A blocked profile copy must fail closed before a measurement.'
+$readyProfile=Get-Content $profilePath -Raw|ConvertFrom-Json -AsHashtable
+$readyProfile.status='ready-reviewed-exact-pair'
+$readyRoot=Join-Path $fixtureRoot 'ready-reviewed-header-profile';$readyBuild=Join-Path $readyRoot 'Build'
+[void][IO.Directory]::CreateDirectory($readyBuild)
+$readyProfilePath=Join-Path $readyBuild 'ReviewedHeaderDeltaProfile.json'
+$readyProfile|ConvertTo-Json -Depth 30|Set-Content -LiteralPath $readyProfilePath -Encoding utf8
+$accepted=Get-RedTildeReviewedHeaderDeltaProfile -Root $readyRoot
+Require ($accepted.profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1') 'A complete fixed profile with matching ABI layouts is accepted.'
+$reorderedProfile=ConvertFrom-Json -InputObject (ConvertTo-Json $readyProfile -Depth 30 -Compress) -AsHashtable
+[Array]::Reverse($reorderedProfile.baseline.publicHeaders.files);[Array]::Reverse($reorderedProfile.candidate.publicHeaders.files)
+$reorderedProfile|ConvertTo-Json -Depth 30|Set-Content -LiteralPath $readyProfilePath -Encoding utf8
+$accepted=Get-RedTildeReviewedHeaderDeltaProfile -Root $readyRoot
+Require ($accepted.profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1') 'The fixed profile accepts the same complete inventories in a different file enumeration order.'
+$duplicateProfile=ConvertFrom-Json -InputObject (ConvertTo-Json $readyProfile -Depth 30 -Compress) -AsHashtable
+$duplicateProfile.candidate.publicHeaders.files[1].path=$duplicateProfile.candidate.publicHeaders.files[0].path.ToUpperInvariant()
+$duplicateProfile|ConvertTo-Json -Depth 30|Set-Content -LiteralPath $readyProfilePath -Encoding utf8
+$rejected=$false;try {Get-RedTildeReviewedHeaderDeltaProfile -Root $readyRoot}catch{$rejected=$true}
+Require $rejected 'The fixed profile loader rejects case-insensitive duplicate inventory paths before map construction.'
+$readyProfile|ConvertTo-Json -Depth 30|Set-Content -LiteralPath $readyProfilePath -Encoding utf8
+$missingAbi=ConvertFrom-Json -InputObject (ConvertTo-Json $readyProfile -Depth 30 -Compress) -AsHashtable
+$missingAbi.abiProbe.sourceSha256=$null
+$missingAbi|ConvertTo-Json -Depth 30|Set-Content -LiteralPath $readyProfilePath -Encoding utf8
+$rejected=$false;try {Get-RedTildeReviewedHeaderDeltaProfile -Root $readyRoot}catch{$rejected=$true}
+Require $rejected 'Reviewed profile rejects a missing ABI-probe source binding.'
+foreach($field in @('fullApplicationCompileContextExact','fullApplicationLinkContextExact')) {
+    foreach($invalidValue in @($true,0,'False')) {
+        $badContext=ConvertFrom-Json -InputObject (ConvertTo-Json $readyProfile -Depth 30 -Compress) -AsHashtable
+        $badContext.abiProbe[$field]=$invalidValue
+        $badContext|ConvertTo-Json -Depth 30|Set-Content -LiteralPath $readyProfilePath -Encoding utf8
+        $rejected=$false;try {Get-RedTildeReviewedHeaderDeltaProfile -Root $readyRoot}catch{$rejected=$true}
+        Require $rejected "Reviewed profile requires JSON boolean false for $field; rejected $($invalidValue.GetType().Name)."
+    }
+}
+$readyProfile|ConvertTo-Json -Depth 30|Set-Content -LiteralPath $readyProfilePath -Encoding utf8
+$badAbi=ConvertFrom-Json -InputObject (ConvertTo-Json $readyProfile -Depth 30 -Compress) -AsHashtable
+$badAbi.abiProbe.candidate.Document.sizeBytes++
+$badAbi|ConvertTo-Json -Depth 30|Set-Content -LiteralPath $readyProfilePath -Encoding utf8
+$rejected=$false;try {Get-RedTildeReviewedHeaderDeltaProfile -Root $readyRoot}catch{$rejected=$true}
+Require $rejected 'Reviewed profile rejects a candidate ABI size change.'
+$badMethod=ConvertFrom-Json -InputObject (ConvertTo-Json $readyProfile -Depth 30 -Compress) -AsHashtable
+$badMethod.abiProbe.candidate.newMethodSignatureVerified=$false
+$badMethod|ConvertTo-Json -Depth 30|Set-Content -LiteralPath $readyProfilePath -Encoding utf8
+$rejected=$false;try {Get-RedTildeReviewedHeaderDeltaProfile -Root $readyRoot}catch{$rejected=$true}
+Require $rejected 'Reviewed profile rejects an unverified candidate method signature.'
+$badProfile=ConvertFrom-Json -InputObject (ConvertTo-Json $readyProfile -Depth 30 -Compress) -AsHashtable
+$badProfile.profileId='caller-selected-profile'
+$badProfile|ConvertTo-Json -Depth 30|Set-Content -LiteralPath $readyProfilePath -Encoding utf8
+$rejected=$false;try {Get-RedTildeReviewedHeaderDeltaProfile -Root $readyRoot}catch{$rejected=$true}
+Require $rejected 'Reviewed profile rejects unknown IDs and caller-selected profiles.'
+$profileFixture=ConvertFrom-Json -InputObject (ConvertTo-Json $readyProfile -Depth 30 -Compress) -AsHashtable
+$baseDependency=[ordered]@{Fingerprint=$profileFixture.baseline.dependencyFingerprint;Identity=$profileFixture.baseline.identity}
+$candidateDependency=[ordered]@{Fingerprint=$profileFixture.candidate.dependencyFingerprint;Identity=$profileFixture.candidate.identity}
+$baseHeaders=ConvertFrom-Json -InputObject (ConvertTo-Json $profileFixture.baseline.publicHeaders -Depth 30 -Compress) -AsHashtable
+$candidateHeaders=ConvertFrom-Json -InputObject (ConvertTo-Json $profileFixture.candidate.publicHeaders -Depth 30 -Compress) -AsHashtable
+$baseAdmission=[ordered]@{build=[ordered]@{dependency=$baseDependency};publicHeaders=[ordered]@{sha256=$baseHeaders.combinedSha256}}
+$candidateAdmission=[ordered]@{build=[ordered]@{dependency=$candidateDependency};publicHeaders=[ordered]@{sha256=$candidateHeaders.combinedSha256}}
+$selectedAaCandidate=Get-RedTildePairedAdmissionCandidate -Baseline $baseAdmission -Current $candidateAdmission -SameBinaryControl
+Require ($selectedAaCandidate.build.dependency.Identity.commit -ceq $baseDependency.Identity.commit -and
+    $selectedAaCandidate.publicHeaders.sha256 -ceq $baseHeaders.combinedSha256) 'Same-binary control admission must use the frozen old executable identity on both sides.'
+Assert-RedTildeDependencyComparison -BaselineDependency $baseDependency -CandidateDependency $selectedAaCandidate.build.dependency -BaselinePublicHeadersSha256 $baseHeaders.combinedSha256 -CandidatePublicHeadersSha256 $selectedAaCandidate.publicHeaders.sha256
+$selectedAbCandidate=Get-RedTildePairedAdmissionCandidate -Baseline $baseAdmission -Current $candidateAdmission
+foreach($adoption in @($false,$true)) {
+    $rejected=$false
+    try {Assert-RedTildeDependencyComparison -BaselineDependency $baseDependency -CandidateDependency $selectedAbCandidate.build.dependency -BaselinePublicHeadersSha256 $baseHeaders.combinedSha256 -CandidatePublicHeadersSha256 $selectedAbCandidate.publicHeaders.sha256 -DependencyAdoption:$adoption} catch {$rejected=$true}
+    Require $rejected "The two-header SDK delta remains rejected on the AB path with DependencyAdoption=$adoption."
+}
+[Array]::Reverse($baseHeaders.files);[Array]::Reverse($candidateHeaders.files)
+Assert-RedTildeReviewedHeaderDelta -Profile $profileFixture -BaselineDependency $baseDependency -CandidateDependency $candidateDependency -BaselinePublicHeaders $baseHeaders -CandidatePublicHeaders $candidateHeaders -BaselineBuild @{platform='x64'} -CandidateBuild @{platform='x64'}
+Assert-RedTildeCompilerComparison -BaselineCompiler $compilerA -CandidateCompiler $compilerB -BaselineDependency $dependencyA -CandidateDependency $dependencyB -ReviewedHeaderDelta -ReviewedProfile $profileFixture
+$rejected=$false
+try { Assert-RedTildeCompilerComparison -BaselineCompiler $compilerA -CandidateCompiler $compilerB -BaselineDependency $dependencyA -CandidateDependency $dependencyB -ReviewedHeaderDelta } catch {$rejected=$true}
+Require $rejected 'Reviewed compiler comparison refuses to run without the fixed profile binding.'
+$outsideIndex=0
+while($candidateHeaders.files[$outsideIndex].path -cne 'include/DxUi/AccessibilityTextUnits.h') {++$outsideIndex}
+$outsideHash=$candidateHeaders.files[$outsideIndex].sha256
+$rejected=$false
+try { $candidateHeaders.files[$outsideIndex].sha256='D'*64;Assert-RedTildeReviewedHeaderDelta -Profile $profileFixture -BaselineDependency $baseDependency -CandidateDependency $candidateDependency -BaselinePublicHeaders $baseHeaders -CandidatePublicHeaders $candidateHeaders -BaselineBuild @{platform='x64'} -CandidateBuild @{platform='x64'} } catch {$rejected=$true}
+Require $rejected 'Reviewed profile rejects a changed header outside the exact two-row delta.'
+$candidateHeaders.files[$outsideIndex].sha256=$outsideHash
+$candidateDependency.Identity.extraOption='changed'
+$rejected=$false
+try { Assert-RedTildeReviewedHeaderDelta -Profile $profileFixture -BaselineDependency $baseDependency -CandidateDependency $candidateDependency -BaselinePublicHeaders $baseHeaders -CandidatePublicHeaders $candidateHeaders -BaselineBuild @{platform='x64'} -CandidateBuild @{platform='x64'} } catch {$rejected=$true}
+Require $rejected 'Reviewed profile rejects unknown dependency-field drift.'
+$candidateDependency.Identity.extraOption='same'
+$candidateDependency.Identity.apiRevision=5
+$rejected=$false
+try { Assert-RedTildeReviewedHeaderDelta -Profile $profileFixture -BaselineDependency $baseDependency -CandidateDependency $candidateDependency -BaselinePublicHeaders $baseHeaders -CandidatePublicHeaders $candidateHeaders -BaselineBuild @{platform='x64'} -CandidateBuild @{platform='x64'} } catch {$rejected=$true}
+Require $rejected 'Reviewed profile rejects an API revision change.'
+$candidateDependency.Identity.apiRevision=4;$candidateDependency.Fingerprint='3'*64
+$rejected=$false
+try { Assert-RedTildeReviewedHeaderDelta -Profile $profileFixture -BaselineDependency $baseDependency -CandidateDependency $candidateDependency -BaselinePublicHeaders $baseHeaders -CandidatePublicHeaders $candidateHeaders -BaselineBuild @{platform='x64'} -CandidateBuild @{platform='x64'} } catch {$rejected=$true}
+Require $rejected 'Reviewed profile rejects a fingerprint outside its exact pair.'
+$candidateDependency.Fingerprint=$profileFixture.candidate.dependencyFingerprint
+$badHeaders=ConvertFrom-Json -InputObject (ConvertTo-Json $profileFixture.candidate.publicHeaders -Depth 30 -Compress) -AsHashtable
+$badHeaders.files[1].path=$badHeaders.files[0].path.ToUpperInvariant()
+$rejected=$false
+try { Assert-RedTildeReviewedHeaderDelta -Profile $profileFixture -BaselineDependency $baseDependency -CandidateDependency $candidateDependency -BaselinePublicHeaders $baseHeaders -CandidatePublicHeaders $badHeaders -BaselineBuild @{platform='x64'} -CandidateBuild @{platform='x64'} } catch {$rejected=$true}
+Require $rejected 'Reviewed profile rejects duplicate paths that differ only by case.'
+$badHeaders=ConvertFrom-Json -InputObject (ConvertTo-Json $profileFixture.candidate.publicHeaders -Depth 30 -Compress) -AsHashtable
+$caseIndex=0;while($badHeaders.files[$caseIndex].path -cne 'include/DxUi/DxUi.h'){++$caseIndex};$badHeaders.files[$caseIndex].path='include/DxUi/dxui.h'
+$rejected=$false
+try { Assert-RedTildeReviewedHeaderDelta -Profile $profileFixture -BaselineDependency $baseDependency -CandidateDependency $candidateDependency -BaselinePublicHeaders $baseHeaders -CandidatePublicHeaders $badHeaders -BaselineBuild @{platform='x64'} -CandidateBuild @{platform='x64'} } catch {$rejected=$true}
+Require $rejected 'Reviewed profile rejects case-only inventory path changes.'
+$badHeaders=ConvertFrom-Json -InputObject (ConvertTo-Json $profileFixture.candidate.publicHeaders -Depth 30 -Compress) -AsHashtable
+$badHeaders.files[0].path='include/../escape.h'
+$rejected=$false
+try { Assert-RedTildeReviewedHeaderDelta -Profile $profileFixture -BaselineDependency $baseDependency -CandidateDependency $candidateDependency -BaselinePublicHeaders $baseHeaders -CandidatePublicHeaders $badHeaders -BaselineBuild @{platform='x64'} -CandidateBuild @{platform='x64'} } catch {$rejected=$true}
+Require $rejected 'Reviewed profile rejects malformed or traversing inventory paths.'
+$candidateHeaders.files=@($candidateHeaders.files|Select-Object -Skip 1)
+$rejected=$false
+try { Assert-RedTildeReviewedHeaderDelta -Profile $profileFixture -BaselineDependency $baseDependency -CandidateDependency $candidateDependency -BaselinePublicHeaders $baseHeaders -CandidatePublicHeaders $candidateHeaders -BaselineBuild @{platform='x64'} -CandidateBuild @{platform='x64'} } catch {$rejected=$true}
+Require $rejected 'Reviewed profile rejects a missing package inventory row.'
 Write-Host "Performance tooling: numerical policy and independent compiler identity checks passed ($script:checks reference/audit assertions)."

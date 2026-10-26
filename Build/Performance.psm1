@@ -333,6 +333,221 @@ function Assert-RedTildeDependencyComparison {
     }
 }
 
+function Get-RedTildeReviewedHeaderInventory {
+    param([Parameter(Mandatory)]$Headers,[Parameter(Mandatory)][string]$Side)
+    $files=@($Headers.files)
+    if(($Headers.schemaVersion -isnot [int] -and $Headers.schemaVersion -isnot [long]) -or $Headers.schemaVersion -ne 2 -or $files.Count -ne 58) {
+        throw "The $Side reviewed inventory must be schema 2 with 58 rows."
+    }
+    $caseFold=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    $exact=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $map=[Collections.Generic.Dictionary[string,string]]::new([StringComparer]::Ordinal)
+    $sourceRows=[Collections.Generic.List[string]]::new();$packageRows=[Collections.Generic.List[string]]::new()
+    foreach($row in $files) {
+        $path=[string]$row.path;$hash=[string]$row.sha256;$segments=@($path -split '/')
+        if($path -cnotmatch '^(include|package-include)/[A-Za-z0-9_.+/-]+$' -or
+            @($segments|Where-Object {$_ -cin @('','.','..')}).Count -or
+            $hash -cnotmatch '^[0-9A-Fa-f]{64}$' -or -not $caseFold.Add($path) -or -not $exact.Add($path)) {
+            throw "The $Side reviewed inventory has a malformed or duplicate row: $path"
+        }
+        $map.Add($path,$hash)
+        $record=$path+':'+$hash
+        if($path.StartsWith('include/',[StringComparison]::Ordinal)) {$sourceRows.Add($record)}else{$packageRows.Add($record)}
+    }
+    if($sourceRows.Count -ne 25 -or $packageRows.Count -ne 33) { throw "The $Side inventory must contain 25 source and 33 vcpkg package rows." }
+    [string[]]$source=$sourceRows.ToArray();[string[]]$package=$packageRows.ToArray();[string[]]$combined=[string[]]@($source+$package)
+    [Array]::Sort($source,[StringComparer]::Ordinal);[Array]::Sort($package,[StringComparer]::Ordinal);[Array]::Sort($combined,[StringComparer]::Ordinal)
+    $hashRows={param([string[]]$Rows) [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($Rows -join "`n"))))}
+    $sourceDigest=& $hashRows $source;$packageDigest=& $hashRows $package;$combinedDigest=& $hashRows $combined
+    $expectedCombined=if($Headers.Contains('combinedSha256')){[string]$Headers.combinedSha256}else{[string]$Headers.sha256}
+    if($sourceDigest -cne $Headers.sourceSha256 -or $packageDigest -cne $Headers.packageSha256 -or $combinedDigest -cne $expectedCombined) {
+        throw "The $Side reviewed inventory digests do not recompute from its order-independent rows."
+    }
+    return [pscustomobject]@{rows=$map;sourceCount=$source.Count;packageCount=$package.Count;sourceSha256=$sourceDigest;packageSha256=$packageDigest;combinedSha256=$combinedDigest}
+}
+
+function Get-RedTildeReviewedHeaderDeltaProfile {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Root)
+    $path=Join-Path $Root 'Build/ReviewedHeaderDeltaProfile.json'
+    if(-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'The fixed reviewed-header profile is missing.' }
+    $profile=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json -AsHashtable
+    if($profile.schema -cne 'redtilde-reviewed-dxui-header-delta-profile-v1' -or
+        $profile.profileId -cne 'redtilde-dxui-readonly-snapshot-api4-v1' -or
+        $profile.status -cne 'ready-reviewed-exact-pair') {
+        throw 'The fixed reviewed-header profile is blocked, unknown, or not the approved exact profile.'
+    }
+    if($profile.allOtherInventoryRowsMustBeIdentical -cne $true -or $profile.packageHeadersUnchanged -cne $true -or
+        ($profile.dependencyFieldChanges -join '|') -cne 'Fingerprint|Identity.commit' -or
+        ($profile.compilerPathOperandsOnly -join '|') -cne 'one exact DxUi source /I|one exact fingerprinted package /I') {
+        throw 'The fixed profile broadens the reviewed dependency/compiler exception.'
+    }
+    if($profile.baseline.commit -cne '2fed82465dcee9f213753754e0e8e54f353cf38f' -or
+        $profile.baseline.tree -cne '2c0641bc363bf713cfc709d721c3f6549dd5aef8' -or
+        $profile.candidate.commit -cne '47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a' -or
+        $profile.candidate.tree -cne '3ee2e12647ca2e05113823eb172bb0facf879021' -or
+        ($profile.expectedApiRevision -isnot [int] -and $profile.expectedApiRevision -isnot [long]) -or $profile.expectedApiRevision -ne 4) {
+        throw 'The fixed reviewed-header profile is not bound to its reviewed SDK pair/API.'
+    }
+    foreach($side in @('baseline','candidate')) {
+        $binding=$profile[$side]
+        if($binding.dependencyFingerprint -isnot [string] -or $binding.dependencyFingerprint -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            ($binding.publicHeaders.schemaVersion -isnot [int] -and $binding.publicHeaders.schemaVersion -isnot [long]) -or $binding.publicHeaders.schemaVersion -ne 2 -or
+            $binding.publicHeaders.files -isnot [array] -or $binding.publicHeaders.files.Count -ne 58 -or
+            ($binding.publicHeaders.sourceCount -isnot [int] -and $binding.publicHeaders.sourceCount -isnot [long]) -or $binding.publicHeaders.sourceCount -ne 25 -or
+            ($binding.publicHeaders.packageCount -isnot [int] -and $binding.publicHeaders.packageCount -isnot [long]) -or $binding.publicHeaders.packageCount -ne 33 -or
+            $binding.publicHeaders.sourceCount + $binding.publicHeaders.packageCount -ne 58 -or
+            $binding.publicHeaders.sourceSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $binding.publicHeaders.packageSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $binding.publicHeaders.combinedSha256 -cnotmatch '^[0-9A-Fa-f]{64}$') {
+            throw "The $side reviewed-header profile inventory is incomplete."
+        }
+        $null=Get-RedTildeReviewedHeaderInventory -Headers $binding.publicHeaders -Side $side
+        if($binding.identity.commit -cne $binding.commit -or $binding.identity.apiRevision -ne 4 -or
+            $binding.identity.platform -cne 'x64' -or $binding.identity.toolset -cne 'v145' -or
+            -not $binding.identity.vcToolsVersion -or -not $binding.identity.windowsSdkVersion -or
+            -not $binding.identity.runtimeFamily -or -not $binding.identity.preferredToolArchitecture -or
+            $binding.identity.disableStlAnnotations -isnot [bool] -or
+            $binding.identity.msbuildSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $binding.identity.compilerSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $binding.identity.linkerSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $binding.identity.windowsHeaderSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $binding.identity.kernel32Sha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $binding.identity.ucrtSha256 -cnotmatch '^[0-9A-Fa-f]{64}$') {
+            throw "The $side complete SDK identity is missing or does not match the reviewed x64 API-4 toolchain."
+        }
+    }
+    if($profile.abiProbe.protocol -cne 'dxui-readonly-source-snapshot-abi-probe-v1' -or
+        $profile.abiProbe.sourceSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+        $profile.abiProbe.fullReceiptSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+        $profile.abiProbe.normalizedProbeCompileArgsEqual -cne $true -or
+        $profile.abiProbe.classLayoutEqual -cne $true -or
+        $profile.abiProbe.newMethodAvailableOnlyOnCandidate -cne $true -or
+        $profile.abiProbe.fullApplicationCompileContextExact -isnot [bool] -or $profile.abiProbe.fullApplicationCompileContextExact -cne $false -or
+        $profile.abiProbe.fullApplicationLinkContextExact -isnot [bool] -or $profile.abiProbe.fullApplicationLinkContextExact -cne $false -or
+        -not $profile.abiProbe.fullContextLimit) {
+        throw 'The reviewed-header ABI probe lacks its source, full receipt, required positive results, or scope limit.'
+    }
+    try { $probeSource=[Convert]::FromBase64String([string]$profile.abiProbe.sourceBase64) } catch { throw 'The fixed ABI probe source is not valid base64.' }
+    if([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($probeSource)) -cne $profile.abiProbe.sourceSha256) {
+        throw 'The embedded ABI probe source bytes differ from the fixed source hash.'
+    }
+    $allowed=@('include/DxUi/DxUi.h','include/DxUi/RichDocument.h')
+    if($profile.allowedHeaderHashPairs.Count -ne 2) { throw 'The reviewed profile must contain exactly two SDK header rows.' }
+    $baseRows=(Get-RedTildeReviewedHeaderInventory -Headers $profile.baseline.publicHeaders -Side baseline).rows
+    $candidateRows=(Get-RedTildeReviewedHeaderInventory -Headers $profile.candidate.publicHeaders -Side candidate).rows
+    $pathDifferences=@(Compare-Object @($baseRows.Keys|Sort-Object -CaseSensitive) @($candidateRows.Keys|Sort-Object -CaseSensitive) -CaseSensitive)
+    if($pathDifferences.Count -gt 0) {
+        throw 'The reviewed SDK inventories do not contain the same exact path set.'
+    }
+    $changed=@(foreach($path in $baseRows.Keys){if($baseRows[$path] -cne $candidateRows[$path]){$path}})
+    if($changed.Count -ne 2 -or @($changed|Where-Object {$allowed -cnotcontains $_}).Count -ne 0) {
+        throw 'Only the two exact reviewed SDK source header rows may change; all vcpkg package rows and other SDK headers remain identical.'
+    }
+    $pairedSources=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach($pair in $profile.allowedHeaderHashPairs) {
+        $sourcePath=[string]$pair.sourcePath
+        if($sourcePath -cnotin @('include/DxUi/DxUi.h','include/DxUi/RichDocument.h') -or
+            -not $pairedSources.Add($sourcePath) -or
+            $pair.baselineSha256 -cne $baseRows[$sourcePath] -or
+            $pair.candidateSha256 -cne $candidateRows[$sourcePath]) {
+            throw 'An allowed SDK source header hash pair differs from the profile inventories.'
+        }
+    }
+    if($pairedSources.Count -ne 2) { throw 'The reviewed profile must bind both exact source header paths once.' }
+    foreach($side in @('baseline','candidate')) {
+        foreach($type in @('RichTextEditor','Document')) {
+            $layout=$profile.abiProbe[$side][$type]
+            if(($layout.sizeBytes -isnot [int] -and $layout.sizeBytes -isnot [long]) -or $layout.sizeBytes -le 0 -or
+                ($layout.alignmentBytes -isnot [int] -and $layout.alignmentBytes -isnot [long]) -or $layout.alignmentBytes -le 0) {
+                throw "The reviewed-header ABI probe has no valid $side $type layout."
+            }
+            $layoutSizeField=if($type -ceq 'RichTextEditor'){'sizeofRichTextEditor'}else{'sizeofRichTextDocument'}
+            $layoutAlignmentField=if($type -ceq 'RichTextEditor'){'alignofRichTextEditor'}else{'alignofRichTextDocument'}
+            if($layout.sizeBytes -ne $profile.abiProbe[$side].values[$layoutSizeField] -or
+                $layout.alignmentBytes -ne $profile.abiProbe[$side].values[$layoutAlignmentField]) {
+                throw "The reviewed-header ABI $side $type layout labels differ from the compiler-probe values."
+            }
+        }
+        $sideEvidence=$profile.abiProbe[$side];$binding=$profile[$side]
+        if($sideEvidence.receiptSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $sideEvidence.normalizedApplicationCompilerProfileSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $sideEvidence.probeApplicationCompilerTlogSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $sideEvidence.applicationLinkCommandSha256 -cnotmatch '^[0-9A-Fa-f]{64}$') {
+            throw "The $side ABI side projection lacks compiler receipt hashes."
+        }
+        $projection=[ordered]@{side=$side;sdkCommit=$binding.commit;fingerprint=$binding.dependencyFingerprint;apiRevision=4;
+            headerInventorySha256=$binding.publicHeaders.combinedSha256;compilerSha256=$binding.identity.compilerSha256;
+            linkerSha256=$binding.identity.linkerSha256;normalizedApplicationCompilerProfileSha256=$sideEvidence.normalizedApplicationCompilerProfileSha256;
+            probeApplicationCompilerTlogSha256=$sideEvidence.probeApplicationCompilerTlogSha256;
+            applicationLinkCommandSha256=$sideEvidence.applicationLinkCommandSha256;values=$sideEvidence.values}
+        $projectionBytes=[Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $projection -Depth 12 -Compress))
+        $projectionHash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($projectionBytes))
+        if($projectionHash -cne $sideEvidence.receiptSha256) { throw "The $side ABI side-projection checksum does not recompute." }
+    }
+    if($profile.abiProbe.baseline.RichTextEditor.sizeBytes -ne $profile.abiProbe.candidate.RichTextEditor.sizeBytes -or
+        $profile.abiProbe.baseline.RichTextEditor.alignmentBytes -ne $profile.abiProbe.candidate.RichTextEditor.alignmentBytes -or
+        $profile.abiProbe.baseline.Document.sizeBytes -ne $profile.abiProbe.candidate.Document.sizeBytes -or
+        $profile.abiProbe.baseline.Document.alignmentBytes -ne $profile.abiProbe.candidate.Document.alignmentBytes -or
+        $profile.abiProbe.baseline.values.hasReadOnlySourceSynchronization -cne $false -or
+        $profile.abiProbe.candidate.values.hasReadOnlySourceSynchronization -cne $true -or
+        $profile.abiProbe.candidate.newMethodSignatureVerified -cne $true) {
+        throw 'The reviewed-header ABI probe is incomplete or detects an ABI/layout change.'
+    }
+    foreach($field in @('sizeofSourceSnapshot','alignofSourceSnapshot','controlIsPolymorphic','richTextEditorIsPolymorphic','msvcVersion','msvcLang','iteratorDebugLevel')) {
+        if($profile.abiProbe.baseline.values[$field] -cne $profile.abiProbe.candidate.values[$field]) { throw "The ABI probe $field differs across the reviewed pair." }
+    }
+    return $profile
+}
+
+function Assert-RedTildeReviewedHeaderDelta {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)]$Profile,[Parameter(Mandatory)]$BaselineDependency,
+        [Parameter(Mandatory)]$CandidateDependency,[Parameter(Mandatory)]$BaselinePublicHeaders,
+        [Parameter(Mandatory)]$CandidatePublicHeaders,[Parameter(Mandatory)]$BaselineBuild,
+        [Parameter(Mandatory)]$CandidateBuild)
+    function Json($Value) { ConvertTo-Json -InputObject $Value -Depth 100 -Compress }
+    function DependencyField($Value,[string]$Name) {
+        if($Value -is [Collections.IDictionary]) { foreach($key in $Value.Keys) { if([string]$key -ceq $Name){return $Value[$key]} } }
+        else { foreach($property in $Value.PSObject.Properties) { if($property.Name -ceq $Name){return $property.Value} } }
+        return $null
+    }
+    foreach($entry in @(@{name='baseline';dependency=$BaselineDependency;headers=$BaselinePublicHeaders;build=$BaselineBuild},
+        @{name='candidate';dependency=$CandidateDependency;headers=$CandidatePublicHeaders;build=$CandidateBuild})) {
+        $expected=$Profile[$entry.name];$identity=DependencyField $entry.dependency 'Identity'
+        $commit=DependencyField $identity 'commit';$fingerprint=DependencyField $entry.dependency 'Fingerprint'
+        $api=DependencyField $identity 'apiRevision'
+        if($commit -cne $expected.commit -or $fingerprint -cne $expected.dependencyFingerprint -or
+            ($api -isnot [int] -and $api -isnot [long]) -or $api -ne 4 -or $entry.build.platform -cne 'x64') {
+            throw "The $($entry.name) build is not the exact reviewed SDK identity."
+        }
+        if((Json $identity) -cne (Json $expected.identity)) { throw "The $($entry.name) complete SDK identity differs from the fixed profile." }
+        $actualInventory=Get-RedTildeReviewedHeaderInventory -Headers $entry.headers -Side $entry.name
+        $expectedInventory=Get-RedTildeReviewedHeaderInventory -Headers $expected.publicHeaders -Side ($entry.name+' profile')
+        if($actualInventory.sourceSha256 -cne $expectedInventory.sourceSha256 -or
+            $actualInventory.packageSha256 -cne $expectedInventory.packageSha256 -or
+            $actualInventory.combinedSha256 -cne $expectedInventory.combinedSha256 -or
+            @(Compare-Object @($actualInventory.rows.Keys|Sort-Object -CaseSensitive) @($expectedInventory.rows.Keys|Sort-Object -CaseSensitive) -CaseSensitive).Count -gt 0) {
+            throw "The $($entry.name) full source/package inventory differs from the exact reviewed profile."
+        }
+        foreach($path in $actualInventory.rows.Keys) {
+            if($actualInventory.rows[$path] -cne $expectedInventory.rows[$path]) { throw "The $($entry.name) inventory row differs from the fixed profile: $path" }
+        }
+    }
+    $baselineClone=ConvertFrom-Json -InputObject (Json $BaselineDependency) -AsHashtable
+    $candidateClone=ConvertFrom-Json -InputObject (Json $CandidateDependency) -AsHashtable
+    $baselineClone.Remove('Fingerprint');$candidateClone.Remove('Fingerprint')
+    $baselineClone.Identity.Remove('commit');$candidateClone.Identity.Remove('commit')
+    if((Json $baselineClone) -cne (Json $candidateClone)) { throw 'Reviewed-header mode permits only the exact profile-bound commit and fingerprint changes.' }
+}
+
+function Get-RedTildePairedAdmissionCandidate {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)]$Baseline,[Parameter(Mandatory)]$Current,[switch]$SameBinaryControl)
+    if($SameBinaryControl) { return $Baseline }
+    return $Current
+}
+
 
 function Assert-RedTildeCompilerComparison {
     [CmdletBinding()]
@@ -341,7 +556,9 @@ function Assert-RedTildeCompilerComparison {
         [Parameter(Mandatory)] $CandidateCompiler,
         [Parameter(Mandatory)] $BaselineDependency,
         [Parameter(Mandatory)] $CandidateDependency,
-        [switch] $DependencyAdoption
+        [switch] $DependencyAdoption,
+        [switch] $ReviewedHeaderDelta,
+        $ReviewedProfile
     )
     function Get-CompilerComparisonField($Value,[string]$Name) {
         if($Value -is [Collections.IDictionary]) {
@@ -415,8 +632,8 @@ function Assert-RedTildeCompilerComparison {
     $baselineSha=Get-CompilerComparisonField $BaselineCompiler 'sha256'
     $candidateSha=Get-CompilerComparisonField $CandidateCompiler 'sha256'
     if($baselineSha -isnot [string] -or $candidateSha -isnot [string]) { throw 'Compiler profile SHA-256 metadata is missing.' }
-    if($baselineSha -ceq $candidateSha) { return }
-    if(-not $DependencyAdoption) { throw 'Baseline and candidate compiler profiles differ.' }
+    if($baselineSha -ceq $candidateSha -and -not $ReviewedHeaderDelta) { return }
+    if(-not $DependencyAdoption -and -not $ReviewedHeaderDelta) { throw 'Baseline and candidate compiler profiles differ.' }
     $baselineSchema=Get-CompilerComparisonField $BaselineCompiler 'schemaVersion'
     $candidateSchema=Get-CompilerComparisonField $CandidateCompiler 'schemaVersion'
     if(($baselineSchema -isnot [int] -and $baselineSchema -isnot [long]) -or $baselineSchema -ne 2 -or
@@ -430,6 +647,7 @@ function Assert-RedTildeCompilerComparison {
         $baselineCommands[0] -isnot [string] -or $candidateCommands[0] -isnot [string]) {
         throw 'Compiler adoption requires one homogeneous normalized command on each side.'
     }
+    if($ReviewedHeaderDelta -and $null -eq $ReviewedProfile) { throw 'Reviewed-header compiler comparison requires the fixed profile.' }
     $baselinePaths=Get-AdoptionIncludePaths $BaselineDependency
     $candidatePaths=Get-AdoptionIncludePaths $CandidateDependency
     $normalizedBaseline=Normalize-AdoptionCommand $baselineCommands[0] $baselinePaths
@@ -438,4 +656,4 @@ function Assert-RedTildeCompilerComparison {
         throw 'Compiler adoption changed options beyond the declared DxUi include operands.'
     }
 }
-Export-ModuleMember -Function Get-RedTildeMedian,Get-RedTildePerformanceMetrics,Get-RedTildeControlDiagnostics,New-RedTildePerformanceSchedule,Get-RedTildeSignFlipP,Compare-RedTildePerformanceBlocks,Get-RedTildeCompilerProfile,Assert-RedTildeDependencyComparison,Assert-RedTildeCompilerComparison
+Export-ModuleMember -Function Get-RedTildeMedian,Get-RedTildePerformanceMetrics,Get-RedTildeControlDiagnostics,New-RedTildePerformanceSchedule,Get-RedTildeSignFlipP,Compare-RedTildePerformanceBlocks,Get-RedTildeCompilerProfile,Get-RedTildeReviewedHeaderDeltaProfile,Assert-RedTildeReviewedHeaderDelta,Get-RedTildePairedAdmissionCandidate,Assert-RedTildeDependencyComparison,Assert-RedTildeCompilerComparison

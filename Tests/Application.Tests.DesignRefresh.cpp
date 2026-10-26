@@ -283,6 +283,204 @@ class DesignRefreshProbe final
   public:
     static void Register(const std::filesystem::path &root, const std::function<void(std::string_view, const std::function<void()> &)> &test)
     {
+        test("Editor.SplitMirrorFallbackRecoversAfterHiddenEdits",
+             [&]
+             {
+                 Application app(Options(root, L"mirror-fallback"));
+                 Success(app.Initialize(), "initialize hidden mirror fallback fixture");
+                 const std::wstring source = L"# Mirror\r\n\r\nBody 世界 😀\r\n";
+                 app.SetDocument(source);
+                 app.SetView(EditorView::Split);
+                 app.Prepare(256);
+                 app.mirror->SetViewMode(DxUi::RichText::ViewMode::Rich);
+                 app.editor->SetSelection({source.size(), source.size()});
+                 Require(app.editor->ReplaceSelection(L"fallback"), "edit with incompatible mirror profile");
+                 const auto fallback = app.editor->Snapshot();
+                 Require(app.mirror->GetText() == app.editor->GetText() && !app.mirror->Snapshot().IsSameRevision(fallback) &&
+                             app.mirror->GetSelection() == app.editor->GetSelection() && app.editor->CanUndo(),
+                         "ordinary exact-text fallback preserves the primary source, ACPs and history");
+                 app.SetView(EditorView::Compose);
+                 app.mirror->SetViewMode(DxUi::RichText::ViewMode::Source);
+                 const auto hidden = app.mirror->Snapshot();
+                 const auto resets = app.Activity().mirrorResets;
+                 Require(app.editor->ReplaceSelection(L" hidden"), "edit the authoritative hidden source");
+                 Require(app.mirror->Snapshot().IsSameRevision(hidden) && app.Activity().mirrorResets == resets,
+                         "hidden Compose defers mirror work after a fallback");
+                 app.SetView(EditorView::Split);
+                 Require(app.mirror->Snapshot().IsSameRevision(app.editor->Snapshot()) && app.mirror->GetSelection() == app.editor->GetSelection() &&
+                             app.Activity().mirrorResets == resets + 1u,
+                         "visible Split recovers snapshot sharing after hidden edits");
+                 Require(app.editor->Undo() && app.editor->Undo() && app.editor->GetText() == source && !app.Dirty() &&
+                             app.mirror->Snapshot().IsSameRevision(app.editor->Snapshot()),
+                         "both edits undo to the exact saved CRLF source without mirror history");
+             });
+        test("Editor.SplitMirrorNestedEditKeepsNewestPublication",
+             [&]
+             {
+                 Application app(Options(root, L"mirror-nested"));
+                 Success(app.Initialize(), "initialize nested mirror fixture");
+                 const std::wstring source = L"# Mirror\n\nBody\n";
+                 app.SetDocument(source);
+                 app.SetView(EditorView::Split);
+                 app.Prepare(256);
+                 app.editor->SetSelection({source.size(), source.size()});
+                 bool entered = false, edited = false;
+                 app.mirror->SetOnSelectionChanged(
+                     [&]
+                     {
+                         if (entered)
+                             return;
+                         entered = true;
+                         const auto end = app.editor->Snapshot().Length();
+                         app.editor->SetSelection({end, end});
+                         edited = app.editor->ReplaceSelection(L" nested");
+                     });
+                 Require(app.editor->ReplaceSelection(L"outer"), "commit outer mirror-triggering edit");
+                 Require(entered && edited && app.editor->GetText() == source + L"outer nested" &&
+                             app.mirror->Snapshot().IsSameRevision(app.editor->Snapshot()) &&
+                             app.mirror->GetSelection() == app.editor->GetSelection() && app.mirroredSource &&
+                             app.mirroredSource->IsSameRevision(app.editor->Snapshot()) && app.selectionFactsSource &&
+                             app.selectionFactsSource->IsSameRevision(app.editor->Snapshot()) &&
+                             app.selectionFactsSelection == app.editor->GetSelection(),
+                         "nested primary edit supersedes every outer source/selection cache publication");
+                 const auto before = app.Activity().selectionPresentationUpdates;
+                 app.SelectionChanged();
+                 Require(app.Activity().selectionPresentationUpdates == before, "the outer continuation never overwrites the newest selection facts");
+                 app.mirror->SetOnSelectionChanged({});
+                 Require(app.editor->Undo() && app.editor->GetText() == source + L"outer" && app.editor->Undo() && app.editor->GetText() == source &&
+                             !app.Dirty(),
+                         "nested and outer edits keep separate authoritative undo records");
+             });
+        test("Editor.SplitMirrorCallbackCanRetireRoot",
+             [&]
+             {
+                 Application app(Options(root, L"mirror-retirement"));
+                 Success(app.Initialize(), "initialize mirror root-retirement fixture");
+                 app.SetDocument(L"# Mirror\n\nBody\n");
+                 app.Prepare(256);
+                 auto *const owner = app.root;
+                 const auto lifetime = GetControlLifetimeToken(*owner);
+                 const auto resets = app.Activity().mirrorResets;
+                 bool retired = false;
+                 app.mirror->SetOnSelectionChanged(
+                     [&]
+                     {
+                         retired = true;
+                         app.Host().SetRoot(std::make_unique<Surface>());
+                     });
+                 app.SetView(EditorView::Split);
+                 Require(retired && lifetime.expired() && !app.closing && app.Host().GetRoot() != owner && app.Activity().mirrorResets == resets,
+                         "owner retirement without Close aborts mirror cache publication and all caller continuation");
+             });
+        test("Editor.SplitViewTransitionCompletesAfterNestedEdit",
+             [&]
+             {
+                 const auto run = [&](std::wstring_view name, EditorView startingView)
+                 {
+                     auto options = Options(root, name);
+                     options.preferencesProbe = true;
+                     const auto dataDirectory = options.dataDirectory;
+                     Application app(std::move(options));
+                     Success(app.Initialize(), "initialize nested view-transition fixture");
+                     const std::wstring source = L"# View transition\r\n\r\nBody 世界 😀\r\n";
+                     app.SetDocument(source);
+                     if (startingView == EditorView::Source)
+                         app.SetView(EditorView::Source);
+                     app.Prepare(256);
+
+                     app.Document().SetSelection({source.size(), source.size()});
+                     Require(app.Document().ReplaceSelection(L" already dirty"), "make the source dirty before changing to Split");
+                     const auto beforeNestedEdit = source + L" already dirty";
+                     bool entered{}, nestedEdit{};
+                     app.mirror->SetOnSelectionChanged(
+                         [&]
+                         {
+                             if (entered)
+                                 return;
+                             entered = true;
+                             const auto end = app.Document().Snapshot().Length();
+                             app.Document().SetSelection({end, end});
+                             nestedEdit = app.Document().ReplaceSelection(L" nested");
+                         });
+
+                     app.SetView(EditorView::Split);
+                     app.mirror->SetOnSelectionChanged({});
+                     const auto expected = beforeNestedEdit + L" nested";
+                     Require(entered && nestedEdit && app.Document().GetText() == expected &&
+                                 app.Document().GetSelection() == DxUi::RichText::Selection{expected.size(), expected.size()} &&
+                                 app.Document().CanUndo() && app.Dirty(),
+                             "the nested edit remains authoritative and retains its undo history");
+                     Require(app.Preferences().view == EditorView::Split && app.Document().GetViewMode() == DxUi::RichText::ViewMode::Rich &&
+                                 app.modeHint->GetText() == Resource(IDS_SPLITHINT) && app.mirror->IsVisible() &&
+                                 app.Host().GetFocusControl() == &app.Document(),
+                             "the outer Split request completes hint, visibility and logical focus after source supersession");
+                     Require(app.mirror->GetText() == expected && app.mirror->Snapshot().IsSameRevision(app.Document().Snapshot()) &&
+                                 app.mirror->GetSelection() == app.Document().GetSelection(),
+                             "the visible mirror publishes the latest nested source and selection");
+                     CheckChrome(app);
+
+                     Settings persisted;
+                     bool splitPersisted{};
+                     for (unsigned attempt = 0; attempt < 400 && !splitPersisted; ++attempt)
+                     {
+                         if (SUCCEEDED(LoadSettings(dataDirectory, persisted)) && persisted.view == EditorView::Split)
+                             splitPersisted = true;
+                         else
+                             std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                     }
+                     Require(splitPersisted, "the completed Split transition reaches persisted preferences");
+                     Require(app.Document().Undo() && app.Document().GetText() == beforeNestedEdit && app.Document().Undo() &&
+                                 app.Document().GetText() == source && !app.Dirty(),
+                             "nested and pre-transition edits remain separately undoable to the original CRLF source");
+                 };
+
+                 run(L"compose-to-split-nested-edit", EditorView::Compose);
+                 run(L"source-to-split-nested-edit", EditorView::Source);
+             });
+        test("Editor.NestedViewRequestSupersedesOuterSplit",
+             [&]
+             {
+                 auto options = Options(root, L"nested-source-view-wins");
+                 options.preferencesProbe = true;
+                 const auto dataDirectory = options.dataDirectory;
+                 Application app(std::move(options));
+                 Success(app.Initialize(), "initialize nested view-request fixture");
+                 const std::wstring source = L"# Nested view\n\nKeep this source unchanged.\n";
+                 app.SetDocument(source);
+                 app.Prepare(256);
+
+                 bool entered{}, nestedViewCompleted{};
+                 app.mirror->SetOnSelectionChanged(
+                     [&]
+                     {
+                         if (entered)
+                             return;
+                         entered = true;
+                         app.SetView(EditorView::Source);
+                         nestedViewCompleted = app.Preferences().view == EditorView::Source &&
+                                               app.Document().GetViewMode() == DxUi::RichText::ViewMode::Source && !app.mirror->IsVisible();
+                     });
+                 app.SetView(EditorView::Split);
+                 app.mirror->SetOnSelectionChanged({});
+
+                 Require(entered && nestedViewCompleted && app.Document().GetText() == source && !app.Dirty() &&
+                             app.Preferences().view == EditorView::Source && app.Document().GetViewMode() == DxUi::RichText::ViewMode::Source &&
+                             app.modeHint->GetText() == Resource(IDS_SOURCEHINT) && !app.mirror->IsVisible() &&
+                             app.Host().GetFocusControl() == &app.Document(),
+                         "a nested Source request remains the final view after the outer Split callback resumes");
+                 CheckChrome(app);
+
+                 Settings persisted;
+                 bool sourcePersisted{};
+                 for (unsigned attempt = 0; attempt < 400 && !sourcePersisted; ++attempt)
+                 {
+                     if (SUCCEEDED(LoadSettings(dataDirectory, persisted)) && persisted.view == EditorView::Source)
+                         sourcePersisted = true;
+                     else
+                         std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                 }
+                 Require(sourcePersisted, "the latest nested Source request reaches persisted preferences");
+             });
         test("Window.Image2QuietChromeAndCompactInspector",
              [&]
              {
@@ -953,6 +1151,7 @@ class DesignRefreshProbe final
                              previewApp.Document().GetText() == firstPreview.text && previewApp.Document().GetSelection() == committedSelection &&
                              previewApp.documentInfo.headings.size() == 1 && previewApp.documentInfo.headings.front().text == L"Child" &&
                              previewApp.documentInfo.headings.front().offset == firstPreview.text.find(L"## Child") &&
+                             previewApp.documentInfo.lineIndex == AnalyzeDocument(firstPreview.text).lineIndex &&
                              previewApp.outlineModel.rows.size() == 1 && previewApp.outlineModel.rows.front().text == L"Child" &&
                              previewApp.outlineModel.rows.front().badgeText == L"1" &&
                              previewApp.Activity().documentAnalysisUpdates == analysisBaseline + 1,
@@ -963,6 +1162,7 @@ class DesignRefreshProbe final
                  const auto secondPreviewAnalysis = previewApp.Activity().documentAnalysisUpdates;
                  Require((previewApp.Document().*Testing::TextServiceImportProbe::Import)(previewApp.Host(), shiftedPreview, false) &&
                              previewApp.documentInfo.headings.size() == 1 && previewApp.documentInfo.headings.front().offset == childHeading + 1 &&
+                             previewApp.documentInfo.lineIndex == AnalyzeDocument(shiftedPreview.text).lineIndex &&
                              previewApp.outlineModel.rows.size() == 1 && previewApp.outlineModel.rows.front().text == L"Child" &&
                              previewApp.outlineModel.rows.front().badgeText == L"1" &&
                              previewApp.Activity().documentAnalysisUpdates == secondPreviewAnalysis + 1,
@@ -973,7 +1173,8 @@ class DesignRefreshProbe final
                          previewApp.Document().GetText() == committedSnapshot.Text() && previewApp.Document().GetSelection() == committedSelection &&
                          previewApp.documentInfo.headings.size() == 2 && previewApp.documentInfo.headings[0].text == L"Root" &&
                          previewApp.documentInfo.headings[0].offset == 0 && previewApp.documentInfo.headings[1].text == L"Child" &&
-                         previewApp.documentInfo.headings[1].offset == previewSource.find(L"## Child") && previewApp.outlineModel.rows.size() == 1 &&
+                         previewApp.documentInfo.headings[1].offset == previewSource.find(L"## Child") &&
+                         previewApp.documentInfo.lineIndex == AnalyzeDocument(previewSource).lineIndex && previewApp.outlineModel.rows.size() == 1 &&
                          previewApp.outlineModel.rows.front().text == L"Root" && !previewApp.outlineModel.rows.front().expanded &&
                          previewApp.outlineModel.rows.front().badgeText == L"2" && previewApp.findMatches.size() == 2 && previewApp.findSource &&
                          previewApp.findSource->IsSameRevision(previewApp.Document().Snapshot()) &&
@@ -1002,15 +1203,72 @@ class DesignRefreshProbe final
                              previewApp.Document().GetSelection() == committedSelection && previewApp.Document().Undo() &&
                              previewApp.Document().GetText() == previewSource && !previewApp.Document().CanUndo() &&
                              previewApp.documentInfo.headings[0].text == L"Root" && previewApp.Document().Redo() &&
-                             previewApp.Document().GetText() == committedHeadingPreview.text && previewApp.documentInfo.headings[0].text == L"Tree",
+                             previewApp.Document().GetText() == committedHeadingPreview.text && previewApp.documentInfo.headings[0].text == L"Tree" &&
+                             previewApp.documentInfo.lineIndex == AnalyzeDocument(committedHeadingPreview.text).lineIndex,
                          "preview result commit clears changed collapse identity and remains exactly one source undo/redo transaction");
                  previewApp.SetDocument(std::wstring(2048, L'\n'));
                  const auto manyLineCapacity = previewApp.documentInfo.lineIndex.capacity();
                  previewApp.SetDocument(L"Z\r\n");
                  Require(previewApp.documentInfo.lineIndex == std::vector<DocumentLine>{{0, 1}, {3, 0}} &&
-                             previewApp.documentInfo.lineIndex.capacity() <= 4 && previewApp.documentInfo.lineIndex.capacity() < manyLineCapacity &&
-                             previewApp.Document().GetText() == L"Z\r\n" && !previewApp.Document().CanUndo() && !previewApp.Document().CanRedo(),
+                             previewApp.documentInfo.lineIndex.capacity() <= 64 && previewApp.documentInfo.lineIndex.capacity() < manyLineCapacity &&
+                             previewApp.documentLineIndexStorage.Stats().spareCapacity <= 64 && previewApp.Document().GetText() == L"Z\r\n" &&
+                             !previewApp.Document().CanUndo() && !previewApp.Document().CanRedo(),
                          "small document replacement releases the predecessor's large line index and retains exact clean history");
+             });
+        test("Editor.DocumentAnalysisReusesBoundedLineIndexStorage",
+             [&]
+             {
+                 Application app(Options(root, L"design-line-index-reuse"));
+                 Success(app.Initialize(), "create hidden line-index storage app");
+                 const std::wstring source = L"α cat 😀 cat\r\ncat";
+                 app.SetDocument(source);
+                 app.Prepare(128);
+                 const auto warmAt = source.find(L"cat");
+                 app.Document().SetSelection({warmAt, warmAt + 3});
+                 Require(app.Document().ReplaceSelection(L"dog") && app.Document().Undo() && app.Document().GetText() == source,
+                         "one fixture edit/undo warms the application storage path");
+                 app.SetDocument(source);
+                 app.Prepare(128);
+                 Require(!app.Document().CanUndo() && !app.Document().CanRedo(), "the storage fixture starts with clean source history");
+                 const auto initialSnapshot = app.Document().Snapshot();
+                 const auto initialStats = app.documentLineIndexStorage.Stats();
+                 const auto initialAnalysisUpdates = app.Activity().documentAnalysisUpdates;
+                 const auto matchesAnalysisFacts = [&](std::wstring_view text)
+                 {
+                     const auto expected = AnalyzeDocument(text);
+                     return app.documentInfo.words == expected.words && app.documentInfo.characters == expected.characters &&
+                            app.documentInfo.lines == expected.lines && app.documentInfo.newlineKind == expected.newlineKind &&
+                            app.documentInfo.lineIndex == expected.lineIndex && app.documentInfo.headings.size() == expected.headings.size();
+                 };
+                 app.Document().SetSelection({0, 0});
+                 app.SelectionChanged();
+                 Require(app.Document().Snapshot().IsSameRevision(initialSnapshot) && app.documentAnalysisSource &&
+                             app.documentAnalysisSource->IsSameRevision(initialSnapshot) && matchesAnalysisFacts(source) &&
+                             app.Activity().documentAnalysisUpdates == initialAnalysisUpdates && !app.Document().CanUndo() &&
+                             !app.Document().CanRedo(),
+                         "caret-only refresh preserves the published source facts and clean history");
+                 for (unsigned cycle = 0; cycle < 4; ++cycle)
+                 {
+                     const auto editAt = source.find(L"cat");
+                     app.Document().SetSelection({editAt, editAt + 3});
+                     auto editedSource = source;
+                     editedSource.replace(editAt, 3, L"dog");
+                     Require(app.Document().ReplaceSelection(L"dog") && app.Document().GetText() == editedSource &&
+                                 matchesAnalysisFacts(editedSource) && app.documentAnalysisSource &&
+                                 app.documentAnalysisSource->IsSameRevision(app.Document().Snapshot()),
+                             "each same-line-count edit publishes exact facts for its source revision");
+                     Require(app.Document().Undo() && app.Document().GetText() == source && matchesAnalysisFacts(source) &&
+                                 app.documentAnalysisSource && app.documentAnalysisSource->IsSameRevision(app.Document().Snapshot()) &&
+                                 !app.Document().CanUndo() && app.Document().CanRedo(),
+                             "undo restores exact published line facts and source text");
+                 }
+                 const auto reusedStats = app.documentLineIndexStorage.Stats();
+                 Require(reusedStats.reuseCount >= initialStats.reuseCount + 8 &&
+                             reusedStats.capacityGrowthCount == initialStats.capacityGrowthCount &&
+                             reusedStats.capacityNormalizationCount == initialStats.capacityNormalizationCount &&
+                             app.Activity().documentAnalysisUpdates == initialAnalysisUpdates + 8 && app.Document().GetText() == source &&
+                             matchesAnalysisFacts(source) && !app.Document().CanUndo() && app.Document().CanRedo(),
+                         "application edit/undo transactions reuse warmed bounded storage without changing exact source facts");
              });
         test("Editor.DesignRefreshFindReplaceUndoAndCapacity",
              [&]

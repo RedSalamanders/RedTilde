@@ -14,12 +14,14 @@
 #include <psapi.h>
 #include <shobjidl.h>
 #include <thread>
+#include <type_traits>
 #include <wil/result.h>
 #include <wincodec.h>
 #include <windowsx.h>
 
 namespace RedTilde
 {
+static_assert(std::is_nothrow_swappable_v<DocumentInfo>, "analysis facts must publish without throwing");
 namespace
 {
 // App-local display categories over the canonical immutable tree, not a parser.
@@ -366,7 +368,7 @@ void Application::RefreshDocumentAnalysis(const DxUi::RichText::SourceSnapshot &
     bool outlineRowsChanged{};
     if (newSourceRevision)
     {
-        nextInfo.emplace(AnalyzeDocument(*text, documentInfo.lines));
+        nextInfo.emplace(documentLineIndexStorage.Analyze(*text, documentInfo.lines));
         outlineRowsChanged = !sameOutline(nextInfo->headings, documentInfo.headings);
         analysis = &*nextInfo;
     }
@@ -408,24 +410,66 @@ void Application::RefreshDocumentAnalysis(const DxUi::RichText::SourceSnapshot &
 
     if (newSourceRevision)
     {
-        documentInfo = std::move(*nextInfo);
+        using std::swap;
+        swap(documentInfo, *nextInfo);
+        documentLineIndexStorage.Retire(std::move(nextInfo->lineIndex), documentInfo.lines);
         documentAnalysisSource = source;
         ++activity.documentAnalysisUpdates;
     }
     if (outlineRowsChanged || collapseStateChanged)
         RefreshOutline();
 }
-void Application::SynchronizeMirror()
+bool Application::SynchronizeMirror()
 {
+    if (closing)
+        return false;
     if (settings.view != EditorView::Split)
-        return;
-    const auto source = editor->Snapshot();
+        return true;
+    if (!root || host.GetRoot() != root)
+        return false;
+    auto *const primary = editor;
+    auto *const target = mirror;
+    auto *const owner = root;
+    const auto source = primary->Snapshot();
+    if (mirroredSource && mirroredSource->IsSameRevision(source))
+        return true;
+    const auto selection = primary->GetSelection();
+    const auto revision = primary->Revision();
+    const auto primaryLifetime = GetControlLifetimeToken(*primary);
+    const auto targetLifetime = GetControlLifetimeToken(*target);
+    const auto ownerLifetime = GetControlLifetimeToken(*owner);
+    const auto current = [&]
+    {
+        if (closing || primaryLifetime.expired() || targetLifetime.expired() || ownerLifetime.expired() || editor != primary || mirror != target ||
+            root != owner || host.GetRoot() != owner || settings.view != EditorView::Split)
+            return false;
+        // These app-owned controls are never reparented independently of the
+        // root; its host ownership and all three weak identities were checked.
+        return primary->Snapshot().IsSameRevision(source) && primary->Revision() == revision && primary->GetSelection() == selection;
+    };
+    if (target->SynchronizeReadOnlySourceSnapshot(source, selection))
+    {
+        if (!current() || !target->Snapshot().IsSameRevision(source) || target->GetSelection() != selection)
+            return false;
+    }
+    else
+    {
+        if (!current())
+            return false;
+        // Retain exact SetText fallback for an incompatible mirror profile.
+        // Own this spelling across callbacks instead of borrowing a mutable app cache.
+        const auto text = source.Text();
+        target->SetText(text);
+        if (!current() || target->GetText() != text)
+            return false;
+    }
+    // A nested synchronization may already have published this same source.
     if (!mirroredSource || !mirroredSource->IsSameRevision(source))
     {
-        mirror->SetText(CurrentText());
         mirroredSource = source;
         ++activity.mirrorResets;
     }
+    return true;
 }
 void Application::Status(unsigned id)
 {
@@ -455,7 +499,8 @@ void Application::Changed()
     RefreshDocumentAnalysis(source, true);
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Analysis);
-    SynchronizeMirror();
+    if (!SynchronizeMirror())
+        return;
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Mirror);
     const auto name = documentPath.empty() ? Resource(IDS_UNTITLED) : documentPath.filename().native();
@@ -655,16 +700,45 @@ void Application::ShowRecovery()
 }
 void Application::SetView(EditorView view)
 {
+    if (closing || !root || host.GetRoot() != root)
+        return;
+    auto *const primary = editor;
+    auto *const target = mirror;
+    auto *const owner = root;
+    const auto primaryLifetime = GetControlLifetimeToken(*primary);
+    const auto targetLifetime = GetControlLifetimeToken(*target);
+    const auto ownerLifetime = GetControlLifetimeToken(*owner);
+    const auto current = [&]
+    {
+        return !closing && !primaryLifetime.expired() && !targetLifetime.expired() && !ownerLifetime.expired() && editor == primary &&
+               mirror == target && root == owner && host.GetRoot() == owner && settings.view == view;
+    };
     selectionToolsFocus.reset();
     // The same editor/document/history survives all global presentation changes.
     settings.view = view;
-    editor->SetViewMode(view == EditorView::Source ? DxUi::RichText::ViewMode::Source : DxUi::RichText::ViewMode::Rich);
-    SynchronizeMirror();
+    primary->SetViewMode(view == EditorView::Source ? DxUi::RichText::ViewMode::Source : DxUi::RichText::ViewMode::Rich);
+    if (!current())
+        return;
+    // Source supersession aborts source-bound work, but this view transition
+    // uses the latest source. Retired owners and a newer view request still win.
+    (void)SynchronizeMirror();
+    if (!current())
+        return;
     modeHint->SetText(Resource(view == EditorView::Source ? IDS_SOURCEHINT : view == EditorView::Split ? IDS_SPLITHINT : IDS_BANNER));
+    if (!current())
+        return;
     floating->SetVisible(false);
+    if (!current())
+        return;
     Layout();
+    if (!current())
+        return;
     SelectionChanged();
-    host.SetFocusControl(editor, false);
+    if (!current())
+        return;
+    host.SetFocusControl(primary, false);
+    if (!current())
+        return;
     if (!initializing)
         SavePreferences();
 }
@@ -692,6 +766,7 @@ void Application::SelectionChanged(bool refreshTools)
         EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::SelectionSnapshot);
         return editor->Snapshot();
     }();
+    const auto sourceRevision = editor->Revision();
     {
         EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::DocumentAnalysisRefresh);
         RefreshDocumentAnalysis(source, false);
@@ -722,9 +797,31 @@ void Application::SelectionChanged(bool refreshTools)
             // a committed edit. Match source identity before using their ACPs;
             // equal-length previews can also change Unicode/CRLF boundaries.
             EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::Mirror);
-            SynchronizeMirror();
-            mirror->SetSelection(selection);
-            (void)mirror->ScrollSourceRangeIntoView(host, selection.Start(), selection.End(), false);
+            if (closing || !root || host.GetRoot() != root)
+                return;
+            auto *const primary = editor;
+            auto *const target = mirror;
+            auto *const owner = root;
+            const auto primaryLifetime = GetControlLifetimeToken(*primary);
+            const auto targetLifetime = GetControlLifetimeToken(*target);
+            const auto ownerLifetime = GetControlLifetimeToken(*owner);
+            const auto current = [&]
+            {
+                if (closing || primaryLifetime.expired() || targetLifetime.expired() || ownerLifetime.expired() || editor != primary ||
+                    mirror != target || root != owner || host.GetRoot() != owner || settings.view != EditorView::Split)
+                    return false;
+                return primary->Snapshot().IsSameRevision(source) && primary->Revision() == sourceRevision && primary->GetSelection() == selection;
+            };
+            if (!SynchronizeMirror() || !current())
+                return;
+            // Read-only Source has no rich visual affinity. Adoption already
+            // reset this exact selection; retain the canonical setter for a
+            // real selection change or an incompatible-profile fallback.
+            if (target->GetSelection() != selection || !target->IsReadOnly() || target->GetViewMode() != DxUi::RichText::ViewMode::Source)
+                target->SetSelection(selection);
+            if (!current())
+                return;
+            (void)target->ScrollSourceRangeIntoView(host, selection.Start(), selection.End(), false);
             ++activity.mirrorSelectionUpdates;
         }
         std::wstring expression;
