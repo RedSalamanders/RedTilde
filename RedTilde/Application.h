@@ -323,7 +323,7 @@ class Application
     void Layout();
     void ApplyTheme();
     [[nodiscard]] const std::wstring &CurrentText() const;
-    void SynchronizeMirror();
+    [[nodiscard]] bool SynchronizeMirror();
     void Changed();
     void RefreshDocumentAnalysis(const DxUi::RichText::SourceSnapshot &source, bool committed);
     void UpdateCounts();

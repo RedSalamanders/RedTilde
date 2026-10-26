@@ -14,6 +14,18 @@
       "scope": "Editor"
     },
     {
+      "name": "Editor.SplitMirrorFallbackRecoversAfterHiddenEdits",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.SplitMirrorNestedEditKeepsNewestPublication",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.SplitMirrorCallbackCanRetireRoot",
+      "scope": "Editor"
+    },
+    {
       "name": "Window.Image2QuietChromeAndCompactInspector",
       "scope": "Editor"
     },

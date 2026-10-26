@@ -11,6 +11,12 @@ existing line endings. View changes never reserialize Markdown, reset history or
   current source and selection; edits update the mirror while it is visible. Compose/Source defer its hidden
   updates. Selecting a mirror range may navigate the authoritative editor. The mirror never becomes a second
   independently editable document.
+- The read-only Source mirror shares the primary immutable snapshot through the pinned public DxUi API while
+  retaining its own revision counter and independent parser. Changed source retires derived state; same source
+  and selection skip repeated work. An incompatible mirror profile retains exact `SetText` fallback. After any
+  callback, abort an older update if source/revision/selection/view changes or an editor/mirror/root lifetime is
+  retired. These cached controls are app-owned and never reparented independently of that root. Source sharing
+  does not publish an old cache over a nested edit or change authoritative undo/history/dirty state.
 - Text-service composition previews and cancellation can change live source and selection without a committed
   edit. A visible Split mirror synchronizes immutable source identity before applying their UTF-16 ACPs, even
   when lengths match but scalar/CRLF boundaries differ. This never adds authoritative history or invokes the

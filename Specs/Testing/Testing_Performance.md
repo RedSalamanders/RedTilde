@@ -157,6 +157,12 @@ components unavailable rather than supplying invented durations. Component sums 
 invocation and the parent selection phase; the retained remainder must reconstruct that parent. Historical
 reports without this optional object remain readable; a current study that declares it must retain it.
 
+A common diagnostic harness does not guarantee equal probe counts in different implementations. Report active
+component-call counts when comparing outer phases: each timed scope adds its own clock/cycle reads, and the
+enclosing interval/remainder includes that overhead. A phase delta cannot be attributed wholly to product work
+when scope counts differ. Diagnostics-off acceptance executes no diagnostic clock/cycle reads; do not infer
+zero instruction overhead from that gate or subtract a guessed per-probe cost.
+
 After the primary memory observations, opt-in app storage records report known buffer sizes/capacities and
 snapshot lengths without flattening source. Missing members in a historical implementation remain unavailable.
 After all primary, idle and resource observations, an optional heap walk may inspect only the explicitly supplied,

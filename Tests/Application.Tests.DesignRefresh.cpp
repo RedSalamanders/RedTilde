@@ -283,6 +283,95 @@ class DesignRefreshProbe final
   public:
     static void Register(const std::filesystem::path &root, const std::function<void(std::string_view, const std::function<void()> &)> &test)
     {
+        test("Editor.SplitMirrorFallbackRecoversAfterHiddenEdits",
+             [&]
+             {
+                 Application app(Options(root, L"mirror-fallback"));
+                 Success(app.Initialize(), "initialize hidden mirror fallback fixture");
+                 const std::wstring source = L"# Mirror\r\n\r\nBody 世界 😀\r\n";
+                 app.SetDocument(source);
+                 app.SetView(EditorView::Split);
+                 app.Prepare(256);
+                 app.mirror->SetViewMode(DxUi::RichText::ViewMode::Rich);
+                 app.editor->SetSelection({source.size(), source.size()});
+                 Require(app.editor->ReplaceSelection(L"fallback"), "edit with incompatible mirror profile");
+                 const auto fallback = app.editor->Snapshot();
+                 Require(app.mirror->GetText() == app.editor->GetText() && !app.mirror->Snapshot().IsSameRevision(fallback) &&
+                             app.mirror->GetSelection() == app.editor->GetSelection() && app.editor->CanUndo(),
+                         "ordinary exact-text fallback preserves the primary source, ACPs and history");
+                 app.SetView(EditorView::Compose);
+                 app.mirror->SetViewMode(DxUi::RichText::ViewMode::Source);
+                 const auto hidden = app.mirror->Snapshot();
+                 const auto resets = app.Activity().mirrorResets;
+                 Require(app.editor->ReplaceSelection(L" hidden"), "edit the authoritative hidden source");
+                 Require(app.mirror->Snapshot().IsSameRevision(hidden) && app.Activity().mirrorResets == resets,
+                         "hidden Compose defers mirror work after a fallback");
+                 app.SetView(EditorView::Split);
+                 Require(app.mirror->Snapshot().IsSameRevision(app.editor->Snapshot()) && app.mirror->GetSelection() == app.editor->GetSelection() &&
+                             app.Activity().mirrorResets == resets + 1u,
+                         "visible Split recovers snapshot sharing after hidden edits");
+                 Require(app.editor->Undo() && app.editor->Undo() && app.editor->GetText() == source && !app.Dirty() &&
+                             app.mirror->Snapshot().IsSameRevision(app.editor->Snapshot()),
+                         "both edits undo to the exact saved CRLF source without mirror history");
+             });
+        test("Editor.SplitMirrorNestedEditKeepsNewestPublication",
+             [&]
+             {
+                 Application app(Options(root, L"mirror-nested"));
+                 Success(app.Initialize(), "initialize nested mirror fixture");
+                 const std::wstring source = L"# Mirror\n\nBody\n";
+                 app.SetDocument(source);
+                 app.SetView(EditorView::Split);
+                 app.Prepare(256);
+                 app.editor->SetSelection({source.size(), source.size()});
+                 bool entered = false, edited = false;
+                 app.mirror->SetOnSelectionChanged(
+                     [&]
+                     {
+                         if (entered)
+                             return;
+                         entered = true;
+                         const auto end = app.editor->Snapshot().Length();
+                         app.editor->SetSelection({end, end});
+                         edited = app.editor->ReplaceSelection(L" nested");
+                     });
+                 Require(app.editor->ReplaceSelection(L"outer"), "commit outer mirror-triggering edit");
+                 Require(entered && edited && app.editor->GetText() == source + L"outer nested" &&
+                             app.mirror->Snapshot().IsSameRevision(app.editor->Snapshot()) &&
+                             app.mirror->GetSelection() == app.editor->GetSelection() && app.mirroredSource &&
+                             app.mirroredSource->IsSameRevision(app.editor->Snapshot()) && app.selectionFactsSource &&
+                             app.selectionFactsSource->IsSameRevision(app.editor->Snapshot()) &&
+                             app.selectionFactsSelection == app.editor->GetSelection(),
+                         "nested primary edit supersedes every outer source/selection cache publication");
+                 const auto before = app.Activity().selectionPresentationUpdates;
+                 app.SelectionChanged();
+                 Require(app.Activity().selectionPresentationUpdates == before, "the outer continuation never overwrites the newest selection facts");
+                 app.mirror->SetOnSelectionChanged({});
+                 Require(app.editor->Undo() && app.editor->GetText() == source + L"outer" && app.editor->Undo() && app.editor->GetText() == source &&
+                             !app.Dirty(),
+                         "nested and outer edits keep separate authoritative undo records");
+             });
+        test("Editor.SplitMirrorCallbackCanRetireRoot",
+             [&]
+             {
+                 Application app(Options(root, L"mirror-retirement"));
+                 Success(app.Initialize(), "initialize mirror root-retirement fixture");
+                 app.SetDocument(L"# Mirror\n\nBody\n");
+                 app.Prepare(256);
+                 auto *const owner = app.root;
+                 const auto lifetime = GetControlLifetimeToken(*owner);
+                 const auto resets = app.Activity().mirrorResets;
+                 bool retired = false;
+                 app.mirror->SetOnSelectionChanged(
+                     [&]
+                     {
+                         retired = true;
+                         app.Host().SetRoot(std::make_unique<Surface>());
+                     });
+                 app.SetView(EditorView::Split);
+                 Require(retired && lifetime.expired() && !app.closing && app.Host().GetRoot() != owner && app.Activity().mirrorResets == resets,
+                         "owner retirement without Close aborts mirror cache publication and all caller continuation");
+             });
         test("Window.Image2QuietChromeAndCompactInspector",
              [&]
              {

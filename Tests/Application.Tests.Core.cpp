@@ -540,6 +540,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              app.SetView(EditorView::Split);
              Require(app.SourceMirror().GetText() == app.Document().GetText() && app.SourceMirror().GetSelection() == selection,
                      "entering Split synchronizes exact source and selection");
+             Require(app.SourceMirror().Snapshot().IsSameRevision(current), "visible Split shares the immutable primary source tree");
              Require(app.Document().Snapshot().IsSameRevision(current) && app.Document().CanUndo(),
                      "synchronization preserves the editable source revision and history");
              const auto mirrored = app.SourceMirror().Snapshot();
@@ -549,12 +550,18 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Require(app.Document().ReplaceSelection(L"Split "), "edit Split prose");
              Require(app.SourceMirror().GetText() == app.Document().GetText() && app.Activity().mirrorResets == split.mirrorResets + 1,
                      "each visible Split revision updates its mirror");
+             Require(app.SourceMirror().Snapshot().IsSameRevision(app.Document().Snapshot()), "visible edits retain exact shared source identity");
              Require(app.Activity().layouts == split.layouts, "Split prose does not relayout chrome");
              const auto committed = app.Activity();
              const auto committedSource = app.Document().Snapshot();
              const auto committedSelection = app.Document().GetSelection();
              app.Prepare();
              const auto prepared = app.Activity();
+             const auto primarySyntax = app.Document().GetMarkdownSyntax();
+             const auto mirrorSyntax = app.SourceMirror().GetMarkdownSyntax();
+             Require(primarySyntax && mirrorSyntax && primarySyntax != mirrorSyntax && primarySyntax->Revision() == app.Document().Revision() &&
+                         mirrorSyntax->Revision() == app.SourceMirror().Revision(),
+                     "both panes independently prepare non-null syntax at their own document revision");
              Require(prepared.syntaxPresentationUpdates > committed.syntaxPresentationUpdates &&
                          prepared.selectionPresentationUpdates == committed.selectionPresentationUpdates &&
                          prepared.mirrorSelectionUpdates == committed.mirrorSelectionUpdates,

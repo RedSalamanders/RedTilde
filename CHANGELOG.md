@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Adopt the exact DxUi read-only Source snapshot API for visible Split, preserving independent parsing, hidden deferral and exact fallback while aborting stale continuations after nested edits or root retirement. Add source identity, fallback/recovery, independent syntax and callback regressions; final profile/input and performance qualification remain open.
 - Reuse bounded document line-index storage between source revisions while preserving exact facts, preview and undo behavior; release oversized retired buffers and cover the application reuse path.
 - Publish the six-profile documentation-only build binding, retain current qualification and performance limits, and track the separate SDK menu-fixture follow-up.
 - Qualified source 1d39ee27 across six builds and three x64 Full profiles, with 59 ordinary cases, 23 captures per profile and genuine ASan detection. The separate authorized automatic-start run passes nine keyboard stages and 168 events with desktop restoration. Published the independently replayed 576-report study: four original-UI regression findings remain, starting-redesign has four memory improvements, and the actual PR14-base comparison has no resolved change. Keep performance acceptance, billing-blocked hosted RedTilde ARM64 and the later SDK ARM64 Release Menu failure open; earlier failures and the source-aware build negative control remain retained.
