@@ -15544,11 +15544,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
-      "sha256": "f92466f7a69d2b82e581511e74676d56b6a9f5be71a8bea9f3ca108608af21aa",
+      "sha256": "975e89997d7921f27397ed0c0fa522f3c86d200832700ffa5fd25b0ea0ed51c4",
       "category": "planning-document",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "lead-and-independent-p21-native-evidence-review",
+      "reviewer": "lead-and-independent-p22-documentation-continuation-review",
       "testIds": [
         "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
         "Editor.DesignRefreshEquationContextAndDraftGuards",
@@ -15578,7 +15578,7 @@ the current performance policy or accept the remaining regressions.
         "Qualification.DocsOnlySixProfileRebind"
       ],
       "findingIds": [],
-      "disposition": "source-bound-native-evidence; performance-and-hosted-arm64-open",
+      "disposition": "reviewed-doc-continuation; final-performance-and-hosted-arm64-open",
       "reviewNotes": {
         "callers": "",
         "ownershipAndLifetime": "",
@@ -15588,11 +15588,12 @@ the current performance policy or accept the remaining regressions.
       "reviewDeltaStatus": "REVIEWED_CURRENT_TOOLING_AND_SOURCE_BOUND_NATIVE_EVIDENCE",
       "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "Reviewed fresh45c six-build matrices, three x64 Full65/23 reports, realASan and keyboard9/168 with verified restoration. Root independently verifies14 archived/live native artifacts and three runtime receipts. Original30fb/10B5 evidence remains bound to its own artifacts.",
-        "performance": "No performance acceptance. Three original-UI flags remain; current-source A/A policy calibration and final576-process comparison remain required. Isolated source-ink prototype fails direct-path admission and is unpublished/unadopted.",
-        "testCoverage": "Independent packet review rehashes1880 payload files. Source identity, canonical compiled-map identity633302, artifacts and test receipt hashes are separately recorded. Metadata references one payload index instead of duplicating hash rows.",
-        "simplification": "One final child packet lives under the existing byte-protected tree; no attributes, scripts, native sources or pin change. Both indexes bind each packet to its own hash. PR16 merge20c3ab6f has exactly the reviewed45c treeb9fcb074.",
-        "qualificationBoundary": "SDK108 integrated source9675 has native/CI checks running after a test declaration-order repair. SDK policy and cursor-cause gates stay open. Hosted applicationARM64 remains blocked before job startup. WIP remainsactive."
+        "correctness": "Six canonical0f metadata continuations preserve45c native bytes and compiled-source identity. Original runtime receipts retain45c; new continuation is published separately.",
+        "lifetime": "No application C++ or dependency pin changes. Prototype2532 rejects the actual26-range source layout before painting and remains unadopted. No renderer benefit is attributed to the short diagnostic.",
+        "simplification": "CurrentP22 checklist owns remaining gates; prior checkpoints are explicitly historical. Both SDK hover cases reuse one physical alignment helper; that SDK test-only correction is separate from this app source.",
+        "testCoverage": "Source45c has six builds,3x64Full65behavior/23captures,realASan and keyboard9/168. Source0f continuation executes no new runtime tests. Current documentation validators remain pending until the exclusive local calibration finishes.",
+        "performance": "The originalUI3flags are preserved. Current-source407A/A uses fixed3scenes/12blocks/seed20261027 with unchangedpolicy. First checkout-length refusal occurs before native execution; attempt and observer retained. Human policy review and fresh final576 remain required.",
+        "qualificationBoundary": "HostedRT0f run40349750074 executes zero steps because of billing. SDK8ac has five native passes and a distinct ARMDebug replacement-hover failure; paired latercancelled/verdictskipped. Finald849 run40366949236matchingqualification pending. Cursor-restorationcause,performancepolicy and hostedapplicationARM64 remainOPEN."
       },
       "reviewDeltaTestIds": [
         "EditorPreparationDiagnosticsOracle",
@@ -15973,10 +15974,24 @@ the current performance policy or accept the remaining regressions.
             "testCoverage": "Root all-slot regression accepts both valid optional schemas and rejects all20 malformed receipts including7 editor variants. Root source review retains earlier independent2321 selftests and2768 tooling assertions as prior evidence; current final validator execution is recorded separately, without relabeling prior runs.",
             "qualificationBoundary": "Current-source final paired performance, SDK policy calibration and exact cursor-restoration cause remainOPEN. Hosted applicationARM64 is blocked before native execution by billing; ARM64 cross-builds establish no runtime pass. Plans remainWIP."
           }
+        },
+        {
+          "recordedUtc": "2026-10-26T17:16:53.302681Z",
+          "sha256": "f92466f7a69d2b82e581511e74676d56b6a9f5be71a8bea9f3ca108608af21aa",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p21-native-evidence-review",
+          "disposition": "source-bound-native-evidence; performance-and-hosted-arm64-open",
+          "reviewDeltaNotes": {
+            "correctness": "Reviewed fresh45c six-build matrices, three x64 Full65/23 reports, realASan and keyboard9/168 with verified restoration. Root independently verifies14 archived/live native artifacts and three runtime receipts. Original30fb/10B5 evidence remains bound to its own artifacts.",
+            "performance": "No performance acceptance. Three original-UI flags remain; current-source A/A policy calibration and final576-process comparison remain required. Isolated source-ink prototype fails direct-path admission and is unpublished/unadopted.",
+            "testCoverage": "Independent packet review rehashes1880 payload files. Source identity, canonical compiled-map identity633302, artifacts and test receipt hashes are separately recorded. Metadata references one payload index instead of duplicating hash rows.",
+            "simplification": "One final child packet lives under the existing byte-protected tree; no attributes, scripts, native sources or pin change. Both indexes bind each packet to its own hash. PR16 merge20c3ab6f has exactly the reviewed45c treeb9fcb074.",
+            "qualificationBoundary": "SDK108 integrated source9675 has native/CI checks running after a test declaration-order repair. SDK policy and cursor-cause gates stay open. Hosted applicationARM64 remains blocked before job startup. WIP remainsactive."
+          }
         }
       ],
-      "reviewDeltaSourceState": "working-tree-source-bound-by-hash",
-      "reviewDeltaParentCommit": "30fb0c2dc0bcd055aad99dc49a8cec8efdc56691"
+      "reviewDeltaSourceState": "working-tree-documentation-bound-by-hash",
+      "reviewDeltaParentCommit": "0f71482ce54ea66cbe290da32f9610b5c8481ec3"
     },
     {
       "repository": "RedTilde",
@@ -16171,14 +16186,14 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Measurements/README.md",
-      "sha256": "74c63c9d432275e450aceea6ca9ba58a76a4e50507a9a271653ab620c90e5cf5",
+      "sha256": "3443bc43a4a8e2dd4b4cd1582e36485b4de485cad231e660d26d897f3702faad",
       "category": "measurement-index",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "lead-and-independent-p21-native-evidence-review",
+      "reviewer": "lead-and-independent-p22-documentation-continuation-review",
       "testIds": [],
       "findingIds": [],
-      "disposition": "source-bound-native-evidence; performance-and-hosted-arm64-open",
+      "disposition": "reviewed-doc-continuation; final-performance-and-hosted-arm64-open",
       "reviewNotes": {
         "callers": "",
         "ownershipAndLifetime": "",
@@ -16188,11 +16203,12 @@ the current performance policy or accept the remaining regressions.
       "reviewDeltaStatus": "REVIEWED_CURRENT_TOOLING_AND_SOURCE_BOUND_NATIVE_EVIDENCE",
       "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "Reviewed fresh45c six-build matrices, three x64 Full65/23 reports, realASan and keyboard9/168 with verified restoration. Root independently verifies14 archived/live native artifacts and three runtime receipts. Original30fb/10B5 evidence remains bound to its own artifacts.",
-        "performance": "No performance acceptance. Three original-UI flags remain; current-source A/A policy calibration and final576-process comparison remain required. Isolated source-ink prototype fails direct-path admission and is unpublished/unadopted.",
-        "testCoverage": "Independent packet review rehashes1880 payload files. Source identity, canonical compiled-map identity633302, artifacts and test receipt hashes are separately recorded. Metadata references one payload index instead of duplicating hash rows.",
-        "simplification": "One final child packet lives under the existing byte-protected tree; no attributes, scripts, native sources or pin change. Both indexes bind each packet to its own hash. PR16 merge20c3ab6f has exactly the reviewed45c treeb9fcb074.",
-        "qualificationBoundary": "SDK108 integrated source9675 has native/CI checks running after a test declaration-order repair. SDK policy and cursor-cause gates stay open. Hosted applicationARM64 remains blocked before job startup. WIP remainsactive."
+        "correctness": "Six canonical0f metadata continuations preserve45c native bytes and compiled-source identity. Original runtime receipts retain45c; new continuation is published separately.",
+        "lifetime": "No application C++ or dependency pin changes. Prototype2532 rejects the actual26-range source layout before painting and remains unadopted. No renderer benefit is attributed to the short diagnostic.",
+        "simplification": "CurrentP22 checklist owns remaining gates; prior checkpoints are explicitly historical. Both SDK hover cases reuse one physical alignment helper; that SDK test-only correction is separate from this app source.",
+        "testCoverage": "Source45c has six builds,3x64Full65behavior/23captures,realASan and keyboard9/168. Source0f continuation executes no new runtime tests. Current documentation validators remain pending until the exclusive local calibration finishes.",
+        "performance": "The originalUI3flags are preserved. Current-source407A/A uses fixed3scenes/12blocks/seed20261027 with unchangedpolicy. First checkout-length refusal occurs before native execution; attempt and observer retained. Human policy review and fresh final576 remain required.",
+        "qualificationBoundary": "HostedRT0f run40349750074 executes zero steps because of billing. SDK8ac has five native passes and a distinct ARMDebug replacement-hover failure; paired latercancelled/verdictskipped. Finald849 run40366949236matchingqualification pending. Cursor-restorationcause,performancepolicy and hostedapplicationARM64 remainOPEN."
       },
       "reviewDeltaTestIds": [
         "EditorPreparationDiagnosticsOracle",
@@ -16328,10 +16344,24 @@ the current performance policy or accept the remaining regressions.
             "testCoverage": "Root all-slot regression accepts both valid optional schemas and rejects all20 malformed receipts including7 editor variants. Root source review retains earlier independent2321 selftests and2768 tooling assertions as prior evidence; current final validator execution is recorded separately, without relabeling prior runs.",
             "qualificationBoundary": "Current-source final paired performance, SDK policy calibration and exact cursor-restoration cause remainOPEN. Hosted applicationARM64 is blocked before native execution by billing; ARM64 cross-builds establish no runtime pass. Plans remainWIP."
           }
+        },
+        {
+          "recordedUtc": "2026-10-26T17:16:53.348375Z",
+          "sha256": "74c63c9d432275e450aceea6ca9ba58a76a4e50507a9a271653ab620c90e5cf5",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p21-native-evidence-review",
+          "disposition": "source-bound-native-evidence; performance-and-hosted-arm64-open",
+          "reviewDeltaNotes": {
+            "correctness": "Reviewed fresh45c six-build matrices, three x64 Full65/23 reports, realASan and keyboard9/168 with verified restoration. Root independently verifies14 archived/live native artifacts and three runtime receipts. Original30fb/10B5 evidence remains bound to its own artifacts.",
+            "performance": "No performance acceptance. Three original-UI flags remain; current-source A/A policy calibration and final576-process comparison remain required. Isolated source-ink prototype fails direct-path admission and is unpublished/unadopted.",
+            "testCoverage": "Independent packet review rehashes1880 payload files. Source identity, canonical compiled-map identity633302, artifacts and test receipt hashes are separately recorded. Metadata references one payload index instead of duplicating hash rows.",
+            "simplification": "One final child packet lives under the existing byte-protected tree; no attributes, scripts, native sources or pin change. Both indexes bind each packet to its own hash. PR16 merge20c3ab6f has exactly the reviewed45c treeb9fcb074.",
+            "qualificationBoundary": "SDK108 integrated source9675 has native/CI checks running after a test declaration-order repair. SDK policy and cursor-cause gates stay open. Hosted applicationARM64 remains blocked before job startup. WIP remainsactive."
+          }
         }
       ],
-      "reviewDeltaSourceState": "working-tree-source-bound-by-hash",
-      "reviewDeltaParentCommit": "30fb0c2dc0bcd055aad99dc49a8cec8efdc56691"
+      "reviewDeltaSourceState": "working-tree-documentation-bound-by-hash",
+      "reviewDeltaParentCommit": "0f71482ce54ea66cbe290da32f9610b5c8481ec3"
     },
     {
       "repository": "RedTilde",
@@ -16617,11 +16647,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "CHANGELOG.md",
-      "sha256": "01627fb5eab7d8544b0a10c267c54847591fe5b9e7c0af1adc761d4101a1b401",
+      "sha256": "662c54d140e8372a93e2f918b42ccc85f701141d60fea344a12b893e7315af53",
       "category": "generated-changelog",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "lead-and-independent-p21-native-evidence-review",
+      "reviewer": "lead-and-independent-p22-documentation-continuation-review",
       "testIds": [
         "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
         "Window.CaptionRetriesFailedAndSupersededNativeWrites",
@@ -16636,7 +16666,7 @@ the current performance policy or accept the remaining regressions.
         "Qualification.DocsOnlySixProfileRebind"
       ],
       "findingIds": [],
-      "disposition": "source-bound-native-evidence; performance-and-hosted-arm64-open",
+      "disposition": "reviewed-doc-continuation; final-performance-and-hosted-arm64-open",
       "reviewNotes": {
         "callers": "",
         "ownershipAndLifetime": "",
@@ -16646,11 +16676,12 @@ the current performance policy or accept the remaining regressions.
       "reviewDeltaStatus": "REVIEWED_CURRENT_TOOLING_AND_SOURCE_BOUND_NATIVE_EVIDENCE",
       "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "Reviewed fresh45c six-build matrices, three x64 Full65/23 reports, realASan and keyboard9/168 with verified restoration. Root independently verifies14 archived/live native artifacts and three runtime receipts. Original30fb/10B5 evidence remains bound to its own artifacts.",
-        "performance": "No performance acceptance. Three original-UI flags remain; current-source A/A policy calibration and final576-process comparison remain required. Isolated source-ink prototype fails direct-path admission and is unpublished/unadopted.",
-        "testCoverage": "Independent packet review rehashes1880 payload files. Source identity, canonical compiled-map identity633302, artifacts and test receipt hashes are separately recorded. Metadata references one payload index instead of duplicating hash rows.",
-        "simplification": "One final child packet lives under the existing byte-protected tree; no attributes, scripts, native sources or pin change. Both indexes bind each packet to its own hash. PR16 merge20c3ab6f has exactly the reviewed45c treeb9fcb074.",
-        "qualificationBoundary": "SDK108 integrated source9675 has native/CI checks running after a test declaration-order repair. SDK policy and cursor-cause gates stay open. Hosted applicationARM64 remains blocked before job startup. WIP remainsactive."
+        "correctness": "Six canonical0f metadata continuations preserve45c native bytes and compiled-source identity. Original runtime receipts retain45c; new continuation is published separately.",
+        "lifetime": "No application C++ or dependency pin changes. Prototype2532 rejects the actual26-range source layout before painting and remains unadopted. No renderer benefit is attributed to the short diagnostic.",
+        "simplification": "CurrentP22 checklist owns remaining gates; prior checkpoints are explicitly historical. Both SDK hover cases reuse one physical alignment helper; that SDK test-only correction is separate from this app source.",
+        "testCoverage": "Source45c has six builds,3x64Full65behavior/23captures,realASan and keyboard9/168. Source0f continuation executes no new runtime tests. Current documentation validators remain pending until the exclusive local calibration finishes.",
+        "performance": "The originalUI3flags are preserved. Current-source407A/A uses fixed3scenes/12blocks/seed20261027 with unchangedpolicy. First checkout-length refusal occurs before native execution; attempt and observer retained. Human policy review and fresh final576 remain required.",
+        "qualificationBoundary": "HostedRT0f run40349750074 executes zero steps because of billing. SDK8ac has five native passes and a distinct ARMDebug replacement-hover failure; paired latercancelled/verdictskipped. Finald849 run40366949236matchingqualification pending. Cursor-restorationcause,performancepolicy and hostedapplicationARM64 remainOPEN."
       },
       "reviewDeltaTestIds": [
         "EditorPreparationDiagnosticsOracle",
@@ -16853,10 +16884,24 @@ the current performance policy or accept the remaining regressions.
             "testCoverage": "Root all-slot regression accepts both valid optional schemas and rejects all20 malformed receipts including7 editor variants. Root source review retains earlier independent2321 selftests and2768 tooling assertions as prior evidence; current final validator execution is recorded separately, without relabeling prior runs.",
             "qualificationBoundary": "Current-source final paired performance, SDK policy calibration and exact cursor-restoration cause remainOPEN. Hosted applicationARM64 is blocked before native execution by billing; ARM64 cross-builds establish no runtime pass. Plans remainWIP."
           }
+        },
+        {
+          "recordedUtc": "2026-10-26T17:16:53.3536905Z",
+          "sha256": "01627fb5eab7d8544b0a10c267c54847591fe5b9e7c0af1adc761d4101a1b401",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p21-native-evidence-review",
+          "disposition": "source-bound-native-evidence; performance-and-hosted-arm64-open",
+          "reviewDeltaNotes": {
+            "correctness": "Reviewed fresh45c six-build matrices, three x64 Full65/23 reports, realASan and keyboard9/168 with verified restoration. Root independently verifies14 archived/live native artifacts and three runtime receipts. Original30fb/10B5 evidence remains bound to its own artifacts.",
+            "performance": "No performance acceptance. Three original-UI flags remain; current-source A/A policy calibration and final576-process comparison remain required. Isolated source-ink prototype fails direct-path admission and is unpublished/unadopted.",
+            "testCoverage": "Independent packet review rehashes1880 payload files. Source identity, canonical compiled-map identity633302, artifacts and test receipt hashes are separately recorded. Metadata references one payload index instead of duplicating hash rows.",
+            "simplification": "One final child packet lives under the existing byte-protected tree; no attributes, scripts, native sources or pin change. Both indexes bind each packet to its own hash. PR16 merge20c3ab6f has exactly the reviewed45c treeb9fcb074.",
+            "qualificationBoundary": "SDK108 integrated source9675 has native/CI checks running after a test declaration-order repair. SDK policy and cursor-cause gates stay open. Hosted applicationARM64 remains blocked before job startup. WIP remainsactive."
+          }
         }
       ],
-      "reviewDeltaSourceState": "working-tree-source-bound-by-hash",
-      "reviewDeltaParentCommit": "30fb0c2dc0bcd055aad99dc49a8cec8efdc56691"
+      "reviewDeltaSourceState": "working-tree-documentation-bound-by-hash",
+      "reviewDeltaParentCommit": "0f71482ce54ea66cbe290da32f9610b5c8481ec3"
     },
     {
       "repository": "RedTilde",

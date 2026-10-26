@@ -4,8 +4,8 @@
   "files": [
     {
       "file": "README.md",
-      "bytes": 518,
-      "sha256": "6226988F7C5D35258D3B53B3D3C5797E4A1AC6B7EB7597B10D428FDC76B4E44A"
+      "bytes": 896,
+      "sha256": "822E40E2ED0C4C0DD869F8839FAD214CA6E3A37657CDF1A0817C097FB779799F"
     },
     {
       "file": "qualification-summary.md",
@@ -21,6 +21,11 @@
       "file": "private-payload-hashes.json",
       "bytes": 330791,
       "sha256": "F7A8328A053B8B91BDDDAE49F196276DACFC7FE99949EAAEE450F28AD9472A2A"
+    },
+    {
+      "file": "documentation-continuation-0f.json",
+      "bytes": 6886,
+      "sha256": "DC1017E2BCD3E3C852F9534D46F5E4CB262E2352D37FAF78FD529330D48C6E70"
     }
   ]
 }
