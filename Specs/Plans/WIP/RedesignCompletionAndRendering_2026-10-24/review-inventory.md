@@ -15544,11 +15544,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
-      "sha256": "6fa07b4de88a64d1502230bc407e3dae2d29aebca6cde1f4b034d529c2d630c7",
+      "sha256": "f92466f7a69d2b82e581511e74676d56b6a9f5be71a8bea9f3ca108608af21aa",
       "category": "planning-document",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "lead-p20-source-evidence-review",
+      "reviewer": "lead-and-independent-p21-native-evidence-review",
       "testIds": [
         "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
         "Editor.DesignRefreshEquationContextAndDraftGuards",
@@ -15578,7 +15578,7 @@ the current performance policy or accept the remaining regressions.
         "Qualification.DocsOnlySixProfileRebind"
       ],
       "findingIds": [],
-      "disposition": "reviewed-source-and-native-checkpoint; performance-and-hosted-arm64-open",
+      "disposition": "source-bound-native-evidence; performance-and-hosted-arm64-open",
       "reviewNotes": {
         "callers": "",
         "ownershipAndLifetime": "",
@@ -15588,12 +15588,11 @@ the current performance policy or accept the remaining regressions.
       "reviewDeltaStatus": "REVIEWED_CURRENT_TOOLING_AND_SOURCE_BOUND_NATIVE_EVIDENCE",
       "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "Root reviewed the field-loop collision fix: preserve the scheduled block key independently of nested diagnostic field names. A complete valid optional-diagnostic study now exercises all16 native slots; historical optional absence remains readable.",
-        "performance": "The corrected real16-process replay passes4263509 checks. The diagnostic collector remains optional with6490112bytes of declared retained storage; descriptive instrumented measurements do not replace diagnostics-off acceptance. The09f576-process primary study remains unchanged with3 original-UI flags.",
-        "lifetime": "No native runtime/source/SDK pin changes in this delta. All6 native30fb build profiles and3 x64 Full65behavior/23capture profiles remain separately bound to their original artifacts. Restored colored Release10B5/PDB667E has fresh Full65/23 and keyboard9/168 receipts; it is never retagged as matrix ReleaseFE192.",
-        "simplification": "One distinct scheduled-block variable fixes the auditor rather than duplicating parsing or changing evidence schemas. Packet publication contains metadata and hashes only, with byte-preserving attributes and per-packet manifests.",
-        "testCoverage": "Root all-slot regression accepts both valid optional schemas and rejects all20 malformed receipts including7 editor variants. Root source review retains earlier independent2321 selftests and2768 tooling assertions as prior evidence; current final validator execution is recorded separately, without relabeling prior runs.",
-        "qualificationBoundary": "Current-source final paired performance, SDK policy calibration and exact cursor-restoration cause remainOPEN. Hosted applicationARM64 is blocked before native execution by billing; ARM64 cross-builds establish no runtime pass. Plans remainWIP."
+        "correctness": "Reviewed fresh45c six-build matrices, three x64 Full65/23 reports, realASan and keyboard9/168 with verified restoration. Root independently verifies14 archived/live native artifacts and three runtime receipts. Original30fb/10B5 evidence remains bound to its own artifacts.",
+        "performance": "No performance acceptance. Three original-UI flags remain; current-source A/A policy calibration and final576-process comparison remain required. Isolated source-ink prototype fails direct-path admission and is unpublished/unadopted.",
+        "testCoverage": "Independent packet review rehashes1880 payload files. Source identity, canonical compiled-map identity633302, artifacts and test receipt hashes are separately recorded. Metadata references one payload index instead of duplicating hash rows.",
+        "simplification": "One final child packet lives under the existing byte-protected tree; no attributes, scripts, native sources or pin change. Both indexes bind each packet to its own hash. PR16 merge20c3ab6f has exactly the reviewed45c treeb9fcb074.",
+        "qualificationBoundary": "SDK108 integrated source9675 has native/CI checks running after a test declaration-order repair. SDK policy and cursor-cause gates stay open. Hosted applicationARM64 remains blocked before job startup. WIP remainsactive."
       },
       "reviewDeltaTestIds": [
         "EditorPreparationDiagnosticsOracle",
@@ -15959,6 +15958,21 @@ the current performance policy or accept the remaining regressions.
             "testCoverage": "Reviewed25,202-check primary audit,576 rawhash replay and optional malformed-evidence checks. SDK testfixfcd is a checkpoint, not a pass; CI108 failures remain retained.",
             "qualificationBoundary": "Hosted RedTilde ARM64 billing gate, currentSDK base-policy qualification and remaining original-UI findings stayOPEN. WIP remains active."
           }
+        },
+        {
+          "recordedUtc": "2026-10-26T15:23:33.4584272Z",
+          "sha256": "6fa07b4de88a64d1502230bc407e3dae2d29aebca6cde1f4b034d529c2d630c7",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-p20-source-evidence-review",
+          "disposition": "reviewed-source-and-native-checkpoint; performance-and-hosted-arm64-open",
+          "reviewDeltaNotes": {
+            "correctness": "Root reviewed the field-loop collision fix: preserve the scheduled block key independently of nested diagnostic field names. A complete valid optional-diagnostic study now exercises all16 native slots; historical optional absence remains readable.",
+            "performance": "The corrected real16-process replay passes4263509 checks. The diagnostic collector remains optional with6490112bytes of declared retained storage; descriptive instrumented measurements do not replace diagnostics-off acceptance. The09f576-process primary study remains unchanged with3 original-UI flags.",
+            "lifetime": "No native runtime/source/SDK pin changes in this delta. All6 native30fb build profiles and3 x64 Full65behavior/23capture profiles remain separately bound to their original artifacts. Restored colored Release10B5/PDB667E has fresh Full65/23 and keyboard9/168 receipts; it is never retagged as matrix ReleaseFE192.",
+            "simplification": "One distinct scheduled-block variable fixes the auditor rather than duplicating parsing or changing evidence schemas. Packet publication contains metadata and hashes only, with byte-preserving attributes and per-packet manifests.",
+            "testCoverage": "Root all-slot regression accepts both valid optional schemas and rejects all20 malformed receipts including7 editor variants. Root source review retains earlier independent2321 selftests and2768 tooling assertions as prior evidence; current final validator execution is recorded separately, without relabeling prior runs.",
+            "qualificationBoundary": "Current-source final paired performance, SDK policy calibration and exact cursor-restoration cause remainOPEN. Hosted applicationARM64 is blocked before native execution by billing; ARM64 cross-builds establish no runtime pass. Plans remainWIP."
+          }
         }
       ],
       "reviewDeltaSourceState": "working-tree-source-bound-by-hash",
@@ -16157,14 +16171,14 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Measurements/README.md",
-      "sha256": "8fca79695e5e984ad0d6b68773b747cd79accdc3ee1e92d31e5a28d790187c0d",
+      "sha256": "74c63c9d432275e450aceea6ca9ba58a76a4e50507a9a271653ab620c90e5cf5",
       "category": "measurement-index",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "lead-p20-source-evidence-review",
+      "reviewer": "lead-and-independent-p21-native-evidence-review",
       "testIds": [],
       "findingIds": [],
-      "disposition": "reviewed-source-and-native-checkpoint; performance-and-hosted-arm64-open",
+      "disposition": "source-bound-native-evidence; performance-and-hosted-arm64-open",
       "reviewNotes": {
         "callers": "",
         "ownershipAndLifetime": "",
@@ -16174,12 +16188,11 @@ the current performance policy or accept the remaining regressions.
       "reviewDeltaStatus": "REVIEWED_CURRENT_TOOLING_AND_SOURCE_BOUND_NATIVE_EVIDENCE",
       "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "Root reviewed the field-loop collision fix: preserve the scheduled block key independently of nested diagnostic field names. A complete valid optional-diagnostic study now exercises all16 native slots; historical optional absence remains readable.",
-        "performance": "The corrected real16-process replay passes4263509 checks. The diagnostic collector remains optional with6490112bytes of declared retained storage; descriptive instrumented measurements do not replace diagnostics-off acceptance. The09f576-process primary study remains unchanged with3 original-UI flags.",
-        "lifetime": "No native runtime/source/SDK pin changes in this delta. All6 native30fb build profiles and3 x64 Full65behavior/23capture profiles remain separately bound to their original artifacts. Restored colored Release10B5/PDB667E has fresh Full65/23 and keyboard9/168 receipts; it is never retagged as matrix ReleaseFE192.",
-        "simplification": "One distinct scheduled-block variable fixes the auditor rather than duplicating parsing or changing evidence schemas. Packet publication contains metadata and hashes only, with byte-preserving attributes and per-packet manifests.",
-        "testCoverage": "Root all-slot regression accepts both valid optional schemas and rejects all20 malformed receipts including7 editor variants. Root source review retains earlier independent2321 selftests and2768 tooling assertions as prior evidence; current final validator execution is recorded separately, without relabeling prior runs.",
-        "qualificationBoundary": "Current-source final paired performance, SDK policy calibration and exact cursor-restoration cause remainOPEN. Hosted applicationARM64 is blocked before native execution by billing; ARM64 cross-builds establish no runtime pass. Plans remainWIP."
+        "correctness": "Reviewed fresh45c six-build matrices, three x64 Full65/23 reports, realASan and keyboard9/168 with verified restoration. Root independently verifies14 archived/live native artifacts and three runtime receipts. Original30fb/10B5 evidence remains bound to its own artifacts.",
+        "performance": "No performance acceptance. Three original-UI flags remain; current-source A/A policy calibration and final576-process comparison remain required. Isolated source-ink prototype fails direct-path admission and is unpublished/unadopted.",
+        "testCoverage": "Independent packet review rehashes1880 payload files. Source identity, canonical compiled-map identity633302, artifacts and test receipt hashes are separately recorded. Metadata references one payload index instead of duplicating hash rows.",
+        "simplification": "One final child packet lives under the existing byte-protected tree; no attributes, scripts, native sources or pin change. Both indexes bind each packet to its own hash. PR16 merge20c3ab6f has exactly the reviewed45c treeb9fcb074.",
+        "qualificationBoundary": "SDK108 integrated source9675 has native/CI checks running after a test declaration-order repair. SDK policy and cursor-cause gates stay open. Hosted applicationARM64 remains blocked before job startup. WIP remainsactive."
       },
       "reviewDeltaTestIds": [
         "EditorPreparationDiagnosticsOracle",
@@ -16282,7 +16295,7 @@ the current performance policy or accept the remaining regressions.
           }
         },
         {
-          "recordedUtc": "2026-10-26T14:28:47.8038410Z",
+          "recordedUtc": "2026-10-26T14:28:47.803841Z",
           "path": "Measurements/README.md",
           "sha256": "e68deed46ed388f35cdc0a83ad924b577ffa00296c07a09fc0d50fead0b2cee1",
           "reviewStatus": "reviewed-delta",
@@ -16299,6 +16312,21 @@ the current performance policy or accept the remaining regressions.
             "performance": "All36/72 unstable controls and six non-quiet observation windows remain explicit; no causal gain or performance acceptance. Optional new diagnostic is pending native qualification.",
             "testCoverage": "Reviewed25,202-check primary audit,576 rawhash replay and optional malformed-evidence checks. SDK testfixfcd is a checkpoint, not a pass; CI108 failures remain retained.",
             "qualificationBoundary": "Hosted RedTilde ARM64 billing gate, currentSDK base-policy qualification and remaining original-UI findings stayOPEN. WIP remains active."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T15:23:33.4841248Z",
+          "sha256": "8fca79695e5e984ad0d6b68773b747cd79accdc3ee1e92d31e5a28d790187c0d",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-p20-source-evidence-review",
+          "disposition": "reviewed-source-and-native-checkpoint; performance-and-hosted-arm64-open",
+          "reviewDeltaNotes": {
+            "correctness": "Root reviewed the field-loop collision fix: preserve the scheduled block key independently of nested diagnostic field names. A complete valid optional-diagnostic study now exercises all16 native slots; historical optional absence remains readable.",
+            "performance": "The corrected real16-process replay passes4263509 checks. The diagnostic collector remains optional with6490112bytes of declared retained storage; descriptive instrumented measurements do not replace diagnostics-off acceptance. The09f576-process primary study remains unchanged with3 original-UI flags.",
+            "lifetime": "No native runtime/source/SDK pin changes in this delta. All6 native30fb build profiles and3 x64 Full65behavior/23capture profiles remain separately bound to their original artifacts. Restored colored Release10B5/PDB667E has fresh Full65/23 and keyboard9/168 receipts; it is never retagged as matrix ReleaseFE192.",
+            "simplification": "One distinct scheduled-block variable fixes the auditor rather than duplicating parsing or changing evidence schemas. Packet publication contains metadata and hashes only, with byte-preserving attributes and per-packet manifests.",
+            "testCoverage": "Root all-slot regression accepts both valid optional schemas and rejects all20 malformed receipts including7 editor variants. Root source review retains earlier independent2321 selftests and2768 tooling assertions as prior evidence; current final validator execution is recorded separately, without relabeling prior runs.",
+            "qualificationBoundary": "Current-source final paired performance, SDK policy calibration and exact cursor-restoration cause remainOPEN. Hosted applicationARM64 is blocked before native execution by billing; ARM64 cross-builds establish no runtime pass. Plans remainWIP."
           }
         }
       ],
@@ -16589,11 +16617,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "CHANGELOG.md",
-      "sha256": "419fec68a1c34bf40e533fc1fa5d11663d0e62b5056c5c14a6c2c2425b7e3a52",
+      "sha256": "01627fb5eab7d8544b0a10c267c54847591fe5b9e7c0af1adc761d4101a1b401",
       "category": "generated-changelog",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "lead-p20-source-evidence-review",
+      "reviewer": "lead-and-independent-p21-native-evidence-review",
       "testIds": [
         "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
         "Window.CaptionRetriesFailedAndSupersededNativeWrites",
@@ -16608,7 +16636,7 @@ the current performance policy or accept the remaining regressions.
         "Qualification.DocsOnlySixProfileRebind"
       ],
       "findingIds": [],
-      "disposition": "reviewed-source-and-native-checkpoint; performance-and-hosted-arm64-open",
+      "disposition": "source-bound-native-evidence; performance-and-hosted-arm64-open",
       "reviewNotes": {
         "callers": "",
         "ownershipAndLifetime": "",
@@ -16618,12 +16646,11 @@ the current performance policy or accept the remaining regressions.
       "reviewDeltaStatus": "REVIEWED_CURRENT_TOOLING_AND_SOURCE_BOUND_NATIVE_EVIDENCE",
       "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "Root reviewed the field-loop collision fix: preserve the scheduled block key independently of nested diagnostic field names. A complete valid optional-diagnostic study now exercises all16 native slots; historical optional absence remains readable.",
-        "performance": "The corrected real16-process replay passes4263509 checks. The diagnostic collector remains optional with6490112bytes of declared retained storage; descriptive instrumented measurements do not replace diagnostics-off acceptance. The09f576-process primary study remains unchanged with3 original-UI flags.",
-        "lifetime": "No native runtime/source/SDK pin changes in this delta. All6 native30fb build profiles and3 x64 Full65behavior/23capture profiles remain separately bound to their original artifacts. Restored colored Release10B5/PDB667E has fresh Full65/23 and keyboard9/168 receipts; it is never retagged as matrix ReleaseFE192.",
-        "simplification": "One distinct scheduled-block variable fixes the auditor rather than duplicating parsing or changing evidence schemas. Packet publication contains metadata and hashes only, with byte-preserving attributes and per-packet manifests.",
-        "testCoverage": "Root all-slot regression accepts both valid optional schemas and rejects all20 malformed receipts including7 editor variants. Root source review retains earlier independent2321 selftests and2768 tooling assertions as prior evidence; current final validator execution is recorded separately, without relabeling prior runs.",
-        "qualificationBoundary": "Current-source final paired performance, SDK policy calibration and exact cursor-restoration cause remainOPEN. Hosted applicationARM64 is blocked before native execution by billing; ARM64 cross-builds establish no runtime pass. Plans remainWIP."
+        "correctness": "Reviewed fresh45c six-build matrices, three x64 Full65/23 reports, realASan and keyboard9/168 with verified restoration. Root independently verifies14 archived/live native artifacts and three runtime receipts. Original30fb/10B5 evidence remains bound to its own artifacts.",
+        "performance": "No performance acceptance. Three original-UI flags remain; current-source A/A policy calibration and final576-process comparison remain required. Isolated source-ink prototype fails direct-path admission and is unpublished/unadopted.",
+        "testCoverage": "Independent packet review rehashes1880 payload files. Source identity, canonical compiled-map identity633302, artifacts and test receipt hashes are separately recorded. Metadata references one payload index instead of duplicating hash rows.",
+        "simplification": "One final child packet lives under the existing byte-protected tree; no attributes, scripts, native sources or pin change. Both indexes bind each packet to its own hash. PR16 merge20c3ab6f has exactly the reviewed45c treeb9fcb074.",
+        "qualificationBoundary": "SDK108 integrated source9675 has native/CI checks running after a test declaration-order repair. SDK policy and cursor-cause gates stay open. Hosted applicationARM64 remains blocked before job startup. WIP remainsactive."
       },
       "reviewDeltaTestIds": [
         "EditorPreparationDiagnosticsOracle",
@@ -16810,6 +16837,21 @@ the current performance policy or accept the remaining regressions.
             "performance": "All36/72 unstable controls and six non-quiet observation windows remain explicit; no causal gain or performance acceptance. Optional new diagnostic is pending native qualification.",
             "testCoverage": "Reviewed25,202-check primary audit,576 rawhash replay and optional malformed-evidence checks. SDK testfixfcd is a checkpoint, not a pass; CI108 failures remain retained.",
             "qualificationBoundary": "Hosted RedTilde ARM64 billing gate, currentSDK base-policy qualification and remaining original-UI findings stayOPEN. WIP remains active."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T15:23:33.4891017Z",
+          "sha256": "419fec68a1c34bf40e533fc1fa5d11663d0e62b5056c5c14a6c2c2425b7e3a52",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-p20-source-evidence-review",
+          "disposition": "reviewed-source-and-native-checkpoint; performance-and-hosted-arm64-open",
+          "reviewDeltaNotes": {
+            "correctness": "Root reviewed the field-loop collision fix: preserve the scheduled block key independently of nested diagnostic field names. A complete valid optional-diagnostic study now exercises all16 native slots; historical optional absence remains readable.",
+            "performance": "The corrected real16-process replay passes4263509 checks. The diagnostic collector remains optional with6490112bytes of declared retained storage; descriptive instrumented measurements do not replace diagnostics-off acceptance. The09f576-process primary study remains unchanged with3 original-UI flags.",
+            "lifetime": "No native runtime/source/SDK pin changes in this delta. All6 native30fb build profiles and3 x64 Full65behavior/23capture profiles remain separately bound to their original artifacts. Restored colored Release10B5/PDB667E has fresh Full65/23 and keyboard9/168 receipts; it is never retagged as matrix ReleaseFE192.",
+            "simplification": "One distinct scheduled-block variable fixes the auditor rather than duplicating parsing or changing evidence schemas. Packet publication contains metadata and hashes only, with byte-preserving attributes and per-packet manifests.",
+            "testCoverage": "Root all-slot regression accepts both valid optional schemas and rejects all20 malformed receipts including7 editor variants. Root source review retains earlier independent2321 selftests and2768 tooling assertions as prior evidence; current final validator execution is recorded separately, without relabeling prior runs.",
+            "qualificationBoundary": "Current-source final paired performance, SDK policy calibration and exact cursor-restoration cause remainOPEN. Hosted applicationARM64 is blocked before native execution by billing; ARM64 cross-builds establish no runtime pass. Plans remainWIP."
           }
         }
       ],
