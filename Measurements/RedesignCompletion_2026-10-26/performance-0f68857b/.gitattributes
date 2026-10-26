@@ -1,0 +1,5 @@
+# Preserve independently reviewed evidence and CSV bytes.
+summary.json -text -whitespace
+metric-rows.csv -text -whitespace
+raw-report-index.json -text -whitespace
+root-replay.json -text -whitespace

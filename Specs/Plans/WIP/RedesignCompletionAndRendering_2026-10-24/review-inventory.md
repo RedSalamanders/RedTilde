@@ -14514,7 +14514,7 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
-      "sha256": "8dcd5db4781797b67697ad70cd8a3399e677a87a9005356f0e250f183a55dd8a",
+      "sha256": "bffc53e7f59586d12fc560f9a2613cda7c307ee8e741edab7f729ea441ca0fe6",
       "category": "planning-document",
       "generated": false,
       "reviewStatus": "reviewed-delta",
@@ -14556,9 +14556,9 @@ the current performance policy or accept the remaining regressions.
         "testCoverage": ""
       },
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+      "reviewDeltaCommit": "0f68857bc383f6dccd1dbe793b01a5a1fd70291c",
       "reviewDeltaNotes": {
-        "correctness": "The coordinator routes A0/A6 Tree status, A7 caption and A8 performance work to separate owners and the owning measurement packets. The later Label text/multiline finding records the existing synchronous intrinsic-measure callback retirement boundary and names the narrow guarded setters. Normative/planning text routes the implementation and evidence contract. Execution checkpoint tracks the A2 guard after conditional synchronous Files badge publication. Routes P10 through historical publication, frame diagnostic and outstanding repair/qualification/CI tasks. Adds completion checkpoints for frame diagnostics and the bae1572 matrix while keeping paired performance, CI and focus work separate. The WIP checklist routes the active P10 SDK adoption and the remaining build, consumer, input, performance, and billing gates. It references exact source heads, run IDs, and packet boundaries for future reviewers. WIP routes remaining app, toolchain, profile and timed-performance closeout work. The WIP checklist routes future implementation and evidence work to the linked authoritative performance and qualification packets. WIP and Measurements indexes route readers to exact1d39 qualification and49cf docs-only binding; no compiled product or test input changes. It preserves five original-UI flags, no new starting-redesign flags, the unqualified measured-base policy, unrun late fixes, and the acknowledged-open hosted ARM64 gate; no acceptance claim was introduced. The checklist remains open pending separate original-setter sanitizer failures and final-source qualification; frozen results are not reused for the new source. No performance acceptance is inferred from prose. It explicitly says no separate runtime reproduction and requires final-matrix execution; broader qualification remains open. Keeps performance acceptance, unstable controls, menu/foreground, hosted ARM64 and final publication open; old failed attempts are explicitly preserved. Leaves original findings, quiet-host/policy, exact-pin, hosted ARM64 and interactive gates open; preserves earlier 38/39 attempts. The checklist explicitly leaves SDK/consumer matrices, final input, installed-header/compiler checks, and fresh comparisons open; it keeps the performance flags and RedTilde hosted ARM64 billing gate unresolved. The later hosted ARM64 Debug pass is explicitly not an explanation of the earlier failure. Leaves remaining profile runs and performance acceptance open; prior counterfactual and focused success are not generalized. The checklist retains original-UI regression findings and keeps performance/CI gates open; no runtime behavior changes. Docs sources claim no new runtime/performance execution. ARM64 remains billing-blocked; four findings and SDKPR104 fixture qualification remain open. Earlier failures and gates are intact.",
+        "correctness": "The coordinator routes A0/A6 Tree status, A7 caption and A8 performance work to separate owners and the owning measurement packets. The later Label text/multiline finding records the existing synchronous intrinsic-measure callback retirement boundary and names the narrow guarded setters. Normative/planning text routes the implementation and evidence contract. Execution checkpoint tracks the A2 guard after conditional synchronous Files badge publication. Routes P10 through historical publication, frame diagnostic and outstanding repair/qualification/CI tasks. Adds completion checkpoints for frame diagnostics and the bae1572 matrix while keeping paired performance, CI and focus work separate. The WIP checklist routes the active P10 SDK adoption and the remaining build, consumer, input, performance, and billing gates. It references exact source heads, run IDs, and packet boundaries for future reviewers. WIP routes remaining app, toolchain, profile and timed-performance closeout work. The WIP checklist routes future implementation and evidence work to the linked authoritative performance and qualification packets. WIP and Measurements indexes route readers to exact1d39 qualification and49cf docs-only binding; no compiled product or test input changes. It preserves five original-UI flags, no new starting-redesign flags, the unqualified measured-base policy, unrun late fixes, and the acknowledged-open hosted ARM64 gate; no acceptance claim was introduced. The checklist remains open pending separate original-setter sanitizer failures and final-source qualification; frozen results are not reused for the new source. No performance acceptance is inferred from prose. It explicitly says no separate runtime reproduction and requires final-matrix execution; broader qualification remains open. Keeps performance acceptance, unstable controls, menu/foreground, hosted ARM64 and final publication open; old failed attempts are explicitly preserved. Leaves original findings, quiet-host/policy, exact-pin, hosted ARM64 and interactive gates open; preserves earlier 38/39 attempts. The checklist explicitly leaves SDK/consumer matrices, final input, installed-header/compiler checks, and fresh comparisons open; it keeps the performance flags and RedTilde hosted ARM64 billing gate unresolved. The later hosted ARM64 Debug pass is explicitly not an explanation of the earlier failure. Leaves remaining profile runs and performance acceptance open; prior counterfactual and focused success are not generalized. The checklist retains original-UI regression findings and keeps performance/CI gates open; no runtime behavior changes. Docs sources claim no new runtime/performance execution. ARM64 remains billing-blocked; four findings and SDKPR104 fixture qualification remain open. Earlier failures and gates are intact. Final documentation delta records completed native and keyboard replay plus the unpooled 576-process collection. It explicitly keeps four original-UI flags, 39/72 unstable app controls, unqualified quiet windows, policy-failed SDK CI with 71/72 unstable controls, hosted RedTilde ARM64 and physical input gates open. Allocation tracing remains diagnostic and unqualified; no owner or gain is inferred.",
         "performance": "No measured performance gain or acceptance is claimed by this source review.",
         "lifetime": "The checkpoint binds completed native/performance observations to fd24623/cfe875fd and explicitly treats later worktree edits as a separate source revision. Both setters must stop after a captured weak lifetime expires; whole-host destruction is outside this callback contract. Source/cohort identities remain distinct; text owns no runtime state. The WIP record identifies closing guard position and host-detachment concern; it is coordination documentation, not the enduring behavior authority. Plan records which immutable source/build/run identities each checkpoint used; it is a planning ledger, not the normative test contract. Binds diagnostic roles and exact source identities; remains planning text, not a normative test contract. The plan describes SDK-side default-format reuse and Label zero-spacing setter skips while retaining cached layouts; it states there are no application production changes. This is source-plan/provenance only and does not claim native resource ownership from aggregate memory counters. Plan/provenance only; does not alter runtime ownership. This planning record does not own runtime objects; source and native artifact identity remain in the per-profile receipts and frozen matrix. Published summary matches the independently rehashed projection; six receipts,20frozen artifacts,14live files and unchanged compiled identity are retained. Local attributes preserve evidence bytes.",
         "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
@@ -14591,7 +14591,11 @@ the current performance policy or accept the remaining regressions.
         "TestWindowHostConfiguredTextFormatsAliasExactRoleDefaults",
         "Editor.HiddenCurrentBlockPublishesLatestOnReveal",
         "Tooling.SourceAwareBuildReceiptAdmission",
-        "Qualification.DocsOnlySixProfileRebind"
+        "Qualification.DocsOnlySixProfileRebind",
+        "Qualification.fc6c62d.1871PayloadFiles.69CapturePairs",
+        "Keyboard.0f68857b.9Stages.168Events.9PayloadHashes",
+        "Performance.0f68857b.576Reports.25177Checks.72Rows.864Effects.1728Drifts.936Cells",
+        "Changelog.FoldAndCheck.20261026"
       ],
       "reviewDeltaFindingIds": [],
       "reviewDeltaDate": "2026-10-26",
@@ -14744,6 +14748,15 @@ the current performance policy or accept the remaining regressions.
           ],
           "findingIds": [],
           "disposition": "prior reviewed bytes retained before current hash refresh"
+        },
+        {
+          "recordedUtc": "2026-10-26",
+          "priorReviewBaseCommit": "0f68857bc383f6dccd1dbe793b01a5a1fd70291c",
+          "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
+          "sha256": "8dcd5db4781797b67697ad70cd8a3399e677a87a9005356f0e250f183a55dd8a",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "final-delta-review",
+          "disposition": "Prior reviewed bytes retained before current documentation/evidence refresh."
         }
       ]
     },
@@ -14940,7 +14953,7 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Measurements/README.md",
-      "sha256": "dc1fe4aba8ae3dc28230f27333b8809bd2f4be42a2799cf8ae227a9f3d40ce2a",
+      "sha256": "15c2a7dd8c40c8c243154ec11fde25c7b517f5139cf2b9b1b0b6b0b6772e93d3",
       "category": "measurement-index",
       "generated": false,
       "reviewStatus": "reviewed-delta",
@@ -14955,16 +14968,21 @@ the current performance policy or accept the remaining regressions.
         "testCoverage": ""
       },
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+      "reviewDeltaCommit": "0f68857bc383f6dccd1dbe793b01a5a1fd70291c",
       "reviewDeltaNotes": {
-        "correctness": "The index routes readers to the new original-UI and starting-redesign packets and keeps the prior seven-flag packet separately linked. Public measurement/evidence packet documents source-bound inputs, prior cohorts, or qualification summaries; it is not a runtime caller. The index marks host/control uncertainty, pending auditor-file hash binding and final qualification; it makes no quiet-host or acceptance claim. No failure path is introduced. The packet keeps cohorts separate and does not convert counters/receipts into performance acceptance.",
+        "correctness": "The index routes readers to the new original-UI and starting-redesign packets and keeps the prior seven-flag packet separately linked. Public measurement/evidence packet documents source-bound inputs, prior cohorts, or qualification summaries; it is not a runtime caller. The index marks host/control uncertainty, pending auditor-file hash binding and final qualification; it makes no quiet-host or acceptance claim. No failure path is introduced. The packet keeps cohorts separate and does not convert counters/receipts into performance acceptance. Final documentation delta records completed native and keyboard replay plus the unpooled 576-process collection. It explicitly keeps four original-UI flags, 39/72 unstable app controls, unqualified quiet windows, policy-failed SDK CI with 71/72 unstable controls, hosted RedTilde ARM64 and physical input gates open. Allocation tracing remains diagnostic and unqualified; no owner or gain is inferred.",
         "performance": "No measured performance gain or acceptance is claimed by this source review.",
         "lifetime": "Each linked packet identifies frozen fd24623/cfe875fd ownership and keeps its source bindings and raw evidence in the private evidence roots. Evidence only; raw measurement ownership and cohort boundaries are described in the packet. No runtime resource ownership inferred.",
         "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
         "testCoverage": "This is an evidence index, not a test artifact. It reports the frozen run/check counts but does not claim execution for later source changes. Subsequent hash binding verifies original/starting audit digests (7988/8015 checks), corrected resource audit and stage audit (5589), with all metric/numeric leaves unchanged and privacy checks passed; final repository validation remains pending. Provenance-only review: file/hash presence and packet role recorded, with no invented line-level source review or acceptance claim.",
         "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
       },
-      "reviewDeltaTestIds": [],
+      "reviewDeltaTestIds": [
+        "Qualification.fc6c62d.1871PayloadFiles.69CapturePairs",
+        "Keyboard.0f68857b.9Stages.168Events.9PayloadHashes",
+        "Performance.0f68857b.576Reports.25177Checks.72Rows.864Effects.1728Drifts.936Cells",
+        "Changelog.FoldAndCheck.20261026"
+      ],
       "reviewDeltaFindingIds": [],
       "reviewDeltaDate": "2026-10-26",
       "reviewHistory": [
@@ -15002,6 +15020,15 @@ the current performance policy or accept the remaining regressions.
           "testIds": [],
           "findingIds": [],
           "disposition": "prior reviewed bytes retained before current hash refresh"
+        },
+        {
+          "recordedUtc": "2026-10-26",
+          "priorReviewBaseCommit": "0f68857bc383f6dccd1dbe793b01a5a1fd70291c",
+          "path": "Measurements/README.md",
+          "sha256": "dc1fe4aba8ae3dc28230f27333b8809bd2f4be42a2799cf8ae227a9f3d40ce2a",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "final-delta-review",
+          "disposition": "Prior reviewed bytes retained before current documentation/evidence refresh."
         }
       ]
     },
@@ -15256,7 +15283,7 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "CHANGELOG.md",
-      "sha256": "1003408307f54e892072826d7ab96b794e9c59787bcda6843d8527d04a5a9c47",
+      "sha256": "ac4284ac18e9a4898c324da79f136743027432007bcda020f5b0101bb3992aa0",
       "category": "generated-changelog",
       "generated": false,
       "reviewStatus": "reviewed-delta",
@@ -15283,9 +15310,9 @@ the current performance policy or accept the remaining regressions.
         "testCoverage": ""
       },
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+      "reviewDeltaCommit": "0f68857bc383f6dccd1dbe793b01a5a1fd70291c",
       "reviewDeltaNotes": {
-        "correctness": "Generated changelog publishes repository changes. Reviewed the newly folded 25 October entries at the top: Files-badge close guard, caption transitions, caption-close guard, dirty-badge status, and DxUi pin. Generated release-note projection summarizes the opt-in frame diagnostic, preserved three-cohort publication, and still-open performance/platform gates. Generated notes summarize the bae1572 local matrix and frame-stage diagnostic publication. The Unreleased summary is consumed as the repository-facing summary of current adoption and qualification status; it points to the SDK2fed pin and retained open performance/hosted-ARM64 gates. Generated Unreleased release summary for the implementation and evidence updates. Release-note readers consume this generated entry; no runtime code calls it. The related evidence packet is linked from the updated WIP plan. WIP and Measurements indexes route readers to exact1d39 qualification and49cf docs-only binding; no compiled product or test input changes. Entry does not claim acceptance. Entries state the conditional Files accessibility re-entry guard without claiming a separate runtime reproduction, and preserve pending final-profile/performance limits. Text explicitly keeps unstable controls, foreground, acceptance and billing-blocked hosted ARM64 open; this entry must remain folded from its source fragment. Keeps original five findings, quiet-host/policy, exact-pin and billing-blocked hosted ARM64 open. The note preserves that candidate qualification/fresh comparisons are pending and that hosted ARM64 is billing-blocked; it does not turn pending gates into passes or suppress any failure. Summary wording preserves pending profile qualification and open performance acceptance. An inaccurate generated entry could overstate progress; the entry preserves that performance and qualification gates remain open. No runtime failure or cancellation path is affected. Docs sources claim no new runtime/performance execution. ARM64 remains billing-blocked; four findings and SDKPR104 fixture qualification remain open. Earlier failures and gates are intact.",
+        "correctness": "Generated changelog publishes repository changes. Reviewed the newly folded 25 October entries at the top: Files-badge close guard, caption transitions, caption-close guard, dirty-badge status, and DxUi pin. Generated release-note projection summarizes the opt-in frame diagnostic, preserved three-cohort publication, and still-open performance/platform gates. Generated notes summarize the bae1572 local matrix and frame-stage diagnostic publication. The Unreleased summary is consumed as the repository-facing summary of current adoption and qualification status; it points to the SDK2fed pin and retained open performance/hosted-ARM64 gates. Generated Unreleased release summary for the implementation and evidence updates. Release-note readers consume this generated entry; no runtime code calls it. The related evidence packet is linked from the updated WIP plan. WIP and Measurements indexes route readers to exact1d39 qualification and49cf docs-only binding; no compiled product or test input changes. Entry does not claim acceptance. Entries state the conditional Files accessibility re-entry guard without claiming a separate runtime reproduction, and preserve pending final-profile/performance limits. Text explicitly keeps unstable controls, foreground, acceptance and billing-blocked hosted ARM64 open; this entry must remain folded from its source fragment. Keeps original five findings, quiet-host/policy, exact-pin and billing-blocked hosted ARM64 open. The note preserves that candidate qualification/fresh comparisons are pending and that hosted ARM64 is billing-blocked; it does not turn pending gates into passes or suppress any failure. Summary wording preserves pending profile qualification and open performance acceptance. An inaccurate generated entry could overstate progress; the entry preserves that performance and qualification gates remain open. No runtime failure or cancellation path is affected. Docs sources claim no new runtime/performance execution. ARM64 remains billing-blocked; four findings and SDKPR104 fixture qualification remain open. Earlier failures and gates are intact. Final documentation delta records completed native and keyboard replay plus the unpooled 576-process collection. It explicitly keeps four original-UI flags, 39/72 unstable app controls, unqualified quiet windows, policy-failed SDK CI with 71/72 unstable controls, hosted RedTilde ARM64 and physical input gates open. Allocation tracing remains diagnostic and unqualified; no owner or gain is inferred.",
         "performance": "No measured performance gain or acceptance is claimed by this source review.",
         "lifetime": "Publication text has no runtime ownership. Changelog summarizes app-owned behavior and upstream SDK ownership; it contains no raw diagnostics. Generated from Changes fragments; it does not alter application or test runtime ownership. Folded entries link source-bound evidence and keep primary and diagnostic cohorts separate. This is generated release-note text, not runtime code. It makes the adopted SDK pin and absence of public-header/dependency additions explicit; the fold does not own or execute SDK resources. Generated text only; no runtime ownership. The folded changelog is generated documentation owned by the repository changelog workflow, with no runtime resource or object lifetime. Published summary matches the independently rehashed projection; six receipts,20frozen artifacts,14live files and unchanged compiled identity are retained. Local attributes preserve evidence bytes.",
         "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
@@ -15303,7 +15330,11 @@ the current performance policy or accept the remaining regressions.
         "Performance.NativeCompletedFramesPreserveSourceAndHistory",
         "Rendering.NativeDefaultAndWarpResourceLifecycle",
         "Change-fragment-folded-entry-review",
-        "Qualification.DocsOnlySixProfileRebind"
+        "Qualification.DocsOnlySixProfileRebind",
+        "Qualification.fc6c62d.1871PayloadFiles.69CapturePairs",
+        "Keyboard.0f68857b.9Stages.168Events.9PayloadHashes",
+        "Performance.0f68857b.576Reports.25177Checks.72Rows.864Effects.1728Drifts.936Cells",
+        "Changelog.FoldAndCheck.20261026"
       ],
       "reviewDeltaFindingIds": [],
       "reviewDeltaDate": "2026-10-26",
@@ -15360,6 +15391,15 @@ the current performance policy or accept the remaining regressions.
           ],
           "findingIds": [],
           "disposition": "prior reviewed bytes retained before current hash refresh"
+        },
+        {
+          "recordedUtc": "2026-10-26",
+          "priorReviewBaseCommit": "0f68857bc383f6dccd1dbe793b01a5a1fd70291c",
+          "path": "CHANGELOG.md",
+          "sha256": "1003408307f54e892072826d7ab96b794e9c59787bcda6843d8527d04a5a9c47",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "final-delta-review",
+          "disposition": "Prior reviewed bytes retained before current documentation/evidence refresh."
         }
       ]
     },

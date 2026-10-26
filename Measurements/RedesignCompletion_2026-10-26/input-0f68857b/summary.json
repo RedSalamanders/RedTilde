@@ -1,0 +1,129 @@
+{
+  "schema": "redtilde-keyboard-0f68857b-v1",
+  "nativeSourceCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+  "documentationCommit": "0f68857bc383f6dccd1dbe793b01a5a1fd70291c",
+  "sourceIdentity": "f963c2c860137900dbf8f26411a7f7680727c94fd0ee49d419677db38922cfdd",
+  "compiledSourceIdentity": "4ef19b18e0255996d58ae57bc0f2f54e8b66594a3261964ca9921249bcf843ea",
+  "sdkCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+  "runId": "20261026T023611666Z-17804-62ecf2aeb5a74a6aa56ec5ac26420b70",
+  "completedUtc": "2026-10-26T02:36:47.1434586Z",
+  "profile": "x64 Release",
+  "binarySha256": "E5828F58172F465FB2791E9A6D43F57ADD077BDD0264333CCDE629CA6B0A2ECC",
+  "pdbSha256": "DBC6B40C361E1C660C1EA02802A6B5B9983A50C651B535145287414BA08E1F0A",
+  "buildReceiptSha256": "5D9E5B1DE4178E761EA2169B1FDD6C34B6024969ABAE85AAC519CE67392F0F9C",
+  "originalReceiptSha256": "AB41FA19F221E350167ADC89051FE518CAF92C26EB8AF1B1042CA74F246EE5D8",
+  "childResultSha256": "77929A10DF962AE78C4B76F71344615815C783577DA657338D0AE8C31AA07280",
+  "leaseBinarySha256": "F597093D6C051C0B8B7D3E7CF192A7E364F6EB09934756409D4CE2237B94FB5C",
+  "passed": true,
+  "cases": [
+    {
+      "name": "NativeEditor.KeyboardTextAndUndo",
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "Files.ShortcutFocusAndEscape",
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "Find.TypedQueryTraversalAndEscape",
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "Settings.KeyboardDrawerAndEscape",
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "Focus.KeyboardToggleAndEscape",
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "SelectionToolbar.AltF10TabEnterEscape",
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "Equation.F2ApplyUndoAndCancel",
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "FileMenu.KeyboardOpenAndDismiss",
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "Window.AltF4AsyncClose",
+      "passed": true,
+      "error": ""
+    }
+  ],
+  "injectedEvents": 168,
+  "clipboardTouched": false,
+  "physicalImeOrAtQualified": false,
+  "lease": {
+    "confirmation": "autostarted",
+    "autoStart": true,
+    "confirmationSeconds": 30,
+    "state": "completed",
+    "exit": 0,
+    "foreground": "unchanged",
+    "focus": "unchanged",
+    "focusCapture": "recorded",
+    "cursor": "unchanged",
+    "runMovedSomething": false,
+    "childSeconds": 2.6
+  },
+  "verifiedPayloadFiles": [
+    {
+      "path": "app-data/DesignInteractiveFixture/Writing/Drafts/Chapter2.md",
+      "length": 17,
+      "sha256": "3f9c00560510e07c44a5b87d8a686cd60abdd34b1df648963f63c3591e2ad1e6"
+    },
+    {
+      "path": "app-data/DesignInteractiveFixture/Writing/Ideas.md",
+      "length": 165,
+      "sha256": "3889466936dff4b50c634a649eaa417d8599eaa90791d570436f1ed44ef10fa4"
+    },
+    {
+      "path": "app-data/DesignInteractiveFixture/Writing/Outline.md",
+      "length": 22,
+      "sha256": "92b417f9e13eff5ecb189ca098271533467135f2a65e8f09e04fdb42035f25bc"
+    },
+    {
+      "path": "app-data/RedTilde.settings",
+      "length": 125,
+      "sha256": "c48225d5524e2d08f480b149200cf07a8f7c04f45f040faec1e731544f4eed98"
+    },
+    {
+      "path": "child.log",
+      "length": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "design-interactive.json",
+      "length": 1011,
+      "sha256": "77929a10df962ae78c4b76f71344615815c783577da657338d0ae8c31aa07280"
+    },
+    {
+      "path": "interactive-plan.txt",
+      "length": 604,
+      "sha256": "ce6343614d3a5228137f15a723edde3020cef3df69899c801c2f7c278e9d7d4c"
+    },
+    {
+      "path": "interactive-result.txt",
+      "length": 493,
+      "sha256": "0f9b6a4769ac1a8f66e5cf0b451b218682eac8ec60392dbea2ba3c5ab8445816"
+    },
+    {
+      "path": "receipt.json",
+      "length": 2941,
+      "sha256": "ab41fa19f221e350167adc89051fe518caf92c26eb8af1b1042ca74f246ee5d8"
+    }
+  ],
+  "scope": "Keyboard/focus interaction evidence on exact retained native bytes. No physical IME/AT, clipboard, performance, hosted ARM64 or broader platform acceptance."
+}

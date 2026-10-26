@@ -5,7 +5,8 @@ intermediate images stay under `.build`. Do not use DxUi or another Red applicat
 qualification. Retained packets record source identity, dependency, binary hash, profile, scenario and limitations.
 
 - [Current completion evidence, 2026-10-26](RedesignCompletion_2026-10-26/README.md) — exact SDK header-extension
-  supporting evidence; final runtime/input/performance gates remain in the active plan.
+  support, six-profile native matrix, nine-stage keyboard run and fresh 576-process three-reference collection.
+  Four original-UI flags remain, 39/72 controls are unstable, and hosted RedTilde ARM64 stays open.
 - [Final local 9025be4 matrix and performance study, 2026-10-25](RedesignCompletion_2026-10-25/README.md) — six local
   builds and three noninteractive x64 Full profiles on SDK `2fed8246`, plus 576 reports across separate original-UI,
   starting-redesign and actual PR13-base lineages. Five original-UI A/B regressions remain; actual PR13-base A/B

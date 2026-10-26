@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Publish the final six-profile build and x64 runtime bindings, nine-stage keyboard evidence and fresh 576-process comparison against three separate references. Four original-UI performance flags remain, with 39/72 unstable controls and no verified quiet CPU window; hosted RedTilde ARM64 and broader physical input qualification remain open.
 - Complete view transitions after a nested source edit while preserving a newer view choice and safely aborting retired roots; cover both Compose/Source entry, exact undo, mirror identity, focus and saved preferences.
 - Allow the exact reviewed DxUi source-snapshot header extension in paired comparisons, retain strict default guards, and validate baseline-only controls against the frozen executable they run.
 - Adopt the exact DxUi read-only Source snapshot API for visible Split, preserving independent parsing, hidden deferral and exact fallback while aborting stale continuations after nested edits or root retirement. Add source identity, fallback/recovery, independent syntax and callback regressions; final profile/input and performance qualification remain open.
