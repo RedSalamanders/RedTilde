@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <vector>
 #include <wil/com.h>
 
@@ -63,5 +64,20 @@ class Surface : public DxUi::Panel
 };
 
 using Editor = DxUi::RichTextEditor;
+
+// Read-only derived Source view. The primary pointer is borrowed for this
+// control's lifetime and is checked before each opportunistic syntax adoption.
+class SourceMirrorEditor final : public DxUi::RichTextEditor
+{
+  public:
+    explicit SourceMirrorEditor(DxUi::RichTextEditor &primary) : primary_(&primary), primaryLifetime_(GetControlLifetimeToken(primary)) {}
+
+  protected:
+    [[nodiscard]] HRESULT PrepareContent(DxUi::ControlHost &host) noexcept override;
+
+  private:
+    DxUi::RichTextEditor *primary_{};
+    std::weak_ptr<int> primaryLifetime_;
+};
 
 } // namespace RedTilde

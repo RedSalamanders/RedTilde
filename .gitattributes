@@ -5,6 +5,8 @@
 *.h text eol=crlf
 *.png binary
 *.ico binary
+Build/ReviewedHeaderDeltaProfile.json text eol=lf
+Tests/Fixtures/ReviewedHeaderDeltaProfile.v1.json -text whitespace=trailing-space,space-before-tab,cr-at-eol
 Measurements/VisualFidelity_2026-10-23/** -text whitespace=trailing-space,space-before-tab,cr-at-eol
 Measurements/DesignRefresh_2026-10-24/captures/** -text whitespace=trailing-space,space-before-tab,cr-at-eol
 docs/examples/weekly-report-2026-10-15.md -text whitespace=trailing-space,space-before-tab,cr-at-eol

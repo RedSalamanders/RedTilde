@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Preserve full source coloring while preparing optional immutable Markdown syntax reuse through the exact DxUi pin. Archive the owned heap and 16-process feature-removal diagnostics with their failed controls and source boundaries. Final consumer builds, input, performance comparisons and hosted ARM64 qualification remain open in the active checklist.
 - Publish the final six-profile build and x64 runtime bindings, nine-stage keyboard evidence and fresh 576-process comparison against three separate references. Four original-UI performance flags remain, with 39/72 unstable controls and no verified quiet CPU window; hosted RedTilde ARM64 and broader physical input qualification remain open.
 - Complete view transitions after a nested source edit while preserving a newer view choice and safely aborting retired roots; cover both Compose/Source entry, exact undo, mirror identity, focus and saved preferences.
 - Allow the exact reviewed DxUi source-snapshot header extension in paired comparisons, retain strict default guards, and validate baseline-only controls against the frozen executable they run.

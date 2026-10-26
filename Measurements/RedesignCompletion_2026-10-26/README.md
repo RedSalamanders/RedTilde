@@ -15,3 +15,13 @@ the authorized default-Start countdown, with verified restoration and exact unch
 The [fresh three-reference collection](performance-0f68857b/README.md) retains 576 processes and independent
 raw arithmetic replay. Four original-UI flags remain; actual PR #15-base A/B has no resolved regression.
 Controls are unstable in 39 of 72 rows and all six quiet CPU windows are unverified. Performance stays OPEN.
+
+The [four-process Split heap diagnostic](heap-split-0f68857b/README.md) retains 12,494,229 events and
+4,143,900 exact stack references. Independent replay confirms the versioned decoder preserves all live byte/
+block snapshots. Matching large graphics groups and a differing button-paint request group narrow the next
+experiment; intrusive, phase-unmatched snapshots do not establish achievable savings or performance acceptance.
+
+The [mirror-color feature-removal diagnostic](mirror-color-diagnostic/README.md) retains all 16 raw reports,
+both admitted binaries' identities and the separately failing feature-disabled test attempts. Disabling mirror
+analysis changes Split owner cycles by -9.8859% in this small diagnostic but fails two behavior checks; the
+application keeps its colored source mirror. This is cost localization, not a shipping change or acceptance.

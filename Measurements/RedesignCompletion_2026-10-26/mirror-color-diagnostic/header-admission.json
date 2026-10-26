@@ -1,0 +1,10 @@
+{
+  "sourceEvidenceSha256": "C8ECFFEAFACEEBFE2539E5CED4F738AD19439429FEF61F4E936C634CC953F787",
+  "initialMismatch": "Tests/Application.Tests.HeapDiagnostic.h",
+  "oldBytesSha256": "5A89343563D46AAD9D3FC5E81683000EDC3F9571BDEA3DDF82E2CA6DA46AB537",
+  "canonicalBytesSha256": "BCD650BA755F66CE28A30C81C8ECB9F07E937DBA6A9A2C7FDF34AF2F8836DCA9",
+  "refusedCompiledIdentity": "d37beda06ef13bee495f2181d86da7b8a8887979c2d5bc80004bb4bdc2f33ea9",
+  "repairedCompiledIdentity": "4ef19b18e0255996d58ae57bc0f2f54e8b66594a3261964ca9921249bcf843ea",
+  "timedProcessesBeforeAdmission": 0,
+  "status": "Refusal preserved; canonical header bytes restored before timed processes."
+}

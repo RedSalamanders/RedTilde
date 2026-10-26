@@ -299,6 +299,13 @@ class DesignRefreshProbe final
                  Require(app.mirror->GetText() == app.editor->GetText() && !app.mirror->Snapshot().IsSameRevision(fallback) &&
                              app.mirror->GetSelection() == app.editor->GetSelection() && app.editor->CanUndo(),
                          "ordinary exact-text fallback preserves the primary source, ACPs and history");
+                 app.Prepare(256);
+                 const auto primaryFallbackSyntax = app.editor->GetMarkdownSyntax();
+                 const auto richMirrorSyntax = app.mirror->GetMarkdownSyntax();
+                 Require(primaryFallbackSyntax && richMirrorSyntax && app.mirror->GetViewMode() == DxUi::RichText::ViewMode::Rich &&
+                             primaryFallbackSyntax->Profile() == richMirrorSyntax->Profile() &&
+                             &primaryFallbackSyntax->Nodes() != &richMirrorSyntax->Nodes(),
+                         "a non-Source mirror view keeps its independent parser fallback");
                  app.SetView(EditorView::Compose);
                  app.mirror->SetViewMode(DxUi::RichText::ViewMode::Source);
                  const auto hidden = app.mirror->Snapshot();
@@ -310,6 +317,14 @@ class DesignRefreshProbe final
                  Require(app.mirror->Snapshot().IsSameRevision(app.editor->Snapshot()) && app.mirror->GetSelection() == app.editor->GetSelection() &&
                              app.Activity().mirrorResets == resets + 1u,
                          "visible Split recovers snapshot sharing after hidden edits");
+                 app.Prepare(256);
+                 const auto primaryRecoveredSyntax = app.editor->GetMarkdownSyntax();
+                 const auto mirrorRecoveredSyntax = app.mirror->GetMarkdownSyntax();
+                 Require(primaryRecoveredSyntax && mirrorRecoveredSyntax && primaryRecoveredSyntax->Revision() == app.editor->Revision() &&
+                             mirrorRecoveredSyntax->Revision() == app.mirror->Revision() &&
+                             primaryRecoveredSyntax->DocumentIdentity() != mirrorRecoveredSyntax->DocumentIdentity() &&
+                             &primaryRecoveredSyntax->Nodes() == &mirrorRecoveredSyntax->Nodes(),
+                         "the visible mirror adopts the latest canonical parse after hidden revisions");
                  Require(app.editor->Undo() && app.editor->Undo() && app.editor->GetText() == source && !app.Dirty() &&
                              app.mirror->Snapshot().IsSameRevision(app.editor->Snapshot()),
                          "both edits undo to the exact saved CRLF source without mirror history");

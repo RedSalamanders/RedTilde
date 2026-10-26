@@ -261,11 +261,11 @@ function Assert-CompilerProfileEvidence {
     if($adoption -or $reviewed) { Require ($adoptionCommands.baseline -ceq $adoptionCommands.candidate) 'Raw compiler commands differ beyond the two declared SDK include paths.' }
 }
 
-function Assert-ReviewedHeaderAbiContext($Profile) {
+function Assert-ReviewedHeaderProbeContext($Profile) {
     Require ($Profile.abiProbe.fullApplicationCompileContextExact -is [bool] -and
         $Profile.abiProbe.fullApplicationCompileContextExact -ceq $false -and
         $Profile.abiProbe.fullApplicationLinkContextExact -is [bool] -and
-        $Profile.abiProbe.fullApplicationLinkContextExact -ceq $false) 'The isolated ABI probe must not be represented as full application compile/link context equivalence.'
+        $Profile.abiProbe.fullApplicationLinkContextExact -ceq $false) 'The isolated source probe must not be represented as full application compile/link context equivalence.'
 }
 
 function Get-ReviewedHeaderProfileEvidence {
@@ -291,21 +291,40 @@ function Get-ReviewedHeaderProfileEvidence {
         return [ordered]@{source=$sourceRows;package=$packageRows}
     }
     $repoRoot=Split-Path $PSScriptRoot -Parent
-    $path=Join-Path $repoRoot 'Build/ReviewedHeaderDeltaProfile.json'
-    Require (Test-Path -LiteralPath $path -PathType Leaf) 'The fixed reviewed-header profile is missing.'
+    $profileId=[string]$Study.reviewedHeaderDelta.profileId
+    if($profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1') {
+        $path=Join-Path $PSScriptRoot 'Fixtures/ReviewedHeaderDeltaProfile.v1.json'
+    } elseif($profileId -ceq 'redtilde-dxui-parsed-snapshot-api4-v2') {
+        $path=Join-Path $repoRoot 'Build/ReviewedHeaderDeltaProfile.json'
+    } else { throw 'The independent auditor does not recognize this reviewed-header profile ID.' }
+    Require (Test-Path -LiteralPath $path -PathType Leaf) 'The fixed reviewed-header profile evidence is missing.'
     $raw=[IO.File]::ReadAllBytes($path);$hash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($raw))
     Require ($Study.reviewedHeaderDelta.file -ceq 'reviewed-header-profile.json' -and
         (Get-FileHash -LiteralPath (Join-Path $StudyRoot $Study.reviewedHeaderDelta.file)).Hash -ceq $hash -and
         [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $StudyRoot $Study.reviewedHeaderDelta.file))) -ceq [Convert]::ToBase64String($raw)) 'Copied study profile bytes differ from the fixed repository profile.'
     $profile=[Text.Encoding]::UTF8.GetString($raw)|ConvertFrom-Json -AsHashtable
-    Require ($profile.schema -ceq 'redtilde-reviewed-dxui-header-delta-profile-v1' -and
-        $profile.profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1' -and
-        $profile.status -ceq 'ready-reviewed-exact-pair') 'The fixed profile is blocked or has an unknown ID.'
-    Require ($profile.baseline.commit -ceq '2fed82465dcee9f213753754e0e8e54f353cf38f' -and
-        $profile.baseline.tree -ceq '2c0641bc363bf713cfc709d721c3f6549dd5aef8' -and
-        $profile.candidate.commit -ceq '47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a' -and
-        $profile.candidate.tree -ceq '3ee2e12647ca2e05113823eb172bb0facf879021' -and
-        $profile.expectedApiRevision -eq 4) 'The profile does not bind the exact SDK commit/tree/API pair.'
+    $isV1=$profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1'
+    if($isV1) {
+        Require ($profile.schema -ceq 'redtilde-reviewed-dxui-header-delta-profile-v1' -and
+            $profile.profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1' -and
+            $profile.status -ceq 'ready-reviewed-exact-pair') 'The fixed v1 profile is blocked or has an unknown ID.'
+        Require ($profile.baseline.commit -ceq '2fed82465dcee9f213753754e0e8e54f353cf38f' -and
+            $profile.baseline.tree -ceq '2c0641bc363bf713cfc709d721c3f6549dd5aef8' -and
+            $profile.candidate.commit -ceq '47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a' -and
+            $profile.candidate.tree -ceq '3ee2e12647ca2e05113823eb172bb0facf879021' -and
+            $profile.expectedApiRevision -eq 4) 'The v1 profile does not bind the exact SDK commit/tree/API pair.'
+        $expectedPairPaths=[string[]]@('include/DxUi/DxUi.h','include/DxUi/RichDocument.h')
+    } else {
+        Require ($profile.schema -ceq 'redtilde-reviewed-dxui-header-delta-profile-v2' -and
+            $profile.profileId -ceq 'redtilde-dxui-parsed-snapshot-api4-v2' -and
+            $profile.status -ceq 'ready-reviewed-exact-pair') 'The fixed v2 profile is blocked or has an unknown ID.'
+        Require ($profile.baseline.commit -ceq '47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a' -and
+            $profile.baseline.tree -ceq '3ee2e12647ca2e05113823eb172bb0facf879021' -and
+            $profile.candidate.commit -ceq '4077f57df8207eac6c39c43437feb45b19d23cf8' -and
+            $profile.candidate.tree -ceq '18be66885916f67cafd8aeb761207bf15fbd9120' -and
+            $profile.expectedApiRevision -eq 4) 'The v2 profile does not bind the exact SDK commit/tree/API pair.'
+        $expectedPairPaths=[string[]]@('include/DxUi/DxUi.h','include/DxUi/MarkdownSyntax.h','include/DxUi/RichDocument.h')
+    }
     Require ($profile.allOtherInventoryRowsMustBeIdentical -ceq $true -and $profile.packageHeadersUnchanged -ceq $true -and
         ($profile.dependencyFieldChanges -join '|') -ceq 'Fingerprint|Identity.commit' -and
         ($profile.compilerPathOperandsOnly -join '|') -ceq 'one exact DxUi source /I|one exact fingerprinted package /I') 'The fixed profile broadens the exact dependency/compiler allowlist.'
@@ -316,8 +335,8 @@ function Get-ReviewedHeaderProfileEvidence {
     Require ((ConvertTo-Json $Study.reviewedHeaderDelta.abiProbe -Depth 20 -Compress) -ceq
         (ConvertTo-Json $profile.abiProbe -Depth 20 -Compress)) 'Study ABI probe evidence differs from the fixed profile.'
     $profilePairPaths=[string[]]@($profile.allowedHeaderHashPairs|ForEach-Object {[string]$_.sourcePath}|Sort-Object -CaseSensitive)
-    Require ($profilePairPaths.Count -eq 2 -and
-        ($profilePairPaths -join "`n") -ceq "include/DxUi/DxUi.h`ninclude/DxUi/RichDocument.h") 'The fixed profile must enumerate both actual SDK source header changes exactly once.'
+    Require ($profilePairPaths.Count -eq $expectedPairPaths.Count -and
+        ($profilePairPaths -join "`n") -ceq (($expectedPairPaths|Sort-Object -CaseSensitive) -join "`n")) 'The fixed profile must enumerate exactly its reviewed SDK source header changes.'
     foreach($pair in $profile.allowedHeaderHashPairs) {
         Require ($pair.baselineSha256 -ceq $profile.baseline.publicHeaders.files.Where({$_.path -ceq $pair.sourcePath}).sha256 -and
             $pair.candidateSha256 -ceq $profile.candidate.publicHeaders.files.Where({$_.path -ceq $pair.sourcePath}).sha256) 'A profile pair differs from its complete inventory rows.'
@@ -332,6 +351,7 @@ function Get-ReviewedHeaderProfileEvidence {
         Require (($Inventories[$side].source -join "`n") -ceq ($profileRows.source -join "`n") -and
             ($Inventories[$side].package -join "`n") -ceq ($profileRows.package -join "`n")) "$side order-independent complete inventory differs from the fixed profile."
     }
+    if($isV1) {
     Require ($profile.abiProbe.protocol -ceq 'dxui-readonly-source-snapshot-abi-probe-v1' -and
         $profile.abiProbe.sourceSha256 -cmatch '^[0-9A-F]{64}$' -and
         $profile.abiProbe.fullReceiptSha256 -cmatch '^[0-9A-F]{64}$' -and
@@ -339,7 +359,7 @@ function Get-ReviewedHeaderProfileEvidence {
         $profile.abiProbe.classLayoutEqual -ceq $true -and
         $profile.abiProbe.newMethodAvailableOnlyOnCandidate -ceq $true -and
         $profile.abiProbe.fullContextLimit) 'ABI probe source/full receipt, required results or scope limit are missing.'
-    Assert-ReviewedHeaderAbiContext $profile
+    Assert-ReviewedHeaderProbeContext $profile
     try {$probeSource=[Convert]::FromBase64String([string]$profile.abiProbe.sourceBase64)} catch {throw 'ABI probe source base64 is invalid.'}
     Require ([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($probeSource)) -ceq $profile.abiProbe.sourceSha256) 'Embedded ABI probe source hash differs.'
     foreach($side in 'baseline','candidate') {
@@ -374,6 +394,64 @@ function Get-ReviewedHeaderProfileEvidence {
         $profile.abiProbe.candidate.newMethodSignatureVerified -ceq $true) 'ABI probe layout or candidate method signature is not verified.'
     foreach($field in @('sizeofSourceSnapshot','alignofSourceSnapshot','controlIsPolymorphic','richTextEditorIsPolymorphic','msvcVersion','msvcLang','iteratorDebugLevel')) {
         Require ($profile.abiProbe.baseline.values[$field] -ceq $profile.abiProbe.candidate.values[$field]) "ABI probe $field differs across the reviewed pair."
+    }
+    } else {
+        $probe=$profile.abiProbe
+        Require ($probe.protocol -ceq 'dxui-parsed-source-snapshot-source-probe-v2' -and
+            $probe.sourceSha256 -cmatch '^[0-9A-F]{64}$' -and $probe.fullReceiptSha256 -cmatch '^[0-9A-F]{64}$' -and
+            $probe.normalizedProbeCompileArgsEqual -ceq $true -and $probe.layoutDeltaVerified -is [bool] -and
+            $probe.layoutDeltaVerified -ceq $true -and $probe.newMethodSignaturesVerified -is [bool] -and
+            $probe.newMethodSignaturesVerified -ceq $true -and $probe.fullContextLimit -is [string] -and
+            -not [string]::IsNullOrWhiteSpace($probe.fullContextLimit) -and
+            $probe.fullContextLimit -match '(?i)isolated' -and $probe.fullContextLimit -match '(?i)\bPCH\b' -and
+            $probe.fullContextLimit -match '(?i)\blibrary\b' -and $probe.fullContextLimit -match '(?i)\b(no|not|without)\b') 'Parsed-snapshot source probe source, receipts, measured rules or scope limit are missing.'
+        foreach($side in 'baseline','candidate') {
+            foreach($field in 'hasReadOnlySourceSynchronization','hasSourceSnapshotMatchesText','hasParsedSnapshotAdoption','hasReadOnlyMarkdownSyntaxAdoption') {
+                Require ($probe[$side].values[$field] -is [bool]) "Parsed-snapshot $side method predicate $field must be a JSON boolean."
+            }
+        }
+        Assert-ReviewedHeaderProbeContext $profile
+        try {$probeSource=[Convert]::FromBase64String([string]$probe.sourceBase64)} catch {throw 'Parsed-snapshot probe source base64 is invalid.'}
+        Require ([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($probeSource)) -ceq $probe.sourceSha256) 'Embedded parsed-snapshot probe source hash differs.'
+        foreach($side in 'baseline','candidate') {
+            foreach($type in 'MarkdownSyntax','MarkdownParser','RichTextEditor','SourceSnapshot','Document') {
+                $layout=$probe[$side][$type]
+                Require (($layout.sizeBytes -is [int] -or $layout.sizeBytes -is [long]) -and $layout.sizeBytes -gt 0 -and
+                    ($layout.alignmentBytes -is [int] -or $layout.alignmentBytes -is [long]) -and $layout.alignmentBytes -gt 0) "Parsed-snapshot probe has no valid $side $type layout."
+                $fieldBase=if($type -ceq 'RichTextEditor'){'RichTextEditor'}elseif($type -ceq 'SourceSnapshot'){'SourceSnapshot'}elseif($type -ceq 'Document'){'RichTextDocument'}else{$type}
+                Require ($layout.sizeBytes -eq $probe[$side].values["sizeof$fieldBase"] -and
+                    $layout.alignmentBytes -eq $probe[$side].values["alignof$fieldBase"]) "Parsed-snapshot $side $type labels differ from compiler-probe values."
+            }
+            $sideEvidence=$probe[$side];$binding=$profile[$side]
+            Require ($sideEvidence.receiptSha256 -cmatch '^[0-9A-F]{64}$' -and
+                $sideEvidence.normalizedApplicationCompilerProfileSha256 -cmatch '^[0-9A-F]{64}$' -and
+                $sideEvidence.probeApplicationCompilerTlogSha256 -cmatch '^[0-9A-F]{64}$' -and
+                $sideEvidence.applicationLinkCommandSha256 -cmatch '^[0-9A-F]{64}$') "$side parsed-snapshot projection lacks compiler receipt hashes."
+            $projection=[ordered]@{side=$side;sdkCommit=$binding.commit;fingerprint=$binding.dependencyFingerprint;apiRevision=4;
+                headerInventorySha256=$binding.publicHeaders.combinedSha256;compilerSha256=$binding.identity.compilerSha256;
+                linkerSha256=$binding.identity.linkerSha256;normalizedApplicationCompilerProfileSha256=$sideEvidence.normalizedApplicationCompilerProfileSha256;
+                probeApplicationCompilerTlogSha256=$sideEvidence.probeApplicationCompilerTlogSha256;
+                applicationLinkCommandSha256=$sideEvidence.applicationLinkCommandSha256;values=$sideEvidence.values}
+            $projectionHash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $projection -Depth 12 -Compress))))
+            Require ($projectionHash -ceq $sideEvidence.receiptSha256) "$side parsed-snapshot side-projection checksum differs."
+        }
+        Require ($probe.candidate.MarkdownSyntax.sizeBytes -eq ($probe.baseline.MarkdownSyntax.sizeBytes + 16) -and
+            $probe.candidate.MarkdownSyntax.alignmentBytes -eq $probe.baseline.MarkdownSyntax.alignmentBytes) 'MarkdownSyntax must grow exactly 16 bytes with unchanged alignment.'
+        foreach($type in 'MarkdownParser','RichTextEditor','SourceSnapshot','Document') {
+            Require ($probe.baseline[$type].sizeBytes -eq $probe.candidate[$type].sizeBytes -and
+                $probe.baseline[$type].alignmentBytes -eq $probe.candidate[$type].alignmentBytes) "Parsed-snapshot probe detects a $type layout change."
+        }
+        Require ($probe.baseline.values.hasReadOnlySourceSynchronization -ceq $true -and
+            $probe.candidate.values.hasReadOnlySourceSynchronization -ceq $true -and
+            $probe.baseline.values.hasSourceSnapshotMatchesText -ceq $false -and
+            $probe.candidate.values.hasSourceSnapshotMatchesText -ceq $true -and
+            $probe.baseline.values.hasParsedSnapshotAdoption -ceq $false -and
+            $probe.candidate.values.hasParsedSnapshotAdoption -ceq $true -and
+            $probe.baseline.values.hasReadOnlyMarkdownSyntaxAdoption -ceq $false -and
+            $probe.candidate.values.hasReadOnlyMarkdownSyntaxAdoption -ceq $true) 'Parsed-snapshot method availability flags differ from the exact API pair.'
+        foreach($field in @('controlIsPolymorphic','richTextEditorIsPolymorphic','msvcVersion','msvcLang','iteratorDebugLevel')) {
+            Require ($probe.baseline.values[$field] -ceq $probe.candidate.values[$field]) "Parsed-snapshot probe $field differs across the reviewed pair."
+        }
     }
     return $profile
 }
@@ -489,14 +567,16 @@ function Assert-DependencyEvidence($Study,$Comparison,[string]$StudyRoot) {
     }
     if($mode -ceq 'reviewed-header-delta') {
         $profile=Get-ReviewedHeaderProfileEvidence $Study $Comparison $StudyRoot $inventories
-        $allowed=@('include/DxUi/DxUi.h','include/DxUi/RichDocument.h')
+        $allowed=if($Study.reviewedHeaderDelta.profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1') {
+            @('include/DxUi/DxUi.h','include/DxUi/RichDocument.h')
+        } else { @('include/DxUi/DxUi.h','include/DxUi/MarkdownSyntax.h','include/DxUi/RichDocument.h') }
         $baselineHeaderRows=@{};foreach($row in $inventories.baseline.source+$inventories.baseline.package){$parts=$row.Split(':',2);$baselineHeaderRows[$parts[0]]=$parts[1]}
         $candidateHeaderRows=@{};foreach($row in $inventories.candidate.source+$inventories.candidate.package){$parts=$row.Split(':',2);$candidateHeaderRows[$parts[0]]=$parts[1]}
         Require ((@($baselineHeaderRows.Keys|Sort-Object -CaseSensitive)-join "`n") -ceq (@($candidateHeaderRows.Keys|Sort-Object -CaseSensitive)-join "`n")) 'Reviewed-header path sets differ.'
         $changed=@(foreach($key in $baselineHeaderRows.Keys){if($baselineHeaderRows[$key] -cne $candidateHeaderRows[$key]){$key}})
-        Require ($changed.Count -eq 2 -and @($changed|Where-Object {$allowed -cnotcontains $_}).Count -eq 0 -and
+        Require ($changed.Count -eq $allowed.Count -and @($changed|Where-Object {$allowed -cnotcontains $_}).Count -eq 0 -and
             $inventories.baseline.source.Count -eq 25 -and $inventories.candidate.source.Count -eq 25 -and
-            $inventories.baseline.package.Count -eq 33 -and $inventories.candidate.package.Count -eq 33) 'The reviewed profile must contain two source-header changes, 23 unchanged source rows and 33 unchanged package rows.'
+            $inventories.baseline.package.Count -eq 33 -and $inventories.candidate.package.Count -eq 33) 'The reviewed profile must contain only its exact source-header delta and 33 unchanged package rows.'
         foreach($pair in $profile.allowedHeaderHashPairs) {
             Require ($pair.sourcePath -cin $allowed -and $pair.baselineSha256 -ceq $baselineHeaderRows[$pair.sourcePath] -and
                 $pair.candidateSha256 -ceq $candidateHeaderRows[$pair.sourcePath]) 'A reviewed source-header hash pair differs from its full inventory.'
@@ -542,13 +622,13 @@ if($SelfTest) {
     [void][IO.Directory]::CreateDirectory($fixtureRoot)
     $profileCopy=Join-Path $fixtureRoot 'reviewed-header-profile.json'
     [IO.File]::WriteAllBytes($profileCopy,$profileBytes)
-    Assert-ReviewedHeaderAbiContext $profile
+    Assert-ReviewedHeaderProbeContext $profile
     foreach($field in @('fullApplicationCompileContextExact','fullApplicationLinkContextExact')) {
         foreach($invalidValue in @($true,0,'False')) {
             $badContext=ConvertFrom-Json -InputObject (ConvertTo-Json $profile -Depth 40 -Compress) -AsHashtable
             $badContext.abiProbe[$field]=$invalidValue
-            $rejected=$false;try {Assert-ReviewedHeaderAbiContext $badContext}catch{$rejected=$true}
-            Require $rejected "Independent ABI context guard rejects non-false/$($invalidValue.GetType().Name) value for $field."
+            $rejected=$false;try {Assert-ReviewedHeaderProbeContext $badContext}catch{$rejected=$true}
+            Require $rejected "Independent source-probe context guard rejects non-false/$($invalidValue.GetType().Name) value for $field."
         }
     }
     $makeStudy={
@@ -645,11 +725,40 @@ if($SelfTest) {
     $bad.reviewedHeaderDelta.abiProbe.baseline.RichTextEditor.sizeBytes=$null
     Assert-HeaderProfileRejected $bad $comparison 'missing ABI layout evidence'
     $bad=ConvertFrom-Json -InputObject (ConvertTo-Json $study -Depth 40 -Compress) -AsHashtable
-    $bad.reviewedHeaderDelta.abiProbe.candidate.newMethodSignatureVerified=$false
+    if($profile.profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1') {
+        $bad.reviewedHeaderDelta.abiProbe.candidate.newMethodSignatureVerified=$false
+    } else {
+        $bad.reviewedHeaderDelta.abiProbe.newMethodSignaturesVerified=$false
+    }
     Assert-HeaderProfileRejected $bad $comparison 'unverified candidate method signature'
+    if($profile.profileId -ceq 'redtilde-dxui-parsed-snapshot-api4-v2') {
+        $bad=ConvertFrom-Json -InputObject (ConvertTo-Json $study -Depth 40 -Compress) -AsHashtable
+        $bad.reviewedHeaderDelta.abiProbe.candidate.MarkdownSyntax.sizeBytes++
+        Assert-HeaderProfileRejected $bad $comparison 'MarkdownSyntax growth differs from the exact 16-byte allowance'
+        $bad=ConvertFrom-Json -InputObject (ConvertTo-Json $study -Depth 40 -Compress) -AsHashtable
+        $bad.reviewedHeaderDelta.abiProbe.candidate.values.hasSourceSnapshotMatchesText=$false
+        Assert-HeaderProfileRejected $bad $comparison 'SourceSnapshot::MatchesText signature flag is missing'
+        $bad=ConvertFrom-Json -InputObject (ConvertTo-Json $study -Depth 40 -Compress) -AsHashtable
+        $bad.reviewedHeaderDelta.abiProbe.fullContextLimit=$true
+        Assert-HeaderProfileRejected $bad $comparison 'probe scope limit is not descriptive text'
+    }
     [IO.File]::WriteAllBytes($profileCopy,[byte[]]@($profileBytes+@(0x20)))
     Assert-HeaderProfileRejected $study $comparison 'copied profile bytes differ from the fixed profile'
     [IO.File]::WriteAllBytes($profileCopy,$profileBytes)
+    $v1Bytes=[IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'Fixtures/ReviewedHeaderDeltaProfile.v1.json'))
+    $v1Hash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($v1Bytes))
+    $v1Profile=[Text.Encoding]::UTF8.GetString($v1Bytes)|ConvertFrom-Json -AsHashtable
+    Require ($v1Hash -ceq 'B8003310580F17A58327FA28482595C699F6D8BC1CA712AEC90677C5C726E751' -and
+        $v1Profile.profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1') 'The historical v1 auditor oracle must retain the exact frozen profile.'
+    $profile=$v1Profile;$profileBytes=$v1Bytes;$profileHash=$v1Hash
+    [IO.File]::WriteAllBytes($profileCopy,$profileBytes)
+    $v1Fixture=& $makeStudy;$v1Study=$v1Fixture[0];$v1Comparison=$v1Fixture[1]
+    Assert-CommonHarnessInputIdentity $v1Study $v1Comparison
+    Assert-DependencyEvidence $v1Study $v1Comparison $fixtureRoot
+    Require $true 'Independent auditor accepts the frozen v1 profile after current-profile evolution.'
+    $badV1=ConvertFrom-Json -InputObject (ConvertTo-Json $v1Study -Depth 40 -Compress) -AsHashtable
+    $badV1.reviewedHeaderDelta.abiProbe.candidate.Document.sizeBytes++
+    Assert-HeaderProfileRejected $badV1 $v1Comparison 'frozen v1 layout mismatch'
 }
 $results=@(foreach($directory in $StudyPath) {
     $root=[IO.Path]::GetFullPath($directory).TrimEnd('\','/')

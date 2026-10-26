@@ -560,8 +560,10 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              const auto primarySyntax = app.Document().GetMarkdownSyntax();
              const auto mirrorSyntax = app.SourceMirror().GetMarkdownSyntax();
              Require(primarySyntax && mirrorSyntax && primarySyntax != mirrorSyntax && primarySyntax->Revision() == app.Document().Revision() &&
-                         mirrorSyntax->Revision() == app.SourceMirror().Revision(),
-                     "both panes independently prepare non-null syntax at their own document revision");
+                         mirrorSyntax->Revision() == app.SourceMirror().Revision() &&
+                         primarySyntax->DocumentIdentity() != mirrorSyntax->DocumentIdentity() && &primarySyntax->Nodes() == &mirrorSyntax->Nodes() &&
+                         &primarySyntax->Inlines() == &mirrorSyntax->Inlines(),
+                     "the read-only mirror shares complete parsed storage under its own revision and document identity");
              Require(prepared.syntaxPresentationUpdates > committed.syntaxPresentationUpdates &&
                          prepared.selectionPresentationUpdates == committed.selectionPresentationUpdates &&
                          prepared.mirrorSelectionUpdates == committed.mirrorSelectionUpdates,
