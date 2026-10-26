@@ -87,6 +87,14 @@ The evidence auditor recomputes the normalized profile hash, checks the unique h
 and verifies each retained raw command file. Historical schema-less receipts remain readable as historical
 evidence; new paired collection requires a freshly frozen schema-2 compiler profile.
 
+The evidence auditor also requires exact common-input key sets, cardinality and hashes to match across baseline,
+candidate and comparison. Historical schema-less smoke receipts may use only the exact seven-file legacy set, and
+only when the study has no dependency-comparison/profile marker or raw compiler receipt and both compiler profiles
+remain in the exact schema-less historical shape. The historical eight-file set remains readable for prior typed
+studies; new studies use the nine-file set including `Build/ReviewedHeaderDeltaProfile.json`. Reviewed-header mode
+requires that ninth input and binds its digest to the reviewed profile SHA-256. A marked/current study cannot
+downgrade to the seven-file compatibility exception.
+
 The native-v2 fixture (schema 2) keeps two fixed warmup cycles, all timed edit/undo samples and the same twelve
 primary slots. It records command-only owner CPU cycles and owner processor IDs at transaction/frame boundaries
 as diagnostics. Boundary equality does not rule out migrations that return to the same processor. Never infer
@@ -212,6 +220,22 @@ operand, quote and flag spelling remains exact. Historical schema-one source-onl
 same-pin studies only; it cannot qualify dependency adoption.
 This mode measures the complete follow-up, including the SDK adoption; it never replaces the original-UI comparison
 on one common pin, changes a metric/band, qualifies the upstream policy or accepts a new ABI.
+
+`-ReviewedHeaderDelta` is a separate, opt-in comparison for one fixed, reviewed SDK pair. It is not a general
+allowance for API-revision-compatible header changes. The fixed profile binds exact old/new SDK commits and
+fingerprints, the complete 58-row inventory (25 DxUi source headers and 33 vcpkg package headers), the two reviewed
+SDK source header hash pairs, every unchanged inventory row, exact compiler include-command evidence and a
+source-hashed isolated ABI probe. Only the exact reviewed additive declarations may differ; every other header,
+dependency, compiler, runtime, SDK, target, flag and unknown field remains exact. The existing same-pin and
+`-DependencyAdoption` paths continue requiring identical public-header inventories. The fixed profile is a common
+harness input. The independent evidence auditor verifies its copied bytes and separately replays paired-study
+compiler receipts; those receipts are not replaced by the ABI probe. The probe confirms equal tested object layouts and
+method availability under its recorded isolated compile context; PCH is disabled and it links only the probe object,
+so full application compile/link equivalence and DxUi library integration are outside its evidence. All 33 vcpkg
+package rows and the other 23 DxUi source rows remain identical. A different SDK/header delta requires a separately
+reviewed profile, refreshed common baselines and new positive/negative oracles. This mode does not change timing
+bands, workloads, the metric family or acceptance
+policy. Its isolated ABI probe does not establish complete application ABI/link compatibility or performance qualification.
 
 ### 2026-10-25 local source-bound evidence
 

@@ -4,6 +4,8 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Complete view transitions after a nested source edit while preserving a newer view choice and safely aborting retired roots; cover both Compose/Source entry, exact undo, mirror identity, focus and saved preferences.
+- Allow the exact reviewed DxUi source-snapshot header extension in paired comparisons, retain strict default guards, and validate baseline-only controls against the frozen executable they run.
 - Adopt the exact DxUi read-only Source snapshot API for visible Split, preserving independent parsing, hidden deferral and exact fallback while aborting stale continuations after nested edits or root retirement. Add source identity, fallback/recovery, independent syntax and callback regressions; final profile/input and performance qualification remain open.
 - Reuse bounded document line-index storage between source revisions while preserving exact facts, preview and undo behavior; release oversized retired buffers and cover the application reuse path.
 - Publish the six-profile documentation-only build binding, retain current qualification and performance limits, and track the separate SDK menu-fixture follow-up.

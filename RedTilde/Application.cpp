@@ -700,17 +700,45 @@ void Application::ShowRecovery()
 }
 void Application::SetView(EditorView view)
 {
+    if (closing || !root || host.GetRoot() != root)
+        return;
+    auto *const primary = editor;
+    auto *const target = mirror;
+    auto *const owner = root;
+    const auto primaryLifetime = GetControlLifetimeToken(*primary);
+    const auto targetLifetime = GetControlLifetimeToken(*target);
+    const auto ownerLifetime = GetControlLifetimeToken(*owner);
+    const auto current = [&]
+    {
+        return !closing && !primaryLifetime.expired() && !targetLifetime.expired() && !ownerLifetime.expired() && editor == primary &&
+               mirror == target && root == owner && host.GetRoot() == owner && settings.view == view;
+    };
     selectionToolsFocus.reset();
     // The same editor/document/history survives all global presentation changes.
     settings.view = view;
-    editor->SetViewMode(view == EditorView::Source ? DxUi::RichText::ViewMode::Source : DxUi::RichText::ViewMode::Rich);
-    if (!SynchronizeMirror())
+    primary->SetViewMode(view == EditorView::Source ? DxUi::RichText::ViewMode::Source : DxUi::RichText::ViewMode::Rich);
+    if (!current())
+        return;
+    // Source supersession aborts source-bound work, but this view transition
+    // uses the latest source. Retired owners and a newer view request still win.
+    (void)SynchronizeMirror();
+    if (!current())
         return;
     modeHint->SetText(Resource(view == EditorView::Source ? IDS_SOURCEHINT : view == EditorView::Split ? IDS_SPLITHINT : IDS_BANNER));
+    if (!current())
+        return;
     floating->SetVisible(false);
+    if (!current())
+        return;
     Layout();
+    if (!current())
+        return;
     SelectionChanged();
-    host.SetFocusControl(editor, false);
+    if (!current())
+        return;
+    host.SetFocusControl(primary, false);
+    if (!current())
+        return;
     if (!initializing)
         SavePreferences();
 }

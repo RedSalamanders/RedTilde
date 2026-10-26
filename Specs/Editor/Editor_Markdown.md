@@ -14,9 +14,12 @@ existing line endings. View changes never reserialize Markdown, reset history or
 - The read-only Source mirror shares the primary immutable snapshot through the pinned public DxUi API while
   retaining its own revision counter and independent parser. Changed source retires derived state; same source
   and selection skip repeated work. An incompatible mirror profile retains exact `SetText` fallback. After any
-  callback, abort an older update if source/revision/selection/view changes or an editor/mirror/root lifetime is
+  callback, abort an older source-bound update if source/revision/selection/view changes or an editor/mirror/root lifetime is
   retired. These cached controls are app-owned and never reparented independently of that root. Source sharing
   does not publish an old cache over a nested edit or change authoritative undo/history/dirty state.
+  View routing checks the captured editor, mirror and root lifetimes after synchronous callbacks. If only source
+  changes during the requested view transition, finish its hint, layout, focus and persisted preference using
+  the latest source. A newer view request or retired owner aborts the outer transition.
 - Text-service composition previews and cancellation can change live source and selection without a committed
   edit. A visible Split mirror synchronizes immutable source identity before applying their UTF-16 ACPs, even
   when lengths match but scalar/CRLF boundaries differ. This never adds authoritative history or invokes the

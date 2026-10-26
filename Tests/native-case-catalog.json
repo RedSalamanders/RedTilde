@@ -252,6 +252,14 @@
     {
       "name": "Editor.DesignRefreshDeferredSelectionToolsFocus",
       "scope": "Editor"
+    },
+    {
+      "name": "Editor.SplitViewTransitionCompletesAfterNestedEdit",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.NestedViewRequestSupersedesOuterSplit",
+      "scope": "Editor"
     }
   ]
 }

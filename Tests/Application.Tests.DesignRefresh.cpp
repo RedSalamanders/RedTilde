@@ -372,6 +372,115 @@ class DesignRefreshProbe final
                  Require(retired && lifetime.expired() && !app.closing && app.Host().GetRoot() != owner && app.Activity().mirrorResets == resets,
                          "owner retirement without Close aborts mirror cache publication and all caller continuation");
              });
+        test("Editor.SplitViewTransitionCompletesAfterNestedEdit",
+             [&]
+             {
+                 const auto run = [&](std::wstring_view name, EditorView startingView)
+                 {
+                     auto options = Options(root, name);
+                     options.preferencesProbe = true;
+                     const auto dataDirectory = options.dataDirectory;
+                     Application app(std::move(options));
+                     Success(app.Initialize(), "initialize nested view-transition fixture");
+                     const std::wstring source = L"# View transition\r\n\r\nBody 世界 😀\r\n";
+                     app.SetDocument(source);
+                     if (startingView == EditorView::Source)
+                         app.SetView(EditorView::Source);
+                     app.Prepare(256);
+
+                     app.Document().SetSelection({source.size(), source.size()});
+                     Require(app.Document().ReplaceSelection(L" already dirty"), "make the source dirty before changing to Split");
+                     const auto beforeNestedEdit = source + L" already dirty";
+                     bool entered{}, nestedEdit{};
+                     app.mirror->SetOnSelectionChanged(
+                         [&]
+                         {
+                             if (entered)
+                                 return;
+                             entered = true;
+                             const auto end = app.Document().Snapshot().Length();
+                             app.Document().SetSelection({end, end});
+                             nestedEdit = app.Document().ReplaceSelection(L" nested");
+                         });
+
+                     app.SetView(EditorView::Split);
+                     app.mirror->SetOnSelectionChanged({});
+                     const auto expected = beforeNestedEdit + L" nested";
+                     Require(entered && nestedEdit && app.Document().GetText() == expected &&
+                                 app.Document().GetSelection() == DxUi::RichText::Selection{expected.size(), expected.size()} &&
+                                 app.Document().CanUndo() && app.Dirty(),
+                             "the nested edit remains authoritative and retains its undo history");
+                     Require(app.Preferences().view == EditorView::Split && app.Document().GetViewMode() == DxUi::RichText::ViewMode::Rich &&
+                                 app.modeHint->GetText() == Resource(IDS_SPLITHINT) && app.mirror->IsVisible() &&
+                                 app.Host().GetFocusControl() == &app.Document(),
+                             "the outer Split request completes hint, visibility and logical focus after source supersession");
+                     Require(app.mirror->GetText() == expected && app.mirror->Snapshot().IsSameRevision(app.Document().Snapshot()) &&
+                                 app.mirror->GetSelection() == app.Document().GetSelection(),
+                             "the visible mirror publishes the latest nested source and selection");
+                     CheckChrome(app);
+
+                     Settings persisted;
+                     bool splitPersisted{};
+                     for (unsigned attempt = 0; attempt < 400 && !splitPersisted; ++attempt)
+                     {
+                         if (SUCCEEDED(LoadSettings(dataDirectory, persisted)) && persisted.view == EditorView::Split)
+                             splitPersisted = true;
+                         else
+                             std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                     }
+                     Require(splitPersisted, "the completed Split transition reaches persisted preferences");
+                     Require(app.Document().Undo() && app.Document().GetText() == beforeNestedEdit && app.Document().Undo() &&
+                                 app.Document().GetText() == source && !app.Dirty(),
+                             "nested and pre-transition edits remain separately undoable to the original CRLF source");
+                 };
+
+                 run(L"compose-to-split-nested-edit", EditorView::Compose);
+                 run(L"source-to-split-nested-edit", EditorView::Source);
+             });
+        test("Editor.NestedViewRequestSupersedesOuterSplit",
+             [&]
+             {
+                 auto options = Options(root, L"nested-source-view-wins");
+                 options.preferencesProbe = true;
+                 const auto dataDirectory = options.dataDirectory;
+                 Application app(std::move(options));
+                 Success(app.Initialize(), "initialize nested view-request fixture");
+                 const std::wstring source = L"# Nested view\n\nKeep this source unchanged.\n";
+                 app.SetDocument(source);
+                 app.Prepare(256);
+
+                 bool entered{}, nestedViewCompleted{};
+                 app.mirror->SetOnSelectionChanged(
+                     [&]
+                     {
+                         if (entered)
+                             return;
+                         entered = true;
+                         app.SetView(EditorView::Source);
+                         nestedViewCompleted = app.Preferences().view == EditorView::Source &&
+                                               app.Document().GetViewMode() == DxUi::RichText::ViewMode::Source && !app.mirror->IsVisible();
+                     });
+                 app.SetView(EditorView::Split);
+                 app.mirror->SetOnSelectionChanged({});
+
+                 Require(entered && nestedViewCompleted && app.Document().GetText() == source && !app.Dirty() &&
+                             app.Preferences().view == EditorView::Source && app.Document().GetViewMode() == DxUi::RichText::ViewMode::Source &&
+                             app.modeHint->GetText() == Resource(IDS_SOURCEHINT) && !app.mirror->IsVisible() &&
+                             app.Host().GetFocusControl() == &app.Document(),
+                         "a nested Source request remains the final view after the outer Split callback resumes");
+                 CheckChrome(app);
+
+                 Settings persisted;
+                 bool sourcePersisted{};
+                 for (unsigned attempt = 0; attempt < 400 && !sourcePersisted; ++attempt)
+                 {
+                     if (SUCCEEDED(LoadSettings(dataDirectory, persisted)) && persisted.view == EditorView::Source)
+                         sourcePersisted = true;
+                     else
+                         std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                 }
+                 Require(sourcePersisted, "the latest nested Source request reaches persisted preferences");
+             });
         test("Window.Image2QuietChromeAndCompactInspector",
              [&]
              {

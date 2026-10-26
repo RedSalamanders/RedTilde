@@ -1,7 +1,8 @@
 [CmdletBinding()]
 param([Parameter(Mandatory)][string]$Baseline,[Parameter(Mandatory)][string]$OutputRoot,
     [ValidateRange(2,16)][int]$Blocks=12,[ValidateRange(4,64)][int]$Cycles=64,
-    [ValidateRange(0,2147483647)][int]$Seed=20261021,[switch]$ControlDiagnostics,[switch]$DependencyAdoption)
+    [ValidateRange(0,2147483647)][int]$Seed=20261021,[switch]$ControlDiagnostics,[switch]$DependencyAdoption,
+    [switch]$ReviewedHeaderDelta)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 Import-Module (Join-Path $PSScriptRoot 'Build/PerformanceObservation.psm1') -Force
@@ -32,6 +33,7 @@ try {
         if($ControlDiagnostics) { $arguments.ControlDiagnostics=$true }
         if($DependencyAdoption) { $arguments.DependencyAdoption=$true }
         if($kind -ceq 'aa') { $arguments.SameBinaryControl=$true }
+        elseif($ReviewedHeaderDelta) { $arguments.ReviewedHeaderDelta=$true }
         & (Join-Path $PSScriptRoot 'performance-paired.ps1') @arguments *> (Join-Path $OutputRoot ($kind+'.log'))
         $window.endUtc=[DateTime]::UtcNow.ToString('o')
         Write-Host ($kind.ToUpperInvariant()+' study completed.')
@@ -48,6 +50,7 @@ try {
     Remove-Job -Job $job
     [ordered]@{blocks=$Blocks;cycles=$Cycles;seed=$Seed;passed=$passed;observerFailed=$observerFailed;windows=$windows.ToArray();
         direction='proceed directly; record actual host activity without coordinating or claiming an exclusive lease';
+        dependencyComparisonMode=$(if($ReviewedHeaderDelta){'reviewed-header-delta for AB; same-pin A/A control'}elseif($DependencyAdoption){'sdk-adoption'}else{'same-pin'});
         primaryFamily='unchanged twelve slots, 5% timing/CPU and 2% memory investigation bands; judge review-required'} |
         ConvertTo-Json -Depth 8 | Set-Content (Join-Path $OutputRoot 'collection.json') -Encoding utf8
 }
