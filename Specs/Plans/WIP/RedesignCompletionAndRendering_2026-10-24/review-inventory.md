@@ -15389,7 +15389,7 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
-      "sha256": "96467052080c6be3ac082a647017327db4ed79e3fe3b509f26ecb8d972650f45",
+      "sha256": "307600b312ad7514471e6f675008bafce86d7ca586b7d3f94d9d325555bb415e",
       "category": "planning-document",
       "generated": false,
       "reviewStatus": "reviewed-delta",
@@ -15686,6 +15686,58 @@ the current performance policy or accept the remaining regressions.
           "priorReviewBaseCommit": null,
           "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
           "sha256": "2e41d262ded3a5810a72a436065587624f998aa23ce3858f69228872290ae742",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p18-delta-review",
+          "testIds": [
+            "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
+            "Editor.DesignRefreshEquationContextAndDraftGuards",
+            "TestTreeBadgeStatusUpdatesReachSubscribedClientWithoutStructureChange",
+            "TestPreparedTreeExpansionOfTheFocusedItemReachesAClient",
+            "TestEmbeddedTreeBadgeStatusNotificationsArePerItemCoalescedAndPruned",
+            "TestLabelAndSeparatorTypographySurviveEmbeddedMeasureAndRetirementCallbacks",
+            "SDK hosted packet lead check PASS: 6 profiles, 126 suites, 496 payload files, 2 ASan probes",
+            "SDK local matrix independently audited: 57 suite bindings, 288 payload files",
+            "App performance projection lead check: 48 rows, 16,003 independent primary checks",
+            "be41564 BuildOnly equivalence audit: six profiles, byte-identical artifacts",
+            "review-ledger-20261025T110505Z-0d7973e4ce1e47bf8b8ef685df64cec7.json: applied,534 entries,88 reviewed delta paths,zero unresolved",
+            "final-ledger-first-apply-lead-replay-20261025.json: 534 current SHA-256/reviewer/unique-path checks",
+            "review-ledger-20261025T111413Z-ed595c21ff2c4af7b630c64589e6454f.json: applied,536 entries,90 reviewed delta paths,zero unresolved",
+            "final-ledger-missing-projection-rows-v2-20261025.json: both 78-row baff43d8 projections reviewed against existing numeric evidence and mirror bytes",
+            "app-bae1572-x64-Release-test.log",
+            "app-bae1572-x64-Debug-test.log",
+            "app-bae1572-x64-ASan-Debug-test.log",
+            "performance-c60e9ca",
+            "fixed 32-process frame diagnostic cohort",
+            "bae1572 x64 Release/Debug/ASan Full",
+            "TestLabelZeroSpacingOverrideMatchesDefaultLayout",
+            "TestLabelTypographyCharacterSpacingUsesRequestedTotal",
+            "TestWindowHostConfiguredTextFormatsAliasExactRoleDefaults",
+            "Editor.HiddenCurrentBlockPublishesLatestOnReveal",
+            "Tooling.SourceAwareBuildReceiptAdmission",
+            "Qualification.DocsOnlySixProfileRebind"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Reviewed the current explicit source/documentation delta and preserved historical notes/hashes.",
+            "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+            "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+            "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+            "testCoverage": "Source review only unless the named P18 checkpoint states an actual executed result.",
+            "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T08:46:27.5952268Z",
+          "priorReviewBaseCommit": null,
+          "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
+          "sha256": "96467052080c6be3ac082a647017327db4ed79e3fe3b509f26ecb8d972650f45",
           "reviewStatus": "reviewed-delta",
           "reviewer": "lead-and-independent-p18-delta-review",
           "testIds": [
@@ -16315,7 +16367,7 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "CHANGELOG.md",
-      "sha256": "74623a53a1370ba65c153f56259b71185bfd5d197ce354f52e7b2b13f84bc387",
+      "sha256": "508c7c79a7a8c3aafec9fd3cc56cb8a7b02c520ff2b15cdfccc723ac12a6b3c5",
       "category": "generated-changelog",
       "generated": false,
       "reviewStatus": "reviewed-delta",
@@ -16464,6 +16516,43 @@ the current performance policy or accept the remaining regressions.
             "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
             "testCoverage": "Prior fold evidence retained; no commands reran. The caption-close and badge entries were checked against the receipt-bound 36/36 x64 ASan Editor suite. The newly folded Files-badge Close guard remains source-review only; no dedicated runtime reproduction or post-guard pass is claimed. This delta does not re-review historical changelog content. Review only: target commit contains the two additions; changelog folding/test commands were not run in this delta review. Supported by the new qualification and frame-stage packets; entries do not claim a new acceptance result. Source diff review confirms one added Unreleased bullet. No changelog validation/test execution is claimed by this review delta. No changelog command outcome is claimed by this per-file review. No product test was run for this documentation delta. Canonical changelog validation and folding remain separate publication checks. Full validate.ps1 passes after this delta:38scope cases,415performance assertions,37observer checks,1713independent checks and6malformed rejection cases. Fold/check, Test-Changelog and diffcheck pass.",
             "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T08:46:27.5952268Z",
+          "priorReviewBaseCommit": null,
+          "path": "CHANGELOG.md",
+          "sha256": "74623a53a1370ba65c153f56259b71185bfd5d197ce354f52e7b2b13f84bc387",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p18-delta-review",
+          "testIds": [
+            "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
+            "Window.CaptionRetriesFailedAndSupersededNativeWrites",
+            "Test-Changelog passed",
+            "Fold-Changelog passed",
+            "Fold-Changelog -Check passed",
+            "Tools/Test-Changelog.ps1",
+            "Tools/Fold-Changelog.ps1 -Check",
+            "Performance.NativeCompletedFramesPreserveSourceAndHistory",
+            "Rendering.NativeDefaultAndWarpResourceLifecycle",
+            "Change-fragment-folded-entry-review",
+            "Qualification.DocsOnlySixProfileRebind"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Reviewed the current explicit source/documentation delta and preserved historical notes/hashes.",
+            "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+            "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+            "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+            "testCoverage": "Source review only unless the named P18 checkpoint states an actual executed result.",
+            "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
           }
         }
       ],
@@ -17759,7 +17848,7 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Specs/Testing/Testing_Performance.md",
-      "sha256": "535f8634a42c7afe6529865ecc6c9d437d31fa6b059d8dd1625028d52f696c3e",
+      "sha256": "6ecada0b82f1e8c240c0481d2b5512070df1e1ee00ea64a7e43d8390a7f31c1a",
       "category": "normative-documentation",
       "generated": false,
       "reviewStatus": "reviewed-delta",
@@ -17833,6 +17922,34 @@ the current performance policy or accept the remaining regressions.
             "simplification": "Domain/testing specs state lasting source/mirror behavior and performance-validation limits.",
             "testCoverage": "Specs are normative contracts, not test receipts.",
             "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T08:51:49.4129462Z",
+          "priorReviewBaseCommit": null,
+          "path": "Specs/Testing/Testing_Performance.md",
+          "sha256": "535f8634a42c7afe6529865ecc6c9d437d31fa6b059d8dd1625028d52f696c3e",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p18-delta-review",
+          "testIds": [
+            "Performance.NativeCompletedFramesPreserveSourceAndHistory",
+            "Editor.HiddenCurrentBlockPublishesLatestOnReveal"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Reviewed the current explicit source/documentation delta and preserved historical notes/hashes.",
+            "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+            "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+            "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+            "testCoverage": "Source review only unless the named P18 checkpoint states an actual executed result.",
+            "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
           }
         }
       ],
@@ -21085,21 +21202,21 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Build/ReviewedHeaderDeltaProfile.json",
-      "sha256": "b8003310580f17a58327fa28482595c699f6d8bc1ca712aec90677c5c726e751",
+      "sha256": "488860317b002da60ebfc45ef38db206e42273d8ad86016a996e023dd37bad5d",
       "category": "build-and-tooling",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "source-ledger-delta-review",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "Build.SixProfileReadOnlyPreflight",
         "source-aware reviewed-header-delta profile admission",
         "malformed profile refusal cases"
       ],
       "findingIds": [],
-      "disposition": "reviewed-source-input; execution-qualification-separate",
+      "disposition": "source-reviewed-current-bytes; qualification-separate",
       "reviewDeltaDate": "2026-10-26",
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+      "reviewDeltaCommit": null,
       "reviewDeltaTestIds": [
         "Build.SixProfileReadOnlyPreflight",
         "source-aware reviewed-header-delta profile admission",
@@ -21107,13 +21224,41 @@ the current performance policy or accept the remaining regressions.
       ],
       "reviewDeltaFindingIds": [],
       "reviewDeltaNotes": {
-        "correctness": "Binds a narrowly reviewed additive header delta between the exact old and candidate DxUi pins for the named comparison profile; strict checks reject unrelated declaration, layout, API revision, or header changes.",
-        "performance": "The profile defines controlled comparison inputs only; it is not a benchmark result or acceptance claim.",
-        "lifetime": "Profile file is a tracked build input consumed by the source-aware comparison preflight; profile identity and referenced commits remain explicit.",
-        "simplification": "Provides a reproducible allowance for the reviewed nonvirtual method/friend declaration delta while preserving the actual PR14 base identity.",
-        "testCoverage": "Covered by Build.SixProfileReadOnlyPreflight, source-aware profile admission and malformed-profile negative cases; validation is recorded separately by root.",
-        "qualificationBoundary": "Input/profile source review only. No general ABI guarantee, runtime result, or performance acceptance is inferred."
-      }
+        "correctness": "Reviewed the current explicit source/documentation delta and preserved historical notes/hashes.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "Source review only unless the named P18 checkpoint states an actual executed result.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
+      },
+      "reviewHistory": [
+        {
+          "recordedUtc": "2026-10-26T08:46:27.5952268Z",
+          "priorReviewBaseCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+          "path": "Build/ReviewedHeaderDeltaProfile.json",
+          "sha256": "b8003310580f17a58327fa28482595c699f6d8bc1ca712aec90677c5c726e751",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "source-ledger-delta-review",
+          "testIds": [
+            "Build.SixProfileReadOnlyPreflight",
+            "source-aware reviewed-header-delta profile admission",
+            "malformed profile refusal cases"
+          ],
+          "findingIds": [],
+          "disposition": "reviewed-source-input; execution-qualification-separate",
+          "reviewNotes": null,
+          "reviewDeltaNotes": {
+            "correctness": "Binds a narrowly reviewed additive header delta between the exact old and candidate DxUi pins for the named comparison profile; strict checks reject unrelated declaration, layout, API revision, or header changes.",
+            "performance": "The profile defines controlled comparison inputs only; it is not a benchmark result or acceptance claim.",
+            "lifetime": "Profile file is a tracked build input consumed by the source-aware comparison preflight; profile identity and referenced commits remain explicit.",
+            "simplification": "Provides a reproducible allowance for the reviewed nonvirtual method/friend declaration delta while preserving the actual PR14 base identity.",
+            "testCoverage": "Covered by Build.SixProfileReadOnlyPreflight, source-aware profile admission and malformed-profile negative cases; validation is recorded separately by root.",
+            "qualificationBoundary": "Input/profile source review only. No general ABI guarantee, runtime result, or performance acceptance is inferred."
+          }
+        }
+      ],
+      "reviewDeltaSourceState": "working-tree-source-bound-by-hash",
+      "reviewDeltaParentCommit": "f33471da51773e6a0ee786a5dd29e46ceb21ecdd"
     },
     {
       "repository": "RedTilde",

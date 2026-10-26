@@ -257,6 +257,9 @@ not binary interoperability. Consumers rebuild against matching pinned headers/l
 native editing, rendering and input qualification. The original v1 validator and byte-exact fixture remain for
 historical two-header studies; v2 needs its own actual compiler/header receipts and positive/negative oracles
 before any collection. Neither profile changes workload, metric family, bands or acceptance policy.
+The [retained v2 source probe](../../Measurements/RedesignCompletion_2026-10-26/parsed-syntax-header-probe/README.md)
+records its exact SDK pair, isolated application contexts, measured layouts and raw receipt digests. Those
+isolated contexts do not identify the actual PR base; each paired study still binds its own production lineage.
 
 ### 2026-10-25 local source-bound evidence
 

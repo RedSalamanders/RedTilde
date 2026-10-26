@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Qualify the exact three-header DxUi parsed-snapshot extension for source-coordinated performance comparisons. Preserve the original fixed profile as a byte-exact compatibility fixture, and validate the new profile with independent positive and negative evidence checks. The measured MarkdownSyntax layout change requires matching headers and library plus a complete consumer rebuild; it does not establish binary ABI compatibility or performance acceptance.
 - Preserve full source coloring while preparing optional immutable Markdown syntax reuse through the exact DxUi pin. Archive the owned heap and 16-process feature-removal diagnostics with their failed controls and source boundaries. Final consumer builds, input, performance comparisons and hosted ARM64 qualification remain open in the active checklist.
 - Publish the final six-profile build and x64 runtime bindings, nine-stage keyboard evidence and fresh 576-process comparison against three separate references. Four original-UI performance flags remain, with 39/72 unstable controls and no verified quiet CPU window; hosted RedTilde ARM64 and broader physical input qualification remain open.
 - Complete view transitions after a nested source edit while preserving a newer view choice and safely aborting retired roots; cover both Compose/Source entry, exact undo, mirror identity, focus and saved preferences.
