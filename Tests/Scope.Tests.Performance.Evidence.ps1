@@ -912,6 +912,130 @@ $results=@(foreach($directory in $StudyPath) {
                         $native.heapDiagnosticCoverage -ceq 'explicit-default-and-crt-only') 'Selection storage diagnostics do not match their source or heap coverage.'
                 }
             }
+            $hasEditorPreparation=$native.Contains('editorPreparationDiagnostics') -and $null -ne $native.editorPreparationDiagnostics
+            if($study.Contains('editorPreparationDiagnosticsProtocol') -and $null -ne $study.editorPreparationDiagnosticsProtocol) {
+                Require ($study.editorPreparationDiagnosticsProtocol -ceq 'app-editor-preparation-v1' -and $hasEditorPreparation) 'Declared editor preparation diagnostics are missing.'
+            }
+            if($hasEditorPreparation) {
+                $detail=$native.editorPreparationDiagnostics
+                $sampleCount=2*$study.cycles
+                Require ($detail.protocol -ceq 'app-editor-preparation-v1' -and $detail.complete -is [bool] -and $detail.complete -and
+                    $detail.snapshotSource -ceq 'DxUi.RichTextEditor.DebugGetState' -and
+                    $detail.attribution -ceq 'state deltas only; no per-stage CPU attribution' -and
+                    $detail.transactions.Count -eq $sampleCount -and
+                    (Test-NonnegativeEvidenceNumber $detail.storage.reservedBytes) -and
+                    $detail.storage.reservedBytes -eq [math]::Floor($detail.storage.reservedBytes) -and
+                    (Test-NonnegativeEvidenceNumber $detail.storage.attemptCapacity) -and
+                    $detail.storage.attemptCapacity -eq [math]::Floor($detail.storage.attemptCapacity) -and
+                    (Test-NonnegativeEvidenceNumber $detail.storage.transactionCapacity) -and
+                    $detail.storage.transactionCapacity -eq [math]::Floor($detail.storage.transactionCapacity) -and
+                    (Test-NonnegativeEvidenceNumber $detail.storage.attemptRecordBytes) -and $detail.storage.attemptRecordBytes -gt 0 -and
+                    $detail.storage.attemptRecordBytes -eq [math]::Floor($detail.storage.attemptRecordBytes) -and
+                    (Test-NonnegativeEvidenceNumber $detail.storage.transactionRecordBytes) -and $detail.storage.transactionRecordBytes -gt 0 -and
+                    $detail.storage.transactionRecordBytes -eq [math]::Floor($detail.storage.transactionRecordBytes) -and
+                    $detail.storage.reservedBytes -eq ($detail.storage.attemptCapacity*$detail.storage.attemptRecordBytes+
+                        $detail.storage.transactionCapacity*$detail.storage.transactionRecordBytes) -and
+                    $detail.storage.attemptCapacity -ge $sampleCount -and $detail.storage.transactionCapacity -ge $sampleCount -and
+                    $detail.storage.reservedBytes -gt 0 -and $detail.storage.maxAttemptsPerTransaction -eq 64 -and
+                    $detail.storage.retainedThroughPostMeasurement -is [bool] -and $detail.storage.retainedThroughPostMeasurement -and
+                    $native.Contains('frameDiagnostics') -and $native.frameDiagnostics.protocol -ceq 'dxui-frame-metrics-v1' -and
+                    $native.frameDiagnostics.Contains('editTransactions') -and
+                    $native.frameDiagnostics.editTransactions.Count -eq $sampleCount) 'Invalid editor preparation diagnostic protocol, storage or frame binding.'
+                $counterNames=@('preparationAdvances','cancelledPreparations','markdownPreparationAdvances','semanticPreparationAdvances')
+                $workNames=@('retainedGeometryChunks','preparedGeometryChunks','reusedGeometryChunks','preparedSourceUnits',
+                    'wholeLayoutsPrepared','wholeLayoutSourceUnits','lastAdvanceLayouts','lastAdvanceBlockSteps',
+                    'lastAdvanceMarkdownWork','lastAdvanceSemanticWork','sourceInkRangeCount','layoutGeneration')
+                $booleanNames=@('layoutReady','wholeGeometryFallback','wholeRasterFallback','preparationPending',
+                    'markdownPreparationPending','semanticPreparationPending','sourceInkPreparationPending')
+                $previousPrimary=$null; $previousMirror=$null; $nextAttemptOffset=0
+                for($transactionIndex=0;$transactionIndex -lt $sampleCount;++$transactionIndex) {
+                    $transaction=$detail.transactions[$transactionIndex]
+                    $frame=$native.frameDiagnostics.editTransactions[$transactionIndex]
+                    Require ($transaction.complete -is [bool] -and $transaction.complete -and
+                        $transaction.firstAttemptIndex -eq $nextAttemptOffset -and
+                        (Test-NonnegativeEvidenceNumber $transaction.attemptCount) -and
+                        $transaction.attemptCount -eq [math]::Floor($transaction.attemptCount) -and
+                        $transaction.attemptCount -gt 0 -and $transaction.attemptCount -le 64 -and
+                        $transaction.attempts.Count -eq $transaction.attemptCount -and
+                        $frame.complete -is [bool] -and $frame.complete -and
+                        $frame.attemptCount -eq $transaction.attemptCount -and
+                        $frame.requestedAttemptCount -eq $transaction.attemptCount -and
+                        $frame.attempts.Count -eq $transaction.attemptCount) 'Invalid editor preparation transaction or attempt count.'
+                    $renderDelta=0.0
+                    $previousAttemptRender=$null; $transactionPrimary=$null; $transactionMirror=$null
+                    for($attemptIndex=0;$attemptIndex -lt $transaction.attemptCount;++$attemptIndex) {
+                        $attempt=$transaction.attempts[$attemptIndex]
+                        $frameAttempt=$frame.attempts[$attemptIndex]
+                        Require ($attempt.frameMetricAttemptIndex -eq $attemptIndex -and
+                            (Test-NonnegativeEvidenceNumber $attempt.hostRenderCountBefore) -and
+                            $attempt.hostRenderCountBefore -eq [math]::Floor($attempt.hostRenderCountBefore) -and
+                            (Test-NonnegativeEvidenceNumber $attempt.hostRenderCountAfter) -and
+                            $attempt.hostRenderCountAfter -eq [math]::Floor($attempt.hostRenderCountAfter) -and
+                            $attempt.hostRenderCountAfter -ge $attempt.hostRenderCountBefore -and
+                            $attempt.hostRenderCountAfter-$attempt.hostRenderCountBefore -le 1 -and
+                            $attempt.primary.Contains('before') -and $attempt.primary.Contains('after') -and
+                            $attempt.mirror.Contains('before') -and $attempt.mirror.Contains('after')) 'Invalid editor preparation attempt identity or render count.'
+                        if($attemptIndex -gt 0) {
+                            Require ($attempt.hostRenderCountBefore -eq $previousAttemptRender) 'Editor preparation render counts are discontinuous within a transaction.'
+                        }
+                        $previousAttemptRender=[double]$attempt.hostRenderCountAfter
+                        $renderDelta += [double]$attempt.hostRenderCountAfter-[double]$attempt.hostRenderCountBefore
+                        foreach($editorName in @('primary','mirror')) {
+                            $editor=$attempt[$editorName]
+                            foreach($edge in @('before','after')) {
+                                $state=$editor[$edge]
+                                foreach($name in $workNames+$counterNames) {
+                                    Require ($state.Contains($name) -and (Test-NonnegativeEvidenceNumber $state[$name]) -and
+                                        $state[$name] -eq [math]::Floor($state[$name])) 'Invalid editor preparation work/counter field.'
+                                }
+                                foreach($name in $booleanNames) {
+                                    Require ($state.Contains($name) -and $state[$name] -is [bool]) 'Invalid editor preparation state flag.'
+                                }
+                            }
+                            $before=$editor.before; $after=$editor.after
+                            foreach($name in $counterNames) {
+                                Require ([double]$after[$name] -ge [double]$before[$name]) 'Editor preparation cumulative counter decreased during an attempt.'
+                            }
+                            if($editorName -ceq 'primary') {
+                                if($null -ne $transactionPrimary) {
+                                    foreach($name in $counterNames) { Require ([double]$before[$name] -ge [double]$transactionPrimary[$name]) 'Primary editor preparation counter decreased between attempts.' }
+                                }
+                                $transactionPrimary=$after
+                            }
+                            else {
+                                if($null -ne $transactionMirror) {
+                                    foreach($name in $counterNames) { Require ([double]$before[$name] -ge [double]$transactionMirror[$name]) 'Mirror editor preparation counter decreased between attempts.' }
+                                }
+                                $transactionMirror=$after
+                            }
+                        }
+                        foreach($editorName in @('primary','mirror')) {
+                            $editor=$attempt[$editorName]
+                            if($null -ne $previousPrimary -and $editorName -ceq 'primary') {
+                                foreach($name in $counterNames) { Require ([double]$editor.before[$name] -ge [double]$previousPrimary[$name]) 'Primary editor preparation counter decreased between transactions.' }
+                            }
+                            if($null -ne $previousMirror -and $editorName -ceq 'mirror') {
+                                foreach($name in $counterNames) { Require ([double]$editor.before[$name] -ge [double]$previousMirror[$name]) 'Mirror editor preparation counter decreased between transactions.' }
+                            }
+                        }
+                        $previousPrimary=$attempt.primary.after
+                        $previousMirror=$attempt.mirror.after
+                        Require ((Test-NonnegativeEvidenceNumber $frameAttempt.totalUs) -and
+                            (Test-NonnegativeEvidenceNumber $frameAttempt.updateUs) -and
+                            (Test-NonnegativeEvidenceNumber $frameAttempt.renderUs) -and
+                            (Test-NonnegativeEvidenceNumber $frameAttempt.presentUs) -and
+                            $frameAttempt.totalUs -eq [math]::Floor($frameAttempt.totalUs) -and
+                            $frameAttempt.updateUs -eq [math]::Floor($frameAttempt.updateUs) -and
+                            $frameAttempt.renderUs -eq [math]::Floor($frameAttempt.renderUs) -and
+                            $frameAttempt.presentUs -eq [math]::Floor($frameAttempt.presentUs) -and
+                            $frameAttempt.updateUs+$frameAttempt.renderUs+$frameAttempt.presentUs -le $frameAttempt.totalUs+3) 'Invalid bound frame metric attempt.'
+                    }
+                    Require ((Test-NonnegativeEvidenceNumber $frame.hostRenderCount) -and
+                        $renderDelta -eq [double]$frame.hostRenderCount) 'Editor preparation render delta differs from its frame metrics.'
+                    $nextAttemptOffset += $transaction.attemptCount
+                }
+                Require ($detail.storage.attemptCapacity -ge $nextAttemptOffset) 'Editor preparation attempt capacity does not cover retained attempts.'
+            }
             $nativeIdentity=@($native.fixture,$native.view,$native.renderer,$native.adapter,$native.vendorId,$native.deviceId,$native.driverVersion,
                 $native.dpi,$native.widthPx,$native.heightPx,$native.sourceUnits) | ConvertTo-Json -Compress
             if($identity.ContainsKey($native.view)) { Require ($identity[$native.view] -ceq $nativeIdentity) 'Renderer/driver/DPI/source identity drift.' }

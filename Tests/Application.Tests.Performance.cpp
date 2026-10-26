@@ -16,6 +16,7 @@
 #include <span>
 #include <stdexcept>
 #include <tlhelp32.h>
+#include <vector>
 
 namespace RedTilde
 {
@@ -157,6 +158,227 @@ struct FrameMetricBatch
         static_cast<FrameMetricBatch *>(context)->Record(metric, value);
     }
 };
+struct EditorPreparationAttempt
+{
+    std::size_t frameMetricAttemptIndex{};
+    std::uint64_t hostRenderCountBefore{}, hostRenderCountAfter{};
+    DxUi::RichTextEditorDebugState primaryBefore{}, primaryAfter{}, mirrorBefore{}, mirrorAfter{};
+};
+struct EditorPreparationTransaction
+{
+    std::size_t firstAttempt{}, attemptCount{};
+};
+class EditorPreparationDiagnostics
+{
+    std::vector<EditorPreparationAttempt> attempts_;
+    std::vector<EditorPreparationTransaction> transactions_;
+    bool valid_{true};
+    std::size_t currentStart_{}, currentAttempts_{};
+    bool transactionActive_{};
+
+    static bool CountersDoNotDecrease(const DxUi::RichTextEditorDebugState &before, const DxUi::RichTextEditorDebugState &after) noexcept
+    {
+        return before.preparationAdvances <= after.preparationAdvances && before.cancelledPreparations <= after.cancelledPreparations &&
+               before.markdownPreparationAdvances <= after.markdownPreparationAdvances &&
+               before.semanticPreparationAdvances <= after.semanticPreparationAdvances;
+    }
+
+  public:
+    static constexpr std::size_t MaximumAttemptsPerTransaction = FrameMetricCapacity;
+
+    void Reserve(std::size_t maximumTransactions)
+    {
+        Require(maximumTransactions <= std::numeric_limits<std::size_t>::max() / MaximumAttemptsPerTransaction,
+                "editor preparation diagnostic capacity overflowed");
+        attempts_.reserve(maximumTransactions * MaximumAttemptsPerTransaction);
+        transactions_.reserve(maximumTransactions);
+        Require(attempts_.capacity() >= maximumTransactions * MaximumAttemptsPerTransaction && transactions_.capacity() >= maximumTransactions,
+                "editor preparation diagnostic storage was not reserved before the measured transactions");
+    }
+    void BeginTransaction() noexcept
+    {
+        if (transactionActive_ || transactions_.size() == transactions_.capacity())
+        {
+            valid_ = false;
+            return;
+        }
+        currentStart_ = attempts_.size();
+        currentAttempts_ = 0u;
+        transactionActive_ = true;
+    }
+    void Record(const EditorPreparationAttempt &attempt) noexcept
+    {
+        if (!transactionActive_ || attempts_.size() == attempts_.capacity() || currentAttempts_ == MaximumAttemptsPerTransaction)
+        {
+            valid_ = false;
+            return;
+        }
+        attempts_.push_back(attempt);
+        ++currentAttempts_;
+    }
+    void EndTransaction(std::size_t requestedAttempts) noexcept
+    {
+        if (!transactionActive_ || transactions_.size() == transactions_.capacity() || currentAttempts_ == 0u ||
+            currentAttempts_ != requestedAttempts || currentAttempts_ > MaximumAttemptsPerTransaction)
+        {
+            valid_ = false;
+            transactionActive_ = false;
+            return;
+        }
+        transactions_.push_back({currentStart_, currentAttempts_});
+        transactionActive_ = false;
+    }
+    std::size_t ReservedBytes() const noexcept
+    {
+        return attempts_.capacity() * sizeof(EditorPreparationAttempt) + transactions_.capacity() * sizeof(EditorPreparationTransaction);
+    }
+    std::size_t AttemptCapacity() const noexcept
+    {
+        return attempts_.capacity();
+    }
+    std::size_t TransactionCapacity() const noexcept
+    {
+        return transactions_.capacity();
+    }
+    std::size_t TransactionCount() const noexcept
+    {
+        return transactions_.size();
+    }
+    static constexpr std::size_t AttemptRecordBytes() noexcept
+    {
+        return sizeof(EditorPreparationAttempt);
+    }
+    static constexpr std::size_t TransactionRecordBytes() noexcept
+    {
+        return sizeof(EditorPreparationTransaction);
+    }
+    bool Complete(std::span<const FrameMetricBatch> frameMetrics, std::size_t expectedTransactions) const noexcept
+    {
+        if (!valid_ || transactionActive_ || transactions_.size() != expectedTransactions || frameMetrics.size() != expectedTransactions ||
+            attempts_.size() > attempts_.capacity())
+            return false;
+        std::size_t nextAttempt{};
+        for (std::size_t transactionIndex = 0; transactionIndex < transactions_.size(); ++transactionIndex)
+        {
+            const auto &transaction = transactions_[transactionIndex];
+            const auto &frames = frameMetrics[transactionIndex];
+            if (!frames.Complete() || transaction.firstAttempt != nextAttempt || transaction.attemptCount != frames.frameCount ||
+                transaction.attemptCount != frames.requestedAttempts || transaction.attemptCount > MaximumAttemptsPerTransaction ||
+                transaction.firstAttempt > attempts_.size() || transaction.attemptCount > attempts_.size() - transaction.firstAttempt)
+                return false;
+            std::uint64_t transactionRenderDelta{};
+            for (std::size_t attemptIndex = 0; attemptIndex < transaction.attemptCount; ++attemptIndex)
+            {
+                const auto &attempt = attempts_[transaction.firstAttempt + attemptIndex];
+                if (attempt.frameMetricAttemptIndex != attemptIndex || attempt.hostRenderCountAfter < attempt.hostRenderCountBefore ||
+                    attempt.hostRenderCountAfter - attempt.hostRenderCountBefore > 1u ||
+                    !CountersDoNotDecrease(attempt.primaryBefore, attempt.primaryAfter) ||
+                    !CountersDoNotDecrease(attempt.mirrorBefore, attempt.mirrorAfter))
+                    return false;
+                if (attemptIndex != 0u)
+                {
+                    const auto &previous = attempts_[transaction.firstAttempt + attemptIndex - 1u];
+                    if (attempt.hostRenderCountBefore != previous.hostRenderCountAfter ||
+                        !CountersDoNotDecrease(previous.primaryAfter, attempt.primaryBefore) ||
+                        !CountersDoNotDecrease(previous.mirrorAfter, attempt.mirrorBefore))
+                        return false;
+                }
+                transactionRenderDelta += attempt.hostRenderCountAfter - attempt.hostRenderCountBefore;
+            }
+            if (transactionRenderDelta != frames.hostRenderCount)
+                return false;
+            nextAttempt += transaction.attemptCount;
+        }
+        return nextAttempt == attempts_.size();
+    }
+    const EditorPreparationAttempt &Attempt(std::size_t index) const noexcept
+    {
+        return attempts_[index];
+    }
+    const EditorPreparationTransaction &Transaction(std::size_t index) const noexcept
+    {
+        return transactions_[index];
+    }
+};
+bool EditorPreparationDiagnosticsOracle()
+{
+    std::array<FrameMetricBatch, 1> frames{};
+    auto &frame = frames.front();
+    constexpr std::array<std::array<std::uint64_t, 4>, 2> frameValues{{{{12, 3, 4, 4}}, {{12, 3, 4, 4}}}};
+    constexpr std::array<std::wstring_view, 4> frameNames{L"dxui.frame.total_us", L"dxui.frame.update_us", L"dxui.frame.render_us",
+                                                          L"dxui.frame.present_us"};
+    for (const auto &values : frameValues)
+        for (std::size_t metric = 0; metric < frameNames.size(); ++metric)
+            frame.Record(frameNames[metric], values[metric]);
+    frame.hostRenderCount = 1;
+    frame.requestedAttempts = 2;
+
+    const auto makeDiagnostics = [](unsigned mutation)
+    {
+        EditorPreparationDiagnostics diagnostics;
+        diagnostics.Reserve(1u);
+        diagnostics.BeginTransaction();
+        EditorPreparationAttempt first{};
+        first.frameMetricAttemptIndex = 0u;
+        first.hostRenderCountBefore = 4u;
+        first.hostRenderCountAfter = 4u;
+        first.primaryBefore.preparationPending = true;
+        first.primaryBefore.layoutGeneration = 1u;
+        first.primaryBefore.preparationAdvances = 1u;
+        first.primaryBefore.markdownPreparationPending = true;
+        first.primaryBefore.markdownPreparationAdvances = 1u;
+        first.primaryBefore.lastAdvanceMarkdownWork = 8u;
+        first.primaryAfter.preparationPending = true;
+        first.primaryAfter.preparationAdvances = 2u;
+        first.primaryAfter.markdownPreparationPending = false;
+        first.primaryAfter.markdownPreparationAdvances = 2u;
+        first.primaryAfter.lastAdvanceMarkdownWork = 9u;
+        first.mirrorBefore.preparationPending = true;
+        first.mirrorBefore.sourceInkPreparationPending = true;
+        first.mirrorBefore.preparationAdvances = 1u;
+        first.mirrorBefore.lastAdvanceLayouts = 2u;
+        first.mirrorAfter.preparationPending = true;
+        first.mirrorAfter.sourceInkPreparationPending = true;
+        first.mirrorAfter.preparationAdvances = 2u;
+        first.mirrorAfter.lastAdvanceLayouts = 3u;
+        diagnostics.Record(first);
+
+        EditorPreparationAttempt second{};
+        second.frameMetricAttemptIndex = mutation == 1u ? 0u : 1u;
+        second.hostRenderCountBefore = mutation == 6u ? 5u : 4u;
+        second.hostRenderCountAfter = mutation == 3u ? 6u : (mutation == 5u ? 4u : 5u);
+        second.primaryBefore = first.primaryAfter;
+        second.primaryAfter = second.primaryBefore;
+        second.primaryAfter.preparationPending = false;
+        second.primaryAfter.layoutReady = true;
+        second.primaryAfter.layoutGeneration = 2u;
+        if (mutation == 2u)
+            second.primaryBefore.preparationAdvances = 0u;
+        second.mirrorBefore = first.mirrorAfter;
+        second.mirrorAfter = second.mirrorBefore;
+        second.mirrorAfter.preparationPending = false;
+        second.mirrorAfter.sourceInkPreparationPending = false;
+        second.mirrorAfter.layoutReady = true;
+        second.mirrorAfter.layoutGeneration = 2u;
+        second.mirrorAfter.sourceInkRangeCount = 5u;
+        diagnostics.Record(second);
+        diagnostics.EndTransaction(mutation == 4u ? 1u : 2u);
+        return diagnostics;
+    };
+
+    const auto valid = makeDiagnostics(0u);
+    if (!valid.Complete(frames, 1u) || valid.Attempt(0u).primaryAfter.lastAdvanceMarkdownWork != 9u ||
+        valid.Attempt(1u).mirrorAfter.sourceInkRangeCount != 5u)
+        return false;
+    if (makeDiagnostics(1u).Complete(frames, 1u) || makeDiagnostics(2u).Complete(frames, 1u) || makeDiagnostics(3u).Complete(frames, 1u) ||
+        makeDiagnostics(4u).Complete(frames, 1u) || makeDiagnostics(5u).Complete(frames, 1u) || makeDiagnostics(6u).Complete(frames, 1u))
+        return false;
+    auto mismatchedFrames = frames;
+    mismatchedFrames.front().requestedAttempts = 1u;
+    if (valid.Complete(mismatchedFrames, 1u) || valid.Complete(frames, 2u))
+        return false;
+    return true;
+}
 class FrameMetricSinkScope
 {
     bool active{};
@@ -283,6 +505,64 @@ void WriteFrameMetricTransactions(std::ostream &out, std::string_view name, cons
     }
     out << ']';
 }
+void WriteEditorPreparationState(std::ostream &out, const DxUi::RichTextEditorDebugState &state)
+{
+    out << "{\"layoutReady\":" << (state.layoutReady ? "true" : "false") << ",\"layoutGeneration\":" << state.layoutGeneration
+        << ",\"retainedGeometryChunks\":" << state.retainedGeometryChunks << ",\"preparedGeometryChunks\":" << state.preparedGeometryChunks
+        << ",\"reusedGeometryChunks\":" << state.reusedGeometryChunks << ",\"preparedSourceUnits\":" << state.preparedSourceUnits
+        << ",\"wholeGeometryFallback\":" << (state.wholeGeometryFallback ? "true" : "false")
+        << ",\"wholeRasterFallback\":" << (state.wholeRasterFallback ? "true" : "false") << ",\"wholeLayoutsPrepared\":" << state.wholeLayoutsPrepared
+        << ",\"wholeLayoutSourceUnits\":" << state.wholeLayoutSourceUnits
+        << ",\"preparationPending\":" << (state.preparationPending ? "true" : "false") << ",\"preparationAdvances\":" << state.preparationAdvances
+        << ",\"cancelledPreparations\":" << state.cancelledPreparations << ",\"lastAdvanceLayouts\":" << state.lastAdvanceLayouts
+        << ",\"lastAdvanceBlockSteps\":" << state.lastAdvanceBlockSteps
+        << ",\"markdownPreparationPending\":" << (state.markdownPreparationPending ? "true" : "false")
+        << ",\"markdownPreparationAdvances\":" << state.markdownPreparationAdvances
+        << ",\"lastAdvanceMarkdownWork\":" << state.lastAdvanceMarkdownWork
+        << ",\"semanticPreparationPending\":" << (state.semanticPreparationPending ? "true" : "false")
+        << ",\"semanticPreparationAdvances\":" << state.semanticPreparationAdvances
+        << ",\"lastAdvanceSemanticWork\":" << state.lastAdvanceSemanticWork
+        << ",\"sourceInkPreparationPending\":" << (state.sourceInkPreparationPending ? "true" : "false")
+        << ",\"sourceInkRangeCount\":" << state.sourceInkRangeCount << '}';
+}
+void WriteEditorPreparationDiagnostics(std::ostream &out, const EditorPreparationDiagnostics &diagnostics)
+{
+    out << "{\"protocol\":\"app-editor-preparation-v1\",\"complete\":true,\"snapshotSource\":\"DxUi.RichTextEditor.DebugGetState\","
+           "\"attribution\":\"state deltas only; no per-stage CPU attribution\",\"storage\":{\"reservedBytes\":"
+        << diagnostics.ReservedBytes() << ",\"attemptCapacity\":" << diagnostics.AttemptCapacity()
+        << ",\"transactionCapacity\":" << diagnostics.TransactionCapacity()
+        << ",\"attemptRecordBytes\":" << EditorPreparationDiagnostics::AttemptRecordBytes()
+        << ",\"transactionRecordBytes\":" << EditorPreparationDiagnostics::TransactionRecordBytes()
+        << ",\"maxAttemptsPerTransaction\":" << EditorPreparationDiagnostics::MaximumAttemptsPerTransaction
+        << ",\"retainedThroughPostMeasurement\":true},\"transactions\":[";
+    for (std::size_t transactionIndex = 0; transactionIndex < diagnostics.TransactionCount(); ++transactionIndex)
+    {
+        if (transactionIndex)
+            out << ',';
+        const auto &transaction = diagnostics.Transaction(transactionIndex);
+        out << "{\"complete\":true,\"firstAttemptIndex\":" << transaction.firstAttempt << ",\"attemptCount\":" << transaction.attemptCount
+            << ",\"attempts\":[";
+        for (std::size_t attemptIndex = 0; attemptIndex < transaction.attemptCount; ++attemptIndex)
+        {
+            if (attemptIndex)
+                out << ',';
+            const auto &attempt = diagnostics.Attempt(transaction.firstAttempt + attemptIndex);
+            out << "{\"frameMetricAttemptIndex\":" << attempt.frameMetricAttemptIndex
+                << ",\"hostRenderCountBefore\":" << attempt.hostRenderCountBefore << ",\"hostRenderCountAfter\":" << attempt.hostRenderCountAfter
+                << ",\"primary\":{\"before\":";
+            WriteEditorPreparationState(out, attempt.primaryBefore);
+            out << ",\"after\":";
+            WriteEditorPreparationState(out, attempt.primaryAfter);
+            out << "},\"mirror\":{\"before\":";
+            WriteEditorPreparationState(out, attempt.mirrorBefore);
+            out << ",\"after\":";
+            WriteEditorPreparationState(out, attempt.mirrorAfter);
+            out << "}}";
+        }
+        out << "]}";
+    }
+    out << "]}";
+}
 struct GpuFence
 {
     wil::com_ptr_nothrow<IDXGIDevice2> dxgi;
@@ -403,12 +683,37 @@ class PerformanceProbe
     }
     std::size_t Ready(std::wstring_view expected)
     {
+        return ReadyImpl<false>(expected, nullptr, nullptr);
+    }
+    std::size_t Ready(std::wstring_view expected, EditorPreparationDiagnostics &preparationDiagnostics, FrameMetricBatch &frameMetrics)
+    {
+        return ReadyImpl<true>(expected, &preparationDiagnostics, &frameMetrics);
+    }
+    template <bool CaptureEditorPreparation>
+    std::size_t ReadyImpl(std::wstring_view expected, EditorPreparationDiagnostics *preparationDiagnostics, FrameMetricBatch *frameMetrics)
+    {
         std::size_t attempts{};
         const auto deadline = GetTickCount64() + 5000;
         do
         {
             ++attempts;
-            Require(app.host.RenderInitialFrameForShow(), "native frame submission failed");
+            bool frameSubmitted{};
+            if constexpr (CaptureEditorPreparation)
+            {
+                EditorPreparationAttempt preparationAttempt{};
+                preparationAttempt.frameMetricAttemptIndex = frameMetrics->frameCount;
+                preparationAttempt.hostRenderCountBefore = app.host.DebugGetRenderCount();
+                preparationAttempt.primaryBefore = app.editor->DebugGetState();
+                preparationAttempt.mirrorBefore = app.mirror->DebugGetState();
+                frameSubmitted = app.host.RenderInitialFrameForShow();
+                preparationAttempt.hostRenderCountAfter = app.host.DebugGetRenderCount();
+                preparationAttempt.primaryAfter = app.editor->DebugGetState();
+                preparationAttempt.mirrorAfter = app.mirror->DebugGetState();
+                preparationDiagnostics->Record(preparationAttempt);
+            }
+            else
+                frameSubmitted = app.host.RenderInitialFrameForShow();
+            Require(frameSubmitted, "native frame submission failed");
             const auto processed = Pump();
             const auto semantic = app.editor->GetAcknowledgedSemanticDocument(app.host);
             const auto mirror = app.mirror->DebugGetState();
@@ -774,6 +1079,7 @@ class PerformanceProbe
         std::vector<EditDiagnostics::SelectionRecord> selectionComponents;
         std::vector<double> preparationCpu, completionCpu, renderCounts, preparationCounts;
         std::vector<FrameMetricBatch> editFrameMetrics, cleanFrameMetrics;
+        EditorPreparationDiagnostics editorPreparationDiagnostics;
         for (auto *values : {&command, &preparation, &completion, &total, &clean, &cpu, &commandCpu, &processorStart, &processorEnd})
             values->reserve(options.performanceCycles * 2);
         if (options.controlDiagnostics)
@@ -786,9 +1092,11 @@ class PerformanceProbe
             selectionComponents.reserve(options.performanceCycles * 2);
             editFrameMetrics.reserve(options.performanceCycles * 2);
             cleanFrameMetrics.reserve(options.performanceCycles);
+            editorPreparationDiagnostics.Reserve(options.performanceCycles * 2);
             Require(editFrameMetrics.capacity() == options.performanceCycles * 2 && cleanFrameMetrics.capacity() == options.performanceCycles,
                     "frame diagnostic vector capacities exceed the declared retention bound");
             Require(FrameMetricCollectorOracle(), "frame metric collector oracle failed");
+            Require(EditorPreparationDiagnosticsOracle(), "editor preparation diagnostic oracle failed");
         }
         const auto activity = app.activity;
         SettleRecovery();
@@ -822,7 +1130,18 @@ class PerformanceProbe
                 const double commandUs = Micros(start);
                 const auto commandCycles = OwnerCycles() - cpuStart;
                 const auto prepare = Clock::now();
-                const auto requestedAttempts = Ready(undo ? std::wstring_view(source) : std::wstring_view(edited));
+                const bool collectEditorPreparation = options.controlDiagnostics && cycle >= 2;
+                const std::wstring_view expected = undo ? std::wstring_view(source) : std::wstring_view(edited);
+                std::size_t requestedAttempts{};
+                if (collectEditorPreparation)
+                {
+                    editorPreparationDiagnostics.BeginTransaction();
+                    requestedAttempts = Ready(expected, editorPreparationDiagnostics, *frameMetrics);
+                }
+                else
+                    requestedAttempts = Ready(expected);
+                if (collectEditorPreparation)
+                    editorPreparationDiagnostics.EndTransaction(requestedAttempts);
                 const double prepareUs = Micros(prepare);
                 const auto prepareCycles = options.controlDiagnostics ? OwnerCycles() - cpuStart - commandCycles : 0;
                 const auto finish = Clock::now();
@@ -909,7 +1228,8 @@ class PerformanceProbe
             }
         }
         if (options.controlDiagnostics)
-            Require(editFrameMetrics.size() == options.performanceCycles * 2 && cleanFrameMetrics.size() == options.performanceCycles,
+            Require(editFrameMetrics.size() == options.performanceCycles * 2 && cleanFrameMetrics.size() == options.performanceCycles &&
+                        editorPreparationDiagnostics.Complete(std::span<const FrameMetricBatch>(editFrameMetrics), options.performanceCycles * 2),
                     "frame diagnostics must retain every measured edit and clean transaction");
         SettleRecovery();
         Require(app.editor->GetText() == source && app.editor->GetSelection() == DxUi::RichText::Selection{at, at},
@@ -1073,6 +1393,11 @@ class PerformanceProbe
             WriteFrameMetricTransactions(out, "cleanTransactions", cleanFrameMetrics);
             out << "}";
         }
+        else
+            out << "null";
+        out << ",\"editorPreparationDiagnostics\":";
+        if (options.controlDiagnostics)
+            WriteEditorPreparationDiagnostics(out, editorPreparationDiagnostics);
         else
             out << "null";
         out << ",\"activity\":{\"changes\":" << app.activity.changes - activity.changes << ",\"layouts\":" << app.activity.layouts - activity.layouts

@@ -1,5 +1,7 @@
 # Application evidence
 
+- [Fresh final 09f performance collection, 2026-10-26](RedesignCompletion_2026-10-26/performance-09f22877/README.md) — 576 processes across three separate lineages, with independent raw replay and 25,202 audit checks. Three original-UI flags remain; 36/72 controls are unstable, all quiet CPU windows are unverified, and the actual PR #16-base comparison has no resolved finding.
+
 Reviewed RedTilde measurements and actual application captures belong here. Generated build/test logs and
 intermediate images stay under `.build`. Do not use DxUi or another Red application's receipts as product
 qualification. Retained packets record source identity, dependency, binary hash, profile, scenario and limitations.

@@ -12,6 +12,8 @@ Independent replay checks 1,871 payload files and 69 capture/provenance pairs. I
 The [current keyboard packet](input-0f68857b/README.md) records all nine stages and 168 injected events after
 the authorized default-Start countdown, with verified restoration and exact unchanged native bytes.
 
+The [fresh final 09f performance collection](performance-09f22877/README.md) binds the exact candidate and three separate lineages across 576 native processes. Original-UI A/B has three flags; starting-redesign A/B has five improvements; actual PR #16-base A/B has no resolved finding. Thirty-six of 72 controls are unstable and all six quiet CPU windows are unverified. Performance remains OPEN.
+
 The [fresh three-reference collection](performance-0f68857b/README.md) retains 576 processes and independent
 raw arithmetic replay. Four original-UI flags remain; actual PR #15-base A/B has no resolved regression.
 Controls are unstable in 39 of 72 rows and all six quiet CPU windows are unverified. Performance stays OPEN.

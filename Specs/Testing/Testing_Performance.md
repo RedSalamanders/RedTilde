@@ -175,6 +175,19 @@ components unavailable rather than supplying invented durations. Component sums 
 invocation and the parent selection phase; the retained remainder must reconstruct that parent. Historical
 reports without this optional object remain readable; a current study that declares it must retain it.
 
+Opt-in native diagnostics may also retain the separate `app-editor-preparation-v1` object. For each measured
+edit transaction, record every `Ready` call's `RenderInitialFrameForShow` attempt, capped at the shared 64-attempt
+transaction bound. Each record binds its zero-based attempt index to the same ordered `dxui-frame-metrics-v1`
+attempt and captures the primary and mirror `RichTextEditor::DebugGetState()` immediately before and after that
+call, plus the host render-count endpoints. The collector reserves attempt and transaction storage before measured
+edits, reports its reserved bytes, and rejects missing/extra attempts, index or render-count reconciliation errors,
+and decreasing cumulative preparation counters. The recorded debug-state fields are raw snapshots; a zero work
+field is not a timing or proof that a stage was skipped, and these snapshots do not attribute CPU among editor
+stages or host traversal. The evidence auditor independently checks each retained attempt against its frame-metric
+record, including transaction counts, ordering, counters and reserved-storage arithmetic. Historical reports
+without this optional object remain readable. When disabled, this diagnostic performs no editor debug queries
+and allocates no diagnostic storage.
+
 A common diagnostic harness does not guarantee equal probe counts in different implementations. Report active
 component-call counts when comparing outer phases: each timed scope adds its own clock/cycle reads, and the
 enclosing interval/remainder includes that overhead. A phase delta cannot be attributed wholly to product work
