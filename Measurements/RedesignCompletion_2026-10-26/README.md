@@ -1,5 +1,9 @@
 # RedTilde completion evidence - 26 October 2026
 
+The [30fb0c2 native qualification](qualification-30fb0c2/README.md) records the six-profile local matrix and separate keyboard run. Its Release matrix executable remains bound to `FE192B9E`; the later restored colored Release checkpoint uses executable `10B5B8BD` and distinct receipts despite unchanged compiled inputs. Hosted ARM64 was blocked before steps started. The three original-UI performance flags, SDK policy acceptance, cursor lease and hosted ARM64 remain open. Packet manifest SHA-256: `2B37FB33595141AA84BA8D0C4B1A4668D50113260B5BFC811BDB7E9762A4327B`.
+
+The [30fb0c2 editor-preparation attempt diagnostics](editor-attempts-30fb0c2/README.md) retain four current-only process traces and 16 earlier matched frame reports. Attempt counters describe preparation progression; they do not attribute stage CPU or qualify performance. All three original-UI performance flags remain open, as do SDK policy acceptance and the cursor-lease gate. Packet manifest SHA-256: `55F8459818FE820C75887CBB81BFAD81F2E2BE03A5FDDA3133F61B130870B1F3`.
+
 The [header-extension support packet](header-extension-47a9/README.md) records the isolated compiler probe,
 exact header delta and its limits for the fixed DxUi 2fed to 47a9 comparison. It does not establish performance
 acceptance or runtime qualification. Current native, interaction and paired evidence retain their exact source

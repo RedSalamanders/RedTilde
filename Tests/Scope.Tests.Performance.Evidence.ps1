@@ -789,10 +789,10 @@ $results=@(foreach($directory in $StudyPath) {
     }
     $identity=@{}; $blocks=@{}; $leaves=@{}
     foreach($scheduled in $study.schedule) {
-        $name=$scheduled.scenario+'-'+([int]$scheduled.block).ToString('00')
+        $scheduledBlockName=$scheduled.scenario+'-'+([int]$scheduled.block).ToString('00')
         Require ($scheduled.scenario -cin @('Compose','Split') -and $scheduled.block -ge 0 -and $scheduled.block -lt $study.blocks) 'Scheduled block is outside its declared scope.'
-        Require (-not $blocks.ContainsKey($name)) 'Duplicate scheduled block.'
-        $pair=Get-Content (Join-Path $root ($name+'.pair.json')) -Raw | ConvertFrom-Json -AsHashtable
+        Require (-not $blocks.ContainsKey($scheduledBlockName)) 'Duplicate scheduled block.'
+        $pair=Get-Content (Join-Path $root ($scheduledBlockName+'.pair.json')) -Raw | ConvertFrom-Json -AsHashtable
         Require ($pair.scenario -ceq $scheduled.scenario -and $pair.block -eq $scheduled.block -and $pair.order -ceq $scheduled.order -and
             $pair.order -cin @('ABBA','BAAB')) 'Pair must match its retained random schedule.'
         foreach($slot in @('A1','A2','B1','B2')) {
@@ -1051,10 +1051,10 @@ $results=@(foreach($directory in $StudyPath) {
                     $value=[RedTilde.PairedEvidenceReference]::Median($samples)
                 }
                 Require ([double]::IsFinite($value) -and $value -gt 0) 'Native metric must be finite and positive.'
-                Near ([double]$pair[$slot][$metric]) $value "Native/pair median differs: $name $slot $metric"
+                Near ([double]$pair[$slot][$metric]) $value "Native/pair median differs: $scheduledBlockName $slot $metric"
             }
         }
-        $blocks[$name]=$pair
+        $blocks[$scheduledBlockName]=$pair
     }
     $reference=[Collections.Generic.List[object]]::new()
     foreach($scenario in @('Compose','Split')) {

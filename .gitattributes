@@ -12,3 +12,5 @@ Measurements/DesignRefresh_2026-10-24/captures/** -text whitespace=trailing-spac
 Measurements/RedesignCompletion_2026-10-26/parsed-syntax-header-probe/** -text whitespace=trailing-space,space-before-tab,cr-at-eol
 docs/examples/weekly-report-2026-10-15.md -text whitespace=trailing-space,space-before-tab,cr-at-eol
 Measurements/RedesignCompletion_2026-10-26/performance-09f22877/** -text whitespace=trailing-space,space-before-tab,cr-at-eol
+Measurements/RedesignCompletion_2026-10-26/qualification-30fb0c2/** -text whitespace=trailing-space,space-before-tab,cr-at-eol
+Measurements/RedesignCompletion_2026-10-26/editor-attempts-30fb0c2/** -text whitespace=trailing-space,space-before-tab,cr-at-eol

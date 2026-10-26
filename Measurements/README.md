@@ -1,5 +1,8 @@
 # Application evidence
 
+- [30fb0c2 native qualification](RedesignCompletion_2026-10-26/qualification-30fb0c2/README.md) — six local build profiles, three x64 Full profiles (65 cases and 23 captures each), true ASan detection and a separate 9-stage/168-event keyboard run. The original Release matrix binary is `FE192B9E`; the restored colored Release checkpoint is a distinct `10B5B8BD` artifact with separate receipts. Hosted ARM64, SDK policy acceptance, cursor lease and all three original-UI performance flags remain open. Packet manifest SHA-256: `2B37FB33595141AA84BA8D0C4B1A4668D50113260B5BFC811BDB7E9762A4327B`.
+- [30fb0c2 editor-preparation attempts](RedesignCompletion_2026-10-26/editor-attempts-30fb0c2/README.md) — four current-only traces and 16 matched earlier frame reports retain all attempts. This is work-progression/frame timing evidence without stage CPU attribution or performance acceptance. SDK policy acceptance, cursor lease and all three original-UI performance flags remain open. Packet manifest SHA-256: `55F8459818FE820C75887CBB81BFAD81F2E2BE03A5FDDA3133F61B130870B1F3`.
+
 - [Fresh final 09f performance collection, 2026-10-26](RedesignCompletion_2026-10-26/performance-09f22877/README.md) — 576 processes across three separate lineages, with independent raw replay and 25,202 audit checks. Three original-UI flags remain; 36/72 controls are unstable, all quiet CPU windows are unverified, and the actual PR #16-base comparison has no resolved finding.
 
 Reviewed RedTilde measurements and actual application captures belong here. Generated build/test logs and

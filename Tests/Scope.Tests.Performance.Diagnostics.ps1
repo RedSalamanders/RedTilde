@@ -145,7 +145,36 @@ $rows=@(foreach($case in $cases) {
         [pscustomobject]@{case=$case.name;accepted=$false;rejected=$true;receiptHashUpdated=$true;reason=$reason}
     }
 })
-[ordered]@{passed=$true;nativeExecutablesRun=$false;positiveStudyAuditChecks=$positive.checks;optionalEditorPreparationFixtureAccepted=$true;cases=$rows;
+# Every real diagnostic slot carries this object. A single edited slot cannot
+# expose a field-loop variable overwriting the scheduled block's dictionary key.
+$allTarget=Join-Path $OutputRoot 'editor-preparation-all-slots-valid'
+New-Item -ItemType Directory -Path $allTarget | Out-Null
+Get-ChildItem -LiteralPath $source -File | Copy-Item -Destination $allTarget
+$allNativeCount=0
+foreach($pairFile in Get-ChildItem -LiteralPath $allTarget -File -Filter '*.pair.json') {
+    $allPair=Get-Content -LiteralPath $pairFile.FullName -Raw | ConvertFrom-Json -AsHashtable
+    foreach($slot in @('A1','A2','B1','B2')) {
+        $receipt=$allPair[$slot+'Receipt']
+        if([IO.Path]::GetFileName([string]$receipt.file) -cne $receipt.file) { throw 'Fixture receipt must be a local leaf.' }
+        $allNativePath=Join-Path $allTarget $receipt.file
+        $allNative=Get-Content -LiteralPath $allNativePath -Raw | ConvertFrom-Json -AsHashtable
+        AddEditorPreparationFixture $allNative
+        $allNative | ConvertTo-Json -Depth 40 | Set-Content -LiteralPath $allNativePath -Encoding utf8
+        $receipt.sha256=(Get-FileHash -LiteralPath $allNativePath).Hash
+        ++$allNativeCount
+    }
+    $allPair | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $pairFile.FullName -Encoding utf8
+}
+$allStudyPath=Join-Path $allTarget 'study.json'
+$allStudy=Get-Content -LiteralPath $allStudyPath -Raw | ConvertFrom-Json -AsHashtable
+$allStudy['editorPreparationDiagnosticsProtocol']='app-editor-preparation-v1'
+if($allNativeCount -ne 8*$allStudy.blocks) { throw 'The positive full-study fixture must retain every slot.' }
+$allStudy | ConvertTo-Json -Depth 80 | Set-Content -LiteralPath $allStudyPath -Encoding utf8
+& $auditor -StudyPath $allTarget -Output (Join-Path $OutputRoot 'all-slots-positive.json') | Out-Null
+$rows+=@([pscustomobject]@{case='editor-preparation-all-slots-valid';accepted=$true;rejected=$false;receiptHashUpdated=$true;
+    nativeSlots=$allNativeCount;reason=$null})
+[ordered]@{passed=$true;nativeExecutablesRun=$false;positiveStudyAuditChecks=$positive.checks;optionalEditorPreparationFixtureAccepted=$true;
+    allEditorPreparationSlotsAccepted=$allNativeCount;cases=$rows;
     scope='Regression of the independent evidence contract on retained fixtures; no new native or performance acceptance.'} |
     ConvertTo-Json -Depth 6 | Set-Content (Join-Path $OutputRoot 'receipt.json') -Encoding utf8
 Write-Host ('Diagnostic evidence: '+@($rows | Where-Object rejected).Count+' integrity-consistent malformed receipts rejected.')
