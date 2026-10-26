@@ -1,5 +1,9 @@
 # RedTilde completion evidence - 26 October 2026
 
+The [30fb0c2 native qualification](qualification-30fb0c2/README.md) records the six-profile local matrix and separate keyboard run. Its Release matrix executable remains bound to `FE192B9E`; the later restored colored Release checkpoint uses executable `10B5B8BD` and distinct receipts despite unchanged compiled inputs. Hosted ARM64 was blocked before steps started. The three original-UI performance flags, SDK policy acceptance, cursor lease and hosted ARM64 remain open. Packet manifest SHA-256: `2B37FB33595141AA84BA8D0C4B1A4668D50113260B5BFC811BDB7E9762A4327B`.
+
+The [30fb0c2 editor-preparation attempt diagnostics](editor-attempts-30fb0c2/README.md) retain four current-only process traces and 16 earlier matched frame reports. Attempt counters describe preparation progression; they do not attribute stage CPU or qualify performance. All three original-UI performance flags remain open, as do SDK policy acceptance and the cursor-lease gate. Packet manifest SHA-256: `55F8459818FE820C75887CBB81BFAD81F2E2BE03A5FDDA3133F61B130870B1F3`.
+
 The [header-extension support packet](header-extension-47a9/README.md) records the isolated compiler probe,
 exact header delta and its limits for the fixed DxUi 2fed to 47a9 comparison. It does not establish performance
 acceptance or runtime qualification. Current native, interaction and paired evidence retain their exact source
@@ -12,6 +16,18 @@ Independent replay checks 1,871 payload files and 69 capture/provenance pairs. I
 The [current keyboard packet](input-0f68857b/README.md) records all nine stages and 168 injected events after
 the authorized default-Start countdown, with verified restoration and exact unchanged native bytes.
 
+The [fresh final 09f performance collection](performance-09f22877/README.md) binds the exact candidate and three separate lineages across 576 native processes. Original-UI A/B has three flags; starting-redesign A/B has five improvements; actual PR #16-base A/B has no resolved finding. Thirty-six of 72 controls are unstable and all six quiet CPU windows are unverified. Performance remains OPEN.
+
 The [fresh three-reference collection](performance-0f68857b/README.md) retains 576 processes and independent
 raw arithmetic replay. Four original-UI flags remain; actual PR #15-base A/B has no resolved regression.
 Controls are unstable in 39 of 72 rows and all six quiet CPU windows are unverified. Performance stays OPEN.
+
+The [four-process Split heap diagnostic](heap-split-0f68857b/README.md) retains 12,494,229 events and
+4,143,900 exact stack references. Independent replay confirms the versioned decoder preserves all live byte/
+block snapshots. Matching large graphics groups and a differing button-paint request group narrow the next
+experiment; intrusive, phase-unmatched snapshots do not establish achievable savings or performance acceptance.
+
+The [mirror-color feature-removal diagnostic](mirror-color-diagnostic/README.md) retains all 16 raw reports,
+both admitted binaries' identities and the separately failing feature-disabled test attempts. Disabling mirror
+analysis changes Split owner cycles by -9.8859% in this small diagnostic but fails two behavior checks; the
+application keeps its colored source mirror. This is cost localization, not a shipping change or acceptance.

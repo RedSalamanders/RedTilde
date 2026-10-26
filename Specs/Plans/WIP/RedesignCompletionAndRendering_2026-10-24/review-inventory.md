@@ -13,13 +13,13 @@ the current performance policy or accept the remaining regressions.
   "schemaVersion": 1,
   "date": "2026-10-26",
   "status": "SOURCE_REVIEW_COMPLETE_RUNTIME_AND_PERFORMANCE_QUALIFICATION_OPEN",
-  "description": "The inventory contains 635 exact repository/path entries. Historical full-file reviews and current source/tooling review deltas retain separate hashes and dated notes; generated provenance remains distinct. Runtime, platform, foreground, hosted and performance qualification remain independent gates.",
+  "description": "The inventory contains 636 exact repository/path entries. Historical full-file reviews and P18 source/tooling review deltas retain separate hashes and dated notes; runtime/input/platform/hosted/performance qualification remains independent.",
   "plannedAt": {
     "RedTilde": "c7456854c8f964bb9ea067295e6435f99d426515",
     "DxUi": "ceffe76a429d15039ceff1f7dfae7e1d7126323e"
   },
   "scope": "Tracked first-party C/C++ headers and sources, scripts, build/workflow inputs, JSON data/manifests and native resources; generated code is listed for generator/provenance review. Vendored source/corpora, skills, historical Measurements evidence, general documentation, assets and ignored products are not line-by-line targets. Explicit exception for this 24 October delta: six named normative/planning documents and one generated changelog row are included as documentation/provenance review only.",
-  "entryCount": 635,
+  "entryCount": 636,
   "files": [
     {
       "repository": "RedTilde",
@@ -175,11 +175,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Build/Performance.psm1",
-      "sha256": "76e1c17bf5c7a830d82a5fa3286ec57e1673810305719a7bc69ca36a2ae36584",
+      "sha256": "3aaf4b476e99dcc5647049c70e114b9f7d0bb5ccbeba1399ccbf42198f6fe95a",
       "category": "build-and-tooling",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "review_ledger",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "Tests/Scope.Tests.Performance.Tooling.ps1: math, schedule and compiler-profile fixtures",
         "Tests/Scope.Tests.Performance.Evidence.ps1 -SelfTest: independent comparator reference"
@@ -227,24 +227,56 @@ the current performance policy or accept the remaining regressions.
           ],
           "findingIds": [],
           "disposition": "prior reviewed bytes retained before current hash refresh"
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+          "path": "Build/Performance.psm1",
+          "sha256": "76e1c17bf5c7a830d82a5fa3286ec57e1673810305719a7bc69ca36a2ae36584",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "review_ledger",
+          "testIds": [
+            "Tests/Scope.Tests.Performance.Tooling.ps1: math, schedule and compiler-profile fixtures",
+            "Tests/Scope.Tests.Performance.Evidence.ps1 -SelfTest: independent comparator reference"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "paired and observed performance entrypoints consume validation/math; evidence auditor has an independent comparator.",
+            "ownershipAndLifetime": "Pure calculations over deserialized samples; compiler-profile reader binds project TU list to raw compiler tlog.",
+            "failureAndCancellation": "Rejects malformed schemas, invalid/incomplete samples, inconsistent phase accounting and unsupported/mixed compiler options; comparisons remain review-required.",
+            "testCoverage": "Tooling validators cover medians, schedules, exact sign-flip/Holm results, invalid metrics and compiler-profile boundaries; no native study ran."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "The reviewed profile is fixed by ID, SDK commit/tree, API revision and row hashes; it rejects other header changes and incompatible comparison modes. It is evidence admission, not a bypass of sample policy.",
+            "performance": "No measured performance gain or acceptance is claimed by this source review.",
+            "lifetime": "Reviewed-header mode binds an exact baseline/candidate SDK identity, complete 58-row public-header inventory, compiler evidence and two exact header hashes; normal adoption and same-pin modes remain separate.",
+            "simplification": "Paired and observed performance entrypoints call shared Build/Performance.psm1 admission helpers before collecting results.",
+            "testCoverage": "PowerShell source tests add negative profile, ABI, path, inventory, candidate selection and comparison-mode cases. This static review does not run those tests.",
+            "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
         }
       ],
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+      "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "The reviewed profile is fixed by ID, SDK commit/tree, API revision and row hashes; it rejects other header changes and incompatible comparison modes. It is evidence admission, not a bypass of sample policy.",
-        "performance": "No measured performance gain or acceptance is claimed by this source review.",
-        "lifetime": "Reviewed-header mode binds an exact baseline/candidate SDK identity, complete 58-row public-header inventory, compiler evidence and two exact header hashes; normal adoption and same-pin modes remain separate.",
-        "simplification": "Paired and observed performance entrypoints call shared Build/Performance.psm1 admission helpers before collecting results.",
-        "testCoverage": "PowerShell source tests add negative profile, ABI, path, inventory, candidate selection and comparison-mode cases. This static review does not run those tests.",
-        "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+        "correctness": "Fixed v1 validation is preserved. New v2 binds SDK47 to4077f57d, exactly three changed source headers, all58 inventory rows, exact identities/compiler operands and narrowly measured named-type layouts/method signatures.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "Pure validation over retained receipts/data; the independent auditor does not call the production validator. No baseline/policy/band/workload exception is introduced.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "Lead and independent source review completed; v2 positive/negative oracles await actual root-owned compiler/header profile population. The frozen v1 fixture remains byte-exact B8003310...E751.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
       },
       "reviewDeltaTestIds": [
         "Tests/Scope.Tests.Performance.Tooling.ps1: math, schedule and compiler-profile fixtures",
-        "Tests/Scope.Tests.Performance.Evidence.ps1 -SelfTest: independent comparator reference"
+        "Tests/Scope.Tests.Performance.Evidence.ps1 -SelfTest: independent comparator reference",
+        "Tests/Scope.Tests.Performance.Tooling.ps1",
+        "Tests/Scope.Tests.Performance.Evidence.ps1 -SelfTest"
       ],
       "reviewDeltaFindingIds": [],
-      "reviewDeltaDate": "2026-10-26"
+      "reviewDeltaDate": "2026-10-26",
+      "reviewDeltaSourceState": "working-tree-source-bound-by-hash",
+      "reviewDeltaParentCommit": "f33471da51773e6a0ee786a5dd29e46ceb21ecdd"
     },
     {
       "repository": "RedTilde",
@@ -752,11 +784,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Dependencies/DxUi.lock.json",
-      "sha256": "1fe116cd5ade2b49a3b3bb2361fcfbad9ab41c0d9fde6ec4210d4fef22af5c56",
+      "sha256": "aee75a49e97fd244cfbe10511e44014f9f2af0549fd6f5285814d0d5231468b4",
       "category": "data-or-resources",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "review_ledger",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "Exact dependency and capability status",
         "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
@@ -833,17 +865,46 @@ the current performance policy or accept the remaining regressions.
           ],
           "findingIds": [],
           "disposition": "prior reviewed bytes retained before current hash refresh"
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+          "path": "Dependencies/DxUi.lock.json",
+          "sha256": "1fe116cd5ade2b49a3b3bb2361fcfbad9ab41c0d9fde6ec4210d4fef22af5c56",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "review_ledger",
+          "testIds": [
+            "Exact dependency and capability status",
+            "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
+            "SDK2fed-source-header-blob-preflight"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "restore-dxui validates repository, exact commit, API revision and target; tests/package record pin.",
+            "ownershipAndLifetime": "Pin resolves source/dependency output under repo .build.",
+            "failureAndCancellation": "Malformed pin refuses; clone/checkout/consumer failures stop before resolved props.",
+            "testCoverage": "The lock JSON now names the committed SDK revision; previous pin/capability validation does not qualify the updated lock. Current final SDK validation and RedTilde restore/build remain pending."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "This metadata does not itself prove ABI compatibility; the isolated ABI probe is supporting evidence only and must remain limited to the exact compiler/runtime/header pair.",
+            "performance": "No measured performance gain or acceptance is claimed by this source review.",
+            "lifetime": "Pin identity is exact and the new read-only snapshot method is additive without public class data members or virtual changes.",
+            "simplification": "The consumer pin selects shared DxUi behavior; implementation remains in SDK.",
+            "testCoverage": "The app build/test matrix is separate evidence; no new execution is claimed here.",
+            "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
         }
       ],
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+      "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "This metadata does not itself prove ABI compatibility; the isolated ABI probe is supporting evidence only and must remain limited to the exact compiler/runtime/header pair.",
-        "performance": "No measured performance gain or acceptance is claimed by this source review.",
-        "lifetime": "Pin identity is exact and the new read-only snapshot method is additive without public class data members or virtual changes.",
-        "simplification": "The consumer pin selects shared DxUi behavior; implementation remains in SDK.",
-        "testCoverage": "The app build/test matrix is separate evidence; no new execution is claimed here.",
-        "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+        "correctness": "Exact experimental SDK4077f57d adoption; API4 is additive and source-coordinated, with a MarkdownSyntax layout change. Matching headers/library and complete consumer rebuilds are required.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "Pin restore, consumer matrix and paired/header qualification remain pending; SDK tests are not substituted for application evidence.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
       },
       "reviewDeltaTestIds": [
         "Exact dependency and capability status",
@@ -851,7 +912,9 @@ the current performance policy or accept the remaining regressions.
         "SDK2fed-source-header-blob-preflight"
       ],
       "reviewDeltaFindingIds": [],
-      "reviewDeltaDate": "2026-10-26"
+      "reviewDeltaDate": "2026-10-26",
+      "reviewDeltaSourceState": "working-tree-source-bound-by-hash",
+      "reviewDeltaParentCommit": "f33471da51773e6a0ee786a5dd29e46ceb21ecdd"
     },
     {
       "repository": "RedTilde",
@@ -1142,18 +1205,18 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "RedTilde/Application.Chrome.cpp",
-      "sha256": "965e552353ebf854a8cbf8e849d58ccf2767a4815df111311423b3ad8c7f49a5",
+      "sha256": "5661b33826a83dbbeea7d52d23e400e6067db39f9ca45ec1f1a9bd90a4b10387",
       "category": "production",
       "generated": false,
-      "reviewStatus": "reviewed",
-      "reviewer": "lead-and-independent-delta-review",
+      "reviewStatus": "reviewed-delta",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
         "Rendering.DesignRefreshTypographyAndThemeRoles",
         "Editor.HiddenCurrentBlockPublishesLatestOnReveal"
       ],
       "findingIds": [],
-      "disposition": "reviewed-no-confirmed-finding",
+      "disposition": "source-reviewed-current-bytes; qualification-separate",
       "reviewNotes": {
         "callers": "BuildChrome creates BrandMark; visual-content preparation creates the generation-bound D2D bitmap. LoadBrandMarkPixels is also called by the independent resource oracle.",
         "ownershipAndLifetime": "Borrowed module HICON; WIL owns GetIconInfo color/mask bitmaps and DC. Retains at most 256 KiB of premultiplied BGRA pixels across device replacement; no ordinary-startup WIC converter.",
@@ -1181,23 +1244,87 @@ the current performance policy or accept the remaining regressions.
             "testCoverage": "Release Editor 35/35 passes in run 20261024T200629511Z-52096-a8d90cadfef246058b36c087141dc788. All seven sizes match independent WIC PBGRA bytes; device-loss and repeated warm raster equality pass. Unpaired memory probes do not establish performance acceptance or 4 MiB attribution."
           },
           "reviewDeltaNotes": null
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "740db520914aff559b9184c445040cdd3bdfffac",
+          "path": "RedTilde/Application.Chrome.cpp",
+          "sha256": "965e552353ebf854a8cbf8e849d58ccf2767a4815df111311423b3ad8c7f49a5",
+          "reviewStatus": "reviewed",
+          "reviewer": "lead-and-independent-delta-review",
+          "testIds": [
+            "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+            "Rendering.DesignRefreshTypographyAndThemeRoles",
+            "Editor.HiddenCurrentBlockPublishesLatestOnReveal"
+          ],
+          "findingIds": [],
+          "disposition": "reviewed-no-confirmed-finding",
+          "reviewNotes": {
+            "callers": "BuildChrome creates BrandMark; visual-content preparation creates the generation-bound D2D bitmap. LoadBrandMarkPixels is also called by the independent resource oracle.",
+            "ownershipAndLifetime": "Borrowed module HICON; WIL owns GetIconInfo color/mask bitmaps and DC. Retains at most 256 KiB of premultiplied BGRA pixels across device replacement; no ordinary-startup WIC converter.",
+            "failureAndCancellation": "Rejects absent, non-32-bit and out-of-bounds icon data and incomplete scan reads; preparation failure leaves no current bitmap. Paint only draws a generation-matched bitmap; no allocation or resource query in Paint.",
+            "testCoverage": "Release Editor 35/35 passes in run 20261024T200629511Z-52096-a8d90cadfef246058b36c087141dc788. All seven sizes match independent WIC PBGRA bytes; device-loss and repeated warm raster equality pass. Unpaired memory probes do not establish performance acceptance or 4 MiB attribution."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Application::Layout is the reveal point for the current-block sidebar label. If publication fails due closing/retirement or nested layout changes the layout exits before continuing geometry mutation.",
+            "performance": "No performance gain is claimed from this source-review delta; runtime and performance qualification remain separate.",
+            "lifetime": "It publishes pending label text before first visibility and after bounds/visibility setup, with layout revision checks after callbacks to stop stale layout work.",
+            "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
+            "testCoverage": "The hidden-current-block case exercises first reveal plus outline-off/on, Split/Compose, narrow/wide, and Files-overlay reveal flows without desktop activation.",
+            "qualificationBoundary": "Source review only. Runtime/platform/performance evidence and remaining gates are recorded separately in the coordinator; this ledger update confers no execution pass."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T08:06:19.1562608Z",
+          "priorReviewBaseCommit": null,
+          "path": "RedTilde/Application.Chrome.cpp",
+          "sha256": "37b11426c327ffd96ce2a7d7b22de3bc4459ec92a151d62ccbad93b1816579c8",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p18-delta-review",
+          "testIds": [
+            "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+            "Rendering.DesignRefreshTypographyAndThemeRoles",
+            "Editor.HiddenCurrentBlockPublishesLatestOnReveal"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "BuildChrome creates BrandMark; visual-content preparation creates the generation-bound D2D bitmap. LoadBrandMarkPixels is also called by the independent resource oracle.",
+            "ownershipAndLifetime": "Borrowed module HICON; WIL owns GetIconInfo color/mask bitmaps and DC. Retains at most 256 KiB of premultiplied BGRA pixels across device replacement; no ordinary-startup WIC converter.",
+            "failureAndCancellation": "Rejects absent, non-32-bit and out-of-bounds icon data and incomplete scan reads; preparation failure leaves no current bitmap. Paint only draws a generation-matched bitmap; no allocation or resource query in Paint.",
+            "testCoverage": "Release Editor 35/35 passes in run 20261024T200629511Z-52096-a8d90cadfef246058b36c087141dc788. All seven sizes match independent WIC PBGRA bytes; device-loss and repeated warm raster equality pass. Unpaired memory probes do not establish performance acceptance or 4 MiB attribution."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "App-owned SourceMirrorEditor opportunistically adopts completed syntax only for compatible visible read-only Source mirrors; ordinary Rich/incompatible/hidden behavior remains independent/deferred.",
+            "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+            "lifetime": "Weak primary/self/root tokens plus host/parent/source/revision/mode/profile checks guard the final reentrant preparation request. The allocating base constructor is not declared noexcept.",
+            "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+            "testCoverage": "App source tests assert canonical storage sharing with distinct local wrapper/revision/document identity, exact source/history and independent fallback/hidden reveal. Consumer build/execution at SDK407 is pending.",
+            "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
+          }
         }
       ],
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "740db520914aff559b9184c445040cdd3bdfffac",
+      "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "Application::Layout is the reveal point for the current-block sidebar label. If publication fails due closing/retirement or nested layout changes the layout exits before continuing geometry mutation.",
-        "performance": "No performance gain is claimed from this source-review delta; runtime and performance qualification remain separate.",
-        "lifetime": "It publishes pending label text before first visibility and after bounds/visibility setup, with layout revision checks after callbacks to stop stale layout work.",
-        "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
-        "testCoverage": "The hidden-current-block case exercises first reveal plus outline-off/on, Split/Compose, narrow/wide, and Files-overlay reveal flows without desktop activation.",
-        "qualificationBoundary": "Source review only. Runtime/platform/performance evidence and remaining gates are recorded separately in the coordinator; this ledger update confers no execution pass."
+        "correctness": "App-owned SourceMirrorEditor opportunistically adopts completed syntax only for compatible visible read-only Source mirrors; ordinary Rich/incompatible/hidden behavior remains independent/deferred.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "Weak primary/self/root tokens plus host/parent/source/revision/mode/profile checks guard the final reentrant preparation request. The allocating base constructor is not declared noexcept.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "App source tests assert canonical storage sharing with distinct local wrapper/revision/document identity, exact source/history and independent fallback/hidden reveal. Consumer build/execution at SDK407 is pending.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
       },
       "reviewDeltaTestIds": [
-        "Editor.HiddenCurrentBlockPublishesLatestOnReveal"
+        "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+        "Rendering.DesignRefreshTypographyAndThemeRoles",
+        "Editor.HiddenCurrentBlockPublishesLatestOnReveal",
+        "Tests/Application.Tests.Core.cpp: shared storage and local identity",
+        "Tests/Application.Tests.DesignRefresh.cpp: independent fallback and hidden reveal"
       ],
       "reviewDeltaFindingIds": [],
-      "reviewDeltaDate": "2026-10-25"
+      "reviewDeltaDate": "2026-10-26",
+      "reviewDeltaSourceState": "working-tree-source-bound-by-hash",
+      "reviewDeltaParentCommit": "f33471da51773e6a0ee786a5dd29e46ceb21ecdd"
     },
     {
       "repository": "RedTilde",
@@ -1661,24 +1788,95 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "RedTilde/UiControls.h",
-      "sha256": "0e7a81ccebab26a1320c766cdd90be7bc2d40ae6d674c1f0d8e62d32af03a43b",
+      "sha256": "8f6c991f3b91ff77572e0964b6ca7a3bc70ee63e0251668cf3f210c5dedead79",
       "category": "production",
       "generated": false,
-      "reviewStatus": "reviewed",
-      "reviewer": "lead-and-independent-delta-review",
+      "reviewStatus": "reviewed-delta",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
         "Rendering.DesignRefreshTypographyAndThemeRoles"
       ],
       "findingIds": [],
-      "disposition": "reviewed-no-confirmed-finding",
+      "disposition": "source-reviewed-current-bytes; qualification-separate",
       "reviewNotes": {
         "callers": "Declares app-owned inspector/find controls and bounded BrandMarkPixels extraction used by Chrome and native resource tests.",
         "ownershipAndLifetime": "Control tree owns controls and routes callbacks to Application. BrandMarkPixels owns CPU bytes only; extraction borrows HICON and is scoped to the app alpha asset, not a generic decoder.",
         "failureAndCancellation": "Find snapshot/query cache and active highlights remain bounded. Native pixel extraction throws on unsupported resource shape; no GDI/COM handle escapes.",
         "testCoverage": "Current Release Editor 35/35 passes, including seven-size independent pixel parity and device-loss raster retention; earlier authorized nine-stage keyboard evidence remains separately source-bound."
       },
-      "plannedSha256": "de0e8d6bdf69a6f0bb88c2b2d53beffd87a43b2ed03aba45d7372ece05bff780"
+      "plannedSha256": "de0e8d6bdf69a6f0bb88c2b2d53beffd87a43b2ed03aba45d7372ece05bff780",
+      "reviewHistory": [
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": null,
+          "path": "RedTilde/UiControls.h",
+          "sha256": "0e7a81ccebab26a1320c766cdd90be7bc2d40ae6d674c1f0d8e62d32af03a43b",
+          "reviewStatus": "reviewed",
+          "reviewer": "lead-and-independent-delta-review",
+          "testIds": [
+            "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+            "Rendering.DesignRefreshTypographyAndThemeRoles"
+          ],
+          "findingIds": [],
+          "disposition": "reviewed-no-confirmed-finding",
+          "reviewNotes": {
+            "callers": "Declares app-owned inspector/find controls and bounded BrandMarkPixels extraction used by Chrome and native resource tests.",
+            "ownershipAndLifetime": "Control tree owns controls and routes callbacks to Application. BrandMarkPixels owns CPU bytes only; extraction borrows HICON and is scoped to the app alpha asset, not a generic decoder.",
+            "failureAndCancellation": "Find snapshot/query cache and active highlights remain bounded. Native pixel extraction throws on unsupported resource shape; no GDI/COM handle escapes.",
+            "testCoverage": "Current Release Editor 35/35 passes, including seven-size independent pixel parity and device-loss raster retention; earlier authorized nine-stage keyboard evidence remains separately source-bound."
+          },
+          "reviewDeltaNotes": null
+        },
+        {
+          "recordedUtc": "2026-10-26T08:06:19.1562608Z",
+          "priorReviewBaseCommit": null,
+          "path": "RedTilde/UiControls.h",
+          "sha256": "a8303b26aa0a904e90c6554f7f40492ad23b8168b3b15d03b421dfa597ca9b83",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p18-delta-review",
+          "testIds": [
+            "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+            "Rendering.DesignRefreshTypographyAndThemeRoles"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "Declares app-owned inspector/find controls and bounded BrandMarkPixels extraction used by Chrome and native resource tests.",
+            "ownershipAndLifetime": "Control tree owns controls and routes callbacks to Application. BrandMarkPixels owns CPU bytes only; extraction borrows HICON and is scoped to the app alpha asset, not a generic decoder.",
+            "failureAndCancellation": "Find snapshot/query cache and active highlights remain bounded. Native pixel extraction throws on unsupported resource shape; no GDI/COM handle escapes.",
+            "testCoverage": "Current Release Editor 35/35 passes, including seven-size independent pixel parity and device-loss raster retention; earlier authorized nine-stage keyboard evidence remains separately source-bound."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "App-owned SourceMirrorEditor opportunistically adopts completed syntax only for compatible visible read-only Source mirrors; ordinary Rich/incompatible/hidden behavior remains independent/deferred.",
+            "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+            "lifetime": "Weak primary/self/root tokens plus host/parent/source/revision/mode/profile checks guard the final reentrant preparation request. The allocating base constructor is not declared noexcept.",
+            "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+            "testCoverage": "App source tests assert canonical storage sharing with distinct local wrapper/revision/document identity, exact source/history and independent fallback/hidden reveal. Consumer build/execution at SDK407 is pending.",
+            "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
+          }
+        }
+      ],
+      "reviewDeltaDate": "2026-10-26",
+      "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
+      "reviewDeltaCommit": null,
+      "reviewDeltaSourceState": "working-tree-source-bound-by-hash",
+      "reviewDeltaParentCommit": "f33471da51773e6a0ee786a5dd29e46ceb21ecdd",
+      "reviewDeltaNotes": {
+        "correctness": "App-owned SourceMirrorEditor opportunistically adopts completed syntax only for compatible visible read-only Source mirrors; ordinary Rich/incompatible/hidden behavior remains independent/deferred.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "Weak primary/self/root tokens plus host/parent/source/revision/mode/profile checks guard the final reentrant preparation request. The allocating base constructor is not declared noexcept.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "App source tests assert canonical storage sharing with distinct local wrapper/revision/document identity, exact source/history and independent fallback/hidden reveal. Consumer build/execution at SDK407 is pending.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
+      },
+      "reviewDeltaFindingIds": [],
+      "reviewDeltaTestIds": [
+        "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+        "Rendering.DesignRefreshTypographyAndThemeRoles",
+        "Tests/Application.Tests.Core.cpp: shared storage and local identity",
+        "Tests/Application.Tests.DesignRefresh.cpp: independent fallback and hidden reveal"
+      ]
     },
     {
       "repository": "RedTilde",
@@ -1841,11 +2039,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Tests/Application.Tests.Core.cpp",
-      "sha256": "b2ff1dfe92df374fe897f999d67a20525c35281df266db44cebb394ffea0e15d",
+      "sha256": "fdd25c6de6082a5877f86d1fd4ca720670b6a106461220951014946b66f7a5e1",
       "category": "tests",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "review_ledger",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "Rendering.NativeDefaultAndWarpResourceLifecycle",
         "Window.CaptionRetriesFailedAndSupersededNativeWrites",
@@ -1928,25 +2126,60 @@ the current performance policy or accept the remaining regressions.
             "caption-write-nested-close"
           ],
           "disposition": "prior reviewed bytes retained before current hash refresh"
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+          "path": "Tests/Application.Tests.Core.cpp",
+          "sha256": "b2ff1dfe92df374fe897f999d67a20525c35281df266db44cebb394ffea0e15d",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "review_ledger",
+          "testIds": [
+            "Rendering.NativeDefaultAndWarpResourceLifecycle",
+            "Window.CaptionRetriesFailedAndSupersededNativeWrites",
+            "Performance.NativeCompletedFramesPreserveSourceAndHistory"
+          ],
+          "findingIds": [
+            "caption-write-nested-close"
+          ],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "Core selftest runs existing resource probe for default adapter and explicit WARP.",
+            "ownershipAndLifetime": "Fixture reads owned report and verifies app/host close; JSON inspection bounded and dependency-free.",
+            "failureAndCancellation": "Rejects unknown renderer, invalid timing/counters, flush outside bounds, missing three device-loss preparations, incomplete report.",
+            "testCoverage": "New assertions pending; output diagnostic only, not acceptance."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "The nested-edit-during-view-transition hole is not covered in the current committed cases; root has been notified and is adding focused regression coverage/fix separately.",
+            "performance": "No measured performance gain or acceptance is claimed by this source review.",
+            "lifetime": "Current tests preserve authoritative primary document, undo history, read-only mirror state, owner/root lifetime and exact snapshot selection.",
+            "simplification": "Native cases exercise application behavior at document/mirror/view boundaries; the case catalog enumerates the harness-visible IDs.",
+            "testCoverage": "Named tests in inventory are static coverage claims only for this review. No native test was run in this task.",
+            "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
         }
       ],
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+      "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "The nested-edit-during-view-transition hole is not covered in the current committed cases; root has been notified and is adding focused regression coverage/fix separately.",
-        "performance": "No measured performance gain or acceptance is claimed by this source review.",
-        "lifetime": "Current tests preserve authoritative primary document, undo history, read-only mirror state, owner/root lifetime and exact snapshot selection.",
-        "simplification": "Native cases exercise application behavior at document/mirror/view boundaries; the case catalog enumerates the harness-visible IDs.",
-        "testCoverage": "Named tests in inventory are static coverage claims only for this review. No native test was run in this task.",
-        "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+        "correctness": "App-owned SourceMirrorEditor opportunistically adopts completed syntax only for compatible visible read-only Source mirrors; ordinary Rich/incompatible/hidden behavior remains independent/deferred.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "Weak primary/self/root tokens plus host/parent/source/revision/mode/profile checks guard the final reentrant preparation request. The allocating base constructor is not declared noexcept.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "App source tests assert canonical storage sharing with distinct local wrapper/revision/document identity, exact source/history and independent fallback/hidden reveal. Consumer build/execution at SDK407 is pending.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
       },
       "reviewDeltaTestIds": [
         "Rendering.NativeDefaultAndWarpResourceLifecycle",
         "Window.CaptionRetriesFailedAndSupersededNativeWrites",
-        "Performance.NativeCompletedFramesPreserveSourceAndHistory"
+        "Performance.NativeCompletedFramesPreserveSourceAndHistory",
+        "Tests/Application.Tests.Core.cpp: shared storage and local identity",
+        "Tests/Application.Tests.DesignRefresh.cpp: independent fallback and hidden reveal"
       ],
       "reviewDeltaFindingIds": [],
-      "reviewDeltaDate": "2026-10-26"
+      "reviewDeltaDate": "2026-10-26",
+      "reviewDeltaSourceState": "working-tree-source-bound-by-hash",
+      "reviewDeltaParentCommit": "f33471da51773e6a0ee786a5dd29e46ceb21ecdd"
     },
     {
       "repository": "RedTilde",
@@ -1993,11 +2226,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Tests/Application.Tests.DesignRefresh.cpp",
-      "sha256": "b6848a03285f9caa8208bb28a90fd3a3c5a783b8b3299a76a8be93d5c6ec9619",
+      "sha256": "2984573fdde9df2d9a90660b445137a38c462eb6e0417fc9ff4cadb3048a76f3",
       "category": "tests",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "lead-and-independent-delta-review",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
         "Rendering.DesignRefreshTypographyAndThemeRoles",
@@ -2084,17 +2317,49 @@ the current performance policy or accept the remaining regressions.
           ],
           "findingIds": [],
           "disposition": "prior reviewed bytes retained before current hash refresh"
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+          "path": "Tests/Application.Tests.DesignRefresh.cpp",
+          "sha256": "b6848a03285f9caa8208bb28a90fd3a3c5a783b8b3299a76a8be93d5c6ec9619",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-delta-review",
+          "testIds": [
+            "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+            "Rendering.DesignRefreshTypographyAndThemeRoles",
+            "Editor.DesignRefreshEquationContextAndDraftGuards",
+            "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
+            "Window.DesignRefreshPersistentStatusFacts",
+            "Editor.HiddenCurrentBlockPublishesLatestOnReveal"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "Registers hidden app design, rendering, source/history and contextual-command regressions in the reviewed native catalog.",
+            "ownershipAndLifetime": "Hidden app, WIL-owned icon/COM decoders, independent WIC BGRA/PBGRA converters and pixel arrays use fixture-local capture paths.",
+            "failureAndCancellation": "Byte equality covers zero/partial/opaque alpha at seven sizes. Existing small-icon silhouette threshold remains on 16/24/32; its invalid extension to the unchanged 128-pixel asset is retained as a test-authoring failure. Raster remains exact across resource reset and warm rendering.",
+            "testCoverage": "Official Release Editor 35/35 passes in run 20261024T200629511Z-52096-a8d90cadfef246058b36c087141dc788. Source/Split/Compose and F2 cancel/apply/undo/redo remain covered. Cross-version full-raster DPI parity and final new-pin platform tests remain separate gates."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "The nested-edit-during-view-transition hole is not covered in the current committed cases; root has been notified and is adding focused regression coverage/fix separately.",
+            "performance": "No measured performance gain or acceptance is claimed by this source review.",
+            "lifetime": "Current tests preserve authoritative primary document, undo history, read-only mirror state, owner/root lifetime and exact snapshot selection.",
+            "simplification": "Native cases exercise application behavior at document/mirror/view boundaries; the case catalog enumerates the harness-visible IDs.",
+            "testCoverage": "Named tests in inventory are static coverage claims only for this review. No native test was run in this task.",
+            "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
         }
       ],
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+      "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "The nested-edit-during-view-transition hole is not covered in the current committed cases; root has been notified and is adding focused regression coverage/fix separately.",
-        "performance": "No measured performance gain or acceptance is claimed by this source review.",
-        "lifetime": "Current tests preserve authoritative primary document, undo history, read-only mirror state, owner/root lifetime and exact snapshot selection.",
-        "simplification": "Native cases exercise application behavior at document/mirror/view boundaries; the case catalog enumerates the harness-visible IDs.",
-        "testCoverage": "Named tests in inventory are static coverage claims only for this review. No native test was run in this task.",
-        "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+        "correctness": "App-owned SourceMirrorEditor opportunistically adopts completed syntax only for compatible visible read-only Source mirrors; ordinary Rich/incompatible/hidden behavior remains independent/deferred.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "Weak primary/self/root tokens plus host/parent/source/revision/mode/profile checks guard the final reentrant preparation request. The allocating base constructor is not declared noexcept.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "App source tests assert canonical storage sharing with distinct local wrapper/revision/document identity, exact source/history and independent fallback/hidden reveal. Consumer build/execution at SDK407 is pending.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
       },
       "reviewDeltaTestIds": [
         "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
@@ -2102,10 +2367,14 @@ the current performance policy or accept the remaining regressions.
         "Editor.DesignRefreshEquationContextAndDraftGuards",
         "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
         "Window.DesignRefreshPersistentStatusFacts",
-        "Editor.HiddenCurrentBlockPublishesLatestOnReveal"
+        "Editor.HiddenCurrentBlockPublishesLatestOnReveal",
+        "Tests/Application.Tests.Core.cpp: shared storage and local identity",
+        "Tests/Application.Tests.DesignRefresh.cpp: independent fallback and hidden reveal"
       ],
       "reviewDeltaFindingIds": [],
-      "reviewDeltaDate": "2026-10-26"
+      "reviewDeltaDate": "2026-10-26",
+      "reviewDeltaSourceState": "working-tree-source-bound-by-hash",
+      "reviewDeltaParentCommit": "f33471da51773e6a0ee786a5dd29e46ceb21ecdd"
     },
     {
       "repository": "RedTilde",
@@ -2203,18 +2472,18 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Tests/Application.Tests.Performance.cpp",
-      "sha256": "aa0475550994c419ad1af6b1ce980be34095e36225e52edb9d83abf9c819370c",
+      "sha256": "80bd870f222af2f6a95c0ea6c1364a220ac93d23b2a0beb5f874979b0adecf61",
       "category": "tests",
       "generated": false,
-      "reviewStatus": "reviewed",
-      "reviewer": "review_ledger",
+      "reviewStatus": "reviewed-delta",
+      "reviewer": "lead-p20-source-evidence-review",
       "testIds": [
         "Rendering.NativeDefaultAndWarpResourceLifecycle",
         "Performance.NativeCompletedFramesPreserveSourceAndHistory",
         "FrameMetricCollectorOracle"
       ],
       "findingIds": [],
-      "disposition": "source-read-and-reviewed-performance-probe-qualification-pending",
+      "disposition": "reviewed-source-and-native-checkpoint; performance-and-hosted-arm64-open",
       "reviewNotes": {
         "callers": "Resource probe records first, resize, and recreation preparation; paired edit/frame path unchanged.",
         "ownershipAndLifetime": "MeasureCompleted wraps operation/GPU fence in wall/process/owner timing; records are not acceptance samples.",
@@ -2242,25 +2511,78 @@ the current performance policy or accept the remaining regressions.
             "testCoverage": "Core case validates fields; no new cohort/performance qualification."
           },
           "reviewDeltaNotes": null
+        },
+        {
+          "recordedUtc": "2026-10-26T12:07:48.2426647Z",
+          "path": "Tests/Application.Tests.Performance.cpp",
+          "sha256": "aa0475550994c419ad1af6b1ce980be34095e36225e52edb9d83abf9c819370c",
+          "reviewStatus": "reviewed",
+          "reviewer": "review_ledger",
+          "testIds": [
+            "Rendering.NativeDefaultAndWarpResourceLifecycle",
+            "Performance.NativeCompletedFramesPreserveSourceAndHistory",
+            "FrameMetricCollectorOracle"
+          ],
+          "findingIds": [],
+          "disposition": "source-read-and-reviewed-performance-probe-qualification-pending",
+          "reviewNotes": {
+            "callers": "Resource probe records first, resize, and recreation preparation; paired edit/frame path unchanged.",
+            "ownershipAndLifetime": "MeasureCompleted wraps operation/GPU fence in wall/process/owner timing; records are not acceptance samples.",
+            "failureAndCancellation": "Require propagates action/wait failure; counters don't establish raster/perf cause.",
+            "testCoverage": "Core case validates fields; no new cohort/performance qualification."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Test source/inventory serves its owning runner and scope. PerformanceProbe arms DxUi frame sink only for each edit/clean transaction; Ready returns explicit render-request attempts; report writer emits bounded sequences. Malformed or mismatched inputs remain explicit failures. Collector rejects unknown/reordered/partial/overflowing metrics and validates positive host render count <= requests, stage sum rounding and sequence completeness; vector capacity invariants are checked.",
+            "performance": "No performance gain is claimed from this source-review delta; runtime and performance qualification remain separate.",
+            "lifetime": "Fixture/report state is test-owned; no production persistent storage added. FrameMetricBatch has fixed 64-record attempt storage; retained vectors reserve at most 2*cycles edit and cycles clean; sink callback stores four metrics without allocation; RAII scope clears registration.",
+            "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
+            "testCoverage": "Existing test IDs copied when available; no test ran. Local oracle covers valid, empty, unknown, overflow, rounding, excessive sums, malformed, partial and exact-capacity cases. Runtime check uses existing frame sink only with diagnostics. Two prior 38/39 attempts are preserved; corrected Release Editor passed 39/39.",
+            "qualificationBoundary": "Source review only. Runtime/platform/performance evidence and remaining gates are recorded separately in the coordinator; this ledger update confers no execution pass."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T14:28:47.8118298Z",
+          "path": "Tests/Application.Tests.Performance.cpp",
+          "sha256": "80bd870f222af2f6a95c0ea6c1364a220ac93d23b2a0beb5f874979b0adecf61",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p19-diagnostic-review",
+          "disposition": "optional-diagnostic-source-reviewed; native-execution-pending",
+          "reviewNotes": {
+            "callers": "Resource probe records first, resize, and recreation preparation; paired edit/frame path unchanged.",
+            "ownershipAndLifetime": "MeasureCompleted wraps operation/GPU fence in wall/process/owner timing; records are not acceptance samples.",
+            "failureAndCancellation": "Require propagates action/wait failure; counters don't establish raster/perf cause.",
+            "testCoverage": "Core case validates fields; no new cohort/performance qualification."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Opt-in snapshots bind every Ready render attempt to the existing frame record; counts, render deltas, lifetime counters, reserved storage and raw flags are independently checked. Historical optional absence remains supported.",
+            "performance": "No new state snapshots or diagnostic allocations in the specialized disabled path. Enabled storage is pre-reserved and explicitly reported; instrumented results are descriptive, not primary acceptance or stage CPU attribution.",
+            "lifetime": "Value snapshots own no control, host or graphics resource. Buffers remain bounded and retained through post-measurement; no new dependency or shared SDK API.",
+            "simplification": "Reuses the canonical DebugGetState and frame metric stream; the independent auditor does not call the production collector.",
+            "testCoverage": "Root optional-contract-fixed run accepts the valid fixture and rejects all20 malformed receipts, including7 new editor variants; positive audit134941 checks. Existing2321 independent selftests and2768 performance tooling assertions pass. First OrderedDictionary.Clone fixture error is preserved. Native execution remains pending.",
+            "qualificationBoundary": "Fresh09f576-process study remains source-bound and unchanged. New harness bytes require native build/test qualification; hosted RedTilde ARM64 and original-UI performance acceptance stay open."
+          }
         }
       ],
-      "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "740db520914aff559b9184c445040cdd3bdfffac",
+      "reviewDeltaStatus": "REVIEWED_CURRENT_TOOLING_AND_SOURCE_BOUND_NATIVE_EVIDENCE",
+      "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "Test source/inventory serves its owning runner and scope. PerformanceProbe arms DxUi frame sink only for each edit/clean transaction; Ready returns explicit render-request attempts; report writer emits bounded sequences. Malformed or mismatched inputs remain explicit failures. Collector rejects unknown/reordered/partial/overflowing metrics and validates positive host render count <= requests, stage sum rounding and sequence completeness; vector capacity invariants are checked.",
-        "performance": "No performance gain is claimed from this source-review delta; runtime and performance qualification remain separate.",
-        "lifetime": "Fixture/report state is test-owned; no production persistent storage added. FrameMetricBatch has fixed 64-record attempt storage; retained vectors reserve at most 2*cycles edit and cycles clean; sink callback stores four metrics without allocation; RAII scope clears registration.",
-        "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
-        "testCoverage": "Existing test IDs copied when available; no test ran. Local oracle covers valid, empty, unknown, overflow, rounding, excessive sums, malformed, partial and exact-capacity cases. Runtime check uses existing frame sink only with diagnostics. Two prior 38/39 attempts are preserved; corrected Release Editor passed 39/39.",
-        "qualificationBoundary": "Source review only. Runtime/platform/performance evidence and remaining gates are recorded separately in the coordinator; this ledger update confers no execution pass."
+        "correctness": "Root reviewed the field-loop collision fix: preserve the scheduled block key independently of nested diagnostic field names. A complete valid optional-diagnostic study now exercises all16 native slots; historical optional absence remains readable.",
+        "performance": "The corrected real16-process replay passes4263509 checks. The diagnostic collector remains optional with6490112bytes of declared retained storage; descriptive instrumented measurements do not replace diagnostics-off acceptance. The09f576-process primary study remains unchanged with3 original-UI flags.",
+        "lifetime": "No native runtime/source/SDK pin changes in this delta. All6 native30fb build profiles and3 x64 Full65behavior/23capture profiles remain separately bound to their original artifacts. Restored colored Release10B5/PDB667E has fresh Full65/23 and keyboard9/168 receipts; it is never retagged as matrix ReleaseFE192.",
+        "simplification": "One distinct scheduled-block variable fixes the auditor rather than duplicating parsing or changing evidence schemas. Packet publication contains metadata and hashes only, with byte-preserving attributes and per-packet manifests.",
+        "testCoverage": "Root all-slot regression accepts both valid optional schemas and rejects all20 malformed receipts including7 editor variants. Root source review retains earlier independent2321 selftests and2768 tooling assertions as prior evidence; current final validator execution is recorded separately, without relabeling prior runs.",
+        "qualificationBoundary": "Current-source final paired performance, SDK policy calibration and exact cursor-restoration cause remainOPEN. Hosted applicationARM64 is blocked before native execution by billing; ARM64 cross-builds establish no runtime pass. Plans remainWIP."
       },
       "reviewDeltaTestIds": [
-        "Rendering.NativeDefaultAndWarpResourceLifecycle",
-        "Performance.NativeCompletedFramesPreserveSourceAndHistory",
-        "FrameMetricCollectorOracle"
+        "EditorPreparationDiagnosticsOracle",
+        "Tests/Scope.Tests.Performance.Diagnostics.ps1:editor-preparation-all-slots-valid",
+        "qualification-30fb0c2",
+        "restored-colored-Release-Full-and-keyboard"
       ],
       "reviewDeltaFindingIds": [],
-      "reviewDeltaDate": "2026-10-25"
+      "reviewDeltaDate": "2026-10-26",
+      "reviewDeltaParentCommit": "30fb0c2dc0bcd055aad99dc49a8cec8efdc56691",
+      "reviewDeltaSourceState": "working-tree-source-bound-by-hash"
     },
     {
       "repository": "RedTilde",
@@ -2471,16 +2793,16 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Tests/Scope.Tests.Performance.Diagnostics.ps1",
-      "sha256": "5e498591517f5b8a08e325dbe8d9bc197a273ae48df1bacb0e7359e9cb302397",
+      "sha256": "3b3f9780b0af3e7cac206657c8673bb77fc43a2371aea79a6dbf61f9f2ffefe2",
       "category": "tests",
       "generated": false,
-      "reviewStatus": "reviewed",
-      "reviewer": "review_ledger",
+      "reviewStatus": "reviewed-delta",
+      "reviewer": "lead-p20-source-evidence-review",
       "testIds": [
         "Tests/Scope.Tests.Performance.Diagnostics.ps1"
       ],
       "findingIds": [],
-      "disposition": "reviewed-no-confirmed-finding",
+      "disposition": "reviewed-source-and-native-checkpoint; performance-and-hosted-arm64-open",
       "reviewNotes": {
         "callers": "Performance scope diagnostics consume run evidence and source metadata.",
         "ownershipAndLifetime": "PowerShell temp/artifacts constrained by test sandbox policy.",
@@ -2507,37 +2829,90 @@ the current performance policy or accept the remaining regressions.
             "testCoverage": "Tooling tests cover scope contract; diagnostic stack capture absent."
           },
           "reviewDeltaNotes": null
+        },
+        {
+          "recordedUtc": "2026-10-26T12:07:48.2698353Z",
+          "path": "Tests/Scope.Tests.Performance.Diagnostics.ps1",
+          "sha256": "5e498591517f5b8a08e325dbe8d9bc197a273ae48df1bacb0e7359e9cb302397",
+          "reviewStatus": "reviewed",
+          "reviewer": "review_ledger",
+          "testIds": [
+            "Tests/Scope.Tests.Performance.Diagnostics.ps1"
+          ],
+          "findingIds": [],
+          "disposition": "reviewed-no-confirmed-finding",
+          "reviewNotes": {
+            "callers": "Performance scope diagnostics consume run evidence and source metadata.",
+            "ownershipAndLifetime": "PowerShell temp/artifacts constrained by test sandbox policy.",
+            "failureAndCancellation": "Rejects malformed/untrusted diagnostic records; actual script not executed.",
+            "testCoverage": "Tooling tests cover scope contract; diagnostic stack capture absent."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Test source/inventory serves its owning runner and scope. Malformed or mismatched inputs remain explicit failures.",
+            "performance": "No performance gain is claimed from this source-review delta; runtime and performance qualification remain separate.",
+            "lifetime": "Fixture/report state is test-owned; no production persistent storage added.",
+            "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
+            "testCoverage": "Existing test IDs copied when available; no test ran.",
+            "qualificationBoundary": "Source review only. Runtime/platform/performance evidence and remaining gates are recorded separately in the coordinator; this ledger update confers no execution pass."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T14:28:47.7716696Z",
+          "path": "Tests/Scope.Tests.Performance.Diagnostics.ps1",
+          "sha256": "f19c22b5df9fc92b088365104533fcfd5822157d77908ab4fc300c513b7812a3",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p19-diagnostic-review",
+          "disposition": "optional-diagnostic-source-reviewed; native-execution-pending",
+          "reviewNotes": {
+            "callers": "Performance scope diagnostics consume run evidence and source metadata.",
+            "ownershipAndLifetime": "PowerShell temp/artifacts constrained by test sandbox policy.",
+            "failureAndCancellation": "Rejects malformed/untrusted diagnostic records; actual script not executed.",
+            "testCoverage": "Tooling tests cover scope contract; diagnostic stack capture absent."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Opt-in snapshots bind every Ready render attempt to the existing frame record; counts, render deltas, lifetime counters, reserved storage and raw flags are independently checked. Historical optional absence remains supported.",
+            "performance": "No new state snapshots or diagnostic allocations in the specialized disabled path. Enabled storage is pre-reserved and explicitly reported; instrumented results are descriptive, not primary acceptance or stage CPU attribution.",
+            "lifetime": "Value snapshots own no control, host or graphics resource. Buffers remain bounded and retained through post-measurement; no new dependency or shared SDK API.",
+            "simplification": "Reuses the canonical DebugGetState and frame metric stream; the independent auditor does not call the production collector.",
+            "testCoverage": "Root optional-contract-fixed run accepts the valid fixture and rejects all20 malformed receipts, including7 new editor variants; positive audit134941 checks. Existing2321 independent selftests and2768 performance tooling assertions pass. First OrderedDictionary.Clone fixture error is preserved. Native execution remains pending.",
+            "qualificationBoundary": "Fresh09f576-process study remains source-bound and unchanged. New harness bytes require native build/test qualification; hosted RedTilde ARM64 and original-UI performance acceptance stay open."
+          }
         }
       ],
-      "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "740db520914aff559b9184c445040cdd3bdfffac",
+      "reviewDeltaStatus": "REVIEWED_CURRENT_TOOLING_AND_SOURCE_BOUND_NATIVE_EVIDENCE",
+      "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "Test source/inventory serves its owning runner and scope. Malformed or mismatched inputs remain explicit failures.",
-        "performance": "No performance gain is claimed from this source-review delta; runtime and performance qualification remain separate.",
-        "lifetime": "Fixture/report state is test-owned; no production persistent storage added.",
-        "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
-        "testCoverage": "Existing test IDs copied when available; no test ran.",
-        "qualificationBoundary": "Source review only. Runtime/platform/performance evidence and remaining gates are recorded separately in the coordinator; this ledger update confers no execution pass."
+        "correctness": "Root reviewed the field-loop collision fix: preserve the scheduled block key independently of nested diagnostic field names. A complete valid optional-diagnostic study now exercises all16 native slots; historical optional absence remains readable.",
+        "performance": "The corrected real16-process replay passes4263509 checks. The diagnostic collector remains optional with6490112bytes of declared retained storage; descriptive instrumented measurements do not replace diagnostics-off acceptance. The09f576-process primary study remains unchanged with3 original-UI flags.",
+        "lifetime": "No native runtime/source/SDK pin changes in this delta. All6 native30fb build profiles and3 x64 Full65behavior/23capture profiles remain separately bound to their original artifacts. Restored colored Release10B5/PDB667E has fresh Full65/23 and keyboard9/168 receipts; it is never retagged as matrix ReleaseFE192.",
+        "simplification": "One distinct scheduled-block variable fixes the auditor rather than duplicating parsing or changing evidence schemas. Packet publication contains metadata and hashes only, with byte-preserving attributes and per-packet manifests.",
+        "testCoverage": "Root all-slot regression accepts both valid optional schemas and rejects all20 malformed receipts including7 editor variants. Root source review retains earlier independent2321 selftests and2768 tooling assertions as prior evidence; current final validator execution is recorded separately, without relabeling prior runs.",
+        "qualificationBoundary": "Current-source final paired performance, SDK policy calibration and exact cursor-restoration cause remainOPEN. Hosted applicationARM64 is blocked before native execution by billing; ARM64 cross-builds establish no runtime pass. Plans remainWIP."
       },
       "reviewDeltaTestIds": [
-        "Tests/Scope.Tests.Performance.Diagnostics.ps1"
+        "EditorPreparationDiagnosticsOracle",
+        "Tests/Scope.Tests.Performance.Diagnostics.ps1:editor-preparation-all-slots-valid",
+        "qualification-30fb0c2",
+        "restored-colored-Release-Full-and-keyboard"
       ],
       "reviewDeltaFindingIds": [],
-      "reviewDeltaDate": "2026-10-25"
+      "reviewDeltaDate": "2026-10-26",
+      "reviewDeltaParentCommit": "30fb0c2dc0bcd055aad99dc49a8cec8efdc56691",
+      "reviewDeltaSourceState": "working-tree-source-bound-by-hash"
     },
     {
       "repository": "RedTilde",
       "path": "Tests/Scope.Tests.Performance.Evidence.ps1",
-      "sha256": "c935df87d9d41bd01baac8207a683241ed73431244d54d1b27b3340ef4329705",
+      "sha256": "fb5d3adace9798f99d0a8ea20e437d62c82b64312efc0e0d9659c3529dbb7e17",
       "category": "tests",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "review_ledger",
+      "reviewer": "lead-p20-source-evidence-review",
       "testIds": [
         "Tests/Scope.Tests.Performance.Evidence.ps1"
       ],
       "findingIds": [],
-      "disposition": "source-reviewed-current-bytes; qualification-separate",
+      "disposition": "reviewed-source-and-native-checkpoint; performance-and-hosted-arm64-open",
       "reviewNotes": {
         "callers": "Validates evidence bundle identity and run comparisons.",
         "ownershipAndLifetime": "Evidence paths/records are read-only inputs to validator.",
@@ -2577,23 +2952,103 @@ the current performance policy or accept the remaining regressions.
           ],
           "findingIds": [],
           "disposition": "prior reviewed bytes retained before current hash refresh"
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+          "path": "Tests/Scope.Tests.Performance.Evidence.ps1",
+          "sha256": "c935df87d9d41bd01baac8207a683241ed73431244d54d1b27b3340ef4329705",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "review_ledger",
+          "testIds": [
+            "Tests/Scope.Tests.Performance.Evidence.ps1"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "Validates evidence bundle identity and run comparisons.",
+            "ownershipAndLifetime": "Evidence paths/records are read-only inputs to validator.",
+            "failureAndCancellation": "Rejects incomplete/mismatched cohorts.",
+            "testCoverage": "ABBA/BAAB and identity validation; no current full same-SDK study."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Negative cases reject missing/malformed profile provenance, changed ABI/layout, unexpected header rows, wrong candidate and incompatible comparison admission.",
+            "performance": "No measured performance gain or acceptance is claimed by this source review.",
+            "lifetime": "Fixtures use synthetic roots and profile data; they do not alter canonical dependency identities or app runtime state.",
+            "simplification": "Evidence/tooling contract cases exercise the paired and observed drivers plus exact profile validation.",
+            "testCoverage": "Test source provides focused contract cases; no tooling tests were run in this review.",
+            "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T12:07:48.2729143Z",
+          "path": "Tests/Scope.Tests.Performance.Evidence.ps1",
+          "sha256": "cf645ef416a71f43f7da19ea0980c4997ebc62d618db091331ddc05823a5e559",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p18-delta-review",
+          "testIds": [
+            "Tests/Scope.Tests.Performance.Evidence.ps1"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "Validates evidence bundle identity and run comparisons.",
+            "ownershipAndLifetime": "Evidence paths/records are read-only inputs to validator.",
+            "failureAndCancellation": "Rejects incomplete/mismatched cohorts.",
+            "testCoverage": "ABBA/BAAB and identity validation; no current full same-SDK study."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Fixed v1 validation is preserved. New v2 binds SDK47 to4077f57d, exactly three changed source headers, all58 inventory rows, exact identities/compiler operands and narrowly measured named-type layouts/method signatures.",
+            "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+            "lifetime": "Pure validation over retained receipts/data; the independent auditor does not call the production validator. No baseline/policy/band/workload exception is introduced.",
+            "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+            "testCoverage": "Lead and independent source review completed; v2 positive/negative oracles await actual root-owned compiler/header profile population. The frozen v1 fixture remains byte-exact B8003310...E751.",
+            "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T14:28:47.7976413Z",
+          "path": "Tests/Scope.Tests.Performance.Evidence.ps1",
+          "sha256": "7ffd2a8ddcf6cd5e871827d4da0006cd7226ed59a42a189a478b1e8d8bca59b3",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p19-diagnostic-review",
+          "disposition": "optional-diagnostic-source-reviewed; native-execution-pending",
+          "reviewNotes": {
+            "callers": "Validates evidence bundle identity and run comparisons.",
+            "ownershipAndLifetime": "Evidence paths/records are read-only inputs to validator.",
+            "failureAndCancellation": "Rejects incomplete/mismatched cohorts.",
+            "testCoverage": "ABBA/BAAB and identity validation; no current full same-SDK study."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Opt-in snapshots bind every Ready render attempt to the existing frame record; counts, render deltas, lifetime counters, reserved storage and raw flags are independently checked. Historical optional absence remains supported.",
+            "performance": "No new state snapshots or diagnostic allocations in the specialized disabled path. Enabled storage is pre-reserved and explicitly reported; instrumented results are descriptive, not primary acceptance or stage CPU attribution.",
+            "lifetime": "Value snapshots own no control, host or graphics resource. Buffers remain bounded and retained through post-measurement; no new dependency or shared SDK API.",
+            "simplification": "Reuses the canonical DebugGetState and frame metric stream; the independent auditor does not call the production collector.",
+            "testCoverage": "Root optional-contract-fixed run accepts the valid fixture and rejects all20 malformed receipts, including7 new editor variants; positive audit134941 checks. Existing2321 independent selftests and2768 performance tooling assertions pass. First OrderedDictionary.Clone fixture error is preserved. Native execution remains pending.",
+            "qualificationBoundary": "Fresh09f576-process study remains source-bound and unchanged. New harness bytes require native build/test qualification; hosted RedTilde ARM64 and original-UI performance acceptance stay open."
+          }
         }
       ],
-      "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+      "reviewDeltaStatus": "REVIEWED_CURRENT_TOOLING_AND_SOURCE_BOUND_NATIVE_EVIDENCE",
+      "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "Negative cases reject missing/malformed profile provenance, changed ABI/layout, unexpected header rows, wrong candidate and incompatible comparison admission.",
-        "performance": "No measured performance gain or acceptance is claimed by this source review.",
-        "lifetime": "Fixtures use synthetic roots and profile data; they do not alter canonical dependency identities or app runtime state.",
-        "simplification": "Evidence/tooling contract cases exercise the paired and observed drivers plus exact profile validation.",
-        "testCoverage": "Test source provides focused contract cases; no tooling tests were run in this review.",
-        "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+        "correctness": "Root reviewed the field-loop collision fix: preserve the scheduled block key independently of nested diagnostic field names. A complete valid optional-diagnostic study now exercises all16 native slots; historical optional absence remains readable.",
+        "performance": "The corrected real16-process replay passes4263509 checks. The diagnostic collector remains optional with6490112bytes of declared retained storage; descriptive instrumented measurements do not replace diagnostics-off acceptance. The09f576-process primary study remains unchanged with3 original-UI flags.",
+        "lifetime": "No native runtime/source/SDK pin changes in this delta. All6 native30fb build profiles and3 x64 Full65behavior/23capture profiles remain separately bound to their original artifacts. Restored colored Release10B5/PDB667E has fresh Full65/23 and keyboard9/168 receipts; it is never retagged as matrix ReleaseFE192.",
+        "simplification": "One distinct scheduled-block variable fixes the auditor rather than duplicating parsing or changing evidence schemas. Packet publication contains metadata and hashes only, with byte-preserving attributes and per-packet manifests.",
+        "testCoverage": "Root all-slot regression accepts both valid optional schemas and rejects all20 malformed receipts including7 editor variants. Root source review retains earlier independent2321 selftests and2768 tooling assertions as prior evidence; current final validator execution is recorded separately, without relabeling prior runs.",
+        "qualificationBoundary": "Current-source final paired performance, SDK policy calibration and exact cursor-restoration cause remainOPEN. Hosted applicationARM64 is blocked before native execution by billing; ARM64 cross-builds establish no runtime pass. Plans remainWIP."
       },
       "reviewDeltaTestIds": [
-        "Tests/Scope.Tests.Performance.Evidence.ps1"
+        "EditorPreparationDiagnosticsOracle",
+        "Tests/Scope.Tests.Performance.Diagnostics.ps1:editor-preparation-all-slots-valid",
+        "qualification-30fb0c2",
+        "restored-colored-Release-Full-and-keyboard"
       ],
       "reviewDeltaFindingIds": [],
-      "reviewDeltaDate": "2026-10-26"
+      "reviewDeltaDate": "2026-10-26",
+      "reviewDeltaSourceState": "working-tree-source-bound-by-hash",
+      "reviewDeltaParentCommit": "30fb0c2dc0bcd055aad99dc49a8cec8efdc56691"
     },
     {
       "repository": "RedTilde",
@@ -2619,11 +3074,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Tests/Scope.Tests.Performance.Tooling.ps1",
-      "sha256": "1030d4ecd6dd6ffbf3db4aee5859d6ba18cb7d2f05f138fabf76f8986d879b39",
+      "sha256": "a6c440250c3d04c5b235a0b4dc618a2286f45a9c0eeae349a01faccac297f4ce",
       "category": "tests",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "review_ledger",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "Tests/Scope.Tests.Performance.Tooling.ps1"
       ],
@@ -2668,23 +3123,53 @@ the current performance policy or accept the remaining regressions.
           ],
           "findingIds": [],
           "disposition": "prior reviewed bytes retained before current hash refresh"
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+          "path": "Tests/Scope.Tests.Performance.Tooling.ps1",
+          "sha256": "1030d4ecd6dd6ffbf3db4aee5859d6ba18cb7d2f05f138fabf76f8986d879b39",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "review_ledger",
+          "testIds": [
+            "Tests/Scope.Tests.Performance.Tooling.ps1"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "Validates performance tooling wiring and policy surfaces.",
+            "ownershipAndLifetime": "Tooling controls own run directories.",
+            "failureAndCancellation": "Failure paths protect against invalid paths/configuration; global profile behavior out of scope.",
+            "testCoverage": "Tooling tests exercise inventory/argument contracts; not run."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Negative cases reject missing/malformed profile provenance, changed ABI/layout, unexpected header rows, wrong candidate and incompatible comparison admission.",
+            "performance": "No measured performance gain or acceptance is claimed by this source review.",
+            "lifetime": "Fixtures use synthetic roots and profile data; they do not alter canonical dependency identities or app runtime state.",
+            "simplification": "Evidence/tooling contract cases exercise the paired and observed drivers plus exact profile validation.",
+            "testCoverage": "Test source provides focused contract cases; no tooling tests were run in this review.",
+            "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
         }
       ],
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+      "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "Negative cases reject missing/malformed profile provenance, changed ABI/layout, unexpected header rows, wrong candidate and incompatible comparison admission.",
-        "performance": "No measured performance gain or acceptance is claimed by this source review.",
-        "lifetime": "Fixtures use synthetic roots and profile data; they do not alter canonical dependency identities or app runtime state.",
-        "simplification": "Evidence/tooling contract cases exercise the paired and observed drivers plus exact profile validation.",
-        "testCoverage": "Test source provides focused contract cases; no tooling tests were run in this review.",
-        "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+        "correctness": "Fixed v1 validation is preserved. New v2 binds SDK47 to4077f57d, exactly three changed source headers, all58 inventory rows, exact identities/compiler operands and narrowly measured named-type layouts/method signatures.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "Pure validation over retained receipts/data; the independent auditor does not call the production validator. No baseline/policy/band/workload exception is introduced.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "Lead and independent source review completed; v2 positive/negative oracles await actual root-owned compiler/header profile population. The frozen v1 fixture remains byte-exact B8003310...E751.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
       },
       "reviewDeltaTestIds": [
-        "Tests/Scope.Tests.Performance.Tooling.ps1"
+        "Tests/Scope.Tests.Performance.Tooling.ps1",
+        "Tests/Scope.Tests.Performance.Evidence.ps1 -SelfTest"
       ],
       "reviewDeltaFindingIds": [],
-      "reviewDeltaDate": "2026-10-26"
+      "reviewDeltaDate": "2026-10-26",
+      "reviewDeltaSourceState": "working-tree-source-bound-by-hash",
+      "reviewDeltaParentCommit": "f33471da51773e6a0ee786a5dd29e46ceb21ecdd"
     },
     {
       "repository": "RedTilde",
@@ -3402,11 +3887,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "DxUi",
       "path": "include/DxUi/DxUi.h",
-      "sha256": "5a8a15f2858c6955cd9b8332bac2a667d7e03e0975077026a089b1a2811f57d7",
+      "sha256": "100c6758ce8ccebe080a3831eb59015e251c6684da606c1786ff851376201ae5",
       "category": "production",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "review_ledger",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "TestWindowHostMessagePruneCacheTracksObserverLifetimeAndSetterChanges",
         "TestWindowHostMessagePruneCacheRevalidatesLiveMovedObserver",
@@ -3471,17 +3956,51 @@ the current performance policy or accept the remaining regressions.
           ],
           "findingIds": [],
           "disposition": "prior reviewed bytes retained before current hash refresh"
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+          "path": "include/DxUi/DxUi.h",
+          "sha256": "5a8a15f2858c6955cd9b8332bac2a667d7e03e0975077026a089b1a2811f57d7",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "review_ledger",
+          "testIds": [
+            "TestWindowHostMessagePruneCacheTracksObserverLifetimeAndSetterChanges",
+            "TestWindowHostMessagePruneCacheRevalidatesLiveMovedObserver",
+            "TestWindowHostMessagePruneCachePathOverflowUsesFullPruneFallback",
+            "TestWindowHostMessagePruneCacheDoesNotPublishAcrossReentrantPruning",
+            "TestAttachedHostInitialRootChildBatchesAreBoundedAndResetScoped",
+            "TestWindowHostMessagePruneCacheRejectsChangesDuringPathValidation",
+            "TestTreeBadgeStatusUpdatesReachSubscribedClientWithoutStructureChange",
+            "TestEmbeddedTreeBadgeStatusNotificationsArePerItemCoalescedAndPruned"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "Private cache proof types serve HandleMessage pruning; AttachOptions batching is consumed by native attach/render and defaults off.",
+            "ownershipAndLifetime": "Weak root/observer tokens and fixed 64-index paths validate membership and interactivity; query methods are contractually stable read-only borrowed traversal queries. Batch frame pointer is stack-local and scope-exit cleared.",
+            "failureAndCancellation": "Path overflow, expired lifetimes, path/identity mismatch, and state changes during validation fall back to full prune; serial blocks stale publication. Bounded Flush balances EndDraw and retries failures; embedded hosts are excluded.",
+            "testCoverage": "Message-prune lifetime/setter/live-move/overflow/reentry and during-query hidden-capture/revision-change variants are registered. The green-v2 run passed all 14 selected Release cases; the full SDK matrix and performance qualification remain pending."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Invalid source/boundaries, wrong target mode or revision overflow refuse before target mutation; caller retains exact SetText fallback.",
+            "performance": "No measured performance gain or acceptance is claimed by this source review.",
+            "lifetime": "The method shares immutable source storage while target Document keeps its local revision/history semantics; API adds no class data or vtable entry.",
+            "simplification": "RichTextEditor exposes the new opt-in owner-thread read-only source synchronization method; private Document adoption is friend-only.",
+            "testCoverage": "Two window/embedded tests cover refusal atomicity, exact source and selection, local revisions/history, independent syntax, UIA/read-only export, pixels, detached lifetime and retirement callbacks.",
+            "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
         }
       ],
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+      "reviewDeltaCommit": "4077f57df8207eac6c39c43437feb45b19d23cf8",
       "reviewDeltaNotes": {
-        "correctness": "Invalid source/boundaries, wrong target mode or revision overflow refuse before target mutation; caller retains exact SetText fallback.",
-        "performance": "No measured performance gain or acceptance is claimed by this source review.",
-        "lifetime": "The method shares immutable source storage while target Document keeps its local revision/history semantics; API adds no class data or vtable entry.",
-        "simplification": "RichTextEditor exposes the new opt-in owner-thread read-only source synchronization method; private Document adoption is friend-only.",
-        "testCoverage": "Two window/embedded tests cover refusal atomicity, exact source and selection, local revisions/history, independent syntax, UIA/read-only export, pixels, detached lifetime and retirement callbacks.",
-        "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+        "correctness": "Exact source/profile/extensions/region validation precedes atomic immutable parse adoption; a flat canonical owner supplies all source/AST helpers under a target-local revision/document namespace. Idempotent reassertion cancels superseded staging.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "No publisher control/host/worker/graphics ownership is retained. Cancel/Clear/move/independent Begin and final scheduling retirement are reviewed; source/selection/history/literal geometry are preserved.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "SDK4077f57d passes Release Full 19 scopes; the identical native reassertion probe fails on282da2b1 and passes on4077f57d. Allocation sweep covers both observed parser/editor allocation points; native/embedded color pixels, source export/UIA and scroll/geometry checks pass. Other final profiles remain pending.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
       },
       "reviewDeltaTestIds": [
         "TestWindowHostMessagePruneCacheTracksObserverLifetimeAndSetterChanges",
@@ -3491,7 +4010,11 @@ the current performance policy or accept the remaining regressions.
         "TestAttachedHostInitialRootChildBatchesAreBoundedAndResetScoped",
         "TestWindowHostMessagePruneCacheRejectsChangesDuringPathValidation",
         "TestTreeBadgeStatusUpdatesReachSubscribedClientWithoutStructureChange",
-        "TestEmbeddedTreeBadgeStatusNotificationsArePerItemCoalescedAndPruned"
+        "TestEmbeddedTreeBadgeStatusNotificationsArePerItemCoalescedAndPruned",
+        "TestMarkdownParserAdoptsExactParsedSnapshot",
+        "TestRichTextAccessibilityWindowReadOnlyParsedSnapshotAdoption",
+        "TestRichTextAccessibilityEmbeddedReadOnlyParsedSnapshotAdoption",
+        "TestReadOnlyParsedSnapshotAllocationFailures"
       ],
       "reviewDeltaFindingIds": [],
       "reviewDeltaDate": "2026-10-26"
@@ -3579,18 +4102,18 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "DxUi",
       "path": "include/DxUi/MarkdownSyntax.h",
-      "sha256": "9417156cf96e3d7dd80b77dba33cd9e334dc4adfcd6851b8bdd28cb4b06da4e8",
+      "sha256": "1bf61425bb6c702cb7bf37fe6742b7fbe92e62db250d461efbfca4228f4e9be6",
       "category": "production",
       "generated": false,
-      "reviewStatus": "reviewed",
-      "reviewer": "mermaid_executor",
+      "reviewStatus": "reviewed-delta",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "Support.Tests.MarkdownBlocks",
         "Support.Tests.MarkdownInlines",
         "Support.Tests.MarkdownCapacity"
       ],
       "findingIds": [],
-      "disposition": "Full current-file read completed; no confirmed defect found at this public API boundary.",
+      "disposition": "source-reviewed-current-bytes; qualification-separate",
       "reviewNotes": {
         "callers": "MarkdownParser is the only constructor/publication entry and SemanticBuilder consumes immutable syntax.",
         "ownershipAndLifetime": "Syntax owns source, revision, dialect, lexical/block/inline trees, footnotes and diagnostics; all indices are revision-local.",
@@ -3598,7 +4121,54 @@ the current performance policy or accept the remaining regressions.
         "testCoverage": "Support.Tests.MarkdownBlocks, MarkdownInlines, MarkdownCapacity and corpus tests cover parsing; exact checks are attributed on their test rows."
       },
       "plannedSha256": "9417156cf96e3d7dd80b77dba33cd9e334dc4adfcd6851b8bdd28cb4b06da4e8",
-      "reviewEvidence": "review-dxui-rich-20261024.md"
+      "reviewEvidence": "review-dxui-rich-20261024.md",
+      "reviewHistory": [
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": null,
+          "path": "include/DxUi/MarkdownSyntax.h",
+          "sha256": "9417156cf96e3d7dd80b77dba33cd9e334dc4adfcd6851b8bdd28cb4b06da4e8",
+          "reviewStatus": "reviewed",
+          "reviewer": "mermaid_executor",
+          "testIds": [
+            "Support.Tests.MarkdownBlocks",
+            "Support.Tests.MarkdownInlines",
+            "Support.Tests.MarkdownCapacity"
+          ],
+          "findingIds": [],
+          "disposition": "Full current-file read completed; no confirmed defect found at this public API boundary.",
+          "reviewNotes": {
+            "callers": "MarkdownParser is the only constructor/publication entry and SemanticBuilder consumes immutable syntax.",
+            "ownershipAndLifetime": "Syntax owns source, revision, dialect, lexical/block/inline trees, footnotes and diagnostics; all indices are revision-local.",
+            "failureAndCancellation": "Begin contract preserves prior request on failure; Advance discards staged request on failure; caps and scalar/source coordinates explicit.",
+            "testCoverage": "Support.Tests.MarkdownBlocks, MarkdownInlines, MarkdownCapacity and corpus tests cover parsing; exact checks are attributed on their test rows."
+          },
+          "reviewDeltaNotes": null
+        }
+      ],
+      "reviewDeltaDate": "2026-10-26",
+      "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
+      "reviewDeltaCommit": "4077f57df8207eac6c39c43437feb45b19d23cf8",
+      "reviewDeltaNotes": {
+        "correctness": "Exact source/profile/extensions/region validation precedes atomic immutable parse adoption; a flat canonical owner supplies all source/AST helpers under a target-local revision/document namespace. Idempotent reassertion cancels superseded staging.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "No publisher control/host/worker/graphics ownership is retained. Cancel/Clear/move/independent Begin and final scheduling retirement are reviewed; source/selection/history/literal geometry are preserved.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "SDK4077f57d passes Release Full 19 scopes; the identical native reassertion probe fails on282da2b1 and passes on4077f57d. Allocation sweep covers both observed parser/editor allocation points; native/embedded color pixels, source export/UIA and scroll/geometry checks pass. Other final profiles remain pending.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
+      },
+      "reviewDeltaFindingIds": [
+        "SDK-PARSED-READOPT-PENDING-001"
+      ],
+      "reviewDeltaTestIds": [
+        "Support.Tests.MarkdownBlocks",
+        "Support.Tests.MarkdownInlines",
+        "Support.Tests.MarkdownCapacity",
+        "TestMarkdownParserAdoptsExactParsedSnapshot",
+        "TestRichTextAccessibilityWindowReadOnlyParsedSnapshotAdoption",
+        "TestRichTextAccessibilityEmbeddedReadOnlyParsedSnapshotAdoption",
+        "TestReadOnlyParsedSnapshotAllocationFailures"
+      ]
     },
     {
       "repository": "DxUi",
@@ -3704,11 +4274,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "DxUi",
       "path": "include/DxUi/RichDocument.h",
-      "sha256": "f416c1b951315849ad3fe720620864f0eb7d09a69c12e378f8e1f6c777d1832e",
+      "sha256": "f9bab7802dafc10172b52920471bde074fd92386bfacc9e2011acd83120fa62f",
       "category": "production",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "mermaid_executor",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "Controls.Tests.RichDocument",
         "Embedded.RichDocumentStorageResources"
@@ -3737,22 +4307,54 @@ the current performance policy or accept the remaining regressions.
           ],
           "findingIds": [],
           "disposition": "prior reviewed bytes retained before current hash refresh"
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+          "path": "include/DxUi/RichDocument.h",
+          "sha256": "f416c1b951315849ad3fe720620864f0eb7d09a69c12e378f8e1f6c777d1832e",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "mermaid_executor",
+          "testIds": [
+            "Controls.Tests.RichDocument",
+            "Embedded.RichDocumentStorageResources"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "Document is source/model base for parser, semantic transactions and editor; snapshots feed background read-only parsing.",
+            "ownershipAndLifetime": "Immutable snapshots share piece-tree revision state; document owns selection and bounded undo/redo history.",
+            "failureAndCancellation": "UTF-16 scalar/CRLF boundaries and 64 Ki-unit/history caps guard replacement; transient composition changes retain/restore history semantics.",
+            "testCoverage": "Controls.Tests.RichDocument and rich-document storage/failure fixtures cover pieces/history; no run here."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Invalid source/boundaries, wrong target mode or revision overflow refuse before target mutation; caller retains exact SetText fallback.",
+            "performance": "No measured performance gain or acceptance is claimed by this source review.",
+            "lifetime": "The method shares immutable source storage while target Document keeps its local revision/history semantics; API adds no class data or vtable entry.",
+            "simplification": "RichTextEditor exposes the new opt-in owner-thread read-only source synchronization method; private Document adoption is friend-only.",
+            "testCoverage": "Two window/embedded tests cover refusal atomicity, exact source and selection, local revisions/history, independent syntax, UIA/read-only export, pixels, detached lifetime and retirement callbacks.",
+            "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
         }
       ],
       "reviewDeltaDate": "2026-10-26",
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
       "reviewDeltaTestIds": [
         "Controls.Tests.RichDocument",
-        "Embedded.RichDocumentStorageResources"
+        "Embedded.RichDocumentStorageResources",
+        "TestMarkdownParserAdoptsExactParsedSnapshot",
+        "TestRichTextAccessibilityWindowReadOnlyParsedSnapshotAdoption",
+        "TestRichTextAccessibilityEmbeddedReadOnlyParsedSnapshotAdoption",
+        "TestReadOnlyParsedSnapshotAllocationFailures"
       ],
-      "reviewDeltaCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+      "reviewDeltaCommit": "4077f57df8207eac6c39c43437feb45b19d23cf8",
       "reviewDeltaNotes": {
-        "correctness": "Invalid source/boundaries, wrong target mode or revision overflow refuse before target mutation; caller retains exact SetText fallback.",
-        "performance": "No measured performance gain or acceptance is claimed by this source review.",
-        "lifetime": "The method shares immutable source storage while target Document keeps its local revision/history semantics; API adds no class data or vtable entry.",
-        "simplification": "RichTextEditor exposes the new opt-in owner-thread read-only source synchronization method; private Document adoption is friend-only.",
-        "testCoverage": "Two window/embedded tests cover refusal atomicity, exact source and selection, local revisions/history, independent syntax, UIA/read-only export, pixels, detached lifetime and retirement callbacks.",
-        "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+        "correctness": "Exact source/profile/extensions/region validation precedes atomic immutable parse adoption; a flat canonical owner supplies all source/AST helpers under a target-local revision/document namespace. Idempotent reassertion cancels superseded staging.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "No publisher control/host/worker/graphics ownership is retained. Cancel/Clear/move/independent Begin and final scheduling retirement are reviewed; source/selection/history/literal geometry are preserved.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "SDK4077f57d passes Release Full 19 scopes; the identical native reassertion probe fails on282da2b1 and passes on4077f57d. Allocation sweep covers both observed parser/editor allocation points; native/embedded color pixels, source export/UIA and scroll/geometry checks pass. Other final profiles remain pending.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
       },
       "reviewDeltaFindingIds": []
     },
@@ -4914,16 +5516,16 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "DxUi",
       "path": "src/Controls/DxUi.MarkdownSyntax.cpp",
-      "sha256": "735e314ec52cd8b2d44c55c704254c387f822a2bb259c57ac845fb0a5074414a",
+      "sha256": "d557e386633bf833a3920feaddeac88e7b9027b4b0ab90f126a69763d70e3c54",
       "category": "production",
       "generated": false,
-      "reviewStatus": "reviewed",
-      "reviewer": "mermaid_executor",
+      "reviewStatus": "reviewed-delta",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "Support.Tests.MarkdownBlocks"
       ],
       "findingIds": [],
-      "disposition": "Full-file read completed in review history; no confirmed defect found in this bounded pass.",
+      "disposition": "source-reviewed-current-bytes; qualification-separate",
       "reviewNotes": {
         "callers": "Parse entry validates options and stages the request before replacing published syntax.",
         "ownershipAndLifetime": "Incremental Advance resumes bounded parsing and retains the prior committed tree on failure.",
@@ -4931,7 +5533,50 @@ the current performance policy or accept the remaining regressions.
         "testCoverage": "Support.Tests.MarkdownBlocks and MarkdownCapacity cover parser output and budgets. Coverage attribution only; this agent did not execute tests."
       },
       "plannedSha256": "735e314ec52cd8b2d44c55c704254c387f822a2bb259c57ac845fb0a5074414a",
-      "reviewEvidence": "review-dxui-rich-20261024.md"
+      "reviewEvidence": "review-dxui-rich-20261024.md",
+      "reviewHistory": [
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": null,
+          "path": "src/Controls/DxUi.MarkdownSyntax.cpp",
+          "sha256": "735e314ec52cd8b2d44c55c704254c387f822a2bb259c57ac845fb0a5074414a",
+          "reviewStatus": "reviewed",
+          "reviewer": "mermaid_executor",
+          "testIds": [
+            "Support.Tests.MarkdownBlocks"
+          ],
+          "findingIds": [],
+          "disposition": "Full-file read completed in review history; no confirmed defect found in this bounded pass.",
+          "reviewNotes": {
+            "callers": "Parse entry validates options and stages the request before replacing published syntax.",
+            "ownershipAndLifetime": "Incremental Advance resumes bounded parsing and retains the prior committed tree on failure.",
+            "failureAndCancellation": "Revision and source intervals propagate across block and inline parsing.",
+            "testCoverage": "Support.Tests.MarkdownBlocks and MarkdownCapacity cover parser output and budgets. Coverage attribution only; this agent did not execute tests."
+          },
+          "reviewDeltaNotes": null
+        }
+      ],
+      "reviewDeltaDate": "2026-10-26",
+      "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
+      "reviewDeltaCommit": "4077f57df8207eac6c39c43437feb45b19d23cf8",
+      "reviewDeltaNotes": {
+        "correctness": "Exact source/profile/extensions/region validation precedes atomic immutable parse adoption; a flat canonical owner supplies all source/AST helpers under a target-local revision/document namespace. Idempotent reassertion cancels superseded staging.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "No publisher control/host/worker/graphics ownership is retained. Cancel/Clear/move/independent Begin and final scheduling retirement are reviewed; source/selection/history/literal geometry are preserved.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "SDK4077f57d passes Release Full 19 scopes; the identical native reassertion probe fails on282da2b1 and passes on4077f57d. Allocation sweep covers both observed parser/editor allocation points; native/embedded color pixels, source export/UIA and scroll/geometry checks pass. Other final profiles remain pending.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
+      },
+      "reviewDeltaFindingIds": [
+        "SDK-PARSED-READOPT-PENDING-001"
+      ],
+      "reviewDeltaTestIds": [
+        "Support.Tests.MarkdownBlocks",
+        "TestMarkdownParserAdoptsExactParsedSnapshot",
+        "TestRichTextAccessibilityWindowReadOnlyParsedSnapshotAdoption",
+        "TestRichTextAccessibilityEmbeddedReadOnlyParsedSnapshotAdoption",
+        "TestReadOnlyParsedSnapshotAllocationFailures"
+      ]
     },
     {
       "repository": "DxUi",
@@ -5320,11 +5965,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "DxUi",
       "path": "src/Controls/DxUi.RichDocument.cpp",
-      "sha256": "a0b0cfccab653efefdfb15a6b0c3d4a36df04f1b2ee3ea8161b6a791e39d2a39",
+      "sha256": "27e3311b7f3eba53ea6f1fac3f29d706703091f8c8767a60a0682e523dbf53b6",
       "category": "production",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "mermaid_executor",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "Related tests for DxUi.RichDocument.cpp in the owning DxUi Support.Tests or Controls.Tests suite; exact case names are listed in the corresponding test row."
       ],
@@ -5351,21 +5996,52 @@ the current performance policy or accept the remaining regressions.
           ],
           "findingIds": [],
           "disposition": "prior reviewed bytes retained before current hash refresh"
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+          "path": "src/Controls/DxUi.RichDocument.cpp",
+          "sha256": "a0b0cfccab653efefdfb15a6b0c3d4a36df04f1b2ee3ea8161b6a791e39d2a39",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "mermaid_executor",
+          "testIds": [
+            "Related tests for DxUi.RichDocument.cpp in the owning DxUi Support.Tests or Controls.Tests suite; exact case names are listed in the corresponding test row."
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "Full file read traced the public or production entry points for DxUi.RichDocument.cpp to its owning parser, document, layout or editor boundary.",
+            "ownershipAndLifetime": "State is staged or value-owned at the component boundary; caller retains immutable publication or explicit owner-thread lifetime as defined in the local API.",
+            "failureAndCancellation": "Admission/range checks precede publication where applicable; malformed input or preparation failures preserve source or prior committed state through the existing failure contract.",
+            "testCoverage": "Reviewed related named fixtures in the owning Support.Tests / Controls.Tests partition; source oracles were inspected, not executed. No repository-wide test claim."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Adoption refuses invalid/unready snapshot, invalid ACP boundary and saturated local revision without partial mutation; same-source selection follows SetSelection semantics.",
+            "performance": "No measured performance gain or acceptance is claimed by this source review.",
+            "lifetime": "The callback is deliberately the final member operation, allowing owner retirement or reentry without post-callback member access.",
+            "simplification": "Document adoption performs source/selection/revision commit; RichTextEditor invalidates source-derived presentation and issues one final synchronous SelectionChanged notification.",
+            "testCoverage": "Window and embedded focused cases are registered; current source review does not claim their execution.",
+            "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
         }
       ],
       "reviewDeltaDate": "2026-10-26",
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
       "reviewDeltaTestIds": [
-        "Related tests for DxUi.RichDocument.cpp in the owning DxUi Support.Tests or Controls.Tests suite; exact case names are listed in the corresponding test row."
+        "Related tests for DxUi.RichDocument.cpp in the owning DxUi Support.Tests or Controls.Tests suite; exact case names are listed in the corresponding test row.",
+        "TestMarkdownParserAdoptsExactParsedSnapshot",
+        "TestRichTextAccessibilityWindowReadOnlyParsedSnapshotAdoption",
+        "TestRichTextAccessibilityEmbeddedReadOnlyParsedSnapshotAdoption",
+        "TestReadOnlyParsedSnapshotAllocationFailures"
       ],
-      "reviewDeltaCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+      "reviewDeltaCommit": "4077f57df8207eac6c39c43437feb45b19d23cf8",
       "reviewDeltaNotes": {
-        "correctness": "Adoption refuses invalid/unready snapshot, invalid ACP boundary and saturated local revision without partial mutation; same-source selection follows SetSelection semantics.",
-        "performance": "No measured performance gain or acceptance is claimed by this source review.",
-        "lifetime": "The callback is deliberately the final member operation, allowing owner retirement or reentry without post-callback member access.",
-        "simplification": "Document adoption performs source/selection/revision commit; RichTextEditor invalidates source-derived presentation and issues one final synchronous SelectionChanged notification.",
-        "testCoverage": "Window and embedded focused cases are registered; current source review does not claim their execution.",
-        "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+        "correctness": "Exact source/profile/extensions/region validation precedes atomic immutable parse adoption; a flat canonical owner supplies all source/AST helpers under a target-local revision/document namespace. Idempotent reassertion cancels superseded staging.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "No publisher control/host/worker/graphics ownership is retained. Cancel/Clear/move/independent Begin and final scheduling retirement are reviewed; source/selection/history/literal geometry are preserved.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "SDK4077f57d passes Release Full 19 scopes; the identical native reassertion probe fails on282da2b1 and passes on4077f57d. Allocation sweep covers both observed parser/editor allocation points; native/embedded color pixels, source export/UIA and scroll/geometry checks pass. Other final profiles remain pending.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
       },
       "reviewDeltaFindingIds": []
     },
@@ -5813,11 +6489,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "DxUi",
       "path": "src/Controls/DxUi.RichTextEditor.cpp",
-      "sha256": "e194bc0d1cd8d498a03f075cb245079bee12eb18444e5836f656a89c546405b1",
+      "sha256": "c5800f0f7b4e81b13dab94e42d2b187260d637e5d050f10cd1c451e4bf593312",
       "category": "production",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "mermaid_executor",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "Controls.Tests.RichTextEditor",
         "TestRichSemanticNativeObjectFailureContainment"
@@ -5865,21 +6541,53 @@ the current performance policy or accept the remaining regressions.
           ],
           "findingIds": [],
           "disposition": "prior reviewed bytes retained before current hash refresh"
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+          "path": "src/Controls/DxUi.RichTextEditor.cpp",
+          "sha256": "e194bc0d1cd8d498a03f075cb245079bee12eb18444e5836f656a89c546405b1",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "mermaid_executor",
+          "testIds": [
+            "Controls.Tests.RichTextEditor",
+            "TestRichSemanticNativeObjectFailureContainment"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "Editor commands route into RichTextCommands and then publish document/history changes.",
+            "ownershipAndLifetime": "Editor state owns selection, undo stack and document revision; callbacks stay UI-thread scoped.",
+            "failureAndCancellation": "Failed transactions preserve prior selection/source and do not emit success notifications.",
+            "testCoverage": "Controls.Tests.RichTextEditor and RichSemanticEditor cover key paths. Test coverage attribution only; this agent did not execute tests."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Adoption refuses invalid/unready snapshot, invalid ACP boundary and saturated local revision without partial mutation; same-source selection follows SetSelection semantics.",
+            "performance": "No measured performance gain or acceptance is claimed by this source review.",
+            "lifetime": "The callback is deliberately the final member operation, allowing owner retirement or reentry without post-callback member access.",
+            "simplification": "Document adoption performs source/selection/revision commit; RichTextEditor invalidates source-derived presentation and issues one final synchronous SelectionChanged notification.",
+            "testCoverage": "Window and embedded focused cases are registered; current source review does not claim their execution.",
+            "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
         }
       ],
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+      "reviewDeltaCommit": "4077f57df8207eac6c39c43437feb45b19d23cf8",
       "reviewDeltaNotes": {
-        "correctness": "Adoption refuses invalid/unready snapshot, invalid ACP boundary and saturated local revision without partial mutation; same-source selection follows SetSelection semantics.",
-        "performance": "No measured performance gain or acceptance is claimed by this source review.",
-        "lifetime": "The callback is deliberately the final member operation, allowing owner retirement or reentry without post-callback member access.",
-        "simplification": "Document adoption performs source/selection/revision commit; RichTextEditor invalidates source-derived presentation and issues one final synchronous SelectionChanged notification.",
-        "testCoverage": "Window and embedded focused cases are registered; current source review does not claim their execution.",
-        "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+        "correctness": "Exact source/profile/extensions/region validation precedes atomic immutable parse adoption; a flat canonical owner supplies all source/AST helpers under a target-local revision/document namespace. Idempotent reassertion cancels superseded staging.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "No publisher control/host/worker/graphics ownership is retained. Cancel/Clear/move/independent Begin and final scheduling retirement are reviewed; source/selection/history/literal geometry are preserved.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "SDK4077f57d passes Release Full 19 scopes; the identical native reassertion probe fails on282da2b1 and passes on4077f57d. Allocation sweep covers both observed parser/editor allocation points; native/embedded color pixels, source export/UIA and scroll/geometry checks pass. Other final profiles remain pending.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
       },
       "reviewDeltaTestIds": [
         "Controls.Tests.RichTextEditor",
-        "TestRichSemanticNativeObjectFailureContainment"
+        "TestRichSemanticNativeObjectFailureContainment",
+        "TestMarkdownParserAdoptsExactParsedSnapshot",
+        "TestRichTextAccessibilityWindowReadOnlyParsedSnapshotAdoption",
+        "TestRichTextAccessibilityEmbeddedReadOnlyParsedSnapshotAdoption",
+        "TestReadOnlyParsedSnapshotAllocationFailures"
       ],
       "reviewDeltaFindingIds": [],
       "reviewDeltaDate": "2026-10-26"
@@ -7359,11 +8067,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "DxUi",
       "path": "Tests/Controls/DxUi.Tests.Menu.cpp",
-      "sha256": "0daca1d8a4048b5d5a25d86804e25a0957dd3f3a3bbdab0895183f3946af257f",
+      "sha256": "2630b898ef1a8feec8048a0964de1aab398d8a28737b19d3c8dc0ebaf8e8fca7",
       "category": "tests",
       "generated": false,
-      "reviewStatus": "reviewed",
-      "reviewer": "review_ledger",
+      "reviewStatus": "reviewed-delta",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "TestSplitButtonContextMenuOwnerMessageFloodDoesNotStarvePointerInput",
         "MenuHoverTraceForTest marker map",
@@ -7373,7 +8081,7 @@ the current performance policy or accept the remaining regressions.
         "TestMenuPopupAcrylicDarkPointerParkingClearsHover"
       ],
       "findingIds": [],
-      "disposition": "source-read-and-reviewed-trace-only-runtime-qualification-pending",
+      "disposition": "source-reviewed-current-bytes; qualification-separate",
       "reviewNotes": {
         "callers": "Existing diagnostics sink and trace fixture consume marker names while preserving route filters.",
         "ownershipAndLifetime": "Thread-local trace pointer is restored by scope-exit; no control or popup ownership is retained.",
@@ -7402,26 +8110,61 @@ the current performance policy or accept the remaining regressions.
             "testCoverage": "Named route/helper coverage exists, but cause-specific assertion and runtime result are absent."
           },
           "reviewDeltaNotes": null
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "30fccffe13b2b07a5369f384943a35c23d836761",
+          "path": "Tests/Controls/DxUi.Tests.Menu.cpp",
+          "sha256": "0daca1d8a4048b5d5a25d86804e25a0957dd3f3a3bbdab0895183f3946af257f",
+          "reviewStatus": "reviewed",
+          "reviewer": "review_ledger",
+          "testIds": [
+            "TestSplitButtonContextMenuOwnerMessageFloodDoesNotStarvePointerInput",
+            "MenuHoverTraceForTest marker map",
+            "TestMenuBarHoverMessageSwitchesRootWhilePopupOverlapsMenuBar",
+            "TestMenuBarHoverMessageSwitchesRootWithPopupPaintPending",
+            "TestMenuPopupAcrylicLightVisualBaseline",
+            "TestMenuPopupAcrylicDarkPointerParkingClearsHover"
+          ],
+          "findingIds": [],
+          "disposition": "source-read-and-reviewed-trace-only-runtime-qualification-pending",
+          "reviewNotes": {
+            "callers": "Existing diagnostics sink and trace fixture consume marker names while preserving route filters.",
+            "ownershipAndLifetime": "Thread-local trace pointer is restored by scope-exit; no control or popup ownership is retained.",
+            "failureAndCancellation": "Markers remain observational; fixture lacks one-to-one cause assertions.",
+            "testCoverage": "Named route/helper coverage exists, but cause-specific assertion and runtime result are absent."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "RunWindowHostTests is not involved; the Menu suite invokes both overlap variants through its own runner, where this helper arms the pointer callback before posting to the frontmost popup. The light acrylic visual-baseline test and new dark pointer-parking test call one fixture after the owned popup appears; menu row probes already include the shadow inset and are converted once under popup DPI awareness. A failed post becomes a driver failure and the existing dismiss cleanup remains. The 180 ms root-switch guard and positive explicit-hover switch assertion are unchanged; the test still does not prove which event source triggered a failure. Capture, positive geometry and nonzero DPI are distinct preconditions; missing first-row geometry, physical alignment, row hover or clear fails with bounded probe diagnostics. The existing baseline, timeout and pixel tolerance remain. This repair does not establish the cause of the earlier provider failure.",
+            "performance": "No performance gain is claimed from this source-review delta; runtime and performance qualification remain separate.",
+            "lifetime": "MenuHoverTraceForTest uses a bounded preallocated pointer-row ring and is owned by the test helper; the change only enables capture and checks PostMessageW failure, with no production state or API change. A caller-owned ScopedMenuPointerFixture retains the original physical pointer across both moves and restores only at its last aligned point; driver join and existing dismissal guards bound popup/driver lifetime. No production object or public ABI changes.",
+            "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
+            "testCoverage": "Both overlap and paint-pending cases share the helper. Pointer rows are dumped only on failure, so later passing output does not expose provenance; the failure remains a test-only observation. Canonical Release build and filtered Light/Dark cases passed at the frozen raw source SHA0DACA1D8A4048B5D5A25D86804E25A0957DD3F3A3BBDAB0895183F3946AF257F with exit0 and verified desktop restoration. Full Menu, local other profiles and hosted ARM64 qualification are pending.",
+            "qualificationBoundary": "Source review only. Runtime/platform/performance evidence and remaining gates are recorded separately in the coordinator; this ledger update confers no execution pass."
+          }
         }
       ],
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "30fccffe13b2b07a5369f384943a35c23d836761",
+      "reviewDeltaCommit": "4077f57df8207eac6c39c43437feb45b19d23cf8",
       "reviewDeltaNotes": {
-        "correctness": "RunWindowHostTests is not involved; the Menu suite invokes both overlap variants through its own runner, where this helper arms the pointer callback before posting to the frontmost popup. The light acrylic visual-baseline test and new dark pointer-parking test call one fixture after the owned popup appears; menu row probes already include the shadow inset and are converted once under popup DPI awareness. A failed post becomes a driver failure and the existing dismiss cleanup remains. The 180 ms root-switch guard and positive explicit-hover switch assertion are unchanged; the test still does not prove which event source triggered a failure. Capture, positive geometry and nonzero DPI are distinct preconditions; missing first-row geometry, physical alignment, row hover or clear fails with bounded probe diagnostics. The existing baseline, timeout and pixel tolerance remain. This repair does not establish the cause of the earlier provider failure.",
-        "performance": "No performance gain is claimed from this source-review delta; runtime and performance qualification remain separate.",
-        "lifetime": "MenuHoverTraceForTest uses a bounded preallocated pointer-row ring and is owned by the test helper; the change only enables capture and checks PostMessageW failure, with no production state or API change. A caller-owned ScopedMenuPointerFixture retains the original physical pointer across both moves and restores only at its last aligned point; driver join and existing dismissal guards bound popup/driver lifetime. No production object or public ABI changes.",
-        "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
-        "testCoverage": "Both overlap and paint-pending cases share the helper. Pointer rows are dumped only on failure, so later passing output does not expose provenance; the failure remains a test-only observation. Canonical Release build and filtered Light/Dark cases passed at the frozen raw source SHA0DACA1D8A4048B5D5A25D86804E25A0957DD3F3A3BBDAB0895183F3946AF257F with exit0 and verified desktop restoration. Full Menu, local other profiles and hosted ARM64 qualification are pending.",
-        "qualificationBoundary": "Source review only. Runtime/platform/performance evidence and remaining gates are recorded separately in the coordinator; this ledger update confers no execution pass."
+        "correctness": "Bounded wait-probe/keyboard-route failure diagnostics preserve original predicates and deadlines. An injected fake clock removes wall-clock dependence from the new diagnostic regression.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "Source282da2b1 passes all four local foreground suites. Hosted main5a ARM64ASan right-arrow and PR282 x64Debug B1-submenu failures remain unrooted; this diagnostic change is not reported as a repair. Final407 input/native profiles remain pending.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
       },
       "reviewDeltaTestIds": [
+        "TestSplitButtonContextMenuOwnerMessageFloodDoesNotStarvePointerInput",
+        "MenuHoverTraceForTest marker map",
         "TestMenuBarHoverMessageSwitchesRootWhilePopupOverlapsMenuBar",
         "TestMenuBarHoverMessageSwitchesRootWithPopupPaintPending",
         "TestMenuPopupAcrylicLightVisualBaseline",
-        "TestMenuPopupAcrylicDarkPointerParkingClearsHover"
+        "TestMenuPopupAcrylicDarkPointerParkingClearsHover",
+        "TestContextMenuPopupStateWaitDiagnosticsRetainLastSuccessfulProbe"
       ],
       "reviewDeltaFindingIds": [],
-      "reviewDeltaDate": "2026-10-25"
+      "reviewDeltaDate": "2026-10-26"
     },
     {
       "repository": "DxUi",
@@ -8341,16 +9084,16 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "DxUi",
       "path": "Tests/Controls/Controls.Tests.RichDocument.cpp",
-      "sha256": "427e475aeb8d6deca7436fbe29acab885d78713e019cc6f15519acb0dedc5b44",
+      "sha256": "3fe45ae040d74bb691c834b2503ee95c9f1309fb5193d1362bcfd7bf17c638aa",
       "category": "tests",
       "generated": false,
-      "reviewStatus": "reviewed",
-      "reviewer": "mermaid_executor",
+      "reviewStatus": "reviewed-delta",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "Controls.Tests.RichDocument"
       ],
       "findingIds": [],
-      "disposition": "Full current-file read completed; no new confirmed defect found in this review.",
+      "disposition": "source-reviewed-current-bytes; qualification-separate",
       "reviewNotes": {
         "callers": "Suite exercises Document and SourceSnapshot value APIs plus source replacement helper.",
         "ownershipAndLifetime": "Snapshots are held across edits/resets and concurrency test captures immutable values.",
@@ -8359,7 +9102,48 @@ the current performance policy or accept the remaining regressions.
       },
       "plannedPath": "Tests/Controls/Scope.Tests.RichDocument.cpp",
       "plannedSha256": "f28fe9a52e9a11570c8ffe3487f879a7b9e8e41e0c4a38d68ce3cd84f32c1bbf",
-      "reviewEvidence": "review-dxui-rich-20261024.md"
+      "reviewEvidence": "review-dxui-rich-20261024.md",
+      "reviewHistory": [
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": null,
+          "path": "Tests/Controls/Controls.Tests.RichDocument.cpp",
+          "sha256": "427e475aeb8d6deca7436fbe29acab885d78713e019cc6f15519acb0dedc5b44",
+          "reviewStatus": "reviewed",
+          "reviewer": "mermaid_executor",
+          "testIds": [
+            "Controls.Tests.RichDocument"
+          ],
+          "findingIds": [],
+          "disposition": "Full current-file read completed; no new confirmed defect found in this review.",
+          "reviewNotes": {
+            "callers": "Suite exercises Document and SourceSnapshot value APIs plus source replacement helper.",
+            "ownershipAndLifetime": "Snapshots are held across edits/resets and concurrency test captures immutable values.",
+            "failureAndCancellation": "Rejections use named standard exceptions and assert unchanged source/revision/history.",
+            "testCoverage": "Tests cover Unicode/CRLF bounds, UTF-8, randomized edit oracles, history, persistent split/merge, maximum fragmentation and borrowed input. Test attribution only; this agent did not run it."
+          },
+          "reviewDeltaNotes": null
+        }
+      ],
+      "reviewDeltaDate": "2026-10-26",
+      "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
+      "reviewDeltaCommit": "4077f57df8207eac6c39c43437feb45b19d23cf8",
+      "reviewDeltaNotes": {
+        "correctness": "Exact source/profile/extensions/region validation precedes atomic immutable parse adoption; a flat canonical owner supplies all source/AST helpers under a target-local revision/document namespace. Idempotent reassertion cancels superseded staging.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "No publisher control/host/worker/graphics ownership is retained. Cancel/Clear/move/independent Begin and final scheduling retirement are reviewed; source/selection/history/literal geometry are preserved.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "SDK4077f57d passes Release Full 19 scopes; the identical native reassertion probe fails on282da2b1 and passes on4077f57d. Allocation sweep covers both observed parser/editor allocation points; native/embedded color pixels, source export/UIA and scroll/geometry checks pass. Other final profiles remain pending.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
+      },
+      "reviewDeltaFindingIds": [],
+      "reviewDeltaTestIds": [
+        "Controls.Tests.RichDocument",
+        "TestMarkdownParserAdoptsExactParsedSnapshot",
+        "TestRichTextAccessibilityWindowReadOnlyParsedSnapshotAdoption",
+        "TestRichTextAccessibilityEmbeddedReadOnlyParsedSnapshotAdoption",
+        "TestReadOnlyParsedSnapshotAllocationFailures"
+      ]
     },
     {
       "repository": "DxUi",
@@ -8429,16 +9213,16 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "DxUi",
       "path": "Tests/Controls/Controls.Tests.RichMarkdown.cpp",
-      "sha256": "71e5ebdb70750020ba821e96a687763e72c3d2d19edbdd0f497403b31b1d78aa",
+      "sha256": "cb83ea81c769acd2e54f14dd9d3110961ba5674b3fb2eb6c95ac62e26134a0ce",
       "category": "tests",
       "generated": false,
-      "reviewStatus": "reviewed",
-      "reviewer": "mermaid_executor",
+      "reviewStatus": "reviewed-delta",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "Controls.Tests.RichMarkdown"
       ],
       "findingIds": [],
-      "disposition": "Full current-file read completed; no new confirmed defect found in this review.",
+      "disposition": "source-reviewed-current-bytes; qualification-separate",
       "reviewNotes": {
         "callers": "Suite routes to independent block/inline/capacity/HTML/footnote tests and native flowchart fixtures.",
         "ownershipAndLifetime": "Published syntax and parser snapshots are retained immutably across cancellation, revision and profile changes.",
@@ -8447,7 +9231,50 @@ the current performance policy or accept the remaining regressions.
       },
       "plannedPath": "Tests/Controls/Scope.Tests.RichMarkdown.cpp",
       "plannedSha256": "9e5ce69e0126010bf7f33738c31330e0b7844f17f14293e7986f9ae62a62b304",
-      "reviewEvidence": "review-dxui-rich-20261024.md"
+      "reviewEvidence": "review-dxui-rich-20261024.md",
+      "reviewHistory": [
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": null,
+          "path": "Tests/Controls/Controls.Tests.RichMarkdown.cpp",
+          "sha256": "71e5ebdb70750020ba821e96a687763e72c3d2d19edbdd0f497403b31b1d78aa",
+          "reviewStatus": "reviewed",
+          "reviewer": "mermaid_executor",
+          "testIds": [
+            "Controls.Tests.RichMarkdown"
+          ],
+          "findingIds": [],
+          "disposition": "Full current-file read completed; no new confirmed defect found in this review.",
+          "reviewNotes": {
+            "callers": "Suite routes to independent block/inline/capacity/HTML/footnote tests and native flowchart fixtures.",
+            "ownershipAndLifetime": "Published syntax and parser snapshots are retained immutably across cancellation, revision and profile changes.",
+            "failureAndCancellation": "Every parsing scenario checks exact partition/source bounds and unsupported inputs remain literal or receive bounded diagnostics.",
+            "testCoverage": "Tests cover full CommonMark/GFM corpora, semantic expectations, extension identity, nesting budgets, native flowchart model/capacity and footnotes. Test attribution only; this agent did not run it."
+          },
+          "reviewDeltaNotes": null
+        }
+      ],
+      "reviewDeltaDate": "2026-10-26",
+      "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
+      "reviewDeltaCommit": "4077f57df8207eac6c39c43437feb45b19d23cf8",
+      "reviewDeltaNotes": {
+        "correctness": "Exact source/profile/extensions/region validation precedes atomic immutable parse adoption; a flat canonical owner supplies all source/AST helpers under a target-local revision/document namespace. Idempotent reassertion cancels superseded staging.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "No publisher control/host/worker/graphics ownership is retained. Cancel/Clear/move/independent Begin and final scheduling retirement are reviewed; source/selection/history/literal geometry are preserved.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "SDK4077f57d passes Release Full 19 scopes; the identical native reassertion probe fails on282da2b1 and passes on4077f57d. Allocation sweep covers both observed parser/editor allocation points; native/embedded color pixels, source export/UIA and scroll/geometry checks pass. Other final profiles remain pending.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
+      },
+      "reviewDeltaFindingIds": [
+        "SDK-PARSED-READOPT-PENDING-001"
+      ],
+      "reviewDeltaTestIds": [
+        "Controls.Tests.RichMarkdown",
+        "TestMarkdownParserAdoptsExactParsedSnapshot",
+        "TestRichTextAccessibilityWindowReadOnlyParsedSnapshotAdoption",
+        "TestRichTextAccessibilityEmbeddedReadOnlyParsedSnapshotAdoption",
+        "TestReadOnlyParsedSnapshotAllocationFailures"
+      ]
     },
     {
       "repository": "DxUi",
@@ -8721,11 +9548,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "DxUi",
       "path": "Tests/Controls/Controls.Tests.RichTextAccessibility.cpp",
-      "sha256": "911a33377574b6d96cfac32fb8fd72c5caa1a502bf3af4fed2b2af40d036c153",
+      "sha256": "cb33672809ead4005bd0f532c0e227ce2834f0f1608f49c285641aeb6db8afef",
       "category": "tests",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "mermaid_executor",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "Controls.Tests.RichTextAccessibility"
       ],
@@ -8772,20 +9599,51 @@ the current performance policy or accept the remaining regressions.
           ],
           "findingIds": [],
           "disposition": "prior reviewed bytes retained before current hash refresh"
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+          "path": "Tests/Controls/Controls.Tests.RichTextAccessibility.cpp",
+          "sha256": "911a33377574b6d96cfac32fb8fd72c5caa1a502bf3af4fed2b2af40d036c153",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "mermaid_executor",
+          "testIds": [
+            "Controls.Tests.RichTextAccessibility"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "Window and embedded providers share scenario helpers with explicit backend parameter.",
+            "ownershipAndLifetime": "UIA provider references are reacquired around document revisions and range operations.",
+            "failureAndCancellation": "Failure cases exercise native/literal Math fallback without changing source range ownership.",
+            "testCoverage": "Coverage includes provider type/name/help text and exact source ranges; parent combined-14 reports EditorControls/Embedded pass. Coverage attribution only; this agent did not execute tests."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Wrong profile/editable target, absent snapshot, bad surrogate/CRLF boundary, range overflow and retirement paths are covered.",
+            "performance": "No measured performance gain or acceptance is claimed by this source review.",
+            "lifetime": "Tests distinguish primary and target source/history/revisions and retain a detached target after source owner destruction.",
+            "simplification": "The native and embedded rich-text accessibility tests exercise the API through actual editor controls and snapshots.",
+            "testCoverage": "The new two cases have broad deterministic state, UIA, syntax and pixel parity assertions; no test was run as part of this ledger review.",
+            "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
         }
       ],
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+      "reviewDeltaCommit": "4077f57df8207eac6c39c43437feb45b19d23cf8",
       "reviewDeltaNotes": {
-        "correctness": "Wrong profile/editable target, absent snapshot, bad surrogate/CRLF boundary, range overflow and retirement paths are covered.",
-        "performance": "No measured performance gain or acceptance is claimed by this source review.",
-        "lifetime": "Tests distinguish primary and target source/history/revisions and retain a detached target after source owner destruction.",
-        "simplification": "The native and embedded rich-text accessibility tests exercise the API through actual editor controls and snapshots.",
-        "testCoverage": "The new two cases have broad deterministic state, UIA, syntax and pixel parity assertions; no test was run as part of this ledger review.",
-        "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+        "correctness": "Exact source/profile/extensions/region validation precedes atomic immutable parse adoption; a flat canonical owner supplies all source/AST helpers under a target-local revision/document namespace. Idempotent reassertion cancels superseded staging.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "No publisher control/host/worker/graphics ownership is retained. Cancel/Clear/move/independent Begin and final scheduling retirement are reviewed; source/selection/history/literal geometry are preserved.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "SDK4077f57d passes Release Full 19 scopes; the identical native reassertion probe fails on282da2b1 and passes on4077f57d. Allocation sweep covers both observed parser/editor allocation points; native/embedded color pixels, source export/UIA and scroll/geometry checks pass. Other final profiles remain pending.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
       },
       "reviewDeltaTestIds": [
-        "Controls.Tests.RichTextAccessibility"
+        "Controls.Tests.RichTextAccessibility",
+        "TestMarkdownParserAdoptsExactParsedSnapshot",
+        "TestRichTextAccessibilityWindowReadOnlyParsedSnapshotAdoption",
+        "TestRichTextAccessibilityEmbeddedReadOnlyParsedSnapshotAdoption",
+        "TestReadOnlyParsedSnapshotAllocationFailures"
       ],
       "reviewDeltaFindingIds": [],
       "reviewDeltaDate": "2026-10-26"
@@ -9182,17 +10040,17 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "DxUi",
       "path": "Tests/Embedded/Embedded.Tests.Embedded.cpp",
-      "sha256": "0163728c013b226102af82aa82c3f28c2e782f29d88eb18e67c49ab584620bd0",
+      "sha256": "7ac0d3abb55f34475d96692e82ae32493a035c1e0bd26996f73d87cfa43106d5",
       "category": "tests",
       "generated": false,
-      "reviewStatus": "reviewed",
-      "reviewer": "review_ledger",
+      "reviewStatus": "reviewed-delta",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "RunFunctionalTests",
         "Embedded functional suite"
       ],
       "findingIds": [],
-      "disposition": "reviewed-no-confirmed-finding",
+      "disposition": "source-reviewed-current-bytes; qualification-separate",
       "reviewNotes": {
         "callers": "Fully read; concrete registration/call site identified in source or consumer.",
         "ownershipAndLifetime": "Fully read; source-level owners and borrowed/scoped lifetimes recorded.",
@@ -9221,24 +10079,56 @@ the current performance policy or accept the remaining regressions.
             "testCoverage": "Actual test IDs listed; tests were not executed in this review."
           },
           "reviewDeltaNotes": null
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "30fccffe13b2b07a5369f384943a35c23d836761",
+          "path": "Tests/Embedded/Embedded.Tests.Embedded.cpp",
+          "sha256": "0163728c013b226102af82aa82c3f28c2e782f29d88eb18e67c49ab584620bd0",
+          "reviewStatus": "reviewed",
+          "reviewer": "review_ledger",
+          "testIds": [
+            "RunFunctionalTests",
+            "Embedded functional suite"
+          ],
+          "findingIds": [],
+          "disposition": "reviewed-no-confirmed-finding",
+          "reviewNotes": {
+            "callers": "Fully read; concrete registration/call site identified in source or consumer.",
+            "ownershipAndLifetime": "Fully read; source-level owners and borrowed/scoped lifetimes recorded.",
+            "failureAndCancellation": "Fully read; failure/cancel handling recorded; no runtime claim from static review.",
+            "testCoverage": "Actual test IDs listed; tests were not executed in this review."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Test source/inventory serves its owning runner and scope. Malformed or mismatched inputs remain explicit failures.",
+            "performance": "No performance gain is claimed from this source-review delta; runtime and performance qualification remain separate.",
+            "lifetime": "Fixture/report state is test-owned; no production persistent storage added.",
+            "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
+            "testCoverage": "Existing test IDs copied when available; no test ran.",
+            "qualificationBoundary": "Source review only. Runtime/platform/performance evidence and remaining gates are recorded separately in the coordinator; this ledger update confers no execution pass."
+          }
         }
       ],
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "30fccffe13b2b07a5369f384943a35c23d836761",
+      "reviewDeltaCommit": "4077f57df8207eac6c39c43437feb45b19d23cf8",
       "reviewDeltaNotes": {
-        "correctness": "Test source/inventory serves its owning runner and scope. Malformed or mismatched inputs remain explicit failures.",
-        "performance": "No performance gain is claimed from this source-review delta; runtime and performance qualification remain separate.",
-        "lifetime": "Fixture/report state is test-owned; no production persistent storage added.",
-        "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
-        "testCoverage": "Existing test IDs copied when available; no test ran.",
-        "qualificationBoundary": "Source review only. Runtime/platform/performance evidence and remaining gates are recorded separately in the coordinator; this ledger update confers no execution pass."
+        "correctness": "Exact source/profile/extensions/region validation precedes atomic immutable parse adoption; a flat canonical owner supplies all source/AST helpers under a target-local revision/document namespace. Idempotent reassertion cancels superseded staging.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "No publisher control/host/worker/graphics ownership is retained. Cancel/Clear/move/independent Begin and final scheduling retirement are reviewed; source/selection/history/literal geometry are preserved.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "SDK4077f57d passes Release Full 19 scopes; the identical native reassertion probe fails on282da2b1 and passes on4077f57d. Allocation sweep covers both observed parser/editor allocation points; native/embedded color pixels, source export/UIA and scroll/geometry checks pass. Other final profiles remain pending.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
       },
       "reviewDeltaTestIds": [
         "RunFunctionalTests",
-        "Embedded functional suite"
+        "Embedded functional suite",
+        "TestMarkdownParserAdoptsExactParsedSnapshot",
+        "TestRichTextAccessibilityWindowReadOnlyParsedSnapshotAdoption",
+        "TestRichTextAccessibilityEmbeddedReadOnlyParsedSnapshotAdoption",
+        "TestReadOnlyParsedSnapshotAllocationFailures"
       ],
       "reviewDeltaFindingIds": [],
-      "reviewDeltaDate": "2026-10-25"
+      "reviewDeltaDate": "2026-10-26"
     },
     {
       "repository": "DxUi",
@@ -9856,14 +10746,14 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "DxUi",
       "path": "Tests/Embedded/Embedded.Tests.RichTextResources.h",
-      "sha256": "b0396960cb3125aa7c13342c6fb532ca0dc97ea83e6635bf715aa110375b78a7",
+      "sha256": "4cef4d41da7ebacc0ca21fefea095c54629c963147913e03a169ac94331564ab",
       "category": "tests",
       "generated": false,
-      "reviewStatus": "reviewed",
-      "reviewer": "mermaid_executor",
+      "reviewStatus": "reviewed-delta",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [],
       "findingIds": [],
-      "disposition": "Full current-file read completed; no confirmed defect found in the examined boundary. Coverage is source attribution only; this agent did not execute tests/builds.",
+      "disposition": "source-reviewed-current-bytes; qualification-separate",
       "reviewNotes": {
         "callers": "Broad supplied-device fixture integrates Markdown/parser, flowchart, semantic, rich-image, grapheme, text-input and retained editor behavior through EmbeddedHost.",
         "ownershipAndLifetime": "GraphicsDevice pools are shared owners, EmbeddedHost owns editor/control state, immutable syntax/semantic/image values retain explicit owners, and UIA callbacks use scoped detach/drain paths.",
@@ -9872,7 +10762,45 @@ the current performance policy or accept the remaining regressions.
       },
       "plannedPath": "Tests/Embedded/Scope.Tests.RichTextResources.h",
       "plannedSha256": "78c6e3c4d533971fd6e367ad4ae2521ffa498531f0bdd33c97a51b6820ceb005",
-      "reviewEvidence": "review-dxui-rich-20261024.md"
+      "reviewEvidence": "review-dxui-rich-20261024.md",
+      "reviewHistory": [
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": null,
+          "path": "Tests/Embedded/Embedded.Tests.RichTextResources.h",
+          "sha256": "b0396960cb3125aa7c13342c6fb532ca0dc97ea83e6635bf715aa110375b78a7",
+          "reviewStatus": "reviewed",
+          "reviewer": "mermaid_executor",
+          "testIds": [],
+          "findingIds": [],
+          "disposition": "Full current-file read completed; no confirmed defect found in the examined boundary. Coverage is source attribution only; this agent did not execute tests/builds.",
+          "reviewNotes": {
+            "callers": "Broad supplied-device fixture integrates Markdown/parser, flowchart, semantic, rich-image, grapheme, text-input and retained editor behavior through EmbeddedHost.",
+            "ownershipAndLifetime": "GraphicsDevice pools are shared owners, EmbeddedHost owns editor/control state, immutable syntax/semantic/image values retain explicit owners, and UIA callbacks use scoped detach/drain paths.",
+            "failureAndCancellation": "Covers staged preparation failure/cancellation, source fallback and retention, semantic allocation sweeps, images, source/history, identity, pending input, no-activation shared views, Unicode capacity, UIA metadata limits and retry.",
+            "testCoverage": "TestNativeFlowchartAllocationFailureAtomicity, TestRichMarkdownParserFailureAndStorageBudgets, TestEmbeddedFlowchartRenderingAndFallbacks, TestRichTextCooperativeSchedulingAndTextInput, TestRetainedRichTextUiaRangeAllocationBudget, TestUnicodeGraphemeForwardWalkAllocationBudget. Test code read only; no execution by this agent."
+          },
+          "reviewDeltaNotes": null
+        }
+      ],
+      "reviewDeltaDate": "2026-10-26",
+      "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
+      "reviewDeltaCommit": "4077f57df8207eac6c39c43437feb45b19d23cf8",
+      "reviewDeltaNotes": {
+        "correctness": "Exact source/profile/extensions/region validation precedes atomic immutable parse adoption; a flat canonical owner supplies all source/AST helpers under a target-local revision/document namespace. Idempotent reassertion cancels superseded staging.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "No publisher control/host/worker/graphics ownership is retained. Cancel/Clear/move/independent Begin and final scheduling retirement are reviewed; source/selection/history/literal geometry are preserved.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "SDK4077f57d passes Release Full 19 scopes; the identical native reassertion probe fails on282da2b1 and passes on4077f57d. Allocation sweep covers both observed parser/editor allocation points; native/embedded color pixels, source export/UIA and scroll/geometry checks pass. Other final profiles remain pending.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
+      },
+      "reviewDeltaFindingIds": [],
+      "reviewDeltaTestIds": [
+        "TestMarkdownParserAdoptsExactParsedSnapshot",
+        "TestRichTextAccessibilityWindowReadOnlyParsedSnapshotAdoption",
+        "TestRichTextAccessibilityEmbeddedReadOnlyParsedSnapshotAdoption",
+        "TestReadOnlyParsedSnapshotAllocationFailures"
+      ]
     },
     {
       "repository": "DxUi",
@@ -13687,11 +14615,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "DxUi",
       "path": "CHANGELOG.md",
-      "sha256": "c3fbf235a87274a2fa17b5750b477949654f04bfdebbed098747d17ec6e4bc32",
+      "sha256": "4acd50a9b73f644899f854d1c2cc9a11af1ab020fb4b75f5ceb59842c64b083c",
       "category": "build-and-tooling",
       "generated": true,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "review_ledger",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "Fold-Changelog.ps1",
         "Fold-Changelog.ps1 -Check",
@@ -13799,17 +14727,57 @@ the current performance policy or accept the remaining regressions.
           ],
           "findingIds": [],
           "disposition": "prior reviewed bytes retained before current hash refresh"
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+          "path": "CHANGELOG.md",
+          "sha256": "c3fbf235a87274a2fa17b5750b477949654f04bfdebbed098747d17ec6e4bc32",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "review_ledger",
+          "testIds": [
+            "Fold-Changelog.ps1",
+            "Fold-Changelog.ps1 -Check",
+            "Tools/Test-Changelog.ps1",
+            "TestEmbeddedTreeBadgeStatusNotificationsArePerItemCoalescedAndPruned",
+            "TestRichSemanticNativeObjectFailureContainment",
+            "TestLabelAndSeparatorTypographySurviveEmbeddedMeasureAndRetirementCallbacks",
+            "Test-Changelog passed",
+            "Fold-Changelog passed",
+            "Fold-Changelog -Check passed",
+            "official Fold-Changelog/Fold-Changelog -Check history for both archived fragments",
+            "TestLabelZeroSpacingOverrideMatchesDefaultLayout",
+            "TestWindowHostConfiguredTextFormatsAliasExactRoleDefaults",
+            "TestMenuBarHoverMessageSwitchesRootWhilePopupOverlapsMenuBar",
+            "TestMenuBarHoverMessageSwitchesRootWithPopupPaintPending"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "Generated by the SDK fragment fold; current Unreleased entries cover path identity, interactive lease, host message pruning and bounded initial-root batching.",
+            "ownershipAndLifetime": "Generated output only; durable policy and implementation details remain in the authoritative validation, control/layout, rendering and performance specifications plus dated fragments.",
+            "failureAndCancellation": "Generated provenance row; the retained fold/check logs say the changelog is valid and fully folded. The current validate-host-final.log also records all six validators and tooling tests passed; neither result qualifies the new native runtime.",
+            "testCoverage": "Fold and -Check completed successfully. Green-v2 passed 14/14 selected Release host/rendering cases; the current full SDK x64/ARM64 matrix and consumer restore remain pending."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Generated changelog publishes repository changes. Reviewed current top-of-file folded entries for Tree status, math fallback, Label retirement and bounded SDK changes. Generated Unreleased entry summarizes the zero-spacing Label mutation skip and baseline parity status. This generated changelog entry is read by release-note consumers and the changelog-fold workflow; it has no runtime caller. It separates the cache-alias regression oracle from the menu trace update. Generated Unreleased summary for the SDK contract/evidence update. Generated Unreleased release summary folded from the fixture change record. Entry does not claim acceptance. Changelog preserves negative counterfactual versus passing-run distinction and open matrix/performance gates. Correctly says candidate-focused verification, build matrix and paired performance review remain pending. It records the red-baseline expected pointer-identity failure while explicitly leaving focused green, six-profile builds, Full suites, and paired performance open; no root-cause attribution is asserted for the Menu event. Does not change runtime failure semantics. The plan/contract preserves real failures, separate geometry/hover predicates, fixed timeouts and pending gates; integration cannot imply provider-failure causality.",
+            "performance": "No measured performance gain or acceptance is claimed by this source review.",
+            "lifetime": "Publication text has no runtime ownership. This delta covers the new summary entries; SDK owns implementation and RedTilde remains consumer. Folded release-note text; it owns no runtime state. The entry documents changes owned by ControlHost cache policy and a test-only MenuHoverTraceForTest; it introduces no runtime state or ownership rule. Generated documentation only. Documentation only; no runtime object ownership or lifetime changes.",
+            "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
+            "testCoverage": "Prior fold evidence retained; no commands reran. Six counterfactuals independently replayed: three expected math assertion failures, two expected Label ASan failures, one focused LabelGreen pass. Not full qualification. Cites baseline x64 Release parity only; no optimization acceptance is asserted. The cache entry names the focused expected-failure run and the focused case, but it is a release note rather than a coverage record; qualification remains separately gated. No validation command result claimed by this delta. Changelog fold/check, Test-Changelog, validate-specs and clang-format22.1.3 checks pass; docs do not substitute for native qualification.",
+            "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
         }
       ],
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+      "reviewDeltaCommit": "4077f57df8207eac6c39c43437feb45b19d23cf8",
       "reviewDeltaNotes": {
-        "correctness": "Generated changelog publishes repository changes. Reviewed current top-of-file folded entries for Tree status, math fallback, Label retirement and bounded SDK changes. Generated Unreleased entry summarizes the zero-spacing Label mutation skip and baseline parity status. This generated changelog entry is read by release-note consumers and the changelog-fold workflow; it has no runtime caller. It separates the cache-alias regression oracle from the menu trace update. Generated Unreleased summary for the SDK contract/evidence update. Generated Unreleased release summary folded from the fixture change record. Entry does not claim acceptance. Changelog preserves negative counterfactual versus passing-run distinction and open matrix/performance gates. Correctly says candidate-focused verification, build matrix and paired performance review remain pending. It records the red-baseline expected pointer-identity failure while explicitly leaving focused green, six-profile builds, Full suites, and paired performance open; no root-cause attribution is asserted for the Menu event. Does not change runtime failure semantics. The plan/contract preserves real failures, separate geometry/hover predicates, fixed timeouts and pending gates; integration cannot imply provider-failure causality.",
-        "performance": "No measured performance gain or acceptance is claimed by this source review.",
-        "lifetime": "Publication text has no runtime ownership. This delta covers the new summary entries; SDK owns implementation and RedTilde remains consumer. Folded release-note text; it owns no runtime state. The entry documents changes owned by ControlHost cache policy and a test-only MenuHoverTraceForTest; it introduces no runtime state or ownership rule. Generated documentation only. Documentation only; no runtime object ownership or lifetime changes.",
-        "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
-        "testCoverage": "Prior fold evidence retained; no commands reran. Six counterfactuals independently replayed: three expected math assertion failures, two expected Label ASan failures, one focused LabelGreen pass. Not full qualification. Cites baseline x64 Release parity only; no optimization acceptance is asserted. The cache entry names the focused expected-failure run and the focused case, but it is a release note rather than a coverage record; qualification remains separately gated. No validation command result claimed by this delta. Changelog fold/check, Test-Changelog, validate-specs and clang-format22.1.3 checks pass; docs do not substitute for native qualification.",
-        "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+        "correctness": "Reviewed the current explicit source/documentation delta and preserved historical notes/hashes.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "Source review only unless the named P18 checkpoint states an actual executed result.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
       },
       "reviewDeltaTestIds": [
         "Fold-Changelog.ps1",
@@ -14155,11 +15123,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "DxUi",
       "path": "Specs/UI/UI_ControlsAndLayout.md",
-      "sha256": "22d09c26aa216cdff5bad966b1144e97cf6936f5e8f034b4abad89bac95ad5ea",
+      "sha256": "81e6165cbf9ec37f8b3251b758631f4bd688e179f590c62ca387f3fd3bda7010",
       "category": "documentation",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "review_ledger",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "TestWindowHostMessagePruneCacheRejectsChangesDuringPathValidation",
         "TestWindowHostMessagePruneCacheRevalidatesLiveMovedObserver",
@@ -14218,17 +15186,50 @@ the current performance policy or accept the remaining regressions.
           ],
           "findingIds": [],
           "disposition": "prior reviewed bytes retained before current hash refresh"
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+          "path": "Specs/UI/UI_ControlsAndLayout.md",
+          "sha256": "22d09c26aa216cdff5bad966b1144e97cf6936f5e8f034b4abad89bac95ad5ea",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "review_ledger",
+          "testIds": [
+            "TestWindowHostMessagePruneCacheRejectsChangesDuringPathValidation",
+            "TestWindowHostMessagePruneCacheRevalidatesLiveMovedObserver",
+            "TestWindowHostMessagePruneCachePathOverflowUsesFullPruneFallback",
+            "TestTreeBadgeStatusUpdatesReachSubscribedClientWithoutStructureChange",
+            "TestEmbeddedTreeBadgeStatusNotificationsArePerItemCoalescedAndPruned",
+            "TestPreparedTreeExpansionOfTheFocusedItemReachesAClient",
+            "TestLabelAndSeparatorTypographySurviveEmbeddedMeasureAndRetirementCallbacks"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "The stable logical-child query contract applies to every retained-tree traversal, including membership resolution and cached-path revalidation.",
+            "ownershipAndLifetime": "GetLogicalChildCount/GetLogicalChild are read-only owning-UI-thread queries; returned pointers are borrowed until supported mutation. Traversals rely on query purity and do not support destructive getter reentry.",
+            "failureAndCancellation": "The message-prune cache validates bounded logical paths and falls back to the full resolver on overflow, expired tokens, changed identity/interactivity, or state change during path validation.",
+            "testCoverage": "Green-v2 passed the query-time observer/epoch mutation cases, live GetChildren move, and path-overflow fallback within the 14 selected Release cases. Full SDK matrix and performance qualification remain pending."
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Pending or invalid source is authoritative only according to the documented refusal/fallback semantics; no benchmark result is implied.",
+            "performance": "No measured performance gain or acceptance is claimed by this source review.",
+            "lifetime": "Spec preserves source storage, target-local revision, target history and syntax lifetime distinctions.",
+            "simplification": "The controls spec defines the additive read-only source synchronization contract.",
+            "testCoverage": "Normative text points to deterministic tests; it does not substitute for profile qualification.",
+            "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
         }
       ],
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+      "reviewDeltaCommit": "4077f57df8207eac6c39c43437feb45b19d23cf8",
       "reviewDeltaNotes": {
-        "correctness": "Pending or invalid source is authoritative only according to the documented refusal/fallback semantics; no benchmark result is implied.",
-        "performance": "No measured performance gain or acceptance is claimed by this source review.",
-        "lifetime": "Spec preserves source storage, target-local revision, target history and syntax lifetime distinctions.",
-        "simplification": "The controls spec defines the additive read-only source synchronization contract.",
-        "testCoverage": "Normative text points to deterministic tests; it does not substitute for profile qualification.",
-        "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+        "correctness": "Reviewed the current explicit source/documentation delta and preserved historical notes/hashes.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "Source review only unless the named P18 checkpoint states an actual executed result.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
       },
       "reviewDeltaTestIds": [
         "TestWindowHostMessagePruneCacheRejectsChangesDuringPathValidation",
@@ -14323,11 +15324,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "DxUi",
       "path": "docs/controls.md",
-      "sha256": "10abb2200027074be8d363b7c335d77870490b2653221105f7673fc8dbbf0acc",
+      "sha256": "543a1bc35a77112cecd98a515ba326d63b2e0e64f761c831909bc57dedb22bd9",
       "category": "usage-documentation",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "final-delta-review",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "TestTreeBadgeStatusUpdatesReachSubscribedClientWithoutStructureChange",
         "TestPreparedTreeExpansionOfTheFocusedItemReachesAClient",
@@ -14342,14 +15343,14 @@ the current performance policy or accept the remaining regressions.
         "testCoverage": ""
       },
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+      "reviewDeltaCommit": "4077f57df8207eac6c39c43437feb45b19d23cf8",
       "reviewDeltaNotes": {
-        "correctness": "The bool refusal contract directs consumers to ordinary SetText fallback; no app-specific helper is duplicated in the SDK.",
-        "performance": "No measured performance gain or acceptance is claimed by this source review.",
-        "lifetime": "The API contract keeps document source/history ownership independent and forbids cross-thread use.",
-        "simplification": "Public usage documentation describes when a consumer may synchronize an immutable source into a derived read-only Source editor.",
-        "testCoverage": "Documentation does not claim runtime qualification.",
-        "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+        "correctness": "Reviewed the current explicit source/documentation delta and preserved historical notes/hashes.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "Source review only unless the named P18 checkpoint states an actual executed result.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
       },
       "reviewDeltaTestIds": [
         "TestTreeBadgeStatusUpdatesReachSubscribedClientWithoutStructureChange",
@@ -14373,6 +15374,35 @@ the current performance policy or accept the remaining regressions.
           ],
           "findingIds": [],
           "disposition": "prior reviewed bytes retained before current hash refresh"
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+          "path": "docs/controls.md",
+          "sha256": "10abb2200027074be8d363b7c335d77870490b2653221105f7673fc8dbbf0acc",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "final-delta-review",
+          "testIds": [
+            "TestTreeBadgeStatusUpdatesReachSubscribedClientWithoutStructureChange",
+            "TestPreparedTreeExpansionOfTheFocusedItemReachesAClient",
+            "TestEmbeddedTreeBadgeStatusNotificationsArePerItemCoalescedAndPruned"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "The bool refusal contract directs consumers to ordinary SetText fallback; no app-specific helper is duplicated in the SDK.",
+            "performance": "No measured performance gain or acceptance is claimed by this source review.",
+            "lifetime": "The API contract keeps document source/history ownership independent and forbids cross-thread use.",
+            "simplification": "Public usage documentation describes when a consumer may synchronize an immutable source into a derived read-only Source editor.",
+            "testCoverage": "Documentation does not claim runtime qualification.",
+            "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
         }
       ]
     },
@@ -14514,11 +15544,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
-      "sha256": "bffc53e7f59586d12fc560f9a2613cda7c307ee8e741edab7f729ea441ca0fe6",
+      "sha256": "6fa07b4de88a64d1502230bc407e3dae2d29aebca6cde1f4b034d529c2d630c7",
       "category": "planning-document",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "final-delta-review",
+      "reviewer": "lead-p20-source-evidence-review",
       "testIds": [
         "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
         "Editor.DesignRefreshEquationContextAndDraftGuards",
@@ -14548,54 +15578,28 @@ the current performance policy or accept the remaining regressions.
         "Qualification.DocsOnlySixProfileRebind"
       ],
       "findingIds": [],
-      "disposition": "source-reviewed-current-bytes; qualification-separate",
+      "disposition": "reviewed-source-and-native-checkpoint; performance-and-hosted-arm64-open",
       "reviewNotes": {
         "callers": "",
         "ownershipAndLifetime": "",
         "failureAndCancellation": "",
         "testCoverage": ""
       },
-      "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "0f68857bc383f6dccd1dbe793b01a5a1fd70291c",
+      "reviewDeltaStatus": "REVIEWED_CURRENT_TOOLING_AND_SOURCE_BOUND_NATIVE_EVIDENCE",
+      "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "The coordinator routes A0/A6 Tree status, A7 caption and A8 performance work to separate owners and the owning measurement packets. The later Label text/multiline finding records the existing synchronous intrinsic-measure callback retirement boundary and names the narrow guarded setters. Normative/planning text routes the implementation and evidence contract. Execution checkpoint tracks the A2 guard after conditional synchronous Files badge publication. Routes P10 through historical publication, frame diagnostic and outstanding repair/qualification/CI tasks. Adds completion checkpoints for frame diagnostics and the bae1572 matrix while keeping paired performance, CI and focus work separate. The WIP checklist routes the active P10 SDK adoption and the remaining build, consumer, input, performance, and billing gates. It references exact source heads, run IDs, and packet boundaries for future reviewers. WIP routes remaining app, toolchain, profile and timed-performance closeout work. The WIP checklist routes future implementation and evidence work to the linked authoritative performance and qualification packets. WIP and Measurements indexes route readers to exact1d39 qualification and49cf docs-only binding; no compiled product or test input changes. It preserves five original-UI flags, no new starting-redesign flags, the unqualified measured-base policy, unrun late fixes, and the acknowledged-open hosted ARM64 gate; no acceptance claim was introduced. The checklist remains open pending separate original-setter sanitizer failures and final-source qualification; frozen results are not reused for the new source. No performance acceptance is inferred from prose. It explicitly says no separate runtime reproduction and requires final-matrix execution; broader qualification remains open. Keeps performance acceptance, unstable controls, menu/foreground, hosted ARM64 and final publication open; old failed attempts are explicitly preserved. Leaves original findings, quiet-host/policy, exact-pin, hosted ARM64 and interactive gates open; preserves earlier 38/39 attempts. The checklist explicitly leaves SDK/consumer matrices, final input, installed-header/compiler checks, and fresh comparisons open; it keeps the performance flags and RedTilde hosted ARM64 billing gate unresolved. The later hosted ARM64 Debug pass is explicitly not an explanation of the earlier failure. Leaves remaining profile runs and performance acceptance open; prior counterfactual and focused success are not generalized. The checklist retains original-UI regression findings and keeps performance/CI gates open; no runtime behavior changes. Docs sources claim no new runtime/performance execution. ARM64 remains billing-blocked; four findings and SDKPR104 fixture qualification remain open. Earlier failures and gates are intact. Final documentation delta records completed native and keyboard replay plus the unpooled 576-process collection. It explicitly keeps four original-UI flags, 39/72 unstable app controls, unqualified quiet windows, policy-failed SDK CI with 71/72 unstable controls, hosted RedTilde ARM64 and physical input gates open. Allocation tracing remains diagnostic and unqualified; no owner or gain is inferred.",
-        "performance": "No measured performance gain or acceptance is claimed by this source review.",
-        "lifetime": "The checkpoint binds completed native/performance observations to fd24623/cfe875fd and explicitly treats later worktree edits as a separate source revision. Both setters must stop after a captured weak lifetime expires; whole-host destruction is outside this callback contract. Source/cohort identities remain distinct; text owns no runtime state. The WIP record identifies closing guard position and host-detachment concern; it is coordination documentation, not the enduring behavior authority. Plan records which immutable source/build/run identities each checkpoint used; it is a planning ledger, not the normative test contract. Binds diagnostic roles and exact source identities; remains planning text, not a normative test contract. The plan describes SDK-side default-format reuse and Label zero-spacing setter skips while retaining cached layouts; it states there are no application production changes. This is source-plan/provenance only and does not claim native resource ownership from aggregate memory counters. Plan/provenance only; does not alter runtime ownership. This planning record does not own runtime objects; source and native artifact identity remain in the per-profile receipts and frozen matrix. Published summary matches the independently rehashed projection; six receipts,20frozen artifacts,14live files and unchanged compiled identity are retained. Local attributes preserve evidence bytes.",
-        "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
-        "testCoverage": "The named tests are added/expanded obligations but remain unrun for the late source. Previously frozen counts and run identities are described as prior evidence only. TestLabelAndSeparatorTypographySurviveEmbeddedMeasureAndRetirementCallbacks now includes text and multiline changes. These assertions and guard costs remain unrun/unmeasured. Later frozen SDK collection evidence retains AA144 and hosted AB144 receipts with 78 slots each independently recomputed; host coverage passes under load, all six Full hosted payload inventories are replayed, and expected ASan probes are distinct. Policy, unstable controls, baseline overlay provenance and late-source execution remain separate. Documentation review only; no test/build claimed. Reviewed against the current caller and exact lines 57-58; no additional test result inferred from checked plan status. Contains recorded Release frame 39/39 pass and earlier two 38/39 collector attempts, plus 334/c60 ordinary profile and 576-run projection status; no execution by this review. Reports 226,562 audit checks and six builds/three x64 Full runs. Matrix claims were independently hash-replayed; this delta review does not qualify the new SDK candidate or finish the root frame32 offline audit. The two Control/Label cases passed in x64 Release with exit 0 and no skips in the preserved filtered report for 20261025T173947011Z-50056-bdcb586627424546b66301fa47cd66f6. The WindowHost alias case passed in x64 Release with exit 0 and no skips in 20261025T174212111Z-33716-97a55521244e45989086aca1ce46da31. These are focused tests only; no wider matrix or perf acceptance is inferred. References the specific focused red/green and guard-preflight evidence; this plan is not itself a pass. It records 1d39 qualification, and the later 49cf docs-only rebind preserved all six EXE/PDB/ASan artifact hashes. No tests or performance runs were made on 49cf. Full validate.ps1 passes after this delta:38scope cases,415performance assertions,37observer checks,1713independent checks and6malformed rejection cases. Fold/check, Test-Changelog and diffcheck pass.",
-        "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+        "correctness": "Root reviewed the field-loop collision fix: preserve the scheduled block key independently of nested diagnostic field names. A complete valid optional-diagnostic study now exercises all16 native slots; historical optional absence remains readable.",
+        "performance": "The corrected real16-process replay passes4263509 checks. The diagnostic collector remains optional with6490112bytes of declared retained storage; descriptive instrumented measurements do not replace diagnostics-off acceptance. The09f576-process primary study remains unchanged with3 original-UI flags.",
+        "lifetime": "No native runtime/source/SDK pin changes in this delta. All6 native30fb build profiles and3 x64 Full65behavior/23capture profiles remain separately bound to their original artifacts. Restored colored Release10B5/PDB667E has fresh Full65/23 and keyboard9/168 receipts; it is never retagged as matrix ReleaseFE192.",
+        "simplification": "One distinct scheduled-block variable fixes the auditor rather than duplicating parsing or changing evidence schemas. Packet publication contains metadata and hashes only, with byte-preserving attributes and per-packet manifests.",
+        "testCoverage": "Root all-slot regression accepts both valid optional schemas and rejects all20 malformed receipts including7 editor variants. Root source review retains earlier independent2321 selftests and2768 tooling assertions as prior evidence; current final validator execution is recorded separately, without relabeling prior runs.",
+        "qualificationBoundary": "Current-source final paired performance, SDK policy calibration and exact cursor-restoration cause remainOPEN. Hosted applicationARM64 is blocked before native execution by billing; ARM64 cross-builds establish no runtime pass. Plans remainWIP."
       },
       "reviewDeltaTestIds": [
-        "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
-        "Editor.DesignRefreshEquationContextAndDraftGuards",
-        "TestTreeBadgeStatusUpdatesReachSubscribedClientWithoutStructureChange",
-        "TestPreparedTreeExpansionOfTheFocusedItemReachesAClient",
-        "TestEmbeddedTreeBadgeStatusNotificationsArePerItemCoalescedAndPruned",
-        "TestLabelAndSeparatorTypographySurviveEmbeddedMeasureAndRetirementCallbacks",
-        "SDK hosted packet lead check PASS: 6 profiles, 126 suites, 496 payload files, 2 ASan probes",
-        "SDK local matrix independently audited: 57 suite bindings, 288 payload files",
-        "App performance projection lead check: 48 rows, 16,003 independent primary checks",
-        "be41564 BuildOnly equivalence audit: six profiles, byte-identical artifacts",
-        "review-ledger-20261025T110505Z-0d7973e4ce1e47bf8b8ef685df64cec7.json: applied,534 entries,88 reviewed delta paths,zero unresolved",
-        "final-ledger-first-apply-lead-replay-20261025.json: 534 current SHA-256/reviewer/unique-path checks",
-        "review-ledger-20261025T111413Z-ed595c21ff2c4af7b630c64589e6454f.json: applied,536 entries,90 reviewed delta paths,zero unresolved",
-        "final-ledger-missing-projection-rows-v2-20261025.json: both 78-row baff43d8 projections reviewed against existing numeric evidence and mirror bytes",
-        "app-bae1572-x64-Release-test.log",
-        "app-bae1572-x64-Debug-test.log",
-        "app-bae1572-x64-ASan-Debug-test.log",
-        "performance-c60e9ca",
-        "fixed 32-process frame diagnostic cohort",
-        "bae1572 x64 Release/Debug/ASan Full",
-        "TestLabelZeroSpacingOverrideMatchesDefaultLayout",
-        "TestLabelTypographyCharacterSpacingUsesRequestedTotal",
-        "TestWindowHostConfiguredTextFormatsAliasExactRoleDefaults",
-        "Editor.HiddenCurrentBlockPublishesLatestOnReveal",
-        "Tooling.SourceAwareBuildReceiptAdmission",
-        "Qualification.DocsOnlySixProfileRebind",
-        "Qualification.fc6c62d.1871PayloadFiles.69CapturePairs",
-        "Keyboard.0f68857b.9Stages.168Events.9PayloadHashes",
-        "Performance.0f68857b.576Reports.25177Checks.72Rows.864Effects.1728Drifts.936Cells",
-        "Changelog.FoldAndCheck.20261026"
+        "EditorPreparationDiagnosticsOracle",
+        "Tests/Scope.Tests.Performance.Diagnostics.ps1:editor-preparation-all-slots-valid",
+        "qualification-30fb0c2",
+        "restored-colored-Release-Full-and-keyboard"
       ],
       "reviewDeltaFindingIds": [],
       "reviewDeltaDate": "2026-10-26",
@@ -14757,8 +15761,208 @@ the current performance policy or accept the remaining regressions.
           "reviewStatus": "reviewed-delta",
           "reviewer": "final-delta-review",
           "disposition": "Prior reviewed bytes retained before current documentation/evidence refresh."
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "0f68857bc383f6dccd1dbe793b01a5a1fd70291c",
+          "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
+          "sha256": "bffc53e7f59586d12fc560f9a2613cda7c307ee8e741edab7f729ea441ca0fe6",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "final-delta-review",
+          "testIds": [
+            "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
+            "Editor.DesignRefreshEquationContextAndDraftGuards",
+            "TestTreeBadgeStatusUpdatesReachSubscribedClientWithoutStructureChange",
+            "TestPreparedTreeExpansionOfTheFocusedItemReachesAClient",
+            "TestEmbeddedTreeBadgeStatusNotificationsArePerItemCoalescedAndPruned",
+            "TestLabelAndSeparatorTypographySurviveEmbeddedMeasureAndRetirementCallbacks",
+            "SDK hosted packet lead check PASS: 6 profiles, 126 suites, 496 payload files, 2 ASan probes",
+            "SDK local matrix independently audited: 57 suite bindings, 288 payload files",
+            "App performance projection lead check: 48 rows, 16,003 independent primary checks",
+            "be41564 BuildOnly equivalence audit: six profiles, byte-identical artifacts",
+            "review-ledger-20261025T110505Z-0d7973e4ce1e47bf8b8ef685df64cec7.json: applied,534 entries,88 reviewed delta paths,zero unresolved",
+            "final-ledger-first-apply-lead-replay-20261025.json: 534 current SHA-256/reviewer/unique-path checks",
+            "review-ledger-20261025T111413Z-ed595c21ff2c4af7b630c64589e6454f.json: applied,536 entries,90 reviewed delta paths,zero unresolved",
+            "final-ledger-missing-projection-rows-v2-20261025.json: both 78-row baff43d8 projections reviewed against existing numeric evidence and mirror bytes",
+            "app-bae1572-x64-Release-test.log",
+            "app-bae1572-x64-Debug-test.log",
+            "app-bae1572-x64-ASan-Debug-test.log",
+            "performance-c60e9ca",
+            "fixed 32-process frame diagnostic cohort",
+            "bae1572 x64 Release/Debug/ASan Full",
+            "TestLabelZeroSpacingOverrideMatchesDefaultLayout",
+            "TestLabelTypographyCharacterSpacingUsesRequestedTotal",
+            "TestWindowHostConfiguredTextFormatsAliasExactRoleDefaults",
+            "Editor.HiddenCurrentBlockPublishesLatestOnReveal",
+            "Tooling.SourceAwareBuildReceiptAdmission",
+            "Qualification.DocsOnlySixProfileRebind"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "The coordinator routes A0/A6 Tree status, A7 caption and A8 performance work to separate owners and the owning measurement packets. The later Label text/multiline finding records the existing synchronous intrinsic-measure callback retirement boundary and names the narrow guarded setters. Normative/planning text routes the implementation and evidence contract. Execution checkpoint tracks the A2 guard after conditional synchronous Files badge publication. Routes P10 through historical publication, frame diagnostic and outstanding repair/qualification/CI tasks. Adds completion checkpoints for frame diagnostics and the bae1572 matrix while keeping paired performance, CI and focus work separate. The WIP checklist routes the active P10 SDK adoption and the remaining build, consumer, input, performance, and billing gates. It references exact source heads, run IDs, and packet boundaries for future reviewers. WIP routes remaining app, toolchain, profile and timed-performance closeout work. The WIP checklist routes future implementation and evidence work to the linked authoritative performance and qualification packets. WIP and Measurements indexes route readers to exact1d39 qualification and49cf docs-only binding; no compiled product or test input changes. It preserves five original-UI flags, no new starting-redesign flags, the unqualified measured-base policy, unrun late fixes, and the acknowledged-open hosted ARM64 gate; no acceptance claim was introduced. The checklist remains open pending separate original-setter sanitizer failures and final-source qualification; frozen results are not reused for the new source. No performance acceptance is inferred from prose. It explicitly says no separate runtime reproduction and requires final-matrix execution; broader qualification remains open. Keeps performance acceptance, unstable controls, menu/foreground, hosted ARM64 and final publication open; old failed attempts are explicitly preserved. Leaves original findings, quiet-host/policy, exact-pin, hosted ARM64 and interactive gates open; preserves earlier 38/39 attempts. The checklist explicitly leaves SDK/consumer matrices, final input, installed-header/compiler checks, and fresh comparisons open; it keeps the performance flags and RedTilde hosted ARM64 billing gate unresolved. The later hosted ARM64 Debug pass is explicitly not an explanation of the earlier failure. Leaves remaining profile runs and performance acceptance open; prior counterfactual and focused success are not generalized. The checklist retains original-UI regression findings and keeps performance/CI gates open; no runtime behavior changes. Docs sources claim no new runtime/performance execution. ARM64 remains billing-blocked; four findings and SDKPR104 fixture qualification remain open. Earlier failures and gates are intact. Final documentation delta records completed native and keyboard replay plus the unpooled 576-process collection. It explicitly keeps four original-UI flags, 39/72 unstable app controls, unqualified quiet windows, policy-failed SDK CI with 71/72 unstable controls, hosted RedTilde ARM64 and physical input gates open. Allocation tracing remains diagnostic and unqualified; no owner or gain is inferred.",
+            "performance": "No measured performance gain or acceptance is claimed by this source review.",
+            "lifetime": "The checkpoint binds completed native/performance observations to fd24623/cfe875fd and explicitly treats later worktree edits as a separate source revision. Both setters must stop after a captured weak lifetime expires; whole-host destruction is outside this callback contract. Source/cohort identities remain distinct; text owns no runtime state. The WIP record identifies closing guard position and host-detachment concern; it is coordination documentation, not the enduring behavior authority. Plan records which immutable source/build/run identities each checkpoint used; it is a planning ledger, not the normative test contract. Binds diagnostic roles and exact source identities; remains planning text, not a normative test contract. The plan describes SDK-side default-format reuse and Label zero-spacing setter skips while retaining cached layouts; it states there are no application production changes. This is source-plan/provenance only and does not claim native resource ownership from aggregate memory counters. Plan/provenance only; does not alter runtime ownership. This planning record does not own runtime objects; source and native artifact identity remain in the per-profile receipts and frozen matrix. Published summary matches the independently rehashed projection; six receipts,20frozen artifacts,14live files and unchanged compiled identity are retained. Local attributes preserve evidence bytes.",
+            "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
+            "testCoverage": "The named tests are added/expanded obligations but remain unrun for the late source. Previously frozen counts and run identities are described as prior evidence only. TestLabelAndSeparatorTypographySurviveEmbeddedMeasureAndRetirementCallbacks now includes text and multiline changes. These assertions and guard costs remain unrun/unmeasured. Later frozen SDK collection evidence retains AA144 and hosted AB144 receipts with 78 slots each independently recomputed; host coverage passes under load, all six Full hosted payload inventories are replayed, and expected ASan probes are distinct. Policy, unstable controls, baseline overlay provenance and late-source execution remain separate. Documentation review only; no test/build claimed. Reviewed against the current caller and exact lines 57-58; no additional test result inferred from checked plan status. Contains recorded Release frame 39/39 pass and earlier two 38/39 collector attempts, plus 334/c60 ordinary profile and 576-run projection status; no execution by this review. Reports 226,562 audit checks and six builds/three x64 Full runs. Matrix claims were independently hash-replayed; this delta review does not qualify the new SDK candidate or finish the root frame32 offline audit. The two Control/Label cases passed in x64 Release with exit 0 and no skips in the preserved filtered report for 20261025T173947011Z-50056-bdcb586627424546b66301fa47cd66f6. The WindowHost alias case passed in x64 Release with exit 0 and no skips in 20261025T174212111Z-33716-97a55521244e45989086aca1ce46da31. These are focused tests only; no wider matrix or perf acceptance is inferred. References the specific focused red/green and guard-preflight evidence; this plan is not itself a pass. It records 1d39 qualification, and the later 49cf docs-only rebind preserved all six EXE/PDB/ASan artifact hashes. No tests or performance runs were made on 49cf. Full validate.ps1 passes after this delta:38scope cases,415performance assertions,37observer checks,1713independent checks and6malformed rejection cases. Fold/check, Test-Changelog and diffcheck pass.",
+            "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T08:06:19.1562608Z",
+          "priorReviewBaseCommit": null,
+          "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
+          "sha256": "2e41d262ded3a5810a72a436065587624f998aa23ce3858f69228872290ae742",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p18-delta-review",
+          "testIds": [
+            "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
+            "Editor.DesignRefreshEquationContextAndDraftGuards",
+            "TestTreeBadgeStatusUpdatesReachSubscribedClientWithoutStructureChange",
+            "TestPreparedTreeExpansionOfTheFocusedItemReachesAClient",
+            "TestEmbeddedTreeBadgeStatusNotificationsArePerItemCoalescedAndPruned",
+            "TestLabelAndSeparatorTypographySurviveEmbeddedMeasureAndRetirementCallbacks",
+            "SDK hosted packet lead check PASS: 6 profiles, 126 suites, 496 payload files, 2 ASan probes",
+            "SDK local matrix independently audited: 57 suite bindings, 288 payload files",
+            "App performance projection lead check: 48 rows, 16,003 independent primary checks",
+            "be41564 BuildOnly equivalence audit: six profiles, byte-identical artifacts",
+            "review-ledger-20261025T110505Z-0d7973e4ce1e47bf8b8ef685df64cec7.json: applied,534 entries,88 reviewed delta paths,zero unresolved",
+            "final-ledger-first-apply-lead-replay-20261025.json: 534 current SHA-256/reviewer/unique-path checks",
+            "review-ledger-20261025T111413Z-ed595c21ff2c4af7b630c64589e6454f.json: applied,536 entries,90 reviewed delta paths,zero unresolved",
+            "final-ledger-missing-projection-rows-v2-20261025.json: both 78-row baff43d8 projections reviewed against existing numeric evidence and mirror bytes",
+            "app-bae1572-x64-Release-test.log",
+            "app-bae1572-x64-Debug-test.log",
+            "app-bae1572-x64-ASan-Debug-test.log",
+            "performance-c60e9ca",
+            "fixed 32-process frame diagnostic cohort",
+            "bae1572 x64 Release/Debug/ASan Full",
+            "TestLabelZeroSpacingOverrideMatchesDefaultLayout",
+            "TestLabelTypographyCharacterSpacingUsesRequestedTotal",
+            "TestWindowHostConfiguredTextFormatsAliasExactRoleDefaults",
+            "Editor.HiddenCurrentBlockPublishesLatestOnReveal",
+            "Tooling.SourceAwareBuildReceiptAdmission",
+            "Qualification.DocsOnlySixProfileRebind"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Reviewed the current explicit source/documentation delta and preserved historical notes/hashes.",
+            "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+            "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+            "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+            "testCoverage": "Source review only unless the named P18 checkpoint states an actual executed result.",
+            "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T08:46:27.5952268Z",
+          "priorReviewBaseCommit": null,
+          "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
+          "sha256": "96467052080c6be3ac082a647017327db4ed79e3fe3b509f26ecb8d972650f45",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p18-delta-review",
+          "testIds": [
+            "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
+            "Editor.DesignRefreshEquationContextAndDraftGuards",
+            "TestTreeBadgeStatusUpdatesReachSubscribedClientWithoutStructureChange",
+            "TestPreparedTreeExpansionOfTheFocusedItemReachesAClient",
+            "TestEmbeddedTreeBadgeStatusNotificationsArePerItemCoalescedAndPruned",
+            "TestLabelAndSeparatorTypographySurviveEmbeddedMeasureAndRetirementCallbacks",
+            "SDK hosted packet lead check PASS: 6 profiles, 126 suites, 496 payload files, 2 ASan probes",
+            "SDK local matrix independently audited: 57 suite bindings, 288 payload files",
+            "App performance projection lead check: 48 rows, 16,003 independent primary checks",
+            "be41564 BuildOnly equivalence audit: six profiles, byte-identical artifacts",
+            "review-ledger-20261025T110505Z-0d7973e4ce1e47bf8b8ef685df64cec7.json: applied,534 entries,88 reviewed delta paths,zero unresolved",
+            "final-ledger-first-apply-lead-replay-20261025.json: 534 current SHA-256/reviewer/unique-path checks",
+            "review-ledger-20261025T111413Z-ed595c21ff2c4af7b630c64589e6454f.json: applied,536 entries,90 reviewed delta paths,zero unresolved",
+            "final-ledger-missing-projection-rows-v2-20261025.json: both 78-row baff43d8 projections reviewed against existing numeric evidence and mirror bytes",
+            "app-bae1572-x64-Release-test.log",
+            "app-bae1572-x64-Debug-test.log",
+            "app-bae1572-x64-ASan-Debug-test.log",
+            "performance-c60e9ca",
+            "fixed 32-process frame diagnostic cohort",
+            "bae1572 x64 Release/Debug/ASan Full",
+            "TestLabelZeroSpacingOverrideMatchesDefaultLayout",
+            "TestLabelTypographyCharacterSpacingUsesRequestedTotal",
+            "TestWindowHostConfiguredTextFormatsAliasExactRoleDefaults",
+            "Editor.HiddenCurrentBlockPublishesLatestOnReveal",
+            "Tooling.SourceAwareBuildReceiptAdmission",
+            "Qualification.DocsOnlySixProfileRebind"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Reviewed the current explicit source/documentation delta and preserved historical notes/hashes.",
+            "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+            "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+            "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+            "testCoverage": "Source review only unless the named P18 checkpoint states an actual executed result.",
+            "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T12:09:49.5557154Z",
+          "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
+          "sha256": "307600b312ad7514471e6f675008bafce86d7ca586b7d3f94d9d325555bb415e",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p18-delta-review",
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Reviewed the current explicit source/documentation delta and preserved historical notes/hashes.",
+            "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+            "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+            "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+            "testCoverage": "Source review only unless the named P18 checkpoint states an actual executed result.",
+            "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T14:28:47.8008928Z",
+          "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
+          "sha256": "1dc4d1412d0c5e6547a94371de98126791f214b70a12484521430679629d5dc0",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-p19-evidence-closeout-review",
+          "disposition": "reviewed-source-bound-evidence-and-open-gates",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Reviewed current primary576-process results, unchanged native16be/09f bindings, exact407 SDK pin and published packet. Distinguishes3 current original-UI flags from prior4; actualPR16 base has0 resolved changes.",
+            "performance": "All36/72 unstable controls and six non-quiet observation windows remain explicit; no causal gain or performance acceptance. Optional new diagnostic is pending native qualification.",
+            "testCoverage": "Reviewed25,202-check primary audit,576 rawhash replay and optional malformed-evidence checks. SDK testfixfcd is a checkpoint, not a pass; CI108 failures remain retained.",
+            "qualificationBoundary": "Hosted RedTilde ARM64 billing gate, currentSDK base-policy qualification and remaining original-UI findings stayOPEN. WIP remains active."
+          }
         }
-      ]
+      ],
+      "reviewDeltaSourceState": "working-tree-source-bound-by-hash",
+      "reviewDeltaParentCommit": "30fb0c2dc0bcd055aad99dc49a8cec8efdc56691"
     },
     {
       "repository": "RedTilde",
@@ -14953,35 +16157,35 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Measurements/README.md",
-      "sha256": "15c2a7dd8c40c8c243154ec11fde25c7b517f5139cf2b9b1b0b6b0b6772e93d3",
+      "sha256": "8fca79695e5e984ad0d6b68773b747cd79accdc3ee1e92d31e5a28d790187c0d",
       "category": "measurement-index",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "final-delta-review",
+      "reviewer": "lead-p20-source-evidence-review",
       "testIds": [],
       "findingIds": [],
-      "disposition": "source-reviewed-current-bytes; qualification-separate",
+      "disposition": "reviewed-source-and-native-checkpoint; performance-and-hosted-arm64-open",
       "reviewNotes": {
         "callers": "",
         "ownershipAndLifetime": "",
         "failureAndCancellation": "",
         "testCoverage": ""
       },
-      "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "0f68857bc383f6dccd1dbe793b01a5a1fd70291c",
+      "reviewDeltaStatus": "REVIEWED_CURRENT_TOOLING_AND_SOURCE_BOUND_NATIVE_EVIDENCE",
+      "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "The index routes readers to the new original-UI and starting-redesign packets and keeps the prior seven-flag packet separately linked. Public measurement/evidence packet documents source-bound inputs, prior cohorts, or qualification summaries; it is not a runtime caller. The index marks host/control uncertainty, pending auditor-file hash binding and final qualification; it makes no quiet-host or acceptance claim. No failure path is introduced. The packet keeps cohorts separate and does not convert counters/receipts into performance acceptance. Final documentation delta records completed native and keyboard replay plus the unpooled 576-process collection. It explicitly keeps four original-UI flags, 39/72 unstable app controls, unqualified quiet windows, policy-failed SDK CI with 71/72 unstable controls, hosted RedTilde ARM64 and physical input gates open. Allocation tracing remains diagnostic and unqualified; no owner or gain is inferred.",
-        "performance": "No measured performance gain or acceptance is claimed by this source review.",
-        "lifetime": "Each linked packet identifies frozen fd24623/cfe875fd ownership and keeps its source bindings and raw evidence in the private evidence roots. Evidence only; raw measurement ownership and cohort boundaries are described in the packet. No runtime resource ownership inferred.",
-        "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
-        "testCoverage": "This is an evidence index, not a test artifact. It reports the frozen run/check counts but does not claim execution for later source changes. Subsequent hash binding verifies original/starting audit digests (7988/8015 checks), corrected resource audit and stage audit (5589), with all metric/numeric leaves unchanged and privacy checks passed; final repository validation remains pending. Provenance-only review: file/hash presence and packet role recorded, with no invented line-level source review or acceptance claim.",
-        "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+        "correctness": "Root reviewed the field-loop collision fix: preserve the scheduled block key independently of nested diagnostic field names. A complete valid optional-diagnostic study now exercises all16 native slots; historical optional absence remains readable.",
+        "performance": "The corrected real16-process replay passes4263509 checks. The diagnostic collector remains optional with6490112bytes of declared retained storage; descriptive instrumented measurements do not replace diagnostics-off acceptance. The09f576-process primary study remains unchanged with3 original-UI flags.",
+        "lifetime": "No native runtime/source/SDK pin changes in this delta. All6 native30fb build profiles and3 x64 Full65behavior/23capture profiles remain separately bound to their original artifacts. Restored colored Release10B5/PDB667E has fresh Full65/23 and keyboard9/168 receipts; it is never retagged as matrix ReleaseFE192.",
+        "simplification": "One distinct scheduled-block variable fixes the auditor rather than duplicating parsing or changing evidence schemas. Packet publication contains metadata and hashes only, with byte-preserving attributes and per-packet manifests.",
+        "testCoverage": "Root all-slot regression accepts both valid optional schemas and rejects all20 malformed receipts including7 editor variants. Root source review retains earlier independent2321 selftests and2768 tooling assertions as prior evidence; current final validator execution is recorded separately, without relabeling prior runs.",
+        "qualificationBoundary": "Current-source final paired performance, SDK policy calibration and exact cursor-restoration cause remainOPEN. Hosted applicationARM64 is blocked before native execution by billing; ARM64 cross-builds establish no runtime pass. Plans remainWIP."
       },
       "reviewDeltaTestIds": [
-        "Qualification.fc6c62d.1871PayloadFiles.69CapturePairs",
-        "Keyboard.0f68857b.9Stages.168Events.9PayloadHashes",
-        "Performance.0f68857b.576Reports.25177Checks.72Rows.864Effects.1728Drifts.936Cells",
-        "Changelog.FoldAndCheck.20261026"
+        "EditorPreparationDiagnosticsOracle",
+        "Tests/Scope.Tests.Performance.Diagnostics.ps1:editor-preparation-all-slots-valid",
+        "qualification-30fb0c2",
+        "restored-colored-Release-Full-and-keyboard"
       ],
       "reviewDeltaFindingIds": [],
       "reviewDeltaDate": "2026-10-26",
@@ -15029,8 +16233,77 @@ the current performance policy or accept the remaining regressions.
           "reviewStatus": "reviewed-delta",
           "reviewer": "final-delta-review",
           "disposition": "Prior reviewed bytes retained before current documentation/evidence refresh."
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "0f68857bc383f6dccd1dbe793b01a5a1fd70291c",
+          "path": "Measurements/README.md",
+          "sha256": "15c2a7dd8c40c8c243154ec11fde25c7b517f5139cf2b9b1b0b6b0b6772e93d3",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "final-delta-review",
+          "testIds": [],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "The index routes readers to the new original-UI and starting-redesign packets and keeps the prior seven-flag packet separately linked. Public measurement/evidence packet documents source-bound inputs, prior cohorts, or qualification summaries; it is not a runtime caller. The index marks host/control uncertainty, pending auditor-file hash binding and final qualification; it makes no quiet-host or acceptance claim. No failure path is introduced. The packet keeps cohorts separate and does not convert counters/receipts into performance acceptance. Final documentation delta records completed native and keyboard replay plus the unpooled 576-process collection. It explicitly keeps four original-UI flags, 39/72 unstable app controls, unqualified quiet windows, policy-failed SDK CI with 71/72 unstable controls, hosted RedTilde ARM64 and physical input gates open. Allocation tracing remains diagnostic and unqualified; no owner or gain is inferred.",
+            "performance": "No measured performance gain or acceptance is claimed by this source review.",
+            "lifetime": "Each linked packet identifies frozen fd24623/cfe875fd ownership and keeps its source bindings and raw evidence in the private evidence roots. Evidence only; raw measurement ownership and cohort boundaries are described in the packet. No runtime resource ownership inferred.",
+            "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
+            "testCoverage": "This is an evidence index, not a test artifact. It reports the frozen run/check counts but does not claim execution for later source changes. Subsequent hash binding verifies original/starting audit digests (7988/8015 checks), corrected resource audit and stage audit (5589), with all metric/numeric leaves unchanged and privacy checks passed; final repository validation remains pending. Provenance-only review: file/hash presence and packet role recorded, with no invented line-level source review or acceptance claim.",
+            "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T12:09:49.5793781Z",
+          "path": "Measurements/README.md",
+          "sha256": "312c451feb13391380504ab8f90ff2a28a141e286df2eea91f32eb63207a16fe",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p18-delta-review",
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Reviewed the current explicit source/documentation delta and preserved historical notes/hashes.",
+            "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+            "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+            "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+            "testCoverage": "Source review only unless the named P18 checkpoint states an actual executed result.",
+            "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T14:28:47.8038410Z",
+          "path": "Measurements/README.md",
+          "sha256": "e68deed46ed388f35cdc0a83ad924b577ffa00296c07a09fc0d50fead0b2cee1",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-p19-evidence-closeout-review",
+          "disposition": "reviewed-source-bound-evidence-and-open-gates",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Reviewed current primary576-process results, unchanged native16be/09f bindings, exact407 SDK pin and published packet. Distinguishes3 current original-UI flags from prior4; actualPR16 base has0 resolved changes.",
+            "performance": "All36/72 unstable controls and six non-quiet observation windows remain explicit; no causal gain or performance acceptance. Optional new diagnostic is pending native qualification.",
+            "testCoverage": "Reviewed25,202-check primary audit,576 rawhash replay and optional malformed-evidence checks. SDK testfixfcd is a checkpoint, not a pass; CI108 failures remain retained.",
+            "qualificationBoundary": "Hosted RedTilde ARM64 billing gate, currentSDK base-policy qualification and remaining original-UI findings stayOPEN. WIP remains active."
+          }
         }
-      ]
+      ],
+      "reviewDeltaSourceState": "working-tree-source-bound-by-hash",
+      "reviewDeltaParentCommit": "30fb0c2dc0bcd055aad99dc49a8cec8efdc56691"
     },
     {
       "repository": "RedTilde",
@@ -15218,18 +16491,18 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "DxUi",
       "path": "Measurements/README.md",
-      "sha256": "f2d0c2cfe1a57b8225d33b7b729e071049cd8ec2a38432b51bd32abf05facf36",
+      "sha256": "8a943e7375c9625270ee993a1ed0f8ad86fe07841236840269cb5c6936794985",
       "category": "documentation-projection",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "final-delta-review",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "594d67fb local SDK matrix",
         "baff43d8 historical hosted paired audit",
         "four 594d67fb packet summaries and neighboring README files"
       ],
       "findingIds": [],
-      "disposition": "Delta review only; full-file review and runtime qualification remain separate.",
+      "disposition": "source-reviewed-current-bytes; qualification-separate",
       "reviewNotes": {
         "callers": "",
         "ownershipAndLifetime": "",
@@ -15237,18 +16510,22 @@ the current performance policy or accept the remaining regressions.
         "testCoverage": ""
       },
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "30fccffe13b2b07a5369f384943a35c23d836761",
+      "reviewDeltaCommit": "4077f57df8207eac6c39c43437feb45b19d23cf8",
       "reviewDeltaNotes": {
-        "correctness": "Measurement packets preserve hosted/local cohort summaries and projected evidence; they are not code callers. Failed, inconclusive, and successful cohorts remain separately identified; no result is silently promoted.",
-        "performance": "No performance gain is claimed from this source-review delta; runtime and performance qualification remain separate.",
-        "lifetime": "Provenance only; no allocator/resource ownership inferred from the packets.",
-        "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
-        "testCoverage": "No line-level source review or performance acceptance is claimed for measurement data files.",
-        "qualificationBoundary": "Source review only. Runtime/platform/performance evidence and remaining gates are recorded separately in the coordinator; this ledger update confers no execution pass."
+        "correctness": "Reviewed the current explicit source/documentation delta and preserved historical notes/hashes.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "Source review only unless the named P18 checkpoint states an actual executed result.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
       },
-      "reviewDeltaTestIds": [],
+      "reviewDeltaTestIds": [
+        "594d67fb local SDK matrix",
+        "baff43d8 historical hosted paired audit",
+        "four 594d67fb packet summaries and neighboring README files"
+      ],
       "reviewDeltaFindingIds": [],
-      "reviewDeltaDate": "2026-10-25",
+      "reviewDeltaDate": "2026-10-26",
       "reviewHistory": [
         {
           "recordedUtc": "2026-10-25T23:22:17.6573094Z",
@@ -15277,17 +16554,46 @@ the current performance policy or accept the remaining regressions.
             "testCoverage": "Byte-for-byte copy verified against the finalized RedTilde packet; both files passed SHA-256 equality and privacy checks. The structured packet retains 156 producer-matching metric rows and bound independent audits. No builds, tests, or native execution were run for this mirror. Six-build, 57-suite, 74-artifact, and 288-payload counts match the audited packet. Counts and outcomes agree with their packet READMEs: 57 local x64 suites, six hosted 21-suite profiles, four confirmed foreground suites, and 78 paired metric rows.",
             "qualificationBoundary": "Source review only. Runtime/platform/performance evidence and remaining gates are recorded separately in the coordinator; this ledger update confers no execution pass."
           }
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "30fccffe13b2b07a5369f384943a35c23d836761",
+          "path": "Measurements/README.md",
+          "sha256": "f2d0c2cfe1a57b8225d33b7b729e071049cd8ec2a38432b51bd32abf05facf36",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "final-delta-review",
+          "testIds": [
+            "594d67fb local SDK matrix",
+            "baff43d8 historical hosted paired audit",
+            "four 594d67fb packet summaries and neighboring README files"
+          ],
+          "findingIds": [],
+          "disposition": "Delta review only; full-file review and runtime qualification remain separate.",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Measurement packets preserve hosted/local cohort summaries and projected evidence; they are not code callers. Failed, inconclusive, and successful cohorts remain separately identified; no result is silently promoted.",
+            "performance": "No performance gain is claimed from this source-review delta; runtime and performance qualification remain separate.",
+            "lifetime": "Provenance only; no allocator/resource ownership inferred from the packets.",
+            "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
+            "testCoverage": "No line-level source review or performance acceptance is claimed for measurement data files.",
+            "qualificationBoundary": "Source review only. Runtime/platform/performance evidence and remaining gates are recorded separately in the coordinator; this ledger update confers no execution pass."
+          }
         }
       ]
     },
     {
       "repository": "RedTilde",
       "path": "CHANGELOG.md",
-      "sha256": "ac4284ac18e9a4898c324da79f136743027432007bcda020f5b0101bb3992aa0",
+      "sha256": "419fec68a1c34bf40e533fc1fa5d11663d0e62b5056c5c14a6c2c2425b7e3a52",
       "category": "generated-changelog",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "final-delta-review",
+      "reviewer": "lead-p20-source-evidence-review",
       "testIds": [
         "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
         "Window.CaptionRetriesFailedAndSupersededNativeWrites",
@@ -15302,39 +16608,28 @@ the current performance policy or accept the remaining regressions.
         "Qualification.DocsOnlySixProfileRebind"
       ],
       "findingIds": [],
-      "disposition": "source-reviewed-current-bytes; qualification-separate",
+      "disposition": "reviewed-source-and-native-checkpoint; performance-and-hosted-arm64-open",
       "reviewNotes": {
         "callers": "",
         "ownershipAndLifetime": "",
         "failureAndCancellation": "",
         "testCoverage": ""
       },
-      "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "0f68857bc383f6dccd1dbe793b01a5a1fd70291c",
+      "reviewDeltaStatus": "REVIEWED_CURRENT_TOOLING_AND_SOURCE_BOUND_NATIVE_EVIDENCE",
+      "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "Generated changelog publishes repository changes. Reviewed the newly folded 25 October entries at the top: Files-badge close guard, caption transitions, caption-close guard, dirty-badge status, and DxUi pin. Generated release-note projection summarizes the opt-in frame diagnostic, preserved three-cohort publication, and still-open performance/platform gates. Generated notes summarize the bae1572 local matrix and frame-stage diagnostic publication. The Unreleased summary is consumed as the repository-facing summary of current adoption and qualification status; it points to the SDK2fed pin and retained open performance/hosted-ARM64 gates. Generated Unreleased release summary for the implementation and evidence updates. Release-note readers consume this generated entry; no runtime code calls it. The related evidence packet is linked from the updated WIP plan. WIP and Measurements indexes route readers to exact1d39 qualification and49cf docs-only binding; no compiled product or test input changes. Entry does not claim acceptance. Entries state the conditional Files accessibility re-entry guard without claiming a separate runtime reproduction, and preserve pending final-profile/performance limits. Text explicitly keeps unstable controls, foreground, acceptance and billing-blocked hosted ARM64 open; this entry must remain folded from its source fragment. Keeps original five findings, quiet-host/policy, exact-pin and billing-blocked hosted ARM64 open. The note preserves that candidate qualification/fresh comparisons are pending and that hosted ARM64 is billing-blocked; it does not turn pending gates into passes or suppress any failure. Summary wording preserves pending profile qualification and open performance acceptance. An inaccurate generated entry could overstate progress; the entry preserves that performance and qualification gates remain open. No runtime failure or cancellation path is affected. Docs sources claim no new runtime/performance execution. ARM64 remains billing-blocked; four findings and SDKPR104 fixture qualification remain open. Earlier failures and gates are intact. Final documentation delta records completed native and keyboard replay plus the unpooled 576-process collection. It explicitly keeps four original-UI flags, 39/72 unstable app controls, unqualified quiet windows, policy-failed SDK CI with 71/72 unstable controls, hosted RedTilde ARM64 and physical input gates open. Allocation tracing remains diagnostic and unqualified; no owner or gain is inferred.",
-        "performance": "No measured performance gain or acceptance is claimed by this source review.",
-        "lifetime": "Publication text has no runtime ownership. Changelog summarizes app-owned behavior and upstream SDK ownership; it contains no raw diagnostics. Generated from Changes fragments; it does not alter application or test runtime ownership. Folded entries link source-bound evidence and keep primary and diagnostic cohorts separate. This is generated release-note text, not runtime code. It makes the adopted SDK pin and absence of public-header/dependency additions explicit; the fold does not own or execute SDK resources. Generated text only; no runtime ownership. The folded changelog is generated documentation owned by the repository changelog workflow, with no runtime resource or object lifetime. Published summary matches the independently rehashed projection; six receipts,20frozen artifacts,14live files and unchanged compiled identity are retained. Local attributes preserve evidence bytes.",
-        "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
-        "testCoverage": "Prior fold evidence retained; no commands reran. The caption-close and badge entries were checked against the receipt-bound 36/36 x64 ASan Editor suite. The newly folded Files-badge Close guard remains source-review only; no dedicated runtime reproduction or post-guard pass is claimed. This delta does not re-review historical changelog content. Review only: target commit contains the two additions; changelog folding/test commands were not run in this delta review. Supported by the new qualification and frame-stage packets; entries do not claim a new acceptance result. Source diff review confirms one added Unreleased bullet. No changelog validation/test execution is claimed by this review delta. No changelog command outcome is claimed by this per-file review. No product test was run for this documentation delta. Canonical changelog validation and folding remain separate publication checks. Full validate.ps1 passes after this delta:38scope cases,415performance assertions,37observer checks,1713independent checks and6malformed rejection cases. Fold/check, Test-Changelog and diffcheck pass.",
-        "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+        "correctness": "Root reviewed the field-loop collision fix: preserve the scheduled block key independently of nested diagnostic field names. A complete valid optional-diagnostic study now exercises all16 native slots; historical optional absence remains readable.",
+        "performance": "The corrected real16-process replay passes4263509 checks. The diagnostic collector remains optional with6490112bytes of declared retained storage; descriptive instrumented measurements do not replace diagnostics-off acceptance. The09f576-process primary study remains unchanged with3 original-UI flags.",
+        "lifetime": "No native runtime/source/SDK pin changes in this delta. All6 native30fb build profiles and3 x64 Full65behavior/23capture profiles remain separately bound to their original artifacts. Restored colored Release10B5/PDB667E has fresh Full65/23 and keyboard9/168 receipts; it is never retagged as matrix ReleaseFE192.",
+        "simplification": "One distinct scheduled-block variable fixes the auditor rather than duplicating parsing or changing evidence schemas. Packet publication contains metadata and hashes only, with byte-preserving attributes and per-packet manifests.",
+        "testCoverage": "Root all-slot regression accepts both valid optional schemas and rejects all20 malformed receipts including7 editor variants. Root source review retains earlier independent2321 selftests and2768 tooling assertions as prior evidence; current final validator execution is recorded separately, without relabeling prior runs.",
+        "qualificationBoundary": "Current-source final paired performance, SDK policy calibration and exact cursor-restoration cause remainOPEN. Hosted applicationARM64 is blocked before native execution by billing; ARM64 cross-builds establish no runtime pass. Plans remainWIP."
       },
       "reviewDeltaTestIds": [
-        "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
-        "Window.CaptionRetriesFailedAndSupersededNativeWrites",
-        "Test-Changelog passed",
-        "Fold-Changelog passed",
-        "Fold-Changelog -Check passed",
-        "Tools/Test-Changelog.ps1",
-        "Tools/Fold-Changelog.ps1 -Check",
-        "Performance.NativeCompletedFramesPreserveSourceAndHistory",
-        "Rendering.NativeDefaultAndWarpResourceLifecycle",
-        "Change-fragment-folded-entry-review",
-        "Qualification.DocsOnlySixProfileRebind",
-        "Qualification.fc6c62d.1871PayloadFiles.69CapturePairs",
-        "Keyboard.0f68857b.9Stages.168Events.9PayloadHashes",
-        "Performance.0f68857b.576Reports.25177Checks.72Rows.864Effects.1728Drifts.936Cells",
-        "Changelog.FoldAndCheck.20261026"
+        "EditorPreparationDiagnosticsOracle",
+        "Tests/Scope.Tests.Performance.Diagnostics.ps1:editor-preparation-all-slots-valid",
+        "qualification-30fb0c2",
+        "restored-colored-Release-Full-and-keyboard"
       ],
       "reviewDeltaFindingIds": [],
       "reviewDeltaDate": "2026-10-26",
@@ -15400,8 +16695,126 @@ the current performance policy or accept the remaining regressions.
           "reviewStatus": "reviewed-delta",
           "reviewer": "final-delta-review",
           "disposition": "Prior reviewed bytes retained before current documentation/evidence refresh."
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "0f68857bc383f6dccd1dbe793b01a5a1fd70291c",
+          "path": "CHANGELOG.md",
+          "sha256": "ac4284ac18e9a4898c324da79f136743027432007bcda020f5b0101bb3992aa0",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "final-delta-review",
+          "testIds": [
+            "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
+            "Window.CaptionRetriesFailedAndSupersededNativeWrites",
+            "Test-Changelog passed",
+            "Fold-Changelog passed",
+            "Fold-Changelog -Check passed",
+            "Tools/Test-Changelog.ps1",
+            "Tools/Fold-Changelog.ps1 -Check",
+            "Performance.NativeCompletedFramesPreserveSourceAndHistory",
+            "Rendering.NativeDefaultAndWarpResourceLifecycle",
+            "Change-fragment-folded-entry-review",
+            "Qualification.DocsOnlySixProfileRebind"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Generated changelog publishes repository changes. Reviewed the newly folded 25 October entries at the top: Files-badge close guard, caption transitions, caption-close guard, dirty-badge status, and DxUi pin. Generated release-note projection summarizes the opt-in frame diagnostic, preserved three-cohort publication, and still-open performance/platform gates. Generated notes summarize the bae1572 local matrix and frame-stage diagnostic publication. The Unreleased summary is consumed as the repository-facing summary of current adoption and qualification status; it points to the SDK2fed pin and retained open performance/hosted-ARM64 gates. Generated Unreleased release summary for the implementation and evidence updates. Release-note readers consume this generated entry; no runtime code calls it. The related evidence packet is linked from the updated WIP plan. WIP and Measurements indexes route readers to exact1d39 qualification and49cf docs-only binding; no compiled product or test input changes. Entry does not claim acceptance. Entries state the conditional Files accessibility re-entry guard without claiming a separate runtime reproduction, and preserve pending final-profile/performance limits. Text explicitly keeps unstable controls, foreground, acceptance and billing-blocked hosted ARM64 open; this entry must remain folded from its source fragment. Keeps original five findings, quiet-host/policy, exact-pin and billing-blocked hosted ARM64 open. The note preserves that candidate qualification/fresh comparisons are pending and that hosted ARM64 is billing-blocked; it does not turn pending gates into passes or suppress any failure. Summary wording preserves pending profile qualification and open performance acceptance. An inaccurate generated entry could overstate progress; the entry preserves that performance and qualification gates remain open. No runtime failure or cancellation path is affected. Docs sources claim no new runtime/performance execution. ARM64 remains billing-blocked; four findings and SDKPR104 fixture qualification remain open. Earlier failures and gates are intact. Final documentation delta records completed native and keyboard replay plus the unpooled 576-process collection. It explicitly keeps four original-UI flags, 39/72 unstable app controls, unqualified quiet windows, policy-failed SDK CI with 71/72 unstable controls, hosted RedTilde ARM64 and physical input gates open. Allocation tracing remains diagnostic and unqualified; no owner or gain is inferred.",
+            "performance": "No measured performance gain or acceptance is claimed by this source review.",
+            "lifetime": "Publication text has no runtime ownership. Changelog summarizes app-owned behavior and upstream SDK ownership; it contains no raw diagnostics. Generated from Changes fragments; it does not alter application or test runtime ownership. Folded entries link source-bound evidence and keep primary and diagnostic cohorts separate. This is generated release-note text, not runtime code. It makes the adopted SDK pin and absence of public-header/dependency additions explicit; the fold does not own or execute SDK resources. Generated text only; no runtime ownership. The folded changelog is generated documentation owned by the repository changelog workflow, with no runtime resource or object lifetime. Published summary matches the independently rehashed projection; six receipts,20frozen artifacts,14live files and unchanged compiled identity are retained. Local attributes preserve evidence bytes.",
+            "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
+            "testCoverage": "Prior fold evidence retained; no commands reran. The caption-close and badge entries were checked against the receipt-bound 36/36 x64 ASan Editor suite. The newly folded Files-badge Close guard remains source-review only; no dedicated runtime reproduction or post-guard pass is claimed. This delta does not re-review historical changelog content. Review only: target commit contains the two additions; changelog folding/test commands were not run in this delta review. Supported by the new qualification and frame-stage packets; entries do not claim a new acceptance result. Source diff review confirms one added Unreleased bullet. No changelog validation/test execution is claimed by this review delta. No changelog command outcome is claimed by this per-file review. No product test was run for this documentation delta. Canonical changelog validation and folding remain separate publication checks. Full validate.ps1 passes after this delta:38scope cases,415performance assertions,37observer checks,1713independent checks and6malformed rejection cases. Fold/check, Test-Changelog and diffcheck pass.",
+            "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T08:46:27.5952268Z",
+          "priorReviewBaseCommit": null,
+          "path": "CHANGELOG.md",
+          "sha256": "74623a53a1370ba65c153f56259b71185bfd5d197ce354f52e7b2b13f84bc387",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p18-delta-review",
+          "testIds": [
+            "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
+            "Window.CaptionRetriesFailedAndSupersededNativeWrites",
+            "Test-Changelog passed",
+            "Fold-Changelog passed",
+            "Fold-Changelog -Check passed",
+            "Tools/Test-Changelog.ps1",
+            "Tools/Fold-Changelog.ps1 -Check",
+            "Performance.NativeCompletedFramesPreserveSourceAndHistory",
+            "Rendering.NativeDefaultAndWarpResourceLifecycle",
+            "Change-fragment-folded-entry-review",
+            "Qualification.DocsOnlySixProfileRebind"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Reviewed the current explicit source/documentation delta and preserved historical notes/hashes.",
+            "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+            "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+            "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+            "testCoverage": "Source review only unless the named P18 checkpoint states an actual executed result.",
+            "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T12:09:49.5825035Z",
+          "path": "CHANGELOG.md",
+          "sha256": "508c7c79a7a8c3aafec9fd3cc56cb8a7b02c520ff2b15cdfccc723ac12a6b3c5",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p18-delta-review",
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Reviewed the current explicit source/documentation delta and preserved historical notes/hashes.",
+            "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+            "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+            "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+            "testCoverage": "Source review only unless the named P18 checkpoint states an actual executed result.",
+            "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T14:28:47.8077947Z",
+          "path": "CHANGELOG.md",
+          "sha256": "1d3148d6bd2a48dfc50c28ea5474aa4ff1c1affb32c38cb9a747b984ade392fb",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-p19-evidence-closeout-review",
+          "disposition": "reviewed-source-bound-evidence-and-open-gates",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Reviewed current primary576-process results, unchanged native16be/09f bindings, exact407 SDK pin and published packet. Distinguishes3 current original-UI flags from prior4; actualPR16 base has0 resolved changes.",
+            "performance": "All36/72 unstable controls and six non-quiet observation windows remain explicit; no causal gain or performance acceptance. Optional new diagnostic is pending native qualification.",
+            "testCoverage": "Reviewed25,202-check primary audit,576 rawhash replay and optional malformed-evidence checks. SDK testfixfcd is a checkpoint, not a pass; CI108 failures remain retained.",
+            "qualificationBoundary": "Hosted RedTilde ARM64 billing gate, currentSDK base-policy qualification and remaining original-UI findings stayOPEN. WIP remains active."
+          }
         }
-      ]
+      ],
+      "reviewDeltaSourceState": "working-tree-source-bound-by-hash",
+      "reviewDeltaParentCommit": "30fb0c2dc0bcd055aad99dc49a8cec8efdc56691"
     },
     {
       "repository": "RedTilde",
@@ -16692,36 +18105,38 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Specs/Testing/Testing_Performance.md",
-      "sha256": "fee3510107915820b05b19f6a7b40917c939ddcef89e8091b8bb3de392252981",
+      "sha256": "1bedc43ab1ac84761d91e7f3e5af94557688aac4818c523e2507d844e7033579",
       "category": "normative-documentation",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "final-delta-review",
+      "reviewer": "lead-p20-source-evidence-review",
       "testIds": [
         "Performance.NativeCompletedFramesPreserveSourceAndHistory",
         "Editor.HiddenCurrentBlockPublishesLatestOnReveal"
       ],
       "findingIds": [],
-      "disposition": "source-reviewed-current-bytes; qualification-separate",
+      "disposition": "reviewed-source-and-native-checkpoint; performance-and-hosted-arm64-open",
       "reviewNotes": {
         "callers": "",
         "ownershipAndLifetime": "",
         "failureAndCancellation": "",
         "testCoverage": ""
       },
-      "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+      "reviewDeltaStatus": "REVIEWED_CURRENT_TOOLING_AND_SOURCE_BOUND_NATIVE_EVIDENCE",
+      "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "Current-source text and qualification limits are explicit; updates must not elevate historical diagnostic measurements to acceptance.",
-        "performance": "No measured performance gain or acceptance is claimed by this source review.",
-        "lifetime": "The specifications keep app-owned editable source/history separate from shared immutable source and derived mirror state.",
-        "simplification": "Domain/testing specs state lasting source/mirror behavior and performance-validation limits.",
-        "testCoverage": "Specs are normative contracts, not test receipts.",
-        "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+        "correctness": "Root reviewed the field-loop collision fix: preserve the scheduled block key independently of nested diagnostic field names. A complete valid optional-diagnostic study now exercises all16 native slots; historical optional absence remains readable.",
+        "performance": "The corrected real16-process replay passes4263509 checks. The diagnostic collector remains optional with6490112bytes of declared retained storage; descriptive instrumented measurements do not replace diagnostics-off acceptance. The09f576-process primary study remains unchanged with3 original-UI flags.",
+        "lifetime": "No native runtime/source/SDK pin changes in this delta. All6 native30fb build profiles and3 x64 Full65behavior/23capture profiles remain separately bound to their original artifacts. Restored colored Release10B5/PDB667E has fresh Full65/23 and keyboard9/168 receipts; it is never retagged as matrix ReleaseFE192.",
+        "simplification": "One distinct scheduled-block variable fixes the auditor rather than duplicating parsing or changing evidence schemas. Packet publication contains metadata and hashes only, with byte-preserving attributes and per-packet manifests.",
+        "testCoverage": "Root all-slot regression accepts both valid optional schemas and rejects all20 malformed receipts including7 editor variants. Root source review retains earlier independent2321 selftests and2768 tooling assertions as prior evidence; current final validator execution is recorded separately, without relabeling prior runs.",
+        "qualificationBoundary": "Current-source final paired performance, SDK policy calibration and exact cursor-restoration cause remainOPEN. Hosted applicationARM64 is blocked before native execution by billing; ARM64 cross-builds establish no runtime pass. Plans remainWIP."
       },
       "reviewDeltaTestIds": [
-        "Performance.NativeCompletedFramesPreserveSourceAndHistory",
-        "Editor.HiddenCurrentBlockPublishesLatestOnReveal"
+        "EditorPreparationDiagnosticsOracle",
+        "Tests/Scope.Tests.Performance.Diagnostics.ps1:editor-preparation-all-slots-valid",
+        "qualification-30fb0c2",
+        "restored-colored-Release-Full-and-keyboard"
       ],
       "reviewDeltaFindingIds": [],
       "reviewDeltaDate": "2026-10-26",
@@ -16739,8 +18154,115 @@ the current performance policy or accept the remaining regressions.
           ],
           "findingIds": [],
           "disposition": "prior reviewed bytes retained before current hash refresh"
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+          "path": "Specs/Testing/Testing_Performance.md",
+          "sha256": "fee3510107915820b05b19f6a7b40917c939ddcef89e8091b8bb3de392252981",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "final-delta-review",
+          "testIds": [
+            "Performance.NativeCompletedFramesPreserveSourceAndHistory",
+            "Editor.HiddenCurrentBlockPublishesLatestOnReveal"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Current-source text and qualification limits are explicit; updates must not elevate historical diagnostic measurements to acceptance.",
+            "performance": "No measured performance gain or acceptance is claimed by this source review.",
+            "lifetime": "The specifications keep app-owned editable source/history separate from shared immutable source and derived mirror state.",
+            "simplification": "Domain/testing specs state lasting source/mirror behavior and performance-validation limits.",
+            "testCoverage": "Specs are normative contracts, not test receipts.",
+            "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T08:51:49.4129462Z",
+          "priorReviewBaseCommit": null,
+          "path": "Specs/Testing/Testing_Performance.md",
+          "sha256": "535f8634a42c7afe6529865ecc6c9d437d31fa6b059d8dd1625028d52f696c3e",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p18-delta-review",
+          "testIds": [
+            "Performance.NativeCompletedFramesPreserveSourceAndHistory",
+            "Editor.HiddenCurrentBlockPublishesLatestOnReveal"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Reviewed the current explicit source/documentation delta and preserved historical notes/hashes.",
+            "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+            "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+            "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+            "testCoverage": "Source review only unless the named P18 checkpoint states an actual executed result.",
+            "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T12:07:48.275774Z",
+          "path": "Specs/Testing/Testing_Performance.md",
+          "sha256": "6ecada0b82f1e8c240c0481d2b5512070df1e1ee00ea64a7e43d8390a7f31c1a",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p18-delta-review",
+          "testIds": [
+            "Performance.NativeCompletedFramesPreserveSourceAndHistory",
+            "Editor.HiddenCurrentBlockPublishesLatestOnReveal"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Reviewed the current explicit source/documentation delta and preserved historical notes/hashes.",
+            "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+            "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+            "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+            "testCoverage": "Source review only unless the named P18 checkpoint states an actual executed result.",
+            "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T14:28:47.8155556Z",
+          "path": "Specs/Testing/Testing_Performance.md",
+          "sha256": "1bedc43ab1ac84761d91e7f3e5af94557688aac4818c523e2507d844e7033579",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p19-diagnostic-review",
+          "disposition": "optional-diagnostic-source-reviewed; native-execution-pending",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Opt-in snapshots bind every Ready render attempt to the existing frame record; counts, render deltas, lifetime counters, reserved storage and raw flags are independently checked. Historical optional absence remains supported.",
+            "performance": "No new state snapshots or diagnostic allocations in the specialized disabled path. Enabled storage is pre-reserved and explicitly reported; instrumented results are descriptive, not primary acceptance or stage CPU attribution.",
+            "lifetime": "Value snapshots own no control, host or graphics resource. Buffers remain bounded and retained through post-measurement; no new dependency or shared SDK API.",
+            "simplification": "Reuses the canonical DebugGetState and frame metric stream; the independent auditor does not call the production collector.",
+            "testCoverage": "Root optional-contract-fixed run accepts the valid fixture and rejects all20 malformed receipts, including7 new editor variants; positive audit134941 checks. Existing2321 independent selftests and2768 performance tooling assertions pass. First OrderedDictionary.Clone fixture error is preserved. Native execution remains pending.",
+            "qualificationBoundary": "Fresh09f576-process study remains source-bound and unchanged. New harness bytes require native build/test qualification; hosted RedTilde ARM64 and original-UI performance acceptance stay open."
+          }
         }
-      ]
+      ],
+      "reviewDeltaSourceState": "working-tree-source-bound-by-hash",
+      "reviewDeltaParentCommit": "30fb0c2dc0bcd055aad99dc49a8cec8efdc56691"
     },
     {
       "repository": "RedTilde",
@@ -17726,11 +19248,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "DxUi",
       "path": "Specs/Plans/WIP/README.md",
-      "sha256": "9d3169074a8f694a24c08cba0d1148ecce58bb20dbfe0b69008ccbba7b41c216",
+      "sha256": "7932cfb0f9b5583bf4f33f039074b924f5fd4d66bd2becc4248d96028aecc8d5",
       "category": "wip-index",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "final-delta-review",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "TestMenuBarHoverMessageSwitchesRootWhilePopupOverlapsMenuBar",
         "TestMenuBarHoverMessageSwitchesRootWithPopupPaintPending"
@@ -17744,14 +19266,14 @@ the current performance policy or accept the remaining regressions.
         "testCoverage": ""
       },
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+      "reviewDeltaCommit": "4077f57df8207eac6c39c43437feb45b19d23cf8",
       "reviewDeltaNotes": {
-        "correctness": "The WIP index routes maintainers to PopupReadiness; it is not a runtime entrypoint. The indexed WIP plan records fixture scope, observed failure limits, required validation and stop conditions. Its five-of-six result and unknown pointer provenance are scoped to the recorded merged-main run; it does not convert the run into a green matrix. The plan/contract preserves real failures, separate geometry/hover predicates, fixed timeouts and pending gates; integration cannot imply provider-failure causality.",
-        "performance": "No measured performance gain or acceptance is claimed by this source review.",
-        "lifetime": "The index preserves the active plan and open status of ARM64 focus restoration/shared qualification; it adds no product state. Documentation only; no runtime object ownership or lifetime changes.",
-        "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
-        "testCoverage": "It links the Menu regression names and states that the new trace is test-only while execution/attribution is pending at this commit. Changelog fold/check, Test-Changelog, validate-specs and clang-format22.1.3 checks pass; docs do not substitute for native qualification.",
-        "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+        "correctness": "Reviewed the current explicit source/documentation delta and preserved historical notes/hashes.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "Source review only unless the named P18 checkpoint states an actual executed result.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
       },
       "reviewDeltaTestIds": [
         "TestMenuBarHoverMessageSwitchesRootWhilePopupOverlapsMenuBar",
@@ -17773,6 +19295,34 @@ the current performance policy or accept the remaining regressions.
           ],
           "findingIds": [],
           "disposition": "prior reviewed bytes retained before current hash refresh"
+        },
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+          "path": "Specs/Plans/WIP/README.md",
+          "sha256": "9d3169074a8f694a24c08cba0d1148ecce58bb20dbfe0b69008ccbba7b41c216",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "final-delta-review",
+          "testIds": [
+            "TestMenuBarHoverMessageSwitchesRootWhilePopupOverlapsMenuBar",
+            "TestMenuBarHoverMessageSwitchesRootWithPopupPaintPending"
+          ],
+          "findingIds": [],
+          "disposition": "source-reviewed-current-bytes; qualification-separate",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "The WIP index routes maintainers to PopupReadiness; it is not a runtime entrypoint. The indexed WIP plan records fixture scope, observed failure limits, required validation and stop conditions. Its five-of-six result and unknown pointer provenance are scoped to the recorded merged-main run; it does not convert the run into a green matrix. The plan/contract preserves real failures, separate geometry/hover predicates, fixed timeouts and pending gates; integration cannot imply provider-failure causality.",
+            "performance": "No measured performance gain or acceptance is claimed by this source review.",
+            "lifetime": "The index preserves the active plan and open status of ARM64 focus restoration/shared qualification; it adds no product state. Documentation only; no runtime object ownership or lifetime changes.",
+            "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
+            "testCoverage": "It links the Menu regression names and states that the new trace is test-only while execution/attribution is pending at this commit. Changelog fold/check, Test-Changelog, validate-specs and clang-format22.1.3 checks pass; docs do not substitute for native qualification.",
+            "qualificationBoundary": "Source/hash review only. Runtime, platform, foreground, hosted and performance qualification remain independently gated."
+          }
         }
       ]
     },
@@ -18217,17 +19767,17 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Specs/Build/Build_Toolchain.md",
-      "sha256": "b5157f0f8dda0cc5e6c4d1783002e68606750b4674bb80a25923591b7802cbb4",
+      "sha256": "6245c50999259c1da2f636feb402d57db65d98fe9ddb8b3ae5eb4e92868b3e30",
       "category": "normative-build-contract",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "final-delta-review",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "Build.SourceAwareIncrementalReuse",
         "Tooling.SourceAwareBuildReceiptAdmission"
       ],
       "findingIds": [],
-      "disposition": "Delta review only; full-file review and runtime qualification remain separate.",
+      "disposition": "source-reviewed-current-bytes; qualification-separate",
       "reviewNotes": {
         "callers": "",
         "ownershipAndLifetime": "",
@@ -18235,21 +19785,53 @@ the current performance policy or accept the remaining regressions.
         "testCoverage": ""
       },
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "740db520914aff559b9184c445040cdd3bdfffac",
+      "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "Documents expected build receipt, compiler/dependency identity and canonical path behavior for build and artifact consumers. Documents fail-closed behavior for stale/malformed receipts and unknown toolchain/dependency contexts.",
-        "performance": "No performance gain is claimed from this source-review delta; runtime and performance qualification remain separate.",
-        "lifetime": "Contract keeps output/intermediate/profile ownership local and prevents Clean from reaching referenced DxUi project outputs.",
-        "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
-        "testCoverage": "Review aligns the contract with source-aware implementation and fixture coverage; six real property preflights are read-only and do not imply build qualification.",
-        "qualificationBoundary": "Source review only. Runtime/platform/performance evidence and remaining gates are recorded separately in the coordinator; this ledger update confers no execution pass."
+        "correctness": "Reviewed the current explicit source/documentation delta and preserved historical notes/hashes.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "Source review only unless the named P18 checkpoint states an actual executed result.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
       },
       "reviewDeltaTestIds": [
         "Build.SourceAwareIncrementalReuse",
         "Tooling.SourceAwareBuildReceiptAdmission"
       ],
       "reviewDeltaFindingIds": [],
-      "reviewDeltaDate": "2026-10-25"
+      "reviewDeltaDate": "2026-10-26",
+      "reviewHistory": [
+        {
+          "recordedUtc": "2026-10-26T07:53:36.9873592Z",
+          "priorReviewBaseCommit": "740db520914aff559b9184c445040cdd3bdfffac",
+          "path": "Specs/Build/Build_Toolchain.md",
+          "sha256": "b5157f0f8dda0cc5e6c4d1783002e68606750b4674bb80a25923591b7802cbb4",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "final-delta-review",
+          "testIds": [
+            "Build.SourceAwareIncrementalReuse",
+            "Tooling.SourceAwareBuildReceiptAdmission"
+          ],
+          "findingIds": [],
+          "disposition": "Delta review only; full-file review and runtime qualification remain separate.",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Documents expected build receipt, compiler/dependency identity and canonical path behavior for build and artifact consumers. Documents fail-closed behavior for stale/malformed receipts and unknown toolchain/dependency contexts.",
+            "performance": "No performance gain is claimed from this source-review delta; runtime and performance qualification remain separate.",
+            "lifetime": "Contract keeps output/intermediate/profile ownership local and prevents Clean from reaching referenced DxUi project outputs.",
+            "simplification": "The delta remains scoped to its listed behavior; broader compatibility and performance claims are not inferred.",
+            "testCoverage": "Review aligns the contract with source-aware implementation and fixture coverage; six real property preflights are read-only and do not imply build qualification.",
+            "qualificationBoundary": "Source review only. Runtime/platform/performance evidence and remaining gates are recorded separately in the coordinator; this ledger update confers no execution pass."
+          }
+        }
+      ],
+      "reviewDeltaSourceState": "working-tree-source-bound-by-hash",
+      "reviewDeltaParentCommit": "f33471da51773e6a0ee786a5dd29e46ceb21ecdd"
     },
     {
       "repository": "RedTilde",
@@ -19928,21 +21510,21 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Build/ReviewedHeaderDeltaProfile.json",
-      "sha256": "b8003310580f17a58327fa28482595c699f6d8bc1ca712aec90677c5c726e751",
+      "sha256": "488860317b002da60ebfc45ef38db206e42273d8ad86016a996e023dd37bad5d",
       "category": "build-and-tooling",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "source-ledger-delta-review",
+      "reviewer": "lead-and-independent-p18-delta-review",
       "testIds": [
         "Build.SixProfileReadOnlyPreflight",
         "source-aware reviewed-header-delta profile admission",
         "malformed profile refusal cases"
       ],
       "findingIds": [],
-      "disposition": "reviewed-source-input; execution-qualification-separate",
+      "disposition": "source-reviewed-current-bytes; qualification-separate",
       "reviewDeltaDate": "2026-10-26",
       "reviewDeltaStatus": "SOURCE_REVIEWED_QUALIFICATION_SEPARATE",
-      "reviewDeltaCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+      "reviewDeltaCommit": null,
       "reviewDeltaTestIds": [
         "Build.SixProfileReadOnlyPreflight",
         "source-aware reviewed-header-delta profile admission",
@@ -19950,12 +21532,62 @@ the current performance policy or accept the remaining regressions.
       ],
       "reviewDeltaFindingIds": [],
       "reviewDeltaNotes": {
-        "correctness": "Binds a narrowly reviewed additive header delta between the exact old and candidate DxUi pins for the named comparison profile; strict checks reject unrelated declaration, layout, API revision, or header changes.",
-        "performance": "The profile defines controlled comparison inputs only; it is not a benchmark result or acceptance claim.",
-        "lifetime": "Profile file is a tracked build input consumed by the source-aware comparison preflight; profile identity and referenced commits remain explicit.",
-        "simplification": "Provides a reproducible allowance for the reviewed nonvirtual method/friend declaration delta while preserving the actual PR14 base identity.",
-        "testCoverage": "Covered by Build.SixProfileReadOnlyPreflight, source-aware profile admission and malformed-profile negative cases; validation is recorded separately by root.",
-        "qualificationBoundary": "Input/profile source review only. No general ABI guarantee, runtime result, or performance acceptance is inferred."
+        "correctness": "Reviewed the current explicit source/documentation delta and preserved historical notes/hashes.",
+        "performance": "No primary performance acceptance or achievable-memory-saving claim follows from this source review.",
+        "lifetime": "Existing ownership and source boundaries remain explicit; current execution evidence is named separately.",
+        "simplification": "The delta extends canonical owners/helpers rather than adding a second implementation or dependency.",
+        "testCoverage": "Source review only unless the named P18 checkpoint states an actual executed result.",
+        "qualificationBoundary": "Final consumer builds, platform/input, actual-base comparison and original-UI performance acceptance remain open."
+      },
+      "reviewHistory": [
+        {
+          "recordedUtc": "2026-10-26T08:46:27.5952268Z",
+          "priorReviewBaseCommit": "fc6c62ddd23f3e3c086684aeecc2197343b04869",
+          "path": "Build/ReviewedHeaderDeltaProfile.json",
+          "sha256": "b8003310580f17a58327fa28482595c699f6d8bc1ca712aec90677c5c726e751",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "source-ledger-delta-review",
+          "testIds": [
+            "Build.SixProfileReadOnlyPreflight",
+            "source-aware reviewed-header-delta profile admission",
+            "malformed profile refusal cases"
+          ],
+          "findingIds": [],
+          "disposition": "reviewed-source-input; execution-qualification-separate",
+          "reviewNotes": null,
+          "reviewDeltaNotes": {
+            "correctness": "Binds a narrowly reviewed additive header delta between the exact old and candidate DxUi pins for the named comparison profile; strict checks reject unrelated declaration, layout, API revision, or header changes.",
+            "performance": "The profile defines controlled comparison inputs only; it is not a benchmark result or acceptance claim.",
+            "lifetime": "Profile file is a tracked build input consumed by the source-aware comparison preflight; profile identity and referenced commits remain explicit.",
+            "simplification": "Provides a reproducible allowance for the reviewed nonvirtual method/friend declaration delta while preserving the actual PR14 base identity.",
+            "testCoverage": "Covered by Build.SixProfileReadOnlyPreflight, source-aware profile admission and malformed-profile negative cases; validation is recorded separately by root.",
+            "qualificationBoundary": "Input/profile source review only. No general ABI guarantee, runtime result, or performance acceptance is inferred."
+          }
+        }
+      ],
+      "reviewDeltaSourceState": "working-tree-source-bound-by-hash",
+      "reviewDeltaParentCommit": "f33471da51773e6a0ee786a5dd29e46ceb21ecdd"
+    },
+    {
+      "repository": "RedTilde",
+      "path": "Tests/Fixtures/ReviewedHeaderDeltaProfile.v1.json",
+      "sha256": "b8003310580f17a58327fa28482595c699f6d8bc1ca712aec90677c5c726e751",
+      "plannedSha256": "b8003310580f17a58327fa28482595c699f6d8bc1ca712aec90677c5c726e751",
+      "category": "data-or-resources",
+      "generated": false,
+      "reviewStatus": "reviewed-delta",
+      "reviewer": "lead-and-independent-p18-delta-review",
+      "testIds": [
+        "Tests/Scope.Tests.Performance.Tooling.ps1: v1 exact profile oracles",
+        "Tests/Scope.Tests.Performance.Evidence.ps1: historical v1 profile audit"
+      ],
+      "findingIds": [],
+      "disposition": "byte-exact-historical-v1-fixture; no runtime qualification",
+      "reviewNotes": {
+        "callers": "Legacy v1 loader and independent evidence oracles read this immutable source-coordinated comparison fixture.",
+        "ownershipAndLifetime": "Tracked exact data only, protected from Git newline conversion; no native resources or executable behavior.",
+        "failureAndCancellation": "Original B800 hash and exact fixed pair/headers/layout/method guards remain mandatory.",
+        "testCoverage": "Source/hash review complete; v1 and new v2 tooling oracles will execute before qualification."
       }
     }
   ],

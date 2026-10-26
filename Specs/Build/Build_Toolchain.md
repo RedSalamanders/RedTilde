@@ -10,6 +10,12 @@ API, toolchain, platform and flags. Import the public consumer props/targets and
 The initial-frame host option is adopted only with its exact SDK revision and a complete consumer rebuild;
 API revision 4 alone does not permit mixing a newer host header with an older static library or consumer object.
 
+Optional read-only parsed-snapshot reuse follows that same source-coordinated rule. API revision 4 is retained
+for the additive methods, while MarkdownSyntax gains an immutable shared owner and changes object layout.
+Adopt the exact source pin, rebuild every consumer profile, and retain its exact source/package header inventory.
+An isolated method/layout probe supports a fixed comparison profile; it does not substitute for native linking,
+consumer behavior, platform execution or performance qualification.
+
 Deeply nested workspaces can exceed the compiler's path limit while CMake probes the dependency build, even
 with Git long paths enabled. Retain the original configure/compiler logs. The pinned SDK's supported
 `vcpkg-install.ps1 -OutputRoot <shorter repository-local .build directory>` can populate the normal package cache

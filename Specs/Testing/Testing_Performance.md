@@ -46,6 +46,16 @@ and an additional font mapping does not identify a causal allocation owner. Pres
 and empty/exit snapshots explicitly. Suspension-based sampling must report bracket coverage and its missing costs;
 intrusive stack walks and sparse instruction pointers cannot be presented as CPU shares or causal attribution.
 
+An owned-process heap trace must retain its executable, collection declaration, raw stream digests, loss and
+schema counters, observer query brackets and versioned decoder. StackWalk association uses the original-event
+timestamp/process/thread in its payload; a later header timestamp or an unknown header process is not that
+identity. Validate the entire bounded stack payload against its schema instead of truncating at named fields.
+Report unmatched, duplicate, ambiguous and unknown records. A redundant ReAlloc-summary interpretation must
+state its exact observed allocation/free sequence, preserve the original allocation's recorded stack and byte counts,
+retain its reconciliation count and expose unproven thread/allocator continuity. Consistent captured records
+do not prove complete process allocation coverage. Module point observations are not load/unload lifetimes,
+and phase-unmatched snapshots, including startup/teardown, cannot substitute for settled native memory phases.
+
 Resource-only native reports also retain `firstCompletedPreparation` and a `preparation` object on resize and
 device-recreation phases. Each brackets the operation, cooperative native preparation and a GPU completion fence,
 then records completed wall time, owner cycles, process CPU and intermediate root-child Flush count. Snapshot
@@ -165,6 +175,19 @@ components unavailable rather than supplying invented durations. Component sums 
 invocation and the parent selection phase; the retained remainder must reconstruct that parent. Historical
 reports without this optional object remain readable; a current study that declares it must retain it.
 
+Opt-in native diagnostics may also retain the separate `app-editor-preparation-v1` object. For each measured
+edit transaction, record every `Ready` call's `RenderInitialFrameForShow` attempt, capped at the shared 64-attempt
+transaction bound. Each record binds its zero-based attempt index to the same ordered `dxui-frame-metrics-v1`
+attempt and captures the primary and mirror `RichTextEditor::DebugGetState()` immediately before and after that
+call, plus the host render-count endpoints. The collector reserves attempt and transaction storage before measured
+edits, reports its reserved bytes, and rejects missing/extra attempts, index or render-count reconciliation errors,
+and decreasing cumulative preparation counters. The recorded debug-state fields are raw snapshots; a zero work
+field is not a timing or proof that a stage was skipped, and these snapshots do not attribute CPU among editor
+stages or host traversal. The evidence auditor independently checks each retained attempt against its frame-metric
+record, including transaction counts, ordering, counters and reserved-storage arithmetic. Historical reports
+without this optional object remain readable. When disabled, this diagnostic performs no editor debug queries
+and allocates no diagnostic storage.
+
 A common diagnostic harness does not guarantee equal probe counts in different implementations. Report active
 component-call counts when comparing outer phases: each timed scope adds its own clock/cycle reads, and the
 enclosing interval/remainder includes that overhead. A phase delta cannot be attributed wholly to product work
@@ -236,6 +259,20 @@ package rows and the other 23 DxUi source rows remain identical. A different SDK
 reviewed profile, refreshed common baselines and new positive/negative oracles. This mode does not change timing
 bands, workloads, the metric family or acceptance
 policy. Its isolated ABI probe does not establish complete application ABI/link compatibility or performance qualification.
+
+The parsed-snapshot v2 profile is a separately reviewed source-coordinated extension for exact SDK `47a9d259`
+to `4077f57d`. It permits exactly `DxUi.h`, `MarkdownSyntax.h` and `RichDocument.h` source-header changes,
+with every other source/package row, compiler operand and dependency field governed by the same strict guards.
+Its isolated source probe must verify all three exact new method signatures, the existing synchronization
+signature on both sides, a 16-byte MarkdownSyntax increase with unchanged alignment, and unchanged measured
+MarkdownParser, RichTextEditor, SourceSnapshot and Document layouts. These are named-type source/layout checks,
+not binary interoperability. Consumers rebuild against matching pinned headers/library and require their own
+native editing, rendering and input qualification. The original v1 validator and byte-exact fixture remain for
+historical two-header studies; v2 needs its own actual compiler/header receipts and positive/negative oracles
+before any collection. Neither profile changes workload, metric family, bands or acceptance policy.
+The [retained v2 source probe](../../Measurements/RedesignCompletion_2026-10-26/parsed-syntax-header-probe/README.md)
+records its exact SDK pair, isolated application contexts, measured layouts and raw receipt digests. Those
+isolated contexts do not identify the actual PR base; each paired study still binds its own production lineage.
 
 ### 2026-10-25 local source-bound evidence
 

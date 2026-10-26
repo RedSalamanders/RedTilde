@@ -380,7 +380,9 @@ Assert-CompilerProfileEvidence -Study $legacy -Root $legacyRoot
 $rejected=$false
 try {Assert-CompilerProfileEvidence -Study $legacy -Root $legacyRoot} catch {$rejected=$true}
 Require $rejected 'Raw command artifacts cannot masquerade as schema-less legacy evidence.'
-$profilePath=Join-Path $PSScriptRoot '../Build/ReviewedHeaderDeltaProfile.json'
+$profilePath=Join-Path $PSScriptRoot 'Fixtures/ReviewedHeaderDeltaProfile.v1.json'
+$profileBytes=[IO.File]::ReadAllBytes($profilePath)
+Require ([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($profileBytes)) -ceq 'B8003310580F17A58327FA28482595C699F6D8BC1CA712AEC90677C5C726E751') 'The frozen v1 oracle must remain the exact original profile bytes.'
 $blockedProfile=Get-Content $profilePath -Raw|ConvertFrom-Json -AsHashtable
 $blockedProfile.status='blocked-until-root-review-and-reference-refresh'
 $blockedRoot=Join-Path $fixtureRoot 'blocked-reviewed-header-profile';$blockedBuild=Join-Path $blockedRoot 'Build'
@@ -438,6 +440,42 @@ $badProfile.profileId='caller-selected-profile'
 $badProfile|ConvertTo-Json -Depth 30|Set-Content -LiteralPath $readyProfilePath -Encoding utf8
 $rejected=$false;try {Get-RedTildeReviewedHeaderDeltaProfile -Root $readyRoot}catch{$rejected=$true}
 Require $rejected 'Reviewed profile rejects unknown IDs and caller-selected profiles.'
+$currentProfile=Get-Content (Join-Path $PSScriptRoot '../Build/ReviewedHeaderDeltaProfile.json') -Raw|ConvertFrom-Json -AsHashtable
+if($currentProfile.profileId -ceq 'redtilde-dxui-parsed-snapshot-api4-v2') {
+    $v2Root=Join-Path $fixtureRoot 'ready-parsed-snapshot-profile';$v2Build=Join-Path $v2Root 'Build'
+    [void][IO.Directory]::CreateDirectory($v2Build)
+    $v2ProfilePath=Join-Path $v2Build 'ReviewedHeaderDeltaProfile.json'
+    $currentProfile|ConvertTo-Json -Depth 40|Set-Content -LiteralPath $v2ProfilePath -Encoding utf8
+    $accepted=Get-RedTildeReviewedHeaderDeltaProfile -Root $v2Root
+    Require ($accepted.profileId -ceq 'redtilde-dxui-parsed-snapshot-api4-v2') 'The exact parsed-snapshot profile is accepted after its compiler evidence is populated.'
+    $v2BaseDependency=[ordered]@{Fingerprint=$accepted.baseline.dependencyFingerprint;Identity=$accepted.baseline.identity}
+    $v2CandidateDependency=[ordered]@{Fingerprint=$accepted.candidate.dependencyFingerprint;Identity=$accepted.candidate.identity}
+    $v2BaseHeaders=ConvertFrom-Json -InputObject (ConvertTo-Json $accepted.baseline.publicHeaders -Depth 30 -Compress) -AsHashtable
+    $v2CandidateHeaders=ConvertFrom-Json -InputObject (ConvertTo-Json $accepted.candidate.publicHeaders -Depth 30 -Compress) -AsHashtable
+    Assert-RedTildeReviewedHeaderDelta -Profile $accepted -BaselineDependency $v2BaseDependency -CandidateDependency $v2CandidateDependency -BaselinePublicHeaders $v2BaseHeaders -CandidatePublicHeaders $v2CandidateHeaders -BaselineBuild @{platform='x64'} -CandidateBuild @{platform='x64'}
+    $v2SourceInclude={param($d) '<ROOT>\.BUILD\DEPENDENCIES\DXUI\SOURCE\'+$d.Identity.commit+'\INCLUDE'}
+    $v2PackageInclude={param($d) '<ROOT>\.BUILD\DEPENDENCIES\DXUI\'+$d.Fingerprint+'\VCPKG_INSTALLED\x64\x64-windows\INCLUDE'}
+    $v2BaseCommand='cl.exe /nologo /c /I"'+(& $v2SourceInclude $v2BaseDependency)+'" /I"'+(& $v2PackageInclude $v2BaseDependency)+'" probe.cpp'
+    $v2CandidateCommand='cl.exe /nologo /c /I"'+(& $v2SourceInclude $v2CandidateDependency)+'" /I"'+(& $v2PackageInclude $v2CandidateDependency)+'" probe.cpp'
+    $v2CompilerBase=[ordered]@{schemaVersion=2;sha256='A'*64;commands=@($v2BaseCommand)}
+    $v2CompilerCandidate=[ordered]@{schemaVersion=2;sha256='B'*64;commands=@($v2CandidateCommand)}
+    Assert-RedTildeCompilerComparison -BaselineCompiler $v2CompilerBase -CandidateCompiler $v2CompilerCandidate -BaselineDependency $v2BaseDependency -CandidateDependency $v2CandidateDependency -ReviewedHeaderDelta -ReviewedProfile $accepted
+    foreach($mutation in @(
+        @{label='candidate pin';apply={param($p)$p.candidate.commit='0000000000000000000000000000000000000000'}},
+        @{label='fourth changed header';apply={param($p)$p.allowedHeaderHashPairs+=@{sourcePath='include/DxUi/Other.h';baselineSha256='A'*64;candidateSha256='B'*64}}},
+        @{label='MarkdownSyntax size delta';apply={param($p)$p.abiProbe.candidate.MarkdownSyntax.sizeBytes++}},
+        @{label='MarkdownParser layout';apply={param($p)$p.abiProbe.candidate.MarkdownParser.sizeBytes++}},
+        @{label='SourceSnapshot::MatchesText availability';apply={param($p)$p.abiProbe.candidate.values.hasSourceSnapshotMatchesText=$false}},
+        @{label='parsed adoption availability';apply={param($p)$p.abiProbe.candidate.values.hasParsedSnapshotAdoption=$false}},
+        @{label='probe context limit';apply={param($p)$p.abiProbe.fullContextLimit=$true}},
+        @{label='probe protocol';apply={param($p)$p.abiProbe.protocol='unreviewed-probe-v3'}})) {
+        $badV2=ConvertFrom-Json -InputObject (ConvertTo-Json $currentProfile -Depth 40 -Compress) -AsHashtable
+        & $mutation.apply $badV2
+        $badV2|ConvertTo-Json -Depth 40|Set-Content -LiteralPath $v2ProfilePath -Encoding utf8
+        $rejected=$false;try {Get-RedTildeReviewedHeaderDeltaProfile -Root $v2Root}catch{$rejected=$true}
+        Require $rejected "Parsed-snapshot profile rejects $($mutation.label) drift."
+    }
+}
 $profileFixture=ConvertFrom-Json -InputObject (ConvertTo-Json $readyProfile -Depth 30 -Compress) -AsHashtable
 $baseDependency=[ordered]@{Fingerprint=$profileFixture.baseline.dependencyFingerprint;Identity=$profileFixture.baseline.identity}
 $candidateDependency=[ordered]@{Fingerprint=$profileFixture.candidate.dependencyFingerprint;Identity=$profileFixture.candidate.identity}

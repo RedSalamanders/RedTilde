@@ -1,0 +1,12 @@
+{
+  "protocol": "root-mirror-feature-removal-replay-v1",
+  "passed": true,
+  "checks": 316,
+  "reports": 16,
+  "independentlyRecomputedReportMetrics": 144,
+  "rows": 12,
+  "blockEffects": 24,
+  "summarySha256": "DE2831CCD92297F3814EE55B71DC40A4F7C2CE41F6507A688D67958342A91EE1",
+  "verifierSha256": "339908A556BAA1DAEE1C7E5270862C409C788101BFC72775BF851A81C0DCE96C",
+  "scope": "Descriptive feature-removal diagnostic only; no primary acceptance or allocation ownership."
+}

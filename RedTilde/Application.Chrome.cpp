@@ -44,6 +44,54 @@ BrandMarkPixels LoadBrandMarkPixels(HICON icon)
     return result;
 }
 
+HRESULT SourceMirrorEditor::PrepareContent(DxUi::ControlHost &host) noexcept
+{
+    const auto selfLifetime = GetControlLifetimeToken(*this);
+    auto *const primary = primary_;
+    const auto primaryLifetime = primaryLifetime_;
+    auto *const owner = host.GetRoot();
+    if (!primary || primaryLifetime.expired() || !owner || !IsVisible() || !IsReadOnly() || GetViewMode() != DxUi::RichText::ViewMode::Source ||
+        GetHost() != &host || !primary->IsAttachedTo(host, GetParent()))
+        return DxUi::RichTextEditor::PrepareContent(host);
+
+    const auto ownerLifetime = GetControlLifetimeToken(*owner);
+    if (ownerLifetime.expired())
+        return DxUi::RichTextEditor::PrepareContent(host);
+
+    const auto source = primary->Snapshot();
+    const auto primaryRevision = primary->Revision();
+    const auto syntax = primary->GetMarkdownSyntax();
+    if (syntax && syntax->Revision() == primaryRevision && source.IsSameRevision(primary->Snapshot()))
+    {
+        const auto currentSyntax = GetMarkdownSyntax();
+        const bool alreadyAdopted = currentSyntax && Snapshot().IsSameRevision(source) && currentSyntax->Revision() == Revision() &&
+                                    currentSyntax->DocumentIdentity() != syntax->DocumentIdentity() && &currentSyntax->Nodes() == &syntax->Nodes();
+        if (!alreadyAdopted)
+        {
+            const auto targetRevision = Revision();
+            const HRESULT result = TryAdoptReadOnlyMarkdownSyntax(source, syntax);
+            if (FAILED(result))
+                return result;
+
+            // Adoption's final preparation request can re-enter and retire
+            // either editor or replace the owning root. Prove all borrowers
+            // still belong to this host before the ordinary preparation call.
+            if (selfLifetime.expired() || primaryLifetime.expired() || ownerLifetime.expired())
+                return S_FALSE;
+            if (GetHost() != &host || !primary->IsAttachedTo(host, GetParent()) || host.GetRoot() != owner ||
+                !source.IsSameRevision(primary->Snapshot()) || primary->Revision() != primaryRevision)
+                return S_FALSE;
+            if (result == S_OK &&
+                (!IsVisible() || !IsReadOnly() || GetViewMode() != DxUi::RichText::ViewMode::Source || Revision() != targetRevision ||
+                 !Snapshot().IsSameRevision(source) || GetMarkdownAnalysisProfile() != syntax->Profile()))
+                return S_FALSE;
+        }
+    }
+    if (selfLifetime.expired())
+        return S_FALSE;
+    return DxUi::RichTextEditor::PrepareContent(host);
+}
+
 namespace
 {
 // Product branding only. Shared controls, focus, input and editor presentation
@@ -207,7 +255,7 @@ void Application::BuildUi()
     editor->SetOnTextChanged([this] { Changed(); });
     editor->SetOnSelectionChanged([this] { SelectionChanged(); });
     editor->SetOnContextMenu([this](POINT point, bool) { Menu(point); });
-    mirror = page->AddChild<DxUi::RichTextEditor>();
+    mirror = page->AddChild<SourceMirrorEditor>(*editor);
     mirror->SetMarkdownAnalysisProfile(DxUi::RichText::MarkdownProfile::RichMarkdown);
     mirror->SetMarkdownRenderingEnabled(true);
     mirror->SetReadOnly(true);

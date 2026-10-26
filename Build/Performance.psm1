@@ -366,12 +366,9 @@ function Get-RedTildeReviewedHeaderInventory {
     return [pscustomobject]@{rows=$map;sourceCount=$source.Count;packageCount=$package.Count;sourceSha256=$sourceDigest;packageSha256=$packageDigest;combinedSha256=$combinedDigest}
 }
 
-function Get-RedTildeReviewedHeaderDeltaProfile {
-    [CmdletBinding()]
-    param([Parameter(Mandatory)][string]$Root)
-    $path=Join-Path $Root 'Build/ReviewedHeaderDeltaProfile.json'
-    if(-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'The fixed reviewed-header profile is missing.' }
-    $profile=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json -AsHashtable
+function Assert-RedTildeReviewedHeaderDeltaProfileV1 {
+    param([Parameter(Mandatory)]$Profile)
+    $profile=$Profile
     if($profile.schema -cne 'redtilde-reviewed-dxui-header-delta-profile-v1' -or
         $profile.profileId -cne 'redtilde-dxui-readonly-snapshot-api4-v1' -or
         $profile.status -cne 'ready-reviewed-exact-pair') {
@@ -498,6 +495,169 @@ function Get-RedTildeReviewedHeaderDeltaProfile {
         if($profile.abiProbe.baseline.values[$field] -cne $profile.abiProbe.candidate.values[$field]) { throw "The ABI probe $field differs across the reviewed pair." }
     }
     return $profile
+}
+
+function Assert-RedTildeReviewedHeaderDeltaProfileV2 {
+    param([Parameter(Mandatory)]$Profile)
+    $profile=$Profile
+    if($profile.schema -cne 'redtilde-reviewed-dxui-header-delta-profile-v2' -or
+        $profile.profileId -cne 'redtilde-dxui-parsed-snapshot-api4-v2' -or
+        $profile.status -cne 'ready-reviewed-exact-pair') {
+        throw 'The fixed parsed-snapshot profile is blocked, unknown, or not the approved exact profile.'
+    }
+    if($profile.allOtherInventoryRowsMustBeIdentical -cne $true -or $profile.packageHeadersUnchanged -cne $true -or
+        ($profile.dependencyFieldChanges -join '|') -cne 'Fingerprint|Identity.commit' -or
+        ($profile.compilerPathOperandsOnly -join '|') -cne 'one exact DxUi source /I|one exact fingerprinted package /I') {
+        throw 'The parsed-snapshot profile broadens the reviewed dependency/compiler exception.'
+    }
+    if($profile.baseline.commit -cne '47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a' -or
+        $profile.baseline.tree -cne '3ee2e12647ca2e05113823eb172bb0facf879021' -or
+        $profile.candidate.commit -cne '4077f57df8207eac6c39c43437feb45b19d23cf8' -or
+        $profile.candidate.tree -cne '18be66885916f67cafd8aeb761207bf15fbd9120' -or
+        ($profile.expectedApiRevision -isnot [int] -and $profile.expectedApiRevision -isnot [long]) -or $profile.expectedApiRevision -ne 4) {
+        throw 'The parsed-snapshot profile is not bound to its reviewed SDK pair/API.'
+    }
+    foreach($side in @('baseline','candidate')) {
+        $binding=$profile[$side]
+        if($binding.dependencyFingerprint -isnot [string] -or $binding.dependencyFingerprint -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            ($binding.publicHeaders.schemaVersion -isnot [int] -and $binding.publicHeaders.schemaVersion -isnot [long]) -or $binding.publicHeaders.schemaVersion -ne 2 -or
+            $binding.publicHeaders.files -isnot [array] -or $binding.publicHeaders.files.Count -ne 58 -or
+            ($binding.publicHeaders.sourceCount -isnot [int] -and $binding.publicHeaders.sourceCount -isnot [long]) -or $binding.publicHeaders.sourceCount -ne 25 -or
+            ($binding.publicHeaders.packageCount -isnot [int] -and $binding.publicHeaders.packageCount -isnot [long]) -or $binding.publicHeaders.packageCount -ne 33 -or
+            $binding.publicHeaders.sourceCount + $binding.publicHeaders.packageCount -ne 58 -or
+            $binding.publicHeaders.sourceSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $binding.publicHeaders.packageSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $binding.publicHeaders.combinedSha256 -cnotmatch '^[0-9A-Fa-f]{64}$') {
+            throw "The $side parsed-snapshot profile inventory is incomplete."
+        }
+        $null=Get-RedTildeReviewedHeaderInventory -Headers $binding.publicHeaders -Side $side
+        if($binding.identity.commit -cne $binding.commit -or $binding.identity.apiRevision -ne 4 -or
+            $binding.identity.platform -cne 'x64' -or $binding.identity.toolset -cne 'v145' -or
+            -not $binding.identity.vcToolsVersion -or -not $binding.identity.windowsSdkVersion -or
+            -not $binding.identity.runtimeFamily -or -not $binding.identity.preferredToolArchitecture -or
+            $binding.identity.disableStlAnnotations -isnot [bool] -or
+            $binding.identity.msbuildSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $binding.identity.compilerSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $binding.identity.linkerSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $binding.identity.windowsHeaderSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $binding.identity.kernel32Sha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $binding.identity.ucrtSha256 -cnotmatch '^[0-9A-Fa-f]{64}$') {
+            throw "The $side parsed-snapshot profile identity is incomplete or does not match the reviewed x64 API-4 toolchain."
+        }
+    }
+    $probe=$profile.abiProbe
+    if($probe.protocol -cne 'dxui-parsed-source-snapshot-source-probe-v2' -or
+        $probe.sourceSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+        $probe.fullReceiptSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+        $probe.normalizedProbeCompileArgsEqual -cne $true -or
+        $probe.layoutDeltaVerified -isnot [bool] -or $probe.layoutDeltaVerified -cne $true -or
+        $probe.newMethodSignaturesVerified -isnot [bool] -or $probe.newMethodSignaturesVerified -cne $true -or
+        $probe.fullApplicationCompileContextExact -isnot [bool] -or $probe.fullApplicationCompileContextExact -cne $false -or
+        $probe.fullApplicationLinkContextExact -isnot [bool] -or $probe.fullApplicationLinkContextExact -cne $false -or
+        $probe.fullContextLimit -isnot [string] -or [string]::IsNullOrWhiteSpace($probe.fullContextLimit) -or
+        $probe.fullContextLimit -notmatch '(?i)isolated' -or $probe.fullContextLimit -notmatch '(?i)\bPCH\b' -or
+        $probe.fullContextLimit -notmatch '(?i)\blibrary\b' -or $probe.fullContextLimit -notmatch '(?i)\b(no|not|without)\b') {
+        throw 'The parsed-snapshot source probe lacks its source, full receipt, measured layout rule, method signatures, or scope limit.'
+    }
+    try { $probeSource=[Convert]::FromBase64String([string]$probe.sourceBase64) } catch { throw 'The parsed-snapshot probe source is not valid base64.' }
+    if([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($probeSource)) -cne $probe.sourceSha256) {
+        throw 'The embedded parsed-snapshot probe source bytes differ from the fixed source hash.'
+    }
+    $allowed=@('include/DxUi/DxUi.h','include/DxUi/MarkdownSyntax.h','include/DxUi/RichDocument.h')
+    if($profile.allowedHeaderHashPairs.Count -ne 3) { throw 'The parsed-snapshot profile must contain exactly three SDK source header rows.' }
+    $baseRows=(Get-RedTildeReviewedHeaderInventory -Headers $profile.baseline.publicHeaders -Side baseline).rows
+    $candidateRows=(Get-RedTildeReviewedHeaderInventory -Headers $profile.candidate.publicHeaders -Side candidate).rows
+    if(@(Compare-Object @($baseRows.Keys|Sort-Object -CaseSensitive) @($candidateRows.Keys|Sort-Object -CaseSensitive) -CaseSensitive).Count -gt 0) {
+        throw 'The parsed-snapshot SDK inventories do not contain the same exact path set.'
+    }
+    $changed=@(foreach($path in $baseRows.Keys){if($baseRows[$path] -cne $candidateRows[$path]){$path}})
+    if($changed.Count -ne 3 -or @($changed|Where-Object {$allowed -cnotcontains $_}).Count -ne 0) {
+        throw 'Only the three exact parsed-snapshot SDK source header rows may change; every other source and package row remains identical.'
+    }
+    $pairedSources=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach($pair in $profile.allowedHeaderHashPairs) {
+        $sourcePath=[string]$pair.sourcePath
+        if($sourcePath -cnotin $allowed -or -not $pairedSources.Add($sourcePath) -or
+            $pair.baselineSha256 -cne $baseRows[$sourcePath] -or $pair.candidateSha256 -cne $candidateRows[$sourcePath]) {
+            throw 'A parsed-snapshot SDK source header hash pair differs from the exact profile inventories.'
+        }
+    }
+    if($pairedSources.Count -ne 3) { throw 'The parsed-snapshot profile must bind all three exact source header paths once.' }
+    $layoutTypes=@('MarkdownSyntax','MarkdownParser','RichTextEditor','SourceSnapshot','Document')
+    foreach($side in @('baseline','candidate')) {
+        foreach($type in $layoutTypes) {
+            $layout=$probe[$side][$type]
+            if(($layout.sizeBytes -isnot [int] -and $layout.sizeBytes -isnot [long]) -or $layout.sizeBytes -le 0 -or
+                ($layout.alignmentBytes -isnot [int] -and $layout.alignmentBytes -isnot [long]) -or $layout.alignmentBytes -le 0) {
+                throw "The parsed-snapshot source probe has no valid $side $type layout."
+            }
+            $fieldBase=if($type -ceq 'RichTextEditor'){'RichTextEditor'}elseif($type -ceq 'SourceSnapshot'){'SourceSnapshot'}elseif($type -ceq 'Document'){'RichTextDocument'}else{$type}
+            if($layout.sizeBytes -ne $probe[$side].values["sizeof$fieldBase"] -or
+                $layout.alignmentBytes -ne $probe[$side].values["alignof$fieldBase"]) {
+                throw "The parsed-snapshot $side $type layout labels differ from compiler-probe values."
+            }
+        }
+        $sideEvidence=$probe[$side];$binding=$profile[$side]
+        if($sideEvidence.receiptSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $sideEvidence.normalizedApplicationCompilerProfileSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $sideEvidence.probeApplicationCompilerTlogSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $sideEvidence.applicationLinkCommandSha256 -cnotmatch '^[0-9A-Fa-f]{64}$') {
+            throw "The $side parsed-snapshot probe projection lacks compiler receipt hashes."
+        }
+        $projection=[ordered]@{side=$side;sdkCommit=$binding.commit;fingerprint=$binding.dependencyFingerprint;apiRevision=4;
+            headerInventorySha256=$binding.publicHeaders.combinedSha256;compilerSha256=$binding.identity.compilerSha256;
+            linkerSha256=$binding.identity.linkerSha256;normalizedApplicationCompilerProfileSha256=$sideEvidence.normalizedApplicationCompilerProfileSha256;
+            probeApplicationCompilerTlogSha256=$sideEvidence.probeApplicationCompilerTlogSha256;
+            applicationLinkCommandSha256=$sideEvidence.applicationLinkCommandSha256;values=$sideEvidence.values}
+        $projectionBytes=[Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $projection -Depth 12 -Compress))
+        $projectionHash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($projectionBytes))
+        if($projectionHash -cne $sideEvidence.receiptSha256) { throw "The $side parsed-snapshot side-projection checksum does not recompute." }
+    }
+    if($probe.candidate.MarkdownSyntax.sizeBytes -ne ($probe.baseline.MarkdownSyntax.sizeBytes + 16) -or
+        $probe.candidate.MarkdownSyntax.alignmentBytes -ne $probe.baseline.MarkdownSyntax.alignmentBytes) {
+        throw 'The parsed-snapshot probe must measure exactly a 16-byte MarkdownSyntax increase with unchanged alignment.'
+    }
+    foreach($type in @('MarkdownParser','RichTextEditor','SourceSnapshot','Document')) {
+        if($probe.baseline[$type].sizeBytes -ne $probe.candidate[$type].sizeBytes -or
+            $probe.baseline[$type].alignmentBytes -ne $probe.candidate[$type].alignmentBytes) {
+            throw "The parsed-snapshot probe detects an unreviewed $type layout change."
+        }
+    }
+    foreach($side in @('baseline','candidate')) {
+        foreach($field in @('hasReadOnlySourceSynchronization','hasSourceSnapshotMatchesText',
+            'hasParsedSnapshotAdoption','hasReadOnlyMarkdownSyntaxAdoption')) {
+            if($probe[$side].values[$field] -isnot [bool]) { throw "The parsed-snapshot $side probe $field must be a JSON boolean." }
+        }
+    }
+    if($probe.baseline.values.hasReadOnlySourceSynchronization -cne $true -or
+        $probe.candidate.values.hasReadOnlySourceSynchronization -cne $true -or
+        $probe.baseline.values.hasSourceSnapshotMatchesText -cne $false -or
+        $probe.candidate.values.hasSourceSnapshotMatchesText -cne $true -or
+        $probe.baseline.values.hasParsedSnapshotAdoption -cne $false -or
+        $probe.candidate.values.hasParsedSnapshotAdoption -cne $true -or
+        $probe.baseline.values.hasReadOnlyMarkdownSyntaxAdoption -cne $false -or
+        $probe.candidate.values.hasReadOnlyMarkdownSyntaxAdoption -cne $true) {
+        throw 'The parsed-snapshot probe method availability flags do not match the exact reviewed pair.'
+    }
+    foreach($field in @('controlIsPolymorphic','richTextEditorIsPolymorphic','msvcVersion','msvcLang','iteratorDebugLevel')) {
+        if($probe.baseline.values[$field] -cne $probe.candidate.values[$field]) { throw "The parsed-snapshot probe $field differs across the reviewed pair." }
+    }
+    return $profile
+}
+
+function Get-RedTildeReviewedHeaderDeltaProfile {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Root)
+    $path=Join-Path $Root 'Build/ReviewedHeaderDeltaProfile.json'
+    if(-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'The fixed reviewed-header profile is missing.' }
+    $profile=Get-Content -LiteralPath $path -Raw | ConvertFrom-Json -AsHashtable
+    if($profile.profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1') {
+        return Assert-RedTildeReviewedHeaderDeltaProfileV1 -Profile $profile
+    }
+    if($profile.profileId -ceq 'redtilde-dxui-parsed-snapshot-api4-v2') {
+        return Assert-RedTildeReviewedHeaderDeltaProfileV2 -Profile $profile
+    }
+    throw 'The fixed reviewed-header profile has an unknown profile ID.'
 }
 
 function Assert-RedTildeReviewedHeaderDelta {

@@ -1,0 +1,102 @@
+{
+  "schema": "redtilde-mirror-color-feature-removal-public-v1",
+  "sourceDeclarationSha256": "2892E53120A7CBC79C8AFF9A4E3EDBDA24DF58B6F385F470BCEA790545619ADF",
+  "purpose": "Descriptive feature-removal diagnostic; disabled variant is not a shippable product configuration.",
+  "dependency": {
+    "sdkCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+    "sdkFingerprint": "7ff1282c1c53196353455b6ca1c9504f4762a7af4f495eb3c479ec97d88ee260",
+    "apiRevision": 4,
+    "sourceHeadersSha256": "1FD9F846231F56CB4A3C158B61CA5D3A9A82B7E7B08D3C37396B5FACCFC56913"
+  },
+  "roles": {
+    "A": {
+      "meaning": "Full tested colored mirror",
+      "sourceIdentity": "baf2ffb002d3d4f3abe16dd64057778c42313f40a2019ba9ed2ca91abf782ed5",
+      "compiledSourceIdentity": "4ef19b18e0255996d58ae57bc0f2f54e8b66594a3261964ca9921249bcf843ea",
+      "exeSha256": "C8B11F75A33514DF15ED657324728D9740974066856003437E49534F506DD353",
+      "pdbSha256": "17285BB3522EFDC2A602F1F86DA312F88D672130689EF524D1066A421BE06315",
+      "buildReceiptSha256": "494B4BC17280A7FC659974C4753D4CDA61FE9AFC066336795E4EDC6F5CB9EA9B",
+      "headersSha256": "1FD9F846231F56CB4A3C158B61CA5D3A9A82B7E7B08D3C37396B5FACCFC56913"
+    },
+    "B": {
+      "meaning": "Mirror Markdown parsing/coloring disabled for feature-cost attribution",
+      "sourceIdentity": "958a51b1bfd00186873b0bc5df29780def31fa5b3875cae48760405f33c51e65",
+      "compiledSourceIdentity": "7000cb126755fd0ac5fb704cd1202aa220ae95423908bb128f283b01b02a7a01",
+      "exeSha256": "05A6E31465EFD7B22E64823BDE7DE63EA837B831F107E6C94DA41015951E578C",
+      "pdbSha256": "4A036EBF9F47FFF9850C3A2EA4EEC1AB84A4E07900BC8AABE6BADBFB96804414",
+      "buildReceiptSha256": "17440B9D1C6017EBD93D6FC77D077A4B8AFADE44F6CE9436E190726A3248AE10",
+      "headersSha256": "1FD9F846231F56CB4A3C158B61CA5D3A9A82B7E7B08D3C37396B5FACCFC56913"
+    }
+  },
+  "sourceDifference": {
+    "file": "RedTilde/Application.Chrome.cpp",
+    "fullSha256": "965E552353EBF854A8CBF8E849D58CCF2767A4815DF111311423B3AD8C7F49A5",
+    "disabledSha256": "4488C0E3C1BD2A9F4E7707BC8E0CBC50B2A5222A8443C04CFF1F5D8D94952529",
+    "change": "Two mirror setup calls removed: SetMarkdownAnalysisProfile(RichMarkdown) and SetMarkdownRenderingEnabled(true)."
+  },
+  "commonInputs": {
+    "Tests/Application.Tests.Performance.cpp": "AA0475550994C419AD1AF6B1CE980BE34095E36225E52EDB9D83ABF9C819370C",
+    "Tests/Application.Tests.HeapDiagnostic.h": "BCD650BA755F66CE28A30C81C8ECB9F07E937DBA6A9A2C7FDF34AF2F8836DCA9",
+    "RedTilde/Main.cpp": "7918862FD087DE59C563B21C9BE196D6C1F4A620C2F66468A1914D72D0F070AF",
+    "RedTilde/EditDiagnostics.h": "779E4A6B708C39CF103D641CE0745983D52E0AB511F6D1DEDF4FF785EBED0E34",
+    "performance-paired.ps1": "A7487DA58293B9A8D6FED98AC37D7FC38CD7E75C12C65D9AD0E6250D513C8877",
+    "Build/Performance.psm1": "76E1C17BF5C7A830D82A5FA3286EC57E1673810305719A7BC69CA36A2AE36584",
+    "Build/Harness.psm1": "B12F1C4C7DDA573117C7D6DADE2483D2085B3102D2D2844B8CAAC7D43D1D9AE1",
+    "docs/examples/s5-performance.md": "9CE1CA2DE3983070C40DC5A9DF331C9AA386FE796371E5527BF370AC70D3A10E",
+    "Build/ReviewedHeaderDeltaProfile.json": "B8003310580F17A58327FA28482595C699F6D8BC1CA712AEC90677C5C726E751"
+  },
+  "protocol": {
+    "cycles": 64,
+    "warmupCycles": 2,
+    "diagnosticInstrumentation": false,
+    "processes": 16,
+    "rolesPerVariant": 8,
+    "order": "Explicit serial order by view/block; see blockOrders.",
+    "views": [
+      "Compose",
+      "Split"
+    ],
+    "fixture": "redtilde-completed-native-v2",
+    "sourceUnits": 693,
+    "renderer": "Hardware",
+    "adapter": "AMD Radeon(TM) 860M Graphics",
+    "dpi": 144,
+    "resolutionPx": "2160x1350",
+    "blockOrders": {
+      "Compose": {
+        "block0": [
+          "A",
+          "B",
+          "B",
+          "A"
+        ],
+        "block1": [
+          "B",
+          "A",
+          "A",
+          "B"
+        ]
+      },
+      "Split": {
+        "block0": [
+          "B",
+          "A",
+          "A",
+          "B"
+        ],
+        "block1": [
+          "A",
+          "B",
+          "B",
+          "A"
+        ]
+      }
+    }
+  },
+  "limitations": [
+    "Descriptive feature-removal result only; no primary acceptance or inferential p-values.",
+    "No A/A arm or host observer. Native reports describe hidden completed frames; physical presentation and input are unverified.",
+    "Private-byte and working-set snapshots are whole-process observations and do not establish allocation ownership.",
+    "Disabling mirror coloring is not an acceptable or shippable product change."
+  ]
+}
