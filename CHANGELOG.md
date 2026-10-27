@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Publish the current a29 native qualification and 576-slot three-reference comparison with source-bound hashes, privacy-filtered payload digests, and separate keyboard evidence. Keep the Split CPU finding, unstable controls, hosted ARM64, focus verification, and performance-policy acceptance open.
 - Archive the six-profile documentation continuation with unchanged native artifacts, and record the remaining performance, shared Menu and hosted ARM64 qualification gates in the redesign WIP checklist.
 - Publish the fresh RedTilde 45c2895 native checkpoint with source-bound build/test identities, synthetic payload hashes, and explicit ARM64, hosted CI, performance, SDK policy, and cursor-lease limits; no runtime code changed and no performance acceptance is claimed.
 - Publish the copied 30fb native qualification and editor-attempt packets with per-packet hashes, byte-preserving Git attributes and an explicit boundary between the original matrix Release artifact and the restored colored Release artifact. Keep all three original-UI performance findings, SDK policy acceptance, cursor lease and hosted ARM64 open.

@@ -1,0 +1,15 @@
+{
+  "schema": "redtilde-metadata-continuation-pending-v1",
+  "acceptance": false,
+  "status": "pending",
+  "source": {
+    "redTildeCommit": "a29c9f8447fe06b33b3a9c611dda5d6e6d29205e",
+    "dxUiConsumerPin": "4077f57df8207eac6c39c43437feb45b19d23cf8",
+    "sdkFollowupHead": "8199566d635751a20a6e916e73410fb6cad317cc"
+  },
+  "purpose": "Reserve a Measurements-only continuation for root-owned final six canonical RedTilde metadata builds at the published documentation revision, keeping the DxUi consumer pin at 4077f57df8207eac6c39c43437feb45b19d23cf8. This is metadata/build-receipt evidence and does not assert a new SDK runtime qualification.",
+  "requiredEvidence": "Root-owned receipts and independent binding for the six canonical RedTilde metadata builds at the published documentation revision, with the exact RedTilde source identity and unchanged SDK pin recorded.",
+  "performanceAcceptance": false,
+  "nativeAcceptance": false,
+  "sdkRuntimeQualification": "not asserted; existing SDK native/CI results remain as separately described in evidence-metadata.json"
+}

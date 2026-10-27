@@ -1,0 +1,4 @@
+# Preserve sealed a29 evidence and manifest bytes across Git checkout.
+/performance-a29c9f84/** -text whitespace=trailing-space,space-before-tab,cr-at-eol
+/qualification-a29c9f84/** -text whitespace=trailing-space,space-before-tab,cr-at-eol
+/publication-manifest-a29c9f84.json -text whitespace=trailing-space,space-before-tab,cr-at-eol

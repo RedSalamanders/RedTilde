@@ -1,0 +1,91 @@
+{
+  "schema": "redtilde-measurements-publication-manifest-v1",
+  "source": {
+    "redTildeCommit": "a29c9f8447fe06b33b3a9c611dda5d6e6d29205e",
+    "dxUiCommit": "4077f57df8207eac6c39c43437feb45b19d23cf8",
+    "dxUiTree": "18be66885916f67cafd8aeb761207bf15fbd9120"
+  },
+  "sourceReviewInventory": {
+    "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24/review-inventory.md",
+    "entryCount": 636,
+    "packetFilesIncluded": false,
+    "note": "New Measurement projections are published evidence, excluded from the frozen source-review population."
+  },
+  "packets": [
+    {
+      "path": "qualification-a29c9f84",
+      "acceptance": false
+    },
+    {
+      "path": "performance-a29c9f84",
+      "acceptance": false
+    }
+  ],
+  "files": [
+    {
+      "path": "Measurements/RedesignCompletion_2026-10-26/.gitattributes",
+      "bytes": 336,
+      "sha256": "8dbba783bf9bff9c0d497be878ac34033b0dc4109b64b3bed50b7a828c4cb117"
+    },
+    {
+      "path": "Measurements/RedesignCompletion_2026-10-26/performance-a29c9f84/README.md",
+      "bytes": 4928,
+      "sha256": "4b71338cbf748141bce3cd5d28709f387f4d31e3c3a9a7b2f287259c34d40bc4"
+    },
+    {
+      "path": "Measurements/RedesignCompletion_2026-10-26/performance-a29c9f84/evidence-index.json",
+      "bytes": 1705,
+      "sha256": "f946739522a374215e0e02111c5c038c9df0475677f0d5b634ce51d05bc73b3c"
+    },
+    {
+      "path": "Measurements/RedesignCompletion_2026-10-26/performance-a29c9f84/metric-rows.csv",
+      "bytes": 9667,
+      "sha256": "61e8d07cfa02f5fb8e6944f327cd6a41597fc9d5184924bc3f99bc1b2316da40"
+    },
+    {
+      "path": "Measurements/RedesignCompletion_2026-10-26/performance-a29c9f84/raw-report-index.json",
+      "bytes": 115491,
+      "sha256": "426475710c2eb904004b7c404ae87b648bd8c726b4a046675558c2e3595d6bca"
+    },
+    {
+      "path": "Measurements/RedesignCompletion_2026-10-26/performance-a29c9f84/root-replay.json",
+      "bytes": 3011,
+      "sha256": "de5caaaf410925aa6be75dcdb9f41541c5eb41e7c22a0501448c18361077d75c"
+    },
+    {
+      "path": "Measurements/RedesignCompletion_2026-10-26/performance-a29c9f84/source-identity.json",
+      "bytes": 3979,
+      "sha256": "36c60334caf71be33ac1fe97040759174ecf16a96341d9282012d3083da128e8"
+    },
+    {
+      "path": "Measurements/RedesignCompletion_2026-10-26/performance-a29c9f84/summary.json",
+      "bytes": 106122,
+      "sha256": "bec34bb3265c2b77ebd9ebafec816969bd6b1d16b9de8c8c3ccd8b0e8d4ee778"
+    },
+    {
+      "path": "Measurements/RedesignCompletion_2026-10-26/qualification-a29c9f84/README.md",
+      "bytes": 4018,
+      "sha256": "61e1973d2977d08fbc5a21ca6e7ff04d89b7daa8ef9bbf3977feee32f30e3433"
+    },
+    {
+      "path": "Measurements/RedesignCompletion_2026-10-26/qualification-a29c9f84/evidence-metadata.json",
+      "bytes": 16585,
+      "sha256": "0e230bf5a9b97125fcc8670f10f4b928e430709f3370f37952644db08f1d45f2"
+    },
+    {
+      "path": "Measurements/RedesignCompletion_2026-10-26/qualification-a29c9f84/metadata-continuation-pending.json",
+      "bytes": 1076,
+      "sha256": "199f3757e6660b0c331e01216d73dabc3203e1aedcc96dd81387d93ee39ebd07"
+    },
+    {
+      "path": "Measurements/RedesignCompletion_2026-10-26/qualification-a29c9f84/packet-hashes.json",
+      "bytes": 725,
+      "sha256": "33ad9000c2848a563ef9f2f3c6bf291b79506368106042e7517c4d1f6f99c5d4"
+    },
+    {
+      "path": "Measurements/RedesignCompletion_2026-10-26/qualification-a29c9f84/payload-hashes.json",
+      "bytes": 408271,
+      "sha256": "485e58570e90bd942111d5e0990355ad52149d58f10d9618ab6400183b5824fb"
+    }
+  ]
+}

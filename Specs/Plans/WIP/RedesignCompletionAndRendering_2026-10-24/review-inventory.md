@@ -15544,11 +15544,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
-      "sha256": "975e89997d7921f27397ed0c0fa522f3c86d200832700ffa5fd25b0ea0ed51c4",
+      "sha256": "16eb74421966d84aae46c1bfe193b462027179cd4d6225851493b9e91b8e748f",
       "category": "planning-document",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "lead-and-independent-p22-documentation-continuation-review",
+      "reviewer": "p22-current-a29-publication-doc-delta",
       "testIds": [
         "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
         "Editor.DesignRefreshEquationContextAndDraftGuards",
@@ -15578,31 +15578,30 @@ the current performance policy or accept the remaining regressions.
         "Qualification.DocsOnlySixProfileRebind"
       ],
       "findingIds": [],
-      "disposition": "reviewed-doc-continuation; final-performance-and-hosted-arm64-open",
+      "disposition": "reviewed-publication-doc-delta; input-qualification-and-performance-policy-open",
       "reviewNotes": {
         "callers": "",
         "ownershipAndLifetime": "",
         "failureAndCancellation": "",
         "testCoverage": ""
       },
-      "reviewDeltaStatus": "REVIEWED_CURRENT_TOOLING_AND_SOURCE_BOUND_NATIVE_EVIDENCE",
+      "reviewDeltaStatus": "REVIEWED_CURRENT_SOURCE_BOUND_EVIDENCE_PROJECTION",
       "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "Six canonical0f metadata continuations preserve45c native bytes and compiled-source identity. Original runtime receipts retain45c; new continuation is published separately.",
-        "lifetime": "No application C++ or dependency pin changes. Prototype2532 rejects the actual26-range source layout before painting and remains unadopted. No renderer benefit is attributed to the short diagnostic.",
-        "simplification": "CurrentP22 checklist owns remaining gates; prior checkpoints are explicitly historical. Both SDK hover cases reuse one physical alignment helper; that SDK test-only correction is separate from this app source.",
-        "testCoverage": "Source45c has six builds,3x64Full65behavior/23captures,realASan and keyboard9/168. Source0f continuation executes no new runtime tests. Current documentation validators remain pending until the exclusive local calibration finishes.",
-        "performance": "The originalUI3flags are preserved. Current-source407A/A uses fixed3scenes/12blocks/seed20261027 with unchangedpolicy. First checkout-length refusal occurs before native execution; attempt and observer retained. Human policy review and fresh final576 remain required.",
-        "qualificationBoundary": "HostedRT0f run40349750074 executes zero steps because of billing. SDK8ac has five native passes and a distinct ARMDebug replacement-hover failure; paired latercancelled/verdictskipped. Finald849 run40366949236matchingqualification pending. Cursor-restorationcause,performancepolicy and hostedapplicationARM64 remainOPEN."
+        "correctness": "Current SDK build, Menu input and hosted CI outcomes are recorded as separate attempts; no acceptance claim is introduced.",
+        "lifetime": "Documentation and public evidence projection only; no application runtime source or dependency pin changed.",
+        "simplification": "Current a29 evidence remains separate from the earlier 09f collection; native keyboard evidence is separate from performance studies.",
+        "testCoverage": "Changelog validation and fold/check passed. The local native/performance evidence was completed and independently reviewed before this documentation update.",
+        "performance": "One current original-UI Split CPU finding remains; 36/72 controls unstable; no causal improvement or acceptance claim.",
+        "qualificationBoundary": "Projection update only. Full native input qualification, hosted ARM64, performance policy and acceptance remain open."
       },
       "reviewDeltaTestIds": [
-        "EditorPreparationDiagnosticsOracle",
-        "Tests/Scope.Tests.Performance.Diagnostics.ps1:editor-preparation-all-slots-valid",
-        "qualification-30fb0c2",
-        "restored-colored-Release-Full-and-keyboard"
+        "Tools/Test-Changelog.ps1",
+        "Tools/Fold-Changelog.ps1 -Check",
+        "P22 current-source publication projection"
       ],
       "reviewDeltaFindingIds": [],
-      "reviewDeltaDate": "2026-10-26",
+      "reviewDeltaDate": "2026-10-27",
       "reviewHistory": [
         {
           "recordedUtc": "2026-10-25T11:07:09.1637846Z",
@@ -15988,6 +15987,163 @@ the current performance policy or accept the remaining regressions.
             "simplification": "One final child packet lives under the existing byte-protected tree; no attributes, scripts, native sources or pin change. Both indexes bind each packet to its own hash. PR16 merge20c3ab6f has exactly the reviewed45c treeb9fcb074.",
             "qualificationBoundary": "SDK108 integrated source9675 has native/CI checks running after a test declaration-order repair. SDK policy and cursor-cause gates stay open. Hosted applicationARM64 remains blocked before job startup. WIP remainsactive."
           }
+        },
+        {
+          "recordedUtc": "2026-10-26T22:32:49.8188807Z",
+          "priorReviewBaseCommit": "a29c9f8447fe06b33b3a9c611dda5d6e6d29205e",
+          "sha256": "975e89997d7921f27397ed0c0fa522f3c86d200832700ffa5fd25b0ea0ed51c4",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p22-documentation-continuation-review",
+          "testIds": [
+            "EditorPreparationDiagnosticsOracle",
+            "Tests/Scope.Tests.Performance.Diagnostics.ps1:editor-preparation-all-slots-valid",
+            "qualification-30fb0c2",
+            "restored-colored-Release-Full-and-keyboard"
+          ],
+          "findingIds": [],
+          "disposition": "reviewed-doc-continuation; final-performance-and-hosted-arm64-open",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Six canonical0f metadata continuations preserve45c native bytes and compiled-source identity. Original runtime receipts retain45c; new continuation is published separately.",
+            "lifetime": "No application C++ or dependency pin changes. Prototype2532 rejects the actual26-range source layout before painting and remains unadopted. No renderer benefit is attributed to the short diagnostic.",
+            "simplification": "CurrentP22 checklist owns remaining gates; prior checkpoints are explicitly historical. Both SDK hover cases reuse one physical alignment helper; that SDK test-only correction is separate from this app source.",
+            "testCoverage": "Source45c has six builds,3x64Full65behavior/23captures,realASan and keyboard9/168. Source0f continuation executes no new runtime tests. Current documentation validators remain pending until the exclusive local calibration finishes.",
+            "performance": "The originalUI3flags are preserved. Current-source407A/A uses fixed3scenes/12blocks/seed20261027 with unchangedpolicy. First checkout-length refusal occurs before native execution; attempt and observer retained. Human policy review and fresh final576 remain required.",
+            "qualificationBoundary": "HostedRT0f run40349750074 executes zero steps because of billing. SDK8ac has five native passes and a distinct ARMDebug replacement-hover failure; paired latercancelled/verdictskipped. Finald849 run40366949236matchingqualification pending. Cursor-restorationcause,performancepolicy and hostedapplicationARM64 remainOPEN."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T22:40:00.5868331Z",
+          "priorReviewBaseCommit": "a29c9f8447fe06b33b3a9c611dda5d6e6d29205e",
+          "sha256": "3e0aac68e69d53ba13a95bffd1d77521f35761fa9956922ac784193e534bcffe",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "p22-current-a29-publication-doc-delta",
+          "testIds": [
+            "Tools/Test-Changelog.ps1",
+            "Tools/Fold-Changelog.ps1 -Check",
+            "P22 current-source publication projection"
+          ],
+          "findingIds": [],
+          "disposition": "reviewed-publication-doc-delta; performance-policy-and-hosted-arm64-open",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "P22 current-source performance/native checkpoint updated; older history remains in place; acceptance gates remain open.",
+            "lifetime": "Documentation and public evidence projection only; no application runtime source or dependency pin changed.",
+            "simplification": "Current a29 evidence remains separate from the earlier 09f collection; native keyboard evidence is separate from performance studies.",
+            "testCoverage": "Changelog validation and fold/check passed. The local native/performance evidence was completed and independently reviewed before this documentation update.",
+            "performance": "One current original-UI Split CPU finding remains; 36/72 controls unstable; no causal improvement or acceptance claim.",
+            "qualificationBoundary": "Hosted RedTilde CI started zero steps under the payment/spending restriction; hosted ARM64, focus verification and SDK base policy remain open."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T22:40:29.0511779Z",
+          "priorReviewBaseCommit": "a29c9f8447fe06b33b3a9c611dda5d6e6d29205e",
+          "sha256": "33251440bd9bfafa1c9c173f822c09882934efc89876f1d99d7472bb9a5b184f",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "p22-current-a29-publication-doc-delta",
+          "testIds": [
+            "Tools/Test-Changelog.ps1",
+            "Tools/Fold-Changelog.ps1 -Check",
+            "P22 current-source publication projection"
+          ],
+          "findingIds": [],
+          "disposition": "reviewed-publication-doc-delta; performance-policy-and-hosted-arm64-open",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "P22 current-source performance/native checkpoint updated; older history remains in place; acceptance gates remain open.",
+            "lifetime": "Documentation and public evidence projection only; no application runtime source or dependency pin changed.",
+            "simplification": "Current a29 evidence remains separate from the earlier 09f collection; native keyboard evidence is separate from performance studies.",
+            "testCoverage": "Changelog validation and fold/check passed. The local native/performance evidence was completed and independently reviewed before this documentation update.",
+            "performance": "One current original-UI Split CPU finding remains; 36/72 controls unstable; no causal improvement or acceptance claim.",
+            "qualificationBoundary": "Hosted RedTilde CI started zero steps under the payment/spending restriction; hosted ARM64, focus verification and SDK base policy remain open."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T22:41:19.6354836Z",
+          "priorReviewBaseCommit": "a29c9f8447fe06b33b3a9c611dda5d6e6d29205e",
+          "sha256": "aae3ec09b82f143e7008973b55b7a8224b746393a9a021aea04c1308179aed6b",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "p22-current-a29-publication-doc-delta",
+          "testIds": [
+            "Tools/Test-Changelog.ps1",
+            "Tools/Fold-Changelog.ps1 -Check",
+            "P22 current-source publication projection"
+          ],
+          "findingIds": [],
+          "disposition": "reviewed-publication-doc-delta; performance-policy-and-hosted-arm64-open",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "P22 current-source performance/native checkpoint updated; older history remains in place; acceptance gates remain open.",
+            "lifetime": "Documentation and public evidence projection only; no application runtime source or dependency pin changed.",
+            "simplification": "Current a29 evidence remains separate from the earlier 09f collection; native keyboard evidence is separate from performance studies.",
+            "testCoverage": "Changelog validation and fold/check passed. The local native/performance evidence was completed and independently reviewed before this documentation update.",
+            "performance": "One current original-UI Split CPU finding remains; 36/72 controls unstable; no causal improvement or acceptance claim.",
+            "qualificationBoundary": "Hosted RedTilde CI started zero steps under the payment/spending restriction; hosted ARM64, focus verification and SDK base policy remain open."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T22:49:55.9061214Z",
+          "priorReviewBaseCommit": "a29c9f8447fe06b33b3a9c611dda5d6e6d29205e",
+          "sha256": "aae3ec09b82f143e7008973b55b7a8224b746393a9a021aea04c1308179aed6b",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "p22-current-a29-publication-doc-delta",
+          "testIds": [
+            "Tools/Test-Changelog.ps1",
+            "Tools/Fold-Changelog.ps1 -Check",
+            "P22 current-source publication projection"
+          ],
+          "findingIds": [],
+          "disposition": "reviewed-publication-doc-delta; performance-policy-and-hosted-arm64-open",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "P22 current-source performance/native checkpoint updated; older history remains in place; acceptance gates remain open.",
+            "lifetime": "Documentation and public evidence projection only; no application runtime source or dependency pin changed.",
+            "simplification": "Current a29 evidence remains separate from the earlier 09f collection; native keyboard evidence is separate from performance studies.",
+            "testCoverage": "Changelog validation and fold/check passed. The local native/performance evidence was completed and independently reviewed before this documentation update.",
+            "performance": "One current original-UI Split CPU finding remains; 36/72 controls unstable; no causal improvement or acceptance claim.",
+            "qualificationBoundary": "Hosted RedTilde CI started zero steps under the payment/spending restriction; hosted ARM64, focus verification and SDK base policy remain open."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-27T23:20:00Z",
+          "priorReviewBaseCommit": "a29c9f8447fe06b33b3a9c611dda5d6e6d29205e",
+          "sha256": "e62fd2e10564305f02e18135703621215cc530ba84d5ae292af12b8ca6a8ebde",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "p22-current-a29-publication-doc-delta",
+          "disposition": "Prior published documentation hash retained before current SDK follow-up update."
+        },
+        {
+          "recordedUtc": "2026-10-27T23:20:00Z",
+          "priorReviewBaseCommit": "a29c9f8447fe06b33b3a9c611dda5d6e6d29205e",
+          "sha256": "97073e4c24272093f411254698572484c3129e569a4504f07d15f69ef30d31bd",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "p22-current-a29-publication-doc-delta",
+          "disposition": "Prior current-source documentation hash retained before this current SDK evidence update."
         }
       ],
       "reviewDeltaSourceState": "working-tree-documentation-bound-by-hash",
@@ -16186,38 +16342,37 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Measurements/README.md",
-      "sha256": "3443bc43a4a8e2dd4b4cd1582e36485b4de485cad231e660d26d897f3702faad",
+      "sha256": "21dc57b142edf171ad20ac9d3b602e402fc2a8f450ec34234bffcfca7ca7c230",
       "category": "measurement-index",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "lead-and-independent-p22-documentation-continuation-review",
+      "reviewer": "p22-current-a29-publication-doc-delta",
       "testIds": [],
       "findingIds": [],
-      "disposition": "reviewed-doc-continuation; final-performance-and-hosted-arm64-open",
+      "disposition": "reviewed-publication-doc-delta; input-qualification-and-performance-policy-open",
       "reviewNotes": {
         "callers": "",
         "ownershipAndLifetime": "",
         "failureAndCancellation": "",
         "testCoverage": ""
       },
-      "reviewDeltaStatus": "REVIEWED_CURRENT_TOOLING_AND_SOURCE_BOUND_NATIVE_EVIDENCE",
+      "reviewDeltaStatus": "REVIEWED_CURRENT_SOURCE_BOUND_EVIDENCE_PROJECTION",
       "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "Six canonical0f metadata continuations preserve45c native bytes and compiled-source identity. Original runtime receipts retain45c; new continuation is published separately.",
-        "lifetime": "No application C++ or dependency pin changes. Prototype2532 rejects the actual26-range source layout before painting and remains unadopted. No renderer benefit is attributed to the short diagnostic.",
-        "simplification": "CurrentP22 checklist owns remaining gates; prior checkpoints are explicitly historical. Both SDK hover cases reuse one physical alignment helper; that SDK test-only correction is separate from this app source.",
-        "testCoverage": "Source45c has six builds,3x64Full65behavior/23captures,realASan and keyboard9/168. Source0f continuation executes no new runtime tests. Current documentation validators remain pending until the exclusive local calibration finishes.",
-        "performance": "The originalUI3flags are preserved. Current-source407A/A uses fixed3scenes/12blocks/seed20261027 with unchangedpolicy. First checkout-length refusal occurs before native execution; attempt and observer retained. Human policy review and fresh final576 remain required.",
-        "qualificationBoundary": "HostedRT0f run40349750074 executes zero steps because of billing. SDK8ac has five native passes and a distinct ARMDebug replacement-hover failure; paired latercancelled/verdictskipped. Finald849 run40366949236matchingqualification pending. Cursor-restorationcause,performancepolicy and hostedapplicationARM64 remainOPEN."
+        "correctness": "Current SDK build, Menu input and hosted CI outcomes are recorded as separate attempts; no acceptance claim is introduced.",
+        "lifetime": "Documentation and public evidence projection only; no application runtime source or dependency pin changed.",
+        "simplification": "Current a29 evidence remains separate from the earlier 09f collection; native keyboard evidence is separate from performance studies.",
+        "testCoverage": "Changelog validation and fold/check passed. The local native/performance evidence was completed and independently reviewed before this documentation update.",
+        "performance": "One current original-UI Split CPU finding remains; 36/72 controls unstable; no causal improvement or acceptance claim.",
+        "qualificationBoundary": "Projection update only. Full native input qualification, hosted ARM64, performance policy and acceptance remain open."
       },
       "reviewDeltaTestIds": [
-        "EditorPreparationDiagnosticsOracle",
-        "Tests/Scope.Tests.Performance.Diagnostics.ps1:editor-preparation-all-slots-valid",
-        "qualification-30fb0c2",
-        "restored-colored-Release-Full-and-keyboard"
+        "Tools/Test-Changelog.ps1",
+        "Tools/Fold-Changelog.ps1 -Check",
+        "P22 current-source publication projection"
       ],
       "reviewDeltaFindingIds": [],
-      "reviewDeltaDate": "2026-10-26",
+      "reviewDeltaDate": "2026-10-27",
       "reviewHistory": [
         {
           "recordedUtc": "2026-10-25T23:22:17.5984649Z",
@@ -16358,6 +16513,51 @@ the current performance policy or accept the remaining regressions.
             "simplification": "One final child packet lives under the existing byte-protected tree; no attributes, scripts, native sources or pin change. Both indexes bind each packet to its own hash. PR16 merge20c3ab6f has exactly the reviewed45c treeb9fcb074.",
             "qualificationBoundary": "SDK108 integrated source9675 has native/CI checks running after a test declaration-order repair. SDK policy and cursor-cause gates stay open. Hosted applicationARM64 remains blocked before job startup. WIP remainsactive."
           }
+        },
+        {
+          "recordedUtc": "2026-10-26T22:32:49.8188807Z",
+          "priorReviewBaseCommit": "a29c9f8447fe06b33b3a9c611dda5d6e6d29205e",
+          "sha256": "3443bc43a4a8e2dd4b4cd1582e36485b4de485cad231e660d26d897f3702faad",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p22-documentation-continuation-review",
+          "testIds": [
+            "EditorPreparationDiagnosticsOracle",
+            "Tests/Scope.Tests.Performance.Diagnostics.ps1:editor-preparation-all-slots-valid",
+            "qualification-30fb0c2",
+            "restored-colored-Release-Full-and-keyboard"
+          ],
+          "findingIds": [],
+          "disposition": "reviewed-doc-continuation; final-performance-and-hosted-arm64-open",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Six canonical0f metadata continuations preserve45c native bytes and compiled-source identity. Original runtime receipts retain45c; new continuation is published separately.",
+            "lifetime": "No application C++ or dependency pin changes. Prototype2532 rejects the actual26-range source layout before painting and remains unadopted. No renderer benefit is attributed to the short diagnostic.",
+            "simplification": "CurrentP22 checklist owns remaining gates; prior checkpoints are explicitly historical. Both SDK hover cases reuse one physical alignment helper; that SDK test-only correction is separate from this app source.",
+            "testCoverage": "Source45c has six builds,3x64Full65behavior/23captures,realASan and keyboard9/168. Source0f continuation executes no new runtime tests. Current documentation validators remain pending until the exclusive local calibration finishes.",
+            "performance": "The originalUI3flags are preserved. Current-source407A/A uses fixed3scenes/12blocks/seed20261027 with unchangedpolicy. First checkout-length refusal occurs before native execution; attempt and observer retained. Human policy review and fresh final576 remain required.",
+            "qualificationBoundary": "HostedRT0f run40349750074 executes zero steps because of billing. SDK8ac has five native passes and a distinct ARMDebug replacement-hover failure; paired latercancelled/verdictskipped. Finald849 run40366949236matchingqualification pending. Cursor-restorationcause,performancepolicy and hostedapplicationARM64 remainOPEN."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-27T23:20:00Z",
+          "priorReviewBaseCommit": "a29c9f8447fe06b33b3a9c611dda5d6e6d29205e",
+          "sha256": "ca0e70e0e84e32e7f3e58f07171c4fe116d63b38cbc1f53f0d7ec9d02d0b38d0",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "p22-current-a29-publication-doc-delta",
+          "disposition": "Prior published documentation hash retained before current SDK follow-up update."
+        },
+        {
+          "recordedUtc": "2026-10-27T23:20:00Z",
+          "priorReviewBaseCommit": "a29c9f8447fe06b33b3a9c611dda5d6e6d29205e",
+          "sha256": "9195315c86fe8457e3463db5c6ede12a60accbd949cc8a1ea88ef30de763609f",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "p22-current-a29-publication-doc-delta",
+          "disposition": "Prior current-source documentation hash retained before this current SDK evidence update."
         }
       ],
       "reviewDeltaSourceState": "working-tree-documentation-bound-by-hash",
@@ -16647,11 +16847,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "CHANGELOG.md",
-      "sha256": "662c54d140e8372a93e2f918b42ccc85f701141d60fea344a12b893e7315af53",
+      "sha256": "aa7b658f69fb9387653d10f2a89806ccd91e49f5486ccde1d02a2243b1799933",
       "category": "generated-changelog",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "lead-and-independent-p22-documentation-continuation-review",
+      "reviewer": "p22-current-a29-publication-doc-delta",
       "testIds": [
         "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
         "Window.CaptionRetriesFailedAndSupersededNativeWrites",
@@ -16666,28 +16866,27 @@ the current performance policy or accept the remaining regressions.
         "Qualification.DocsOnlySixProfileRebind"
       ],
       "findingIds": [],
-      "disposition": "reviewed-doc-continuation; final-performance-and-hosted-arm64-open",
+      "disposition": "reviewed-publication-doc-delta; performance-policy-and-hosted-arm64-open",
       "reviewNotes": {
         "callers": "",
         "ownershipAndLifetime": "",
         "failureAndCancellation": "",
         "testCoverage": ""
       },
-      "reviewDeltaStatus": "REVIEWED_CURRENT_TOOLING_AND_SOURCE_BOUND_NATIVE_EVIDENCE",
+      "reviewDeltaStatus": "REVIEWED_CURRENT_SOURCE_BOUND_EVIDENCE_PROJECTION",
       "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "Six canonical0f metadata continuations preserve45c native bytes and compiled-source identity. Original runtime receipts retain45c; new continuation is published separately.",
-        "lifetime": "No application C++ or dependency pin changes. Prototype2532 rejects the actual26-range source layout before painting and remains unadopted. No renderer benefit is attributed to the short diagnostic.",
-        "simplification": "CurrentP22 checklist owns remaining gates; prior checkpoints are explicitly historical. Both SDK hover cases reuse one physical alignment helper; that SDK test-only correction is separate from this app source.",
-        "testCoverage": "Source45c has six builds,3x64Full65behavior/23captures,realASan and keyboard9/168. Source0f continuation executes no new runtime tests. Current documentation validators remain pending until the exclusive local calibration finishes.",
-        "performance": "The originalUI3flags are preserved. Current-source407A/A uses fixed3scenes/12blocks/seed20261027 with unchangedpolicy. First checkout-length refusal occurs before native execution; attempt and observer retained. Human policy review and fresh final576 remain required.",
-        "qualificationBoundary": "HostedRT0f run40349750074 executes zero steps because of billing. SDK8ac has five native passes and a distinct ARMDebug replacement-hover failure; paired latercancelled/verdictskipped. Finald849 run40366949236matchingqualification pending. Cursor-restorationcause,performancepolicy and hostedapplicationARM64 remainOPEN."
+        "correctness": "Generated from the dated P22 evidence fragment; changelog validation and fold/check passed.",
+        "lifetime": "Documentation and public evidence projection only; no application runtime source or dependency pin changed.",
+        "simplification": "Current a29 evidence remains separate from the earlier 09f collection; native keyboard evidence is separate from performance studies.",
+        "testCoverage": "Changelog validation and fold/check passed. The local native/performance evidence was completed and independently reviewed before this documentation update.",
+        "performance": "One current original-UI Split CPU finding remains; 36/72 controls unstable; no causal improvement or acceptance claim.",
+        "qualificationBoundary": "Hosted RedTilde CI started zero steps under the payment/spending restriction; hosted ARM64, focus verification and SDK base policy remain open."
       },
       "reviewDeltaTestIds": [
-        "EditorPreparationDiagnosticsOracle",
-        "Tests/Scope.Tests.Performance.Diagnostics.ps1:editor-preparation-all-slots-valid",
-        "qualification-30fb0c2",
-        "restored-colored-Release-Full-and-keyboard"
+        "Tools/Test-Changelog.ps1",
+        "Tools/Fold-Changelog.ps1 -Check",
+        "P22 current-source publication projection"
       ],
       "reviewDeltaFindingIds": [],
       "reviewDeltaDate": "2026-10-26",
@@ -16897,6 +17096,35 @@ the current performance policy or accept the remaining regressions.
             "testCoverage": "Independent packet review rehashes1880 payload files. Source identity, canonical compiled-map identity633302, artifacts and test receipt hashes are separately recorded. Metadata references one payload index instead of duplicating hash rows.",
             "simplification": "One final child packet lives under the existing byte-protected tree; no attributes, scripts, native sources or pin change. Both indexes bind each packet to its own hash. PR16 merge20c3ab6f has exactly the reviewed45c treeb9fcb074.",
             "qualificationBoundary": "SDK108 integrated source9675 has native/CI checks running after a test declaration-order repair. SDK policy and cursor-cause gates stay open. Hosted applicationARM64 remains blocked before job startup. WIP remainsactive."
+          }
+        },
+        {
+          "recordedUtc": "2026-10-26T22:32:49.8188807Z",
+          "priorReviewBaseCommit": "a29c9f8447fe06b33b3a9c611dda5d6e6d29205e",
+          "sha256": "662c54d140e8372a93e2f918b42ccc85f701141d60fea344a12b893e7315af53",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p22-documentation-continuation-review",
+          "testIds": [
+            "EditorPreparationDiagnosticsOracle",
+            "Tests/Scope.Tests.Performance.Diagnostics.ps1:editor-preparation-all-slots-valid",
+            "qualification-30fb0c2",
+            "restored-colored-Release-Full-and-keyboard"
+          ],
+          "findingIds": [],
+          "disposition": "reviewed-doc-continuation; final-performance-and-hosted-arm64-open",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Six canonical0f metadata continuations preserve45c native bytes and compiled-source identity. Original runtime receipts retain45c; new continuation is published separately.",
+            "lifetime": "No application C++ or dependency pin changes. Prototype2532 rejects the actual26-range source layout before painting and remains unadopted. No renderer benefit is attributed to the short diagnostic.",
+            "simplification": "CurrentP22 checklist owns remaining gates; prior checkpoints are explicitly historical. Both SDK hover cases reuse one physical alignment helper; that SDK test-only correction is separate from this app source.",
+            "testCoverage": "Source45c has six builds,3x64Full65behavior/23captures,realASan and keyboard9/168. Source0f continuation executes no new runtime tests. Current documentation validators remain pending until the exclusive local calibration finishes.",
+            "performance": "The originalUI3flags are preserved. Current-source407A/A uses fixed3scenes/12blocks/seed20261027 with unchangedpolicy. First checkout-length refusal occurs before native execution; attempt and observer retained. Human policy review and fresh final576 remain required.",
+            "qualificationBoundary": "HostedRT0f run40349750074 executes zero steps because of billing. SDK8ac has five native passes and a distinct ARMDebug replacement-hover failure; paired latercancelled/verdictskipped. Finald849 run40366949236matchingqualification pending. Cursor-restorationcause,performancepolicy and hostedapplicationARM64 remainOPEN."
           }
         }
       ],
