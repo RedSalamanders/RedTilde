@@ -40,13 +40,13 @@
     },
     {
       "path": "raw-report-hashes.json",
-      "bytes": 11664,
-      "sha256": "338C2BBC0E70B21441F3656B6859DF9A83633F48172FF626BD2BBC189736FA0C"
+      "bytes": 11894,
+      "sha256": "6B351C9D123F7016B785CF2D6E2FBCE974085EEDEF402032099BB670FF968E80"
     },
     {
       "path": "README.md",
-      "bytes": 3449,
-      "sha256": "2548D694DD4941B6F504CE1B7CBF9082B776B283E17C374FA8222D5490401235"
+      "bytes": 3541,
+      "sha256": "3773F2BC1AC22618703EF40858221E02B3D45B68190DD73E0ECD2B33B4403F95"
     },
     {
       "path": "replay-summary.json",
@@ -54,5 +54,5 @@
       "sha256": "4D165D3D30CA3965C8CCDA6A0D7219B71B2E924910EFAB2E628A8392687FB4BD"
     }
   ],
-  "rootProjectionChecks": 818
+  "rootProjectionChecks": 850
 }

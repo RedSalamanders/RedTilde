@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Keep runtime receipt filenames private in the published icon scout by exposing sanitized slot aliases with unchanged raw hashes and scalar data. Recheck all 32 alias bindings and retained performance limits.
 - Retain canonical icon extraction after a 32-process resource-decoder scout showed no repeatable material working-set saving. Preserve the rejected prototype, frozen binaries and all measurements; keep expanded native, scaled and default-icon WIC pixel coverage plus foreground-failure diagnostics. Final SDK adoption, native qualification and performance acceptance remain open.
 - Publish the reviewed resident-memory projection with exact observer/producer bindings, distinct traditional/extended working-set scopes and preserved amended-controller history. Refresh the evidence index and WIP; the short icon scout, unresolved performance findings and billing-blocked hosted ARM64 remain separate open gates.
 - Decode exact owned alpha-icon resource frames directly before Direct2D preparation, preserving Windows frame selection and canonical HICON fallback for scaled or unsupported frames. Extend independent seven-size pixel, scaling and malformed-resource coverage; final native and paired performance qualification remain open.
