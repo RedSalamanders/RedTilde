@@ -15,7 +15,7 @@ only within their recorded native/pin/toolchain/profile identities.
 
 - [x] Fetch both remotes, verify actual main SHAs and inventory both Git common roots, branches, worktrees, dirt and ignored evidence.
 - [x] Reconcile exact local qualification: six builds per project; all three x64 runtime configurations pass, with 67/32 app cases/captures and nineteen zero-skip SDK suites.
-- [ ] Complete final authorized keyboard/menu/resource input runs through the existing thirty-second countdown, warning and restoration lease.
+- [x] Complete authorized keyboard/menu/resource input runs for SDK eb0 and consumer af2 through the existing thirty-second countdown, warning and restoration lease: SDK Debug/Release/ASan four suites each, consumer Release nine scenarios, no capability skips and verified restoration. Preserve the ASan caller's inherited intentional detector exit separately from its passed canonical result; a new SDK fix below needs affected final qualification.
 - [ ] Reconcile current PR/CI producers; publish final source and obtain fresh checks. Keep billing-blocked hosted RedTilde ARM64 explicit.
 - [ ] Prepare current-source/common-harness performance comparisons against actual main and the original-UI references; replace no prior flags or cohorts. Re-review the new public-header delta instead of reusing PB-only V3 seals.
 - [ ] Attribute and resolve remaining working-set/command findings, run fresh complete A/A and A/B studies, independently audit and archive all outcomes.
@@ -25,6 +25,28 @@ only within their recorded native/pin/toolchain/profile identities.
 
 No review-required performance policy, skipped job, unstable control, cross-build
 or manual-platform hold becomes a pass because integration/cleanup was requested.
+
+### Current source correction and preserved cleanup
+
+The resumed ICF investigation reproduces a real SDK ownership defect: distinct
+payload types have folded identical deleters, so deleter addresses cannot authorize
+Take/Reclaim. Adopt exact SDK `086ad82a5872768db23ea83862ab4af13dff0c5b`, using
+private writable per-type identity and a permanent Release regression that demands
+actual folding. Its initial dcabe291 focused Release run passes; final native code
+is identical, with a later test-only failure-path cleanup. All consumer profiles
+must now rebuild and requalify this exact pin. Earlier eb0 evidence remains historical.
+
+Both draft PRs are published. RedTilde's current hosted jobs again refuse before
+startup because of billing. SDK performance acceptance remains review-required
+under the actual base's unqualified policy; no rebaseline or waiver is applied.
+
+Remove only proved-obsolete branches/worktrees after preservation. Twenty-three
+already-main-merged local branches and four further merged DxUi worktrees/branches
+are retired. The four build trees preserve 44,918 files (7,288,443,634 bytes), with
+verified source ZIPs and persistent ledgers under the approved
+`C:\DxUi.Perf\qualification\integration-20261028\retired-worktree-evidence`.
+Stale remote-tracking refs are pruned; no live remote branch has yet been removed.
+Dirty primary work and active qualification/performance references stay protected.
 ## Progress checklist
 
 - [x] Added title-bar follow-up: connect nonclient input to canonical button hover/press/release/cancel handling, retain maximize hit testing for Snap, and validate neutral/red hover without taking desktop focus. This does not resume the saved performance/CI queue.
