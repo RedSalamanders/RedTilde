@@ -1,6 +1,6 @@
 # Active plans
 
-- [Redesign completion and rendering compatibility](RedesignCompletionAndRendering_2026-10-24.md) — current
+- [Redesign completion and rendering compatibility](RedesignCompletionAndRendering_2026-10-24.md) — **paused by user**; local resume queue saved, current
   execution coordinator with a top checklist, current-source defects, complete review inventory, native math
   and Mermaid compatibility/test matrices, measured simplification and exact-pin final qualification. Existing
   creation/design and DxUi audit owners remain authoritative for their requirements. The owner selected finishing

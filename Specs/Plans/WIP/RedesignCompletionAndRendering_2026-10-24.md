@@ -1,5 +1,7 @@
 # Finish RedTilde redesign and DxUi rendering — 2026-10-24
 
+> **PAUSED by user, 27 October 2026.** All owned local work is stopped; no action resumes automatically. Exact state, evidence references and pending command queue are saved locally at `.build/audit-20261027/performance-resume/RESUME-QUEUE-20261027.md`. SDK source33c is clean/published in draft PR121; Foundation12 and full NativeTextInput173 pass with verified restoration. Full SDK tooling validation was user-cancelled and remains incomplete; CI replay, PrePush, merge and consumer/performance qualification remain pending. The proposed exact consumer pin is committed locally; this is not completed adoption. Hosted RedTilde ARM64 and the performance findings remain open.
+
 ## Progress checklist
 
 ## P28 performance and hosted-toolchain repair — 27 October 2026

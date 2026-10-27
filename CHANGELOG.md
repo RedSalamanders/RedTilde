@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Save the paused redesign qualification state and exact pending command queue, preserving completed focus tests, cancelled tooling validation, source-bound evidence and all remaining performance/hosted ARM64 gates. No work resumes automatically.
 - Propose the exact shared SDK focus-lifecycle repair: preserve independently focused TSF documents and prevent hidden or zero-size non-text hosts from taking native focus. Keep the public ProgressBar header change source-coordinated with matching library rebuilds. SDK hosted qualification, consumer builds/tests and performance acceptance remain pending; earlier SDK98 evidence is unchanged.
 - Keep runtime receipt filenames private in the published icon scout by exposing sanitized slot aliases with unchanged raw hashes and scalar data. Recheck all 32 alias bindings and retained performance limits.
 - Retain canonical icon extraction after a 32-process resource-decoder scout showed no repeatable material working-set saving. Preserve the rejected prototype, frozen binaries and all measurements; keep expanded native, scaled and default-icon WIC pixel coverage plus foreground-failure diagnostics. Final SDK adoption, native qualification and performance acceptance remain open.
