@@ -16,6 +16,10 @@ Adopt the exact source pin, rebuild every consumer profile, and retain its exact
 An isolated method/layout probe supports a fixed comparison profile; it does not substitute for native linking,
 consumer behavior, platform execution or performance qualification.
 
+The ProgressBar animation-pause API also adds private class state while retaining API revision 4. A dependency
+update across that addition requires matching exact public headers and library plus all consumer profile rebuilds.
+A measured source/layout probe does not imply binary interchangeability with the older archive.
+
 Deeply nested workspaces can exceed the compiler's path limit while CMake probes the dependency build, even
 with Git long paths enabled. Retain the original configure/compiler logs. The pinned SDK's supported
 `vcpkg-install.ps1 -OutputRoot <shorter repository-local .build directory>` can populate the normal package cache
