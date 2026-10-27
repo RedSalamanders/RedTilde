@@ -16099,11 +16099,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
-      "sha256": "ace5489eac5a0812a5760589810f5c72c7eb457b9013a724238fff1515be3057",
+      "sha256": "3db7683cdc9e1ebd114ce1c7ed4769b8b52da80733448b7e7f5c8edc455b70d5",
       "category": "planning-document",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "lead-publication-byte-and-evidence-review",
+      "reviewer": "lead-p26-closeout-evidence-review",
       "testIds": [
         "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
         "Editor.DesignRefreshEquationContextAndDraftGuards",
@@ -16143,12 +16143,12 @@ the current performance policy or accept the remaining regressions.
       "reviewDeltaStatus": "REVIEWED_CURRENT_SOURCE_BOUND_EVIDENCE_PROJECTION",
       "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "recordedUtc": "2026-10-27T04:39:51.747012+00:00",
+        "recordedUtc": "2026-10-27T06:05:13.640753+00:00",
         "reviewBase": "eed2abe9 exact native/performance source; documentation publication only",
-        "callers": "Publish source-bound six-build/three-Full/keyboard/persistence/performance projections and keep both current original-UI flags visible.",
+        "callers": "Publish exact SDK702 native/paired evidence and separate resident/selection/formatter diagnostics; record both implementation merges and keep the two current original-UI flags open.",
         "ownershipAndLifetime": "Documentation and sealed evidence projections create no native objects; SDK98 and production/test C++ bytes are unchanged.",
         "failureAndCancellation": "Keep the 798 failure and all prior leases distinct. Hosted RedTilde ARM64 and performance policy remain OPEN; no runtime result is retagged.",
-        "testCoverage": "Six builds, three 65-case/23-capture x64 Full runs and actual ASan detection; separate keyboard, SDK Menu and 576-process studies have exact producer identities. Canonical/root performance audits are 25120/13322 checks, not acceptance.",
+        "testCoverage": "Existing exact eed six-build/three-Full/input/576-process evidence remains unchanged. SDK702 has six native passes, 505 stream hashes and 8307 independent checks; eight resident slots and the rejected formatter microbenchmark remain diagnostic only.",
         "normalizedContentUnchanged": false
       },
       "reviewDeltaTestIds": [
@@ -16745,6 +16745,29 @@ the current performance policy or accept the remaining regressions.
           "recordedUtc": "2026-10-27T04:39:51.747012+00:00",
           "priorReviewBaseCommit": "eed2abe9885c57f44ab192155b341582782020f9",
           "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md"
+        },
+        {
+          "sha256": "ace5489eac5a0812a5760589810f5c72c7eb457b9013a724238fff1515be3057",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-publication-byte-and-evidence-review",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "recordedUtc": "2026-10-27T04:39:51.747012+00:00",
+            "reviewBase": "eed2abe9 exact native/performance source; documentation publication only",
+            "callers": "Publish source-bound six-build/three-Full/keyboard/persistence/performance projections and keep both current original-UI flags visible.",
+            "ownershipAndLifetime": "Documentation and sealed evidence projections create no native objects; SDK98 and production/test C++ bytes are unchanged.",
+            "failureAndCancellation": "Keep the 798 failure and all prior leases distinct. Hosted RedTilde ARM64 and performance policy remain OPEN; no runtime result is retagged.",
+            "testCoverage": "Six builds, three 65-case/23-capture x64 Full runs and actual ASan detection; separate keyboard, SDK Menu and 576-process studies have exact producer identities. Canonical/root performance audits are 25120/13322 checks, not acceptance.",
+            "normalizedContentUnchanged": false
+          },
+          "recordedUtc": "2026-10-27T06:05:13.640753+00:00",
+          "priorReviewBaseCommit": "eed2abe9885c57f44ab192155b341582782020f9",
+          "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md"
         }
       ],
       "reviewDeltaSourceState": "working-tree-documentation-bound-by-hash",
@@ -16966,11 +16989,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Measurements/README.md",
-      "sha256": "b92e9b00fa55c1077d9b61faddf9493d9f9731b641f1719741dd41a00cc84780",
+      "sha256": "7d0c5798b07643386a3208f127f7953cd90ab87ba3b371054953ec41a6fa2169",
       "category": "measurement-index",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "lead-publication-byte-and-evidence-review",
+      "reviewer": "lead-p26-closeout-evidence-review",
       "testIds": [],
       "findingIds": [],
       "disposition": "reviewed-publication-doc-delta; input-qualification-and-performance-policy-open",
@@ -16983,12 +17006,12 @@ the current performance policy or accept the remaining regressions.
       "reviewDeltaStatus": "REVIEWED_CURRENT_SOURCE_BOUND_EVIDENCE_PROJECTION",
       "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "recordedUtc": "2026-10-27T04:39:51.747012+00:00",
+        "recordedUtc": "2026-10-27T06:05:13.640753+00:00",
         "reviewBase": "eed2abe9 exact native/performance source; documentation publication only",
-        "callers": "Publish source-bound six-build/three-Full/keyboard/persistence/performance projections and keep both current original-UI flags visible.",
+        "callers": "Publish exact SDK702 native/paired evidence and separate resident/selection/formatter diagnostics; record both implementation merges and keep the two current original-UI flags open.",
         "ownershipAndLifetime": "Documentation and sealed evidence projections create no native objects; SDK98 and production/test C++ bytes are unchanged.",
         "failureAndCancellation": "Keep the 798 failure and all prior leases distinct. Hosted RedTilde ARM64 and performance policy remain OPEN; no runtime result is retagged.",
-        "testCoverage": "Six builds, three 65-case/23-capture x64 Full runs and actual ASan detection; separate keyboard, SDK Menu and 576-process studies have exact producer identities. Canonical/root performance audits are 25120/13322 checks, not acceptance.",
+        "testCoverage": "Existing exact eed six-build/three-Full/input/576-process evidence remains unchanged. SDK702 has six native passes, 505 stream hashes and 8307 independent checks; eight resident slots and the rejected formatter microbenchmark remain diagnostic only.",
         "normalizedContentUnchanged": false
       },
       "reviewDeltaTestIds": [
@@ -17203,6 +17226,29 @@ the current performance policy or accept the remaining regressions.
             "qualificationBoundary": "Projection update only. Full native input qualification, hosted ARM64, performance policy and acceptance remain open."
           },
           "recordedUtc": "2026-10-27T04:39:51.747012+00:00",
+          "priorReviewBaseCommit": "eed2abe9885c57f44ab192155b341582782020f9",
+          "path": "Measurements/README.md"
+        },
+        {
+          "sha256": "b92e9b00fa55c1077d9b61faddf9493d9f9731b641f1719741dd41a00cc84780",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-publication-byte-and-evidence-review",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "recordedUtc": "2026-10-27T04:39:51.747012+00:00",
+            "reviewBase": "eed2abe9 exact native/performance source; documentation publication only",
+            "callers": "Publish source-bound six-build/three-Full/keyboard/persistence/performance projections and keep both current original-UI flags visible.",
+            "ownershipAndLifetime": "Documentation and sealed evidence projections create no native objects; SDK98 and production/test C++ bytes are unchanged.",
+            "failureAndCancellation": "Keep the 798 failure and all prior leases distinct. Hosted RedTilde ARM64 and performance policy remain OPEN; no runtime result is retagged.",
+            "testCoverage": "Six builds, three 65-case/23-capture x64 Full runs and actual ASan detection; separate keyboard, SDK Menu and 576-process studies have exact producer identities. Canonical/root performance audits are 25120/13322 checks, not acceptance.",
+            "normalizedContentUnchanged": false
+          },
+          "recordedUtc": "2026-10-27T06:05:13.640753+00:00",
           "priorReviewBaseCommit": "eed2abe9885c57f44ab192155b341582782020f9",
           "path": "Measurements/README.md"
         }
@@ -17568,11 +17614,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "CHANGELOG.md",
-      "sha256": "1294b7bd2cfff3abe2132d7825378106e4e9910c733e643016a6368a126e7dbc",
+      "sha256": "3e12b57914062acb69835a817d7486873440c0ea780cd76e8b61dff0019a9fde",
       "category": "generated-changelog",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "lead-publication-byte-and-evidence-review",
+      "reviewer": "lead-p26-closeout-evidence-review",
       "testIds": [
         "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
         "Window.CaptionRetriesFailedAndSupersededNativeWrites",
@@ -17597,12 +17643,12 @@ the current performance policy or accept the remaining regressions.
       "reviewDeltaStatus": "REVIEWED_CURRENT_SOURCE_BOUND_EVIDENCE_PROJECTION",
       "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "recordedUtc": "2026-10-27T04:39:51.747012+00:00",
+        "recordedUtc": "2026-10-27T06:05:13.640753+00:00",
         "reviewBase": "eed2abe9 exact native/performance source; documentation publication only",
-        "callers": "Publish source-bound six-build/three-Full/keyboard/persistence/performance projections and keep both current original-UI flags visible.",
+        "callers": "Publish exact SDK702 native/paired evidence and separate resident/selection/formatter diagnostics; record both implementation merges and keep the two current original-UI flags open.",
         "ownershipAndLifetime": "Documentation and sealed evidence projections create no native objects; SDK98 and production/test C++ bytes are unchanged.",
         "failureAndCancellation": "Keep the 798 failure and all prior leases distinct. Hosted RedTilde ARM64 and performance policy remain OPEN; no runtime result is retagged.",
-        "testCoverage": "Six builds, three 65-case/23-capture x64 Full runs and actual ASan detection; separate keyboard, SDK Menu and 576-process studies have exact producer identities. Canonical/root performance audits are 25120/13322 checks, not acceptance.",
+        "testCoverage": "Existing exact eed six-build/three-Full/input/576-process evidence remains unchanged. SDK702 has six native passes, 505 stream hashes and 8307 independent checks; eight resident slots and the rejected formatter microbenchmark remain diagnostic only.",
         "normalizedContentUnchanged": false
       },
       "reviewDeltaTestIds": [
@@ -17891,6 +17937,29 @@ the current performance policy or accept the remaining regressions.
             "normalizedContentUnchanged": false
           },
           "recordedUtc": "2026-10-27T04:39:51.747012+00:00",
+          "priorReviewBaseCommit": "eed2abe9885c57f44ab192155b341582782020f9",
+          "path": "CHANGELOG.md"
+        },
+        {
+          "sha256": "1294b7bd2cfff3abe2132d7825378106e4e9910c733e643016a6368a126e7dbc",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-publication-byte-and-evidence-review",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "recordedUtc": "2026-10-27T04:39:51.747012+00:00",
+            "reviewBase": "eed2abe9 exact native/performance source; documentation publication only",
+            "callers": "Publish source-bound six-build/three-Full/keyboard/persistence/performance projections and keep both current original-UI flags visible.",
+            "ownershipAndLifetime": "Documentation and sealed evidence projections create no native objects; SDK98 and production/test C++ bytes are unchanged.",
+            "failureAndCancellation": "Keep the 798 failure and all prior leases distinct. Hosted RedTilde ARM64 and performance policy remain OPEN; no runtime result is retagged.",
+            "testCoverage": "Six builds, three 65-case/23-capture x64 Full runs and actual ASan detection; separate keyboard, SDK Menu and 576-process studies have exact producer identities. Canonical/root performance audits are 25120/13322 checks, not acceptance.",
+            "normalizedContentUnchanged": false
+          },
+          "recordedUtc": "2026-10-27T06:05:13.640753+00:00",
           "priorReviewBaseCommit": "eed2abe9885c57f44ab192155b341582782020f9",
           "path": "CHANGELOG.md"
         }
@@ -23659,7 +23728,7 @@ the current performance policy or accept the remaining regressions.
       "publicPackageHeaderRows": 33,
       "changedPublicHeaderRowsFrom4077": 0
     },
-    "p25ByteBinding": {
+    "p26ByteBinding": {
       "originalPopulation": 636,
       "currentNonBuildRows": 633,
       "historicalBuildEvidenceRowsUnchanged": 3,
@@ -23827,6 +23896,29 @@ the current performance policy or accept the remaining regressions.
         "refreshedRows": 65,
         "supplementalSourceFiles": 1,
         "scope": "Raw-byte review bindings only; native execution and acceptance remain source-specific."
+      }
+    },
+    {
+      "RedTilde": {
+        "priorHead": "eed2abe9885c57f44ab192155b341582782020f9",
+        "workingTree": "Documentation/evidence publication only; native and test source bytes remain eed2abe9."
+      },
+      "DxUi": {
+        "head": "98c795b765a10d1805ae0a7c35a8ade535fb7fd6",
+        "workingTree": "clean exact consumer pin",
+        "publicSourceHeaderRows": 25,
+        "publicPackageHeaderRows": 33,
+        "changedPublicHeaderRowsFrom4077": 0
+      },
+      "p25ByteBinding": {
+        "originalPopulation": 636,
+        "currentNonBuildRows": 633,
+        "historicalBuildEvidenceRowsUnchanged": 3,
+        "refreshedMetadataRows": 3,
+        "supplementalSourceFiles": 1,
+        "nativeSourceCommit": "eed2abe9885c57f44ab192155b341582782020f9",
+        "compiledSourceIdentity": "0339eb869924afc60fab096f197247e1ef24bb1e98b6ea75f1bda3f388ce52ad",
+        "scope": "Raw-byte review binding; current publication metadata does not become a runtime receipt."
       }
     }
   ]

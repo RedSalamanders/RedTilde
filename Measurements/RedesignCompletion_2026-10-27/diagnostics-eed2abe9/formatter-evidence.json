@@ -1,0 +1,47 @@
+{
+  "schema": "redtilde-formatter-diagnostic-evidence-v1",
+  "scope": "standalone formatter microbenchmark; not application qualification or application performance evidence",
+  "runtime": {
+    "samplesPerCaseStrategy": 8,
+    "callsPerSample": 50000,
+    "timedCalls": 8400000,
+    "rows": 168,
+    "cases": 7,
+    "strategies": 3,
+    "invalidRows": 0,
+    "duplicateRows": 0,
+    "checksumMismatches": 0,
+    "checksumGroups": 56
+  },
+  "build": {
+    "actualMsBuildSucceeded": true,
+    "warnings": 0,
+    "errors": 0,
+    "scriptReceiptPassed": false,
+    "falsePostcondition": "One compiler tracking record lacks the full compiler executable path; the successful normal build log identifies the pinned compiler.",
+    "canonicalQualification": false,
+    "protectedFileCount": 21,
+    "protectedFilesUnchanged": true,
+    "benchmarkExecutableSha256": "E1BD6CEAE7A55FFF67E020E96C14AC8E7F4FE1032EA7B1FA49A125BCE4DFB09D",
+    "compilerSha256": "F1023C336447D8AB00E28E9C02E25FD6206928F894DF22F11CFB0D4233A10F25",
+    "compileLogSha256": "B17920CAE030C2E548CAD50477015A01C5FDA03A0A3C01D53560AA2787FE9C7B",
+    "rootAttestationSha256": "A29C36C99754D1553B674490832D743B4268FD3324B1BE73C79AF5B26043FF3B",
+    "compileReceiptSha256": "D04FB42E9B9483CD7B56D32692F422444AB9B063598F4A216001733D94752063",
+    "protectionProof": "Both post-runtime hash comparisons in results-summary.protection are true for all 21 recorded files."
+  },
+  "prototype": {
+    "boundedPrototypeVsVFormatMedianDeltaNsRange": [
+      30.239,
+      48.526
+    ],
+    "fallbackCaseDeltaNs": -0.077,
+    "adopted": false,
+    "interpretation": "Standalone microbenchmark only; deltas do not establish an application gain."
+  },
+  "sourceEvidence": {
+    "resultsSummarySha256": "FD4451E773ABCE84952DF0C9682F00D158F3B9D570C691799E7CC3EB3C8101A1",
+    "benchmarkCsvSha256": "4183318769B1E775345145DD66441E2E95DF78D799F1D673EF6CEC0F389E89E6",
+    "sealedInventorySha256": "FEB99A0077BD9D5524CED949F07E6A0F36671054E80BEDDBE76DA2E3B8FC3724",
+    "sealedInventoryBytes": 18824
+  }
+}

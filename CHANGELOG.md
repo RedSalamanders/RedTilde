@@ -4,6 +4,8 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Integrate final redesign qualification evidence with current main while preserving incoming RedMonitor, toolchain and atomic-save work. Keep native and performance records bound to their executed sources, both original-UI flags, unqualified SDK policy and billing-blocked hosted RedTilde ARM64 open.
+- Publish source-bound SDK native/paired qualification and RedTilde diagnostic follow-up, preserving the merged implementation trees, two open original-UI performance flags, unqualified SDK policy and billing-blocked hosted RedTilde ARM64 gate; reject the low-benefit formatter prototype without changing production code.
 - Keep atomic-save staging filenames independent of the target leaf, preserving valid near-limit paths during first save and replacement. Add a 240-unit save/replace regression and retain HRESULT/path-length diagnostics for failed capture-fixture seeding.
 - Integrate the standalone RedMonitor pinned header client with MSVC 14.52 Release optimization and current main, preserving existing tests, source-bound qualification evidence and separate native/manual/release gates.
 - Require MSVC 14.52.x and enable Release function-level/whole-program compilation and unused-function elimination with full LTCG; forward exact tools and WPO into the adopted DxUi archive with a separate policy fingerprint. Validation and measured before/after evidence remain tracked in the active build-policy plan.
