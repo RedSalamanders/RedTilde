@@ -1,5 +1,6 @@
 #include "Application.h"
 #include "Common/CrashHandler.h"
+#include "Common/MonitorDiagnostics.h"
 #include "res/Resource.h"
 #include <format>
 #include <shellapi.h>
@@ -31,11 +32,16 @@ int SanitizerProbe()
 #endif
 } // namespace
 
-int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int)
 {
     using namespace RedTilde;
     try
     {
+        MonitorDiagnostics::Initialize();
+        const int monitorCommand = MonitorDiagnostics::HandleCommand(command ? command : L"");
+        if (monitorCommand >= 0)
+            return monitorCommand;
+        MonitorDiagnostics::Write(RedMonitor::Severity::Info, L"application starting");
         LaunchOptions options;
         bool sanitizerProbe{};
         CoreTestScope testScope = CoreTestScope::All;
@@ -197,7 +203,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
         Application app(std::move(options));
         const HRESULT result = app.Initialize();
         if (FAILED(result))
+        {
+            MonitorDiagnostics::Write(RedMonitor::Severity::Error, L"application initialization failed; document state retained");
             return 2;
+        }
         return app.Run();
     }
     catch (const std::bad_alloc &)
@@ -207,6 +216,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     catch (const std::exception &error)
     {
         OutputDebugStringA(error.what());
+        MonitorDiagnostics::Write(RedMonitor::Severity::Error, L"application operation failed; document state retained");
         return 1;
     }
 }

@@ -41,6 +41,9 @@ Check 'Exact dependency and capability status' {
     $capabilities=Get-Content (Join-Path $PSScriptRoot 'capabilities.json') -Raw | ConvertFrom-Json
     if ($capabilities.status -ne 'experimental' -or @($capabilities.pending).Count -eq 0) { throw 'Experimental dependency gates must stay explicit.' }
 }
+Check 'Evaluated Release compiler and linker policy' {
+    & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.ReleaseBuildPolicy.ps1')
+}
 Check 'Six build configurations and native inventory' {
     [xml]$project=Get-Content (Join-Path $PSScriptRoot 'RedTilde/RedTilde.vcxproj')
     foreach ($platform in @('x64','ARM64')) { foreach ($configuration in @('Debug','Release','ASan Debug')) {
@@ -52,6 +55,7 @@ Check 'Six build configurations and native inventory' {
     [void](Assert-ScopedTestNames $PSScriptRoot)
 }
 Check 'Run evidence retention' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.RunEvidence.ps1') }
+Check 'RedMonitor SDK consumption' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.RedMonitor.ps1') }
 Check 'Scope contracts and public runner' {
     Import-Module (Join-Path $PSScriptRoot 'Build/ScopedTesting.psm1') -Force
     [void](Assert-ScopedTestNames $PSScriptRoot)

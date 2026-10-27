@@ -2,7 +2,14 @@
 
 ## Progress checklist
 
-## P26 current qualification — 27 October 2026
+## P27 remote-main integration — 27 October 2026
+
+- [x] Integrate the final evidence branch with remote main `b8bf708ab096720686a7fb4c28afeed03ff13f91`, preserving the already merged RedMonitor, MSVC 14.52 and atomic-save changes. Evidence PR [#20](https://github.com/RedSalamanders/RedTilde/pull/20) adds documentation and sealed evidence relative to that main; it introduces no native source, dependency-pin or build-policy change.
+- [x] Preserve the independently source-bound P26 packets and metadata continuation. Their native and performance executions still belong to app `eed2abe9` / SDK `98c795b7`. The incoming main has different native/build inputs, so those earlier runs do not qualify the integration tree and are not retagged. The separate MSVC/RedMonitor qualification records retain their own scope.
+- [ ] Resolve the two current original-UI performance flags: Compose command **+8.64%** with unstable controls and Split working set **+2.027%** with stable controls. The actual PR18-base comparison has zero regressions; this does not close the original-UI findings or SDK policy acceptance.
+- [ ] Close the independently owned performance-policy, quiet-host, physical-input and native hosted RedTilde ARM64 gates. Hosted run `40461044026` at evidence head `81aec56c` starts no test steps under the account payment/spending restriction. Keep this plan in WIP; documentation publication is not performance or platform acceptance.
+
+## P26 qualification — historical; superseded by P27 integration status (27 October 2026)
 
 This checkpoint supersedes P25 status. Runtime evidence still belongs to app `eed2abe9` / SDK `98c795b7`; metadata revisions do not retag those executions.
 

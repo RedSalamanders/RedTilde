@@ -87,3 +87,5 @@ watchdog and verified focus/foreground/pointer restoration. The child refuses to
 that visible owning parent. Nine real keyboard stages cover editor input/undo, Files, Find, Settings, Focus,
 selection tools, F2, File menu and asynchronous close. The probe and restoration receipts remain separate;
 physical IME, touch and assistive technology still require their independent acceptance.
+
+RedMonitor controls verify the two vendored files entirely offline: exact bytes, missing/tampered inputs, invalid locks and reparse paths. No source checkout or viewer build is required. Actual application --redmonitor-probe tests cover cross-process Unicode/severity/PID/TID; installer closure tests belong to RedMonitor.

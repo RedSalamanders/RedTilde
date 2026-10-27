@@ -39,7 +39,9 @@
     "focus-mode-and-conditional-equation-inspector",
     "default-off-bounded-anonymous-remote-images",
     "actual-captures-with-synthetic-data-and-dpi-provenance",
-    "warned-lease-guarded-keyboard-test-harness"
+    "warned-lease-guarded-keyboard-test-harness",
+    "bounded-labelled-redmonitor-producer",
+    "header-only-redmonitor-client-and-installed-release-helper"
   ],
   "pending": [
     "upstream-performance-and-product-qualification",

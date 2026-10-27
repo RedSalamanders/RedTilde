@@ -1,0 +1,734 @@
+{
+  "passed": true,
+  "sourceIdentity": "65f1f498bdaa9bd7b3958094dbbb20acf4775af64a0a30bd0a22428295e09e9f",
+  "clientCommit": "9ebea6577fe9a5ced7647283c918f51f67d666fd",
+  "builds": [
+    {
+      "platform": "x64",
+      "configuration": "Debug",
+      "sourceIdentity": "65f1f498bdaa9bd7b3958094dbbb20acf4775af64a0a30bd0a22428295e09e9f",
+      "path": "Z:\\src\\RedTilde\\.build\\x64\\Debug\\build-receipt.json",
+      "sha256": "CA49EEC1B78061DCC663857548FBDA47745D43139678A70411D6FDD285BEC2EF",
+      "binarySha256": "BEB6E5B6B14A2A90EEDFB898EC6BC7044D48F44F097AD379E8E33E212C2B4E96",
+      "dependency": {
+        "Fingerprint": "4d1745c6e4c73a80590c8b1b40c2dc2a71c88edd09246936b88cca4a8e8c6747",
+        "Identity": {
+          "commit": "dd619ef0c5855307eb57758072658f2e3b777fd8",
+          "apiRevision": 4,
+          "platform": "x64",
+          "toolset": "v145",
+          "vcToolsVersion": "14.52.37025",
+          "windowsSdkVersion": "10.0.26100.0",
+          "runtimeFamily": "MD",
+          "preferredToolArchitecture": "x86",
+          "disableStlAnnotations": false,
+          "msbuildSha256": "25929034E73EBE6259F600F37CAF5567D20C0F645571674951B442D639D5C18C",
+          "compilerSha256": "54432A2AE1AB1CA6838E65BCAF0653F84031BD98AB5CA35B5AF7B5686DDF21E5",
+          "linkerSha256": "B7A53752327CBD7335465DB4DD290BE9ADC11F8E97C5294E50B1AF288AF87753",
+          "windowsHeaderSha256": "B337D661D03A4ABEFB7B86A2742CE1AD5D19B57CD8B858BD13E7BBCC1DBEEAAA",
+          "kernel32Sha256": "842F5CE7AD8CF5AAB7491B791E7968D2BE510AE93F4019D3311797289399D221",
+          "ucrtSha256": "7EF4EAC926BF597D2F243F16CDFED7E0DB22CB3CA34A1D7E088A84C994A03D66"
+        }
+      }
+    },
+    {
+      "platform": "x64",
+      "configuration": "Release",
+      "sourceIdentity": "65f1f498bdaa9bd7b3958094dbbb20acf4775af64a0a30bd0a22428295e09e9f",
+      "path": "Z:\\src\\RedTilde\\.build\\x64\\Release\\build-receipt.json",
+      "sha256": "5A448869DBEF709511B1ADE261C97216175C33CB855C2F9667F40D906F9C3524",
+      "binarySha256": "674AD8A95EFD56B80BF349254AC34DC127D28903C9A7CA5909BA98CADDDF28F8",
+      "dependency": {
+        "Fingerprint": "4d1745c6e4c73a80590c8b1b40c2dc2a71c88edd09246936b88cca4a8e8c6747",
+        "Identity": {
+          "commit": "dd619ef0c5855307eb57758072658f2e3b777fd8",
+          "apiRevision": 4,
+          "platform": "x64",
+          "toolset": "v145",
+          "vcToolsVersion": "14.52.37025",
+          "windowsSdkVersion": "10.0.26100.0",
+          "runtimeFamily": "MD",
+          "preferredToolArchitecture": "x86",
+          "disableStlAnnotations": false,
+          "msbuildSha256": "25929034E73EBE6259F600F37CAF5567D20C0F645571674951B442D639D5C18C",
+          "compilerSha256": "54432A2AE1AB1CA6838E65BCAF0653F84031BD98AB5CA35B5AF7B5686DDF21E5",
+          "linkerSha256": "B7A53752327CBD7335465DB4DD290BE9ADC11F8E97C5294E50B1AF288AF87753",
+          "windowsHeaderSha256": "B337D661D03A4ABEFB7B86A2742CE1AD5D19B57CD8B858BD13E7BBCC1DBEEAAA",
+          "kernel32Sha256": "842F5CE7AD8CF5AAB7491B791E7968D2BE510AE93F4019D3311797289399D221",
+          "ucrtSha256": "7EF4EAC926BF597D2F243F16CDFED7E0DB22CB3CA34A1D7E088A84C994A03D66"
+        }
+      }
+    },
+    {
+      "platform": "x64",
+      "configuration": "ASan Debug",
+      "sourceIdentity": "65f1f498bdaa9bd7b3958094dbbb20acf4775af64a0a30bd0a22428295e09e9f",
+      "path": "Z:\\src\\RedTilde\\.build\\x64\\ASan Debug\\build-receipt.json",
+      "sha256": "0DFFD8A96991666089E89F3FC8C28485F1056991AE952D2DB151EF5B5E6DF4F1",
+      "binarySha256": "2DFFA356480B63882C25E45E50E86361EEE57379541DECEF16F23ADED1A67CD3",
+      "dependency": {
+        "Fingerprint": "4d1745c6e4c73a80590c8b1b40c2dc2a71c88edd09246936b88cca4a8e8c6747",
+        "Identity": {
+          "commit": "dd619ef0c5855307eb57758072658f2e3b777fd8",
+          "apiRevision": 4,
+          "platform": "x64",
+          "toolset": "v145",
+          "vcToolsVersion": "14.52.37025",
+          "windowsSdkVersion": "10.0.26100.0",
+          "runtimeFamily": "MD",
+          "preferredToolArchitecture": "x86",
+          "disableStlAnnotations": false,
+          "msbuildSha256": "25929034E73EBE6259F600F37CAF5567D20C0F645571674951B442D639D5C18C",
+          "compilerSha256": "54432A2AE1AB1CA6838E65BCAF0653F84031BD98AB5CA35B5AF7B5686DDF21E5",
+          "linkerSha256": "B7A53752327CBD7335465DB4DD290BE9ADC11F8E97C5294E50B1AF288AF87753",
+          "windowsHeaderSha256": "B337D661D03A4ABEFB7B86A2742CE1AD5D19B57CD8B858BD13E7BBCC1DBEEAAA",
+          "kernel32Sha256": "842F5CE7AD8CF5AAB7491B791E7968D2BE510AE93F4019D3311797289399D221",
+          "ucrtSha256": "7EF4EAC926BF597D2F243F16CDFED7E0DB22CB3CA34A1D7E088A84C994A03D66"
+        }
+      }
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Debug",
+      "sourceIdentity": "65f1f498bdaa9bd7b3958094dbbb20acf4775af64a0a30bd0a22428295e09e9f",
+      "path": "Z:\\src\\RedTilde\\.build\\ARM64\\Debug\\build-receipt.json",
+      "sha256": "4A5B3605DF9418089F8E55FA7E41E226C2E748229144CF532404C9AFED8E86CB",
+      "binarySha256": "90392AC204E41BD44777D0FA59B2952CD0FEBD7BB0F9BBA61F79D09AC1265F97",
+      "dependency": {
+        "Fingerprint": "b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad",
+        "Identity": {
+          "commit": "dd619ef0c5855307eb57758072658f2e3b777fd8",
+          "apiRevision": 4,
+          "platform": "ARM64",
+          "toolset": "v145",
+          "vcToolsVersion": "14.52.37025",
+          "windowsSdkVersion": "10.0.26100.0",
+          "runtimeFamily": "MD",
+          "preferredToolArchitecture": "x86",
+          "disableStlAnnotations": false,
+          "msbuildSha256": "25929034E73EBE6259F600F37CAF5567D20C0F645571674951B442D639D5C18C",
+          "compilerSha256": "576BE24F43D2F07C9AD794A4565818431DC7AC9C3A3AD79F3C57371272978E78",
+          "linkerSha256": "8714191E84A39AE42B90DC06F3F9073FAB21DF50A98496352F6D164888CC6C52",
+          "windowsHeaderSha256": "B337D661D03A4ABEFB7B86A2742CE1AD5D19B57CD8B858BD13E7BBCC1DBEEAAA",
+          "kernel32Sha256": "1110E8F9BF593D2BC051A4BE0660CF1D9AF123975A0508F9CB2A9E83AD58ADCF",
+          "ucrtSha256": "C2C1328647F4454F71A68E8E194F89EEF7D3FDF2661192AB8D87FBA395EE13FA"
+        }
+      }
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Release",
+      "sourceIdentity": "65f1f498bdaa9bd7b3958094dbbb20acf4775af64a0a30bd0a22428295e09e9f",
+      "path": "Z:\\src\\RedTilde\\.build\\ARM64\\Release\\build-receipt.json",
+      "sha256": "AE59ED79E1C08D51520A1E7465E9FD0974680E2E48DE0846CC413CCDDA7E8A3F",
+      "binarySha256": "F322E4201DD50CB21282BD5D90A1D0A8C401ECD0EA2FD8FC5195B1FF838FE659",
+      "dependency": {
+        "Fingerprint": "b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad",
+        "Identity": {
+          "commit": "dd619ef0c5855307eb57758072658f2e3b777fd8",
+          "apiRevision": 4,
+          "platform": "ARM64",
+          "toolset": "v145",
+          "vcToolsVersion": "14.52.37025",
+          "windowsSdkVersion": "10.0.26100.0",
+          "runtimeFamily": "MD",
+          "preferredToolArchitecture": "x86",
+          "disableStlAnnotations": false,
+          "msbuildSha256": "25929034E73EBE6259F600F37CAF5567D20C0F645571674951B442D639D5C18C",
+          "compilerSha256": "576BE24F43D2F07C9AD794A4565818431DC7AC9C3A3AD79F3C57371272978E78",
+          "linkerSha256": "8714191E84A39AE42B90DC06F3F9073FAB21DF50A98496352F6D164888CC6C52",
+          "windowsHeaderSha256": "B337D661D03A4ABEFB7B86A2742CE1AD5D19B57CD8B858BD13E7BBCC1DBEEAAA",
+          "kernel32Sha256": "1110E8F9BF593D2BC051A4BE0660CF1D9AF123975A0508F9CB2A9E83AD58ADCF",
+          "ucrtSha256": "C2C1328647F4454F71A68E8E194F89EEF7D3FDF2661192AB8D87FBA395EE13FA"
+        }
+      }
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "ASan Debug",
+      "sourceIdentity": "65f1f498bdaa9bd7b3958094dbbb20acf4775af64a0a30bd0a22428295e09e9f",
+      "path": "Z:\\src\\RedTilde\\.build\\ARM64\\ASan Debug\\build-receipt.json",
+      "sha256": "58198AF8129EFD51846C5FFD77F2E08006CEAAD01A82809C956ADDBD5CF3B3D3",
+      "binarySha256": "5673ECC4DBAD985CB8D81ED6A5C868AC12EB99F97F353CD68E4CECBF15E0C7F0",
+      "dependency": {
+        "Fingerprint": "b5f1fadb464db600dcf75ab9962ace419f4c056594783224fd546706f24225ad",
+        "Identity": {
+          "commit": "dd619ef0c5855307eb57758072658f2e3b777fd8",
+          "apiRevision": 4,
+          "platform": "ARM64",
+          "toolset": "v145",
+          "vcToolsVersion": "14.52.37025",
+          "windowsSdkVersion": "10.0.26100.0",
+          "runtimeFamily": "MD",
+          "preferredToolArchitecture": "x86",
+          "disableStlAnnotations": false,
+          "msbuildSha256": "25929034E73EBE6259F600F37CAF5567D20C0F645571674951B442D639D5C18C",
+          "compilerSha256": "576BE24F43D2F07C9AD794A4565818431DC7AC9C3A3AD79F3C57371272978E78",
+          "linkerSha256": "8714191E84A39AE42B90DC06F3F9073FAB21DF50A98496352F6D164888CC6C52",
+          "windowsHeaderSha256": "B337D661D03A4ABEFB7B86A2742CE1AD5D19B57CD8B858BD13E7BBCC1DBEEAAA",
+          "kernel32Sha256": "1110E8F9BF593D2BC051A4BE0660CF1D9AF123975A0508F9CB2A9E83AD58ADCF",
+          "ucrtSha256": "C2C1328647F4454F71A68E8E194F89EEF7D3FDF2661192AB8D87FBA395EE13FA"
+        }
+      }
+    }
+  ],
+  "tests": [
+    {
+      "configuration": "Debug",
+      "path": "Z:\\src\\RedTilde\\.build\\evidence\\test-runs\\20261023T094202135Z-11916-da785d90401146d9b21e02325a6fb0e7\\payload\\receipt.json",
+      "sha256": "B6A2A3254D1B3C5BDF47B10DA7A99937C34F39B8E2AE626CB3BF2B0E535169B6",
+      "receipt": {
+        "schemaVersion": 1,
+        "sourceIdentity": "65f1f498bdaa9bd7b3958094dbbb20acf4775af64a0a30bd0a22428295e09e9f",
+        "dependency": "dd619ef0c5855307eb57758072658f2e3b777fd8",
+        "binarySha256": "BEB6E5B6B14A2A90EEDFB898EC6BC7044D48F44F097AD379E8E33E212C2B4E96",
+        "platform": "x64",
+        "configuration": "Debug",
+        "hostArchitecture": "X64",
+        "suite": "Captures,Crash,Editor,Performance,Preferences,Recovery,RecoveryRestart,Settings,Storage",
+        "interactive": false,
+        "environment": {
+          "processor": "AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD",
+          "renderMode": "hidden native ControlHost, default device",
+          "osVersion": "Microsoft Windows NT 10.0.26300.0",
+          "logicalProcessors": 32
+        },
+        "startedUtc": "2026-10-23T09:42:02.1568259Z",
+        "passed": true,
+        "results": [
+          {
+            "failed": 0,
+            "passed": 5,
+            "cases": [
+              "Utf8.BomUnicodeMixedEolRoundTrip",
+              "Utf8.InvalidInputDoesNotReplaceOutput",
+              "Storage.AtomicConflictAndFailedSave",
+              "Storage.CapacityRejectedWithoutTruncation",
+              "Files.AsyncSaveRetainsEditsMadeDuringWrite"
+            ],
+            "scope": "Storage"
+          },
+          {
+            "failed": 0,
+            "passed": 2,
+            "cases": [
+              "Settings.VersionAndFieldFallback",
+              "Settings.AsyncLatestValueSurvivesWriterClose"
+            ],
+            "scope": "Settings"
+          },
+          {
+            "failed": 0,
+            "passed": 5,
+            "cases": [
+              "Recovery.StrictEnvelopeAndUnicode",
+              "Recovery.DebounceLeaseCoalescingAndRetirement",
+              "Recovery.CorruptAndFutureDataQuarantined",
+              "Recovery.LocalDraftCancelPreviewRestoreProtectsOriginal",
+              "Recovery.DiscardFailureRetainsCandidateAndRetryClearsError"
+            ],
+            "scope": "Recovery"
+          },
+          {
+            "failed": 0,
+            "passed": 15,
+            "cases": [
+              "Outline.FencesAndUnicode",
+              "Math.NativeSubsetAndRejection",
+              "Editor.ViewSwitchKeepsSourceSelectionHistory",
+              "Editor.HiddenMirrorSynchronizesWithoutEditingSource",
+              "Editor.OutlineTracksShiftedOffsetsAndChangedLabels",
+              "Window.CaptionSkipsIdenticalWritesAndPreservesImmediateIdentity",
+              "Window.CaptionRetriesFailedAndSupersededNativeWrites",
+              "Editor.DirtyCacheTracksDirectResetAndSameLengthUndo",
+              "Editor.SemanticFormattingUndoAndTheme",
+              "Editor.LocalDiagramSourceAndLiteralFallback",
+              "Editor.LocalOrdinarySourceCommitCancelAndStale",
+              "Editor.DeviceLossAndLocalImagePixels",
+              "Editor.InDocumentMathLocalSourceAndBroaderMermaid",
+              "Performance.NativeCompletedFramesPreserveSourceAndHistory",
+              "Rendering.NativeDefaultAndWarpResourceLifecycle"
+            ],
+            "scope": "Editor"
+          },
+          {
+            "latestStateDurable": true,
+            "scope": "PreferencesProcessExit"
+          },
+          {
+            "exactSourceRestored": true,
+            "scope": "RecoveryCrashRestart",
+            "originalProtectedBySaveAs": true
+          },
+          {
+            "metrics": {
+              "scenario": "sample-richtext-native-hidden",
+              "cleanFrames": 60,
+              "cleanRenderFps": 120.177,
+              "dirtyFrames": 120,
+              "dirtyEditAndRenderMs": 5.64952,
+              "workingSetBytes": 62566400,
+              "privateBytes": 74088448,
+              "dpi": 144,
+              "widthPx": 2040,
+              "heightPx": 1350,
+              "qualification": "initial application baseline only; forced native renders, not presentation FPS or a paired non-regression claim"
+            },
+            "scope": "PerformanceBaseline"
+          },
+          {
+            "sha256": "502F22941DCF40511A1BDE92E4B76D3A63B688F172D803A38BDB6ECA912D090C",
+            "scenario": "compose-light",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "56439D4001AC9C9E61A875C70413FFA6A55391222E3C4C41E97ABB207B951836",
+            "scenario": "compose-dark",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "ED2AA3FA23B17DB7BDBA57A2693366F403B7C04F3B083FEEA2503D63D8D3651F",
+            "scenario": "source",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "7DEA6BCF89830ED68227FDFD3741AA1D3F9D1E3488A2AD5B89063D415E9316C6",
+            "scenario": "split",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "08C4FBD1174F780EAF6424A13B42E08F26337F62CD5C18E3523B9BDE12810CA8",
+            "scenario": "context-selection",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "F843172A9CB28C03B6D8C0D4EFD872DE8E8364617DE14D218A63B56F99F3E9DA",
+            "scenario": "local-source",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "DA151A0839258E1A1E611D8BE3D6A28E0C559EA09056EF2D490DEE415BA7CE5A",
+            "scenario": "settings",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "25295592FB273A29D983BE8D0A7F52284F4698A4AC5A04C698952627DB55BF12",
+            "scenario": "math",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "8778E54D2DD8415D45414B9E2AC887356CB58B06309B03E0B64326FDE470282D",
+            "scenario": "math-dark",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "A2AB24593F33FA686F3799A3BC349F4FA2DCB30703A2C022A4D6D014409BCC8B",
+            "scenario": "mermaid",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "A84F91CB423B62BB740F1335CC49653A030F70DD559203F9079EA215136DFBA8",
+            "scenario": "recovery",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "2EE9C9BA14EAB2FC0800E258348568FB29D86966A61DB0B840CB8A5AC2350DFA",
+            "scenario": "narrow",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "42F3B4908062CC49981901ADDB29562945EFEC676B32C16407AB520D9E5D4E89",
+            "scenario": "high-contrast",
+            "scope": "Capture"
+          },
+          {
+            "pendingMarker": true,
+            "dumpSha256": "BDF18CBE35FDA2A0A8D769A21D60014C5F5D870D2DE6281A131EA47D9000A9E5",
+            "exitCode": -531475201,
+            "scope": "Crash"
+          }
+        ],
+        "finishedUtc": "2026-10-23T09:42:28.5501223Z"
+      }
+    },
+    {
+      "configuration": "Release",
+      "path": "Z:\\src\\RedTilde\\.build\\evidence\\test-runs\\20261023T094232950Z-11916-8546d52802ad4e5395b542c6e2120b12\\payload\\receipt.json",
+      "sha256": "0B48C54F2ABAF54CAF6DE4020AB60EC72F9A2F4454166DFE0F9C3C0847DECCF0",
+      "receipt": {
+        "schemaVersion": 1,
+        "sourceIdentity": "65f1f498bdaa9bd7b3958094dbbb20acf4775af64a0a30bd0a22428295e09e9f",
+        "dependency": "dd619ef0c5855307eb57758072658f2e3b777fd8",
+        "binarySha256": "674AD8A95EFD56B80BF349254AC34DC127D28903C9A7CA5909BA98CADDDF28F8",
+        "platform": "x64",
+        "configuration": "Release",
+        "hostArchitecture": "X64",
+        "suite": "Captures,Crash,Editor,Performance,Preferences,Recovery,RecoveryRestart,Settings,Storage",
+        "interactive": false,
+        "environment": {
+          "processor": "AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD",
+          "renderMode": "hidden native ControlHost, default device",
+          "osVersion": "Microsoft Windows NT 10.0.26300.0",
+          "logicalProcessors": 32
+        },
+        "startedUtc": "2026-10-23T09:42:32.9602472Z",
+        "passed": true,
+        "results": [
+          {
+            "failed": 0,
+            "passed": 5,
+            "cases": [
+              "Utf8.BomUnicodeMixedEolRoundTrip",
+              "Utf8.InvalidInputDoesNotReplaceOutput",
+              "Storage.AtomicConflictAndFailedSave",
+              "Storage.CapacityRejectedWithoutTruncation",
+              "Files.AsyncSaveRetainsEditsMadeDuringWrite"
+            ],
+            "scope": "Storage"
+          },
+          {
+            "failed": 0,
+            "passed": 2,
+            "cases": [
+              "Settings.VersionAndFieldFallback",
+              "Settings.AsyncLatestValueSurvivesWriterClose"
+            ],
+            "scope": "Settings"
+          },
+          {
+            "failed": 0,
+            "passed": 5,
+            "cases": [
+              "Recovery.StrictEnvelopeAndUnicode",
+              "Recovery.DebounceLeaseCoalescingAndRetirement",
+              "Recovery.CorruptAndFutureDataQuarantined",
+              "Recovery.LocalDraftCancelPreviewRestoreProtectsOriginal",
+              "Recovery.DiscardFailureRetainsCandidateAndRetryClearsError"
+            ],
+            "scope": "Recovery"
+          },
+          {
+            "failed": 0,
+            "passed": 15,
+            "cases": [
+              "Outline.FencesAndUnicode",
+              "Math.NativeSubsetAndRejection",
+              "Editor.ViewSwitchKeepsSourceSelectionHistory",
+              "Editor.HiddenMirrorSynchronizesWithoutEditingSource",
+              "Editor.OutlineTracksShiftedOffsetsAndChangedLabels",
+              "Window.CaptionSkipsIdenticalWritesAndPreservesImmediateIdentity",
+              "Window.CaptionRetriesFailedAndSupersededNativeWrites",
+              "Editor.DirtyCacheTracksDirectResetAndSameLengthUndo",
+              "Editor.SemanticFormattingUndoAndTheme",
+              "Editor.LocalDiagramSourceAndLiteralFallback",
+              "Editor.LocalOrdinarySourceCommitCancelAndStale",
+              "Editor.DeviceLossAndLocalImagePixels",
+              "Editor.InDocumentMathLocalSourceAndBroaderMermaid",
+              "Performance.NativeCompletedFramesPreserveSourceAndHistory",
+              "Rendering.NativeDefaultAndWarpResourceLifecycle"
+            ],
+            "scope": "Editor"
+          },
+          {
+            "latestStateDurable": true,
+            "scope": "PreferencesProcessExit"
+          },
+          {
+            "exactSourceRestored": true,
+            "scope": "RecoveryCrashRestart",
+            "originalProtectedBySaveAs": true
+          },
+          {
+            "metrics": {
+              "scenario": "sample-richtext-native-hidden",
+              "cleanFrames": 60,
+              "cleanRenderFps": 124.92,
+              "dirtyFrames": 120,
+              "dirtyEditAndRenderMs": 0.925965,
+              "workingSetBytes": 56635392,
+              "privateBytes": 69013504,
+              "dpi": 144,
+              "widthPx": 2040,
+              "heightPx": 1350,
+              "qualification": "initial application baseline only; forced native renders, not presentation FPS or a paired non-regression claim"
+            },
+            "scope": "PerformanceBaseline"
+          },
+          {
+            "sha256": "502F22941DCF40511A1BDE92E4B76D3A63B688F172D803A38BDB6ECA912D090C",
+            "scenario": "compose-light",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "56439D4001AC9C9E61A875C70413FFA6A55391222E3C4C41E97ABB207B951836",
+            "scenario": "compose-dark",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "ED2AA3FA23B17DB7BDBA57A2693366F403B7C04F3B083FEEA2503D63D8D3651F",
+            "scenario": "source",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "7DEA6BCF89830ED68227FDFD3741AA1D3F9D1E3488A2AD5B89063D415E9316C6",
+            "scenario": "split",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "08C4FBD1174F780EAF6424A13B42E08F26337F62CD5C18E3523B9BDE12810CA8",
+            "scenario": "context-selection",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "F843172A9CB28C03B6D8C0D4EFD872DE8E8364617DE14D218A63B56F99F3E9DA",
+            "scenario": "local-source",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "DA151A0839258E1A1E611D8BE3D6A28E0C559EA09056EF2D490DEE415BA7CE5A",
+            "scenario": "settings",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "25295592FB273A29D983BE8D0A7F52284F4698A4AC5A04C698952627DB55BF12",
+            "scenario": "math",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "8778E54D2DD8415D45414B9E2AC887356CB58B06309B03E0B64326FDE470282D",
+            "scenario": "math-dark",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "A2AB24593F33FA686F3799A3BC349F4FA2DCB30703A2C022A4D6D014409BCC8B",
+            "scenario": "mermaid",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "A84F91CB423B62BB740F1335CC49653A030F70DD559203F9079EA215136DFBA8",
+            "scenario": "recovery",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "2EE9C9BA14EAB2FC0800E258348568FB29D86966A61DB0B840CB8A5AC2350DFA",
+            "scenario": "narrow",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "42F3B4908062CC49981901ADDB29562945EFEC676B32C16407AB520D9E5D4E89",
+            "scenario": "high-contrast",
+            "scope": "Capture"
+          },
+          {
+            "pendingMarker": true,
+            "dumpSha256": "1F908B7D7FE889A4B6BCFA21DA3C4030158F6A6A800068611D8FDF3FBA2B938F",
+            "exitCode": -531475201,
+            "scope": "Crash"
+          }
+        ],
+        "finishedUtc": "2026-10-23T09:42:56.8514009Z"
+      }
+    },
+    {
+      "configuration": "ASan Debug",
+      "path": "Z:\\src\\RedTilde\\.build\\evidence\\test-runs\\20261023T094301382Z-11916-2e57c76dce7244958c94564392f6e26f\\payload\\receipt.json",
+      "sha256": "244BA7FE956D8D86D05FB5C583273C36AE10955E603F54A257F93E6F1C2BEADC",
+      "receipt": {
+        "schemaVersion": 1,
+        "sourceIdentity": "65f1f498bdaa9bd7b3958094dbbb20acf4775af64a0a30bd0a22428295e09e9f",
+        "dependency": "dd619ef0c5855307eb57758072658f2e3b777fd8",
+        "binarySha256": "2DFFA356480B63882C25E45E50E86361EEE57379541DECEF16F23ADED1A67CD3",
+        "platform": "x64",
+        "configuration": "ASan Debug",
+        "hostArchitecture": "X64",
+        "suite": "Captures,Crash,Editor,Performance,Preferences,Recovery,RecoveryRestart,Sanitizer,Settings,Storage",
+        "interactive": false,
+        "environment": {
+          "processor": "AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD",
+          "renderMode": "hidden native ControlHost, default device",
+          "osVersion": "Microsoft Windows NT 10.0.26300.0",
+          "logicalProcessors": 32
+        },
+        "startedUtc": "2026-10-23T09:43:01.407646Z",
+        "passed": true,
+        "results": [
+          {
+            "failed": 0,
+            "passed": 5,
+            "cases": [
+              "Utf8.BomUnicodeMixedEolRoundTrip",
+              "Utf8.InvalidInputDoesNotReplaceOutput",
+              "Storage.AtomicConflictAndFailedSave",
+              "Storage.CapacityRejectedWithoutTruncation",
+              "Files.AsyncSaveRetainsEditsMadeDuringWrite"
+            ],
+            "scope": "Storage"
+          },
+          {
+            "failed": 0,
+            "passed": 2,
+            "cases": [
+              "Settings.VersionAndFieldFallback",
+              "Settings.AsyncLatestValueSurvivesWriterClose"
+            ],
+            "scope": "Settings"
+          },
+          {
+            "failed": 0,
+            "passed": 5,
+            "cases": [
+              "Recovery.StrictEnvelopeAndUnicode",
+              "Recovery.DebounceLeaseCoalescingAndRetirement",
+              "Recovery.CorruptAndFutureDataQuarantined",
+              "Recovery.LocalDraftCancelPreviewRestoreProtectsOriginal",
+              "Recovery.DiscardFailureRetainsCandidateAndRetryClearsError"
+            ],
+            "scope": "Recovery"
+          },
+          {
+            "failed": 0,
+            "passed": 15,
+            "cases": [
+              "Outline.FencesAndUnicode",
+              "Math.NativeSubsetAndRejection",
+              "Editor.ViewSwitchKeepsSourceSelectionHistory",
+              "Editor.HiddenMirrorSynchronizesWithoutEditingSource",
+              "Editor.OutlineTracksShiftedOffsetsAndChangedLabels",
+              "Window.CaptionSkipsIdenticalWritesAndPreservesImmediateIdentity",
+              "Window.CaptionRetriesFailedAndSupersededNativeWrites",
+              "Editor.DirtyCacheTracksDirectResetAndSameLengthUndo",
+              "Editor.SemanticFormattingUndoAndTheme",
+              "Editor.LocalDiagramSourceAndLiteralFallback",
+              "Editor.LocalOrdinarySourceCommitCancelAndStale",
+              "Editor.DeviceLossAndLocalImagePixels",
+              "Editor.InDocumentMathLocalSourceAndBroaderMermaid",
+              "Performance.NativeCompletedFramesPreserveSourceAndHistory",
+              "Rendering.NativeDefaultAndWarpResourceLifecycle"
+            ],
+            "scope": "Editor"
+          },
+          {
+            "latestStateDurable": true,
+            "scope": "PreferencesProcessExit"
+          },
+          {
+            "exactSourceRestored": true,
+            "scope": "RecoveryCrashRestart",
+            "originalProtectedBySaveAs": true
+          },
+          {
+            "metrics": {
+              "scenario": "sample-richtext-native-hidden",
+              "cleanFrames": 60,
+              "cleanRenderFps": 102.584,
+              "dirtyFrames": 120,
+              "dirtyEditAndRenderMs": 23.3256,
+              "workingSetBytes": 324481024,
+              "privateBytes": 446099456,
+              "dpi": 144,
+              "widthPx": 2040,
+              "heightPx": 1350,
+              "qualification": "initial application baseline only; forced native renders, not presentation FPS or a paired non-regression claim"
+            },
+            "scope": "PerformanceBaseline"
+          },
+          {
+            "sha256": "502F22941DCF40511A1BDE92E4B76D3A63B688F172D803A38BDB6ECA912D090C",
+            "scenario": "compose-light",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "56439D4001AC9C9E61A875C70413FFA6A55391222E3C4C41E97ABB207B951836",
+            "scenario": "compose-dark",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "ED2AA3FA23B17DB7BDBA57A2693366F403B7C04F3B083FEEA2503D63D8D3651F",
+            "scenario": "source",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "7DEA6BCF89830ED68227FDFD3741AA1D3F9D1E3488A2AD5B89063D415E9316C6",
+            "scenario": "split",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "08C4FBD1174F780EAF6424A13B42E08F26337F62CD5C18E3523B9BDE12810CA8",
+            "scenario": "context-selection",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "F843172A9CB28C03B6D8C0D4EFD872DE8E8364617DE14D218A63B56F99F3E9DA",
+            "scenario": "local-source",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "DA151A0839258E1A1E611D8BE3D6A28E0C559EA09056EF2D490DEE415BA7CE5A",
+            "scenario": "settings",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "25295592FB273A29D983BE8D0A7F52284F4698A4AC5A04C698952627DB55BF12",
+            "scenario": "math",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "8778E54D2DD8415D45414B9E2AC887356CB58B06309B03E0B64326FDE470282D",
+            "scenario": "math-dark",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "A2AB24593F33FA686F3799A3BC349F4FA2DCB30703A2C022A4D6D014409BCC8B",
+            "scenario": "mermaid",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "A84F91CB423B62BB740F1335CC49653A030F70DD559203F9079EA215136DFBA8",
+            "scenario": "recovery",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "2EE9C9BA14EAB2FC0800E258348568FB29D86966A61DB0B840CB8A5AC2350DFA",
+            "scenario": "narrow",
+            "scope": "Capture"
+          },
+          {
+            "sha256": "42F3B4908062CC49981901ADDB29562945EFEC676B32C16407AB520D9E5D4E89",
+            "scenario": "high-contrast",
+            "scope": "Capture"
+          },
+          {
+            "pendingMarker": true,
+            "dumpSha256": "90E6F95948247BE94E6B338A19E668E45ADA2C0D9CD16769927BD8A8C43BA179",
+            "exitCode": -531475201,
+            "scope": "Crash"
+          },
+          {
+            "heapUseAfterFreeDetected": true,
+            "exitCode": 1,
+            "scope": "AddressSanitizer"
+          }
+        ],
+        "finishedUtc": "2026-10-23T09:44:19.1452492Z"
+      }
+    }
+  ],
+  "actualEtwProfiles": [
+    "Debug",
+    "Release",
+    "ASan Debug"
+  ],
+  "probeEvidence": "Z:\\src\\RedTilde\\.build\\header-final-probes\\d2535c5623dc4afd8b96d8a32c629c44",
+  "transportSha256": "585C7E7CFCC6073F90CFFD00F5FE422926066DD5E0C59C96962235D62B645981",
+  "package": {
+    "path": "Z:\\src\\RedTilde\\.build\\package\\RedTilde-0.1.0-experimental-x64-20261023-114432-440.zip",
+    "sha256": "99005920D004B2633BA635EA8419D572663EC736FA43FF304EFD962F7FA78CA0",
+    "systemOnlyPath": true,
+    "viewerBundled": false
+  },
+  "limitations": [
+    "ARM64 cross-builds only",
+    "physical IME/AT and real-focus qualification separate",
+    "paired performance/release handoff separate"
+  ]
+}
