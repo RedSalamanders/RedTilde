@@ -5,6 +5,26 @@
 > **Historical pause snapshot:** SDK source33c was clean/published in draft PR121; Foundation12 and full NativeTextInput173 passed with verified restoration. Full SDK tooling validation for that older queue was user-cancelled, its then-proposed source33c consumer adoption remained unfinished, and CI replay, PrePush, merge and paired performance stayed pending. Hosted RedTilde ARM64 and the performance findings remain open.
 >
 > **Current separate follow-up:** exact SDK eb0f10b9 is adopted and locally qualified in all six consumer/SDK build profiles and the three x64 runtime configurations, as recorded below. Native ARM64, physical input and paired performance/release gates remain open. This does not resume the original queue.
+## Resumed integration and cleanup — 28 October 2026
+
+The user explicitly resumed all tests/coding, remote-main integration and removal
+of useless local/remote branches and worktrees. The preceding pause paragraph is
+historical. Preserve original queue/STOPPED files byte-for-byte; the live continuation
+is `.build/integration-20261028/`. Source-bound Markdown/caption results remain valid
+only within their recorded native/pin/toolchain/profile identities.
+
+- [x] Fetch both remotes, verify actual main SHAs and inventory both Git common roots, branches, worktrees, dirt and ignored evidence.
+- [x] Reconcile exact local qualification: six builds per project; all three x64 runtime configurations pass, with 67/32 app cases/captures and nineteen zero-skip SDK suites.
+- [ ] Complete final authorized keyboard/menu/resource input runs through the existing thirty-second countdown, warning and restoration lease.
+- [ ] Reconcile current PR/CI producers; publish final source and obtain fresh checks. Keep billing-blocked hosted RedTilde ARM64 explicit.
+- [ ] Prepare current-source/common-harness performance comparisons against actual main and the original-UI references; replace no prior flags or cohorts. Re-review the new public-header delta instead of reusing PB-only V3 seals.
+- [ ] Attribute and resolve remaining working-set/command findings, run fresh complete A/A and A/B studies, independently audit and archive all outcomes.
+- [ ] Complete affected final build/runtime/tooling/format/PrePush obligations and synchronize normative specs/changelog; keep unsupported physical/native platform gates honest.
+- [ ] Merge qualified SDK history to remote main while preserving the exact adopted commit, then merge the qualified consumer and verify both remote trees.
+- [ ] Seal dirty work and useful evidence, remove proved-obsolete local/remote branches and nested worktrees, verify preservation and final primary checkout state.
+
+No review-required performance policy, skipped job, unstable control, cross-build
+or manual-platform hold becomes a pass because integration/cleanup was requested.
 ## Progress checklist
 
 - [x] Added title-bar follow-up: connect nonclient input to canonical button hover/press/release/cancel handling, retain maximize hit testing for Snap, and validate neutral/red hover without taking desktop focus. This does not resume the saved performance/CI queue.
