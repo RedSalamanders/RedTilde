@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Resume the two remaining original-UI performance investigations with compiler-matched frozen references and unchanged comparison bands, while tracking the observed hosted installer exit-code failure and preserving native, policy and billing-blocked ARM64 gates.
 - Integrate final redesign qualification evidence with current main while preserving incoming RedMonitor, toolchain and atomic-save work. Keep native and performance records bound to their executed sources, both original-UI flags, unqualified SDK policy and billing-blocked hosted RedTilde ARM64 open.
 - Publish source-bound SDK native/paired qualification and RedTilde diagnostic follow-up, preserving the merged implementation trees, two open original-UI performance flags, unqualified SDK policy and billing-blocked hosted RedTilde ARM64 gate; reject the low-benefit formatter prototype without changing production code.
 - Keep atomic-save staging filenames independent of the target leaf, preserving valid near-limit paths during first save and replacement. Add a 240-unit save/replace regression and retain HRESULT/path-length diagnostics for failed capture-fixture seeding.
