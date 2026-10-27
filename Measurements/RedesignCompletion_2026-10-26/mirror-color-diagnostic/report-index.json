@@ -1,0 +1,184 @@
+{
+  "schema": "redtilde-mirror-color-raw-report-index-v1",
+  "summarySha256": "DE2831CCD92297F3814EE55B71DC40A4F7C2CE41F6507A688D67958342A91EE1",
+  "sourceDeclarationSha256": "2892E53120A7CBC79C8AFF9A4E3EDBDA24DF58B6F385F470BCEA790545619ADF",
+  "reportCount": 16,
+  "reports": [
+    {
+      "ordinal": 0,
+      "view": "Compose",
+      "block": 0,
+      "slot": 0,
+      "role": "A",
+      "path": "reports/00-Compose-b0-s0-A/native.json",
+      "sha256": "7FB9BD427B526966C40FD8861E787C52B1165662DB9B43C4D8FC5951A5493551",
+      "bytes": 7939,
+      "exeSha256": "C8B11F75A33514DF15ED657324728D9740974066856003437E49534F506DD353"
+    },
+    {
+      "ordinal": 1,
+      "view": "Compose",
+      "block": 0,
+      "slot": 1,
+      "role": "B",
+      "path": "reports/01-Compose-b0-s1-B/native.json",
+      "sha256": "A2A27E7D0C1C35217175DF0CEFE502A1EAB84012273C043E086290CA620D71A1",
+      "bytes": 7993,
+      "exeSha256": "05A6E31465EFD7B22E64823BDE7DE63EA837B831F107E6C94DA41015951E578C"
+    },
+    {
+      "ordinal": 2,
+      "view": "Compose",
+      "block": 0,
+      "slot": 2,
+      "role": "B",
+      "path": "reports/02-Compose-b0-s2-B/native.json",
+      "sha256": "C9330AECCA069205EDEC84B41AE2CFA84DC640BD144DBE3B8FDD7D6353202255",
+      "bytes": 7981,
+      "exeSha256": "05A6E31465EFD7B22E64823BDE7DE63EA837B831F107E6C94DA41015951E578C"
+    },
+    {
+      "ordinal": 3,
+      "view": "Compose",
+      "block": 0,
+      "slot": 3,
+      "role": "A",
+      "path": "reports/03-Compose-b0-s3-A/native.json",
+      "sha256": "F498CF0B7339696C8F1B078141EADCEE812B5B574F0D2E22D6F9CAD0D1E8EC42",
+      "bytes": 7994,
+      "exeSha256": "C8B11F75A33514DF15ED657324728D9740974066856003437E49534F506DD353"
+    },
+    {
+      "ordinal": 4,
+      "view": "Compose",
+      "block": 1,
+      "slot": 0,
+      "role": "B",
+      "path": "reports/04-Compose-b1-s0-B/native.json",
+      "sha256": "027008200271FE2DF2E899CCC91EC2EC4A6DC756CBA012217D5C8241FD190AED",
+      "bytes": 7947,
+      "exeSha256": "05A6E31465EFD7B22E64823BDE7DE63EA837B831F107E6C94DA41015951E578C"
+    },
+    {
+      "ordinal": 5,
+      "view": "Compose",
+      "block": 1,
+      "slot": 1,
+      "role": "A",
+      "path": "reports/05-Compose-b1-s1-A/native.json",
+      "sha256": "D1B04A5DC18D065B826B5337152B43950C3335E916B237AF79FC6A4C67B0DCB4",
+      "bytes": 7953,
+      "exeSha256": "C8B11F75A33514DF15ED657324728D9740974066856003437E49534F506DD353"
+    },
+    {
+      "ordinal": 6,
+      "view": "Compose",
+      "block": 1,
+      "slot": 2,
+      "role": "A",
+      "path": "reports/06-Compose-b1-s2-A/native.json",
+      "sha256": "2A8FE598818C4EB5328D833BA5DA0D0754B258F82151F4482AD313A84351782B",
+      "bytes": 7994,
+      "exeSha256": "C8B11F75A33514DF15ED657324728D9740974066856003437E49534F506DD353"
+    },
+    {
+      "ordinal": 7,
+      "view": "Compose",
+      "block": 1,
+      "slot": 3,
+      "role": "B",
+      "path": "reports/07-Compose-b1-s3-B/native.json",
+      "sha256": "3608BA2EE430AFB18FB7D708554F49B432E9E2CBF12C0F3BC31E2A2BB4FD2C7F",
+      "bytes": 8015,
+      "exeSha256": "05A6E31465EFD7B22E64823BDE7DE63EA837B831F107E6C94DA41015951E578C"
+    },
+    {
+      "ordinal": 8,
+      "view": "Split",
+      "block": 0,
+      "slot": 0,
+      "role": "B",
+      "path": "reports/08-Split-b0-s0-B/native.json",
+      "sha256": "BDA97F6D4DD2C701FB89C992B0E7A92D70FFA8B873A637E56F6B91A9BDA3BD22",
+      "bytes": 8025,
+      "exeSha256": "05A6E31465EFD7B22E64823BDE7DE63EA837B831F107E6C94DA41015951E578C"
+    },
+    {
+      "ordinal": 9,
+      "view": "Split",
+      "block": 0,
+      "slot": 1,
+      "role": "A",
+      "path": "reports/09-Split-b0-s1-A/native.json",
+      "sha256": "767B9D1944DB740C5E56ADC1EA6635671418081845205F4E45AAFA6D437357ED",
+      "bytes": 7989,
+      "exeSha256": "C8B11F75A33514DF15ED657324728D9740974066856003437E49534F506DD353"
+    },
+    {
+      "ordinal": 10,
+      "view": "Split",
+      "block": 0,
+      "slot": 2,
+      "role": "A",
+      "path": "reports/10-Split-b0-s2-A/native.json",
+      "sha256": "3CBD261C6C7C6C733329F1EFB325C24B0E0061FF0AD9FEFB0410816E7866B1F3",
+      "bytes": 8042,
+      "exeSha256": "C8B11F75A33514DF15ED657324728D9740974066856003437E49534F506DD353"
+    },
+    {
+      "ordinal": 11,
+      "view": "Split",
+      "block": 0,
+      "slot": 3,
+      "role": "B",
+      "path": "reports/11-Split-b0-s3-B/native.json",
+      "sha256": "52E96E36095709C3A46725E6C92CCE5981869CB7D82FA137AF79EAEB3B929696",
+      "bytes": 8023,
+      "exeSha256": "05A6E31465EFD7B22E64823BDE7DE63EA837B831F107E6C94DA41015951E578C"
+    },
+    {
+      "ordinal": 12,
+      "view": "Split",
+      "block": 1,
+      "slot": 0,
+      "role": "A",
+      "path": "reports/12-Split-b1-s0-A/native.json",
+      "sha256": "9D0850CD9915B0B1D53213078409D5EF414039D54BA86A9E275AB5FF03019150",
+      "bytes": 8067,
+      "exeSha256": "C8B11F75A33514DF15ED657324728D9740974066856003437E49534F506DD353"
+    },
+    {
+      "ordinal": 13,
+      "view": "Split",
+      "block": 1,
+      "slot": 1,
+      "role": "B",
+      "path": "reports/13-Split-b1-s1-B/native.json",
+      "sha256": "BDA39E6E304B7BFA8FB8E102828026C234DAFF75E041B54CEB9E94C4B6DF20F9",
+      "bytes": 8006,
+      "exeSha256": "05A6E31465EFD7B22E64823BDE7DE63EA837B831F107E6C94DA41015951E578C"
+    },
+    {
+      "ordinal": 14,
+      "view": "Split",
+      "block": 1,
+      "slot": 2,
+      "role": "B",
+      "path": "reports/14-Split-b1-s2-B/native.json",
+      "sha256": "61B040E7F5C03628AACE3499414C0ABF4AF272062253F7D2D3E1B8ECA8DB3BAE",
+      "bytes": 8029,
+      "exeSha256": "05A6E31465EFD7B22E64823BDE7DE63EA837B831F107E6C94DA41015951E578C"
+    },
+    {
+      "ordinal": 15,
+      "view": "Split",
+      "block": 1,
+      "slot": 3,
+      "role": "A",
+      "path": "reports/15-Split-b1-s3-A/native.json",
+      "sha256": "8A5DE691C51AAEF4156251D23242842B73976F78DC0A2F630DBB4D2C727B0457",
+      "bytes": 8022,
+      "exeSha256": "C8B11F75A33514DF15ED657324728D9740974066856003437E49534F506DD353"
+    }
+  ]
+}

@@ -1,0 +1,4610 @@
+[
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "A1",
+    "sha256": "36368908b7e59e44817cec0508ff10f4aac8255d65a64a296fc79803a6f7850f"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "A2",
+    "sha256": "fa1e6298f0a53304e0b8571ad91baecb44338539c277b6e980f6beb1a7dee9a8"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "B1",
+    "sha256": "6a16f12824dd5b90f5132a61add046116b1f590e04e729e60159e1a1cb7c0700"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "B2",
+    "sha256": "fa74229bcb78cab42cdd9382055c3ac15d5048660655df90a730bfa3ff545ea1"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "A1",
+    "sha256": "756c2380ce58a1440a80e783c0d7a7508a8e1da222686e3a6c2732e4b731fbc1"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "A2",
+    "sha256": "2efb4449331334e13239eadad6b1a069d0f6b527da2b9c54dcf1e87942380b02"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "B1",
+    "sha256": "189584995c6f986aad298dfda95518592ed7f34ba94b9541c90ae339acc918fc"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "B2",
+    "sha256": "1688093e94f0358d68361d97f2255b3d17e3d219606d9f7c6e4043d15f18debb"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "A1",
+    "sha256": "5179d7a8dc5e10355377ed0bfb574e31fb09e9bcfc4a027408dc562b375ee2e0"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "A2",
+    "sha256": "ef7d3e73432e6f6aac66b46a18eef54523049939d8c782bd525c1b80817238c6"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "B1",
+    "sha256": "9137f88ef6fb5610cecb482e8dbe8f2ef48c30d453e1606d66c5d59debb24dfb"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "B2",
+    "sha256": "7b8d3f902a9b24527fd180ff584d0fd16f267ed618ccdf45a6e860551d093e66"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "A1",
+    "sha256": "6ec8863b5ee467f34bf9007b9841641264551fb46ecebac47dedf87485b17ec6"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "A2",
+    "sha256": "0cda8fc1ac8efa538e11252eedf0714a4f70327c42897490c3f7e2ad4cf91c4a"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "B1",
+    "sha256": "59178d483bf6599043b1180bb01d90b7943635e9456ca7da8135592144af021d"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "B2",
+    "sha256": "1f54581f5c4c3fb27ac8f9b8fd9d7487ea22a81bad42800accdf0827c5e2e069"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "A1",
+    "sha256": "ae483a7de18561b43bc75435e140b993247e3dbfe63154744e6be8bcf17c72af"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "A2",
+    "sha256": "2ad6abfcb623b5a0c3049dd0d2f794b1dd105cb7596223ab873ccb3f8ea1a06b"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "B1",
+    "sha256": "65bfabf50a05df01c3b5ba40a3d2a3fd17e72398ad1497e4812b075334c4e459"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "B2",
+    "sha256": "0e725c7ca672b8300d3ad53ff0648427b876d879dae06609e8bfe8f97319a775"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "A1",
+    "sha256": "cc7e1255dd6de396e57cf5867be9848fb448c04050b505c37113b980a368a172"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "A2",
+    "sha256": "f224974c45ebf6b53bca11c10ac9396a9de71a65e3e6d6b7c2e27c666890a066"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "B1",
+    "sha256": "0cbcfe0dbeece0371627bab0655d0f8e41ac48d093cce959fd9358eecd71b680"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "B2",
+    "sha256": "5ffc1efe23fa0e2de5271430eeae9c6e7daa7cc3aeccb6b624d73dcc78e176b6"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "A1",
+    "sha256": "2d850dc0974a13bfe2d40aa08d48b60374018ea3631c1f94a065ff6d7c3afcb1"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "A2",
+    "sha256": "7979fde74b702e7d0e307ba6051ade33663fdbf02478c52887f8110f7349d8eb"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "B1",
+    "sha256": "ad809f233044b975c5f32ca68cd03170d3b91d68de915a2be46b928ca667ef54"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "B2",
+    "sha256": "c65c688a33aadb02541df9d29a672b438937384104d6a6d5be9e3c65aaaaae52"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "A1",
+    "sha256": "1e5c39f1f0e714d6384afca53d19f87c29adad10d374c0905c8e8dd238f7a982"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "A2",
+    "sha256": "76a7e3f0b2ee98266173dd2a40fb7988f08b05ffc05667d1186ba66effc84105"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "B1",
+    "sha256": "9210aa0314bdec1ede4942cb79823edaee5bf378758a6e65f3280975af8415a9"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "B2",
+    "sha256": "8ab52b86f71d165ec6df60b30a2f032fa3ab5c89653db23e0c91688ce80da15c"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "A1",
+    "sha256": "356357ee1be6ec3b1203e0bbbb1772ee1390d7b89d3c65b4fa4aed52e4729c23"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "A2",
+    "sha256": "68a7ce1c05790849488f4a17b6ca86d673079e22c3392830345b6cd4c835fbaf"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "B1",
+    "sha256": "024ed8cd7a1aa8c12a8bfa3dfe7051517b309baf0719d676904280ff1793bee9"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "B2",
+    "sha256": "960ebe656038120da607396058c294548337ea698409eb87c923dccdf2eb77ce"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "A1",
+    "sha256": "6bead7ff4a45c3fb9bc036fd929c7cef2885031dc2ac23e3f73e6cbc269c7070"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "A2",
+    "sha256": "4f7b76def1e4ae412b7b8efdee6b11e346f683f164728e910d5a1aba46876fb0"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "B1",
+    "sha256": "64b247ffa746ed6c89fc7c30a42763613c24096115f0c7da5bc5eadc06905360"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "B2",
+    "sha256": "009424f74a0fd9502bef313d143512fb69fa0fccd586bc7e8993bed2f3da6fd1"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "A1",
+    "sha256": "3e214562d61c9453c9e52b54188f6a65d3a0d5b4a5016e7e4821e6db78274c32"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "A2",
+    "sha256": "ca6dfb1232a80560a1ec68fae4a9681608416712e0ac07c31b623a04cc49d207"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "B1",
+    "sha256": "c4339793fe400c87a27e6eda1948d0b8cadecba1b16f544d1feda2a08f980e4e"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "B2",
+    "sha256": "e49c86a16a2dc884dd46df1d410652aafb76572f8fc7578b55ebfacb04838f45"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "A1",
+    "sha256": "19c08aee5d11ca8a5273be4c38818df54e6f284d821b9f43fd5e6596c0c49076"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "A2",
+    "sha256": "3048dadd25701336f964df6a6aacbfa112f57650faef7e8f80f3351df213ce0e"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "B1",
+    "sha256": "7bc49d4a9ae5b253c19b4fc5a55d806d5c57a9818db1c462ec3a00fde81305d3"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "B2",
+    "sha256": "2a76604c0caa2cb751502349763d6834f5d75ac56aa9efa012b6f31cc78df322"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "A1",
+    "sha256": "5d913ab65e6b09dbc86523157c878f4ae77b30950f911badb00397e5e21c26b5"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "A2",
+    "sha256": "cd2e49a1002141b5a187f244e3edfce96c96a69c72fd813b45160a7661199583"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "B1",
+    "sha256": "1102088ebab637087b3d9201f34458b6dfdfd30a8f0023bbe2719b3d8d336f2f"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "B2",
+    "sha256": "79bd8ae42ec74113bf1063bdbc0102dcc75b594f6d31134d2f1706fae7c38589"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "A1",
+    "sha256": "fa00e99b53ca96aaa11da43a2a3a36e77afec3e4cfd84dd4fcc150482cd0b746"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "A2",
+    "sha256": "19fd8630159a3a6b07563b3077ec2655c9d45f7cdfaf90606a08428382441486"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "B1",
+    "sha256": "82ec5928ab4d2732bf8ef8acad6bd7d5bdcc670059ddb281a0b735f3ffa4bf6f"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "B2",
+    "sha256": "d4180bcb3982a5e58e9c45b4d8dc411b664d836b68679319dc317d5833d31cf4"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "A1",
+    "sha256": "42b143e67683066210a4e21feb14e5bfdd2f384ca118a9e8321e43164099666f"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "A2",
+    "sha256": "a60ea3f4019da0046d7c74849d193daba526dd1b7bedff10039a0675c707ef2a"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "B1",
+    "sha256": "b069b631abc9d851631f9873a56543188b6ddefa67612aea2c204632e89f5412"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "B2",
+    "sha256": "0138e027589bd95da463ba0901d607580671069cf709fc28713f67b41c17a2a0"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "A1",
+    "sha256": "a7c064e8a6138fb071282798ff8e75a3c295fdc64bf82c89c45f160b442ddee1"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "A2",
+    "sha256": "4c9ec02cfb51a8a6b70418a0275462b9532877103dbad40f8106ef88ba57f8d1"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "B1",
+    "sha256": "46d98c33b95204228ef3f8daa6ad5cb7880ac9225e3e9932a61b04b994cc33fc"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "B2",
+    "sha256": "aa322ee9554831455fa4eef3e60c4dc9aba7177758c949cda783cb6b025933a5"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "A1",
+    "sha256": "ea337c1824fca6f959b7da3f4321280e9c9abf78274d4ef6222ce8db4641c0a9"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "A2",
+    "sha256": "db5c06d3650dd73ef0f90df3084d68a30410b40a1bbd9136945d32fbb14d7359"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "B1",
+    "sha256": "42c8767776ce3d260d8408ca59a668aaf171b8dbb27214da83b4b5f6168cc9f5"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "B2",
+    "sha256": "be07a4ca9a9208ec39161a91b7256bd245e8bfaf89d8ef0a72498f35f153577e"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "A1",
+    "sha256": "81ae0a591afd2293b0214ad03252f746957e1afa49f8ac446871b86aa0cd5e50"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "A2",
+    "sha256": "1b80aa3495a30b37bcf9e654abd00b9d1b81c3fcaaf9478508016048aa61843e"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "B1",
+    "sha256": "8bd1d16771cf559c28aef9a7758aacc2f2974c79e4442576ead00bbce78afd9b"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "B2",
+    "sha256": "4c07ed81d7e6ed6f4e2ab11e546b04b1f5fe14911d0c633fb2fa5329e5c2cbf8"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "A1",
+    "sha256": "d6ea65fc798452dc9cc8480c7cfe15324894202278a7fb1af1c8d09f6116bbb2"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "A2",
+    "sha256": "7da268dab67e48435b413d14e6f497f12aaf37365925df3b1a6a03a6dae8a96c"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "B1",
+    "sha256": "2f441ee380bd06099a0e3b52bd603fbe64df7125e8b2f3da939b44d5912c6fea"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "B2",
+    "sha256": "317858ce5ad3cc482e9742e337b2be9fd15b02cef095744af71b47a68715cdd1"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "A1",
+    "sha256": "d95be7e16505cf28c504782ee2a36b22ff7ac3932e8f4975bafa6a52f3ed473a"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "A2",
+    "sha256": "ab793e578758330ebf9bb39e2bef5a712679aae3b0b01ee1cedbe34aa3a2ddb5"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "B1",
+    "sha256": "40a6df54fcc51c2b992e3718fb94d0765bc25c5e1e8ae7b95f2a195fd91b3093"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "B2",
+    "sha256": "f95ad9355413bb3a0bc3cb3aeea8c73e20f2c07d0ee463ef0a180babff969d8e"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "A1",
+    "sha256": "99fdc5391e0a38d764f591df0324eb41d50aa4a2174cfac287223ceed59c1591"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "A2",
+    "sha256": "a2dd8dcd63d2ac2f70cb0f9e33081823a6526dcbf5e1b5eb62729c4b3c8198f9"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "B1",
+    "sha256": "c0454f4b754333519923113b8dad0823f89955b10e3feaa31ca7be7fe9e093f2"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "B2",
+    "sha256": "6ee18db98eea44c9ce08bedd40a976212040606e1b11f96fc19edbc12061fe01"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "A1",
+    "sha256": "90c987bf3c9753a858d298631999bec2455c5d520f64c32c21ebbe6422192cb2"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "A2",
+    "sha256": "639ed8d71fd344866d85fb8e34ac92b5bfd55258d889d577755ef351dcd068b1"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "B1",
+    "sha256": "f33502083ee85c59c93a55fa3a3dd04c95cb8f0c0b76ddbac9e6276b36701efa"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "B2",
+    "sha256": "cb0f5fa382e6e4fb85e8a58da19e6f45250c92cd4a4a9378024e7faf651a5e97"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "A1",
+    "sha256": "0054b24bd929de85950588260f4efdf32b6edd221d9e972b6e37b9e047bc561e"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "A2",
+    "sha256": "09de13bb10f47c3c29941bae4e52fcd397ba250e1db5e685f9e4ebc4cd6a1c79"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "B1",
+    "sha256": "dc20e6d7c0301150ebd656e856fd69a4fed9692a3076f891872707eab3890c0b"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "B2",
+    "sha256": "2d531a9d985657906d37e4c22cdcd41b02fa201d644bc1667a4e65f679e7e1d0"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "A1",
+    "sha256": "ac8d20c3409e85899436213febbb245bb1d23af4df626740d95aa8b87005fd8e"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "A2",
+    "sha256": "952ef9232b6b40dc7c9dd56a44eff01bf2a78d84208f6bfc5e934d6ffe6a3074"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "B1",
+    "sha256": "071ef40c608f075d273aa14d3b4135e6f2ba152fbae84d26d346e872f77197aa"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "B2",
+    "sha256": "b67565cd614e2a85cb49af2e34c719215c1f920587ee2e7fb46ccbc7a1994d65"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "A1",
+    "sha256": "8eac6ec5d70ebecb8cd740e5978ec2dfc6fea16eb0b5f0127221c1a6e5fa396c"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "A2",
+    "sha256": "c41d767731fc4af72e660f24c45ff84536635990f81a417a55ba82546f34c678"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "B1",
+    "sha256": "cf4b6a8405b51a1ba9f3987214860becd990680df6eb1b1af30b87799d3ba614"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "B2",
+    "sha256": "40a84830dc6fba5773ae7cfe07b7994a7170b25d65fa8b661f440797355e07b0"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "A1",
+    "sha256": "93db900c274dad58d1ebf9919a2b9d30374569b5356b1d7f1762f2ab2ae738aa"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "A2",
+    "sha256": "9461cff15c990868eff365abd034684e535d156afec21fd09be0322736713596"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "B1",
+    "sha256": "98334ee2b375c73a533317180d3e7a0c7e0b97ced014d099f21344ddd7dd146b"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "B2",
+    "sha256": "94e852951fd6ee7ebe26877fadfe7e9d2e72a463dec1e3c1c08f0c87014fcb4b"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "A1",
+    "sha256": "14f2d414b12152dfcda7bc5f14328c8178ab3757c8bc99519db4aaeaa9d111cc"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "A2",
+    "sha256": "486d2f02086e7c4699ddf39daae76c3b33b93a56c92a0006ea44ee2ec5c5d349"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "B1",
+    "sha256": "e08f6114df79e7bcb9b6bec8c7d6bde7f94ad1ed72fc0027d3932cf0b4ba1447"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "B2",
+    "sha256": "25e44a2fdd57bd049e79b96962161349bf70c909940858c16c513dd17f466e05"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "A1",
+    "sha256": "67c7e5518789485581d8289f26d5d325df24858a58cc2f879ea31d0f4ade8cf8"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "A2",
+    "sha256": "d47d7f10fd5635b93a437ac9d7975e467a38474b47e64e17015d708758f58fd2"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "B1",
+    "sha256": "14afd777b0999568367fe84cea45c4c2d4348e1a0bb7e3a59c77d4cdab9c5f55"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "B2",
+    "sha256": "07e73815ab325e1a7de2841a50c7f0f1187c534dfe1ba1a4fef3ff08c63e1693"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "A1",
+    "sha256": "f78f98740ee418d7f134342b92f30ec59460596c6ae25ec0de9041a0dd2750c3"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "A2",
+    "sha256": "84e70eadd28027bc4c0429228029de691efc943f06227c0e22db79801595c5b0"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "B1",
+    "sha256": "53a6ab04cd9b0891fd1c09eb12c2b0e7bb7e3602bfd64b757d7134648e279c76"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "B2",
+    "sha256": "323d7dc9712f0f0c81fe6a0127c5937b23a85c615eacd5dbd2bb7165650e5090"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "A1",
+    "sha256": "71767cb4644b030c7958a5b91d39cb0854b76cc1270505a1f3874ed51eb5cafe"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "A2",
+    "sha256": "bc0f466fb38ac1dbf9e7f39c42fe509b05bbe4c90235ce6109886dba5d6c4691"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "B1",
+    "sha256": "b1889138a27ba312e94a33db85dcabad36841b314e70cd29b85e96a88c4c3d5f"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "B2",
+    "sha256": "42375c141e173abdb01f22d8e37e28dd5d8fba65011a1d8926836005971a2272"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "A1",
+    "sha256": "cde038cb851b90a3c89727fede04104f612f37306e255ef9a4aaefd4a1a4e429"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "A2",
+    "sha256": "c7d167418cea572605bd5b0ff392a878a08a84e8946c853cfcd9745a35cef55f"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "B1",
+    "sha256": "806cb48bee503980026814bc33928ebc851c005d2d90034d8793fd14d122d300"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "B2",
+    "sha256": "a05659f5feb1209c6027a32116b595d09b29e253e7646e76cfca55e592d91179"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "A1",
+    "sha256": "70638e0e121b326349d653ecc05fd6a62e7bdf4105fed529f5e1580a8f435322"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "A2",
+    "sha256": "c5c5c69c3d861570857f9d28deeade74ef4806b2f5e139a9b92ad2b35deb4a37"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "B1",
+    "sha256": "f9ce28e15b858d809139220853adc39b1eea46d3e2d19dffb18ff560d5331798"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "B2",
+    "sha256": "7666df78ddf67db8c0b312ab154c11a050c730691318be2b05934a419bba86b3"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "A1",
+    "sha256": "48cb90d114deb17048b6484308be8f4aab01d1e9e67d890cd736b0d9a6ad2a20"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "A2",
+    "sha256": "37e068d55ffe06a6c98ac2c664344ac8ecee572a370db9f9f94395272cf246e6"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "B1",
+    "sha256": "3571c04bec5aacc74f3636bf600d1c543cc9a3ce30489e3c621123415cf16e90"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "B2",
+    "sha256": "e3bd9da9fe6964bc6671f904428bb1cb25130192192027b3ae8a0f68778ab86d"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "A1",
+    "sha256": "8445fc36557bbf3aabfcca461b5136324f09a3b718cbc3941309e80ac31f0a6a"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "A2",
+    "sha256": "8338a9d0cb217cc7eb87dd6788806120e5e876de7d51a349b268deed92b9f744"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "B1",
+    "sha256": "d1706fc01226e0f9ba791f1aec5313bbc9e36178c83899e6d67f11aab1309721"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "B2",
+    "sha256": "8e86dbbbd23f68c55580c5ec97fd192af8485c4646a4f57ab9ef48e61c623abd"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "A1",
+    "sha256": "8fcc2c8710e13fb5642db9594bcd74a7a9a1b1a8a2feda8b423e326a8830fdcc"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "A2",
+    "sha256": "13dd89f2c9d39ab879c7a23c42cc97c29f78dbc2548557f9737d753f16ffc8b0"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "B1",
+    "sha256": "eacddc8a2e83d6fa8d9fb4a77d2b1db17fedf14a2814b96b689d12fee983341a"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "B2",
+    "sha256": "0ad5a381965f87f107bf214a4c45191c7a69e947d69c928ba7e044f8e0817cd9"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "A1",
+    "sha256": "bfbf3fd29845bb84339edbbe288482cea193fc25d480f6d26fce36eba5749ab6"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "A2",
+    "sha256": "f94103938563ab448b042d99a29024fb2b0df4c1e2cf6f2b1256f66bda405013"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "B1",
+    "sha256": "9a7dae65be77665cd5f6c77460a164f3a8a748d0cb32f71ab43b553777c32404"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "B2",
+    "sha256": "5701bb064bcfef9ea48dd652699e7f16de0c78599021ee1413da3a38f239775e"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "A1",
+    "sha256": "9138323a5d249286bd166c379cc6f1ea2f88058ea9c44012702381318b09c535"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "A2",
+    "sha256": "34b893129d0360442faef8bc8d913e95138e40a95888178ca2f8626a105692cf"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "B1",
+    "sha256": "315cf5c971e458289562c785a064972bcc0fd5be3599ab8c69dc1681b08e6946"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "B2",
+    "sha256": "ac01de2c3fee1390266290b6ce1bb94d7e7d974e0f858d61f459b1017821b354"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "A1",
+    "sha256": "8b8e0c3115879a7a57865077085aff6a71aff8c5fe638c3037260c9415afe2a8"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "A2",
+    "sha256": "890fd6be1e72b4dc48787a4591f74ebcc8227c6f9b59f73abd62388004bbc132"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "B1",
+    "sha256": "958996bd78a03c84d83011757608eb99eb11d7ccbc95c5904df567057d5f888c"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "B2",
+    "sha256": "feb96c099a052a062dbdb688e6741217a123bbfdd6e131a37f7eb6b1e2625162"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "A1",
+    "sha256": "7892d001059b617bcd5b8086bd3484249fc032025541093dc8edc9f90d4c4bb4"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "A2",
+    "sha256": "aa17b1421b3f6af5ead422a082f715b072fc3cac65e8ab8172d803314480238e"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "B1",
+    "sha256": "757eec3791ae0a58fcd85a274e646d81bfe89a8fd4a5717569159a0c64fec57e"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "B2",
+    "sha256": "fe0f1e161360e056fb1e303e95a3b9b2cd5dfbf7e2ece50e4bfc165053dd8de0"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "A1",
+    "sha256": "8cfd60c72e3f3ee44c82511cff261e50568667f336f0403293c686b4742935ff"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "A2",
+    "sha256": "96feb940ae88bb0a1122123b25c26619306e52b7b0d6f3a322407954b553ec05"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "B1",
+    "sha256": "4f278e2fdb49262a063d0f2db12c6c2f70b610593a23e34ab5b2ea29ed9f6785"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "B2",
+    "sha256": "85dafa6a2ce6071d987f010f5c08e1cb21f9f1fe4f17f262a10eb52b6a1fa6be"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "A1",
+    "sha256": "043853c9c2c4a638bd20da65241a19f399519cc84d204a23078b83acd5d6e709"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "A2",
+    "sha256": "ddbc8c2c7b2cbf45661d9ccdd172de44f76be8e87a3a70293609fbab4ec38bc5"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "B1",
+    "sha256": "3b7253e35509f334730063b2d247aa052d7424b94e86fe27a38ea67169fec788"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "B2",
+    "sha256": "e677073f609b3009d896966c159fafa819387fb97c53ca1584e413b2b80600b4"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "A1",
+    "sha256": "ba6d2ff63740c69e3159df9b9a1df5cf0f39b1c78d7ee09e7d5c21b0152258a9"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "A2",
+    "sha256": "218eaf0683c013639a8c9a057dbde9403d3097b9078c59a0eeb3048ede85797e"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "B1",
+    "sha256": "e5f3cac667f5b68d19d30011c1b7d80de52b78a13165fa700ab38987fd52770e"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "B2",
+    "sha256": "acbfd440ed1988dbe33a3ac1f721523d926bcfd4aa34c3d9afda7a67b29a1b93"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "A1",
+    "sha256": "b76bf0cc3511a46031d99da9bd279fc12c6e6569e095c6360c382325bb2ae5c0"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "A2",
+    "sha256": "4e303178d07c11d4632d08e2dc4d74f60755d29039232d6f4f080546aeafb123"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "B1",
+    "sha256": "031b9798c18932a932ec50c137de5651c342703829c8b9d23ffa69224f1f473e"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "B2",
+    "sha256": "e5e2f03783484a88b1474d1ba9c56e9c453563a1338e8e20f27c73dc8f85119a"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "A1",
+    "sha256": "75846f17dd92843d6468a17c3cbe80adc537b8ffce471241f47e8eb6de8cb64f"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "A2",
+    "sha256": "fd7b3159e9c92802f719d34ee1b404f873c03629e74cd1416bc1dc88be1bf2af"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "B1",
+    "sha256": "39171b530f387f13990d36568c8afc9754f12ddca9f06f452b71a33c19e42553"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "B2",
+    "sha256": "083837f70ae46cdf6cb3431195901f7111bf3b29bec96b6f16d048d1e88b10b7"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "A1",
+    "sha256": "880d9e239585d7cda3e32f7f709f24a135dab061c505d7c3cd9e02ac7a835e5a"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "A2",
+    "sha256": "73a56c23c867ad7ae33becfaec61d42ffa90fb9492e1a5a7a4f3940b95595e9a"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "B1",
+    "sha256": "70acac8ac7cc1c72af5232eb3ff0fbed328a578f3311577f9c9ba1c127d5f3e3"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "B2",
+    "sha256": "01651faa1b6c77b821ebcfd9262300032ae3ea44092d03bf45de5e37af505dac"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "A1",
+    "sha256": "4baeaf0ac447a46db284ef6c4c9bcbfb948ae4495b70cc29c56d617137c6e12b"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "A2",
+    "sha256": "ab5322f331185033054999a5e1677600598948f5501bad9096d41460ef658e32"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "B1",
+    "sha256": "af3a055bba5e1f23390b02032485b8dccbcce197d569d8cf1a08fa58870398c7"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "B2",
+    "sha256": "b69131dbe7163ef4a064bc2dbaa11d2960511efb81e743a1716140a20243ae65"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "A1",
+    "sha256": "591de9a7ddb699ce757a4d9b759e1e571cf971ab1f1cb5d70ecb95512c6cd95b"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "A2",
+    "sha256": "d57a32a0b0befc5b911df518e671dc2f99c33ec3318d3a3d16f5ea0100968c6e"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "B1",
+    "sha256": "3774a46418a6ba083b56764197edabb0f7c439bb14ce46f94a573c8fa16a74e2"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "B2",
+    "sha256": "48ca51322bc47afbd6fa19785da7b84b04f32534377acc61891f1f44f5a8e2a2"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "A1",
+    "sha256": "b298d811a06ba8f1076ff4ce6ca99adba31b90b21c9c2b10857f6741c67c9017"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "A2",
+    "sha256": "cd8ec8995f97afeeee4869e0d1622b89de05e7ac7dbbcf66677214804041ca9f"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "B1",
+    "sha256": "7403a6f24121ec6375932ce3098ff0b24be82ae287b5bb9dbb388cd46a70ad78"
+  },
+  {
+    "cohort": "originalUi",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "B2",
+    "sha256": "f8e0eb86eace2af0b5b22804fff1c1ff990283699e4bae15902f172d0d47a740"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "A1",
+    "sha256": "ea6d29556cb74c8722a667d517860fd294eb7474369040023ce2c39cbcaf8542"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "A2",
+    "sha256": "71baab088084e7a3a298588958fc1d2d3b49ec75fc86f6c98edd107fb36bc773"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "B1",
+    "sha256": "cb5f5d42024ce47bfb62f051098330d21daf55a378399e63c55507237980004a"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "B2",
+    "sha256": "afefa9a22792624e379f377de2916e30d636fc9624055c42cb55509ffae03036"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "A1",
+    "sha256": "0cb1cb294a3f870ce6490d6d149855b7b8493b84ca971a55606747463d9422e4"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "A2",
+    "sha256": "796acc229d16af50260818328d70611c161d702eec0b9aa729c7da69d929a7d3"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "B1",
+    "sha256": "79e50ebb4af99f40ab1e140494cc9d35040e8a94f49cf6e5d693dada5c40c243"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "B2",
+    "sha256": "3c2a4d0e5f6431daeb26648b2a0bad90dbf20e94ffd8130a0d5c0b432d0935eb"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "A1",
+    "sha256": "5fc92a3c9ef5b52e0f68f37f7cce5bd06f0e1079de15797e8121b429a0d84911"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "A2",
+    "sha256": "0ead4841f3b8d802f3117643e4484b17c5661e0629733809ca45cca057255bf0"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "B1",
+    "sha256": "f1759a6d70e9b40157bd1f34572fd019c6788f9e2628ebc2428caabe0ceca34f"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "B2",
+    "sha256": "37b9bfd17176430ca763fa82df4aabee2c805ddec7e68ee4895d3781664254ab"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "A1",
+    "sha256": "66dafaf595607797f1c02d8fc8852695888adb591ce5f3731f655049bdf72cf1"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "A2",
+    "sha256": "294c64654b50c3275d3cca5dbeb4e5240c21e955e03d2ded6113fdaf75bdade3"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "B1",
+    "sha256": "1364eff6782122ee61532fcc0563392ba87f6128572ffe5210b4a51f77ed9ed0"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "B2",
+    "sha256": "1fb79d07614c9e757e47a1c033d7d71a1e6bb147cda7a9459a4438ac28d7e699"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "A1",
+    "sha256": "07f91102ab007dfb778c205d494fb29f5e1579512d5510efb5185e823d7e365d"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "A2",
+    "sha256": "a225058dac71720543f2e05d2934ccc74b5c02d9b8723e088c58937ac179cc70"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "B1",
+    "sha256": "269e316fc7b04097a886fdc023d028a5dac1e308cb20c4641b32f123b2997738"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "B2",
+    "sha256": "7f448ce05c66433706b2f58720228a830ff796b7806a58eba84e34a60409e16a"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "A1",
+    "sha256": "61ed630945a24d61f8adcc0b7c40228e1ff33f1ace8d3e7729b75752b5b5bd2a"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "A2",
+    "sha256": "317a02c9dfc21fed49d94940e5d3c13557efcc7b92601989a0b3d693f18a23e6"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "B1",
+    "sha256": "a08616a214be042853f23cc9fb0344d9ea90031fdeed2d0f8480761ec239b8e9"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "B2",
+    "sha256": "d5bdc12d6d2fa046043714d28b70958d0f05e9e152208a50bf5c66d1226aa659"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "A1",
+    "sha256": "ad99dd76365380c9c708950ef8b71b9c69eb7ac17d263bbb57d1d169b9fa6e5f"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "A2",
+    "sha256": "da602a29427f065b959530a2b7b8e35514097bf6f244adbfd04622144f264340"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "B1",
+    "sha256": "aa817b04f4208dd1189a0257935c8eb7bf78a2789a70ad4f86f25bfb50655d64"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "B2",
+    "sha256": "83cb653e9011383fd2f9fb57e5d5be7b25437615df28905ebbcec7f07f93ef3a"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "A1",
+    "sha256": "1b27a2400dc1e4cd2df97d1c97b1abaf3aa6d85462cf547770eb8418e50ad065"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "A2",
+    "sha256": "d2da91bbf1ab0694f6b9c76b879aa7332c0551c947c6f371c8f38d6b722740a4"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "B1",
+    "sha256": "4eda08b6a9ec63bf0a62fa7989d1276e5daefd42eb21f71f0650faf60a5c22ac"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "B2",
+    "sha256": "61615a4965dbfd61aa443082fc5e471572749c3651b2db8a3ef3fc48ca606bbf"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "A1",
+    "sha256": "93c7c3e6f37e521c7503d878292a527a2516cc4a60ccb33d820f712402cd1ec2"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "A2",
+    "sha256": "0feb5523da861ad9c6c1d97ca6d1b366e3730942b80d350b2f1879270291b30e"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "B1",
+    "sha256": "491e2ee20d15ac08ed5be494de7fb1bf9959c82b5f36305ab2d99a48193a95c4"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "B2",
+    "sha256": "fa091a1df8bd057cf873ab876ca66406960e7413d974a07efa2b8c0f17268040"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "A1",
+    "sha256": "07ff4abbf4da1840d95e7713aab00c7f5cb3562c3eb25a20e232f2837cd9772c"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "A2",
+    "sha256": "812144bc72f0ce6194a6227b9a4fdf2843319560561936ce524c32d72ec6d7d1"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "B1",
+    "sha256": "9619c4336e1dc69184262d307da5865dd830328d8d5720653a310d44804dec1e"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "B2",
+    "sha256": "553ab3ed14954c893e49654c1830a15053f7204b6813bd6097885df97dbd37dd"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "A1",
+    "sha256": "49a4916069cf202f0ebabacb36d68f3482f26708f54ad59d923fb62e16e6172a"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "A2",
+    "sha256": "696acc27c7fab2bf44cecfc6da6fe3bbabc499b8ba29762220a44811b61dae8f"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "B1",
+    "sha256": "0a5ce6acd1c70f90372b9b3bd5f0367c1c2e3688c184c3e565aa677add5ecf83"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "B2",
+    "sha256": "05c522ed306038bc4acc4b0b8cc370807809396b342106b9f085aa4a76044f3a"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "A1",
+    "sha256": "248a1650411ed91f54cd916609b524541fde80eee869a303704d8c08cabe020b"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "A2",
+    "sha256": "dd389a4e0eccd1754af53f393dcb4c10fc02f1243d686bc19f574158042dab19"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "B1",
+    "sha256": "9f01a0c76baa82a7a8e2038a6884c3ea3b594928b96bac236ab349e4b5d19446"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "B2",
+    "sha256": "1f0c1ced036b06cc2e9ff359560bfb0d82392082d5c12247d09ab083bd24de2b"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "A1",
+    "sha256": "b592a33ddeaa5910f9935332f0d421cd794987e714c18cd66718488633db7d9c"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "A2",
+    "sha256": "8055841639976b518c941185a782babeea7acf6fede0013f245e3380e7db1e69"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "B1",
+    "sha256": "5bbae8a95454f65252c974be2859b5f5bdc536f3b9548bbf74454e68e88fd89b"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "B2",
+    "sha256": "af1e85cbb883d316952ea82473296bce4f9705e0a2934920332a88b0a3e8969f"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "A1",
+    "sha256": "2dad2939b0f0f72ba6e1367c35671ee56b9216213efc1e0d52c76c4454a00182"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "A2",
+    "sha256": "cfce1fa4aa226b2150671147e335dbf95dff1041156567e88f510cd70ac690fb"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "B1",
+    "sha256": "0000b983d5c029ccd40447e5194b4c64306f4f931d2d6f8fed8c92a0ef472ddb"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "B2",
+    "sha256": "e3ed5ee6de2bad847f8f4fcf85b5dbf3ce3989d303959810b52c630055b86c99"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "A1",
+    "sha256": "fc59c72d7df7c3e1395b34793155753919de2ebeacb24d8f1dcf24c7470ab639"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "A2",
+    "sha256": "bfc0e170bb642bfbe857d56d8606af926ccc00b7a0cb16fa20ce2d4dc92f05d6"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "B1",
+    "sha256": "a2c2b5c1f73bc8f694c8822de39f8a469fd316893200e16fb353bc6eda7d06f1"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "B2",
+    "sha256": "2582156be4cfc9285bf3f3f5dff8c1e8f5340ea3b38268a4917f5260e826f6f8"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "A1",
+    "sha256": "ace836478a80a67d4f3238a49b2cef1db2e850ed436c91e184f72828ae39e784"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "A2",
+    "sha256": "c93c8fc587b7683ab8fdf7f3f3274d13fabe0a1e9c1da356320f04b1cf5afa03"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "B1",
+    "sha256": "2a21425e64df79c9d7cf2c5e020255c0c7138208aaeed5bf38c13fe7e761c66d"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "B2",
+    "sha256": "0faacc50cf6981ab17aec9c10df64fd744029b7217988b08c51c2e8e327bf5e9"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "A1",
+    "sha256": "342dd634e25529793d3ad15d42de65b28f740ac44c09487144dc6ff2ab6961d4"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "A2",
+    "sha256": "ca87230eda3ac3447e950269858d0d78c979c315fd4f0cee2a614dd593a595d9"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "B1",
+    "sha256": "2b905b6ee87e7ce8375a8702ae1f0a64c9fcea216c2fbe0baa65ba502c3693fa"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "B2",
+    "sha256": "63b0f7d9e8ba9096f71185861c666c6486a421930a492601309be1327092bc2d"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "A1",
+    "sha256": "d14e0faf4633ac1d90a11a71d123289bb735f6b26197fa5a242598b86f62a6ce"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "A2",
+    "sha256": "9880020abf8877c9908442a42d158b4b2f988b8e8f8309aff58305bcc6a47af3"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "B1",
+    "sha256": "8152a1e07c4ad2c370abf09aaf1854122819cac20d48bd976e2425dfeaa6ecc2"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "B2",
+    "sha256": "835dd0d3b183f238df1f9123de6dbf77d7c602e0bc371792cf01a3bdbe7ffee8"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "A1",
+    "sha256": "521bb1edb9a5d41927d43b42f03a2f0ea3e46488c4161415fcccf338eb5cab2c"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "A2",
+    "sha256": "46a22baab6d92e04795df21ae8dde73213329887d98abbfcf37bf7092f099a4c"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "B1",
+    "sha256": "8918f34c3920b97726649c652c4dc3fcc41646731a0408e83e6328335656eca5"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "B2",
+    "sha256": "cd54d4a424c11365b8a1aae6e744deca7fd2bdfde072ab16776003942f6e99db"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "A1",
+    "sha256": "9b0d2787251484b3979ccaf2a7a129a4a13099053134a1b3668605c42e6afcfe"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "A2",
+    "sha256": "d626aa4934e92fe5d8ef0f02e81df3b61b5ed58fc29b12cb8959c709da32e599"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "B1",
+    "sha256": "86b74b452b7a1c9272eadd962b8d800db904c23e13561ae79a2522b65bd17e31"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "B2",
+    "sha256": "b0613655ea2725d5f30a224b81c657d575710f7fc3452a92cee60a436baf1a6a"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "A1",
+    "sha256": "7856b54436a7a3bc128a3da83a42ab29f8402aa3b6198901aa9febbf6da72793"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "A2",
+    "sha256": "ff98c03be87a33dd6a561d489aaef72e5f83bb0fb4fcad42a0c510115a74c7ad"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "B1",
+    "sha256": "0d68b5a317c9dcb2b03c417dad6d1596dcb50b67dc4dddee29141fcd9160418a"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "B2",
+    "sha256": "7c5a5758223cd3f154db4136d4a65df37b5eca6df35a8bd383bb7f0726506341"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "A1",
+    "sha256": "118e483788c4663b7db5d554c70d845fec2cb51580234a4c346cd89e4b40b2e5"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "A2",
+    "sha256": "f7f53ce55ececdc2c304c9404bf148a4be193add026cda3da5bca415cbf4d0d0"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "B1",
+    "sha256": "23908da037daa0f8dfcdda95196fda0210eb39f8992538d47b13c826d902aefd"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "B2",
+    "sha256": "a7af7593d2a7ddce26043088410515222bed39716b49e3d7be7d835c16aaea88"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "A1",
+    "sha256": "afb04406eff14a56fad69e5eb454c4f5a68d577bc7046e376f24e36810640dac"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "A2",
+    "sha256": "159c26d70930f7d0dd97ea52d4146915f57a85e7acf76b9167e9fdfc4878a775"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "B1",
+    "sha256": "41a2a56145aa5d048c4afd8338fc60c96ad71069970e1311e66322f167861ea4"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "B2",
+    "sha256": "cd412efb31a5027800e023e9dff21f7eabf08cba6c6ba269a82d33ae592745ff"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "A1",
+    "sha256": "04e5b67913e05868598c7588713c2d02db2ca318d1d7552f29f9c71ab8739549"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "A2",
+    "sha256": "47f9aa532688fbc38c562dddb7c1154ef16efbbd0ad91eafd1cf0d74fde23aee"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "B1",
+    "sha256": "de7231ecf893d1fb04fed4b2ddbd5e8420a267257514d81233a517f1c1219408"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "B2",
+    "sha256": "73cb59ab7ce98ee8110779779f8ab7365db1ccb935914c0f3952e94996ed0b80"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "A1",
+    "sha256": "5f4fffb2dfbcaf0c5c940b32ea6e4df32acdb20559944bfb36a85b6f43c96def"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "A2",
+    "sha256": "07c2c9ae47a4d275f0c625fcca770b1ee3567e9f215084fb9d61abff84528b50"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "B1",
+    "sha256": "458a847a6166203aa1525ca0d50c669977522ea1b0627b11529327b7b8b9780b"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "B2",
+    "sha256": "801b4fc3fd13b65120ed37b2c9bf9a5365484d01d5034bf511dd4f28bf5246ca"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "A1",
+    "sha256": "7d858eb49774c3efbb61841bb15550b371ba2b328ce78f840e5fd0d20b731762"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "A2",
+    "sha256": "11af88df1b3b2ad8a7dcbd0b89a1ee4f46088ebb9e4e105ba39e4a1c68e5244c"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "B1",
+    "sha256": "8b899c591dba52e41b29d21baaf4456f38c6abf4bb46529e28f63c26b0aba352"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "B2",
+    "sha256": "8a4c50381cf0494f516e64cb008684a5937764f9ca00745f9c80fb14164eb841"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "A1",
+    "sha256": "bc794c523831f8607583ae1e72a3abe7c14f284882e48c0d1064488139c24b26"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "A2",
+    "sha256": "2df1b3e811ff6604dd55a6c4ef7902d4ec8ed3ff42ae65e1e3b2015b03dd2250"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "B1",
+    "sha256": "df535c813cf2dc0d8f8573d803f72ed30fb893b5db1930246318ff2935407353"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "B2",
+    "sha256": "3978a3ea21f74f87f112a575efc4b01d69f4d36afb20f92f265a79a9cc3f5f6b"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "A1",
+    "sha256": "f0f6bd28051b5f936fada450f95430cbc56b0b9573378bce2faf1f773668cccc"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "A2",
+    "sha256": "b570789b028cf75304a65edc5603c2786282d122806c108472d577256bad6258"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "B1",
+    "sha256": "62fc81b6d6ef466bac84e8d9b28539f12cd48423358bc0bf759d3badf54d5b97"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "B2",
+    "sha256": "7de57ad5e27a11444f5ae85db8663c0711da6a577f5a9cfe65826c7b32539156"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "A1",
+    "sha256": "8eb5d1527a21d2a3f9dc3b2c2a60f2a5dd9e06a783a3c8eb97ca06dde45dba7c"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "A2",
+    "sha256": "0a14f24016bb1ed9f8ad58e53bbb7c50d42bec36941f3ca43eef7e1f0f937e2a"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "B1",
+    "sha256": "091a8dd5286286e4ef30eb08929bfa5e886bd6008e414285999ac3aa58a43764"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "B2",
+    "sha256": "cc08ecd67a09e116cd8978d7a9d8b37933818295d4dc27473c3e4efd98d4f1f7"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "A1",
+    "sha256": "f0ac3b3662a9bcc82f64cfd99e96ebf047dcfd6bf62b438d4c634ba12f528364"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "A2",
+    "sha256": "d71462ced6fe8cdd57a22835f18a36ed7e2250f07fb23ad3616d6625e942e5a6"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "B1",
+    "sha256": "ad56ca052b3df75c3f8e25e3cf974361ca5abf1c9b2cb0e49b27e9f4a7c12b88"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "B2",
+    "sha256": "81cc9b7455d498309bac40df0869ae86e89548f0a77795229e56faa9b4dcb8de"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "A1",
+    "sha256": "e001205b21ac06d52d5c64cc5e7bf4f942bc05277ed557e1cb06878bc124be49"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "A2",
+    "sha256": "8407bd81a7c2da6f7b36c498c1a023af6a75294a52282d0f79b586668870bc90"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "B1",
+    "sha256": "0bae80c54540a0a5c38238bb8a23b44b183b721f47f90b1867a4e6f7e181c469"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "B2",
+    "sha256": "09b03201a914dbf54cfc1e8cd1fd00a42595d6d45e7838d82deaa30370aaf572"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "A1",
+    "sha256": "c2fb8bee0f432cd73d16d1d80f5979a45857443d4d614a41b13f9af0014eac34"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "A2",
+    "sha256": "1fad9544b4cfc6cb2fe1aa5dcef97b7dc2875ff1879bbeeafcad0fce602b14b3"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "B1",
+    "sha256": "72d7b6d526528e721aa51fdc2ccc35529f54de5c3e998e818821bdd421fcf3a2"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "B2",
+    "sha256": "a7472fd8ee7c20242d38ed6c3a6b335842c8ae5caa311d0a3e020e2f8c63b5e6"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "A1",
+    "sha256": "7176cf742ae72299138f358098e781f5804273523dba5e24bcc3dd6b80803462"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "A2",
+    "sha256": "544fc507bcb4f09eb880da88785fedc5e6dfd4dd02501db6c5227d3a618eea3f"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "B1",
+    "sha256": "28f2c73fd7ead62892e92cde63284d304d87565064af99e20ad9eeacfe9500c1"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "B2",
+    "sha256": "31d8b6114d4f4710f02094a637bf57364c10a0ecc3f7e3b22931eb4b693e31ba"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "A1",
+    "sha256": "bf80de3543edecc97e589d568f25610e24593145efec30acb6e61a5b45f8a0e6"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "A2",
+    "sha256": "a089aae95ee6129b64103f6e687941748131418f7f599dafd3ff2bbceb7d5297"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "B1",
+    "sha256": "ca55399f3f39d71154ded411706302b81f3433f8df9b955d176f0ddef54a0470"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "B2",
+    "sha256": "631ea14530930d25671b18755f630192d55065c97d3c23dc14dbd31d0fb30653"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "A1",
+    "sha256": "75b2375197862b726b97af020176cbe7c7d1b941a3f9424dadbc3881e15dfe71"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "A2",
+    "sha256": "498aa1ea5d9d222a0e45cfb62664c9bcc04f9a20f50aa51675cd56c0926f9a8c"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "B1",
+    "sha256": "fb548230e26bd79a6a940470ad977c19e74517d3d30b8b41c432d4fbd9891a61"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "B2",
+    "sha256": "a6cc9572d25150492eb9fa24280f3cd565277e278153c5fb688ac7a346a5b3ff"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "A1",
+    "sha256": "d5dca32c6e83725fcef382893652ba1b5ed24f737954295d72bbd33b1ba662c8"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "A2",
+    "sha256": "23a154f5f27d8e985cc3125ca2de82c2ed4321b0cf8339bedaa994552fc914b8"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "B1",
+    "sha256": "59d7eba10a318e89219c926bb7aa4e1b7b00abddfee7af71c4dd62c35f55cfbb"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "B2",
+    "sha256": "6887de786d8b3845eadbe32a42b6789d0df0cdd97caad114c928639ba72d8cfa"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "A1",
+    "sha256": "967b7db5a08aa90d20fb2bf7665a12b933622a0d72318b1e9c0ad8cb0fda78ab"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "A2",
+    "sha256": "8b2ae35d695001726f55de3e8cdef8a5d7d01aa26920186c6294e0172f062821"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "B1",
+    "sha256": "b52b453f4023fc34a2255ec7455d0ac960b24f6a322a9bdeae8397cf1cfe2fc2"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "B2",
+    "sha256": "067bd468e2e6eb24f04d96fa3016de7ff9156a7135dd3d9dc89b4c7b8c4b39d9"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "A1",
+    "sha256": "8e7a257dadf117cd7fbef030967d9b1ec30a28280f82d77891e820b6223b093c"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "A2",
+    "sha256": "c93afee69d402cde0985aebeadef06443cb682dcbf3663c504cc340365423afa"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "B1",
+    "sha256": "267e5faed95b8e16f9105a6b04b420f35659b05a50c5409fb1c7a514f0d6f083"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "B2",
+    "sha256": "6c68c96aa64b6387ac607555ad57b90ef1ee89e0587f658aff06fee076d16175"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "A1",
+    "sha256": "50995acf8555956e8f53d8d4af999a10891573948f98cd24b2bf966a104c0d3b"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "A2",
+    "sha256": "becedfa3442da8ae361c622820bbf27ca1262d7b9364f1d728a0cf150c563122"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "B1",
+    "sha256": "dd3e21bca4ee49c49c6f256e97904b41a6a7038543597c74c955053bedef5869"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "B2",
+    "sha256": "090cb37120a13ab0fbfcc0472abb3c3172e03e1c28b76148e5a521cadd0086d6"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "A1",
+    "sha256": "8db352df3f063ee2b84aa85122d7063bc929a366cc1e315e8bb2956001c28571"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "A2",
+    "sha256": "56a6da76283c4507b3166aab9324d7cb1c05460c7a372534b8b2927eb4b4101b"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "B1",
+    "sha256": "48c3babb6bc65f2584701bfcb37edf763010286d841dbe196dc6dcc214a58133"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "B2",
+    "sha256": "0db83c60d9b20aa4a00de693ed601d27c1b14e0e38ebc0a13bcf69ed0ce9d45e"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "A1",
+    "sha256": "1358cbd9d3fa8bf5d25a807d5a5ecdb54b0a99a2c3634c81c35dcc507b9f1c59"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "A2",
+    "sha256": "4a463d4c58b4966c998f5de337c78dfc120ce692b68af53add7782929e89e202"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "B1",
+    "sha256": "bafd0bd40114f12e948fb6d6880b54bc1de7c7aa67f404b673ab9536553a14d5"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "B2",
+    "sha256": "0fcf1181e9c1021c03b7157da38cdf947327a10c6d02c5537b2ed82209c44def"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "A1",
+    "sha256": "f442fcaab3c5faf9b7978dbbaa67b14a53bac493178d9416973833f8c9bc6c48"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "A2",
+    "sha256": "7b230edcd7db21ba03bec50a8c13f405340cd0f1c4f5a9a3a993382ae804f150"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "B1",
+    "sha256": "46c0ad959c8384bc381e8b6b38647ac1651df4c8cca737b16607e3004c0c07ef"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "B2",
+    "sha256": "af472bfba6a46c3c95f5a9415f194a11dbe5034fa1ea6eb3057935673d83d26d"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "A1",
+    "sha256": "9ad0f3870e485df732ab8f2dedab0bbbca80bdbe611b6a56f9d7f9f2c0287714"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "A2",
+    "sha256": "08b198b6fd5dc0225bdc179cf76016360f1d7eb598ad8cfb0b4b6105b3e913ff"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "B1",
+    "sha256": "adc646675c182654f5a6db847663d0bbd4fb12a3f5e5bf43c2a9c105509a5fe5"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "B2",
+    "sha256": "4ac623db45704070a6c66d0f481dab4099920d7a9d6a994af9f752cd9299791d"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "A1",
+    "sha256": "3f1ca7babd0e6782555fcfaebcc432cbd27cda9c4df6d7cdc1b5b389d04aedac"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "A2",
+    "sha256": "e0cfbf9d9ce911a394b450c0a02baa176d84f1e20154b893ed3d3450ba483f73"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "B1",
+    "sha256": "58df087888f0e6945b3e398e843fe0d203c804f8030d2f37c9d7bb4f114938f8"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "B2",
+    "sha256": "86ae263f981f798e94b84f73ca8c19aba35b95bdf100cff3d3321c627327c6d8"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "A1",
+    "sha256": "48e5982c66c4580253440c8fca94d28267f8cbc0eebed9de15e91a8d37dad5dd"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "A2",
+    "sha256": "e88519a2ed861db4f1878f746589554efc955641de1958e2359655d66db61129"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "B1",
+    "sha256": "1fd3c03a03c77872844c8c356dd05cbe743fcf9503788509444c02d3ea5ad2b7"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "B2",
+    "sha256": "65c3f8a262ae58f8667cfc0fb76a9a20f4186c79be8fac30c109c62ed16e9610"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "A1",
+    "sha256": "4b907f709af3d876dbe941254844869c6889aafbea2446ebd582f7f5cf4cc877"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "A2",
+    "sha256": "ed258cae76f69be8bf26f3955adfb57202c09616a07368824714eaa328d89313"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "B1",
+    "sha256": "73dcc0180862570c6228cc3b2865267338104c7570cd0ac8edaa2fddc86316ac"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "B2",
+    "sha256": "c105eec7c5da006bdb78b31bb3888676374aade5b13f248c124565af96ab7d04"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "A1",
+    "sha256": "fc2c40c24318eb9b0811fe1ff612e78a75790f7b221ed978558d80ee75da40c6"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "A2",
+    "sha256": "7a6faf9b4663910bd73dd07a6dadc17e90d04dd80fb007987e2e39852cccfe41"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "B1",
+    "sha256": "bba164e42b0043c36d51bfd16b1ec2b14f30365de29e83b30817738f4dbc6cf5"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "B2",
+    "sha256": "2dc72face8be9f02788cd011b40d0fea66e0946b11911cd060be54817c6623a2"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "A1",
+    "sha256": "ec4f6ccdbdb487b6bf4a99eafe0df13fefa0c41ad400ce50439ceaaf83d79024"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "A2",
+    "sha256": "979f58b3400709eb8d97b505394fdffc9ab55dc41c4d3f473a1611bf14a7843f"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "B1",
+    "sha256": "5e4b8923de6aa1c273157453b8c51ec4dbbf207c7e85d191c4824e1b43f71eb2"
+  },
+  {
+    "cohort": "startingRedesign",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "B2",
+    "sha256": "78e9da5d5ad5eb5f3fbbdce1d41bc600affa496aaffbf44a031242926aa569fd"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "A1",
+    "sha256": "f76a4470c852d569845a74b3e0b837c229603501dde428b71dafbd81c30c2453"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "A2",
+    "sha256": "a6ac89fe81945bee4ea126c19299813af4da8fbb5c7a8087b31c1ef9165b29ce"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "B1",
+    "sha256": "f4acf21d5f3425081642f9251368829b31c001284facabbb7d63f5a890fb65d3"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "B2",
+    "sha256": "5c671948c2912e2beb73ded3a5cca9053bbad47b1f88cd9818d9b212d57da1f1"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "A1",
+    "sha256": "6003992633b94e38e7e669b15c8d58efbffbd0551a9eef49c21edc37256c5a3e"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "A2",
+    "sha256": "247d7257d5ed3021f8f8ce614819ab607eb4dc2df59a7b1b9455c91fce2dbb75"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "B1",
+    "sha256": "fa6d94b8298bb96ae78f5b18995ba492ce18059d75ca5435f43640c0468c7de3"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "B2",
+    "sha256": "2682886ac935ae1b5db9e9163a17a935c3200163f1f04c08320653d2ea7e256b"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "A1",
+    "sha256": "25dd6167a603efec4b9e2e5731de4614f4dae0ab20c4336efb1c40580e419ada"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "A2",
+    "sha256": "a0f14a242089b58cb48070d022cb80071dc548e6fc112f831742ed83103db20f"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "B1",
+    "sha256": "3ad25be9a1f28d0aad18ebad9a10d1bdd1e3a089f449c7c4f5cf88b3e812f609"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "B2",
+    "sha256": "d6cfb8e09d8d53fb9e1706c0e536fe959eecce5e2cbf0631997b70e58a3121f3"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "A1",
+    "sha256": "3ff1d7686838b68a9613609a8d595e9854aaa742c3157d9c3d2f24fe2f924a70"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "A2",
+    "sha256": "b362e6e13f4819004cbf750409076ce446926b45779b7929e6bfb443a2d8ef7f"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "B1",
+    "sha256": "6256acdbb01469f6bfb0134b5960caa63371041b97b767186e061e67d56b2c37"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "B2",
+    "sha256": "f2529c77a0e1ed7f34390af46166352ce96703c178b2938b72c0e9f01648e2bb"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "A1",
+    "sha256": "edbe1faf4cb86d6014bcd69da57c719a910de7072bbd123d2b3bca2524992cd7"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "A2",
+    "sha256": "dbd56414cf3b761a82a82bed06d22646221b0856c34b3b1c92f74a31793cf867"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "B1",
+    "sha256": "4c9c6b345348f5e8957e0453ac6637f43236eb1b23ca8487e8af1d4b2b8153d7"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "B2",
+    "sha256": "71d8a1b6b1195063443d7f6b589f00517c91630593e909efd20959c6215003c8"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "A1",
+    "sha256": "a3f1b09d6877d798d98643271d9777cf38178a34f44245782eceaed654c6fa98"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "A2",
+    "sha256": "4bd03443ad8f796b9cd2aa4a0048aeaaff1558257794b6754015fb883f2d1ede"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "B1",
+    "sha256": "efcc91e3e8165b2b288d934a4d8e10d89060462326e8db57781f0538c2a599aa"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "B2",
+    "sha256": "fc263276658f871ca84dc485f6d7019c25c33b5f2a5029c9f510ea531e343ea7"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "A1",
+    "sha256": "8bb8acd4b1959e501b0eac00fa71a2ced0b946c6d6269451e0af307ef2a0babe"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "A2",
+    "sha256": "162595bb89bc7af41aaa99151cfa748ceab5a6fad1fea12293f6dcb99876e064"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "B1",
+    "sha256": "1c2acabd9246ce3b6a3c7ee960cb356f56ba0a15c36f4a905070b44663e01ba8"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "B2",
+    "sha256": "5acd68c95494dcd9074d10d4fef80894ca8aa42777b874aad76cc09a02a89c87"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "A1",
+    "sha256": "9c35a2f8ce90983897ba1b25f93e4d27f974ebd44ffb6d79c6dc3c6a86ea859e"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "A2",
+    "sha256": "6d887054cccbeca1ef5b9065f1ba1e35856600dd58048f9040e5bd7604087fe7"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "B1",
+    "sha256": "59d28cc92c7d32e030cbdcbb0ffa90a1766083c66778cf7bb1d8fc1c27612eeb"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "B2",
+    "sha256": "21c7f01635541bfb79b8c570bff0482503d1569d2b954d4ddbd3690f01c688a0"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "A1",
+    "sha256": "a82b5272f90e978fba85edfdab6cb0103e0c99ce459697ef2267f41492f36d67"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "A2",
+    "sha256": "007e77b4f5b40ff89a4f63afc51e7cf30b994c1d680acf2420e2de6dade52158"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "B1",
+    "sha256": "0dfb5e2044e0b70c465ae477edb52af7bd5b3ab63c05592dd53cc6922323c5c2"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "B2",
+    "sha256": "7ab89c7a2f24d9bbaa01ea1d1b08c6de8329a576bd2d7797acfc5de3485fd54b"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "A1",
+    "sha256": "8eb53e75e6a83ff84284f1023d742b9da7690964291b69b40d21c8e2e774efec"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "A2",
+    "sha256": "06e3c6d112441ff34558ea1cb6fac32d72ee10f2452ce8b5163c8af4ab1382e0"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "B1",
+    "sha256": "663dd45120eec193dcbf8ff14758f47767be8246469dff17920a8c87904a799a"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "B2",
+    "sha256": "e604f0d5c48637fbd926f05bab771f019ae683fccbf0e7d9aa3c3382c1ea4588"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "A1",
+    "sha256": "8d07d6286efac06e60fdab93d709c14945bf10ad56f200a054fee3459f355f35"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "A2",
+    "sha256": "efea69e632fa172c4b30c8c01413612dbacdf9586ee2123122ad21483fd7eb3e"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "B1",
+    "sha256": "3a6c4f0277402d755fa91b65b5525b615ad1dce87a068335939a2b383888954d"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "B2",
+    "sha256": "6f6fa292832833fe517c1ac73cb91ebbfaf5f0e74ee374a9072db4145baa4753"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "A1",
+    "sha256": "d293b04fe5a9c67193f146f896ea31e8ae0f96987d4397f2ca60809ef9580fea"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "A2",
+    "sha256": "ffa08c3cbed39fe6d764074f7834f66516ea14f20cbb992cfeadcf2a743fbe5e"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "B1",
+    "sha256": "ec9037779a802e35d27b16906cd14cd98da1e672059bd30fd42ce2658e49e23a"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "B2",
+    "sha256": "150ff7ed44ab8bf6a04cd343737dcfe2bb3d496c5c472cb58f958d54c9efd679"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "A1",
+    "sha256": "b69695c98b4bc33f9142687885ce656187c3fc1ec601af881e07e90e2b1cbdc4"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "A2",
+    "sha256": "915981be98cf728155e98fac4e32ec51ac3f5626808d55e1c4548ee4b13151bd"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "B1",
+    "sha256": "06e8c1a6ad7bf9cf338adfd46c6b99b619e15f262699d077ecdf1bb80bb9bc4f"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "B2",
+    "sha256": "540856e63f0ac15603b145e8fe0bd98ef9fb1844cbda4b3950917cb4b98f771b"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "A1",
+    "sha256": "8f771d502d48221ad4dfa6a4ef3caff6aa4971a3abac46a79ce45b36ff0bb5b3"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "A2",
+    "sha256": "a565cf64a8389b7958f533fcf8ca2b9d7fc1aa80364f2bd884a30d1544d83203"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "B1",
+    "sha256": "b4c89f88f62048f6e64658e02e00306c962f0d847896461f91fa4a93b697b9d1"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "B2",
+    "sha256": "4c6d3b329c9e9462f81aa8a9fa6006fd0e9aa8d1d8c1c4bc969d8641ce71ecc9"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "A1",
+    "sha256": "c9b37ac7c7bc464c6f5102a6ac3a14164df44806b693ae67dbd711210d2f2bb0"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "A2",
+    "sha256": "ab0ae7bf504e9c84e230876b60c0dc607d7571eae004208abbb0bf03473965f1"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "B1",
+    "sha256": "76b57e4238fbc446e517d291eba87db9137415b1bf1086e6091ceea3a6d93c5e"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "B2",
+    "sha256": "a0e6674b6036eb9fd06541bbf25a14ad3bee57c65e535444a58eb9b444655f23"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "A1",
+    "sha256": "e756f8e8637c3cf201f642cc2a900ae53ec94cbc1450dad74024490233195276"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "A2",
+    "sha256": "3b4ba41225fa6408915d2b0e0f96284cd122b27d597e5c9c30918d35e54e84f2"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "B1",
+    "sha256": "26ad6fd610f4e2a01d9018dece0a260102b4f0c400347862d4d8d129800a93cb"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "B2",
+    "sha256": "c4377c25f6cc86028d15e9f7e4844f7a802028ed1abf272d68a7e4ce5a5ca202"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "A1",
+    "sha256": "bab0c428476a282b8e603e68a2cb79333377158fc1c29ff5c4257d89347f1c34"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "A2",
+    "sha256": "d9c1bb2f5730697893f6ca09443d1d0324289bde38d6d1bcba16d12679f2f5e6"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "B1",
+    "sha256": "7ef89b6459088bdd0828c3bee2aa98d045e225d6a408ca29dddc7193670ed5ae"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "B2",
+    "sha256": "d64ffe75033a5e26d32e3674b2d0702facd2e8984953d6d7e123af631567348d"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "A1",
+    "sha256": "790e1c7220fa97e12b0961bee34fb8b05f72c903f4eb0f9073bc78e98cbfe6dd"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "A2",
+    "sha256": "0f52826a09dbe0dce0bf927c948e856ee4ac82cf5fc4f6bc807d8954789c23b6"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "B1",
+    "sha256": "c23950c109aad49f488fff48e79fad1b884bcffa4eacf7c4bd9cbb8c3da0d002"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "B2",
+    "sha256": "8a634b0eef5488be1c73e556e07752b10e1f9b52cf4baacfccc04a5ef9450411"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "A1",
+    "sha256": "da2b8a715c283b6f8064a7e61fa685685bc746e32ee596de9eea030db9e0280e"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "A2",
+    "sha256": "c6be3e850bc2b9c71b52bc1938ebff8f869e3b29773f73f65dc636145ce0d54a"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "B1",
+    "sha256": "c425c37ad9418d7377c71d7b89bb6f86e8250b11b14f4853651a9e73e481cff7"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "B2",
+    "sha256": "6a79bf421fddf61fca001e7c674886bcaedd6f533bf56ef3b829f545587ef784"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "A1",
+    "sha256": "c767dd19a59bda714a67a0ea3a4256e554e34428ee7fbdee920841bcc5f16366"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "A2",
+    "sha256": "e70d670d2da886b12cd48408d4708dc790d6453566524eee7e3308541238c790"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "B1",
+    "sha256": "f486f0cb5ab07837a703429cf201861a42aade8a561fbec0646af869996dafdd"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "B2",
+    "sha256": "85cf421865d53cb4c52880aedb344e9078c2613e6e47f4f27792ebed07e73e95"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "A1",
+    "sha256": "e439f775682495034b2c105ad4c614ba0f5beaa7c3f5e1467f5c0b4aca9a6e52"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "A2",
+    "sha256": "0df70a187c3520648de8679e64be12f957ab5a12e26e04d21d95365576eb38d3"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "B1",
+    "sha256": "103f92ce1efb2868aa739f13443915fdef7be36731213bb272936e855d906d50"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "B2",
+    "sha256": "a8f52021c38d551f448880c83c5bfa91c08da85f5a58b0e758eea06a989c08bf"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "A1",
+    "sha256": "c01224fed3d214b487ed4ed3f0a77a2f094c69173e458dcd2d6a2a419a40e701"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "A2",
+    "sha256": "8d74fdebdd32484ce2af70577b603636def36cb898e32f0c16b656ad6e085552"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "B1",
+    "sha256": "327f47298e1869944abb1316296766d09f1b0a5a08820982cbe0293846290328"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "B2",
+    "sha256": "ff6610e2b467fba437d479c973f82cf85c8a0e6b29ba36b596b49ebfb6018dc5"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "A1",
+    "sha256": "c61a76caf4629b894da7a3fe9bf2e43c35dfeafc956af1bb7d6f4077f5b4bd5c"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "A2",
+    "sha256": "acd111a3479f81ab0d1b892706d75145bca7f8e1d55f1aaf99eed9151ea86216"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "B1",
+    "sha256": "dfc0753ff09d035364c160d874f1a4f1d5827b985726867130cb1585b8a426be"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "B2",
+    "sha256": "1d689693cbe40c56069e02d0de7c03543b1ea068490d342b409cdcb6121dc7c8"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "A1",
+    "sha256": "3a151ee5e99f2eab59670181771f1ea103531c96751f849e1c71069ab4f405d3"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "A2",
+    "sha256": "910f10552c3a8caf4aa578c4d90cc4e89ff98a87c4177eeef00c0a64e0beebe9"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "B1",
+    "sha256": "867ff1b515371299046b717fe2ba5c9d05e07657908d37c85a55d91a67644943"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AA",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "B2",
+    "sha256": "4dfe8b38208b9dea7a15dcf8963042e2a0d9aa9ca267c7b79edc8ea538b17582"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "A1",
+    "sha256": "b5746548f62ad053ae20026a21701b8d3ddcc548f7f68326a2293668dd46a3f4"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "A2",
+    "sha256": "2d9b6dc7f559d6b76d625b69b2c7e0e8a47e86a71414a13828657c0b1b3ce39f"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "B1",
+    "sha256": "1b491546625e7f56d0b5f50c956a5cf87be908f630dd45ae9c8aab2742aec70f"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 0,
+    "slot": "B2",
+    "sha256": "ebe6b724226fd9462c6c938dd261af60c8a5e70e121df9e5348c1b87da59775d"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "A1",
+    "sha256": "635b4ce7ff2ec349137f1d33a630fcfdf44d8cc721b8ef61ffbb9d4a0ef7601e"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "A2",
+    "sha256": "f6c44402fc240a586640fa71a84263103c87f77c99888b6c1665414f20b6d203"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "B1",
+    "sha256": "fc960078957102d27ece821bf9726cb18067ce151dd69f9661182bd8df870242"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 1,
+    "slot": "B2",
+    "sha256": "1936c25d019ebb4ab5a5713249f04861b4e01ad60a7d212a5f9a0fb5aa5ae8ef"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "A1",
+    "sha256": "f958da1c02428af42834153b2c34e308fbdf9e8e549dbaf52380a807b19921a2"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "A2",
+    "sha256": "9e00648f3b31746f2047109617427ba372812bfab480421eadb7d77f9f0610f9"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "B1",
+    "sha256": "af64d63b8033a2414fef988ad7acce06fb78eb7e7c9adf633171d6a57f21548a"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 2,
+    "slot": "B2",
+    "sha256": "ec3700348b3b788552d2f9a5152c3f5256495b9816510c187351aa0b0ce4a090"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "A1",
+    "sha256": "3846880e77c4d1f1ce344df78a62ec47623264f51d1903e63287e48d3db2f881"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "A2",
+    "sha256": "a6f9acbb185cdaf3ddcc142bdc79cd6a01991e4dfe2ed5e574cfa7711c02b322"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "B1",
+    "sha256": "15a3c3ee83a3ad7edb5d97d10d8beb94559b8eb0ce8ac2c7996a07fe72ac9e1e"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 3,
+    "slot": "B2",
+    "sha256": "8bcd2965d1cbffe4a9c53116186c484bea0aa2b11371ee82ae1535e840f86763"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "A1",
+    "sha256": "fac261a6bd9be3dec3b0be9b5741cd70ad54db67f66fe78eb209931a65821aa6"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "A2",
+    "sha256": "36e9b3ef016850e06aff4e54f3abc14015e064856438fce97b0426f6013adb59"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "B1",
+    "sha256": "5958c9de2c5a4e39eb1c4aea7a95f8921b4f0d7f91f63f9583b6ef0922392313"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 4,
+    "slot": "B2",
+    "sha256": "e55e74fb5db9c96fe227cadfb905fde0db3e0017d38e26c46b2b227732de929b"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "A1",
+    "sha256": "b2ec56a8b454552bfb9b26b6059917f388e4ce2653db3f2755e12c7999dcc6c5"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "A2",
+    "sha256": "d378ae3470c42044f6b611fa907a816ebb5668fa8f49ac207878a190054a7a10"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "B1",
+    "sha256": "90fcbfad27b056040d47ded1c831f5bd3e9a3d2fb5d5b80781923bbc75283d5c"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 5,
+    "slot": "B2",
+    "sha256": "be8dafbdee291f6d4843bacaf227300047486044e9a72668ab2b531a42265045"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "A1",
+    "sha256": "e295830d3da5dd9a4e987c36a7f924f1c917fca51d38bb6d1cc3eb1e998d7ebe"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "A2",
+    "sha256": "2d3c6856c7a931885bf03e9e13b16aff8f111b39c8f7b316829cf09d6068d4ff"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "B1",
+    "sha256": "ee7bc18c2e2623ee1d79583a0160333a0848d57691d2977c1698a0832aa02d1a"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 6,
+    "slot": "B2",
+    "sha256": "fbaccffc5397cddff556dafdc66c088a57e125faf62f549ae46e19a6244e72d2"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "A1",
+    "sha256": "03c41b114832de9fd2468fa88e4ded8c59d9f9d6e5bddfd64266a87fa97e07d6"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "A2",
+    "sha256": "d115406e8396f98450581a6f3a6ca8253eaf287fe3d9c6c96fe84a85884224a0"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "B1",
+    "sha256": "9564c4618cce217739ca95be779be49d73c5688ad8a5b01fd37b4f695b87f383"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 7,
+    "slot": "B2",
+    "sha256": "8e0a70acff0fef31cfba7a4dc7dd3a629f3294284c39e7809d94c13096f549b9"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "A1",
+    "sha256": "4cba625a109fee0bef1ab7ff65b38c16384eaa047de47eb23e2791dc55515467"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "A2",
+    "sha256": "defb5967abdff37a600d9387f600989e8770d562dd0bb92523cd20fffbc028b8"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "B1",
+    "sha256": "3e5e7629d012588dab30ba72c4244dcc5bc2228c571623a567a9796affe5ff09"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 8,
+    "slot": "B2",
+    "sha256": "76ca32a8cb8f701553b98d78a33cf459d58857cb00311ccffa5c14dce92b0769"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "A1",
+    "sha256": "4e5ac4065e9d389c87ebd793db2eb06cafb74d01f3dd8b03e93497d6518d97be"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "A2",
+    "sha256": "364d40aef00623a4eb4b6fadaf209632e4066a32a95673e79525c747bfe7126f"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "B1",
+    "sha256": "f8211a6c2d9aace58947f4ecc56ba8b5234096c7b332f2908d4d563729b8ef62"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 9,
+    "slot": "B2",
+    "sha256": "ea10e915d939e418e85bb8a21378e91474ef38ee7c88bee3fab8323284cc2a97"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "A1",
+    "sha256": "662f193c64f5ec694346ff72c08ffd4f8906fea4b8724b4f366ee06b1c2e8e30"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "A2",
+    "sha256": "0bf402d43c651c99aee14260c41130cfc879354212caa392fc90a4a14867a100"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "B1",
+    "sha256": "e4bea66d77f2a6e7518966c8b64d71c58348dd4a283ac244ced674de5040d6b8"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 10,
+    "slot": "B2",
+    "sha256": "55e166bde68271f96f5af65b3ec4f408cda7140e7e5616f289aa8611642c42db"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "A1",
+    "sha256": "41bdcb291bdec2635192421b6365bde9e68601a2baf06a3bbc158cd73c7cce43"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "A2",
+    "sha256": "ab5df6c3827c2bad7e1c349ffc349a3c33409dd5c30c013e5a54cd6d56438834"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "B1",
+    "sha256": "c55d78965eb1a0d3875def8e83fb1f1d791a28867befa62d50868f09ec3bc8ba"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Compose",
+    "block": 11,
+    "slot": "B2",
+    "sha256": "6e764f1a7cff55406e67762a4f914f7085040393aa1cccae4df9c2f3eab6a2b3"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "A1",
+    "sha256": "c3aef9b0832e6afdd93ecd19e5b0da952c7ca751ec00ba70cf75ea453d374099"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "A2",
+    "sha256": "f3fd6b115cee585ee6ac334da088fd89bae1c4e653f7092f9e23697e917c6b9d"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "B1",
+    "sha256": "cebb895330b8620e8655278cc570fdf172372c33f2ac12e842fc720e1ca2c58e"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 0,
+    "slot": "B2",
+    "sha256": "3650a4e711a9d26c2f1b44ccb3d55ba8a9a0e47961c713d6a2ddd5357fefb901"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "A1",
+    "sha256": "7010f6ed23b2062cc7821c7fd8e7e53741e359a03142aee3082d04f2c97a3723"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "A2",
+    "sha256": "af2c4b23b64075d277ca3e128aa504db53d0d5a2484cc1f5476736fbc783b5b4"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "B1",
+    "sha256": "9e7ab150b12e3f0acce931f68bd21641b39e24404df1274bf04c04d5a03aae56"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 1,
+    "slot": "B2",
+    "sha256": "73faf400eecd13e3ec13cebe46be00a7fdaef9bd69b3cd8ae72194c0ea9da47c"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "A1",
+    "sha256": "7ceb2500348b392358403a57f5d5f8aec44743e57d9680dfeb32c0441866081b"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "A2",
+    "sha256": "8d4271f713eb92ac1722dae4defa118cea5640e369cf94b09c47f3b08b992c50"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "B1",
+    "sha256": "2ec55b4b1c820c8132655649e0b77360af06a464b9f1803cb4339539a1a8fe45"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 2,
+    "slot": "B2",
+    "sha256": "b553858712892fddd5d32edb08cc634b3e9516969eee4c09a7bfa9fd02717833"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "A1",
+    "sha256": "9882c2fc3a13c1686724ab44f945e7351e182335e1053f2424987de91c3ceaeb"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "A2",
+    "sha256": "164e31a7de425751be5484f37ea73a0bfa3a3211b488584b118dbc06f2f0e55a"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "B1",
+    "sha256": "98273a02fd5392294d1d447613c37b147cb23274c56dd9c6c53b524b2262aff9"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 3,
+    "slot": "B2",
+    "sha256": "0dec83af08fe07b532b571e9187e3af185380631d10a3c47de3b45540d850615"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "A1",
+    "sha256": "a0db9b8bb138a428d9884067f3022428640dc297f3a5c31e6619447c7e1aba16"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "A2",
+    "sha256": "b78756de6847bf3e4b882024afd3ae5947d695c7b52b798329e29a09ac3a4d93"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "B1",
+    "sha256": "b6fcb2a59eeb4fa05e9deb05a1c7225c3364ca2bd7cd2a3981696202e89866ae"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 4,
+    "slot": "B2",
+    "sha256": "eb1293c3dff0846df6b4261d33657833708c67b90cbf0772e459d56398cef684"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "A1",
+    "sha256": "e3d81b33fd167ed2ba52535c1aa4c0d67ba684bc8cede3404471ffeb724e71e1"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "A2",
+    "sha256": "7ae8855b7c8fdd4a019fd9af711082b7df81cd4c1abe75b7ecd84115d9eafc5b"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "B1",
+    "sha256": "abad010739d143d2263815e7756badc7a8c7824afd9b57c57bc2c41778c6efb3"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 5,
+    "slot": "B2",
+    "sha256": "c328e85320362f97ed95c69110e02232582d055c3659eee34bc0cb76f1f263c5"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "A1",
+    "sha256": "209ee9d59d0f1071403fc7cbab4b51cf9e4a875b77778f7bc296858ee2fee995"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "A2",
+    "sha256": "204ef08e2dd4f7a5e3e0608b06177cc4aff73f8b21af3c50d79c7a51d3c748a7"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "B1",
+    "sha256": "69cbfb61d1f91c679bd6db420592ec4abedb354e0d6ad82a83731967b2cf1add"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 6,
+    "slot": "B2",
+    "sha256": "23dc4343ddd09be7eaa2cbaadf06e3576724931aed2094a557fbf8b505dddaa0"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "A1",
+    "sha256": "61480e6ba27a0be35642e2147ce82acc4158d2cb3541036fe0c530488fac22db"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "A2",
+    "sha256": "fc2bf2061703234d7822a06cebb2376b900fb25558fba556906f5c156009261b"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "B1",
+    "sha256": "9c0579907db927b934c1ac9714b39c4717fb68ea1d4b7e8e8f41a7be606650d2"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 7,
+    "slot": "B2",
+    "sha256": "5f563eb747433ae391cc33182605d6e37dfa0c8e272753119f378c55c2dd87a8"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "A1",
+    "sha256": "e13d4f8c43fb66e5f34f668a3ebd6aef7c41b12dd21a694e0d3f1ee9d9925839"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "A2",
+    "sha256": "6333e2da9c7d411c78ce516eb1e03412e22f99ca9cbd0faef803c906d226336d"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "B1",
+    "sha256": "a766d3383f5ccad40dbe587610582f2dcef2dbe1b238cf80d00a3091276c7ed7"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 8,
+    "slot": "B2",
+    "sha256": "cc88fbd29fcc296fb767115a127df97fe0c9427aa7d6e09fe34882644e025814"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "A1",
+    "sha256": "f2778c4600ab86b64c33982d7ff7ed28325f5e8f9fd5759a4bcce3045d230c93"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "A2",
+    "sha256": "edf225369ee104fb32f344156accd43a00b47f13f515171d3114dfece62c201e"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "B1",
+    "sha256": "88aeae3328d6599f4728eee93b86795c9ec43d8fed21847e42d428a8a22d4682"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 9,
+    "slot": "B2",
+    "sha256": "70a3637d26d5b945d5b1ee27c32edc9e16b97b216a0a3c04f33257d3aee84d41"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "A1",
+    "sha256": "2f266443e0c723813b34a640c757d1347356b244417eb23cb0131a502132f84f"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "A2",
+    "sha256": "bb6d1360eb0fe6f549b71ddd3a9f5701cd53ecb503cc9b3870a36a10241f1a9d"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "B1",
+    "sha256": "4b049a18abaee250030a385fbb00a4dacb2915e26f2222306838b609c7d6bd47"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 10,
+    "slot": "B2",
+    "sha256": "57e499356ffa6d4009d0b02aff46cf940fd06415f206a8b86d60c62f6acc762a"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "A1",
+    "sha256": "dbdb193569a096d70461b23abacbc3c12ecc24a09b8475dfb0d6b2793b5e9787"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "A2",
+    "sha256": "e0b128c0c763a8b9ad8468f0abff5031b8cd02fe39d67d308cdd06a1cf579529"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "B1",
+    "sha256": "30512b82a8fa3a60ec0eec5147e9e6021fc37bac158c647deb013b52dca0a765"
+  },
+  {
+    "cohort": "actualPr15Base",
+    "phase": "AB",
+    "scenario": "Split",
+    "block": 11,
+    "slot": "B2",
+    "sha256": "d0c5f1cb041def0a513ab4237db907c6621787fd6d3c45516bb18a4058fb78d7"
+  }
+]

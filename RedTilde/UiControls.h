@@ -1,11 +1,23 @@
 #pragma once
 #include <DxUi/DxUi.h>
 #include <algorithm>
+#include <cstdint>
 #include <functional>
+#include <memory>
+#include <vector>
 #include <wil/com.h>
 
 namespace RedTilde
 {
+struct BrandMarkPixels
+{
+    UINT width{}, height{};
+    std::vector<std::uint8_t> bgra;
+};
+// The application's bounded 32-bit alpha icon resource, not a general icon decoder.
+// The handle is borrowed; returned premultiplied pixels own no GDI/COM resource.
+[[nodiscard]] BrandMarkPixels LoadBrandMarkPixels(HICON icon);
+
 class Surface : public DxUi::Panel
 {
   public:
@@ -51,6 +63,32 @@ class Surface : public DxUi::Panel
     Kind kind;
 };
 
-using Editor = DxUi::RichTextEditor;
+class Editor final : public DxUi::RichTextEditor
+{
+  public:
+    using DxUi::RichTextEditor::RichTextEditor;
+
+  private:
+    [[nodiscard]] bool IsAttachedTo(const DxUi::ControlHost &host, const DxUi::Control *parent) const noexcept
+    {
+        return GetHost() == &host && GetParent() == parent;
+    }
+    friend class SourceMirrorEditor;
+};
+
+// Read-only derived Source view. The primary pointer is borrowed for this
+// control's lifetime and is checked before each opportunistic syntax adoption.
+class SourceMirrorEditor final : public DxUi::RichTextEditor
+{
+  public:
+    explicit SourceMirrorEditor(Editor &primary) : primary_(&primary), primaryLifetime_(GetControlLifetimeToken(primary)) {}
+
+  protected:
+    [[nodiscard]] HRESULT PrepareContent(DxUi::ControlHost &host) noexcept override;
+
+  private:
+    Editor *primary_{};
+    std::weak_ptr<int> primaryLifetime_;
+};
 
 } // namespace RedTilde

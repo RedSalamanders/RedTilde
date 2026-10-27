@@ -2,16 +2,36 @@
 #include <algorithm>
 #include <cwctype>
 #include <iterator>
+#include <limits>
+#include <utility>
 
 namespace RedTilde
 {
-DocumentInfo AnalyzeDocument(std::wstring_view text, std::size_t previousPhysicalLineCount)
+namespace
+{
+constexpr std::size_t MaximumRetiredLineIndexCapacity = 16384;
+std::size_t RetiredCapacityLimit(std::size_t newLineCount) noexcept
+{
+    const auto doubled = newLineCount > MaximumRetiredLineIndexCapacity / 2 ? MaximumRetiredLineIndexCapacity : newLineCount * 2;
+    return std::min(MaximumRetiredLineIndexCapacity, std::max<std::size_t>(64, doubled));
+}
+void IncrementSaturated(std::size_t &value) noexcept
+{
+    if (value != std::numeric_limits<std::size_t>::max())
+        ++value;
+}
+DocumentInfo AnalyzeDocumentImpl(std::wstring_view text, std::vector<DocumentLine> lineStorage, std::size_t previousPhysicalLineCount,
+                                 DocumentLineIndexStorageStats *stats)
 {
     DocumentInfo result;
-    // Every source unit could be a terminator, followed by one empty line. The
-    // vector bound also keeps length + 1 safe for any representable input view.
-    const auto maximumLineCapacity = text.size() < result.lineIndex.max_size() ? text.size() + 1 : result.lineIndex.max_size();
-    result.lineIndex.reserve(std::min(previousPhysicalLineCount, maximumLineCapacity));
+    // Reserve hints affect capacity only; source length bounds them in both paths.
+    const auto reusableCapacity = lineStorage.capacity();
+    const auto maximumLineCapacity = text.size() < lineStorage.max_size() ? text.size() + 1 : lineStorage.max_size();
+    lineStorage.reserve(std::min(previousPhysicalLineCount, maximumLineCapacity));
+    if (stats && lineStorage.capacity() != reusableCapacity)
+        IncrementSaturated(stats->capacityGrowthCount);
+    result.lineIndex = std::move(lineStorage);
+    result.lineIndex.clear();
     result.characters = text.size();
     bool word = false;
     for (wchar_t value : text)
@@ -22,6 +42,7 @@ DocumentInfo AnalyzeDocument(std::wstring_view text, std::size_t previousPhysica
             ++result.words;
         word = current;
     }
+
     wchar_t fence{};
     std::size_t fenceLength{};
     std::size_t offset{};
@@ -29,7 +50,10 @@ DocumentInfo AnalyzeDocument(std::wstring_view text, std::size_t previousPhysica
     for (;;)
     {
         const auto end = text.find_first_of(L"\r\n", offset);
+        const auto capacityBeforePush = result.lineIndex.capacity();
         result.lineIndex.push_back({offset, (end == text.npos ? text.size() : end) - offset});
+        if (stats && result.lineIndex.capacity() != capacityBeforePush)
+            IncrementSaturated(stats->capacityGrowthCount);
         auto line = text.substr(offset, end == text.npos ? text.size() - offset : end - offset);
         std::size_t indent{};
         while (indent < line.size() && indent < 4 && line[indent] == L' ')
@@ -92,7 +116,49 @@ DocumentInfo AnalyzeDocument(std::wstring_view text, std::size_t previousPhysica
                          : cr      ? DocumentNewlineKind::Cr
                          : lf      ? DocumentNewlineKind::Lf
                                    : DocumentNewlineKind::None;
+    if (stats)
+    {
+        const auto doubledActual =
+            result.lines > std::numeric_limits<std::size_t>::max() / 2 ? std::numeric_limits<std::size_t>::max() : result.lines * 2;
+        const auto activeCapacityLimit = std::max<std::size_t>(64, doubledActual);
+        if (result.lineIndex.capacity() > activeCapacityLimit)
+        {
+            std::vector<DocumentLine> normalized;
+            normalized.reserve(result.lines);
+            normalized.insert(normalized.end(), result.lineIndex.begin(), result.lineIndex.end());
+            result.lineIndex.swap(normalized);
+            IncrementSaturated(stats->capacityNormalizationCount);
+        }
+        if (reusableCapacity >= result.lines)
+            IncrementSaturated(stats->reuseCount);
+        stats->activeCapacity = result.lineIndex.capacity();
+    }
     return result;
+}
+} // namespace
+
+DocumentInfo AnalyzeDocument(std::wstring_view text, std::size_t previousPhysicalLineCount)
+{
+    return AnalyzeDocumentImpl(text, {}, previousPhysicalLineCount, nullptr);
+}
+
+DocumentInfo DocumentLineIndexStorage::Analyze(std::wstring_view text, std::size_t previousPhysicalLineCount)
+{
+    auto reusable = std::move(spare);
+    stats.spareCapacity = 0;
+    return AnalyzeDocumentImpl(text, std::move(reusable), previousPhysicalLineCount, &stats);
+}
+
+void DocumentLineIndexStorage::Retire(std::vector<DocumentLine> &&previous, std::size_t activeLineCount) noexcept
+{
+    const auto capacityLimit = RetiredCapacityLimit(activeLineCount);
+    if (previous.capacity() > capacityLimit)
+    {
+        std::vector<DocumentLine>{}.swap(previous);
+        IncrementSaturated(stats.droppedSpareCount);
+    }
+    spare.swap(previous);
+    stats.spareCapacity = spare.capacity();
 }
 
 DocumentPosition DocumentPositionAt(const DocumentInfo &info, std::size_t caret) noexcept
@@ -107,35 +173,4 @@ DocumentPosition DocumentPositionAt(const DocumentInfo &info, std::size_t caret)
             current->length};
 }
 
-std::wstring EquationAt(std::wstring_view text, std::size_t caret)
-{
-    // Deliberately bounded inspector extraction, not a Markdown parser. The selected
-    // equation must enclose the caret; escaped dollars and code fences are ignored.
-    bool fenced{};
-    std::size_t opening = text.npos, delimiter{};
-    for (std::size_t index = 0; index < text.size(); ++index)
-    {
-        if ((index == 0 || text[index - 1] == L'\n') && text.substr(index, 3) == L"```")
-        {
-            fenced = !fenced;
-            opening = text.npos;
-        }
-        if (fenced || text[index] != L'$' || (index && text[index - 1] == L'\\'))
-            continue;
-        const std::size_t width = text.substr(index, 2) == L"$$" ? 2u : 1u;
-        if (opening == text.npos)
-        {
-            opening = index;
-            delimiter = width;
-        }
-        else if (width == delimiter)
-        {
-            if (caret >= opening && caret <= index + width && index - opening <= 2048)
-                return std::wstring(text.substr(opening + width, index - opening - width));
-            opening = text.npos;
-        }
-        index += width - 1;
-    }
-    return {};
-}
 } // namespace RedTilde

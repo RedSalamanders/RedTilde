@@ -1,0 +1,26 @@
+{
+  "schema": "redtilde-packet-hashes-v1",
+  "acceptance": false,
+  "files": [
+    {
+      "file": "README.md",
+      "bytes": 1794,
+      "sha256": "469DBF66ADD36A441908500DCAA02DC5849085E00F08D526CCEA0C3333A5745C"
+    },
+    {
+      "file": "publication-summary.md",
+      "bytes": 5606,
+      "sha256": "D15D3095A0B49ADCD22568A5DE3EF86F36F9B63CC6D13B2C326FA7901B416134"
+    },
+    {
+      "file": "private-evidence-hashes.md",
+      "bytes": 199677,
+      "sha256": "78423DA0B801779DD7CE8F4FC8D2F7FD2D18064010AECAC8B4A2564F92DC3982"
+    },
+    {
+      "file": "restored-release.json",
+      "bytes": 106143,
+      "sha256": "ACF4BD0B4F0F9F0BE9D1B18EB33D01B38437C13E2647C2A89595517E7D50ED5A"
+    }
+  ]
+}

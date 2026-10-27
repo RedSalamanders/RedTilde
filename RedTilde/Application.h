@@ -97,6 +97,8 @@ struct ApplicationActivity
     std::uint64_t findMatchRebuilds{}, findHighlightUpdates{}, findSectionCountRebuilds{};
     std::uint64_t selectionPresentationUpdates{}, syntaxPresentationUpdates{}, mirrorSelectionUpdates{}, outlineSelectionUpdates{};
     std::uint64_t currentBlockLabelConstructions{};
+    std::uint64_t selectionCaptionConstructions{};
+    std::uint64_t filesModelRebuilds{};
     mutable std::uint64_t dirtyTextComparisons{};
     std::uint64_t recoveryTextCopies{};
 };
@@ -237,6 +239,8 @@ class Application
         bool operator==(const CurrentBlockLabelFacts &) const noexcept = default;
     };
     std::optional<CurrentBlockLabelFacts> currentBlockPublishedFacts;
+    std::optional<CurrentBlockLabelFacts> currentBlockLatestFacts;
+    std::optional<bool> selectionCaptionPublishedEquationContext;
     bool updatingFind{}, equationContext{}, pendingSelectionTools{}, pendingBlockPlacement{}, systemDark{};
     AsyncFiles files;
     RichImageLoader images;
@@ -295,6 +299,7 @@ class Application
     bool waitingForPreferences{};
     FileStamp stamp;
     DocumentInfo documentInfo;
+    DocumentLineIndexStorage documentLineIndexStorage;
     std::function<void()> afterSave;
     std::optional<DxUi::RichText::SourceSnapshot> openingSnapshot;
     static constexpr UINT ImageReady = WM_APP + 401, FileReady = WM_APP + 402, PreferencesReady = WM_APP + 403, RecoveryReadyMessage = WM_APP + 404,
@@ -307,6 +312,7 @@ class Application
     void RefreshOutline();
     [[nodiscard]] bool PreviewOutlineMatchesCommitted() const;
     void RefreshFiles(bool rootChanged = false);
+    void UpdateCurrentFileDirtyBadge(bool dirty);
     void FolderCompleted();
     void OpenPath(const std::filesystem::path &path);
     void RefreshFind();
@@ -317,12 +323,13 @@ class Application
     void Layout();
     void ApplyTheme();
     [[nodiscard]] const std::wstring &CurrentText() const;
-    void SynchronizeMirror();
+    [[nodiscard]] bool SynchronizeMirror();
     void Changed();
     void RefreshDocumentAnalysis(const DxUi::RichText::SourceSnapshot &source, bool committed);
     void UpdateCounts();
     void UpdateCaption(std::wstring caption);
     void SelectionChanged(bool refreshTools = true);
+    [[nodiscard]] bool PublishCurrentBlockLabelIfVisible(bool sidebarWillBeVisible = false);
     void FocusSelectionTools();
     void Status(unsigned id);
     void SavePreferences();
@@ -344,6 +351,7 @@ class Application
     DxUi::Button *Action(DxUi::Panel &parent, unsigned label, Command command, std::wstring tooltip = {});
     DxUi::Label *Label(DxUi::Panel &parent, unsigned label, DxUi::FontRole role = DxUi::FontRole::Body);
 };
+[[nodiscard]] std::wstring_view ResourceView(unsigned id);
 [[nodiscard]] std::wstring Resource(unsigned id);
 [[nodiscard]] std::wstring SampleDocument();
 enum class CoreTestScope

@@ -1,0 +1,66 @@
+{
+  "schema": "owned-heap-archive-bindings-v1",
+  "entries": [
+    {
+      "name": "paired-split-v1/declaration.json",
+      "sha256": "AC194DB173C6B1383D8E6AA5B7D9FADCAA483FF1F07F9BD6F53D65C7208A043E",
+      "bytes": 1560
+    },
+    {
+      "name": "paired-split-v1/completed.json",
+      "sha256": "8136C89B48CB2161E9314C4C80FA411FE83B5A6E4BE2CBEF97A0537EB15EAA23",
+      "bytes": 2292
+    },
+    {
+      "name": "paired-split-v1/module-file-hashes.json",
+      "sha256": "909B7C73349FE59AAAD5DDCE938EE604C22D7A450AEF3B81832AF9D0876BA25B",
+      "bytes": 10250
+    },
+    {
+      "name": "Trace-OwnedSplitHeapCohort.ps1",
+      "sha256": "30F38F227D1CB768106251CD4A03411B71E559525728FA6D4A5B4D9C175EB087",
+      "bytes": 8702
+    },
+    {
+      "name": "helper-draft/OwnedHeapReplay-v8.cpp",
+      "sha256": "55EE776E55CD0F1AC5E387BBB69199D63385089C8A4B933FA065D52C33548CE2",
+      "bytes": 69700
+    },
+    {
+      "name": "helper-draft/root-build-v8-opt/OwnedHeapReplay.cpp",
+      "sha256": "CCAA032139BD94E348A0724C399F6F2AF1F7E295FE658E13C907D5A66EC20897",
+      "bytes": 69703
+    },
+    {
+      "name": "helper-draft/root-build-v8-opt/compile-context.json",
+      "sha256": "BDE47E6F8447BFBD56CF3AB8899BB419DC45475B5314E01E5AF1C8501E439B2C",
+      "bytes": 4175
+    },
+    {
+      "name": "helper-draft/root-build-v8-opt/self-test.log",
+      "sha256": "DD57392BAA9D3F2F25101B2DDB05E0F62DA2D3AAE21CB7284B4C45A2A401624A",
+      "bytes": 32
+    },
+    {
+      "name": "Build-RootHeapProjection.ps1",
+      "sha256": "83D4CFB181036F073A68BBC2F4B55CFBDD941291559A4C677F53B7DD46FF49A9",
+      "bytes": 13093
+    },
+    {
+      "name": "symbolizer-draft/root-build-v2-warning-fix/OfflineSymbolResolver.cpp",
+      "sha256": "C79BF0799904D8D13079142D99ADBD6072BE2AC92786361A905B16EA20D4FC8D",
+      "bytes": 24534
+    },
+    {
+      "name": "symbolizer-draft/root-oracle-v2/positive.json",
+      "sha256": "4F996BFDE6C19D8ECE96363E2BD6D10F14BDE23F38853CB832C27FA18A6CE828",
+      "bytes": 1257
+    },
+    {
+      "name": "symbolizer-draft/root-oracle-v2/mismatch/negative.json",
+      "sha256": "DFE53B93C2E7565AAEE2C248A7612F9D948440816A976CDB04A193266B9A9A2F",
+      "bytes": 1141
+    }
+  ],
+  "scope": "Digest inventory for retained private collection, decoder, compiler, self-test, projection and positive/mismatched-PDB oracle evidence. No raw paths, module lists or trace bodies are published."
+}

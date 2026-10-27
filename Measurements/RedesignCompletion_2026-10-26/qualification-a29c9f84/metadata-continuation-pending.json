@@ -1,0 +1,168 @@
+{
+  "schema": "redtilde-metadata-continuation-v1",
+  "status": "complete",
+  "acceptance": false,
+  "checkedUtc": "2026-10-27T00:17:59.2972412Z",
+  "documentationBuildCommit": "52f46b16d34eb7424ee4ff617c738f72672e03a8",
+  "nativeEvidenceCommit": "a29c9f8447fe06b33b3a9c611dda5d6e6d29205e",
+  "dxUiConsumerPin": "4077f57df8207eac6c39c43437feb45b19d23cf8",
+  "canonicalBuildProfiles": 6,
+  "unchangedNativeFiles": 14,
+  "rootAuditChecks": 64,
+  "privateRunStatusSha256": "36797518CE9E578619C90EF3D379E4469870469432CD092DEF08396998BDEDB8",
+  "profiles": [
+    {
+      "platform": "x64",
+      "configuration": "Debug",
+      "passed": true,
+      "sourceIdentityBefore": "266b01d9e19caf87d80bf9c2069c871ec906b8b0973e4d4ffe6327fcf15c3ffa",
+      "sourceIdentityAfter": "a502eac1810c605ba7331ed44c65e76a72de8a8f8ab7a496c9f417750a2b568f",
+      "compiledSourceIdentity": "633302c45ac8da29e7bea24cf7909dc70d8aad1665ebe618252dd31f72e0d8f3",
+      "beforeReceiptSha256": "484CCE6A366B8CD7FB6E5B861B0A06EFC6498F4ACE39751F47FDD661139C4E60",
+      "afterReceiptSha256": "0439363DA31F6E628D46A5B48701E8C6F64EC6C038F80CD5D0C53EC1B6A0F00D",
+      "nativeFiles": [
+        {
+          "file": "RedTilde.exe",
+          "bytes": 15432704,
+          "sha256": "07C0850A4E0065EDC2FB0E28F9A93FE2F2D7A4DFC0DF33970AD57D16D162E257"
+        },
+        {
+          "file": "RedTilde.pdb",
+          "bytes": 51359744,
+          "sha256": "D04C45B0AE90B9B69BCCDB467EDCE53F0EED06326692AE2D60F8A2F0B808C32B"
+        }
+      ]
+    },
+    {
+      "platform": "x64",
+      "configuration": "Release",
+      "passed": true,
+      "sourceIdentityBefore": "266b01d9e19caf87d80bf9c2069c871ec906b8b0973e4d4ffe6327fcf15c3ffa",
+      "sourceIdentityAfter": "a502eac1810c605ba7331ed44c65e76a72de8a8f8ab7a496c9f417750a2b568f",
+      "compiledSourceIdentity": "633302c45ac8da29e7bea24cf7909dc70d8aad1665ebe618252dd31f72e0d8f3",
+      "beforeReceiptSha256": "3147754A4DFAE8AFBFD957E8A5C0C29489C9486661543DA5C5025F20A475A1DB",
+      "afterReceiptSha256": "0CAE694AE33410E14F5C955BF1DC5463D4E83EEB6A28873CAE5AD6D8A18DD742",
+      "nativeFiles": [
+        {
+          "file": "RedTilde.exe",
+          "bytes": 5263360,
+          "sha256": "68D8799E76F8C0056AC7897FEFD8F2518C61CEBD3C04F38E9FEF4F1B45E190E1"
+        },
+        {
+          "file": "RedTilde.pdb",
+          "bytes": 38694912,
+          "sha256": "E2F9639B1F5EE721DCEACAC5D410624F75E262F6F992D899A434D81ADDA51C91"
+        }
+      ]
+    },
+    {
+      "platform": "x64",
+      "configuration": "ASan Debug",
+      "passed": true,
+      "sourceIdentityBefore": "266b01d9e19caf87d80bf9c2069c871ec906b8b0973e4d4ffe6327fcf15c3ffa",
+      "sourceIdentityAfter": "a502eac1810c605ba7331ed44c65e76a72de8a8f8ab7a496c9f417750a2b568f",
+      "compiledSourceIdentity": "633302c45ac8da29e7bea24cf7909dc70d8aad1665ebe618252dd31f72e0d8f3",
+      "beforeReceiptSha256": "C019F5EA6C5DE9364AE72691EA09BF6D7BCFDFB79ABC2EDAB020C521CDB81AA4",
+      "afterReceiptSha256": "138422CA9CAEA2B59EB34AAFBFD306DAA5C26F401929D64666753A31E4E0DBD4",
+      "nativeFiles": [
+        {
+          "file": "clang_rt.asan_dynamic-x86_64.dll",
+          "bytes": 1731408,
+          "sha256": "2B952AA118F22FA330069C27CA42C79D94B654F369787B89BF3A495774D66DAC"
+        },
+        {
+          "file": "RedTilde.exe",
+          "bytes": 23963648,
+          "sha256": "03C610A1F31C3D525CB75D5259A1E668F1BDA5EC277D0EC053F17571C7133EF4"
+        },
+        {
+          "file": "RedTilde.pdb",
+          "bytes": 48844800,
+          "sha256": "A1D55258C6555E77AD983F145B9DC6776FF396C445C8D124D638E97F5AAD5021"
+        }
+      ]
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Debug",
+      "passed": true,
+      "sourceIdentityBefore": "266b01d9e19caf87d80bf9c2069c871ec906b8b0973e4d4ffe6327fcf15c3ffa",
+      "sourceIdentityAfter": "a502eac1810c605ba7331ed44c65e76a72de8a8f8ab7a496c9f417750a2b568f",
+      "compiledSourceIdentity": "633302c45ac8da29e7bea24cf7909dc70d8aad1665ebe618252dd31f72e0d8f3",
+      "beforeReceiptSha256": "3874FB6E14BF81FE69EA23DBD1773B0023E96AC1617A6F7437ECA2CD0AEE4274",
+      "afterReceiptSha256": "131F4FD1122AD00137D8F890315849FBD0DB9D4264587B64B315279659BBC039",
+      "nativeFiles": [
+        {
+          "file": "RedTilde.exe",
+          "bytes": 23063040,
+          "sha256": "14AAB1E0E2E1E2AC0B0962D4184D9B103B3C53B7F59CF619A0F4072454195B2E"
+        },
+        {
+          "file": "RedTilde.pdb",
+          "bytes": 52989952,
+          "sha256": "6E08F8A1DF5A0D1749C253B7A2B3C6791122A4591A1BAA45CE19C4D00EDF0C6B"
+        }
+      ]
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Release",
+      "passed": true,
+      "sourceIdentityBefore": "266b01d9e19caf87d80bf9c2069c871ec906b8b0973e4d4ffe6327fcf15c3ffa",
+      "sourceIdentityAfter": "a502eac1810c605ba7331ed44c65e76a72de8a8f8ab7a496c9f417750a2b568f",
+      "compiledSourceIdentity": "633302c45ac8da29e7bea24cf7909dc70d8aad1665ebe618252dd31f72e0d8f3",
+      "beforeReceiptSha256": "609B749C3A89F13E0ADAD520959498E3CF6457FDAB56DB5AAAC20ED5A98B8EB9",
+      "afterReceiptSha256": "8092217267457D4C80BFE94665FC411D79F5C7FCD828B9FE48E05E991F7414E7",
+      "nativeFiles": [
+        {
+          "file": "RedTilde.exe",
+          "bytes": 5668864,
+          "sha256": "656CC4C1C3BA4D2B111A92FB13219E4B75F2CBBC944C3F9312202E49191ADA99"
+        },
+        {
+          "file": "RedTilde.pdb",
+          "bytes": 37761024,
+          "sha256": "245D957C798A158FBCD0EAAC8F0FD4CD4BB091C2995215D0B53A471377E3613F"
+        }
+      ]
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "ASan Debug",
+      "passed": true,
+      "sourceIdentityBefore": "266b01d9e19caf87d80bf9c2069c871ec906b8b0973e4d4ffe6327fcf15c3ffa",
+      "sourceIdentityAfter": "a502eac1810c605ba7331ed44c65e76a72de8a8f8ab7a496c9f417750a2b568f",
+      "compiledSourceIdentity": "633302c45ac8da29e7bea24cf7909dc70d8aad1665ebe618252dd31f72e0d8f3",
+      "beforeReceiptSha256": "7058E74E3CE9653656184DEBA96F1782BFAAA6CA69645542BA37100B86A4455C",
+      "afterReceiptSha256": "2537FBD02F1A97877AA8671793A35E4B968FC6DF896EB7D8C200AC9F7272EA46",
+      "nativeFiles": [
+        {
+          "file": "clang_rt.asan_dynamic-aarch64.dll",
+          "bytes": 1278592,
+          "sha256": "C8D6EE580003316179EA4718C268230FF23A17CF1AD791D9FEB8AD779C3044CB"
+        },
+        {
+          "file": "RedTilde.exe",
+          "bytes": 18906624,
+          "sha256": "E39F55E88710E8E4BBECE3BA338385062A13084CEB2A2936058AABD0F4896084"
+        },
+        {
+          "file": "RedTilde.pdb",
+          "bytes": 48107520,
+          "sha256": "AEE1FEB7D8FDBA5D7712E1ABF14EB9737F66D0705E469A7E8E8E03C24FCD9636"
+        }
+      ]
+    }
+  ],
+  "newNativeTestsExecuted": false,
+  "originalEvidenceRetagged": false,
+  "performanceAcceptance": false,
+  "nativeAcceptance": false,
+  "openGates": [
+    "Original-UI performance finding and unstable controls",
+    "Independent SDK baseline-policy qualification",
+    "Local input restoration qualification",
+    "Hosted RedTilde ARM64 under account billing restriction"
+  ],
+  "note": "The historical pending filename is retained for stable links. These are canonical RedTilde metadata builds, preserving the original native bytes and SDK pin; no runtime receipt is retagged."
+}

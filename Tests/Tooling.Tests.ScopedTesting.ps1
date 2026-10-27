@@ -260,6 +260,13 @@ try{
         $expected='formatter='+$formatter+':'+(Get-FileHash -LiteralPath $formatter).Hash
         Assert ($expected -cin @(Get-ScopedEnvironmentInputs -Tooling)) 'Selected formatter bytes were omitted'
     }
+    Case 'package and performance entrypoints share current build artifact admission' {
+        foreach($script in @('package.ps1','performance-paired.ps1')){
+            $content=[IO.File]::ReadAllText((Join-Path $root $script))
+            Assert ($content.Contains('Assert-RedTildeTestArtifact')) "$script bypasses the shared current build admission check"
+            Assert ($content -notmatch '(?im)Get-Content[^\r\n]*build-receipt\.json') "$script reads a build receipt without the shared admission check"
+        }
+    }
     Case 'retained CI proof requires all six actual successful native executions' {
         $expected=@($manifest.prCoverage|Where-Object{$_.PSObject.Properties['platform']}|ForEach-Object check)
         $jobs=@($expected|ForEach-Object{[pscustomobject]@{name=$_;status='completed';conclusion='success';steps=@([pscustomobject]@{name='Full native qualification';conclusion='success'})}})
@@ -357,6 +364,225 @@ if(-not $Expected){throw 'The manifest switch was not bound'}
         Remove-Item -LiteralPath (Join-Path $public '.build/mutate')
         $r=Run @('-SkipBuild');Assert ($r.Exit -ne 0 -and $r.Text.Contains('SkipBuild refused')) 'Stale compiled source accepted'
         $r=Run;Assert ($r.Exit -eq 0) "Mutated sources did not recover: $($r.Text)"
+    }
+    Case 'public build receipt invalidates content changes despite restored timestamps and preserves docs-only outputs' {
+        $buildRoot=Join-Path $fixture 'build-input-guard';New-Repository $buildRoot
+        Put (Join-Path $buildRoot '.gitignore') ".build/`n"
+        Put (Join-Path $buildRoot 'RedTilde/RedTilde.vcxproj') '<Project />'
+        Put (Join-Path $buildRoot 'Build/RedTilde.DxUi.props') '<Project />'
+        Put (Join-Path $buildRoot 'Tests/test-scopes.json') '{"runtimeFiles":[]}'
+        Put (Join-Path $buildRoot 'Tests/GuardFixture.cpp') 'first source bytes'
+        foreach($name in @('Harness.psm1','ScopedTesting.psm1')){Copy-Item -LiteralPath (Join-Path $root "Build/$name") -Destination (Join-Path $buildRoot "Build/$name")}
+        Copy-Item -LiteralPath (Join-Path $root 'build.ps1') -Destination (Join-Path $buildRoot 'build.ps1')
+        Put (Join-Path $buildRoot 'Build/Toolchain.psm1') @'
+Set-StrictMode -Version Latest
+function Get-RedTildeMSBuild { Join-Path (Split-Path $PSScriptRoot -Parent) '.build/mock-msbuild.ps1' }
+function Assert-RedTildeOutputNotRunning { param([string]$OutputDirectory) }
+Export-ModuleMember -Function Get-RedTildeMSBuild,Assert-RedTildeOutputNotRunning
+'@
+        Put (Join-Path $buildRoot 'restore-dxui.ps1') @'
+[IO.File]::WriteAllText((Join-Path $PSScriptRoot '.build/restore-called'),'restore reached')
+'@
+        Put (Join-Path $buildRoot '.build/mock-msbuild.ps1') @'
+$root=Split-Path $PSScriptRoot -Parent
+$platform=([string](@($args|Where-Object{$_ -like '/p:Platform=*'})[0]) -split '=',2)[1]
+$configuration=([string](@($args|Where-Object{$_ -like '/p:Configuration=*'})[0]) -split '=',2)[1]
+$output=Join-Path $root ".build/$platform/$configuration"
+$intermediate=Join-Path $root ".build/obj/$platform/$configuration/RedTilde"
+$tools=Join-Path $root 'Tools'
+if($args -match '^-getProperty:'){
+    $executablePath=((Join-Path $tools 'VC/bin/HostX86/x64')+';'+(Join-Path $tools 'SDK/bin/10.0.26100.0/x86'))
+    if(Test-Path (Join-Path $root '.build/mock-foreign-first')){$executablePath=(Join-Path $root '.build/foreign')+';'+$executablePath}
+    $dependency=Get-Content (Join-Path $root '.build/dependencies/DxUi/DxUi.identity.x64.json') -Raw|ConvertFrom-Json
+    [xml]$resolved=Get-Content (Join-Path $root '.build/dependencies/DxUi/DxUi.resolved.x64.props') -Raw
+    $source=[string]$resolved.Project.PropertyGroup.DxUiRoot
+    $dependencyOutput=[string]$resolved.Project.PropertyGroup.DxUiConsumerOutputRoot
+    $lockFile=[string]$resolved.Project.PropertyGroup.DxUiConsumerLockFile
+    [ordered]@{Properties=[ordered]@{OutDir=$output+'\';IntDir=$intermediate+'\';PlatformToolset='v145';VCToolsInstallDir=(Join-Path $tools 'VC')+'\';
+        VCToolsVersion='14.50.00000';WindowsSdkDir=(Join-Path $tools 'SDK')+'\';WindowsTargetPlatformVersion='10.0.26100.0';PreferredToolArchitecture='x86';
+        ExecutablePath=$executablePath;
+        CLToolPath='';CLToolExe='';LinkToolPath='';LinkToolExe='';ResourceCompileToolPath='';ResourceCompileToolExe='';
+        DxUiRoot=$source;DxUiResolvedRoot=$source+'\';DxUiConsumerOutputRoot=$dependencyOutput+'\';DxUiConsumerLockFile=$lockFile;
+        DxUiDisableStlAnnotations='false';DxUiConsumerToolset=[string]$resolved.Project.PropertyGroup.DxUiConsumerToolset;
+        DxUiConsumerVCToolsVersion=[string]$resolved.Project.PropertyGroup.DxUiConsumerVCToolsVersion;
+        DxUiConsumerSdkVersion=[string]$resolved.Project.PropertyGroup.DxUiConsumerSdkVersion;
+        DxUiConsumerPreferredToolArchitecture=[string]$resolved.Project.PropertyGroup.DxUiConsumerPreferredToolArchitecture;DxUiConsumerTriplet='x64-windows'}}|ConvertTo-Json -Depth 4 -Compress|Write-Output
+    $global:LASTEXITCODE=0;return
+}
+$calls=Join-Path $root '.build/mock-calls.txt';[IO.File]::AppendAllText($calls,($args -join ' ') + "`n")
+if($args -contains '/t:Clean'){
+    if(Test-Path $intermediate){Remove-Item -LiteralPath $intermediate -Recurse -Force}
+    $exe=Join-Path $output 'RedTilde.exe';if(Test-Path $exe){Remove-Item -LiteralPath $exe -Force}
+    $global:LASTEXITCODE=0;return
+}
+if(Test-Path (Join-Path $root '.build/mock-fail')){$global:LASTEXITCODE=9;return}
+[void](New-Item -ItemType Directory -Path $output -Force);[void](New-Item -ItemType Directory -Path $intermediate -Force)
+$token=Join-Path $intermediate 'compiled-input.hash';$exe=Join-Path $output 'RedTilde.exe'
+if(-not(Test-Path $token)){
+    $sourceHash=(Get-FileHash (Join-Path $root 'Tests/GuardFixture.cpp')).Hash
+    $headerHash=(Get-FileHash (Join-Path $root '.build/dependencies/DxUi/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/vcpkg_installed/x64/x64-windows/include/guard.h')).Hash
+    $compilerHash=(Get-FileHash (Join-Path $root 'Tools/VC/bin/HostX86/x64/cl.exe')).Hash
+    $sdkCommit=([string](Get-Content (Join-Path $root '.build/dependencies/DxUi/DxUi.identity.x64.json') -Raw|ConvertFrom-Json).Identity.commit)
+    $sdkSourceHash=(Get-FileHash (Join-Path $root ".build/dependencies/DxUi/source/$sdkCommit/src/GuardFixture.cpp")).Hash
+    $bytes=[Text.Encoding]::UTF8.GetBytes($sourceHash+$headerHash+$compilerHash+$sdkSourceHash)
+    $compiled=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes))
+    [IO.File]::WriteAllText($token,$compiled);[IO.File]::WriteAllText($exe,$compiled)
+}
+$global:LASTEXITCODE=0
+'@
+        foreach($tool in @('VC/bin/HostX86/x64/cl.exe','VC/bin/HostX86/x64/link.exe','SDK/bin/10.0.26100.0/x86/rc.exe')){Put (Join-Path $buildRoot "Tools/$tool") "tool $tool"}
+        $sdkRoot=Join-Path $buildRoot '.build/dependencies/DxUi/source';[void](New-Item -ItemType Directory -Path $sdkRoot -Force)
+        $sdkSource=Join-Path $sdkRoot 'fixture-source';New-Repository $sdkSource;Put (Join-Path $sdkSource 'include/source.h') 'source header';Put (Join-Path $sdkSource 'src/GuardFixture.cpp') 'pinned SDK implementation bytes';Put (Join-Path $sdkSource 'capabilities.json') '{"apiRevision":4}'
+        Invoke-FixtureGit $sdkSource @('add','-A');Invoke-FixtureGit $sdkSource @('commit','-qm','fixture SDK source and header')
+        $commit=(& git -C $sdkSource rev-parse HEAD).Trim();$sdkSourceCommitted=Join-Path $sdkRoot $commit;Move-Item -LiteralPath $sdkSource -Destination $sdkSourceCommitted
+        $fingerprint=('a'*64) -join ''
+        $packageInclude=Join-Path $buildRoot ".build/dependencies/DxUi/$fingerprint/vcpkg_installed/x64/x64-windows/include"
+        Put (Join-Path $packageInclude 'guard.h') 'package header v1'
+        $identity=@{commit=$commit;apiRevision=4;platform='x64';toolset='v145';vcToolsVersion='14.50.00000';windowsSdkVersion='10.0.26100.0';runtimeFamily='MD';preferredToolArchitecture='x86';disableStlAnnotations=$false}
+        Put (Join-Path $buildRoot '.build/dependencies/DxUi/DxUi.identity.x64.json') (@{Fingerprint=$fingerprint;Identity=$identity}|ConvertTo-Json -Depth 4)
+        Put (Join-Path $buildRoot 'Dependencies/DxUi.lock.json') (@{repository='https://github.com/RedSalamanders/DxUi';commit=$commit;apiRevision=4;targets=@('DxUi')}|ConvertTo-Json -Depth 4)
+        $resolvedOutput=(Join-Path $buildRoot ".build/dependencies/DxUi/$fingerprint")+'\'
+        $resolvedXml='<Project><PropertyGroup><DxUiRoot>'+[Security.SecurityElement]::Escape($sdkSourceCommitted)+'</DxUiRoot><DxUiConsumerOutputRoot>'+[Security.SecurityElement]::Escape($resolvedOutput)+'</DxUiConsumerOutputRoot><DxUiConsumerLockFile>'+[Security.SecurityElement]::Escape((Join-Path $buildRoot 'Dependencies/DxUi.lock.json'))+'</DxUiConsumerLockFile><DxUiConsumerToolset>v145</DxUiConsumerToolset><DxUiConsumerVCToolsVersion>14.50.00000</DxUiConsumerVCToolsVersion><DxUiConsumerSdkVersion>10.0.26100.0</DxUiConsumerSdkVersion><DxUiConsumerPreferredToolArchitecture>x86</DxUiConsumerPreferredToolArchitecture></PropertyGroup></Project>'
+        Put (Join-Path $buildRoot '.build/dependencies/DxUi/DxUi.resolved.x64.props') $resolvedXml
+        Invoke-FixtureGit $buildRoot @('add','-A');Invoke-FixtureGit $buildRoot @('commit','-qm','fixture build inputs')
+        $buildBinary=Join-Path $PSHOME 'pwsh.exe'
+        function Invoke-BuildFixture([switch]$NoRestore,[string[]]$Extra=@()){
+            $start=[Diagnostics.ProcessStartInfo]::new($buildBinary);$start.UseShellExecute=$false;$start.RedirectStandardOutput=$true;$start.RedirectStandardError=$true
+            $arguments=@('-NoProfile','-File',(Join-Path $buildRoot 'build.ps1'),'-Platform','x64','-Configuration','Debug')
+            if(-not $NoRestore){$arguments+= '-SkipRestore'}
+            foreach($argument in $arguments+$Extra){$start.ArgumentList.Add($argument)}
+            $process=[Diagnostics.Process]::Start($start)
+            try{$stdout=$process.StandardOutput.ReadToEndAsync();$stderr=$process.StandardError.ReadToEndAsync();if(-not $process.WaitForExit(30000)){$process.Kill($true);throw 'Mocked public build fixture timed out'};[pscustomobject]@{exit=$process.ExitCode;text=$stdout.GetAwaiter().GetResult()+$stderr.GetAwaiter().GetResult()}}finally{$process.Dispose()}
+        }
+        function Assert-GuardRefusesArtifact([string]$Reason){
+            $pwsh=Join-Path $PSHOME 'pwsh.exe'
+            $probe=Join-Path $buildRoot '.build/assert-artifact.ps1'
+            Put $probe "Import-Module '$($buildRoot.Replace("'","''"))/Build/Harness.psm1' -Force; Assert-RedTildeTestArtifact -Root '$($buildRoot.Replace("'","''"))' -Platform x64 -Configuration Debug"
+            $start=[Diagnostics.ProcessStartInfo]::new($pwsh);$start.UseShellExecute=$false;$start.RedirectStandardOutput=$true;$start.RedirectStandardError=$true
+            foreach($argument in @('-NoProfile','-File',$probe)){$start.ArgumentList.Add($argument)}
+            $process=[Diagnostics.Process]::Start($start)
+            try{$stdout=$process.StandardOutput.ReadToEndAsync();$stderr=$process.StandardError.ReadToEndAsync();if(-not $process.WaitForExit(30000)){$process.Kill($true);throw 'Mocked artifact admission timed out'};Assert ($process.ExitCode -ne 0) "Stale build receipt admitted after $Reason"}finally{$process.Dispose()}
+        }
+        Case 'public build refuses a profile junction before receipt or restore writes' {
+            $protected=Join-Path $buildRoot '.build/protected-profile';Put (Join-Path $protected 'marker.txt') 'keep this target unchanged'
+            $profileAlias=Join-Path $buildRoot '.build/x64';[void](New-Item -ItemType Junction -Path $profileAlias -Target $protected)
+            try{
+                $run=Invoke-BuildFixture -NoRestore;Assert ($run.exit -ne 0) 'Reparse-point profile path was accepted'
+                Assert ((Get-Content (Join-Path $protected 'marker.txt') -Raw) -ceq 'keep this target unchanged') 'Profile preflight changed the protected target'
+                Assert (-not(Test-Path (Join-Path $protected 'Debug/build-receipt.json'))) 'Profile preflight wrote the receipt through a junction'
+                Assert (-not(Test-Path (Join-Path $buildRoot '.build/restore-called'))) 'Profile preflight reached dependency restore before path validation'
+            }finally{
+                if(Test-Path -LiteralPath $profileAlias){[IO.Directory]::Delete($profileAlias,$false)}
+            }
+            Assert (Test-Path -LiteralPath (Join-Path $protected 'marker.txt')) 'Removing the test junction removed its owned target'
+        }
+        Case 'first build cleans and records guarded receipt' {
+            $run=Invoke-BuildFixture;Assert ($run.exit -eq 0) "Fixture initial build failed: $($run.text)"
+            $receipt=Get-Content (Join-Path $buildRoot '.build/x64/Debug/build-receipt.json') -Raw|ConvertFrom-Json
+            Assert ($receipt.schemaVersion -eq 2 -and $receipt.passed) 'Build did not publish the guarded receipt'
+            Assert (@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count -eq 1) 'Unattested first build did not clean owned profile'
+        }
+        Case 'docs-only changes reuse byte-identical output without clean' {
+            $exe=Join-Path $buildRoot '.build/x64/Debug/RedTilde.exe';$before=(Get-FileHash $exe).Hash
+            Put (Join-Path $buildRoot 'README.md') 'documentation only';Invoke-FixtureGit $buildRoot @('add','README.md')
+            $run=Invoke-BuildFixture;Assert ($run.exit -eq 0) "Docs-only build failed: $($run.text)"
+            Assert ((Get-FileHash $exe).Hash -ceq $before) 'Docs-only build changed executable bytes'
+            Assert (@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count -eq 1) 'Docs-only edit unnecessarily cleaned profile'
+            Import-Module (Join-Path $buildRoot 'Build/Harness.psm1') -Force
+            Assert-RedTildeTestArtifact -Root $buildRoot -Platform x64 -Configuration Debug|Out-Null
+        }
+        Case 'source bytes with a restored older mtime clean before MSBuild reuse' {
+            $source=Join-Path $buildRoot 'Tests/GuardFixture.cpp';$oldTime=[IO.File]::GetLastWriteTimeUtc($source);$exe=Join-Path $buildRoot '.build/x64/Debug/RedTilde.exe';$before=(Get-FileHash $exe).Hash
+            Put $source 'changed compiled source bytes';[IO.File]::SetLastWriteTimeUtc($source,$oldTime)
+            Assert-GuardRefusesArtifact 'source bytes changed with an old timestamp'
+            $run=Invoke-BuildFixture;Assert ($run.exit -eq 0) "Restored-mtime build failed: $($run.text)"
+            Assert ((Get-FileHash $exe).Hash -cne $before) 'Changed source bytes were reused from old object despite timestamp restoration'
+            Assert (@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count -eq 2) 'Changed source did not clean owned profile'
+        }
+        Case 'changed installed package-header bytes invalidate the build input identity' {
+            $exe=Join-Path $buildRoot '.build/x64/Debug/RedTilde.exe';$before=(Get-FileHash $exe).Hash
+            Put (Join-Path $packageInclude 'guard.h') 'package header v2'
+            $run=Invoke-BuildFixture;Assert ($run.exit -eq 0) "Changed header build failed: $($run.text)"
+            Assert ((Get-FileHash $exe).Hash -cne $before) 'Changed installed header was reused'
+            Assert (@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count -eq 3) 'Changed dependency header did not clean owned profile'
+        }
+        Case 'changed selected compiler bytes invalidate the build context' {
+            $exe=Join-Path $buildRoot '.build/x64/Debug/RedTilde.exe';$before=(Get-FileHash $exe).Hash
+            Put (Join-Path $buildRoot 'Tools/VC/bin/HostX86/x64/cl.exe') 'updated compiler bytes'
+            $run=Invoke-BuildFixture;Assert ($run.exit -eq 0) "Changed compiler build failed: $($run.text)"
+            Assert ((Get-FileHash $exe).Hash -cne $before) 'Changed compiler was reused'
+            Assert (@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count -eq 4) 'Changed compiler context did not clean owned profile'
+        }
+        Case 'dirty tracked or untracked pinned SDK implementation source refuses build reuse' {
+            $trackedSource=Join-Path $sdkSourceCommitted 'src/GuardFixture.cpp'
+            $cleanCount=@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count
+            Put $trackedSource 'dirty tracked SDK implementation'
+            Assert-GuardRefusesArtifact 'dirty pinned SDK implementation source'
+            $run=Invoke-BuildFixture;Assert ($run.exit -ne 0) 'Dirty tracked SDK source was accepted by the public build entrypoint'
+            Assert (@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count -eq $cleanCount) 'Dirty SDK source reached profile clean'
+            Assert (-not (Get-Content (Join-Path $buildRoot '.build/x64/Debug/build-receipt.json') -Raw|ConvertFrom-Json).passed) 'Dirty SDK source retained a passed receipt'
+            Invoke-FixtureGit $sdkSourceCommitted @('checkout','--','src/GuardFixture.cpp')
+            $run=Invoke-BuildFixture;Assert ($run.exit -eq 0) "Clean pinned SDK source did not recover: $($run.text)"
+
+            $untrackedSource=Join-Path $sdkSourceCommitted 'src/Unexpected.cpp';Put $untrackedSource 'untracked SDK implementation'
+            $cleanCount=@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count
+            Assert-GuardRefusesArtifact 'untracked pinned SDK implementation source'
+            $run=Invoke-BuildFixture;Assert ($run.exit -ne 0) 'Untracked SDK source was accepted by the public build entrypoint'
+            Assert (@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count -eq $cleanCount) 'Untracked SDK source reached profile clean'
+            Remove-Item -LiteralPath $untrackedSource -Force
+            $run=Invoke-BuildFixture;Assert ($run.exit -eq 0) "Untracked SDK source removal did not recover: $($run.text)"
+        }
+        Case 'resolved DxUi consumer properties cannot redirect the SDK source or package root' {
+            $propsPath=Join-Path $buildRoot '.build/dependencies/DxUi/DxUi.resolved.x64.props'
+            $original=[IO.File]::ReadAllText($propsPath)
+            $cleanCount=@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count
+            $redirected=$original.Replace([Security.SecurityElement]::Escape($sdkSourceCommitted),[Security.SecurityElement]::Escape((Join-Path $buildRoot '.build/foreign-sdk')))
+            Put $propsPath $redirected
+            Assert-GuardRefusesArtifact 'redirected DxUiRoot in resolved properties'
+            $run=Invoke-BuildFixture;Assert ($run.exit -ne 0) 'Redirected SDK source root was accepted'
+            Assert (@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count -eq $cleanCount) 'Redirected resolved properties reached profile clean'
+            Put $propsPath $original
+            $run=Invoke-BuildFixture;Assert ($run.exit -eq 0) "Restored resolved properties did not recover: $($run.text)"
+
+            $cleanCount=@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count
+            $redirectedOutput=(Join-Path $buildRoot '.build/foreign-package')+'\'
+            $redirected=$original.Replace([Security.SecurityElement]::Escape($resolvedOutput),[Security.SecurityElement]::Escape($redirectedOutput))
+            Put $propsPath $redirected
+            Assert-GuardRefusesArtifact 'redirected DxUiConsumerOutputRoot in resolved properties'
+            $run=Invoke-BuildFixture;Assert ($run.exit -ne 0) 'Redirected package root was accepted'
+            Assert (@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count -eq $cleanCount) 'Redirected package root reached profile clean'
+            Put $propsPath $original
+            $run=Invoke-BuildFixture;Assert ($run.exit -eq 0) "Restored package root did not recover: $($run.text)"
+        }
+        Case 'foreign first executable search match fails closed instead of attesting a later compiler' {
+            $output=Join-Path $buildRoot '.build/x64/Debug';$receiptPath=Join-Path $output 'build-receipt.json'
+            $foreign=Join-Path $buildRoot '.build/foreign';Put (Join-Path $foreign 'cl.exe') 'foreign compiler'
+            Put (Join-Path $buildRoot '.build/mock-foreign-first') 'enable foreign-first search path'
+            $cleanCount=@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count
+            $run=Invoke-BuildFixture;Assert ($run.exit -ne 0) 'Foreign first compiler search match was accepted'
+            Assert (@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count -eq $cleanCount) 'Unverified compiler context reached profile clean'
+            Assert (-not (Get-Content $receiptPath -Raw|ConvertFrom-Json).passed) 'Unknown tool context retained a passed receipt'
+            Remove-Item -LiteralPath (Join-Path $buildRoot '.build/mock-foreign-first') -Force
+            $run=Invoke-BuildFixture;Assert ($run.exit -eq 0) "Build did not recover after restoring selected compiler search path: $($run.text)"
+        }
+        Case 'legacy or incomplete receipts force a clean and are never admitted for SkipBuild' {
+            $receiptPath=Join-Path $buildRoot '.build/x64/Debug/build-receipt.json';$receipt=Get-Content $receiptPath -Raw|ConvertFrom-Json
+            $receipt.schemaVersion=1;$receipt|ConvertTo-Json -Depth 10|Set-Content -LiteralPath $receiptPath -Encoding utf8
+            Assert-GuardRefusesArtifact 'legacy receipt'
+            $run=Invoke-BuildFixture;Assert ($run.exit -eq 0) "Legacy receipt recovery failed: $($run.text)"
+            $receipt=Get-Content $receiptPath -Raw|ConvertFrom-Json;$receipt.buildInputs=$null
+            $receipt|ConvertTo-Json -Depth 10|Set-Content -LiteralPath $receiptPath -Encoding utf8
+            Assert-GuardRefusesArtifact 'incomplete receipt'
+            $run=Invoke-BuildFixture;Assert ($run.exit -eq 0) "Incomplete receipt recovery failed: $($run.text)"
+            Assert (@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count -eq 11) 'Invalid receipt did not force clean'
+        }
+        Case 'failed build leaves a revoked receipt that SkipBuild admission rejects' {
+            Put (Join-Path $buildRoot '.build/mock-fail') 'force failure';$run=Invoke-BuildFixture
+            Assert ($run.exit -ne 0) 'Mock build failure reported success'
+            $receipt=Get-Content (Join-Path $buildRoot '.build/x64/Debug/build-receipt.json') -Raw|ConvertFrom-Json
+            Assert (-not $receipt.passed) 'Failed attempt retained a passed build receipt'
+            Assert-GuardRefusesArtifact 'failed build attempt'
+        }
     }
     Write-Host "Scoped testing: $passed cases passed."
 }finally{

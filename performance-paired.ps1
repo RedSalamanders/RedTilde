@@ -1,21 +1,30 @@
 [CmdletBinding()]
 param([string]$Baseline='', [string]$OutputRoot='', [switch]$FreezeBaseline, [switch]$SameBinaryControl,
       [ValidateRange(2,16)][int]$Blocks=12,[ValidateRange(0,2147483647)][int]$Seed=20261021,
-      [ValidateRange(4,64)][int]$Cycles=16,[switch]$Warp,[switch]$ControlDiagnostics)
+      [ValidateRange(4,64)][int]$Cycles=16,[switch]$Warp,[switch]$ControlDiagnostics,[switch]$DependencyAdoption,
+      [switch]$ReviewedHeaderDelta)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'Build/Performance.psm1') -Force
 $exe=Join-Path $PSScriptRoot '.build/x64/Release/RedTilde.exe'
-$build=Get-Content (Join-Path $PSScriptRoot '.build/x64/Release/build-receipt.json') -Raw | ConvertFrom-Json
-$source=Get-RedTildeSourceIdentity -Root $PSScriptRoot
-if(-not $build.passed -or $build.sourceIdentity -cne $source -or $build.binarySha256 -cne (Get-FileHash $exe).Hash) { throw 'Rebuild the current Release source before measuring.' }
+$artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform x64 -Configuration Release
+$build=$artifact.Build
+$source=$artifact.SourceIdentity
 $fixture=Join-Path $PSScriptRoot 'docs/examples/s5-performance.md'
 $inputs=[ordered]@{}
-foreach($file in @('Tests/Application.Tests.Performance.cpp','RedTilde/Main.cpp','RedTilde/EditDiagnostics.h','performance-paired.ps1','Build/Performance.psm1','Build/Harness.psm1','docs/examples/s5-performance.md')) {
+foreach($file in @('Tests/Application.Tests.Performance.cpp','Tests/Application.Tests.HeapDiagnostic.h','RedTilde/Main.cpp','RedTilde/EditDiagnostics.h','performance-paired.ps1','Build/Performance.psm1','Build/Harness.psm1','docs/examples/s5-performance.md','Build/ReviewedHeaderDeltaProfile.json')) {
     $inputs[$file]=(Get-FileHash (Join-Path $PSScriptRoot $file)).Hash
 }
 $compiler=Get-RedTildeCompilerProfile -Root $PSScriptRoot
+$publicHeaders=Get-RedTildeDependencyPublicHeaders -Root $PSScriptRoot -Dependency $build.dependency
+$reviewedProfile=$null
+$reviewedProfileSha256=$null
+if($ReviewedHeaderDelta) {
+    if($DependencyAdoption -or $SameBinaryControl -or $FreezeBaseline) { throw 'ReviewedHeaderDelta is an exclusive comparison mode; it cannot freeze, use a same-binary control, or combine with DependencyAdoption.' }
+    $reviewedProfile=Get-RedTildeReviewedHeaderDeltaProfile -Root $PSScriptRoot
+    $reviewedProfileSha256=(Get-FileHash (Join-Path $PSScriptRoot 'Build/ReviewedHeaderDeltaProfile.json')).Hash
+}
 $rawCompiler=Join-Path $PSScriptRoot '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
 $power=(& powercfg /getactivescheme | Out-String).Trim()
 if($LASTEXITCODE -ne 0 -or -not $power) { throw 'Power policy identity is unavailable.' }
@@ -28,13 +37,14 @@ $OutputRoot=[IO.Path]::GetFullPath($OutputRoot)
 $allowed=[IO.Path]::GetFullPath((Join-Path $PSScriptRoot '.build')).TrimEnd('\')+'\'
 if(-not $OutputRoot.StartsWith($allowed,[StringComparison]::OrdinalIgnoreCase) -or (Test-Path -LiteralPath $OutputRoot)) { throw 'OutputRoot must be a fresh directory under this repository .build.' }
 New-Item -ItemType Directory -Path $OutputRoot | Out-Null
+if($ReviewedHeaderDelta) { Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Build/ReviewedHeaderDeltaProfile.json') -Destination (Join-Path $OutputRoot 'reviewed-header-profile.json') }
 if($FreezeBaseline) {
     if(@(& git -C $PSScriptRoot status --porcelain).Count) { throw 'Commit the instrumented baseline before freezing it.' }
     Copy-Item -LiteralPath $exe -Destination (Join-Path $OutputRoot 'RedTilde.exe')
     Copy-Item -LiteralPath (Join-Path $PSScriptRoot '.build/x64/Release/build-receipt.json') -Destination (Join-Path $OutputRoot 'build.json')
     Copy-Item -LiteralPath $rawCompiler -Destination (Join-Path $OutputRoot 'compiler-command.tlog')
     $compiler['rawFile']='compiler-command.tlog'
-    [ordered]@{schemaVersion=1;commit=(& git -C $PSScriptRoot rev-parse HEAD);build=$build;compiler=$compiler;inputs=$inputs;environment=$environment} |
+    [ordered]@{schemaVersion=1;commit=(& git -C $PSScriptRoot rev-parse HEAD);build=$build;compiler=$compiler;inputs=$inputs;environment=$environment;publicHeaders=$publicHeaders} |
         ConvertTo-Json -Depth 14 | Set-Content (Join-Path $OutputRoot 'baseline.json') -Encoding utf8
     Write-Host "Immutable instrumented baseline: $OutputRoot"
     return
@@ -42,13 +52,21 @@ if($FreezeBaseline) {
 if(-not $Baseline) { throw 'Baseline must name a frozen instrumented baseline directory.' }
 $baselinePath=Join-Path $Baseline 'RedTilde.exe'
 $base=Get-Content (Join-Path $Baseline 'baseline.json') -Raw | ConvertFrom-Json -AsHashtable
-if($base.build.binarySha256 -cne (Get-FileHash $baselinePath).Hash -or $base.compiler.sha256 -cne $compiler.sha256 -or
-    ($base.build.dependency | ConvertTo-Json -Depth 12 -Compress) -cne ($build.dependency | ConvertTo-Json -Depth 12 -Compress) -or
+if($base.build.binarySha256 -cne (Get-FileHash $baselinePath).Hash -or
     ($base.inputs | ConvertTo-Json -Compress) -cne ($inputs | ConvertTo-Json -Compress) -or
     ($base.environment | ConvertTo-Json -Compress) -cne ($environment | ConvertTo-Json -Compress)) { throw 'Baseline/candidate harness, compiler, dependency, environment or binary identity differs.' }
+$baseHeaderHash=if($base.Contains('publicHeaders')){[string]$base.publicHeaders.sha256}else{''}
+$currentIdentity=@{build=$build;compiler=$compiler;inputs=$inputs;environment=$environment;publicHeaders=$publicHeaders}
+$admissionCandidate=Get-RedTildePairedAdmissionCandidate -Baseline $base -Current $currentIdentity -SameBinaryControl:$SameBinaryControl
+if($ReviewedHeaderDelta) {
+    Assert-RedTildeReviewedHeaderDelta -Profile $reviewedProfile -BaselineDependency $base.build.dependency -CandidateDependency $admissionCandidate.build.dependency -BaselinePublicHeaders $base.publicHeaders -CandidatePublicHeaders $admissionCandidate.publicHeaders -BaselineBuild $base.build -CandidateBuild $admissionCandidate.build
+} else {
+    Assert-RedTildeDependencyComparison -BaselineDependency $base.build.dependency -CandidateDependency $admissionCandidate.build.dependency -BaselinePublicHeadersSha256 $baseHeaderHash -CandidatePublicHeadersSha256 $admissionCandidate.publicHeaders.sha256 -DependencyAdoption:$DependencyAdoption
+}
+Assert-RedTildeCompilerComparison -BaselineCompiler $base.compiler -CandidateCompiler $admissionCandidate.compiler -BaselineDependency $base.build.dependency -CandidateDependency $admissionCandidate.build.dependency -DependencyAdoption:$DependencyAdoption -ReviewedHeaderDelta:$ReviewedHeaderDelta -ReviewedProfile $reviewedProfile
 if(-not $SameBinaryControl -and $base.build.binarySha256 -ceq $build.binarySha256) { throw 'Use SameBinaryControl for the same executable.' }
 $schedule=New-RedTildePerformanceSchedule -Blocks $Blocks -Seed $Seed
-$candidateIdentity=if($SameBinaryControl) { $base } else { @{build=$build;compiler=$compiler;inputs=$inputs;environment=$environment} }
+$candidateIdentity=$admissionCandidate
 $compilerReceipts=[ordered]@{}
 foreach($side in @('baseline','candidate')) {
     $profile=if($side -ceq 'baseline'){$base.compiler}else{$candidateIdentity.compiler}
@@ -63,7 +81,10 @@ foreach($side in @('baseline','candidate')) {
     $compilerReceipts[$side]=[ordered]@{file=$leaf;sha256=$profile.rawSha256}
 }
 [ordered]@{protocol='independent-ABBA-BAAB-v1';blocks=$Blocks;seed=$Seed;cycles=$Cycles;sameBinaryControl=[bool]$SameBinaryControl;
-    baseline=$base;candidate=$candidateIdentity;compilerReceipts=$compilerReceipts;schedule=$schedule;controlDiagnostics=[bool]$ControlDiagnostics} |
+    baseline=$base;candidate=$candidateIdentity;compilerReceipts=$compilerReceipts;schedule=$schedule;controlDiagnostics=[bool]$ControlDiagnostics;
+    dependencyComparisonMode=$(if($ReviewedHeaderDelta){'reviewed-header-delta'}elseif($DependencyAdoption){'sdk-adoption'}else{'same-pin'});
+    reviewedHeaderDelta=$(if($ReviewedHeaderDelta){[ordered]@{profileId=$reviewedProfile.profileId;profileSha256=$reviewedProfileSha256;file='reviewed-header-profile.json';abiProbe=$reviewedProfile.abiProbe}}else{$null});
+    selectionDiagnosticsProtocol=$(if($ControlDiagnostics){'app-selection-components-v1'}else{$null})} |
     ConvertTo-Json -Depth 18 | Set-Content (Join-Path $OutputRoot 'study.json') -Encoding utf8
 $pairs=[Collections.Generic.List[object]]::new()
 $nativeIdentities=@{}
@@ -87,6 +108,10 @@ foreach($block in $schedule) {
         if($ControlDiagnostics -and ($null -eq $native.controlDiagnostics -or $native.controlDiagnostics.protocol -cne 'app-edit-phases-v2')) {
             throw 'Requested command-phase diagnostics are missing.'
         }
+        if($ControlDiagnostics -and (-not $native.controlDiagnostics.PSObject.Properties['selectionComponents'] -or
+            $native.controlDiagnostics.selectionComponents.protocol -cne 'app-selection-components-v1')) {
+            throw 'Requested nested selection diagnostics are missing.'
+        }
         $identity=[ordered]@{}
         foreach($key in @('fixture','view','renderer','adapter','vendorId','deviceId','driverVersion','dpi','widthPx','heightPx','sourceUnits','cycles')) { $identity[$key]=$native.$key }
         $identityJson=$identity | ConvertTo-Json -Compress
@@ -101,9 +126,15 @@ foreach($block in $schedule) {
     Write-Host ($block.scenario+' block '+($block.block+1)+'/'+$Blocks+' '+$block.order+' complete')
 }
 $comparison=Compare-RedTildePerformanceBlocks -Blocks $pairs.ToArray()
+$finalPublicHeaders=Get-RedTildeDependencyPublicHeaders -Root $PSScriptRoot -Dependency $build.dependency
+if(($finalPublicHeaders|ConvertTo-Json -Depth 10 -Compress) -cne ($publicHeaders|ConvertTo-Json -Depth 10 -Compress)) {
+    throw 'Source or package public headers changed during the paired study.'
+}
 [ordered]@{schemaVersion=1;protocol='independent-ABBA-BAAB-v1';judge='redtilde-paired-log-sign-flip-holm-v2';
     independentBlocksPerScenario=$Blocks;familySize=$comparison.Count;sameBinaryControl=[bool]$SameBinaryControl;
     acceptance='review-required; new app judge does not qualify upstream D4c';metrics=$comparison;
+    dependencyComparisonMode=$(if($ReviewedHeaderDelta){'reviewed-header-delta'}elseif($DependencyAdoption){'sdk-adoption'}else{'same-pin'});
+    reviewedHeaderDelta=$(if($ReviewedHeaderDelta){[ordered]@{profileId=$reviewedProfile.profileId;profileSha256=$reviewedProfileSha256;file='reviewed-header-profile.json';abiProbe=$reviewedProfile.abiProbe}}else{$null});
     sourceIdentity=$source;harnessInputs=$inputs;completedUtc=[DateTime]::UtcNow.ToString('o')} |
     ConvertTo-Json -Depth 14 | Set-Content (Join-Path $OutputRoot 'comparison.json') -Encoding utf8
 $comparison | ForEach-Object { Write-Host ('{0} {1}: {2:P2}, p={3:N6}, {4}, controlsStable={5}' -f $_.scenario,$_.metric,$_.pairedChange,$_.adjustedP,$_.finding,$_.controlsStable) }

@@ -121,8 +121,45 @@ public static class PairedEvidenceReference {
         if(own != 1) throw new ArgumentException("Each compiler row must contain its own source exactly once.");
         return string.Join(" ",options);
     }
-    public static void VerifyCompilerCommands(string[] lines,string root,string[] relativeSources,string expected) {
+    static string NeutralizeDependencyIncludes(string command,string sourceInclude,string packageInclude) {
+        string[] tokens = CompilerTokens(command);
+        var options = new List<string>();
+        int sourceCount = 0, packageCount = 0;
+        for(int index=0; index<tokens.Length; ++index) {
+            string token=tokens[index], flag, operand;
+            bool separate=false;
+            if(token == "/D" || token == "/U") {
+                if(index+1 == tokens.Length) throw new ArgumentException("Missing macro operand.");
+                options.Add(token); options.Add(tokens[++index]); continue;
+            }
+            if(token == "/I") {
+                if(index+1 == tokens.Length) throw new ArgumentException("Missing include operand.");
+                flag=token; operand=tokens[++index]; separate=true;
+            } else if(token.StartsWith("/I",StringComparison.Ordinal)) {
+                flag="/I"; operand=token.Substring(2);
+                if(operand.Length == 0) throw new ArgumentException("Missing include operand.");
+            } else { options.Add(token); continue; }
+            bool quoted=operand.Length >= 2 && operand[0] == '"' && operand[operand.Length-1] == '"';
+            string path=Unquote(operand), marker=null;
+            if(path.IndexOf('"') >= 0) throw new ArgumentException("Unsupported include quoting.");
+            if(string.Equals(path,sourceInclude,StringComparison.OrdinalIgnoreCase)) { ++sourceCount; marker="<DXUI_SOURCE_INCLUDE>"; }
+            else if(string.Equals(path,packageInclude,StringComparison.OrdinalIgnoreCase)) { ++packageCount; marker="<DXUI_PACKAGE_INCLUDE>"; }
+            if(marker == null) {
+                if(separate) { options.Add(flag); options.Add(operand); }
+                else options.Add(flag+operand);
+                continue;
+            }
+            string normalized=quoted ? "\""+marker+"\"" : marker;
+            if(separate) { options.Add(flag); options.Add(normalized); }
+            else options.Add(flag+normalized);
+        }
+        if(sourceCount != 1 || packageCount != 1)
+            throw new ArgumentException("Each command must contain exactly one declared DxUi source and package include.");
+        return string.Join(" ",options);
+    }
+    public static string VerifyCompilerCommands(string[] lines,string root,string[] relativeSources,string expected,string[] adoptionIncludes=null) {
         string[] reviewed = relativeSources.Select(value => root.TrimEnd('\\','/')+"\\"+value.Replace('/','\\')).ToArray();
+        string adopted = null;
         foreach(string source in reviewed) {
             var commands = new List<string>();
             for(int index = 0; index+1 < lines.Length; ++index) {
@@ -135,7 +172,16 @@ public static class PairedEvidenceReference {
             string normalized = NormalizeCompilerCommand(commands[0],root,source,reviewed);
             if(!string.Equals(normalized,expected,StringComparison.Ordinal))
                 throw new ArgumentException("Raw compiler options do not reproduce the recorded normalized profile.");
+            string candidate=adoptionIncludes == null ? normalized :
+                NeutralizeDependencyIncludes(normalized,adoptionIncludes[0],adoptionIncludes[1]);
+            if(adopted != null && !string.Equals(adopted,candidate,StringComparison.Ordinal))
+                throw new ArgumentException("Per-source compiler commands differ after exact dependency include normalization.");
+            adopted=candidate;
         }
+        return adopted;
+    }
+    public static string NeutralizeCompilerProfile(string command,string sourceInclude,string packageInclude) {
+        return NeutralizeDependencyIncludes(command,sourceInclude,packageInclude);
     }
 }
 }
@@ -148,6 +194,10 @@ function Require([bool]$Condition,[string]$Message) {
 }
 function Near([double]$Actual,[double]$Expected,[string]$Message) {
     Require ([double]::IsFinite($Actual) -and [math]::Abs($Actual-$Expected) -le 1e-10*[math]::Max(1.0,[math]::Abs($Expected))) $Message
+}
+function Test-NonnegativeEvidenceNumber([object]$Value) {
+    return ($Value -is [int] -or $Value -is [long] -or $Value -is [double] -or $Value -is [decimal] -or $Value -is [bigint]) -and
+        [double]::IsFinite([double]$Value) -and [double]$Value -ge 0
 }
 Near ([RedTilde.PairedEvidenceReference]::Median(@(4.0,1.0,3.0,2.0))) 2.5 'Reference even median.'
 $signs=[double[]]@(1,1,1,1,1,1,1,1,1,1,-1,-1)
@@ -169,9 +219,13 @@ function Assert-CompilerProfileEvidence {
         if(Test-Path -LiteralPath (Join-Path $Root $leaf)) {$current=$true}
     }
     if(-not $current) {return}
+    $adoption=$Study.Contains('dependencyComparisonMode') -and $Study.dependencyComparisonMode -ceq 'sdk-adoption'
+    $reviewed=$Study.Contains('dependencyComparisonMode') -and $Study.dependencyComparisonMode -ceq 'reviewed-header-delta'
+    $adoptionCommands=[ordered]@{}
     foreach($side in 'baseline','candidate') {
         $profile=$Study[$side].compiler
-        Require ($profile.Contains('schemaVersion') -and $profile.schemaVersion -eq 2 -and @($profile.commands).Count -eq 1 -and
+        Require ($profile.Contains('schemaVersion') -and ($profile.schemaVersion -is [int] -or $profile.schemaVersion -is [long]) -and
+            $profile.schemaVersion -eq 2 -and @($profile.commands).Count -eq 1 -and
             @($profile.translationUnits).Count -gt 0 -and $profile.Contains('sourceRoot') -and
             [IO.Path]::IsPathFullyQualified([string]$profile.sourceRoot)) 'Compiler profile schema/inventory is incomplete or downgraded.'
         $command=[string]$profile.commands[0]
@@ -191,11 +245,521 @@ function Assert-CompilerProfileEvidence {
         Require ($raw.file -and [IO.Path]::GetFileName([string]$raw.file) -ceq $raw.file -and
             $raw.sha256 -ceq $profile.rawSha256 -and
             (Get-FileHash -LiteralPath (Join-Path $Root $raw.file)).Hash -ceq $raw.sha256) 'Raw compiler command bytes differ from their profile.'
-        [RedTilde.PairedEvidenceReference]::VerifyCompilerCommands([string[]]@(Get-Content -LiteralPath (Join-Path $Root $raw.file)),
-            [string]$profile.sourceRoot,[string[]]@($profile.translationUnits|ForEach-Object source),$command)
+        $adoptionIncludes=$null
+        if($adoption -or $reviewed) {
+            $dependency=$Study[$side].build.dependency
+            $platform=[string]$dependency.Identity.platform
+            $triplet=if($platform -ceq 'ARM64') { 'arm64-windows' } else { 'x64-windows' }
+            $sourceInclude='<ROOT>\.BUILD\DEPENDENCIES\DXUI\SOURCE\'+[string]$dependency.Identity.commit+'\INCLUDE'
+            $packageInclude='<ROOT>\.BUILD\DEPENDENCIES\DXUI\'+[string]$dependency.Fingerprint+'\VCPKG_INSTALLED\'+$platform+'\'+$triplet+'\INCLUDE'
+            $adoptionIncludes=[string[]]@($sourceInclude,$packageInclude)
+        }
+        $adoptionCommands[$side]=[RedTilde.PairedEvidenceReference]::VerifyCompilerCommands(
+            [string[]]@(Get-Content -LiteralPath (Join-Path $Root $raw.file)),[string]$profile.sourceRoot,
+            [string[]]@($profile.translationUnits|ForEach-Object source),$command,$adoptionIncludes)
+    }
+    if($adoption -or $reviewed) { Require ($adoptionCommands.baseline -ceq $adoptionCommands.candidate) 'Raw compiler commands differ beyond the two declared SDK include paths.' }
+}
+
+function Assert-ReviewedHeaderProbeContext($Profile) {
+    Require ($Profile.abiProbe.fullApplicationCompileContextExact -is [bool] -and
+        $Profile.abiProbe.fullApplicationCompileContextExact -ceq $false -and
+        $Profile.abiProbe.fullApplicationLinkContextExact -is [bool] -and
+        $Profile.abiProbe.fullApplicationLinkContextExact -ceq $false) 'The isolated source probe must not be represented as full application compile/link context equivalence.'
+}
+
+function Get-ReviewedHeaderProfileEvidence {
+    param([Collections.IDictionary]$Study,$Comparison,[string]$StudyRoot,$Inventories)
+    function Get-ProfileRows($Headers,[string]$Side) {
+        Require ($Headers.schemaVersion -eq 2 -and @($Headers.files).Count -eq 58) "$Side profile inventory must be schema 2 with 58 entries."
+        $paths=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+        $source=[Collections.Generic.List[string]]::new();$package=[Collections.Generic.List[string]]::new()
+        foreach($row in $Headers.files) {
+            $path=[string]$row.path;$segments=@($path -split '/')
+            Require ($path -cmatch '^(include|package-include)/[A-Za-z0-9_.+/-]+$' -and
+                @($segments|Where-Object {$_ -cin @('','.','..')}).Count -eq 0 -and
+                [string]$row.sha256 -cmatch '^[0-9A-F]{64}$' -and $paths.Add($path)) "$Side profile contains a malformed or duplicate path/hash row."
+            $record=$path+':'+[string]$row.sha256
+            if($path.StartsWith('include/',[StringComparison]::Ordinal)){$source.Add($record)}else{$package.Add($record)}
+        }
+        if($source.Count -ne 25 -or $package.Count -ne 33) { throw "$Side profile inventory counts are not 25/33." }
+        [string[]]$sourceRows=$source.ToArray();[string[]]$packageRows=$package.ToArray();[string[]]$allRows=[string[]]@($sourceRows+$packageRows)
+        [Array]::Sort($sourceRows,[StringComparer]::Ordinal);[Array]::Sort($packageRows,[StringComparer]::Ordinal);[Array]::Sort($allRows,[StringComparer]::Ordinal)
+        $hashRows={param([string[]]$Rows) [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($Rows -join "`n"))))}
+        Require ((& $hashRows $sourceRows) -ceq $Headers.sourceSha256 -and (& $hashRows $packageRows) -ceq $Headers.packageSha256 -and
+            (& $hashRows $allRows) -ceq $Headers.combinedSha256) "$Side profile inventory digests do not recompute."
+        return [ordered]@{source=$sourceRows;package=$packageRows}
+    }
+    $repoRoot=Split-Path $PSScriptRoot -Parent
+    $profileId=[string]$Study.reviewedHeaderDelta.profileId
+    if($profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1') {
+        $path=Join-Path $PSScriptRoot 'Fixtures/ReviewedHeaderDeltaProfile.v1.json'
+    } elseif($profileId -ceq 'redtilde-dxui-parsed-snapshot-api4-v2') {
+        $path=Join-Path $repoRoot 'Build/ReviewedHeaderDeltaProfile.json'
+    } else { throw 'The independent auditor does not recognize this reviewed-header profile ID.' }
+    Require (Test-Path -LiteralPath $path -PathType Leaf) 'The fixed reviewed-header profile evidence is missing.'
+    $raw=[IO.File]::ReadAllBytes($path);$hash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($raw))
+    Require ($Study.reviewedHeaderDelta.file -ceq 'reviewed-header-profile.json' -and
+        (Get-FileHash -LiteralPath (Join-Path $StudyRoot $Study.reviewedHeaderDelta.file)).Hash -ceq $hash -and
+        [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $StudyRoot $Study.reviewedHeaderDelta.file))) -ceq [Convert]::ToBase64String($raw)) 'Copied study profile bytes differ from the fixed repository profile.'
+    $profile=[Text.Encoding]::UTF8.GetString($raw)|ConvertFrom-Json -AsHashtable
+    $isV1=$profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1'
+    if($isV1) {
+        Require ($profile.schema -ceq 'redtilde-reviewed-dxui-header-delta-profile-v1' -and
+            $profile.profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1' -and
+            $profile.status -ceq 'ready-reviewed-exact-pair') 'The fixed v1 profile is blocked or has an unknown ID.'
+        Require ($profile.baseline.commit -ceq '2fed82465dcee9f213753754e0e8e54f353cf38f' -and
+            $profile.baseline.tree -ceq '2c0641bc363bf713cfc709d721c3f6549dd5aef8' -and
+            $profile.candidate.commit -ceq '47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a' -and
+            $profile.candidate.tree -ceq '3ee2e12647ca2e05113823eb172bb0facf879021' -and
+            $profile.expectedApiRevision -eq 4) 'The v1 profile does not bind the exact SDK commit/tree/API pair.'
+        $expectedPairPaths=[string[]]@('include/DxUi/DxUi.h','include/DxUi/RichDocument.h')
+    } else {
+        Require ($profile.schema -ceq 'redtilde-reviewed-dxui-header-delta-profile-v2' -and
+            $profile.profileId -ceq 'redtilde-dxui-parsed-snapshot-api4-v2' -and
+            $profile.status -ceq 'ready-reviewed-exact-pair') 'The fixed v2 profile is blocked or has an unknown ID.'
+        Require ($profile.baseline.commit -ceq '47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a' -and
+            $profile.baseline.tree -ceq '3ee2e12647ca2e05113823eb172bb0facf879021' -and
+            $profile.candidate.commit -ceq '4077f57df8207eac6c39c43437feb45b19d23cf8' -and
+            $profile.candidate.tree -ceq '18be66885916f67cafd8aeb761207bf15fbd9120' -and
+            $profile.expectedApiRevision -eq 4) 'The v2 profile does not bind the exact SDK commit/tree/API pair.'
+        $expectedPairPaths=[string[]]@('include/DxUi/DxUi.h','include/DxUi/MarkdownSyntax.h','include/DxUi/RichDocument.h')
+    }
+    Require ($profile.allOtherInventoryRowsMustBeIdentical -ceq $true -and $profile.packageHeadersUnchanged -ceq $true -and
+        ($profile.dependencyFieldChanges -join '|') -ceq 'Fingerprint|Identity.commit' -and
+        ($profile.compilerPathOperandsOnly -join '|') -ceq 'one exact DxUi source /I|one exact fingerprinted package /I') 'The fixed profile broadens the exact dependency/compiler allowlist.'
+    Require ($Study.reviewedHeaderDelta.profileId -ceq $profile.profileId -and
+        $Comparison.reviewedHeaderDelta.profileId -ceq $profile.profileId -and
+        $Study.reviewedHeaderDelta.profileSha256 -ceq $hash -and
+        $Comparison.reviewedHeaderDelta.profileSha256 -ceq $hash) 'Study/comparison do not bind the exact fixed profile bytes.'
+    Require ((ConvertTo-Json $Study.reviewedHeaderDelta.abiProbe -Depth 20 -Compress) -ceq
+        (ConvertTo-Json $profile.abiProbe -Depth 20 -Compress)) 'Study ABI probe evidence differs from the fixed profile.'
+    $profilePairPaths=[string[]]@($profile.allowedHeaderHashPairs|ForEach-Object {[string]$_.sourcePath}|Sort-Object -CaseSensitive)
+    Require ($profilePairPaths.Count -eq $expectedPairPaths.Count -and
+        ($profilePairPaths -join "`n") -ceq (($expectedPairPaths|Sort-Object -CaseSensitive) -join "`n")) 'The fixed profile must enumerate exactly its reviewed SDK source header changes.'
+    foreach($pair in $profile.allowedHeaderHashPairs) {
+        Require ($pair.baselineSha256 -ceq $profile.baseline.publicHeaders.files.Where({$_.path -ceq $pair.sourcePath}).sha256 -and
+            $pair.candidateSha256 -ceq $profile.candidate.publicHeaders.files.Where({$_.path -ceq $pair.sourcePath}).sha256) 'A profile pair differs from its complete inventory rows.'
+    }
+    foreach($side in 'baseline','candidate') {
+        $dependency=$Study[$side].build.dependency;$expected=$profile[$side]
+        Require ($dependency.Identity.commit -ceq $expected.commit -and $dependency.Fingerprint -ceq $expected.dependencyFingerprint -and
+            $dependency.Identity.apiRevision -eq 4) "The $side SDK identity differs from the exact profile."
+        Require (($dependency.Identity|ConvertTo-Json -Depth 20 -Compress) -ceq
+            ($expected.identity|ConvertTo-Json -Depth 20 -Compress)) "The $side complete SDK toolchain identity differs from the exact profile."
+        $profileRows=Get-ProfileRows $expected.publicHeaders $side
+        Require (($Inventories[$side].source -join "`n") -ceq ($profileRows.source -join "`n") -and
+            ($Inventories[$side].package -join "`n") -ceq ($profileRows.package -join "`n")) "$side order-independent complete inventory differs from the fixed profile."
+    }
+    if($isV1) {
+    Require ($profile.abiProbe.protocol -ceq 'dxui-readonly-source-snapshot-abi-probe-v1' -and
+        $profile.abiProbe.sourceSha256 -cmatch '^[0-9A-F]{64}$' -and
+        $profile.abiProbe.fullReceiptSha256 -cmatch '^[0-9A-F]{64}$' -and
+        $profile.abiProbe.normalizedProbeCompileArgsEqual -ceq $true -and
+        $profile.abiProbe.classLayoutEqual -ceq $true -and
+        $profile.abiProbe.newMethodAvailableOnlyOnCandidate -ceq $true -and
+        $profile.abiProbe.fullContextLimit) 'ABI probe source/full receipt, required results or scope limit are missing.'
+    Assert-ReviewedHeaderProbeContext $profile
+    try {$probeSource=[Convert]::FromBase64String([string]$profile.abiProbe.sourceBase64)} catch {throw 'ABI probe source base64 is invalid.'}
+    Require ([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($probeSource)) -ceq $profile.abiProbe.sourceSha256) 'Embedded ABI probe source hash differs.'
+    foreach($side in 'baseline','candidate') {
+        foreach($type in 'RichTextEditor','Document') {
+            $layout=$profile.abiProbe[$side][$type]
+            Require (($layout.sizeBytes -is [int] -or $layout.sizeBytes -is [long]) -and $layout.sizeBytes -gt 0 -and
+                ($layout.alignmentBytes -is [int] -or $layout.alignmentBytes -is [long]) -and $layout.alignmentBytes -gt 0) "ABI probe has no valid $side $type layout."
+            $layoutSizeField=if($type -ceq 'RichTextEditor'){'sizeofRichTextEditor'}else{'sizeofRichTextDocument'}
+            $layoutAlignmentField=if($type -ceq 'RichTextEditor'){'alignofRichTextEditor'}else{'alignofRichTextDocument'}
+            Require ($layout.sizeBytes -eq $profile.abiProbe[$side].values[$layoutSizeField] -and
+                $layout.alignmentBytes -eq $profile.abiProbe[$side].values[$layoutAlignmentField]) "ABI $side $type labels differ from the compiler-probe values."
+        }
+        $sideEvidence=$profile.abiProbe[$side];$binding=$profile[$side]
+        Require ($sideEvidence.receiptSha256 -cmatch '^[0-9A-F]{64}$' -and
+            $sideEvidence.normalizedApplicationCompilerProfileSha256 -cmatch '^[0-9A-F]{64}$' -and
+            $sideEvidence.probeApplicationCompilerTlogSha256 -cmatch '^[0-9A-F]{64}$' -and
+            $sideEvidence.applicationLinkCommandSha256 -cmatch '^[0-9A-F]{64}$') "$side ABI side projection lacks compiler receipt hashes."
+        $projection=[ordered]@{side=$side;sdkCommit=$binding.commit;fingerprint=$binding.dependencyFingerprint;apiRevision=4;
+            headerInventorySha256=$binding.publicHeaders.combinedSha256;compilerSha256=$binding.identity.compilerSha256;
+            linkerSha256=$binding.identity.linkerSha256;normalizedApplicationCompilerProfileSha256=$sideEvidence.normalizedApplicationCompilerProfileSha256;
+            probeApplicationCompilerTlogSha256=$sideEvidence.probeApplicationCompilerTlogSha256;
+            applicationLinkCommandSha256=$sideEvidence.applicationLinkCommandSha256;values=$sideEvidence.values}
+        $projectionHash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $projection -Depth 12 -Compress))) )
+        Require ($projectionHash -ceq $sideEvidence.receiptSha256) "$side ABI side-projection checksum differs."
+    }
+    Require ($profile.abiProbe.baseline.RichTextEditor.sizeBytes -eq $profile.abiProbe.candidate.RichTextEditor.sizeBytes -and
+        $profile.abiProbe.baseline.RichTextEditor.alignmentBytes -eq $profile.abiProbe.candidate.RichTextEditor.alignmentBytes -and
+        $profile.abiProbe.baseline.Document.sizeBytes -eq $profile.abiProbe.candidate.Document.sizeBytes -and
+        $profile.abiProbe.baseline.Document.alignmentBytes -eq $profile.abiProbe.candidate.Document.alignmentBytes -and
+        $profile.abiProbe.baseline.values.hasReadOnlySourceSynchronization -ceq $false -and
+        $profile.abiProbe.candidate.values.hasReadOnlySourceSynchronization -ceq $true -and
+        $profile.abiProbe.candidate.newMethodSignatureVerified -ceq $true) 'ABI probe layout or candidate method signature is not verified.'
+    foreach($field in @('sizeofSourceSnapshot','alignofSourceSnapshot','controlIsPolymorphic','richTextEditorIsPolymorphic','msvcVersion','msvcLang','iteratorDebugLevel')) {
+        Require ($profile.abiProbe.baseline.values[$field] -ceq $profile.abiProbe.candidate.values[$field]) "ABI probe $field differs across the reviewed pair."
+    }
+    } else {
+        $probe=$profile.abiProbe
+        Require ($probe.protocol -ceq 'dxui-parsed-source-snapshot-source-probe-v2' -and
+            $probe.sourceSha256 -cmatch '^[0-9A-F]{64}$' -and $probe.fullReceiptSha256 -cmatch '^[0-9A-F]{64}$' -and
+            $probe.normalizedProbeCompileArgsEqual -ceq $true -and $probe.layoutDeltaVerified -is [bool] -and
+            $probe.layoutDeltaVerified -ceq $true -and $probe.newMethodSignaturesVerified -is [bool] -and
+            $probe.newMethodSignaturesVerified -ceq $true -and $probe.fullContextLimit -is [string] -and
+            -not [string]::IsNullOrWhiteSpace($probe.fullContextLimit) -and
+            $probe.fullContextLimit -match '(?i)isolated' -and $probe.fullContextLimit -match '(?i)\bPCH\b' -and
+            $probe.fullContextLimit -match '(?i)\blibrary\b' -and $probe.fullContextLimit -match '(?i)\b(no|not|without)\b') 'Parsed-snapshot source probe source, receipts, measured rules or scope limit are missing.'
+        foreach($side in 'baseline','candidate') {
+            foreach($field in 'hasReadOnlySourceSynchronization','hasSourceSnapshotMatchesText','hasParsedSnapshotAdoption','hasReadOnlyMarkdownSyntaxAdoption') {
+                Require ($probe[$side].values[$field] -is [bool]) "Parsed-snapshot $side method predicate $field must be a JSON boolean."
+            }
+        }
+        Assert-ReviewedHeaderProbeContext $profile
+        try {$probeSource=[Convert]::FromBase64String([string]$probe.sourceBase64)} catch {throw 'Parsed-snapshot probe source base64 is invalid.'}
+        Require ([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($probeSource)) -ceq $probe.sourceSha256) 'Embedded parsed-snapshot probe source hash differs.'
+        foreach($side in 'baseline','candidate') {
+            foreach($type in 'MarkdownSyntax','MarkdownParser','RichTextEditor','SourceSnapshot','Document') {
+                $layout=$probe[$side][$type]
+                Require (($layout.sizeBytes -is [int] -or $layout.sizeBytes -is [long]) -and $layout.sizeBytes -gt 0 -and
+                    ($layout.alignmentBytes -is [int] -or $layout.alignmentBytes -is [long]) -and $layout.alignmentBytes -gt 0) "Parsed-snapshot probe has no valid $side $type layout."
+                $fieldBase=if($type -ceq 'RichTextEditor'){'RichTextEditor'}elseif($type -ceq 'SourceSnapshot'){'SourceSnapshot'}elseif($type -ceq 'Document'){'RichTextDocument'}else{$type}
+                Require ($layout.sizeBytes -eq $probe[$side].values["sizeof$fieldBase"] -and
+                    $layout.alignmentBytes -eq $probe[$side].values["alignof$fieldBase"]) "Parsed-snapshot $side $type labels differ from compiler-probe values."
+            }
+            $sideEvidence=$probe[$side];$binding=$profile[$side]
+            Require ($sideEvidence.receiptSha256 -cmatch '^[0-9A-F]{64}$' -and
+                $sideEvidence.normalizedApplicationCompilerProfileSha256 -cmatch '^[0-9A-F]{64}$' -and
+                $sideEvidence.probeApplicationCompilerTlogSha256 -cmatch '^[0-9A-F]{64}$' -and
+                $sideEvidence.applicationLinkCommandSha256 -cmatch '^[0-9A-F]{64}$') "$side parsed-snapshot projection lacks compiler receipt hashes."
+            $projection=[ordered]@{side=$side;sdkCommit=$binding.commit;fingerprint=$binding.dependencyFingerprint;apiRevision=4;
+                headerInventorySha256=$binding.publicHeaders.combinedSha256;compilerSha256=$binding.identity.compilerSha256;
+                linkerSha256=$binding.identity.linkerSha256;normalizedApplicationCompilerProfileSha256=$sideEvidence.normalizedApplicationCompilerProfileSha256;
+                probeApplicationCompilerTlogSha256=$sideEvidence.probeApplicationCompilerTlogSha256;
+                applicationLinkCommandSha256=$sideEvidence.applicationLinkCommandSha256;values=$sideEvidence.values}
+            $projectionHash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes((ConvertTo-Json -InputObject $projection -Depth 12 -Compress))))
+            Require ($projectionHash -ceq $sideEvidence.receiptSha256) "$side parsed-snapshot side-projection checksum differs."
+        }
+        Require ($probe.candidate.MarkdownSyntax.sizeBytes -eq ($probe.baseline.MarkdownSyntax.sizeBytes + 16) -and
+            $probe.candidate.MarkdownSyntax.alignmentBytes -eq $probe.baseline.MarkdownSyntax.alignmentBytes) 'MarkdownSyntax must grow exactly 16 bytes with unchanged alignment.'
+        foreach($type in 'MarkdownParser','RichTextEditor','SourceSnapshot','Document') {
+            Require ($probe.baseline[$type].sizeBytes -eq $probe.candidate[$type].sizeBytes -and
+                $probe.baseline[$type].alignmentBytes -eq $probe.candidate[$type].alignmentBytes) "Parsed-snapshot probe detects a $type layout change."
+        }
+        Require ($probe.baseline.values.hasReadOnlySourceSynchronization -ceq $true -and
+            $probe.candidate.values.hasReadOnlySourceSynchronization -ceq $true -and
+            $probe.baseline.values.hasSourceSnapshotMatchesText -ceq $false -and
+            $probe.candidate.values.hasSourceSnapshotMatchesText -ceq $true -and
+            $probe.baseline.values.hasParsedSnapshotAdoption -ceq $false -and
+            $probe.candidate.values.hasParsedSnapshotAdoption -ceq $true -and
+            $probe.baseline.values.hasReadOnlyMarkdownSyntaxAdoption -ceq $false -and
+            $probe.candidate.values.hasReadOnlyMarkdownSyntaxAdoption -ceq $true) 'Parsed-snapshot method availability flags differ from the exact API pair.'
+        foreach($field in @('controlIsPolymorphic','richTextEditorIsPolymorphic','msvcVersion','msvcLang','iteratorDebugLevel')) {
+            Require ($probe.baseline.values[$field] -ceq $probe.candidate.values[$field]) "Parsed-snapshot probe $field differs across the reviewed pair."
+        }
+    }
+    return $profile
+}
+
+function Assert-CommonHarnessInputIdentity($Study,$Comparison) {
+    $legacyKeys=[string[]]@('Tests/Application.Tests.Performance.cpp','Tests/Application.Tests.HeapDiagnostic.h',
+        'RedTilde/Main.cpp','RedTilde/EditDiagnostics.h','performance-paired.ps1','Build/Performance.psm1',
+        'Build/Harness.psm1','docs/examples/s5-performance.md')
+    $historicalSevenKeys=[string[]]@('Tests/Scope.Tests.Performance.cpp','RedTilde/Main.cpp','RedTilde/EditDiagnostics.h',
+        'performance-paired.ps1','Build/Performance.psm1','Build/Harness.psm1','docs/examples/s5-performance.md')
+    $profileKey='Build/ReviewedHeaderDeltaProfile.json'
+    $currentKeys=[string[]]@($legacyKeys+$profileKey)
+    $mode=''
+    if($Study.Contains('dependencyComparisonMode')) {$mode=[string]$Study.dependencyComparisonMode}
+    $legacySchemaLessReceipt=(-not $Study.Contains('dependencyComparisonMode') -and
+        -not $Study.Contains('reviewedHeaderDelta') -and -not $Study.Contains('compilerReceipts'))
+    if($legacySchemaLessReceipt) {
+        $expectedCompilerKeys=[string[]]@('sha256','commands','rawSha256')
+        foreach($side in @('baseline','candidate')) {
+            $compiler=$Study[$side].compiler
+            if($null -eq $compiler -or $compiler.Contains('schemaVersion') -or $compiler.Contains('translationUnits') -or
+                $compiler.Contains('sourceRoot') -or $compiler.Contains('rawFile') -or
+                @($compiler.Keys|Sort-Object -CaseSensitive).Count -ne $expectedCompilerKeys.Count -or
+                @(Compare-Object ([string[]]@($compiler.Keys|Sort-Object -CaseSensitive)) ([string[]]@($expectedCompilerKeys|Sort-Object -CaseSensitive)) -CaseSensitive).Count -ne 0 -or
+                $compiler.sha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or $compiler.rawSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+                @($compiler.commands).Count -eq 0 -or @($compiler.commands|Where-Object {$_ -isnot [string] -or [string]::IsNullOrWhiteSpace($_)}).Count -gt 0) {
+                $legacySchemaLessReceipt=$false
+                break
+            }
+        }
+    }
+    $maps=@($Study.baseline.inputs,$Study.candidate.inputs,$Comparison.harnessInputs)
+    $labels=@('baseline','candidate','comparison')
+    $keySets=[Collections.Generic.List[string[]]]::new()
+    for($mapIndex=0;$mapIndex -lt $maps.Count;++$mapIndex) {
+        $map=$maps[$mapIndex]
+        Require ($map -is [Collections.IDictionary]) "$($labels[$mapIndex]) common harness inputs must be a key/value map."
+        $keys=[string[]]@($map.Keys|ForEach-Object {[string]$_})
+        $caseFold=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+        foreach($key in $keys) {
+            Require ($caseFold.Add($key) -and $map[$key] -is [string] -and $map[$key] -cmatch '^[0-9A-Fa-f]{64}$') "$($labels[$mapIndex]) common input key/hash is malformed or duplicated."
+        }
+        [Array]::Sort($keys,[StringComparer]::Ordinal)
+        $isLegacy=$keys.Count -eq $legacyKeys.Count -and @(Compare-Object $keys ([string[]]@($legacyKeys|Sort-Object -CaseSensitive)) -CaseSensitive).Count -eq 0
+        $isCurrent=$keys.Count -eq $currentKeys.Count -and @(Compare-Object $keys ([string[]]@($currentKeys|Sort-Object -CaseSensitive)) -CaseSensitive).Count -eq 0
+        $isHistoricalSeven=$legacySchemaLessReceipt -and $keys.Count -eq $historicalSevenKeys.Count -and
+            @(Compare-Object $keys ([string[]]@($historicalSevenKeys|Sort-Object -CaseSensitive)) -CaseSensitive).Count -eq 0
+        Require ($isLegacy -or $isCurrent -or $isHistoricalSeven) "$($labels[$mapIndex]) inputs must be an exact declared 8/9-key current set or the exact 7-key unmarked schema-less legacy set."
+        $keySets.Add($keys)
+    }
+    for($mapIndex=1;$mapIndex -lt $keySets.Count;++$mapIndex) {
+        Require ((@($keySets[0])-join "`n") -ceq (@($keySets[$mapIndex])-join "`n")) 'Baseline, candidate and comparison common-input key sets/cardinality differ.'
+    }
+    foreach($key in $keySets[0]) {
+        Require ($Study.baseline.inputs[$key] -ceq $Study.candidate.inputs[$key] -and
+            $Study.baseline.inputs[$key] -ceq $Comparison.harnessInputs[$key]) "Common harness input digest differs: $key"
+    }
+    if($mode -ceq 'reviewed-header-delta') {
+        Require ($keySets[0].Count -eq 9 -and $keySets[0] -ccontains $profileKey -and
+            $Study.reviewedHeaderDelta.profileSha256 -cmatch '^[0-9A-Fa-f]{64}$' -and
+            $Study.baseline.inputs[$profileKey] -ceq $Study.reviewedHeaderDelta.profileSha256) 'Reviewed-header mode requires the ninth fixed-profile common input bound to its profile digest.'
     }
 }
 
+function Assert-DependencyEvidence($Study,$Comparison,[string]$StudyRoot) {
+    $base=$Study.baseline.build.dependency; $candidate=$Study.candidate.build.dependency
+    if(-not $Study.Contains('dependencyComparisonMode')) {
+        Require ($base.Fingerprint -ceq $candidate.Fingerprint) 'Compiler/dependency identity differs.'
+        return
+    }
+    $mode=$Study.dependencyComparisonMode
+    Require ($mode -cin @('same-pin','sdk-adoption','reviewed-header-delta') -and $Comparison.dependencyComparisonMode -ceq $mode) 'Invalid dependency comparison mode.'
+    foreach($dependency in @($base,$candidate)) {
+        Require ($dependency.Fingerprint -cmatch '^[0-9a-fA-F]{64}$' -and $dependency.Identity.commit -cmatch '^[0-9a-f]{40}$' -and
+            ($dependency.Identity.apiRevision -is [int] -or $dependency.Identity.apiRevision -is [long]) -and $dependency.Identity.apiRevision -eq 4) 'Invalid dependency build metadata.'
+    }
+    Require ($base.Identity.platform -ceq $Study.baseline.build.platform -and $candidate.Identity.platform -ceq $Study.candidate.build.platform -and
+        $Study.baseline.build.platform -ceq 'x64' -and $Study.candidate.build.platform -ceq 'x64') 'Dependency platform must match the measured x64 build.'
+    $inventories=[ordered]@{}
+    foreach($side in @('baseline','candidate')) {
+        Require ($Study[$side].Contains('publicHeaders')) 'Declared dependency header inventory is missing.'
+        $headers=$Study[$side].publicHeaders
+        Require (($headers.schemaVersion -is [int] -or $headers.schemaVersion -is [long]) -and
+            $headers.schemaVersion -cin @(1,2) -and $headers.files.Count -gt 0 -and $headers.sha256 -cmatch '^[0-9A-F]{64}$') 'Invalid public-header evidence.'
+        if($mode -cin @('sdk-adoption','reviewed-header-delta')) { Require ($headers.schemaVersion -eq 2) 'SDK adoption requires source and package header inventories.' }
+        $paths=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+        $sourceRows=[Collections.Generic.List[string]]::new();$packageRows=[Collections.Generic.List[string]]::new();$allRows=[Collections.Generic.List[string]]::new()
+        foreach($file in $headers.files) {
+            $validPath=if($headers.schemaVersion -eq 1) { $file.path -cmatch '^include/[^:\\]+$' } else { $file.path -cmatch '^(?:include|package-include)/[^:\\]+$' }
+            Require ($validPath -and $file.path -notmatch '(^|/)\.\.?(/|$)' -and
+                $paths.Add($file.path) -and $file.sha256 -cmatch '^[0-9A-F]{64}$') 'Invalid public-header inventory row.'
+            $row=$file.path+':'+$file.sha256;$allRows.Add($row)
+            if($file.path.StartsWith('include/',[StringComparison]::Ordinal)) {$sourceRows.Add($row)} else {$packageRows.Add($row)}
+        }
+        [string[]]$sourceArray=$sourceRows.ToArray();[string[]]$packageArray=$packageRows.ToArray();[string[]]$allArray=$allRows.ToArray()
+        [Array]::Sort($sourceArray,[StringComparer]::Ordinal);[Array]::Sort($packageArray,[StringComparer]::Ordinal);[Array]::Sort($allArray,[StringComparer]::Ordinal)
+        $hashRows={param([string[]]$Rows) [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($Rows -join "`n"))))}
+        Require ((& $hashRows $allArray) -ceq $headers.sha256) 'Public-header inventory checksum differs.'
+        if($headers.schemaVersion -eq 2) {
+            Require ($sourceArray.Count -gt 0 -and $packageArray.Count -gt 0 -and
+                $headers.sourceSha256 -cmatch '^[0-9A-F]{64}$' -and $headers.packageSha256 -cmatch '^[0-9A-F]{64}$' -and
+                ((& $hashRows $sourceArray) -ceq $headers.sourceSha256) -and ((& $hashRows $packageArray) -ceq $headers.packageSha256)) 'Source or package header inventory checksum differs.'
+        } else { Require ($sourceArray.Count -gt 0 -and $packageArray.Count -eq 0) 'Schema-one header inventories cover source headers only.' }
+        $sourceHash=if($headers.Contains('sourceSha256')) {[string]$headers.sourceSha256} else {''}
+        $packageHash=if($headers.Contains('packageSha256')) {[string]$headers.packageSha256} else {''}
+        $inventories[$side]=[ordered]@{schemaVersion=$headers.schemaVersion;source=$sourceArray;package=$packageArray;sourceSha256=$sourceHash;packageSha256=$packageHash}
+    }
+    if($mode -ceq 'same-pin') {
+        Require (($base|ConvertTo-Json -Depth 100 -Compress) -ceq ($candidate|ConvertTo-Json -Depth 100 -Compress)) 'Same-pin dependency metadata differs.'
+        Require (($inventories.baseline.source -join "`n") -ceq ($inventories.candidate.source -join "`n") -and
+            ($inventories.baseline.package -join "`n") -ceq ($inventories.candidate.package -join "`n")) 'Same-pin public header bytes differ.'
+        return
+    }
+    if($mode -ceq 'reviewed-header-delta') {
+        $profile=Get-ReviewedHeaderProfileEvidence $Study $Comparison $StudyRoot $inventories
+        $allowed=if($Study.reviewedHeaderDelta.profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1') {
+            @('include/DxUi/DxUi.h','include/DxUi/RichDocument.h')
+        } else { @('include/DxUi/DxUi.h','include/DxUi/MarkdownSyntax.h','include/DxUi/RichDocument.h') }
+        $baselineHeaderRows=@{};foreach($row in $inventories.baseline.source+$inventories.baseline.package){$parts=$row.Split(':',2);$baselineHeaderRows[$parts[0]]=$parts[1]}
+        $candidateHeaderRows=@{};foreach($row in $inventories.candidate.source+$inventories.candidate.package){$parts=$row.Split(':',2);$candidateHeaderRows[$parts[0]]=$parts[1]}
+        Require ((@($baselineHeaderRows.Keys|Sort-Object -CaseSensitive)-join "`n") -ceq (@($candidateHeaderRows.Keys|Sort-Object -CaseSensitive)-join "`n")) 'Reviewed-header path sets differ.'
+        $changed=@(foreach($key in $baselineHeaderRows.Keys){if($baselineHeaderRows[$key] -cne $candidateHeaderRows[$key]){$key}})
+        Require ($changed.Count -eq $allowed.Count -and @($changed|Where-Object {$allowed -cnotcontains $_}).Count -eq 0 -and
+            $inventories.baseline.source.Count -eq 25 -and $inventories.candidate.source.Count -eq 25 -and
+            $inventories.baseline.package.Count -eq 33 -and $inventories.candidate.package.Count -eq 33) 'The reviewed profile must contain only its exact source-header delta and 33 unchanged package rows.'
+        foreach($pair in $profile.allowedHeaderHashPairs) {
+            Require ($pair.sourcePath -cin $allowed -and $pair.baselineSha256 -ceq $baselineHeaderRows[$pair.sourcePath] -and
+                $pair.candidateSha256 -ceq $candidateHeaderRows[$pair.sourcePath]) 'A reviewed source-header hash pair differs from its full inventory.'
+        }
+        $baselineClone=ConvertFrom-Json -InputObject ($base|ConvertTo-Json -Depth 100 -Compress) -AsHashtable
+        $candidateClone=ConvertFrom-Json -InputObject ($candidate|ConvertTo-Json -Depth 100 -Compress) -AsHashtable
+        $baselineClone.Remove('Fingerprint');$candidateClone.Remove('Fingerprint')
+        $baselineClone.Identity.Remove('commit');$candidateClone.Identity.Remove('commit')
+        Require (($baselineClone|ConvertTo-Json -Depth 100 -Compress) -ceq ($candidateClone|ConvertTo-Json -Depth 100 -Compress)) 'Reviewed profile permits only its exact dependency commit/fingerprint pair.'
+        return
+    }
+    Require ($Study.baseline.publicHeaders.sourceSha256 -ceq $Study.candidate.publicHeaders.sourceSha256 -and
+        $Study.baseline.publicHeaders.packageSha256 -ceq $Study.candidate.publicHeaders.packageSha256 -and
+        ($inventories.baseline.source -join "`n") -ceq ($inventories.candidate.source -join "`n") -and
+        ($inventories.baseline.package -join "`n") -ceq ($inventories.candidate.package -join "`n") -and
+        $base.Identity.apiRevision -eq 4 -and $candidate.Identity.apiRevision -eq 4) 'Adoption public-header/API identity differs.'
+    Require ($base.Fingerprint -cmatch '^[0-9a-fA-F]{64}$' -and $candidate.Fingerprint -cmatch '^[0-9a-fA-F]{64}$' -and
+        $base.Identity.commit -cmatch '^[0-9a-f]{40}$' -and $candidate.Identity.commit -cmatch '^[0-9a-f]{40}$') 'Invalid adoption dependency metadata.'
+    Require ((@($base.Keys|Sort-Object)|ConvertTo-Json -Compress) -ceq (@($candidate.Keys|Sort-Object)|ConvertTo-Json -Compress) -and
+        (@($base.Identity.Keys|Sort-Object)|ConvertTo-Json -Compress) -ceq (@($candidate.Identity.Keys|Sort-Object)|ConvertTo-Json -Compress)) 'Adoption dependency field sets differ.'
+    foreach($key in $base.Keys) {
+        if($key -ceq 'Fingerprint'){continue}
+        if($key -ceq 'Identity') {
+            foreach($field in $base.Identity.Keys) {
+                if($field -ceq 'commit'){continue}
+                Require (($base.Identity[$field]|ConvertTo-Json -Depth 100 -Compress) -ceq
+                    ($candidate.Identity[$field]|ConvertTo-Json -Depth 100 -Compress)) 'Adoption changed dependency build or ABI fields.'
+            }
+        } else {
+            Require (($base[$key]|ConvertTo-Json -Depth 100 -Compress) -ceq ($candidate[$key]|ConvertTo-Json -Depth 100 -Compress)) 'Adoption changed outer dependency fields.'
+        }
+    }
+    Require (($base.Identity.commit -ceq $candidate.Identity.commit) -eq ($base.Fingerprint -ceq $candidate.Fingerprint)) 'Adoption commit/fingerprint changes must agree.'
+}
+if($SelfTest) {
+    $repoRoot=Split-Path $PSScriptRoot -Parent
+    $profilePath=Join-Path $repoRoot 'Build/ReviewedHeaderDeltaProfile.json'
+    $profileBytes=[IO.File]::ReadAllBytes($profilePath)
+    $profileHash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($profileBytes))
+    $profile=[Text.Encoding]::UTF8.GetString($profileBytes)|ConvertFrom-Json -AsHashtable
+    Require ($profile.status -ceq 'ready-reviewed-exact-pair') 'Private new-mode selftest requires the approved fixed profile data.'
+    $fixtureRoot=Join-Path $repoRoot ('.build/independent-header-profile-selftest/'+[guid]::NewGuid().ToString('N'))
+    [void][IO.Directory]::CreateDirectory($fixtureRoot)
+    $profileCopy=Join-Path $fixtureRoot 'reviewed-header-profile.json'
+    [IO.File]::WriteAllBytes($profileCopy,$profileBytes)
+    Assert-ReviewedHeaderProbeContext $profile
+    foreach($field in @('fullApplicationCompileContextExact','fullApplicationLinkContextExact')) {
+        foreach($invalidValue in @($true,0,'False')) {
+            $badContext=ConvertFrom-Json -InputObject (ConvertTo-Json $profile -Depth 40 -Compress) -AsHashtable
+            $badContext.abiProbe[$field]=$invalidValue
+            $rejected=$false;try {Assert-ReviewedHeaderProbeContext $badContext}catch{$rejected=$true}
+            Require $rejected "Independent source-probe context guard rejects non-false/$($invalidValue.GetType().Name) value for $field."
+        }
+    }
+    $makeStudy={
+        $study=[ordered]@{dependencyComparisonMode='reviewed-header-delta'}
+        $commonInputs=[ordered]@{}
+        foreach($key in @('Tests/Application.Tests.Performance.cpp','Tests/Application.Tests.HeapDiagnostic.h',
+            'RedTilde/Main.cpp','RedTilde/EditDiagnostics.h','performance-paired.ps1','Build/Performance.psm1',
+            'Build/Harness.psm1','docs/examples/s5-performance.md')) {$commonInputs[$key]='A'*64}
+        $commonInputs['Build/ReviewedHeaderDeltaProfile.json']=$profileHash
+        foreach($side in 'baseline','candidate') {
+            $binding=$profile[$side]
+            $identity=ConvertFrom-Json -InputObject (ConvertTo-Json $binding.identity -Depth 30 -Compress) -AsHashtable
+            $dependency=[ordered]@{Fingerprint=$binding.dependencyFingerprint;Identity=$identity}
+            $headers=ConvertFrom-Json -InputObject (ConvertTo-Json $binding.publicHeaders -Depth 30 -Compress) -AsHashtable
+            $headers.sha256=$headers.combinedSha256
+            $inputs=ConvertFrom-Json -InputObject (ConvertTo-Json $commonInputs -Depth 10 -Compress) -AsHashtable
+            $study[$side]=[ordered]@{build=[ordered]@{platform='x64';dependency=$dependency};publicHeaders=$headers;inputs=$inputs}
+        }
+        $study.reviewedHeaderDelta=[ordered]@{file='reviewed-header-profile.json';profileId=$profile.profileId;profileSha256=$profileHash;
+            abiProbe=ConvertFrom-Json -InputObject (ConvertTo-Json $profile.abiProbe -Depth 30 -Compress) -AsHashtable}
+        $comparisonInputs=ConvertFrom-Json -InputObject (ConvertTo-Json $commonInputs -Depth 10 -Compress) -AsHashtable
+        $comparison=[ordered]@{dependencyComparisonMode='reviewed-header-delta';reviewedHeaderDelta=[ordered]@{profileId=$profile.profileId;profileSha256=$profileHash};harnessInputs=$comparisonInputs}
+        return @($study,$comparison)
+    }
+    function Assert-HeaderProfileRejected($Study,$Comparison,[string]$Label) {
+        $rejected=$false
+        try {Assert-DependencyEvidence $Study $Comparison $fixtureRoot} catch {$rejected=$true}
+        Require $rejected "Independent auditor accepted the invalid reviewed-profile fixture: $Label."
+    }
+    function Assert-CommonInputsRejected($Study,$Comparison,[string]$Label) {
+        $rejected=$false
+        try {Assert-CommonHarnessInputIdentity $Study $Comparison} catch {$rejected=$true}
+        Require $rejected "Independent auditor accepted the invalid common-input fixture: $Label."
+    }
+    $fixture=& $makeStudy;$study=$fixture[0];$comparison=$fixture[1]
+    Assert-CommonHarnessInputIdentity $study $comparison
+    Assert-DependencyEvidence $study $comparison $fixtureRoot
+    Require $true 'Independent auditor accepts the exact reviewed profile and complete two-sided inventories.'
+    $defaultNine=ConvertFrom-Json -InputObject (ConvertTo-Json $study -Depth 40 -Compress) -AsHashtable
+    $defaultComparison=ConvertFrom-Json -InputObject (ConvertTo-Json $comparison -Depth 40 -Compress) -AsHashtable
+    $defaultNine.dependencyComparisonMode='same-pin';$defaultComparison.dependencyComparisonMode='same-pin'
+    $defaultNine.reviewedHeaderDelta=$null
+    Assert-CommonHarnessInputIdentity $defaultNine $defaultComparison
+    Require $true 'Independent input auditor accepts the current nine-file common set on a historical comparison mode.'
+    $historicalEight=ConvertFrom-Json -InputObject (ConvertTo-Json $defaultNine -Depth 40 -Compress) -AsHashtable
+    $historicalComparison=ConvertFrom-Json -InputObject (ConvertTo-Json $defaultComparison -Depth 40 -Compress) -AsHashtable
+    foreach($side in 'baseline','candidate') {$historicalEight[$side].inputs.Remove('Build/ReviewedHeaderDeltaProfile.json')}
+    $historicalComparison.harnessInputs.Remove('Build/ReviewedHeaderDeltaProfile.json')
+    Assert-CommonHarnessInputIdentity $historicalEight $historicalComparison
+    Require $true 'Independent input auditor preserves historical eight-file common sets.'
+    $historicalSevenInputs=[ordered]@{}
+    foreach($key in @('Tests/Scope.Tests.Performance.cpp','RedTilde/Main.cpp','RedTilde/EditDiagnostics.h',
+        'performance-paired.ps1','Build/Performance.psm1','Build/Harness.psm1','docs/examples/s5-performance.md')) {$historicalSevenInputs[$key]='C'*64}
+    $legacyCompiler=[ordered]@{sha256='D'*64;commands=@('/c /O2');rawSha256='E'*64}
+    $historicalSeven=[ordered]@{baseline=[ordered]@{compiler=$legacyCompiler;inputs=(ConvertFrom-Json -InputObject (ConvertTo-Json $historicalSevenInputs -Compress) -AsHashtable)};
+        candidate=[ordered]@{compiler=(ConvertFrom-Json -InputObject (ConvertTo-Json $legacyCompiler -Compress) -AsHashtable);inputs=(ConvertFrom-Json -InputObject (ConvertTo-Json $historicalSevenInputs -Compress) -AsHashtable)}}
+    $historicalSevenComparison=[ordered]@{harnessInputs=(ConvertFrom-Json -InputObject (ConvertTo-Json $historicalSevenInputs -Compress) -AsHashtable)}
+    Assert-CommonHarnessInputIdentity $historicalSeven $historicalSevenComparison
+    Require $true 'Independent input auditor accepts exactly seven keys only for unmarked schema-less legacy compiler metadata.'
+    $badInputs=ConvertFrom-Json -InputObject (ConvertTo-Json $study -Depth 40 -Compress) -AsHashtable
+    $badInputs.candidate.inputs.Remove('Build/ReviewedHeaderDeltaProfile.json')
+    Assert-CommonInputsRejected $badInputs $comparison 'candidate common-input key missing'
+    $badInputs=ConvertFrom-Json -InputObject (ConvertTo-Json $study -Depth 40 -Compress) -AsHashtable
+    $badComparison=ConvertFrom-Json -InputObject (ConvertTo-Json $comparison -Depth 40 -Compress) -AsHashtable
+    $badComparison.harnessInputs['Unreviewed.extra']='B'*64
+    Assert-CommonInputsRejected $study $badComparison 'extra comparison common input'
+    $badInputs=ConvertFrom-Json -InputObject (ConvertTo-Json $study -Depth 40 -Compress) -AsHashtable
+    $badInputs.baseline.inputs['Build/ReviewedHeaderDeltaProfile.json']='0'*64
+    $badInputs.candidate.inputs['Build/ReviewedHeaderDeltaProfile.json']='0'*64
+    $badComparison=ConvertFrom-Json -InputObject (ConvertTo-Json $comparison -Depth 40 -Compress) -AsHashtable
+    $badComparison.harnessInputs['Build/ReviewedHeaderDeltaProfile.json']='0'*64
+    Assert-CommonInputsRejected $badInputs $badComparison 'ninth profile common-input hash differs from profile digest'
+    $badInputs=ConvertFrom-Json -InputObject (ConvertTo-Json $study -Depth 40 -Compress) -AsHashtable
+    $badComparison=ConvertFrom-Json -InputObject (ConvertTo-Json $comparison -Depth 40 -Compress) -AsHashtable
+    foreach($side in 'baseline','candidate') {$badInputs[$side].inputs.Remove('Build/ReviewedHeaderDeltaProfile.json')}
+    $badComparison.harnessInputs.Remove('Build/ReviewedHeaderDeltaProfile.json')
+    Assert-CommonInputsRejected $badInputs $badComparison 'reviewed mode cannot downgrade to seven/eight input shape'
+    $badInputs=ConvertFrom-Json -InputObject (ConvertTo-Json $study -Depth 40 -Compress) -AsHashtable
+    $badComparison=ConvertFrom-Json -InputObject (ConvertTo-Json $comparison -Depth 40 -Compress) -AsHashtable
+    foreach($side in 'baseline','candidate') {$badInputs[$side].inputs=$historicalSevenInputs}
+    $badComparison.harnessInputs=$historicalSevenInputs
+    Assert-CommonInputsRejected $badInputs $badComparison 'reviewed mode cannot downgrade to the exact historical seven-key set'
+    $badInputs=ConvertFrom-Json -InputObject (ConvertTo-Json $historicalSeven -Depth 20 -Compress) -AsHashtable
+    $badComparison=ConvertFrom-Json -InputObject (ConvertTo-Json $historicalSevenComparison -Depth 20 -Compress) -AsHashtable
+    $badInputs.reviewedHeaderDelta=[ordered]@{profileId=$profile.profileId;profileSha256=$profileHash}
+    Assert-CommonInputsRejected $badInputs $badComparison 'profile-marked study cannot use legacy seven-key exception'
+    $bad=ConvertFrom-Json -InputObject (ConvertTo-Json $study -Depth 40 -Compress) -AsHashtable
+    $bad.candidate.build.dependency.Identity.commit='0000000000000000000000000000000000000000'
+    Assert-HeaderProfileRejected $bad $comparison 'candidate pin drift'
+    $bad=ConvertFrom-Json -InputObject (ConvertTo-Json $study -Depth 40 -Compress) -AsHashtable
+    $bad.candidate.publicHeaders.files[0].sha256='A'*64
+    Assert-HeaderProfileRejected $bad $comparison 'header inventory hash drift'
+    $bad=ConvertFrom-Json -InputObject (ConvertTo-Json $study -Depth 40 -Compress) -AsHashtable
+    $bad.reviewedHeaderDelta.abiProbe.baseline.RichTextEditor.sizeBytes=$null
+    Assert-HeaderProfileRejected $bad $comparison 'missing ABI layout evidence'
+    $bad=ConvertFrom-Json -InputObject (ConvertTo-Json $study -Depth 40 -Compress) -AsHashtable
+    if($profile.profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1') {
+        $bad.reviewedHeaderDelta.abiProbe.candidate.newMethodSignatureVerified=$false
+    } else {
+        $bad.reviewedHeaderDelta.abiProbe.newMethodSignaturesVerified=$false
+    }
+    Assert-HeaderProfileRejected $bad $comparison 'unverified candidate method signature'
+    if($profile.profileId -ceq 'redtilde-dxui-parsed-snapshot-api4-v2') {
+        $bad=ConvertFrom-Json -InputObject (ConvertTo-Json $study -Depth 40 -Compress) -AsHashtable
+        $bad.reviewedHeaderDelta.abiProbe.candidate.MarkdownSyntax.sizeBytes++
+        Assert-HeaderProfileRejected $bad $comparison 'MarkdownSyntax growth differs from the exact 16-byte allowance'
+        $bad=ConvertFrom-Json -InputObject (ConvertTo-Json $study -Depth 40 -Compress) -AsHashtable
+        $bad.reviewedHeaderDelta.abiProbe.candidate.values.hasSourceSnapshotMatchesText=$false
+        Assert-HeaderProfileRejected $bad $comparison 'SourceSnapshot::MatchesText signature flag is missing'
+        $bad=ConvertFrom-Json -InputObject (ConvertTo-Json $study -Depth 40 -Compress) -AsHashtable
+        $bad.reviewedHeaderDelta.abiProbe.fullContextLimit=$true
+        Assert-HeaderProfileRejected $bad $comparison 'probe scope limit is not descriptive text'
+    }
+    [IO.File]::WriteAllBytes($profileCopy,[byte[]]@($profileBytes+@(0x20)))
+    Assert-HeaderProfileRejected $study $comparison 'copied profile bytes differ from the fixed profile'
+    [IO.File]::WriteAllBytes($profileCopy,$profileBytes)
+    $v1Bytes=[IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'Fixtures/ReviewedHeaderDeltaProfile.v1.json'))
+    $v1Hash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($v1Bytes))
+    $v1Profile=[Text.Encoding]::UTF8.GetString($v1Bytes)|ConvertFrom-Json -AsHashtable
+    Require ($v1Hash -ceq 'B8003310580F17A58327FA28482595C699F6D8BC1CA712AEC90677C5C726E751' -and
+        $v1Profile.profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1') 'The historical v1 auditor oracle must retain the exact frozen profile.'
+    $profile=$v1Profile;$profileBytes=$v1Bytes;$profileHash=$v1Hash
+    [IO.File]::WriteAllBytes($profileCopy,$profileBytes)
+    $v1Fixture=& $makeStudy;$v1Study=$v1Fixture[0];$v1Comparison=$v1Fixture[1]
+    Assert-CommonHarnessInputIdentity $v1Study $v1Comparison
+    Assert-DependencyEvidence $v1Study $v1Comparison $fixtureRoot
+    Require $true 'Independent auditor accepts the frozen v1 profile after current-profile evolution.'
+    $badV1=ConvertFrom-Json -InputObject (ConvertTo-Json $v1Study -Depth 40 -Compress) -AsHashtable
+    $badV1.reviewedHeaderDelta.abiProbe.candidate.Document.sizeBytes++
+    Assert-HeaderProfileRejected $badV1 $v1Comparison 'frozen v1 layout mismatch'
+}
 $results=@(foreach($directory in $StudyPath) {
     $root=[IO.Path]::GetFullPath($directory).TrimEnd('\','/')
     $study=Get-Content (Join-Path $root 'study.json') -Raw | ConvertFrom-Json -AsHashtable
@@ -211,13 +775,11 @@ $results=@(foreach($directory in $StudyPath) {
         Require ($study[$side].build.passed -and $study[$side].build.platform -ceq 'x64' -and
             $study[$side].build.configuration -ceq 'Release') 'Successful x64 Release identities are required.'
     }
-    Require ($study.baseline.compiler.sha256 -ceq $study.candidate.compiler.sha256 -and
-        $study.baseline.build.dependency.Fingerprint -ceq $study.candidate.build.dependency.Fingerprint) 'Compiler/dependency identity differs.'
+    $compilerAdoption=$study.Contains('dependencyComparisonMode') -and $study.dependencyComparisonMode -cin @('sdk-adoption','reviewed-header-delta')
+    if(-not $compilerAdoption) { Require ($study.baseline.compiler.sha256 -ceq $study.candidate.compiler.sha256) 'Compiler/dependency identity differs.' }
+    Assert-CommonHarnessInputIdentity $study $comparison
+    Assert-DependencyEvidence $study $comparison $root
     Assert-CompilerProfileEvidence -Study $study -Root $root
-    foreach($key in $study.baseline.inputs.Keys) {
-        Require ($study.baseline.inputs[$key] -ceq $study.candidate.inputs[$key] -and
-            $study.baseline.inputs[$key] -ceq $comparison.harnessInputs[$key]) 'Common harness identities differ.'
-    }
     foreach($key in $study.baseline.environment.Keys) {
         Require ($study.baseline.environment[$key] -ceq $study.candidate.environment[$key]) 'Recorded environments differ.'
     }
@@ -227,10 +789,10 @@ $results=@(foreach($directory in $StudyPath) {
     }
     $identity=@{}; $blocks=@{}; $leaves=@{}
     foreach($scheduled in $study.schedule) {
-        $name=$scheduled.scenario+'-'+([int]$scheduled.block).ToString('00')
+        $scheduledBlockName=$scheduled.scenario+'-'+([int]$scheduled.block).ToString('00')
         Require ($scheduled.scenario -cin @('Compose','Split') -and $scheduled.block -ge 0 -and $scheduled.block -lt $study.blocks) 'Scheduled block is outside its declared scope.'
-        Require (-not $blocks.ContainsKey($name)) 'Duplicate scheduled block.'
-        $pair=Get-Content (Join-Path $root ($name+'.pair.json')) -Raw | ConvertFrom-Json -AsHashtable
+        Require (-not $blocks.ContainsKey($scheduledBlockName)) 'Duplicate scheduled block.'
+        $pair=Get-Content (Join-Path $root ($scheduledBlockName+'.pair.json')) -Raw | ConvertFrom-Json -AsHashtable
         Require ($pair.scenario -ceq $scheduled.scenario -and $pair.block -eq $scheduled.block -and $pair.order -ceq $scheduled.order -and
             $pair.order -cin @('ABBA','BAAB')) 'Pair must match its retained random schedule.'
         foreach($slot in @('A1','A2','B1','B2')) {
@@ -305,6 +867,174 @@ $results=@(foreach($directory in $StudyPath) {
                     if($memoryIndex -lt 2) { Require (-not $memory.threadInventoryCollected -and $null -eq $memory.threads) 'Early post-primary snapshots must remain cheap.' }
                     else { Require ($memory.threadInventoryCollected -and $memory.threads -gt 0) 'Late diagnostic thread inventory is missing.' }
                 }
+                $hasSelection=$diagnostic.Contains('selectionComponents') -and $null -ne $diagnostic.selectionComponents
+                if($study.Contains('selectionDiagnosticsProtocol') -and $null -ne $study.selectionDiagnosticsProtocol) {
+                    Require ($study.selectionDiagnosticsProtocol -ceq 'app-selection-components-v1' -and $hasSelection) 'Declared nested selection diagnostics are missing.'
+                }
+                if($hasSelection) {
+                    $detail=$diagnostic.selectionComponents
+                    $componentNames=@('selection-snapshot','document-analysis-refresh','selection-facts-cache','mirror','inline-semantics',
+                        'tool-caption-publication','outline','block-lookup','block-labels','position-status','find','routing')
+                    Require ($diagnostic.protocol -ceq 'app-edit-phases-v2' -and $detail.protocol -ceq 'app-selection-components-v1' -and
+                        $detail.transactions.Count -eq $sampleCount) 'Invalid selection diagnostic protocol or transaction count.'
+                    for($sampleIndex=0;$sampleIndex -lt $sampleCount;++$sampleIndex) {
+                        $transaction=$detail.transactions[$sampleIndex]
+                        Require ($transaction.complete -is [bool] -and $transaction.complete -and
+                            (Test-NonnegativeEvidenceNumber $transaction.invocations) -and $transaction.invocations -eq 1 -and
+                            $transaction.components.Count -eq $componentNames.Count) 'Selection diagnostics must contain exactly one complete invocation.'
+                        $componentWall=0.0; $componentCpu=0.0
+                        for($componentIndex=0;$componentIndex -lt $componentNames.Count;++$componentIndex) {
+                            $component=$transaction.components[$componentIndex]
+                            Require ($component.name -ceq $componentNames[$componentIndex]) 'Selection component names or ordering differ.'
+                            Require ((Test-NonnegativeEvidenceNumber $component.calls) -and
+                                $component.calls -eq [math]::Floor($component.calls)) 'Invalid selection component call count.'
+                            if($component.calls -eq 0) {
+                                Require ($null -eq $component.wallUs -and $null -eq $component.ownerCpuCycles) 'Unexecuted selection components must remain unavailable.'
+                                continue
+                            }
+                            foreach($value in @($component.wallUs,$component.ownerCpuCycles)) {
+                                Require (Test-NonnegativeEvidenceNumber $value) 'Invalid selection component samples.'
+                            }
+                            Require ($component.ownerCpuCycles -eq [math]::Floor($component.ownerCpuCycles)) 'Selection CPU cycles must be integral.'
+                            $componentWall+=[double]$component.wallUs; $componentCpu+=[double]$component.ownerCpuCycles
+                        }
+                        $parentWall=[double]$diagnostic.phases[6].wallUs[$sampleIndex]
+                        $parentCpu=[double]$diagnostic.phases[6].ownerCpuCycles[$sampleIndex]
+                        Require ((Test-NonnegativeEvidenceNumber $transaction.wallTotalUs) -and
+                            (Test-NonnegativeEvidenceNumber $transaction.ownerCpuCyclesTotal) -and
+                            $transaction.ownerCpuCyclesTotal -eq [math]::Floor($transaction.ownerCpuCyclesTotal) -and
+                            $componentWall -le $transaction.wallTotalUs+1e-6 -and $componentCpu -le $transaction.ownerCpuCyclesTotal -and
+                            $transaction.wallTotalUs -le $parentWall+1e-6 -and $transaction.ownerCpuCyclesTotal -le $parentCpu) 'Selection component totals exceed their enclosing selection.'
+                        Near ($componentWall+[double]$transaction.parentReconciliation.wallUs) $parentWall 'Selection component reconciliation differs.'
+                        Near ($componentCpu+[double]$transaction.parentReconciliation.ownerCpuCycles) $parentCpu 'Selection component reconciliation differs.'
+                    }
+                    Require ($native.Contains('appBuffersAfterPrimary') -and $native.appBuffersAfterPrimary.sourceUnits -eq $native.sourceUnits -and
+                        $native.heapDiagnosticCoverage -ceq 'explicit-default-and-crt-only') 'Selection storage diagnostics do not match their source or heap coverage.'
+                }
+            }
+            $hasEditorPreparation=$native.Contains('editorPreparationDiagnostics') -and $null -ne $native.editorPreparationDiagnostics
+            if($study.Contains('editorPreparationDiagnosticsProtocol') -and $null -ne $study.editorPreparationDiagnosticsProtocol) {
+                Require ($study.editorPreparationDiagnosticsProtocol -ceq 'app-editor-preparation-v1' -and $hasEditorPreparation) 'Declared editor preparation diagnostics are missing.'
+            }
+            if($hasEditorPreparation) {
+                $detail=$native.editorPreparationDiagnostics
+                $sampleCount=2*$study.cycles
+                Require ($detail.protocol -ceq 'app-editor-preparation-v1' -and $detail.complete -is [bool] -and $detail.complete -and
+                    $detail.snapshotSource -ceq 'DxUi.RichTextEditor.DebugGetState' -and
+                    $detail.attribution -ceq 'state deltas only; no per-stage CPU attribution' -and
+                    $detail.transactions.Count -eq $sampleCount -and
+                    (Test-NonnegativeEvidenceNumber $detail.storage.reservedBytes) -and
+                    $detail.storage.reservedBytes -eq [math]::Floor($detail.storage.reservedBytes) -and
+                    (Test-NonnegativeEvidenceNumber $detail.storage.attemptCapacity) -and
+                    $detail.storage.attemptCapacity -eq [math]::Floor($detail.storage.attemptCapacity) -and
+                    (Test-NonnegativeEvidenceNumber $detail.storage.transactionCapacity) -and
+                    $detail.storage.transactionCapacity -eq [math]::Floor($detail.storage.transactionCapacity) -and
+                    (Test-NonnegativeEvidenceNumber $detail.storage.attemptRecordBytes) -and $detail.storage.attemptRecordBytes -gt 0 -and
+                    $detail.storage.attemptRecordBytes -eq [math]::Floor($detail.storage.attemptRecordBytes) -and
+                    (Test-NonnegativeEvidenceNumber $detail.storage.transactionRecordBytes) -and $detail.storage.transactionRecordBytes -gt 0 -and
+                    $detail.storage.transactionRecordBytes -eq [math]::Floor($detail.storage.transactionRecordBytes) -and
+                    $detail.storage.reservedBytes -eq ($detail.storage.attemptCapacity*$detail.storage.attemptRecordBytes+
+                        $detail.storage.transactionCapacity*$detail.storage.transactionRecordBytes) -and
+                    $detail.storage.attemptCapacity -ge $sampleCount -and $detail.storage.transactionCapacity -ge $sampleCount -and
+                    $detail.storage.reservedBytes -gt 0 -and $detail.storage.maxAttemptsPerTransaction -eq 64 -and
+                    $detail.storage.retainedThroughPostMeasurement -is [bool] -and $detail.storage.retainedThroughPostMeasurement -and
+                    $native.Contains('frameDiagnostics') -and $native.frameDiagnostics.protocol -ceq 'dxui-frame-metrics-v1' -and
+                    $native.frameDiagnostics.Contains('editTransactions') -and
+                    $native.frameDiagnostics.editTransactions.Count -eq $sampleCount) 'Invalid editor preparation diagnostic protocol, storage or frame binding.'
+                $counterNames=@('preparationAdvances','cancelledPreparations','markdownPreparationAdvances','semanticPreparationAdvances')
+                $workNames=@('retainedGeometryChunks','preparedGeometryChunks','reusedGeometryChunks','preparedSourceUnits',
+                    'wholeLayoutsPrepared','wholeLayoutSourceUnits','lastAdvanceLayouts','lastAdvanceBlockSteps',
+                    'lastAdvanceMarkdownWork','lastAdvanceSemanticWork','sourceInkRangeCount','layoutGeneration')
+                $booleanNames=@('layoutReady','wholeGeometryFallback','wholeRasterFallback','preparationPending',
+                    'markdownPreparationPending','semanticPreparationPending','sourceInkPreparationPending')
+                $previousPrimary=$null; $previousMirror=$null; $nextAttemptOffset=0
+                for($transactionIndex=0;$transactionIndex -lt $sampleCount;++$transactionIndex) {
+                    $transaction=$detail.transactions[$transactionIndex]
+                    $frame=$native.frameDiagnostics.editTransactions[$transactionIndex]
+                    Require ($transaction.complete -is [bool] -and $transaction.complete -and
+                        $transaction.firstAttemptIndex -eq $nextAttemptOffset -and
+                        (Test-NonnegativeEvidenceNumber $transaction.attemptCount) -and
+                        $transaction.attemptCount -eq [math]::Floor($transaction.attemptCount) -and
+                        $transaction.attemptCount -gt 0 -and $transaction.attemptCount -le 64 -and
+                        $transaction.attempts.Count -eq $transaction.attemptCount -and
+                        $frame.complete -is [bool] -and $frame.complete -and
+                        $frame.attemptCount -eq $transaction.attemptCount -and
+                        $frame.requestedAttemptCount -eq $transaction.attemptCount -and
+                        $frame.attempts.Count -eq $transaction.attemptCount) 'Invalid editor preparation transaction or attempt count.'
+                    $renderDelta=0.0
+                    $previousAttemptRender=$null; $transactionPrimary=$null; $transactionMirror=$null
+                    for($attemptIndex=0;$attemptIndex -lt $transaction.attemptCount;++$attemptIndex) {
+                        $attempt=$transaction.attempts[$attemptIndex]
+                        $frameAttempt=$frame.attempts[$attemptIndex]
+                        Require ($attempt.frameMetricAttemptIndex -eq $attemptIndex -and
+                            (Test-NonnegativeEvidenceNumber $attempt.hostRenderCountBefore) -and
+                            $attempt.hostRenderCountBefore -eq [math]::Floor($attempt.hostRenderCountBefore) -and
+                            (Test-NonnegativeEvidenceNumber $attempt.hostRenderCountAfter) -and
+                            $attempt.hostRenderCountAfter -eq [math]::Floor($attempt.hostRenderCountAfter) -and
+                            $attempt.hostRenderCountAfter -ge $attempt.hostRenderCountBefore -and
+                            $attempt.hostRenderCountAfter-$attempt.hostRenderCountBefore -le 1 -and
+                            $attempt.primary.Contains('before') -and $attempt.primary.Contains('after') -and
+                            $attempt.mirror.Contains('before') -and $attempt.mirror.Contains('after')) 'Invalid editor preparation attempt identity or render count.'
+                        if($attemptIndex -gt 0) {
+                            Require ($attempt.hostRenderCountBefore -eq $previousAttemptRender) 'Editor preparation render counts are discontinuous within a transaction.'
+                        }
+                        $previousAttemptRender=[double]$attempt.hostRenderCountAfter
+                        $renderDelta += [double]$attempt.hostRenderCountAfter-[double]$attempt.hostRenderCountBefore
+                        foreach($editorName in @('primary','mirror')) {
+                            $editor=$attempt[$editorName]
+                            foreach($edge in @('before','after')) {
+                                $state=$editor[$edge]
+                                foreach($name in $workNames+$counterNames) {
+                                    Require ($state.Contains($name) -and (Test-NonnegativeEvidenceNumber $state[$name]) -and
+                                        $state[$name] -eq [math]::Floor($state[$name])) 'Invalid editor preparation work/counter field.'
+                                }
+                                foreach($name in $booleanNames) {
+                                    Require ($state.Contains($name) -and $state[$name] -is [bool]) 'Invalid editor preparation state flag.'
+                                }
+                            }
+                            $before=$editor.before; $after=$editor.after
+                            foreach($name in $counterNames) {
+                                Require ([double]$after[$name] -ge [double]$before[$name]) 'Editor preparation cumulative counter decreased during an attempt.'
+                            }
+                            if($editorName -ceq 'primary') {
+                                if($null -ne $transactionPrimary) {
+                                    foreach($name in $counterNames) { Require ([double]$before[$name] -ge [double]$transactionPrimary[$name]) 'Primary editor preparation counter decreased between attempts.' }
+                                }
+                                $transactionPrimary=$after
+                            }
+                            else {
+                                if($null -ne $transactionMirror) {
+                                    foreach($name in $counterNames) { Require ([double]$before[$name] -ge [double]$transactionMirror[$name]) 'Mirror editor preparation counter decreased between attempts.' }
+                                }
+                                $transactionMirror=$after
+                            }
+                        }
+                        foreach($editorName in @('primary','mirror')) {
+                            $editor=$attempt[$editorName]
+                            if($null -ne $previousPrimary -and $editorName -ceq 'primary') {
+                                foreach($name in $counterNames) { Require ([double]$editor.before[$name] -ge [double]$previousPrimary[$name]) 'Primary editor preparation counter decreased between transactions.' }
+                            }
+                            if($null -ne $previousMirror -and $editorName -ceq 'mirror') {
+                                foreach($name in $counterNames) { Require ([double]$editor.before[$name] -ge [double]$previousMirror[$name]) 'Mirror editor preparation counter decreased between transactions.' }
+                            }
+                        }
+                        $previousPrimary=$attempt.primary.after
+                        $previousMirror=$attempt.mirror.after
+                        Require ((Test-NonnegativeEvidenceNumber $frameAttempt.totalUs) -and
+                            (Test-NonnegativeEvidenceNumber $frameAttempt.updateUs) -and
+                            (Test-NonnegativeEvidenceNumber $frameAttempt.renderUs) -and
+                            (Test-NonnegativeEvidenceNumber $frameAttempt.presentUs) -and
+                            $frameAttempt.totalUs -eq [math]::Floor($frameAttempt.totalUs) -and
+                            $frameAttempt.updateUs -eq [math]::Floor($frameAttempt.updateUs) -and
+                            $frameAttempt.renderUs -eq [math]::Floor($frameAttempt.renderUs) -and
+                            $frameAttempt.presentUs -eq [math]::Floor($frameAttempt.presentUs) -and
+                            $frameAttempt.updateUs+$frameAttempt.renderUs+$frameAttempt.presentUs -le $frameAttempt.totalUs+3) 'Invalid bound frame metric attempt.'
+                    }
+                    Require ((Test-NonnegativeEvidenceNumber $frame.hostRenderCount) -and
+                        $renderDelta -eq [double]$frame.hostRenderCount) 'Editor preparation render delta differs from its frame metrics.'
+                    $nextAttemptOffset += $transaction.attemptCount
+                }
+                Require ($detail.storage.attemptCapacity -ge $nextAttemptOffset) 'Editor preparation attempt capacity does not cover retained attempts.'
             }
             $nativeIdentity=@($native.fixture,$native.view,$native.renderer,$native.adapter,$native.vendorId,$native.deviceId,$native.driverVersion,
                 $native.dpi,$native.widthPx,$native.heightPx,$native.sourceUnits) | ConvertTo-Json -Compress
@@ -321,10 +1051,10 @@ $results=@(foreach($directory in $StudyPath) {
                     $value=[RedTilde.PairedEvidenceReference]::Median($samples)
                 }
                 Require ([double]::IsFinite($value) -and $value -gt 0) 'Native metric must be finite and positive.'
-                Near ([double]$pair[$slot][$metric]) $value "Native/pair median differs: $name $slot $metric"
+                Near ([double]$pair[$slot][$metric]) $value "Native/pair median differs: $scheduledBlockName $slot $metric"
             }
         }
-        $blocks[$name]=$pair
+        $blocks[$scheduledBlockName]=$pair
     }
     $reference=[Collections.Generic.List[object]]::new()
     foreach($scenario in @('Compose','Split')) {

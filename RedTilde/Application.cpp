@@ -14,12 +14,14 @@
 #include <psapi.h>
 #include <shobjidl.h>
 #include <thread>
+#include <type_traits>
 #include <wil/result.h>
 #include <wincodec.h>
 #include <windowsx.h>
 
 namespace RedTilde
 {
+static_assert(std::is_nothrow_swappable_v<DocumentInfo>, "analysis facts must publish without throwing");
 namespace
 {
 // App-local display categories over the canonical immutable tree, not a parser.
@@ -122,11 +124,17 @@ unsigned CurrentBlockResourceAt(const DxUi::RichText::MarkdownSyntax &syntax, st
 }
 } // namespace
 
-std::wstring Resource(unsigned id)
+std::wstring_view ResourceView(unsigned id)
 {
     const wchar_t *value{};
     const int length = LoadStringW(GetModuleHandleW(nullptr), id, reinterpret_cast<LPWSTR>(&value), 0);
-    return length > 0 ? std::wstring(value, static_cast<std::size_t>(length)) : std::wstring{};
+    // The executable owns this immutable resource storage for the process lifetime.
+    // Resolve each request so the calling thread's resource language still applies.
+    return length > 0 ? std::wstring_view(value, static_cast<std::size_t>(length)) : std::wstring_view{};
+}
+std::wstring Resource(unsigned id)
+{
+    return std::wstring(ResourceView(id));
 }
 
 std::wstring SampleDocument()
@@ -184,7 +192,7 @@ HRESULT Application::Initialize()
                                  cls.hInstance, this));
     if (!window)
         return HRESULT_FROM_WIN32(GetLastError());
-    if (!host.Attach(window.get(), {.forceWarp = options.forceWarp}))
+    if (!host.Attach(window.get(), {.forceWarp = options.forceWarp, .batchInitialRootChildren = true}))
         return HRESULT_FROM_WIN32(GetLastError());
     files.Initialize(window.get(), FileReady);
     const MARGINS frame{1, 1, 1, 1};
@@ -196,6 +204,7 @@ HRESULT Application::Initialize()
     initialized = true;
     initializing = true;
     // BuildUi is the sole creation site for the label whose localized facts we cache.
+    currentBlockLatestFacts.reset();
     currentBlockPublishedFacts.reset();
     BuildUi();
     ApplyTheme();
@@ -359,7 +368,7 @@ void Application::RefreshDocumentAnalysis(const DxUi::RichText::SourceSnapshot &
     bool outlineRowsChanged{};
     if (newSourceRevision)
     {
-        nextInfo.emplace(AnalyzeDocument(*text, documentInfo.lines));
+        nextInfo.emplace(documentLineIndexStorage.Analyze(*text, documentInfo.lines));
         outlineRowsChanged = !sameOutline(nextInfo->headings, documentInfo.headings);
         analysis = &*nextInfo;
     }
@@ -401,24 +410,66 @@ void Application::RefreshDocumentAnalysis(const DxUi::RichText::SourceSnapshot &
 
     if (newSourceRevision)
     {
-        documentInfo = std::move(*nextInfo);
+        using std::swap;
+        swap(documentInfo, *nextInfo);
+        documentLineIndexStorage.Retire(std::move(nextInfo->lineIndex), documentInfo.lines);
         documentAnalysisSource = source;
         ++activity.documentAnalysisUpdates;
     }
     if (outlineRowsChanged || collapseStateChanged)
         RefreshOutline();
 }
-void Application::SynchronizeMirror()
+bool Application::SynchronizeMirror()
 {
+    if (closing)
+        return false;
     if (settings.view != EditorView::Split)
-        return;
-    const auto source = editor->Snapshot();
+        return true;
+    if (!root || host.GetRoot() != root)
+        return false;
+    auto *const primary = editor;
+    auto *const target = mirror;
+    auto *const owner = root;
+    const auto source = primary->Snapshot();
+    if (mirroredSource && mirroredSource->IsSameRevision(source))
+        return true;
+    const auto selection = primary->GetSelection();
+    const auto revision = primary->Revision();
+    const auto primaryLifetime = GetControlLifetimeToken(*primary);
+    const auto targetLifetime = GetControlLifetimeToken(*target);
+    const auto ownerLifetime = GetControlLifetimeToken(*owner);
+    const auto current = [&]
+    {
+        if (closing || primaryLifetime.expired() || targetLifetime.expired() || ownerLifetime.expired() || editor != primary || mirror != target ||
+            root != owner || host.GetRoot() != owner || settings.view != EditorView::Split)
+            return false;
+        // These app-owned controls are never reparented independently of the
+        // root; its host ownership and all three weak identities were checked.
+        return primary->Snapshot().IsSameRevision(source) && primary->Revision() == revision && primary->GetSelection() == selection;
+    };
+    if (target->SynchronizeReadOnlySourceSnapshot(source, selection))
+    {
+        if (!current() || !target->Snapshot().IsSameRevision(source) || target->GetSelection() != selection)
+            return false;
+    }
+    else
+    {
+        if (!current())
+            return false;
+        // Retain exact SetText fallback for an incompatible mirror profile.
+        // Own this spelling across callbacks instead of borrowing a mutable app cache.
+        const auto text = source.Text();
+        target->SetText(text);
+        if (!current() || target->GetText() != text)
+            return false;
+    }
+    // A nested synchronization may already have published this same source.
     if (!mirroredSource || !mirroredSource->IsSameRevision(source))
     {
-        mirror->SetText(CurrentText());
         mirroredSource = source;
         ++activity.mirrorResets;
     }
+    return true;
 }
 void Application::Status(unsigned id)
 {
@@ -448,7 +499,8 @@ void Application::Changed()
     RefreshDocumentAnalysis(source, true);
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Analysis);
-    SynchronizeMirror();
+    if (!SynchronizeMirror())
+        return;
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Mirror);
     const auto name = documentPath.empty() ? Resource(IDS_UNTITLED) : documentPath.filename().native();
@@ -462,6 +514,10 @@ void Application::Changed()
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Identity);
     UpdateCaption(std::format(L"{}{} — RedTilde", dirty ? L"• " : L"", name));
+    // Sending WM_SETTEXT to our own HWND is synchronous and can re-enter Close.
+    // BeginClose detaches the host, so do not touch cached controls after it returns.
+    if (closing)
+        return;
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Caption);
     UpdateCounts();
@@ -469,10 +525,21 @@ void Application::Changed()
     tools[1]->SetEnabled(editor->CanRedo());
     floating->SetVisible(false);
     if (settings.showFiles && dirty != lastFilesDirty)
-        RefreshFiles();
+    {
+        UpdateCurrentFileDirtyBadge(dirty);
+        // A synchronous accessibility publication can dispatch Close and detach the host.
+        if (closing)
+            return;
+    }
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Chrome);
-    SelectionChanged();
+    if (editDiagnostics)
+    {
+        auto selectionArm = editDiagnostics->ArmSelection();
+        SelectionChanged();
+    }
+    else
+        SelectionChanged();
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Selection);
     if (!initializing)
@@ -485,14 +552,45 @@ void Application::UpdateCounts()
 {
     if (settings.focusMode)
     {
-        const auto state = Resource(Dirty() ? IDS_CHANGED : IDS_SAVED);
-        stats->SetText(std::vformat(Resource(IDS_FOCUSCOUNTS), std::make_wformat_args(documentInfo.words, state)));
+        const auto state = ResourceView(Dirty() ? IDS_CHANGED : IDS_SAVED);
+        stats->SetText(std::vformat(ResourceView(IDS_FOCUSCOUNTS), std::make_wformat_args(documentInfo.words, state)));
     }
     else
     {
         const auto readingMinutes = std::max(std::size_t{1}, (documentInfo.words + 199) / 200);
-        stats->SetText(std::vformat(Resource(IDS_STATUSCOUNTS), std::make_wformat_args(documentInfo.words, documentInfo.characters, readingMinutes)));
+        stats->SetText(
+            std::vformat(ResourceView(IDS_STATUSCOUNTS), std::make_wformat_args(documentInfo.words, documentInfo.characters, readingMinutes)));
     }
+}
+
+bool Application::PublishCurrentBlockLabelIfVisible(bool sidebarWillBeVisible)
+{
+    if (closing)
+        return false;
+    if (!root || !sidebar || !currentBlock)
+        return false;
+    if ((!sidebar->IsVisible() && !sidebarWillBeVisible) || !currentBlock->IsVisible() || !currentBlockLatestFacts ||
+        currentBlockPublishedFacts == currentBlockLatestFacts)
+        return true;
+
+    const auto facts = currentBlockLatestFacts.value();
+    const auto blockType = ResourceView(facts.resourceId);
+    auto text = std::vformat(ResourceView(IDS_BLOCKINFO), std::make_wformat_args(blockType, facts.lineCharacterCount));
+    const auto request = ++activity.currentBlockLabelConstructions;
+    currentBlockPublishedFacts.reset();
+    auto *const publishedLabel = currentBlock;
+    auto *const publishedRoot = root;
+    const auto labelLifetime = GetControlLifetimeToken(*publishedLabel);
+    const auto rootLifetime = GetControlLifetimeToken(*publishedRoot);
+    publishedLabel->SetText(std::move(text));
+    // SetText can reenter and retire either control or install newer requested facts.
+    if (closing || labelLifetime.expired() || rootLifetime.expired() || currentBlock != publishedLabel || root != publishedRoot ||
+        host.GetRoot() != publishedRoot)
+        return false;
+    // A nested callback can update the requested facts without publishing while hidden.
+    if (activity.currentBlockLabelConstructions == request && currentBlockLatestFacts == facts)
+        currentBlockPublishedFacts = facts;
+    return true;
 }
 
 void Application::UpdateCaption(std::wstring caption)
@@ -602,21 +700,51 @@ void Application::ShowRecovery()
 }
 void Application::SetView(EditorView view)
 {
+    if (closing || !root || host.GetRoot() != root)
+        return;
+    auto *const primary = editor;
+    auto *const target = mirror;
+    auto *const owner = root;
+    const auto primaryLifetime = GetControlLifetimeToken(*primary);
+    const auto targetLifetime = GetControlLifetimeToken(*target);
+    const auto ownerLifetime = GetControlLifetimeToken(*owner);
+    const auto current = [&]
+    {
+        return !closing && !primaryLifetime.expired() && !targetLifetime.expired() && !ownerLifetime.expired() && editor == primary &&
+               mirror == target && root == owner && host.GetRoot() == owner && settings.view == view;
+    };
     selectionToolsFocus.reset();
     // The same editor/document/history survives all global presentation changes.
     settings.view = view;
-    editor->SetViewMode(view == EditorView::Source ? DxUi::RichText::ViewMode::Source : DxUi::RichText::ViewMode::Rich);
-    SynchronizeMirror();
+    primary->SetViewMode(view == EditorView::Source ? DxUi::RichText::ViewMode::Source : DxUi::RichText::ViewMode::Rich);
+    if (!current())
+        return;
+    // Source supersession aborts source-bound work, but this view transition
+    // uses the latest source. Retired owners and a newer view request still win.
+    (void)SynchronizeMirror();
+    if (!current())
+        return;
     modeHint->SetText(Resource(view == EditorView::Source ? IDS_SOURCEHINT : view == EditorView::Split ? IDS_SPLITHINT : IDS_BANNER));
+    if (!current())
+        return;
     floating->SetVisible(false);
+    if (!current())
+        return;
     Layout();
+    if (!current())
+        return;
     SelectionChanged();
-    host.SetFocusControl(editor, false);
+    if (!current())
+        return;
+    host.SetFocusControl(primary, false);
+    if (!current())
+        return;
     if (!initializing)
         SavePreferences();
 }
 void Application::SelectionChanged(bool refreshTools)
 {
+    EditDiagnostics::SelectionInvocation selectionInvocation(editDiagnostics);
     if (closing || !floating)
         return;
     if (editor->IsSelectionGestureActive())
@@ -628,15 +756,35 @@ void Application::SelectionChanged(bool refreshTools)
         floating->SetVisible(false);
         return;
     }
-    const auto selection = editor->GetSelection();
-    const auto source = editor->Snapshot();
-    RefreshDocumentAnalysis(source, false);
-    const auto syntax = editor->GetMarkdownSyntax();
-    if (selectionToolsFocus && (!selectionToolsFocus->source.IsSameRevision(source) || selectionToolsFocus->selection != selection ||
-                                selectionToolsFocus->view != settings.view))
-        selectionToolsFocus.reset();
-    const bool selectionChanged = !selectionFactsSource || !selectionFactsSource->IsSameRevision(source) || selectionFactsSelection != selection ||
-                                  selectionFactsView != settings.view || selectionFactsAnalysis != activity.changes;
+    const auto selection = [&]
+    {
+        EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::SelectionSnapshot);
+        return editor->GetSelection();
+    }();
+    const auto source = [&]
+    {
+        EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::SelectionSnapshot);
+        return editor->Snapshot();
+    }();
+    const auto sourceRevision = editor->Revision();
+    {
+        EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::DocumentAnalysisRefresh);
+        RefreshDocumentAnalysis(source, false);
+    }
+    const auto syntax = [&]
+    {
+        EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::SelectionSnapshot);
+        return editor->GetMarkdownSyntax();
+    }();
+    bool selectionChanged{};
+    {
+        EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::SelectionFactsCache);
+        if (selectionToolsFocus && (!selectionToolsFocus->source.IsSameRevision(source) || selectionToolsFocus->selection != selection ||
+                                    selectionToolsFocus->view != settings.view))
+            selectionToolsFocus.reset();
+        selectionChanged = !selectionFactsSource || !selectionFactsSource->IsSameRevision(source) || selectionFactsSelection != selection ||
+                           selectionFactsView != settings.view || selectionFactsAnalysis != activity.changes;
+    }
     if (selectionChanged || selectionFactsSyntax != syntax)
     {
         if (selectionChanged)
@@ -648,45 +796,82 @@ void Application::SelectionChanged(bool refreshTools)
             // Text-service previews and cancellation notify selection without
             // a committed edit. Match source identity before using their ACPs;
             // equal-length previews can also change Unicode/CRLF boundaries.
-            SynchronizeMirror();
-            mirror->SetSelection(selection);
-            (void)mirror->ScrollSourceRangeIntoView(host, selection.Start(), selection.End(), false);
+            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::Mirror);
+            if (closing || !root || host.GetRoot() != root)
+                return;
+            auto *const primary = editor;
+            auto *const target = mirror;
+            auto *const owner = root;
+            const auto primaryLifetime = GetControlLifetimeToken(*primary);
+            const auto targetLifetime = GetControlLifetimeToken(*target);
+            const auto ownerLifetime = GetControlLifetimeToken(*owner);
+            const auto current = [&]
+            {
+                if (closing || primaryLifetime.expired() || targetLifetime.expired() || ownerLifetime.expired() || editor != primary ||
+                    mirror != target || root != owner || host.GetRoot() != owner || settings.view != EditorView::Split)
+                    return false;
+                return primary->Snapshot().IsSameRevision(source) && primary->Revision() == sourceRevision && primary->GetSelection() == selection;
+            };
+            if (!SynchronizeMirror() || !current())
+                return;
+            // Read-only Source has no rich visual affinity. Adoption already
+            // reset this exact selection; retain the canonical setter for a
+            // real selection change or an incompatible-profile fallback.
+            if (target->GetSelection() != selection || !target->IsReadOnly() || target->GetViewMode() != DxUi::RichText::ViewMode::Source)
+                target->SetSelection(selection);
+            if (!current())
+                return;
+            (void)target->ScrollSourceRangeIntoView(host, selection.Start(), selection.End(), false);
             ++activity.mirrorSelectionUpdates;
         }
         std::wstring expression;
         std::array<bool, 4> formats{};
-        if (syntax)
         {
-            for (const auto &node : syntax->Inlines())
-                if (selection.caret >= node.source.first && selection.caret <= node.source.last)
-                {
-                    using Kind = DxUi::RichText::MarkdownInlineKind;
-                    if (node.kind == Kind::Math && node.value.size() <= DxUi::RichText::MathMaximumSourceUnits)
-                        expression = node.value;
-                    if (node.kind == Kind::Strong)
-                        formats[0] = true;
-                    if (node.kind == Kind::Emphasis)
-                        formats[1] = true;
-                    if (node.kind == Kind::Code)
-                        formats[2] = true;
-                    if (node.kind == Kind::Link)
-                        formats[3] = true;
-                }
+            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::InlineSemantics);
+            if (syntax)
+                for (const auto &node : syntax->Inlines())
+                    if (selection.caret >= node.source.first && selection.caret <= node.source.last)
+                    {
+                        using Kind = DxUi::RichText::MarkdownInlineKind;
+                        if (node.kind == Kind::Math && node.value.size() <= DxUi::RichText::MathMaximumSourceUnits)
+                            expression = node.value;
+                        if (node.kind == Kind::Strong)
+                            formats[0] = true;
+                        if (node.kind == Kind::Emphasis)
+                            formats[1] = true;
+                        if (node.kind == Kind::Code)
+                            formats[2] = true;
+                        if (node.kind == Kind::Link)
+                            formats[3] = true;
+                    }
         }
-        const auto preview = expression.empty() ? std::wstring{} : L"\\[" + expression + L"\\]";
-        if (equation->GetText() != preview)
-            equation->SetText(preview);
-        const bool layoutChanged = equationContext != !expression.empty();
-        equationContext = !expression.empty();
-        for (unsigned i = 0; i < 4; ++i)
+        bool layoutChanged{};
         {
-            auto *button = tools[i == 3 ? 13 : i + 3];
-            button->SetEnabled(!equationContext);
-            button->SetToggleState(formats[i]);
+            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::ToolCaptionPublication);
+            const auto preview = expression.empty() ? std::wstring{} : L"\\[" + expression + L"\\]";
+            if (equation->GetText() != preview)
+                equation->SetText(preview);
+            const bool nextEquationContext = !expression.empty();
+            layoutChanged = equationContext != nextEquationContext;
+            equationContext = nextEquationContext;
+            for (unsigned i = 0; i < 4; ++i)
+            {
+                auto *button = tools[i == 3 ? 13 : i + 3];
+                button->SetEnabled(!equationContext);
+                button->SetToggleState(formats[i]);
+            }
+            if (!selectionCaptionPublishedEquationContext || selectionCaptionPublishedEquationContext.value() != nextEquationContext)
+            {
+                const auto request = ++activity.selectionCaptionConstructions;
+                selectionCaptionPublishedEquationContext.reset();
+                tools[2]->SetText(Resource(nextEquationContext ? IDS_MATH : IDS_PARAGRAPH));
+                if (activity.selectionCaptionConstructions == request)
+                    selectionCaptionPublishedEquationContext = nextEquationContext;
+            }
         }
-        tools[2]->SetText(Resource(equationContext ? IDS_MATH : IDS_PARAGRAPH));
         if (selectionChanged)
         {
+            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::Outline);
             currentHeading.reset();
             for (std::size_t i = 0; i < documentInfo.headings.size(); ++i)
                 if (documentInfo.headings[i].offset <= selection.caret)
@@ -700,40 +885,41 @@ void Application::SelectionChanged(bool refreshTools)
                 outlineTree->SetSelectedItemId(headingId);
             }
         }
-        const auto position = DocumentPositionAt(documentInfo, selection.caret);
-        const auto count = position.lineCharacters;
+        DocumentPosition position;
         std::optional<std::pair<unsigned, std::size_t>> listFacts;
-        unsigned blockResourceId = syntax ? CurrentBlockResourceAt(*syntax, selection.caret, &listFacts) : IDS_BLOCKPARAGRAPH;
-        if (equationContext)
-            blockResourceId = IDS_MATH;
-        const bool showListSummary = listFacts && (blockResourceId == IDS_BLOCKLIST || blockResourceId == IDS_BLOCKLISTCONTAINER);
-        listSummary->SetVisible(showListSummary);
-        listSummaryIcon->SetVisible(showListSummary);
-        currentBlock->SetVisible(!showListSummary);
-        if (showListSummary && listSummaryFacts != listFacts)
+        unsigned blockResourceId{};
+        std::size_t count{};
         {
-            const auto kind = Resource(listFacts.value().first);
-            const auto items = listFacts.value().second;
-            const auto request = ++listSummaryPublication;
-            listSummaryFacts.reset();
-            listSummary->SetText(std::vformat(Resource(IDS_BLOCKITEMINFO), std::make_wformat_args(kind, items)));
-            if (listSummaryPublication == request)
-                listSummaryFacts = listFacts;
+            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::BlockLookup);
+            position = DocumentPositionAt(documentInfo, selection.caret);
+            count = position.lineCharacters;
+            blockResourceId = syntax ? CurrentBlockResourceAt(*syntax, selection.caret, &listFacts) : IDS_BLOCKPARAGRAPH;
+            if (equationContext)
+                blockResourceId = IDS_MATH;
         }
-        const CurrentBlockLabelFacts blockFacts{blockResourceId, count};
-        if (!currentBlockPublishedFacts || currentBlockPublishedFacts.value() != blockFacts)
         {
-            const auto blockType = Resource(blockResourceId);
-            auto text = std::vformat(Resource(IDS_BLOCKINFO), std::make_wformat_args(blockType, count));
-            const auto request = ++activity.currentBlockLabelConstructions;
-            currentBlockPublishedFacts.reset();
-            currentBlock->SetText(std::move(text));
-            // A nested publication owns its newer facts, just as a nested caption request does.
-            if (activity.currentBlockLabelConstructions == request)
-                currentBlockPublishedFacts = blockFacts;
+            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::BlockLabels);
+            currentBlockLatestFacts = CurrentBlockLabelFacts{blockResourceId, count};
+            const bool showListSummary = listFacts && (blockResourceId == IDS_BLOCKLIST || blockResourceId == IDS_BLOCKLISTCONTAINER);
+            listSummary->SetVisible(showListSummary);
+            listSummaryIcon->SetVisible(showListSummary);
+            currentBlock->SetVisible(!showListSummary);
+            if (showListSummary && listSummaryFacts != listFacts)
+            {
+                const auto kind = ResourceView(listFacts.value().first);
+                const auto items = listFacts.value().second;
+                const auto request = ++listSummaryPublication;
+                listSummaryFacts.reset();
+                listSummary->SetText(std::vformat(ResourceView(IDS_BLOCKITEMINFO), std::make_wformat_args(kind, items)));
+                if (listSummaryPublication == request)
+                    listSummaryFacts = listFacts;
+            }
+            if (!PublishCurrentBlockLabelIfVisible())
+                return;
         }
         if (selectionChanged)
         {
+            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::PositionStatus);
             const auto selected = selection.End() - selection.Start();
             const auto encoding = bom ? L" BOM" : L"";
             unsigned eolId = IDS_EOLNONE;
@@ -754,11 +940,15 @@ void Application::SelectionChanged(bool refreshTools)
             case DocumentNewlineKind::None:
                 break;
             }
-            const auto eol = Resource(eolId);
+            const auto eol = ResourceView(eolId);
             positionStatus->SetText(
-                std::vformat(Resource(IDS_STATUSPOSITION), std::make_wformat_args(selected, position.line, position.column, encoding, eol)));
+                std::vformat(ResourceView(IDS_STATUSPOSITION), std::make_wformat_args(selected, position.line, position.column, encoding, eol)));
         }
-        RefreshFind();
+        {
+            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::Find);
+            RefreshFind();
+        }
+        EditDiagnostics::SelectionMeasure routingMeasure(editDiagnostics, SelectionComponent::Routing);
         selectionFactsSyntax = syntax;
         selectionFactsSource = source;
         selectionFactsSelection = selection;

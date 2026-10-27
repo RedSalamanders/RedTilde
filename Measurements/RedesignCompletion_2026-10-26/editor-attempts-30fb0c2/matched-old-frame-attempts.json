@@ -1,0 +1,2922 @@
+{
+  "purpose": "all sixteen matched old09f diagnostic reports; no new collection or acceptance",
+  "processes": [
+    {
+      "view": "Compose",
+      "block": 0,
+      "slot": "A1",
+      "role": "original",
+      "sha256": "CE2F93DD1C6DD1311905025C4BA9FAF495BD91C19F7366F40D14B3FB5D7BF8CD",
+      "executableSha256": "92400D4674C8FDC5394E7525B3BD26ED15CF632862B822F0A9A6670DF083B67F",
+      "attempts": [
+        {
+          "index": 0,
+          "transactions": 128,
+          "totalUs": 452,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 1,
+          "transactions": 128,
+          "totalUs": 77,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 2,
+          "transactions": 128,
+          "totalUs": 83,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 3,
+          "transactions": 128,
+          "totalUs": 51,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 4,
+          "transactions": 128,
+          "totalUs": 39,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 5,
+          "transactions": 128,
+          "totalUs": 35,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 6,
+          "transactions": 128,
+          "totalUs": 40,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 7,
+          "transactions": 128,
+          "totalUs": 52,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 8,
+          "transactions": 128,
+          "totalUs": 78,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 9,
+          "transactions": 128,
+          "totalUs": 141,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 10,
+          "transactions": 128,
+          "totalUs": 41,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 11,
+          "transactions": 128,
+          "totalUs": 42,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 12,
+          "transactions": 128,
+          "totalUs": 53,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 13,
+          "transactions": 128,
+          "totalUs": 23,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 14,
+          "transactions": 128,
+          "totalUs": 31,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 15,
+          "transactions": 128,
+          "totalUs": 21,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 16,
+          "transactions": 128,
+          "totalUs": 2002,
+          "updateUs": 108.5,
+          "renderUs": 1428,
+          "presentUs": 420.5,
+          "zeroUpdateNonzeroTotal": 0
+        }
+      ]
+    },
+    {
+      "view": "Compose",
+      "block": 0,
+      "slot": "B1",
+      "role": "candidate09f",
+      "sha256": "1F739D232530341618AAA88205F1344E66EC14A29CCCBE70BF9B16B42815C5C7",
+      "executableSha256": "123AE3202CCC035F2FC071BF48A563E6484595C132A948206FEC10F65011FA1E",
+      "attempts": [
+        {
+          "index": 0,
+          "transactions": 128,
+          "totalUs": 474,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 1,
+          "transactions": 128,
+          "totalUs": 76,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 2,
+          "transactions": 128,
+          "totalUs": 83,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 3,
+          "transactions": 128,
+          "totalUs": 52,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 4,
+          "transactions": 128,
+          "totalUs": 40.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 5,
+          "transactions": 128,
+          "totalUs": 36,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 6,
+          "transactions": 128,
+          "totalUs": 39.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 7,
+          "transactions": 128,
+          "totalUs": 54,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 8,
+          "transactions": 128,
+          "totalUs": 76,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 9,
+          "transactions": 128,
+          "totalUs": 142,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 10,
+          "transactions": 128,
+          "totalUs": 42,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 11,
+          "transactions": 128,
+          "totalUs": 44,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 12,
+          "transactions": 128,
+          "totalUs": 55,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 13,
+          "transactions": 128,
+          "totalUs": 23,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 14,
+          "transactions": 128,
+          "totalUs": 32,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 15,
+          "transactions": 128,
+          "totalUs": 23,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 16,
+          "transactions": 128,
+          "totalUs": 1864,
+          "updateUs": 107.5,
+          "renderUs": 1280.5,
+          "presentUs": 455.5,
+          "zeroUpdateNonzeroTotal": 0
+        }
+      ]
+    },
+    {
+      "view": "Compose",
+      "block": 0,
+      "slot": "B2",
+      "role": "candidate09f",
+      "sha256": "E963EC8EC6D277999C8BA329FB6CDD65C92DAD2516640F3D63D5F8ADC9886F0C",
+      "executableSha256": "123AE3202CCC035F2FC071BF48A563E6484595C132A948206FEC10F65011FA1E",
+      "attempts": [
+        {
+          "index": 0,
+          "transactions": 128,
+          "totalUs": 567,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 1,
+          "transactions": 128,
+          "totalUs": 78.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 2,
+          "transactions": 128,
+          "totalUs": 87,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 3,
+          "transactions": 128,
+          "totalUs": 54,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 4,
+          "transactions": 128,
+          "totalUs": 41,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 5,
+          "transactions": 128,
+          "totalUs": 37,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 6,
+          "transactions": 128,
+          "totalUs": 41,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 7,
+          "transactions": 128,
+          "totalUs": 56,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 8,
+          "transactions": 128,
+          "totalUs": 82,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 9,
+          "transactions": 128,
+          "totalUs": 148,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 10,
+          "transactions": 128,
+          "totalUs": 43,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 11,
+          "transactions": 128,
+          "totalUs": 46,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 12,
+          "transactions": 128,
+          "totalUs": 59,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 13,
+          "transactions": 128,
+          "totalUs": 26,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 14,
+          "transactions": 128,
+          "totalUs": 33,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 15,
+          "transactions": 128,
+          "totalUs": 25,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 16,
+          "transactions": 128,
+          "totalUs": 2212.5,
+          "updateUs": 108,
+          "renderUs": 1510,
+          "presentUs": 576.5,
+          "zeroUpdateNonzeroTotal": 0
+        }
+      ]
+    },
+    {
+      "view": "Compose",
+      "block": 0,
+      "slot": "A2",
+      "role": "original",
+      "sha256": "5A9220A62AE56E3601DB58F5E94F4A9A86CECDB1A003A311EE374AB77D976393",
+      "executableSha256": "92400D4674C8FDC5394E7525B3BD26ED15CF632862B822F0A9A6670DF083B67F",
+      "attempts": [
+        {
+          "index": 0,
+          "transactions": 128,
+          "totalUs": 581,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 1,
+          "transactions": 128,
+          "totalUs": 81,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 2,
+          "transactions": 128,
+          "totalUs": 91,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 3,
+          "transactions": 128,
+          "totalUs": 55,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 4,
+          "transactions": 128,
+          "totalUs": 41,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 5,
+          "transactions": 128,
+          "totalUs": 36,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 6,
+          "transactions": 128,
+          "totalUs": 59,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 7,
+          "transactions": 128,
+          "totalUs": 56,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 8,
+          "transactions": 128,
+          "totalUs": 84,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 9,
+          "transactions": 128,
+          "totalUs": 151,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 10,
+          "transactions": 128,
+          "totalUs": 43,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 11,
+          "transactions": 128,
+          "totalUs": 44,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 12,
+          "transactions": 128,
+          "totalUs": 71.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 13,
+          "transactions": 128,
+          "totalUs": 25,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 14,
+          "transactions": 128,
+          "totalUs": 33.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 15,
+          "transactions": 128,
+          "totalUs": 22,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 16,
+          "transactions": 128,
+          "totalUs": 2247,
+          "updateUs": 151,
+          "renderUs": 1452,
+          "presentUs": 541,
+          "zeroUpdateNonzeroTotal": 0
+        }
+      ]
+    },
+    {
+      "view": "Compose",
+      "block": 1,
+      "slot": "A1",
+      "role": "original",
+      "sha256": "93A1CB34A382E131479684094A4E408BD1DE939E02F04C5D6D3726B830AE14D1",
+      "executableSha256": "92400D4674C8FDC5394E7525B3BD26ED15CF632862B822F0A9A6670DF083B67F",
+      "attempts": [
+        {
+          "index": 0,
+          "transactions": 128,
+          "totalUs": 531,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 1,
+          "transactions": 128,
+          "totalUs": 82,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 2,
+          "transactions": 128,
+          "totalUs": 91,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 3,
+          "transactions": 128,
+          "totalUs": 55,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 4,
+          "transactions": 128,
+          "totalUs": 42,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 5,
+          "transactions": 128,
+          "totalUs": 37.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 6,
+          "transactions": 128,
+          "totalUs": 41,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 7,
+          "transactions": 128,
+          "totalUs": 56,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 8,
+          "transactions": 128,
+          "totalUs": 84,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 9,
+          "transactions": 128,
+          "totalUs": 149,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 10,
+          "transactions": 128,
+          "totalUs": 42.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 11,
+          "transactions": 128,
+          "totalUs": 45,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 12,
+          "transactions": 128,
+          "totalUs": 58,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 13,
+          "transactions": 128,
+          "totalUs": 24,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 14,
+          "transactions": 128,
+          "totalUs": 32,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 15,
+          "transactions": 128,
+          "totalUs": 22.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 16,
+          "transactions": 128,
+          "totalUs": 2123.5,
+          "updateUs": 111.5,
+          "renderUs": 1462,
+          "presentUs": 503.5,
+          "zeroUpdateNonzeroTotal": 0
+        }
+      ]
+    },
+    {
+      "view": "Compose",
+      "block": 1,
+      "slot": "B1",
+      "role": "candidate09f",
+      "sha256": "30572F2E8C87EBFDC62DA61B8CF104759A618976C9801B12FFC73819B1EC0D85",
+      "executableSha256": "123AE3202CCC035F2FC071BF48A563E6484595C132A948206FEC10F65011FA1E",
+      "attempts": [
+        {
+          "index": 0,
+          "transactions": 128,
+          "totalUs": 498,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 1,
+          "transactions": 128,
+          "totalUs": 81,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 2,
+          "transactions": 128,
+          "totalUs": 87.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 3,
+          "transactions": 128,
+          "totalUs": 54,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 4,
+          "transactions": 128,
+          "totalUs": 41,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 5,
+          "transactions": 128,
+          "totalUs": 38,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 6,
+          "transactions": 128,
+          "totalUs": 42,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 7,
+          "transactions": 128,
+          "totalUs": 55,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 8,
+          "transactions": 128,
+          "totalUs": 82,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 9,
+          "transactions": 128,
+          "totalUs": 149,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 10,
+          "transactions": 128,
+          "totalUs": 44,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 11,
+          "transactions": 128,
+          "totalUs": 47,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 12,
+          "transactions": 128,
+          "totalUs": 59,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 13,
+          "transactions": 128,
+          "totalUs": 26,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 14,
+          "transactions": 128,
+          "totalUs": 34,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 15,
+          "transactions": 128,
+          "totalUs": 24,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 16,
+          "transactions": 128,
+          "totalUs": 1939,
+          "updateUs": 112,
+          "renderUs": 1331,
+          "presentUs": 408.5,
+          "zeroUpdateNonzeroTotal": 0
+        }
+      ]
+    },
+    {
+      "view": "Compose",
+      "block": 1,
+      "slot": "B2",
+      "role": "candidate09f",
+      "sha256": "40F394412654B60804FF126A0E86A50866A635A10FD8271A106C84F0B90ABF99",
+      "executableSha256": "123AE3202CCC035F2FC071BF48A563E6484595C132A948206FEC10F65011FA1E",
+      "attempts": [
+        {
+          "index": 0,
+          "transactions": 128,
+          "totalUs": 558.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 1,
+          "transactions": 128,
+          "totalUs": 80,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 2,
+          "transactions": 128,
+          "totalUs": 88,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 3,
+          "transactions": 128,
+          "totalUs": 54,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 4,
+          "transactions": 128,
+          "totalUs": 42,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 5,
+          "transactions": 128,
+          "totalUs": 38,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 6,
+          "transactions": 128,
+          "totalUs": 41,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 7,
+          "transactions": 128,
+          "totalUs": 55,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 8,
+          "transactions": 128,
+          "totalUs": 82,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 9,
+          "transactions": 128,
+          "totalUs": 148,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 10,
+          "transactions": 128,
+          "totalUs": 44,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 11,
+          "transactions": 128,
+          "totalUs": 46,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 12,
+          "transactions": 128,
+          "totalUs": 58,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 13,
+          "transactions": 128,
+          "totalUs": 25,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 14,
+          "transactions": 128,
+          "totalUs": 33,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 15,
+          "transactions": 128,
+          "totalUs": 24,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 16,
+          "transactions": 128,
+          "totalUs": 1975,
+          "updateUs": 114,
+          "renderUs": 1303,
+          "presentUs": 529.5,
+          "zeroUpdateNonzeroTotal": 0
+        }
+      ]
+    },
+    {
+      "view": "Compose",
+      "block": 1,
+      "slot": "A2",
+      "role": "original",
+      "sha256": "DF63B4D9C6DA8AE2CAC1CA515522E090AF07E51F8149A83861DAF0F6D5F2BFB7",
+      "executableSha256": "92400D4674C8FDC5394E7525B3BD26ED15CF632862B822F0A9A6670DF083B67F",
+      "attempts": [
+        {
+          "index": 0,
+          "transactions": 128,
+          "totalUs": 463.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 1,
+          "transactions": 128,
+          "totalUs": 83,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 2,
+          "transactions": 128,
+          "totalUs": 87.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 3,
+          "transactions": 128,
+          "totalUs": 55.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 4,
+          "transactions": 128,
+          "totalUs": 41,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 5,
+          "transactions": 128,
+          "totalUs": 36,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 6,
+          "transactions": 128,
+          "totalUs": 57.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 7,
+          "transactions": 128,
+          "totalUs": 55,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 8,
+          "transactions": 128,
+          "totalUs": 80,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 9,
+          "transactions": 128,
+          "totalUs": 147,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 10,
+          "transactions": 128,
+          "totalUs": 43,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 11,
+          "transactions": 128,
+          "totalUs": 43,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 12,
+          "transactions": 128,
+          "totalUs": 63,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 13,
+          "transactions": 128,
+          "totalUs": 25,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 14,
+          "transactions": 128,
+          "totalUs": 31.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 15,
+          "transactions": 128,
+          "totalUs": 22,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 16,
+          "transactions": 128,
+          "totalUs": 2060.5,
+          "updateUs": 134,
+          "renderUs": 1355.5,
+          "presentUs": 446,
+          "zeroUpdateNonzeroTotal": 0
+        }
+      ]
+    },
+    {
+      "view": "Split",
+      "block": 0,
+      "slot": "A1",
+      "role": "original",
+      "sha256": "D9D3193C292D20F5E33156B250005B798DE77683D0153B98D58502BDA6BD4E50",
+      "executableSha256": "92400D4674C8FDC5394E7525B3BD26ED15CF632862B822F0A9A6670DF083B67F",
+      "attempts": [
+        {
+          "index": 0,
+          "transactions": 128,
+          "totalUs": 874,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 1,
+          "transactions": 128,
+          "totalUs": 75,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 2,
+          "transactions": 128,
+          "totalUs": 81,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 3,
+          "transactions": 128,
+          "totalUs": 52,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 4,
+          "transactions": 128,
+          "totalUs": 40,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 5,
+          "transactions": 128,
+          "totalUs": 36,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 6,
+          "transactions": 128,
+          "totalUs": 40,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 7,
+          "transactions": 128,
+          "totalUs": 55,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 8,
+          "transactions": 128,
+          "totalUs": 74.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 9,
+          "transactions": 128,
+          "totalUs": 124,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 10,
+          "transactions": 128,
+          "totalUs": 43,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 11,
+          "transactions": 128,
+          "totalUs": 44,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 12,
+          "transactions": 128,
+          "totalUs": 56,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 13,
+          "transactions": 128,
+          "totalUs": 24,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 14,
+          "transactions": 128,
+          "totalUs": 32,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 15,
+          "transactions": 128,
+          "totalUs": 23,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 16,
+          "transactions": 128,
+          "totalUs": 2719,
+          "updateUs": 100.5,
+          "renderUs": 2394.5,
+          "presentUs": 203,
+          "zeroUpdateNonzeroTotal": 0
+        }
+      ]
+    },
+    {
+      "view": "Split",
+      "block": 0,
+      "slot": "B1",
+      "role": "candidate09f",
+      "sha256": "DAD93E55125C4103B0E1769456423D03689B6333058AA0D40A0D5026E21D9727",
+      "executableSha256": "123AE3202CCC035F2FC071BF48A563E6484595C132A948206FEC10F65011FA1E",
+      "attempts": [
+        {
+          "index": 0,
+          "transactions": 128,
+          "totalUs": 863,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 1,
+          "transactions": 128,
+          "totalUs": 82.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 2,
+          "transactions": 128,
+          "totalUs": 87,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 3,
+          "transactions": 128,
+          "totalUs": 55,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 4,
+          "transactions": 128,
+          "totalUs": 41,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 5,
+          "transactions": 128,
+          "totalUs": 38,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 6,
+          "transactions": 128,
+          "totalUs": 42,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 7,
+          "transactions": 128,
+          "totalUs": 57,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 8,
+          "transactions": 128,
+          "totalUs": 77,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 9,
+          "transactions": 128,
+          "totalUs": 130,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 10,
+          "transactions": 128,
+          "totalUs": 45,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 11,
+          "transactions": 128,
+          "totalUs": 46,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 12,
+          "transactions": 128,
+          "totalUs": 58,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 13,
+          "transactions": 128,
+          "totalUs": 26,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 14,
+          "transactions": 128,
+          "totalUs": 33,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 15,
+          "transactions": 128,
+          "totalUs": 25,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 16,
+          "transactions": 128,
+          "totalUs": 3076,
+          "updateUs": 105,
+          "renderUs": 2752.5,
+          "presentUs": 188,
+          "zeroUpdateNonzeroTotal": 0
+        }
+      ]
+    },
+    {
+      "view": "Split",
+      "block": 0,
+      "slot": "B2",
+      "role": "candidate09f",
+      "sha256": "CD69CEE7896568FEED34218A2EED9C9BA7C9B5DAC125531CCC3759F29A02C44A",
+      "executableSha256": "123AE3202CCC035F2FC071BF48A563E6484595C132A948206FEC10F65011FA1E",
+      "attempts": [
+        {
+          "index": 0,
+          "transactions": 128,
+          "totalUs": 857.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 1,
+          "transactions": 128,
+          "totalUs": 78,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 2,
+          "transactions": 128,
+          "totalUs": 85.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 3,
+          "transactions": 128,
+          "totalUs": 54,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 4,
+          "transactions": 128,
+          "totalUs": 41,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 5,
+          "transactions": 128,
+          "totalUs": 38,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 6,
+          "transactions": 128,
+          "totalUs": 42,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 7,
+          "transactions": 128,
+          "totalUs": 57,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 8,
+          "transactions": 128,
+          "totalUs": 76,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 9,
+          "transactions": 128,
+          "totalUs": 127,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 10,
+          "transactions": 128,
+          "totalUs": 44,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 11,
+          "transactions": 128,
+          "totalUs": 46,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 12,
+          "transactions": 128,
+          "totalUs": 58,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 13,
+          "transactions": 128,
+          "totalUs": 26,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 14,
+          "transactions": 128,
+          "totalUs": 33,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 15,
+          "transactions": 128,
+          "totalUs": 25,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 16,
+          "transactions": 128,
+          "totalUs": 3172,
+          "updateUs": 102,
+          "renderUs": 2867,
+          "presentUs": 189.5,
+          "zeroUpdateNonzeroTotal": 0
+        }
+      ]
+    },
+    {
+      "view": "Split",
+      "block": 0,
+      "slot": "A2",
+      "role": "original",
+      "sha256": "B27B55CCF732FA0E995999E0153190CFC1093B06FB8812B3E1EF4FCFBA073C9A",
+      "executableSha256": "92400D4674C8FDC5394E7525B3BD26ED15CF632862B822F0A9A6670DF083B67F",
+      "attempts": [
+        {
+          "index": 0,
+          "transactions": 128,
+          "totalUs": 886,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 1,
+          "transactions": 128,
+          "totalUs": 74,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 2,
+          "transactions": 128,
+          "totalUs": 82,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 3,
+          "transactions": 128,
+          "totalUs": 53,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 4,
+          "transactions": 128,
+          "totalUs": 40,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 5,
+          "transactions": 128,
+          "totalUs": 36,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 6,
+          "transactions": 128,
+          "totalUs": 40,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 7,
+          "transactions": 128,
+          "totalUs": 55,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 8,
+          "transactions": 128,
+          "totalUs": 75,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 9,
+          "transactions": 128,
+          "totalUs": 121,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 10,
+          "transactions": 128,
+          "totalUs": 42,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 11,
+          "transactions": 128,
+          "totalUs": 45,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 12,
+          "transactions": 128,
+          "totalUs": 55,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 13,
+          "transactions": 128,
+          "totalUs": 24,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 14,
+          "transactions": 128,
+          "totalUs": 32,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 15,
+          "transactions": 128,
+          "totalUs": 22,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 16,
+          "transactions": 128,
+          "totalUs": 2752,
+          "updateUs": 97,
+          "renderUs": 2413,
+          "presentUs": 200.5,
+          "zeroUpdateNonzeroTotal": 0
+        }
+      ]
+    },
+    {
+      "view": "Split",
+      "block": 1,
+      "slot": "A1",
+      "role": "original",
+      "sha256": "747C6AD01A12B089F012627E8E0D0F4389005CC52D6A25B761706F1AA92ACD40",
+      "executableSha256": "92400D4674C8FDC5394E7525B3BD26ED15CF632862B822F0A9A6670DF083B67F",
+      "attempts": [
+        {
+          "index": 0,
+          "transactions": 128,
+          "totalUs": 870.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 1,
+          "transactions": 128,
+          "totalUs": 72,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 2,
+          "transactions": 128,
+          "totalUs": 81,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 3,
+          "transactions": 128,
+          "totalUs": 52,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 4,
+          "transactions": 128,
+          "totalUs": 40,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 5,
+          "transactions": 128,
+          "totalUs": 37,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 6,
+          "transactions": 128,
+          "totalUs": 41,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 7,
+          "transactions": 128,
+          "totalUs": 55,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 8,
+          "transactions": 128,
+          "totalUs": 74,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 9,
+          "transactions": 128,
+          "totalUs": 122,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 10,
+          "transactions": 128,
+          "totalUs": 42,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 11,
+          "transactions": 128,
+          "totalUs": 44,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 12,
+          "transactions": 128,
+          "totalUs": 55,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 13,
+          "transactions": 128,
+          "totalUs": 24,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 14,
+          "transactions": 128,
+          "totalUs": 31,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 15,
+          "transactions": 128,
+          "totalUs": 22,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 16,
+          "transactions": 128,
+          "totalUs": 2888.5,
+          "updateUs": 96,
+          "renderUs": 2590,
+          "presentUs": 200,
+          "zeroUpdateNonzeroTotal": 0
+        }
+      ]
+    },
+    {
+      "view": "Split",
+      "block": 1,
+      "slot": "B1",
+      "role": "candidate09f",
+      "sha256": "B47D60E2EEBE0B6CEEC09B4138A9C11FB9C28F0C620E85B8365189791D154C08",
+      "executableSha256": "123AE3202CCC035F2FC071BF48A563E6484595C132A948206FEC10F65011FA1E",
+      "attempts": [
+        {
+          "index": 0,
+          "transactions": 128,
+          "totalUs": 791.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 1,
+          "transactions": 128,
+          "totalUs": 77,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 2,
+          "transactions": 128,
+          "totalUs": 80,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 3,
+          "transactions": 128,
+          "totalUs": 49,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 4,
+          "transactions": 128,
+          "totalUs": 38,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 5,
+          "transactions": 128,
+          "totalUs": 35,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 6,
+          "transactions": 128,
+          "totalUs": 38,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 7,
+          "transactions": 128,
+          "totalUs": 51,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 8,
+          "transactions": 128,
+          "totalUs": 71,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 9,
+          "transactions": 128,
+          "totalUs": 117,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 10,
+          "transactions": 128,
+          "totalUs": 40,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 11,
+          "transactions": 128,
+          "totalUs": 41,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 12,
+          "transactions": 128,
+          "totalUs": 53,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 13,
+          "transactions": 128,
+          "totalUs": 23,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 14,
+          "transactions": 128,
+          "totalUs": 30,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 15,
+          "transactions": 128,
+          "totalUs": 22,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 16,
+          "transactions": 128,
+          "totalUs": 2871,
+          "updateUs": 106.5,
+          "renderUs": 2545,
+          "presentUs": 180.5,
+          "zeroUpdateNonzeroTotal": 0
+        }
+      ]
+    },
+    {
+      "view": "Split",
+      "block": 1,
+      "slot": "B2",
+      "role": "candidate09f",
+      "sha256": "CF517499DB236D00684B19C79FE4228D015BD61D19D88EFD5C46364513E428FE",
+      "executableSha256": "123AE3202CCC035F2FC071BF48A563E6484595C132A948206FEC10F65011FA1E",
+      "attempts": [
+        {
+          "index": 0,
+          "transactions": 128,
+          "totalUs": 828,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 1,
+          "transactions": 128,
+          "totalUs": 79,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 2,
+          "transactions": 128,
+          "totalUs": 86,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 3,
+          "transactions": 128,
+          "totalUs": 53,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 4,
+          "transactions": 128,
+          "totalUs": 41,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 5,
+          "transactions": 128,
+          "totalUs": 38,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 6,
+          "transactions": 128,
+          "totalUs": 42,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 7,
+          "transactions": 128,
+          "totalUs": 57,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 8,
+          "transactions": 128,
+          "totalUs": 78,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 9,
+          "transactions": 128,
+          "totalUs": 128.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 10,
+          "transactions": 128,
+          "totalUs": 45,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 11,
+          "transactions": 128,
+          "totalUs": 46,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 12,
+          "transactions": 128,
+          "totalUs": 57,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 13,
+          "transactions": 128,
+          "totalUs": 26,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 14,
+          "transactions": 128,
+          "totalUs": 33,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 15,
+          "transactions": 128,
+          "totalUs": 25,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 16,
+          "transactions": 128,
+          "totalUs": 2980.5,
+          "updateUs": 106,
+          "renderUs": 2658.5,
+          "presentUs": 189.5,
+          "zeroUpdateNonzeroTotal": 0
+        }
+      ]
+    },
+    {
+      "view": "Split",
+      "block": 1,
+      "slot": "A2",
+      "role": "original",
+      "sha256": "B7B925D6921B01D4825506DE046334A97500C0A7720CD3828FF39AE52D5F7BE3",
+      "executableSha256": "92400D4674C8FDC5394E7525B3BD26ED15CF632862B822F0A9A6670DF083B67F",
+      "attempts": [
+        {
+          "index": 0,
+          "transactions": 128,
+          "totalUs": 869.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 1,
+          "transactions": 128,
+          "totalUs": 78,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 2,
+          "transactions": 128,
+          "totalUs": 83,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 3,
+          "transactions": 128,
+          "totalUs": 54,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 4,
+          "transactions": 128,
+          "totalUs": 41,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 5,
+          "transactions": 128,
+          "totalUs": 36,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 6,
+          "transactions": 128,
+          "totalUs": 40,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 7,
+          "transactions": 128,
+          "totalUs": 55,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 8,
+          "transactions": 128,
+          "totalUs": 75,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 9,
+          "transactions": 128,
+          "totalUs": 124.5,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 10,
+          "transactions": 128,
+          "totalUs": 42,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 11,
+          "transactions": 128,
+          "totalUs": 44,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 12,
+          "transactions": 128,
+          "totalUs": 55,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 13,
+          "transactions": 128,
+          "totalUs": 23,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 14,
+          "transactions": 128,
+          "totalUs": 32,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 15,
+          "transactions": 128,
+          "totalUs": 22,
+          "updateUs": 0,
+          "renderUs": 0,
+          "presentUs": 0,
+          "zeroUpdateNonzeroTotal": 128
+        },
+        {
+          "index": 16,
+          "transactions": 128,
+          "totalUs": 2935.5,
+          "updateUs": 107,
+          "renderUs": 2572,
+          "presentUs": 219,
+          "zeroUpdateNonzeroTotal": 0
+        }
+      ]
+    }
+  ],
+  "attemptRows": [
+    {
+      "view": "Compose",
+      "index": 0,
+      "processesPerRole": 4,
+      "originalTotalUs": 497.25,
+      "candidateTotalUs": 528.25,
+      "deltaUs": 31.0,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Compose",
+      "index": 1,
+      "processesPerRole": 4,
+      "originalTotalUs": 81.5,
+      "candidateTotalUs": 79.25,
+      "deltaUs": -2.25,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Compose",
+      "index": 2,
+      "processesPerRole": 4,
+      "originalTotalUs": 89.25,
+      "candidateTotalUs": 87.25,
+      "deltaUs": -2.0,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Compose",
+      "index": 3,
+      "processesPerRole": 4,
+      "originalTotalUs": 55,
+      "candidateTotalUs": 54,
+      "deltaUs": -1,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Compose",
+      "index": 4,
+      "processesPerRole": 4,
+      "originalTotalUs": 41,
+      "candidateTotalUs": 41,
+      "deltaUs": 0,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Compose",
+      "index": 5,
+      "processesPerRole": 4,
+      "originalTotalUs": 36,
+      "candidateTotalUs": 37.5,
+      "deltaUs": 1.5,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Compose",
+      "index": 6,
+      "processesPerRole": 4,
+      "originalTotalUs": 49.25,
+      "candidateTotalUs": 41,
+      "deltaUs": -8.25,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Compose",
+      "index": 7,
+      "processesPerRole": 4,
+      "originalTotalUs": 55.5,
+      "candidateTotalUs": 55,
+      "deltaUs": -0.5,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Compose",
+      "index": 8,
+      "processesPerRole": 4,
+      "originalTotalUs": 82,
+      "candidateTotalUs": 82,
+      "deltaUs": 0,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Compose",
+      "index": 9,
+      "processesPerRole": 4,
+      "originalTotalUs": 148,
+      "candidateTotalUs": 148,
+      "deltaUs": 0,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Compose",
+      "index": 10,
+      "processesPerRole": 4,
+      "originalTotalUs": 42.75,
+      "candidateTotalUs": 43.5,
+      "deltaUs": 0.75,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Compose",
+      "index": 11,
+      "processesPerRole": 4,
+      "originalTotalUs": 43.5,
+      "candidateTotalUs": 46,
+      "deltaUs": 2.5,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Compose",
+      "index": 12,
+      "processesPerRole": 4,
+      "originalTotalUs": 60.5,
+      "candidateTotalUs": 58.5,
+      "deltaUs": -2.0,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Compose",
+      "index": 13,
+      "processesPerRole": 4,
+      "originalTotalUs": 24.5,
+      "candidateTotalUs": 25.5,
+      "deltaUs": 1.0,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Compose",
+      "index": 14,
+      "processesPerRole": 4,
+      "originalTotalUs": 31.75,
+      "candidateTotalUs": 33,
+      "deltaUs": 1.25,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Compose",
+      "index": 15,
+      "processesPerRole": 4,
+      "originalTotalUs": 22,
+      "candidateTotalUs": 24,
+      "deltaUs": 2,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Compose",
+      "index": 16,
+      "processesPerRole": 4,
+      "originalTotalUs": 2092.0,
+      "candidateTotalUs": 1957,
+      "deltaUs": -135.0,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Split",
+      "index": 0,
+      "processesPerRole": 4,
+      "originalTotalUs": 872.25,
+      "candidateTotalUs": 842.75,
+      "deltaUs": -29.5,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Split",
+      "index": 1,
+      "processesPerRole": 4,
+      "originalTotalUs": 74.5,
+      "candidateTotalUs": 78.5,
+      "deltaUs": 4.0,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Split",
+      "index": 2,
+      "processesPerRole": 4,
+      "originalTotalUs": 81.5,
+      "candidateTotalUs": 85.75,
+      "deltaUs": 4.25,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Split",
+      "index": 3,
+      "processesPerRole": 4,
+      "originalTotalUs": 52.5,
+      "candidateTotalUs": 53.5,
+      "deltaUs": 1.0,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Split",
+      "index": 4,
+      "processesPerRole": 4,
+      "originalTotalUs": 40,
+      "candidateTotalUs": 41,
+      "deltaUs": 1,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Split",
+      "index": 5,
+      "processesPerRole": 4,
+      "originalTotalUs": 36,
+      "candidateTotalUs": 38,
+      "deltaUs": 2,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Split",
+      "index": 6,
+      "processesPerRole": 4,
+      "originalTotalUs": 40,
+      "candidateTotalUs": 42,
+      "deltaUs": 2,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Split",
+      "index": 7,
+      "processesPerRole": 4,
+      "originalTotalUs": 55,
+      "candidateTotalUs": 57,
+      "deltaUs": 2,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Split",
+      "index": 8,
+      "processesPerRole": 4,
+      "originalTotalUs": 74.75,
+      "candidateTotalUs": 76.5,
+      "deltaUs": 1.75,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Split",
+      "index": 9,
+      "processesPerRole": 4,
+      "originalTotalUs": 123,
+      "candidateTotalUs": 127.75,
+      "deltaUs": 4.75,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Split",
+      "index": 10,
+      "processesPerRole": 4,
+      "originalTotalUs": 42,
+      "candidateTotalUs": 44.5,
+      "deltaUs": 2.5,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Split",
+      "index": 11,
+      "processesPerRole": 4,
+      "originalTotalUs": 44,
+      "candidateTotalUs": 46,
+      "deltaUs": 2,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Split",
+      "index": 12,
+      "processesPerRole": 4,
+      "originalTotalUs": 55,
+      "candidateTotalUs": 57.5,
+      "deltaUs": 2.5,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Split",
+      "index": 13,
+      "processesPerRole": 4,
+      "originalTotalUs": 24,
+      "candidateTotalUs": 26,
+      "deltaUs": 2,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Split",
+      "index": 14,
+      "processesPerRole": 4,
+      "originalTotalUs": 32,
+      "candidateTotalUs": 33,
+      "deltaUs": 1,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Split",
+      "index": 15,
+      "processesPerRole": 4,
+      "originalTotalUs": 22,
+      "candidateTotalUs": 25,
+      "deltaUs": 3,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    },
+    {
+      "view": "Split",
+      "index": 16,
+      "processesPerRole": 4,
+      "originalTotalUs": 2820.25,
+      "candidateTotalUs": 3028.25,
+      "deltaUs": 208.0,
+      "boundary": "median of four process medians; descriptive wall duration; no inference or CPU attribution"
+    }
+  ],
+  "timingDefect": "Pending native render early returns preserve totalUs but skip assigning updateUs; stage field is incomplete in SDK407."
+}

@@ -1,0 +1,2237 @@
+{
+  "schemaVersion": 1,
+  "protocol": "app-editor-preparation-attempt-patterns-v1",
+  "reports": [
+    {
+      "inputName": "Compose-1.native.json",
+      "inputSha256": "C3731759A583525FC42EA50FD537A093885DA279C7FEE408F9E9A8902382D2F8",
+      "view": "Compose",
+      "sourceUnits": 693,
+      "cycles": 64,
+      "transactionCount": 128,
+      "attemptCount": 2176,
+      "attemptProgression": [
+        {
+          "attemptIndex": 0,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 0,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 128,
+          "markdownWorkSum": 243648,
+          "semanticPreparationAdvances": 128,
+          "semanticWorkSum": 37248,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 169,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 1,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 78,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 2,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 56,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 3,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 5,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 4,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 5,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 5,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 6,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 7,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 5,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 8,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 22,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 9,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 10,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 11,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 12,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 12,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 8,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 13,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 14,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 15,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 16,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 0,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 1,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 99,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 128
+        }
+      ]
+    },
+    {
+      "inputName": "Split-1.native.json",
+      "inputSha256": "ABA4E23770A0ED8118FD91607850792EC9DBD84E1AF30A225FBFACDCF62E14FE",
+      "view": "Split",
+      "sourceUnits": 693,
+      "cycles": 64,
+      "transactionCount": 128,
+      "attemptCount": 2176,
+      "attemptProgression": [
+        {
+          "attemptIndex": 0,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 0,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 128,
+          "markdownWorkSum": 243648,
+          "semanticPreparationAdvances": 128,
+          "semanticWorkSum": 37248,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 169,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 128,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 1,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 78,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 128,
+          "mirrorInkPendingAfterTrue": 128,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 2,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 56,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 128,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 3,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 5,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 4,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 5,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 5,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 6,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 7,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 5,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 8,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 22,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 9,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 10,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 11,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 12,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 12,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 8,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 13,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 14,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 15,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 16,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 0,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 1,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 99,
+              "transactions": 64
+            },
+            {
+              "value": 100,
+              "transactions": 64
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 128
+        }
+      ]
+    },
+    {
+      "inputName": "Split-2.native.json",
+      "inputSha256": "6967A01D0FAAAB522EF894BEDA4F60388268D9CD0A65DC6001D2D1D6E8D8D63C",
+      "view": "Split",
+      "sourceUnits": 693,
+      "cycles": 64,
+      "transactionCount": 128,
+      "attemptCount": 2176,
+      "attemptProgression": [
+        {
+          "attemptIndex": 0,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 0,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 128,
+          "markdownWorkSum": 243648,
+          "semanticPreparationAdvances": 128,
+          "semanticWorkSum": 37248,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 169,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 128,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 1,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 78,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 128,
+          "mirrorInkPendingAfterTrue": 128,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 2,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 56,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 128,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 3,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 5,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 4,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 5,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 5,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 6,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 7,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 5,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 8,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 22,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 9,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 10,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 11,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 12,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 12,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 8,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 13,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 14,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 15,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 16,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 0,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 1,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 99,
+              "transactions": 64
+            },
+            {
+              "value": 100,
+              "transactions": 64
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 26,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 128
+        }
+      ]
+    },
+    {
+      "inputName": "Compose-2.native.json",
+      "inputSha256": "130A0BF485196591D21C81DA33D677E9B66AB3130B8A1B4330724B98966CD7B2",
+      "view": "Compose",
+      "sourceUnits": 693,
+      "cycles": 64,
+      "transactionCount": 128,
+      "attemptCount": 2176,
+      "attemptProgression": [
+        {
+          "attemptIndex": 0,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 0,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 128,
+          "markdownWorkSum": 243648,
+          "semanticPreparationAdvances": 128,
+          "semanticWorkSum": 37248,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 169,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 1,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 78,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 2,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 56,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 3,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 5,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 4,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 5,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 5,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 6,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 7,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 5,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 8,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 22,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 9,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 10,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 11,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 12,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 12,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 8,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 13,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 14,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 15,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 128,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 4,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 0
+        },
+        {
+          "attemptIndex": 16,
+          "transactionCount": 128,
+          "primaryPendingBeforeTrue": 128,
+          "primaryPendingAfterTrue": 0,
+          "primaryPreparationAdvances": 128,
+          "markdownPreparationAdvances": 0,
+          "markdownWorkSum": 0,
+          "semanticPreparationAdvances": 0,
+          "semanticWorkSum": 0,
+          "lastAdvanceLayouts": [
+            {
+              "value": 1,
+              "transactions": 128
+            }
+          ],
+          "lastAdvanceBlockSteps": [
+            {
+              "value": 99,
+              "transactions": 128
+            }
+          ],
+          "mirrorInkPendingBeforeTrue": 0,
+          "mirrorInkPendingAfterTrue": 0,
+          "mirrorInkRangeCounts": [
+            {
+              "value": 0,
+              "transactions": 128
+            }
+          ],
+          "hostRenderDeltaSum": 128
+        }
+      ]
+    }
+  ],
+  "totalTransactions": 512,
+  "totalAttempts": 8704,
+  "interpretation": "Descriptive counter/state deltas and paired host-render counts only; counters are not CPU time and no per-stage CPU attribution is supported."
+}

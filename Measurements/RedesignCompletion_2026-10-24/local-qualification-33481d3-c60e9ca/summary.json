@@ -1,0 +1,1451 @@
+{
+  "schema": "redtilde-application-closeout-matrix-private-stage-v1",
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-completed-native-v2",
+  "source": {
+    "qualifiedCommit": "33481d3372f529fd28827ac98c56095d65fbb61d",
+    "qualifiedSourceIdentity": "b54a17e54a013e490eddca805e0132c940ffbcd18827d7a6e3a1fc23acdc6bcd",
+    "docsOnlyCurrentCommit": "c60e9ca678ad76460e4b0783622c87099af66ed2",
+    "docsOnlySourceIdentity": "d2a54e46a73202fa4de13438131830ec2480bdada6db965e1554ee9ffd0b4d68",
+    "docsOnlyPaths": [
+      "CHANGELOG.md",
+      "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
+      "Specs/Testing/Testing_Validation.md"
+    ],
+    "dxUiPin": "1714f8b0c0fa628bcef56de76078f85c869fc50c",
+    "dxUiApiRevision": 4
+  },
+  "qualification": {
+    "profilesBuilt": 6,
+    "x64FullProfiles": 3,
+    "behavioralCasesPerFull": 58,
+    "capturesPerFull": 23,
+    "arm64": "cross-build only; no runtime claim",
+    "foreground": "not qualified; no activation",
+    "performance": "initial baseline only; no paired performance acceptance",
+    "hosted": {
+      "status": "billing-gated before job steps",
+      "head": "33481d3372f529fd28827ac98c56095d65fbb61d",
+      "stepsStarted": 0,
+      "nativeMatrixExecuted": false,
+      "qualification": "historical 334 PR run only; not a current-main hosted pass"
+    }
+  },
+  "profiles": [
+    {
+      "platform": "x64",
+      "configuration": "Debug",
+      "result": "build-passed",
+      "runtimeExecuted": false,
+      "qualifiedSourceCommit": "33481d3372f529fd28827ac98c56095d65fbb61d",
+      "qualifiedSourceIdentity": "b54a17e54a013e490eddca805e0132c940ffbcd18827d7a6e3a1fc23acdc6bcd",
+      "dxUiCommit": "1714f8b0c0fa628bcef56de76078f85c869fc50c",
+      "dxUiApiRevision": 4,
+      "dxUiLibrarySha256": "94D70AE9DA35CDBFC7D1973251FDDD298EF590A7138956012A18874650F1F507",
+      "buildReceiptSha256": "C9634ECC465440485A83684096711F279FE043732D41C9A61D045930252B3750",
+      "artifactIdentity": "ff5c3c2bfc2b2d8728a7c6e789d71e7b64647bd80b4b7b48b83608c34d705fd0",
+      "executableSha256": "AC731D2F2E92DDEA86B56D565F3BD2EC3EEAFD57407974143699EF635CA209D0",
+      "executableBytes": 15140352,
+      "peMachine": "x64",
+      "executableMatchesReceipt": true,
+      "profileArtifacts": [
+        {
+          "name": "RedTilde.exe",
+          "sha256": "AC731D2F2E92DDEA86B56D565F3BD2EC3EEAFD57407974143699EF635CA209D0",
+          "bytes": 15140352,
+          "peMachine": "x64"
+        },
+        {
+          "name": "RedTilde.pdb",
+          "sha256": "B4F442B452CE721A531FAEBD9BB6A1F40508D6617B951D08C8489D6837DD189E",
+          "bytes": 65908736,
+          "peMachine": null
+        }
+      ],
+      "docsRebind": {
+        "sourceCommit": "c60e9ca678ad76460e4b0783622c87099af66ed2",
+        "sourceIdentity": "d2a54e46a73202fa4de13438131830ec2480bdada6db965e1554ee9ffd0b4d68",
+        "binarySha256": "AC731D2F2E92DDEA86B56D565F3BD2EC3EEAFD57407974143699EF635CA209D0",
+        "artifactIdentity": "ff5c3c2bfc2b2d8728a7c6e789d71e7b64647bd80b4b7b48b83608c34d705fd0",
+        "unchanged": true,
+        "rebindEvidenceSha256": "1C57CACA4F33C821FC9C40B82F75CECBD9BBCEA6D88E2FEB7E3C0A779B3D1B02"
+      }
+    },
+    {
+      "platform": "x64",
+      "configuration": "Release",
+      "result": "build-passed",
+      "runtimeExecuted": false,
+      "qualifiedSourceCommit": "33481d3372f529fd28827ac98c56095d65fbb61d",
+      "qualifiedSourceIdentity": "b54a17e54a013e490eddca805e0132c940ffbcd18827d7a6e3a1fc23acdc6bcd",
+      "dxUiCommit": "1714f8b0c0fa628bcef56de76078f85c869fc50c",
+      "dxUiApiRevision": 4,
+      "dxUiLibrarySha256": "2126DF8686619BADD65465F7F22D277DF7B0B5CCD3FA6C06B1ECCF397AE5AFC2",
+      "buildReceiptSha256": "62D504E12A0DF3EC0FAABA31C47B97C8218F4D728D2ABFBAA3AAB8F7D972E87B",
+      "artifactIdentity": "fdeb779f97ab015f1882392b8f15bd61d43e363285dad09c20c2c94ec0bac0ca",
+      "executableSha256": "1C21CB4F64BF4245F2DDDA164FB7A6D929E34D99D0C5A055027F110D2C11EEF0",
+      "executableBytes": 5135872,
+      "peMachine": "x64",
+      "executableMatchesReceipt": true,
+      "profileArtifacts": [
+        {
+          "name": "RedTilde.exe",
+          "sha256": "1C21CB4F64BF4245F2DDDA164FB7A6D929E34D99D0C5A055027F110D2C11EEF0",
+          "bytes": 5135872,
+          "peMachine": "x64"
+        },
+        {
+          "name": "RedTilde.pdb",
+          "sha256": "9EA7430C8373A8CB341300A4F7F6DF2D8086FE9FA71CD09211BA895E28809D74",
+          "bytes": 45813760,
+          "peMachine": null
+        }
+      ],
+      "docsRebind": {
+        "sourceCommit": "c60e9ca678ad76460e4b0783622c87099af66ed2",
+        "sourceIdentity": "d2a54e46a73202fa4de13438131830ec2480bdada6db965e1554ee9ffd0b4d68",
+        "binarySha256": "1C21CB4F64BF4245F2DDDA164FB7A6D929E34D99D0C5A055027F110D2C11EEF0",
+        "artifactIdentity": "fdeb779f97ab015f1882392b8f15bd61d43e363285dad09c20c2c94ec0bac0ca",
+        "unchanged": true,
+        "rebindEvidenceSha256": "74CED331C34BD025105E3A0F921F1522252BA1C780988D2F13440B3CA7194E95"
+      }
+    },
+    {
+      "platform": "x64",
+      "configuration": "ASan Debug",
+      "result": "build-passed",
+      "runtimeExecuted": false,
+      "qualifiedSourceCommit": "33481d3372f529fd28827ac98c56095d65fbb61d",
+      "qualifiedSourceIdentity": "b54a17e54a013e490eddca805e0132c940ffbcd18827d7a6e3a1fc23acdc6bcd",
+      "dxUiCommit": "1714f8b0c0fa628bcef56de76078f85c869fc50c",
+      "dxUiApiRevision": 4,
+      "dxUiLibrarySha256": "B8CF7B9A8C6934FA05F2D9DBA3CDC1ACC8F1A9C149CDE579F4CE5E265C02C199",
+      "buildReceiptSha256": "3BAE732209C4DB667AC94A1A0DCC32FF24B13EEB605F6F1B29E52310588942B5",
+      "artifactIdentity": "2b46a7e26e0f905f7d2d8317037dc800e59466250fe550be8be2fa8813fdfcd0",
+      "executableSha256": "168C6D5F0E16EF550F2CDF23A5CC26326BE8C9C9ED14E1025B58BBDF982E322B",
+      "executableBytes": 23502848,
+      "peMachine": "x64",
+      "executableMatchesReceipt": true,
+      "profileArtifacts": [
+        {
+          "name": "clang_rt.asan_dynamic-x86_64.dll",
+          "sha256": "2B952AA118F22FA330069C27CA42C79D94B654F369787B89BF3A495774D66DAC",
+          "bytes": 1731408,
+          "peMachine": "x64"
+        },
+        {
+          "name": "RedTilde.exe",
+          "sha256": "168C6D5F0E16EF550F2CDF23A5CC26326BE8C9C9ED14E1025B58BBDF982E322B",
+          "bytes": 23502848,
+          "peMachine": "x64"
+        },
+        {
+          "name": "RedTilde.pdb",
+          "sha256": "B40CAFF9554137827005AA4C7867B5D74C004038AF910FBF7EA0B74F549D927C",
+          "bytes": 53161984,
+          "peMachine": null
+        }
+      ],
+      "docsRebind": {
+        "sourceCommit": "c60e9ca678ad76460e4b0783622c87099af66ed2",
+        "sourceIdentity": "d2a54e46a73202fa4de13438131830ec2480bdada6db965e1554ee9ffd0b4d68",
+        "binarySha256": "168C6D5F0E16EF550F2CDF23A5CC26326BE8C9C9ED14E1025B58BBDF982E322B",
+        "artifactIdentity": "2b46a7e26e0f905f7d2d8317037dc800e59466250fe550be8be2fa8813fdfcd0",
+        "unchanged": true,
+        "rebindEvidenceSha256": "F3510113841F9D25FFDF7DD66B6FBB5EC328FE3793F2DE988360BCFF8F1ABFA8"
+      }
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Debug",
+      "result": "build-passed",
+      "runtimeExecuted": false,
+      "qualifiedSourceCommit": "33481d3372f529fd28827ac98c56095d65fbb61d",
+      "qualifiedSourceIdentity": "b54a17e54a013e490eddca805e0132c940ffbcd18827d7a6e3a1fc23acdc6bcd",
+      "dxUiCommit": "1714f8b0c0fa628bcef56de76078f85c869fc50c",
+      "dxUiApiRevision": 4,
+      "dxUiLibrarySha256": "865B095EEF9D09998274EB96FED20B21396C5C10944D6D032123A05E9867DBB2",
+      "buildReceiptSha256": "A089DEACB2ACA64755957343BA3D2E895EC6427378D56872F9922EF058871363",
+      "artifactIdentity": "b3bacdc7bb63cac7404092b7b119b3a958ea5ac19b68139f64b853c470ce3997",
+      "executableSha256": "E27E24FCA70A6542802AF7F8079515DDECA189AC42A140440434B9C4D3ECA7D3",
+      "executableBytes": 22647296,
+      "peMachine": "ARM64",
+      "executableMatchesReceipt": true,
+      "profileArtifacts": [
+        {
+          "name": "RedTilde.exe",
+          "sha256": "E27E24FCA70A6542802AF7F8079515DDECA189AC42A140440434B9C4D3ECA7D3",
+          "bytes": 22647296,
+          "peMachine": "ARM64"
+        },
+        {
+          "name": "RedTilde.pdb",
+          "sha256": "F71119E26ECE36A004AAF7AED9B488283D249ACA9D26A9AFBA62A3DC3AA2E41F",
+          "bytes": 68530176,
+          "peMachine": null
+        }
+      ],
+      "docsRebind": {
+        "sourceCommit": "c60e9ca678ad76460e4b0783622c87099af66ed2",
+        "sourceIdentity": "d2a54e46a73202fa4de13438131830ec2480bdada6db965e1554ee9ffd0b4d68",
+        "binarySha256": "E27E24FCA70A6542802AF7F8079515DDECA189AC42A140440434B9C4D3ECA7D3",
+        "artifactIdentity": "b3bacdc7bb63cac7404092b7b119b3a958ea5ac19b68139f64b853c470ce3997",
+        "unchanged": true,
+        "rebindEvidenceSha256": "BAC3DF8803F143E786DF2C39F2F8F02E663E7419756DD543E836762781E294B3"
+      }
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Release",
+      "result": "build-passed",
+      "runtimeExecuted": false,
+      "qualifiedSourceCommit": "33481d3372f529fd28827ac98c56095d65fbb61d",
+      "qualifiedSourceIdentity": "b54a17e54a013e490eddca805e0132c940ffbcd18827d7a6e3a1fc23acdc6bcd",
+      "dxUiCommit": "1714f8b0c0fa628bcef56de76078f85c869fc50c",
+      "dxUiApiRevision": 4,
+      "dxUiLibrarySha256": "FC0F256F5D523C9A493F3EF7C64942BEA6A59620630D310BBDBBAE558017E73C",
+      "buildReceiptSha256": "07F194D748FC8603FC580C76FBCAF1654BF85314DE8DCAE3FF6CDB0BB87F47CA",
+      "artifactIdentity": "0b502036a329da6a6fa8b0364e5ead2c672127830dc4941095ed2cfb273f019e",
+      "executableSha256": "E89BDEAEB1BA9794B56D671FA8A6669F05D245E1A5CA187C803E4D764A3FA758",
+      "executableBytes": 5537792,
+      "peMachine": "ARM64",
+      "executableMatchesReceipt": true,
+      "profileArtifacts": [
+        {
+          "name": "RedTilde.exe",
+          "sha256": "E89BDEAEB1BA9794B56D671FA8A6669F05D245E1A5CA187C803E4D764A3FA758",
+          "bytes": 5537792,
+          "peMachine": "ARM64"
+        },
+        {
+          "name": "RedTilde.pdb",
+          "sha256": "3B588DBB51E04E67F89F8E0D54163A4F60A68B830150503A3C896F800E35B598",
+          "bytes": 42496000,
+          "peMachine": null
+        }
+      ],
+      "docsRebind": {
+        "sourceCommit": "c60e9ca678ad76460e4b0783622c87099af66ed2",
+        "sourceIdentity": "d2a54e46a73202fa4de13438131830ec2480bdada6db965e1554ee9ffd0b4d68",
+        "binarySha256": "E89BDEAEB1BA9794B56D671FA8A6669F05D245E1A5CA187C803E4D764A3FA758",
+        "artifactIdentity": "0b502036a329da6a6fa8b0364e5ead2c672127830dc4941095ed2cfb273f019e",
+        "unchanged": true,
+        "rebindEvidenceSha256": "6F7169622B062D5CA2112A50736088FB55706065C89383D632D8B64B89D054E5"
+      }
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "ASan Debug",
+      "result": "build-passed",
+      "runtimeExecuted": false,
+      "qualifiedSourceCommit": "33481d3372f529fd28827ac98c56095d65fbb61d",
+      "qualifiedSourceIdentity": "b54a17e54a013e490eddca805e0132c940ffbcd18827d7a6e3a1fc23acdc6bcd",
+      "dxUiCommit": "1714f8b0c0fa628bcef56de76078f85c869fc50c",
+      "dxUiApiRevision": 4,
+      "dxUiLibrarySha256": "B306052F036FE36FD668430A22882DA0D39AB6EDDDBEC7E249BC54DEF9BE7E1C",
+      "buildReceiptSha256": "B0CCC702F5C43F099A5E813EB193080092D0398630F8E155696785A3917FF41A",
+      "artifactIdentity": "143337452ef47ff13f5102859c5767379cfbbbf3f1ed8ac60371d30c715d5712",
+      "executableSha256": "6C80FE50E5047C2D68CCACBEB803C057B0D0F81B194325A3DA306EBCA97200B3",
+      "executableBytes": 18523648,
+      "peMachine": "ARM64",
+      "executableMatchesReceipt": true,
+      "profileArtifacts": [
+        {
+          "name": "clang_rt.asan_dynamic-aarch64.dll",
+          "sha256": "C8D6EE580003316179EA4718C268230FF23A17CF1AD791D9FEB8AD779C3044CB",
+          "bytes": 1278592,
+          "peMachine": "ARM64"
+        },
+        {
+          "name": "RedTilde.exe",
+          "sha256": "6C80FE50E5047C2D68CCACBEB803C057B0D0F81B194325A3DA306EBCA97200B3",
+          "bytes": 18523648,
+          "peMachine": "ARM64"
+        },
+        {
+          "name": "RedTilde.pdb",
+          "sha256": "9003567A83D1BC7C6D49306FB78F51C1E1A49661693F67C1075D624C237C2612",
+          "bytes": 52326400,
+          "peMachine": null
+        }
+      ],
+      "docsRebind": {
+        "sourceCommit": "c60e9ca678ad76460e4b0783622c87099af66ed2",
+        "sourceIdentity": "d2a54e46a73202fa4de13438131830ec2480bdada6db965e1554ee9ffd0b4d68",
+        "binarySha256": "6C80FE50E5047C2D68CCACBEB803C057B0D0F81B194325A3DA306EBCA97200B3",
+        "artifactIdentity": "143337452ef47ff13f5102859c5767379cfbbbf3f1ed8ac60371d30c715d5712",
+        "unchanged": true,
+        "rebindEvidenceSha256": "9088B797A8C7490D92AC87377ACE7426E940D834F11CF156D0418D9BC0C16535"
+      }
+    }
+  ],
+  "localFull": [
+    {
+      "platform": "x64",
+      "configuration": "Debug",
+      "passed": true,
+      "interactive": false,
+      "qualifiedSourceIdentity": "b54a17e54a013e490eddca805e0132c940ffbcd18827d7a6e3a1fc23acdc6bcd",
+      "dependencyCommit": "1714f8b0c0fa628bcef56de76078f85c869fc50c",
+      "binarySha256": "AC731D2F2E92DDEA86B56D565F3BD2EC3EEAFD57407974143699EF635CA209D0",
+      "buildReceiptSha256": "C9634ECC465440485A83684096711F279FE043732D41C9A61D045930252B3750",
+      "buildReceiptSha256MatchesFrozen": true,
+      "binarySha256MatchesFrozen": true,
+      "receiptSha256": "85D3B488E988907EE1B1D6E20EFDE9A5D0D9F836631920955D7FA08245C09220",
+      "completedOutcome": "passed",
+      "completedMarkerSha256": "7ABD02C5FC8DD895C7D2FC0722AEC4B4B9DC45647D6D7C318AEB9C1E8639AD9C",
+      "editorTestsSha256": "466694E41AC17C2EA528201A5FD700F2EA8FE2375509D3154EE259FC6FB9966A",
+      "generatedEditorCatalogSha256": "84F11A07BEF86AF8499A238FF0B808E10C8287E88424F41DC9E9039C7830A8BF",
+      "scopeResults": [
+        {
+          "scope": "Storage",
+          "passed": 10,
+          "failed": 0,
+          "caseCount": 10
+        },
+        {
+          "scope": "Settings",
+          "passed": 4,
+          "failed": 0,
+          "caseCount": 4
+        },
+        {
+          "scope": "Recovery",
+          "passed": 5,
+          "failed": 0,
+          "caseCount": 5
+        },
+        {
+          "scope": "Editor",
+          "passed": 39,
+          "failed": 0,
+          "caseCount": 39
+        }
+      ],
+      "behavioralCasesTotal": 58.0,
+      "captures": [
+        {
+          "name": "compose-light",
+          "scenario": "compose-light",
+          "imageSha256": "37792B2F98CB2EEE8658AA0D30F61A2281689D30126E7646ECB3A4510C759A69",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "493843EF8F9130ED239F43969561EEFE2B950E662CEE75154356602DE2C10ED7",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "compose-dark",
+          "scenario": "compose-dark",
+          "imageSha256": "A13A4979DE79BE33F4CAA5B31EE4661231608C76C77B9C567B2B91C4995E13AE",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "0F3E42D9A59F699764E64D3AB066AA6772AA100325CE32E22EA1EB670FCBF546",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "source",
+          "scenario": "source",
+          "imageSha256": "B63338DDF6DFB4E40D619624DA03470A42B7A56920D0D2B3FEA55DF38F317D61",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "32828B1A46F68517B6F37A32F45B8596313346114EBDABD8879FC065F52C71C4",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "split",
+          "scenario": "split",
+          "imageSha256": "EC37E1A14827FE3A4D09E6A7AB679D77A73698E83DA2C8981003AC4AC1331A3A",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "35ED6D3FA8B2EE91E1F8875A50F90D47001C2FDD180312317706CF8BD880E542",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "context-selection",
+          "scenario": "context-selection",
+          "imageSha256": "E061E2ED95C79C807F7BCBBC534255B97B221EE90EE1D432FFB04A2214414376",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "762C8153754AB460778821EB32E554A66605519591AE8BAADE477347B837D6C0",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "local-source",
+          "scenario": "local-source",
+          "imageSha256": "0A4D570F3DE46BC767A793684E4C3427997369A6B2D68B3D486B9833878EE4BB",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "A2183C63B5B6936E2856BDB5B44DA96640B941B723A012DE3727BF6D524A4913",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "settings",
+          "scenario": "settings",
+          "imageSha256": "EF4E9760CBB4973D9DF0964593050378CF30B35E4587D5DB156786A0649872A6",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "230C677412477409DBD9C2297A8C0A48BF932157FC4ACB274891F48E8F483679",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "math",
+          "scenario": "math",
+          "imageSha256": "BEEF1A5B8F31EAC6D88EDE4A9D11BAA75320E01E8B1CF5CC9EB06406342A23C0",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "377E093275E9302AF68FDD096765B4B7376DF5023519AC81A5C5695D7C44335C",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "math-dark",
+          "scenario": "math-dark",
+          "imageSha256": "ECA11D84B17025E20EAFF0435F4AF81E0937E168705F95F827AD9E82A4C9D82B",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "3773E0D0BAADE13C8521C91496A17E792A6144DB326F77EC609FBC99F5BC059B",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "mermaid",
+          "scenario": "mermaid",
+          "imageSha256": "5B4A94B77BA9043D1CA55C746E089A0999B682BD8B52476C5592D1103EE14A71",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "DB9A32F6B88C76F8D6D112F42855D13257B07A68C6E3702932D7E997F5B557E2",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "recovery",
+          "scenario": "recovery",
+          "imageSha256": "E9A52795A160817944ECB813CDEC52EBED325B084D9DBA1FCEBF7B7FADED6CFF",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "D89406BA928994FA9B9E40EB81D9260B273B87B2E0C673C4744775CE87699AE2",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "narrow",
+          "scenario": "narrow",
+          "imageSha256": "4E3C369AFC9CE21E651C65586A717BADA6F981D50FC5DAE2C480F185610D521D",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "D91A97AF43FC5A3BF2DCA32E3F791DB79CC5E849061EFC6D3CE69434AF420552",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "high-contrast",
+          "scenario": "high-contrast",
+          "imageSha256": "3B726657B603D27C7DF4F1A949955EE8C19D804912FAABB63DE2AACB8D54BA3E",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "37C31D0248D980D2C781391822798CAFB3A06F84ABF231854296A379BEA7D2B7",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "files",
+          "scenario": "files",
+          "imageSha256": "37792B2F98CB2EEE8658AA0D30F61A2281689D30126E7646ECB3A4510C759A69",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "43D01999B987E51CFC7882FB6133FE1E0C16D1582D451FA5F0B62426FC8C5668",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "find",
+          "scenario": "find",
+          "imageSha256": "3DB5829B45A6646C09F360C10661A0BFE9BB2EFBE73E46E6E8F1A7211F01250B",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "A5E045541B7CBA8A7E712E65191BB00BC75D25DF2E21B8531178FB96B9C51D03",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "focus",
+          "scenario": "focus",
+          "imageSha256": "F53BCDDED6E95887A64750DE8961904601D5C436CD74F7FD56E24B5581B950AF",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "37011D2C6CEBF9EBDE7E8809CA4F334F472882C6C47F1398F3D79F9C0A8A180E",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "equation",
+          "scenario": "equation",
+          "imageSha256": "5F05DEF13569BBB005ED4AC2A3BCEEF5A1D8E663708C67CE02EBA6AE6CC43A60",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "73BFFCE19343A3E4C5F2659CB1DE1756BCB7A3EB9419257FF0D88D4DE0BC0CF9",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "narrow-dpi-96",
+          "scenario": "narrow",
+          "imageSha256": "3D194EB7B01667295E75A10AE6353812D06301BCD93F0AC43ADB914BD6B27CAF",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "44F3F503BFDF48933990B3E4C5FE4F57893E5FCF45251E4212FD555E7D2CFD50",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 96,
+          "actualHostDpi": 96
+        },
+        {
+          "name": "narrow-dpi-144",
+          "scenario": "narrow",
+          "imageSha256": "4E3C369AFC9CE21E651C65586A717BADA6F981D50FC5DAE2C480F185610D521D",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "591F113E9B3EBAA05C09524FFE31C98F4305B6794EE3A7F035FEFB3BABDA6DDB",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 144,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "narrow-dpi-192",
+          "scenario": "narrow",
+          "imageSha256": "65A401B92196C0FA535D0E6EC858D697DFCD253F2CCD2DA192EDAC553A4D69AF",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "1DA7CC13795F87F4A3C698C60C7A6FBFDF4A34F2405A82A13AAD342D1B6FB7F1",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 192,
+          "actualHostDpi": 192
+        },
+        {
+          "name": "reference-dark-dpi-96",
+          "scenario": "reference-dark",
+          "imageSha256": "D1847C787888C1EBFDCD6C434E89FD01B300A56187EABB0E9CBAE684AFCF58C7",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "A68BEE865A8449971628198BC9660E9D856C838746530E37489F76689C4D29A1",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 96,
+          "actualHostDpi": 96
+        },
+        {
+          "name": "reference-dark-dpi-144",
+          "scenario": "reference-dark",
+          "imageSha256": "9EAB7A0251D6EFA493D3779642111C94D828B834949C16502055903914CFB537",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "97AFC8493D043885B78781B9FD9CD3F92EBBFBAEC665AF1E93667B8C0A8E9C9B",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 144,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "reference-dark-dpi-192",
+          "scenario": "reference-dark",
+          "imageSha256": "7D7418DF1DE32942B98B9D8681686065F33D4677A52A74A840E17DB7B2F53178",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "C1BACECB09DF10BFF63521D890E37455D50FEF52B8B0E4149DD38C169C021D75",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 192,
+          "actualHostDpi": 192
+        }
+      ],
+      "captureCount": 23,
+      "allCapturesHidden": true,
+      "allCaptureAndScenarioDigestsMatch": true,
+      "crashProbe": {
+        "exitCode": -531475201,
+        "dumpSha256": "3E15D6B7892193E6F5FF135E3C1E7AED23F2A828B951CA53BDD8FFB3C889346A",
+        "dumpHashFound": true,
+        "pendingMarker": true
+      },
+      "recoveryRestart": {
+        "exactSourceRestored": true,
+        "originalProtectedBySaveAs": true
+      },
+      "addressSanitizerExpectedProbe": null,
+      "resourceLifecycle": [
+        {
+          "requested": "default",
+          "renderer": "Hardware",
+          "completed": true,
+          "fixture": "redtilde-completed-native-v2",
+          "view": "Compose",
+          "cycles": 4,
+          "sourceUnits": 159,
+          "nativeJsonSha256": "755B6B5E1A40B2BDE99357B778AA384AC85D8449A1B243AEE9E1E8BFB0E0CEA2"
+        },
+        {
+          "requested": "warp",
+          "renderer": "WARP",
+          "completed": true,
+          "fixture": "redtilde-completed-native-v2",
+          "view": "Compose",
+          "cycles": 4,
+          "sourceUnits": 159,
+          "nativeJsonSha256": "D1023E8FEB40AF63ED120AC546E9F68470C94225FF056842971B0AE796401B9B"
+        }
+      ],
+      "performanceBaseline": {
+        "metrics": {
+          "scenario": "sample-richtext-native-hidden",
+          "cleanFrames": 60,
+          "cleanRenderFps": 60.2768,
+          "dirtyFrames": 120,
+          "dirtyEditAndRenderMs": 3.97282,
+          "workingSetBytes": 61976576,
+          "privateBytes": 50683904,
+          "dpi": 144,
+          "widthPx": 1924,
+          "heightPx": 1170,
+          "qualification": "initial application baseline only; forced native renders, not presentation FPS or a paired non-regression claim"
+        },
+        "qualification": "initial forced native render baseline only; not paired performance acceptance"
+      }
+    },
+    {
+      "platform": "x64",
+      "configuration": "Release",
+      "passed": true,
+      "interactive": false,
+      "qualifiedSourceIdentity": "b54a17e54a013e490eddca805e0132c940ffbcd18827d7a6e3a1fc23acdc6bcd",
+      "dependencyCommit": "1714f8b0c0fa628bcef56de76078f85c869fc50c",
+      "binarySha256": "1C21CB4F64BF4245F2DDDA164FB7A6D929E34D99D0C5A055027F110D2C11EEF0",
+      "buildReceiptSha256": "62D504E12A0DF3EC0FAABA31C47B97C8218F4D728D2ABFBAA3AAB8F7D972E87B",
+      "buildReceiptSha256MatchesFrozen": true,
+      "binarySha256MatchesFrozen": true,
+      "receiptSha256": "455321F076E6C6A5BA8612FB99D22D192146E59A9EA6E8B036F244F999343F58",
+      "completedOutcome": "passed",
+      "completedMarkerSha256": "D580CE71B7C15B7641380C8E01DBD2724EBF0C3FAD5754AC77BFB1E12BF29B76",
+      "editorTestsSha256": "466694E41AC17C2EA528201A5FD700F2EA8FE2375509D3154EE259FC6FB9966A",
+      "generatedEditorCatalogSha256": "84F11A07BEF86AF8499A238FF0B808E10C8287E88424F41DC9E9039C7830A8BF",
+      "scopeResults": [
+        {
+          "scope": "Storage",
+          "passed": 10,
+          "failed": 0,
+          "caseCount": 10
+        },
+        {
+          "scope": "Settings",
+          "passed": 4,
+          "failed": 0,
+          "caseCount": 4
+        },
+        {
+          "scope": "Recovery",
+          "passed": 5,
+          "failed": 0,
+          "caseCount": 5
+        },
+        {
+          "scope": "Editor",
+          "passed": 39,
+          "failed": 0,
+          "caseCount": 39
+        }
+      ],
+      "behavioralCasesTotal": 58.0,
+      "captures": [
+        {
+          "name": "compose-light",
+          "scenario": "compose-light",
+          "imageSha256": "37792B2F98CB2EEE8658AA0D30F61A2281689D30126E7646ECB3A4510C759A69",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "493843EF8F9130ED239F43969561EEFE2B950E662CEE75154356602DE2C10ED7",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "compose-dark",
+          "scenario": "compose-dark",
+          "imageSha256": "A13A4979DE79BE33F4CAA5B31EE4661231608C76C77B9C567B2B91C4995E13AE",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "0F3E42D9A59F699764E64D3AB066AA6772AA100325CE32E22EA1EB670FCBF546",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "source",
+          "scenario": "source",
+          "imageSha256": "B63338DDF6DFB4E40D619624DA03470A42B7A56920D0D2B3FEA55DF38F317D61",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "32828B1A46F68517B6F37A32F45B8596313346114EBDABD8879FC065F52C71C4",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "split",
+          "scenario": "split",
+          "imageSha256": "EC37E1A14827FE3A4D09E6A7AB679D77A73698E83DA2C8981003AC4AC1331A3A",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "35ED6D3FA8B2EE91E1F8875A50F90D47001C2FDD180312317706CF8BD880E542",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "context-selection",
+          "scenario": "context-selection",
+          "imageSha256": "E061E2ED95C79C807F7BCBBC534255B97B221EE90EE1D432FFB04A2214414376",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "762C8153754AB460778821EB32E554A66605519591AE8BAADE477347B837D6C0",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "local-source",
+          "scenario": "local-source",
+          "imageSha256": "0A4D570F3DE46BC767A793684E4C3427997369A6B2D68B3D486B9833878EE4BB",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "A2183C63B5B6936E2856BDB5B44DA96640B941B723A012DE3727BF6D524A4913",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "settings",
+          "scenario": "settings",
+          "imageSha256": "EF4E9760CBB4973D9DF0964593050378CF30B35E4587D5DB156786A0649872A6",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "230C677412477409DBD9C2297A8C0A48BF932157FC4ACB274891F48E8F483679",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "math",
+          "scenario": "math",
+          "imageSha256": "BEEF1A5B8F31EAC6D88EDE4A9D11BAA75320E01E8B1CF5CC9EB06406342A23C0",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "377E093275E9302AF68FDD096765B4B7376DF5023519AC81A5C5695D7C44335C",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "math-dark",
+          "scenario": "math-dark",
+          "imageSha256": "ECA11D84B17025E20EAFF0435F4AF81E0937E168705F95F827AD9E82A4C9D82B",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "3773E0D0BAADE13C8521C91496A17E792A6144DB326F77EC609FBC99F5BC059B",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "mermaid",
+          "scenario": "mermaid",
+          "imageSha256": "5B4A94B77BA9043D1CA55C746E089A0999B682BD8B52476C5592D1103EE14A71",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "DB9A32F6B88C76F8D6D112F42855D13257B07A68C6E3702932D7E997F5B557E2",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "recovery",
+          "scenario": "recovery",
+          "imageSha256": "E9A52795A160817944ECB813CDEC52EBED325B084D9DBA1FCEBF7B7FADED6CFF",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "D89406BA928994FA9B9E40EB81D9260B273B87B2E0C673C4744775CE87699AE2",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "narrow",
+          "scenario": "narrow",
+          "imageSha256": "4E3C369AFC9CE21E651C65586A717BADA6F981D50FC5DAE2C480F185610D521D",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "D91A97AF43FC5A3BF2DCA32E3F791DB79CC5E849061EFC6D3CE69434AF420552",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "high-contrast",
+          "scenario": "high-contrast",
+          "imageSha256": "3B726657B603D27C7DF4F1A949955EE8C19D804912FAABB63DE2AACB8D54BA3E",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "37C31D0248D980D2C781391822798CAFB3A06F84ABF231854296A379BEA7D2B7",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "files",
+          "scenario": "files",
+          "imageSha256": "37792B2F98CB2EEE8658AA0D30F61A2281689D30126E7646ECB3A4510C759A69",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "43D01999B987E51CFC7882FB6133FE1E0C16D1582D451FA5F0B62426FC8C5668",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "find",
+          "scenario": "find",
+          "imageSha256": "3DB5829B45A6646C09F360C10661A0BFE9BB2EFBE73E46E6E8F1A7211F01250B",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "A5E045541B7CBA8A7E712E65191BB00BC75D25DF2E21B8531178FB96B9C51D03",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "focus",
+          "scenario": "focus",
+          "imageSha256": "F53BCDDED6E95887A64750DE8961904601D5C436CD74F7FD56E24B5581B950AF",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "37011D2C6CEBF9EBDE7E8809CA4F334F472882C6C47F1398F3D79F9C0A8A180E",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "equation",
+          "scenario": "equation",
+          "imageSha256": "5F05DEF13569BBB005ED4AC2A3BCEEF5A1D8E663708C67CE02EBA6AE6CC43A60",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "73BFFCE19343A3E4C5F2659CB1DE1756BCB7A3EB9419257FF0D88D4DE0BC0CF9",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "narrow-dpi-96",
+          "scenario": "narrow",
+          "imageSha256": "3D194EB7B01667295E75A10AE6353812D06301BCD93F0AC43ADB914BD6B27CAF",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "44F3F503BFDF48933990B3E4C5FE4F57893E5FCF45251E4212FD555E7D2CFD50",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 96,
+          "actualHostDpi": 96
+        },
+        {
+          "name": "narrow-dpi-144",
+          "scenario": "narrow",
+          "imageSha256": "4E3C369AFC9CE21E651C65586A717BADA6F981D50FC5DAE2C480F185610D521D",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "591F113E9B3EBAA05C09524FFE31C98F4305B6794EE3A7F035FEFB3BABDA6DDB",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 144,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "narrow-dpi-192",
+          "scenario": "narrow",
+          "imageSha256": "65A401B92196C0FA535D0E6EC858D697DFCD253F2CCD2DA192EDAC553A4D69AF",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "1DA7CC13795F87F4A3C698C60C7A6FBFDF4A34F2405A82A13AAD342D1B6FB7F1",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 192,
+          "actualHostDpi": 192
+        },
+        {
+          "name": "reference-dark-dpi-96",
+          "scenario": "reference-dark",
+          "imageSha256": "D1847C787888C1EBFDCD6C434E89FD01B300A56187EABB0E9CBAE684AFCF58C7",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "A68BEE865A8449971628198BC9660E9D856C838746530E37489F76689C4D29A1",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 96,
+          "actualHostDpi": 96
+        },
+        {
+          "name": "reference-dark-dpi-144",
+          "scenario": "reference-dark",
+          "imageSha256": "9EAB7A0251D6EFA493D3779642111C94D828B834949C16502055903914CFB537",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "97AFC8493D043885B78781B9FD9CD3F92EBBFBAEC665AF1E93667B8C0A8E9C9B",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 144,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "reference-dark-dpi-192",
+          "scenario": "reference-dark",
+          "imageSha256": "7D7418DF1DE32942B98B9D8681686065F33D4677A52A74A840E17DB7B2F53178",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "C1BACECB09DF10BFF63521D890E37455D50FEF52B8B0E4149DD38C169C021D75",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 192,
+          "actualHostDpi": 192
+        }
+      ],
+      "captureCount": 23,
+      "allCapturesHidden": true,
+      "allCaptureAndScenarioDigestsMatch": true,
+      "crashProbe": {
+        "exitCode": -531475201,
+        "dumpSha256": "7DAF19963F0C0F9A64E8AAE60A6C16ACB980A1E5CA5AD068DE49C6B65497810E",
+        "dumpHashFound": true,
+        "pendingMarker": true
+      },
+      "recoveryRestart": {
+        "exactSourceRestored": true,
+        "originalProtectedBySaveAs": true
+      },
+      "addressSanitizerExpectedProbe": null,
+      "resourceLifecycle": [
+        {
+          "requested": "default",
+          "renderer": "Hardware",
+          "completed": true,
+          "fixture": "redtilde-completed-native-v2",
+          "view": "Compose",
+          "cycles": 4,
+          "sourceUnits": 159,
+          "nativeJsonSha256": "D36B8D65BD83FEF5553B1C1B390DB0E5F472EE006E40CB582B95532ACFEF6C8A"
+        },
+        {
+          "requested": "warp",
+          "renderer": "WARP",
+          "completed": true,
+          "fixture": "redtilde-completed-native-v2",
+          "view": "Compose",
+          "cycles": 4,
+          "sourceUnits": 159,
+          "nativeJsonSha256": "FFF8B46EDC4A7BC95203146098D90657D7EC1CB0049DBCA9D3DFA3AB95C09BC4"
+        }
+      ],
+      "performanceBaseline": {
+        "metrics": {
+          "scenario": "sample-richtext-native-hidden",
+          "cleanFrames": 60,
+          "cleanRenderFps": 60.9602,
+          "dirtyFrames": 120,
+          "dirtyEditAndRenderMs": 0.570474,
+          "workingSetBytes": 53145600,
+          "privateBytes": 42807296,
+          "dpi": 144,
+          "widthPx": 1924,
+          "heightPx": 1170,
+          "qualification": "initial application baseline only; forced native renders, not presentation FPS or a paired non-regression claim"
+        },
+        "qualification": "initial forced native render baseline only; not paired performance acceptance"
+      }
+    },
+    {
+      "platform": "x64",
+      "configuration": "ASan Debug",
+      "passed": true,
+      "interactive": false,
+      "qualifiedSourceIdentity": "b54a17e54a013e490eddca805e0132c940ffbcd18827d7a6e3a1fc23acdc6bcd",
+      "dependencyCommit": "1714f8b0c0fa628bcef56de76078f85c869fc50c",
+      "binarySha256": "168C6D5F0E16EF550F2CDF23A5CC26326BE8C9C9ED14E1025B58BBDF982E322B",
+      "buildReceiptSha256": "3BAE732209C4DB667AC94A1A0DCC32FF24B13EEB605F6F1B29E52310588942B5",
+      "buildReceiptSha256MatchesFrozen": true,
+      "binarySha256MatchesFrozen": true,
+      "receiptSha256": "A0CEF258017644D69D4D91E303A8ECEC9C4E18699887FAADC2025F58197DCCD2",
+      "completedOutcome": "passed",
+      "completedMarkerSha256": "6EED30D8A3911536E53283EB74129C773821145CA312D03265C258D3E4736CA5",
+      "editorTestsSha256": "466694E41AC17C2EA528201A5FD700F2EA8FE2375509D3154EE259FC6FB9966A",
+      "generatedEditorCatalogSha256": "84F11A07BEF86AF8499A238FF0B808E10C8287E88424F41DC9E9039C7830A8BF",
+      "scopeResults": [
+        {
+          "scope": "Storage",
+          "passed": 10,
+          "failed": 0,
+          "caseCount": 10
+        },
+        {
+          "scope": "Settings",
+          "passed": 4,
+          "failed": 0,
+          "caseCount": 4
+        },
+        {
+          "scope": "Recovery",
+          "passed": 5,
+          "failed": 0,
+          "caseCount": 5
+        },
+        {
+          "scope": "Editor",
+          "passed": 39,
+          "failed": 0,
+          "caseCount": 39
+        }
+      ],
+      "behavioralCasesTotal": 58.0,
+      "captures": [
+        {
+          "name": "compose-light",
+          "scenario": "compose-light",
+          "imageSha256": "37792B2F98CB2EEE8658AA0D30F61A2281689D30126E7646ECB3A4510C759A69",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "493843EF8F9130ED239F43969561EEFE2B950E662CEE75154356602DE2C10ED7",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "compose-dark",
+          "scenario": "compose-dark",
+          "imageSha256": "A13A4979DE79BE33F4CAA5B31EE4661231608C76C77B9C567B2B91C4995E13AE",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "0F3E42D9A59F699764E64D3AB066AA6772AA100325CE32E22EA1EB670FCBF546",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "source",
+          "scenario": "source",
+          "imageSha256": "B63338DDF6DFB4E40D619624DA03470A42B7A56920D0D2B3FEA55DF38F317D61",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "32828B1A46F68517B6F37A32F45B8596313346114EBDABD8879FC065F52C71C4",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "split",
+          "scenario": "split",
+          "imageSha256": "EC37E1A14827FE3A4D09E6A7AB679D77A73698E83DA2C8981003AC4AC1331A3A",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "35ED6D3FA8B2EE91E1F8875A50F90D47001C2FDD180312317706CF8BD880E542",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "context-selection",
+          "scenario": "context-selection",
+          "imageSha256": "E061E2ED95C79C807F7BCBBC534255B97B221EE90EE1D432FFB04A2214414376",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "762C8153754AB460778821EB32E554A66605519591AE8BAADE477347B837D6C0",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "local-source",
+          "scenario": "local-source",
+          "imageSha256": "0A4D570F3DE46BC767A793684E4C3427997369A6B2D68B3D486B9833878EE4BB",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "A2183C63B5B6936E2856BDB5B44DA96640B941B723A012DE3727BF6D524A4913",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "settings",
+          "scenario": "settings",
+          "imageSha256": "EF4E9760CBB4973D9DF0964593050378CF30B35E4587D5DB156786A0649872A6",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "230C677412477409DBD9C2297A8C0A48BF932157FC4ACB274891F48E8F483679",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "math",
+          "scenario": "math",
+          "imageSha256": "BEEF1A5B8F31EAC6D88EDE4A9D11BAA75320E01E8B1CF5CC9EB06406342A23C0",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "377E093275E9302AF68FDD096765B4B7376DF5023519AC81A5C5695D7C44335C",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "math-dark",
+          "scenario": "math-dark",
+          "imageSha256": "ECA11D84B17025E20EAFF0435F4AF81E0937E168705F95F827AD9E82A4C9D82B",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "3773E0D0BAADE13C8521C91496A17E792A6144DB326F77EC609FBC99F5BC059B",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "mermaid",
+          "scenario": "mermaid",
+          "imageSha256": "5B4A94B77BA9043D1CA55C746E089A0999B682BD8B52476C5592D1103EE14A71",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "DB9A32F6B88C76F8D6D112F42855D13257B07A68C6E3702932D7E997F5B557E2",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "recovery",
+          "scenario": "recovery",
+          "imageSha256": "E9A52795A160817944ECB813CDEC52EBED325B084D9DBA1FCEBF7B7FADED6CFF",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "D89406BA928994FA9B9E40EB81D9260B273B87B2E0C673C4744775CE87699AE2",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "narrow",
+          "scenario": "narrow",
+          "imageSha256": "4E3C369AFC9CE21E651C65586A717BADA6F981D50FC5DAE2C480F185610D521D",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "D91A97AF43FC5A3BF2DCA32E3F791DB79CC5E849061EFC6D3CE69434AF420552",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "high-contrast",
+          "scenario": "high-contrast",
+          "imageSha256": "3B726657B603D27C7DF4F1A949955EE8C19D804912FAABB63DE2AACB8D54BA3E",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "37C31D0248D980D2C781391822798CAFB3A06F84ABF231854296A379BEA7D2B7",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "files",
+          "scenario": "files",
+          "imageSha256": "37792B2F98CB2EEE8658AA0D30F61A2281689D30126E7646ECB3A4510C759A69",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "43D01999B987E51CFC7882FB6133FE1E0C16D1582D451FA5F0B62426FC8C5668",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "find",
+          "scenario": "find",
+          "imageSha256": "3DB5829B45A6646C09F360C10661A0BFE9BB2EFBE73E46E6E8F1A7211F01250B",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "A5E045541B7CBA8A7E712E65191BB00BC75D25DF2E21B8531178FB96B9C51D03",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "focus",
+          "scenario": "focus",
+          "imageSha256": "F53BCDDED6E95887A64750DE8961904601D5C436CD74F7FD56E24B5581B950AF",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "37011D2C6CEBF9EBDE7E8809CA4F334F472882C6C47F1398F3D79F9C0A8A180E",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "equation",
+          "scenario": "equation",
+          "imageSha256": "5F05DEF13569BBB005ED4AC2A3BCEEF5A1D8E663708C67CE02EBA6AE6CC43A60",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "73BFFCE19343A3E4C5F2659CB1DE1756BCB7A3EB9419257FF0D88D4DE0BC0CF9",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 0,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "narrow-dpi-96",
+          "scenario": "narrow",
+          "imageSha256": "3D194EB7B01667295E75A10AE6353812D06301BCD93F0AC43ADB914BD6B27CAF",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "44F3F503BFDF48933990B3E4C5FE4F57893E5FCF45251E4212FD555E7D2CFD50",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 96,
+          "actualHostDpi": 96
+        },
+        {
+          "name": "narrow-dpi-144",
+          "scenario": "narrow",
+          "imageSha256": "4E3C369AFC9CE21E651C65586A717BADA6F981D50FC5DAE2C480F185610D521D",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "591F113E9B3EBAA05C09524FFE31C98F4305B6794EE3A7F035FEFB3BABDA6DDB",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 144,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "narrow-dpi-192",
+          "scenario": "narrow",
+          "imageSha256": "65A401B92196C0FA535D0E6EC858D697DFCD253F2CCD2DA192EDAC553A4D69AF",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "1DA7CC13795F87F4A3C698C60C7A6FBFDF4A34F2405A82A13AAD342D1B6FB7F1",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 192,
+          "actualHostDpi": 192
+        },
+        {
+          "name": "reference-dark-dpi-96",
+          "scenario": "reference-dark",
+          "imageSha256": "D1847C787888C1EBFDCD6C434E89FD01B300A56187EABB0E9CBAE684AFCF58C7",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "A68BEE865A8449971628198BC9660E9D856C838746530E37489F76689C4D29A1",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 96,
+          "actualHostDpi": 96
+        },
+        {
+          "name": "reference-dark-dpi-144",
+          "scenario": "reference-dark",
+          "imageSha256": "9EAB7A0251D6EFA493D3779642111C94D828B834949C16502055903914CFB537",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "97AFC8493D043885B78781B9FD9CD3F92EBBFBAEC665AF1E93667B8C0A8E9C9B",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 144,
+          "actualHostDpi": 144
+        },
+        {
+          "name": "reference-dark-dpi-192",
+          "scenario": "reference-dark",
+          "imageSha256": "7D7418DF1DE32942B98B9D8681686065F33D4677A52A74A840E17DB7B2F53178",
+          "receiptImageHashMatches": true,
+          "scenarioSha256": "C1BACECB09DF10BFF63521D890E37455D50FEF52B8B0E4149DD38C169C021D75",
+          "receiptScenarioHashMatches": true,
+          "hidden": true,
+          "requestedDpi": 192,
+          "actualHostDpi": 192
+        }
+      ],
+      "captureCount": 23,
+      "allCapturesHidden": true,
+      "allCaptureAndScenarioDigestsMatch": true,
+      "crashProbe": {
+        "exitCode": -531475201,
+        "dumpSha256": "C81A28E7B69EB076F7608A5A397FB2949F9F642B6A0A203981505BA4381656A8",
+        "dumpHashFound": true,
+        "pendingMarker": true
+      },
+      "recoveryRestart": {
+        "exactSourceRestored": true,
+        "originalProtectedBySaveAs": true
+      },
+      "addressSanitizerExpectedProbe": {
+        "detected": true,
+        "exitCode": 1,
+        "probeStackPresent": true,
+        "logSha256": "CCE69DDE93E14A18C9821F2AC153419249875816207C3AEB168FA0023ECCB666"
+      },
+      "resourceLifecycle": [
+        {
+          "requested": "default",
+          "renderer": "Hardware",
+          "completed": true,
+          "fixture": "redtilde-completed-native-v2",
+          "view": "Compose",
+          "cycles": 4,
+          "sourceUnits": 159,
+          "nativeJsonSha256": "CCA89EBE857E7B36CB2D8CADF73AF3ACCE584556ACA9DF129ED75638C2BAA1D2"
+        },
+        {
+          "requested": "warp",
+          "renderer": "WARP",
+          "completed": true,
+          "fixture": "redtilde-completed-native-v2",
+          "view": "Compose",
+          "cycles": 4,
+          "sourceUnits": 159,
+          "nativeJsonSha256": "27BE6DB73453FAA46D230424651EB4BCA8C791650BB060D3515B6B47E235067C"
+        }
+      ],
+      "performanceBaseline": {
+        "metrics": {
+          "scenario": "sample-richtext-native-hidden",
+          "cleanFrames": 60,
+          "cleanRenderFps": 59.5811,
+          "dirtyFrames": 120,
+          "dirtyEditAndRenderMs": 16.8315,
+          "workingSetBytes": 241266688,
+          "privateBytes": 327487488,
+          "dpi": 144,
+          "widthPx": 1924,
+          "heightPx": 1170,
+          "qualification": "initial application baseline only; forced native renders, not presentation FPS or a paired non-regression claim"
+        },
+        "qualification": "initial forced native render baseline only; not paired performance acceptance"
+      }
+    }
+  ],
+  "benchmarkInputs": {
+    "fixture": null,
+    "runnerFiles": [
+      {
+        "path": "test.ps1",
+        "sha256": "F11DC5ABDEA3BC90965443E1CD34927373DFE79F9FE763CA70E5C77D79972686"
+      },
+      {
+        "path": "Build/Harness.psm1",
+        "sha256": "D717A861D2CCB48557C2D7BFE8E4D57981048BF12D6DC452C77AE80DD6265A08"
+      },
+      {
+        "path": "Build/TestRunEvidence.psm1",
+        "sha256": "BC0A6C2B4563AE60AEAF28FB5B4493283361973E7A7306D115F3D64242119B63"
+      },
+      {
+        "path": "Build/ScopedTesting.psm1",
+        "sha256": "50D0F479281F4EAD2A72BEB6152F92EE8A34730DBE37973374E309D2AD0BC9DE"
+      },
+      {
+        "path": "Build/PerformanceObservation.psm1",
+        "sha256": "30A4715B2A29DA67C00AF77A3AE43C9AF5DDAEA59B1A10B176B2ACB2E8B828EA"
+      },
+      {
+        "path": "Tests/Scope.Tests.Performance.Observation.ps1",
+        "sha256": "E65621638F44E3E8AA2E9F346AFE9F893939FA2881B5F9D530121FC5E38A6E2B"
+      }
+    ],
+    "sourceFiles": [
+      {
+        "path": "RedTilde/Application.cpp",
+        "sha256": "27A048274AB9AF67583B9724CC64FA59F427ABAAFB78352815699CFF32A20EB4"
+      },
+      {
+        "path": "Tests/Application.Tests.Core.cpp",
+        "sha256": "E0BDAA22D9C8C1E7174DCCFC547DA436B650CE180957C715B8C873899D138D29"
+      },
+      {
+        "path": "Tests/Application.Tests.Performance.cpp",
+        "sha256": "8864F47BCD290DF842090428974BAE626FCDB38020B85506810B721AD631C0EE"
+      },
+      {
+        "path": "Tests/native-case-catalog.json",
+        "sha256": "EA64F2780B2ED083F48A89968834D187A4B98C9627BC741907AA00E7E4DF399E"
+      }
+    ]
+  },
+  "historicalHeapOracleFailure": {
+    "runKind": "Earlier x64 ASan Debug Full at d73; distinct from later passing source-334 Full and its isolated expected ASan probe.",
+    "sourceCommit": "d73f423a5e8b35a3f0fc2428030bb553680cd8eb",
+    "sourceIdentity": "4c69b2bca0f5a1181882e3a9c874112076789d7551ca6c72327d90514d20ab6b",
+    "dependencyCommit": "1714f8b0c0fa628bcef56de76078f85c869fc50c",
+    "configuration": "ASan Debug",
+    "receiptPassed": false,
+    "completedOutcome": "failed-or-interrupted",
+    "scopeCounts": [
+      {
+        "scope": "Storage",
+        "passed": 10,
+        "failed": 0
+      },
+      {
+        "scope": "Settings",
+        "passed": 4,
+        "failed": 0
+      },
+      {
+        "scope": "Recovery",
+        "passed": 5,
+        "failed": 0
+      },
+      {
+        "scope": "Editor",
+        "passed": 38,
+        "failed": 1
+      }
+    ],
+    "editorTestsPassed": 38,
+    "editorTestsFailed": 1,
+    "failedTest": {
+      "ordinalOneBased": 36,
+      "totalSelected": 39,
+      "name": "Performance.OwnedHeapDiagnosticDistinguishesBusyFreeAndPartialCoverage",
+      "error": "heap payload reports the live owned allocation without equating it to process private bytes"
+    },
+    "receiptSha256": "9FDC7E4FD8908B4ADD76D545C4A28F7BFF999C1683BE404B80E6E387243FA1AB",
+    "completedSha256": "7F7E1E8537D08B1E92515FAFC1C6B4BC51105A7323C8D442C6F00626FDA2BCD9",
+    "editorTestResultSha256": "DCD9297469324A2984C922EBA59CE9DF51DB534CCF237A733524C6704484FB34",
+    "stderrSha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+    "stderrWasEmpty": true,
+    "diagnosedCause": "ASan routed the known 65536-byte HeapAlloc payload outside the explicitly supplied Windows heap: independent observation showed logicalAllocationBytes=65536, nativeHeapRepresentsAllocation=false, busyPayloadBefore=0, busyPayloadAfter=0. The test incorrectly required native heap visibility for this ASan allocator path.",
+    "failedTestResultArtifactSha256": "DCD9297469324A2984C922EBA59CE9DF51DB534CCF237A733524C6704484FB34",
+    "failedTestResultEvidence": "Exact Editor test result JSON from the failed run; failure is ordinal 36 of 39. The run stderr file is empty, so this structured result is the authoritative failure record.",
+    "independentPostFixObservation": {
+      "logicalAllocationBytes": 65536,
+      "nativeHeapRepresentsAllocation": false,
+      "busyPayloadBefore": 0,
+      "busyPayloadAfter": 0,
+      "observationArtifactSha256": "26FFC8226D0BA4885B96EEAC9A235D7EEA11414F53127A0F89355300F137D3AF",
+      "note": "Subsequent x64 ASan Full record demonstrates the sanitizer allocation is logical but absent from the supplied native heap; evidence is linked as corroboration, not presented as an output from the earlier failing run."
+    }
+  },
+  "provenance": {
+    "c60RebindBeforeJsonSha256": "B73630DE188664E81508C4F4B12594874AFD4D499A4925C258CF33793CD2EA97",
+    "c60RebindAfterJsonSha256": "38E1CD32DA6B3DEDCA329DF4734CA31C68BB1BC5ED009373D31EF8B99E2312BD",
+    "c60RebindAfterPassed": true,
+    "nativeExecutionReused": true,
+    "nativeExecutionReusedMeaning": "Exact 334 runtime artifacts and test records were rebound after profile artifact-closure equality; no new native run occurred on c60."
+  }
+}

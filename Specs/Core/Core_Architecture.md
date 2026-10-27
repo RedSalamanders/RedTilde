@@ -81,6 +81,15 @@ rows without recalculating the fixed application regions. Resize, view, theme an
 their own layout paths. Outline navigation always uses the latest offsets even if the displayed heading labels
 keep their existing bounds.
 
+Before visible Source-mirror preparation, the app may supply the primary's completed canonical Markdown syntax
+through the pinned SDK's read-only adoption API. Both editors must still share the exact immutable source,
+parent/host/root and compatible grammar on the UI owner thread. The app adapter borrows the primary behind a
+weak lifetime token and rechecks both editors and the owning root after scheduling. It retains no second
+editable authority. The SDK shares immutable parse storage under the mirror's own revision and document identity;
+literal glyph geometry, source coloring, source ACPs, history and selection/scroll behavior remain unchanged.
+Unavailable/incompatible syntax uses ordinary independent parsing. Hidden mirrors stay deferred, and Rich-view
+mirrors retain the independent fallback. This reuse does not change math/Mermaid language support.
+
 Source/selection/view/analysis identity changes refresh persistent position facts and visible Split selection.
 A later syntax-only publication refreshes syntax-derived formatting, current block and equation context without
 repeating unchanged position formatting or mirror selection/scroll work. Same-ACP text-service previews and

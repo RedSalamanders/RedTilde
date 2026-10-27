@@ -3,52 +3,138 @@
 #include <DxUi/Typography.h>
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <format>
 #include <wil/result.h>
-#include <wincodec.h>
 
 namespace RedTilde
 {
+BrandMarkPixels LoadBrandMarkPixels(HICON icon)
+{
+    ICONINFO info{};
+    const auto readIcon = GetIconInfo(icon, &info);
+    wil::unique_hbitmap color(info.hbmColor), mask(info.hbmMask);
+    THROW_IF_WIN32_BOOL_FALSE(readIcon);
+    THROW_HR_IF_NULL(E_UNEXPECTED, color.get());
+    BITMAP native{};
+    THROW_LAST_ERROR_IF(GetObjectW(color.get(), sizeof(native), &native) != sizeof(native));
+    THROW_HR_IF(E_UNEXPECTED, native.bmWidth <= 0 || native.bmWidth > 256 || native.bmHeight <= 0 || native.bmHeight > 256 || native.bmPlanes != 1 ||
+                                  native.bmBitsPixel != 32);
+
+    BrandMarkPixels result{static_cast<UINT>(native.bmWidth), static_cast<UINT>(native.bmHeight), {}};
+    result.bgra.resize(static_cast<std::size_t>(result.width) * result.height * 4);
+    BITMAPINFO bitmap{};
+    bitmap.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bitmap.bmiHeader.biWidth = native.bmWidth;
+    bitmap.bmiHeader.biHeight = -native.bmHeight;
+    bitmap.bmiHeader.biPlanes = 1;
+    bitmap.bmiHeader.biBitCount = 32;
+    bitmap.bmiHeader.biCompression = BI_RGB;
+    wil::unique_hdc dc(CreateCompatibleDC(nullptr));
+    THROW_LAST_ERROR_IF_NULL(dc);
+    THROW_LAST_ERROR_IF(GetDIBits(dc.get(), color.get(), 0, result.height, result.bgra.data(), &bitmap, DIB_RGB_COLORS) != native.bmHeight);
+    // GetDIBits returns straight BGRA for this owned alpha-icon asset. Match WIC's
+    // round-to-nearest premultiplication exactly, including RGB under zero alpha.
+    for (std::size_t offset = 0; offset < result.bgra.size(); offset += 4)
+    {
+        const unsigned alpha = result.bgra[offset + 3];
+        for (unsigned channel = 0; channel < 3; ++channel)
+            result.bgra[offset + channel] = static_cast<std::uint8_t>((result.bgra[offset + channel] * alpha + 127u) / 255u);
+    }
+    return result;
+}
+
+HRESULT SourceMirrorEditor::PrepareContent(DxUi::ControlHost &host) noexcept
+{
+    const auto selfLifetime = GetControlLifetimeToken(*this);
+    auto *const primary = primary_;
+    const auto primaryLifetime = primaryLifetime_;
+    auto *const owner = host.GetRoot();
+    if (!primary || primaryLifetime.expired() || !owner || !IsVisible() || !IsReadOnly() || GetViewMode() != DxUi::RichText::ViewMode::Source ||
+        GetHost() != &host || !primary->IsAttachedTo(host, GetParent()))
+        return DxUi::RichTextEditor::PrepareContent(host);
+
+    const auto ownerLifetime = GetControlLifetimeToken(*owner);
+    if (ownerLifetime.expired())
+        return DxUi::RichTextEditor::PrepareContent(host);
+
+    const auto source = primary->Snapshot();
+    const auto primaryRevision = primary->Revision();
+    const auto syntax = primary->GetMarkdownSyntax();
+    if (syntax && syntax->Revision() == primaryRevision && source.IsSameRevision(primary->Snapshot()))
+    {
+        const auto currentSyntax = GetMarkdownSyntax();
+        const bool alreadyAdopted = currentSyntax && Snapshot().IsSameRevision(source) && currentSyntax->Revision() == Revision() &&
+                                    currentSyntax->DocumentIdentity() != syntax->DocumentIdentity() && &currentSyntax->Nodes() == &syntax->Nodes();
+        if (!alreadyAdopted)
+        {
+            const auto targetRevision = Revision();
+            const HRESULT result = TryAdoptReadOnlyMarkdownSyntax(source, syntax);
+            if (FAILED(result))
+                return result;
+
+            // Adoption's final preparation request can re-enter and retire
+            // either editor or replace the owning root. Prove all borrowers
+            // still belong to this host before the ordinary preparation call.
+            if (selfLifetime.expired() || primaryLifetime.expired() || ownerLifetime.expired())
+                return S_FALSE;
+            if (GetHost() != &host || !primary->IsAttachedTo(host, GetParent()) || host.GetRoot() != owner ||
+                !source.IsSameRevision(primary->Snapshot()) || primary->Revision() != primaryRevision)
+                return S_FALSE;
+            if (result == S_OK &&
+                (!IsVisible() || !IsReadOnly() || GetViewMode() != DxUi::RichText::ViewMode::Source || Revision() != targetRevision ||
+                 !Snapshot().IsSameRevision(source) || GetMarkdownAnalysisProfile() != syntax->Profile()))
+                return S_FALSE;
+        }
+    }
+    if (selfLifetime.expired())
+        return S_FALSE;
+    return DxUi::RichTextEditor::PrepareContent(host);
+}
+
 namespace
 {
 // Product branding only. Shared controls, focus, input and editor presentation
 // belong to DxUi. Keep the resource bytes across device loss, never a second host.
 class BrandMark final : public DxUi::Control
 {
-    wil::com_ptr<IWICBitmapSource> source;
-    mutable wil::com_ptr<ID2D1Bitmap1> bitmap;
-    mutable wil::com_ptr<ID2D1Device> device;
+    BrandMarkPixels source;
+    wil::com_ptr<ID2D1Bitmap1> bitmap;
+    std::uint64_t bitmapGeneration{};
 
   public:
     BrandMark()
     {
-        wil::com_ptr<IWICImagingFactory> factory;
-        THROW_IF_FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(factory.put())));
-        // LoadIcon returns a module-owned shared icon. WIC retains pixels, not
-        // that handle; explicitly premultiply for the D2D bitmap contract.
+        EnableVisualContentPreparation();
+        // LoadIcon returns a module-owned shared icon. Retain just its pixels;
+        // ordinary startup needs no WIC factory/converter for this known asset.
         const auto icon = LoadIconW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(IDI_REDTILDE));
         THROW_LAST_ERROR_IF_NULL(icon);
-        wil::com_ptr<IWICBitmap> native;
-        THROW_IF_FAILED(factory->CreateBitmapFromHICON(icon, native.put()));
-        wil::com_ptr<IWICFormatConverter> converter;
-        THROW_IF_FAILED(factory->CreateFormatConverter(converter.put()));
-        THROW_IF_FAILED(
-            converter->Initialize(native.get(), GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom));
-        source = converter;
+        source = LoadBrandMarkPixels(icon);
+    }
+    void PrepareVisualContent(DxUi::ControlHost &host) noexcept override
+    {
+        const auto generation = host.GetResourceGeneration();
+        if (bitmap && bitmapGeneration == generation)
+            return;
+        bitmap.reset();
+        bitmapGeneration = 0;
+        auto *target = host.GetDeviceContext();
+        const auto properties =
+            D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_NONE, D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED));
+        if (target &&
+            SUCCEEDED(target->CreateBitmap(D2D1::SizeU(source.width, source.height), source.bgra.data(), source.width * 4, properties, bitmap.put())))
+            bitmapGeneration = generation;
+    }
+    void CancelVisualContentPreparation() noexcept override
+    {
+        bitmap.reset();
+        bitmapGeneration = 0;
     }
     void Paint(DxUi::ControlHost &host) const override
     {
         auto *target = host.GetDeviceContext();
-        if (!target || !source)
-            return;
-        wil::com_ptr<ID2D1Device> current;
-        target->GetDevice(current.put());
-        if (current.get() != device.get())
-        {
-            bitmap.reset();
-            device = current;
-        }
-        if (!bitmap && FAILED(target->CreateBitmapFromWicBitmap(source.get(), nullptr, bitmap.put())))
+        if (!target || !bitmap || bitmapGeneration != host.GetResourceGeneration())
             return;
         target->DrawBitmap(bitmap.get(), GetBounds());
     }
@@ -169,7 +255,7 @@ void Application::BuildUi()
     editor->SetOnTextChanged([this] { Changed(); });
     editor->SetOnSelectionChanged([this] { SelectionChanged(); });
     editor->SetOnContextMenu([this](POINT point, bool) { Menu(point); });
-    mirror = page->AddChild<DxUi::RichTextEditor>();
+    mirror = page->AddChild<SourceMirrorEditor>(*editor);
     mirror->SetMarkdownAnalysisProfile(DxUi::RichText::MarkdownProfile::RichMarkdown);
     mirror->SetMarkdownRenderingEnabled(true);
     mirror->SetReadOnly(true);
@@ -529,7 +615,15 @@ void Application::Layout()
     const bool showSidebar = settings.showOutline && !focus && !fileOverlay && width - left >= static_cast<float>(settings.readingWidth + 336) &&
                              settings.view != EditorView::Split;
     const float right = showSidebar ? width - 240 : width;
+    const auto layoutRequest = activity.layouts;
+    const bool sidebarWasVisible = sidebar->IsVisible();
+    if (showSidebar && !sidebarWasVisible && !PublishCurrentBlockLabelIfVisible(true))
+        return;
+    if (activity.layouts != layoutRequest)
+        return;
     sidebar->SetVisible(showSidebar);
+    if (activity.layouts != layoutRequest)
+        return;
     sidebar->SetBounds(D2D1::RectF(width - 240, top, width, bottom));
     const float side = width - 224;
     outlineTitle->SetBounds(D2D1::RectF(side + 4, top + 16, width - 100, top + 40));
@@ -542,6 +636,10 @@ void Application::Layout()
     contextDivider->SetOrientation(DxUi::SeparatorOrientation::Horizontal);
     currentBlockTitle->SetBounds(D2D1::RectF(side + 4, outlineBottom + 28, width - 16, outlineBottom + 48));
     currentBlock->SetBounds(D2D1::RectF(side + 4, outlineBottom + 52, width - 16, outlineBottom + 76));
+    if (showSidebar && !PublishCurrentBlockLabelIfVisible())
+        return;
+    if (activity.layouts != layoutRequest)
+        return;
     listSummaryIcon->SetBounds(D2D1::RectF(side + 4, outlineBottom + 52, side + 20, outlineBottom + 76));
     listSummary->SetBounds(D2D1::RectF(side + 28, outlineBottom + 52, width - 16, outlineBottom + 76));
     blockSourceAction->SetBounds(D2D1::RectF(side + 4, outlineBottom + 84, width - 20, outlineBottom + 116));

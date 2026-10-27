@@ -1,15 +1,24 @@
 #include "RedTilde/Application.h"
+#include "../res/Resource.h"
 #include "Application.Tests.DesignRefresh.h"
 #include "Application.Tests.Files.h"
+#include "Application.Tests.HeapDiagnostic.h"
 #include "Application.Tests.RemoteImages.h"
 #include "Support/Support.Tests.TextServices.h"
 #include <DxUi/RichMath.h>
 #include <DxUi/RichSemanticDocument.h>
 #include <array>
+#include <charconv>
 #include <chrono>
+#include <cmath>
+#include <cstdint>
+#include <format>
 #include <fstream>
 #include <functional>
+#include <ranges>
+#include <sstream>
 #include <stdexcept>
+#include <string_view>
 #include <thread>
 #include <utility>
 
@@ -35,6 +44,122 @@ std::wstring WindowCaption(HWND window)
     const int length = GetWindowTextW(window, text.data(), static_cast<int>(text.size()));
     Require(length > 0, "read native Unicode caption");
     return std::wstring(text.data(), static_cast<std::size_t>(length));
+}
+// Inspect the compact native report's selected members without adding a product JSON dependency.
+std::string_view JsonObjectAt(std::string_view source, std::size_t open)
+{
+    Require(open < source.size() && source[open] == '{', "resource probe JSON object starts");
+    unsigned depth{};
+    bool quoted{}, escaped{};
+    for (std::size_t index = open; index < source.size(); ++index)
+    {
+        const char value = source[index];
+        if (quoted)
+        {
+            if (escaped)
+                escaped = false;
+            else if (value == '\\')
+                escaped = true;
+            else if (value == '"')
+                quoted = false;
+            continue;
+        }
+        if (value == '"')
+            quoted = true;
+        else if (value == '{')
+            ++depth;
+        else if (value == '}' && --depth == 0)
+            return source.substr(open, index - open + 1);
+    }
+    throw std::runtime_error("resource probe JSON object is terminated");
+}
+std::string_view JsonObjectAfter(std::string_view source, std::string_view marker)
+{
+    const auto markerAt = source.find(marker);
+    Require(markerAt != source.npos, "resource probe JSON object marker is present");
+    const auto open = source.find_first_not_of(" \t\r\n", markerAt + marker.size());
+    return JsonObjectAt(source, open);
+}
+std::string_view JsonObjectContaining(std::string_view source, std::size_t markerAt)
+{
+    Require(markerAt < source.size(), "resource probe JSON object member is present");
+    std::array<std::size_t, 32> objects{};
+    std::size_t depth{};
+    bool quoted{}, escaped{};
+    for (std::size_t index = 0; index < markerAt; ++index)
+    {
+        const char value = source[index];
+        if (quoted)
+        {
+            if (escaped)
+                escaped = false;
+            else if (value == '\\')
+                escaped = true;
+            else if (value == '"')
+                quoted = false;
+            continue;
+        }
+        if (value == '"')
+            quoted = true;
+        else if (value == '{')
+        {
+            Require(depth < objects.size(), "resource probe JSON nesting is bounded");
+            objects[depth++] = index;
+        }
+        else if (value == '}')
+        {
+            Require(depth > 0, "resource probe JSON braces are balanced");
+            --depth;
+        }
+    }
+    Require(depth > 0, "resource probe member is inside an object");
+    return JsonObjectAt(source, objects[depth - 1]);
+}
+std::string_view JsonNumberToken(std::string_view object, std::string_view field)
+{
+    const auto marker = std::format("\"{}\":", field);
+    const auto at = object.find(marker);
+    Require(at != object.npos, "resource probe numeric field is present");
+    auto value = object.substr(at + marker.size());
+    const auto end = value.find_first_of(",}");
+    Require(end != value.npos, "resource probe numeric member is delimited");
+    value = value.substr(0, end);
+    const auto begin = value.find_first_not_of(" \t\r\n");
+    Require(begin != value.npos, "resource probe numeric member is nonempty");
+    value.remove_prefix(begin);
+    return value.substr(0, value.find_last_not_of(" \t\r\n") + 1);
+}
+std::uint64_t JsonUnsigned(std::string_view object, std::string_view field)
+{
+    const auto token = JsonNumberToken(object, field);
+    std::uint64_t result{};
+    const auto [parsed, error] = std::from_chars(token.data(), token.data() + token.size(), result);
+    Require(error == std::errc{} && parsed == token.data() + token.size(), "resource probe unsigned field is valid");
+    return result;
+}
+double JsonPositiveFinite(std::string_view object, std::string_view field)
+{
+    const auto token = JsonNumberToken(object, field);
+    double result{};
+    const auto [parsed, error] = std::from_chars(token.data(), token.data() + token.size(), result);
+    Require(!token.empty() && error == std::errc{} && parsed == token.data() + token.size() && std::isfinite(result) && result > 0,
+            "resource probe timing field is positive and finite");
+    return result;
+}
+void RequireCompletedResourceCost(std::string_view cost, std::string_view description)
+{
+    (void)JsonPositiveFinite(cost, "completedWallUs");
+    (void)JsonUnsigned(cost, "processCpu100ns");
+    (void)JsonUnsigned(cost, "ownerCpuCycles");
+    const auto flushes = JsonUnsigned(cost, "rootChildFlushes");
+    Require(flushes > 0 && flushes <= 8, description);
+}
+void RequireResourcePhase(std::string_view report, std::string_view phase, bool completed)
+{
+    const auto marker = std::format("\"phase\":\"{}\"", phase);
+    const auto entry = JsonObjectContaining(report, report.find(marker));
+    if (completed)
+        RequireCompletedResourceCost(JsonObjectAfter(entry, "\"preparation\":"), "reset frame flush count is in the bounded root-child range");
 }
 } // namespace
 int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool listOnly)
@@ -202,10 +327,60 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Require(static_cast<bool>(expression), "quadratic formula parses");
              Require(static_cast<bool>(ParseMath(L"\\sum_{i=0}^{n} i + \\alpha \\leq \\infty")), "scripts and symbols parse");
              Require(!ParseMath(L"\\include{secrets}") && !ParseMath(L"\\frac{a}") && !ParseMath(L"x}"), "unsupported/malformed input rejected");
+             const auto exactSourceLimit = L"\\text{" + std::wstring(DxUi::RichText::MathMaximumSourceUnits - 7u, L'x') + L"}";
+             Require(exactSourceLimit.size() == DxUi::RichText::MathMaximumSourceUnits && static_cast<bool>(ParseMath(exactSourceLimit)),
+                     "the exact source-unit limit is admitted");
              Require(!ParseMath(std::wstring(4097, L'x')), "capacity bounded");
              Require(!ParseMath(std::wstring(30, L'{') + L"x" + std::wstring(30, L'}')), "recursion bounded");
-             const std::wstring markdown = L"a $x^2$ b $$ y=\\frac{a}{b} $$";
-             Require(EquationAt(markdown, 4) == L"x^2" && EquationAt(markdown, 20) == L" y=\\frac{a}{b} ", "caret equation extraction");
+             const auto text = ParseMath(L"\\text{two words}");
+             Require(text && text.root.children.size() == 1 && text.root.children.front().kind == DxUi::RichText::MathKind::Text &&
+                         text.root.children.front().text == L"two words" && !text.root.children.front().italic,
+                     "text mode retains spaces and upright text semantics");
+             const auto limits = ParseMath(L"\\sum\\limits_{i=0}^{n} i + y = z");
+             Require(limits && !limits.root.children.empty() && limits.root.children.front().kind == DxUi::RichText::MathKind::Scripts &&
+                         !limits.root.children.front().children.empty(),
+                     "large operator scripts retain a typed base");
+             const auto &sum = limits.root.children.front().children.front();
+             Require(sum.atomClass == DxUi::RichText::MathAtomClass::Operator && sum.largeOperator && sum.displayLimits &&
+                         sum.limits == DxUi::RichText::MathLimits::AboveBelow,
+                     "explicit limits classify and place a large operator as an operator");
+             const auto noLimits = ParseMath(L"\\sum\\nolimits_{i=0}^{n}");
+             Require(noLimits && noLimits.root.children.front().children.front().limits == DxUi::RichText::MathLimits::Side,
+                     "nolimits remains a typed side-script placement");
+             const auto displayStyle = ParseMath(L"\\displaystyle x");
+             const auto scriptStyle = ParseMath(L"\\scriptstyle x");
+             Require(displayStyle && scriptStyle && displayStyle.root.children.front().kind == DxUi::RichText::MathKind::Style &&
+                         displayStyle.root.children.front().text == L"displaystyle" &&
+                         scriptStyle.root.children.front().kind == DxUi::RichText::MathKind::Style &&
+                         scriptStyle.root.children.front().text == L"scriptstyle",
+                     "display and script styles remain explicit typed nodes");
+             const auto operators = ParseMath(L"x + y = z");
+             const auto hasClass = [&](std::wstring_view value, DxUi::RichText::MathAtomClass atomClass)
+             {
+                 return std::ranges::any_of(operators.root.children,
+                                            [&](const auto &node) { return node.text == value && node.atomClass == atomClass; });
+             };
+             Require(operators && hasClass(L"+", DxUi::RichText::MathAtomClass::Binary) && hasClass(L"=", DxUi::RichText::MathAtomClass::Relation),
+                     "binary and relation atoms keep distinct spacing classes");
+             const auto matrixSource = [](unsigned rows)
+             {
+                 std::wstring value = L"\\begin{matrix}";
+                 for (unsigned row = 0; row < rows; ++row)
+                 {
+                     if (row)
+                         value += L"\\\\";
+                     for (unsigned column = 0; column < 16; ++column)
+                     {
+                         if (column)
+                             value += L'&';
+                         value += L'x';
+                     }
+                 }
+                 value += L"\\end{matrix}";
+                 return value;
+             };
+             Require(static_cast<bool>(ParseMath(matrixSource(8))) && !ParseMath(matrixSource(9)),
+                     "the 128-cell matrix budget admits its boundary and rejects excess cells");
          });
     test("Recovery.StrictEnvelopeAndUnicode",
          []
@@ -365,6 +540,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              app.SetView(EditorView::Split);
              Require(app.SourceMirror().GetText() == app.Document().GetText() && app.SourceMirror().GetSelection() == selection,
                      "entering Split synchronizes exact source and selection");
+             Require(app.SourceMirror().Snapshot().IsSameRevision(current), "visible Split shares the immutable primary source tree");
              Require(app.Document().Snapshot().IsSameRevision(current) && app.Document().CanUndo(),
                      "synchronization preserves the editable source revision and history");
              const auto mirrored = app.SourceMirror().Snapshot();
@@ -374,12 +550,20 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Require(app.Document().ReplaceSelection(L"Split "), "edit Split prose");
              Require(app.SourceMirror().GetText() == app.Document().GetText() && app.Activity().mirrorResets == split.mirrorResets + 1,
                      "each visible Split revision updates its mirror");
+             Require(app.SourceMirror().Snapshot().IsSameRevision(app.Document().Snapshot()), "visible edits retain exact shared source identity");
              Require(app.Activity().layouts == split.layouts, "Split prose does not relayout chrome");
              const auto committed = app.Activity();
              const auto committedSource = app.Document().Snapshot();
              const auto committedSelection = app.Document().GetSelection();
              app.Prepare();
              const auto prepared = app.Activity();
+             const auto primarySyntax = app.Document().GetMarkdownSyntax();
+             const auto mirrorSyntax = app.SourceMirror().GetMarkdownSyntax();
+             Require(primarySyntax && mirrorSyntax && primarySyntax != mirrorSyntax && primarySyntax->Revision() == app.Document().Revision() &&
+                         mirrorSyntax->Revision() == app.SourceMirror().Revision() &&
+                         primarySyntax->DocumentIdentity() != mirrorSyntax->DocumentIdentity() && &primarySyntax->Nodes() == &mirrorSyntax->Nodes() &&
+                         &primarySyntax->Inlines() == &mirrorSyntax->Inlines(),
+                     "the read-only mirror shares complete parsed storage under its own revision and document identity");
              Require(prepared.syntaxPresentationUpdates > committed.syntaxPresentationUpdates &&
                          prepared.selectionPresentationUpdates == committed.selectionPresentationUpdates &&
                          prepared.mirrorSelectionUpdates == committed.mirrorSelectionUpdates,
@@ -658,18 +842,24 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              {
                  Application *app;
                  WNDPROC previous{};
-                 std::filesystem::path nestedPath;
-                 bool reject{}, reenter{}, failed{};
+                 std::filesystem::path nestedPath, nestedClosePath;
+                 HWND window{};
+                 bool reject{}, reenter{}, closeAfterCaption{}, failed{}, cleanBeforeClose{}, closeDispatched{}, hostDetachedDuringCallback{};
                  LRESULT rejection = FALSE;
              } context{&app, {}, root / L"nested-東京.md"};
+             context.window = app.Window();
+             context.nestedClosePath = root / L"nested-close.md";
              constexpr auto property = L"RedTilde.CaptionTest";
              Require(SetPropW(app.Window(), property, &context) != FALSE, "bind owned hidden-window interception");
              const auto restore = wil::scope_exit(
                  [&]
                  {
-                     if (context.previous)
-                         (void)SetWindowLongPtrW(app.Window(), GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(context.previous));
-                     (void)RemovePropW(app.Window(), property);
+                     if (IsWindow(context.window))
+                     {
+                         if (context.previous)
+                             (void)SetWindowLongPtrW(context.window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(context.previous));
+                         (void)RemovePropW(context.window, property);
+                     }
                  });
              WNDPROC intercept = [](HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) noexcept -> LRESULT
              {
@@ -677,12 +867,32 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                  if (message == WM_SETTEXT && std::exchange(state.reject, false))
                      return state.rejection;
                  const bool reenter = message == WM_SETTEXT && std::exchange(state.reenter, false);
+                 const bool closeAfterCaption = message == WM_SETTEXT && std::exchange(state.closeAfterCaption, false);
                  const auto result = CallWindowProcW(state.previous, hwnd, message, wParam, lParam);
                  if (reenter)
                  {
                      try
                      {
                          state.app->SetDocument(L"nested", state.nestedPath);
+                     }
+                     catch (const std::bad_alloc &)
+                     {
+                         std::terminate();
+                     }
+                     catch (const std::exception &)
+                     {
+                         state.failed = true;
+                     }
+                 }
+                 if (closeAfterCaption)
+                 {
+                     try
+                     {
+                         state.app->SetDocument(L"saved before nested close", state.nestedClosePath);
+                         state.cleanBeforeClose = !state.app->Dirty();
+                         (void)SendMessageW(hwnd, WM_CLOSE, 0, 0);
+                         state.closeDispatched = true;
+                         state.hostDetachedDuringCallback = state.app->Host().GetHwnd() == nullptr && state.app->Host().GetRoot() == nullptr;
                      }
                      catch (const std::bad_alloc &)
                      {
@@ -720,6 +930,19 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              app.SetDocument(L"fresh", root / L"outer.md");
              Require(app.Activity().captionCalls == before.captionCalls + 1 && WindowCaption(app.Window()) == L"outer.md — RedTilde",
                      "superseded native write cannot cache the stale outer identity as applied");
+             const HWND hiddenWindow = app.Window();
+             const HWND foreground = GetForegroundWindow();
+             context.closeAfterCaption = true;
+             app.Document().SetSelection({0, 0});
+             Require(app.Document().ReplaceSelection(L"trigger"), "caption-triggered nested-close edit is admitted");
+             Require(!context.failed && context.cleanBeforeClose && context.closeDispatched && context.hostDetachedDuringCallback,
+                     "the owned WM_SETTEXT callback marks source clean and synchronously detaches the host on accepted Close");
+             Require(app.Host().GetHwnd() == nullptr && app.Host().GetRoot() == nullptr,
+                     "nested Close retires the controls before WM_SETTEXT resumes");
+             Require((app.Window() == nullptr && !IsWindow(hiddenWindow)) ||
+                         (app.Window() == hiddenWindow && IsWindow(hiddenWindow) && !IsWindowVisible(hiddenWindow)),
+                     "accepted Close destroys the owned window or retains it hidden while admitted persistence finishes");
+             Require(GetForegroundWindow() == foreground, "hidden native-close regression preserves foreground focus");
          });
     test("Editor.DirtyCacheTracksDirectResetAndSameLengthUndo",
          [&]
@@ -1008,6 +1231,67 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                  app.Document().SetSelection({math, math});
                  Require(app.EquationPreviewText() == L"\\[" + notation + L"\\]", "current syntax drives either math delimiter family");
              }
+             const std::wstring spacedSlash = L"**kept** \\( \\text{two words} + x \\) and [parent](https://example.test \"Parent title\")\n";
+             app.SetDocument(spacedSlash);
+             app.Prepare(1024);
+             semantic = app.Document().GetAcknowledgedSemanticDocument(app.Host());
+             Require(semantic && std::ranges::count(semantic->Elements(), SemanticRole::Math, &SemanticElement::role) == 1 &&
+                         semantic->Diagnostics().empty() &&
+                         std::ranges::any_of(semantic->Syntax()->Inlines(), [](const auto &node) { return node.kind == MarkdownInlineKind::Strong; }),
+                     "whitespace-delimited slash math and neighboring rich syntax share one source publication");
+             const auto parentLink =
+                 std::ranges::find_if(semantic->Elements(), [](const auto &element) { return element.role == SemanticRole::Link; });
+             Require(parentLink != semantic->Elements().end() && parentLink->title == L"Parent title",
+                     "math processing preserves the exact title on its neighboring parent link");
+             const auto spacedAt = spacedSlash.find(L"two words");
+             app.Document().SetSelection({spacedAt, spacedAt});
+             Require(app.EquationPreviewText().find(L"\\text{two words}") != std::wstring::npos && app.Document().GetText() == spacedSlash,
+                     "the syntax-backed inspector recognizes whitespace-tolerant slash delimiters without rewriting source");
+             const std::wstring rejectedWithNeighbors =
+                 L"**rich neighbor** before [parent $\\include{private}$](https://example.test \"Parent title\") after.\n";
+             app.SetDocument(rejectedWithNeighbors);
+             app.Prepare(1024);
+             semantic = app.Document().GetAcknowledgedSemanticDocument(app.Host());
+             Require(static_cast<bool>(semantic), "rejected-math semantic publication exists");
+             const auto rejected = std::ranges::find_if(semantic->Diagnostics(), [](const auto &diagnostic)
+                                                        { return diagnostic.kind == SemanticDiagnosticKind::UnsupportedMath; });
+             const auto rejectedLink =
+                 std::ranges::find_if(semantic->Elements(), [](const auto &element) { return element.role == SemanticRole::Link; });
+             const auto richNeighborDisplay = semantic->Map().Display().find(L"rich neighbor");
+             Require(
+                 semantic && rejected != semantic->Diagnostics().end() &&
+                     rejectedWithNeighbors.substr(rejected->source.first, rejected->source.last - rejected->source.first) ==
+                         L"$\\include{private}$" &&
+                     rejectedLink != semantic->Elements().end() && rejectedLink->title == L"Parent title" &&
+                     std::ranges::any_of(semantic->Syntax()->Inlines(), [](const auto &node) { return node.kind == MarkdownInlineKind::Strong; }) &&
+                     richNeighborDisplay != std::wstring::npos &&
+                     std::ranges::any_of(semantic->Runs(),
+                                         [richNeighborDisplay](const auto &run)
+                                         {
+                                             return (run.flags & DxUi::RichText::Bold) != 0 && run.start <= richNeighborDisplay &&
+                                                    richNeighborDisplay + std::wstring_view(L"rich neighbor").size() <= run.start + run.length;
+                                         }) &&
+                     semantic->Map().Display().find(L"\\include{private}") != std::wstring::npos && app.Document().GetText() == rejectedWithNeighbors,
+                 "a rejected native equation preserves its exact local source while rich neighboring nodes and link title remain active");
+             const std::wstring diagramNeighbors =
+                 L"[Parent](https://example.test \"Parent title\")\n\n```mermaid\nclassDiagram\nBase <|-- Derived\n```\n\n"
+                 L"```mermaid\nflowchart LR\nStart([Begin]) --> Finish([Done])\n```\n";
+             app.SetDocument(diagramNeighbors);
+             app.Prepare(1024);
+             semantic = app.Document().GetAcknowledgedSemanticDocument(app.Host());
+             Require(static_cast<bool>(semantic), "typed diagram semantic publication exists");
+             std::vector<std::wstring_view> diagramAlternatives;
+             for (const auto &element : semantic->Elements())
+                 if (element.role == SemanticRole::Diagram)
+                     diagramAlternatives.push_back(element.name);
+             const auto diagramLink =
+                 std::ranges::find_if(semantic->Elements(), [](const auto &element) { return element.role == SemanticRole::Link; });
+             Require(semantic && diagramAlternatives.size() == 2 && semantic->Diagnostics().empty() &&
+                         diagramAlternatives[0].find(L"Derived inherits Base") != std::wstring_view::npos &&
+                         diagramAlternatives[1].find(L"Begin") != std::wstring_view::npos &&
+                         diagramAlternatives[1].find(L"Done") != std::wstring_view::npos && diagramLink != semantic->Elements().end() &&
+                         diagramLink->title == L"Parent title" && app.Document().GetText() == diagramNeighbors,
+                     "typed class inheritance and stadium flowchart nodes retain their native alternatives and parent link title");
              const auto oversized = L"$" + std::wstring(65534u, L'x') + L"$";
              app.SetDocument(oversized);
              app.Prepare(1024);
@@ -1158,6 +1442,149 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Require(app.Document().GetText() == current && !app.Dirty(), "discard never replaces the active document");
              Require(app.Host().GetFocusControl() == &app.Document(), "discarding the final snapshot returns logical focus to the editor");
          });
+    test("Editor.LocalizedResourceViewsRetainStorageAndFormatting",
+         []
+         {
+             const auto blockFormat = ResourceView(IDS_BLOCKINFO);
+             const auto positionFormat = ResourceView(IDS_STATUSPOSITION);
+             const std::wstring retainedBlockFormat(blockFormat), retainedPositionFormat(positionFormat);
+             Require(!blockFormat.empty() && !positionFormat.empty() && ResourceView(0xFFFFu).empty() && Resource(0xFFFFu).empty(),
+                     "known localized templates are present and missing resources stay empty");
+             // A view must not borrow a temporary owning string or a buffer reused by the next lookup.
+             for (unsigned index = 0; index < 64; ++index)
+             {
+                 const auto other = Resource(index % 2 ? IDS_BLOCKPARAGRAPH : IDS_STATUSCOUNTS);
+                 Require(!other.empty(), "subsequent resource lookups remain valid");
+             }
+             Require(blockFormat == retainedBlockFormat && positionFormat == retainedPositionFormat,
+                     "borrowed templates survive subsequent resource allocations");
+             const auto blockType = ResourceView(IDS_BLOCKPARAGRAPH);
+             const auto eol = ResourceView(IDS_EOLCRLF);
+             const std::size_t characters = 42, selected = 3, line = 7, column = 11;
+             const auto encoding = L" BOM";
+             Require(std::vformat(blockFormat, std::make_wformat_args(blockType, characters)) ==
+                             std::vformat(retainedBlockFormat, std::make_wformat_args(blockType, characters)) &&
+                         std::vformat(positionFormat, std::make_wformat_args(selected, line, column, encoding, eol)) ==
+                             std::vformat(retainedPositionFormat, std::make_wformat_args(selected, line, column, encoding, eol)),
+                     "borrowed localized templates preserve positional formatting and owned output");
+             Require(std::vformat(L"{1}: {0}", std::make_wformat_args(blockType, characters)) == L"42: " + std::wstring(blockType),
+                     "borrowed resource arguments permit translated placeholder reordering");
+         });
+    test("Performance.OwnedHeapDiagnosticDistinguishesBusyFreeAndPartialCoverage",
+         [&]
+         {
+             wil::unique_hheap heap(HeapCreate(0, 0, 0));
+             Require(static_cast<bool>(heap), "create an isolated test-owned heap");
+             const std::array<HANDLE, 1> handles{heap.get()};
+             const auto sample = [&](std::size_t entryLimit = Test::MaximumDiagnosticEntriesPerHeap)
+             {
+                 std::ostringstream report;
+                 const bool complete = Test::WriteOwnedHeapDiagnostic(report, handles, entryLimit);
+                 return std::pair{complete, report.str()};
+             };
+             const auto before = sample();
+             Require(before.first && JsonUnsigned(before.second, "actualWalkedHeapCount") == 1 &&
+                         JsonUnsigned(before.second, "completeHeapCount") == 1,
+                     "the explicit owned heap completes without claiming process-wide coverage");
+             const auto beforeBusy = JsonUnsigned(JsonObjectAfter(before.second, "\"totals\":"), "busyPayloadBytes");
+             constexpr std::size_t allocationBytes = 64 * 1024;
+             bool allocationReleased{};
+             {
+                 auto *allocation = HeapAlloc(heap.get(), 0, allocationBytes);
+                 Require(allocation != nullptr, "allocate a known payload in the owned heap");
+                 const auto freeAllocation = wil::scope_exit([&] { allocationReleased = HeapFree(heap.get(), 0, allocation) != FALSE; });
+                 std::fill_n(static_cast<std::byte *>(allocation), allocationBytes, std::byte{0x5A});
+                 const auto busy = sample();
+                 // Independent membership oracle, rather than a second implementation of byte accounting.
+                 const auto nativeOwnership = [&]
+                 {
+                     if (!HeapLock(heap.get()))
+                         return std::pair{false, false};
+                     const auto unlock = wil::scope_exit([&] { (void)HeapUnlock(heap.get()); });
+                     PROCESS_HEAP_ENTRY entry{};
+                     bool represented{};
+                     const auto address = reinterpret_cast<std::uintptr_t>(allocation);
+                     for (std::size_t index = 0; index <= Test::MaximumDiagnosticEntriesPerHeap; ++index)
+                     {
+                         if (!HeapWalk(heap.get(), &entry))
+                             return std::pair{GetLastError() == ERROR_NO_MORE_ITEMS, represented};
+                         if (index == Test::MaximumDiagnosticEntriesPerHeap)
+                             return std::pair{false, represented};
+                         const auto first = reinterpret_cast<std::uintptr_t>(entry.lpData);
+                         if ((entry.wFlags & PROCESS_HEAP_ENTRY_BUSY) && entry.cbData >= allocationBytes && address >= first &&
+                             address - first <= entry.cbData - allocationBytes)
+                             represented = true;
+                     }
+                     return std::pair{false, represented};
+                 }();
+                 const auto busyBytes = JsonUnsigned(JsonObjectAfter(busy.second, "\"totals\":"), "busyPayloadBytes");
+#if defined(__SANITIZE_ADDRESS__)
+                 // ASan may redirect HeapAlloc and quarantine physical storage outside the supplied native heap.
+                 constexpr bool sanitizerAllocator = true;
+#else
+                 constexpr bool sanitizerAllocator = false;
+#endif
+                 Require(busy.first && nativeOwnership.first, "both the owned-heap capture and independent membership walk complete");
+                 if constexpr (!sanitizerAllocator)
+                     Require(nativeOwnership.second && busyBytes >= beforeBusy + allocationBytes,
+                             "native heap payload includes the independently observed live allocation");
+                 Success(
+                     WriteBytesAtomic(root / L"owned-heap-allocation-observation.json",
+                                      std::format("{{\"sanitizerAllocator\":{},\"logicalAllocationBytes\":{},\"nativeHeapRepresentsAllocation\":{},"
+                                                  "\"busyPayloadBefore\":{},\"busyPayloadAfter\":{}}}",
+                                                  sanitizerAllocator, allocationBytes, nativeOwnership.second, beforeBusy, busyBytes)),
+                     "retain physical versus logical heap observation without claiming process-wide coverage");
+                 const auto partial = sample(1);
+                 Require(!partial.first && partial.second.find("\"budgetExceeded\":true") != partial.second.npos &&
+                             JsonUnsigned(partial.second, "entryLimit") == 1,
+                         "a bounded partial walk retains its explicit truncation instead of claiming complete coverage");
+                 const auto row = JsonObjectContaining(busy.second, busy.second.find("\"index\":0"));
+                 const auto exact = sample(static_cast<std::size_t>(JsonUnsigned(row, "walkedEntries")));
+                 Require(exact.first, "an exact entry-limit boundary recognizes end-of-heap after the final allowed entry");
+             }
+             const auto freed = sample();
+             // Sanitizer quarantine and heap managers may retain physical blocks after a successful logical free.
+             Require(allocationReleased && freed.first,
+                     "release succeeds and physical heap state remains measurable without requiring purge or working-set trimming");
+             const std::array<HANDLE, 2> duplicate{heap.get(), heap.get()};
+             std::ostringstream duplicateReport;
+             Require(!Test::WriteOwnedHeapDiagnostic(duplicateReport, duplicate) && JsonUnsigned(duplicateReport.str(), "attemptedHeapCount") == 1 &&
+                         JsonUnsigned(duplicateReport.str(), "actualWalkedHeapCount") == 1,
+                     "duplicate handles cannot double-count the same physical heap");
+             std::array<HANDLE, Test::MaximumDiagnosticHeaps + 1> absent{};
+             std::ostringstream absentReport;
+             Require(
+                 !Test::WriteOwnedHeapDiagnostic(absentReport, absent) && JsonUnsigned(absentReport.str(), "requestedHeapCount") == absent.size() &&
+                     JsonUnsigned(absentReport.str(), "boundedHeapCount") == Test::MaximumDiagnosticHeaps &&
+                     JsonUnsigned(absentReport.str(), "attemptedHeapCount") == 0 && JsonUnsigned(absentReport.str(), "actualWalkedHeapCount") == 0,
+                 "invalid and over-limit inputs distinguish requested, bounded and actual heap walks");
+         });
+    test("Performance.SelectionDiagnosticRejectsReentryAndUnwinding",
+         [&]
+         {
+             EditDiagnostics diagnostic;
+             {
+                 auto arm = diagnostic.ArmSelection();
+                 auto invocation = diagnostic.EnterSelection();
+                 {
+                     auto outer = diagnostic.MeasureSelection(SelectionComponent::Find);
+                     auto nested = diagnostic.MeasureSelection(SelectionComponent::Outline);
+                 }
+             }
+             Require(!diagnostic.selection.complete, "overlapping selection components cannot produce an attributed timing record");
+             EditDiagnostics unwinding;
+             try
+             {
+                 auto arm = unwinding.ArmSelection();
+                 auto invocation = unwinding.EnterSelection();
+                 throw std::runtime_error("expected diagnostic unwind");
+             }
+             catch (const std::runtime_error &)
+             {
+                 // This deliberate local exception verifies diagnostic invalidation; it is not an application failure.
+             }
+             Require(!unwinding.selection.complete, "an unwound selection is reported incomplete instead of inventing phase durations");
+         });
     test("Performance.NativeCompletedFramesPreserveSourceAndHistory",
          [&]
          {
@@ -1191,6 +1618,25 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                              probeReport.find("\"name\":\"chrome\"") != probeReport.npos &&
                              probeReport.find("\"postMemory\":[") != probeReport.npos && probeReport.find("\"renderCounts\":[") != probeReport.npos,
                          "bounded command phases and post-primary quiescence observations are retained");
+                 Require(probeReport.find("\"protocol\":\"app-selection-components-v1\"") != probeReport.npos &&
+                             probeReport.find("\"parentReconciliation\":") != probeReport.npos &&
+                             probeReport.find("\"appBuffersAfterPrimary\":") != probeReport.npos &&
+                             probeReport.find("\"heapDiagnosticCoverage\":\"explicit-default-and-crt-only\"") != probeReport.npos,
+                         "nested selection attribution and after-primary storage have distinct bounded diagnostic records");
+                 const auto frameDiagnostics = JsonObjectAfter(probeReport, "\"frameDiagnostics\":");
+                 const auto editTransactions = frameDiagnostics.find("\"editTransactions\":[");
+                 const auto cleanTransactions = frameDiagnostics.find("\"cleanTransactions\":[");
+                 Require(frameDiagnostics.find("\"protocol\":\"dxui-frame-metrics-v1\"") != frameDiagnostics.npos &&
+                             frameDiagnostics.find("\"wallDurationOnly\":true") != frameDiagnostics.npos &&
+                             editTransactions != frameDiagnostics.npos && cleanTransactions != frameDiagnostics.npos &&
+                             frameDiagnostics.find("\"complete\":true,\"attemptCount\":", editTransactions) != frameDiagnostics.npos &&
+                             frameDiagnostics.find("\"complete\":true,\"attemptCount\":", cleanTransactions) != frameDiagnostics.npos,
+                         "opt-in DxUi frame timing retains complete edit and clean frame sequences as wall durations");
+                 const auto hostCounters = JsonObjectAfter(probeReport, "\"hostCacheCounters\":");
+                 Require(JsonUnsigned(hostCounters, "configuredTextFormats") == app.Host().DebugGetConfiguredTextFormatCount() &&
+                             JsonUnsigned(hostCounters, "cachedBrushes") == app.Host().DebugGetBrushCacheSize() &&
+                             JsonUnsigned(hostCounters, "rootLogicalChildren") == app.Host().GetRoot()->GetLogicalChildCount(),
+                         "post-primary cache counts describe the owned host without claiming allocation ownership");
              }
          });
     test("Rendering.NativeDefaultAndWarpResourceLifecycle",
@@ -1210,6 +1656,32 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                  app.SetDocument(L"# Resource lifecycle\n\nS5_EDIT_HERE and $a_i^2$.\n\n$$\\begin{bmatrix}a&b\\\\c&d\\end{bmatrix}$$\n\n"
                                  L"```mermaid\nstateDiagram-v2\n[*] --> Draft\nDraft --> Saved : Save\n```\n");
                  Require(RunPerformanceProbe(app, launch) == 0, "actual native resource, image, resize and device-loss protocol succeeds");
+                 std::string probeReport;
+                 Success(ReadBytes(launch.performance, probeReport), "read native resource lifecycle diagnostics");
+                 const bool reportsWarp = probeReport.find("\"renderer\":\"WARP\"") != probeReport.npos;
+                 const bool reportsHardware = probeReport.find("\"renderer\":\"Hardware\"") != probeReport.npos;
+                 Require(reportsWarp || reportsHardware, "resource probe reports a recognized adapter mode");
+                 Require(!warp || reportsWarp, "resource probe honors the explicit WARP adapter request");
+                 const auto firstPreparation = JsonObjectAfter(probeReport, "\"firstCompletedPreparation\":");
+                 RequireCompletedResourceCost(firstPreparation, "initial reset frame flush count is in the bounded root-child range");
+                 RequireResourcePhase(probeReport, "clean-after-dirty", false);
+                 RequireResourcePhase(probeReport, "clean-hidden-idle", false);
+                 RequireResourcePhase(probeReport, "hidden-notification-idle", false);
+                 RequireResourcePhase(probeReport, "resumed-forced-frame", false);
+                 RequireResourcePhase(probeReport, "resized-forced-frame", true);
+                 std::size_t recreated{};
+                 constexpr std::string_view recreatedMarker = "\"phase\":\"recreated-forced-frame\"";
+                 for (auto at = probeReport.find(recreatedMarker); at != probeReport.npos;
+                      at = probeReport.find(recreatedMarker, at + recreatedMarker.size()))
+                 {
+                     const auto entry = JsonObjectContaining(probeReport, at);
+                     RequireCompletedResourceCost(JsonObjectAfter(entry, "\"preparation\":"),
+                                                  "device-loss reset frame flush count is in the bounded root-child range");
+                     ++recreated;
+                 }
+                 Require(recreated == 3, "resource probe records all three device-loss recovery preparations");
+                 RequireResourcePhase(probeReport, "closed", false);
+                 Require(probeReport.find("\"completed\":true") != probeReport.npos, "resource probe report is complete");
                  Require(app.Window() == nullptr && app.Host().GetHwnd() == nullptr, "resource protocol retires its window and native host");
              }
          });

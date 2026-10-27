@@ -155,6 +155,12 @@ void RegisterFilesTests(const std::filesystem::path &root, const std::function<v
                   std::wstring_view{maximumLines}, std::wstring_view{L"# 東京\r\n```md\n# hidden\n```\n## Tail ##\r"}})
             {
                 const auto reference = AnalyzeDocument(sample);
+                DocumentLineIndexStorage storagePath;
+                const auto stored = storagePath.Analyze(sample);
+                Require(sameMetadata(stored, reference), "reusable analysis preserves every literal metadata field");
+                for (std::size_t caret = 0; caret <= sample.size(); ++caret)
+                    Require(DocumentPositionAt(stored, caret) == DocumentPositionAt(reference, caret),
+                            "reusable analysis preserves every literal source ACP including CRLF and terminal empty lines");
                 for (const auto hint : {std::size_t{}, std::size_t{1}, reference.lines, std::numeric_limits<std::size_t>::max()})
                 {
                     const auto hinted = AnalyzeDocument(sample, hint);
@@ -168,6 +174,58 @@ void RegisterFilesTests(const std::filesystem::path &root, const std::function<v
             Require(smaller.lineIndex == std::vector<DocumentLine>{{0, 3}, {5, 1}} && smaller.lineIndex.capacity() <= 7 &&
                         smaller.lineIndex.capacity() < large.lineIndex.size() && large.lineIndex.size() == 65537,
                     "a many-line predecessor cannot retain its large line storage in a small replacement or mutate the older result");
+            DocumentLineIndexStorage storage;
+            auto active = storage.Analyze(L"A\r\nB\n", 0);
+            auto warmup = storage.Analyze(L"A\r\nB\n", active.lines);
+            using std::swap;
+            swap(active, warmup);
+            storage.Retire(std::move(warmup.lineIndex), active.lines);
+            const auto coldGrowths = storage.Stats().capacityGrowthCount;
+            const auto coldNormalizations = storage.Stats().capacityNormalizationCount;
+            for (std::size_t edit = 0; edit < 32; ++edit)
+            {
+                const std::wstring_view text = edit % 2 ? L"A\r\nB\n" : L"A\nB\r";
+                auto next = storage.Analyze(text, active.lines);
+                const auto reference = AnalyzeDocument(text);
+                Require(sameMetadata(next, reference), "reused line storage preserves literal metadata and heading facts");
+                for (std::size_t caret = 0; caret <= text.size(); ++caret)
+                    Require(DocumentPositionAt(next, caret) == DocumentPositionAt(reference, caret),
+                            "reused physical line storage preserves every ACP query after edit/undo-shaped revisions");
+                swap(active, next);
+                storage.Retire(std::move(next.lineIndex), active.lines);
+            }
+            Require(storage.Stats().reuseCount >= 31 && storage.Stats().capacityGrowthCount == coldGrowths &&
+                        storage.Stats().capacityNormalizationCount == coldNormalizations && storage.Stats().spareCapacity <= 64 &&
+                        storage.Stats().activeCapacity <= 64,
+                    "steady small edit/undo-shaped revisions reuse bounded line storage without repeated capacity growth");
+
+            DocumentLineIndexStorage largeToTinyStorage;
+            auto manyLines = largeToTinyStorage.Analyze(maximumLines);
+            auto longLine = largeToTinyStorage.Analyze(std::wstring(65536, L'x'), manyLines.lines);
+            swap(manyLines, longLine);
+            largeToTinyStorage.Retire(std::move(longLine.lineIndex), manyLines.lines);
+            Require(manyLines.lines == 1 && manyLines.characters == 65536 && manyLines.lineIndex.size() == 1 &&
+                        manyLines.lineIndex.front() == DocumentLine{0, 65536} && manyLines.lineIndex.capacity() <= 64 &&
+                        largeToTinyStorage.Stats().spareCapacity <= 64 && largeToTinyStorage.Stats().droppedSpareCount != 0,
+                    "many-lines to one maximum-length line drops the oversized retired index and keeps exact source facts");
+            std::wstring beyondSpareCap(20000, L'\n');
+            DocumentLineIndexStorage largeSteadyStorage;
+            auto largeActive = largeSteadyStorage.Analyze(beyondSpareCap);
+            auto largeNext = largeSteadyStorage.Analyze(beyondSpareCap, largeActive.lines);
+            swap(largeActive, largeNext);
+            largeSteadyStorage.Retire(std::move(largeNext.lineIndex), largeActive.lines);
+            const auto firstLargeGrowths = largeSteadyStorage.Stats().capacityGrowthCount;
+            auto largeThird = largeSteadyStorage.Analyze(beyondSpareCap, largeActive.lines);
+            Require(sameMetadata(largeThird, AnalyzeDocument(beyondSpareCap)) && largeThird.lineIndex.capacity() <= 2 * largeThird.lines &&
+                        largeSteadyStorage.Stats().spareCapacity <= 16384 && largeSteadyStorage.Stats().reuseCount == 0,
+                    "documents beyond the hard spare cap use the prior line-count hint and bound active capacity without false reuse");
+            swap(largeActive, largeThird);
+            largeSteadyStorage.Retire(std::move(largeThird.lineIndex), largeActive.lines);
+            const auto largeThirdGrowths = largeSteadyStorage.Stats().capacityGrowthCount - firstLargeGrowths;
+            auto largeFourth = largeSteadyStorage.Analyze(beyondSpareCap, largeActive.lines);
+            Require(largeThirdGrowths == 1 && sameMetadata(largeFourth, AnalyzeDocument(beyondSpareCap)) &&
+                        largeFourth.lineIndex.capacity() <= 2 * largeFourth.lines,
+                    "steady revisions above the spare cap perform one hinted growth rather than repeated geometric growth");
         });
     test("Files.MarkdownTreeNaturalOrderAndFilter",
          [&]

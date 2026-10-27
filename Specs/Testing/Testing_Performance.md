@@ -40,6 +40,30 @@ working set, handles, GDI/USER objects, host caches and available DXGI usage at 
 is unavailable, never zero. Hidden/clean idle must request no additional preparation or rendering; production
 workers continue blocking on events. Teardown probes retain before/after handle/resource observations.
 
+A separately declared virtual-memory census is a diagnostic, not a substitute for those process counters.
+`MEM_PRIVATE`-type committed ranges are not process-private bytes, mapped image size is not resident working set,
+and an additional font mapping does not identify a causal allocation owner. Preserve unresolved mapping identities
+and empty/exit snapshots explicitly. Suspension-based sampling must report bracket coverage and its missing costs;
+intrusive stack walks and sparse instruction pointers cannot be presented as CPU shares or causal attribution.
+
+An owned-process heap trace must retain its executable, collection declaration, raw stream digests, loss and
+schema counters, observer query brackets and versioned decoder. StackWalk association uses the original-event
+timestamp/process/thread in its payload; a later header timestamp or an unknown header process is not that
+identity. Validate the entire bounded stack payload against its schema instead of truncating at named fields.
+Report unmatched, duplicate, ambiguous and unknown records. A redundant ReAlloc-summary interpretation must
+state its exact observed allocation/free sequence, preserve the original allocation's recorded stack and byte counts,
+retain its reconciliation count and expose unproven thread/allocator continuity. Consistent captured records
+do not prove complete process allocation coverage. Module point observations are not load/unload lifetimes,
+and phase-unmatched snapshots, including startup/teardown, cannot substitute for settled native memory phases.
+
+Resource-only native reports also retain `firstCompletedPreparation` and a `preparation` object on resize and
+device-recreation phases. Each brackets the operation, cooperative native preparation and a GPU completion fence,
+then records completed wall time, owner cycles, process CPU and intermediate root-child Flush count. Snapshot
+collection and post-replacement capture comparisons occur after that interval. Initial preparation includes GPU
+fence setup; recreation includes retiring and rebuilding that fence. These observations measure hidden completed
+work, not startup-to-visible or physical presentation latency. They stay outside the fixed twelve primary slots;
+baseline and candidate require the identical revised common harness before comparison.
+
 Bracket each idle interval with cheap process-time and owner-cycle reads. Resource snapshots enumerate system
 threads and can consume significant CPU; record their collection wall/CPU cost separately. Cumulative CPU
 differences between resource snapshots include collection work and must never be labeled idle CPU. The v2
@@ -73,6 +97,14 @@ The evidence auditor recomputes the normalized profile hash, checks the unique h
 and verifies each retained raw command file. Historical schema-less receipts remain readable as historical
 evidence; new paired collection requires a freshly frozen schema-2 compiler profile.
 
+The evidence auditor also requires exact common-input key sets, cardinality and hashes to match across baseline,
+candidate and comparison. Historical schema-less smoke receipts may use only the exact seven-file legacy set, and
+only when the study has no dependency-comparison/profile marker or raw compiler receipt and both compiler profiles
+remain in the exact schema-less historical shape. The historical eight-file set remains readable for prior typed
+studies; new studies use the nine-file set including `Build/ReviewedHeaderDeltaProfile.json`. Reviewed-header mode
+requires that ninth input and binds its digest to the reviewed profile SHA-256. A marked/current study cannot
+downgrade to the seven-file compatibility exception.
+
 The native-v2 fixture (schema 2) keeps two fixed warmup cycles, all timed edit/undo samples and the same twelve
 primary slots. It records command-only owner CPU cycles and owner processor IDs at transaction/frame boundaries
 as diagnostics. Boundary equality does not rule out migrations that return to the same processor. Never infer
@@ -101,8 +133,33 @@ A later collection explicitly requested after a reported host-condition change i
 Record that trigger before collection, preserve the earlier studies and assess actual activity anew; do not pool,
 replace unfavorable controls or promote a human report of quiet to a verified quiet observation.
 
-Opt-in `--control-diagnostics` / `-ControlDiagnostics` records bounded synchronous edit subphases in native-v2
-receipts. `app-edit-phases-v2` separates native entry, document analysis, mirror, identity labels, native caption,
+When one candidate is compared against multiple references, report each cohort and its A/A and A/B phase separately.
+Bind the baseline source/build identity, measured overlay, dependency adoption mode, candidate source/build identity,
+compiler profile, common harness inputs and raw receipts independently; keep a source anchor distinct from the measured
+overlay commit. Do not substitute a later merged base for an original reference or combine cohorts into a single
+acceptance result. Summaries retain every primary metric row, same-side control status and drift observations for each
+cohort. A curated public projection may expose aggregate evidence hashes and synthetic workload identity, but must
+exclude local absolute paths, machine/process names and raw receipt filenames; the private audit retains the full
+receipt/path bindings. Unstable controls, missing quiet coverage or an unqualified upstream policy keep acceptance
+open even when another cohort has improvements or no resolved regressions.
+
+Opt-in `--control-diagnostics` / `-ControlDiagnostics` records bounded synchronous edit subphases in native-v2 receipts.
+
+The same option may retain the existing DxUi frame metric sink's total/update/render/present wall durations. This sink is
+borrowed on the UI thread only inside each edit or clean transaction and is cleared on every exit; the hidden
+probe owns the sole registration in that process. Its callback allocates nothing and never reenters controls.
+Keep at most 64 complete four-value attempt records per transaction and match the count to the probe's explicit
+render requests. The sole owned hidden host's render-count delta must be positive and no greater than that count.
+Update preparation may return before its render counter advances; retain those attempts too. Raw zero stage
+values on early returns may represent unassigned timings and must not be treated as measured zero-cost work.
+Reject missing, reordered, partial or overflowing sequences, mismatched request/host counts
+and stage sums beyond total plus the declared 3-microsecond rounding allowance. Record vector capacities and
+reserved payload bytes: diagnostic memory observations include that storage, while allocator metadata is not
+accounted for. Frame durations are wall-time diagnostics, not owner-CPU attribution or completed GPU latency.
+They never replace any primary outcome. A study declaring `dxui-frame-metrics-v1` requires every edit and clean
+record and its storage metadata; historical receipts without this optional diagnostic remain readable.
+
+`app-edit-phases-v2` separates native entry, document analysis, mirror, identity labels, native caption,
 remaining chrome, selection, recovery and native exit. The initial seven-phase v1 prototype remains readable.
 An explicit current diagnostic study requires v2; reject a downgrade even if its edited receipt hashes match.
 Phase wall/CPU arrays must cover every timed transaction in order, stay within command cost, and reconstruct
@@ -110,6 +167,48 @@ full owner CPU with the preparation/GPU-wait diagnostics. Retain render and prep
 observer only for a synchronous harness transaction, clear it on every exit, and perform no diagnostic clock
 reads during ordinary editing. The optional instrumentation changes observed cost: freeze and measure a matching
 common baseline before a production repair; never compare it directly with uninstrumented acceptance results.
+
+Current opt-in reports also retain `app-selection-components-v1`: twelve disjoint selection components, ordered
+per-transaction raw wall/cycle/call records and their enclosing selection interval. Arm it only around the
+synchronous `Changed` selection publication, reject reentry/unwinding or failed clock reads, and mark unexecuted
+components unavailable rather than supplying invented durations. Component sums must fit both their whole
+invocation and the parent selection phase; the retained remainder must reconstruct that parent. Historical
+reports without this optional object remain readable; a current study that declares it must retain it.
+
+Opt-in native diagnostics may also retain the separate `app-editor-preparation-v1` object. For each measured
+edit transaction, record every `Ready` call's `RenderInitialFrameForShow` attempt, capped at the shared 64-attempt
+transaction bound. Each record binds its zero-based attempt index to the same ordered `dxui-frame-metrics-v1`
+attempt and captures the primary and mirror `RichTextEditor::DebugGetState()` immediately before and after that
+call, plus the host render-count endpoints. The collector reserves attempt and transaction storage before measured
+edits, reports its reserved bytes, and rejects missing/extra attempts, index or render-count reconciliation errors,
+and decreasing cumulative preparation counters. The recorded debug-state fields are raw snapshots; a zero work
+field is not a timing or proof that a stage was skipped, and these snapshots do not attribute CPU among editor
+stages or host traversal. The evidence auditor independently checks each retained attempt against its frame-metric
+record, including transaction counts, ordering, counters and reserved-storage arithmetic. Historical reports
+without this optional object remain readable. When disabled, this diagnostic performs no editor debug queries
+and allocates no diagnostic storage.
+
+A common diagnostic harness does not guarantee equal probe counts in different implementations. Report active
+component-call counts when comparing outer phases: each timed scope adds its own clock/cycle reads, and the
+enclosing interval/remainder includes that overhead. A phase delta cannot be attributed wholly to product work
+when scope counts differ. Diagnostics-off acceptance executes no diagnostic clock/cycle reads; do not infer
+zero instruction overhead from that gate or subtract a guessed per-probe cost.
+
+After the primary memory observations, opt-in app storage records report known buffer sizes/capacities and
+snapshot lengths without flattening source. Missing members in a historical implementation remain unavailable.
+After all primary, idle and resource observations, an optional heap walk may inspect only the explicitly supplied,
+long-lived default/CRT heaps; deduplicate handles and report incomplete coverage, per-heap errors and capture-only
+cost separately from serialization. The app test-layer helper caps storage at 32 handles and each walk at one
+million entries. Its aggregate busy/free/committed bytes are not process-private bytes, working set or allocation
+ownership. No purge, trimming, affinity, priority or power-policy change is permitted. Include this helper in the
+matched harness input closure before freezing a new baseline; retain the prior seven-input freezes as history.
+Post-primary host counters may record configured text formats, brushes and direct logical root children. These
+are object counts rather than retained bytes or a complete control-tree inventory. Sampling follows the heap
+observation, so the counters cannot change that observation or any primary metric.
+Heap-diagnostic tests distinguish logical allocation requests from native heap storage. Sanitizer interception
+may redirect or quarantine the physical allocation; retain an independent range-membership observation and
+require native-payload growth only for the ordinary native allocator. Keep the complete-walk, budget, duplicate,
+invalid-handle and exact-boundary assertions active in every profile.
 
 Diagnostic memory is sampled after the primary snapshot, then after 100 and 500 ms of event-driven hidden idle.
 No additional render/preparation is allowed during those waits. Full global thread inventory runs only in the
@@ -132,3 +231,63 @@ the same viewport. Freeze a new common instrumented baseline with this harness; 
 The existing strict fixture, pin, compiler, renderer, native geometry and harness identity checks remain enabled.
 For a dependency adoption, first compare original application chrome and refreshed chrome on the same new exact
 DxUi pin; upstream library changes retain their independent baseline and qualification.
+An additional actual-PR-base adoption study may explicitly select `-DependencyAdoption`. The default still refuses
+different dependencies and compiler profiles. Adoption permits only the exact dependency commit/fingerprint pair to
+change: API revision, platform, runtime, compiler, SDK, flags and every other dependency field must match. Retain and
+independently replay separate public-header inventories for both the clean pinned source checkout and the actual
+platform/triplet package include directory selected by the dependency fingerprint. Reject missing/changed bytes in
+either inventory. When the compiler profile differs, permit only the exact SDK source include and fingerprinted
+package include operands to vary; require one of each on both sides, retain the raw compiler command receipts, and
+independently verify those raw commands reproduce the recorded profiles. Every other compiler option, macro, include
+operand, quote and flag spelling remains exact. Historical schema-one source-only header evidence remains readable for
+same-pin studies only; it cannot qualify dependency adoption.
+This mode measures the complete follow-up, including the SDK adoption; it never replaces the original-UI comparison
+on one common pin, changes a metric/band, qualifies the upstream policy or accepts a new ABI.
+
+`-ReviewedHeaderDelta` is a separate, opt-in comparison for one fixed, reviewed SDK pair. It is not a general
+allowance for API-revision-compatible header changes. The fixed profile binds exact old/new SDK commits and
+fingerprints, the complete 58-row inventory (25 DxUi source headers and 33 vcpkg package headers), the two reviewed
+SDK source header hash pairs, every unchanged inventory row, exact compiler include-command evidence and a
+source-hashed isolated ABI probe. Only the exact reviewed additive declarations may differ; every other header,
+dependency, compiler, runtime, SDK, target, flag and unknown field remains exact. The existing same-pin and
+`-DependencyAdoption` paths continue requiring identical public-header inventories. The fixed profile is a common
+harness input. The independent evidence auditor verifies its copied bytes and separately replays paired-study
+compiler receipts; those receipts are not replaced by the ABI probe. The probe confirms equal tested object layouts and
+method availability under its recorded isolated compile context; PCH is disabled and it links only the probe object,
+so full application compile/link equivalence and DxUi library integration are outside its evidence. All 33 vcpkg
+package rows and the other 23 DxUi source rows remain identical. A different SDK/header delta requires a separately
+reviewed profile, refreshed common baselines and new positive/negative oracles. This mode does not change timing
+bands, workloads, the metric family or acceptance
+policy. Its isolated ABI probe does not establish complete application ABI/link compatibility or performance qualification.
+
+The parsed-snapshot v2 profile is a separately reviewed source-coordinated extension for exact SDK `47a9d259`
+to `4077f57d`. It permits exactly `DxUi.h`, `MarkdownSyntax.h` and `RichDocument.h` source-header changes,
+with every other source/package row, compiler operand and dependency field governed by the same strict guards.
+Its isolated source probe must verify all three exact new method signatures, the existing synchronization
+signature on both sides, a 16-byte MarkdownSyntax increase with unchanged alignment, and unchanged measured
+MarkdownParser, RichTextEditor, SourceSnapshot and Document layouts. These are named-type source/layout checks,
+not binary interoperability. Consumers rebuild against matching pinned headers/library and require their own
+native editing, rendering and input qualification. The original v1 validator and byte-exact fixture remain for
+historical two-header studies; v2 needs its own actual compiler/header receipts and positive/negative oracles
+before any collection. Neither profile changes workload, metric family, bands or acceptance policy.
+The [retained v2 source probe](../../Measurements/RedesignCompletion_2026-10-26/parsed-syntax-header-probe/README.md)
+records its exact SDK pair, isolated application contexts, measured layouts and raw receipt digests. Those
+isolated contexts do not identify the actual PR base; each paired study still binds its own production lineage.
+
+### 2026-10-25 local source-bound evidence
+
+The [9025be4 local paired study](../../Measurements/RedesignCompletion_2026-10-25/performance-9025be4/README.md)
+uses 576 hash-verified native reports, 72 metric rows, 864 paired block effects and 1,728 same-side drift values.
+It keeps original UI, starting redesign and actual PR13-base as separate cohorts, and keeps A/A controls separate
+from A/B candidate comparisons. Original-UI A/B retains five resolved regressions: Compose command time +7.4456%,
+private bytes +2.1001%; Split command time +9.3709%, owner CPU cycles +12.0103% and working set +2.2311%.
+Starting-redesign A/B has four resolved memory improvements and no regressions. Actual PR13-base A/B has no
+resolved changes; this explicit dependency-adoption result does not resolve the original-UI regression gate.
+
+The matching [local native matrix](../../Measurements/RedesignCompletion_2026-10-25/qualification-9025be4/README.md)
+passes six local builds and three noninteractive x64 Full runs; ARM64 is cross-build only. Three hidden-focus
+checks failed in the first Release attempt while an SDK foreground lease overlapped. A later serial Full run with
+the same executable and unchanged source/assertions passed all 39 Editor cases. The overlap does not establish
+an application activation event or root cause because no per-case event trace was captured. All six observer
+windows report complete sample coverage but no verified quiet CPU window. These observations do not establish
+causality, performance acceptance, hosted CI, real-focus qualification or native ARM64 execution.

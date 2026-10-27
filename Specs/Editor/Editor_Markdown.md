@@ -11,6 +11,15 @@ existing line endings. View changes never reserialize Markdown, reset history or
   current source and selection; edits update the mirror while it is visible. Compose/Source defer its hidden
   updates. Selecting a mirror range may navigate the authoritative editor. The mirror never becomes a second
   independently editable document.
+- The read-only Source mirror shares the primary immutable snapshot through the pinned public DxUi API while
+  retaining its own revision counter and independent parser. Changed source retires derived state; same source
+  and selection skip repeated work. An incompatible mirror profile retains exact `SetText` fallback. After any
+  callback, abort an older source-bound update if source/revision/selection/view changes or an editor/mirror/root lifetime is
+  retired. These cached controls are app-owned and never reparented independently of that root. Source sharing
+  does not publish an old cache over a nested edit or change authoritative undo/history/dirty state.
+  View routing checks the captured editor, mirror and root lifetimes after synchronous callbacks. If only source
+  changes during the requested view transition, finish its hint, layout, focus and persisted preference using
+  the latest source. A newer view request or retired owner aborts the outer transition.
 - Text-service composition previews and cancellation can change live source and selection without a committed
   edit. A visible Split mirror synchronizes immutable source identity before applying their UTF-16 ACPs, even
   when lengths match but scalar/CRLF boundaries differ. This never adds authoritative history or invokes the
@@ -86,8 +95,9 @@ editing.
 
 The tree supports arrow navigation, Left/Right collapse and expand, Home/End, type-ahead, and Tree/TreeItem UI
 Automation with ExpandCollapse and SelectionItem. Opening moves focus into the tree. Escape/close restores focus to
-the authoritative editor without changing its source selection. The active file and dirty state are exposed as
-text, not by color alone. A row invokes on single-click release; file rows open through the guarded Open flow,
+the authoritative editor without changing its source selection. The active file keeps its filename as the TreeItem
+Name; when edited, its localized state text is exposed as UI Automation ItemStatus, not by color alone. A row invokes
+on single-click release; file rows open through the guarded Open flow,
 while directory rows are ignored by the application and their separate disclosure target expands/collapses.
 Arrow keys navigate/select; Enter invokes the selected row. Outline rows also invoke on single-click release and
 navigate to the source heading, including headings with descendants.
@@ -110,6 +120,15 @@ LF. An interior CRLF offset reports the preceding line's content end. Empty sour
 content; a final CR, LF or CRLF exposes an empty final line. Newline facts remain revision-bound and distinguish
 no terminator, LF, CRLF, lone CR and mixed kinds.
 
+Analysis stages the next revision's complete facts while the previous `DocumentInfo` remains published, then
+swaps them without throwing. The application may reuse one retired physical-line index. Its retained spare
+capacity is at most `min(16384, max(64, 2 * currentLineCount))` entries; oversized retired buffers are released
+at publication. The active index is bounded to `max(64, 2 * currentLineCount)` entries after analysis. Capacity
+bounds do not truncate source or lines. Reserve hints are capped by the incoming source length plus one;
+documents above the spare limit retain that hint rather than repeatedly growing from zero. Caret-only refreshes
+do not consume storage or reanalyze source. Preview, cancellation, commit and undo/redo each publish exact
+source-bound facts, with no changes to the editor's source, selection or history.
+
 ## Images, diagrams and mathematics
 
 Use the pinned native image API with an explicit absolute document path. Relative paths resolve from the
@@ -127,8 +146,11 @@ states, block class declarations, namespaces, multiplicities, styles and directi
 Mathematics uses native source-backed objects throughout the document and in the read-only inspector. RichMarkdown
 recognizes inline `$...$` / `\(...\)` and display `$$...$$` / `\[...\]` inside one logical Markdown paragraph.
 Code, escaped delimiters and CommonMark/GFM profiles retain literal interpretation. Single-dollar notation has
-nonspace content edges and cannot close immediately before a digit. A formula reserves its full native height,
-shares an inline baseline and exposes its TeX notation through semantic accessibility. View changes do not edit it.
+nonspace content edges and cannot close immediately before a digit. Explicit slash delimiters allow whitespace
+around the formula and use their own closing-delimiter rules, independent of dollar-currency heuristics. `\text{...}`
+preserves internal spaces as upright text. Typed atom classes, display/text/script styles and explicit operator
+limits survive parsing into native layout. A formula reserves its full native height, shares an inline baseline and
+exposes its TeX notation through semantic accessibility. View changes do not edit it.
 
 The library parser handles fractions, indexed roots, simultaneous scripts, Greek/operators, named functions,
 text and alphabets, accents, scalable paired delimiters, matrices, cases and aligned/gathered rows. Limits are

@@ -17,6 +17,17 @@ typography, measure the filename canonically and reuse it until text, available 
 
 Brand: a flowing red tilde, with a restrained scarlet accent. App name is RedTilde. Short product line:
 **Words, beautifully in flow.** The icon must read at 16/24/32 pixels as well as 256; preserve alpha.
+The application extracts and retains bounded premultiplied BGRA pixels from its own 32-bit alpha icon resource
+across device replacement; ordinary branding does not instantiate WIC. Native extraction must match the independent
+WIC reference byte for byte, including transparent and partially transparent pixels, at 16/24/32/48/64/128/256 pixels.
+It prepares the device-dependent Direct2D bitmap through DxUi visual-content preparation. Paint only draws a bitmap
+stamped for the host's current resource generation; resource queries and bitmap creation stay out of paint.
+
+The native host opts into DxUi's bounded initial root-child submission policy after swap-chain creation or resize.
+Only the first successfully completed D2D draw uses intermediate submissions, including when the hidden harness
+reports occluded presentation. Warm frames keep the ordinary final submission. Flush/EndDraw failures retain retry
+and device-loss recovery; source, draw order, overlays, focus and accessibility stay identical. Qualification includes
+initial/reset completed work and retained memory alongside the fixed warm edit/frame comparison.
 
 ## Layout
 
@@ -80,6 +91,9 @@ Markdown body uses DxUi typography, source uses its monospace role. Target at le
 40-DIP primary actions. Colors derive from one host theme; respect high contrast and visible keyboard focus.
 Do not communicate dirty/errors/mode only by color. UIA names identify mode buttons, formatting commands and
 the Markdown document. Error messages explain the failed action and leave the source editable.
+Hot localized status formatting borrows immutable executable resource text for the duration of formatting;
+formatted control text remains owned. Resolve resources for each request rather than caching a thread's language.
+Missing resource identifiers remain empty, and translated positional placeholders retain their order and meaning.
 
 The application theme adapter supplies these default product roles over the pinned DxUi palette. System mode
 chooses Light or Dark from the system setting; high contrast replaces product colors with system colors.
@@ -125,6 +139,15 @@ section and named UIA current state. Empty headings do not produce blank rows. C
 Markdown kind and physical-line character count, or enclosing list kind and item count for list content;
 equation controls appear only in current mathematical context.
 Its read-only equation preview uses the same shared engine as the document and is labelled explicitly.
+When the current-block label or its sidebar is hidden, retain the newest source-localized block facts without
+formatting or publishing the label. Publish those facts before the sidebar becomes visible so the first paint and
+UI Automation snapshot expose the current selection. The list summary and static current-block title retain their
+existing immediate behavior.
+
+Localize and publish the visible Paragraph/Math toolbar caption on initial synchronization and published context
+transitions; its accessible command name remains Heading. Pending replacement syntax clears stale math and
+temporarily publishes Paragraph, then current ready math restores Math. Repeating unchanged ready facts reuses
+the caption while the equation preview still follows the exact current expression.
 
 Derive the current block from the source-current canonical syntax tree's child/sibling links, whose source
 order can differ from node-vector order. Descend the containing half-open source ranges; the deepest recognized
@@ -170,8 +193,9 @@ List `.md` and `.markdown` files. Exclude hidden and system entries. Show a dire
 below it, directories before files, and natural Explorer-style ordering within each kind. Expand ancestors of the
 current file; other directories start collapsed and show their Markdown file count. Reparse points may appear as
 entries but are never traversed. A name filter retains matching files and their ancestor directories; Escape
-clears the filter before dismissing the pane. The current file uses selection styling and exposes current/dirty
-state as text through UI Automation. Tree navigation supports arrows, Left/Right expansion, Home/End and type-ahead;
+clears the filter before dismissing the pane. The current file uses selection styling and keeps its filename as the
+stable TreeItem Name. When edited, its localized state text is exposed through UI Automation ItemStatus. Tree
+navigation supports arrows, Left/Right expansion, Home/End and type-ahead;
 UI Automation exposes Tree/TreeItem, ExpandCollapse and SelectionItem. A completed single click invokes a file row
 on release; the disclosure target continues to expand/collapse only, and keyboard activation remains Enter.
 Notification refreshes preserve surviving expansion choices, initialize newly discovered directories collapsed and

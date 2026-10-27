@@ -2,7 +2,35 @@
   "version": 1,
   "cases": [
     {
+      "name": "Editor.LocalizedResourceViewsRetainStorageAndFormatting",
+      "scope": "Editor"
+    },
+    {
+      "name": "Performance.OwnedHeapDiagnosticDistinguishesBusyFreeAndPartialCoverage",
+      "scope": "Editor"
+    },
+    {
+      "name": "Performance.SelectionDiagnosticRejectsReentryAndUnwinding",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.SplitMirrorFallbackRecoversAfterHiddenEdits",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.SplitMirrorNestedEditKeepsNewestPublication",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.SplitMirrorCallbackCanRetireRoot",
+      "scope": "Editor"
+    },
+    {
       "name": "Window.Image2QuietChromeAndCompactInspector",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.HiddenCurrentBlockPublishesLatestOnReveal",
       "scope": "Editor"
     },
     {
@@ -158,6 +186,10 @@
       "scope": "Editor"
     },
     {
+      "name": "Editor.DocumentAnalysisReusesBoundedLineIndexStorage",
+      "scope": "Editor"
+    },
+    {
       "name": "Editor.DesignRefreshFindReplaceUndoAndCapacity",
       "scope": "Editor"
     },
@@ -166,7 +198,15 @@
       "scope": "Editor"
     },
     {
+      "name": "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+      "scope": "Editor"
+    },
+    {
       "name": "Editor.DesignRefreshFilesRerootFilterAndDirtyOpen",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
       "scope": "Editor"
     },
     {
@@ -211,6 +251,14 @@
     },
     {
       "name": "Editor.DesignRefreshDeferredSelectionToolsFocus",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.SplitViewTransitionCompletesAfterNestedEdit",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.NestedViewRequestSupersedesOuterSplit",
       "scope": "Editor"
     }
   ]

@@ -2,6 +2,7 @@
 #include "RedTilde/Application.h"
 #include "Support/Support.Tests.TextServices.h"
 #include "res/Resource.h"
+#include <UIAutomation.h>
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -9,9 +10,12 @@
 #include <format>
 #include <initializer_list>
 #include <mutex>
+#include <ranges>
 #include <stdexcept>
 #include <thread>
 #include <tuple>
+#include <wil/com.h>
+#include <wil/resource.h>
 #include <wincodec.h>
 #include <windowsx.h>
 
@@ -92,10 +96,65 @@ void CheckBrandIconResource(HINSTANCE module, unsigned requestedSize)
             }
         }
     }
-    const auto pixelsPerDimension = static_cast<std::size_t>(requestedSize);
-    Require(transparent > 0 && opaque > 0 && ink > pixelsPerDimension * pixelsPerDimension / 4 && opaque < pixelsPerDimension * pixelsPerDimension &&
-                right - left >= requestedSize * 3 / 5 && bottom - top >= requestedSize * 2 / 5,
-            "icon resource retains a wide tilde silhouette with transparent and opaque pixels at each size");
+    Require(transparent > 0 && opaque > 0, "every icon size retains transparent background and opaque ink");
+    if (requestedSize <= 32)
+    {
+        // Preserve the existing small-icon legibility oracle. Larger frames have
+        // less antialias coverage, so their ink area is not the same percentage.
+        const auto pixelsPerDimension = static_cast<std::size_t>(requestedSize);
+        Require(ink > pixelsPerDimension * pixelsPerDimension / 4 && opaque < pixelsPerDimension * pixelsPerDimension &&
+                    right - left >= requestedSize * 3 / 5 && bottom - top >= requestedSize * 2 / 5,
+                std::format("icon {} silhouette: transparent={}, opaque={}, ink={}, width={}, height={}", requestedSize, transparent, opaque, ink,
+                            right - left, bottom - top));
+    }
+
+    wil::com_ptr<IWICFormatConverter> premultiplied;
+    Success(factory->CreateFormatConverter(premultiplied.put()), "create an independent premultiplied icon reference");
+    Success(premultiplied->Initialize(bitmap.get(), GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom),
+            "prepare the independent WIC premultiplied reference for the native brand resource");
+    Success(premultiplied->CopyPixels(nullptr, requestedSize * 4, static_cast<UINT>(pixels.size()), pixels.data()),
+            "read the independent premultiplied icon reference");
+    const auto nativePixels = LoadBrandMarkPixels(icon.get());
+    Require(nativePixels.width == width && nativePixels.height == height && nativePixels.bgra == pixels,
+            "bounded native brand extraction matches every WIC reference byte, including partial and zero alpha");
+}
+std::vector<BYTE> ReadBrandMarkRaster(const std::filesystem::path &path, float dpi)
+{
+    wil::com_ptr<IWICImagingFactory> factory;
+    Success(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(factory.put())),
+            "create a WIC decoder for the hidden application capture");
+    wil::com_ptr<IWICBitmapDecoder> decoder;
+    Success(factory->CreateDecoderFromFilename(path.c_str(), nullptr, GENERIC_READ, WICDecodeMetadataCacheOnLoad, decoder.put()),
+            "open the hidden application capture");
+    wil::com_ptr<IWICBitmapFrameDecode> frame;
+    Success(decoder->GetFrame(0, frame.put()), "read the hidden application capture frame");
+    wil::com_ptr<IWICFormatConverter> converter;
+    Success(factory->CreateFormatConverter(converter.put()), "create the capture pixel view");
+    Success(converter->Initialize(frame.get(), GUID_WICPixelFormat32bppBGRA, WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom),
+            "convert the hidden capture to BGRA pixels");
+    UINT width{}, height{};
+    Success(converter->GetSize(&width, &height), "read the hidden capture dimensions");
+    std::vector<BYTE> pixels(static_cast<std::size_t>(width) * height * 4);
+    Success(converter->CopyPixels(nullptr, width * 4, static_cast<UINT>(pixels.size()), pixels.data()), "read hidden capture pixels");
+    const auto pixelScale = dpi / 96.f;
+    const auto left = static_cast<UINT>(12.f * pixelScale), top = static_cast<UINT>(10.f * pixelScale);
+    const auto right = std::min(width, static_cast<UINT>(48.f * pixelScale)), bottom = std::min(height, static_cast<UINT>(46.f * pixelScale));
+    Require(right > left && bottom > top, "brand-mark capture crop fits the hidden viewport");
+    const auto backgroundOffset = (static_cast<std::size_t>(2u) * width + 2u) * 4;
+    std::size_t visible{};
+    std::vector<BYTE> region;
+    region.reserve(static_cast<std::size_t>(right - left) * (bottom - top) * 4);
+    for (UINT y = top; y < bottom; ++y)
+        for (UINT x = left; x < right; ++x)
+        {
+            const auto offset = (static_cast<std::size_t>(y) * width + x) * 4;
+            region.insert(region.end(), pixels.begin() + static_cast<std::ptrdiff_t>(offset),
+                          pixels.begin() + static_cast<std::ptrdiff_t>(offset + 4));
+            visible += !std::equal(pixels.begin() + static_cast<std::ptrdiff_t>(offset), pixels.begin() + static_cast<std::ptrdiff_t>(offset + 3),
+                                   pixels.begin() + static_cast<std::ptrdiff_t>(backgroundOffset));
+        }
+    Require(visible > 16, "the brand-mark region contains rendered icon pixels");
+    return region;
 }
 void WriteFixture(const std::filesystem::path &path, std::string_view contents = "# Invented notes\n")
 {
@@ -186,10 +245,257 @@ class DesignRefreshProbe final
         const auto bounds = control->GetBounds();
         return Hit(app, {(bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2});
     }
+    static bool AccessibilityContainsName(Application &app, std::wstring_view expected)
+    {
+        wil::com_ptr_nothrow<IRawElementProviderFragmentRoot> root;
+        root.attach(DxUi::CreateWindowHostAccessibilityProvider(app.Host().GetHwnd()));
+        Require(root != nullptr, "the application exposes its current UI Automation root");
+        wil::com_ptr_nothrow<IRawElementProviderFragment> rootFragment;
+        Success(root.query_to(rootFragment.put()), "the UI Automation root supports fragment navigation");
+        std::size_t visited{};
+        const auto visit = [&](auto &&self, IRawElementProviderFragment *current, std::size_t depth) -> bool
+        {
+            if (!current || depth > 64u || visited >= 4096u)
+                return false;
+            ++visited;
+            wil::com_ptr_nothrow<IRawElementProviderSimple> simple;
+            Success(current->QueryInterface(IID_PPV_ARGS(simple.put())), "query a UI Automation fragment's simple provider");
+            wil::unique_variant value;
+            Success(simple->GetPropertyValue(UIA_NamePropertyId, &value), "read a UI Automation fragment's accessible Name");
+            if (value.vt == VT_BSTR && std::wstring_view(value.bstrVal ? value.bstrVal : L"") == expected)
+                return true;
+
+            wil::com_ptr_nothrow<IRawElementProviderFragment> child;
+            Success(current->Navigate(NavigateDirection_FirstChild, child.put()), "navigate to the first UI Automation child");
+            while (child && visited < 4096u)
+            {
+                if (self(self, child.get(), depth + 1u))
+                    return true;
+                wil::com_ptr_nothrow<IRawElementProviderFragment> sibling;
+                Success(child->Navigate(NavigateDirection_NextSibling, sibling.put()), "navigate to the next UI Automation sibling");
+                child = std::move(sibling);
+            }
+            return false;
+        };
+        return visit(visit, rootFragment.get(), 0u);
+    }
 
   public:
     static void Register(const std::filesystem::path &root, const std::function<void(std::string_view, const std::function<void()> &)> &test)
     {
+        test("Editor.SplitMirrorFallbackRecoversAfterHiddenEdits",
+             [&]
+             {
+                 Application app(Options(root, L"mirror-fallback"));
+                 Success(app.Initialize(), "initialize hidden mirror fallback fixture");
+                 const std::wstring source = L"# Mirror\r\n\r\nBody 世界 😀\r\n";
+                 app.SetDocument(source);
+                 app.SetView(EditorView::Split);
+                 app.Prepare(256);
+                 app.mirror->SetViewMode(DxUi::RichText::ViewMode::Rich);
+                 app.editor->SetSelection({source.size(), source.size()});
+                 Require(app.editor->ReplaceSelection(L"fallback"), "edit with incompatible mirror profile");
+                 const auto fallback = app.editor->Snapshot();
+                 Require(app.mirror->GetText() == app.editor->GetText() && !app.mirror->Snapshot().IsSameRevision(fallback) &&
+                             app.mirror->GetSelection() == app.editor->GetSelection() && app.editor->CanUndo(),
+                         "ordinary exact-text fallback preserves the primary source, ACPs and history");
+                 app.Prepare(256);
+                 const auto primaryFallbackSyntax = app.editor->GetMarkdownSyntax();
+                 const auto richMirrorSyntax = app.mirror->GetMarkdownSyntax();
+                 Require(primaryFallbackSyntax && richMirrorSyntax && app.mirror->GetViewMode() == DxUi::RichText::ViewMode::Rich &&
+                             primaryFallbackSyntax->Profile() == richMirrorSyntax->Profile() &&
+                             &primaryFallbackSyntax->Nodes() != &richMirrorSyntax->Nodes(),
+                         "a non-Source mirror view keeps its independent parser fallback");
+                 app.SetView(EditorView::Compose);
+                 app.mirror->SetViewMode(DxUi::RichText::ViewMode::Source);
+                 const auto hidden = app.mirror->Snapshot();
+                 const auto resets = app.Activity().mirrorResets;
+                 Require(app.editor->ReplaceSelection(L" hidden"), "edit the authoritative hidden source");
+                 Require(app.mirror->Snapshot().IsSameRevision(hidden) && app.Activity().mirrorResets == resets,
+                         "hidden Compose defers mirror work after a fallback");
+                 app.SetView(EditorView::Split);
+                 Require(app.mirror->Snapshot().IsSameRevision(app.editor->Snapshot()) && app.mirror->GetSelection() == app.editor->GetSelection() &&
+                             app.Activity().mirrorResets == resets + 1u,
+                         "visible Split recovers snapshot sharing after hidden edits");
+                 app.Prepare(256);
+                 const auto primaryRecoveredSyntax = app.editor->GetMarkdownSyntax();
+                 const auto mirrorRecoveredSyntax = app.mirror->GetMarkdownSyntax();
+                 Require(primaryRecoveredSyntax && mirrorRecoveredSyntax && primaryRecoveredSyntax->Revision() == app.editor->Revision() &&
+                             mirrorRecoveredSyntax->Revision() == app.mirror->Revision() &&
+                             primaryRecoveredSyntax->DocumentIdentity() != mirrorRecoveredSyntax->DocumentIdentity() &&
+                             &primaryRecoveredSyntax->Nodes() == &mirrorRecoveredSyntax->Nodes(),
+                         "the visible mirror adopts the latest canonical parse after hidden revisions");
+                 Require(app.editor->Undo() && app.editor->Undo() && app.editor->GetText() == source && !app.Dirty() &&
+                             app.mirror->Snapshot().IsSameRevision(app.editor->Snapshot()),
+                         "both edits undo to the exact saved CRLF source without mirror history");
+             });
+        test("Editor.SplitMirrorNestedEditKeepsNewestPublication",
+             [&]
+             {
+                 Application app(Options(root, L"mirror-nested"));
+                 Success(app.Initialize(), "initialize nested mirror fixture");
+                 const std::wstring source = L"# Mirror\n\nBody\n";
+                 app.SetDocument(source);
+                 app.SetView(EditorView::Split);
+                 app.Prepare(256);
+                 app.editor->SetSelection({source.size(), source.size()});
+                 bool entered = false, edited = false;
+                 app.mirror->SetOnSelectionChanged(
+                     [&]
+                     {
+                         if (entered)
+                             return;
+                         entered = true;
+                         const auto end = app.editor->Snapshot().Length();
+                         app.editor->SetSelection({end, end});
+                         edited = app.editor->ReplaceSelection(L" nested");
+                     });
+                 Require(app.editor->ReplaceSelection(L"outer"), "commit outer mirror-triggering edit");
+                 Require(entered && edited && app.editor->GetText() == source + L"outer nested" &&
+                             app.mirror->Snapshot().IsSameRevision(app.editor->Snapshot()) &&
+                             app.mirror->GetSelection() == app.editor->GetSelection() && app.mirroredSource &&
+                             app.mirroredSource->IsSameRevision(app.editor->Snapshot()) && app.selectionFactsSource &&
+                             app.selectionFactsSource->IsSameRevision(app.editor->Snapshot()) &&
+                             app.selectionFactsSelection == app.editor->GetSelection(),
+                         "nested primary edit supersedes every outer source/selection cache publication");
+                 const auto before = app.Activity().selectionPresentationUpdates;
+                 app.SelectionChanged();
+                 Require(app.Activity().selectionPresentationUpdates == before, "the outer continuation never overwrites the newest selection facts");
+                 app.mirror->SetOnSelectionChanged({});
+                 Require(app.editor->Undo() && app.editor->GetText() == source + L"outer" && app.editor->Undo() && app.editor->GetText() == source &&
+                             !app.Dirty(),
+                         "nested and outer edits keep separate authoritative undo records");
+             });
+        test("Editor.SplitMirrorCallbackCanRetireRoot",
+             [&]
+             {
+                 Application app(Options(root, L"mirror-retirement"));
+                 Success(app.Initialize(), "initialize mirror root-retirement fixture");
+                 app.SetDocument(L"# Mirror\n\nBody\n");
+                 app.Prepare(256);
+                 auto *const owner = app.root;
+                 const auto lifetime = GetControlLifetimeToken(*owner);
+                 const auto resets = app.Activity().mirrorResets;
+                 bool retired = false;
+                 app.mirror->SetOnSelectionChanged(
+                     [&]
+                     {
+                         retired = true;
+                         app.Host().SetRoot(std::make_unique<Surface>());
+                     });
+                 app.SetView(EditorView::Split);
+                 Require(retired && lifetime.expired() && !app.closing && app.Host().GetRoot() != owner && app.Activity().mirrorResets == resets,
+                         "owner retirement without Close aborts mirror cache publication and all caller continuation");
+             });
+        test("Editor.SplitViewTransitionCompletesAfterNestedEdit",
+             [&]
+             {
+                 const auto run = [&](std::wstring_view name, EditorView startingView)
+                 {
+                     auto options = Options(root, name);
+                     options.preferencesProbe = true;
+                     const auto dataDirectory = options.dataDirectory;
+                     Application app(std::move(options));
+                     Success(app.Initialize(), "initialize nested view-transition fixture");
+                     const std::wstring source = L"# View transition\r\n\r\nBody 世界 😀\r\n";
+                     app.SetDocument(source);
+                     if (startingView == EditorView::Source)
+                         app.SetView(EditorView::Source);
+                     app.Prepare(256);
+
+                     app.Document().SetSelection({source.size(), source.size()});
+                     Require(app.Document().ReplaceSelection(L" already dirty"), "make the source dirty before changing to Split");
+                     const auto beforeNestedEdit = source + L" already dirty";
+                     bool entered{}, nestedEdit{};
+                     app.mirror->SetOnSelectionChanged(
+                         [&]
+                         {
+                             if (entered)
+                                 return;
+                             entered = true;
+                             const auto end = app.Document().Snapshot().Length();
+                             app.Document().SetSelection({end, end});
+                             nestedEdit = app.Document().ReplaceSelection(L" nested");
+                         });
+
+                     app.SetView(EditorView::Split);
+                     app.mirror->SetOnSelectionChanged({});
+                     const auto expected = beforeNestedEdit + L" nested";
+                     Require(entered && nestedEdit && app.Document().GetText() == expected &&
+                                 app.Document().GetSelection() == DxUi::RichText::Selection{expected.size(), expected.size()} &&
+                                 app.Document().CanUndo() && app.Dirty(),
+                             "the nested edit remains authoritative and retains its undo history");
+                     Require(app.Preferences().view == EditorView::Split && app.Document().GetViewMode() == DxUi::RichText::ViewMode::Rich &&
+                                 app.modeHint->GetText() == Resource(IDS_SPLITHINT) && app.mirror->IsVisible() &&
+                                 app.Host().GetFocusControl() == &app.Document(),
+                             "the outer Split request completes hint, visibility and logical focus after source supersession");
+                     Require(app.mirror->GetText() == expected && app.mirror->Snapshot().IsSameRevision(app.Document().Snapshot()) &&
+                                 app.mirror->GetSelection() == app.Document().GetSelection(),
+                             "the visible mirror publishes the latest nested source and selection");
+                     CheckChrome(app);
+
+                     Settings persisted;
+                     bool splitPersisted{};
+                     for (unsigned attempt = 0; attempt < 400 && !splitPersisted; ++attempt)
+                     {
+                         if (SUCCEEDED(LoadSettings(dataDirectory, persisted)) && persisted.view == EditorView::Split)
+                             splitPersisted = true;
+                         else
+                             std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                     }
+                     Require(splitPersisted, "the completed Split transition reaches persisted preferences");
+                     Require(app.Document().Undo() && app.Document().GetText() == beforeNestedEdit && app.Document().Undo() &&
+                                 app.Document().GetText() == source && !app.Dirty(),
+                             "nested and pre-transition edits remain separately undoable to the original CRLF source");
+                 };
+
+                 run(L"compose-to-split-nested-edit", EditorView::Compose);
+                 run(L"source-to-split-nested-edit", EditorView::Source);
+             });
+        test("Editor.NestedViewRequestSupersedesOuterSplit",
+             [&]
+             {
+                 auto options = Options(root, L"nested-source-view-wins");
+                 options.preferencesProbe = true;
+                 const auto dataDirectory = options.dataDirectory;
+                 Application app(std::move(options));
+                 Success(app.Initialize(), "initialize nested view-request fixture");
+                 const std::wstring source = L"# Nested view\n\nKeep this source unchanged.\n";
+                 app.SetDocument(source);
+                 app.Prepare(256);
+
+                 bool entered{}, nestedViewCompleted{};
+                 app.mirror->SetOnSelectionChanged(
+                     [&]
+                     {
+                         if (entered)
+                             return;
+                         entered = true;
+                         app.SetView(EditorView::Source);
+                         nestedViewCompleted = app.Preferences().view == EditorView::Source &&
+                                               app.Document().GetViewMode() == DxUi::RichText::ViewMode::Source && !app.mirror->IsVisible();
+                     });
+                 app.SetView(EditorView::Split);
+                 app.mirror->SetOnSelectionChanged({});
+
+                 Require(entered && nestedViewCompleted && app.Document().GetText() == source && !app.Dirty() &&
+                             app.Preferences().view == EditorView::Source && app.Document().GetViewMode() == DxUi::RichText::ViewMode::Source &&
+                             app.modeHint->GetText() == Resource(IDS_SOURCEHINT) && !app.mirror->IsVisible() &&
+                             app.Host().GetFocusControl() == &app.Document(),
+                         "a nested Source request remains the final view after the outer Split callback resumes");
+                 CheckChrome(app);
+
+                 Settings persisted;
+                 bool sourcePersisted{};
+                 for (unsigned attempt = 0; attempt < 400 && !sourcePersisted; ++attempt)
+                 {
+                     if (SUCCEEDED(LoadSettings(dataDirectory, persisted)) && persisted.view == EditorView::Source)
+                         sourcePersisted = true;
+                     else
+                         std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                 }
+                 Require(sourcePersisted, "the latest nested Source request reaches persisted preferences");
+             });
         test("Window.Image2QuietChromeAndCompactInspector",
              [&]
              {
@@ -233,6 +539,172 @@ class DesignRefreshProbe final
                              "visual layout and DPI changes preserve the authoritative document and selection");
                  }
                  Require(GetForegroundWindow() == foreground && !IsWindowVisible(app.Window()), "image-2 verification preserves the desktop");
+             });
+        test("Editor.HiddenCurrentBlockPublishesLatestOnReveal",
+             [&]
+             {
+                 const auto foreground = GetForegroundWindow();
+                 Application app(Options(root, L"hidden-current-block", L"narrow"));
+                 Success(app.Initialize(), "create the hidden current-block publication app");
+                 Resize(app, 820, 560, 96, false);
+                 const auto hiddenPriorText = std::wstring(app.currentBlock->GetText());
+                 const auto initiallyHiddenConstructions = app.Activity().currentBlockLabelConstructions;
+                 const std::wstring source = L"First paragraph.\n\n- List alpha\n- List beta\n\nSecond paragraph is longer.\n";
+                 app.SetDocument(source);
+                 app.Prepare(256);
+                 const auto first = source.find(L"First paragraph.");
+                 const auto list = source.find(L"List alpha");
+                 const auto second = source.find(L"Second paragraph");
+                 Require(first != std::wstring::npos && list != std::wstring::npos && second != std::wstring::npos,
+                         "the synthetic source contains distinct paragraph and list contexts");
+                 const auto setCaret = [&](std::size_t caret)
+                 {
+                     app.Document().SetSelection({caret, caret});
+                     app.SelectionChanged(false);
+                 };
+                 const auto expectedParagraph = [&]
+                 {
+                     const auto position = DocumentPositionAt(app.documentInfo, app.Document().GetSelection().caret);
+                     const auto format = Resource(IDS_BLOCKINFO);
+                     const auto kind = Resource(IDS_BLOCKPARAGRAPH);
+                     return std::vformat(format, std::make_wformat_args(kind, position.lineCharacters));
+                 };
+                 const auto title = std::wstring(app.currentBlockTitle->GetText());
+                 setCaret(first + 3);
+                 const auto firstFacts = expectedParagraph();
+                 Require(!app.sidebar->IsVisible() && app.currentBlock->IsVisible() && app.currentBlock->GetText() == hiddenPriorText &&
+                             app.Activity().currentBlockLabelConstructions == initiallyHiddenConstructions &&
+                             !AccessibilityContainsName(app, firstFacts),
+                         "the 820-DIP initial layout retains paragraph facts without exposing a hidden label to UI Automation");
+
+                 Resize(app, 1440, 900, 96, false);
+                 Require(app.sidebar->IsVisible() && app.Activity().currentBlockLabelConstructions == initiallyHiddenConstructions + 1 &&
+                             app.currentBlock->GetText() == firstFacts && AccessibilityContainsName(app, firstFacts),
+                         "the first sidebar reveal publishes the latest localized paragraph before the first render/provider read");
+
+                 const auto entrySource = app.Document().Snapshot();
+                 const auto entrySelection = app.Document().GetSelection();
+                 app.settings.focusMode = true;
+                 app.Layout();
+                 Require(!app.sidebar->IsVisible(), "Focus mode hides the sidebar before repeated source edits");
+                 const auto hiddenConstructions = app.Activity().currentBlockLabelConstructions;
+                 const auto entryUndo = app.Document().CanUndo();
+                 for (unsigned cycle = 0; cycle < 64; ++cycle)
+                 {
+                     Require(app.Document().ReplaceSelection(L"x"), "admit a hidden paragraph character");
+                     Require(app.Document().Undo(), "undo the hidden paragraph character immediately");
+                     Require(app.Document().Snapshot().IsSameRevision(entrySource) && app.Document().GetSelection() == entrySelection &&
+                                 app.Document().CanUndo() == entryUndo && app.Document().CanRedo(),
+                             "hidden edit/undo cycles restore the exact source, caret and undo admission");
+                     Require(app.Activity().currentBlockLabelConstructions == hiddenConstructions,
+                             "hidden edit/undo cycles do not format or publish current-block text");
+                 }
+
+                 app.Prepare(256);
+                 Require(app.Document().Snapshot().IsSameRevision(entrySource) &&
+                             app.Activity().currentBlockLabelConstructions == hiddenConstructions,
+                         "settling the restored syntax while hidden preserves source and still defers label publication");
+                 setCaret(list + 5);
+                 const auto listKind = Resource(IDS_BLOCKBULLETLIST);
+                 const std::size_t listItems = 2;
+                 const auto listText = std::vformat(Resource(IDS_BLOCKITEMINFO), std::make_wformat_args(listKind, listItems));
+                 Require(
+                     !app.currentBlock->IsVisible() && app.listSummary->IsVisible() && app.listSummary->GetText() == listText &&
+                         app.Activity().currentBlockLabelConstructions == hiddenConstructions,
+                     "hidden list context still updates its immediate local visibility and item summary without constructing the hidden block label");
+                 setCaret(second + 3);
+                 const auto latestFacts = expectedParagraph();
+                 Require(latestFacts != firstFacts && app.currentBlock->IsVisible() && !app.sidebar->IsVisible() &&
+                             app.currentBlock->GetText() == firstFacts && !AccessibilityContainsName(app, latestFacts) &&
+                             app.Activity().currentBlockLabelConstructions == hiddenConstructions,
+                         "a later paragraph replaces hidden pending list facts without publishing early");
+                 app.settings.focusMode = false;
+                 app.Layout();
+                 Require(app.sidebar->IsVisible() && app.Activity().currentBlockLabelConstructions == hiddenConstructions + 1 &&
+                             app.currentBlock->GetText() == latestFacts && AccessibilityContainsName(app, latestFacts),
+                         "revealing Focus publishes the newest paragraph rather than stale list or prior paragraph facts");
+                 Require(app.currentBlockTitle->GetText() == title, "deferred label publication preserves the static current-block title resource");
+
+                 const auto visibleListConstructions = app.Activity().currentBlockLabelConstructions;
+                 setCaret(list + 5);
+                 Require(!app.currentBlock->IsVisible() && app.listSummary->IsVisible() && app.listSummary->GetText() == listText &&
+                             app.Activity().currentBlockLabelConstructions == visibleListConstructions,
+                         "visible sidebar list selection keeps the list summary immediate and does not publish a locally hidden block label");
+                 const auto beforeVisibleParagraph = app.Activity().currentBlockLabelConstructions;
+                 setCaret(first + 3);
+                 auto visibleFacts = expectedParagraph();
+                 Require(app.currentBlock->IsVisible() && app.currentBlock->GetText() == visibleFacts &&
+                             app.Activity().currentBlockLabelConstructions == beforeVisibleParagraph + 1,
+                         "returning from list context publishes the current paragraph immediately");
+
+                 const auto editSource = app.Document().Snapshot();
+                 const auto editSelection = app.Document().GetSelection();
+                 Require(app.Document().ReplaceSelection(L"z"), "edit a visible current-block paragraph");
+                 visibleFacts = expectedParagraph();
+                 Require(app.currentBlock->GetText() == visibleFacts, "a visible paragraph edit updates its label synchronously");
+                 Require(app.Document().Undo(), "undo the visible paragraph edit");
+                 visibleFacts = expectedParagraph();
+                 Require(app.currentBlock->GetText() == visibleFacts && app.Document().Snapshot().IsSameRevision(editSource) &&
+                             app.Document().GetSelection() == editSelection && app.Document().CanRedo(),
+                         "visible undo immediately restores the exact label, source, caret and redo admission");
+                 Require(app.Document().Redo(), "redo the visible paragraph edit");
+                 visibleFacts = expectedParagraph();
+                 Require(app.currentBlock->GetText() == visibleFacts, "visible redo immediately republishes its paragraph facts");
+                 Require(app.Document().Undo(), "restore the source after the visible redo oracle");
+                 visibleFacts = expectedParagraph();
+                 Require(app.currentBlock->GetText() == visibleFacts && app.Document().Snapshot().IsSameRevision(editSource) &&
+                             app.Document().GetSelection() == editSelection,
+                         "the complete visible edit/undo/redo sequence restores the original revision and caret");
+
+                 bool selectFirst{};
+                 const auto exerciseHiddenReveal = [&](const std::function<void()> &hide, const std::function<void()> &reveal, std::string_view cause)
+                 {
+                     hide();
+                     Require(!app.sidebar->IsVisible(), cause);
+                     const auto before = app.Activity().currentBlockLabelConstructions;
+                     setCaret((selectFirst ? first : second) + 3);
+                     selectFirst = !selectFirst;
+                     Require(app.Activity().currentBlockLabelConstructions == before && app.currentBlock->IsVisible(),
+                             "each hidden visibility cause defers a changed paragraph's label construction");
+                     const auto pending = expectedParagraph();
+                     reveal();
+                     Require(app.sidebar->IsVisible() && app.Activity().currentBlockLabelConstructions == before + 1 &&
+                                 app.currentBlock->GetText() == pending && AccessibilityContainsName(app, pending),
+                             "each sidebar reveal publishes current text to the label and UI Automation");
+                 };
+                 exerciseHiddenReveal(
+                     [&]
+                     {
+                         app.settings.showOutline = false;
+                         app.Layout();
+                     },
+                     [&]
+                     {
+                         app.settings.showOutline = true;
+                         app.Layout();
+                     },
+                     "outline-off hides the sidebar");
+                 exerciseHiddenReveal([&] { app.SetView(EditorView::Split); }, [&] { app.SetView(EditorView::Compose); },
+                                      "Split view hides the sidebar");
+                 exerciseHiddenReveal([&] { Resize(app, 800, 560, 96, false); }, [&] { Resize(app, 1440, 900, 96, false); },
+                                      "the narrow viewport hides the sidebar");
+                 exerciseHiddenReveal(
+                     [&]
+                     {
+                         app.settings.showFiles = true;
+                         Resize(app, 1024, 900, 96, false);
+                         Require(app.filesPane->IsVisible() && app.filesPane->borderRight && !app.filesSplitter->IsVisible(),
+                                 "the file-overlay fixture is active rather than a normal left Files pane");
+                     },
+                     [&]
+                     {
+                         app.settings.showFiles = false;
+                         Resize(app, 1440, 900, 96, false);
+                     },
+                     "the narrow Files overlay hides the sidebar");
+                 Require(app.Document().Snapshot().IsSameRevision(entrySource) && app.currentBlockTitle->GetText() == title &&
+                             GetForegroundWindow() == foreground && !IsWindowVisible(app.Window()),
+                         "all reveal paths preserve the document and static title without activating the hidden app");
              });
         test("Window.DesignRefreshMergedFrameHitTests",
              [&]
@@ -694,6 +1166,7 @@ class DesignRefreshProbe final
                              previewApp.Document().GetText() == firstPreview.text && previewApp.Document().GetSelection() == committedSelection &&
                              previewApp.documentInfo.headings.size() == 1 && previewApp.documentInfo.headings.front().text == L"Child" &&
                              previewApp.documentInfo.headings.front().offset == firstPreview.text.find(L"## Child") &&
+                             previewApp.documentInfo.lineIndex == AnalyzeDocument(firstPreview.text).lineIndex &&
                              previewApp.outlineModel.rows.size() == 1 && previewApp.outlineModel.rows.front().text == L"Child" &&
                              previewApp.outlineModel.rows.front().badgeText == L"1" &&
                              previewApp.Activity().documentAnalysisUpdates == analysisBaseline + 1,
@@ -704,6 +1177,7 @@ class DesignRefreshProbe final
                  const auto secondPreviewAnalysis = previewApp.Activity().documentAnalysisUpdates;
                  Require((previewApp.Document().*Testing::TextServiceImportProbe::Import)(previewApp.Host(), shiftedPreview, false) &&
                              previewApp.documentInfo.headings.size() == 1 && previewApp.documentInfo.headings.front().offset == childHeading + 1 &&
+                             previewApp.documentInfo.lineIndex == AnalyzeDocument(shiftedPreview.text).lineIndex &&
                              previewApp.outlineModel.rows.size() == 1 && previewApp.outlineModel.rows.front().text == L"Child" &&
                              previewApp.outlineModel.rows.front().badgeText == L"1" &&
                              previewApp.Activity().documentAnalysisUpdates == secondPreviewAnalysis + 1,
@@ -714,7 +1188,8 @@ class DesignRefreshProbe final
                          previewApp.Document().GetText() == committedSnapshot.Text() && previewApp.Document().GetSelection() == committedSelection &&
                          previewApp.documentInfo.headings.size() == 2 && previewApp.documentInfo.headings[0].text == L"Root" &&
                          previewApp.documentInfo.headings[0].offset == 0 && previewApp.documentInfo.headings[1].text == L"Child" &&
-                         previewApp.documentInfo.headings[1].offset == previewSource.find(L"## Child") && previewApp.outlineModel.rows.size() == 1 &&
+                         previewApp.documentInfo.headings[1].offset == previewSource.find(L"## Child") &&
+                         previewApp.documentInfo.lineIndex == AnalyzeDocument(previewSource).lineIndex && previewApp.outlineModel.rows.size() == 1 &&
                          previewApp.outlineModel.rows.front().text == L"Root" && !previewApp.outlineModel.rows.front().expanded &&
                          previewApp.outlineModel.rows.front().badgeText == L"2" && previewApp.findMatches.size() == 2 && previewApp.findSource &&
                          previewApp.findSource->IsSameRevision(previewApp.Document().Snapshot()) &&
@@ -743,15 +1218,72 @@ class DesignRefreshProbe final
                              previewApp.Document().GetSelection() == committedSelection && previewApp.Document().Undo() &&
                              previewApp.Document().GetText() == previewSource && !previewApp.Document().CanUndo() &&
                              previewApp.documentInfo.headings[0].text == L"Root" && previewApp.Document().Redo() &&
-                             previewApp.Document().GetText() == committedHeadingPreview.text && previewApp.documentInfo.headings[0].text == L"Tree",
+                             previewApp.Document().GetText() == committedHeadingPreview.text && previewApp.documentInfo.headings[0].text == L"Tree" &&
+                             previewApp.documentInfo.lineIndex == AnalyzeDocument(committedHeadingPreview.text).lineIndex,
                          "preview result commit clears changed collapse identity and remains exactly one source undo/redo transaction");
                  previewApp.SetDocument(std::wstring(2048, L'\n'));
                  const auto manyLineCapacity = previewApp.documentInfo.lineIndex.capacity();
                  previewApp.SetDocument(L"Z\r\n");
                  Require(previewApp.documentInfo.lineIndex == std::vector<DocumentLine>{{0, 1}, {3, 0}} &&
-                             previewApp.documentInfo.lineIndex.capacity() <= 4 && previewApp.documentInfo.lineIndex.capacity() < manyLineCapacity &&
-                             previewApp.Document().GetText() == L"Z\r\n" && !previewApp.Document().CanUndo() && !previewApp.Document().CanRedo(),
+                             previewApp.documentInfo.lineIndex.capacity() <= 64 && previewApp.documentInfo.lineIndex.capacity() < manyLineCapacity &&
+                             previewApp.documentLineIndexStorage.Stats().spareCapacity <= 64 && previewApp.Document().GetText() == L"Z\r\n" &&
+                             !previewApp.Document().CanUndo() && !previewApp.Document().CanRedo(),
                          "small document replacement releases the predecessor's large line index and retains exact clean history");
+             });
+        test("Editor.DocumentAnalysisReusesBoundedLineIndexStorage",
+             [&]
+             {
+                 Application app(Options(root, L"design-line-index-reuse"));
+                 Success(app.Initialize(), "create hidden line-index storage app");
+                 const std::wstring source = L"α cat 😀 cat\r\ncat";
+                 app.SetDocument(source);
+                 app.Prepare(128);
+                 const auto warmAt = source.find(L"cat");
+                 app.Document().SetSelection({warmAt, warmAt + 3});
+                 Require(app.Document().ReplaceSelection(L"dog") && app.Document().Undo() && app.Document().GetText() == source,
+                         "one fixture edit/undo warms the application storage path");
+                 app.SetDocument(source);
+                 app.Prepare(128);
+                 Require(!app.Document().CanUndo() && !app.Document().CanRedo(), "the storage fixture starts with clean source history");
+                 const auto initialSnapshot = app.Document().Snapshot();
+                 const auto initialStats = app.documentLineIndexStorage.Stats();
+                 const auto initialAnalysisUpdates = app.Activity().documentAnalysisUpdates;
+                 const auto matchesAnalysisFacts = [&](std::wstring_view text)
+                 {
+                     const auto expected = AnalyzeDocument(text);
+                     return app.documentInfo.words == expected.words && app.documentInfo.characters == expected.characters &&
+                            app.documentInfo.lines == expected.lines && app.documentInfo.newlineKind == expected.newlineKind &&
+                            app.documentInfo.lineIndex == expected.lineIndex && app.documentInfo.headings.size() == expected.headings.size();
+                 };
+                 app.Document().SetSelection({0, 0});
+                 app.SelectionChanged();
+                 Require(app.Document().Snapshot().IsSameRevision(initialSnapshot) && app.documentAnalysisSource &&
+                             app.documentAnalysisSource->IsSameRevision(initialSnapshot) && matchesAnalysisFacts(source) &&
+                             app.Activity().documentAnalysisUpdates == initialAnalysisUpdates && !app.Document().CanUndo() &&
+                             !app.Document().CanRedo(),
+                         "caret-only refresh preserves the published source facts and clean history");
+                 for (unsigned cycle = 0; cycle < 4; ++cycle)
+                 {
+                     const auto editAt = source.find(L"cat");
+                     app.Document().SetSelection({editAt, editAt + 3});
+                     auto editedSource = source;
+                     editedSource.replace(editAt, 3, L"dog");
+                     Require(app.Document().ReplaceSelection(L"dog") && app.Document().GetText() == editedSource &&
+                                 matchesAnalysisFacts(editedSource) && app.documentAnalysisSource &&
+                                 app.documentAnalysisSource->IsSameRevision(app.Document().Snapshot()),
+                             "each same-line-count edit publishes exact facts for its source revision");
+                     Require(app.Document().Undo() && app.Document().GetText() == source && matchesAnalysisFacts(source) &&
+                                 app.documentAnalysisSource && app.documentAnalysisSource->IsSameRevision(app.Document().Snapshot()) &&
+                                 !app.Document().CanUndo() && app.Document().CanRedo(),
+                             "undo restores exact published line facts and source text");
+                 }
+                 const auto reusedStats = app.documentLineIndexStorage.Stats();
+                 Require(reusedStats.reuseCount >= initialStats.reuseCount + 8 &&
+                             reusedStats.capacityGrowthCount == initialStats.capacityGrowthCount &&
+                             reusedStats.capacityNormalizationCount == initialStats.capacityNormalizationCount &&
+                             app.Activity().documentAnalysisUpdates == initialAnalysisUpdates + 8 && app.Document().GetText() == source &&
+                             matchesAnalysisFacts(source) && !app.Document().CanUndo() && app.Document().CanRedo(),
+                         "application edit/undo transactions reuse warmed bounded storage without changing exact source facts");
              });
         test("Editor.DesignRefreshFindReplaceUndoAndCapacity",
              [&]
@@ -800,6 +1332,28 @@ class DesignRefreshProbe final
                  Require(app.findMatches.size() == 5000 && app.findSource && app.findSource->IsSameRevision(app.Document().Snapshot()) &&
                              app.Host().RenderInitialFrameForShow() && app.Document().GetSelection().Start() == 4999,
                          "a current match beyond the bounded highlight prefix stays selected and renderable with cached exact source ranges");
+             });
+        test("Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+             [&]
+             {
+                 Application app(Options(root, L"design-brand-mark"));
+                 Success(app.Initialize(), "create hidden brand-mark raster app");
+                 app.SetDocument(L"Prepared content remains independent of the retained brand resource.\n");
+                 app.Prepare(512);
+                 const auto beforePath = root / L"brand-mark-before-device-loss.png";
+                 Require(app.Capture(beforePath), "capture the prepared brand mark before device replacement");
+                 const auto before = ReadBrandMarkRaster(beforePath, app.Host().GetDpi());
+                 app.Host().DebugSimulateDeviceLoss();
+                 app.Prepare(512);
+                 const auto afterPath = root / L"brand-mark-after-device-loss.png";
+                 Require(app.Capture(afterPath), "capture the re-prepared brand mark after device replacement");
+                 const auto after = ReadBrandMarkRaster(afterPath, app.Host().GetDpi());
+                 Require(before == after, "device recreation preserves the exact hidden brand-mark raster");
+                 app.Prepare(512);
+                 const auto repeatedPath = root / L"brand-mark-repeated-render.png";
+                 Require(app.Capture(repeatedPath), "capture the warm brand mark after a repeated render");
+                 const auto repeated = ReadBrandMarkRaster(repeatedPath, app.Host().GetDpi());
+                 Require(after == repeated, "warm repeated rendering preserves the exact prepared brand-mark raster");
              });
         test("Editor.DesignRefreshEquationContextAndDraftGuards",
              [&]
@@ -865,6 +1419,57 @@ class DesignRefreshProbe final
                  app.Execute(Command::ApplyBlock);
                  Require(app.Document().GetText() == L"First words." && app.Document().Undo() && app.Document().GetText().empty(),
                          "the empty-source draft creates one undoable authoritative transaction");
+
+                 const std::wstring linkedEquation = L"[Parent](https://example.test \"Parent title\") and $a_i^2$.\n";
+                 app.SetDocument(linkedEquation);
+                 app.Prepare(512);
+                 const auto equationAt = linkedEquation.find(L"a_i^2");
+                 app.Document().SetSelection({equationAt, equationAt});
+                 const auto linkedSource = app.Document().Snapshot();
+                 const auto linkedSelection = app.Document().GetSelection();
+                 const bool linkedUndo = app.Document().CanUndo(), linkedRedo = app.Document().CanRedo();
+                 app.Execute(Command::Source);
+                 app.Prepare(512);
+                 Require(app.Preferences().view == EditorView::Source && app.Document().GetViewMode() == DxUi::RichText::ViewMode::Source &&
+                             app.Document().Snapshot().IsSameRevision(linkedSource) && app.Document().GetSelection() == linkedSelection,
+                         "Source view keeps the exact linked equation revision and selection");
+                 app.Execute(Command::Split);
+                 app.Prepare(512);
+                 Require(app.Preferences().view == EditorView::Split && app.SourceMirror().GetText() == linkedEquation &&
+                             app.Document().Snapshot().IsSameRevision(linkedSource) && app.Document().GetSelection() == linkedSelection,
+                         "Split mirrors linked math without creating another editable source");
+                 app.Execute(Command::Compose);
+                 app.Prepare(512);
+                 auto linkedSemantic = app.Document().GetAcknowledgedSemanticDocument(app.Host());
+                 Require(static_cast<bool>(linkedSemantic), "linked Compose semantic publication exists");
+                 const auto preservedLink = std::ranges::find_if(linkedSemantic->Elements(), [](const auto &element)
+                                                                 { return element.role == DxUi::RichText::SemanticRole::Link; });
+                 Require(app.Preferences().view == EditorView::Compose && app.Document().GetViewMode() == DxUi::RichText::ViewMode::Rich &&
+                             app.Document().Snapshot().IsSameRevision(linkedSource) && app.Document().GetSelection() == linkedSelection &&
+                             app.Document().CanUndo() == linkedUndo && app.Document().CanRedo() == linkedRedo &&
+                             preservedLink != linkedSemantic->Elements().end() && preservedLink->title == L"Parent title",
+                         "Compose restores native math while preserving parent link title and both history directions");
+                 app.Execute(Command::LocalSource);
+                 Require(app.HasBlockDraft() && app.BlockDraft()->GetText() == L"$a_i^2$", "F2 opens the exact linked equation envelope");
+                 app.BlockDraft()->SetTextAndNotify(L"$a_i^3$");
+                 app.Execute(Command::CloseDrawer);
+                 Require(!app.HasBlockDraft() && app.Document().GetText() == linkedEquation && !app.Dirty() &&
+                             app.Document().CanUndo() == linkedUndo && app.Document().CanRedo() == linkedRedo,
+                         "canceling linked equation source leaves its text and history untouched");
+                 app.Execute(Command::LocalSource);
+                 app.BlockDraft()->SetTextAndNotify(L"$a_i^3$");
+                 app.Execute(Command::ApplyBlock);
+                 const std::wstring editedLinkedEquation = L"[Parent](https://example.test \"Parent title\") and $a_i^3$.\n";
+                 Require(app.Document().GetText() == editedLinkedEquation && app.Document().Undo() && app.Document().GetText() == linkedEquation &&
+                             app.Document().Redo() && app.Document().GetText() == editedLinkedEquation,
+                         "F2 apply is one undoable linked equation edit with exact surrounding source");
+                 app.Prepare(512);
+                 linkedSemantic = app.Document().GetAcknowledgedSemanticDocument(app.Host());
+                 Require(static_cast<bool>(linkedSemantic), "edited linked semantic publication exists");
+                 const auto retainedLink = std::ranges::find_if(linkedSemantic->Elements(), [](const auto &element)
+                                                                { return element.role == DxUi::RichText::SemanticRole::Link; });
+                 Require(retainedLink != linkedSemantic->Elements().end() && retainedLink->title == L"Parent title",
+                         "apply/undo/redo preserves the neighboring parent link title");
              });
         test("Editor.DesignRefreshFilesRerootFilterAndDirtyOpen",
              [&]
@@ -989,6 +1594,208 @@ class DesignRefreshProbe final
                  Require(app.DismissSurface() && !app.Preferences().showFiles && app.Host().GetFocusControl() == &app.Document() &&
                              app.Document().GetSelection() == selection,
                          "closing Files restores the editor's selection and logical routing");
+             });
+        test("Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
+             [&]
+             {
+                 const auto directory = root / L"files-dirty-badge-fixture";
+                 const auto document = directory / L"current.md";
+                 WriteFixture(document, "# Current document\n");
+                 for (unsigned index = 0; index < 96; ++index)
+                     WriteFixture(directory / std::format(L"note-{:03}.md", index));
+                 WriteFixture(directory / L"archive/retained.md");
+
+                 Application app(Options(root, L"files-dirty-badge"));
+                 Success(app.Initialize(), "create the hidden large Files-pane app");
+                 StoredDocument loaded;
+                 Success(LoadDocument(document, loaded), "read the current document fixture");
+                 app.SetDocument(loaded.text, document, loaded.bom, loaded.stamp);
+                 app.Execute(Command::Files);
+                 Await(app, [&] { return app.folderSnapshot && app.folderSnapshot->root == directory && !app.folderFiles.Busy(); });
+                 Require(app.filesModel.rows.size() == 98, "the synthetic Files model contains a nontrivial set of visible rows");
+                 const auto collapsed =
+                     std::find_if(app.filesModel.rows.begin(), app.filesModel.rows.end(), [](const auto &row) { return row.text == L"archive"; });
+                 Require(collapsed != app.filesModel.rows.end() && !collapsed->expanded && collapsed->badgeText == L"1",
+                         "the fixture includes a collapsed directory with an independent count badge");
+
+                 const auto current =
+                     std::find_if(app.filesModel.rows.begin(), app.filesModel.rows.end(), [](const auto &row) { return row.text == L"current.md"; });
+                 Require(current != app.filesModel.rows.end() && current->badgeText.empty() && !current->badgeIsDot,
+                         "the clean current document starts without the Edited dot");
+                 const auto currentId = current->id;
+                 const auto selectedId = app.filesModel.rows.back().id;
+                 app.filesTree->SetSelectedItemId(selectedId);
+                 app.filesTree->SetFocusedItemId(selectedId);
+                 const auto treeBounds = app.filesTree->GetBounds();
+                 const auto wheelPoint = D2D1::Point2F(treeBounds.left + 20.f, treeBounds.top + 20.f);
+                 for (unsigned step = 0; step < 6; ++step)
+                     Require(app.filesTree->OnMouseWheel(app.Host(), wheelPoint, static_cast<float>(WHEEL_DELTA), 0),
+                             "scroll the tree away from its focused last row");
+                 const auto firstVisible = app.filesTree->GetFirstVisibleItemIndex();
+                 Require(firstVisible > 0 && firstVisible < app.filesModel.rows.size() - 1 &&
+                             app.filesTree->GetSelectedItemId() == std::optional(selectedId) &&
+                             app.filesTree->GetFocusedItemId() == std::optional(selectedId),
+                         "the fixture has an offscreen focused row and a separately observable scroll position");
+
+                 struct TreeItemProperties
+                 {
+                     std::wstring name, itemStatus;
+                 };
+                 const auto readStringProperty = [](IRawElementProviderSimple *provider, PROPERTYID property, std::string_view message)
+                 {
+                     wil::unique_variant value;
+                     Success(provider->GetPropertyValue(property, &value), message);
+                     if (value.vt == VT_EMPTY || value.vt == VT_NULL)
+                         return std::wstring{};
+                     Require(value.vt == VT_BSTR, message);
+                     return std::wstring(value.bstrVal ? value.bstrVal : L"");
+                 };
+                 app.Prepare(256);
+                 wil::com_ptr_nothrow<IRawElementProviderFragmentRoot> accessibilityRoot;
+                 accessibilityRoot.attach(DxUi::CreateWindowHostAccessibilityProvider(app.Host().GetHwnd()));
+                 Require(accessibilityRoot != nullptr, "the attached application window exposes its canonical UI Automation root");
+                 wil::com_ptr_nothrow<IRawElementProviderFragment> rootFragment;
+                 Success(accessibilityRoot.query_to(rootFragment.put()), "the canonical UI Automation root supports fragment navigation");
+                 const auto findTreeItem = [&](std::wstring_view expectedName)
+                 {
+                     std::optional<TreeItemProperties> result;
+                     std::size_t visited{};
+                     const auto visit = [&](auto &&self, IRawElementProviderFragment *current, std::size_t depth) -> bool
+                     {
+                         if (!current || depth > 64u || visited >= 4096u)
+                             return false;
+                         ++visited;
+                         wil::com_ptr_nothrow<IRawElementProviderSimple> simple;
+                         Success(current->QueryInterface(IID_PPV_ARGS(simple.put())), "query the UI Automation fragment's simple provider");
+                         wil::unique_variant controlType;
+                         Success(simple->GetPropertyValue(UIA_ControlTypePropertyId, &controlType),
+                                 "read the current UI Automation fragment's control type");
+                         Require(controlType.vt == VT_I4, "UI Automation control type uses its documented integer value");
+                         if (controlType.lVal == UIA_TreeItemControlTypeId)
+                         {
+                             const auto name = readStringProperty(simple.get(), UIA_NamePropertyId, "read a Files TreeItem name");
+                             if (name == expectedName)
+                             {
+                                 result = TreeItemProperties{
+                                     name, readStringProperty(simple.get(), UIA_ItemStatusPropertyId, "read a Files TreeItem status")};
+                                 return true;
+                             }
+                         }
+                         wil::com_ptr_nothrow<IRawElementProviderFragment> child;
+                         Success(current->Navigate(NavigateDirection_FirstChild, child.put()), "navigate to the first UI Automation child");
+                         while (child && visited < 4096u)
+                         {
+                             if (self(self, child.get(), depth + 1u))
+                                 return true;
+                             wil::com_ptr_nothrow<IRawElementProviderFragment> sibling;
+                             Success(child->Navigate(NavigateDirection_NextSibling, sibling.put()), "navigate to the next UI Automation sibling");
+                             child = std::move(sibling);
+                         }
+                         return false;
+                     };
+                     Require(visit(visit, rootFragment.get(), 0u), "find the named Files TreeItem in the bounded provider tree");
+                     return result.value();
+                 };
+                 const auto cleanProvider = findTreeItem(L"current.md");
+                 const auto initialArchiveProvider = findTreeItem(L"archive");
+                 Require(cleanProvider.name == L"current.md" && cleanProvider.itemStatus.empty() && initialArchiveProvider.name == L"archive" &&
+                             initialArchiveProvider.itemStatus == L"1",
+                         "the real UI Automation providers expose a clean file and the collapsed archive's count badge");
+
+                 const auto rowSnapshot = app.filesModel.rows;
+                 const auto folderGeneration = app.folderSnapshot->generation;
+                 const auto folderRevision = app.folderSnapshot->revision;
+                 const auto folderStatus = app.folderSnapshot->status;
+                 const auto watchStatus = app.folderSnapshot->watchStatus;
+                 const auto footer = std::wstring(app.filesCount->GetText());
+                 const auto rebuilds = app.Activity().filesModelRebuilds;
+                 Require(app.Document().ReplaceSelection(L"x"), "make the current document dirty");
+                 Require(app.Activity().filesModelRebuilds == rebuilds && app.filesModel.rows.size() == rowSnapshot.size(),
+                         "dirty state changes update the existing row model without rebuilding it");
+                 for (std::size_t index = 0; index < rowSnapshot.size(); ++index)
+                 {
+                     const auto &before = rowSnapshot[index];
+                     const auto &after = app.filesModel.rows[index];
+                     const bool isCurrent = before.id == currentId;
+                     Require(before.id == after.id && before.parentId == after.parentId && before.text == after.text &&
+                                 before.iconText == after.iconText && before.tooltipText == after.tooltipText && before.depth == after.depth &&
+                                 before.hasChildren == after.hasChildren && before.expanded == after.expanded &&
+                                 before.badgeTone == after.badgeTone &&
+                                 (isCurrent || (before.badgeText == after.badgeText && before.badgeIsDot == after.badgeIsDot)),
+                             "only the current file row presentation changes on the dirty transition");
+                 }
+                 const auto edited =
+                     std::find_if(app.filesModel.rows.begin(), app.filesModel.rows.end(), [&](const auto &row) { return row.id == currentId; });
+                 Require(edited != app.filesModel.rows.end() && edited->badgeText == Resource(IDS_FILESEDITED) && edited->badgeIsDot,
+                         "the current file receives the localized accessible dot status");
+                 app.Prepare(256);
+                 const auto editedProvider = findTreeItem(L"current.md");
+                 const auto dirtyArchiveProvider = findTreeItem(L"archive");
+                 Require(editedProvider.name == L"current.md" && editedProvider.itemStatus == Resource(IDS_FILESEDITED) &&
+                             dirtyArchiveProvider.name == L"archive" && dirtyArchiveProvider.itemStatus == initialArchiveProvider.itemStatus,
+                         "the live UI Automation providers expose the localized Edited status only on the current file");
+                 Require(app.filesTree->GetSelectedItemId() == std::optional(selectedId) &&
+                             app.filesTree->GetFocusedItemId() == std::optional(selectedId) &&
+                             app.filesTree->GetFirstVisibleItemIndex() == firstVisible && app.filesCount->GetText() == footer &&
+                             app.folderSnapshot->generation == folderGeneration && app.folderSnapshot->revision == folderRevision &&
+                             app.folderSnapshot->status == folderStatus && app.folderSnapshot->watchStatus == watchStatus,
+                         "a dirty badge update preserves tree selection, focus, scroll, footer and watcher snapshot");
+
+                 Require(app.Document().Undo() && !app.Dirty(), "undo restores the exact clean document state");
+                 Require(app.Activity().filesModelRebuilds == rebuilds && app.filesTree->GetSelectedItemId() == std::optional(selectedId) &&
+                             app.filesTree->GetFocusedItemId() == std::optional(selectedId) &&
+                             app.filesTree->GetFirstVisibleItemIndex() == firstVisible,
+                         "undo removes the dot without rebuilding or moving the user's tree state");
+                 app.Prepare(256);
+                 const auto restoredProvider = findTreeItem(L"current.md");
+                 const auto restoredArchiveProvider = findTreeItem(L"archive");
+                 Require(restoredProvider.name == L"current.md" && restoredProvider.itemStatus.empty() &&
+                             restoredArchiveProvider.name == L"archive" && restoredArchiveProvider.itemStatus == initialArchiveProvider.itemStatus,
+                         "undo clears only the current file's live UI Automation status and preserves the neighboring count");
+                 const auto restored =
+                     std::find_if(app.filesModel.rows.begin(), app.filesModel.rows.end(), [&](const auto &row) { return row.id == currentId; });
+                 Require(restored != app.filesModel.rows.end() && restored->badgeText.empty() && !restored->badgeIsDot,
+                         "the current file dot clears when its source becomes clean");
+
+                 app.filesFilter->SetTextAndNotify(L"note-");
+                 Require(std::ranges::none_of(app.filesModel.rows, [](const auto &row) { return row.text == L"current.md"; }),
+                         "the filter hides the current file row without changing the snapshot");
+                 const auto filteredRebuilds = app.Activity().filesModelRebuilds;
+                 Require(app.Document().ReplaceSelection(L"y"), "dirty the current document while its row is filtered out");
+                 Require(app.Activity().filesModelRebuilds == filteredRebuilds &&
+                             std::ranges::none_of(app.filesModel.rows, [](const auto &row) { return row.text == L"current.md"; }),
+                         "a filtered-out current file updates bookkeeping without rebuilding visible rows");
+                 Require(app.Document().Undo() && !app.Dirty(), "filtered current document returns to its clean state");
+                 app.filesFilter->SetTextAndNotify(L"");
+                 Require(app.Document().ReplaceSelection(L"z"), "dirty the document before replacing it with a different root");
+                 const auto nextDirectory = root / L"files-dirty-badge-next-root";
+                 const auto nextDocument = nextDirectory / L"renamed.md";
+                 WriteFixture(nextDocument, "# Renamed document\n");
+                 StoredDocument next;
+                 Success(LoadDocument(nextDocument, next), "read the replacement root fixture");
+                 app.SetDocument(next.text, nextDocument, next.bom, next.stamp);
+                 Await(app, [&] { return app.folderSnapshot && app.folderSnapshot->root == nextDirectory && !app.folderFiles.Busy(); });
+                 const auto renamed =
+                     std::find_if(app.filesModel.rows.begin(), app.filesModel.rows.end(), [](const auto &row) { return row.text == L"renamed.md"; });
+                 Require(app.folderRoot == nextDirectory && !app.Dirty() && !app.lastFilesDirty && renamed != app.filesModel.rows.end() &&
+                             renamed->badgeText.empty() && !renamed->badgeIsDot,
+                         "a dirty-to-clean document replacement uses the full root refresh and publishes the new clean row");
+
+                 Application untitled(Options(root, L"files-dirty-no-snapshot"));
+                 Success(untitled.Initialize(), "create the hidden untitled Files-pane app");
+                 untitled.Execute(Command::Files);
+                 Require(!untitled.folderSnapshot && untitled.filesModel.rows.empty() && !untitled.folderFilesActive,
+                         "the untitled Files pane has no folder snapshot or worker");
+                 const auto emptyFooter = std::wstring(untitled.filesCount->GetText());
+                 const auto emptyRebuilds = untitled.Activity().filesModelRebuilds;
+                 Require(untitled.Document().ReplaceSelection(L"x") && untitled.Dirty() && untitled.lastFilesDirty,
+                         "dirty bookkeeping updates while the Files pane has no snapshot");
+                 Require(untitled.Activity().filesModelRebuilds == emptyRebuilds && untitled.filesModel.rows.empty() &&
+                             untitled.filesCount->GetText() == emptyFooter,
+                         "an empty-root dirty transition leaves the empty model and localized footer intact");
+                 Require(untitled.Document().Undo() && !untitled.Dirty() && !untitled.lastFilesDirty &&
+                             untitled.Activity().filesModelRebuilds == emptyRebuilds,
+                         "undo synchronizes clean bookkeeping without a synthetic folder refresh");
              });
         test("Editor.DesignRefreshFilesAdmissionErrorsAndRootActions",
              [&]
@@ -1498,7 +2305,7 @@ class DesignRefreshProbe final
                  Require(contrast.Document().GetLinkUnderlinePolicy() == DxUi::RichTextLinkUnderlinePolicy::Always,
                          "high contrast always retains an underline");
                  const auto module = GetModuleHandleW(nullptr);
-                 for (const unsigned size : {16u, 24u, 32u})
+                 for (const unsigned size : {16u, 24u, 32u, 48u, 64u, 128u, 256u})
                      CheckBrandIconResource(module, size);
                  Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().Revision() == sourceRevision &&
                              app.Document().GetSelection() == retainedSelection && !app.Document().CanUndo() && app.Document().CanRedo(),
@@ -1760,6 +2567,9 @@ class DesignRefreshProbe final
                 app.Host().SetFocusControl(&app.Document(), false);
                 app.Prepare(256);
                 expectBlock(IDS_BLOCKPARAGRAPH, 5, "the preview entry is a five-character paragraph");
+                const auto paragraphCaptionConstructions = app.Activity().selectionCaptionConstructions;
+                Require(app.tools[2]->GetText() == Resource(IDS_PARAGRAPH) && app.tools[2]->GetAccessibleName() == Resource(IDS_HEADING),
+                        "the visible toolbar caption follows paragraph context while its command name stays Heading");
                 const auto previewChanges = app.Activity().changes;
                 const auto previewUndo = app.Document().CanUndo(), previewRedo = app.Document().CanRedo();
                 const auto paragraphConstructions = app.Activity().currentBlockLabelConstructions;
@@ -1797,20 +2607,37 @@ class DesignRefreshProbe final
                         "import an equal-length mathematical context at the same ACP");
                 app.Prepare(512);
                 expectBlock(IDS_MATH, 5, "the mathematical context overrides the paragraph's localized kind");
-                Require(app.equationContext && app.equation->GetText() == L"\\[x+y\\]" && !app.tools[3]->IsEnabled(),
-                        "equation source and action enablement stay synchronous with ready syntax");
+                Require(app.equationContext && app.equation->GetText() == L"\\[x+y\\]" && !app.tools[3]->IsEnabled() &&
+                            app.tools[2]->GetText() == Resource(IDS_MATH) && app.tools[2]->GetAccessibleName() == Resource(IDS_HEADING) &&
+                            app.Activity().selectionCaptionConstructions == paragraphCaptionConstructions + 1,
+                        "equation source/action state and localized visible caption change once while the command name stays Heading");
+                const auto firstMathCaptionConstructions = app.Activity().selectionCaptionConstructions;
                 preview.text = L"  $x$\n";
                 Require((app.Document().*Testing::TextServiceImportProbe::Import)(app.Host(), preview, false),
                         "shift the mathematical source range without changing caret ACP or physical-line length");
+                Require(!app.Document().GetMarkdownSyntax() && !app.equationContext && app.equation->GetText().empty() &&
+                            app.tools[2]->GetText() == Resource(IDS_PARAGRAPH) &&
+                            app.Activity().selectionCaptionConstructions == firstMathCaptionConstructions + 1,
+                        "pending replacement syntax clears stale math and publishes the paragraph caption once");
                 app.Prepare(512);
                 expectBlock(IDS_MATH, 5, "a shifted same-ACP math range preserves the actual kind and count");
-                Require(app.equationContext && app.equation->GetText() == L"\\[x\\]",
-                        "equal localized facts never suppress the new exact equation source");
+                Require(app.equationContext && app.equation->GetText() == L"\\[x\\]" && app.tools[2]->GetText() == Resource(IDS_MATH) &&
+                            app.tools[2]->GetAccessibleName() == Resource(IDS_HEADING) &&
+                            app.Activity().selectionCaptionConstructions == firstMathCaptionConstructions + 2,
+                        "ready replacement syntax publishes its exact equation and restores the math caption once");
+                const auto settledMathCaptionConstructions = app.Activity().selectionCaptionConstructions;
+                app.SelectionChanged(false);
+                app.Prepare(32);
+                Require(app.Activity().selectionCaptionConstructions == settledMathCaptionConstructions && app.equationContext &&
+                            app.equation->GetText() == L"\\[x\\]" && app.tools[2]->GetAccessibleName() == Resource(IDS_HEADING),
+                        "repeating current ready math facts reuses the caption and preserves the exact equation and command name");
                 Require((app.Document().*Testing::TextServiceImportProbe::Import)(app.Host(), entry, false),
                         "cancel all transient previews back to the entry source");
                 app.Prepare(256);
                 expectBlock(IDS_BLOCKPARAGRAPH, 5, "preview cancellation restores the exact paragraph facts");
-                Require(!app.equationContext && app.equation->GetText().empty() && app.tools[3]->IsEnabled() &&
+                Require(!app.equationContext && app.equation->GetText().empty() && app.tools[2]->GetText() == Resource(IDS_PARAGRAPH) &&
+                            app.tools[2]->GetAccessibleName() == Resource(IDS_HEADING) &&
+                            app.Activity().selectionCaptionConstructions == settledMathCaptionConstructions + 1 && app.tools[3]->IsEnabled() &&
                             app.tools[3]->GetToggleState() == std::optional<bool>{false} &&
                             app.tools[5]->GetToggleState() == std::optional<bool>{false} && app.Document().GetText() == entry.text &&
                             app.Document().GetSelection() == DxUi::RichText::Selection{2, 2} && app.Activity().changes == previewChanges &&
@@ -1839,21 +2666,58 @@ class DesignRefreshProbe final
                                 backwardLink || (nodes[index].nextSibling != DxUi::RichText::MarkdownNoNode && nodes[index].nextSibling < index);
                         Require(backwardLink, "reference extraction actually creates source-order links that differ from vector append order");
                     }
+                    std::optional<std::pair<unsigned, std::size_t>> lastVisibleFacts;
+                    const auto firstPosition = *positions.begin();
+                    const auto firstFacts = std::pair{std::get<1>(firstPosition), std::get<2>(firstPosition)};
+                    const auto initialConstructions = app.Activity().currentBlockLabelConstructions;
+                    app.Document().SetSelection({std::get<0>(firstPosition), std::get<0>(firstPosition)});
+                    app.SelectionChanged(false);
+                    const auto initialLatestFacts = app.currentBlockLatestFacts;
+                    Require(initialLatestFacts && initialLatestFacts.value().resourceId == firstFacts.first &&
+                                initialLatestFacts.value().lineCharacterCount == firstFacts.second,
+                            "the first independently specified source position matches retained canonical facts");
+                    if (app.sidebar->IsVisible() && app.currentBlock->IsVisible())
+                    {
+                        expectBlock(firstFacts.first, firstFacts.second, "the first source-position oracle is published when its label is visible");
+                        lastVisibleFacts = firstFacts;
+                    }
+                    else
+                    {
+                        Require(app.Activity().currentBlockLabelConstructions == initialConstructions,
+                                "classifying the first hidden source position does not construct its current-block label");
+                        if (!app.currentBlock->IsVisible())
+                            Require(app.listSummary->IsVisible() && !app.listSummary->GetText().empty(),
+                                    "the first hidden list position retains its visible nonempty list summary");
+                    }
                     const auto snapshot = app.Document().Snapshot();
                     const auto changes = app.Activity().changes;
                     const auto canUndo = app.Document().CanUndo(), canRedo = app.Document().CanRedo();
-                    std::optional<std::pair<unsigned, std::size_t>> previousFacts;
                     for (const auto [caret, id, characters] : positions)
                     {
                         const auto constructions = app.Activity().currentBlockLabelConstructions;
                         app.Document().SetSelection({caret, caret});
                         app.SelectionChanged(false);
-                        expectBlock(id, characters, "the actual containing canonical block kind and physical-line count are exact");
                         const auto facts = std::pair{id, characters};
-                        if (previousFacts)
-                            Require(app.Activity().currentBlockLabelConstructions == constructions + (previousFacts.value() == facts ? 0 : 1),
-                                    "ready nested-kind/count transitions construct once while equal marker/cell facts construct nothing");
-                        previousFacts = facts;
+                        const auto latestFacts = app.currentBlockLatestFacts;
+                        Require(latestFacts && latestFacts.value().resourceId == id && latestFacts.value().lineCharacterCount == characters,
+                                "the independently specified source position matches the retained canonical block kind and line count");
+                        const bool labelPublished = app.sidebar->IsVisible() && app.currentBlock->IsVisible();
+                        if (labelPublished)
+                        {
+                            expectBlock(id, characters, "the visible label matches the literal source-position kind and physical-line count");
+                            const auto expectedConstructions = lastVisibleFacts && lastVisibleFacts.value() == facts ? 0u : 1u;
+                            Require(app.Activity().currentBlockLabelConstructions == constructions + expectedConstructions,
+                                    "visible nested-kind/count transitions publish once relative to the last visible literal facts");
+                            lastVisibleFacts = facts;
+                        }
+                        else
+                        {
+                            Require(app.Activity().currentBlockLabelConstructions == constructions,
+                                    "hidden current-block labels do not construct text for a newly classified source position");
+                            if (!app.currentBlock->IsVisible())
+                                Require(app.listSummary->IsVisible() && !app.listSummary->GetText().empty(),
+                                        "a locally hidden list block retains its visible nonempty list summary");
+                        }
                         Require(app.Document().Snapshot().IsSameRevision(snapshot) &&
                                     app.Document().GetSelection() == DxUi::RichText::Selection{caret, caret} && app.Document().CanUndo() == canUndo &&
                                     app.Document().CanRedo() == canRedo && app.Activity().changes == changes &&
@@ -1944,10 +2808,21 @@ class DesignRefreshProbe final
                 nestedEntry.caretIndex = 4;
                 auto nestedPreview = nestedEntry;
                 nestedPreview.text = L"> - one\n";
+                const auto beforeNestedListConstructions = app.Activity().currentBlockLabelConstructions;
                 Require((app.Document().*Testing::TextServiceImportProbe::Import)(app.Host(), nestedPreview, false),
                         "preview a nested list item at the same ACP and physical-line length");
+                expectBlock(IDS_BLOCKPARAGRAPH, 7, "the pending nested-list preview publishes its visible paragraph facts");
+                Require(app.Activity().currentBlockLabelConstructions == beforeNestedListConstructions + 1,
+                        "invalidating the ready quote publishes the different visible pending kind once");
+                const auto pendingNestedListConstructions = app.Activity().currentBlockLabelConstructions;
                 app.Prepare(512);
-                expectBlock(IDS_BLOCKLIST, 7, "the deeper list item replaces the quote category despite an unchanged line count");
+                Require(app.currentBlockLatestFacts && app.currentBlockLatestFacts.value().resourceId == IDS_BLOCKLIST &&
+                            app.currentBlockLatestFacts.value().lineCharacterCount == 7,
+                        "ready nested-list syntax retains its literal source kind and physical-line count");
+                Require(!app.currentBlock->IsVisible() && app.listSummary->IsVisible() && !app.listSummary->GetText().empty(),
+                        "the visible nested-list summary replaces its hidden current-block label");
+                Require(app.Activity().currentBlockLabelConstructions == pendingNestedListConstructions,
+                        "ready nested-list syntax does not construct the now-hidden current-block label");
                 const auto nestedConstructions = app.Activity().currentBlockLabelConstructions;
                 nestedPreview.text = L"> # one\n";
                 Require((app.Document().*Testing::TextServiceImportProbe::Import)(app.Host(), nestedPreview, false),

@@ -34,6 +34,27 @@ struct DocumentInfo
     std::vector<DocumentLine> lineIndex;
     DocumentNewlineKind newlineKind = DocumentNewlineKind::None;
 };
+struct DocumentLineIndexStorageStats
+{
+    std::size_t reuseCount{}, capacityGrowthCount{}, capacityNormalizationCount{}, droppedSpareCount{};
+    std::size_t activeCapacity{}, spareCapacity{};
+};
+// Keeps only a bounded retired line-index buffer between source revisions.
+// This is application-internal storage policy, not a source-analysis cache.
+class DocumentLineIndexStorage final
+{
+  public:
+    [[nodiscard]] DocumentInfo Analyze(std::wstring_view text, std::size_t previousPhysicalLineCount = 0);
+    void Retire(std::vector<DocumentLine> &&previous, std::size_t activeLineCount) noexcept;
+    [[nodiscard]] const DocumentLineIndexStorageStats &Stats() const noexcept
+    {
+        return stats;
+    }
+
+  private:
+    std::vector<DocumentLine> spare;
+    DocumentLineIndexStorageStats stats;
+};
 struct DocumentPosition
 {
     std::size_t line = 1, column = 1; // One-based source UTF-16 positions.
@@ -47,5 +68,4 @@ struct DocumentPosition
 // Oversized ACPs clamp to source end. An ACP between CR/LF stays at the prior
 // line's content end; the following line begins only after the complete pair.
 [[nodiscard]] DocumentPosition DocumentPositionAt(const DocumentInfo &info, std::size_t caret) noexcept;
-[[nodiscard]] std::wstring EquationAt(std::wstring_view text, std::size_t caret);
 } // namespace RedTilde

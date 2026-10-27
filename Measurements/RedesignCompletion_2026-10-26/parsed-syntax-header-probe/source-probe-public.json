@@ -1,0 +1,605 @@
+{
+  "schemaVersion": 2,
+  "protocol": "dxui-parsed-source-snapshot-source-probe-v2",
+  "executed": true,
+  "pair": {
+    "baselineSdkCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+    "candidateSdkCommit": "4077f57df8207eac6c39c43437feb45b19d23cf8",
+    "isolatedOldApplicationContext": "0f68857bc383f6dccd1dbe793b01a5a1fd70291c",
+    "isolatedCandidateApplicationContext": "7e9de544d077f704813031d391b6f1ed766ef208",
+    "claim": "This is an isolated probe context, not the actual PR-base comparison."
+  },
+  "probeSourceSha256": "F05C8A89AA0E601BC8C7F3E424B1230B5C3E3DB5FD93A69A35AAD645F5B5536F",
+  "probeSourceFile": "Probe.cpp",
+  "rawSourceProbeSha256": "A43614D4498017F932F52029603977E5F6211B2B3228BEC66777DC0935226114",
+  "rawApplicationCompilerTlogSha256": "ACA26039797847EF8F9A759A3F641A9A81192D215D9FE76AD08358A7DBF4DED0",
+  "rawApplicationLinkTlogSha256": "4AEAA7A5B4A7B44E9925B51BED99D0D0946A022206352EF6700F0ED4ADC43C71",
+  "rawApplicationCompileCommandSha256": "C565D943D56F8B7DBEFDE7C6A658177B1D2B4E371B963BC034F5E8084EF8494E",
+  "rawApplicationLinkCommandSha256": "1305E9B0E10AC0D6276E4E1A597B91DC7AAFEBCF66E7BF37E7812346C3A742B1",
+  "normalizedProbeCompileArgsEqual": true,
+  "fullApplicationCompileContextExact": false,
+  "fullApplicationLinkContextExact": false,
+  "fullContextLimit": "PCH is disabled for this isolated source/layout probe. The standalone linker uses the selected link.exe, evaluated include/library environment, and only the probe object; no DxUi library is linked or called. This does not establish full-application compile/link equivalence or binary ABI compatibility.",
+  "layoutDeltaVerified": true,
+  "newMethodSignaturesVerified": true,
+  "sides": {
+    "baseline": {
+      "sdkCommit": "47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a",
+      "fingerprint": "7ff1282c1c53196353455b6ca1c9504f4762a7af4f495eb3c479ec97d88ee260",
+      "apiRevision": 4,
+      "headerInventorySha256": "1FD9F846231F56CB4A3C158B61CA5D3A9A82B7E7B08D3C37396B5FACCFC56913",
+      "compiler": {
+        "msvcVersion": 1952,
+        "msvcLang": 202400,
+        "iteratorDebugLevel": 0,
+        "compilerSha256": "54432A2AE1AB1CA6838E65BCAF0653F84031BD98AB5CA35B5AF7B5686DDF21E5",
+        "linkerSha256": "B7A53752327CBD7335465DB4DD290BE9ADC11F8E97C5294E50B1AF288AF87753",
+        "normalizedApplicationCompilerProfileSha256": "82824B2763909C71E32E91B49042E3F73D9927E42AE0ABD20BB057E71F38F72C",
+        "probeApplicationCompilerTlogSha256": "ACA26039797847EF8F9A759A3F641A9A81192D215D9FE76AD08358A7DBF4DED0",
+        "applicationLinkCommandSha256": "1305E9B0E10AC0D6276E4E1A597B91DC7AAFEBCF66E7BF37E7812346C3A742B1"
+      },
+      "layout": {
+        "MarkdownSyntax": {
+          "sizeBytes": 304,
+          "alignmentBytes": 8
+        },
+        "MarkdownParser": {
+          "sizeBytes": 64,
+          "alignmentBytes": 8
+        },
+        "RichTextEditor": {
+          "sizeBytes": 304,
+          "alignmentBytes": 8
+        },
+        "SourceSnapshot": {
+          "sizeBytes": 16,
+          "alignmentBytes": 8
+        },
+        "Document": {
+          "sizeBytes": 88,
+          "alignmentBytes": 8
+        }
+      },
+      "methodFlags": {
+        "hasReadOnlySourceSynchronization": true,
+        "hasSourceSnapshotMatchesText": false,
+        "hasParsedSnapshotAdoption": false,
+        "hasReadOnlyMarkdownSyntaxAdoption": false
+      },
+      "projectionReceiptSha256": "7DCC4F6ECFEAEA7237ABD5D02D7F3A998A24569B8457761369D0074D528BFA68"
+    },
+    "candidate": {
+      "sdkCommit": "4077f57df8207eac6c39c43437feb45b19d23cf8",
+      "fingerprint": "e295d302dcc13fec45b438bb7c97c3df0579024dd0e09e151fd8c97c7a8e7b85",
+      "apiRevision": 4,
+      "headerInventorySha256": "AA7B65052E18BA0AF7F6B60AFC47E4F63EEB7552BEA2878972EC36495BFB69C8",
+      "compiler": {
+        "msvcVersion": 1952,
+        "msvcLang": 202400,
+        "iteratorDebugLevel": 0,
+        "compilerSha256": "54432A2AE1AB1CA6838E65BCAF0653F84031BD98AB5CA35B5AF7B5686DDF21E5",
+        "linkerSha256": "B7A53752327CBD7335465DB4DD290BE9ADC11F8E97C5294E50B1AF288AF87753",
+        "normalizedApplicationCompilerProfileSha256": "82824B2763909C71E32E91B49042E3F73D9927E42AE0ABD20BB057E71F38F72C",
+        "probeApplicationCompilerTlogSha256": "ACA26039797847EF8F9A759A3F641A9A81192D215D9FE76AD08358A7DBF4DED0",
+        "applicationLinkCommandSha256": "1305E9B0E10AC0D6276E4E1A597B91DC7AAFEBCF66E7BF37E7812346C3A742B1"
+      },
+      "layout": {
+        "MarkdownSyntax": {
+          "sizeBytes": 320,
+          "alignmentBytes": 8
+        },
+        "MarkdownParser": {
+          "sizeBytes": 64,
+          "alignmentBytes": 8
+        },
+        "RichTextEditor": {
+          "sizeBytes": 304,
+          "alignmentBytes": 8
+        },
+        "SourceSnapshot": {
+          "sizeBytes": 16,
+          "alignmentBytes": 8
+        },
+        "Document": {
+          "sizeBytes": 88,
+          "alignmentBytes": 8
+        }
+      },
+      "methodFlags": {
+        "hasReadOnlySourceSynchronization": true,
+        "hasSourceSnapshotMatchesText": true,
+        "hasParsedSnapshotAdoption": true,
+        "hasReadOnlyMarkdownSyntaxAdoption": true
+      },
+      "projectionReceiptSha256": "C2DAA062811AAE620A7DED88529C5C26F81C223FB3D359C9C415B71D3B7F8947"
+    }
+  },
+  "headerRows": {
+    "baseline": {
+      "schemaVersion": 2,
+      "sha256": "1FD9F846231F56CB4A3C158B61CA5D3A9A82B7E7B08D3C37396B5FACCFC56913",
+      "sourceSha256": "C0DC3A95155C9E13F0E080A03DE8869DE6C47A7A453E0339FE59022BB00DAD1C",
+      "packageSha256": "38C35CF4C74E24BEE7B08D67D8AE89E7A5A100EF705DB1CB54B55738A4D5D2E7",
+      "files": [
+        {
+          "path": "include/DxUi/AccessibilityTextUnits.h",
+          "sha256": "051B4B92289854CD9A404F24E8F34403763C3BD519E60472EE4A2CF59C249F1C"
+        },
+        {
+          "path": "package-include/wil/win32_result_macros.h",
+          "sha256": "135D434277D85DCB67467A1C10BE44C883E842F268B1ACAB8FDCC4DB9280106B"
+        },
+        {
+          "path": "package-include/wil/win32_helpers.h",
+          "sha256": "5C00672F2A01FB57CED22307212675FADA7E6B7AD0A238A2E8E58BDD2D8A678E"
+        },
+        {
+          "path": "package-include/wil/traceloggingconfig.h",
+          "sha256": "0713374D283576C096F8FD57F6BFE5676A3B7295E7D2C40DE41DD4D877FF326A"
+        },
+        {
+          "path": "package-include/wil/Tracelogging.h",
+          "sha256": "C3E300BC1691689BFBF3B0DD7E926225849CC4FCBA2992722D38D5CC8A9B931A"
+        },
+        {
+          "path": "package-include/wil/token_helpers.h",
+          "sha256": "A58636AE4F0A83A85209113F66F1358CA87D77BF5067EB05D7227DF4EC5E6B3D"
+        },
+        {
+          "path": "package-include/wil/stl.h",
+          "sha256": "5381C46A89F57BF15AAAF8A9B8B38E839D1DDBBCA7B665B789D919CD018069D1"
+        },
+        {
+          "path": "package-include/wil/safecast.h",
+          "sha256": "AF698B96D7DFCBF140393B062DE3B40F171DEB48311D0A45125F186030BA2287"
+        },
+        {
+          "path": "package-include/wil/rpc_helpers.h",
+          "sha256": "0713E5CD77F882D8AA2577A5EFEE6EDDFA7D008A36C9DE44FBE37E0090193C65"
+        },
+        {
+          "path": "package-include/wil/result.h",
+          "sha256": "FF52D953CB6CCB0FE25EAEAE0BB3FE6E0511DB242692A2316BF5D05402B37F76"
+        },
+        {
+          "path": "package-include/wil/wistd_type_traits.h",
+          "sha256": "8AC4C64778E416936FBF4FDC2DA0023BAED7556064DCB1A1552731874F3F3FAA"
+        },
+        {
+          "path": "package-include/wil/result_originate.h",
+          "sha256": "D4189916AE031228CBCB8696C5B3C632BD8D118FC97695EA5278CDBA0E95C1FC"
+        },
+        {
+          "path": "package-include/wil/resource.h",
+          "sha256": "DA46E44E165CA2BBA690CDA21E9578F5C7DC9E68E28AF8788B23313DA9C59AE9"
+        },
+        {
+          "path": "package-include/wil/registry.h",
+          "sha256": "D26511F047F0CFD1FFA917BA175290BA423685C5E047721A494FBCA67168BD61"
+        },
+        {
+          "path": "package-include/wil/registry_helpers.h",
+          "sha256": "5E603F1E0E255E1AE175D6AB89A0DDDE2526BEA8D9E308FFFF4A082E452A99A7"
+        },
+        {
+          "path": "package-include/wil/nt_result_macros.h",
+          "sha256": "5ADF32B3CF7BACB440AEC9DDB0955FCE224D9E02423CC86ADCB188E37E8E838D"
+        },
+        {
+          "path": "package-include/wil/network.h",
+          "sha256": "695F7AFAC6B7EDEEECD31A622841AAA381D5702F5210EFA784238AA6CB328993"
+        },
+        {
+          "path": "package-include/wil/filesystem.h",
+          "sha256": "B2431BEA7000A4BF8565032764B57EC5F0303B05541A1D2C9A6929C278B8E1C6"
+        },
+        {
+          "path": "package-include/wil/cppwinrt.h",
+          "sha256": "32FD8C482F7CE607D6CE784EC9BF68988385648CED133D08ECD1751A4B5A7EBA"
+        },
+        {
+          "path": "package-include/wil/cppwinrt_wrl.h",
+          "sha256": "97C6C033CFBBC5AE6D691488168DAED48689C5B8EFA9D0E78F1F51F9C2BE8613"
+        },
+        {
+          "path": "package-include/wil/cppwinrt_notifiable_server_lock.h",
+          "sha256": "1C9CA42A47DA9724C7EE27608308BE38A2542C87E48AFA8999CB056CDB00C054"
+        },
+        {
+          "path": "package-include/wil/cppwinrt_helpers.h",
+          "sha256": "7233605E0158DB0EECA04DEF476A3D752E9986ACFF42539FF7F2D3E8DCE5D849"
+        },
+        {
+          "path": "package-include/wil/cppwinrt_authoring.h",
+          "sha256": "C9C953D79A84EB0A09CCBC6072D03B7C58834A08E962EEC172D5FDF77F33E0D5"
+        },
+        {
+          "path": "package-include/wil/coroutine.h",
+          "sha256": "D79D8EFA59186892DFCB6F6E464AFFC3E1EDAB683BA96F3C17A340753E52FC45"
+        },
+        {
+          "path": "package-include/wil/common.h",
+          "sha256": "126AFCD82DC11028871CCB5C3E8D27468E5B0EBD42EAB6BF38B5C619467286A1"
+        },
+        {
+          "path": "package-include/wil/com.h",
+          "sha256": "4B95C2201D908B277D6472DDB2EFCA6A75838430DC4F53A3D747BBC24394ADC8"
+        },
+        {
+          "path": "package-include/wil/windowing.h",
+          "sha256": "1A998285702F7FE94C5C4173D469A209B04555DBAE3C5BEC7162D68B8A7A138C"
+        },
+        {
+          "path": "package-include/wil/winrt.h",
+          "sha256": "13E2E9058EAA092559DB4DEE6A9F925ECC8B9C4CBE0DECDB61375200A59DB727"
+        },
+        {
+          "path": "package-include/wil/wistd_config.h",
+          "sha256": "117B9CDD63A19F4058E5FF14D5E704F9F708B7722B4EBEC471319FA6E6857678"
+        },
+        {
+          "path": "package-include/wil/wistd_functional.h",
+          "sha256": "20DD903EFA733AC1B55E1EF9C50532A27C7F8B31CCA30D9BB30EA2BFB3B2E8D0"
+        },
+        {
+          "path": "include/DxUi/TextInputServices.h",
+          "sha256": "4C50590F3C523900BFA5D2FB1DF737FD79871E67B3D9D03674F79BF8B0A60A1F"
+        },
+        {
+          "path": "include/DxUi/RichTextPresentation.h",
+          "sha256": "D96715B8B40F75BBD31E4D4A00B505CD8E6FAC92DB12DA65B925EF2B948652E0"
+        },
+        {
+          "path": "include/DxUi/RichTextLayout.h",
+          "sha256": "8A23FBEC041A2D2B0E90DCCA19FF77EAFF1725697D67868F20683B92F32163F8"
+        },
+        {
+          "path": "include/DxUi/RichTextCommands.h",
+          "sha256": "1770A9B2B492E85AB9558C8ADAE4E1E4E333B05592CC4BD2F21EFDEB3C446620"
+        },
+        {
+          "path": "include/DxUi/RichSemanticDocument.h",
+          "sha256": "382E2E063531B4B86A624A6D8208C65B589799A44E6EB782A6480E86F5B705D1"
+        },
+        {
+          "path": "include/DxUi/RichSemantic.h",
+          "sha256": "F5F24B5634463F39F564BC02986FDEEDA2BBBBB3E69F64E2A937CF18186E29A9"
+        },
+        {
+          "path": "include/DxUi/RichMath.h",
+          "sha256": "7CA8EFDE3A6E3D255770C507DCDF649F9E5CE2FD58BA32CCA45297DAFB60A5E0"
+        },
+        {
+          "path": "include/DxUi/RichMarkdown.h",
+          "sha256": "DE050951881F6DE69C9E3C21A933720495EA6B6134EEADB21381476F06412AE1"
+        },
+        {
+          "path": "include/DxUi/RichImage.h",
+          "sha256": "2641EBF4C5D2D053F87DE96A3D2584BB9E9A0F274A5B705AC113A297A5BEC4CC"
+        },
+        {
+          "path": "include/DxUi/RichDocument.h",
+          "sha256": "F416C1B951315849AD3FE720620864F0EB7D09A69C12E378F8E1F6C777D1832E"
+        },
+        {
+          "path": "include/DxUi/ThemeColors.h",
+          "sha256": "B8F43321FB894A39BD16EC10314BBDE753EB3658D44BAA9B91062CC74C44E95C"
+        },
+        {
+          "path": "include/DxUi/PreparedTreeAccessibility.h",
+          "sha256": "5D4345DEFCB53930437A39FC495FFA439FDA872608357448242C2588C697F06A"
+        },
+        {
+          "path": "package-include/wil/result_macros.h",
+          "sha256": "35BC595C8B338809F23F5DB90E1FF817F41648940F594A2DE3A3BF5273A1B74A"
+        },
+        {
+          "path": "include/DxUi/NativeMenuInterop.h",
+          "sha256": "E4B12127AF6DCDB4C158B75FEE5800CB94AE0A2A0E5E6805B16B85F109DA28C4"
+        },
+        {
+          "path": "include/DxUi/FrameRuntime.h",
+          "sha256": "7E00D607D6EC6C8E5D34CBFD30E7F01F384AA73CD3025B2B7581FA6DF45C8AAC"
+        },
+        {
+          "path": "include/DxUi/FocusRestore.h",
+          "sha256": "34DC2C6B4213F845819B5A4DA8FEB6232C79388EFB23E6853677821CCB927853"
+        },
+        {
+          "path": "include/DxUi/EmbeddedAccessibility.h",
+          "sha256": "ED19E79E7FF1C98C3E524AEACF91C4687E847F97E2F50225A9B09C5CF2DE2EBF"
+        },
+        {
+          "path": "include/DxUi/Embedded.h",
+          "sha256": "00B49CE34E0EAE0EA22E82AACC408606082CFF47B164E1D8C2D2A54079A53947"
+        },
+        {
+          "path": "include/DxUi/DxUi.h",
+          "sha256": "5A8A15F2858C6955CD9B8332BAC2A667D7E03E0975077026A089B1A2811F57D7"
+        },
+        {
+          "path": "include/DxUi/Diagnostics.h",
+          "sha256": "1539BDC27C5F2D07A49F84BCD51F406E51C567E4E4482545101CE6E92093A51C"
+        },
+        {
+          "path": "include/DxUi/ControlCatalog.h",
+          "sha256": "8AE54EA18460382B1FC6B2C819F4CA109863BACB552EF1A5717281FFF6C28E97"
+        },
+        {
+          "path": "include/DxUi/Configuration.h",
+          "sha256": "BD193165742A2204E5A0ED71CEF2D1663A8345579173D5C948E6F0853947441F"
+        },
+        {
+          "path": "include/DxUi/PointerInput.h",
+          "sha256": "C16DE418C74F1F50E0D9568736B9914A7B947716844706B299EEACDEEC4B928D"
+        },
+        {
+          "path": "include/DxUi/Typography.h",
+          "sha256": "ED7D2F50731FD6756646125C6A7EE04DDC62BAA93944959BC902588D4884A4A7"
+        },
+        {
+          "path": "package-include/wil/com_apartment_variable.h",
+          "sha256": "1AD3705691046E0DBD7A717CC7D0E0E3418E2ADA8F74A0D4BC4EABE552A751B5"
+        },
+        {
+          "path": "package-include/wil/wistd_memory.h",
+          "sha256": "FEB86C63886875907BBCF9911F4C702C21819D7E609E2C5468491153ABE27313"
+        },
+        {
+          "path": "include/DxUi/MarkdownSyntax.h",
+          "sha256": "9417156CF96E3D7DD80B77DBA33CD9E334DC4ADFCD6851B8BDD28CB4B06DA4E8"
+        },
+        {
+          "path": "package-include/wil/wrl.h",
+          "sha256": "A9B089553E4DF93CD812215046A4966BAB85D337099C2FE4741EAC378A4124DD"
+        }
+      ]
+    },
+    "candidate": {
+      "schemaVersion": 2,
+      "sha256": "AA7B65052E18BA0AF7F6B60AFC47E4F63EEB7552BEA2878972EC36495BFB69C8",
+      "sourceSha256": "65C1BCF6263B8AAE5A69D3C9D989F8901C7E7C7010AA2C8BC7FB2F756CAD3348",
+      "packageSha256": "38C35CF4C74E24BEE7B08D67D8AE89E7A5A100EF705DB1CB54B55738A4D5D2E7",
+      "files": [
+        {
+          "path": "include/DxUi/AccessibilityTextUnits.h",
+          "sha256": "051B4B92289854CD9A404F24E8F34403763C3BD519E60472EE4A2CF59C249F1C"
+        },
+        {
+          "path": "include/DxUi/TextInputServices.h",
+          "sha256": "4C50590F3C523900BFA5D2FB1DF737FD79871E67B3D9D03674F79BF8B0A60A1F"
+        },
+        {
+          "path": "include/DxUi/RichTextPresentation.h",
+          "sha256": "D96715B8B40F75BBD31E4D4A00B505CD8E6FAC92DB12DA65B925EF2B948652E0"
+        },
+        {
+          "path": "include/DxUi/RichTextLayout.h",
+          "sha256": "8A23FBEC041A2D2B0E90DCCA19FF77EAFF1725697D67868F20683B92F32163F8"
+        },
+        {
+          "path": "include/DxUi/RichTextCommands.h",
+          "sha256": "1770A9B2B492E85AB9558C8ADAE4E1E4E333B05592CC4BD2F21EFDEB3C446620"
+        },
+        {
+          "path": "include/DxUi/RichSemanticDocument.h",
+          "sha256": "382E2E063531B4B86A624A6D8208C65B589799A44E6EB782A6480E86F5B705D1"
+        },
+        {
+          "path": "include/DxUi/RichSemantic.h",
+          "sha256": "F5F24B5634463F39F564BC02986FDEEDA2BBBBB3E69F64E2A937CF18186E29A9"
+        },
+        {
+          "path": "include/DxUi/RichMath.h",
+          "sha256": "7CA8EFDE3A6E3D255770C507DCDF649F9E5CE2FD58BA32CCA45297DAFB60A5E0"
+        },
+        {
+          "path": "include/DxUi/RichMarkdown.h",
+          "sha256": "DE050951881F6DE69C9E3C21A933720495EA6B6134EEADB21381476F06412AE1"
+        },
+        {
+          "path": "include/DxUi/RichImage.h",
+          "sha256": "2641EBF4C5D2D053F87DE96A3D2584BB9E9A0F274A5B705AC113A297A5BEC4CC"
+        },
+        {
+          "path": "include/DxUi/RichDocument.h",
+          "sha256": "F9BAB7802DAFC10172B52920471BDE074FD92386BFACC9E2011ACD83120FA62F"
+        },
+        {
+          "path": "include/DxUi/ThemeColors.h",
+          "sha256": "B8F43321FB894A39BD16EC10314BBDE753EB3658D44BAA9B91062CC74C44E95C"
+        },
+        {
+          "path": "include/DxUi/PreparedTreeAccessibility.h",
+          "sha256": "5D4345DEFCB53930437A39FC495FFA439FDA872608357448242C2588C697F06A"
+        },
+        {
+          "path": "include/DxUi/NativeMenuInterop.h",
+          "sha256": "E4B12127AF6DCDB4C158B75FEE5800CB94AE0A2A0E5E6805B16B85F109DA28C4"
+        },
+        {
+          "path": "include/DxUi/MarkdownSyntax.h",
+          "sha256": "1BF61425BB6C702CB7BF37FE6742B7FBE92E62DB250D461EFBFCA4228F4E9BE6"
+        },
+        {
+          "path": "include/DxUi/FrameRuntime.h",
+          "sha256": "7E00D607D6EC6C8E5D34CBFD30E7F01F384AA73CD3025B2B7581FA6DF45C8AAC"
+        },
+        {
+          "path": "include/DxUi/FocusRestore.h",
+          "sha256": "34DC2C6B4213F845819B5A4DA8FEB6232C79388EFB23E6853677821CCB927853"
+        },
+        {
+          "path": "include/DxUi/EmbeddedAccessibility.h",
+          "sha256": "ED19E79E7FF1C98C3E524AEACF91C4687E847F97E2F50225A9B09C5CF2DE2EBF"
+        },
+        {
+          "path": "include/DxUi/Embedded.h",
+          "sha256": "00B49CE34E0EAE0EA22E82AACC408606082CFF47B164E1D8C2D2A54079A53947"
+        },
+        {
+          "path": "include/DxUi/DxUi.h",
+          "sha256": "100C6758CE8CCEBE080A3831EB59015E251C6684DA606C1786FF851376201AE5"
+        },
+        {
+          "path": "include/DxUi/Diagnostics.h",
+          "sha256": "1539BDC27C5F2D07A49F84BCD51F406E51C567E4E4482545101CE6E92093A51C"
+        },
+        {
+          "path": "include/DxUi/ControlCatalog.h",
+          "sha256": "8AE54EA18460382B1FC6B2C819F4CA109863BACB552EF1A5717281FFF6C28E97"
+        },
+        {
+          "path": "include/DxUi/Configuration.h",
+          "sha256": "BD193165742A2204E5A0ED71CEF2D1663A8345579173D5C948E6F0853947441F"
+        },
+        {
+          "path": "include/DxUi/PointerInput.h",
+          "sha256": "C16DE418C74F1F50E0D9568736B9914A7B947716844706B299EEACDEEC4B928D"
+        },
+        {
+          "path": "include/DxUi/Typography.h",
+          "sha256": "ED7D2F50731FD6756646125C6A7EE04DDC62BAA93944959BC902588D4884A4A7"
+        },
+        {
+          "path": "package-include/wil/com_apartment_variable.h",
+          "sha256": "1AD3705691046E0DBD7A717CC7D0E0E3418E2ADA8F74A0D4BC4EABE552A751B5"
+        },
+        {
+          "path": "package-include/wil/wistd_memory.h",
+          "sha256": "FEB86C63886875907BBCF9911F4C702C21819D7E609E2C5468491153ABE27313"
+        },
+        {
+          "path": "package-include/wil/wistd_functional.h",
+          "sha256": "20DD903EFA733AC1B55E1EF9C50532A27C7F8B31CCA30D9BB30EA2BFB3B2E8D0"
+        },
+        {
+          "path": "package-include/wil/wistd_config.h",
+          "sha256": "117B9CDD63A19F4058E5FF14D5E704F9F708B7722B4EBEC471319FA6E6857678"
+        },
+        {
+          "path": "package-include/wil/winrt.h",
+          "sha256": "13E2E9058EAA092559DB4DEE6A9F925ECC8B9C4CBE0DECDB61375200A59DB727"
+        },
+        {
+          "path": "package-include/wil/windowing.h",
+          "sha256": "1A998285702F7FE94C5C4173D469A209B04555DBAE3C5BEC7162D68B8A7A138C"
+        },
+        {
+          "path": "package-include/wil/win32_result_macros.h",
+          "sha256": "135D434277D85DCB67467A1C10BE44C883E842F268B1ACAB8FDCC4DB9280106B"
+        },
+        {
+          "path": "package-include/wil/win32_helpers.h",
+          "sha256": "5C00672F2A01FB57CED22307212675FADA7E6B7AD0A238A2E8E58BDD2D8A678E"
+        },
+        {
+          "path": "package-include/wil/traceloggingconfig.h",
+          "sha256": "0713374D283576C096F8FD57F6BFE5676A3B7295E7D2C40DE41DD4D877FF326A"
+        },
+        {
+          "path": "package-include/wil/Tracelogging.h",
+          "sha256": "C3E300BC1691689BFBF3B0DD7E926225849CC4FCBA2992722D38D5CC8A9B931A"
+        },
+        {
+          "path": "package-include/wil/token_helpers.h",
+          "sha256": "A58636AE4F0A83A85209113F66F1358CA87D77BF5067EB05D7227DF4EC5E6B3D"
+        },
+        {
+          "path": "package-include/wil/stl.h",
+          "sha256": "5381C46A89F57BF15AAAF8A9B8B38E839D1DDBBCA7B665B789D919CD018069D1"
+        },
+        {
+          "path": "package-include/wil/safecast.h",
+          "sha256": "AF698B96D7DFCBF140393B062DE3B40F171DEB48311D0A45125F186030BA2287"
+        },
+        {
+          "path": "package-include/wil/rpc_helpers.h",
+          "sha256": "0713E5CD77F882D8AA2577A5EFEE6EDDFA7D008A36C9DE44FBE37E0090193C65"
+        },
+        {
+          "path": "package-include/wil/result.h",
+          "sha256": "FF52D953CB6CCB0FE25EAEAE0BB3FE6E0511DB242692A2316BF5D05402B37F76"
+        },
+        {
+          "path": "package-include/wil/wistd_type_traits.h",
+          "sha256": "8AC4C64778E416936FBF4FDC2DA0023BAED7556064DCB1A1552731874F3F3FAA"
+        },
+        {
+          "path": "package-include/wil/result_originate.h",
+          "sha256": "D4189916AE031228CBCB8696C5B3C632BD8D118FC97695EA5278CDBA0E95C1FC"
+        },
+        {
+          "path": "package-include/wil/resource.h",
+          "sha256": "DA46E44E165CA2BBA690CDA21E9578F5C7DC9E68E28AF8788B23313DA9C59AE9"
+        },
+        {
+          "path": "package-include/wil/registry.h",
+          "sha256": "D26511F047F0CFD1FFA917BA175290BA423685C5E047721A494FBCA67168BD61"
+        },
+        {
+          "path": "package-include/wil/registry_helpers.h",
+          "sha256": "5E603F1E0E255E1AE175D6AB89A0DDDE2526BEA8D9E308FFFF4A082E452A99A7"
+        },
+        {
+          "path": "package-include/wil/nt_result_macros.h",
+          "sha256": "5ADF32B3CF7BACB440AEC9DDB0955FCE224D9E02423CC86ADCB188E37E8E838D"
+        },
+        {
+          "path": "package-include/wil/network.h",
+          "sha256": "695F7AFAC6B7EDEEECD31A622841AAA381D5702F5210EFA784238AA6CB328993"
+        },
+        {
+          "path": "package-include/wil/filesystem.h",
+          "sha256": "B2431BEA7000A4BF8565032764B57EC5F0303B05541A1D2C9A6929C278B8E1C6"
+        },
+        {
+          "path": "package-include/wil/cppwinrt.h",
+          "sha256": "32FD8C482F7CE607D6CE784EC9BF68988385648CED133D08ECD1751A4B5A7EBA"
+        },
+        {
+          "path": "package-include/wil/cppwinrt_wrl.h",
+          "sha256": "97C6C033CFBBC5AE6D691488168DAED48689C5B8EFA9D0E78F1F51F9C2BE8613"
+        },
+        {
+          "path": "package-include/wil/cppwinrt_notifiable_server_lock.h",
+          "sha256": "1C9CA42A47DA9724C7EE27608308BE38A2542C87E48AFA8999CB056CDB00C054"
+        },
+        {
+          "path": "package-include/wil/cppwinrt_helpers.h",
+          "sha256": "7233605E0158DB0EECA04DEF476A3D752E9986ACFF42539FF7F2D3E8DCE5D849"
+        },
+        {
+          "path": "package-include/wil/cppwinrt_authoring.h",
+          "sha256": "C9C953D79A84EB0A09CCBC6072D03B7C58834A08E962EEC172D5FDF77F33E0D5"
+        },
+        {
+          "path": "package-include/wil/coroutine.h",
+          "sha256": "D79D8EFA59186892DFCB6F6E464AFFC3E1EDAB683BA96F3C17A340753E52FC45"
+        },
+        {
+          "path": "package-include/wil/common.h",
+          "sha256": "126AFCD82DC11028871CCB5C3E8D27468E5B0EBD42EAB6BF38B5C619467286A1"
+        },
+        {
+          "path": "package-include/wil/com.h",
+          "sha256": "4B95C2201D908B277D6472DDB2EFCA6A75838430DC4F53A3D747BBC24394ADC8"
+        },
+        {
+          "path": "package-include/wil/result_macros.h",
+          "sha256": "35BC595C8B338809F23F5DB90E1FF817F41648940F594A2DE3A3BF5273A1B74A"
+        },
+        {
+          "path": "package-include/wil/wrl.h",
+          "sha256": "A9B089553E4DF93CD812215046A4966BAB85D337099C2FE4741EAC378A4124DD"
+        }
+      ]
+    },
+    "changedPaths": [
+      "include/DxUi/DxUi.h",
+      "include/DxUi/MarkdownSyntax.h",
+      "include/DxUi/RichDocument.h"
+    ]
+  },
+  "pathPolicy": "Compiler tlogs and expanded compiler/link command text are excluded from this public projection because they contain machine-specific absolute paths. Their exact raw SHA-256 receipts are retained above. Public source and header paths are repository-relative."
+}

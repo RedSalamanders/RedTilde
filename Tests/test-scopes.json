@@ -404,6 +404,20 @@
       "reason": "shared build, dependency, runner or scope policy"
     },
     {
+      "pattern": "package.ps1",
+      "scopes": [
+        "Tooling"
+      ],
+      "reason": "current build-receipt admission before packaging"
+    },
+    {
+      "pattern": "performance-paired.ps1",
+      "scopes": [
+        "Tooling"
+      ],
+      "reason": "current build-receipt admission before performance runs"
+    },
+    {
       "pattern": "restore-dxui.ps1",
       "scopes": [
         "*"
