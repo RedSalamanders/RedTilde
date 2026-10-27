@@ -1,0 +1,38 @@
+{
+  "schema": "redtilde-diagnostic-evidence-binding-v1",
+  "productionSource": {
+    "commit": "eed2abe9885c57f44ab192155b341582782020f9",
+    "sdk": "98c795b765a10d1805ae0a7c35a8ade535fb7fd6",
+    "primaryAcceptanceFlagsRetained": 2
+  },
+  "residentDiagnostic": {
+    "referenceCommit": "604bbaf32f7bfc13c4a5169ebe32804ceac71509",
+    "referenceSdk": "4077f57df8207eac6c39c43437feb45b19d23cf8",
+    "referenceExecutableSha256": "3F9183EFF38D2358066BF9A3A7C3F9226DFFC8024B0E386B3E98923DB811D10E",
+    "referencePdbSha256": "9232FF0D0D5B01415EAFF3A154AEC706C98F3829F434B2B32D6C4949170B89A9",
+    "candidateCommit": "eed2abe9885c57f44ab192155b341582782020f9",
+    "candidateSdk": "98c795b765a10d1805ae0a7c35a8ade535fb7fd6",
+    "candidateExecutableSha256": "61796E1BAFF0CB45E2254969AEC4B35FA63F55B2743CED049F75C2B0F027B308",
+    "candidatePdbSha256": "11F32140DC39690DAA7E9941100CF3E96A446369D38FE95A6C9EEAAB5D4C1BC5",
+    "publicHeadersSha256": "AA7B65052E18BA0AF7F6B60AFC47E4F63EEB7552BEA2878972EC36495BFB69C8",
+    "publicHeaderCount": 58,
+    "declarationSha256": "06A825C03AABF0AED539688AE855F18E999190AF0E34D964EFFF71029C8FF3E9",
+    "preflightSha256": "8894F956B8BCB2A0CEC4D4D0880BB4AA51C99E37A214ACD1F4CA94E741A13D3F",
+    "bindingSha256": "1A384AD9D5758D107A0EA41CFE051851DA0EF6FD11A8E4BB3B586430C1F6BAB3",
+    "replayReportSha256": "6B7605044BA7CF7C641D0FC4ACFFB125CF16D00A1BE139B8DE1A0C757B8FBC74",
+    "replayManifestSha256": "D4D15051F62D46D4871A34D40F6869CBC46EA71B4C2D891D8AAA22F64DD3131A",
+    "replayerSha256": "161C81D621E6D8AC29A5C9B64924717A8695D25FFAFC3C802380DB1099726F92"
+  },
+  "separatePrelaunchFailure": {
+    "classification": "module-scope source-identity lookup failed before any application or observer child launch",
+    "slotsLaunched": 0,
+    "applicationOrObserverLaunched": false,
+    "measurements": 0
+  },
+  "postprocessor": {
+    "stockSummaryStatus": "failed IndexOutOfBounds before writing summary outputs",
+    "nativeCollectionFailed": false,
+    "independentPythonReplay": "passed all 8 receipts and raw row arithmetic"
+  },
+  "createdFromExistingReceipts": true
+}

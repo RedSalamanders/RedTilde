@@ -1,0 +1,55 @@
+{
+  "schema": "redtilde-selection-profile-diagnostics-v1",
+  "records": [
+    {
+      "profile": "app-selection-components-v2",
+      "validation": "passed-raw-integrity-and-reconciliation",
+      "componentCount": 16,
+      "fixedRunCount": 4,
+      "processOrder": [
+        "compose",
+        "split",
+        "split",
+        "compose"
+      ],
+      "cyclesPerProcess": 64,
+      "selectionTransactionsPerProcess": 128,
+      "sourceCommit": "eed2abe9885c57f44ab192155b341582782020f9",
+      "sourceIdentitySha256": "05c3271b1ffc45d9254bf85498578a25e3ba3154dc0741dec87a01973e54835b",
+      "dxUiCommit": "98c795b765a10d1805ae0a7c35a8ade535fb7fd6",
+      "consumerFingerprint": "4deb4cf08c71b06751c6eba6c40b8e9acff58309c351a11325bbf071f427b92a",
+      "executableSha256": "207F0FEAB9D52BBB27CFD8DBBA3AB1EFE7DDF52762C19620FCBAB4AAD6C3D749",
+      "profileManifestSha256": "74A01C8CDBD8C249E703005038BF475B0AF36553E1882D34CC315B713CFBE40F",
+      "runManifestSha256": "F240D3FE79D11F33E697125F4EC4E0585C3F584A336226C6B4274A6808C90257",
+      "validatedSummarySha256": "1F42EE24E6A542D62BD9439343BBBF1A9A91860BDD7DBA490AE31735E6786DAE",
+      "interpretation": "Instrumentation-only component timing. This is not an application performance comparison or gain."
+    },
+    {
+      "profile": "app-selection-components-v3",
+      "validation": "passed-raw-integrity-and-reconciliation",
+      "componentCount": 18,
+      "fixedRunCount": 4,
+      "processOrder": [
+        "compose",
+        "split",
+        "split",
+        "compose"
+      ],
+      "cyclesPerProcess": 64,
+      "selectionTransactionsPerProcess": 128,
+      "sourceCommit": "eed2abe9885c57f44ab192155b341582782020f9",
+      "sourceIdentitySha256": "6893e9aed2d2d8161803901ec3068d7969775bd7bcc83a4fd5f984eacd490c73",
+      "dxUiCommit": "98c795b765a10d1805ae0a7c35a8ade535fb7fd6",
+      "consumerFingerprint": "4deb4cf08c71b06751c6eba6c40b8e9acff58309c351a11325bbf071f427b92a",
+      "executableSha256": "73A3B88B283EE9E5BC299358D030B9D971ABD39DE3D557DA30F346E02F8ECA97",
+      "profileManifestSha256": "4FF61AFA1D968D5638045F81B3B4B70F01D31520039D1B7C032C8D3EB29CD60A",
+      "runManifestSha256": "415958A785478A873B1850BC11E44063AC792CF2088D0CC0CB983171D9F256C5",
+      "validatedSummarySha256": "425A96C76B08D658BE998146330DC7CC53C5B8B4D3A3DC2A50B535B14F7C17AF",
+      "interpretation": "Instrumentation-only component timing. This is not an application performance comparison or gain."
+    }
+  ],
+  "limits": [
+    "Profiles bind different instrumented executable/source identities even though the source revision and SDK pin are the same.",
+    "Counts describe instrumentation records only; no application gain or acceptance conclusion."
+  ]
+}

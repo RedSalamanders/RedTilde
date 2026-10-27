@@ -1,0 +1,232 @@
+{
+  "schema": "redtilde-private-status-format-results-v1",
+  "status": "independently-parsed-descriptive-results",
+  "scope": "standalone formatter microbenchmark only; no application qualification, policy pass, or application performance claim",
+  "build": {
+    "nativeBuildSucceeded": true,
+    "warningCount": 0,
+    "errorCount": 0,
+    "scriptReceiptPassed": false,
+    "scriptPostconditionFailure": "CL.command.1.tlog does not contain the full CL executable path; compile-attempt3.log does identify the pinned CL executable.",
+    "canonicalQualification": false,
+    "executableSha256": "E1BD6CEAE7A55FFF67E020E96C14AC8E7F4FE1032EA7B1FA49A125BCE4DFB09D",
+    "compilerSha256": "F1023C336447D8AB00E28E9C02E25FD6206928F894DF22F11CFB0D4233A10F25",
+    "compileLogSha256": "B17920CAE030C2E548CAD50477015A01C5FDA03A0A3C01D53560AA2787FE9C7B",
+    "clCommandTlogSha256": "4B50EBFD5E4BD3233A14309B9DC7A2E5B42D0A81383731B09FC8F1C0B58C32EA",
+    "rootAttestationSha256": "A29C36C99754D1553B674490832D743B4268FD3324B1BE73C79AF5B26043FF3B",
+    "compileReceiptSha256": "D04FB42E9B9483CD7B56D32692F422444AB9B063598F4A216001733D94752063"
+  },
+  "runtime": {
+    "rootReportedRuns": 1,
+    "rootReportedExitCode": 0,
+    "csvSha256": "4183318769B1E775345145DD66441E2E95DF78D799F1D673EF6CEC0F389E89E6",
+    "rows": 168,
+    "cases": [
+      "current-block-english",
+      "current-block-reordered",
+      "position-english",
+      "position-reordered",
+      "word-stats",
+      "focus-stats",
+      "specifier-fallback"
+    ],
+    "strategies": [
+      "std-vformat",
+      "std-vformat-to-reserved-string",
+      "bounded-prototype"
+    ],
+    "sampleCountPerCaseStrategy": 8,
+    "callsPerSample": 50000,
+    "timedCalls": 8400000,
+    "invalidNumericOrShapeRows": 0,
+    "duplicateRows": 0,
+    "checksumGroups": 56,
+    "checksumMismatches": 0,
+    "checksumRule": "per case and sample, equal across the three strategies",
+    "localizationScope": "English patterns mirror current resource templates; reordered patterns are synthetic; no localized resource DLL variants were loaded"
+  },
+  "medians": [
+    {
+      "case": "current-block-english",
+      "strategies": {
+        "std-vformat": {
+          "sampleCount": 8,
+          "medianNsPerCall": 127.179,
+          "representativeOutputLength": 25,
+          "representativeCapacity": 39
+        },
+        "std-vformat-to-reserved-string": {
+          "sampleCount": 8,
+          "medianNsPerCall": 123.849,
+          "representativeOutputLength": 25,
+          "representativeCapacity": 87
+        },
+        "bounded-prototype": {
+          "sampleCount": 8,
+          "medianNsPerCall": 96.64,
+          "representativeOutputLength": 25,
+          "representativeCapacity": 31
+        }
+      },
+      "prototypeDeltaVsVFormatNs": 30.539,
+      "vformatToDeltaVsVFormatNs": 3.33
+    },
+    {
+      "case": "current-block-reordered",
+      "strategies": {
+        "std-vformat": {
+          "sampleCount": 8,
+          "medianNsPerCall": 125.135,
+          "representativeOutputLength": 22,
+          "representativeCapacity": 39
+        },
+        "std-vformat-to-reserved-string": {
+          "sampleCount": 8,
+          "medianNsPerCall": 121.493,
+          "representativeOutputLength": 22,
+          "representativeCapacity": 87
+        },
+        "bounded-prototype": {
+          "sampleCount": 8,
+          "medianNsPerCall": 91.183,
+          "representativeOutputLength": 22,
+          "representativeCapacity": 23
+        }
+      },
+      "prototypeDeltaVsVFormatNs": 33.952,
+      "vformatToDeltaVsVFormatNs": 3.642
+    },
+    {
+      "case": "position-english",
+      "strategies": {
+        "std-vformat": {
+          "sampleCount": 8,
+          "medianNsPerCall": 219.433,
+          "representativeOutputLength": 42,
+          "representativeCapacity": 111
+        },
+        "std-vformat-to-reserved-string": {
+          "sampleCount": 8,
+          "medianNsPerCall": 232.154,
+          "representativeOutputLength": 42,
+          "representativeCapacity": 111
+        },
+        "bounded-prototype": {
+          "sampleCount": 8,
+          "medianNsPerCall": 189.194,
+          "representativeOutputLength": 42,
+          "representativeCapacity": 47
+        }
+      },
+      "prototypeDeltaVsVFormatNs": 30.239,
+      "vformatToDeltaVsVFormatNs": -12.721
+    },
+    {
+      "case": "position-reordered",
+      "strategies": {
+        "std-vformat": {
+          "sampleCount": 8,
+          "medianNsPerCall": 185.76,
+          "representativeOutputLength": 17,
+          "representativeCapacity": 87
+        },
+        "std-vformat-to-reserved-string": {
+          "sampleCount": 8,
+          "medianNsPerCall": 195.879,
+          "representativeOutputLength": 17,
+          "representativeCapacity": 87
+        },
+        "bounded-prototype": {
+          "sampleCount": 8,
+          "medianNsPerCall": 137.234,
+          "representativeOutputLength": 17,
+          "representativeCapacity": 23
+        }
+      },
+      "prototypeDeltaVsVFormatNs": 48.526,
+      "vformatToDeltaVsVFormatNs": -10.119
+    },
+    {
+      "case": "word-stats",
+      "strategies": {
+        "std-vformat": {
+          "sampleCount": 8,
+          "medianNsPerCall": 174.792,
+          "representativeOutputLength": 38,
+          "representativeCapacity": 71
+        },
+        "std-vformat-to-reserved-string": {
+          "sampleCount": 8,
+          "medianNsPerCall": 172.484,
+          "representativeOutputLength": 38,
+          "representativeCapacity": 111
+        },
+        "bounded-prototype": {
+          "sampleCount": 8,
+          "medianNsPerCall": 142.789,
+          "representativeOutputLength": 38,
+          "representativeCapacity": 39
+        }
+      },
+      "prototypeDeltaVsVFormatNs": 32.003,
+      "vformatToDeltaVsVFormatNs": 2.308
+    },
+    {
+      "case": "focus-stats",
+      "strategies": {
+        "std-vformat": {
+          "sampleCount": 8,
+          "medianNsPerCall": 121.518,
+          "representativeOutputLength": 20,
+          "representativeCapacity": 39
+        },
+        "std-vformat-to-reserved-string": {
+          "sampleCount": 8,
+          "medianNsPerCall": 117.876,
+          "representativeOutputLength": 20,
+          "representativeCapacity": 79
+        },
+        "bounded-prototype": {
+          "sampleCount": 8,
+          "medianNsPerCall": 90.079,
+          "representativeOutputLength": 20,
+          "representativeCapacity": 23
+        }
+      },
+      "prototypeDeltaVsVFormatNs": 31.439,
+      "vformatToDeltaVsVFormatNs": 3.642
+    },
+    {
+      "case": "specifier-fallback",
+      "strategies": {
+        "std-vformat": {
+          "sampleCount": 8,
+          "medianNsPerCall": 396.474,
+          "representativeOutputLength": 29,
+          "representativeCapacity": 39
+        },
+        "std-vformat-to-reserved-string": {
+          "sampleCount": 8,
+          "medianNsPerCall": 392.785,
+          "representativeOutputLength": 29,
+          "representativeCapacity": 87
+        },
+        "bounded-prototype": {
+          "sampleCount": 8,
+          "medianNsPerCall": 396.551,
+          "representativeOutputLength": 29,
+          "representativeCapacity": 39
+        }
+      },
+      "prototypeDeltaVsVFormatNs": -0.077,
+      "vformatToDeltaVsVFormatNs": 3.689
+    }
+  ],
+  "protection": {
+    "currentPostRuntimeHashesMatchCompileBefore": true,
+    "currentPostRuntimeHashesMatchCompileAfter": true,
+    "protectedFileCount": 21,
+    "rootAttestationProtectedFileCount": 21
+  },
+  "interpretation": "Descriptive microbenchmark result only. No probe subtraction, paired app-path comparison, p-values, or production decision."
+}

@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Publish source-bound SDK native/paired qualification and RedTilde diagnostic follow-up, preserving the merged implementation trees, two open original-UI performance flags, unqualified SDK policy and billing-blocked hosted RedTilde ARM64 gate; reject the low-benefit formatter prototype without changing production code.
 - Archive the fresh 576-process comparison at the source-ink renderer adoption: all six consumer builds and three x64 Full profiles pass, while two original-UI performance flags, unstable controls, policy acceptance and billing-blocked hosted RedTilde ARM64 remain open. The actual PR18-base comparison has no flagged regressions; diagnostic timings do not establish causal savings.
 - Observe asynchronous preference-write completion and status before reading persisted views in nested-view tests, avoiding reader interference with atomic replacement while preserving the exact view assertions and two-second deadline.
 - Pin the bounded native source-ink renderer for qualification. It preserves prepared source geometry and colors while avoiding drawing-effect mutation for supported glyph runs; conservative fallback retains all existing source colors. Final native, platform, input and paired performance qualification remains pending.
