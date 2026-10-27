@@ -1,0 +1,65 @@
+{
+  "schema": "redtilde-source-ink-diagnostic-source-identity-v1",
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-completed-native-v2",
+  "benchmarkInputs": {
+    "Tests/Application.Tests.Performance.cpp": "80BD870F222AF2F6A95C0EA6C1364A220AC93D23B2A0BEB5F874979B0ADECF61",
+    "Tests/Application.Tests.HeapDiagnostic.h": "BCD650BA755F66CE28A30C81C8ECB9F07E937DBA6A9A2C7FDF34AF2F8836DCA9",
+    "RedTilde/Main.cpp": "7918862FD087DE59C563B21C9BE196D6C1F4A620C2F66468A1914D72D0F070AF",
+    "RedTilde/EditDiagnostics.h": "779E4A6B708C39CF103D641CE0745983D52E0AB511F6D1DEDF4FF785EBED0E34",
+    "performance-paired.ps1": "A7487DA58293B9A8D6FED98AC37D7FC38CD7E75C12C65D9AD0E6250D513C8877",
+    "Build/Performance.psm1": "3AAF4B476E99DCC5647049C70E114B9F7D0BB5CCBEBA1399CCBF42198F6FE95A",
+    "Build/Harness.psm1": "B12F1C4C7DDA573117C7D6DADE2483D2085B3102D2D2844B8CAAC7D43D1D9AE1",
+    "docs/examples/s5-performance.md": "9CE1CA2DE3983070C40DC5A9DF331C9AA386FE796371E5527BF370AC70D3A10E",
+    "Build/ReviewedHeaderDeltaProfile.json": "488860317B002DA60EBFC45EF38DB206E42273D8AD86016A996E023DD37BAD5D"
+  },
+  "actualNextPrBase": {
+    "appCommit": "07b232a7ac878cebebddef8631251aeb6358afed",
+    "tree": "06f69df5563cecaee7bb2e200b380f1ce827ff10",
+    "binarySha256": "68D8799E76F8C0056AC7897FEFD8F2518C61CEBD3C04F38E9FEF4F1B45E190E1",
+    "compiledSourceIdentity": "633302c45ac8da29e7bea24cf7909dc70d8aad1665ebe618252dd31f72e0d8f3",
+    "sdkPin": "4077f57df8207eac6c39c43437feb45b19d23cf8",
+    "comparisonRole": "context only; not compared in this 16-process study"
+  },
+  "baseline": {
+    "appCommit": "a29c9f8447fe06b33b3a9c611dda5d6e6d29205e",
+    "sourceIdentity": "266b01d9e19caf87d80bf9c2069c871ec906b8b0973e4d4ffe6327fcf15c3ffa",
+    "compiledSourceIdentity": "633302c45ac8da29e7bea24cf7909dc70d8aad1665ebe618252dd31f72e0d8f3",
+    "sdkCommit": "4077f57df8207eac6c39c43437feb45b19d23cf8",
+    "binarySha256": "68D8799E76F8C0056AC7897FEFD8F2518C61CEBD3C04F38E9FEF4F1B45E190E1",
+    "dependencyPublicHeadersSha256": "AA7B65052E18BA0AF7F6B60AFC47E4F63EEB7552BEA2878972EC36495BFB69C8",
+    "sourceHeaderCount": 25,
+    "packageHeaderCount": 33
+  },
+  "candidate": {
+    "appCommit": "1fb2fbbc32d08baee36a2cdfdc9ceaeaa20d3b26",
+    "sourceIdentity": "1707e3e0ef8bf69814754c2dd5e6490ee26c50870be37d88c6c1c7f38cac488b",
+    "compiledSourceIdentity": "e86a8138f6c268dfe9976836960814e0fc8cd2cbc0d6731e99292b4a03008deb",
+    "sdkCommit": "bc2ac1d517d10e2a6713195790c0a4052e7b028b",
+    "binarySha256": "515A16D1794F3A229363B73578FBC16E8410149B728B6B8502DF34E5E0990FFD",
+    "dependencyPublicHeadersSha256": "AA7B65052E18BA0AF7F6B60AFC47E4F63EEB7552BEA2878972EC36495BFB69C8",
+    "rendererImplementationHeaderSha256": "1F0877AA4A255CA35409E6B09B4BA9B80A4F4D242316D68890B03D61680F3ECD",
+    "rendererHeaderBoundary": "single private implementation header; not part of public API/header closure"
+  },
+  "publicDependencyHeaderClosure": {
+    "baselineSha256": "AA7B65052E18BA0AF7F6B60AFC47E4F63EEB7552BEA2878972EC36495BFB69C8",
+    "candidateSha256": "AA7B65052E18BA0AF7F6B60AFC47E4F63EEB7552BEA2878972EC36495BFB69C8",
+    "sameDigest": true,
+    "sourceHeaderCount": 25,
+    "packageHeaderCount": 33,
+    "sourceSha256": "65C1BCF6263B8AAE5A69D3C9D989F8901C7E7C7010AA2C8BC7FB2F756CAD3348",
+    "packageSha256": "38C35CF4C74E24BEE7B08D67D8AE89E7A5A100EF705DB1CB54B55738A4D5D2E7"
+  },
+  "sourceAlignment": {
+    "nativeCppInputs": 41,
+    "contentIdenticalExceptOneLineEndingNormalization": true,
+    "normalizedHarnessHeader": "Tests/Application.Tests.HeapDiagnostic.h",
+    "preNormalizationLineEndingVariantSha256": "5A89343563D46AAD9D3FC5E81683000EDC3F9571BDEA3DDF82E2CA6DA46AB537",
+    "qualifiedAlignedSha256": "BCD650BA755F66CE28A30C81C8ECB9F07E937DBA6A9A2C7FDF34AF2F8836DCA9",
+    "normalization": "LF/CRLF-only; aligned to qualified raw source for the canonical rebuild",
+    "frozenMetadataEdited": false,
+    "gitTreeEdited": false
+  },
+  "candidateReceiptSha256": "3C9DA0E6BB5ADB3CDF651CD30CE0E09AC85C9FD4D9331181DE123AF5E31DE55C",
+  "baselineMetadataSha256": "F5961BF56168831B22C6496BC5D3EA7072E4526EEBC4A40B94DCCDCBBC42F510"
+}

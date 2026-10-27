@@ -1,0 +1,25 @@
+{
+  "schema": "redtilde-source-ink-independent-audit-v1",
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-completed-native-v2",
+  "benchmarkInputs": {
+    "Tests/Application.Tests.Performance.cpp": "80BD870F222AF2F6A95C0EA6C1364A220AC93D23B2A0BEB5F874979B0ADECF61",
+    "Tests/Application.Tests.HeapDiagnostic.h": "BCD650BA755F66CE28A30C81C8ECB9F07E937DBA6A9A2C7FDF34AF2F8836DCA9",
+    "RedTilde/Main.cpp": "7918862FD087DE59C563B21C9BE196D6C1F4A620C2F66468A1914D72D0F070AF",
+    "RedTilde/EditDiagnostics.h": "779E4A6B708C39CF103D641CE0745983D52E0AB511F6D1DEDF4FF785EBED0E34",
+    "performance-paired.ps1": "A7487DA58293B9A8D6FED98AC37D7FC38CD7E75C12C65D9AD0E6250D513C8877",
+    "Build/Performance.psm1": "3AAF4B476E99DCC5647049C70E114B9F7D0BB5CCBEBA1399CCBF42198F6FE95A",
+    "Build/Harness.psm1": "B12F1C4C7DDA573117C7D6DADE2483D2085B3102D2D2844B8CAAC7D43D1D9AE1",
+    "docs/examples/s5-performance.md": "9CE1CA2DE3983070C40DC5A9DF331C9AA386FE796371E5527BF370AC70D3A10E",
+    "Build/ReviewedHeaderDeltaProfile.json": "488860317B002DA60EBFC45EF38DB206E42273D8AD86016A996E023DD37BAD5D"
+  },
+  "reference": "typed-CSharp-subset-enumeration-v1",
+  "knownValueOracles": true,
+  "checks": 4263527,
+  "studyCount": 1,
+  "nativeSlots": 16,
+  "independentReferenceMatches": true,
+  "completedUtc": "2026-10-27T00:44:56.7932401Z",
+  "scope": "Numerical and integrity replay of the one diagnostic only. No policy self-approval or performance acceptance.",
+  "acceptance": false
+}

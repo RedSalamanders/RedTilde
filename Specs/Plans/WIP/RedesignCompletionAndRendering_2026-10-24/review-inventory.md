@@ -15544,7 +15544,7 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
-      "sha256": "16eb74421966d84aae46c1bfe193b462027179cd4d6225851493b9e91b8e748f",
+      "sha256": "2e672d419eeecab10a16de35e475b63a231efb3324c553e8e3dbb97f31cb2ed8",
       "category": "planning-document",
       "generated": false,
       "reviewStatus": "reviewed-delta",
@@ -16342,7 +16342,7 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Measurements/README.md",
-      "sha256": "21dc57b142edf171ad20ac9d3b602e402fc2a8f450ec34234bffcfca7ca7c230",
+      "sha256": "4615882b2322a0c63296b9e0ea142b4b0bf9d1a37ff0073b13fa7a8497918dc6",
       "category": "measurement-index",
       "generated": false,
       "reviewStatus": "reviewed-delta",
@@ -16749,7 +16749,7 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "DxUi",
       "path": "Measurements/README.md",
-      "sha256": "8a943e7375c9625270ee993a1ed0f8ad86fe07841236840269cb5c6936794985",
+      "sha256": "4615882b2322a0c63296b9e0ea142b4b0bf9d1a37ff0073b13fa7a8497918dc6",
       "category": "documentation-projection",
       "generated": false,
       "reviewStatus": "reviewed-delta",
@@ -22055,6 +22055,51 @@ the current performance policy or accept the remaining regressions.
       "repository": "RedTilde",
       "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24/review-inventory.md",
       "disposition": "Self-ledger file intentionally excluded from its own content hash and source-review count."
+    },
+    {
+      "repository": "RedTilde",
+      "path": "Measurements/RedesignCompletion_2026-10-27/source-ink-descriptive-1fb2fbbc/.gitattributes",
+      "disposition": "Evidence packet byte-policy metadata; excluded from line-by-line source scope."
+    },
+    {
+      "repository": "RedTilde",
+      "path": "Measurements/RedesignCompletion_2026-10-27/source-ink-descriptive-1fb2fbbc/README.md",
+      "disposition": "Evidence projection documentation; excluded from line-by-line source scope."
+    },
+    {
+      "repository": "RedTilde",
+      "path": "Measurements/RedesignCompletion_2026-10-27/source-ink-descriptive-1fb2fbbc/summary.json",
+      "disposition": "Sanitized descriptive study projection; excluded from line-by-line application source scope."
+    },
+    {
+      "repository": "RedTilde",
+      "path": "Measurements/RedesignCompletion_2026-10-27/source-ink-descriptive-1fb2fbbc/source-identity.json",
+      "disposition": "Source and dependency identity projection; excluded from line-by-line application source scope."
+    },
+    {
+      "repository": "RedTilde",
+      "path": "Measurements/RedesignCompletion_2026-10-27/source-ink-descriptive-1fb2fbbc/raw-report-index.json",
+      "disposition": "Synthetic-key digest index for omitted native reports; raw payloads are not published."
+    },
+    {
+      "repository": "RedTilde",
+      "path": "Measurements/RedesignCompletion_2026-10-27/source-ink-descriptive-1fb2fbbc/metric-rows.csv",
+      "disposition": "Sanitized 12-row diagnostic projection; excluded from line-by-line application source scope."
+    },
+    {
+      "repository": "RedTilde",
+      "path": "Measurements/RedesignCompletion_2026-10-27/source-ink-descriptive-1fb2fbbc/independent-audit.json",
+      "disposition": "Sanitized independent audit result; no policy self-approval or acceptance."
+    },
+    {
+      "repository": "RedTilde",
+      "path": "Measurements/RedesignCompletion_2026-10-27/source-ink-descriptive-1fb2fbbc/publication-manifest.json",
+      "disposition": "Evidence packet file/hash manifest; excluded from line-by-line source scope."
+    },
+    {
+      "repository": "RedTilde",
+      "path": "Measurements/RedesignCompletion_2026-10-27/source-ink-descriptive-1fb2fbbc/evidence-index.json",
+      "disposition": "Evidence packet integrity index; excluded from line-by-line source scope."
     }
   ],
   "reviewProcessNote": "Dated current review deltas preserve prior reviewHistory and reviewDeltaNotes. Current changed paths receive refreshed raw SHA-256 and four-part review notes. The retargeted DxUi menu plan row preserves the former WIP path/hash. New measurement projections and general planning/index documents are explicitly scoped, not counted as source review rows."
