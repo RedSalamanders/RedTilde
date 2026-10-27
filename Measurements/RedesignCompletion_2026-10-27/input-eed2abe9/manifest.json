@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "artifactType": "retained-sanitized-evidence-projection",
+  "publicationStatus": "Retained sanitized evidence projection; results remain source-bound and acceptance gates are separate.",
+  "rootRelativeLocation": "Measurements/RedesignCompletion_2026-10-27/input-eed2abe9",
+  "manifestSelfHash": "not embedded to avoid recursive self-reference",
+  "files": [
+    {
+      "file": ".gitattributes",
+      "bytes": 182,
+      "sha256": "64AF92948F31259C33C2F104FFE641FEF2136CDD078F1C3DEA6B3D4F25CE1081"
+    },
+    {
+      "file": "README.md",
+      "bytes": 1962,
+      "sha256": "299055FCA45245F9BB001EB8E66AC5A70FB704184D1004DCD81A1775D2662946"
+    },
+    {
+      "file": "source-and-evidence-hashes.json",
+      "bytes": 1765,
+      "sha256": "92E0CA6D8010CBE0C56BB6CC64E68BD4F3EAAF274431E5E87D96138C1A572B9F"
+    },
+    {
+      "file": "summary.json",
+      "bytes": 2505,
+      "sha256": "B41A68BA1013A3D5F9F1AE5AFC067694AD03C28D48811E0166EA6D3492482ED8"
+    }
+  ],
+  "originDraftRootRelativeLocation": ".build/audit-20261027/evidence-eed-public-drafts/input-eed2abe9"
+}

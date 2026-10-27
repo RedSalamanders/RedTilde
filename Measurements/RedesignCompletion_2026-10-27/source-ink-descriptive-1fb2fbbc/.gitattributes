@@ -1,0 +1,2 @@
+# Preserve this packet and this byte-policy file across Git checkout.
+* -text -whitespace

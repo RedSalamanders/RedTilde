@@ -1,0 +1,67 @@
+{
+  "passed": true,
+  "checks": 13322,
+  "rawReports": 576,
+  "metricRows": 72,
+  "blockEffects": 864,
+  "controlDrifts": 1728,
+  "csvCells": 936,
+  "scriptSha256": "90959f2ec96f2204fb6557b2357e0e653b68b0855550db965bbc6c4f5025f804",
+  "summarySha256": "42850cdb433453f604e5ee8c6a3102ace931f4c5e5f66eaf1f806284a5d0014f",
+  "rawIndexSha256": "1df34c64cc2de87cde25a1736d44ef9ed49e7ff1c768b2a663e328124e871f65",
+  "csvSha256": "a609b059013fa54d632f24f38a1630818d32cf5620fa1c52d52b4213dd8a2079",
+  "canonicalAuditChecks": 25120,
+  "canonicalAuditSha256": "be0672c979a4972862bf509fbdad2149dfcb43c45f13909e66e2945f1607f163",
+  "rawReportHashSetSha256": "c96c10b62720b9fa8e0f25f89b20c2e72052bbd1b1db096e72e56fd20f00fa0a",
+  "groups": [
+    {
+      "cohort": "originalUi",
+      "phase": "AA",
+      "rows": 12,
+      "regressed": 0,
+      "improved": 0,
+      "unstable": 6
+    },
+    {
+      "cohort": "originalUi",
+      "phase": "AB",
+      "rows": 12,
+      "regressed": 2,
+      "improved": 0,
+      "unstable": 6
+    },
+    {
+      "cohort": "startingRedesign",
+      "phase": "AA",
+      "rows": 12,
+      "regressed": 0,
+      "improved": 0,
+      "unstable": 6
+    },
+    {
+      "cohort": "startingRedesign",
+      "phase": "AB",
+      "rows": 12,
+      "regressed": 0,
+      "improved": 5,
+      "unstable": 6
+    },
+    {
+      "cohort": "actualPr18Base",
+      "phase": "AA",
+      "rows": 12,
+      "regressed": 0,
+      "improved": 0,
+      "unstable": 6
+    },
+    {
+      "cohort": "actualPr18Base",
+      "phase": "AB",
+      "rows": 12,
+      "regressed": 0,
+      "improved": 1,
+      "unstable": 6
+    }
+  ],
+  "acceptance": "Integrity and numerical replay only; policy and unresolved findings remain open."
+}

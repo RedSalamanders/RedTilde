@@ -49,6 +49,13 @@ Validator-owned evidence regressions replay the retained small fixture and rejec
 semantic corruptions for their expected reasons; they never substitute fixture replay for native execution.
 Declared current diagnostics cannot downgrade to the readable legacy prototype to omit caption evidence.
 
+Preference-persistence tests await the SettingsWriter's bounded idle boundary and require its successful status
+before opening the settings file once. Polling LoadSettings while the writer is active can hold a read handle
+that blocks atomic replacement. The nested-view regressions retain their two-second wait budget, exact persisted
+view and source/history assertions; do not retry a failed write or change production file-sharing policy to make
+the observer pass. Retain the writer HRESULT on failure. A controlled held-reader reproduction establishes that
+interference mechanism; it does not attribute an earlier failure whose worker result was not recorded.
+
 Keep compiler-change failures and new-toolchain builds distinct from earlier successful receipts. A later
 documentation/tooling edit requires a fresh source-bound build receipt even if the native binary stays identical.
 Retain the original runtime receipt/source identity when closing documentation or validation-tool changes. Reuse
@@ -99,7 +106,7 @@ These record oracles establish error mapping, not recovery from an actually miss
 
 Physical focus/IME/AT, release/package acceptance, hardware-specific qualification and paired resource/performance studies retain their owning gates. Hidden/scoped/native CI passes never close those gates. Native test basenames use contextual `Scope.Tests.Something.h/.cpp`; inventories cover active files only. Immutable historical receipts, archived source and legacy references are not renamed or rewritten.
 
-RedTilde partitions its 59 registered native cases into Storage (10), Settings (4), Recovery (5) and Editor (40). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
+RedTilde partitions its 65 registered native cases into Storage (10), Settings (4), Recovery (5) and Editor (46). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
 
 The Files dirty-transition regression uses a nontrivial invented folder model, a separately selected/focused row
 and a nonzero scroll position. Dirty/undo must change only the visible current-file badge without rebuilding the

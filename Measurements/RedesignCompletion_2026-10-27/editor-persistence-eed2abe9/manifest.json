@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "artifactType": "retained-sanitized-evidence-projection",
+  "publicationStatus": "Retained sanitized evidence projection; results remain source-bound and acceptance gates are separate.",
+  "rootRelativeLocation": "Measurements/RedesignCompletion_2026-10-27/editor-persistence-eed2abe9",
+  "manifestSelfHash": "not embedded to avoid recursive self-reference",
+  "files": [
+    {
+      "file": ".gitattributes",
+      "bytes": 143,
+      "sha256": "870BD99DFA1953C214A7DDFF95FDFE38786B3613F7299CBE7D1B9128EB39AB5B"
+    },
+    {
+      "file": "README.md",
+      "bytes": 3018,
+      "sha256": "7D3DB865C9BDB661BEE9C619770E95EE4982B9C6DF2974D6C8C66ADE505BDEA9"
+    },
+    {
+      "file": "source-and-evidence-hashes.json",
+      "bytes": 17491,
+      "sha256": "9E99542D76D613B1780B21EC88BECDB1C66A3BAA59BD5F2ED87E756CB41C791E"
+    },
+    {
+      "file": "summary.json",
+      "bytes": 3725,
+      "sha256": "57FE689AABFE29083D8DBCDA9D9916A826B0A94651E08A8F458C6412CC81CCD0"
+    }
+  ],
+  "originDraftRootRelativeLocation": ".build/audit-20261027/evidence-eed-public-drafts/editor-persistence-eed2abe9"
+}
