@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Archive final SDK x64 ASan 19-suite and tooling evidence beside the Markdown/caption captures; retain the earlier deadline failure, successful unchanged retry and remaining configuration/platform/performance gates.
 - Record Debug and Release qualification for Markdown styling and caption input (67 native cases and 32 captures each), archive source-bound evidence, and document build-source freezing and remaining configuration/platform/performance holds.
 - Use shared pre-presentation hidden frame capture for reliable caption hover evidence, and validate the adopted SDK's repaired Release defaults alongside explicit toolchain bindings and negative controls.
 - Match the requested Markdown styling with shared DxUi heading separators, content-sized tables, centered display math/diagrams and shaded quotes; restore title-bar hover/press and canonical caption activation. Source editing remains intact with invented hidden fixtures and regressions. Exact SDK adoption and qualification remain in WIP; earlier performance and hosted-platform holds stay separate.

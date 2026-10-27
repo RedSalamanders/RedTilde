@@ -50,3 +50,8 @@ Broader configuration/native ARM64, physical-input and paired-performance gates
 remain separately tracked in the [WIP coordinator](../../Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md).
 The smoke timing/memory banner is unpaired and cannot establish non-regression.
 The older performance/CI command queue stays paused.
+
+The [SDK evidence subset](sdk/README.md) retains the final full x64 ASan 19-suite
+pass, real sanitizer detector, full tooling status and three successful build
+profiles, alongside the earlier timing failure and unchanged successful retry.
+It does not qualify the remaining consumer configurations or native ARM64.

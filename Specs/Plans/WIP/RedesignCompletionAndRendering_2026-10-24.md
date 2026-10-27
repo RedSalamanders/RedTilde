@@ -20,7 +20,7 @@ pinned to SDK `eb0f10b91bb8de19b0d7671cc7078fd0c1f5e767`. Debug and Release each
 cases, 32 hidden captures, crash/restart probes and the stronger three-DPI hover
 hash gate. The actual saved pixels show red Close and neutral Maximize hover,
 heading rules, intrinsic horizontal-rule tables, centered objects and quote shading.
-The timing and memory banner is unpaired and does not establish non-regression.
+The timing and memory banner is unpaired and does not establish non-regression. The [reviewed evidence packet](../../../Measurements/MarkdownAndCaption_2026-10-27/README.md) preserves Debug/Release app receipts, nine actual captures and the SDK qualification subset.
 
 Preserve the failed stale-readback captures and first corrected-readback Editor
 failure separately. Shared capture now stages pixels before Present. Interaction
@@ -34,8 +34,8 @@ SDK commit links. The SDK's full validators/tooling also pass at `eb0f10b9`;
 its x64 Debug/ASan and ARM64 ASan builds pass. The first full SDK ASan run passes
 eighteen suites and misses EditorControls' 12-second dense-source deadline while
 compilation is active. The unchanged complete EditorControls retry passes after
-compiler/linker processes end; preserve both results. One final full ASan run is
-now executing without concurrent compilation. Remaining configurations are held
+compiler/linker processes end; preserve both results. The final full ASan run subsequently passes all nineteen
+noninteractive suites with zero capability skips and a real sanitizer detector. Remaining configurations are held
 by capacity, and no deadline or primary performance policy has been relaxed. Native ARM64, physical input and paired performance
 remain independent open gates. Do not relabel the earlier `2bb1aaaf` or `83d6a160`
 executions as this revision.
