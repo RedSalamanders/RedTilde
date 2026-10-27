@@ -44,6 +44,7 @@ Check 'Exact dependency and capability status' {
 Check 'Evaluated Release compiler and linker policy' {
     & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.ReleaseBuildPolicy.ps1')
 }
+Check 'Hosted MSVC setup' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.MsvcSetup.ps1') }
 Check 'Six build configurations and native inventory' {
     [xml]$project=Get-Content (Join-Path $PSScriptRoot 'RedTilde/RedTilde.vcxproj')
     foreach ($platform in @('x64','ARM64')) { foreach ($configuration in @('Debug','Release','ASan Debug')) {

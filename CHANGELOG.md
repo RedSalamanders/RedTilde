@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Wait for the hosted Visual Studio GUI installer and use its explicit result before verifying MSVC 14.52; retain installer diagnostics and cover delayed completion, failures and strict tool/refusal checks without a real installation.
 - Archive the complete current-policy RedTilde qualification and 576-process comparison at native source 9cf8b221, with independent raw replay and unchanged SDK archive policy across keyboard testing. Retain three original-UI memory findings, unstable-control and quiet-host limitations, earlier failed attempts and the billing-blocked hosted ARM64 gate; collection and local qualification do not imply performance acceptance.
 - Treat accepted configuration casing consistently in the pinned interactive-helper build policy, and evaluate mixed-case Release against the real dependency compiler identity instead of application-project defaults. Retain the failing lower-case regression and all canonical policy controls; native qualification remains separate.
 - Keep the interactive test helper and its SDK project reference on the receipt-pinned compiler, SDK and Release whole-program policy, preventing a helper build from replacing the fingerprinted SDK archive with default non-GL settings. Add evaluated lease/archive profile and omitted-policy regression checks; native archive restoration, runtime qualification and performance acceptance remain separate.

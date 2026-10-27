@@ -26,3 +26,5 @@
 proposal pages and pictures are in its folder. Not implemented; start at R0 and open decisions D1–D5.
 
 - [RedMonitor adoption](RedMonitor_Adoption_2026-10-23.md) — pinned producer, optional viewer and consumer qualification.
+
+- [Hosted MSVC setup followup](MsvcHostedSetup_2026-10-27.md) - owned GUI completion, exact required tools, retained installer diagnostics and behavioral controls.
