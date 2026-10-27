@@ -73,6 +73,8 @@ HTTP(S) image loading; switching it off cancels remote work and removes remote p
 Mermaid supports the pinned native flowchart, state and class subsets; unsupported syntax stays editable fenced source.
 Inline/display mathematics supports fractions, indexed roots, simultaneous scripts, symbols, text, alphabets,
 accents, paired delimiters, matrices, cases and aligned/gathered rows, preserving `$...$`/`$$...$$` and slash delimiters.
+Try the [complex sample documents](docs/examples/README.md) for longer equations,
+larger diagrams and clearly labeled fallback cases.
 Unsupported notation stays editable. Full LaTeX compatibility remains a separate goal. Markdown HTML/scripts and links are never executed.
 
 Read [the user guide](docs/README.md), [specifications](Specs/README.md), [development guidance](AGENTS.md),

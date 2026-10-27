@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Add complex editable sample documents for native math, flowcharts, state/class diagrams and intentional literal fallback. Include 27 math sections, eight larger supported diagrams and a manual source/edit/undo/presentation checklist; keep fixed performance/capture fixtures unchanged. All 58 formula/diagram parser expectations pass against the exact SDK33 library; visual application qualification remains separate.
 - Save the paused redesign qualification state and exact pending command queue, preserving completed focus tests, cancelled tooling validation, source-bound evidence and all remaining performance/hosted ARM64 gates. No work resumes automatically.
 - Propose the exact shared SDK focus-lifecycle repair: preserve independently focused TSF documents and prevent hidden or zero-size non-text hosts from taking native focus. Keep the public ProgressBar header change source-coordinated with matching library rebuilds. SDK hosted qualification, consumer builds/tests and performance acceptance remain pending; earlier SDK98 evidence is unchanged.
 - Keep runtime receipt filenames private in the published icon scout by exposing sanitized slot aliases with unchanged raw hashes and scalar data. Recheck all 32 alias bindings and retained performance limits.

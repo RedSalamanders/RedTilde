@@ -4,6 +4,8 @@
 
 ## Progress checklist
 
+- [x] At the user's separate request after pausing, add the [complex example corpus](../../../docs/examples/README.md): 27 math sections (35 formulas), four flowcharts, two state machines, two class diagrams and an isolated fallback document. An SDK-local CPU probe linked only the existing exact33c Debug library; all 58 expectations pass (45 accepted, 13 rejected), with exact graph source retained and no partial rejected graphs. Preserve both the initial 55-case and final 58-case inputs/results privately. This is parser coverage, not native layout/raster or application qualification. The existing SDK/consumer/performance command queue remains paused; fixed S5/capture fixtures are unchanged.
+
 ## P28 performance and hosted-toolchain repair — 27 October 2026
 
 Current acceptance holds: the latest complete study retains two stable original-UI working-set findings (Compose +2.0457%, Split +2.4615%) and a third private-byte finding with unstable controls (+2.0952%); the private result is not dismissed. Compose command time is unresolved. The latest complete native producer is `9cf8b221`; later draft source needs fresh qualification. The icon-decoder scout is rejected without adoption. SDK compiler repair is merged and latest main CI passes; shared input fixes and explicit consumer adoption are still being qualified. Hosted RedTilde ARM64 remains open under the billing restriction.

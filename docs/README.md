@@ -58,5 +58,7 @@ apply immediately. High contrast takes precedence.
 
 See [example.md](examples/example.md), [technical notes](examples/technical-notes.md), [the design system](../Specs/UI/UI_DesignSystem.md),
 [actual captures](../Measurements/README.md) and [current capability status](../capabilities.json).
+The [sample document guide](examples/README.md) also links complex math, flowchart,
+state/class and intentional-fallback documents, with an edit/undo and presentation checklist.
 
 [RedMonitor diagnostics](Diagnostics.md) explains the optional viewer and application logging.
