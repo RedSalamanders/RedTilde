@@ -1,0 +1,23 @@
+{
+  "schema": "redtilde-p28-second-review-binding-v1",
+  "reportSha256": "f93a24f2cc52f80684fdbc93f594045b014c7d0d3154009d3b416761bff5e80c",
+  "reviewScope": "Independent raw metrics, sign-flip tails, Holm, controls, CSV cells and complete source/compiler/dependency/header/common-input admission; numerical/integrity only.",
+  "expectedChecks": 13940,
+  "canonicalCountDerivation": {
+    "historicalChecks": 25120,
+    "historicalTranslationUnits": 189,
+    "currentTranslationUnits": 201,
+    "historicalDependencyFieldAndAgreementRequires": 90,
+    "currentDependencyFieldAndAgreementRequires": 96,
+    "addedIdentityField": "releaseOptimizationPolicy",
+    "finalChecks": 25138
+  },
+  "rootFirstReplayRefusal": {
+    "expectedHistoricalCount": 25120,
+    "actualCount": 25138,
+    "retained": true,
+    "nativeCollectionUnaffected": true,
+    "explanation": "The first replay rejected its stale exact count. An unchanged canonical auditor performs twelve additional translation-unit and six policy-field Require calls. The corrected replay retains that exact derived count; no admission or numerical rule changed."
+  },
+  "policyAccepted": false
+}

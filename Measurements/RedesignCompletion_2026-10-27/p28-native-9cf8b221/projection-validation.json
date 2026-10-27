@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "checks": 951,
+  "qualificationSha256": "18C0B871FC3DE2D9369EA770EF4CE7DB049157F2E30FE2AC15F057B0CC0F9A42",
+  "rawHashBindingsSha256": "DA7EC8FDFEC83EC30480C700E897F31E7A0703BC4C59BEA869CDB8D3CB19FAFE",
+  "rawBindings": 218,
+  "nativeSourceCommit": "9cf8b2215fceb38344f02d09430b2ad2870e8110",
+  "noNativeExecution": true
+}

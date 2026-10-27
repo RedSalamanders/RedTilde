@@ -1,0 +1,1457 @@
+{
+  "schema": "redtilde-public-native-qualification4-v1",
+  "nativeSourceCommit": "9cf8b2215fceb38344f02d09430b2ad2870e8110",
+  "nativeSourceIdentity": "6f1617c1862cc4a8593cc6a7653b46120a3b0df7a0c7b84151f34cd4f356356c",
+  "sdkCommit": "98c795b765a10d1805ae0a7c35a8ade535fb7fd6",
+  "productionSourceBase": "5b545e2204bdf613bd9ee5b8b4597b069caa7d9c",
+  "sourceScope": "Production C++/headers/build policy preserved from production source base; test failure diagnostics and canonical keyboard-helper argument fix are recorded in native source commit.",
+  "nativeAudit": {
+    "sha256": "E5B7012F510D450BF489327D44E925DFEC5084CFB0898D0410A3287310AE176A",
+    "checks": 33972,
+    "checkedFiles": 2340,
+    "finishedUtc": "2026-10-27T10:20:29.510315+00:00",
+    "primaryNativeSlotsAtAudit": 0,
+    "historicalPrePrimaryStatusSnapshotSha256": "09AF4B6536456B2FDA05BBB485054EA2A3F49A9C3D4101473C672D13C067B704",
+    "statusBindingScope": "Historical permit-wait snapshot observed before primary. This hash is not the final576-process status or a current status hash."
+  },
+  "matrices": [
+    {
+      "platform": "x64",
+      "sha256": "750826725E1B49B71AC49D1A0B488C1D05406E45710341D0184FB71AC8D5B854"
+    },
+    {
+      "platform": "ARM64",
+      "sha256": "7F783404D9BF26B5A835397B43299FDD395A62B59179E1F3D1C0AF1F19208C73"
+    }
+  ],
+  "profiles": [
+    {
+      "platform": "x64",
+      "configuration": "Debug",
+      "sourceIdentity": "6f1617c1862cc4a8593cc6a7653b46120a3b0df7a0c7b84151f34cd4f356356c",
+      "compiledSourceIdentity": "826a8f63af17c0ebb97a0215c1528f0c11850339de601de600971fb2c1146664",
+      "artifactIdentity": "ce1517e0c793f423abc334609c02a521c432f296f9ee7bc074ba7cab7d3f733a",
+      "buildReceiptSha256": "6E3D008DFF922AC6C0E249FE74D0E0A6C24320038FF7266B7F23245CF1981249",
+      "dependencyFingerprint": "9eb4bf70d1864bc1a27c1677aafe1cdd117df7f14e23e5a320ca34991ea4960b",
+      "dependencyHeadersSha256": "AA7B65052E18BA0AF7F6B60AFC47E4F63EEB7552BEA2878972EC36495BFB69C8",
+      "compilerContextSha256": "14735B40BF95FDC9AF52BB5CF0BBB48B60DCBFE91B94CCD77D070D7BED1AD7AD",
+      "toolchain": {
+        "toolset": "v145",
+        "vcToolsVersion": "14.52.37025",
+        "windowsSdkVersion": "10.0.26100.0",
+        "runtimeFamily": "MD",
+        "preferredToolArchitecture": "x86",
+        "releaseOptimizationPolicy": "Gy-REF-GL-LTCG-full-v1"
+      },
+      "files": [
+        {
+          "name": "RedTilde.exe",
+          "bytes": 15526400,
+          "sha256": "424DE4A3B88458C43D817AE1FDED309D31D12E73BE332EDAD2CA5804FFFF3F39"
+        },
+        {
+          "name": "RedTilde.pdb",
+          "bytes": 51736576,
+          "sha256": "F3CE3649585FD071ACA14D167097F44CADFAE1D3530DF700D407C17E47C359DD"
+        }
+      ],
+      "runtimeExecuted": true,
+      "actualCompilerCommandsSha256": "A3E3D156AEF45603A3D6A355B8DDDC4AA14B3ECAF90819984388D26CFB235F98",
+      "cases": 66,
+      "partitions": [
+        {
+          "scope": "Storage",
+          "passed": 11,
+          "failed": 0,
+          "cases": [
+            "Files.MarkdownTreeNaturalOrderAndFilter",
+            "Files.BoundedTraversalCancellationAndErrors",
+            "Files.ReparseLeavesNeverTraverse",
+            "Files.AsyncRerootChangeNotificationsAndClose",
+            "Files.CoalescedNotificationAndStaleResult",
+            "Utf8.BomUnicodeMixedEolRoundTrip",
+            "Utf8.InvalidInputDoesNotReplaceOutput",
+            "Storage.AtomicConflictAndFailedSave",
+            "Storage.AtomicSaveKeepsLongLeafWithinPathBudget",
+            "Storage.CapacityRejectedWithoutTruncation",
+            "Files.AsyncSaveRetainsEditsMadeDuringWrite"
+          ]
+        },
+        {
+          "scope": "Settings",
+          "passed": 4,
+          "failed": 0,
+          "cases": [
+            "Settings.DesignRefreshPreferencesRoundTrip",
+            "Settings.DesignRefreshFieldFallback",
+            "Settings.VersionAndFieldFallback",
+            "Settings.AsyncLatestValueSurvivesWriterClose"
+          ]
+        },
+        {
+          "scope": "Recovery",
+          "passed": 5,
+          "failed": 0,
+          "cases": [
+            "Recovery.StrictEnvelopeAndUnicode",
+            "Recovery.DebounceLeaseCoalescingAndRetirement",
+            "Recovery.CorruptAndFutureDataQuarantined",
+            "Recovery.LocalDraftCancelPreviewRestoreProtectsOriginal",
+            "Recovery.DiscardFailureRetainsCandidateAndRetryClearsError"
+          ]
+        },
+        {
+          "scope": "Editor",
+          "passed": 46,
+          "failed": 0,
+          "cases": [
+            "Editor.DocumentPositionIndexAndNewlineFacts",
+            "Editor.SplitMirrorFallbackRecoversAfterHiddenEdits",
+            "Editor.SplitMirrorNestedEditKeepsNewestPublication",
+            "Editor.SplitMirrorCallbackCanRetireRoot",
+            "Editor.SplitViewTransitionCompletesAfterNestedEdit",
+            "Editor.NestedViewRequestSupersedesOuterSplit",
+            "Window.Image2QuietChromeAndCompactInspector",
+            "Editor.HiddenCurrentBlockPublishesLatestOnReveal",
+            "Window.DesignRefreshMergedFrameHitTests",
+            "Window.DesignRefreshResponsiveLayoutAndDpi",
+            "Editor.DesignRefreshFocusViewsAndToggleStates",
+            "Outline.DesignRefreshHierarchyCurrentAndFindCounts",
+            "Editor.DocumentAnalysisReusesBoundedLineIndexStorage",
+            "Editor.DesignRefreshFindReplaceUndoAndCapacity",
+            "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+            "Editor.DesignRefreshEquationContextAndDraftGuards",
+            "Editor.DesignRefreshFilesRerootFilterAndDirtyOpen",
+            "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
+            "Editor.DesignRefreshFilesAdmissionErrorsAndRootActions",
+            "Editor.DesignRefreshTransientSurfacesAndClose",
+            "Editor.DesignRefreshLiveSettingsAndEscape",
+            "Rendering.DesignRefreshTypographyAndThemeRoles",
+            "Editor.DesignRefreshDeferredSelectionToolsFocus",
+            "Window.DesignRefreshPersistentStatusFacts",
+            "Editor.HttpAnonymousFetchAndNativeDecode",
+            "Editor.HttpRedirectAuthBoundsAndFailures",
+            "Editor.HttpCancellationDeadlineAndOwnerClose",
+            "Editor.RemoteImagePrivacyOptInRevocationAndShutdown",
+            "Outline.FencesAndUnicode",
+            "Math.NativeSubsetAndRejection",
+            "Editor.ViewSwitchKeepsSourceSelectionHistory",
+            "Editor.HiddenMirrorSynchronizesWithoutEditingSource",
+            "Editor.OutlineTracksShiftedOffsetsAndChangedLabels",
+            "Window.CaptionSkipsIdenticalWritesAndPreservesImmediateIdentity",
+            "Window.CaptionRetriesFailedAndSupersededNativeWrites",
+            "Editor.DirtyCacheTracksDirectResetAndSameLengthUndo",
+            "Editor.SemanticFormattingUndoAndTheme",
+            "Editor.LocalDiagramSourceAndLiteralFallback",
+            "Editor.LocalOrdinarySourceCommitCancelAndStale",
+            "Editor.DeviceLossAndLocalImagePixels",
+            "Editor.InDocumentMathLocalSourceAndBroaderMermaid",
+            "Editor.LocalizedResourceViewsRetainStorageAndFormatting",
+            "Performance.OwnedHeapDiagnosticDistinguishesBusyFreeAndPartialCoverage",
+            "Performance.SelectionDiagnosticRejectsReentryAndUnwinding",
+            "Performance.NativeCompletedFramesPreserveSourceAndHistory",
+            "Rendering.NativeDefaultAndWarpResourceLifecycle"
+          ]
+        }
+      ],
+      "captures": [
+        {
+          "name": "compose-light",
+          "scenario": "compose-light",
+          "pngSha256": "37792B2F98CB2EEE8658AA0D30F61A2281689D30126E7646ECB3A4510C759A69",
+          "scenarioSha256": "493843EF8F9130ED239F43969561EEFE2B950E662CEE75154356602DE2C10ED7",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "compose-dark",
+          "scenario": "compose-dark",
+          "pngSha256": "A13A4979DE79BE33F4CAA5B31EE4661231608C76C77B9C567B2B91C4995E13AE",
+          "scenarioSha256": "0F3E42D9A59F699764E64D3AB066AA6772AA100325CE32E22EA1EB670FCBF546",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "source",
+          "scenario": "source",
+          "pngSha256": "B63338DDF6DFB4E40D619624DA03470A42B7A56920D0D2B3FEA55DF38F317D61",
+          "scenarioSha256": "32828B1A46F68517B6F37A32F45B8596313346114EBDABD8879FC065F52C71C4",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "split",
+          "scenario": "split",
+          "pngSha256": "EC37E1A14827FE3A4D09E6A7AB679D77A73698E83DA2C8981003AC4AC1331A3A",
+          "scenarioSha256": "35ED6D3FA8B2EE91E1F8875A50F90D47001C2FDD180312317706CF8BD880E542",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "context-selection",
+          "scenario": "context-selection",
+          "pngSha256": "E061E2ED95C79C807F7BCBBC534255B97B221EE90EE1D432FFB04A2214414376",
+          "scenarioSha256": "762C8153754AB460778821EB32E554A66605519591AE8BAADE477347B837D6C0",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "local-source",
+          "scenario": "local-source",
+          "pngSha256": "0A4D570F3DE46BC767A793684E4C3427997369A6B2D68B3D486B9833878EE4BB",
+          "scenarioSha256": "A2183C63B5B6936E2856BDB5B44DA96640B941B723A012DE3727BF6D524A4913",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "settings",
+          "scenario": "settings",
+          "pngSha256": "EF4E9760CBB4973D9DF0964593050378CF30B35E4587D5DB156786A0649872A6",
+          "scenarioSha256": "230C677412477409DBD9C2297A8C0A48BF932157FC4ACB274891F48E8F483679",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "math",
+          "scenario": "math",
+          "pngSha256": "BEEF1A5B8F31EAC6D88EDE4A9D11BAA75320E01E8B1CF5CC9EB06406342A23C0",
+          "scenarioSha256": "377E093275E9302AF68FDD096765B4B7376DF5023519AC81A5C5695D7C44335C",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "math-dark",
+          "scenario": "math-dark",
+          "pngSha256": "ECA11D84B17025E20EAFF0435F4AF81E0937E168705F95F827AD9E82A4C9D82B",
+          "scenarioSha256": "3773E0D0BAADE13C8521C91496A17E792A6144DB326F77EC609FBC99F5BC059B",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "mermaid",
+          "scenario": "mermaid",
+          "pngSha256": "5B4A94B77BA9043D1CA55C746E089A0999B682BD8B52476C5592D1103EE14A71",
+          "scenarioSha256": "DB9A32F6B88C76F8D6D112F42855D13257B07A68C6E3702932D7E997F5B557E2",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "recovery",
+          "scenario": "recovery",
+          "pngSha256": "E9A52795A160817944ECB813CDEC52EBED325B084D9DBA1FCEBF7B7FADED6CFF",
+          "scenarioSha256": "D89406BA928994FA9B9E40EB81D9260B273B87B2E0C673C4744775CE87699AE2",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "narrow",
+          "scenario": "narrow",
+          "pngSha256": "4E3C369AFC9CE21E651C65586A717BADA6F981D50FC5DAE2C480F185610D521D",
+          "scenarioSha256": "D91A97AF43FC5A3BF2DCA32E3F791DB79CC5E849061EFC6D3CE69434AF420552",
+          "actualWidthPx": 1200,
+          "actualHeightPx": 840,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "high-contrast",
+          "scenario": "high-contrast",
+          "pngSha256": "3B726657B603D27C7DF4F1A949955EE8C19D804912FAABB63DE2AACB8D54BA3E",
+          "scenarioSha256": "37C31D0248D980D2C781391822798CAFB3A06F84ABF231854296A379BEA7D2B7",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "files",
+          "scenario": "files",
+          "pngSha256": "37792B2F98CB2EEE8658AA0D30F61A2281689D30126E7646ECB3A4510C759A69",
+          "scenarioSha256": "43D01999B987E51CFC7882FB6133FE1E0C16D1582D451FA5F0B62426FC8C5668",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "find",
+          "scenario": "find",
+          "pngSha256": "3DB5829B45A6646C09F360C10661A0BFE9BB2EFBE73E46E6E8F1A7211F01250B",
+          "scenarioSha256": "A5E045541B7CBA8A7E712E65191BB00BC75D25DF2E21B8531178FB96B9C51D03",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "focus",
+          "scenario": "focus",
+          "pngSha256": "F53BCDDED6E95887A64750DE8961904601D5C436CD74F7FD56E24B5581B950AF",
+          "scenarioSha256": "37011D2C6CEBF9EBDE7E8809CA4F334F472882C6C47F1398F3D79F9C0A8A180E",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "equation",
+          "scenario": "equation",
+          "pngSha256": "5F05DEF13569BBB005ED4AC2A3BCEEF5A1D8E663708C67CE02EBA6AE6CC43A60",
+          "scenarioSha256": "73BFFCE19343A3E4C5F2659CB1DE1756BCB7A3EB9419257FF0D88D4DE0BC0CF9",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "narrow-dpi-96",
+          "scenario": "narrow",
+          "pngSha256": "3D194EB7B01667295E75A10AE6353812D06301BCD93F0AC43ADB914BD6B27CAF",
+          "scenarioSha256": "44F3F503BFDF48933990B3E4C5FE4F57893E5FCF45251E4212FD555E7D2CFD50",
+          "actualWidthPx": 800,
+          "actualHeightPx": 560,
+          "requestedDpi": 96,
+          "actualHostDpi": 96,
+          "hidden": true
+        },
+        {
+          "name": "narrow-dpi-144",
+          "scenario": "narrow",
+          "pngSha256": "4E3C369AFC9CE21E651C65586A717BADA6F981D50FC5DAE2C480F185610D521D",
+          "scenarioSha256": "591F113E9B3EBAA05C09524FFE31C98F4305B6794EE3A7F035FEFB3BABDA6DDB",
+          "actualWidthPx": 1200,
+          "actualHeightPx": 840,
+          "requestedDpi": 144,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "narrow-dpi-192",
+          "scenario": "narrow",
+          "pngSha256": "65A401B92196C0FA535D0E6EC858D697DFCD253F2CCD2DA192EDAC553A4D69AF",
+          "scenarioSha256": "1DA7CC13795F87F4A3C698C60C7A6FBFDF4A34F2405A82A13AAD342D1B6FB7F1",
+          "actualWidthPx": 1600,
+          "actualHeightPx": 1120,
+          "requestedDpi": 192,
+          "actualHostDpi": 192,
+          "hidden": true
+        },
+        {
+          "name": "reference-dark-dpi-96",
+          "scenario": "reference-dark",
+          "pngSha256": "D1847C787888C1EBFDCD6C434E89FD01B300A56187EABB0E9CBAE684AFCF58C7",
+          "scenarioSha256": "A68BEE865A8449971628198BC9660E9D856C838746530E37489F76689C4D29A1",
+          "actualWidthPx": 1440,
+          "actualHeightPx": 900,
+          "requestedDpi": 96,
+          "actualHostDpi": 96,
+          "hidden": true
+        },
+        {
+          "name": "reference-dark-dpi-144",
+          "scenario": "reference-dark",
+          "pngSha256": "9EAB7A0251D6EFA493D3779642111C94D828B834949C16502055903914CFB537",
+          "scenarioSha256": "97AFC8493D043885B78781B9FD9CD3F92EBBFBAEC665AF1E93667B8C0A8E9C9B",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 144,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "reference-dark-dpi-192",
+          "scenario": "reference-dark",
+          "pngSha256": "7D7418DF1DE32942B98B9D8681686065F33D4677A52A74A840E17DB7B2F53178",
+          "scenarioSha256": "C1BACECB09DF10BFF63521D890E37455D50FEF52B8B0E4149DD38C169C021D75",
+          "actualWidthPx": 2880,
+          "actualHeightPx": 1800,
+          "requestedDpi": 192,
+          "actualHostDpi": 192,
+          "hidden": true
+        }
+      ],
+      "payloadInventorySha256": "656B4323FCB6A324E92730AD80A09D18E5CD7F8C031C1D0BB88DC1C392031655"
+    },
+    {
+      "platform": "x64",
+      "configuration": "Release",
+      "sourceIdentity": "6f1617c1862cc4a8593cc6a7653b46120a3b0df7a0c7b84151f34cd4f356356c",
+      "compiledSourceIdentity": "826a8f63af17c0ebb97a0215c1528f0c11850339de601de600971fb2c1146664",
+      "artifactIdentity": "4e7a13cc418d366962fd3b8d74c71c6cff8390105971ebddbd8da76d2bd54137",
+      "buildReceiptSha256": "1761779BD48308C0FD1D945DD2E7BA866C6425E8E1878488908FA6952361A4BC",
+      "dependencyFingerprint": "9eb4bf70d1864bc1a27c1677aafe1cdd117df7f14e23e5a320ca34991ea4960b",
+      "dependencyHeadersSha256": "AA7B65052E18BA0AF7F6B60AFC47E4F63EEB7552BEA2878972EC36495BFB69C8",
+      "compilerContextSha256": "046F0EE53F4E90F8AAE6B21CE0CA8B132A84D74419C6088B1FA328F45667D429",
+      "toolchain": {
+        "toolset": "v145",
+        "vcToolsVersion": "14.52.37025",
+        "windowsSdkVersion": "10.0.26100.0",
+        "runtimeFamily": "MD",
+        "preferredToolArchitecture": "x86",
+        "releaseOptimizationPolicy": "Gy-REF-GL-LTCG-full-v1"
+      },
+      "files": [
+        {
+          "name": "RedTilde.exe",
+          "bytes": 3936256,
+          "sha256": "1B58A69DE0F00C73E1AA81355846D8B3F5375F17397E26BBDC8EAE04485332E7"
+        },
+        {
+          "name": "RedTilde.pdb",
+          "bytes": 29118464,
+          "sha256": "646559637F66C3E1C7D5CCB663F024813D266A820065126421ADED5F59CD0982"
+        }
+      ],
+      "runtimeExecuted": true,
+      "actualCompilerCommandsSha256": "5838A63C638661F2B04C86FD45F5FE9E51F91FADBACD015E0D9A2E91ABB42525",
+      "actualReleasePolicy": {
+        "compilerFlags": [
+          "/GL",
+          "/Gy"
+        ],
+        "linkerFlags": [
+          "/LTCG",
+          "/OPT:REF"
+        ],
+        "linkerCommandsSha256": "419A2504D459289D8D1D239900EE99552783C5108EE64F8B8C973B937CBA657F"
+      },
+      "cases": 66,
+      "partitions": [
+        {
+          "scope": "Storage",
+          "passed": 11,
+          "failed": 0,
+          "cases": [
+            "Files.MarkdownTreeNaturalOrderAndFilter",
+            "Files.BoundedTraversalCancellationAndErrors",
+            "Files.ReparseLeavesNeverTraverse",
+            "Files.AsyncRerootChangeNotificationsAndClose",
+            "Files.CoalescedNotificationAndStaleResult",
+            "Utf8.BomUnicodeMixedEolRoundTrip",
+            "Utf8.InvalidInputDoesNotReplaceOutput",
+            "Storage.AtomicConflictAndFailedSave",
+            "Storage.AtomicSaveKeepsLongLeafWithinPathBudget",
+            "Storage.CapacityRejectedWithoutTruncation",
+            "Files.AsyncSaveRetainsEditsMadeDuringWrite"
+          ]
+        },
+        {
+          "scope": "Settings",
+          "passed": 4,
+          "failed": 0,
+          "cases": [
+            "Settings.DesignRefreshPreferencesRoundTrip",
+            "Settings.DesignRefreshFieldFallback",
+            "Settings.VersionAndFieldFallback",
+            "Settings.AsyncLatestValueSurvivesWriterClose"
+          ]
+        },
+        {
+          "scope": "Recovery",
+          "passed": 5,
+          "failed": 0,
+          "cases": [
+            "Recovery.StrictEnvelopeAndUnicode",
+            "Recovery.DebounceLeaseCoalescingAndRetirement",
+            "Recovery.CorruptAndFutureDataQuarantined",
+            "Recovery.LocalDraftCancelPreviewRestoreProtectsOriginal",
+            "Recovery.DiscardFailureRetainsCandidateAndRetryClearsError"
+          ]
+        },
+        {
+          "scope": "Editor",
+          "passed": 46,
+          "failed": 0,
+          "cases": [
+            "Editor.DocumentPositionIndexAndNewlineFacts",
+            "Editor.SplitMirrorFallbackRecoversAfterHiddenEdits",
+            "Editor.SplitMirrorNestedEditKeepsNewestPublication",
+            "Editor.SplitMirrorCallbackCanRetireRoot",
+            "Editor.SplitViewTransitionCompletesAfterNestedEdit",
+            "Editor.NestedViewRequestSupersedesOuterSplit",
+            "Window.Image2QuietChromeAndCompactInspector",
+            "Editor.HiddenCurrentBlockPublishesLatestOnReveal",
+            "Window.DesignRefreshMergedFrameHitTests",
+            "Window.DesignRefreshResponsiveLayoutAndDpi",
+            "Editor.DesignRefreshFocusViewsAndToggleStates",
+            "Outline.DesignRefreshHierarchyCurrentAndFindCounts",
+            "Editor.DocumentAnalysisReusesBoundedLineIndexStorage",
+            "Editor.DesignRefreshFindReplaceUndoAndCapacity",
+            "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+            "Editor.DesignRefreshEquationContextAndDraftGuards",
+            "Editor.DesignRefreshFilesRerootFilterAndDirtyOpen",
+            "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
+            "Editor.DesignRefreshFilesAdmissionErrorsAndRootActions",
+            "Editor.DesignRefreshTransientSurfacesAndClose",
+            "Editor.DesignRefreshLiveSettingsAndEscape",
+            "Rendering.DesignRefreshTypographyAndThemeRoles",
+            "Editor.DesignRefreshDeferredSelectionToolsFocus",
+            "Window.DesignRefreshPersistentStatusFacts",
+            "Editor.HttpAnonymousFetchAndNativeDecode",
+            "Editor.HttpRedirectAuthBoundsAndFailures",
+            "Editor.HttpCancellationDeadlineAndOwnerClose",
+            "Editor.RemoteImagePrivacyOptInRevocationAndShutdown",
+            "Outline.FencesAndUnicode",
+            "Math.NativeSubsetAndRejection",
+            "Editor.ViewSwitchKeepsSourceSelectionHistory",
+            "Editor.HiddenMirrorSynchronizesWithoutEditingSource",
+            "Editor.OutlineTracksShiftedOffsetsAndChangedLabels",
+            "Window.CaptionSkipsIdenticalWritesAndPreservesImmediateIdentity",
+            "Window.CaptionRetriesFailedAndSupersededNativeWrites",
+            "Editor.DirtyCacheTracksDirectResetAndSameLengthUndo",
+            "Editor.SemanticFormattingUndoAndTheme",
+            "Editor.LocalDiagramSourceAndLiteralFallback",
+            "Editor.LocalOrdinarySourceCommitCancelAndStale",
+            "Editor.DeviceLossAndLocalImagePixels",
+            "Editor.InDocumentMathLocalSourceAndBroaderMermaid",
+            "Editor.LocalizedResourceViewsRetainStorageAndFormatting",
+            "Performance.OwnedHeapDiagnosticDistinguishesBusyFreeAndPartialCoverage",
+            "Performance.SelectionDiagnosticRejectsReentryAndUnwinding",
+            "Performance.NativeCompletedFramesPreserveSourceAndHistory",
+            "Rendering.NativeDefaultAndWarpResourceLifecycle"
+          ]
+        }
+      ],
+      "captures": [
+        {
+          "name": "compose-light",
+          "scenario": "compose-light",
+          "pngSha256": "37792B2F98CB2EEE8658AA0D30F61A2281689D30126E7646ECB3A4510C759A69",
+          "scenarioSha256": "493843EF8F9130ED239F43969561EEFE2B950E662CEE75154356602DE2C10ED7",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "compose-dark",
+          "scenario": "compose-dark",
+          "pngSha256": "A13A4979DE79BE33F4CAA5B31EE4661231608C76C77B9C567B2B91C4995E13AE",
+          "scenarioSha256": "0F3E42D9A59F699764E64D3AB066AA6772AA100325CE32E22EA1EB670FCBF546",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "source",
+          "scenario": "source",
+          "pngSha256": "B63338DDF6DFB4E40D619624DA03470A42B7A56920D0D2B3FEA55DF38F317D61",
+          "scenarioSha256": "32828B1A46F68517B6F37A32F45B8596313346114EBDABD8879FC065F52C71C4",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "split",
+          "scenario": "split",
+          "pngSha256": "EC37E1A14827FE3A4D09E6A7AB679D77A73698E83DA2C8981003AC4AC1331A3A",
+          "scenarioSha256": "35ED6D3FA8B2EE91E1F8875A50F90D47001C2FDD180312317706CF8BD880E542",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "context-selection",
+          "scenario": "context-selection",
+          "pngSha256": "E061E2ED95C79C807F7BCBBC534255B97B221EE90EE1D432FFB04A2214414376",
+          "scenarioSha256": "762C8153754AB460778821EB32E554A66605519591AE8BAADE477347B837D6C0",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "local-source",
+          "scenario": "local-source",
+          "pngSha256": "0A4D570F3DE46BC767A793684E4C3427997369A6B2D68B3D486B9833878EE4BB",
+          "scenarioSha256": "A2183C63B5B6936E2856BDB5B44DA96640B941B723A012DE3727BF6D524A4913",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "settings",
+          "scenario": "settings",
+          "pngSha256": "EF4E9760CBB4973D9DF0964593050378CF30B35E4587D5DB156786A0649872A6",
+          "scenarioSha256": "230C677412477409DBD9C2297A8C0A48BF932157FC4ACB274891F48E8F483679",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "math",
+          "scenario": "math",
+          "pngSha256": "BEEF1A5B8F31EAC6D88EDE4A9D11BAA75320E01E8B1CF5CC9EB06406342A23C0",
+          "scenarioSha256": "377E093275E9302AF68FDD096765B4B7376DF5023519AC81A5C5695D7C44335C",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "math-dark",
+          "scenario": "math-dark",
+          "pngSha256": "ECA11D84B17025E20EAFF0435F4AF81E0937E168705F95F827AD9E82A4C9D82B",
+          "scenarioSha256": "3773E0D0BAADE13C8521C91496A17E792A6144DB326F77EC609FBC99F5BC059B",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "mermaid",
+          "scenario": "mermaid",
+          "pngSha256": "5B4A94B77BA9043D1CA55C746E089A0999B682BD8B52476C5592D1103EE14A71",
+          "scenarioSha256": "DB9A32F6B88C76F8D6D112F42855D13257B07A68C6E3702932D7E997F5B557E2",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "recovery",
+          "scenario": "recovery",
+          "pngSha256": "E9A52795A160817944ECB813CDEC52EBED325B084D9DBA1FCEBF7B7FADED6CFF",
+          "scenarioSha256": "D89406BA928994FA9B9E40EB81D9260B273B87B2E0C673C4744775CE87699AE2",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "narrow",
+          "scenario": "narrow",
+          "pngSha256": "4E3C369AFC9CE21E651C65586A717BADA6F981D50FC5DAE2C480F185610D521D",
+          "scenarioSha256": "D91A97AF43FC5A3BF2DCA32E3F791DB79CC5E849061EFC6D3CE69434AF420552",
+          "actualWidthPx": 1200,
+          "actualHeightPx": 840,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "high-contrast",
+          "scenario": "high-contrast",
+          "pngSha256": "3B726657B603D27C7DF4F1A949955EE8C19D804912FAABB63DE2AACB8D54BA3E",
+          "scenarioSha256": "37C31D0248D980D2C781391822798CAFB3A06F84ABF231854296A379BEA7D2B7",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "files",
+          "scenario": "files",
+          "pngSha256": "37792B2F98CB2EEE8658AA0D30F61A2281689D30126E7646ECB3A4510C759A69",
+          "scenarioSha256": "43D01999B987E51CFC7882FB6133FE1E0C16D1582D451FA5F0B62426FC8C5668",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "find",
+          "scenario": "find",
+          "pngSha256": "3DB5829B45A6646C09F360C10661A0BFE9BB2EFBE73E46E6E8F1A7211F01250B",
+          "scenarioSha256": "A5E045541B7CBA8A7E712E65191BB00BC75D25DF2E21B8531178FB96B9C51D03",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "focus",
+          "scenario": "focus",
+          "pngSha256": "F53BCDDED6E95887A64750DE8961904601D5C436CD74F7FD56E24B5581B950AF",
+          "scenarioSha256": "37011D2C6CEBF9EBDE7E8809CA4F334F472882C6C47F1398F3D79F9C0A8A180E",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "equation",
+          "scenario": "equation",
+          "pngSha256": "5F05DEF13569BBB005ED4AC2A3BCEEF5A1D8E663708C67CE02EBA6AE6CC43A60",
+          "scenarioSha256": "73BFFCE19343A3E4C5F2659CB1DE1756BCB7A3EB9419257FF0D88D4DE0BC0CF9",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "narrow-dpi-96",
+          "scenario": "narrow",
+          "pngSha256": "3D194EB7B01667295E75A10AE6353812D06301BCD93F0AC43ADB914BD6B27CAF",
+          "scenarioSha256": "44F3F503BFDF48933990B3E4C5FE4F57893E5FCF45251E4212FD555E7D2CFD50",
+          "actualWidthPx": 800,
+          "actualHeightPx": 560,
+          "requestedDpi": 96,
+          "actualHostDpi": 96,
+          "hidden": true
+        },
+        {
+          "name": "narrow-dpi-144",
+          "scenario": "narrow",
+          "pngSha256": "4E3C369AFC9CE21E651C65586A717BADA6F981D50FC5DAE2C480F185610D521D",
+          "scenarioSha256": "591F113E9B3EBAA05C09524FFE31C98F4305B6794EE3A7F035FEFB3BABDA6DDB",
+          "actualWidthPx": 1200,
+          "actualHeightPx": 840,
+          "requestedDpi": 144,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "narrow-dpi-192",
+          "scenario": "narrow",
+          "pngSha256": "65A401B92196C0FA535D0E6EC858D697DFCD253F2CCD2DA192EDAC553A4D69AF",
+          "scenarioSha256": "1DA7CC13795F87F4A3C698C60C7A6FBFDF4A34F2405A82A13AAD342D1B6FB7F1",
+          "actualWidthPx": 1600,
+          "actualHeightPx": 1120,
+          "requestedDpi": 192,
+          "actualHostDpi": 192,
+          "hidden": true
+        },
+        {
+          "name": "reference-dark-dpi-96",
+          "scenario": "reference-dark",
+          "pngSha256": "D1847C787888C1EBFDCD6C434E89FD01B300A56187EABB0E9CBAE684AFCF58C7",
+          "scenarioSha256": "A68BEE865A8449971628198BC9660E9D856C838746530E37489F76689C4D29A1",
+          "actualWidthPx": 1440,
+          "actualHeightPx": 900,
+          "requestedDpi": 96,
+          "actualHostDpi": 96,
+          "hidden": true
+        },
+        {
+          "name": "reference-dark-dpi-144",
+          "scenario": "reference-dark",
+          "pngSha256": "9EAB7A0251D6EFA493D3779642111C94D828B834949C16502055903914CFB537",
+          "scenarioSha256": "97AFC8493D043885B78781B9FD9CD3F92EBBFBAEC665AF1E93667B8C0A8E9C9B",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 144,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "reference-dark-dpi-192",
+          "scenario": "reference-dark",
+          "pngSha256": "7D7418DF1DE32942B98B9D8681686065F33D4677A52A74A840E17DB7B2F53178",
+          "scenarioSha256": "C1BACECB09DF10BFF63521D890E37455D50FEF52B8B0E4149DD38C169C021D75",
+          "actualWidthPx": 2880,
+          "actualHeightPx": 1800,
+          "requestedDpi": 192,
+          "actualHostDpi": 192,
+          "hidden": true
+        }
+      ],
+      "payloadInventorySha256": "ED87BE614ED27794DAD3824619195DEC8A0AE8AA4EA83C5392B91AD55B148E28"
+    },
+    {
+      "platform": "x64",
+      "configuration": "ASan Debug",
+      "sourceIdentity": "6f1617c1862cc4a8593cc6a7653b46120a3b0df7a0c7b84151f34cd4f356356c",
+      "compiledSourceIdentity": "826a8f63af17c0ebb97a0215c1528f0c11850339de601de600971fb2c1146664",
+      "artifactIdentity": "a4467b4340a7ba0ac37f2a80ec4a9b34e32e0e4534f6503ebf903b04d338745c",
+      "buildReceiptSha256": "C87D6183E1836FEAE95C8AE02921EBE61833E38668F8F320B6C9DBE41295E6F1",
+      "dependencyFingerprint": "9eb4bf70d1864bc1a27c1677aafe1cdd117df7f14e23e5a320ca34991ea4960b",
+      "dependencyHeadersSha256": "AA7B65052E18BA0AF7F6B60AFC47E4F63EEB7552BEA2878972EC36495BFB69C8",
+      "compilerContextSha256": "1D5037D5F1FE44C2012E0FD37767CB40ABD33E838A30D3FD5E37052758C62370",
+      "toolchain": {
+        "toolset": "v145",
+        "vcToolsVersion": "14.52.37025",
+        "windowsSdkVersion": "10.0.26100.0",
+        "runtimeFamily": "MD",
+        "preferredToolArchitecture": "x86",
+        "releaseOptimizationPolicy": "Gy-REF-GL-LTCG-full-v1"
+      },
+      "files": [
+        {
+          "name": "clang_rt.asan_dynamic-x86_64.dll",
+          "bytes": 1731408,
+          "sha256": "2B952AA118F22FA330069C27CA42C79D94B654F369787B89BF3A495774D66DAC"
+        },
+        {
+          "name": "RedTilde.exe",
+          "bytes": 24110592,
+          "sha256": "70C57FAA0A28CDE52434F2706210AC773F458B21A50A3E69C867237BAA727548"
+        },
+        {
+          "name": "RedTilde.pdb",
+          "bytes": 49180672,
+          "sha256": "ACE59EF2EC3D6C2D9135CF07F3E24350467944766E2D38CB9927C3A22E1D9488"
+        }
+      ],
+      "runtimeExecuted": true,
+      "actualCompilerCommandsSha256": "6C514D89EA9567DE28DE2D41B0AFE449994881027EF94333774B3EAAC442748E",
+      "actualAddressSanitizerInstrumentation": true,
+      "cases": 66,
+      "partitions": [
+        {
+          "scope": "Storage",
+          "passed": 11,
+          "failed": 0,
+          "cases": [
+            "Files.MarkdownTreeNaturalOrderAndFilter",
+            "Files.BoundedTraversalCancellationAndErrors",
+            "Files.ReparseLeavesNeverTraverse",
+            "Files.AsyncRerootChangeNotificationsAndClose",
+            "Files.CoalescedNotificationAndStaleResult",
+            "Utf8.BomUnicodeMixedEolRoundTrip",
+            "Utf8.InvalidInputDoesNotReplaceOutput",
+            "Storage.AtomicConflictAndFailedSave",
+            "Storage.AtomicSaveKeepsLongLeafWithinPathBudget",
+            "Storage.CapacityRejectedWithoutTruncation",
+            "Files.AsyncSaveRetainsEditsMadeDuringWrite"
+          ]
+        },
+        {
+          "scope": "Settings",
+          "passed": 4,
+          "failed": 0,
+          "cases": [
+            "Settings.DesignRefreshPreferencesRoundTrip",
+            "Settings.DesignRefreshFieldFallback",
+            "Settings.VersionAndFieldFallback",
+            "Settings.AsyncLatestValueSurvivesWriterClose"
+          ]
+        },
+        {
+          "scope": "Recovery",
+          "passed": 5,
+          "failed": 0,
+          "cases": [
+            "Recovery.StrictEnvelopeAndUnicode",
+            "Recovery.DebounceLeaseCoalescingAndRetirement",
+            "Recovery.CorruptAndFutureDataQuarantined",
+            "Recovery.LocalDraftCancelPreviewRestoreProtectsOriginal",
+            "Recovery.DiscardFailureRetainsCandidateAndRetryClearsError"
+          ]
+        },
+        {
+          "scope": "Editor",
+          "passed": 46,
+          "failed": 0,
+          "cases": [
+            "Editor.DocumentPositionIndexAndNewlineFacts",
+            "Editor.SplitMirrorFallbackRecoversAfterHiddenEdits",
+            "Editor.SplitMirrorNestedEditKeepsNewestPublication",
+            "Editor.SplitMirrorCallbackCanRetireRoot",
+            "Editor.SplitViewTransitionCompletesAfterNestedEdit",
+            "Editor.NestedViewRequestSupersedesOuterSplit",
+            "Window.Image2QuietChromeAndCompactInspector",
+            "Editor.HiddenCurrentBlockPublishesLatestOnReveal",
+            "Window.DesignRefreshMergedFrameHitTests",
+            "Window.DesignRefreshResponsiveLayoutAndDpi",
+            "Editor.DesignRefreshFocusViewsAndToggleStates",
+            "Outline.DesignRefreshHierarchyCurrentAndFindCounts",
+            "Editor.DocumentAnalysisReusesBoundedLineIndexStorage",
+            "Editor.DesignRefreshFindReplaceUndoAndCapacity",
+            "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+            "Editor.DesignRefreshEquationContextAndDraftGuards",
+            "Editor.DesignRefreshFilesRerootFilterAndDirtyOpen",
+            "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
+            "Editor.DesignRefreshFilesAdmissionErrorsAndRootActions",
+            "Editor.DesignRefreshTransientSurfacesAndClose",
+            "Editor.DesignRefreshLiveSettingsAndEscape",
+            "Rendering.DesignRefreshTypographyAndThemeRoles",
+            "Editor.DesignRefreshDeferredSelectionToolsFocus",
+            "Window.DesignRefreshPersistentStatusFacts",
+            "Editor.HttpAnonymousFetchAndNativeDecode",
+            "Editor.HttpRedirectAuthBoundsAndFailures",
+            "Editor.HttpCancellationDeadlineAndOwnerClose",
+            "Editor.RemoteImagePrivacyOptInRevocationAndShutdown",
+            "Outline.FencesAndUnicode",
+            "Math.NativeSubsetAndRejection",
+            "Editor.ViewSwitchKeepsSourceSelectionHistory",
+            "Editor.HiddenMirrorSynchronizesWithoutEditingSource",
+            "Editor.OutlineTracksShiftedOffsetsAndChangedLabels",
+            "Window.CaptionSkipsIdenticalWritesAndPreservesImmediateIdentity",
+            "Window.CaptionRetriesFailedAndSupersededNativeWrites",
+            "Editor.DirtyCacheTracksDirectResetAndSameLengthUndo",
+            "Editor.SemanticFormattingUndoAndTheme",
+            "Editor.LocalDiagramSourceAndLiteralFallback",
+            "Editor.LocalOrdinarySourceCommitCancelAndStale",
+            "Editor.DeviceLossAndLocalImagePixels",
+            "Editor.InDocumentMathLocalSourceAndBroaderMermaid",
+            "Editor.LocalizedResourceViewsRetainStorageAndFormatting",
+            "Performance.OwnedHeapDiagnosticDistinguishesBusyFreeAndPartialCoverage",
+            "Performance.SelectionDiagnosticRejectsReentryAndUnwinding",
+            "Performance.NativeCompletedFramesPreserveSourceAndHistory",
+            "Rendering.NativeDefaultAndWarpResourceLifecycle"
+          ]
+        }
+      ],
+      "captures": [
+        {
+          "name": "compose-light",
+          "scenario": "compose-light",
+          "pngSha256": "37792B2F98CB2EEE8658AA0D30F61A2281689D30126E7646ECB3A4510C759A69",
+          "scenarioSha256": "493843EF8F9130ED239F43969561EEFE2B950E662CEE75154356602DE2C10ED7",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "compose-dark",
+          "scenario": "compose-dark",
+          "pngSha256": "A13A4979DE79BE33F4CAA5B31EE4661231608C76C77B9C567B2B91C4995E13AE",
+          "scenarioSha256": "0F3E42D9A59F699764E64D3AB066AA6772AA100325CE32E22EA1EB670FCBF546",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "source",
+          "scenario": "source",
+          "pngSha256": "B63338DDF6DFB4E40D619624DA03470A42B7A56920D0D2B3FEA55DF38F317D61",
+          "scenarioSha256": "32828B1A46F68517B6F37A32F45B8596313346114EBDABD8879FC065F52C71C4",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "split",
+          "scenario": "split",
+          "pngSha256": "EC37E1A14827FE3A4D09E6A7AB679D77A73698E83DA2C8981003AC4AC1331A3A",
+          "scenarioSha256": "35ED6D3FA8B2EE91E1F8875A50F90D47001C2FDD180312317706CF8BD880E542",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "context-selection",
+          "scenario": "context-selection",
+          "pngSha256": "E061E2ED95C79C807F7BCBBC534255B97B221EE90EE1D432FFB04A2214414376",
+          "scenarioSha256": "762C8153754AB460778821EB32E554A66605519591AE8BAADE477347B837D6C0",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "local-source",
+          "scenario": "local-source",
+          "pngSha256": "0A4D570F3DE46BC767A793684E4C3427997369A6B2D68B3D486B9833878EE4BB",
+          "scenarioSha256": "A2183C63B5B6936E2856BDB5B44DA96640B941B723A012DE3727BF6D524A4913",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "settings",
+          "scenario": "settings",
+          "pngSha256": "EF4E9760CBB4973D9DF0964593050378CF30B35E4587D5DB156786A0649872A6",
+          "scenarioSha256": "230C677412477409DBD9C2297A8C0A48BF932157FC4ACB274891F48E8F483679",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "math",
+          "scenario": "math",
+          "pngSha256": "BEEF1A5B8F31EAC6D88EDE4A9D11BAA75320E01E8B1CF5CC9EB06406342A23C0",
+          "scenarioSha256": "377E093275E9302AF68FDD096765B4B7376DF5023519AC81A5C5695D7C44335C",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "math-dark",
+          "scenario": "math-dark",
+          "pngSha256": "ECA11D84B17025E20EAFF0435F4AF81E0937E168705F95F827AD9E82A4C9D82B",
+          "scenarioSha256": "3773E0D0BAADE13C8521C91496A17E792A6144DB326F77EC609FBC99F5BC059B",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "mermaid",
+          "scenario": "mermaid",
+          "pngSha256": "5B4A94B77BA9043D1CA55C746E089A0999B682BD8B52476C5592D1103EE14A71",
+          "scenarioSha256": "DB9A32F6B88C76F8D6D112F42855D13257B07A68C6E3702932D7E997F5B557E2",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "recovery",
+          "scenario": "recovery",
+          "pngSha256": "E9A52795A160817944ECB813CDEC52EBED325B084D9DBA1FCEBF7B7FADED6CFF",
+          "scenarioSha256": "D89406BA928994FA9B9E40EB81D9260B273B87B2E0C673C4744775CE87699AE2",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "narrow",
+          "scenario": "narrow",
+          "pngSha256": "4E3C369AFC9CE21E651C65586A717BADA6F981D50FC5DAE2C480F185610D521D",
+          "scenarioSha256": "D91A97AF43FC5A3BF2DCA32E3F791DB79CC5E849061EFC6D3CE69434AF420552",
+          "actualWidthPx": 1200,
+          "actualHeightPx": 840,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "high-contrast",
+          "scenario": "high-contrast",
+          "pngSha256": "3B726657B603D27C7DF4F1A949955EE8C19D804912FAABB63DE2AACB8D54BA3E",
+          "scenarioSha256": "37C31D0248D980D2C781391822798CAFB3A06F84ABF231854296A379BEA7D2B7",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "files",
+          "scenario": "files",
+          "pngSha256": "37792B2F98CB2EEE8658AA0D30F61A2281689D30126E7646ECB3A4510C759A69",
+          "scenarioSha256": "43D01999B987E51CFC7882FB6133FE1E0C16D1582D451FA5F0B62426FC8C5668",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "find",
+          "scenario": "find",
+          "pngSha256": "3DB5829B45A6646C09F360C10661A0BFE9BB2EFBE73E46E6E8F1A7211F01250B",
+          "scenarioSha256": "A5E045541B7CBA8A7E712E65191BB00BC75D25DF2E21B8531178FB96B9C51D03",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "focus",
+          "scenario": "focus",
+          "pngSha256": "F53BCDDED6E95887A64750DE8961904601D5C436CD74F7FD56E24B5581B950AF",
+          "scenarioSha256": "37011D2C6CEBF9EBDE7E8809CA4F334F472882C6C47F1398F3D79F9C0A8A180E",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "equation",
+          "scenario": "equation",
+          "pngSha256": "5F05DEF13569BBB005ED4AC2A3BCEEF5A1D8E663708C67CE02EBA6AE6CC43A60",
+          "scenarioSha256": "73BFFCE19343A3E4C5F2659CB1DE1756BCB7A3EB9419257FF0D88D4DE0BC0CF9",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 0,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "narrow-dpi-96",
+          "scenario": "narrow",
+          "pngSha256": "3D194EB7B01667295E75A10AE6353812D06301BCD93F0AC43ADB914BD6B27CAF",
+          "scenarioSha256": "44F3F503BFDF48933990B3E4C5FE4F57893E5FCF45251E4212FD555E7D2CFD50",
+          "actualWidthPx": 800,
+          "actualHeightPx": 560,
+          "requestedDpi": 96,
+          "actualHostDpi": 96,
+          "hidden": true
+        },
+        {
+          "name": "narrow-dpi-144",
+          "scenario": "narrow",
+          "pngSha256": "4E3C369AFC9CE21E651C65586A717BADA6F981D50FC5DAE2C480F185610D521D",
+          "scenarioSha256": "591F113E9B3EBAA05C09524FFE31C98F4305B6794EE3A7F035FEFB3BABDA6DDB",
+          "actualWidthPx": 1200,
+          "actualHeightPx": 840,
+          "requestedDpi": 144,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "narrow-dpi-192",
+          "scenario": "narrow",
+          "pngSha256": "65A401B92196C0FA535D0E6EC858D697DFCD253F2CCD2DA192EDAC553A4D69AF",
+          "scenarioSha256": "1DA7CC13795F87F4A3C698C60C7A6FBFDF4A34F2405A82A13AAD342D1B6FB7F1",
+          "actualWidthPx": 1600,
+          "actualHeightPx": 1120,
+          "requestedDpi": 192,
+          "actualHostDpi": 192,
+          "hidden": true
+        },
+        {
+          "name": "reference-dark-dpi-96",
+          "scenario": "reference-dark",
+          "pngSha256": "D1847C787888C1EBFDCD6C434E89FD01B300A56187EABB0E9CBAE684AFCF58C7",
+          "scenarioSha256": "A68BEE865A8449971628198BC9660E9D856C838746530E37489F76689C4D29A1",
+          "actualWidthPx": 1440,
+          "actualHeightPx": 900,
+          "requestedDpi": 96,
+          "actualHostDpi": 96,
+          "hidden": true
+        },
+        {
+          "name": "reference-dark-dpi-144",
+          "scenario": "reference-dark",
+          "pngSha256": "9EAB7A0251D6EFA493D3779642111C94D828B834949C16502055903914CFB537",
+          "scenarioSha256": "97AFC8493D043885B78781B9FD9CD3F92EBBFBAEC665AF1E93667B8C0A8E9C9B",
+          "actualWidthPx": 2160,
+          "actualHeightPx": 1350,
+          "requestedDpi": 144,
+          "actualHostDpi": 144,
+          "hidden": true
+        },
+        {
+          "name": "reference-dark-dpi-192",
+          "scenario": "reference-dark",
+          "pngSha256": "7D7418DF1DE32942B98B9D8681686065F33D4677A52A74A840E17DB7B2F53178",
+          "scenarioSha256": "C1BACECB09DF10BFF63521D890E37455D50FEF52B8B0E4149DD38C169C021D75",
+          "actualWidthPx": 2880,
+          "actualHeightPx": 1800,
+          "requestedDpi": 192,
+          "actualHostDpi": 192,
+          "hidden": true
+        }
+      ],
+      "payloadInventorySha256": "B5D34D2031C4F50E28D2D484B4862E446BD0716C623A7370CE01208497781420",
+      "asanDetection": {
+        "executed": true,
+        "exitCode": 1,
+        "kind": "heap-use-after-free",
+        "allocationAndFreeStacks": true,
+        "logSha256": "8F355BE5CE565FF15F3FF2F40A217527CAD4046159E28AA8A231F07C7F5783B7",
+        "runtimeStaged": true
+      }
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Debug",
+      "sourceIdentity": "6f1617c1862cc4a8593cc6a7653b46120a3b0df7a0c7b84151f34cd4f356356c",
+      "compiledSourceIdentity": "826a8f63af17c0ebb97a0215c1528f0c11850339de601de600971fb2c1146664",
+      "artifactIdentity": "fa286497bf37f16107ccef5bef9f19c1419eb5aca97a67b63c8cc7bbea4a0680",
+      "buildReceiptSha256": "0981CAD4FCF83A806154AEBE3EF04508D78EB48044363402ADC40D64CAAFF534",
+      "dependencyFingerprint": "0747f38aa09c763311d709457816ecb145b393146d49e7da5e8b7caf3d592b16",
+      "dependencyHeadersSha256": "AA7B65052E18BA0AF7F6B60AFC47E4F63EEB7552BEA2878972EC36495BFB69C8",
+      "compilerContextSha256": "4E72933FBC91F624613ECEBE088B60EE98B59B43B734A7983441CF226B698F7D",
+      "toolchain": {
+        "toolset": "v145",
+        "vcToolsVersion": "14.52.37025",
+        "windowsSdkVersion": "10.0.26100.0",
+        "runtimeFamily": "MD",
+        "preferredToolArchitecture": "x86",
+        "releaseOptimizationPolicy": "Gy-REF-GL-LTCG-full-v1"
+      },
+      "files": [
+        {
+          "name": "RedTilde.exe",
+          "bytes": 23202304,
+          "sha256": "FBDC15BBC68B150FACB054CE71044074E07438BA39C03B33175D16223DCDD2B3"
+        },
+        {
+          "name": "RedTilde.pdb",
+          "bytes": 53350400,
+          "sha256": "D94E0F0BFD18AC50DE358735F5D507993DCDEB1CE7BF5D1B1CA78A2B6E65F1BE"
+        }
+      ],
+      "runtimeExecuted": false,
+      "actualCompilerCommandsSha256": "882E758A87409048DEB610BF839E0049C84944715B963CEFD0E6FB9C066562DF",
+      "runtimeLimit": "Cross-built on x64; no native ARM64 runtime, ASan detection, or keyboard qualification."
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Release",
+      "sourceIdentity": "6f1617c1862cc4a8593cc6a7653b46120a3b0df7a0c7b84151f34cd4f356356c",
+      "compiledSourceIdentity": "826a8f63af17c0ebb97a0215c1528f0c11850339de601de600971fb2c1146664",
+      "artifactIdentity": "30dec5d5380d512fea6804b23ef11e3a3d7ec7417afb5b60420405ebc74d633c",
+      "buildReceiptSha256": "4F5941CEEADE9BDA34BA17762A1A0C138032B5C59A466909E7CEE875A15DCB5C",
+      "dependencyFingerprint": "0747f38aa09c763311d709457816ecb145b393146d49e7da5e8b7caf3d592b16",
+      "dependencyHeadersSha256": "AA7B65052E18BA0AF7F6B60AFC47E4F63EEB7552BEA2878972EC36495BFB69C8",
+      "compilerContextSha256": "27391DA43B974FF73F313E4F62AA1A05E7E538CAB4783303E6B7F13AE43C7050",
+      "toolchain": {
+        "toolset": "v145",
+        "vcToolsVersion": "14.52.37025",
+        "windowsSdkVersion": "10.0.26100.0",
+        "runtimeFamily": "MD",
+        "preferredToolArchitecture": "x86",
+        "releaseOptimizationPolicy": "Gy-REF-GL-LTCG-full-v1"
+      },
+      "files": [
+        {
+          "name": "RedTilde.exe",
+          "bytes": 4000256,
+          "sha256": "66F79ECE3CBF728F69F808FC65A7FC2F314615560EA0FE4BB7C83DB51FA1EBAE"
+        },
+        {
+          "name": "RedTilde.pdb",
+          "bytes": 29421568,
+          "sha256": "445E920D5BD74CE455493522643B6E5B18D28A303D72FEEC1C5FD5E263CEC78A"
+        }
+      ],
+      "runtimeExecuted": false,
+      "actualCompilerCommandsSha256": "3828EDD321BEB711F0FFA4E6C87995915E65E437F1F4ADC73888A6E2620C3E2B",
+      "actualReleasePolicy": {
+        "compilerFlags": [
+          "/GL",
+          "/Gy"
+        ],
+        "linkerFlags": [
+          "/LTCG",
+          "/OPT:REF"
+        ],
+        "linkerCommandsSha256": "15065B815363D26B359B2EAF527F3CCD14979681A476132DE73C142D2581B3B8"
+      },
+      "runtimeLimit": "Cross-built on x64; no native ARM64 runtime, ASan detection, or keyboard qualification."
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "ASan Debug",
+      "sourceIdentity": "6f1617c1862cc4a8593cc6a7653b46120a3b0df7a0c7b84151f34cd4f356356c",
+      "compiledSourceIdentity": "826a8f63af17c0ebb97a0215c1528f0c11850339de601de600971fb2c1146664",
+      "artifactIdentity": "843e9e019b23055056b8ff217f0f22285dd5dcf8bc49ca39b30c1163fee938ce",
+      "buildReceiptSha256": "D6CDE7F93AA0568575D018F6E1DBF0FD667AE88F8BEA243BC23E475180507F43",
+      "dependencyFingerprint": "0747f38aa09c763311d709457816ecb145b393146d49e7da5e8b7caf3d592b16",
+      "dependencyHeadersSha256": "AA7B65052E18BA0AF7F6B60AFC47E4F63EEB7552BEA2878972EC36495BFB69C8",
+      "compilerContextSha256": "A22F67BD096204922F7A8131598A1E7C0014D4C2439037A8FE4416855C3F01DC",
+      "toolchain": {
+        "toolset": "v145",
+        "vcToolsVersion": "14.52.37025",
+        "windowsSdkVersion": "10.0.26100.0",
+        "runtimeFamily": "MD",
+        "preferredToolArchitecture": "x86",
+        "releaseOptimizationPolicy": "Gy-REF-GL-LTCG-full-v1"
+      },
+      "files": [
+        {
+          "name": "clang_rt.asan_dynamic-aarch64.dll",
+          "bytes": 1278592,
+          "sha256": "C8D6EE580003316179EA4718C268230FF23A17CF1AD791D9FEB8AD779C3044CB"
+        },
+        {
+          "name": "RedTilde.exe",
+          "bytes": 19031040,
+          "sha256": "1866F5ABAF80D744F54DDDA9499FC68A90C23635AED826A2342829ECCF9DBF84"
+        },
+        {
+          "name": "RedTilde.pdb",
+          "bytes": 48427008,
+          "sha256": "9D88AAA9F0189F751675BB591A833A204703D0FDB860DCE69DCC3B131A00530B"
+        }
+      ],
+      "runtimeExecuted": false,
+      "actualCompilerCommandsSha256": "5302854951E82900E1FA64AEC45C56746F22549CCA452A1A9923BBF8C1B18CCA",
+      "actualAddressSanitizerInstrumentation": true,
+      "runtimeLimit": "Cross-built on x64; no native ARM64 runtime, ASan detection, or keyboard qualification."
+    }
+  ],
+  "keyboard": {
+    "configuration": "Release",
+    "platform": "x64",
+    "sourceIdentity": "6f1617c1862cc4a8593cc6a7653b46120a3b0df7a0c7b84151f34cd4f356356c",
+    "binarySha256": "1B58A69DE0F00C73E1AA81355846D8B3F5375F17397E26BBDC8EAE04485332E7",
+    "buildReceiptSha256": "1761779BD48308C0FD1D945DD2E7BA866C6425E8E1878488908FA6952361A4BC",
+    "leaseBinarySha256": "5B882ABEC1CADCCF8014607A04186F038E077CE7F0EDEC7102464005C8CB34CF",
+    "stages": [
+      {
+        "name": "NativeEditor.KeyboardTextAndUndo",
+        "passed": true,
+        "error": ""
+      },
+      {
+        "name": "Files.ShortcutFocusAndEscape",
+        "passed": true,
+        "error": ""
+      },
+      {
+        "name": "Find.TypedQueryTraversalAndEscape",
+        "passed": true,
+        "error": ""
+      },
+      {
+        "name": "Settings.KeyboardDrawerAndEscape",
+        "passed": true,
+        "error": ""
+      },
+      {
+        "name": "Focus.KeyboardToggleAndEscape",
+        "passed": true,
+        "error": ""
+      },
+      {
+        "name": "SelectionToolbar.AltF10TabEnterEscape",
+        "passed": true,
+        "error": ""
+      },
+      {
+        "name": "Equation.F2ApplyUndoAndCancel",
+        "passed": true,
+        "error": ""
+      },
+      {
+        "name": "FileMenu.KeyboardOpenAndDismiss",
+        "passed": true,
+        "error": ""
+      },
+      {
+        "name": "Window.AltF4AsyncClose",
+        "passed": true,
+        "error": ""
+      }
+    ],
+    "injectedKeyboardEvents": 168,
+    "leaseGuarded": true,
+    "realKeyboardInput": true,
+    "clipboardTouched": false,
+    "physicalImeOrAtQualified": false,
+    "authorizationCountdownSeconds": 30,
+    "foreground": "unchanged",
+    "focus": "unchanged",
+    "cursor": "unchanged",
+    "rawReceiptSha256": "972309CB0AE85CE91433971908C7EBCE0F240ED84641FF70B429AFAD146EC97C",
+    "rawChildSha256": "77929A10DF962AE78C4B76F71344615815C783577DA657338D0AE8C31AA07280"
+  },
+  "sdkArchiveContinuity": [
+    {
+      "stage": "before",
+      "archiveSha256": "AAE7235DDC963E78FD8B74BA6F2AD35E63AC33B9E4F181621D10D5B5F2D07FE2",
+      "archiveBytes": 189060322,
+      "compilerCommandsSha256": "530280BB4FCEEE35EE658DB350299F449B6F092E53192CDFD858CB1BA3A1F01B",
+      "commands": 41,
+      "commandsWithGL": 41
+    },
+    {
+      "stage": "after",
+      "archiveSha256": "AAE7235DDC963E78FD8B74BA6F2AD35E63AC33B9E4F181621D10D5B5F2D07FE2",
+      "archiveBytes": 189060322,
+      "compilerCommandsSha256": "530280BB4FCEEE35EE658DB350299F449B6F092E53192CDFD858CB1BA3A1F01B",
+      "commands": 41,
+      "commandsWithGL": 41
+    }
+  ],
+  "candidateFreeze": {
+    "manifestSha256": "58AD3454780930BE3249EE4D6A86953C0F7969BD20F03B6E73C8D4DFF31E3238",
+    "binarySha256": "1B58A69DE0F00C73E1AA81355846D8B3F5375F17397E26BBDC8EAE04485332E7",
+    "pdbSha256": "646559637F66C3E1C7D5CCB663F024813D266A820065126421ADED5F59CD0982",
+    "compilerProfileSha256": "BE6E7475F8AB192DE3D9A9902F4EFF5F98E19CB0408755AB89F303303F283478"
+  },
+  "history": [
+    {
+      "attempt": "qualification1",
+      "nativeSourceCommit": "96e026ee81b14843d86636b3ff9e2b1c341621ef",
+      "disposition": "retained failure; unattributed",
+      "failure": {
+        "name": "Window.DesignRefreshResponsiveLayoutAndDpi",
+        "passed": false,
+        "error": "DPI/layout scenarios preserve the desktop"
+      },
+      "matrixSha256": "4C657F86E3B019FAC82E48F742B957C03B342648900F502C60FB0E6977B3CF1F"
+    },
+    {
+      "attempt": "qualification2",
+      "disposition": "unsupported driver parameter refused before build or native launch",
+      "logSha256": "19CDAAF9A78C40405F06B8FC91786FA03AC1F7A4088E71317969A6456BA53313"
+    },
+    {
+      "attempt": "qualification3",
+      "nativeSourceCommit": "7ea7ddc675f0e8db4573369192d14151e692cceb",
+      "disposition": "retained non-GL SDK archive mismatch after keyboard; source guard controlled stop before primary",
+      "archiveSha256": "5C643FD3925439AF1BEAD6A23527F556149E60956DC7127607558F679AB5FF3C",
+      "archiveCompilerGL": false,
+      "controlledStop": "Candidate source changed",
+      "observationSha256": "C506989311A7B85477FA8D7630A757E881DC371564C5911C45C0F35EC6AF29EA"
+    }
+  ],
+  "projectionChecks": 949,
+  "limits": [
+    "Native qualification only; no performance acceptance.",
+    "All three x64 profiles executed66 cases and23 hidden capture pairs each.",
+    "ARM64 profiles are cross-build evidence only.",
+    "Real keyboard168 injected events cover9 stages; broader physical IME and assistive-technology qualification remains independent.",
+    "Screenshots, raw logs, environment paths, process identifiers, window handles and desktop coordinates are intentionally not published.",
+    "Later documentation metadata does not change the retained native producer9cf8."
+  ]
+}
