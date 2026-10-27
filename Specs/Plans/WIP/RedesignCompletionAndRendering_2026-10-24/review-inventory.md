@@ -16099,11 +16099,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
-      "sha256": "7464a740277f9eba74e2adc0368c5881001433bdcd473d0adc4133f8dc5de80a",
+      "sha256": "ace5489eac5a0812a5760589810f5c72c7eb457b9013a724238fff1515be3057",
       "category": "planning-document",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "lead-and-independent-p24-source-and-byte-review",
+      "reviewer": "lead-publication-byte-and-evidence-review",
       "testIds": [
         "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
         "Editor.DesignRefreshEquationContextAndDraftGuards",
@@ -16143,12 +16143,12 @@ the current performance policy or accept the remaining regressions.
       "reviewDeltaStatus": "REVIEWED_CURRENT_SOURCE_BOUND_EVIDENCE_PROJECTION",
       "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "recordedUtc": "2026-10-27T02:29:22.785383+00:00",
-        "reviewBase": "RedTilde798 working observer repair; pinned DxUi98",
-        "callers": "Record the failed first SDK98 matrix, retained binaries, controlled sharing experiment, corrected A/A investigation and all remaining qualification holds.",
-        "ownershipAndLifetime": "The delta retains existing source/control/worker/lease ownership. Byte-only documentation changes create no runtime objects.",
-        "failureAndCancellation": "Do not turn prior failures, unknown focus, optional fixture skips, pending native jobs or unstable controls into successful qualification. No historical runtime receipt is retagged.",
-        "testCoverage": "Independent source/byte drift review is separate from execution. See P24 and the SDK SourceInkRendererQualification plan for exact raster, Tooling gate, native/ASan and pending platform/input/performance results.",
+        "recordedUtc": "2026-10-27T04:39:51.747012+00:00",
+        "reviewBase": "eed2abe9 exact native/performance source; documentation publication only",
+        "callers": "Publish source-bound six-build/three-Full/keyboard/persistence/performance projections and keep both current original-UI flags visible.",
+        "ownershipAndLifetime": "Documentation and sealed evidence projections create no native objects; SDK98 and production/test C++ bytes are unchanged.",
+        "failureAndCancellation": "Keep the 798 failure and all prior leases distinct. Hosted RedTilde ARM64 and performance policy remain OPEN; no runtime result is retagged.",
+        "testCoverage": "Six builds, three 65-case/23-capture x64 Full runs and actual ASan detection; separate keyboard, SDK Menu and 576-process studies have exact producer identities. Canonical/root performance audits are 25120/13322 checks, not acceptance.",
         "normalizedContentUnchanged": false
       },
       "reviewDeltaTestIds": [
@@ -16722,6 +16722,29 @@ the current performance policy or accept the remaining regressions.
           "recordedUtc": "2026-10-27T02:29:22.785383+00:00",
           "priorReviewBaseCommit": "798fcbe79bdd4eb5dec08bef4d4cc5f7c8e9b7a3",
           "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md"
+        },
+        {
+          "sha256": "7464a740277f9eba74e2adc0368c5881001433bdcd473d0adc4133f8dc5de80a",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p24-source-and-byte-review",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "recordedUtc": "2026-10-27T02:29:22.785383+00:00",
+            "reviewBase": "RedTilde798 working observer repair; pinned DxUi98",
+            "callers": "Record the failed first SDK98 matrix, retained binaries, controlled sharing experiment, corrected A/A investigation and all remaining qualification holds.",
+            "ownershipAndLifetime": "The delta retains existing source/control/worker/lease ownership. Byte-only documentation changes create no runtime objects.",
+            "failureAndCancellation": "Do not turn prior failures, unknown focus, optional fixture skips, pending native jobs or unstable controls into successful qualification. No historical runtime receipt is retagged.",
+            "testCoverage": "Independent source/byte drift review is separate from execution. See P24 and the SDK SourceInkRendererQualification plan for exact raster, Tooling gate, native/ASan and pending platform/input/performance results.",
+            "normalizedContentUnchanged": false
+          },
+          "recordedUtc": "2026-10-27T04:39:51.747012+00:00",
+          "priorReviewBaseCommit": "eed2abe9885c57f44ab192155b341582782020f9",
+          "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md"
         }
       ],
       "reviewDeltaSourceState": "working-tree-documentation-bound-by-hash",
@@ -16943,11 +16966,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "Measurements/README.md",
-      "sha256": "4615882b2322a0c63296b9e0ea142b4b0bf9d1a37ff0073b13fa7a8497918dc6",
+      "sha256": "b92e9b00fa55c1077d9b61faddf9493d9f9731b641f1719741dd41a00cc84780",
       "category": "measurement-index",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "p22-current-a29-publication-doc-delta",
+      "reviewer": "lead-publication-byte-and-evidence-review",
       "testIds": [],
       "findingIds": [],
       "disposition": "reviewed-publication-doc-delta; input-qualification-and-performance-policy-open",
@@ -16960,12 +16983,13 @@ the current performance policy or accept the remaining regressions.
       "reviewDeltaStatus": "REVIEWED_CURRENT_SOURCE_BOUND_EVIDENCE_PROJECTION",
       "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "correctness": "Current SDK build, Menu input and hosted CI outcomes are recorded as separate attempts; no acceptance claim is introduced.",
-        "lifetime": "Documentation and public evidence projection only; no application runtime source or dependency pin changed.",
-        "simplification": "Current a29 evidence remains separate from the earlier 09f collection; native keyboard evidence is separate from performance studies.",
-        "testCoverage": "Changelog validation and fold/check passed. The local native/performance evidence was completed and independently reviewed before this documentation update.",
-        "performance": "One current original-UI Split CPU finding remains; 36/72 controls unstable; no causal improvement or acceptance claim.",
-        "qualificationBoundary": "Projection update only. Full native input qualification, hosted ARM64, performance policy and acceptance remain open."
+        "recordedUtc": "2026-10-27T04:39:51.747012+00:00",
+        "reviewBase": "eed2abe9 exact native/performance source; documentation publication only",
+        "callers": "Publish source-bound six-build/three-Full/keyboard/persistence/performance projections and keep both current original-UI flags visible.",
+        "ownershipAndLifetime": "Documentation and sealed evidence projections create no native objects; SDK98 and production/test C++ bytes are unchanged.",
+        "failureAndCancellation": "Keep the 798 failure and all prior leases distinct. Hosted RedTilde ARM64 and performance policy remain OPEN; no runtime result is retagged.",
+        "testCoverage": "Six builds, three 65-case/23-capture x64 Full runs and actual ASan detection; separate keyboard, SDK Menu and 576-process studies have exact producer identities. Canonical/root performance audits are 25120/13322 checks, not acceptance.",
+        "normalizedContentUnchanged": false
       },
       "reviewDeltaTestIds": [
         "Tools/Test-Changelog.ps1",
@@ -17159,6 +17183,28 @@ the current performance policy or accept the remaining regressions.
           "reviewStatus": "reviewed-delta",
           "reviewer": "p22-current-a29-publication-doc-delta",
           "disposition": "Prior current-source documentation hash retained before this current SDK evidence update."
+        },
+        {
+          "sha256": "4615882b2322a0c63296b9e0ea142b4b0bf9d1a37ff0073b13fa7a8497918dc6",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "p22-current-a29-publication-doc-delta",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "correctness": "Current SDK build, Menu input and hosted CI outcomes are recorded as separate attempts; no acceptance claim is introduced.",
+            "lifetime": "Documentation and public evidence projection only; no application runtime source or dependency pin changed.",
+            "simplification": "Current a29 evidence remains separate from the earlier 09f collection; native keyboard evidence is separate from performance studies.",
+            "testCoverage": "Changelog validation and fold/check passed. The local native/performance evidence was completed and independently reviewed before this documentation update.",
+            "performance": "One current original-UI Split CPU finding remains; 36/72 controls unstable; no causal improvement or acceptance claim.",
+            "qualificationBoundary": "Projection update only. Full native input qualification, hosted ARM64, performance policy and acceptance remain open."
+          },
+          "recordedUtc": "2026-10-27T04:39:51.747012+00:00",
+          "priorReviewBaseCommit": "eed2abe9885c57f44ab192155b341582782020f9",
+          "path": "Measurements/README.md"
         }
       ],
       "reviewDeltaSourceState": "working-tree-documentation-bound-by-hash",
@@ -17522,11 +17568,11 @@ the current performance policy or accept the remaining regressions.
     {
       "repository": "RedTilde",
       "path": "CHANGELOG.md",
-      "sha256": "c495c603af091df1a20dd9f64bd7f1b3dba1643a1c7b01960c959dc900ebdfcf",
+      "sha256": "1294b7bd2cfff3abe2132d7825378106e4e9910c733e643016a6368a126e7dbc",
       "category": "generated-changelog",
       "generated": false,
       "reviewStatus": "reviewed-delta",
-      "reviewer": "lead-and-independent-p24-source-and-byte-review",
+      "reviewer": "lead-publication-byte-and-evidence-review",
       "testIds": [
         "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
         "Window.CaptionRetriesFailedAndSupersededNativeWrites",
@@ -17551,12 +17597,12 @@ the current performance policy or accept the remaining regressions.
       "reviewDeltaStatus": "REVIEWED_CURRENT_SOURCE_BOUND_EVIDENCE_PROJECTION",
       "reviewDeltaCommit": null,
       "reviewDeltaNotes": {
-        "recordedUtc": "2026-10-27T02:29:22.785383+00:00",
-        "reviewBase": "RedTilde798 working observer repair; pinned DxUi98",
-        "callers": "Generated folding records the exact renderer adoption and persistence observer change without a qualification claim.",
-        "ownershipAndLifetime": "The delta retains existing source/control/worker/lease ownership. Byte-only documentation changes create no runtime objects.",
-        "failureAndCancellation": "Do not turn prior failures, unknown focus, optional fixture skips, pending native jobs or unstable controls into successful qualification. No historical runtime receipt is retagged.",
-        "testCoverage": "Independent source/byte drift review is separate from execution. See P24 and the SDK SourceInkRendererQualification plan for exact raster, Tooling gate, native/ASan and pending platform/input/performance results.",
+        "recordedUtc": "2026-10-27T04:39:51.747012+00:00",
+        "reviewBase": "eed2abe9 exact native/performance source; documentation publication only",
+        "callers": "Publish source-bound six-build/three-Full/keyboard/persistence/performance projections and keep both current original-UI flags visible.",
+        "ownershipAndLifetime": "Documentation and sealed evidence projections create no native objects; SDK98 and production/test C++ bytes are unchanged.",
+        "failureAndCancellation": "Keep the 798 failure and all prior leases distinct. Hosted RedTilde ARM64 and performance policy remain OPEN; no runtime result is retagged.",
+        "testCoverage": "Six builds, three 65-case/23-capture x64 Full runs and actual ASan detection; separate keyboard, SDK Menu and 576-process studies have exact producer identities. Canonical/root performance audits are 25120/13322 checks, not acceptance.",
         "normalizedContentUnchanged": false
       },
       "reviewDeltaTestIds": [
@@ -17823,6 +17869,29 @@ the current performance policy or accept the remaining regressions.
           },
           "recordedUtc": "2026-10-27T02:29:22.785383+00:00",
           "priorReviewBaseCommit": "798fcbe79bdd4eb5dec08bef4d4cc5f7c8e9b7a3",
+          "path": "CHANGELOG.md"
+        },
+        {
+          "sha256": "c495c603af091df1a20dd9f64bd7f1b3dba1643a1c7b01960c959dc900ebdfcf",
+          "reviewStatus": "reviewed-delta",
+          "reviewer": "lead-and-independent-p24-source-and-byte-review",
+          "reviewNotes": {
+            "callers": "",
+            "ownershipAndLifetime": "",
+            "failureAndCancellation": "",
+            "testCoverage": ""
+          },
+          "reviewDeltaNotes": {
+            "recordedUtc": "2026-10-27T02:29:22.785383+00:00",
+            "reviewBase": "RedTilde798 working observer repair; pinned DxUi98",
+            "callers": "Generated folding records the exact renderer adoption and persistence observer change without a qualification claim.",
+            "ownershipAndLifetime": "The delta retains existing source/control/worker/lease ownership. Byte-only documentation changes create no runtime objects.",
+            "failureAndCancellation": "Do not turn prior failures, unknown focus, optional fixture skips, pending native jobs or unstable controls into successful qualification. No historical runtime receipt is retagged.",
+            "testCoverage": "Independent source/byte drift review is separate from execution. See P24 and the SDK SourceInkRendererQualification plan for exact raster, Tooling gate, native/ASan and pending platform/input/performance results.",
+            "normalizedContentUnchanged": false
+          },
+          "recordedUtc": "2026-10-27T04:39:51.747012+00:00",
+          "priorReviewBaseCommit": "eed2abe9885c57f44ab192155b341582782020f9",
           "path": "CHANGELOG.md"
         }
       ],
@@ -23580,8 +23649,8 @@ the current performance policy or accept the remaining regressions.
   },
   "reviewDeltaSnapshot": {
     "RedTilde": {
-      "priorHead": "798fcbe79bdd4eb5dec08bef4d4cc5f7c8e9b7a3",
-      "workingTree": "Reviewed observer repair; each row binds its exact current raw bytes. Fresh qualification pending."
+      "priorHead": "eed2abe9885c57f44ab192155b341582782020f9",
+      "workingTree": "Documentation/evidence publication only; native and test source bytes remain eed2abe9."
     },
     "DxUi": {
       "head": "98c795b765a10d1805ae0a7c35a8ade535fb7fd6",
@@ -23590,15 +23659,15 @@ the current performance policy or accept the remaining regressions.
       "publicPackageHeaderRows": 33,
       "changedPublicHeaderRowsFrom4077": 0
     },
-    "p24ByteBinding": {
-      "pinnedSdkCommit": "98c795b765a10d1805ae0a7c35a8ade535fb7fd6",
-      "appPriorCommit": "798fcbe79bdd4eb5dec08bef4d4cc5f7c8e9b7a3",
+    "p25ByteBinding": {
       "originalPopulation": 636,
       "currentNonBuildRows": 633,
       "historicalBuildEvidenceRowsUnchanged": 3,
-      "refreshedRows": 65,
+      "refreshedMetadataRows": 3,
       "supplementalSourceFiles": 1,
-      "scope": "Raw-byte review bindings only; native execution and acceptance remain source-specific."
+      "nativeSourceCommit": "eed2abe9885c57f44ab192155b341582782020f9",
+      "compiledSourceIdentity": "0339eb869924afc60fab096f197247e1ef24bb1e98b6ea75f1bda3f388ce52ad",
+      "scope": "Raw-byte review binding; current publication metadata does not become a runtime receipt."
     }
   },
   "pathDispositions": [
@@ -23735,6 +23804,29 @@ the current performance policy or accept the remaining regressions.
         "workingTree": "clean at exact source commit",
         "sourceHeaderRowsReviewed": 58,
         "changedHeaderRows": 2
+      }
+    },
+    {
+      "RedTilde": {
+        "priorHead": "798fcbe79bdd4eb5dec08bef4d4cc5f7c8e9b7a3",
+        "workingTree": "Reviewed observer repair; each row binds its exact current raw bytes. Fresh qualification pending."
+      },
+      "DxUi": {
+        "head": "98c795b765a10d1805ae0a7c35a8ade535fb7fd6",
+        "workingTree": "clean exact consumer pin",
+        "publicSourceHeaderRows": 25,
+        "publicPackageHeaderRows": 33,
+        "changedPublicHeaderRowsFrom4077": 0
+      },
+      "p24ByteBinding": {
+        "pinnedSdkCommit": "98c795b765a10d1805ae0a7c35a8ade535fb7fd6",
+        "appPriorCommit": "798fcbe79bdd4eb5dec08bef4d4cc5f7c8e9b7a3",
+        "originalPopulation": 636,
+        "currentNonBuildRows": 633,
+        "historicalBuildEvidenceRowsUnchanged": 3,
+        "refreshedRows": 65,
+        "supplementalSourceFiles": 1,
+        "scope": "Raw-byte review bindings only; native execution and acceptance remain source-specific."
       }
     }
   ]
