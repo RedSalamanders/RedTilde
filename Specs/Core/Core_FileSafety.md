@@ -1,5 +1,9 @@
 # File safety
 
+Atomic staging uses a bounded temporary leaf in the destination directory, independently of the target filename's
+length. A valid 240-unit target must support both first publication and replacement without leaking a temporary;
+`Storage.AtomicSaveKeepsLongLeafWithinPathBudget` exercises that boundary and the saved bytes/stamp.
+
 Open and save local `.md`, `.markdown` and text files using strict UTF-8. Preserve BOM and original line endings;
 invalid UTF-8/NUL/oversized files fail before replacing the current document. New documents use UTF-8 without BOM.
 The v0 source limit is 65,536 UTF-16 units. Bounded reads reject files above the maximum possible encoded size.

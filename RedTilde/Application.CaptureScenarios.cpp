@@ -18,7 +18,10 @@ void RequireCapture(bool condition, const char *message)
 void CaptureWrite(const std::filesystem::path &path, std::string_view text = "# Invented reference notes\n")
 {
     std::filesystem::create_directories(path.parent_path());
-    RequireCapture(SUCCEEDED(WriteBytesAtomic(path, text)), "Cannot seed the owned design-capture fixture");
+    const HRESULT result = WriteBytesAtomic(path, text);
+    if (FAILED(result))
+        throw std::runtime_error(std::format("Cannot seed the owned design-capture fixture (0x{:08x}, {} path units)", static_cast<unsigned>(result),
+                                             path.native().size()));
 }
 std::wstring WritingFixture()
 {

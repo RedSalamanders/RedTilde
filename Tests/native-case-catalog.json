@@ -46,6 +46,10 @@
       "scope": "Storage"
     },
     {
+      "name": "Storage.AtomicSaveKeepsLongLeafWithinPathBudget",
+      "scope": "Storage"
+    },
+    {
       "name": "Storage.CapacityRejectedWithoutTruncation",
       "scope": "Storage"
     },
