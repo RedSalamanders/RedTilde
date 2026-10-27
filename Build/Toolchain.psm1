@@ -34,7 +34,7 @@ function Get-RedTildePinnedBuildArguments {
         $Identity.preferredToolArchitecture -cnotin @('x86','x64','arm64')){
         throw 'A verified pinned dependency compiler and Release policy identity is required.'
     }
-    $wholeProgram=if($Configuration -ceq 'Release'){'true'}else{'false'}
+    $wholeProgram=if($Configuration -eq 'Release'){'true'}else{'false'}
     return @("/p:WholeProgramOptimization=$wholeProgram","/p:VCToolsVersion=$($Identity.vcToolsVersion)",
         "/p:PlatformToolset=$($Identity.toolset)","/p:WindowsTargetPlatformVersion=$($Identity.windowsSdkVersion)",
         "/p:PreferredToolArchitecture=$($Identity.preferredToolArchitecture)")

@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Treat accepted configuration casing consistently in the pinned interactive-helper build policy, and evaluate mixed-case Release against the real dependency compiler identity instead of application-project defaults. Retain the failing lower-case regression and all canonical policy controls; native qualification remains separate.
 - Keep the interactive test helper and its SDK project reference on the receipt-pinned compiler, SDK and Release whole-program policy, preventing a helper build from replacing the fingerprinted SDK archive with default non-GL settings. Add evaluated lease/archive profile and omitted-policy regression checks; native archive restoration, runtime qualification and performance acceptance remain separate.
 - Preserve the exact hidden DPI/layout desktop assertions while reporting their separate foreground, visibility and owner-query observations on failure. Retain the original Release failure without attribution and synchronize the documented native catalog with its 66 registered cases.
 - Resume the two remaining original-UI performance investigations with compiler-matched frozen references and unchanged comparison bands, while tracking the observed hosted installer exit-code failure and preserving native, policy and billing-blocked ARM64 gates.

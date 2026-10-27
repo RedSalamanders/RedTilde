@@ -109,6 +109,10 @@ if($dependencySource){
     $leaseProfiles=[Collections.Generic.List[object]]::new()
     $counterfactuals=[Collections.Generic.List[object]]::new()
     $toolsetControls=[Collections.Generic.List[object]]::new()
+    $mixedCaseControls=[Collections.Generic.List[object]]::new()
+    $identityBindings=[Collections.Generic.List[object]]::new()
+    Import-Module (Join-Path $dependencySource 'Tools/ConsumerBuild.psm1') -Force
+    $identityMSBuild=Get-RedTildeMSBuild
     $toolsetProbe=Join-Path $scratch 'AmbientToolset.targets'
     [IO.File]::WriteAllText($toolsetProbe,'<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"><PropertyGroup><VCToolsVersion>14.52.99999</VCToolsVersion></PropertyGroup><ItemGroup><Link Include="ReleasePolicyLinkProbe"/></ItemGroup></Project>')
     function Get-CompilerFacts($Value){
@@ -117,6 +121,27 @@ if($dependencySource){
         })
     }
     foreach($platform in 'x64','ARM64'){
+        # The real entrypoint uses the restored dependency identity, whose compiler
+        # host can differ from this evaluator's application-project defaults.
+        $discovered=Get-DxUiConsumerBuildIdentity -DxUiRoot $dependencySource -MSBuildPath $identityMSBuild -Platform $platform
+        $identity=[ordered]@{}
+        foreach($entry in $discovered.Identity.GetEnumerator()){$identity[$entry.Key]=$entry.Value}
+        $identity['releaseOptimizationPolicy']='Gy-REF-GL-LTCG-full-v1'
+        $fingerprint=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($identity|ConvertTo-Json -Depth 8 -Compress)))).ToLowerInvariant()
+        $identityPath=Join-Path $Root ".build/dependencies/DxUi/DxUi.identity.$platform.json"
+        $identityMode='canonical read-only dependency discovery'
+        if(Test-Path -LiteralPath $identityPath){
+            $restored=Get-Content -LiteralPath $identityPath -Raw|ConvertFrom-Json -AsHashtable
+            if($restored.Fingerprint-cne $fingerprint -or ($restored.Identity|ConvertTo-Json -Depth 8 -Compress)-cne ($identity|ConvertTo-Json -Depth 8 -Compress)){
+                throw "Restored $platform dependency identity differs from the actual canonical compiler/SDK discovery."
+            }
+            $identity=$restored.Identity
+            $identityMode='actual restored identity, independently verified'
+        }elseif($RequirePinnedArchives){throw "Restore the exact $platform dependency identity before required lease-policy evaluation."}
+        if($identity.commit-cne $pin.commit -or $identity.platform-cne $platform){throw 'Lease-policy identity source or target differs from the pin.'}
+        $identityBindings.Add([ordered]@{platform=$platform;mode=$identityMode;fingerprint=$fingerprint;identity=$identity})
+        $expectedProperties=@{VCToolsVersion=$identity.vcToolsVersion;PlatformToolset=$identity.toolset;
+            WindowsTargetPlatformVersion=$identity.windowsSdkVersion;PreferredToolArchitecture=$identity.preferredToolArchitecture}
         $defaultLease=Read-Profile $leaseProject 'Release' $platform
         $defaultArchive=Read-Profile $archiveProject 'Release' $platform
         foreach($entry in @(@{name='lease';value=$defaultLease},@{name='archive';value=$defaultArchive})){
@@ -125,10 +150,6 @@ if($dependencySource){
             $counterfactuals.Add([ordered]@{project=$entry.name;platform=$platform;properties=$entry.value.Properties;compiler=$facts})
         }
         foreach($configuration in 'Debug','Release','ASan Debug'){
-            $app=Read-Profile (Join-Path $Root 'RedTilde/RedTilde.vcxproj') $configuration $platform
-            $identity=[ordered]@{releaseOptimizationPolicy='Gy-REF-GL-LTCG-full-v1';toolset=$app.Properties.PlatformToolset;
-                vcToolsVersion=$app.Properties.VCToolsVersion;windowsSdkVersion=$app.Properties.WindowsTargetPlatformVersion;
-                preferredToolArchitecture=$app.Properties.PreferredToolArchitecture}
             $actualArguments=@(Get-RedTildePinnedBuildArguments -Configuration $configuration -Identity $identity)
             $lease=Read-Profile $leaseProject $configuration $platform -Extra $actualArguments
             $archive=Read-Profile $archiveProject $configuration $platform -Extra $actualArguments
@@ -140,7 +161,7 @@ if($dependencySource){
             $expected=if($configuration-ceq 'Release'){'true'}else{'false'}
             foreach($entry in @(@{name='lease';value=$lease},@{name='archive';value=$archive})){
                 foreach($property in 'VCToolsVersion','PlatformToolset','WindowsTargetPlatformVersion','PreferredToolArchitecture'){
-                    if($entry.value.Properties[$property]-cne $app.Properties[$property]){throw "$($entry.name) $platform $configuration changed pinned $property."}
+                    if($entry.value.Properties[$property]-cne $expectedProperties[$property]){throw "$($entry.name) $platform $configuration changed receipt-pinned $property."}
                 }
                 $facts=Get-CompilerFacts $entry.value
                 if(-not $facts.Count -or @($facts|Where-Object wholeProgramOptimization -CNE $expected).Count){throw "$($entry.name) $platform $configuration has the wrong evaluated /GL policy."}
@@ -156,13 +177,25 @@ if($dependencySource){
                 }
             }
         }
+        foreach($spelling in 'release','rElEaSe'){
+            $actualArguments=@(Get-RedTildePinnedBuildArguments -Configuration $spelling -Identity $identity)
+            foreach($project in @($leaseProject,$archiveProject)){
+                $value=Read-Profile $project $spelling $platform -Extra $actualArguments
+                $facts=Get-CompilerFacts $value
+                if(-not $facts.Count -or @($facts|Where-Object wholeProgramOptimization -CNE 'true').Count){throw "Accepted configuration spelling $spelling selects non-GL for $project $platform."}
+                foreach($property in $expectedProperties.Keys){
+                    if($value.Properties[$property]-cne $expectedProperties[$property]){throw "$spelling $platform changed receipt-pinned $property."}
+                }
+                $mixedCaseControls.Add([ordered]@{project=$project;platform=$platform;configuration=$spelling;arguments=$actualArguments;properties=$value.Properties;compiler=$facts})
+            }
+        }
     }
     $leaseEvidence=Join-Path $scratch 'interactive-lease-policy.json'
     [ordered]@{schema='redtilde-evaluated-interactive-lease-policy-v1';helperSha256=(Get-FileHash (Join-Path $Root 'Build/Toolchain.psm1')).Hash;
         runnerSha256=(Get-FileHash (Join-Path $Root 'test-interactive.ps1')).Hash;testSha256=(Get-FileHash $PSCommandPath).Hash;
-        sdk=$pin.commit;profiles=$leaseProfiles.ToArray();omittedArgumentsCounterfactuals=$counterfactuals.ToArray();toolsetOverrideControls=$toolsetControls.ToArray();nativeBuilds=0;desktopRuns=0}|
+        sdk=$pin.commit;identityBindings=$identityBindings.ToArray();profiles=$leaseProfiles.ToArray();omittedArgumentsCounterfactuals=$counterfactuals.ToArray();toolsetOverrideControls=$toolsetControls.ToArray();mixedCaseControls=$mixedCaseControls.ToArray();nativeBuilds=0;desktopRuns=0}|
         ConvertTo-Json -Depth 12|Set-Content -LiteralPath $leaseEvidence -Encoding utf8
-    Write-Host "PASS interactive lease policy: 6 lease and 6 pinned-archive profiles; 4 omitted-policy and 4 toolset-override controls. Evidence: $leaseEvidence"
+    Write-Host "PASS interactive lease policy: 6 lease and 6 pinned-archive profiles; 4 omitted-policy, 4 toolset-override and 8 mixed-case controls with verified dependency identities. Evidence: $leaseEvidence"
 }
 
 # Provisioning must remain read-only on local hosts and refuse a missing required family

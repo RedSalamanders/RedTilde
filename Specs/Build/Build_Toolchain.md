@@ -69,6 +69,10 @@ using the same argument factory as the entrypoint. It preserves Debug/ASan behav
 retains an omitted-arguments counterfactual that selects non-GL Release settings, and verifies that an evaluated
 SDK toolset-default override cannot replace the pinned VCToolsVersion global. Evaluation compiles and
 launches nothing; actual archive restoration and source-bound runtime qualification remain separate obligations.
+Accepted configuration casing must select the same policy. Lease evaluations use the actual restored dependency
+identity when present, independently rechecked through canonical dependency discovery, including its compiler host;
+application-project evaluator defaults are not a substitute for that identity. Mixed-case Release controls cover
+both lease and archive targets with those same identity arguments.
 
 LTO is scoped to each final EXE/DLL and does not guarantee reduced size or improved speed. Retain baseline/candidate image hashes, sizes, build/link durations, fixture and dependency identities, every runtime/resource sample and concurrent-activity observations. Different compiler policies are an intentional experiment, not identical-profile evidence reuse. Cross-built ARM64 and headless functional passes cannot close native ARM64, interactive, or existing product/performance acceptance gates.
 
