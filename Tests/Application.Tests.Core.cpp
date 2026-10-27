@@ -257,6 +257,30 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              for (const auto &entry : std::filesystem::directory_iterator(root))
                  Require(entry.path().extension() != L".tmp", "no owned temporary leaked");
          });
+    test("Storage.AtomicSaveKeepsLongLeafWithinPathBudget",
+         [&]
+         {
+             const auto directory = std::filesystem::absolute(root / L"atomic-temp-budget");
+             std::filesystem::create_directories(directory);
+             const auto prefix = directory.native().size() + 1u;
+             Require(prefix + 4u < 240u, "owned fixture leaves room for a valid near-limit target");
+             const auto path = directory / (std::wstring(240u - prefix - 3u, L'n') + L".md");
+             Require(path.native().size() == 240u, "exercise the full target path budget");
+             FileStamp first;
+             Success(SaveDocument(path, L"first", false, nullptr, first), "publish a near-limit target");
+             FileStamp second;
+             Success(SaveDocument(path, L"second", false, &first, second), "atomically replace a near-limit target");
+             StoredDocument loaded;
+             Success(LoadDocument(path, loaded), "read the near-limit target");
+             Require(loaded.text == L"second" && loaded.stamp == second, "replacement bytes and stamp are preserved");
+             std::size_t entries{};
+             for (const auto &entry : std::filesystem::directory_iterator(directory))
+             {
+                 Require(entry.path() == path, "no staging temporary leaked beside the target");
+                 ++entries;
+             }
+             Require(entries == 1u, "only the published target remains");
+         });
     test("Storage.CapacityRejectedWithoutTruncation",
          [&]
          {

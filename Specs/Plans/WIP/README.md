@@ -22,3 +22,7 @@
   source-bound six-profile builds, x64 native tests and matched captures are archived. R10 performance and
   broader input/platform/CI/release qualification keep this parent plan active. The completion coordinator
   now sequences the remaining work; earlier source-bound results do not qualify a later pin automatically.
+
+proposal pages and pictures are in its folder. Not implemented; start at R0 and open decisions D1–D5.
+
+- [RedMonitor adoption](RedMonitor_Adoption_2026-10-23.md) — pinned producer, optional viewer and consumer qualification.

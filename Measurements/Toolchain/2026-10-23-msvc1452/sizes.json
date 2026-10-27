@@ -1,0 +1,77 @@
+{
+  "path": "RedTilde.exe",
+  "beforeBytes": 4157952,
+  "afterBytes": 2855936,
+  "changePercent": -31.313878,
+  "baselineSha256": "FA331370789852C7204E4A9999A0BAA0B8A7333CA03DB4ED200CAD2D3C90891B",
+  "candidateSha256": "384F375D9CAD712D6EA6106E2F627D74955774DDC887DE0E3CC47BB4BAE32429",
+  "beforeSections": [
+    {
+      "name": ".text",
+      "virtualBytes": 2811147,
+      "fileBytes": 2811392
+    },
+    {
+      "name": ".rdata",
+      "virtualBytes": 797570,
+      "fileBytes": 797696
+    },
+    {
+      "name": ".data",
+      "virtualBytes": 41016,
+      "fileBytes": 37888
+    },
+    {
+      "name": ".pdata",
+      "virtualBytes": 116748,
+      "fileBytes": 117248
+    },
+    {
+      "name": "minATL",
+      "virtualBytes": 24,
+      "fileBytes": 512
+    },
+    {
+      "name": ".rsrc",
+      "virtualBytes": 380536,
+      "fileBytes": 380928
+    },
+    {
+      "name": ".reloc",
+      "virtualBytes": 10992,
+      "fileBytes": 11264
+    }
+  ],
+  "afterSections": [
+    {
+      "name": ".text",
+      "virtualBytes": 1792123,
+      "fileBytes": 1792512
+    },
+    {
+      "name": ".rdata",
+      "virtualBytes": 582846,
+      "fileBytes": 583168
+    },
+    {
+      "name": ".data",
+      "virtualBytes": 35112,
+      "fileBytes": 32256
+    },
+    {
+      "name": ".pdata",
+      "virtualBytes": 57132,
+      "fileBytes": 57344
+    },
+    {
+      "name": ".rsrc",
+      "virtualBytes": 380536,
+      "fileBytes": 380928
+    },
+    {
+      "name": ".reloc",
+      "virtualBytes": 8472,
+      "fileBytes": 8704
+    }
+  ]
+}

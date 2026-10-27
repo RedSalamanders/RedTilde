@@ -1,5 +1,6 @@
 #include "Application.h"
 #include "Common/CrashHandler.h"
+#include "Common/MonitorDiagnostics.h"
 #include "res/Resource.h"
 #include <DxUi/RichMath.h>
 #include <DxUi/RichSemanticDocument.h>
@@ -1612,6 +1613,8 @@ void Application::FileCompleted()
     auto &result = completed.value();
     if (FAILED(result.status))
     {
+        MonitorDiagnostics::Write(RedMonitor::Severity::Error,
+                                  result.saving ? L"save failed; source and previous target retained" : L"open failed; current document retained");
         if (result.saving && result.status == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH) && !options.headless)
         {
             const int choice =

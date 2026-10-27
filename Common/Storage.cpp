@@ -90,8 +90,8 @@ try
     wil::unique_handle file;
     for (unsigned attempt = 0; attempt < 8 && !file; ++attempt)
     {
-        temporary = path;
-        temporary += std::format(L".redtilde-{}-{}-{}.tmp", GetCurrentProcessId(), GetTickCount64(), sequence.fetch_add(1));
+        // Keep the staging leaf independent of the target's length, in the same directory for atomic publication.
+        temporary = path.parent_path() / std::format(L".redtilde-{}-{}-{}.tmp", GetCurrentProcessId(), GetTickCount64(), sequence.fetch_add(1));
         file.reset(CreateFileW(temporary.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr));
         if (!file && GetLastError() != ERROR_FILE_EXISTS)
             return LastError();
