@@ -4,8 +4,8 @@
   "files": [
     {
       "file": "README.md",
-      "bytes": 4018,
-      "sha256": "61E1973D2977D08FBC5A21CA6E7FF04D89B7DAA8EF9BBF3977FEEE32F30E3433"
+      "bytes": 4156,
+      "sha256": "8889C4AAA7435081068E9F0194C0ADB24304278BC03326ED385139F235556165"
     },
     {
       "file": "evidence-metadata.json",
@@ -19,8 +19,8 @@
     },
     {
       "file": "metadata-continuation-pending.json",
-      "bytes": 1076,
-      "sha256": "199F3757E6660B0C331E01216D73DABC3203E1AEDCC96DD81387D93EE39EBD07"
+      "bytes": 7417,
+      "sha256": "813094C89952F3D7DA4F8A3FE2DD77F19B0794EFD5EA1D048D52C2A16258913C"
     }
   ]
 }

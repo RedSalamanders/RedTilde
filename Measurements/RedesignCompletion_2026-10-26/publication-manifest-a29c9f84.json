@@ -64,8 +64,8 @@
     },
     {
       "path": "Measurements/RedesignCompletion_2026-10-26/qualification-a29c9f84/README.md",
-      "bytes": 4018,
-      "sha256": "61e1973d2977d08fbc5a21ca6e7ff04d89b7daa8ef9bbf3977feee32f30e3433"
+      "bytes": 4156,
+      "sha256": "8889c4aaa7435081068e9f0194c0adb24304278bc03326ed385139f235556165"
     },
     {
       "path": "Measurements/RedesignCompletion_2026-10-26/qualification-a29c9f84/evidence-metadata.json",
@@ -74,13 +74,13 @@
     },
     {
       "path": "Measurements/RedesignCompletion_2026-10-26/qualification-a29c9f84/metadata-continuation-pending.json",
-      "bytes": 1076,
-      "sha256": "199f3757e6660b0c331e01216d73dabc3203e1aedcc96dd81387d93ee39ebd07"
+      "bytes": 7417,
+      "sha256": "813094c89952f3d7da4f8a3fe2dd77f19b0794efd5ea1d048d52c2a16258913c"
     },
     {
       "path": "Measurements/RedesignCompletion_2026-10-26/qualification-a29c9f84/packet-hashes.json",
-      "bytes": 725,
-      "sha256": "33ad9000c2848a563ef9f2f3c6bf291b79506368106042e7517c4d1f6f99c5d4"
+      "bytes": 750,
+      "sha256": "de2914e48616f60ba92c738eb74bee01c93fe9a9b83cbbe28ad34595a377bd5e"
     },
     {
       "path": "Measurements/RedesignCompletion_2026-10-26/qualification-a29c9f84/payload-hashes.json",
