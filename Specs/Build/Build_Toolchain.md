@@ -4,6 +4,11 @@ Visual Studio 2026 C++ v145, SDK 10.0.26100, Unicode, `/std:c++latest`, `/W4 /WX
 Discover VS through vswhere including installed prerelease instances. Match the pinned library's compiler,
 architecture, runtime (/MDd Debug/ASan, /MD Release) and SDK. Outputs are private to this repository under `.build`.
 
+A build transaction freezes all non-ignored source files except `Measurements/`, including WIP and prose.
+Editing those during compilation causes the full-source guard to refuse the result even when native bytes
+are unchanged. Update checklists between operations. Between builds, unchanged compiled inputs may support
+receipt-verified incremental reuse; this never relabels an earlier run's full source identity.
+
 `restore-dxui.ps1` validates the exact lock, creates an isolated detached checkout and invokes the supported
 consumer build-identity and dependency-restore APIs. It never resets/cleans a sibling checkout. Fingerprint source,
 API, toolchain, platform and flags. Import the public consumer props/targets and reference the single archive.

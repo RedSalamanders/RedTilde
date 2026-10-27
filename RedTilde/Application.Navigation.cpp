@@ -583,7 +583,9 @@ LRESULT Application::FrameHitTest(HWND hwnd, LPARAM point) const
             return HTRIGHT;
     }
     ScreenToClient(hwnd, &screen);
-    const float scale = 96.f / GetDpiForWindow(hwnd);
+    // Hit the same client-space geometry that the host lays out and paints,
+    // including a harness DPI transition before the next native frame.
+    const float scale = 96.f / host.GetDpi();
     const D2D1_POINT_2F dip{screen.x * scale, screen.y * scale};
     const auto contains = [&](const DxUi::Control *c)
     {

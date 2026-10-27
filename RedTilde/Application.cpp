@@ -1784,6 +1784,38 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         AskThen([this] { BeginClose(); });
         return 0;
     }
+    if ((message == WM_NCLBUTTONDOWN || message == WM_NCLBUTTONDBLCLK) && (wParam == HTCLOSE || wParam == HTMAXBUTTON || wParam == HTMINBUTTON) &&
+        FrameHitTest(hwnd, lParam) == static_cast<LRESULT>(wParam))
+    {
+        // Caption controls are rendered in the client area, but Windows routes
+        // their hit-tested presses through the nonclient message family. Give
+        // the real DxUi control the ordinary client lifecycle so it owns capture
+        // and can cancel activation when the pointer is released elsewhere.
+        POINT point{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+        if (ScreenToClient(hwnd, &point))
+        {
+            const LPARAM clientPoint = MAKELPARAM(static_cast<SHORT>(point.x), static_cast<SHORT>(point.y));
+            bool handled{};
+            const auto clientMessage = message == WM_NCLBUTTONDBLCLK ? WM_LBUTTONDBLCLK : WM_LBUTTONDOWN;
+            const auto result = host.HandleMessage(hwnd, clientMessage, MK_LBUTTON, clientPoint, handled);
+            if (handled)
+                return result;
+        }
+    }
+    if (message == WM_NCLBUTTONUP && GetCapture() == hwnd)
+    {
+        // Normally SetCapture retargets release to WM_LBUTTONUP. Keep a guarded
+        // fallback for hosts that still receive the release as nonclient input.
+        POINT point{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)};
+        if (ScreenToClient(hwnd, &point))
+        {
+            bool handled{};
+            const auto result =
+                host.HandleMessage(hwnd, WM_LBUTTONUP, 0, MAKELPARAM(static_cast<SHORT>(point.x), static_cast<SHORT>(point.y)), handled);
+            if (handled)
+                return result;
+        }
+    }
     if (message == WM_NCHITTEST)
         return FrameHitTest(hwnd, lParam);
     if (message == WM_NCACTIVATE)
@@ -1907,39 +1939,33 @@ void Application::Prepare(unsigned turns)
         (void)MsgWaitForMultipleObjectsEx(0, nullptr, 5, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
     }
 }
-bool Application::Capture(const std::filesystem::path &path)
+bool Application::Capture(const std::filesystem::path &path, bool prepareContent)
 {
-    Prepare();
+    if (prepareContent)
+        Prepare();
+    DxUi::Button *captureHover{};
+    if (options.headless && path == options.capture && (options.scenario == L"caption-close-hover" || options.scenario == L"caption-maximize-hover"))
+    {
+        const bool close = options.scenario == L"caption-close-hover";
+        captureHover = close ? closeButton : maximizeButton;
+        const auto bounds = captureHover->GetBounds();
+        const auto point = host.DipPointToScreenPoint({(bounds.left + bounds.right) * .5f, (bounds.top + bounds.bottom) * .5f});
+        bool handled{};
+        // Preparation pumps queued leave messages for this hidden window.
+        // Apply owned synthetic hover after that pump, immediately before the
+        // frame readback, without moving the pointer or taking native input.
+        (void)host.HandleMessage(window.get(), WM_NCMOUSEMOVE, close ? HTCLOSE : HTMAXBUTTON,
+                                 MAKELPARAM(static_cast<SHORT>(point.x), static_cast<SHORT>(point.y)), handled);
+        if (handled || !captureHover->IsHovered())
+            return false;
+    }
     DxUi::WindowHostBitmapCapture bitmap;
-    if (!host.RenderInitialFrameForShow())
+    // Stage the completed frame before Present rotates the swap-chain buffers.
+    // The canonical hidden capture path never shows or activates this HWND.
+    if (!host.DebugCaptureBitmap(bitmap, true))
         return false;
-    // Hidden capture reads this application's D2D render target. It neither shows
-    // the window nor reads pixels from the desktop. The library's diagnostic
-    // capture entrypoint deliberately refuses an invisible swap-chain host.
-    auto *context = host.GetDeviceContext();
-    if (!context)
+    if (captureHover && !captureHover->IsHovered())
         return false;
-    wil::com_ptr<ID2D1Image> target;
-    context->GetTarget(target.put());
-    wil::com_ptr<ID2D1Bitmap1> source;
-    if (!target || FAILED(target->QueryInterface(IID_PPV_ARGS(source.put()))))
-        return false;
-    const auto size = source->GetPixelSize();
-    const auto readbackProperties = D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_CPU_READ | D2D1_BITMAP_OPTIONS_CANNOT_DRAW, source->GetPixelFormat());
-    wil::com_ptr<ID2D1Bitmap1> staging;
-    if (FAILED(context->CreateBitmap(size, nullptr, 0, &readbackProperties, staging.put())) ||
-        FAILED(staging->CopyFromBitmap(nullptr, source.get(), nullptr)))
-        return false;
-    D2D1_MAPPED_RECT mapped{};
-    if (FAILED(staging->Map(D2D1_MAP_OPTIONS_READ, &mapped)))
-        return false;
-    const auto unmap = wil::scope_exit([&] { (void)staging->Unmap(); });
-    bitmap.widthPx = size.width;
-    bitmap.heightPx = size.height;
-    bitmap.bgraPixels.resize(static_cast<std::size_t>(size.width) * size.height * 4);
-    for (UINT row = 0; row < size.height; ++row)
-        std::copy_n(mapped.bits + static_cast<std::size_t>(row) * mapped.pitch, size.width * 4,
-                    bitmap.bgraPixels.data() + static_cast<std::size_t>(row) * size.width * 4);
     wil::com_ptr<IWICImagingFactory> factory;
     wil::com_ptr<IWICStream> stream;
     wil::com_ptr<IWICBitmapEncoder> encoder;
@@ -2079,7 +2105,9 @@ int Application::Run()
     }
     if (options.headless)
     {
-        settings.appearance = options.scenario == L"compose-dark" || options.scenario == L"math-dark" || options.scenario == L"reference-dark"
+        settings.appearance = options.scenario == L"compose-dark" || options.scenario == L"math-dark" || options.scenario == L"reference-dark" ||
+                                      options.scenario == L"markdown-style" || options.scenario == L"caption-close-hover" ||
+                                      options.scenario == L"caption-maximize-hover"
                                   ? Appearance::Dark
                                   : Appearance::Light;
         ApplyTheme();

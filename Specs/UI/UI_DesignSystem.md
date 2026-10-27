@@ -115,6 +115,25 @@ their explicit darker red fill in Dark mode so their white label stays readable.
 Highlight/HighlightText for active and inactive selection, Hotlight for links/focus, and Window/WindowText for
 surfaces/text. Other Find matches use a subtle neutral fill distinct from the current selection.
 
+The merged title bar uses square native-sized caption buttons: neutral hover/press
+for minimize and maximize/restore, red paired with white text for close, and system
+colors in high contrast. Their pointer lifecycle preserves the document's keyboard
+focus and activates once on release inside the pressed button. Release outside,
+capture loss and cancellation clear the press without activation. Native
+`HTMAXBUTTON` hit testing and default nonclient hover processing remain available
+for Snap Layouts; resize borders and draggable title space retain native behavior.
+App-owned caption presses route through canonical DxUi button capture/dispatch and
+suppress duplicate native activation. Physical Windows Snap interaction remains a
+separate foreground acceptance check.
+
+Compose uses DxUi's opt-in `MarkdownPresentationStyle::Subtle`: H1/H2 have a subtle
+neutral separator, tables fit their content and use horizontal row rules, standalone
+display equations and diagrams center within their available measure, and quotes
+have a shaded surface. Source view keeps literal source styling. Editing, selection,
+history and accessible semantic roles are unchanged. The hidden `markdown-style`
+capture scenario reproduces the supplied example with invented content; captures
+record actual viewport and DPI. Different screenshot scales do not establish a font-size defect.
+
 Compose body is 16 DIP with a 1.65 line-height multiplier; H1 is 34/1.2 bold and H2 is 23/1.3 bold. List items
 have 10-DIP separation and paragraphs retain a line of bottom space. Shared semantic minima credit real source
 blank lines: one separator fills the paragraph margin; additional blank lines keep distinct caret sites. Headings and strong text use document

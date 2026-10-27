@@ -1,11 +1,52 @@
 # Finish RedTilde redesign and DxUi rendering — 2026-10-24
 
-> **PAUSED by user, 27 October 2026.** All owned local work is stopped; no action resumes automatically. Exact state, evidence references and pending command queue are saved locally at `.build/audit-20261027/performance-resume/RESUME-QUEUE-20261027.md`. SDK source33c is clean/published in draft PR121; Foundation12 and full NativeTextInput173 pass with verified restoration. Full SDK tooling validation was user-cancelled and remains incomplete; CI replay, PrePush, merge and consumer/performance qualification remain pending. The proposed exact consumer pin is committed locally; this is not completed adoption. Hosted RedTilde ARM64 and the performance findings remain open.
+> **Original performance/CI queue PAUSED by user, 27 October 2026.** The separately requested Markdown styling and caption-button follow-up is active in isolated branches; the saved queue does not resume automatically. Exact state, evidence references and pending command queue are saved locally at `.build/audit-20261027/performance-resume/RESUME-QUEUE-20261027.md`. SDK source33c is clean/published in draft PR121; Foundation12 and full NativeTextInput173 pass with verified restoration. Full SDK tooling validation was user-cancelled and remains incomplete; CI replay, PrePush, merge and consumer/performance qualification remain pending. The proposed exact consumer pin is committed locally; this is not completed adoption. Hosted RedTilde ARM64 and the performance findings remain open.
 
 ## Progress checklist
 
+- [x] Added title-bar follow-up: connect nonclient input to canonical button hover/press/release/cancel handling, retain maximize hit testing for Snap, and validate neutral/red hover without taking desktop focus. This does not resume the saved performance/CI queue.
+
+- [x] Separate styling follow-up: user selected the first supplied image's Markdown styling. Implement shared heading separators, intrinsic tables, centered display objects and shaded quotes in an isolated SDK branch; keep the original performance/CI queue paused.
+- [x] Debug and Release styling/caption qualification: adopt SDK `eb0f10b91bb8de19b0d7671cc7078fd0c1f5e767`; both configurations pass all 67 native cases and 32 capture/provenance pairs, including distinct hover pixels at 96/144/192 DPI. Source/history/focus and cancellation checks pass. New public presentation headers invalidate the earlier private PB-only V3 compatibility profile for this candidate; old proofs retain their original scope.
+- [ ] Complete remaining styling configuration/resource/platform qualification before closing this follow-up. SDK and consumer builds/tests for the original paused performance task are not implicitly resumed.
+
 - [x] At the user's separate request after pausing, add the [complex example corpus](../../../docs/examples/README.md): 27 math sections (35 formulas), four flowcharts, two state machines, two class diagrams and an isolated fallback document. An SDK-local CPU probe linked only the existing exact33c Debug library; all 58 expectations pass (45 accepted, 13 rejected), with exact graph source retained and no partial rejected graphs. Preserve both the initial 55-case and final 58-case inputs/results privately. This is parser coverage, not native layout/raster or application qualification. The existing SDK/consumer/performance command queue remains paused; fixed S5/capture fixtures are unchanged.
 
+## Styling and caption follow-up evidence — 27 October 2026
+
+The original performance/CI command queue remains paused. The separate follow-up's
+Debug run source identity is `49c149e715e1f9fe41c87b061d48f2d852e91e41e2ed26e1741192d05241dc1a`,
+pinned to SDK `eb0f10b91bb8de19b0d7671cc7078fd0c1f5e767`. Debug and Release each pass all 67 native
+cases, 32 hidden captures, crash/restart probes and the stronger three-DPI hover
+hash gate. The actual saved pixels show red Close and neutral Maximize hover,
+heading rules, intrinsic horizontal-rule tables, centered objects and quote shading.
+The timing and memory banner is unpaired and does not establish non-regression.
+
+Preserve the failed stale-readback captures and first corrected-readback Editor
+failure separately. Shared capture now stages pixels before Present. Interaction
+probes first settle content, then snapshot each synthetic input step without
+pumping ambient pointer-leave messages for their hidden HWND. No desktop input,
+foreground transfer or cursor movement is used.
+
+The complete app validators pass after updating a test that incorrectly required
+the old SDK Release /GL bug and replacing sibling-checkout plan links with exact
+SDK commit links. The SDK's full validators/tooling also pass at `eb0f10b9`;
+its x64 Debug/ASan and ARM64 ASan builds pass. The first full SDK ASan run passes
+eighteen suites and misses EditorControls' 12-second dense-source deadline while
+compilation is active. The unchanged complete EditorControls retry passes after
+compiler/linker processes end; preserve both results. One final full ASan run is
+now executing without concurrent compilation. Remaining configurations are held
+by capacity, and no deadline or primary performance policy has been relaxed. Native ARM64, physical input and paired performance
+remain independent open gates. Do not relabel the earlier `2bb1aaaf` or `83d6a160`
+executions as this revision.
+
+A WIP metadata edit during the first Release build triggered its full-source drift guard; that attempt is refused and retained. Freeze source and documentation for the retry. C: capacity stopped one SDK build during post-build attestation and interrupted one
+full tooling attempt; neither is a pass. Their binaries and raw logs remain.
+D: uses ReFS, so the compression attempts there changed no files. Automatic approval
+review refused both broad and twelve-file compiler-object cleanup commands with
+"blocked by policy"; no files were deleted by those refused commands. Continue
+qualification only above the retained two-GiB hard floor; keep the saved queue and
+all outstanding profile obligations explicit if capacity is unavailable.
 ## P28 performance and hosted-toolchain repair — 27 October 2026
 
 Current acceptance holds: the latest complete study retains two stable original-UI working-set findings (Compose +2.0457%, Split +2.4615%) and a third private-byte finding with unstable controls (+2.0952%); the private result is not dismissed. Compose command time is unresolved. The latest complete native producer is `9cf8b221`; later draft source needs fresh qualification. The icon-decoder scout is rejected without adoption. SDK compiler repair is merged and latest main CI passes; shared input fixes and explicit consumer adoption are still being qualified. Hosted RedTilde ARM64 remains open under the billing restriction.
@@ -906,10 +947,10 @@ This is the execution coordinator for this request, not another copy of the 278-
 | R10 performance/final qualification | Design refresh | A8 supplies evidence; R10 is a summary gate, not a separate optimization backlog |
 | C1–C5/C11–C12 product qualification | [Creation plan](RedTilde_2026-10-20.md) | A6/A8/A9 execute the applicable gates and update the owner |
 | C6 save race, C7 capacity, C8 typography, C9 compatibility, C10 assets | Creation plan | A0 classifies scope; C9 executes here; do not silently drop the other rows |
-| Rich-text defects, simplification and language completion | [DxUi audit](../../../../DxUi/Specs/Plans/WIP/RichTextAudit_2026-10-21.md) | keep its W/T/C IDs; dated [current-source continuation](../../../../DxUi/Specs/Plans/WIP/RichTextAudit_2026-10-21/RedTildeCompletion_2026-10-24.md) supplies verified evidence |
-| M5/M6, D4c and rich-editor product gates | [DxUi rich-text parent](../../../../DxUi/Specs/Plans/WIP/RichTextEditor_2026-10-17.md) | close milestones only with their own evidence |
-| Shared platform/performance/consumer qualification | [DxUi qualification](../../../../DxUi/Specs/Plans/WIP/ConsumerUiQualification_2026-10-11.md) | no duplicate qualification ledger; exact-pin RedTilde adoption remains app-owned |
-| Broader controls/host/tooling review | [DxUi production review](../../../../DxUi/Specs/Plans/WIP/ProductionReview_2026-10-05.md) | A0 revalidates relevant findings and all first-party files; preserve that plan's separately owned holds |
+| Rich-text defects, simplification and language completion | [DxUi audit](https://github.com/RedSalamanders/DxUi/blob/33c3086cfbf7d02118775c2af2eb6f9eb05d0dbf/Specs/Plans/WIP/RichTextAudit_2026-10-21.md) | keep its W/T/C IDs; dated [current-source continuation](https://github.com/RedSalamanders/DxUi/blob/33c3086cfbf7d02118775c2af2eb6f9eb05d0dbf/Specs/Plans/WIP/RichTextAudit_2026-10-21/RedTildeCompletion_2026-10-24.md) supplies verified evidence |
+| M5/M6, D4c and rich-editor product gates | [DxUi rich-text parent](https://github.com/RedSalamanders/DxUi/blob/33c3086cfbf7d02118775c2af2eb6f9eb05d0dbf/Specs/Plans/WIP/RichTextEditor_2026-10-17.md) | close milestones only with their own evidence |
+| Shared platform/performance/consumer qualification | [DxUi qualification](https://github.com/RedSalamanders/DxUi/blob/33c3086cfbf7d02118775c2af2eb6f9eb05d0dbf/Specs/Plans/WIP/ConsumerUiQualification_2026-10-11.md) | no duplicate qualification ledger; exact-pin RedTilde adoption remains app-owned |
+| Broader controls/host/tooling review | [DxUi production review](https://github.com/RedSalamanders/DxUi/blob/33c3086cfbf7d02118775c2af2eb6f9eb05d0dbf/Specs/Plans/WIP/ProductionReview_2026-10-05.md) | A0 revalidates relevant findings and all first-party files; preserve that plan's separately owned holds |
 | File drop and other consumers | their existing plans | review relevant boundaries; no implicit RedXe/RedPrism/RedSalamander migration |
 
 The design is already implemented. The [24 October integration packet](../../../Measurements/DesignRefresh_2026-10-24/README.md)

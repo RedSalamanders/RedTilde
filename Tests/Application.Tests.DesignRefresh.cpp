@@ -9,6 +9,7 @@
 #include <cmath>
 #include <format>
 #include <initializer_list>
+#include <limits>
 #include <mutex>
 #include <ranges>
 #include <stdexcept>
@@ -159,6 +160,47 @@ std::vector<BYTE> ReadBrandMarkRaster(const std::filesystem::path &path, float d
                                    pixels.begin() + static_cast<std::ptrdiff_t>(backgroundOffset));
         }
     Require(visible > 16, "the brand-mark region contains rendered icon pixels");
+    return region;
+}
+std::vector<BYTE> ReadCaptionButtonRaster(const std::filesystem::path &path, D2D1_RECT_F bounds, float dpi)
+{
+    // This crop-only reader is local because the caption oracle must ignore changing editor/body pixels;
+    // the existing brand-mark reader intentionally has different fixed-region semantics.
+    wil::com_ptr<IWICImagingFactory> factory;
+    Success(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(factory.put())),
+            "create a WIC decoder for the hidden caption-button capture");
+    wil::com_ptr<IWICBitmapDecoder> decoder;
+    Success(factory->CreateDecoderFromFilename(path.c_str(), nullptr, GENERIC_READ, WICDecodeMetadataCacheOnLoad, decoder.put()),
+            "open the hidden caption-button capture");
+    wil::com_ptr<IWICBitmapFrameDecode> frame;
+    Success(decoder->GetFrame(0, frame.put()), "read the caption-button capture frame");
+    wil::com_ptr<IWICFormatConverter> converter;
+    Success(factory->CreateFormatConverter(converter.put()), "create the caption-button pixel view");
+    Success(converter->Initialize(frame.get(), GUID_WICPixelFormat32bppBGRA, WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom),
+            "convert caption pixels to BGRA");
+    UINT width{}, height{};
+    Success(converter->GetSize(&width, &height), "read caption capture dimensions");
+    Require(width > 0 && height > 0 && width <= 4096 && height <= 4096 && width <= std::numeric_limits<UINT>::max() / 4,
+            "caption capture dimensions stay within the bounded hidden viewport");
+    const float scale = dpi / 96.f;
+    const auto left = static_cast<UINT>(std::max(0.f, std::floor(bounds.left * scale)));
+    const auto top = static_cast<UINT>(std::max(0.f, std::floor(bounds.top * scale)));
+    const auto right = std::min(width, static_cast<UINT>(std::ceil(bounds.right * scale)));
+    const auto bottom = std::min(height, static_cast<UINT>(std::ceil(bounds.bottom * scale)));
+    Require(right > left && bottom > top, "caption capture crop fits the hidden viewport");
+    const auto pixelBytes = static_cast<std::size_t>(width) * height * 4;
+    Require(pixelBytes <= std::numeric_limits<UINT>::max(), "caption capture byte count fits the WIC copy contract");
+    std::vector<BYTE> pixels(pixelBytes);
+    Success(converter->CopyPixels(nullptr, width * 4, static_cast<UINT>(pixels.size()), pixels.data()), "read caption capture pixels");
+    std::vector<BYTE> region;
+    region.reserve(static_cast<std::size_t>(right - left) * (bottom - top) * 4);
+    for (UINT y = top; y < bottom; ++y)
+        for (UINT x = left; x < right; ++x)
+        {
+            const auto offset = (static_cast<std::size_t>(y) * width + x) * 4;
+            region.insert(region.end(), pixels.begin() + static_cast<std::ptrdiff_t>(offset),
+                          pixels.begin() + static_cast<std::ptrdiff_t>(offset + 4));
+        }
     return region;
 }
 void WriteFixture(const std::filesystem::path &path, std::string_view contents = "# Invented notes\n")
@@ -744,6 +786,124 @@ class DesignRefreshProbe final
                  Require(HitControl(app, app.exitFocus) == HTCLIENT && HitControl(app, app.maximizeButton) == HTMAXBUTTON,
                          "Focus mode retains Exit focus and native caption targets");
                  Require(GetForegroundWindow() == foreground && !IsWindowVisible(app.Window()), "frame probing never shows or activates its window");
+             });
+        test("Window.DesignRefreshCaptionButtonPointerLifecycle",
+             [&]
+             {
+                 const auto foreground = GetForegroundWindow();
+                 Application app(Options(root, L"caption-pointer-lifecycle"));
+                 Success(app.Initialize(), "create hidden caption-button lifecycle app");
+                 const auto source = app.Document().Snapshot();
+                 const auto selection = app.Document().GetSelection();
+                 auto *const keyboardFocus = app.Host().GetFocusControl();
+                 const bool canUndo = app.Document().CanUndo(), canRedo = app.Document().CanRedo();
+                 unsigned minimizeClicks{}, maximizeClicks{}, closeClicks{};
+                 app.minimizeButton->SetOnClick([&] { ++minimizeClicks; });
+                 app.maximizeButton->SetOnClick([&] { ++maximizeClicks; });
+                 app.closeButton->SetOnClick([&] { ++closeClicks; });
+                 Require(app.minimizeButton->GetAppearance() == DxUi::ButtonAppearance::Caption &&
+                             app.maximizeButton->GetAppearance() == DxUi::ButtonAppearance::Caption &&
+                             app.closeButton->GetAppearance() == DxUi::ButtonAppearance::CaptionClose,
+                         "caption controls use the shared native-caption neutral and close treatments");
+                 Require(!app.minimizeButton->IsFocusable() && !app.maximizeButton->IsFocusable() && !app.closeButton->IsFocusable(),
+                         "caption actions do not steal editor keyboard focus");
+                 const auto screenPoint = [&](D2D1_POINT_2F dip)
+                 {
+                     const auto point = app.Host().DipPointToScreenPoint(dip);
+                     return MAKELPARAM(static_cast<SHORT>(point.x), static_cast<SHORT>(point.y));
+                 };
+                 const auto clientPoint = [&](D2D1_POINT_2F dip)
+                 {
+                     POINT point{GET_X_LPARAM(screenPoint(dip)), GET_Y_LPARAM(screenPoint(dip))};
+                     Require(ScreenToClient(app.Window(), &point) != FALSE, "convert caption release to client coordinates");
+                     return MAKELPARAM(static_cast<SHORT>(point.x), static_cast<SHORT>(point.y));
+                 };
+                 const auto center = [](const DxUi::Control *control)
+                 {
+                     const auto bounds = control->GetBounds();
+                     return D2D1::Point2F((bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2);
+                 };
+                 const auto captionDown = [&](DxUi::Button *button, LRESULT hit)
+                 {
+                     const auto point = center(button);
+                     const auto packed = screenPoint(point);
+                     (void)SendMessageW(app.Window(), WM_NCMOUSEMOVE, static_cast<WPARAM>(hit), packed);
+                     (void)SendMessageW(app.Window(), WM_NCLBUTTONDOWN, static_cast<WPARAM>(hit), packed);
+                 };
+                 for (const UINT dpi : {96u, 144u, 192u})
+                 {
+                     minimizeClicks = maximizeClicks = closeClicks = 0;
+                     Resize(app, 1440, 900, dpi);
+                     const auto idlePath = root / std::format(L"caption-close-idle-{}.png", dpi);
+                     // Resize has settled content. Snapshot each synthetic input
+                     // step before pumping real-pointer leave for the hidden HWND.
+                     Require(app.Capture(idlePath, false), "capture idle caption close control without showing the window");
+                     const auto idlePixels = ReadCaptionButtonRaster(idlePath, app.closeButton->GetBounds(), app.Host().GetDpi());
+                     const auto closeHit = HitControl(app, app.closeButton);
+                     const auto closeCenter = center(app.closeButton);
+                     (void)SendMessageW(app.Window(), WM_NCMOUSEMOVE, static_cast<WPARAM>(closeHit), screenPoint(closeCenter));
+                     Require(app.closeButton->IsHovered() && !app.maximizeButton->IsHovered() && !app.minimizeButton->IsHovered(),
+                             std::format("nonclient hover targets only Close at {} DPI", dpi));
+                     const auto hoverPath = root / std::format(L"caption-close-hover-{}.png", dpi);
+                     Require(app.Capture(hoverPath, false), "capture hovered caption close control without showing the window");
+                     Require(app.closeButton->IsHovered(), "capturing a prepared interaction frame preserves its synthetic hover state");
+                     Require(idlePixels != ReadCaptionButtonRaster(hoverPath, app.closeButton->GetBounds(), app.Host().GetDpi()),
+                             std::format("close hover changes its rendered pixels at {} DPI", dpi));
+                     (void)SendMessageW(app.Window(), WM_NCMOUSELEAVE, 0, 0);
+                     Require(!app.closeButton->IsHovered() && !app.maximizeButton->IsHovered() && !app.minimizeButton->IsHovered(),
+                             std::format("nonclient leave clears caption hover at {} DPI", dpi));
+
+                     captionDown(app.closeButton, HTCLOSE);
+                     Require(GetCapture() == app.Window(), "pressed Close owns the normal DxUi capture");
+#if DXUI_ENABLE_DIAGNOSTICS
+                     Require(app.closeButton->DebugIsPressed(), "caption down enters the shared button pressed state");
+#endif
+                     const auto pressedPath = root / std::format(L"caption-close-pressed-{}.png", dpi);
+                     Require(app.Capture(pressedPath, false), "capture pressed caption close control without showing the window");
+                     Require(idlePixels != ReadCaptionButtonRaster(pressedPath, app.closeButton->GetBounds(), app.Host().GetDpi()),
+                             std::format("pressed Close changes its rendered pixels at {} DPI", dpi));
+                     (void)SendMessageW(app.Window(), WM_CANCELMODE, 0, 0);
+                     Require(GetCapture() != app.Window() && closeClicks == 0, "cancel clears caption press without invoking Close");
+#if DXUI_ENABLE_DIAGNOSTICS
+                     Require(!app.closeButton->DebugIsPressed(), "cancel resets the shared button pressed state");
+#endif
+                     captionDown(app.closeButton, HTCLOSE);
+                     (void)SendMessageW(app.Window(), WM_MOUSEMOVE, MK_LBUTTON, MAKELPARAM(500, 200));
+                     (void)SendMessageW(app.Window(), WM_LBUTTONUP, 0, MAKELPARAM(500, 200));
+                     Require(closeClicks == 0 && GetCapture() != app.Window(), "release outside a caption control cancels invocation");
+
+                     captionDown(app.minimizeButton, HTMINBUTTON);
+                     Require(GetCapture() == app.Window(), "a caption press transfers to the normal DxUi client capture");
+                     (void)SendMessageW(app.Window(), WM_LBUTTONUP, 0, clientPoint(center(app.minimizeButton)));
+                     Require(minimizeClicks == 1, "Minimize invokes exactly once through client release");
+                     captionDown(app.maximizeButton, HTMAXBUTTON);
+                     (void)SendMessageW(app.Window(), WM_LBUTTONUP, 0, clientPoint(center(app.maximizeButton)));
+                     Require(maximizeClicks == 1, "Maximize invokes exactly once through client release");
+                     // A native double-click replaces the second down message;
+                     // each completed caption-button click still invokes once.
+                     captionDown(app.maximizeButton, HTMAXBUTTON);
+                     (void)SendMessageW(app.Window(), WM_LBUTTONUP, 0, clientPoint(center(app.maximizeButton)));
+                     (void)SendMessageW(app.Window(), WM_NCLBUTTONDBLCLK, HTMAXBUTTON, screenPoint(center(app.maximizeButton)));
+                     (void)SendMessageW(app.Window(), WM_LBUTTONUP, 0, clientPoint(center(app.maximizeButton)));
+                     Require(maximizeClicks == 3, "the complete down/up/double-click/up sequence invokes once per completed click");
+                     captionDown(app.closeButton, HTCLOSE);
+                     (void)SendMessageW(app.Window(), WM_LBUTTONUP, 0, clientPoint(closeCenter));
+                     Require(closeClicks == 1, "Close invokes exactly once through client release");
+                     captionDown(app.closeButton, HTCLOSE);
+                     (void)SendMessageW(app.Window(), WM_NCLBUTTONUP, HTCLOSE, screenPoint(closeCenter));
+                     Require(closeClicks == 2, "guarded nonclient release fallback invokes one repeated Close action");
+                     const auto closePacked = screenPoint(closeCenter);
+                     (void)SendMessageW(app.Window(), WM_NCLBUTTONDBLCLK, HTCLOSE, closePacked);
+                     (void)SendMessageW(app.Window(), WM_LBUTTONUP, 0, clientPoint(closeCenter));
+                     Require(closeClicks == 3 && !app.closing, "caption double-click follows the client lifecycle without native duplicate close");
+                     (void)SendMessageW(app.Window(), WM_NCMOUSELEAVE, 0, 0);
+                 }
+                 Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selection &&
+                             app.Document().CanUndo() == canUndo && app.Document().CanRedo() == canRedo &&
+                             app.Host().GetFocusControl() == keyboardFocus,
+                         "caption pointer handling preserves exact source, selection, undo history and keyboard focus");
+                 Require(GetForegroundWindow() == foreground && !IsWindowVisible(app.Window()),
+                         "caption pointer and raster coverage never shows or activates the hidden test window");
              });
         test("Window.DesignRefreshResponsiveLayoutAndDpi",
              [&]
@@ -2188,7 +2348,8 @@ class DesignRefreshProbe final
                      // Native hit-test caret extents can be shorter than the
                      // configured line advance. Equal-font top insets cancel;
                      // compare complete row advances, without clipped UIA bounds.
-                     Require(type.paragraphSpacingAfterLines == 18.f / 26.4f && type.listItemSpacingDip == 10.f && firstItem && secondItem &&
+                     Require(type.markdownPresentation == DxUi::RichText::MarkdownPresentationStyle::Subtle &&
+                                 type.paragraphSpacingAfterLines == 18.f / 26.4f && type.listItemSpacingDip == 10.f && firstItem && secondItem &&
                                  firstParagraph && secondParagraph && firstItem->bottom > firstItem->top &&
                                  firstParagraph->bottom > firstParagraph->top && Near(secondItem->top - firstItem->top - bodyLine, 10) &&
                                  Near(secondParagraph->top - firstParagraph->top, 2 * bodyLine),

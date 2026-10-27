@@ -113,7 +113,9 @@ class Application
     void Execute(Command command);
     void SetView(EditorView view);
     void SetDocument(std::wstring text, std::filesystem::path path = {}, bool bom = false, FileStamp stamp = {});
-    bool Capture(const std::filesystem::path &path);
+    // Interaction probes settle content first, then capture without pumping
+    // ambient pointer-leave messages for their deliberately hidden HWND.
+    bool Capture(const std::filesystem::path &path, bool prepareContent = true);
     void Prepare(unsigned turns = 128);
     [[nodiscard]] bool Dirty() const;
     [[nodiscard]] Editor &Document() const
