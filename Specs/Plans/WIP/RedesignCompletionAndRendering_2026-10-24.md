@@ -2,6 +2,15 @@
 
 ## Progress checklist
 
+## P24 current qualification — 27 October 2026
+
+- [x] App798fcbe / SDK98 passes all three x64 builds and Release/ASan Full (65 behavioral cases and 23 captures each, plus actual ASan detection). Debug fails only the nested Source persisted-view check (45/46 Editor). Preserve this failed matrix; ARM64 and performance collection did not start. All seven candidate x64 native files are retained and hash-verified.
+- [x] A controlled reader using the existing sharing mode reproduces writer failure `0x80070020`; releasing it and resubmitting succeeds. Twenty ordinary scenarios pass, so the historical Editor failure remains unattributed. Independent source review confirms the nested request submits Source and supersedes the outer Split request.
+- [ ] Qualify the observer repair: await the writer's existing two-second idle/success boundary before one settings read. Keep exact Source/Split, history and supersession assertions. Production storage policy is unchanged. Repeat the required final matrix and declared comparisons against actual PR18 base `07b232a7`.
+- [x] SDK AEB's full Tooling-to-SkipBuild regression passes: receipt4867CD26 is accepted, nine environment inputs match, and Foundation exits 0 with zero skips. The CMake-dependent optional fixture remains unevaluated locally; unpaired performance is not acceptance. Older local819 PE/PDB bytes were not retained; measured baselines are preserved.
+- [x] The corrected UTC join covers 144 SDK A/A receipts and confirms broad instability without attribution. Independent recalculation verifies saved scalar results. The clean prepare statistic spans 5–6 QPC ticks; its 5% band is below one tick. Late memory drift rises without a corresponding aggregate host-CPU increase. No bands or policy flags change.
+- [ ] SDK pointer-readback fixture qualification, remaining hosted renderer jobs, final keyboard/menu leases and performance policy remain open. Latest RedTilde run40434727892 starts no steps under the explicit payment/spending restriction; hosted RedTilde ARM64 remains OPEN. Keep this plan in WIP.
+
 ## P23 current renderer diagnostic — 27 October 2026
 
 - [x] PR17 merge/publication completed at RedTilde `07b232a7ac878cebebddef8631251aeb6358afed` (tree `06f69df5563cecaee7bb2e200b380f1ce827ff10`). The next PR base freeze remains bound to that app tree, executable `68D8799E76F8C0056AC7897FEFD8F2518C61CEBD3C04F38E9FEF4F1B45E190E1`, compiled-source identity `633302c45ac8da29e7bea24cf7909dc70d8aad1665ebe618252dd31f72e0d8f3`, and runtime pin SDK `4077f57df8207eac6c39c43437feb45b19d23cf8`.
