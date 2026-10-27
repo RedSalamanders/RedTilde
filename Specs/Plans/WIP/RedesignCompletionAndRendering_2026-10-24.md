@@ -1,7 +1,10 @@
 # Finish RedTilde redesign and DxUi rendering — 2026-10-24
 
-> **Original performance/CI queue PAUSED by user, 27 October 2026.** The separately requested Markdown styling and caption-button follow-up is active in isolated branches; the saved queue does not resume automatically. Exact state, evidence references and pending command queue are saved locally at `.build/audit-20261027/performance-resume/RESUME-QUEUE-20261027.md`. SDK source33c is clean/published in draft PR121; Foundation12 and full NativeTextInput173 pass with verified restoration. Full SDK tooling validation was user-cancelled and remains incomplete; CI replay, PrePush, merge and consumer/performance qualification remain pending. The proposed exact consumer pin is committed locally; this is not completed adoption. Hosted RedTilde ARM64 and the performance findings remain open.
-
+> **Original performance/CI queue PAUSED by user, 27 October 2026.** The separately requested Markdown styling and caption-button follow-up is active in isolated branches; the saved queue does not resume automatically. Exact pause state and pending commands remain at `.build/audit-20261027/performance-resume/RESUME-QUEUE-20261027.md`.
+>
+> **Historical pause snapshot:** SDK source33c was clean/published in draft PR121; Foundation12 and full NativeTextInput173 passed with verified restoration. Full SDK tooling validation for that older queue was user-cancelled, its then-proposed source33c consumer adoption remained unfinished, and CI replay, PrePush, merge and paired performance stayed pending. Hosted RedTilde ARM64 and the performance findings remain open.
+>
+> **Current separate follow-up:** exact SDK eb0f10b9 is adopted and locally qualified in all six consumer/SDK build profiles and the three x64 runtime configurations, as recorded below. Native ARM64, physical input and paired performance/release gates remain open. This does not resume the original queue.
 ## Progress checklist
 
 - [x] Added title-bar follow-up: connect nonclient input to canonical button hover/press/release/cancel handling, retain maximize hit testing for Snap, and validate neutral/red hover without taking desktop focus. This does not resume the saved performance/CI queue.
