@@ -1,9 +1,12 @@
 #pragma once
 #include <DxUi/DxUi.h>
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
+#include <span>
 #include <vector>
 #include <wil/com.h>
 
@@ -17,6 +20,25 @@ struct BrandMarkPixels
 // The application's bounded 32-bit alpha icon resource, not a general icon decoder.
 // The handle is borrowed; returned premultiplied pixels own no GDI/COM resource.
 [[nodiscard]] BrandMarkPixels LoadBrandMarkPixels(HICON icon);
+
+namespace BrandIconResource
+{
+struct Frame final
+{
+    WORD id{};
+    UINT width{}, height{};
+    DWORD bytesInResource{};
+};
+
+// The bounded decoder accepts this application's owned, alpha-bearing 32-bit ICO DIBs.
+// Scaled, compressed, mask-only and otherwise unsupported frames use HICON extraction.
+// SelectFrame validates group bytes before LookupIconIdFromDirectoryEx reads them.
+[[nodiscard]] std::optional<Frame> SelectFrame(std::span<const std::byte> groupDirectory, UINT desiredWidth, UINT desiredHeight);
+[[nodiscard]] std::optional<BrandMarkPixels> DecodeFrame(std::span<const std::byte> dib, const Frame &frame);
+} // namespace BrandIconResource
+
+[[nodiscard]] std::optional<BrandMarkPixels> TryLoadBrandMarkResourcePixels(HINSTANCE module, UINT desiredWidth, UINT desiredHeight);
+[[nodiscard]] BrandMarkPixels LoadBrandMarkPixels(HINSTANCE module, UINT desiredWidth, UINT desiredHeight, HICON fallbackIcon);
 
 class Surface : public DxUi::Panel
 {

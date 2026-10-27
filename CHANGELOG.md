@@ -4,6 +4,9 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Decode exact owned alpha-icon resource frames directly before Direct2D preparation, preserving Windows frame selection and canonical HICON fallback for scaled or unsupported frames. Extend independent seven-size pixel, scaling and malformed-resource coverage; final native and paired performance qualification remain open.
+- Record initial foreground ownership and null-window state when hidden responsive-layout or outline tests fail, preserving their exact no-activation assertions. Retain the failed attempts and the separate 46-case isolated Release Editor pass without attributing the foreground changes.
+- Keep extended memory-census coverage distinct from traditional working-set counters, preserve amended diagnostic history and update the compiler/CI qualification record while performance acceptance and hosted RedTilde ARM64 remain open.
 - Wait for the hosted Visual Studio GUI installer and use its explicit result before verifying MSVC 14.52; retain installer diagnostics and cover delayed completion, failures and strict tool/refusal checks without a real installation.
 - Archive the complete current-policy RedTilde qualification and 576-process comparison at native source 9cf8b221, with independent raw replay and unchanged SDK archive policy across keyboard testing. Retain three original-UI memory findings, unstable-control and quiet-host limitations, earlier failed attempts and the billing-blocked hosted ARM64 gate; collection and local qualification do not imply performance acceptance.
 - Treat accepted configuration casing consistently in the pinned interactive-helper build policy, and evaluate mixed-case Release against the real dependency compiler identity instead of application-project defaults. Retain the failing lower-case regression and all canonical policy controls; native qualification remains separate.

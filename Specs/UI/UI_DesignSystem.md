@@ -20,6 +20,9 @@ Brand: a flowing red tilde, with a restrained scarlet accent. App name is RedTil
 The application extracts and retains bounded premultiplied BGRA pixels from its own 32-bit alpha icon resource
 across device replacement; ordinary branding does not instantiate WIC. Native extraction must match the independent
 WIC reference byte for byte, including transparent and partially transparent pixels, at 16/24/32/48/64/128/256 pixels.
+For an exact native frame, validate the bounded owned group/icon resources and decode an uncompressed 32-bit,
+alpha-bearing DIB directly. Preserve Windows' default frame selection. Scaled sizes, missing/malformed resources
+and unsupported or all-zero-alpha frames use the canonical HICON extraction path; do not infer alpha from an AND mask.
 It prepares the device-dependent Direct2D bitmap through DxUi visual-content preparation. Paint only draws a bitmap
 stamped for the host's current resource generation; resource queries and bitmap creation stay out of paint.
 
@@ -125,7 +128,7 @@ the mirror enables the same immutable syntax analysis as the authoritative edito
 Chrome uses 14-DIP labels, 13-DIP tree/secondary labels and 12-DIP status text. Section labels are 11-DIP
 semibold with 0.88-DIP total tracking. The selection toolbar's keyboard hint is an 11-DIP label in a bordered
 shared CardPanel chip. Use 18-DIP Fluent line glyphs and 36-DIP command buttons (32-DIP compact minimum),
-with 40-DIP primary actions. The brand is 28 DIP in the document bar; its WIC source is premultiplied before
+with 40-DIP primary actions. The brand is 28 DIP in the document bar; its owned icon source is premultiplied before
 D2D upload and retained across device replacement. UTF-8 resource scripts declare code page 65001 explicitly.
 
 In Light, Paper and Dark themes, rich-text links use the theme link color without a persistent underline; underline on

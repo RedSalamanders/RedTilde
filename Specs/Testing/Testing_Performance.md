@@ -45,6 +45,13 @@ A separately declared virtual-memory census is a diagnostic, not a substitute fo
 and an additional font mapping does not identify a causal allocation owner. Preserve unresolved mapping identities
 and empty/exit snapshots explicitly. Suspension-based sampling must report bracket coverage and its missing costs;
 intrusive stack walks and sparse instruction pointers cannot be presented as CPU shares or causal attribution.
+Extended `QueryWorkingSetEx` page observations can include allocations outside the traditional process working set,
+including AWE and large pages; summing its valid-page observations does not establish `WorkingSetSize` equivalence.
+Use separately bounded `QueryWorkingSet` membership when that distinction matters, retaining each API's coverage,
+limits, failures and observation brackets. Keep an unreconciled difference explicit; never subtract it from the
+primary process counter or attribute it to an application allocation. See Microsoft's
+[extended-query contract](https://learn.microsoft.com/en-us/windows/win32/api/psapi/nf-psapi-queryworkingsetex)
+and [working-set definition](https://learn.microsoft.com/en-us/windows/win32/memory/working-set).
 
 An owned-process heap trace must retain its executable, collection declaration, raw stream digests, loss and
 schema counters, observer query brackets and versioned decoder. StackWalk association uses the original-event

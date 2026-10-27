@@ -9,6 +9,7 @@
 #include <cmath>
 #include <format>
 #include <initializer_list>
+#include <limits>
 #include <mutex>
 #include <ranges>
 #include <stdexcept>
@@ -53,7 +54,104 @@ void Color(D2D1_COLOR_F actual, unsigned rgb, std::string_view message)
                 std::abs(actual.b - static_cast<float>(rgb & 255) / 255.f) < 0.001f && actual.a == 1,
             message);
 }
-void CheckBrandIconResource(HINSTANCE module, unsigned requestedSize)
+void StoreLittleEndian16(std::vector<std::byte> &bytes, std::size_t offset, std::uint16_t value)
+{
+    bytes.at(offset) = static_cast<std::byte>(value & 0xffu);
+    bytes.at(offset + 1) = static_cast<std::byte>(value >> 8u);
+}
+void StoreLittleEndian32(std::vector<std::byte> &bytes, std::size_t offset, std::uint32_t value)
+{
+    for (unsigned shift = 0; shift < 32; shift += 8)
+        bytes.at(offset + shift / 8) = static_cast<std::byte>((value >> shift) & 0xffu);
+}
+std::vector<std::byte> MakeBrandIconTestDib()
+{
+    std::vector<std::byte> bytes(40u + 16u + 8u);
+    StoreLittleEndian32(bytes, 0, 40);
+    StoreLittleEndian32(bytes, 4, 2);
+    StoreLittleEndian32(bytes, 8, 4); // Two XOR rows followed by two AND-mask rows.
+    StoreLittleEndian16(bytes, 12, 1);
+    StoreLittleEndian16(bytes, 14, 32);
+    StoreLittleEndian32(bytes, 16, BI_RGB);
+    StoreLittleEndian32(bytes, 20, 16);
+    const std::array<std::uint8_t, 16> bottomUpPixels{40, 80, 160, 255, 200, 100, 50, 128, 10, 20, 30, 0, 70, 80, 90, 128};
+    for (std::size_t i = 0; i < bottomUpPixels.size(); ++i)
+        bytes[40 + i] = static_cast<std::byte>(bottomUpPixels[i]);
+    return bytes;
+}
+std::vector<std::byte> MakeBrandIconTestGroup()
+{
+    std::vector<std::byte> bytes(6u + 14u);
+    StoreLittleEndian16(bytes, 0, 0);
+    StoreLittleEndian16(bytes, 2, 1);
+    StoreLittleEndian16(bytes, 4, 1);
+    bytes[6] = std::byte{16};
+    bytes[7] = std::byte{16};
+    StoreLittleEndian16(bytes, 10, 1);
+    StoreLittleEndian16(bytes, 12, 32);
+    StoreLittleEndian32(bytes, 14, 1128);
+    StoreLittleEndian16(bytes, 18, 7);
+    return bytes;
+}
+void CheckBrandIconDecoderContracts()
+{
+    using namespace BrandIconResource;
+    auto group = MakeBrandIconTestGroup();
+    const auto selected = SelectFrame(group, 16, 16);
+    Require(selected && selected.value().id == 7 && selected.value().width == 16 && selected.value().height == 16 &&
+                selected.value().bytesInResource == 1128,
+            "validated group icon selection resolves the requested native frame");
+
+    auto invalidGroup = group;
+    invalidGroup[0] = std::byte{1};
+    Require(!SelectFrame(invalidGroup, 16, 16), "reserved group directory data is rejected before Win32 lookup");
+    invalidGroup = group;
+    StoreLittleEndian16(invalidGroup, 4, 2);
+    Require(!SelectFrame(invalidGroup, 16, 16), "truncated group directory count is rejected before Win32 lookup");
+    invalidGroup = group;
+    StoreLittleEndian16(invalidGroup, 18, 0);
+    Require(!SelectFrame(invalidGroup, 16, 16), "zero RT_ICON resource ID is rejected before Win32 lookup");
+    invalidGroup = group;
+    StoreLittleEndian16(invalidGroup, 12, 16);
+    Require(!SelectFrame(invalidGroup, 16, 16), "unsupported frame bit depth is rejected before Win32 lookup");
+    invalidGroup = group;
+    invalidGroup.resize(6u + 2u * 14u);
+    StoreLittleEndian16(invalidGroup, 4, 2);
+    std::copy_n(invalidGroup.begin() + 6, 14, invalidGroup.begin() + 20);
+    Require(!SelectFrame(invalidGroup, 16, 16), "duplicate RT_ICON resource IDs are rejected before Win32 lookup");
+
+    const auto dib = MakeBrandIconTestDib();
+    const Frame testFrame{7, 2, 2, 64};
+    const auto decoded = DecodeFrame(dib, testFrame);
+    const std::array<std::uint8_t, 16> expected{0, 0, 0, 0, 35, 40, 45, 128, 40, 80, 160, 255, 100, 50, 25, 128};
+    Require(decoded && decoded.value().width == 2 && decoded.value().height == 2 &&
+                std::equal(decoded.value().bgra.begin(), decoded.value().bgra.end(), expected.begin(), expected.end()),
+            "bounded DIB decoder flips bottom-up rows and premultiplies partial and zero alpha exactly");
+
+    Require(!DecodeFrame(std::span(dib).first(dib.size() - 1), testFrame), "truncated AND mask is rejected");
+    auto invalidDib = dib;
+    StoreLittleEndian16(invalidDib, 14, 16);
+    Require(!DecodeFrame(invalidDib, testFrame), "unsupported icon bit depth is rejected");
+    invalidDib = dib;
+    StoreLittleEndian32(invalidDib, 8, 2);
+    Require(!DecodeFrame(invalidDib, testFrame), "icon DIB height must include the XOR and AND planes");
+    invalidDib = dib;
+    StoreLittleEndian32(invalidDib, 16, BI_RLE8);
+    Require(!DecodeFrame(invalidDib, testFrame), "compressed icon DIB is rejected rather than misread");
+    invalidDib = dib;
+    StoreLittleEndian32(invalidDib, 20, std::numeric_limits<std::uint32_t>::max());
+    Require(!DecodeFrame(invalidDib, testFrame), "overflowing XOR-plane byte count is rejected");
+    auto oversizedFrame = testFrame;
+    oversizedFrame.width = 257;
+    Require(!DecodeFrame(dib, oversizedFrame), "icon frame dimensions above the decoder cap are rejected");
+    auto ambiguousAlpha = dib;
+    for (const std::size_t alphaOffset : {43u, 47u, 51u, 55u})
+        ambiguousAlpha[alphaOffset] = std::byte{0};
+    ambiguousAlpha[56] = std::byte{0x80}; // A nonzero AND-mask bit cannot recover alpha semantics safely.
+    Require(!DecodeFrame(ambiguousAlpha, testFrame), "an all-zero alpha plane with AND-mask data requires canonical HICON fallback");
+}
+
+void CheckBrandIconResource(HINSTANCE module, unsigned requestedSize, bool expectNativeFrame = true)
 {
     wil::unique_hicon icon{static_cast<HICON>(LoadImageW(module, MAKEINTRESOURCEW(IDI_REDTILDE), IMAGE_ICON, static_cast<int>(requestedSize),
                                                          static_cast<int>(requestedSize), LR_DEFAULTCOLOR))};
@@ -96,7 +194,8 @@ void CheckBrandIconResource(HINSTANCE module, unsigned requestedSize)
             }
         }
     }
-    Require(transparent > 0 && opaque > 0, "every icon size retains transparent background and opaque ink");
+    Require(transparent > 0 && ink > 0 && (!expectNativeFrame || opaque > 0),
+            std::format("icon {} alpha: native={}, transparent={}, opaque={}, ink={}", requestedSize, expectNativeFrame, transparent, opaque, ink));
     if (requestedSize <= 32)
     {
         // Preserve the existing small-icon legibility oracle. Larger frames have
@@ -114,9 +213,17 @@ void CheckBrandIconResource(HINSTANCE module, unsigned requestedSize)
             "prepare the independent WIC premultiplied reference for the native brand resource");
     Success(premultiplied->CopyPixels(nullptr, requestedSize * 4, static_cast<UINT>(pixels.size()), pixels.data()),
             "read the independent premultiplied icon reference");
-    const auto nativePixels = LoadBrandMarkPixels(icon.get());
-    Require(nativePixels.width == width && nativePixels.height == height && nativePixels.bgra == pixels,
-            "bounded native brand extraction matches every WIC reference byte, including partial and zero alpha");
+    const auto canonicalPixels = LoadBrandMarkPixels(icon.get());
+    Require(canonicalPixels.width == width && canonicalPixels.height == height && canonicalPixels.bgra == pixels,
+            "canonical HICON fallback matches every WIC reference byte, including partial and zero alpha");
+    const auto productPixels = LoadBrandMarkPixels(module, requestedSize, requestedSize, icon.get());
+    Require(productPixels.width == width && productPixels.height == height && productPixels.bgra == pixels,
+            "product resource fast path or canonical fallback matches every WIC reference byte");
+    const auto directPixels = TryLoadBrandMarkResourcePixels(module, requestedSize, requestedSize);
+    Require(directPixels.has_value() == expectNativeFrame, "native resource path is used only for an exact-size selected ICO frame");
+    if (directPixels)
+        Require(directPixels.value().width == width && directPixels.value().height == height && directPixels.value().bgra == pixels,
+                "direct native-frame decode matches every WIC reference byte, including partial and zero alpha");
 }
 std::vector<BYTE> ReadBrandMarkRaster(const std::filesystem::path &path, float dpi)
 {
@@ -744,6 +851,8 @@ class DesignRefreshProbe final
              [&]
              {
                  const auto foreground = GetForegroundWindow();
+                 DWORD initialProcessAtEntry{};
+                 const bool initialOwnerAtEntry = GetWindowThreadProcessId(foreground, &initialProcessAtEntry) != 0;
                  Application app(Options(root, L"design-layout"));
                  Success(app.Initialize(), "create hidden responsive-layout app");
                  app.Execute(Command::Files);
@@ -797,10 +906,13 @@ class DesignRefreshProbe final
                      const bool observedOwnerAvailable = GetWindowThreadProcessId(observedForeground, &observedProcess) != 0;
                      Require(false, std::format("DPI/layout scenarios preserve the desktop: foregroundChanged={} testWindowVisible={} "
                                                 "observedIsTestWindow={} initialOwnerAvailable={} observedOwnerAvailable={} "
-                                                "initialProcessIsTest={} observedProcessIsTest={} initialWindowStillExists={}",
+                                                "initialProcessIsTest={} observedProcessIsTest={} initialWindowStillExists={} "
+                                                "initialForegroundWasNull={} observedForegroundWasNull={} initialOwnerAtEntry={} "
+                                                "initialProcessAtEntryIsTest={}",
                                                 observedForeground != foreground, testWindowVisible, observedForeground == app.Window(),
                                                 initialOwnerAvailable, observedOwnerAvailable, initialProcess == GetCurrentProcessId(),
-                                                observedProcess == GetCurrentProcessId(), IsWindow(foreground) != FALSE)
+                                                observedProcess == GetCurrentProcessId(), IsWindow(foreground) != FALSE, foreground == nullptr,
+                                                observedForeground == nullptr, initialOwnerAtEntry, initialProcessAtEntry == GetCurrentProcessId())
                                         .c_str());
                  }
              });
@@ -868,6 +980,8 @@ class DesignRefreshProbe final
              [&]
              {
                  const auto foreground = GetForegroundWindow();
+                 DWORD initialForegroundProcess{};
+                 const bool initialForegroundOwnerAvailable = GetWindowThreadProcessId(foreground, &initialForegroundProcess) != 0;
                  {
                      Application publicationApp(Options(root, L"design-outline-publication"));
                      Success(publicationApp.Initialize(), "create hidden outline-publication app");
@@ -954,7 +1068,18 @@ class DesignRefreshProbe final
                                  !publicationApp.outlineTree->GetSelectedItemId() && !publicationApp.outlineTree->GetFocusedItemId(),
                              "leaving all sections clears both identities once and repeated preamble carets remain inert");
                  }
-                 Require(GetForegroundWindow() == foreground, "outline publication probes never acquire desktop focus");
+                 const auto observedForeground = GetForegroundWindow();
+                 if (observedForeground != foreground)
+                 {
+                     DWORD observedProcess{};
+                     const bool observedOwnerAvailable = GetWindowThreadProcessId(observedForeground, &observedProcess) != 0;
+                     Require(false, std::format("outline publication probes never acquire desktop focus: initialForegroundWasNull={} "
+                                                "observedForegroundWasNull={} initialOwnerAtEntry={} observedOwnerAvailable={} "
+                                                "initialProcessAtEntryIsTest={} observedProcessIsTest={} initialWindowStillExists={}",
+                                                foreground == nullptr, observedForeground == nullptr, initialForegroundOwnerAvailable,
+                                                observedOwnerAvailable, initialForegroundProcess == GetCurrentProcessId(),
+                                                observedProcess == GetCurrentProcessId(), IsWindow(foreground) != FALSE));
+                 }
                  Application app(Options(root, L"design-outline"));
                  Success(app.Initialize(), "create hidden outline-tree app");
                  const std::wstring source = L"# Root\n\nOpening Needle.\n\n## Child\n\nNeedle.\n\n### Leaf\n\nDetail.\n\n# Next\n\nTail.\n\n#   \n";
@@ -2317,6 +2442,21 @@ class DesignRefreshProbe final
                  const auto module = GetModuleHandleW(nullptr);
                  for (const unsigned size : {16u, 24u, 32u, 48u, 64u, 128u, 256u})
                      CheckBrandIconResource(module, size);
+                 for (const unsigned size : {20u, 40u, 96u})
+                     CheckBrandIconResource(module, size, false);
+                 CheckBrandIconDecoderContracts();
+                 const auto defaultIcon = LoadIconW(module, MAKEINTRESOURCEW(IDI_REDTILDE));
+                 Require(defaultIcon != nullptr, "load the canonical default-size class icon");
+                 const auto defaultFallback = LoadBrandMarkPixels(defaultIcon);
+                 const auto defaultDirect = TryLoadBrandMarkResourcePixels(module, 0, 0);
+                 const auto defaultProductPath = LoadBrandMarkPixels(module, 0, 0, defaultIcon);
+                 Require(defaultProductPath.width == defaultFallback.width && defaultProductPath.height == defaultFallback.height &&
+                             defaultProductPath.bgra == defaultFallback.bgra,
+                         "default resource fast path or canonical fallback preserves LoadIcon dimensions and pixels");
+                 if (defaultDirect)
+                     Require(defaultDirect.value().width == defaultFallback.width && defaultDirect.value().height == defaultFallback.height &&
+                                 defaultDirect.value().bgra == defaultFallback.bgra,
+                             "default LookupIconIdFromDirectoryEx selection matches the shared LoadIcon frame");
                  Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().Revision() == sourceRevision &&
                              app.Document().GetSelection() == retainedSelection && !app.Document().CanUndo() && app.Document().CanRedo(),
                          "theme, view, native spacing and icon checks leave exact source, selection and history unchanged");
