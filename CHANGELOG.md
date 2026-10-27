@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Integrate the standalone RedMonitor pinned header client with MSVC 14.52 Release optimization and current main, preserving existing tests, source-bound qualification evidence and separate native/manual/release gates.
 - Require MSVC 14.52.x and enable Release function-level/whole-program compilation and unused-function elimination with full LTCG; forward exact tools and WPO into the adopted DxUi archive with a separate policy fingerprint. Validation and measured before/after evidence remain tracked in the active build-policy plan.
 - Prepare and verify the required MSVC 14.52 toolchain in active Windows CI, with read-only local checks and refusal controls; hosted installation and native ARM64 runtime results remain separate qualification gates.
 - Record the agreed local x64 test and ARM64 cross-build scope for MSVC 14.52 qualification; retain native ARM64 execution and hosted CI provisioning as separate handoff gates.
@@ -69,6 +70,10 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 - Route native Return/Space through canonical DxUi before translation so a formatting action that restores editor focus cannot insert an extra character or undo step; retain ordinary text input and cover the message queue plus warned real-keyboard path.
 - Compare the exact common Release compiler options across isolated worktrees while retaining each source inventory and raw command hash; reject mixed, missing, duplicate and forced-include commands. Compiler, SDK, dependency and numerical performance gates remain exact.
 - Implement the RedTilde design refresh with a merged document bar, grouped native commands, source-exact Find/Replace, a hierarchical outline, responsive writing surface, live settings and a bounded event-driven Markdown Files pane. Adopt shared DxUi editor presentation and interaction APIs, with deterministic integration/teardown tests and actual harness capture scenarios; qualification evidence is recorded in the design-refresh plan.
+
+- Point RedMonitor contract and adoption-plan links to its merged main branch so retiring the delivery branch preserves documentation navigation.
+- Share only the pinned RedMonitor client header and MIT notice, verify them offline during builds, and discover the separately installed production Release helper for explicit launch or optional bare Debug startup; keep normalized bounded diagnostics and application-only packages.
+- Add the exact pinned RedMonitor producer SDK, bounded application-labelled diagnostics and explicit optional adjacent viewer command; preserve existing logs, crash handling and application ownership, with consumer qualification tracked separately.
 - Made the design refresh plan self-contained: seven offline proposal pages, their shared stylesheet and PNGs
   rendered from them now sit beside the plan, using the shipped red-tilde icon and RedTilde theme values. The
   plan also specifies an optional left Files pane (Ctrl+Shift+E) listing Markdown files in the current document's

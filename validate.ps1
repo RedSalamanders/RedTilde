@@ -55,6 +55,7 @@ Check 'Six build configurations and native inventory' {
     [void](Assert-ScopedTestNames $PSScriptRoot)
 }
 Check 'Run evidence retention' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.RunEvidence.ps1') }
+Check 'RedMonitor SDK consumption' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.RedMonitor.ps1') }
 Check 'Scope contracts and public runner' {
     Import-Module (Join-Path $PSScriptRoot 'Build/ScopedTesting.psm1') -Force
     [void](Assert-ScopedTestNames $PSScriptRoot)
