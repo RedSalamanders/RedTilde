@@ -56,6 +56,24 @@ Release explicitly uses /Gy and /GL, /OPT:REF and full /LTCG, with ordinary incr
 
 Project references explicitly forward WholeProgramOptimization and VCToolsVersion into the adopted DxUi archive. Dependency identity includes releaseOptimizationPolicy=Gy-REF-GL-LTCG-full-v1 and is rehashed before choosing writable outputs. This separates the new archive policy without changing the adopted API/source pin. Keep header/library/compiler/CRT identities matched.
 
+Direct SDK helper builds that use this fingerprinted output must preserve the same policy. The interactive lease
+entrypoint uses `Get-RedTildePinnedBuildArguments` with its receipt-verified dependency identity to forward exact
+VCToolsVersion, PlatformToolset, WindowsTargetPlatformVersion and PreferredToolArchitecture globals, plus
+WholeProgramOptimization=true for Release and false for Debug/ASan Debug. SDK project defaults are not that
+consumer policy. A helper's project reference can rebuild the archive even when LinkLibraryDependencies=false;
+never let it replace a policy-fingerprinted archive using default non-GL settings. Missing or malformed pinned
+policy/compiler metadata refuses before invoking MSBuild.
+
+The evaluated ReleaseBuildPolicy regression covers the real lease and referenced pinned SDK in all six profiles
+using the same argument factory as the entrypoint. It preserves Debug/ASan behavior and exact toolchain properties,
+retains an omitted-arguments counterfactual that selects non-GL Release settings, and verifies that an evaluated
+SDK toolset-default override cannot replace the pinned VCToolsVersion global. Evaluation compiles and
+launches nothing; actual archive restoration and source-bound runtime qualification remain separate obligations.
+Accepted configuration casing must select the same policy. Lease evaluations use the actual restored dependency
+identity when present, independently rechecked through canonical dependency discovery, including its compiler host;
+application-project evaluator defaults are not a substitute for that identity. Mixed-case Release controls cover
+both lease and archive targets with those same identity arguments.
+
 LTO is scoped to each final EXE/DLL and does not guarantee reduced size or improved speed. Retain baseline/candidate image hashes, sizes, build/link durations, fixture and dependency identities, every runtime/resource sample and concurrent-activity observations. Different compiler policies are an intentional experiment, not identical-profile evidence reuse. Cross-built ARM64 and headless functional passes cannot close native ARM64, interactive, or existing product/performance acceptance gates.
 
 ### CI toolchain preparation and audit evidence
@@ -65,3 +83,5 @@ Active Windows compilation/tooling workflows use the local setup-msvc composite 
 [Full evaluated settings and differences](../../Measurements/Toolchain/2026-10-23-msvc1452/Settings.md) include both platform/configuration matrices and exact per-file metadata. [Microsoft installation guidance](https://learn.microsoft.com/en-us/cpp/overview/acquire-msvc) documents channel-specific acquisition. The published [runner image inventory](https://github.com/actions/runner-images/blob/main/images/windows/Windows2025-VS2026-Readme.md) does not establish that the required toolset is installed; runtime versions alone are also not compiler proof.
 
 RedMonitor is installed independently. Builds verify the local pinned client header/license and never compile or package the helper; see [RedMonitor integration](../Core/Core_RedMonitorIntegration.md).
+
+Hosted setup waits for the hidden, owned GUI bootstrapper with both its --wait switch and PowerShell Start-Process -Wait. It reads that process's explicit exit code (0 or 3010), then rechecks the required compiler family and complete target tools. Ambient LASTEXITCODE cannot establish installer success. Paths with spaces stay one argument; installer stdout, stderr and fresh dd_* logs remain downloadable on failure. Delayed-GUI, stale-exit, wrong-family, missing-tool, signature and local/read-only refusal controls exercise the actual setup script without running an installer.

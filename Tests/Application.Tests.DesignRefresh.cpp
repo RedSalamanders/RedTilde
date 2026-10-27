@@ -788,7 +788,21 @@ class DesignRefreshProbe final
                                      app.Document().CanUndo() == undo && app.Document().CanRedo() == redo,
                                  "responsive pane transitions preserve source, selection and both history directions");
                      }
-                 Require(GetForegroundWindow() == foreground && !IsWindowVisible(app.Window()), "DPI/layout scenarios preserve the desktop");
+                 const auto observedForeground = GetForegroundWindow();
+                 const bool testWindowVisible = IsWindowVisible(app.Window()) != FALSE;
+                 if (observedForeground != foreground || testWindowVisible)
+                 {
+                     DWORD initialProcess{}, observedProcess{};
+                     const bool initialOwnerAvailable = GetWindowThreadProcessId(foreground, &initialProcess) != 0;
+                     const bool observedOwnerAvailable = GetWindowThreadProcessId(observedForeground, &observedProcess) != 0;
+                     Require(false, std::format("DPI/layout scenarios preserve the desktop: foregroundChanged={} testWindowVisible={} "
+                                                "observedIsTestWindow={} initialOwnerAvailable={} observedOwnerAvailable={} "
+                                                "initialProcessIsTest={} observedProcessIsTest={} initialWindowStillExists={}",
+                                                observedForeground != foreground, testWindowVisible, observedForeground == app.Window(),
+                                                initialOwnerAvailable, observedOwnerAvailable, initialProcess == GetCurrentProcessId(),
+                                                observedProcess == GetCurrentProcessId(), IsWindow(foreground) != FALSE)
+                                        .c_str());
+                 }
              });
         test("Editor.DesignRefreshFocusViewsAndToggleStates",
              [&]

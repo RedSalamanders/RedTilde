@@ -106,7 +106,9 @@ These record oracles establish error mapping, not recovery from an actually miss
 
 Physical focus/IME/AT, release/package acceptance, hardware-specific qualification and paired resource/performance studies retain their owning gates. Hidden/scoped/native CI passes never close those gates. Native test basenames use contextual `Scope.Tests.Something.h/.cpp`; inventories cover active files only. Immutable historical receipts, archived source and legacy references are not renamed or rewritten.
 
-RedTilde partitions its 65 registered native cases into Storage (10), Settings (4), Recovery (5) and Editor (46). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
+RedTilde partitions its 66 registered native cases into Storage (11), Settings (4), Recovery (5) and Editor (46). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
+
+The hidden responsive-layout/DPI case retains the exact initial foreground and hidden-window assertions. A failure records which predicate changed, whether the observed foreground is the test window or another process-owned window, and whether the original window still exists. These observations do not attribute a historical foreground change or permit activation; preserve the failed run separately from later qualification.
 
 The Files dirty-transition regression uses a nontrivial invented folder model, a separately selected/focused row
 and a nonzero scroll position. Dirty/undo must change only the visible current-file badge without rebuilding the
@@ -164,8 +166,19 @@ result tests retain exact source/selection plus both history directions and comm
 `test-interactive.ps1` is an explicit, time-authorized obligation outside the ordinary hidden/Full suites.
 It compiles the canonical exact-pinned DxUi InteractiveLease target into the consumer's fingerprint output and
 uses that library's runner/protocol for consent, warning, session ownership, watchdog and verified restoration.
+Before that direct MSBuild invocation, it forwards the receipt-pinned compiler, SDK, host architecture and
+configuration-specific whole-program policy through the shared build-argument helper described in
+[the build contract](../Build/Build_Toolchain.md). Helper project references must not overwrite the consumer's
+policy-fingerprinted SDK archive with different defaults. Evaluated lease/archive profile regressions run without
+compilation, activation or input and do not replace the real authorized keyboard obligation.
 The child verifies its visible direct-parent warning and held session mutex before showing or injecting; each
 input sequence also checks process-owned foreground. `-InteractiveAutoStart` requires prior explicit agreement
 and records the visible 30-second countdown. The nine real keyboard stages exercise the same shortcut routing
 as the ordinary message loop, preserve exact source/history and check native focus, including close. Failed
 children, absent stages or unverified restoration cannot pass. This does not qualify physical IME/touch/AT.
+
+An observed helper-induced archive-policy mismatch requires retention of the actual archive/command evidence and
+a controlled stop before primary performance collection. An unchanged, already linked static app executable
+does not prove the current archive still matches its fingerprinted policy. Preserve all prior runtime identities,
+failures and uncollected study declarations; restore the canonical archive and obtain the required new-source
+qualification before a newly declared continuation. Never retag prior runs or issue a primary permit to bypass it.

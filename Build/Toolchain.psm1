@@ -22,6 +22,25 @@ function Assert-RedTildeOutputNotRunning {
 
 Export-ModuleMember -Function Get-RedTildeMSBuild, Assert-RedTildeOutputNotRunning
 
+function Get-RedTildePinnedBuildArguments {
+    param([Parameter(Mandatory)][ValidateSet('Debug','Release','ASan Debug')][string]$Configuration,
+          [Parameter(Mandatory)]$Identity)
+    # Direct builds inside the SDK do not import this consumer's late policy targets.
+    # Use the receipt-verified dependency identity so helper project references cannot
+    # replace a policy-fingerprinted archive using SDK defaults or another toolset.
+    if($Identity.releaseOptimizationPolicy -cne 'Gy-REF-GL-LTCG-full-v1' -or
+        $Identity.vcToolsVersion -cnotmatch '^\d+\.\d+\.\d+$' -or $Identity.toolset -cnotmatch '^v\d+$' -or
+        $Identity.windowsSdkVersion -cnotmatch '^\d+\.\d+\.\d+\.\d+$' -or
+        $Identity.preferredToolArchitecture -cnotin @('x86','x64','arm64')){
+        throw 'A verified pinned dependency compiler and Release policy identity is required.'
+    }
+    $wholeProgram=if($Configuration -eq 'Release'){'true'}else{'false'}
+    return @("/p:WholeProgramOptimization=$wholeProgram","/p:VCToolsVersion=$($Identity.vcToolsVersion)",
+        "/p:PlatformToolset=$($Identity.toolset)","/p:WindowsTargetPlatformVersion=$($Identity.windowsSdkVersion)",
+        "/p:PreferredToolArchitecture=$($Identity.preferredToolArchitecture)")
+}
+Export-ModuleMember -Function Get-RedTildePinnedBuildArguments
+
 function Get-RedTildeClangFormat {
     $command=Get-Command clang-format.exe -CommandType Application -ErrorAction SilentlyContinue|Select-Object -First 1
     if($command){return $command.Source}
