@@ -1,0 +1,26 @@
+{
+  "schema": "redtilde-native-qualification-packet-v1",
+  "acceptance": false,
+  "files": [
+    {
+      "file": "README.md",
+      "bytes": 4156,
+      "sha256": "8889C4AAA7435081068E9F0194C0ADB24304278BC03326ED385139F235556165"
+    },
+    {
+      "file": "evidence-metadata.json",
+      "bytes": 16585,
+      "sha256": "0E230BF5A9B97125FCC8670F10F4B928E430709F3370F37952644DB08F1D45F2"
+    },
+    {
+      "file": "payload-hashes.json",
+      "bytes": 408271,
+      "sha256": "485E58570E90BD942111D5E0990355AD52149D58F10D9618AB6400183B5824FB"
+    },
+    {
+      "file": "metadata-continuation-pending.json",
+      "bytes": 7417,
+      "sha256": "813094C89952F3D7DA4F8A3FE2DD77F19B0794EFD5EA1D048D52C2A16258913C"
+    }
+  ]
+}

@@ -1,4 +1,7 @@
 # RedTilde 30fb native qualification
+
+
+- [Fresh 45c2895 native checkpoint](final-45c2895/README.md) records six fresh builds, three passing x64 Full profiles (65 behavioral cases and 23 captures each), real x64 ASan detection, ARM64 cross-builds only, and a separately leased 9-stage/168-event keyboard run. This follow-up binds its own source, compiled-source-map, PE/PDB and receipt identities. Performance acceptance, hosted ARM64, SDK policy acceptance and cursor lease remain open. See its packet manifest for exact hashes.
 This review packet summarizes the completed x64 native matrix, ARM64 cross-builds, and the separately leased keyboard run for the pinned RedTilde/DxUi sources. It keeps performance acceptance open and records the hosted billing block.
 
 - [Publication summary](publication-summary.md)
