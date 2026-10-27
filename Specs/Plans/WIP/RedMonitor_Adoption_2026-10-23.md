@@ -25,3 +25,5 @@ The final source matrix and app-only package replace the earlier managed-viewer 
 The approved integration combines current main with the retained MSVC 14.52 work and the standalone header-only RedMonitor client. Qualification of this combined source is recorded separately from earlier branch receipts. Historical passes and remaining native, interactive, performance and release gates are retained; the merge does not close them automatically.
 
 On 2026-10-27 the user explicitly authorized local validation followed by merge, deferring hosted CI and native ARM64 execution. RedPrism/RedTilde hosted jobs were refused for GitHub billing/spending restrictions; RedXe/DxUi hosted provisioning failed before qualification. Local checks do not convert these results into CI passes. Native ARM64, interactive/manual, paired-performance and release gates remain open.
+
+Main advanced to 74c3eb6 during local qualification, adopting DxUi 98c795b765a10d1805ae0a7c35a8ade535fb7fd6. The integration retains that adoption and its preference-persistence tests. Earlier local results remain tied to their old pin; the combined pin requires fresh native/profile qualification.

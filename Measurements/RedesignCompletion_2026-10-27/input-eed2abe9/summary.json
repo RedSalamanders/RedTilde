@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "artifactType": "retained-sanitized-evidence-projection",
+  "publicationStatus": "Retained sanitized evidence projection; results remain source-bound and acceptance gates are separate.",
+  "acceptanceClaim": false,
+  "source": {
+    "commit": "eed2abe9885c57f44ab192155b341582782020f9",
+    "dependencyCommit": "98c795b765a10d1805ae0a7c35a8ade535fb7fd6",
+    "sourceIdentitySha256": "d368102ab388b7e555047205bef8edcaf73a63acde954e76a161a9b55781df78",
+    "binarySha256": "61796E1BAFF0CB45E2254969AEC4B35FA63F55B2743CED049F75C2B0F027B308"
+  },
+  "run": {
+    "profile": "x64 Release",
+    "leaseGuarded": true,
+    "realKeyboardInput": true,
+    "passed": true,
+    "injectedEvents": 168,
+    "stageCount": 9,
+    "stages": [
+      "NativeEditor.KeyboardTextAndUndo",
+      "Files.ShortcutFocusAndEscape",
+      "Find.TypedQueryTraversalAndEscape",
+      "Settings.KeyboardDrawerAndEscape",
+      "Focus.KeyboardToggleAndEscape",
+      "SelectionToolbar.AltF10TabEnterEscape",
+      "Equation.F2ApplyUndoAndCancel",
+      "FileMenu.KeyboardOpenAndDismiss",
+      "Window.AltF4AsyncClose"
+    ],
+    "clipboardTouched": false,
+    "physicalImeOrAssistiveTechnologyQualified": false
+  },
+  "focusAndRestoration": {
+    "initialFocus": "capture reason was recorded",
+    "foregroundRestored": "unchanged",
+    "focusRestored": "unchanged",
+    "cursorRestored": "unchanged",
+    "runMovedSomething": 0,
+    "verification": "separate canonical parent desktop lease result",
+    "noForegroundIdentityOrCursorCoordinatesIncluded": true
+  },
+  "independentSdkMenuEvidence": {
+    "sourceCommit": "f482779212f73ac8f3726bff4e3a309ef0be9112",
+    "scope": "separately bound SDK Menu evidence",
+    "individualCasesStarted": 124,
+    "individualCasesDone": 124,
+    "suiteBannerStartRecords": 1,
+    "suiteBannerDoneRecords": 1,
+    "rawStartRecordsIncludingBanner": 125,
+    "rawDoneRecordsIncludingBanner": 125,
+    "restoration": "verified separately",
+    "f482ReceiptQualifiesCombinedRevision7020121d": false,
+    "copiedIntoThisRedTildePacket": false
+  },
+  "boundaries": [
+    "One explicit interactive keyboard probe, not a full UI acceptance verdict.",
+    "Physical IME or assistive technology (AT) input was not qualified.",
+    "The SDK Menu evidence has its own source binding and is not copied or merged into this RedTilde result."
+  ],
+  "evidence": "Relative roles and hashes are listed in source-and-evidence-hashes.json. Raw reports, run logs, and plans are not copied."
+}

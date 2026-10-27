@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "eed2abe9885c57f44ab192155b341582782020f9",
+  "dependencyCommit": "98c795b765a10d1805ae0a7c35a8ade535fb7fd6",
+  "sourceIdentitySha256": "d368102ab388b7e555047205bef8edcaf73a63acde954e76a161a9b55781df78",
+  "nativeCaseCatalogSha256": "5473F239A31679F1BFA9147744A86A1A9F1BE6B852B24F96C310015C54EDFF9C",
+  "independentAuditSha256": "287C396DB24E6809512E96761294AEEC4272294A3D12716BF49012D556FCD460",
+  "matrixAuditChecks": 21,
+  "x64MatrixStarted": "2026-10-27",
+  "arm64MatrixStarted": "2026-10-27",
+  "reproducibility": "Exact profile build/test receipts and raw payload hashes are indexed by relative artifact role in native-hash-inventory.json; absolute execution paths were removed."
+}

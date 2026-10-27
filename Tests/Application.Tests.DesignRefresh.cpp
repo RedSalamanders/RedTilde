@@ -161,9 +161,9 @@ void WriteFixture(const std::filesystem::path &path, std::string_view contents =
     std::filesystem::create_directories(path.parent_path());
     Success(WriteBytesAtomic(path, contents), "seed design integration fixture");
 }
-void Await(Application &app, const std::function<bool()> &complete)
+void Await(Application &app, const std::function<bool()> &complete, std::chrono::milliseconds timeout = std::chrono::seconds(10))
 {
-    const auto end = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+    const auto end = std::chrono::steady_clock::now() + timeout;
     while (!complete() && std::chrono::steady_clock::now() < end)
     {
         app.Prepare(32);
@@ -434,16 +434,15 @@ class DesignRefreshProbe final
                              "the visible mirror publishes the latest nested source and selection");
                      CheckChrome(app);
 
+                     // A polling read can deny the worker's atomic replacement. Observe its
+                     // completion and result before opening the saved file.
+                     Await(app, [&] { return !app.preferenceWriter.Busy(); }, std::chrono::seconds(2));
+                     const auto writeStatus = app.preferenceWriter.Status();
+                     Require(SUCCEEDED(writeStatus), std::format("the completed Split preference write succeeds (HRESULT=0x{:08X})",
+                                                                 static_cast<unsigned long>(writeStatus)));
                      Settings persisted;
-                     bool splitPersisted{};
-                     for (unsigned attempt = 0; attempt < 400 && !splitPersisted; ++attempt)
-                     {
-                         if (SUCCEEDED(LoadSettings(dataDirectory, persisted)) && persisted.view == EditorView::Split)
-                             splitPersisted = true;
-                         else
-                             std::this_thread::sleep_for(std::chrono::milliseconds(5));
-                     }
-                     Require(splitPersisted, "the completed Split transition reaches persisted preferences");
+                     Success(LoadSettings(dataDirectory, persisted), "read completed Split preferences");
+                     Require(persisted.view == EditorView::Split, "the completed Split transition reaches persisted preferences");
                      Require(app.Document().Undo() && app.Document().GetText() == beforeNestedEdit && app.Document().Undo() &&
                                  app.Document().GetText() == source && !app.Dirty(),
                              "nested and pre-transition edits remain separately undoable to the original CRLF source");
@@ -485,16 +484,13 @@ class DesignRefreshProbe final
                          "a nested Source request remains the final view after the outer Split callback resumes");
                  CheckChrome(app);
 
+                 Await(app, [&] { return !app.preferenceWriter.Busy(); }, std::chrono::seconds(2));
+                 const auto writeStatus = app.preferenceWriter.Status();
+                 Require(SUCCEEDED(writeStatus),
+                         std::format("the nested Source preference write succeeds (HRESULT=0x{:08X})", static_cast<unsigned long>(writeStatus)));
                  Settings persisted;
-                 bool sourcePersisted{};
-                 for (unsigned attempt = 0; attempt < 400 && !sourcePersisted; ++attempt)
-                 {
-                     if (SUCCEEDED(LoadSettings(dataDirectory, persisted)) && persisted.view == EditorView::Source)
-                         sourcePersisted = true;
-                     else
-                         std::this_thread::sleep_for(std::chrono::milliseconds(5));
-                 }
-                 Require(sourcePersisted, "the latest nested Source request reaches persisted preferences");
+                 Success(LoadSettings(dataDirectory, persisted), "read completed nested Source preferences");
+                 Require(persisted.view == EditorView::Source, "the latest nested Source request reaches persisted preferences");
              });
         test("Window.Image2QuietChromeAndCompactInspector",
              [&]

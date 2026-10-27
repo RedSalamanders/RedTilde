@@ -1,7 +1,7 @@
 # File safety
 
 Atomic staging uses a bounded temporary leaf in the destination directory, independently of the target filename's
-length. A valid 240-unit target must support both first publication and replacement without leaking a temporary;
+length. Regression coverage includes first publication and replacement of a 240-unit target without a leaked temporary;
 `Storage.AtomicSaveKeepsLongLeafWithinPathBudget` exercises that boundary and the saved bytes/stamp.
 
 Open and save local `.md`, `.markdown` and text files using strict UTF-8. Preserve BOM and original line endings;

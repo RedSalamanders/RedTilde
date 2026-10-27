@@ -1,0 +1,2 @@
+# Keep the reviewed projection bytes unchanged across checkout.
+* -text -whitespace

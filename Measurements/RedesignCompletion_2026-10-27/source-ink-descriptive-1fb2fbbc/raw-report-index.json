@@ -1,0 +1,152 @@
+{
+  "schema": "redtilde-source-ink-native-report-hash-index-v1",
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-completed-native-v2",
+  "benchmarkInputs": {
+    "Tests/Application.Tests.Performance.cpp": "80BD870F222AF2F6A95C0EA6C1364A220AC93D23B2A0BEB5F874979B0ADECF61",
+    "Tests/Application.Tests.HeapDiagnostic.h": "BCD650BA755F66CE28A30C81C8ECB9F07E937DBA6A9A2C7FDF34AF2F8836DCA9",
+    "RedTilde/Main.cpp": "7918862FD087DE59C563B21C9BE196D6C1F4A620C2F66468A1914D72D0F070AF",
+    "RedTilde/EditDiagnostics.h": "779E4A6B708C39CF103D641CE0745983D52E0AB511F6D1DEDF4FF785EBED0E34",
+    "performance-paired.ps1": "A7487DA58293B9A8D6FED98AC37D7FC38CD7E75C12C65D9AD0E6250D513C8877",
+    "Build/Performance.psm1": "3AAF4B476E99DCC5647049C70E114B9F7D0BB5CCBEBA1399CCBF42198F6FE95A",
+    "Build/Harness.psm1": "B12F1C4C7DDA573117C7D6DADE2483D2085B3102D2D2844B8CAAC7D43D1D9AE1",
+    "docs/examples/s5-performance.md": "9CE1CA2DE3983070C40DC5A9DF331C9AA386FE796371E5527BF370AC70D3A10E",
+    "Build/ReviewedHeaderDeltaProfile.json": "488860317B002DA60EBFC45EF38DB206E42273D8AD86016A996E023DD37BAD5D"
+  },
+  "protocol": "Only raw report byte counts and SHA-256 digests are public; raw process payloads are omitted.",
+  "aggregate": {
+    "algorithm": "SHA-256 over UTF-8 (no BOM) lines sorted by view Compose/Split, numeric block, then slot. Each line is view|block|slot|lowercase-sha256; LF separators; no trailing LF.",
+    "sha256": "d47126f97b5649c904c13f45305ba3b16f50893ff0d04139c3a56bc9d1e37dba",
+    "rowCount": 16
+  },
+  "reports": [
+    {
+      "view": "Compose",
+      "block": 0,
+      "slot": "A1",
+      "roleCode": "A",
+      "bytes": 6156438,
+      "sha256": "15d7781bbc62ad984db588d578a45898abdedccdcd63a075a844fb45b254c35d"
+    },
+    {
+      "view": "Compose",
+      "block": 0,
+      "slot": "A2",
+      "roleCode": "A",
+      "bytes": 6156588,
+      "sha256": "6cf4a047e5e3019b93c914daf40107e6aba5da5db5fbcf2a9d3a6778468859df"
+    },
+    {
+      "view": "Compose",
+      "block": 0,
+      "slot": "B1",
+      "roleCode": "B",
+      "bytes": 6158878,
+      "sha256": "5555fcf31ac320ec30aa96bf60130b46be186d05277251b487b3f59cc7034ca2"
+    },
+    {
+      "view": "Compose",
+      "block": 0,
+      "slot": "B2",
+      "roleCode": "B",
+      "bytes": 6158920,
+      "sha256": "170911f68188946d98d9c308f675bcacca7f3cd157857906a4e4a17d0c951308"
+    },
+    {
+      "view": "Compose",
+      "block": 1,
+      "slot": "A1",
+      "roleCode": "A",
+      "bytes": 6156659,
+      "sha256": "775e04e8176e2d050ca702c8255e6471be8f3d9fdd8a2694d2df7eaceed10932"
+    },
+    {
+      "view": "Compose",
+      "block": 1,
+      "slot": "A2",
+      "roleCode": "A",
+      "bytes": 6156514,
+      "sha256": "f53299c999bb54662323909e9139d4fc47ab48144afd7da3d860d914817de139"
+    },
+    {
+      "view": "Compose",
+      "block": 1,
+      "slot": "B1",
+      "roleCode": "B",
+      "bytes": 6158938,
+      "sha256": "f877d3b43dd45907b37b6a8b99f855e976d8c6a0c4e1233900c42d968c5404ec"
+    },
+    {
+      "view": "Compose",
+      "block": 1,
+      "slot": "B2",
+      "roleCode": "B",
+      "bytes": 6158984,
+      "sha256": "77b2ada4062029c6a591367910c520e9b52696b24c460d07ad823f904f729e48"
+    },
+    {
+      "view": "Split",
+      "block": 0,
+      "slot": "A1",
+      "roleCode": "A",
+      "bytes": 6177281,
+      "sha256": "03a28eb48812f0ed3cb1315963cac32661c9610dfeee02c06f72ea85d3ffe5a3"
+    },
+    {
+      "view": "Split",
+      "block": 0,
+      "slot": "A2",
+      "roleCode": "A",
+      "bytes": 6176966,
+      "sha256": "f1ea7f1bb70d5d4b92435585a999e82eae341cb46cf8b30ded62349e927582cf"
+    },
+    {
+      "view": "Split",
+      "block": 0,
+      "slot": "B1",
+      "roleCode": "B",
+      "bytes": 6179515,
+      "sha256": "d7d0a8ac71b0fa5ce692e7839eaf21118981604b2090291890e48dba4a265e7e"
+    },
+    {
+      "view": "Split",
+      "block": 0,
+      "slot": "B2",
+      "roleCode": "B",
+      "bytes": 6179650,
+      "sha256": "407c26665165f162adbe462578bbb3195b6c03e28d2c3f7e020f3ffda377e652"
+    },
+    {
+      "view": "Split",
+      "block": 1,
+      "slot": "A1",
+      "roleCode": "A",
+      "bytes": 6177259,
+      "sha256": "ab44a2f6a47424fa4da0eea382b6ce4c09d497ed7f4679ea07b6558e21bd4413"
+    },
+    {
+      "view": "Split",
+      "block": 1,
+      "slot": "A2",
+      "roleCode": "A",
+      "bytes": 6177187,
+      "sha256": "3505f4f1d28f0ee384ce361c31f64eba91d0717c34ba45248f134b5341759e50"
+    },
+    {
+      "view": "Split",
+      "block": 1,
+      "slot": "B1",
+      "roleCode": "B",
+      "bytes": 6179684,
+      "sha256": "9387b099116c9eedc89d787eb0b4318f5097d592c55ef72aa691b53697fd24ef"
+    },
+    {
+      "view": "Split",
+      "block": 1,
+      "slot": "B2",
+      "roleCode": "B",
+      "bytes": 6179665,
+      "sha256": "dcc2894c1fe09cc40c17c77a203aa6be69a1ef178a900dda46334cbb3a8ec55e"
+    }
+  ]
+}
