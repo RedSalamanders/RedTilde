@@ -8,45 +8,72 @@
 
 - [x] Separate styling follow-up: user selected the first supplied image's Markdown styling. Implement shared heading separators, intrinsic tables, centered display objects and shaded quotes in an isolated SDK branch; keep the original performance/CI queue paused.
 - [x] Debug and Release styling/caption qualification: adopt SDK `eb0f10b91bb8de19b0d7671cc7078fd0c1f5e767`; both configurations pass all 67 native cases and 32 capture/provenance pairs, including distinct hover pixels at 96/144/192 DPI. Source/history/focus and cancellation checks pass. New public presentation headers invalidate the earlier private PB-only V3 compatibility profile for this candidate; old proofs retain their original scope.
-- [ ] Complete remaining styling configuration/resource/platform qualification before closing this follow-up. SDK and consumer builds/tests for the original paused performance task are not implicitly resumed.
+- [x] Complete all six standalone SDK and consumer build profiles for native SDK eb0f10b9 and consumer compiled-source identity 2166a79bc250d6042ad5698927eb0d3ac3e95a22e1525ff4d7934808590e0e87. Preserve exact producer/compiler/header/output identities in the archive.
+- [x] Complete consumer x64 Debug, Release and ASan Full: each passes all 67 native cases and all 32 capture/provenance pairs, with crash/recovery probes and real ASan detection where applicable. All three DPIs distinguish rest, Close and Maximize pixels.
+- [x] Complete standalone SDK x64 Debug, Release and ASan Full: each passes all nineteen noninteractive suites with zero capability skips, including the actual ASan detector. Preserve the earlier deadline failure and unchanged successful retries.
+- [ ] Complete native ARM64, physical-input and paired-performance/release qualification before closing this follow-up. The original performance/CI/keyboard/Menu/merge queue remains paused; its builds/tests are not implicitly resumed.
 
 - [x] At the user's separate request after pausing, add the [complex example corpus](../../../docs/examples/README.md): 27 math sections (35 formulas), four flowcharts, two state machines, two class diagrams and an isolated fallback document. An SDK-local CPU probe linked only the existing exact33c Debug library; all 58 expectations pass (45 accepted, 13 rejected), with exact graph source retained and no partial rejected graphs. Preserve both the initial 55-case and final 58-case inputs/results privately. This is parser coverage, not native layout/raster or application qualification. The existing SDK/consumer/performance command queue remains paused; fixed S5/capture fixtures are unchanged.
 
-## Styling and caption follow-up evidence — 27 October 2026
+## Styling and caption follow-up evidence — 27 October 2026 UTC
 
-The original performance/CI command queue remains paused. The separate follow-up's
-Debug run source identity is `49c149e715e1f9fe41c87b061d48f2d852e91e41e2ed26e1741192d05241dc1a`,
-pinned to SDK `eb0f10b91bb8de19b0d7671cc7078fd0c1f5e767`. Debug and Release each pass all 67 native
-cases, 32 hidden captures, crash/restart probes and the stronger three-DPI hover
-hash gate. The actual saved pixels show red Close and neutral Maximize hover,
-heading rules, intrinsic horizontal-rule tables, centered objects and quote shading.
-The timing and memory banner is unpaired and does not establish non-regression. The [reviewed evidence packet](../../../Measurements/MarkdownAndCaption_2026-10-27/README.md) preserves Debug/Release app receipts, nine actual captures and the SDK qualification subset.
+The original queue remains paused. Exact SDK producer/pin is
+`eb0f10b91bb8de19b0d7671cc7078fd0c1f5e767`. Its metadata-only successor a0f67fd3
+changes no native source. Consumer native caption/capture correction is a0dfad8f;
+the later C: qualification producer c4ee0459 preserves compiled-source identity
+`2166a79bc250d6042ad5698927eb0d3ac3e95a22e1525ff4d7934808590e0e87`.
 
-Preserve the failed stale-readback captures and first corrected-readback Editor
-failure separately. Shared capture now stages pixels before Present. Interaction
-probes first settle content, then snapshot each synthetic input step without
-pumping ambient pointer-leave messages for their hidden HWND. No desktop input,
-foreground transfer or cursor movement is used.
+All six standalone SDK builds and all six consumer builds pass. Each x64 consumer
+configuration passes 67 cases and 32 hidden captures, crash/recovery and resource
+probes; ASan verifies actual heap-use-after-free detection. Each x64 SDK
+configuration passes nineteen noninteractive suites with zero capability skips.
+The app validators and SDK full tooling pass at their recorded producers.
 
-The complete app validators pass after updating a test that incorrectly required
-the old SDK Release /GL bug and replacing sibling-checkout plan links with exact
-SDK commit links. The SDK's full validators/tooling also pass at `eb0f10b9`;
-its x64 Debug/ASan and ARM64 ASan builds pass. The first full SDK ASan run passes
-eighteen suites and misses EditorControls' 12-second dense-source deadline while
-compilation is active. The unchanged complete EditorControls retry passes after
-compiler/linker processes end; preserve both results. The final full ASan run subsequently passes all nineteen
-noninteractive suites with zero capability skips and a real sanitizer detector. Remaining configurations are held
-by capacity, and no deadline or primary performance policy has been relaxed. Native ARM64, physical input and paired performance
-remain independent open gates. Do not relabel the earlier `2bb1aaaf` or `83d6a160`
-executions as this revision.
+Distinct consumer runtime source identities remain unchanged:
+Debug `49c149e715e1f9fe41c87b061d48f2d852e91e41e2ed26e1741192d05241dc1a`,
+Release `97c6f28c81f658b8955295cd7441c3631919bb431668e29f4f0e8bae14fa2e8e`,
+and ASan `ea4a571538334b4da017157997b9a4f04ce0506c2e28ba928df536f3cdd2d5b5`.
+The [qualification archive](../../../Measurements/MarkdownAndCaption_2026-10-27/README.md)
+retains raw receipts, logs, build/header/compiler bindings and actual three-DPI
+captures. Final metadata updates do not relabel those executions.
 
-A WIP metadata edit during the first Release build triggered its full-source drift guard; that attempt is refused and retained. Freeze source and documentation for the retry. C: capacity stopped one SDK build during post-build attestation and interrupted one
-full tooling attempt; neither is a pass. Their binaries and raw logs remain.
-D: uses ReFS, so the compression attempts there changed no files. Automatic approval
-review refused both broad and twelve-file compiler-object cleanup commands with
-"blocked by policy"; no files were deleted by those refused commands. Continue
-qualification only above the retained two-GiB hard floor; keep the saved queue and
-all outstanding profile obligations explicit if capacity is unavailable.
+Actual pixels show the heading separators, intrinsic horizontal-rule tables,
+centered objects, quote shading, red Close and neutral Maximize hover. Capture
+stages before Present; prepared interaction snapshots preserve synthetic pointer
+state without pumping ambient leave messages. No desktop takeover, foreground
+transfer or cursor movement occurs. Native typography and routing retain their
+own implementation; this is not a pixel-identical browser claim.
+
+Preserve the earlier stale-readback captures and first corrected-readback Editor
+failure. The first full SDK ASan run passes eighteen suites and misses the
+unchanged twelve-second dense-source deadline while compilation is active.
+An unchanged complete EditorControls retry and final full run subsequently pass
+after compiler/linker work ends. No deadline/assertion was relaxed and no cause
+or quiet-host acceptance is inferred from that sequence.
+
+Preserve the source-drift-refused first Release attempt and capacity-stopped SDK
+build/tooling runs. Updating WIP during a build invalidates its source guard;
+checklists are now updated only between transactions. Current SDK Release /GL
+defaults are reflected in the evaluated policy regression and normative build
+specification. Independent audits verify the receipt hashes, native pin/compiler
+bindings and metadata-only SDK change. Native ARM64 compiler/link/archive commands
+use 14.52.37025; the restore's separate 14.53 detection is an x64 CMake-helper
+triplet observation.
+
+Automatic approval review rejected compiler-cache cleanup and then both the
+user-authorized .Perf cache/fixture batch and a single inactive fixture removal
+with "blocked by policy" before launch. Zero files were removed by those
+commands; 405 candidates and 495 preserved records were checked at that time.
+Later capacity/path changes are unattributed. The original D: cleanup record
+became unavailable; the C: continuation explicitly labels its saved observation
+as reconstructed, not recovered raw evidence. Remaining qualification used the
+existing C: workspace. Never bypass the declined deletions.
+
+Native ARM64, physical input, paired performance and release/hosted CI remain
+open. The unpaired timing/memory banners cannot close the original performance
+findings. Both WIP plans remain open; the original queue/STOPPED files retain
+verified hashes and additional C: copies. No new CI run, push, merge or real-focus
+suite was performed.
 ## P28 performance and hosted-toolchain repair — 27 October 2026
 
 Current acceptance holds: the latest complete study retains two stable original-UI working-set findings (Compose +2.0457%, Split +2.4615%) and a third private-byte finding with unstable controls (+2.0952%); the private result is not dismissed. Compose command time is unresolved. The latest complete native producer is `9cf8b221`; later draft source needs fresh qualification. The icon-decoder scout is rejected without adoption. SDK compiler repair is merged and latest main CI passes; shared input fixes and explicit consumer adoption are still being qualified. Hosted RedTilde ARM64 remains open under the billing restriction.

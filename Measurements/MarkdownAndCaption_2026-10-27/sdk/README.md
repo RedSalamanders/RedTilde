@@ -22,5 +22,15 @@ is claimed to fix or causally explain the first delay.
 [Performance smoke data](performance-unpaired.json) and its
 [comparison record](performance-comparison.json) are explicitly unpaired.
 They cannot close non-regression, quiet-host or original performance findings.
-Remaining Debug/Release runtime, standalone build, consumer ASan/ARM64, physical
-input and native ARM64 obligations remain in the WIP plans.
+The later packets below complete Debug/Release runtime and remaining build/consumer profiles; physical input, native ARM64 and paired performance remain open.
+
+The subsequent [x64 Debug packet](debug/manifest.json) binds 24 untouched records,
+including all nineteen successful suite receipts, their full log/status, the
+canonical build attestation and unpaired performance metadata. That metadata
+retains source, toolchain, input/artifact identities and the benchmark hash;
+individual suite receipts bind their executable hashes. Native producer eb0f10b9
+and metadata-only successor a0f67fd3 differ only in the WIP/changelog. An independent
+read-only replay verifies every original 23-file packet entry, all nineteen
+successful suites and the absence of native changes between those commits.
+The subsequently copied build attestation retains its own original timestamp.
+The [Release packet](release/manifest.json) binds 24 raw records: nineteen successful zero-skip suite receipts, full log/status, canonical build attestation and unpaired performance metadata. All six standalone profiles now build; native ARM64 execution remains open.

@@ -1,0 +1,75 @@
+
+
+  compilation header save succeeded; see C:\Users\PVB\.codex\worktrees\rtq\.build\dependencies\DxUi\43d81be1e014f9a5e4a4cd720e21d65b48243f703b35a1decdb2047c109bdde3\Intermediate\ARM64\Release\DxUi\DxUiCompositeVS.h
+  compilation object save succeeded; see C:\Users\PVB\.codex\worktrees\rtq\.build\dependencies\DxUi\43d81be1e014f9a5e4a4cd720e21d65b48243f703b35a1decdb2047c109bdde3\Intermediate\ARM64\Release\DxUi\DxUiCompositeVS.cso
+  compilation header save succeeded; see C:\Users\PVB\.codex\worktrees\rtq\.build\dependencies\DxUi\43d81be1e014f9a5e4a4cd720e21d65b48243f703b35a1decdb2047c109bdde3\Intermediate\ARM64\Release\DxUi\DxUiCompositePS.h
+  compilation object save succeeded; see C:\Users\PVB\.codex\worktrees\rtq\.build\dependencies\DxUi\43d81be1e014f9a5e4a4cd720e21d65b48243f703b35a1decdb2047c109bdde3\Intermediate\ARM64\Release\DxUi\DxUiCompositePS.cso
+  DxUi.RichDocument.cpp
+  DxUi.RichMarkdownProjection.cpp
+  DxUi.RichSemantic.cpp
+  DxUi.RichTextCommands.cpp
+  DxUi.RichSemanticDocument.cpp
+  DxUi.RichSemanticGeometry.cpp
+  DxUi.MarkdownSyntax.cpp
+  DxUi.NativeFlowchart.cpp
+  DxUi.NativeMath.cpp
+  DxUi.NativeFlowchartLayout.cpp
+  DxUi.PreparedFlowchart.cpp
+  DxUi.RichTextLayout.cpp
+  DxUi.RichDocumentLayout.cpp
+  DxUi.RichTextEditor.cpp
+  DxUi.RichImage.cpp
+  ControlCatalog.cpp
+  NativeMenuInterop.cpp
+  Embedded.cpp
+  FrameRuntime.cpp
+  DxUi.Accessibility.cpp
+  Compiling...
+  DxUi.ComboBox.cpp
+  DxUi.Controls.cpp
+  DxUi.Layout.cpp
+  DxUi.Forms.cpp
+  DxUi.EditorControls.cpp
+  DxUi.cpp
+  DxUi.Grid.cpp
+  DxUi.Menu.cpp
+  DxUi.NativeTextInput.cpp
+  DxUi.PointerInput.cpp
+  DxUi.Scrollbar.cpp
+  DxUi.SingleLineTextEditing.cpp
+  DxUi.TextInput.cpp
+  DxUi.TextStoreACP.cpp
+  TextInputServices.cpp
+  TextClipboard.cpp
+  DxUi.Theme.cpp
+  DxUi.Tree.cpp
+  DxUi.Typeahead.cpp
+  DxUi.WindowHost.cpp
+  Compiling...
+  DxUi.TextElements.cpp
+  DxUi.vcxproj -> C:\Users\PVB\.codex\worktrees\rtq\.build\dependencies\DxUi\43d81be1e014f9a5e4a4cd720e21d65b48243f703b35a1decdb2047c109bdde3\ARM64\Release\DxUi.lib
+  Verified local RedMonitor client 9ebea6577fe9a5ced7647283c918f51f67d666fd; no viewer dependency.
+  DxUi pin verified: eb0f10b91bb8de19b0d7671cc7078fd0c1f5e767
+  Main.cpp
+  MonitorDiagnostics.cpp
+  Application.cpp
+  Application.Chrome.cpp
+  Application.CaptureScenarios.cpp
+  Application.Navigation.cpp
+  Files.cpp
+  RemoteImage.cpp
+  Application.Tests.Files.cpp
+  Application.Tests.DesignRefresh.cpp
+  Application.Tests.DesignInteractive.cpp
+  Application.Tests.RemoteImages.cpp
+  Storage.cpp
+  DocumentInfo.cpp
+  Settings.cpp
+  CrashHandler.cpp
+  Recovery.cpp
+  Application.Tests.Core.cpp
+  Application.Tests.Performance.cpp
+  Generating code
+  Finished generating code
+  RedTilde.vcxproj -> C:\Users\PVB\.codex\worktrees\rtq\.build\ARM64\Release\RedTilde.exe
+Built RedTilde: C:\Users\PVB\.codex\worktrees\rtq\.build\ARM64\Release/RedTilde.exe

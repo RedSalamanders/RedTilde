@@ -1,0 +1,10 @@
+Run evidence: C:\Users\PVB\.codex\worktrees\rtq\.build\evidence\test-runs\20261027T225158105Z-45712-28e33dad71e34085a5a2069153f08c0f
+11 behavioral tests passed (Storage).
+4 behavioral tests passed (Settings).
+5 behavioral tests passed (Recovery).
+47 behavioral tests passed (Editor).
+Native forced render: 62.1 FPS; private memory 346.0 MiB; dirty edit/render 11.31 ms. Initial app baseline only.
+32 actual hidden application captures generated with viewport/DPI provenance.
+Isolated local crash dump and marker verified.
+Real AddressSanitizer heap-use-after-free detection verified.
+Receipt: C:\Users\PVB\.codex\worktrees\rtq\.build\evidence\test-runs\20261027T225158105Z-45712-28e33dad71e34085a5a2069153f08c0f\payload\receipt.json

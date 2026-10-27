@@ -46,12 +46,20 @@ shaded quotes. Native typography and diagram routing retain their own implementa
 this is not a pixel-identical browser rendering claim. Exact source, selection and
 history remain authoritative.
 
-Broader configuration/native ARM64, physical-input and paired-performance gates
-remain separately tracked in the [WIP coordinator](../../Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md).
-The smoke timing/memory banner is unpaired and cannot establish non-regression.
-The older performance/CI command queue stays paused.
+All six standalone SDK and all six consumer build profiles pass. Consumer x64
+Debug, Release and ASan each pass 67 cases and 32 captures; each SDK x64
+configuration passes nineteen suites with zero capability skips. Both sanitizer
+paths verify a real heap-use-after-free detector. Producer identities remain in
+the untouched receipts; later documentation changes do not retag them.
 
-The [SDK evidence subset](sdk/README.md) retains the final full x64 ASan 19-suite
-pass, real sanitizer detector, full tooling status and three successful build
-profiles, alongside the earlier timing failure and unchanged successful retry.
-It does not qualify the remaining consumer configurations or native ARM64.
+The [SDK packet](sdk/README.md) retains final ASan plus [Debug](sdk/debug/manifest.json)
+and [Release](sdk/release/manifest.json) runtime receipts, unpaired smoke metadata,
+full tooling status, earlier deadline failure and unchanged successful retry.
+[Additional build profiles](profiles/README.md) bind all new archive/consumer
+receipts, and the [consumer ASan packet](consumer-asan/README.md) includes actual
+three-DPI captures and the detector diagnostic. Six manifests bind 150 raw files.
+
+Native ARM64 execution, physical input, release/hosted CI and paired performance
+remain open in the [WIP coordinator](../../Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md).
+Cross-builds and unpaired measurements cannot close them. The original
+performance/CI/keyboard/Menu/merge command queue stays paused.

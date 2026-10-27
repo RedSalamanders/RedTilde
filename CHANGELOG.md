@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Archive complete Markdown/caption local build and x64 qualification, including all six SDK/consumer profiles, 67 app cases and 32 captures per x64 configuration, nineteen SDK suites per x64 configuration and real ASan detection. Synchronize the SDK Release default-policy specification; preserve failed attempts and original source identities, with native ARM64, physical input and paired performance still open and the original CI/performance queue paused.
 - Archive final SDK x64 ASan 19-suite and tooling evidence beside the Markdown/caption captures; retain the earlier deadline failure, successful unchanged retry and remaining configuration/platform/performance gates.
 - Record Debug and Release qualification for Markdown styling and caption input (67 native cases and 32 captures each), archive source-bound evidence, and document build-source freezing and remaining configuration/platform/performance holds.
 - Use shared pre-presentation hidden frame capture for reliable caption hover evidence, and validate the adopted SDK's repaired Release defaults alongside explicit toolchain bindings and negative controls.

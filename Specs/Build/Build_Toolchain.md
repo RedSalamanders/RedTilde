@@ -75,7 +75,7 @@ policy/compiler metadata refuses before invoking MSBuild.
 
 The evaluated ReleaseBuildPolicy regression covers the real lease and referenced pinned SDK in all six profiles
 using the same argument factory as the entrypoint. It preserves Debug/ASan behavior and exact toolchain properties,
-retains an omitted-arguments counterfactual that selects non-GL Release settings, and verifies that an evaluated
+checks the adopted SDK's governed default /GL Release settings, and verifies that an evaluated
 SDK toolset-default override cannot replace the pinned VCToolsVersion global. Evaluation compiles and
 launches nothing; actual archive restoration and source-bound runtime qualification remain separate obligations.
 Accepted configuration casing must select the same policy. Lease evaluations use the actual restored dependency
