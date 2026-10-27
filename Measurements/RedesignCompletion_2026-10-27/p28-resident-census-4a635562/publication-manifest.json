@@ -1,0 +1,80 @@
+{
+  "schema": "redtilde-resident-census-publication-manifest-v1",
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-completed-native-v2",
+  "benchmarkInputs": {
+    "docs/examples/s5-performance.md": "9CE1CA2DE3983070C40DC5A9DF331C9AA386FE796371E5527BF370AC70D3A10E",
+    "RedTilde/Main.cpp": "04A19274C9102A6EE2773DA8FE9FEE23999D0FA46C9411C69E2D86F61BA14B74",
+    "Build/Performance.psm1": "3AAF4B476E99DCC5647049C70E114B9F7D0BB5CCBEBA1399CCBF42198F6FE95A",
+    "Build/Harness.psm1": "B12F1C4C7DDA573117C7D6DADE2483D2085B3102D2D2844B8CAAC7D43D1D9AE1",
+    "RedTilde/Application.Tests.ResidentCensus.h": "D3D5FDC7C6CAE0FD71773C220EF0B3EE56F8188AD2E76A29616B34BDF8420FC0"
+  },
+  "publicationStatus": "Source-reviewed descriptive archive projection",
+  "rawPayloadsIncluded": false,
+  "performanceAcceptance": false,
+  "files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 58,
+      "sha256": "52B9AD72DCE5A0208FB1EC21D647D672ED312E4D4FBBBC8B3DB266B4150C824D"
+    },
+    {
+      "path": "binding-validation.json",
+      "bytes": 10827,
+      "sha256": "5352ABD9D1B31ACA2D44B462C917B45A4AF1FFADF458A1E6E716FF9333DB1B86"
+    },
+    {
+      "path": "branding-ex-accounting.csv",
+      "bytes": 700,
+      "sha256": "F8093E121823B1457B91B910E6C91E275489EA0FD30FF36C7B1005CF452AEE55"
+    },
+    {
+      "path": "branding-per-slot.csv",
+      "bytes": 4170,
+      "sha256": "8B08B2CB7E23EF90EC6594D97EEAD5BE3D0F59CAC9E1DB9E7063AAC0248F7C9C"
+    },
+    {
+      "path": "original-current-adjacent-decomposition.csv",
+      "bytes": 441,
+      "sha256": "1D7FA19CB575A511864D684F725F8F9AA42DF609E8482F99642E5D87D210F730"
+    },
+    {
+      "path": "original-current-per-slot.csv",
+      "bytes": 3185,
+      "sha256": "DFF24EEC8C7FDA0A22EAA037DE9E38FC09211B944F3801E1F8116B546F8E09C4"
+    },
+    {
+      "path": "raw-hash-index.json",
+      "bytes": 95709,
+      "sha256": "5C1CAC5C6D5C650583B1BB67BD3A56C86ED650F0ABBED771CD10867260319B33"
+    },
+    {
+      "path": "README.md",
+      "bytes": 2962,
+      "sha256": "5106332B730A864996E9F8ACAE1329222E00908BE2C75DFC22E117B9CF0EA277"
+    },
+    {
+      "path": "summary.json",
+      "bytes": 18938,
+      "sha256": "51D824FB8A660D67EC06A2608DD275B7F1F30C8201275E1FB7E5AFF13DFA6762"
+    }
+  ],
+  "fixtureDetails": {
+    "repositoryRelativePath": "docs/examples/s5-performance.md",
+    "sha256": "9CE1CA2DE3983070C40DC5A9DF331C9AA386FE796371E5527BF370AC70D3A10E",
+    "sourceUnits": 693,
+    "cycles": 64
+  },
+  "sourceDeclarations": {
+    "originalCurrent": "original/current helper14 declaration, completion/status, and replay report",
+    "brandingOriginalV3": "branding original-v3 declaration and composite report",
+    "brandingAmendedV4": "amended-v4 declaration, completion/status, and composite report",
+    "bindingValidation": "binding-validation.json"
+  },
+  "observerBindings": {
+    "helper12": "95DE365642FC4232B4F5A97844E800317E212AFF00C0DA38EB61F95580FF53F9",
+    "helper14": "54CDF7EAFBC9C69366CE265041C9751C655C4E7B7A1A8C63A284F8D5908B49D9",
+    "brandingV4UsesHelper12": true
+  },
+  "inputHashScope": "Selected common diagnostic inputs. Retained source-bound build, dependency, observer and declaration records carry the complete producer closure; this map is not a replacement runtime receipt."
+}
