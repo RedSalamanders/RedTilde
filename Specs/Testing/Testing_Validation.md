@@ -166,8 +166,19 @@ result tests retain exact source/selection plus both history directions and comm
 `test-interactive.ps1` is an explicit, time-authorized obligation outside the ordinary hidden/Full suites.
 It compiles the canonical exact-pinned DxUi InteractiveLease target into the consumer's fingerprint output and
 uses that library's runner/protocol for consent, warning, session ownership, watchdog and verified restoration.
+Before that direct MSBuild invocation, it forwards the receipt-pinned compiler, SDK, host architecture and
+configuration-specific whole-program policy through the shared build-argument helper described in
+[the build contract](../Build/Build_Toolchain.md). Helper project references must not overwrite the consumer's
+policy-fingerprinted SDK archive with different defaults. Evaluated lease/archive profile regressions run without
+compilation, activation or input and do not replace the real authorized keyboard obligation.
 The child verifies its visible direct-parent warning and held session mutex before showing or injecting; each
 input sequence also checks process-owned foreground. `-InteractiveAutoStart` requires prior explicit agreement
 and records the visible 30-second countdown. The nine real keyboard stages exercise the same shortcut routing
 as the ordinary message loop, preserve exact source/history and check native focus, including close. Failed
 children, absent stages or unverified restoration cannot pass. This does not qualify physical IME/touch/AT.
+
+An observed helper-induced archive-policy mismatch requires retention of the actual archive/command evidence and
+a controlled stop before primary performance collection. An unchanged, already linked static app executable
+does not prove the current archive still matches its fingerprinted policy. Preserve all prior runtime identities,
+failures and uncollected study declarations; restore the canonical archive and obtain the required new-source
+qualification before a newly declared continuation. Never retag prior runs or issue a primary permit to bypass it.

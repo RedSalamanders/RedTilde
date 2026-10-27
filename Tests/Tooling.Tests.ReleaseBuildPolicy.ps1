@@ -25,7 +25,7 @@ if(Test-Path -LiteralPath $pinPath){
 $probe=Join-Path $scratch 'Read.targets'
 [IO.File]::WriteAllText($probe,'<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"><ItemGroup><Link Include="ReleasePolicyLinkProbe"/></ItemGroup></Project>')
 function Read-Profile([string]$Project,[string]$Configuration,[string]$Platform,[string]$ProbePath=$probe,[string[]]$Extra=@()){
-    $arguments=@($Project,'/nologo',"/p:Configuration=$Configuration","/p:Platform=$Platform","/p:ForceImportAfterCppTargets=$ProbePath",'-getItem:ClCompile,Link,ProjectReference','-getProperty:ConfigurationType,VCToolsVersion,WholeProgramOptimization,LinkIncremental')+$Extra
+    $arguments=@($Project,'/nologo',"/p:Configuration=$Configuration","/p:Platform=$Platform","/p:ForceImportAfterCppTargets=$ProbePath",'-getItem:ClCompile,Link,ProjectReference','-getProperty:ConfigurationType,PlatformToolset,VCToolsVersion,WindowsTargetPlatformVersion,PreferredToolArchitecture,WholeProgramOptimization,LinkIncremental')+$Extra
     if($dependencySource){$arguments+="/p:DxUiRoot=$dependencySource"}
     $output=@(& $msbuild @arguments 2>&1)
     if($LASTEXITCODE-ne 0){throw "Evaluation failed: $Project $Configuration $Platform`n$($output -join "`n")"}
@@ -98,6 +98,72 @@ try{Assert-Profile $broken 'Release' 'broken final link'}catch{if($_.Exception.M
 if(-not $rejected){throw 'The linker-negative control was accepted.'}
 if($RequirePinnedArchives -and (Test-Path -LiteralPath $pinPath) -and $archiveChecked.Count-ne 6){throw 'Required pinned archive coverage is incomplete.'}
 Write-Host "PASS Release policy: $checked native profiles, $($archiveChecked.Count) pinned-archive profiles, compiler/linker negative controls."
+
+# Exercise the same argument factory as the real interactive entrypoint against
+# the actual pinned lease and archive projects. Evaluation never compiles or runs
+# the lease, and the omitted-arguments control reproduces the observed /GL loss.
+if($dependencySource){
+    Import-Module (Join-Path $Root 'Build/Toolchain.psm1') -Force
+    $leaseProject=Join-Path $dependencySource 'Tests/InteractiveLease/DxUi.InteractiveLease.vcxproj'
+    $archiveProject=Join-Path $dependencySource 'src/DxUi.vcxproj'
+    $leaseProfiles=[Collections.Generic.List[object]]::new()
+    $counterfactuals=[Collections.Generic.List[object]]::new()
+    $toolsetControls=[Collections.Generic.List[object]]::new()
+    $toolsetProbe=Join-Path $scratch 'AmbientToolset.targets'
+    [IO.File]::WriteAllText($toolsetProbe,'<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"><PropertyGroup><VCToolsVersion>14.52.99999</VCToolsVersion></PropertyGroup><ItemGroup><Link Include="ReleasePolicyLinkProbe"/></ItemGroup></Project>')
+    function Get-CompilerFacts($Value){
+        return @($Value.Items.ClCompile|Where-Object {$_['ExcludedFromBuild']-ne 'true'}|ForEach-Object {
+            [ordered]@{source=$_.Identity;wholeProgramOptimization=$_['WholeProgramOptimization'];optimization=$_['Optimization'];enableASAN=$_['EnableASAN']}
+        })
+    }
+    foreach($platform in 'x64','ARM64'){
+        $defaultLease=Read-Profile $leaseProject 'Release' $platform
+        $defaultArchive=Read-Profile $archiveProject 'Release' $platform
+        foreach($entry in @(@{name='lease';value=$defaultLease},@{name='archive';value=$defaultArchive})){
+            $facts=Get-CompilerFacts $entry.value
+            if(-not $facts.Count -or @($facts|Where-Object wholeProgramOptimization -CEQ 'true').Count){throw "Omitted-policy counterfactual no longer selects non-GL $($entry.name) $platform; review the pinned SDK policy."}
+            $counterfactuals.Add([ordered]@{project=$entry.name;platform=$platform;properties=$entry.value.Properties;compiler=$facts})
+        }
+        foreach($configuration in 'Debug','Release','ASan Debug'){
+            $app=Read-Profile (Join-Path $Root 'RedTilde/RedTilde.vcxproj') $configuration $platform
+            $identity=[ordered]@{releaseOptimizationPolicy='Gy-REF-GL-LTCG-full-v1';toolset=$app.Properties.PlatformToolset;
+                vcToolsVersion=$app.Properties.VCToolsVersion;windowsSdkVersion=$app.Properties.WindowsTargetPlatformVersion;
+                preferredToolArchitecture=$app.Properties.PreferredToolArchitecture}
+            $actualArguments=@(Get-RedTildePinnedBuildArguments -Configuration $configuration -Identity $identity)
+            $lease=Read-Profile $leaseProject $configuration $platform -Extra $actualArguments
+            $archive=Read-Profile $archiveProject $configuration $platform -Extra $actualArguments
+            $references=@($lease.Items.ProjectReference|Where-Object {[IO.Path]::GetFullPath((Join-Path (Split-Path $leaseProject) $_.Identity))-ceq $archiveProject})
+            if($references.Count-ne 1){throw 'The evaluated canonical lease no longer references the reviewed pinned archive.'}
+            foreach($property in 'WholeProgramOptimization','VCToolsVersion','PlatformToolset','WindowsTargetPlatformVersion','PreferredToolArchitecture'){
+                if($property -in @(([string]$references[0]['GlobalPropertiesToRemove']).Split(';'))){throw "The lease removes the pinned global $property before building DxUi."}
+            }
+            $expected=if($configuration-ceq 'Release'){'true'}else{'false'}
+            foreach($entry in @(@{name='lease';value=$lease},@{name='archive';value=$archive})){
+                foreach($property in 'VCToolsVersion','PlatformToolset','WindowsTargetPlatformVersion','PreferredToolArchitecture'){
+                    if($entry.value.Properties[$property]-cne $app.Properties[$property]){throw "$($entry.name) $platform $configuration changed pinned $property."}
+                }
+                $facts=Get-CompilerFacts $entry.value
+                if(-not $facts.Count -or @($facts|Where-Object wholeProgramOptimization -CNE $expected).Count){throw "$($entry.name) $platform $configuration has the wrong evaluated /GL policy."}
+                if($configuration-ceq 'ASan Debug' -and @($facts|Where-Object enableASAN -CNE 'true').Count){throw "$($entry.name) $platform lost ASan instrumentation."}
+                $leaseProfiles.Add([ordered]@{project=$entry.name;platform=$platform;configuration=$configuration;arguments=$actualArguments;properties=$entry.value.Properties;compiler=$facts})
+            }
+            if($configuration-ceq 'Release'){
+                foreach($project in @($leaseProject,$archiveProject)){
+                    $unbound=Read-Profile $project $configuration $platform -ProbePath $toolsetProbe
+                    $bound=Read-Profile $project $configuration $platform -ProbePath $toolsetProbe -Extra $actualArguments
+                    if($unbound.Properties.VCToolsVersion-cne '14.52.99999' -or $bound.Properties.VCToolsVersion-cne $identity.vcToolsVersion){throw 'Pinned compiler arguments did not resist an evaluated SDK toolset-default override.'}
+                    $toolsetControls.Add([ordered]@{project=$project;platform=$platform;ambientTools=$unbound.Properties.VCToolsVersion;pinnedTools=$bound.Properties.VCToolsVersion})
+                }
+            }
+        }
+    }
+    $leaseEvidence=Join-Path $scratch 'interactive-lease-policy.json'
+    [ordered]@{schema='redtilde-evaluated-interactive-lease-policy-v1';helperSha256=(Get-FileHash (Join-Path $Root 'Build/Toolchain.psm1')).Hash;
+        runnerSha256=(Get-FileHash (Join-Path $Root 'test-interactive.ps1')).Hash;testSha256=(Get-FileHash $PSCommandPath).Hash;
+        sdk=$pin.commit;profiles=$leaseProfiles.ToArray();omittedArgumentsCounterfactuals=$counterfactuals.ToArray();toolsetOverrideControls=$toolsetControls.ToArray();nativeBuilds=0;desktopRuns=0}|
+        ConvertTo-Json -Depth 12|Set-Content -LiteralPath $leaseEvidence -Encoding utf8
+    Write-Host "PASS interactive lease policy: 6 lease and 6 pinned-archive profiles; 4 omitted-policy and 4 toolset-override controls. Evidence: $leaseEvidence"
+}
 
 # Provisioning must remain read-only on local hosts and refuse a missing required family
 # before downloading or starting any installer. The ordinary selected installation also

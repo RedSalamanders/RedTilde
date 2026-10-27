@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Keep the interactive test helper and its SDK project reference on the receipt-pinned compiler, SDK and Release whole-program policy, preventing a helper build from replacing the fingerprinted SDK archive with default non-GL settings. Add evaluated lease/archive profile and omitted-policy regression checks; native archive restoration, runtime qualification and performance acceptance remain separate.
 - Preserve the exact hidden DPI/layout desktop assertions while reporting their separate foreground, visibility and owner-query observations on failure. Retain the original Release failure without attribution and synchronize the documented native catalog with its 66 registered cases.
 - Resume the two remaining original-UI performance investigations with compiler-matched frozen references and unchanged comparison bands, while tracking the observed hosted installer exit-code failure and preserving native, policy and billing-blocked ARM64 gates.
 - Integrate final redesign qualification evidence with current main while preserving incoming RedMonitor, toolchain and atomic-save work. Keep native and performance records bound to their executed sources, both original-UI flags, unqualified SDK policy and billing-blocked hosted RedTilde ARM64 open.
