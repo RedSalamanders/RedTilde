@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Preserve the exact hidden DPI/layout desktop assertions while reporting their separate foreground, visibility and owner-query observations on failure. Retain the original Release failure without attribution and synchronize the documented native catalog with its 66 registered cases.
 - Resume the two remaining original-UI performance investigations with compiler-matched frozen references and unchanged comparison bands, while tracking the observed hosted installer exit-code failure and preserving native, policy and billing-blocked ARM64 gates.
 - Integrate final redesign qualification evidence with current main while preserving incoming RedMonitor, toolchain and atomic-save work. Keep native and performance records bound to their executed sources, both original-UI flags, unqualified SDK policy and billing-blocked hosted RedTilde ARM64 open.
 - Publish source-bound SDK native/paired qualification and RedTilde diagnostic follow-up, preserving the merged implementation trees, two open original-UI performance flags, unqualified SDK policy and billing-blocked hosted RedTilde ARM64 gate; reject the low-benefit formatter prototype without changing production code.
