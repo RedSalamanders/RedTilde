@@ -1,0 +1,46 @@
+{
+  "schema": "redtilde-performance-public-source-hash-index-v1",
+  "payloadsIncluded": false,
+  "files": [
+    {
+      "label": "original-declaration",
+      "bytes": 6443,
+      "sha256": "57FB6AB271E3E68EC9AD72FE6267CB9E9E9F71B45DFB07F22BFC00B881212A16"
+    },
+    {
+      "label": "pre-start-ordering-amendment",
+      "bytes": 821,
+      "sha256": "04712972853A1FB7D7AB148BEDE5C65305985CD8D5657DBAFA672E0FA1EF0955"
+    },
+    {
+      "label": "collection-result",
+      "bytes": 405,
+      "sha256": "AA2803CA018D06A15B1DBF52C47F9D899C4FFC59E0E7A15F6AC67043E4AC1023"
+    },
+    {
+      "label": "independent-canonical-audit",
+      "bytes": 1089,
+      "sha256": "683D4DF2A673C7551BF7C5FCE6BD68B7D1389856777D88433742029D5C12F41E"
+    },
+    {
+      "label": "independent-raw-replay",
+      "bytes": 29628,
+      "sha256": "9A08462C6F62E37BF23D2EB03726C0D663BAC0CAE0A4CB319A2B104D277AD2E7"
+    },
+    {
+      "label": "independent-raw-bindings",
+      "bytes": 4320,
+      "sha256": "D91A2F763E3B956C767B6881D07939FD46C95533A6663E467DF303C613CA4EB1"
+    },
+    {
+      "label": "independent-report",
+      "bytes": 3716,
+      "sha256": "FB9C6BDB19FE31B71CCFBB97DD4657730B9C9F3A5CE5A05567D3C94EF227C845"
+    },
+    {
+      "label": "independent-review-manifest",
+      "bytes": 1438,
+      "sha256": "65C9D11EB327AA9A544843A7F20F5498BE9FBBDC5D0294354429B9DE4571A1AE"
+    }
+  ]
+}

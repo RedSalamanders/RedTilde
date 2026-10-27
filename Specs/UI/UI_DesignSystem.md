@@ -19,10 +19,8 @@ Brand: a flowing red tilde, with a restrained scarlet accent. App name is RedTil
 **Words, beautifully in flow.** The icon must read at 16/24/32 pixels as well as 256; preserve alpha.
 The application extracts and retains bounded premultiplied BGRA pixels from its own 32-bit alpha icon resource
 across device replacement; ordinary branding does not instantiate WIC. Native extraction must match the independent
-WIC reference byte for byte, including transparent and partially transparent pixels, at 16/24/32/48/64/128/256 pixels.
-For an exact native frame, validate the bounded owned group/icon resources and decode an uncompressed 32-bit,
-alpha-bearing DIB directly. Preserve Windows' default frame selection. Scaled sizes, missing/malformed resources
-and unsupported or all-zero-alpha frames use the canonical HICON extraction path; do not infer alpha from an AND mask.
+WIC reference byte for byte, including transparent and partially transparent pixels, at native
+16/24/32/48/64/128/256 sizes, scaled 20/40/96 sizes and Windows' default class-icon dimensions.
 It prepares the device-dependent Direct2D bitmap through DxUi visual-content preparation. Paint only draws a bitmap
 stamped for the host's current resource generation; resource queries and bitmap creation stay out of paint.
 

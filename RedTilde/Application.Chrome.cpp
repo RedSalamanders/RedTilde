@@ -2,39 +2,13 @@
 #include "res/Resource.h"
 #include <DxUi/Typography.h>
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <cstdint>
 #include <format>
-#include <limits>
 #include <wil/result.h>
 
 namespace RedTilde
 {
-namespace
-{
-constexpr std::size_t IconGroupHeaderBytes = 6;
-constexpr std::size_t IconGroupEntryBytes = 14;
-constexpr std::size_t MaximumIconFrames = 64;
-constexpr std::size_t MaximumIconGroupBytes = IconGroupHeaderBytes + MaximumIconFrames * IconGroupEntryBytes;
-constexpr std::size_t MaximumIconFrameBytes = 280u * 1024u;
-constexpr std::size_t DibInfoHeaderBytes = 40;
-
-std::uint16_t ReadLittleEndian16(std::span<const std::byte> bytes, std::size_t offset) noexcept
-{
-    return static_cast<std::uint16_t>(std::to_integer<std::uint8_t>(bytes[offset])) |
-           static_cast<std::uint16_t>(static_cast<std::uint16_t>(std::to_integer<std::uint8_t>(bytes[offset + 1])) << 8u);
-}
-
-std::uint32_t ReadLittleEndian32(std::span<const std::byte> bytes, std::size_t offset) noexcept
-{
-    return static_cast<std::uint32_t>(std::to_integer<std::uint8_t>(bytes[offset])) |
-           (static_cast<std::uint32_t>(std::to_integer<std::uint8_t>(bytes[offset + 1])) << 8u) |
-           (static_cast<std::uint32_t>(std::to_integer<std::uint8_t>(bytes[offset + 2])) << 16u) |
-           (static_cast<std::uint32_t>(std::to_integer<std::uint8_t>(bytes[offset + 3])) << 24u);
-}
-} // namespace
-
 BrandMarkPixels LoadBrandMarkPixels(HICON icon)
 {
     ICONINFO info{};
@@ -68,165 +42,6 @@ BrandMarkPixels LoadBrandMarkPixels(HICON icon)
             result.bgra[offset + channel] = static_cast<std::uint8_t>((result.bgra[offset + channel] * alpha + 127u) / 255u);
     }
     return result;
-}
-
-std::optional<BrandIconResource::Frame> BrandIconResource::SelectFrame(std::span<const std::byte> groupDirectory, UINT desiredWidth,
-                                                                       UINT desiredHeight)
-{
-    if (desiredWidth > 256 || desiredHeight > 256 || ((desiredWidth == 0) != (desiredHeight == 0)) || groupDirectory.size() < IconGroupHeaderBytes ||
-        groupDirectory.size() > MaximumIconGroupBytes || ReadLittleEndian16(groupDirectory, 0) != 0 || ReadLittleEndian16(groupDirectory, 2) != 1)
-        return std::nullopt;
-
-    const auto frameCount = ReadLittleEndian16(groupDirectory, 4);
-    if (frameCount == 0 || frameCount > MaximumIconFrames ||
-        groupDirectory.size() != IconGroupHeaderBytes + static_cast<std::size_t>(frameCount) * IconGroupEntryBytes)
-        return std::nullopt;
-
-    for (std::size_t i = 0; i < frameCount; ++i)
-    {
-        const auto entry = IconGroupHeaderBytes + i * IconGroupEntryBytes;
-        const auto width = std::to_integer<std::uint8_t>(groupDirectory[entry]) == 0
-                               ? 256u
-                               : static_cast<UINT>(std::to_integer<std::uint8_t>(groupDirectory[entry]));
-        const auto height = std::to_integer<std::uint8_t>(groupDirectory[entry + 1]) == 0
-                                ? 256u
-                                : static_cast<UINT>(std::to_integer<std::uint8_t>(groupDirectory[entry + 1]));
-        const auto imageBytes = ReadLittleEndian32(groupDirectory, entry + 8);
-        const auto id = ReadLittleEndian16(groupDirectory, entry + 12);
-        if (std::to_integer<std::uint8_t>(groupDirectory[entry + 2]) != 0 || std::to_integer<std::uint8_t>(groupDirectory[entry + 3]) != 0 ||
-            width == 0 || width > 256 || height == 0 || height > 256 || ReadLittleEndian16(groupDirectory, entry + 4) != 1 ||
-            ReadLittleEndian16(groupDirectory, entry + 6) != 32 || imageBytes < DibInfoHeaderBytes || imageBytes > MaximumIconFrameBytes || id == 0)
-            return std::nullopt;
-        for (std::size_t prior = 0; prior < i; ++prior)
-        {
-            const auto priorId = ReadLittleEndian16(groupDirectory, IconGroupHeaderBytes + prior * IconGroupEntryBytes + 12);
-            if (priorId == id)
-                return std::nullopt;
-        }
-    }
-
-    // This API reads the validated RT_GROUP_ICON layout and returns its selected
-    // RT_ICON integer ID. LR_DEFAULTCOLOR is zero by contract.
-    alignas(WORD) std::array<std::byte, MaximumIconGroupBytes> mutableDirectory{};
-    std::copy(groupDirectory.begin(), groupDirectory.end(), mutableDirectory.begin());
-    const auto selectedId = LookupIconIdFromDirectoryEx(reinterpret_cast<PBYTE>(mutableDirectory.data()), TRUE, static_cast<int>(desiredWidth),
-                                                        static_cast<int>(desiredHeight), LR_DEFAULTCOLOR);
-    if (selectedId <= 0 || selectedId > std::numeric_limits<WORD>::max())
-        return std::nullopt;
-
-    const auto selected = static_cast<WORD>(selectedId);
-    for (std::size_t i = 0; i < frameCount; ++i)
-    {
-        const auto entry = IconGroupHeaderBytes + i * IconGroupEntryBytes;
-        if (ReadLittleEndian16(groupDirectory, entry + 12) == selected)
-        {
-            const auto width = std::to_integer<std::uint8_t>(groupDirectory[entry]) == 0
-                                   ? 256u
-                                   : static_cast<UINT>(std::to_integer<std::uint8_t>(groupDirectory[entry]));
-            const auto height = std::to_integer<std::uint8_t>(groupDirectory[entry + 1]) == 0
-                                    ? 256u
-                                    : static_cast<UINT>(std::to_integer<std::uint8_t>(groupDirectory[entry + 1]));
-            return Frame{selected, width, height, ReadLittleEndian32(groupDirectory, entry + 8)};
-        }
-    }
-    return std::nullopt;
-}
-
-std::optional<BrandMarkPixels> BrandIconResource::DecodeFrame(std::span<const std::byte> dib, const Frame &frame)
-{
-    if (frame.id == 0 || frame.width == 0 || frame.width > 256 || frame.height == 0 || frame.height > 256 || frame.bytesInResource != dib.size() ||
-        dib.size() < DibInfoHeaderBytes || ReadLittleEndian32(dib, 0) != DibInfoHeaderBytes)
-        return std::nullopt;
-
-    const auto dibWidth = ReadLittleEndian32(dib, 4);
-    const auto dibHeight = ReadLittleEndian32(dib, 8);
-    const auto planes = ReadLittleEndian16(dib, 12);
-    const auto bitCount = ReadLittleEndian16(dib, 14);
-    const auto compression = ReadLittleEndian32(dib, 16);
-    const auto imageBytes = ReadLittleEndian32(dib, 20);
-    const auto colorsUsed = ReadLittleEndian32(dib, 32);
-    if (dibWidth != frame.width || dibHeight != frame.height * 2u ||
-        dibHeight > static_cast<std::uint32_t>(std::numeric_limits<std::int32_t>::max()) || planes != 1 || bitCount != 32 || compression != BI_RGB ||
-        colorsUsed != 0)
-        return std::nullopt;
-
-    const std::uint64_t xorStride = static_cast<std::uint64_t>(frame.width) * 4u;
-    const std::uint64_t xorBytes = xorStride * frame.height;
-    const std::uint64_t maskStride = ((static_cast<std::uint64_t>(frame.width) + 31u) / 32u) * 4u;
-    const std::uint64_t maskBytes = maskStride * frame.height;
-    if (xorBytes > MaximumIconFrameBytes || maskBytes > MaximumIconFrameBytes ||
-        static_cast<std::uint64_t>(DibInfoHeaderBytes) + xorBytes + maskBytes != dib.size() || (imageBytes != 0 && imageBytes != xorBytes))
-        return std::nullopt;
-
-    BrandMarkPixels result{frame.width, frame.height, {}};
-    result.bgra.resize(static_cast<std::size_t>(xorBytes));
-    const auto *const xorPlane = dib.data() + DibInfoHeaderBytes;
-    for (UINT y = 0; y < frame.height; ++y)
-    {
-        const auto sourceRow = static_cast<std::size_t>(frame.height - 1u - y) * static_cast<std::size_t>(xorStride);
-        const auto destinationRow = static_cast<std::size_t>(y) * static_cast<std::size_t>(xorStride);
-        for (std::size_t column = 0; column < static_cast<std::size_t>(xorStride); ++column)
-            result.bgra[destinationRow + column] = std::to_integer<std::uint8_t>(xorPlane[sourceRow + column]);
-    }
-
-    bool hasAlpha = false;
-    for (std::size_t offset = 3; offset < result.bgra.size(); offset += 4)
-        hasAlpha = hasAlpha || result.bgra[offset] != 0;
-    if (!hasAlpha)
-        return std::nullopt;
-
-    for (std::size_t offset = 0; offset < result.bgra.size(); offset += 4)
-    {
-        const unsigned alpha = result.bgra[offset + 3];
-        for (unsigned channel = 0; channel < 3; ++channel)
-            result.bgra[offset + channel] = static_cast<std::uint8_t>((result.bgra[offset + channel] * alpha + 127u) / 255u);
-    }
-    return result;
-}
-
-std::optional<BrandMarkPixels> TryLoadBrandMarkResourcePixels(HINSTANCE module, UINT desiredWidth, UINT desiredHeight)
-{
-    if (!module || desiredWidth > 256 || desiredHeight > 256 || ((desiredWidth == 0) != (desiredHeight == 0)))
-        return std::nullopt;
-
-    const auto groupResource = FindResourceW(module, MAKEINTRESOURCEW(IDI_REDTILDE), RT_GROUP_ICON);
-    if (!groupResource)
-        return std::nullopt;
-    const auto groupBytes = SizeofResource(module, groupResource);
-    if (groupBytes < IconGroupHeaderBytes || groupBytes > MaximumIconGroupBytes)
-        return std::nullopt;
-    const auto groupHandle = LoadResource(module, groupResource);
-    if (!groupHandle)
-        return std::nullopt;
-    const auto *const groupData = static_cast<const std::byte *>(LockResource(groupHandle));
-    if (!groupData)
-        return std::nullopt;
-    const auto selected = BrandIconResource::SelectFrame(std::span(groupData, groupBytes), desiredWidth, desiredHeight);
-    if (!selected)
-        return std::nullopt;
-
-    const UINT requiredWidth = desiredWidth == 0 ? static_cast<UINT>(GetSystemMetrics(SM_CXICON)) : desiredWidth;
-    const UINT requiredHeight = desiredHeight == 0 ? static_cast<UINT>(GetSystemMetrics(SM_CYICON)) : desiredHeight;
-    if (requiredWidth == 0 || requiredHeight == 0 || selected.value().width != requiredWidth || selected.value().height != requiredHeight)
-        return std::nullopt;
-
-    const auto iconResource = FindResourceW(module, MAKEINTRESOURCEW(selected.value().id), RT_ICON);
-    if (!iconResource || SizeofResource(module, iconResource) != selected.value().bytesInResource)
-        return std::nullopt;
-    const auto iconHandle = LoadResource(module, iconResource);
-    if (!iconHandle)
-        return std::nullopt;
-    const auto *const iconData = static_cast<const std::byte *>(LockResource(iconHandle));
-    if (!iconData)
-        return std::nullopt;
-    return BrandIconResource::DecodeFrame(std::span(iconData, selected.value().bytesInResource), selected.value());
-}
-
-BrandMarkPixels LoadBrandMarkPixels(HINSTANCE module, UINT desiredWidth, UINT desiredHeight, HICON fallbackIcon)
-{
-    if (auto pixels = TryLoadBrandMarkResourcePixels(module, desiredWidth, desiredHeight))
-        return std::move(pixels.value());
-    return LoadBrandMarkPixels(fallbackIcon);
 }
 
 HRESULT SourceMirrorEditor::PrepareContent(DxUi::ControlHost &host) noexcept
@@ -295,9 +110,7 @@ class BrandMark final : public DxUi::Control
         // ordinary startup needs no WIC factory/converter for this known asset.
         const auto icon = LoadIconW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(IDI_REDTILDE));
         THROW_LAST_ERROR_IF_NULL(icon);
-        // Decode an exact native resource frame directly; keep the canonical HICON
-        // extraction as the fallback for scaled or unsupported resource variants.
-        source = LoadBrandMarkPixels(GetModuleHandleW(nullptr), 0, 0, icon);
+        source = LoadBrandMarkPixels(icon);
     }
     void PrepareVisualContent(DxUi::ControlHost &host) noexcept override
     {

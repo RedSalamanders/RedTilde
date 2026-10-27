@@ -1,0 +1,44 @@
+{
+  "schema": "redtilde-icon-startup-scout-v1",
+  "originalDeclarationSha256": "57FB6AB271E3E68EC9AD72FE6267CB9E9E9F71B45DFB07F22BFC00B881212A16",
+  "declaredUtc": "2026-10-27T15:24:15.3758334Z",
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-completed-native-v2",
+  "sourceDeclarationFixture": "redtilde-s5-performance-693-units",
+  "fixtureDetails": {
+    "repositoryRelativePath": "docs/examples/s5-performance.md",
+    "sha256": "9CE1CA2DE3983070C40DC5A9DF331C9AA386FE796371E5527BF370AC70D3A10E",
+    "sourceUnits": 693
+  },
+  "sdk": "98c795b765a10d1805ae0a7c35a8ade535fb7fd6",
+  "blocks": 2,
+  "cycles": 64,
+  "seed": 20261027,
+  "views": [
+    "Compose",
+    "Split"
+  ],
+  "studies": [
+    "same-binary-aa",
+    "actual-base-ab"
+  ],
+  "processSlots": 32,
+  "controlDiagnostics": false,
+  "warp": false,
+  "bands": {
+    "timing": 0.05,
+    "memory": 0.02
+  },
+  "policy": "Canonical12metrics and unchanged5percent timing/2percent memory bands; retain all slots and failed attempts, no exclusions, no rerolls, no pooling with primary.",
+  "performanceAcceptance": false,
+  "prerequisiteAmendment": {
+    "schema": "redtilde-scout-prerequisite-order-amendment-v1",
+    "parentDeclarationSha256": "57FB6AB271E3E68EC9AD72FE6267CB9E9E9F71B45DFB07F22BFC00B881212A16",
+    "createdUtc": "2026-10-27T16:01:50.0017370Z",
+    "changedField": "prerequisite ordering only",
+    "processesStartedBeforeAmendment": 0,
+    "frozenInputsRulesAndScheduleChanged": false
+  },
+  "amendmentSha256": "04712972853A1FB7D7AB148BEDE5C65305985CD8D5657DBAFA672E0FA1EF0955",
+  "amendmentScope": "Ordering only; declared before the first process. Frozen inputs, schedule and rules unchanged."
+}

@@ -9,7 +9,6 @@
 #include <cmath>
 #include <format>
 #include <initializer_list>
-#include <limits>
 #include <mutex>
 #include <ranges>
 #include <stdexcept>
@@ -54,108 +53,9 @@ void Color(D2D1_COLOR_F actual, unsigned rgb, std::string_view message)
                 std::abs(actual.b - static_cast<float>(rgb & 255) / 255.f) < 0.001f && actual.a == 1,
             message);
 }
-void StoreLittleEndian16(std::vector<std::byte> &bytes, std::size_t offset, std::uint16_t value)
+void CheckBrandIconPixels(HICON icon, unsigned requestedWidth, unsigned requestedHeight, bool expectNativeFrame)
 {
-    bytes.at(offset) = static_cast<std::byte>(value & 0xffu);
-    bytes.at(offset + 1) = static_cast<std::byte>(value >> 8u);
-}
-void StoreLittleEndian32(std::vector<std::byte> &bytes, std::size_t offset, std::uint32_t value)
-{
-    for (unsigned shift = 0; shift < 32; shift += 8)
-        bytes.at(offset + shift / 8) = static_cast<std::byte>((value >> shift) & 0xffu);
-}
-std::vector<std::byte> MakeBrandIconTestDib()
-{
-    std::vector<std::byte> bytes(40u + 16u + 8u);
-    StoreLittleEndian32(bytes, 0, 40);
-    StoreLittleEndian32(bytes, 4, 2);
-    StoreLittleEndian32(bytes, 8, 4); // Two XOR rows followed by two AND-mask rows.
-    StoreLittleEndian16(bytes, 12, 1);
-    StoreLittleEndian16(bytes, 14, 32);
-    StoreLittleEndian32(bytes, 16, BI_RGB);
-    StoreLittleEndian32(bytes, 20, 16);
-    const std::array<std::uint8_t, 16> bottomUpPixels{40, 80, 160, 255, 200, 100, 50, 128, 10, 20, 30, 0, 70, 80, 90, 128};
-    for (std::size_t i = 0; i < bottomUpPixels.size(); ++i)
-        bytes[40 + i] = static_cast<std::byte>(bottomUpPixels[i]);
-    return bytes;
-}
-std::vector<std::byte> MakeBrandIconTestGroup()
-{
-    std::vector<std::byte> bytes(6u + 14u);
-    StoreLittleEndian16(bytes, 0, 0);
-    StoreLittleEndian16(bytes, 2, 1);
-    StoreLittleEndian16(bytes, 4, 1);
-    bytes[6] = std::byte{16};
-    bytes[7] = std::byte{16};
-    StoreLittleEndian16(bytes, 10, 1);
-    StoreLittleEndian16(bytes, 12, 32);
-    StoreLittleEndian32(bytes, 14, 1128);
-    StoreLittleEndian16(bytes, 18, 7);
-    return bytes;
-}
-void CheckBrandIconDecoderContracts()
-{
-    using namespace BrandIconResource;
-    auto group = MakeBrandIconTestGroup();
-    const auto selected = SelectFrame(group, 16, 16);
-    Require(selected && selected.value().id == 7 && selected.value().width == 16 && selected.value().height == 16 &&
-                selected.value().bytesInResource == 1128,
-            "validated group icon selection resolves the requested native frame");
-
-    auto invalidGroup = group;
-    invalidGroup[0] = std::byte{1};
-    Require(!SelectFrame(invalidGroup, 16, 16), "reserved group directory data is rejected before Win32 lookup");
-    invalidGroup = group;
-    StoreLittleEndian16(invalidGroup, 4, 2);
-    Require(!SelectFrame(invalidGroup, 16, 16), "truncated group directory count is rejected before Win32 lookup");
-    invalidGroup = group;
-    StoreLittleEndian16(invalidGroup, 18, 0);
-    Require(!SelectFrame(invalidGroup, 16, 16), "zero RT_ICON resource ID is rejected before Win32 lookup");
-    invalidGroup = group;
-    StoreLittleEndian16(invalidGroup, 12, 16);
-    Require(!SelectFrame(invalidGroup, 16, 16), "unsupported frame bit depth is rejected before Win32 lookup");
-    invalidGroup = group;
-    invalidGroup.resize(6u + 2u * 14u);
-    StoreLittleEndian16(invalidGroup, 4, 2);
-    std::copy_n(invalidGroup.begin() + 6, 14, invalidGroup.begin() + 20);
-    Require(!SelectFrame(invalidGroup, 16, 16), "duplicate RT_ICON resource IDs are rejected before Win32 lookup");
-
-    const auto dib = MakeBrandIconTestDib();
-    const Frame testFrame{7, 2, 2, 64};
-    const auto decoded = DecodeFrame(dib, testFrame);
-    const std::array<std::uint8_t, 16> expected{0, 0, 0, 0, 35, 40, 45, 128, 40, 80, 160, 255, 100, 50, 25, 128};
-    Require(decoded && decoded.value().width == 2 && decoded.value().height == 2 &&
-                std::equal(decoded.value().bgra.begin(), decoded.value().bgra.end(), expected.begin(), expected.end()),
-            "bounded DIB decoder flips bottom-up rows and premultiplies partial and zero alpha exactly");
-
-    Require(!DecodeFrame(std::span(dib).first(dib.size() - 1), testFrame), "truncated AND mask is rejected");
-    auto invalidDib = dib;
-    StoreLittleEndian16(invalidDib, 14, 16);
-    Require(!DecodeFrame(invalidDib, testFrame), "unsupported icon bit depth is rejected");
-    invalidDib = dib;
-    StoreLittleEndian32(invalidDib, 8, 2);
-    Require(!DecodeFrame(invalidDib, testFrame), "icon DIB height must include the XOR and AND planes");
-    invalidDib = dib;
-    StoreLittleEndian32(invalidDib, 16, BI_RLE8);
-    Require(!DecodeFrame(invalidDib, testFrame), "compressed icon DIB is rejected rather than misread");
-    invalidDib = dib;
-    StoreLittleEndian32(invalidDib, 20, std::numeric_limits<std::uint32_t>::max());
-    Require(!DecodeFrame(invalidDib, testFrame), "overflowing XOR-plane byte count is rejected");
-    auto oversizedFrame = testFrame;
-    oversizedFrame.width = 257;
-    Require(!DecodeFrame(dib, oversizedFrame), "icon frame dimensions above the decoder cap are rejected");
-    auto ambiguousAlpha = dib;
-    for (const std::size_t alphaOffset : {43u, 47u, 51u, 55u})
-        ambiguousAlpha[alphaOffset] = std::byte{0};
-    ambiguousAlpha[56] = std::byte{0x80}; // A nonzero AND-mask bit cannot recover alpha semantics safely.
-    Require(!DecodeFrame(ambiguousAlpha, testFrame), "an all-zero alpha plane with AND-mask data requires canonical HICON fallback");
-}
-
-void CheckBrandIconResource(HINSTANCE module, unsigned requestedSize, bool expectNativeFrame = true)
-{
-    wil::unique_hicon icon{static_cast<HICON>(LoadImageW(module, MAKEINTRESOURCEW(IDI_REDTILDE), IMAGE_ICON, static_cast<int>(requestedSize),
-                                                         static_cast<int>(requestedSize), LR_DEFAULTCOLOR))};
-    Require(icon != nullptr, "load the compiled RedTilde icon resource at the requested size");
+    Require(icon != nullptr, "use the compiled RedTilde icon resource");
 
     const auto initialized = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     Require(SUCCEEDED(initialized) || initialized == RPC_E_CHANGED_MODE, "use the test's existing COM apartment for icon decoding");
@@ -164,24 +64,24 @@ void CheckBrandIconResource(HINSTANCE module, unsigned requestedSize, bool expec
     Success(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(factory.put())),
             "create a WIC decoder for the icon resource");
     wil::com_ptr<IWICBitmap> bitmap;
-    Success(factory->CreateBitmapFromHICON(icon.get(), bitmap.put()), "decode the requested icon frame");
+    Success(factory->CreateBitmapFromHICON(icon, bitmap.put()), "decode the requested icon frame");
     UINT width{}, height{};
     Success(bitmap->GetSize(&width, &height), "read decoded icon geometry");
-    Require(width == requestedSize && height == requestedSize, "icon resource decodes to the requested square geometry");
+    Require(width == requestedWidth && height == requestedHeight, "icon resource decodes to the requested geometry");
 
     wil::com_ptr<IWICFormatConverter> converter;
     Success(factory->CreateFormatConverter(converter.put()), "create an alpha-preserving icon pixel view");
     Success(converter->Initialize(bitmap.get(), GUID_WICPixelFormat32bppBGRA, WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom),
             "convert icon pixels to explicit BGRA alpha");
-    std::vector<BYTE> pixels(static_cast<std::size_t>(requestedSize) * requestedSize * 4);
-    Success(converter->CopyPixels(nullptr, requestedSize * 4, static_cast<UINT>(pixels.size()), pixels.data()), "read decoded icon alpha pixels");
+    std::vector<BYTE> pixels(static_cast<std::size_t>(requestedWidth) * requestedHeight * 4);
+    Success(converter->CopyPixels(nullptr, requestedWidth * 4, static_cast<UINT>(pixels.size()), pixels.data()), "read decoded icon alpha pixels");
     std::size_t transparent{}, opaque{}, ink{};
-    UINT left = requestedSize, top = requestedSize, right{}, bottom{};
-    for (UINT y = 0; y < requestedSize; ++y)
+    UINT left = requestedWidth, top = requestedHeight, right{}, bottom{};
+    for (UINT y = 0; y < requestedHeight; ++y)
     {
-        for (UINT x = 0; x < requestedSize; ++x)
+        for (UINT x = 0; x < requestedWidth; ++x)
         {
-            const auto alpha = pixels[(static_cast<std::size_t>(y) * requestedSize + x) * 4 + 3];
+            const auto alpha = pixels[(static_cast<std::size_t>(y) * requestedWidth + x) * 4 + 3];
             transparent += alpha == 0;
             opaque += alpha == 255;
             if (alpha != 0)
@@ -195,35 +95,33 @@ void CheckBrandIconResource(HINSTANCE module, unsigned requestedSize, bool expec
         }
     }
     Require(transparent > 0 && ink > 0 && (!expectNativeFrame || opaque > 0),
-            std::format("icon {} alpha: native={}, transparent={}, opaque={}, ink={}", requestedSize, expectNativeFrame, transparent, opaque, ink));
-    if (requestedSize <= 32)
+            std::format("icon {}x{} alpha: native={}, transparent={}, opaque={}, ink={}", requestedWidth, requestedHeight, expectNativeFrame,
+                        transparent, opaque, ink));
+    if (requestedWidth <= 32 && requestedHeight <= 32)
     {
         // Preserve the existing small-icon legibility oracle. Larger frames have
         // less antialias coverage, so their ink area is not the same percentage.
-        const auto pixelsPerDimension = static_cast<std::size_t>(requestedSize);
-        Require(ink > pixelsPerDimension * pixelsPerDimension / 4 && opaque < pixelsPerDimension * pixelsPerDimension &&
-                    right - left >= requestedSize * 3 / 5 && bottom - top >= requestedSize * 2 / 5,
-                std::format("icon {} silhouette: transparent={}, opaque={}, ink={}, width={}, height={}", requestedSize, transparent, opaque, ink,
-                            right - left, bottom - top));
+        const auto pixelCount = static_cast<std::size_t>(requestedWidth) * requestedHeight;
+        Require(ink > pixelCount / 4 && opaque < pixelCount && right - left >= requestedWidth * 3 / 5 && bottom - top >= requestedHeight * 2 / 5,
+                std::format("icon {}x{} silhouette: transparent={}, opaque={}, ink={}, width={}, height={}", requestedWidth, requestedHeight,
+                            transparent, opaque, ink, right - left, bottom - top));
     }
 
     wil::com_ptr<IWICFormatConverter> premultiplied;
     Success(factory->CreateFormatConverter(premultiplied.put()), "create an independent premultiplied icon reference");
     Success(premultiplied->Initialize(bitmap.get(), GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom),
             "prepare the independent WIC premultiplied reference for the native brand resource");
-    Success(premultiplied->CopyPixels(nullptr, requestedSize * 4, static_cast<UINT>(pixels.size()), pixels.data()),
+    Success(premultiplied->CopyPixels(nullptr, requestedWidth * 4, static_cast<UINT>(pixels.size()), pixels.data()),
             "read the independent premultiplied icon reference");
-    const auto canonicalPixels = LoadBrandMarkPixels(icon.get());
+    const auto canonicalPixels = LoadBrandMarkPixels(icon);
     Require(canonicalPixels.width == width && canonicalPixels.height == height && canonicalPixels.bgra == pixels,
-            "canonical HICON fallback matches every WIC reference byte, including partial and zero alpha");
-    const auto productPixels = LoadBrandMarkPixels(module, requestedSize, requestedSize, icon.get());
-    Require(productPixels.width == width && productPixels.height == height && productPixels.bgra == pixels,
-            "product resource fast path or canonical fallback matches every WIC reference byte");
-    const auto directPixels = TryLoadBrandMarkResourcePixels(module, requestedSize, requestedSize);
-    Require(directPixels.has_value() == expectNativeFrame, "native resource path is used only for an exact-size selected ICO frame");
-    if (directPixels)
-        Require(directPixels.value().width == width && directPixels.value().height == height && directPixels.value().bgra == pixels,
-                "direct native-frame decode matches every WIC reference byte, including partial and zero alpha");
+            "canonical HICON extraction matches every WIC reference byte, including partial and zero alpha");
+}
+void CheckBrandIconResource(HINSTANCE module, unsigned requestedSize, bool expectNativeFrame = true)
+{
+    wil::unique_hicon icon{static_cast<HICON>(LoadImageW(module, MAKEINTRESOURCEW(IDI_REDTILDE), IMAGE_ICON, static_cast<int>(requestedSize),
+                                                         static_cast<int>(requestedSize), LR_DEFAULTCOLOR))};
+    CheckBrandIconPixels(icon.get(), requestedSize, requestedSize, expectNativeFrame);
 }
 std::vector<BYTE> ReadBrandMarkRaster(const std::filesystem::path &path, float dpi)
 {
@@ -2444,19 +2342,13 @@ class DesignRefreshProbe final
                      CheckBrandIconResource(module, size);
                  for (const unsigned size : {20u, 40u, 96u})
                      CheckBrandIconResource(module, size, false);
-                 CheckBrandIconDecoderContracts();
-                 const auto defaultIcon = LoadIconW(module, MAKEINTRESOURCEW(IDI_REDTILDE));
-                 Require(defaultIcon != nullptr, "load the canonical default-size class icon");
-                 const auto defaultFallback = LoadBrandMarkPixels(defaultIcon);
-                 const auto defaultDirect = TryLoadBrandMarkResourcePixels(module, 0, 0);
-                 const auto defaultProductPath = LoadBrandMarkPixels(module, 0, 0, defaultIcon);
-                 Require(defaultProductPath.width == defaultFallback.width && defaultProductPath.height == defaultFallback.height &&
-                             defaultProductPath.bgra == defaultFallback.bgra,
-                         "default resource fast path or canonical fallback preserves LoadIcon dimensions and pixels");
-                 if (defaultDirect)
-                     Require(defaultDirect.value().width == defaultFallback.width && defaultDirect.value().height == defaultFallback.height &&
-                                 defaultDirect.value().bgra == defaultFallback.bgra,
-                             "default LookupIconIdFromDirectoryEx selection matches the shared LoadIcon frame");
+                 const auto defaultIcon = LoadIconW(module, MAKEINTRESOURCEW(IDI_REDTILDE)); // Shared class icon: borrowed, never destroyed here.
+                 const auto defaultWidth = static_cast<unsigned>(GetSystemMetrics(SM_CXICON));
+                 const auto defaultHeight = static_cast<unsigned>(GetSystemMetrics(SM_CYICON));
+                 constexpr std::array nativeIconSizes{16u, 24u, 32u, 48u, 64u, 128u, 256u};
+                 const bool defaultNative =
+                     defaultWidth == defaultHeight && std::ranges::find(nativeIconSizes, defaultWidth) != nativeIconSizes.end();
+                 CheckBrandIconPixels(defaultIcon, defaultWidth, defaultHeight, defaultNative);
                  Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().Revision() == sourceRevision &&
                              app.Document().GetSelection() == retainedSelection && !app.Document().CanUndo() && app.Document().CanRedo(),
                          "theme, view, native spacing and icon checks leave exact source, selection and history unchanged");

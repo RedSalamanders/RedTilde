@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Retain canonical icon extraction after a 32-process resource-decoder scout showed no repeatable material working-set saving. Preserve the rejected prototype, frozen binaries and all measurements; keep expanded native, scaled and default-icon WIC pixel coverage plus foreground-failure diagnostics. Final SDK adoption, native qualification and performance acceptance remain open.
 - Publish the reviewed resident-memory projection with exact observer/producer bindings, distinct traditional/extended working-set scopes and preserved amended-controller history. Refresh the evidence index and WIP; the short icon scout, unresolved performance findings and billing-blocked hosted ARM64 remain separate open gates.
 - Decode exact owned alpha-icon resource frames directly before Direct2D preparation, preserving Windows frame selection and canonical HICON fallback for scaled or unsupported frames. Extend independent seven-size pixel, scaling and malformed-resource coverage; final native and paired performance qualification remain open.
 - Record initial foreground ownership and null-window state when hidden responsive-layout or outline tests fail, preserving their exact no-activation assertions. Retain the failed attempts and the separate 46-case isolated Release Editor pass without attributing the foreground changes.
