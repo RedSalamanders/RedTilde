@@ -31,6 +31,10 @@ retain their target checks. Fenced examples and matching inline code spans withi
 are ignored; unmatched backticks cannot pair across that paragraph boundary. File URI paths are decoded once,
 preserving literal hash and percent characters. Missing local targets and
 references escaping this repository fail; heading existence, command signatures and model behavior are not inferred.
+Opening backtick fences require info strings without backticks; line-leading triple-backtick inline spans do not
+hide later prose. Tilde-fence info strings may contain backticks.
+Fence markers use zero to three leading spaces (optionally followed by the supported list marker); four-space
+or tab-indented code cannot open or close a fence over surrounding prose. This remains a bounded package parser.
 
 ## Scoped guidance ownership
 

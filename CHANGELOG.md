@@ -4,6 +4,8 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Preserve package-reference checks after indented code by limiting fence markers to zero through three leading spaces and testing both opener and closer admission.
+- Keep later package references visible after a line-leading triple-backtick inline span by enforcing the backtick-fence info-string rule; retain valid tilde-fence examples and add focused controls.
 - Check continued references and parenthesized link titles, preserve literal file-URI filenames and quoted timestamps, reject linked roots before discovery, and validate hidden skill packages; extend focused fixtures without claiming model or native qualification.
 - Reject malformed or instruction-free skills, validate required skill UI packages and local references, and enforce an explicit root/scoped AGENTS inventory with isolated positive/negative fixtures. Structural/tooling passes do not establish model decisions or native product qualification.
 - Remove unrelated Python/PyYAML discovery from Format and Tooling receipt identity; preserve the selected formatter and actual toolchain/runtime inputs.
