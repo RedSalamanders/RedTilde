@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Record the final twelve SDK keyboard/menu suite passes with verified restoration, the current paired benchmark's inconclusive policy/control outcome, and verified retirement of another merged worktree. Keep the consumer performance and billing-blocked hosted ARM64 gates open during the requested integration.
 - Complete V4 dependency evidence validation with an exact three-header allowlist and order-independent, type-strict SDK identity checks; add portable acceptance and tamper controls. Archive the fresh four-study comparison and final native qualification, retaining the original-UI performance findings, unqualified upstream policy and billing-blocked hosted ARM64 gate.
 - Admit only the reviewed SDK98-to-SDK086 Markdown/caption header delta for fresh performance comparisons. Bind complete matching header/library/probe/compiler/link evidence to immutable LF profile bytes, preserve legacy profile replay, and cover malformed or tampered proofs. No performance thresholds, metric family or policy approval changes.
 - Qualify the final payload type-identity SDK pin in all six consumer builds and all three x64 native runtime/capture profiles: 67 cases and 32 captures each, actual ASan detection, and nine real keyboard/focus scenarios with unchanged desktop restoration. Keep current SDK CI, hosted consumer ARM64, independent tooling and paired performance qualification separate and open.

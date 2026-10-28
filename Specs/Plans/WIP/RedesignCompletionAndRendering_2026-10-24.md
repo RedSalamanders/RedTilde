@@ -16,12 +16,13 @@ only within their recorded native/pin/toolchain/profile identities.
 - [x] Fetch both remotes, verify actual main SHAs and inventory both Git common roots, branches, worktrees, dirt and ignored evidence.
 - [x] Reconcile exact local qualification: six consumer builds; all three latest x64 runtime configurations at `e0908338` pass, with 67 cases/32 capture pairs each and ASan detection; the nine-stage keyboard/focus run passes. Six standalone SDK builds and nineteen zero-skip native suites per x64 SDK configuration pass at `086ad82a`.
 - [x] Complete authorized keyboard/menu/resource input runs for SDK eb0 and consumer af2 through the existing thirty-second countdown, warning and restoration lease: SDK Debug/Release/ASan four suites each, consumer Release nine scenarios, no capability skips and verified restoration. Preserve the ASan caller's inherited intentional detector exit separately from its passed canonical result; a new SDK fix below needs affected final qualification.
-- [ ] Reconcile current PR/CI producers; publish final source and obtain fresh checks. Keep billing-blocked hosted RedTilde ARM64 explicit.
+- [x] Reconcile current PR/CI producers and publish final code/auditor source. SDK086 passes all six hosted native profiles and external consumers; its paired measurement/upload pass but verdict is inconclusive under the unqualified base policy. Consumer source41f's hosted run40618106476 refuses before startup under billing; no native result is claimed.
+- [ ] Pass hosted consumer qualification, including native ARM64, after Actions becomes available. The owner explicitly keeps this gate open while requesting integration.
 - [x] Prepare current-source/common-harness comparisons against actual PR main and original UI, with the exact V4 public-header profile. Preserve earlier cohorts and do not reuse PB-only V3 seals.
 - [x] Collect and independently audit fresh A/A and A/B studies for both references. Publish all 48 metric rows, same-side vectors, and source/profile/input hashes in the [public projection](../../../Measurements/RedesignCompletion_2026-10-28/README.md); private raw studies remain separate.
 - [ ] Attribute and resolve the two stable original-UI working-set findings and the two command findings with unstable controls. No optimization/advice acceptance, quiet-host finding or rebaseline is supported.
 - [ ] Complete affected final build/runtime/tooling/format/PrePush obligations and synchronize normative specs/changelog; keep unsupported physical/native platform gates honest.
-- [ ] Merge qualified SDK history to remote main while preserving the exact adopted commit, then merge the qualified consumer and verify both remote trees.
+- [ ] Merge reviewed SDK history to remote main while preserving the exact adopted commit, then merge the reviewed consumer and verify both remote trees. The owner requests integration with disclosed qualification holds; no performance cost is accepted.
 - [ ] Seal dirty work and useful evidence, remove proved-obsolete local/remote branches and nested worktrees, verify preservation and final primary checkout state.
 
 No review-required performance policy, skipped job, unstable control, cross-build
@@ -51,7 +52,9 @@ The latest six builds and three complete runtime/capture runs were repeated at
 - [x] Refresh performance-reference harness and source/build identities, freeze exact binaries and predeclare the final collection before primary samples. Candidate is exact producer `e0908338`, EXE `C994554B…`; the earlier `a5e75197` native result is historical.
 - [x] Verify all six current SDK hosted native profiles and external consumers at head `086ad82a`, tested merge `f2bad236`: x64 and native ARM64 Debug/Release/ASan all pass in [run 40605395948](https://github.com/RedSalamanders/DxUi/actions/runs/40605395948). Retain the actual sanitizer detections and zero-skip suite receipts. The paired job is a separate unfinished obligation.
 - [x] Fix and exercise full V4 dependency-auditor closure with portable fixtures: 4,324 self-test checks and 16,891 checks over the four retained studies pass. Root additionally reconciles 1,817 public projection/source/privacy checks. No native implementation, thresholds, primary data or sealed profile changed in this audit-only correction.
-- [ ] Complete the current SDK paired job and its policy/controls review. Keep billing-blocked hosted RedTilde ARM64 and physical-platform acceptance separate from the six passed SDK native jobs.
+- [x] Complete SDK086's final local four-suite input lease in Debug, Release and ASan: all twelve receipts pass without skips, and foreground/focus/cursor restoration is verified. The actual sanitizer detector passes separately. Retain earlier failed wrapper output rather than treating its caller status as a native failure.
+- [x] Complete SDK086's paired collection and checksum-verified artifact12786737643. Independent review verifies all144 raw receipts and recomputes all78 metric medians exactly; 69/72 same-side controls are unstable and five raw trend flags remain, with no resolved set regression. Verdict publication fails/inconclusive because the base policy is unqualified. This is not performance acceptance.
+- [ ] Complete independent SDK policy/control qualification. Keep billing-blocked hosted RedTilde ARM64 and physical-platform acceptance separate from the six passed SDK native jobs and twelve passed local foreground suites.
 - [x] Collect and independently audit fresh original-UI and actual-PR-base A/A and A/B studies with the fixed protocol: four studies, 96 slots each/384 total, and 16,891 independent checks. Findings and limitations remain open as recorded in the public packet.
 
 The earlier a5e source-bound x64 runs are `20261028T001713469Z`, `001823614Z` and
@@ -70,12 +73,19 @@ startup because of billing. SDK performance acceptance remains review-required
 under the actual base's unqualified policy; no rebaseline or waiver is applied.
 
 Remove only proved-obsolete branches/worktrees after preservation. Twenty-three
-already-main-merged local branches and eight further merged DxUi worktrees/branches
+already-main-merged local branches and nine further merged DxUi worktrees/branches
 are retired. The first four build trees preserve 44,918 files (7,288,443,634 bytes), with
 verified source ZIPs and persistent ledgers under the approved
 `C:\DxUi.Perf\qualification\integration-20261028\retired-worktree-evidence`.
 Stale remote-tracking refs are pruned; no live remote branch has yet been removed.
 Dirty primary work and active qualification/performance references stay protected.
+
+The ninth retirement is the obsolete frame-phase checkout: all23,839 build files
+(1,004,054,551 bytes) were moved within the approved evidence volume, and all10,809
+source ZIP entries were byte-verified before removal. Its branch was main-merged.
+Protected work was rechecked: all222 preserved copies, all20 current dirty source
+files and the original user deletion remain unchanged. The newer SDK documentation
+continuation does not change source/header/build/benchmark implementation from SDK086.
 ## Progress checklist
 
 - [x] Added title-bar follow-up: connect nonclient input to canonical button hover/press/release/cancel handling, retain maximize hit testing for Snap, and validate neutral/red hover without taking desktop focus. At that checkpoint it did not resume the saved performance/CI queue; the user resumed that queue on 28 October.
