@@ -4,6 +4,8 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Preserve the unsuccessful caption optimization and hidden-file-pane investigation as rejected performance leads; keep original-UI regressions and unstable controls open, and track the distinct DxUi main ARM64 Release Menu failure alongside the billing-blocked RedTilde ARM64 gate.
+- Record the resumed memory/control investigation with independently replayed, privacy-checked evidence and reduced historical cache/binary retention (49.437 GiB). DxUi main and the new diagnostic revision pass all six hosted native profiles; fresh RedTilde main CI remains billing-blocked. Preserve the original performance findings, source identities and open hosted ARM64 gate while testing resource-retention hypotheses.
 - Preserve package-reference checks after indented code by limiting fence markers to zero through three leading spaces and testing both opener and closer admission.
 - Keep later package references visible after a line-leading triple-backtick inline span by enforcing the backtick-fence info-string rule; retain valid tilde-fence examples and add focused controls.
 - Check continued references and parenthesized link titles, preserve literal file-URI filenames and quoted timestamps, reject linked roots before discovery, and validate hidden skill packages; extend focused fixtures without claiming model or native qualification.

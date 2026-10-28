@@ -1,0 +1,76 @@
+{
+  "cacheFacts": {
+    "cachedBrushes": 11,
+    "configuredTextFormats": 5,
+    "rootLogicalChildren": 16
+  },
+  "censusPages": 58554,
+  "classification": "separate four-cycle smoke; excluded from eight-process comparisons",
+  "counts": {
+    "imageRows": 32790,
+    "mappedRows": 48,
+    "privateRows": 116
+  },
+  "cycles": 4,
+  "entryHandles": 1099,
+  "entryMinusPrimaryFinalPrivateBytes": 0,
+  "entryMinusPrimaryFinalWorkingSetBytes": 12288,
+  "entryPrivateBytes": 45481984,
+  "entryProcessCpu100ns": 3281250,
+  "entryWorkingSetBytes": 53452800,
+  "entryWsMinusTraditionalBytes": 32768,
+  "exMinusTraditionalBytes": 4288512,
+  "exValidBytes": 57708544,
+  "executableSha256": "C67BDCC5A47D47ED27DD94D32853068FD16132BBAAA203E562FF6E12F92AB0AE",
+  "knownOpenedEventHandles": 3,
+  "knownOpenedPhaseFileHandles": 1,
+  "limitations": [
+    "MEM_PRIVATE committed pages are not process-private bytes or allocator ownership.",
+    "No heap walk in this diagnostics-off cohort.",
+    "Mapping identity was incomplete; no mapping row establishes an owner."
+  ],
+  "mappingIdentityComplete": false,
+  "noncePayloadCapacityBytes": 78,
+  "phasePathPayloadCapacityBytes": 404,
+  "primaryFinalGdiObjects": 9,
+  "primaryFinalHandles": 1095,
+  "primaryFinalPrivateBytes": 45481984,
+  "primaryFinalProcessCpu100ns": 3281250,
+  "primaryFinalSnapshotCollectionCpu100ns": 0,
+  "primaryFinalSnapshotCollectionUs": 26.1,
+  "primaryFinalUserObjects": 20,
+  "primaryFinalWorkingSetBytes": 53440512,
+  "primaryInitialGdiObjects": 9,
+  "primaryInitialHandles": 1093,
+  "primaryInitialPrivateBytes": 44380160,
+  "primaryInitialProcessCpu100ns": 2500000,
+  "primaryInitialSnapshotCollectionCpu100ns": 0,
+  "primaryInitialSnapshotCollectionUs": 7.5,
+  "primaryInitialUserObjects": 19,
+  "primaryInitialWorkingSetBytes": 51998720,
+  "role": "originalUi",
+  "setupHandleDelta": 4,
+  "setupPrivateBytesDelta": 0,
+  "setupScope": "after primary final; before observer entry",
+  "setupWorkingSetDeltaBytes": 12288,
+  "sourceCommit": "eb308f64d4f6aa5d6a77a68a18dc7a1e14d0a597",
+  "totals": {
+    "MEM_IMAGE": {
+      "committedBytes": 134307840,
+      "exResidentBytes": 27758592,
+      "traditionalBytes": 27758592
+    },
+    "MEM_MAPPED": {
+      "committedBytes": 68001792,
+      "exResidentBytes": 2531328,
+      "traditionalBytes": 2531328
+    },
+    "MEM_PRIVATE": {
+      "committedBytes": 37527552,
+      "exResidentBytes": 27418624,
+      "traditionalBytes": 23130112
+    }
+  },
+  "traditionalSnapshotBytes": 53420032,
+  "view": "Compose"
+}

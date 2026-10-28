@@ -1,0 +1,76 @@
+{
+  "files": [
+    {
+      "bytes": 5609,
+      "file": "README.md",
+      "sha256": "5D153C1425D3BC0185E39F735A259A094577F7A2072E45745EB65C6C519555B6"
+    },
+    {
+      "bytes": 1608,
+      "file": "app-census-comparisons.csv",
+      "sha256": "F5FAE72541278E66181A412BA5C8BA18EC302FD96786139DD4E82E4010AC8AF9"
+    },
+    {
+      "bytes": 1347,
+      "file": "app-census-identity.json",
+      "sha256": "481F585FD7FB402BBA001D36EFA8D2A88739EE4A0717DBE73D1E3351999C1B67"
+    },
+    {
+      "bytes": 4890,
+      "file": "app-census-processes.csv",
+      "sha256": "01B07D4FECC94A313DE0C8DC35BB415C2E948515F3002A81CCC45B0181B6BE25"
+    },
+    {
+      "bytes": 2594,
+      "file": "app-census-smoke-separate.json",
+      "sha256": "1070D2762F6C7F63269CA29F981F984D04400A6D5F6DFEF17CB78285FEB47B9B"
+    },
+    {
+      "bytes": 11776,
+      "file": "app-mapping-rollup-sanitized.csv",
+      "sha256": "62E6655FA2C42C4B15AA08546016D86E60D401582B116D8F64B9BEFAA7E22C79"
+    },
+    {
+      "bytes": 27770,
+      "file": "sdk-artifact-hashes.csv",
+      "sha256": "5F122D80BA6C90D82477AB94141F9F77716E4B4EC303F6AC7902B8F6435EC5A2"
+    },
+    {
+      "bytes": 1900,
+      "file": "sdk-identity.json",
+      "sha256": "3819365F9D68ACD4EE60F18842A2C43620F6610C4642F903A53913A44D84FDF0"
+    },
+    {
+      "bytes": 7621,
+      "file": "sdk-largest-replicate-spreads.csv",
+      "sha256": "A9A79AE70E6216CF9A186C7D13BD399A87DD73128DF9671B0C7835BAABF344A6"
+    },
+    {
+      "bytes": 41736,
+      "file": "sdk-replicate-comparisons.csv",
+      "sha256": "25D426EBE9372A8DDCE469A88A5BC49F6918F2B6A6ECBF34E0C56C1E5466B192"
+    },
+    {
+      "bytes": 5518,
+      "file": "sdk-slots.csv",
+      "sha256": "8D226C404807E1DCDF8F3092FF16497C1F09BFF3BA8B26DE96C61D4BE24FE02D"
+    },
+    {
+      "bytes": 429,
+      "file": "sdk-smokes.csv",
+      "sha256": "384D760EE51FCCDEC46B1805B4DBC76C15091EB628B94AFEE5B5CBCAFF678324"
+    },
+    {
+      "bytes": 2735,
+      "file": "sdk-timer-observer-comparisons.csv",
+      "sha256": "F8A504302B94C52EA4B8748A5FF5DD99796103EED23EE6FC1B86DB27F00964B5"
+    },
+    {
+      "bytes": 71806,
+      "file": "sdk-windows.csv",
+      "sha256": "7745CA4D7449C60E2575998F683D7F4222D3FC6BB7D969128170EBAA66F6E093"
+    }
+  ],
+  "schema": "public-safe-diagnostic-projection-manifest-v1",
+  "totalBytes": 187339
+}
