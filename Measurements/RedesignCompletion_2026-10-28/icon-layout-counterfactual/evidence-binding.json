@@ -1,0 +1,53 @@
+{
+  "schema": "icon-layout-counterfactual-public-binding-v1",
+  "diagnosticOnly": true,
+  "acceptance": false,
+  "producerCommit": "631588e0c54d426c38a96e5dfe942bce5db97834",
+  "frozenCurrentAncestor": "e0908338cf5373978b5ef8d69cdd4ef6c3eba33b",
+  "sdkCommit": "086ad82a5872768db23ea83862ab4af13dff0c5b",
+  "sameExecutableSha256": "D86140A26CC324F9AA9B29750741634D2C4B62E6ECEF2A1A9061167FAA541650",
+  "declarationSha256": "521321D6BB6EF32BA613CDA5238E9D6D978769C645CC114FA1E8687B51FA3FBD",
+  "independentAnalysisSha256": "04A512E407EA1A938B3169B020BC75147F8A42E97594AB29F31348915E38B82E",
+  "analyzerSha256": "17BBBFA7AAAB08B6185BD7B8EA353DACC128460F030CE49F49E564FA134EDA3A",
+  "independentChecks": 6828382,
+  "studyCompletedSha256": "35982E45233E4AE93C6A6A28B3C5466336A6735376288D061D0AE6F8205976DB",
+  "smokeCompletedSha256": "D5076D8F84DCB2A1E030EBA003A610765D52D879055A5E503D1203C793AA9A0A",
+  "rawPayloadFiles": 189,
+  "smokeProcesses": 1,
+  "studyProcesses": 8,
+  "oracle": {
+    "protocol": "icon-layout-oracle-v2",
+    "hiddenWarpGlyphCases": 3,
+    "pixelParity": true,
+    "finalVariantRegistry": true,
+    "environmentRestore": true
+  },
+  "fontMappingSummary": [
+    {
+      "view": "Compose",
+      "identifiableFontOrFontcacheKeys": 6,
+      "keysWithNonzeroMedianResidentDifference": 0
+    },
+    {
+      "view": "Split",
+      "identifiableFontOrFontcacheKeys": 7,
+      "keysWithNonzeroMedianResidentDifference": 0
+    }
+  ],
+  "priorFailure": {
+    "producerCommit": "234a0f5c247ec629855d0fcf77d1b597946ad52d",
+    "declarationSha256": "27722421A70D33BB86568E93F398BAB709DEADDC1EBB952971094A4C2607BFC0",
+    "separateSmokeNativeExit": 1,
+    "nativeReportBytes": 0,
+    "phaseOpened": false,
+    "studyProcesses": 0,
+    "sourceDefect": "provisional IconOnly helper target became Disclosure before final registration assertion",
+    "repair": "finalize before attachment; exclude and restore Default for final non-IconOnly targets",
+    "exactRuntimeBoundCodeProjectFilesPreserved": 8,
+    "changelogGitBlobPreserved": true,
+    "changelogFormerRuntimeBytesEstablished": false,
+    "frozenArtifactsPreserved": 5,
+    "partialFilesPreserved": 20,
+    "unchangedBinaryRetry": false
+  }
+}
