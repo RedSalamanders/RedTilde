@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Qualify the final payload type-identity SDK pin in all six consumer builds and all three x64 native runtime/capture profiles: 67 cases and 32 captures each, actual ASan detection, and nine real keyboard/focus scenarios with unchanged desktop restoration. Keep current SDK CI, hosted consumer ARM64, independent tooling and paired performance qualification separate and open.
 - Adopt the exact DxUi payload type-identity correction for identical-code folding. Preserve the completed earlier Markdown/caption and keyboard/menu evidence, require fresh builds and consumer behavior for this pin, and retain hosted ARM64 and performance-review holds.
 - Archive complete Markdown/caption local build and x64 qualification, including all six SDK/consumer profiles, 67 app cases and 32 captures per x64 configuration, nineteen SDK suites per x64 configuration and real ASan detection. Synchronize the SDK Release default-policy specification; preserve failed attempts and original source identities, with native ARM64, physical input and paired performance still open and the original CI/performance queue paused.
 - Archive final SDK x64 ASan 19-suite and tooling evidence beside the Markdown/caption captures; retain the earlier deadline failure, successful unchanged retry and remaining configuration/platform/performance gates.

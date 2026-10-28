@@ -1,10 +1,10 @@
 # Finish RedTilde redesign and DxUi rendering — 2026-10-24
 
-> **Original performance/CI queue PAUSED by user, 27 October 2026.** The separately requested Markdown styling and caption-button follow-up is active in isolated branches; the saved queue does not resume automatically. Exact pause state and pending commands remain at `.build/audit-20261027/performance-resume/RESUME-QUEUE-20261027.md`.
+> **ACTIVE — resumed by the user, 28 October 2026.** Finish coding/tests/performance, integrate qualified work into remote main and remove proved-obsolete branches/worktrees. The live continuation is `.build/integration-20261028/`; the 27 October pause/command snapshots below remain historical and unchanged.
 >
 > **Historical pause snapshot:** SDK source33c was clean/published in draft PR121; Foundation12 and full NativeTextInput173 passed with verified restoration. Full SDK tooling validation for that older queue was user-cancelled, its then-proposed source33c consumer adoption remained unfinished, and CI replay, PrePush, merge and paired performance stayed pending. Hosted RedTilde ARM64 and the performance findings remain open.
 >
-> **Current separate follow-up:** exact SDK eb0f10b9 is adopted and locally qualified in all six consumer/SDK build profiles and the three x64 runtime configurations, as recorded below. Native ARM64, physical input and paired performance/release gates remain open. This does not resume the original queue.
+> **Current source:** exact SDK086ad82 is adopted. All six consumer builds, all three x64 native runtime/capture profiles and the final Release keyboard/focus check pass at producer a5e75197. Current SDK CI, tooling/admission/performance closeout, hosted consumer ARM64 and physical-platform limits remain explicit. Older eb0 results retain their original scope.
 ## Resumed integration and cleanup — 28 October 2026
 
 The user explicitly resumed all tests/coding, remote-main integration and removal
@@ -33,16 +33,39 @@ payload types have folded identical deleters, so deleter addresses cannot author
 Take/Reclaim. Adopt exact SDK `086ad82a5872768db23ea83862ab4af13dff0c5b`, using
 private writable per-type identity and a permanent Release regression that demands
 actual folding. Its initial dcabe291 focused Release run passes; final native code
-is identical, with a later test-only failure-path cleanup. All consumer profiles
-must now rebuild and requalify this exact pin. Earlier eb0 evidence remains historical.
+is identical, with a later test-only failure-path cleanup. The resulting exact-pin
+consumer rebuild and qualification results follow. Earlier eb0 evidence remains historical.
+
+Current exact-pin qualification, consumer producer `a5e75197` in the clean `rtq`
+checkout (metadata changes elsewhere do not relabel its full source identity):
+
+- [x] Build all six consumer profiles with exact source/header/library/compiler bindings.
+- [x] Run all native behavioral/capture/crash/recovery/resource obligations in x64 Debug, Release and ASan: each passes 67 cases and 32 capture/provenance pairs. ASan diagnoses the deliberate heap-use-after-free; independent tooling remains separate.
+- [x] Run the final Release nine-scenario real keyboard/focus probe under the authorized thirty-second default Start lease: child exit zero; foreground, focus and cursor unchanged.
+- [x] Build the actual PR22 main `ad8f2ce2` with its actual SDK98 and the original-UI reference with final SDK086; all nine performance-harness input hashes match before the separately reviewed V4 change.
+- [x] Run matched-header/library compatibility probes for SDK98 and SDK086 using the actual consumer HostX86 toolchain: both pass, old capture links on both sides, new APIs link on the candidate, and Default Markdown initialization is verified. Record layout changes without claiming ABI interchangeability.
+- [ ] Independently audit and bind the new exact-pair V4 header/compiler/link proof, test the final admission guards and refresh all reference harness identities before collection. Old PB-only seals remain unused.
+- [ ] Complete fresh six-profile SDK CI and consumer/tooling artifact audit; x64 Debug is the first passed current-source native slice, not a six-profile verdict.
+- [ ] Collect and independently audit fresh original-UI and actual-PR-base A/A and A/B studies with the fixed protocol; resolve or explicitly retain every finding.
+
+The source-bound x64 runs are `20261028T001713469Z`, `001823614Z` and
+`001929887Z`; the final input lease is `20261028T002320880Z`. Live logs and raw
+proofs remain in `.build/integration-20261028/` until final archival.
+
+The historical SDK33c controls investigation uses recovered workflow40553171683,
+not a substituted older cohort. All 72 same-side pairs are unstable: 292 of 1,656
+finite metric cells exceed their unchanged bands, with 216 explicit zero-to-zero
+ratios. Tiny clean preparation p95 values show timer/report quantization; position
+and shared-load explanations remain confounded. This is an investigation result,
+not a stable calibration, policy approval or current-source performance verdict.
 
 Both draft PRs are published. RedTilde's current hosted jobs again refuse before
 startup because of billing. SDK performance acceptance remains review-required
 under the actual base's unqualified policy; no rebaseline or waiver is applied.
 
 Remove only proved-obsolete branches/worktrees after preservation. Twenty-three
-already-main-merged local branches and four further merged DxUi worktrees/branches
-are retired. The four build trees preserve 44,918 files (7,288,443,634 bytes), with
+already-main-merged local branches and eight further merged DxUi worktrees/branches
+are retired. The first four build trees preserve 44,918 files (7,288,443,634 bytes), with
 verified source ZIPs and persistent ledgers under the approved
 `C:\DxUi.Perf\qualification\integration-20261028\retired-worktree-evidence`.
 Stale remote-tracking refs are pruned; no live remote branch has yet been removed.
