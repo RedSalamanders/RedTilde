@@ -31,6 +31,14 @@ try{
             Assert ((Get-ScopedTestPlan $manifest @($path)).full) "Unmapped input narrowed coverage: $path"
         }
     }
+    Case 'isolated skill package checks select tooling while shared Build policy stays full' {
+        foreach($path in @('Build/SkillPackageIntegrity.psm1','Tests/Tooling.Tests.SkillPackages.ps1')) {
+            Assert (((Get-ScopedTestPlan $manifest @($path)).scopes -join ',') -ceq 'Tooling') "Independent package input widened coverage: $path"
+        }
+        foreach($path in @('Build/ScopedTesting.psm1','Build/UnknownNewBuildPolicy.psm1')) {
+            Assert ((Get-ScopedTestPlan $manifest @($path)).full) "Shared/unknown Build policy lost conservative coverage: $path"
+        }
+    }
     Case 'prose omits native tests, declared runtime Markdown selects its consumer, and empty changes select nothing' {
         $plan=Get-ScopedTestPlan $manifest @('README.md','CHANGELOG.md','docs/examples/ordinary-notes.md')
         Assert (@($manifest.scopes|Where-Object{$_.native -and $_.name -in $plan.scopes}).Count -eq 0) 'Prose selected native tests'
@@ -254,6 +262,18 @@ try{
         Remove-Variable -Name ScopedGateCalls,ScopedGateRoot,ScopedGateMutation,ScopedGateState,ScopedGateError -Scope Global
     }
 
+    Case 'tooling identity never discovers an unrelated Python installation' {
+        $identityModule=Get-Module ScopedTesting | Where-Object Path -EQ (Join-Path $root 'Build/ScopedTesting.psm1')
+        $inputs=@(& $identityModule {
+            function Get-Command {
+                [CmdletBinding()]param([string]$Name,[string]$CommandType)
+                if($Name -match '^(python|py)(\.exe)?$'){throw 'Tooling must not discover Python'}
+                Microsoft.PowerShell.Core\Get-Command @PSBoundParameters
+            }
+            Get-ScopedEnvironmentInputs -Tooling
+        })
+        Assert (@($inputs | Where-Object {"$_" -match '^python='}).Count -eq 0) 'An unrelated interpreter participates in tooling identity'
+    }
     Case 'tooling identity includes the selected formatter bytes' {
         Import-Module (Join-Path $root 'Build/Toolchain.psm1') -Force
         $formatter=Get-RedTildeClangFormat

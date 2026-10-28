@@ -22,6 +22,8 @@ receipt records `sdkDefaultProfiles`; the historical v1 omitted-argument regress
 remains historical evidence rather than a requirement to reproduce a repaired SDK bug.
 
 Use `validate.ps1` for links/spec indexes, skill metadata, dependencies and build inventory; aggregate all failures.
+The [skill package contract](Testing_SkillPackages.md) defines structural, package-reference and scoped-guidance
+checks separately from model decisions. Its negative fixtures run without native builds or desktop access.
 Use `format.ps1 -Check` for C++. Scoped iteration uses `Test-Changes.ps1 -Explain` then the affected default.
 PrePush accounts for existing enabled CI; pending CI is never recorded as a pass. Do not rerun an identical full
 matrix without a changed source, pin, binary, profile or unresolved result.
@@ -203,3 +205,5 @@ a controlled stop before primary performance collection. An unchanged, already l
 does not prove the current archive still matches its fingerprinted policy. Preserve all prior runtime identities,
 failures and uncollected study declarations; restore the canonical archive and obtain the required new-source
 qualification before a newly declared continuation. Never retag prior runs or issue a primary permit to bypass it.
+
+Tooling and Format receipt identity includes PowerShell, the selected formatter and the actual toolchain/runtime inputs. It does not discover or launch Python or inspect PyYAML: neither is a dependency of these scopes. Unrelated Python installation changes must not add a dependency to their receipt contract.
