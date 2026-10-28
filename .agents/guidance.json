@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "files": [
+    "AGENTS.md",
+    "Common/AGENTS.md",
+    "RedTilde/AGENTS.md",
+    "Specs/AGENTS.md",
+    "Tests/AGENTS.md",
+    "res/AGENTS.md"
+  ]
+}

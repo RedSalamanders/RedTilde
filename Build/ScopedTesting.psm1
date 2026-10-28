@@ -145,6 +145,14 @@ function Get-ScopedTestPlan {
     if (-not $Scopes.Count -and -not $Full) {
         foreach ($path in $ChangedPaths) {
             if ($path -match '(^/|(^|/)\.\.(/|$)|:|\\)') { throw "Expected a repository-relative Git path: $path" }
+            # Exact tooling-only inputs may bypass the generic Build/** rule. Shared build/runner
+            # policy and every unknown Build file must continue to select conservative full coverage.
+            if ($path -cin @('Build/SkillPackageIntegrity.psm1', 'Tests/Tooling.Tests.SkillPackages.ps1')) {
+                if ('Tooling' -cnotin $names) { throw 'Package integrity requires the Tooling scope' }
+                [void]$selected.Add('Tooling')
+                $reasons.Add([pscustomobject]@{path=$path; scopes=@('Tooling'); reason='independent skill package integrity tooling'})
+                continue
+            }
             $allRules=@($Manifest.rules);if($Manifest.PSObject.Properties['liveRules']){$allRules+=@($Manifest.liveRules)}
             $matched = @($allRules | Where-Object { Test-ScopedPattern $path $_.pattern })
             if ($path -match '(^(README|CHANGELOG)\.md$|(^|/)AGENTS\.md$|^(docs|Specs|\.agents|Changes)/.*\.md$)') {
@@ -205,7 +213,7 @@ function Get-ScopedArtifactIdentity {
 function Get-ScopedEnvironmentInputs {
     # Only the digest of these rows is stored, never a secret. Different machines, OS builds or servicing levels,
     # PowerShell, graphics, text or imaging runtimes, Git or sanitizer options cannot reuse evidence. Tooling evidence
-    # also depends on the Python interpreter and PyYAML that the validators run under.
+    # uses the same PowerShell runtime as repository validation; no Python is discovered.
     param([switch] $Tooling)
     $values = @([Environment]::MachineName,[Runtime.InteropServices.RuntimeInformation]::OSDescription,
         [Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString(),$PSVersionTable.PSVersion.ToString(),
@@ -254,12 +262,6 @@ function Get-ScopedEnvironmentInputs {
             if ($command) { $formatter = $command.Source }
         }
         $values += 'formatter=' + $(if ($formatter) { $formatter + ':' + (Get-FileHash -LiteralPath $formatter).Hash } else { 'absent' })
-        # The interpreter validate-skills.ps1 and Invoke-ToolingTests.ps1 select: the py launcher's Python 3, else python.exe.
-        $python = Get-Command py.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
-        $selector = @(if ($python) { '-3' })
-        if (-not $python) { $python = Get-Command python.exe -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1 }
-        $probe = 'import sys,importlib.util as u;print(sys.executable,sys.version,u.find_spec(''yaml'') and __import__(''yaml'').__version__)'
-        $values += 'python=' + $(if ($python) { "$((& $python.Source @selector -c $probe 2>$null) -join ' ') exit $LASTEXITCODE" } else { 'absent' })
     }
     return $values
 }
