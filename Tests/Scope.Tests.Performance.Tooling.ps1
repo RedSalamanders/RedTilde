@@ -440,8 +440,8 @@ $badProfile.profileId='caller-selected-profile'
 $badProfile|ConvertTo-Json -Depth 30|Set-Content -LiteralPath $readyProfilePath -Encoding utf8
 $rejected=$false;try {Get-RedTildeReviewedHeaderDeltaProfile -Root $readyRoot}catch{$rejected=$true}
 Require $rejected 'Reviewed profile rejects unknown IDs and caller-selected profiles.'
-$currentProfile=Get-Content (Join-Path $PSScriptRoot '../Build/ReviewedHeaderDeltaProfile.json') -Raw|ConvertFrom-Json -AsHashtable
-if($currentProfile.profileId -ceq 'redtilde-dxui-parsed-snapshot-api4-v2') {
+$v2FixturePath=Join-Path $PSScriptRoot 'Fixtures/ReviewedHeaderDeltaProfile.v2.json'
+$currentProfile=Get-Content $v2FixturePath -Raw|ConvertFrom-Json -AsHashtable
     $v2Root=Join-Path $fixtureRoot 'ready-parsed-snapshot-profile';$v2Build=Join-Path $v2Root 'Build'
     [void][IO.Directory]::CreateDirectory($v2Build)
     $v2ProfilePath=Join-Path $v2Build 'ReviewedHeaderDeltaProfile.json'
@@ -475,6 +475,10 @@ if($currentProfile.profileId -ceq 'redtilde-dxui-parsed-snapshot-api4-v2') {
         $rejected=$false;try {Get-RedTildeReviewedHeaderDeltaProfile -Root $v2Root}catch{$rejected=$true}
         Require $rejected "Parsed-snapshot profile rejects $($mutation.label) drift."
     }
+& {
+    $v4Regression=Join-Path $PSScriptRoot 'ReviewedHeaderDeltaV4.Tests.ps1'
+    Require (Test-Path -LiteralPath $v4Regression -PathType Leaf) 'The V4 strict-profile regression fixture is present.'
+    & $v4Regression
 }
 $profileFixture=ConvertFrom-Json -InputObject (ConvertTo-Json $readyProfile -Depth 30 -Compress) -AsHashtable
 $baseDependency=[ordered]@{Fingerprint=$profileFixture.baseline.dependencyFingerprint;Identity=$profileFixture.baseline.identity}

@@ -268,6 +268,41 @@ function Assert-ReviewedHeaderProbeContext($Profile) {
         $Profile.abiProbe.fullApplicationLinkContextExact -ceq $false) 'The isolated source probe must not be represented as full application compile/link context equivalence.'
 }
 
+function Assert-V4ProfileProbeEvidence($Profile) {
+    Require ($Profile.abiProbe.protocol -ceq 'dxui-header-compat-probe-v4' -and
+        $Profile.abiProbe.sourceSha256 -cmatch '^[0-9A-F]{64}$' -and
+        $Profile.abiProbe.scope -match 'no.*binary interchangeability') 'V4 probe summary or its explicit scope limit is missing.'
+    foreach($side in 'baseline','candidate') {
+        $probe=$Profile[$side].probe
+        try {$source=[Convert]::FromBase64String([string]$probe.sourceBase64);$result=[Convert]::FromBase64String([string]$probe.resultBase64)} catch {throw "V4 $side raw probe source/result is not valid base64."}
+        Require ([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($source)) -ceq $probe.sourceSha256 -and
+            [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($result)) -ceq $probe.resultSha256) "V4 $side source/result proof hash does not recompute."
+        $parsed=[Text.Encoding]::UTF8.GetString($result)|ConvertFrom-Json -AsHashtable
+        Require ((ConvertTo-Json $parsed -Depth 30 -Compress) -ceq (ConvertTo-Json $probe.result -Depth 30 -Compress)) "V4 $side raw probe output differs from its parsed record."
+        Require ($probe.protocol -ceq 'dxui-header-compat-probe-v4' -and
+            ($probe.result.apiRevision -is [int] -or $probe.result.apiRevision -is [long]) -and $probe.result.apiRevision -eq 4 -and
+            $probe.result.diagnosticsEnabled -is [bool] -and $probe.result.diagnosticsEnabled -and
+            $probe.result.legacyCaptureLinked -is [bool] -and $probe.result.legacyCaptureLinked) "V4 $side must preserve diagnostics and link the legacy capture API."
+        Require (($probe.result.markdownDefaultsAreDefault -is [bool]) -or ($side -ceq 'baseline' -and $null -eq $probe.result.markdownDefaultsAreDefault)) "V4 $side Markdown-default result has invalid applicability/type."
+        Require ($probe.result.newCandidateSymbolsLinked -is [bool] -and $probe.result.newCandidateSymbolsLinked -eq ($side -ceq 'candidate')) "V4 $side candidate-only symbols are not correctly linked."
+        foreach($type in 'ThemePalette','ProgressBar','RichTextEditorAppearance','LayoutOptions') {
+            $layout=$probe.result.layout[$type]
+            Require (($layout.size -is [int] -or $layout.size -is [long]) -and $layout.size -gt 0 -and
+                ($layout.align -is [int] -or $layout.align -is [long]) -and $layout.align -gt 0) "V4 $side $type layout is invalid."
+        }
+    }
+    $base=$Profile.baseline.probe.result;$candidate=$Profile.candidate.probe.result
+    Require ($null -eq $base.markdownDefaultsAreDefault -and $candidate.markdownDefaultsAreDefault -is [bool] -and $candidate.markdownDefaultsAreDefault) 'V4 default-style evidence differs from applicability/expected candidate behavior.'
+    Require (($base.legacyButtonAppearanceValues -join ',') -ceq '0,1,2,3' -and
+        ($candidate.legacyButtonAppearanceValues -join ',') -ceq '0,1,2,3' -and
+        ($candidate.newButtonAppearanceValues -join ',') -ceq '4,5' -and $null -eq $base.newButtonAppearanceValues) 'V4 enum values changed the legacy surface or omitted appended values.'
+    Require ($base.layout.ProgressBar.size -eq $candidate.layout.ProgressBar.size) 'V4 ProgressBar size must remain unchanged.'
+}
+function Refresh-V4ProbeResult($Profile,[string]$Side) {
+    $probe=$Profile[$Side].probe;$bytes=[Text.Encoding]::UTF8.GetBytes((ConvertTo-Json $probe.result -Depth 30 -Compress)+"`n")
+    $probe.resultBase64=[Convert]::ToBase64String($bytes);$probe.resultSha256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes))
+}
+
 function Get-ReviewedHeaderProfileEvidence {
     param([Collections.IDictionary]$Study,$Comparison,[string]$StudyRoot,$Inventories)
     function Get-ProfileRows($Headers,[string]$Side) {
@@ -295,7 +330,9 @@ function Get-ReviewedHeaderProfileEvidence {
     if($profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1') {
         $path=Join-Path $PSScriptRoot 'Fixtures/ReviewedHeaderDeltaProfile.v1.json'
     } elseif($profileId -ceq 'redtilde-dxui-parsed-snapshot-api4-v2') {
-        $path=Join-Path $repoRoot 'Build/ReviewedHeaderDeltaProfile.json'
+        $path=Join-Path $PSScriptRoot 'Fixtures/ReviewedHeaderDeltaProfile.v2.json'
+    } elseif($profileId -ceq 'redtilde-dxui-markdown-caption-api4-v4') {
+        $path=Join-Path $PSScriptRoot 'Fixtures/ReviewedHeaderDeltaProfile.v4.json'
     } else { throw 'The independent auditor does not recognize this reviewed-header profile ID.' }
     Require (Test-Path -LiteralPath $path -PathType Leaf) 'The fixed reviewed-header profile evidence is missing.'
     $raw=[IO.File]::ReadAllBytes($path);$hash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($raw))
@@ -304,26 +341,24 @@ function Get-ReviewedHeaderProfileEvidence {
         [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $StudyRoot $Study.reviewedHeaderDelta.file))) -ceq [Convert]::ToBase64String($raw)) 'Copied study profile bytes differ from the fixed repository profile.'
     $profile=[Text.Encoding]::UTF8.GetString($raw)|ConvertFrom-Json -AsHashtable
     $isV1=$profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1'
+    $isV2=$profileId -ceq 'redtilde-dxui-parsed-snapshot-api4-v2'
+    $isV4=$profileId -ceq 'redtilde-dxui-markdown-caption-api4-v4'
     if($isV1) {
         Require ($profile.schema -ceq 'redtilde-reviewed-dxui-header-delta-profile-v1' -and
             $profile.profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1' -and
             $profile.status -ceq 'ready-reviewed-exact-pair') 'The fixed v1 profile is blocked or has an unknown ID.'
-        Require ($profile.baseline.commit -ceq '2fed82465dcee9f213753754e0e8e54f353cf38f' -and
-            $profile.baseline.tree -ceq '2c0641bc363bf713cfc709d721c3f6549dd5aef8' -and
-            $profile.candidate.commit -ceq '47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a' -and
-            $profile.candidate.tree -ceq '3ee2e12647ca2e05113823eb172bb0facf879021' -and
-            $profile.expectedApiRevision -eq 4) 'The v1 profile does not bind the exact SDK commit/tree/API pair.'
+        Require ($profile.baseline.commit -ceq '2fed82465dcee9f213753754e0e8e54f353cf38f' -and $profile.baseline.tree -ceq '2c0641bc363bf713cfc709d721c3f6549dd5aef8' -and $profile.candidate.commit -ceq '47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a' -and $profile.candidate.tree -ceq '3ee2e12647ca2e05113823eb172bb0facf879021' -and $profile.expectedApiRevision -eq 4) 'The v1 profile does not bind the exact SDK commit/tree/API pair.'
         $expectedPairPaths=[string[]]@('include/DxUi/DxUi.h','include/DxUi/RichDocument.h')
-    } else {
+    } elseif($isV2) {
         Require ($profile.schema -ceq 'redtilde-reviewed-dxui-header-delta-profile-v2' -and
             $profile.profileId -ceq 'redtilde-dxui-parsed-snapshot-api4-v2' -and
             $profile.status -ceq 'ready-reviewed-exact-pair') 'The fixed v2 profile is blocked or has an unknown ID.'
-        Require ($profile.baseline.commit -ceq '47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a' -and
-            $profile.baseline.tree -ceq '3ee2e12647ca2e05113823eb172bb0facf879021' -and
-            $profile.candidate.commit -ceq '4077f57df8207eac6c39c43437feb45b19d23cf8' -and
-            $profile.candidate.tree -ceq '18be66885916f67cafd8aeb761207bf15fbd9120' -and
-            $profile.expectedApiRevision -eq 4) 'The v2 profile does not bind the exact SDK commit/tree/API pair.'
+        Require ($profile.baseline.commit -ceq '47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a' -and $profile.baseline.tree -ceq '3ee2e12647ca2e05113823eb172bb0facf879021' -and $profile.candidate.commit -ceq '4077f57df8207eac6c39c43437feb45b19d23cf8' -and $profile.candidate.tree -ceq '18be66885916f67cafd8aeb761207bf15fbd9120' -and $profile.expectedApiRevision -eq 4) 'The v2 profile does not bind the exact SDK commit/tree/API pair.'
         $expectedPairPaths=[string[]]@('include/DxUi/DxUi.h','include/DxUi/MarkdownSyntax.h','include/DxUi/RichDocument.h')
+    } else {
+        Require ($profile.schema -ceq 'redtilde-reviewed-dxui-header-delta-profile-v4' -and $profile.status -ceq 'ready-reviewed-exact-pair' -and ($profile.expectedApiRevision -is [int] -or $profile.expectedApiRevision -is [long]) -and $profile.expectedApiRevision -eq 4) 'The fixed v4 profile is blocked or has an unknown ID/revision.'
+        Require ($profile.baseline.commit -ceq '98c795b765a10d1805ae0a7c35a8ade535fb7fd6' -and $profile.baseline.tree -ceq '02694dfd718673d2d8e50241c015f908318154e5' -and $profile.candidate.commit -ceq '086ad82a5872768db23ea83862ab4af13dff0c5b' -and $profile.candidate.tree -ceq '0c674a6a8f17cd5e7f142d584f59d4ed12ddda99') 'The v4 profile does not bind the exact SDK commit/tree pair.'
+        $expectedPairPaths=[string[]]@('include/DxUi/DxUi.h','include/DxUi/RichTextLayout.h','include/DxUi/RichTextPresentation.h')
     }
     Require ($profile.allOtherInventoryRowsMustBeIdentical -ceq $true -and $profile.packageHeadersUnchanged -ceq $true -and
         ($profile.dependencyFieldChanges -join '|') -ceq 'Fingerprint|Identity.commit' -and
@@ -351,7 +386,9 @@ function Get-ReviewedHeaderProfileEvidence {
         Require (($Inventories[$side].source -join "`n") -ceq ($profileRows.source -join "`n") -and
             ($Inventories[$side].package -join "`n") -ceq ($profileRows.package -join "`n")) "$side order-independent complete inventory differs from the fixed profile."
     }
-    if($isV1) {
+    if($isV4) {
+        Assert-V4ProfileProbeEvidence $profile
+    } elseif($isV1) {
     Require ($profile.abiProbe.protocol -ceq 'dxui-readonly-source-snapshot-abi-probe-v1' -and
         $profile.abiProbe.sourceSha256 -cmatch '^[0-9A-F]{64}$' -and
         $profile.abiProbe.fullReceiptSha256 -cmatch '^[0-9A-F]{64}$' -and
@@ -613,10 +650,25 @@ function Assert-DependencyEvidence($Study,$Comparison,[string]$StudyRoot) {
 }
 if($SelfTest) {
     $repoRoot=Split-Path $PSScriptRoot -Parent
-    $profilePath=Join-Path $repoRoot 'Build/ReviewedHeaderDeltaProfile.json'
+    $profilePath=Join-Path $PSScriptRoot 'Fixtures/ReviewedHeaderDeltaProfile.v2.json'
     $profileBytes=[IO.File]::ReadAllBytes($profilePath)
     $profileHash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($profileBytes))
     $profile=[Text.Encoding]::UTF8.GetString($profileBytes)|ConvertFrom-Json -AsHashtable
+    $v4Path=Join-Path $PSScriptRoot 'Fixtures/ReviewedHeaderDeltaProfile.v4.json'
+    $v4Bytes=[IO.File]::ReadAllBytes($v4Path)
+    Require ([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($v4Bytes)) -ceq '94435355531812AE70BE124E185A5D685C16A94C8052A6C1E4BAC4DD5D381997') 'The final LF-normalized V4 fixture must remain byte exact.'
+    $v4=[Text.Encoding]::UTF8.GetString($v4Bytes)|ConvertFrom-Json -AsHashtable
+    Assert-V4ProfileProbeEvidence $v4
+    foreach($case in @(
+        @{name='rehash malformed diagnostics boolean';edit={param($p)$p.candidate.probe.result.diagnosticsEnabled=1;Refresh-V4ProbeResult $p candidate}},
+        @{name='rehash malformed enum values';edit={param($p)$p.candidate.probe.result.newButtonAppearanceValues=@(4,6);Refresh-V4ProbeResult $p candidate}},
+        @{name='rehash malformed layout';edit={param($p)$p.candidate.probe.result.layout.LayoutOptions.size='256';Refresh-V4ProbeResult $p candidate}},
+        @{name='raw proof hash mismatch';edit={param($p)$p.baseline.probe.resultSha256='0'*64}})) {
+        $bad=ConvertFrom-Json -InputObject (ConvertTo-Json $v4 -Depth 100 -Compress) -AsHashtable
+        & $case.edit $bad
+        $rejected=$false;try {Assert-V4ProfileProbeEvidence $bad} catch {$rejected=$true}
+        Require $rejected "V4 actual-profile selftest rejects $($case.name)."
+    }
     Require ($profile.status -ceq 'ready-reviewed-exact-pair') 'Private new-mode selftest requires the approved fixed profile data.'
     $fixtureRoot=Join-Path $repoRoot ('.build/independent-header-profile-selftest/'+[guid]::NewGuid().ToString('N'))
     [void][IO.Directory]::CreateDirectory($fixtureRoot)
