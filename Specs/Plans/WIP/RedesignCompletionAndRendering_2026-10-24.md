@@ -1,10 +1,10 @@
 # Finish RedTilde redesign and DxUi rendering — 2026-10-24
 
-> **ACTIVE — resumed by the user, 28 October 2026.** Finish coding/tests/performance, integrate qualified work into remote main and remove proved-obsolete branches/worktrees. The live continuation is `.build/integration-20261028/`; the 27 October pause/command snapshots below remain historical and unchanged.
+> **ACTIVE — resumed by the user, 28 October 2026.** The current Markdown/caption styling work is implemented and locally qualified; current-source performance has now been collected and independently audited, but R10 remains open because the original-UI findings, unstable controls, unverified quiet CPU and unqualified base policy remain. Continue coding/tests/integration and remove only proved-obsolete branches/worktrees. The public projection is [here](../../../Measurements/RedesignCompletion_2026-10-28/README.md); private receipts remain in the controlled archive.
 >
 > **Historical pause snapshot:** SDK source33c was clean/published in draft PR121; Foundation12 and full NativeTextInput173 passed with verified restoration. Full SDK tooling validation for that older queue was user-cancelled, its then-proposed source33c consumer adoption remained unfinished, and CI replay, PrePush, merge and paired performance stayed pending. Hosted RedTilde ARM64 and the performance findings remain open.
 >
-> **Current source:** exact SDK086ad82 is adopted. All six consumer builds, all three x64 native runtime/capture profiles and the final Release keyboard/focus check pass at producer a5e75197. Current SDK CI, tooling/admission/performance closeout, hosted consumer ARM64 and physical-platform limits remain explicit. Older eb0 results retain their original scope.
+> **Current measured source:** exact frozen RedTilde producer `e0908338cf5373978b5ef8d69cdd4ef6c3eba33b` (EXE SHA-256 `C994554BD46FD4663A6187A26D67443941D534096CDB5CCBA53D40446D402511`) with SDK `086ad82a`. Six consumer build profiles passed; latest x64 native runs `005858152Z`, `010003066Z`, `010103588Z` each pass 67 cases/32 capture pairs with ASan detection, and keyboard run `010330174Z` passes nine stages. The earlier producer `a5e75197` remains historical. Four matched performance studies (actual-PR-base and original-UI, each A/A and A/B) pass independent audit at 16,891 checks and 384 native slots. Actual-PR-base anchor `ad8f2ce2` was measured through overlay `38b1b7bd`; original-UI anchor `604bbaf3` through overlay `bb1a32ff`. Actual-base A/B has zero resolved regressions; original-UI A/B retains four. The base policy remains unqualified, two command findings have unstable controls, quiet CPU is unverified, hosted RedTilde ARM64 is billing-blocked, and SDK CI/tooling plus physical-platform limits remain open. The [ICF size scout](../../../Measurements/RedesignCompletion_2026-10-28/README.md#optimization-disposition) found no size change and was rejected. Older `eb0` results retain their original scope.
 ## Resumed integration and cleanup — 28 October 2026
 
 The user explicitly resumed all tests/coding, remote-main integration and removal
@@ -14,11 +14,12 @@ is `.build/integration-20261028/`. Source-bound Markdown/caption results remain 
 only within their recorded native/pin/toolchain/profile identities.
 
 - [x] Fetch both remotes, verify actual main SHAs and inventory both Git common roots, branches, worktrees, dirt and ignored evidence.
-- [x] Reconcile exact local qualification: six builds per project; all three x64 runtime configurations pass, with 67/32 app cases/captures and nineteen zero-skip SDK suites.
+- [x] Reconcile exact local qualification: six consumer builds; all three latest x64 runtime configurations at `e0908338` pass, with 67 cases/32 capture pairs each and ASan detection; the nine-stage keyboard/focus run passes. Six standalone SDK builds and nineteen zero-skip native suites per x64 SDK configuration pass at `086ad82a`.
 - [x] Complete authorized keyboard/menu/resource input runs for SDK eb0 and consumer af2 through the existing thirty-second countdown, warning and restoration lease: SDK Debug/Release/ASan four suites each, consumer Release nine scenarios, no capability skips and verified restoration. Preserve the ASan caller's inherited intentional detector exit separately from its passed canonical result; a new SDK fix below needs affected final qualification.
 - [ ] Reconcile current PR/CI producers; publish final source and obtain fresh checks. Keep billing-blocked hosted RedTilde ARM64 explicit.
-- [ ] Prepare current-source/common-harness performance comparisons against actual main and the original-UI references; replace no prior flags or cohorts. Re-review the new public-header delta instead of reusing PB-only V3 seals.
-- [ ] Attribute and resolve remaining working-set/command findings, run fresh complete A/A and A/B studies, independently audit and archive all outcomes.
+- [x] Prepare current-source/common-harness comparisons against actual PR main and original UI, with the exact V4 public-header profile. Preserve earlier cohorts and do not reuse PB-only V3 seals.
+- [x] Collect and independently audit fresh A/A and A/B studies for both references. Publish all 48 metric rows, same-side vectors, and source/profile/input hashes in the [public projection](../../../Measurements/RedesignCompletion_2026-10-28/README.md); private raw studies remain separate.
+- [ ] Attribute and resolve the two stable original-UI working-set findings and the two command findings with unstable controls. No optimization/advice acceptance, quiet-host finding or rebaseline is supported.
 - [ ] Complete affected final build/runtime/tooling/format/PrePush obligations and synchronize normative specs/changelog; keep unsupported physical/native platform gates honest.
 - [ ] Merge qualified SDK history to remote main while preserving the exact adopted commit, then merge the qualified consumer and verify both remote trees.
 - [ ] Seal dirty work and useful evidence, remove proved-obsolete local/remote branches and nested worktrees, verify preservation and final primary checkout state.
@@ -36,21 +37,24 @@ actual folding. Its initial dcabe291 focused Release run passes; final native co
 is identical, with a later test-only failure-path cleanup. The resulting exact-pin
 consumer rebuild and qualification results follow. Earlier eb0 evidence remains historical.
 
-Current exact-pin qualification, consumer producer `a5e75197` in the clean `rtq`
-checkout (metadata changes elsewhere do not relabel its full source identity):
+Earlier exact-pin qualification used consumer producer `a5e75197` in `rtq`.
+The latest six builds and three complete runtime/capture runs were repeated at
+`e0908338`, as recorded above; the earlier executions retain their own identities:
 
 - [x] Build all six consumer profiles with exact source/header/library/compiler bindings.
 - [x] Run all native behavioral/capture/crash/recovery/resource obligations in x64 Debug, Release and ASan: each passes 67 cases and 32 capture/provenance pairs. ASan diagnoses the deliberate heap-use-after-free; independent tooling remains separate.
 - [x] Run the final Release nine-scenario real keyboard/focus probe under the authorized thirty-second default Start lease: child exit zero; foreground, focus and cursor unchanged.
-- [x] Build the actual PR22 main `ad8f2ce2` with its actual SDK98 and the original-UI reference with final SDK086; all nine performance-harness input hashes match before the separately reviewed V4 change.
+- [x] Build actual PR-base anchor `ad8f2ce2` through measured overlay `38b1b7bd` with SDK98 and original-UI anchor `604bbaf3` through measured overlay `bb1a32ff` with SDK086; all nine performance-harness input hashes match the separately reviewed V4 declaration.
 - [x] Run matched-header/library compatibility probes for SDK98 and SDK086 using the actual consumer HostX86 toolchain: both pass, old capture links on both sides, new APIs link on the candidate, and Default Markdown initialization is verified. Record layout changes without claiming ABI interchangeability.
 - [x] Independently audit and bind the new exact-pair V4 header/compiler/link proof. Both 58-row inventories, matching libraries/app binaries, source/result/TLOG/build receipts, probe arguments/project and Native32Bit build states reconcile; only the three declared headers differ. Normalize the generated profile to canonical LF before binding SHA94435355; old PB-only seals remain unused.
 - [x] Test canonical V4 admission and independent evidence replay: 2,851 tooling assertions, 2,403 evidence self-tests and full repository validators pass. Preserve the first integration refusal from the draft-only unbound assumption; isolate that negative in a temporary module and use embedded retained probe source rather than a private-path dependency.
-- [ ] Refresh all performance-reference harness and source/build identities, freeze exact binaries and predeclare the final collection before any primary sample.
-- [ ] Complete fresh six-profile SDK CI and consumer/tooling artifact audit; x64 Debug is the first passed current-source native slice, not a six-profile verdict.
-- [ ] Collect and independently audit fresh original-UI and actual-PR-base A/A and A/B studies with the fixed protocol; resolve or explicitly retain every finding.
+- [x] Refresh performance-reference harness and source/build identities, freeze exact binaries and predeclare the final collection before primary samples. Candidate is exact producer `e0908338`, EXE `C994554B…`; the earlier `a5e75197` native result is historical.
+- [x] Verify all six current SDK hosted native profiles and external consumers at head `086ad82a`, tested merge `f2bad236`: x64 and native ARM64 Debug/Release/ASan all pass in [run 40605395948](https://github.com/RedSalamanders/DxUi/actions/runs/40605395948). Retain the actual sanitizer detections and zero-skip suite receipts. The paired job is a separate unfinished obligation.
+- [x] Fix and exercise full V4 dependency-auditor closure with portable fixtures: 4,324 self-test checks and 16,891 checks over the four retained studies pass. Root additionally reconciles 1,817 public projection/source/privacy checks. No native implementation, thresholds, primary data or sealed profile changed in this audit-only correction.
+- [ ] Complete the current SDK paired job and its policy/controls review. Keep billing-blocked hosted RedTilde ARM64 and physical-platform acceptance separate from the six passed SDK native jobs.
+- [x] Collect and independently audit fresh original-UI and actual-PR-base A/A and A/B studies with the fixed protocol: four studies, 96 slots each/384 total, and 16,891 independent checks. Findings and limitations remain open as recorded in the public packet.
 
-The source-bound x64 runs are `20261028T001713469Z`, `001823614Z` and
+The earlier a5e source-bound x64 runs are `20261028T001713469Z`, `001823614Z` and
 `001929887Z`; the final input lease is `20261028T002320880Z`. Live logs and raw
 proofs remain in `.build/integration-20261028/` until final archival.
 
@@ -74,20 +78,20 @@ Stale remote-tracking refs are pruned; no live remote branch has yet been remove
 Dirty primary work and active qualification/performance references stay protected.
 ## Progress checklist
 
-- [x] Added title-bar follow-up: connect nonclient input to canonical button hover/press/release/cancel handling, retain maximize hit testing for Snap, and validate neutral/red hover without taking desktop focus. This does not resume the saved performance/CI queue.
+- [x] Added title-bar follow-up: connect nonclient input to canonical button hover/press/release/cancel handling, retain maximize hit testing for Snap, and validate neutral/red hover without taking desktop focus. At that checkpoint it did not resume the saved performance/CI queue; the user resumed that queue on 28 October.
 
-- [x] Separate styling follow-up: user selected the first supplied image's Markdown styling. Implement shared heading separators, intrinsic tables, centered display objects and shaded quotes in an isolated SDK branch; keep the original performance/CI queue paused.
+- [x] Separate styling follow-up: user selected the first supplied image's Markdown styling. Implement shared heading separators, intrinsic tables, centered display objects and shaded quotes in an isolated SDK branch. The queue was still paused at that checkpoint and resumed on 28 October.
 - [x] Debug and Release styling/caption qualification: adopt SDK `eb0f10b91bb8de19b0d7671cc7078fd0c1f5e767`; both configurations pass all 67 native cases and 32 capture/provenance pairs, including distinct hover pixels at 96/144/192 DPI. Source/history/focus and cancellation checks pass. New public presentation headers invalidate the earlier private PB-only V3 compatibility profile for this candidate; old proofs retain their original scope.
 - [x] Complete all six standalone SDK and consumer build profiles for native SDK eb0f10b9 and consumer compiled-source identity 2166a79bc250d6042ad5698927eb0d3ac3e95a22e1525ff4d7934808590e0e87. Preserve exact producer/compiler/header/output identities in the archive.
 - [x] Complete consumer x64 Debug, Release and ASan Full: each passes all 67 native cases and all 32 capture/provenance pairs, with crash/recovery probes and real ASan detection where applicable. All three DPIs distinguish rest, Close and Maximize pixels.
 - [x] Complete standalone SDK x64 Debug, Release and ASan Full: each passes all nineteen noninteractive suites with zero capability skips, including the actual ASan detector. Preserve the earlier deadline failure and unchanged successful retries.
-- [ ] Complete native ARM64, physical-input and paired-performance/release qualification before closing this follow-up. The original performance/CI/keyboard/Menu/merge queue remains paused; its builds/tests are not implicitly resumed.
+- [ ] Complete native ARM64, physical-input, performance/advice and release qualification before closing this follow-up. The queue-paused wording in this earlier checkpoint is historical; the user resumed the remaining work on 28 October as recorded at the top.
 
-- [x] At the user's separate request after pausing, add the [complex example corpus](../../../docs/examples/README.md): 27 math sections (35 formulas), four flowcharts, two state machines, two class diagrams and an isolated fallback document. An SDK-local CPU probe linked only the existing exact33c Debug library; all 58 expectations pass (45 accepted, 13 rejected), with exact graph source retained and no partial rejected graphs. Preserve both the initial 55-case and final 58-case inputs/results privately. This is parser coverage, not native layout/raster or application qualification. The existing SDK/consumer/performance command queue remains paused; fixed S5/capture fixtures are unchanged.
+- [x] At the user's separate request after pausing, add the [complex example corpus](../../../docs/examples/README.md): 27 math sections (35 formulas), four flowcharts, two state machines, two class diagrams and an isolated fallback document. An SDK-local CPU probe linked only the existing exact33c Debug library; all 58 expectations pass (45 accepted, 13 rejected), with exact graph source retained and no partial rejected graphs. Preserve both the initial 55-case and final 58-case inputs/results privately. This is parser coverage, not native layout/raster or application qualification. Queue-paused wording records the earlier checkpoint; work resumed 28 October. Fixed S5/capture fixtures are unchanged.
 
 ## Styling and caption follow-up evidence — 27 October 2026 UTC
 
-The original queue remains paused. Exact SDK producer/pin is
+**Historical pre-resumption status (27 October):** the original queue was paused at this checkpoint. Exact SDK producer/pin is
 `eb0f10b91bb8de19b0d7671cc7078fd0c1f5e767`. Its metadata-only successor a0f67fd3
 changes no native source. Consumer native caption/capture correction is a0dfad8f;
 the later C: qualification producer c4ee0459 preserves compiled-source identity

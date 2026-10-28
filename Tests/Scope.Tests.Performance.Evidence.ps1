@@ -380,8 +380,19 @@ function Get-ReviewedHeaderProfileEvidence {
         $dependency=$Study[$side].build.dependency;$expected=$profile[$side]
         Require ($dependency.Identity.commit -ceq $expected.commit -and $dependency.Fingerprint -ceq $expected.dependencyFingerprint -and
             $dependency.Identity.apiRevision -eq 4) "The $side SDK identity differs from the exact profile."
-        Require (($dependency.Identity|ConvertTo-Json -Depth 20 -Compress) -ceq
-            ($expected.identity|ConvertTo-Json -Depth 20 -Compress)) "The $side complete SDK toolchain identity differs from the exact profile."
+        if($isV4) {
+            $actualKeys=[string[]]@($dependency.Identity.Keys);[Array]::Sort($actualKeys,[StringComparer]::Ordinal)
+            $expectedKeys=[string[]]@($expected.identity.Keys);[Array]::Sort($expectedKeys,[StringComparer]::Ordinal)
+            Require (($actualKeys -join '|') -ceq ($expectedKeys -join '|')) "$side V4 identity field set differs from the exact profile."
+            foreach($field in $expectedKeys) {
+                $actualValue=$dependency.Identity[$field];$expectedValue=$expected.identity[$field]
+                Require ($null -ne $actualValue -and $null -ne $expectedValue -and
+                    $actualValue.GetType() -eq $expectedValue.GetType() -and $actualValue -ceq $expectedValue) "$side V4 identity field type/value differs: $field."
+            }
+        } else {
+            Require (($dependency.Identity|ConvertTo-Json -Depth 20 -Compress) -ceq
+                ($expected.identity|ConvertTo-Json -Depth 20 -Compress)) "$side complete SDK toolchain identity differs from the exact profile."
+        }
         $profileRows=Get-ProfileRows $expected.publicHeaders $side
         Require (($Inventories[$side].source -join "`n") -ceq ($profileRows.source -join "`n") -and
             ($Inventories[$side].package -join "`n") -ceq ($profileRows.package -join "`n")) "$side order-independent complete inventory differs from the fixed profile."
@@ -606,7 +617,11 @@ function Assert-DependencyEvidence($Study,$Comparison,[string]$StudyRoot) {
         $profile=Get-ReviewedHeaderProfileEvidence $Study $Comparison $StudyRoot $inventories
         $allowed=if($Study.reviewedHeaderDelta.profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1') {
             @('include/DxUi/DxUi.h','include/DxUi/RichDocument.h')
-        } else { @('include/DxUi/DxUi.h','include/DxUi/MarkdownSyntax.h','include/DxUi/RichDocument.h') }
+        } elseif($Study.reviewedHeaderDelta.profileId -ceq 'redtilde-dxui-parsed-snapshot-api4-v2') {
+            @('include/DxUi/DxUi.h','include/DxUi/MarkdownSyntax.h','include/DxUi/RichDocument.h')
+        } elseif($Study.reviewedHeaderDelta.profileId -ceq 'redtilde-dxui-markdown-caption-api4-v4') {
+            @('include/DxUi/DxUi.h','include/DxUi/RichTextLayout.h','include/DxUi/RichTextPresentation.h')
+        } else { throw 'Unknown reviewed-header dependency profile.' }
         $baselineHeaderRows=@{};foreach($row in $inventories.baseline.source+$inventories.baseline.package){$parts=$row.Split(':',2);$baselineHeaderRows[$parts[0]]=$parts[1]}
         $candidateHeaderRows=@{};foreach($row in $inventories.candidate.source+$inventories.candidate.package){$parts=$row.Split(':',2);$candidateHeaderRows[$parts[0]]=$parts[1]}
         Require ((@($baselineHeaderRows.Keys|Sort-Object -CaseSensitive)-join "`n") -ceq (@($candidateHeaderRows.Keys|Sort-Object -CaseSensitive)-join "`n")) 'Reviewed-header path sets differ.'
@@ -618,11 +633,32 @@ function Assert-DependencyEvidence($Study,$Comparison,[string]$StudyRoot) {
             Require ($pair.sourcePath -cin $allowed -and $pair.baselineSha256 -ceq $baselineHeaderRows[$pair.sourcePath] -and
                 $pair.candidateSha256 -ceq $candidateHeaderRows[$pair.sourcePath]) 'A reviewed source-header hash pair differs from its full inventory.'
         }
-        $baselineClone=ConvertFrom-Json -InputObject ($base|ConvertTo-Json -Depth 100 -Compress) -AsHashtable
-        $candidateClone=ConvertFrom-Json -InputObject ($candidate|ConvertTo-Json -Depth 100 -Compress) -AsHashtable
-        $baselineClone.Remove('Fingerprint');$candidateClone.Remove('Fingerprint')
-        $baselineClone.Identity.Remove('commit');$candidateClone.Identity.Remove('commit')
-        Require (($baselineClone|ConvertTo-Json -Depth 100 -Compress) -ceq ($candidateClone|ConvertTo-Json -Depth 100 -Compress)) 'Reviewed profile permits only its exact dependency commit/fingerprint pair.'
+        if($Study.reviewedHeaderDelta.profileId -ceq 'redtilde-dxui-markdown-caption-api4-v4') {
+            $expectedOuter=[string[]]@('Fingerprint','Identity')
+            $expectedIdentity=[string[]]@('apiRevision','platform','toolset','vcToolsVersion','windowsSdkVersion','runtimeFamily',
+                'preferredToolArchitecture','disableStlAnnotations','releaseOptimizationPolicy','msbuildSha256','compilerSha256',
+                'linkerSha256','windowsHeaderSha256','kernel32Sha256','ucrtSha256','commit')
+            foreach($entry in @(@{name='baseline';value=$base},@{name='candidate';value=$candidate})) {
+                $outerKeys=[string[]]@($entry.value.Keys);[Array]::Sort($outerKeys,[StringComparer]::Ordinal)
+                $wantedOuter=[string[]]@($expectedOuter);[Array]::Sort($wantedOuter,[StringComparer]::Ordinal)
+                Require (($outerKeys -join '|') -ceq ($wantedOuter -join '|')) "$($entry.name) V4 dependency has missing/extra/case-changed outer keys."
+                $identityKeys=[string[]]@($entry.value.Identity.Keys);[Array]::Sort($identityKeys,[StringComparer]::Ordinal)
+                $wantedIdentity=[string[]]@($expectedIdentity);[Array]::Sort($wantedIdentity,[StringComparer]::Ordinal)
+                Require (($identityKeys -join '|') -ceq ($wantedIdentity -join '|')) "$($entry.name) V4 identity has missing/extra/case-changed keys."
+            }
+            foreach($field in $expectedIdentity) {
+                if($field -ceq 'commit'){continue}
+                $left=$base.Identity[$field];$right=$candidate.Identity[$field]
+                Require ($null -ne $left -and $null -ne $right -and
+                    $left.GetType() -eq $right.GetType() -and $left -ceq $right) "V4 dependency identity changed type/value for $field."
+            }
+        } else {
+            $baselineClone=ConvertFrom-Json -InputObject ($base|ConvertTo-Json -Depth 100 -Compress) -AsHashtable
+            $candidateClone=ConvertFrom-Json -InputObject ($candidate|ConvertTo-Json -Depth 100 -Compress) -AsHashtable
+            $baselineClone.Remove('Fingerprint');$candidateClone.Remove('Fingerprint')
+            $baselineClone.Identity.Remove('commit');$candidateClone.Identity.Remove('commit')
+            Require (($baselineClone|ConvertTo-Json -Depth 100 -Compress) -ceq ($candidateClone|ConvertTo-Json -Depth 100 -Compress)) 'Reviewed profile permits only its exact dependency commit/fingerprint pair.'
+        }
         return
     }
     Require ($Study.baseline.publicHeaders.sourceSha256 -ceq $Study.candidate.publicHeaders.sourceSha256 -and
@@ -654,6 +690,7 @@ if($SelfTest) {
     $profileBytes=[IO.File]::ReadAllBytes($profilePath)
     $profileHash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($profileBytes))
     $profile=[Text.Encoding]::UTF8.GetString($profileBytes)|ConvertFrom-Json -AsHashtable
+    $profileV2=$profile;$profileV2Bytes=$profileBytes;$profileV2Hash=$profileHash
     $v4Path=Join-Path $PSScriptRoot 'Fixtures/ReviewedHeaderDeltaProfile.v4.json'
     $v4Bytes=[IO.File]::ReadAllBytes($v4Path)
     Require ([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($v4Bytes)) -ceq '94435355531812AE70BE124E185A5D685C16A94C8052A6C1E4BAC4DD5D381997') 'The final LF-normalized V4 fixture must remain byte exact.'
@@ -695,7 +732,7 @@ if($SelfTest) {
             $identity=ConvertFrom-Json -InputObject (ConvertTo-Json $binding.identity -Depth 30 -Compress) -AsHashtable
             $dependency=[ordered]@{Fingerprint=$binding.dependencyFingerprint;Identity=$identity}
             $headers=ConvertFrom-Json -InputObject (ConvertTo-Json $binding.publicHeaders -Depth 30 -Compress) -AsHashtable
-            $headers.sha256=$headers.combinedSha256
+            $headers['sha256']=$headers.combinedSha256
             $inputs=ConvertFrom-Json -InputObject (ConvertTo-Json $commonInputs -Depth 10 -Compress) -AsHashtable
             $study[$side]=[ordered]@{build=[ordered]@{platform='x64';dependency=$dependency};publicHeaders=$headers;inputs=$inputs}
         }
@@ -796,6 +833,62 @@ if($SelfTest) {
     }
     [IO.File]::WriteAllBytes($profileCopy,[byte[]]@($profileBytes+@(0x20)))
     Assert-HeaderProfileRejected $study $comparison 'copied profile bytes differ from the fixed profile'
+    [IO.File]::WriteAllBytes($profileCopy,$profileBytes)
+    $profile=$v4;$profileBytes=$v4Bytes;$profileHash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($profileBytes))
+    [IO.File]::WriteAllBytes($profileCopy,$profileBytes)
+    $v4Fixture=& $makeStudy;$v4Study=$v4Fixture[0];$v4Comparison=$v4Fixture[1]
+    Assert-CommonHarnessInputIdentity $v4Study $v4Comparison
+    Assert-DependencyEvidence $v4Study $v4Comparison $fixtureRoot
+    Require $true 'Full reviewed-header dependency auditor accepts the exact final V4 fixture and three-header delta.'
+    # Keep the portable self-test independent of private retained-study locations.
+    # The full retained four-study audit is run separately with explicit arguments.
+    $fullV4Study=ConvertFrom-Json -InputObject (ConvertTo-Json $v4Study -Depth 100 -Compress) -AsHashtable
+    $fullV4Comparison=ConvertFrom-Json -InputObject (ConvertTo-Json $v4Comparison -Depth 100 -Compress) -AsHashtable
+    Assert-DependencyEvidence $fullV4Study $fullV4Comparison $fixtureRoot
+    Require $true 'Full reviewed-header dependency auditor accepts a portable exact V4 fixture.'
+    $reorderedV4Study=ConvertFrom-Json -InputObject (ConvertTo-Json $fullV4Study -Depth 100 -Compress) -AsHashtable
+    foreach($side in 'baseline','candidate') {
+        $identity=$reorderedV4Study[$side].build.dependency.Identity
+        $pairs=@($identity.GetEnumerator());[Array]::Reverse($pairs);$identity.Clear()
+        foreach($pair in $pairs) {$identity[$pair.Key]=$pair.Value}
+    }
+    Assert-DependencyEvidence $reorderedV4Study $fullV4Comparison $fixtureRoot
+    Require $true 'Full V4 auditor compares SDK identity fields semantically when JSON key order differs.'
+    $refreshInventory={
+        param($headers)
+        $source=[string[]]@($headers.files|Where-Object {$_.path -clike 'include/*'}|ForEach-Object {$_.path+':'+$_.sha256})
+        $package=[string[]]@($headers.files|Where-Object {$_.path -clike 'package-include/*'}|ForEach-Object {$_.path+':'+$_.sha256})
+        [Array]::Sort($source,[StringComparer]::Ordinal);[Array]::Sort($package,[StringComparer]::Ordinal)
+        $all=[string[]]@($source+$package);[Array]::Sort($all,[StringComparer]::Ordinal)
+        $hashRows={param([string[]]$rows)[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($rows -join [char]10))))}
+        $headers.sourceSha256=& $hashRows $source
+        $headers.packageSha256=& $hashRows $package
+        $headers.combinedSha256=& $hashRows $all
+        $headers.sha256=$headers.combinedSha256
+    }
+    foreach($case in @(
+        @{label='wrong allowed header';edit={param($s)$row=$s.candidate.publicHeaders.files|Where-Object {$_.path -ceq 'include/DxUi/RichTextLayout.h'}|Select-Object -First 1;$row.sha256='A'*64}},
+        @{label='changed package row';edit={param($s)$row=$s.candidate.publicHeaders.files|Where-Object {$_.path -ceq 'package-include/wil/com_apartment_variable.h'}|Select-Object -First 1;$row.sha256='B'*64}},
+        @{label='extra identity field';edit={param($s)$s.candidate.build.dependency.Identity['unreviewed']='x'}},
+        @{label='case-changed identity key';edit={param($s)$value=$s.candidate.build.dependency.Identity.apiRevision;$s.candidate.build.dependency.Identity.Remove('apiRevision');$s.candidate.build.dependency.Identity['ApiRevision']=$value}},
+        @{label='string identity type';edit={param($s)$s.candidate.build.dependency.Identity.apiRevision='4'}})) {
+        $bad=ConvertFrom-Json -InputObject (ConvertTo-Json $fullV4Study -Depth 100 -Compress) -AsHashtable
+        & $case.edit $bad
+        if($case.label -in @('wrong allowed header','changed package row')) { & $refreshInventory $bad.candidate.publicHeaders }
+        $rejected=$false
+        try {Assert-DependencyEvidence $bad $fullV4Comparison $fixtureRoot} catch {$rejected=$true}
+        Require $rejected "V4 full dependency auditor rejects $($case.label) on portable fixture data."
+    }
+    foreach($case in @(
+        @{label='null identity type';edit={param($s)$s.candidate.build.dependency.Identity.apiRevision=$null}},
+        @{label='changed numeric identity type';edit={param($s)$s.candidate.build.dependency.Identity.apiRevision=[double]4}})) {
+        $bad=ConvertFrom-Json -InputObject (ConvertTo-Json $fullV4Study -Depth 100 -Compress) -AsHashtable
+        & $case.edit $bad
+        $rejected=$false
+        try {Assert-DependencyEvidence $bad $fullV4Comparison $fixtureRoot} catch {$rejected=$true}
+        Require $rejected "V4 full dependency auditor rejects $($case.label) on portable fixture data."
+    }
+    $profile=$profileV2;$profileBytes=$profileV2Bytes;$profileHash=$profileV2Hash
     [IO.File]::WriteAllBytes($profileCopy,$profileBytes)
     $v1Bytes=[IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'Fixtures/ReviewedHeaderDeltaProfile.v1.json'))
     $v1Hash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($v1Bytes))

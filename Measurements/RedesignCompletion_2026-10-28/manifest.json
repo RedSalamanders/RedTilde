@@ -1,0 +1,13 @@
+{
+  "schema": "redtilde-public-evidence-manifest-v1",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "76DEDBB1D2184F0C8AFAE4CAD8DA0FCEF171F67D9C7474CC83A5BC09C3357E75"
+    },
+    {
+      "path": "performance-projection.json",
+      "sha256": "A7C8B5BAF6578D5A3EE6B35B15BB168307E47060E8393F452CD188BB009004CC"
+    }
+  ]
+}
