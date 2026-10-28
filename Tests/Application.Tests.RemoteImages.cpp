@@ -14,7 +14,14 @@
 #include <chrono>
 #include <cstring>
 #include <format>
+// MSVC's external future/PPL templates intentionally use the selected ARM64 volatile model.
+// Owner: RedTilde test maintainers; review on the next MSVC upgrade, by 2027-01-31.
+#pragma warning(push)
+#if defined(_M_ARM64)
+#pragma warning(disable : 4746)
+#endif
 #include <future>
+#pragma warning(pop)
 #include <mutex>
 #include <new>
 #include <optional>

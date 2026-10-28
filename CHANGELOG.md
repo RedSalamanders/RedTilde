@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Scope the MSVC ARM64 volatile-model notice annotation to the external future/PPL include in the remote-image test fixture. Preserve the selected volatile model and ordinary warning checks on owned code.
 - Lock DxUi API4 at 6ed0512c68743c57ac209e22010679d211c4a42b for the native warning/Release folding policy. Preserve the consumer API boundary and restore matching headers/archive through the normal entrypoint; complete product qualification is tracked by the indexed native policy plan.
 - Require the MSBuild platform property in the native policy evaluator and independently reject ARM64-only LTCG warning exceptions on x64 or their absence on ARM64 Release. Preserve the full restored-identity and interactive-lease checks.
 - Fix owned signed/unsigned and drawing conversions, callback and test diagnostics; preserve identity/aggregate traits with narrowly reviewed declaration annotations. Classify dependency headers through evaluated MSBuild paths. Zero-warning native qualification remains tracked in the active build-policy plan.
