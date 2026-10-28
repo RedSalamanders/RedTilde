@@ -19,7 +19,8 @@ Brand: a flowing red tilde, with a restrained scarlet accent. App name is RedTil
 **Words, beautifully in flow.** The icon must read at 16/24/32 pixels as well as 256; preserve alpha.
 The application extracts and retains bounded premultiplied BGRA pixels from its own 32-bit alpha icon resource
 across device replacement; ordinary branding does not instantiate WIC. Native extraction must match the independent
-WIC reference byte for byte, including transparent and partially transparent pixels, at 16/24/32/48/64/128/256 pixels.
+WIC reference byte for byte, including transparent and partially transparent pixels, at native
+16/24/32/48/64/128/256 sizes, scaled 20/40/96 sizes and Windows' default class-icon dimensions.
 It prepares the device-dependent Direct2D bitmap through DxUi visual-content preparation. Paint only draws a bitmap
 stamped for the host's current resource generation; resource queries and bitmap creation stay out of paint.
 
@@ -114,6 +115,25 @@ their explicit darker red fill in Dark mode so their white label stays readable.
 Highlight/HighlightText for active and inactive selection, Hotlight for links/focus, and Window/WindowText for
 surfaces/text. Other Find matches use a subtle neutral fill distinct from the current selection.
 
+The merged title bar uses square native-sized caption buttons: neutral hover/press
+for minimize and maximize/restore, red paired with white text for close, and system
+colors in high contrast. Their pointer lifecycle preserves the document's keyboard
+focus and activates once on release inside the pressed button. Release outside,
+capture loss and cancellation clear the press without activation. Native
+`HTMAXBUTTON` hit testing and default nonclient hover processing remain available
+for Snap Layouts; resize borders and draggable title space retain native behavior.
+App-owned caption presses route through canonical DxUi button capture/dispatch and
+suppress duplicate native activation. Physical Windows Snap interaction remains a
+separate foreground acceptance check.
+
+Compose uses DxUi's opt-in `MarkdownPresentationStyle::Subtle`: H1/H2 have a subtle
+neutral separator, tables fit their content and use horizontal row rules, standalone
+display equations and diagrams center within their available measure, and quotes
+have a shaded surface. Source view keeps literal source styling. Editing, selection,
+history and accessible semantic roles are unchanged. The hidden `markdown-style`
+capture scenario reproduces the supplied example with invented content; captures
+record actual viewport and DPI. Different screenshot scales do not establish a font-size defect.
+
 Compose body is 16 DIP with a 1.65 line-height multiplier; H1 is 34/1.2 bold and H2 is 23/1.3 bold. List items
 have 10-DIP separation and paragraphs retain a line of bottom space. Shared semantic minima credit real source
 blank lines: one separator fills the paragraph margin; additional blank lines keep distinct caret sites. Headings and strong text use document
@@ -125,7 +145,7 @@ the mirror enables the same immutable syntax analysis as the authoritative edito
 Chrome uses 14-DIP labels, 13-DIP tree/secondary labels and 12-DIP status text. Section labels are 11-DIP
 semibold with 0.88-DIP total tracking. The selection toolbar's keyboard hint is an 11-DIP label in a bordered
 shared CardPanel chip. Use 18-DIP Fluent line glyphs and 36-DIP command buttons (32-DIP compact minimum),
-with 40-DIP primary actions. The brand is 28 DIP in the document bar; its WIC source is premultiplied before
+with 40-DIP primary actions. The brand is 28 DIP in the document bar; its owned icon source is premultiplied before
 D2D upload and retained across device replacement. UTF-8 resource scripts declare code page 65001 explicitly.
 
 In Light, Paper and Dark themes, rich-text links use the theme link color without a persistent underline; underline on

@@ -1,0 +1,122 @@
+[
+  {
+    "path": "Accessibility-x64-Debug.json",
+    "length": 35976,
+    "sha256": "31F4668F6498F41DED74B166A51040ADBC16752A53D710A5280A5EB779D5A1FB"
+  },
+  {
+    "path": "Animation-x64-Debug.json",
+    "length": 35968,
+    "sha256": "187B9BD8378D42586DD6A3ECCB1C5C543C5C541C512E3424B7476A1CEDB6F850"
+  },
+  {
+    "path": "build-attestation.json",
+    "length": 259,
+    "sha256": "F71F17D332D35C1323994C27C53EC934DAECB00DDCB8B1BFFF44F9FD16126094"
+  },
+  {
+    "path": "ComboBox-x64-Debug.json",
+    "length": 35966,
+    "sha256": "10B3CE8E048306A2CA7573B66CE42656C223FE61D6EE1F6BFFC5E2A70FA36F02"
+  },
+  {
+    "path": "Control-x64-Debug.json",
+    "length": 35964,
+    "sha256": "5895AF68F864DAA8D6F23B84281001EE62780987E157754178D7FB096756EDA9"
+  },
+  {
+    "path": "EditorControls-x64-Debug.json",
+    "length": 35978,
+    "sha256": "C762652492201599077FCEDC6C60A8313EECA6989896A26E5E34D8FCBD2CA561"
+  },
+  {
+    "path": "Embedded-x64-Debug.json",
+    "length": 35967,
+    "sha256": "72DF9877A76AB11637B5E2F98A81F31FC6B52018E64BF6552758CAE404B534AF"
+  },
+  {
+    "path": "Foundation-x64-Debug.json",
+    "length": 35973,
+    "sha256": "7306EF73A09C68D284E482EF506C1C7EFA8A9FBA7FD6FF51BBB23E54EE1D1BF1"
+  },
+  {
+    "path": "full-debug.log",
+    "length": 5178,
+    "sha256": "70C6D5DE719FE5290C564C1851D7EAA5F8F93104DFD0274A0574CD5549B01031"
+  },
+  {
+    "path": "full-debug.status.json",
+    "length": 180,
+    "sha256": "D20BE8C6D166B4C7422A5742F5733EE6FEBCEA6B613E11785B9F972D4BC27D6A"
+  },
+  {
+    "path": "Grid-x64-Debug.json",
+    "length": 35958,
+    "sha256": "50AA92BE65883C784187A825C30A0E46AF4143A2533C9322561A37A6D12274BD"
+  },
+  {
+    "path": "InteractiveLease-x64-Debug.json",
+    "length": 35982,
+    "sha256": "13324A5A8EE8724148CD5DE9507D5071381BC79FE975AA1CCE962BFBDC50E679"
+  },
+  {
+    "path": "MenuExitLifetime-x64-Debug.json",
+    "length": 35982,
+    "sha256": "F1C924D6C897FEA7DFDBA7B266645823F7C9A444EA83D933638F7A17B7206CFB"
+  },
+  {
+    "path": "MultilineText-x64-Debug.json",
+    "length": 35976,
+    "sha256": "F65CAAF9CC3A56635BFCB31D64E8D0B61BA7B588EB049568A9B25A120FE3F26D"
+  },
+  {
+    "path": "NewControls-x64-Debug.json",
+    "length": 35972,
+    "sha256": "EAD248EA98F3BFFF47627F69ED1F7B0AD6D69680E290F7F005A75203F6062093"
+  },
+  {
+    "path": "Performance-x64-Debug-d5aa7d3edcc747d1a9d4d2e62cd8e05c.json",
+    "length": 38622,
+    "sha256": "A7D19FE03CA568D2DBF55C91FD1B50EF999786C7FDD9CD51C4EAFEA4D11B22FA"
+  },
+  {
+    "path": "Performance-x64-Debug-d5aa7d3edcc747d1a9d4d2e62cd8e05c.json.comparison.json",
+    "length": 48,
+    "sha256": "14FC8DEF36F2813DB7D2787166F7BD0E738679426A334768741AA17E620A7DF6"
+  },
+  {
+    "path": "ReadOnly-x64-Debug.json",
+    "length": 35966,
+    "sha256": "9FA5DFBF81D78BE375151D419AA3DB82C6774F01A35994BF0664E909DEDA3717"
+  },
+  {
+    "path": "Rendering-x64-Debug.json",
+    "length": 35968,
+    "sha256": "15309214C6C09200A247934CD91226C654A96BE518732FCAD89538678192E493"
+  },
+  {
+    "path": "TextField-x64-Debug.json",
+    "length": 35968,
+    "sha256": "9A3C697B3CA9076439E5274B5CA1B4CB4FC34279BCECC59ED3E55AC59736DC6D"
+  },
+  {
+    "path": "Theme-x64-Debug.json",
+    "length": 35960,
+    "sha256": "631BD6D9A66AE5E54126A009B8154D9C9518505A7F2D7A711E389DB2A1564EAD"
+  },
+  {
+    "path": "Tooltip-x64-Debug.json",
+    "length": 35964,
+    "sha256": "B2EA52BB2A6C7D430649370041834D7F1158E9199F397429C0E472B30D6DF303"
+  },
+  {
+    "path": "Tree-x64-Debug.json",
+    "length": 35958,
+    "sha256": "8424BB9A8F2D5EE3986B3AD438AAE609DDE62156D5ADF92625A842DDB99091C5"
+  },
+  {
+    "path": "WindowHost-x64-Debug.json",
+    "length": 35970,
+    "sha256": "E77948B2C4E8FAF83D04177D87EB5CFE13637D28EC713775295C6CA4EBDB7313"
+  }
+]

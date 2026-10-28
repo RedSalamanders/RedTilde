@@ -111,6 +111,10 @@ try {
         $captures=@($scenarios|ForEach-Object{@{name=$_;scenario=$_;arguments=@()}})
         $captures+=@(96,144,192|ForEach-Object{@{name="narrow-dpi-$_";scenario='narrow';arguments=@('--capture-dpi',"$_")}})
         $captures+=@(96,144,192|ForEach-Object{@{name="reference-dark-dpi-$_";scenario='reference-dark';arguments=@('--capture-dpi',"$_",'--document',(Join-Path $PSScriptRoot 'docs/examples/weekly-report-2026-10-15.md'))}})
+        $captures+=@(96,144,192|ForEach-Object{@{name="markdown-style-dpi-$_";scenario='markdown-style';arguments=@('--capture-dpi',"$_")}})
+        foreach($hover in @('caption-close-hover','caption-maximize-hover')) {
+            $captures+=@(96,144,192|ForEach-Object{@{name="$hover-dpi-$_";scenario=$hover;arguments=@('--capture-dpi',"$_")}})
+        }
         foreach ($capture in $captures) {
             $scenario=$capture.scenario
             $name=$capture.name
@@ -129,6 +133,12 @@ try {
             if($width -ne $geometry.actualWidthPx -or $height -ne $geometry.actualHeightPx) { throw "Capture '$name' pixels differ from their scenario provenance." }
             $receipt.results+=@{scope='Capture';name=$name;scenario=$scenario;sha256=(Get-FileHash $output).Hash;
                 provenanceSha256=(Get-FileHash $sidecar).Hash;geometry=$geometry}
+        }
+        foreach($dpi in @(96,144,192)) {
+            $rest=(Get-FileHash -LiteralPath (Join-Path $run "markdown-style-dpi-$dpi.png")).Hash
+            $close=(Get-FileHash -LiteralPath (Join-Path $run "caption-close-hover-dpi-$dpi.png")).Hash
+            $maximize=(Get-FileHash -LiteralPath (Join-Path $run "caption-maximize-hover-dpi-$dpi.png")).Hash
+            if($rest -eq $close -or $rest -eq $maximize -or $close -eq $maximize){throw "Caption hover captures must differ from resting pixels and each other at $dpi DPI."}
         }
         Write-Host "$($captures.Count) actual hidden application captures generated with viewport/DPI provenance."
     }

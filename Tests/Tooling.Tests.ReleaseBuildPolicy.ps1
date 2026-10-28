@@ -101,13 +101,14 @@ Write-Host "PASS Release policy: $checked native profiles, $($archiveChecked.Cou
 
 # Exercise the same argument factory as the real interactive entrypoint against
 # the actual pinned lease and archive projects. Evaluation never compiles or runs
-# the lease, and the omitted-arguments control reproduces the observed /GL loss.
+# the lease. The adopted SDK now enforces Release /GL itself; verify its defaults
+# as well as the consumer's explicit binding instead of requiring the historical bug.
 if($dependencySource){
     Import-Module (Join-Path $Root 'Build/Toolchain.psm1') -Force
     $leaseProject=Join-Path $dependencySource 'Tests/InteractiveLease/DxUi.InteractiveLease.vcxproj'
     $archiveProject=Join-Path $dependencySource 'src/DxUi.vcxproj'
     $leaseProfiles=[Collections.Generic.List[object]]::new()
-    $counterfactuals=[Collections.Generic.List[object]]::new()
+    $sdkDefaults=[Collections.Generic.List[object]]::new()
     $toolsetControls=[Collections.Generic.List[object]]::new()
     $mixedCaseControls=[Collections.Generic.List[object]]::new()
     $identityBindings=[Collections.Generic.List[object]]::new()
@@ -146,8 +147,9 @@ if($dependencySource){
         $defaultArchive=Read-Profile $archiveProject 'Release' $platform
         foreach($entry in @(@{name='lease';value=$defaultLease},@{name='archive';value=$defaultArchive})){
             $facts=Get-CompilerFacts $entry.value
-            if(-not $facts.Count -or @($facts|Where-Object wholeProgramOptimization -CEQ 'true').Count){throw "Omitted-policy counterfactual no longer selects non-GL $($entry.name) $platform; review the pinned SDK policy."}
-            $counterfactuals.Add([ordered]@{project=$entry.name;platform=$platform;properties=$entry.value.Properties;compiler=$facts})
+            Assert-Profile $entry.value 'Release' "Default pinned $($entry.name) $platform" -PinnedArchive
+            if(-not $facts.Count -or @($facts|Where-Object wholeProgramOptimization -CNE 'true').Count){throw "The pinned SDK default loses Release /GL for $($entry.name) $platform."}
+            $sdkDefaults.Add([ordered]@{project=$entry.name;platform=$platform;properties=$entry.value.Properties;compiler=$facts})
         }
         foreach($configuration in 'Debug','Release','ASan Debug'){
             $actualArguments=@(Get-RedTildePinnedBuildArguments -Configuration $configuration -Identity $identity)
@@ -191,11 +193,11 @@ if($dependencySource){
         }
     }
     $leaseEvidence=Join-Path $scratch 'interactive-lease-policy.json'
-    [ordered]@{schema='redtilde-evaluated-interactive-lease-policy-v1';helperSha256=(Get-FileHash (Join-Path $Root 'Build/Toolchain.psm1')).Hash;
+    [ordered]@{schema='redtilde-evaluated-interactive-lease-policy-v2';helperSha256=(Get-FileHash (Join-Path $Root 'Build/Toolchain.psm1')).Hash;
         runnerSha256=(Get-FileHash (Join-Path $Root 'test-interactive.ps1')).Hash;testSha256=(Get-FileHash $PSCommandPath).Hash;
-        sdk=$pin.commit;identityBindings=$identityBindings.ToArray();profiles=$leaseProfiles.ToArray();omittedArgumentsCounterfactuals=$counterfactuals.ToArray();toolsetOverrideControls=$toolsetControls.ToArray();mixedCaseControls=$mixedCaseControls.ToArray();nativeBuilds=0;desktopRuns=0}|
+        sdk=$pin.commit;identityBindings=$identityBindings.ToArray();profiles=$leaseProfiles.ToArray();sdkDefaultProfiles=$sdkDefaults.ToArray();toolsetOverrideControls=$toolsetControls.ToArray();mixedCaseControls=$mixedCaseControls.ToArray();nativeBuilds=0;desktopRuns=0}|
         ConvertTo-Json -Depth 12|Set-Content -LiteralPath $leaseEvidence -Encoding utf8
-    Write-Host "PASS interactive lease policy: 6 lease and 6 pinned-archive profiles; 4 omitted-policy, 4 toolset-override and 8 mixed-case controls with verified dependency identities. Evidence: $leaseEvidence"
+    Write-Host "PASS interactive lease policy: 6 lease and 6 pinned-archive profiles; 4 SDK-default, 4 toolset-override and 8 mixed-case controls with verified dependency identities. Evidence: $leaseEvidence"
 }
 
 # Provisioning must remain read-only on local hosts and refuse a missing required family

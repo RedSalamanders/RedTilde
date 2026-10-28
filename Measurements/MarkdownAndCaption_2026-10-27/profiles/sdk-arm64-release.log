@@ -1,0 +1,155 @@
+Locating Visual Studio and MSBuild...
+[DXUI_BUILD_PHASE] phase=VisualStudioDiscovery state=BEGIN utc=2026-10-27T22:45:23.3354806Z elapsedMs=0.000
+[DXUI_BUILD_PHASE] phase=VisualStudioDiscovery state=END utc=2026-10-27T22:45:23.4070270Z elapsedMs=71.531
+[DXUI_BUILD_PHASE] phase=OutputUseChecks state=BEGIN utc=2026-10-27T22:45:23.4073615Z elapsedMs=0.000
+[DXUI_BUILD_PHASE] phase=OutputUseChecks state=END utc=2026-10-27T22:45:25.3101717Z elapsedMs=1902.716
+[DXUI_BUILD_PHASE] phase=DependencyAdmission state=BEGIN utc=2026-10-27T22:45:25.3106785Z elapsedMs=0.000
+[DXUI_BUILD_PHASE] phase=DependencyAdmission state=END utc=2026-10-27T22:45:25.3117087Z elapsedMs=1.020
+[DXUI_BUILD_PHASE] phase=PreBuildAttestation state=BEGIN utc=2026-10-27T22:45:25.3119805Z elapsedMs=0.000
+[DXUI_BUILD_PHASE] phase=PreBuildAttestation state=END utc=2026-10-27T22:45:40.7855764Z elapsedMs=15473.533
+Rebuilding because no current v2 attestation binds these exact inputs, tools and artifacts.
+╭────────────────────────────────────────────────────────────────────────╮
+│                                                                        │
+│                      ██████╗ ██╗  ██╗██╗   ██╗██╗                      │
+│                      ██╔══██╗╚██╗██╔╝██║   ██║██║                      │
+│                      ██║  ██║ ╚███╔╝ ██║   ██║██║                      │
+│                      ██║  ██║ ██╔██╗ ██║   ██║██║                      │
+│                      ██████╔╝██╔╝ ██╗╚██████╔╝██║                      │
+│                      ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚═╝                      │
+│                                                                        │
+│      ✦  PIXELS PRIMED  •  CONTROLS READY  •  COMPILE MODE: GO!  ✦      │
+│                 ⚡  RELEASE  /  ARM64  /  REBUILD  ⚡                  │
+│                                                                        │
+╰────────────────────────────────────────────────────────────────────────╯
+
+Build configuration:
+  Configuration: Release
+  Platform:      ARM64
+  Target:        Rebuild
+  Toolchain:     C:\Program Files\Microsoft Visual Studio\18\Insiders
+  Output:        C:\Users\PVB\.codex\worktrees\rt24\w\DxUi\.build\v30\.build\
+
+Compiling DxUi...
+[DXUI_BUILD_PHASE] phase=MSBuild state=BEGIN utc=2026-10-27T22:45:40.7941523Z elapsedMs=0.000
+
+  compilation header save succeeded; see C:\Users\PVB\.codex\worktrees\rt24\w\DxUi\.build\v30\.build\Intermediate\ARM64\Release\DxUi\DxUiCompositeVS.h
+  compilation object save succeeded; see C:\Users\PVB\.codex\worktrees\rt24\w\DxUi\.build\v30\.build\Intermediate\ARM64\Release\DxUi\DxUiCompositeVS.cso
+  compilation header save succeeded; see C:\Users\PVB\.codex\worktrees\rt24\w\DxUi\.build\v30\.build\Intermediate\ARM64\Release\DxUi\DxUiCompositePS.h
+  compilation object save succeeded; see C:\Users\PVB\.codex\worktrees\rt24\w\DxUi\.build\v30\.build\Intermediate\ARM64\Release\DxUi\DxUiCompositePS.cso
+  DxUi.RichDocument.cpp
+  DxUi.RichMarkdownProjection.cpp
+  DxUi.RichSemantic.cpp
+  DxUi.RichTextCommands.cpp
+  DxUi.RichSemanticDocument.cpp
+  DxUi.RichSemanticGeometry.cpp
+  DxUi.MarkdownSyntax.cpp
+  DxUi.NativeFlowchart.cpp
+  DxUi.NativeMath.cpp
+  DxUi.NativeFlowchartLayout.cpp
+  DxUi.PreparedFlowchart.cpp
+  DxUi.RichTextLayout.cpp
+  DxUi.RichDocumentLayout.cpp
+  DxUi.RichTextEditor.cpp
+  DxUi.RichImage.cpp
+  ControlCatalog.cpp
+  NativeMenuInterop.cpp
+  Embedded.cpp
+  FrameRuntime.cpp
+  DxUi.Accessibility.cpp
+  Compiling...
+  DxUi.ComboBox.cpp
+  DxUi.Controls.cpp
+  DxUi.Layout.cpp
+  DxUi.Forms.cpp
+  DxUi.EditorControls.cpp
+  DxUi.cpp
+  DxUi.Grid.cpp
+  DxUi.Menu.cpp
+  DxUi.NativeTextInput.cpp
+  DxUi.PointerInput.cpp
+  DxUi.Scrollbar.cpp
+  DxUi.SingleLineTextEditing.cpp
+  DxUi.TextInput.cpp
+  DxUi.TextStoreACP.cpp
+  TextInputServices.cpp
+  TextClipboard.cpp
+  DxUi.Theme.cpp
+  DxUi.Tree.cpp
+  DxUi.Typeahead.cpp
+  DxUi.WindowHost.cpp
+  Compiling...
+  DxUi.TextElements.cpp
+  DxUi.vcxproj -> C:\Users\PVB\.codex\worktrees\rt24\w\DxUi\.build\v30\.build\ARM64\Release\DxUi.lib
+  Foundation.Tests.Foundation.cpp
+  InteractiveLease.Tests.Runner.cpp
+  Embedded.Tests.Embedded.cpp
+  Main.cpp
+  Controls.Tests.RichDocument.cpp
+  Foundation.Tests.PublicHelpers.cpp
+  Foundation.Tests.TsfFocus.cpp
+  Generating code
+  Controls.Tests.RichSourceChanges.cpp
+  Generating code
+  Generating code
+  Finished generating code
+  DxUi.InteractiveLease.vcxproj -> C:\Users\PVB\.codex\worktrees\rt24\w\DxUi\.build\v30\.build\ARM64\Release\DxUi.InteractiveLease.exe
+  Controls.Tests.RichMarkdown.cpp
+  Generating code
+  Finished generating code
+  Controls.Tests.RichSemantic.cpp
+  DxUi.FoundationTests.vcxproj -> C:\Users\PVB\.codex\worktrees\rt24\w\DxUi\.build\v30\.build\ARM64\Release\DxUi.FoundationTests.exe
+  Controls.Tests.RichSemanticDocument.cpp
+  Controls.Tests.RichSemanticGeometry.cpp
+  Finished generating code
+  DxUi.EmbeddedControls.vcxproj -> C:\Users\PVB\.codex\worktrees\rt24\w\DxUi\.build\v30\.build\ARM64\Release\DxUi.EmbeddedControls.exe
+  Controls.Tests.RichProjectionBlocks.cpp
+  Controls.Tests.RichTextLayout.cpp
+  Controls.Tests.RichDocumentLayout.cpp
+  Controls.Tests.RichTextEditor.cpp
+  Controls.Tests.RichTextInput.cpp
+  Finished generating code
+  DxUi.EmbeddedTests.vcxproj -> C:\Users\PVB\.codex\worktrees\rt24\w\DxUi\.build\v30\.build\ARM64\Release\DxUi.EmbeddedTests.exe
+  Controls.Tests.RichTextAccessibility.cpp
+  DxUi.Tests.Accessibility.cpp
+  Controls.Tests.FormAccessibility.cpp
+  Controls.Tests.GridUiaPattern.cpp
+  Controls.Tests.IntrinsicLayout.cpp
+  Controls.Tests.Forms.cpp
+  Controls.Tests.HostControlRegressions.cpp
+  Controls.Tests.MenuPopupReadiness.cpp
+  Controls.Tests.AnimationClock.cpp
+  Compiling...
+  DxUi.Tests.Animation.cpp
+  DxUi.Tests.ComboBox.cpp
+  DxUi.Tests.Controls.cpp
+  DxUi.Tests.Runner.cpp
+  DxUi.Tests.EditorControls.cpp
+  DxUi.Tests.Gallery.cpp
+  DxUi.Tests.Grid.cpp
+  DxUi.Tests.InteractiveLease.cpp
+  DxUi.Tests.Menu.cpp
+  DxUi.Tests.MultilineText.cpp
+  DxUi.Tests.NativeTextInput.cpp
+  DxUi.Tests.NewControls.cpp
+  DxUi.Tests.ReadOnly.cpp
+  DxUi.Tests.Rendering.cpp
+  DxUi.Tests.TextField.cpp
+  DxUi.Tests.Theme.cpp
+  DxUi.Tests.Tooltip.cpp
+  DxUi.Tests.Tree.cpp
+  DxUi.Tests.WindowHost.cpp
+  Controls.Tests.TextElements.cpp
+  Compiling...
+  Controls.Tests.TextElementMovement.cpp
+  Generating code
+  Finished generating code
+  DxUi.ControlTests.vcxproj -> C:\Users\PVB\.codex\worktrees\rt24\w\DxUi\.build\v30\.build\ARM64\Release\DxUi.ControlTests.exe
+[DXUI_BUILD_PHASE] phase=MSBuild state=END utc=2026-10-27T22:51:18.5585690Z elapsedMs=337764.374
+[DXUI_BUILD_PHASE] phase=PostBuildAttestation state=BEGIN utc=2026-10-27T22:51:18.5589229Z elapsedMs=0.000
+[DXUI_BUILD_PHASE] phase=PostBuildAttestation state=END utc=2026-10-27T22:51:34.4779546Z elapsedMs=15919.009
+
+========================================
+DxUi build passed in 05:37
+Output: C:\Users\PVB\.codex\worktrees\rt24\w\DxUi\.build\v30\.build\
+Log: C:\Users\PVB\.codex\worktrees\rt24\w\DxUi\.build\v30\.build\logs\build-ARM64-Release-954aaa23137f43edabe3f52ddb36dbff.log
+========================================

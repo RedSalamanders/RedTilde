@@ -1,5 +1,26 @@
 # Validation and evidence
 
+The hidden `markdown-style` capture scenario uses invented content matching the
+heading/flow/equation/table/quote example. The Captures suite runs it at 96, 144
+and 192 DPI and preserves each image's actual viewport/DPI provenance. Verify
+visible heading rules, neutral horizontal table lines, content-sized columns and
+centered display objects; these screenshots supplement geometry/source-affinity
+tests and do not establish native-monitor or platform acceptance.
+The `caption-close-hover` and `caption-maximize-hover` variants use the same
+invented source at all three DPIs and synthesize hover only on the hidden host.
+They preserve ordinary scenario/build/DPI provenance without moving the pointer,
+taking focus, or opening the native Snap flyout.
+Synthetic hover is applied after the final preparation message pump and retained
+through readback. At each DPI, resting, close-hover and maximize-hover PNG hashes
+must differ, so valid provenance alone cannot qualify a missing visual state.
+Interaction probes settle content before staging synthetic input and capture the prepared frame without pumping ambient pointer-leave messages for their hidden HWND. Standalone captures retain their final preparation step.
+The shared host stages hidden captures before swap-chain presentation; a consumer
+must not read the D2D swap-chain target after Present and assume it is the current frame.
+Release-policy evaluation uses the pinned SDK's current defaults plus explicit
+consumer bindings and compiler/linker negative controls. Its v2 lease-policy
+receipt records `sdkDefaultProfiles`; the historical v1 omitted-argument regression
+remains historical evidence rather than a requirement to reproduce a repaired SDK bug.
+
 Use `validate.ps1` for links/spec indexes, skill metadata, dependencies and build inventory; aggregate all failures.
 Use `format.ps1 -Check` for C++. Scoped iteration uses `Test-Changes.ps1 -Explain` then the affected default.
 PrePush accounts for existing enabled CI; pending CI is never recorded as a pass. Do not rerun an identical full
@@ -106,7 +127,7 @@ These record oracles establish error mapping, not recovery from an actually miss
 
 Physical focus/IME/AT, release/package acceptance, hardware-specific qualification and paired resource/performance studies retain their owning gates. Hidden/scoped/native CI passes never close those gates. Native test basenames use contextual `Scope.Tests.Something.h/.cpp`; inventories cover active files only. Immutable historical receipts, archived source and legacy references are not renamed or rewritten.
 
-RedTilde partitions its 66 registered native cases into Storage (11), Settings (4), Recovery (5) and Editor (46). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
+RedTilde partitions its 67 registered native cases into Storage (11), Settings (4), Recovery (5) and Editor (47). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
 
 The hidden responsive-layout/DPI case retains the exact initial foreground and hidden-window assertions. A failure records which predicate changed, whether the observed foreground is the test window or another process-owned window, and whether the original window still exists. These observations do not attribute a historical foreground change or permit activation; preserve the failed run separately from later qualification.
 

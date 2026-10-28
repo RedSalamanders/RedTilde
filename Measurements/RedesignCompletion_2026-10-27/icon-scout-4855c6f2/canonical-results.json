@@ -1,0 +1,485 @@
+{
+  "schema": "redtilde-performance-public-canonical-results-v1",
+  "studies": [
+    {
+      "study": "aa",
+      "nativeReports": 16,
+      "sameBinaryControl": true,
+      "comparisonSha256": "B2341A27E5C945370844EA74028D4DA305AD8C26DC49DC514E5DFD9C99F69EFF",
+      "studySha256": "AAE93D2AB4F6F9DC21D0677AE6A413A4F81FB46D9A614DE6F489BDF85A5CD785",
+      "familySize": 12,
+      "rows": [
+        {
+          "scenario": "Compose",
+          "metric": "commandUs",
+          "blocks": 2,
+          "baselineMedian": 261.725,
+          "candidateMedian": 263.425,
+          "pairedChange": -0.008759843151919577,
+          "p": 0.5,
+          "band": 0.05,
+          "controlDrift": [
+            0.16929842094743175,
+            0.04068169323804294,
+            0.07342657342657344,
+            0.03879310344827602
+          ],
+          "controlsStable": false,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Compose",
+          "metric": "ownerCpuCycles",
+          "blocks": 2,
+          "baselineMedian": 7776716.5,
+          "candidateMedian": 7825918.25,
+          "pairedChange": 0.0175324819254985,
+          "p": 1.0,
+          "band": 0.05,
+          "controlDrift": [
+            0.09296130279563153,
+            0.014400452251352114,
+            0.08366259639660112,
+            0.05930887789091677
+          ],
+          "controlsStable": false,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Compose",
+          "metric": "completedEditUs",
+          "blocks": 2,
+          "baselineMedian": 16657.325,
+          "candidateMedian": 16580.9,
+          "pairedChange": -0.0055545557060087125,
+          "p": 1.0,
+          "band": 0.05,
+          "controlDrift": [
+            0.0035246983211306704,
+            0.007320285923177905,
+            0.004245959586866577,
+            0.002740499052982015
+          ],
+          "controlsStable": true,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Compose",
+          "metric": "cleanCompletedUs",
+          "blocks": 2,
+          "baselineMedian": 16666.775,
+          "candidateMedian": 16779.75,
+          "pairedChange": 0.0050013753896300805,
+          "p": 0.5,
+          "band": 0.05,
+          "controlDrift": [
+            0.0022644886730516234,
+            0.0027959159444377324,
+            0.001738498585780901,
+            0.009863287722405856
+          ],
+          "controlsStable": true,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Compose",
+          "metric": "privateBytes",
+          "blocks": 2,
+          "baselineMedian": 45346816.0,
+          "candidateMedian": 45928448.0,
+          "pairedChange": 0.007247580785196828,
+          "p": 1.0,
+          "band": 0.02,
+          "controlDrift": [
+            0.036330371144798757,
+            0.03520612914994525,
+            0.01205589551557229,
+            0.0385518237630913
+          ],
+          "controlsStable": false,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Compose",
+          "metric": "workingSetBytes",
+          "blocks": 2,
+          "baselineMedian": 54990848.0,
+          "candidateMedian": 55359488.0,
+          "pairedChange": 0.004633238863679168,
+          "p": 0.5,
+          "band": 0.02,
+          "controlDrift": [
+            0.0022296544035673715,
+            0.0019253554502369763,
+            0.001119737234995477,
+            0.00910108168593804
+          ],
+          "controlsStable": true,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Split",
+          "metric": "commandUs",
+          "blocks": 2,
+          "baselineMedian": 275.02500000000003,
+          "candidateMedian": 288.675,
+          "pairedChange": 0.033893153404059406,
+          "p": 1.0,
+          "band": 0.05,
+          "controlDrift": [
+            0.06755167198790113,
+            0.022516082916368862,
+            0.0055025678650036935,
+            0.026609442060085753
+          ],
+          "controlsStable": false,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Split",
+          "metric": "ownerCpuCycles",
+          "blocks": 2,
+          "baselineMedian": 10005800.5,
+          "candidateMedian": 9925809.5,
+          "pairedChange": -0.008557716976548613,
+          "p": 0.5,
+          "band": 0.05,
+          "controlDrift": [
+            0.013360699737725135,
+            0.015522890305317949,
+            0.011666020155449264,
+            0.016379604056627306
+          ],
+          "controlsStable": true,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Split",
+          "metric": "completedEditUs",
+          "blocks": 2,
+          "baselineMedian": 16703.45,
+          "candidateMedian": 16705.0,
+          "pairedChange": -0.00028807011989384623,
+          "p": 1.0,
+          "band": 0.05,
+          "controlDrift": [
+            0.00020357148203031805,
+            0.004691590301842519,
+            0.0009044001161944148,
+            0.003192419650450695
+          ],
+          "controlsStable": true,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Split",
+          "metric": "cleanCompletedUs",
+          "blocks": 2,
+          "baselineMedian": 16590.600000000002,
+          "candidateMedian": 16575.65,
+          "pairedChange": -0.0019356953366961305,
+          "p": 1.0,
+          "band": 0.05,
+          "controlDrift": [
+            0.0014213590123518527,
+            0.007989242687632014,
+            0.004698255234746984,
+            0.01057229051285502
+          ],
+          "controlsStable": true,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Split",
+          "metric": "privateBytes",
+          "blocks": 2,
+          "baselineMedian": 46090240.0,
+          "candidateMedian": 46110720.0,
+          "pairedChange": 0.0032980157402344723,
+          "p": 0.5,
+          "band": 0.02,
+          "controlDrift": [
+            0.02158527954706302,
+            0.029125338142470758,
+            0.0038140855064751067,
+            0.01033934252386004
+          ],
+          "controlsStable": false,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Split",
+          "metric": "workingSetBytes",
+          "blocks": 2,
+          "baselineMedian": 55838720.0,
+          "candidateMedian": 55816192.0,
+          "pairedChange": -0.0019256675946570656,
+          "p": 1.0,
+          "band": 0.02,
+          "controlDrift": [
+            0.007439282328057795,
+            0.006502142751588558,
+            0.004613356766256627,
+            0.0032276995305164924
+          ],
+          "controlsStable": true,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        }
+      ]
+    },
+    {
+      "study": "ab",
+      "nativeReports": 16,
+      "sameBinaryControl": false,
+      "comparisonSha256": "1C90138DE2B4D7B22ED40EE193371C58026ABEC66CC119BBA107C8E3D1C35084",
+      "studySha256": "CD04F56CBD3C3012853D8CD6CC3EA4C495D8A0DFC7B83DE8D587E777E574862E",
+      "familySize": 12,
+      "rows": [
+        {
+          "scenario": "Compose",
+          "metric": "commandUs",
+          "blocks": 2,
+          "baselineMedian": 287.57500000000005,
+          "candidateMedian": 273.925,
+          "pairedChange": -0.02339895582340712,
+          "p": 1.0,
+          "band": 0.05,
+          "controlDrift": [
+            0.06248947279770933,
+            0.0001826817683594495,
+            0.1334095673718314,
+            0.04140824516599784
+          ],
+          "controlsStable": false,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Compose",
+          "metric": "ownerCpuCycles",
+          "blocks": 2,
+          "baselineMedian": 7937694.0,
+          "candidateMedian": 8073968.25,
+          "pairedChange": 0.006332221494634194,
+          "p": 0.5,
+          "band": 0.05,
+          "controlDrift": [
+            0.04129795420531246,
+            0.0026837202507408175,
+            0.01755695007577618,
+            0.02232541694420853
+          ],
+          "controlsStable": true,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Compose",
+          "metric": "completedEditUs",
+          "blocks": 2,
+          "baselineMedian": 16667.7,
+          "candidateMedian": 16662.3,
+          "pairedChange": -0.0008040451154622819,
+          "p": 0.5,
+          "band": 0.05,
+          "controlDrift": [
+            0.0019157145645354312,
+            1.8004879322131018e-05,
+            0.004882654921202212,
+            0.002489541822200181
+          ],
+          "controlsStable": true,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Compose",
+          "metric": "cleanCompletedUs",
+          "blocks": 2,
+          "baselineMedian": 16735.5,
+          "candidateMedian": 16716.975,
+          "pairedChange": -2.721779092440535e-06,
+          "p": 1.0,
+          "band": 0.05,
+          "controlDrift": [
+            0.0016931015056085297,
+            0.0033205894495000887,
+            0.0036183292679632384,
+            0.0008133946967860961
+          ],
+          "controlsStable": true,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Compose",
+          "metric": "privateBytes",
+          "blocks": 2,
+          "baselineMedian": 46348288.0,
+          "candidateMedian": 45850624.0,
+          "pairedChange": -0.008389617801733085,
+          "p": 0.5,
+          "band": 0.02,
+          "controlDrift": [
+            0.010673307835986856,
+            0.021673743807501755,
+            0.009928828749670493,
+            0.031396607722843806
+          ],
+          "controlsStable": false,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Compose",
+          "metric": "workingSetBytes",
+          "blocks": 2,
+          "baselineMedian": 55101440.0,
+          "candidateMedian": 55347200.0,
+          "pairedChange": 0.004216086688368481,
+          "p": 0.5,
+          "band": 0.02,
+          "controlDrift": [
+            0.00037224538415725483,
+            0.004380103934669588,
+            0.0018555629778074234,
+            0.004866538858575464
+          ],
+          "controlsStable": true,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Split",
+          "metric": "commandUs",
+          "blocks": 2,
+          "baselineMedian": 327.275,
+          "candidateMedian": 315.475,
+          "pairedChange": -0.04523703716023075,
+          "p": 0.5,
+          "band": 0.05,
+          "controlDrift": [
+            0.08810705157119236,
+            0.03480352846832413,
+            0.11257763975155277,
+            0.11374738311235166
+          ],
+          "controlsStable": false,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Split",
+          "metric": "ownerCpuCycles",
+          "blocks": 2,
+          "baselineMedian": 10369319.75,
+          "candidateMedian": 10023265.5,
+          "pairedChange": -0.026790892839087754,
+          "p": 0.5,
+          "band": 0.05,
+          "controlDrift": [
+            0.017090368283071866,
+            0.03496128494555695,
+            0.023820594583142007,
+            0.01390883519145758
+          ],
+          "controlsStable": true,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Split",
+          "metric": "completedEditUs",
+          "blocks": 2,
+          "baselineMedian": 16783.600000000002,
+          "candidateMedian": 16752.85,
+          "pairedChange": -0.0005229249724515439,
+          "p": 1.0,
+          "band": 0.05,
+          "controlDrift": [
+            0.007194137625429309,
+            0.002993044165359615,
+            0.0037341610327213948,
+            0.004735591206179501
+          ],
+          "controlsStable": true,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Split",
+          "metric": "cleanCompletedUs",
+          "blocks": 2,
+          "baselineMedian": 16515.6,
+          "candidateMedian": 16569.824999999997,
+          "pairedChange": 0.005097662709685924,
+          "p": 0.5,
+          "band": 0.05,
+          "controlDrift": [
+            0.0006839676174623666,
+            0.0018849601293233764,
+            0.03931795701119478,
+            0.02878138765356053
+          ],
+          "controlsStable": true,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Split",
+          "metric": "privateBytes",
+          "blocks": 2,
+          "baselineMedian": 47241216.0,
+          "candidateMedian": 46077952.0,
+          "pairedChange": -0.015723655247343205,
+          "p": 1.0,
+          "band": 0.02,
+          "controlDrift": [
+            0.04296908636872465,
+            0.01741013425725424,
+            0.0002600780234069955,
+            0.011332728921124247
+          ],
+          "controlsStable": false,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        },
+        {
+          "scenario": "Split",
+          "metric": "workingSetBytes",
+          "blocks": 2,
+          "baselineMedian": 55914496.0,
+          "candidateMedian": 55801856.0,
+          "pairedChange": -0.0024535138601019524,
+          "p": 1.0,
+          "band": 0.02,
+          "controlDrift": [
+            0.0044796944995226795,
+            0.0032201405152224583,
+            0.0017506747392224131,
+            0.0077651235024405185
+          ],
+          "controlsStable": true,
+          "adjustedP": 1.0,
+          "finding": "no-resolved-change"
+        }
+      ]
+    }
+  ],
+  "canonicalRows": 24,
+  "allAdjustedP": 1,
+  "allFindings": "no-resolved-change",
+  "acceptance": false
+}

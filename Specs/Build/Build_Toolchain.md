@@ -4,6 +4,11 @@ Visual Studio 2026 C++ v145, SDK 10.0.26100, Unicode, `/std:c++latest`, `/W4 /WX
 Discover VS through vswhere including installed prerelease instances. Match the pinned library's compiler,
 architecture, runtime (/MDd Debug/ASan, /MD Release) and SDK. Outputs are private to this repository under `.build`.
 
+A build transaction freezes all non-ignored source files except `Measurements/`, including WIP and prose.
+Editing those during compilation causes the full-source guard to refuse the result even when native bytes
+are unchanged. Update checklists between operations. Between builds, unchanged compiled inputs may support
+receipt-verified incremental reuse; this never relabels an earlier run's full source identity.
+
 `restore-dxui.ps1` validates the exact lock, creates an isolated detached checkout and invokes the supported
 consumer build-identity and dependency-restore APIs. It never resets/cleans a sibling checkout. Fingerprint source,
 API, toolchain, platform and flags. Import the public consumer props/targets and reference the single archive.
@@ -15,6 +20,10 @@ for the additive methods, while MarkdownSyntax gains an immutable shared owner a
 Adopt the exact source pin, rebuild every consumer profile, and retain its exact source/package header inventory.
 An isolated method/layout probe supports a fixed comparison profile; it does not substitute for native linking,
 consumer behavior, platform execution or performance qualification.
+
+The ProgressBar animation-pause API also adds private class state while retaining API revision 4. A dependency
+update across that addition requires matching exact public headers and library plus all consumer profile rebuilds.
+A measured source/layout probe does not imply binary interchangeability with the older archive.
 
 Deeply nested workspaces can exceed the compiler's path limit while CMake probes the dependency build, even
 with Git long paths enabled. Retain the original configure/compiler logs. The pinned SDK's supported
@@ -66,7 +75,7 @@ policy/compiler metadata refuses before invoking MSBuild.
 
 The evaluated ReleaseBuildPolicy regression covers the real lease and referenced pinned SDK in all six profiles
 using the same argument factory as the entrypoint. It preserves Debug/ASan behavior and exact toolchain properties,
-retains an omitted-arguments counterfactual that selects non-GL Release settings, and verifies that an evaluated
+checks the adopted SDK's governed default /GL Release settings, and verifies that an evaluated
 SDK toolset-default override cannot replace the pinned VCToolsVersion global. Evaluation compiles and
 launches nothing; actual archive restoration and source-bound runtime qualification remain separate obligations.
 Accepted configuration casing must select the same policy. Lease evaluations use the actual restored dependency

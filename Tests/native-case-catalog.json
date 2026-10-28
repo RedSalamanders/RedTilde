@@ -178,6 +178,10 @@
       "scope": "Editor"
     },
     {
+      "name": "Window.DesignRefreshCaptionButtonPointerLifecycle",
+      "scope": "Editor"
+    },
+    {
       "name": "Window.DesignRefreshResponsiveLayoutAndDpi",
       "scope": "Editor"
     },

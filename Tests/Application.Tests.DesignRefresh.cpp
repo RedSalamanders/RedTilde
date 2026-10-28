@@ -9,6 +9,7 @@
 #include <cmath>
 #include <format>
 #include <initializer_list>
+#include <limits>
 #include <mutex>
 #include <ranges>
 #include <stdexcept>
@@ -53,11 +54,9 @@ void Color(D2D1_COLOR_F actual, unsigned rgb, std::string_view message)
                 std::abs(actual.b - static_cast<float>(rgb & 255) / 255.f) < 0.001f && actual.a == 1,
             message);
 }
-void CheckBrandIconResource(HINSTANCE module, unsigned requestedSize)
+void CheckBrandIconPixels(HICON icon, unsigned requestedWidth, unsigned requestedHeight, bool expectNativeFrame)
 {
-    wil::unique_hicon icon{static_cast<HICON>(LoadImageW(module, MAKEINTRESOURCEW(IDI_REDTILDE), IMAGE_ICON, static_cast<int>(requestedSize),
-                                                         static_cast<int>(requestedSize), LR_DEFAULTCOLOR))};
-    Require(icon != nullptr, "load the compiled RedTilde icon resource at the requested size");
+    Require(icon != nullptr, "use the compiled RedTilde icon resource");
 
     const auto initialized = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     Require(SUCCEEDED(initialized) || initialized == RPC_E_CHANGED_MODE, "use the test's existing COM apartment for icon decoding");
@@ -66,24 +65,24 @@ void CheckBrandIconResource(HINSTANCE module, unsigned requestedSize)
     Success(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(factory.put())),
             "create a WIC decoder for the icon resource");
     wil::com_ptr<IWICBitmap> bitmap;
-    Success(factory->CreateBitmapFromHICON(icon.get(), bitmap.put()), "decode the requested icon frame");
+    Success(factory->CreateBitmapFromHICON(icon, bitmap.put()), "decode the requested icon frame");
     UINT width{}, height{};
     Success(bitmap->GetSize(&width, &height), "read decoded icon geometry");
-    Require(width == requestedSize && height == requestedSize, "icon resource decodes to the requested square geometry");
+    Require(width == requestedWidth && height == requestedHeight, "icon resource decodes to the requested geometry");
 
     wil::com_ptr<IWICFormatConverter> converter;
     Success(factory->CreateFormatConverter(converter.put()), "create an alpha-preserving icon pixel view");
     Success(converter->Initialize(bitmap.get(), GUID_WICPixelFormat32bppBGRA, WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom),
             "convert icon pixels to explicit BGRA alpha");
-    std::vector<BYTE> pixels(static_cast<std::size_t>(requestedSize) * requestedSize * 4);
-    Success(converter->CopyPixels(nullptr, requestedSize * 4, static_cast<UINT>(pixels.size()), pixels.data()), "read decoded icon alpha pixels");
+    std::vector<BYTE> pixels(static_cast<std::size_t>(requestedWidth) * requestedHeight * 4);
+    Success(converter->CopyPixels(nullptr, requestedWidth * 4, static_cast<UINT>(pixels.size()), pixels.data()), "read decoded icon alpha pixels");
     std::size_t transparent{}, opaque{}, ink{};
-    UINT left = requestedSize, top = requestedSize, right{}, bottom{};
-    for (UINT y = 0; y < requestedSize; ++y)
+    UINT left = requestedWidth, top = requestedHeight, right{}, bottom{};
+    for (UINT y = 0; y < requestedHeight; ++y)
     {
-        for (UINT x = 0; x < requestedSize; ++x)
+        for (UINT x = 0; x < requestedWidth; ++x)
         {
-            const auto alpha = pixels[(static_cast<std::size_t>(y) * requestedSize + x) * 4 + 3];
+            const auto alpha = pixels[(static_cast<std::size_t>(y) * requestedWidth + x) * 4 + 3];
             transparent += alpha == 0;
             opaque += alpha == 255;
             if (alpha != 0)
@@ -96,27 +95,34 @@ void CheckBrandIconResource(HINSTANCE module, unsigned requestedSize)
             }
         }
     }
-    Require(transparent > 0 && opaque > 0, "every icon size retains transparent background and opaque ink");
-    if (requestedSize <= 32)
+    Require(transparent > 0 && ink > 0 && (!expectNativeFrame || opaque > 0),
+            std::format("icon {}x{} alpha: native={}, transparent={}, opaque={}, ink={}", requestedWidth, requestedHeight, expectNativeFrame,
+                        transparent, opaque, ink));
+    if (requestedWidth <= 32 && requestedHeight <= 32)
     {
         // Preserve the existing small-icon legibility oracle. Larger frames have
         // less antialias coverage, so their ink area is not the same percentage.
-        const auto pixelsPerDimension = static_cast<std::size_t>(requestedSize);
-        Require(ink > pixelsPerDimension * pixelsPerDimension / 4 && opaque < pixelsPerDimension * pixelsPerDimension &&
-                    right - left >= requestedSize * 3 / 5 && bottom - top >= requestedSize * 2 / 5,
-                std::format("icon {} silhouette: transparent={}, opaque={}, ink={}, width={}, height={}", requestedSize, transparent, opaque, ink,
-                            right - left, bottom - top));
+        const auto pixelCount = static_cast<std::size_t>(requestedWidth) * requestedHeight;
+        Require(ink > pixelCount / 4 && opaque < pixelCount && right - left >= requestedWidth * 3 / 5 && bottom - top >= requestedHeight * 2 / 5,
+                std::format("icon {}x{} silhouette: transparent={}, opaque={}, ink={}, width={}, height={}", requestedWidth, requestedHeight,
+                            transparent, opaque, ink, right - left, bottom - top));
     }
 
     wil::com_ptr<IWICFormatConverter> premultiplied;
     Success(factory->CreateFormatConverter(premultiplied.put()), "create an independent premultiplied icon reference");
     Success(premultiplied->Initialize(bitmap.get(), GUID_WICPixelFormat32bppPBGRA, WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom),
             "prepare the independent WIC premultiplied reference for the native brand resource");
-    Success(premultiplied->CopyPixels(nullptr, requestedSize * 4, static_cast<UINT>(pixels.size()), pixels.data()),
+    Success(premultiplied->CopyPixels(nullptr, requestedWidth * 4, static_cast<UINT>(pixels.size()), pixels.data()),
             "read the independent premultiplied icon reference");
-    const auto nativePixels = LoadBrandMarkPixels(icon.get());
-    Require(nativePixels.width == width && nativePixels.height == height && nativePixels.bgra == pixels,
-            "bounded native brand extraction matches every WIC reference byte, including partial and zero alpha");
+    const auto canonicalPixels = LoadBrandMarkPixels(icon);
+    Require(canonicalPixels.width == width && canonicalPixels.height == height && canonicalPixels.bgra == pixels,
+            "canonical HICON extraction matches every WIC reference byte, including partial and zero alpha");
+}
+void CheckBrandIconResource(HINSTANCE module, unsigned requestedSize, bool expectNativeFrame = true)
+{
+    wil::unique_hicon icon{static_cast<HICON>(LoadImageW(module, MAKEINTRESOURCEW(IDI_REDTILDE), IMAGE_ICON, static_cast<int>(requestedSize),
+                                                         static_cast<int>(requestedSize), LR_DEFAULTCOLOR))};
+    CheckBrandIconPixels(icon.get(), requestedSize, requestedSize, expectNativeFrame);
 }
 std::vector<BYTE> ReadBrandMarkRaster(const std::filesystem::path &path, float dpi)
 {
@@ -154,6 +160,47 @@ std::vector<BYTE> ReadBrandMarkRaster(const std::filesystem::path &path, float d
                                    pixels.begin() + static_cast<std::ptrdiff_t>(backgroundOffset));
         }
     Require(visible > 16, "the brand-mark region contains rendered icon pixels");
+    return region;
+}
+std::vector<BYTE> ReadCaptionButtonRaster(const std::filesystem::path &path, D2D1_RECT_F bounds, float dpi)
+{
+    // This crop-only reader is local because the caption oracle must ignore changing editor/body pixels;
+    // the existing brand-mark reader intentionally has different fixed-region semantics.
+    wil::com_ptr<IWICImagingFactory> factory;
+    Success(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(factory.put())),
+            "create a WIC decoder for the hidden caption-button capture");
+    wil::com_ptr<IWICBitmapDecoder> decoder;
+    Success(factory->CreateDecoderFromFilename(path.c_str(), nullptr, GENERIC_READ, WICDecodeMetadataCacheOnLoad, decoder.put()),
+            "open the hidden caption-button capture");
+    wil::com_ptr<IWICBitmapFrameDecode> frame;
+    Success(decoder->GetFrame(0, frame.put()), "read the caption-button capture frame");
+    wil::com_ptr<IWICFormatConverter> converter;
+    Success(factory->CreateFormatConverter(converter.put()), "create the caption-button pixel view");
+    Success(converter->Initialize(frame.get(), GUID_WICPixelFormat32bppBGRA, WICBitmapDitherTypeNone, nullptr, 0, WICBitmapPaletteTypeCustom),
+            "convert caption pixels to BGRA");
+    UINT width{}, height{};
+    Success(converter->GetSize(&width, &height), "read caption capture dimensions");
+    Require(width > 0 && height > 0 && width <= 4096 && height <= 4096 && width <= std::numeric_limits<UINT>::max() / 4,
+            "caption capture dimensions stay within the bounded hidden viewport");
+    const float scale = dpi / 96.f;
+    const auto left = static_cast<UINT>(std::max(0.f, std::floor(bounds.left * scale)));
+    const auto top = static_cast<UINT>(std::max(0.f, std::floor(bounds.top * scale)));
+    const auto right = std::min(width, static_cast<UINT>(std::ceil(bounds.right * scale)));
+    const auto bottom = std::min(height, static_cast<UINT>(std::ceil(bounds.bottom * scale)));
+    Require(right > left && bottom > top, "caption capture crop fits the hidden viewport");
+    const auto pixelBytes = static_cast<std::size_t>(width) * height * 4;
+    Require(pixelBytes <= std::numeric_limits<UINT>::max(), "caption capture byte count fits the WIC copy contract");
+    std::vector<BYTE> pixels(pixelBytes);
+    Success(converter->CopyPixels(nullptr, width * 4, static_cast<UINT>(pixels.size()), pixels.data()), "read caption capture pixels");
+    std::vector<BYTE> region;
+    region.reserve(static_cast<std::size_t>(right - left) * (bottom - top) * 4);
+    for (UINT y = top; y < bottom; ++y)
+        for (UINT x = left; x < right; ++x)
+        {
+            const auto offset = (static_cast<std::size_t>(y) * width + x) * 4;
+            region.insert(region.end(), pixels.begin() + static_cast<std::ptrdiff_t>(offset),
+                          pixels.begin() + static_cast<std::ptrdiff_t>(offset + 4));
+        }
     return region;
 }
 void WriteFixture(const std::filesystem::path &path, std::string_view contents = "# Invented notes\n")
@@ -740,10 +787,130 @@ class DesignRefreshProbe final
                          "Focus mode retains Exit focus and native caption targets");
                  Require(GetForegroundWindow() == foreground && !IsWindowVisible(app.Window()), "frame probing never shows or activates its window");
              });
+        test("Window.DesignRefreshCaptionButtonPointerLifecycle",
+             [&]
+             {
+                 const auto foreground = GetForegroundWindow();
+                 Application app(Options(root, L"caption-pointer-lifecycle"));
+                 Success(app.Initialize(), "create hidden caption-button lifecycle app");
+                 const auto source = app.Document().Snapshot();
+                 const auto selection = app.Document().GetSelection();
+                 auto *const keyboardFocus = app.Host().GetFocusControl();
+                 const bool canUndo = app.Document().CanUndo(), canRedo = app.Document().CanRedo();
+                 unsigned minimizeClicks{}, maximizeClicks{}, closeClicks{};
+                 app.minimizeButton->SetOnClick([&] { ++minimizeClicks; });
+                 app.maximizeButton->SetOnClick([&] { ++maximizeClicks; });
+                 app.closeButton->SetOnClick([&] { ++closeClicks; });
+                 Require(app.minimizeButton->GetAppearance() == DxUi::ButtonAppearance::Caption &&
+                             app.maximizeButton->GetAppearance() == DxUi::ButtonAppearance::Caption &&
+                             app.closeButton->GetAppearance() == DxUi::ButtonAppearance::CaptionClose,
+                         "caption controls use the shared native-caption neutral and close treatments");
+                 Require(!app.minimizeButton->IsFocusable() && !app.maximizeButton->IsFocusable() && !app.closeButton->IsFocusable(),
+                         "caption actions do not steal editor keyboard focus");
+                 const auto screenPoint = [&](D2D1_POINT_2F dip)
+                 {
+                     const auto point = app.Host().DipPointToScreenPoint(dip);
+                     return MAKELPARAM(static_cast<SHORT>(point.x), static_cast<SHORT>(point.y));
+                 };
+                 const auto clientPoint = [&](D2D1_POINT_2F dip)
+                 {
+                     POINT point{GET_X_LPARAM(screenPoint(dip)), GET_Y_LPARAM(screenPoint(dip))};
+                     Require(ScreenToClient(app.Window(), &point) != FALSE, "convert caption release to client coordinates");
+                     return MAKELPARAM(static_cast<SHORT>(point.x), static_cast<SHORT>(point.y));
+                 };
+                 const auto center = [](const DxUi::Control *control)
+                 {
+                     const auto bounds = control->GetBounds();
+                     return D2D1::Point2F((bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2);
+                 };
+                 const auto captionDown = [&](DxUi::Button *button, LRESULT hit)
+                 {
+                     const auto point = center(button);
+                     const auto packed = screenPoint(point);
+                     (void)SendMessageW(app.Window(), WM_NCMOUSEMOVE, static_cast<WPARAM>(hit), packed);
+                     (void)SendMessageW(app.Window(), WM_NCLBUTTONDOWN, static_cast<WPARAM>(hit), packed);
+                 };
+                 for (const UINT dpi : {96u, 144u, 192u})
+                 {
+                     minimizeClicks = maximizeClicks = closeClicks = 0;
+                     Resize(app, 1440, 900, dpi);
+                     const auto idlePath = root / std::format(L"caption-close-idle-{}.png", dpi);
+                     // Resize has settled content. Snapshot each synthetic input
+                     // step before pumping real-pointer leave for the hidden HWND.
+                     Require(app.Capture(idlePath, false), "capture idle caption close control without showing the window");
+                     const auto idlePixels = ReadCaptionButtonRaster(idlePath, app.closeButton->GetBounds(), app.Host().GetDpi());
+                     const auto closeHit = HitControl(app, app.closeButton);
+                     const auto closeCenter = center(app.closeButton);
+                     (void)SendMessageW(app.Window(), WM_NCMOUSEMOVE, static_cast<WPARAM>(closeHit), screenPoint(closeCenter));
+                     Require(app.closeButton->IsHovered() && !app.maximizeButton->IsHovered() && !app.minimizeButton->IsHovered(),
+                             std::format("nonclient hover targets only Close at {} DPI", dpi));
+                     const auto hoverPath = root / std::format(L"caption-close-hover-{}.png", dpi);
+                     Require(app.Capture(hoverPath, false), "capture hovered caption close control without showing the window");
+                     Require(app.closeButton->IsHovered(), "capturing a prepared interaction frame preserves its synthetic hover state");
+                     Require(idlePixels != ReadCaptionButtonRaster(hoverPath, app.closeButton->GetBounds(), app.Host().GetDpi()),
+                             std::format("close hover changes its rendered pixels at {} DPI", dpi));
+                     (void)SendMessageW(app.Window(), WM_NCMOUSELEAVE, 0, 0);
+                     Require(!app.closeButton->IsHovered() && !app.maximizeButton->IsHovered() && !app.minimizeButton->IsHovered(),
+                             std::format("nonclient leave clears caption hover at {} DPI", dpi));
+
+                     captionDown(app.closeButton, HTCLOSE);
+                     Require(GetCapture() == app.Window(), "pressed Close owns the normal DxUi capture");
+#if DXUI_ENABLE_DIAGNOSTICS
+                     Require(app.closeButton->DebugIsPressed(), "caption down enters the shared button pressed state");
+#endif
+                     const auto pressedPath = root / std::format(L"caption-close-pressed-{}.png", dpi);
+                     Require(app.Capture(pressedPath, false), "capture pressed caption close control without showing the window");
+                     Require(idlePixels != ReadCaptionButtonRaster(pressedPath, app.closeButton->GetBounds(), app.Host().GetDpi()),
+                             std::format("pressed Close changes its rendered pixels at {} DPI", dpi));
+                     (void)SendMessageW(app.Window(), WM_CANCELMODE, 0, 0);
+                     Require(GetCapture() != app.Window() && closeClicks == 0, "cancel clears caption press without invoking Close");
+#if DXUI_ENABLE_DIAGNOSTICS
+                     Require(!app.closeButton->DebugIsPressed(), "cancel resets the shared button pressed state");
+#endif
+                     captionDown(app.closeButton, HTCLOSE);
+                     (void)SendMessageW(app.Window(), WM_MOUSEMOVE, MK_LBUTTON, MAKELPARAM(500, 200));
+                     (void)SendMessageW(app.Window(), WM_LBUTTONUP, 0, MAKELPARAM(500, 200));
+                     Require(closeClicks == 0 && GetCapture() != app.Window(), "release outside a caption control cancels invocation");
+
+                     captionDown(app.minimizeButton, HTMINBUTTON);
+                     Require(GetCapture() == app.Window(), "a caption press transfers to the normal DxUi client capture");
+                     (void)SendMessageW(app.Window(), WM_LBUTTONUP, 0, clientPoint(center(app.minimizeButton)));
+                     Require(minimizeClicks == 1, "Minimize invokes exactly once through client release");
+                     captionDown(app.maximizeButton, HTMAXBUTTON);
+                     (void)SendMessageW(app.Window(), WM_LBUTTONUP, 0, clientPoint(center(app.maximizeButton)));
+                     Require(maximizeClicks == 1, "Maximize invokes exactly once through client release");
+                     // A native double-click replaces the second down message;
+                     // each completed caption-button click still invokes once.
+                     captionDown(app.maximizeButton, HTMAXBUTTON);
+                     (void)SendMessageW(app.Window(), WM_LBUTTONUP, 0, clientPoint(center(app.maximizeButton)));
+                     (void)SendMessageW(app.Window(), WM_NCLBUTTONDBLCLK, HTMAXBUTTON, screenPoint(center(app.maximizeButton)));
+                     (void)SendMessageW(app.Window(), WM_LBUTTONUP, 0, clientPoint(center(app.maximizeButton)));
+                     Require(maximizeClicks == 3, "the complete down/up/double-click/up sequence invokes once per completed click");
+                     captionDown(app.closeButton, HTCLOSE);
+                     (void)SendMessageW(app.Window(), WM_LBUTTONUP, 0, clientPoint(closeCenter));
+                     Require(closeClicks == 1, "Close invokes exactly once through client release");
+                     captionDown(app.closeButton, HTCLOSE);
+                     (void)SendMessageW(app.Window(), WM_NCLBUTTONUP, HTCLOSE, screenPoint(closeCenter));
+                     Require(closeClicks == 2, "guarded nonclient release fallback invokes one repeated Close action");
+                     const auto closePacked = screenPoint(closeCenter);
+                     (void)SendMessageW(app.Window(), WM_NCLBUTTONDBLCLK, HTCLOSE, closePacked);
+                     (void)SendMessageW(app.Window(), WM_LBUTTONUP, 0, clientPoint(closeCenter));
+                     Require(closeClicks == 3 && !app.closing, "caption double-click follows the client lifecycle without native duplicate close");
+                     (void)SendMessageW(app.Window(), WM_NCMOUSELEAVE, 0, 0);
+                 }
+                 Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selection &&
+                             app.Document().CanUndo() == canUndo && app.Document().CanRedo() == canRedo &&
+                             app.Host().GetFocusControl() == keyboardFocus,
+                         "caption pointer handling preserves exact source, selection, undo history and keyboard focus");
+                 Require(GetForegroundWindow() == foreground && !IsWindowVisible(app.Window()),
+                         "caption pointer and raster coverage never shows or activates the hidden test window");
+             });
         test("Window.DesignRefreshResponsiveLayoutAndDpi",
              [&]
              {
                  const auto foreground = GetForegroundWindow();
+                 DWORD initialProcessAtEntry{};
+                 const bool initialOwnerAtEntry = GetWindowThreadProcessId(foreground, &initialProcessAtEntry) != 0;
                  Application app(Options(root, L"design-layout"));
                  Success(app.Initialize(), "create hidden responsive-layout app");
                  app.Execute(Command::Files);
@@ -797,10 +964,13 @@ class DesignRefreshProbe final
                      const bool observedOwnerAvailable = GetWindowThreadProcessId(observedForeground, &observedProcess) != 0;
                      Require(false, std::format("DPI/layout scenarios preserve the desktop: foregroundChanged={} testWindowVisible={} "
                                                 "observedIsTestWindow={} initialOwnerAvailable={} observedOwnerAvailable={} "
-                                                "initialProcessIsTest={} observedProcessIsTest={} initialWindowStillExists={}",
+                                                "initialProcessIsTest={} observedProcessIsTest={} initialWindowStillExists={} "
+                                                "initialForegroundWasNull={} observedForegroundWasNull={} initialOwnerAtEntry={} "
+                                                "initialProcessAtEntryIsTest={}",
                                                 observedForeground != foreground, testWindowVisible, observedForeground == app.Window(),
                                                 initialOwnerAvailable, observedOwnerAvailable, initialProcess == GetCurrentProcessId(),
-                                                observedProcess == GetCurrentProcessId(), IsWindow(foreground) != FALSE)
+                                                observedProcess == GetCurrentProcessId(), IsWindow(foreground) != FALSE, foreground == nullptr,
+                                                observedForeground == nullptr, initialOwnerAtEntry, initialProcessAtEntry == GetCurrentProcessId())
                                         .c_str());
                  }
              });
@@ -868,6 +1038,8 @@ class DesignRefreshProbe final
              [&]
              {
                  const auto foreground = GetForegroundWindow();
+                 DWORD initialForegroundProcess{};
+                 const bool initialForegroundOwnerAvailable = GetWindowThreadProcessId(foreground, &initialForegroundProcess) != 0;
                  {
                      Application publicationApp(Options(root, L"design-outline-publication"));
                      Success(publicationApp.Initialize(), "create hidden outline-publication app");
@@ -954,7 +1126,18 @@ class DesignRefreshProbe final
                                  !publicationApp.outlineTree->GetSelectedItemId() && !publicationApp.outlineTree->GetFocusedItemId(),
                              "leaving all sections clears both identities once and repeated preamble carets remain inert");
                  }
-                 Require(GetForegroundWindow() == foreground, "outline publication probes never acquire desktop focus");
+                 const auto observedForeground = GetForegroundWindow();
+                 if (observedForeground != foreground)
+                 {
+                     DWORD observedProcess{};
+                     const bool observedOwnerAvailable = GetWindowThreadProcessId(observedForeground, &observedProcess) != 0;
+                     Require(false, std::format("outline publication probes never acquire desktop focus: initialForegroundWasNull={} "
+                                                "observedForegroundWasNull={} initialOwnerAtEntry={} observedOwnerAvailable={} "
+                                                "initialProcessAtEntryIsTest={} observedProcessIsTest={} initialWindowStillExists={}",
+                                                foreground == nullptr, observedForeground == nullptr, initialForegroundOwnerAvailable,
+                                                observedOwnerAvailable, initialForegroundProcess == GetCurrentProcessId(),
+                                                observedProcess == GetCurrentProcessId(), IsWindow(foreground) != FALSE));
+                 }
                  Application app(Options(root, L"design-outline"));
                  Success(app.Initialize(), "create hidden outline-tree app");
                  const std::wstring source = L"# Root\n\nOpening Needle.\n\n## Child\n\nNeedle.\n\n### Leaf\n\nDetail.\n\n# Next\n\nTail.\n\n#   \n";
@@ -2165,7 +2348,8 @@ class DesignRefreshProbe final
                      // Native hit-test caret extents can be shorter than the
                      // configured line advance. Equal-font top insets cancel;
                      // compare complete row advances, without clipped UIA bounds.
-                     Require(type.paragraphSpacingAfterLines == 18.f / 26.4f && type.listItemSpacingDip == 10.f && firstItem && secondItem &&
+                     Require(type.markdownPresentation == DxUi::RichText::MarkdownPresentationStyle::Subtle &&
+                                 type.paragraphSpacingAfterLines == 18.f / 26.4f && type.listItemSpacingDip == 10.f && firstItem && secondItem &&
                                  firstParagraph && secondParagraph && firstItem->bottom > firstItem->top &&
                                  firstParagraph->bottom > firstParagraph->top && Near(secondItem->top - firstItem->top - bodyLine, 10) &&
                                  Near(secondParagraph->top - firstParagraph->top, 2 * bodyLine),
@@ -2317,6 +2501,15 @@ class DesignRefreshProbe final
                  const auto module = GetModuleHandleW(nullptr);
                  for (const unsigned size : {16u, 24u, 32u, 48u, 64u, 128u, 256u})
                      CheckBrandIconResource(module, size);
+                 for (const unsigned size : {20u, 40u, 96u})
+                     CheckBrandIconResource(module, size, false);
+                 const auto defaultIcon = LoadIconW(module, MAKEINTRESOURCEW(IDI_REDTILDE)); // Shared class icon: borrowed, never destroyed here.
+                 const auto defaultWidth = static_cast<unsigned>(GetSystemMetrics(SM_CXICON));
+                 const auto defaultHeight = static_cast<unsigned>(GetSystemMetrics(SM_CYICON));
+                 constexpr std::array nativeIconSizes{16u, 24u, 32u, 48u, 64u, 128u, 256u};
+                 const bool defaultNative =
+                     defaultWidth == defaultHeight && std::ranges::find(nativeIconSizes, defaultWidth) != nativeIconSizes.end();
+                 CheckBrandIconPixels(defaultIcon, defaultWidth, defaultHeight, defaultNative);
                  Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().Revision() == sourceRevision &&
                              app.Document().GetSelection() == retainedSelection && !app.Document().CanUndo() && app.Document().CanRedo(),
                          "theme, view, native spacing and icon checks leave exact source, selection and history unchanged");

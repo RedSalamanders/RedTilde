@@ -1,0 +1,81 @@
+=================================================================
+==27540==ERROR: AddressSanitizer: heap-use-after-free on address 0x12afd3aa1374 at pc 0x7ff667940357 bp 0x00b67f8fb700 sp 0x00b67f8fb708
+READ of size 4 at 0x12afd3aa1374 thread T0
+    #0 0x7ff667940356 in `anonymous namespace'::ProbeRead C:\Users\PVB\.codex\worktrees\rtq\RedTilde\Main.cpp:17
+    #1 0x7ff6679405ac in `anonymous namespace'::SanitizerProbe C:\Users\PVB\.codex\worktrees\rtq\RedTilde\Main.cpp:25
+    #2 0x7ff66793ea67 in wWinMain C:\Users\PVB\.codex\worktrees\rtq\RedTilde\Main.cpp:183
+    #3 0x7ff668b73961 in invoke_main F:\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:118
+    #4 0x7ff668b73881 in __scrt_common_main_seh F:\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+    #5 0x7ff668b7373d in __scrt_common_main F:\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:330
+    #6 0x7ff668b739dd in wWinMainCRTStartup F:\1\s\src\vctools\crt\vcstartup\src\startup\exe_wwinmain.cpp:16
+    #7 0x7ff881f5dda6 in BaseThreadInitThunk+0x16 (C:\WINDOWS\System32\KERNEL32.DLL+0x18002dda6)
+    #8 0x7ff88429ee4b in RtlUserThreadStart+0x2b (C:\WINDOWS\SYSTEM32\ntdll.dll+0x18007ee4b)
+
+0x12afd3aa1374 is located 4 bytes inside of 16-byte region [0x12afd3aa1370,0x12afd3aa1380)
+freed by thread T0 here:
+    #0 0x7ff668b71fd3 in operator delete F:\1\s\src\vctools\asan\llvm\compiler-rt\lib\asan\asan_win_delete_scalar_size_thunk.cpp:41
+    #1 0x7ff66794e71d in std::_Deallocate<16> C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.52.37025\include\xmemory:289
+    #2 0x7ff6679d2427 in std::allocator<int>::deallocate C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.52.37025\include\xmemory:989
+    #3 0x7ff6679c81c4 in std::vector<int,std::allocator<int> >::_Tidy C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.52.37025\include\vector:2101
+    #4 0x7ff6679d88ed in std::vector<int,std::allocator<int> >::shrink_to_fit C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.52.37025\include\vector:1747
+    #5 0x7ff66794059e in `anonymous namespace'::SanitizerProbe C:\Users\PVB\.codex\worktrees\rtq\RedTilde\Main.cpp:24
+    #6 0x7ff66793ea67 in wWinMain C:\Users\PVB\.codex\worktrees\rtq\RedTilde\Main.cpp:183
+    #7 0x7ff668b73961 in invoke_main F:\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:118
+    #8 0x7ff668b73881 in __scrt_common_main_seh F:\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+    #9 0x7ff668b7373d in __scrt_common_main F:\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:330
+    #10 0x7ff668b739dd in wWinMainCRTStartup F:\1\s\src\vctools\crt\vcstartup\src\startup\exe_wwinmain.cpp:16
+    #11 0x7ff881f5dda6 in BaseThreadInitThunk+0x16 (C:\WINDOWS\System32\KERNEL32.DLL+0x18002dda6)
+    #12 0x7ff88429ee4b in RtlUserThreadStart+0x2b (C:\WINDOWS\SYSTEM32\ntdll.dll+0x18007ee4b)
+
+previously allocated by thread T0 here:
+    #0 0x7ff668b71eb5 in operator new F:\1\s\src\vctools\asan\llvm\compiler-rt\lib\asan\asan_win_new_scalar_thunk.cpp:40
+    #1 0x7ff6679b988e in std::_Default_allocate_traits::_Allocate C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.52.37025\include\xmemory:136
+    #2 0x7ff6679496aa in std::_Allocate<16,std::_Default_allocate_traits> C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.52.37025\include\xmemory:256
+    #3 0x7ff6679cfc4b in std::allocator<int>::allocate C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.52.37025\include\xmemory:994
+    #4 0x7ff6679497c3 in std::_Allocate_at_least_helper<std::allocator<int> > C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.52.37025\include\xmemory:2333
+    #5 0x7ff6679ba4bc in std::vector<int,std::allocator<int> >::_Buy_raw C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.52.37025\include\vector:2042
+    #6 0x7ff6679ba430 in std::vector<int,std::allocator<int> >::_Buy_nonzero C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.52.37025\include\vector:2063
+    #7 0x7ff66794d62e in std::vector<int,std::allocator<int> >::_Construct_n<int const &> C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.52.37025\include\vector:2120
+    #8 0x7ff6679422f7 in std::vector<int,std::allocator<int> >::vector<int,std::allocator<int> ><std::allocator<int>,0> C:\Program Files\Microsoft Visual Studio\18\Insiders\VC\Tools\MSVC\14.52.37025\include\vector:690
+    #9 0x7ff667940547 in `anonymous namespace'::SanitizerProbe C:\Users\PVB\.codex\worktrees\rtq\RedTilde\Main.cpp:21
+    #10 0x7ff66793ea67 in wWinMain C:\Users\PVB\.codex\worktrees\rtq\RedTilde\Main.cpp:183
+    #11 0x7ff668b73961 in invoke_main F:\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:118
+    #12 0x7ff668b73881 in __scrt_common_main_seh F:\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:288
+    #13 0x7ff668b7373d in __scrt_common_main F:\1\s\src\vctools\crt\vcstartup\src\startup\exe_common.inl:330
+    #14 0x7ff668b739dd in wWinMainCRTStartup F:\1\s\src\vctools\crt\vcstartup\src\startup\exe_wwinmain.cpp:16
+    #15 0x7ff881f5dda6 in BaseThreadInitThunk+0x16 (C:\WINDOWS\System32\KERNEL32.DLL+0x18002dda6)
+    #16 0x7ff88429ee4b in RtlUserThreadStart+0x2b (C:\WINDOWS\SYSTEM32\ntdll.dll+0x18007ee4b)
+
+SUMMARY: AddressSanitizer: heap-use-after-free C:\Users\PVB\.codex\worktrees\rtq\RedTilde\Main.cpp:17 in `anonymous namespace'::ProbeRead
+Shadow bytes around the buggy address:
+  0x12afd3aa1080: fa fa 04 fa fa fa 00 fa fa fa 00 fa fa fa 00 fa
+  0x12afd3aa1100: fa fa 00 fa fa fa 00 fa fa fa 00 fa fa fa 00 fa
+  0x12afd3aa1180: fa fa 00 fa fa fa 00 fa fa fa 00 fa fa fa fd fa
+  0x12afd3aa1200: fa fa 00 fa fa fa 00 fa fa fa 00 00 fa fa 00 00
+  0x12afd3aa1280: fa fa 00 00 fa fa fd fd fa fa 00 00 fa fa 00 00
+=>0x12afd3aa1300: fa fa 00 00 fa fa 00 00 fa fa 00 00 fa fa[fd]fd
+  0x12afd3aa1380: fa fa fd fa fa fa fd fa fa fa 00 00 fa fa 04 fa
+  0x12afd3aa1400: fa fa fd fa fa fa 04 fa fa fa fa fa fa fa fa fa
+  0x12afd3aa1480: fa fa 00 04 fa fa 00 04 fa fa 04 fa fa fa 04 fa
+  0x12afd3aa1500: fa fa 04 fa fa fa 04 fa fa fa 04 fa fa fa 04 fa
+  0x12afd3aa1580: fa fa 04 fa fa fa 04 fa fa fa 04 fa fa fa 04 fa
+Shadow byte legend (one shadow byte represents 8 application bytes):
+  Addressable:           00
+  Partially addressable: 01 02 03 04 05 06 07 
+  Heap left redzone:       fa
+  Freed heap region:       fd
+  Stack left redzone:      f1
+  Stack mid redzone:       f2
+  Stack right redzone:     f3
+  Stack after return:      f5
+  Stack use after scope:   f8
+  Global redzone:          f9
+  Global init order:       f6
+  Poisoned by user:        f7
+  Container overflow:      fc
+  Array cookie:            ac
+  Intra object redzone:    bb
+  ASan internal:           fe
+  Left alloca redzone:     ca
+  Right alloca redzone:    cb
+==27540==ABORTING

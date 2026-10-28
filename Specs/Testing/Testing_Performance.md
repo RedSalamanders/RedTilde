@@ -45,6 +45,13 @@ A separately declared virtual-memory census is a diagnostic, not a substitute fo
 and an additional font mapping does not identify a causal allocation owner. Preserve unresolved mapping identities
 and empty/exit snapshots explicitly. Suspension-based sampling must report bracket coverage and its missing costs;
 intrusive stack walks and sparse instruction pointers cannot be presented as CPU shares or causal attribution.
+Extended `QueryWorkingSetEx` page observations can include allocations outside the traditional process working set,
+including AWE and large pages; summing its valid-page observations does not establish `WorkingSetSize` equivalence.
+Use separately bounded `QueryWorkingSet` membership when that distinction matters, retaining each API's coverage,
+limits, failures and observation brackets. Keep an unreconciled difference explicit; never subtract it from the
+primary process counter or attribute it to an application allocation. See Microsoft's
+[extended-query contract](https://learn.microsoft.com/en-us/windows/win32/api/psapi/nf-psapi-queryworkingsetex)
+and [working-set definition](https://learn.microsoft.com/en-us/windows/win32/memory/working-set).
 
 An owned-process heap trace must retain its executable, collection declaration, raw stream digests, loss and
 schema counters, observer query brackets and versioned decoder. StackWalk association uses the original-event
@@ -270,6 +277,19 @@ not binary interoperability. Consumers rebuild against matching pinned headers/l
 native editing, rendering and input qualification. The original v1 validator and byte-exact fixture remain for
 historical two-header studies; v2 needs its own actual compiler/header receipts and positive/negative oracles
 before any collection. Neither profile changes workload, metric family, bands or acceptance policy.
+
+
+The V4 reviewed-header profile covers only the exact SDK pair `98c795b7` to `086ad82a` at API revision 4. It records all 25 source-header and 33 package-header rows, and permits changes in exactly `DxUi.h`, `RichTextLayout.h` and `RichTextPresentation.h`. The probe records four named layouts (`ThemePalette`, `ProgressBar`, `RichTextEditorAppearance`, and `LayoutOptions`), checks the legacy button enum/default behavior, links the existing capture API on both libraries, and links the candidate-only methods against the matching candidate library. The baseline has no Markdown presentation default to test; that result is explicitly not applicable. `ProgressBar` remains the same size because existing padding accommodates the added state. These are observations for the isolated probe and do not establish ABI interchangeability or safe mixing of headers and libraries; each consumer must rebuild against its pinned matching pair. The profile also binds both real application compiler contexts and their captured link command evidence. It permits no differences beyond the listed header rows and the two exact SDK include operands. The sealed profile bytes and independent auditor must be regenerated/reviewed whenever the exact pair or evidence changes.
+
+The complete V4 dependency audit compares JSON identities by exact, case-sensitive field sets and strict value
+types, independent of property order. Missing, additional, renamed, null or differently typed fields fail closed;
+only the sealed dependency commit/fingerprint pair may differ. The portable self-test exercises this full
+dependency path, including rehashed header/package mutations, rather than validating only the isolated probe.
+Earlier V1/V2 profile behavior remains unchanged.
+
+`performance-observed.ps1` records `observer-status.json` before it requests observer shutdown. Its `state` is
+therefore a pre-stop snapshot: `Running` does not describe the terminal collection result. Read collection pass,
+observer errors, sampling coverage and quiet-window fields separately, retaining all literal observations.
 The [retained v2 source probe](../../Measurements/RedesignCompletion_2026-10-26/parsed-syntax-header-probe/README.md)
 records its exact SDK pair, isolated application contexts, measured layouts and raw receipt digests. Those
 isolated contexts do not identify the actual PR base; each paired study still binds its own production lineage.

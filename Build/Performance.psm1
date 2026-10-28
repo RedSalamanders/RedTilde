@@ -645,6 +645,139 @@ function Assert-RedTildeReviewedHeaderDeltaProfileV2 {
     return $profile
 }
 
+
+# V4 remains fail-closed until a root reviewer binds the exact serialized profile bytes.
+# Never replace this placeholder from profile contents or status; bind it out-of-band.
+$script:ReviewedHeaderDeltaV4ProfileSha256 = '94435355531812AE70BE124E185A5D685C16A94C8052A6C1E4BAC4DD5D381997'
+
+function Assert-RedTildeReviewedHeaderDeltaProfileV4 {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)]$Profile,[Parameter(Mandatory)][string]$ProfileBytesSha256)
+    $p=$Profile
+    if($p.schema -cne 'redtilde-reviewed-dxui-header-delta-profile-v4' -or
+        $p.profileId -cne 'redtilde-dxui-markdown-caption-api4-v4' -or
+        $p.status -cne 'ready-reviewed-exact-pair' -or
+        ($p.expectedApiRevision -isnot [int] -and $p.expectedApiRevision -isnot [long]) -or $p.expectedApiRevision -ne 4 -or
+        $p.baseline.commit -cne '98c795b765a10d1805ae0a7c35a8ade535fb7fd6' -or
+        $p.candidate.commit -cne '086ad82a5872768db23ea83862ab4af13dff0c5b') {
+        throw 'The fixed V4 Markdown/caption profile is blocked, unknown, or not its exact reviewed API-4 pair.'
+    }
+    if($script:ReviewedHeaderDeltaV4ProfileSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+        $ProfileBytesSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+        $ProfileBytesSha256 -cne $script:ReviewedHeaderDeltaV4ProfileSha256) {
+        throw 'The V4 profile has no independently root-bound immutable byte seal.'
+    }
+    if($p.allOtherInventoryRowsMustBeIdentical -isnot [bool] -or $p.allOtherInventoryRowsMustBeIdentical -cne $true -or
+        $p.packageHeadersUnchanged -isnot [bool] -or $p.packageHeadersUnchanged -cne $true -or
+        ($p.dependencyFieldChanges -join '|') -cne 'Fingerprint|Identity.commit' -or
+        ($p.compilerPathOperandsOnly -join '|') -cne 'one exact DxUi source /I|one exact fingerprinted package /I') {
+        throw 'V4 broadens its reviewed inventory, dependency, or compiler exception.'
+    }
+    $allowed=@('include/DxUi/DxUi.h','include/DxUi/RichTextLayout.h','include/DxUi/RichTextPresentation.h')
+    if($p.allowedHeaderHashPairs -isnot [array] -or $p.allowedHeaderHashPairs.Count -ne 3) { throw 'V4 must bind exactly three changed source-header hash pairs.' }
+    $baseRows=(Get-RedTildeReviewedHeaderInventory -Headers $p.baseline.publicHeaders -Side baseline).rows
+    $candidateRows=(Get-RedTildeReviewedHeaderInventory -Headers $p.candidate.publicHeaders -Side candidate).rows
+    if(@(Compare-Object @($baseRows.Keys|Sort-Object -CaseSensitive) @($candidateRows.Keys|Sort-Object -CaseSensitive) -CaseSensitive).Count -ne 0) {
+        throw 'V4 baseline and candidate public-header path sets differ.'
+    }
+    $changed=@(foreach($path in $baseRows.Keys){if($baseRows[$path] -cne $candidateRows[$path]){$path}})
+    if($changed.Count -ne 3 -or @($changed|Where-Object {$allowed -cnotcontains $_}).Count -ne 0) { throw 'V4 allows only its three exact reviewed source-header changes.' }
+    $bound=[Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    foreach($pair in $p.allowedHeaderHashPairs) {
+        if($pair.sourcePath -cnotin $allowed -or -not $bound.Add([string]$pair.sourcePath) -or
+            $pair.baselineSha256 -cne $baseRows[[string]$pair.sourcePath] -or
+            $pair.candidateSha256 -cne $candidateRows[[string]$pair.sourcePath]) { throw 'A V4 changed-header pair does not match its inventory.' }
+    }
+    if($bound.Count -ne 3) { throw 'V4 omits a reviewed header pair.' }
+    $identityFields=@('apiRevision','platform','toolset','vcToolsVersion','windowsSdkVersion','runtimeFamily','preferredToolArchitecture','disableStlAnnotations','releaseOptimizationPolicy','msbuildSha256','compilerSha256','linkerSha256','windowsHeaderSha256','kernel32Sha256','ucrtSha256')
+    foreach($name in $identityFields) {
+        if(-not $p.baseline.identity.Contains($name) -or -not $p.candidate.identity.Contains($name) -or
+            $p.baseline.identity[$name].GetType() -ne $p.candidate.identity[$name].GetType() -or
+            $p.baseline.identity[$name] -cne $p.candidate.identity[$name]) { throw "V4 changes or omits matched SDK identity field $name." }
+    }
+    if(@($p.baseline.identity.Keys|Where-Object {$identityFields -cnotcontains $_ -and $_ -cne 'commit'}).Count -or
+        @($p.candidate.identity.Keys|Where-Object {$identityFields -cnotcontains $_ -and $_ -cne 'commit'}).Count) { throw 'V4 SDK identity contains an unreviewed field.' }
+    foreach($side in @('baseline','candidate')) {
+        $app=$p.appCompilerContext[$side]
+        $b=$p[$side]
+        if($app.target -cne 'x64' -or $app.configuration -cne 'Release' -or $app.hostArchitecture -cne 'X86' -or
+            $app.normalizedProfileSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or $app.tlogSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $app.normalizedOptionsSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or $app.applicationLinkCommandSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $app.commands -isnot [array] -or $app.commands.Count -ne 1 -or $app.commands[0] -isnot [string] -or
+            $app.translationUnitCount -le 0) { throw "V4 $side actual app compiler/link TLOG context is missing or mismatched." }
+        try { $rawCl=[Convert]::FromBase64String([string]$app.tlogBase64); $rawLink=[Convert]::FromBase64String([string]$app.linkTlogBase64) } catch { throw "V4 $side raw app TLOG evidence is not base64." }
+        if([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($rawCl)) -cne $app.tlogSha256 -or
+            [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($rawLink)) -cne $app.linkTlogSha256 -or
+            $app.linkCommand -isnot [string] -or
+            [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($app.linkCommand))) -cne $app.applicationLinkCommandSha256) {
+            throw "V4 $side app TLOG/link command evidence hashes do not recompute."
+        }
+        $compilerBytes=[Text.Encoding]::UTF8.GetBytes("redtilde-release-compiler-profile-v2`n"+$app.commands[0])
+        if([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($compilerBytes)) -cne $app.normalizedProfileSha256) { throw "V4 $side normalized app compiler profile hash does not recompute from its command." }
+        if($b.tree -cnotmatch '^[0-9a-f]{40}$' -or $b.dependencyFingerprint -cnotmatch '^[0-9a-fA-F]{64}$' -or
+            $b.librarySha256 -cnotmatch '^[0-9a-fA-F]{64}$' -or $b.buildReceiptSha256 -cnotmatch '^[0-9a-fA-F]{64}$' -or
+            $b.identity.commit -cne $b.commit -or ($b.identity.apiRevision -isnot [int] -and $b.identity.apiRevision -isnot [long]) -or $b.identity.apiRevision -ne 4 -or $b.identity.platform -cne 'x64' -or
+            $b.identity.toolset -cne 'v145' -or $b.identity.vcToolsVersion -cne '14.52.37025' -or
+            $b.identity.windowsSdkVersion -cne '10.0.26100.0' -or $b.identity.runtimeFamily -cne 'MD' -or
+            $b.identity.preferredToolArchitecture -cne 'x86' -or $b.identity.disableStlAnnotations -isnot [bool] -or
+            $b.buildEvidence.configuration -cne 'Release' -or $b.buildEvidence.platform -cne 'x64' -or
+            $b.buildEvidence.hostArchitecture -cne 'X86' -or $b.buildEvidence.passed -isnot [bool] -or $b.buildEvidence.passed -cne $true -or
+            $b.buildEvidence.receiptSha256 -cne $b.buildReceiptSha256) {
+            throw "The V4 $side matched Release identity/build evidence is incomplete or mismatched."
+        }
+        foreach($name in @('msbuildSha256','compilerSha256','linkerSha256','windowsHeaderSha256','kernel32Sha256','ucrtSha256')) {
+            if($b.identity[$name] -cnotmatch '^[0-9A-Fa-f]{64}$') { throw "V4 $side identity lacks $name." }
+        }
+        $probe=$b.probe
+        try { $sourceBytes=[Convert]::FromBase64String([string]$probe.sourceBase64); $resultBytes=[Convert]::FromBase64String([string]$probe.resultBase64) } catch { throw "V4 $side probe raw source/result is not valid base64." }
+        if([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($sourceBytes)) -cne $probe.sourceSha256 -or
+            [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($resultBytes)) -cne $probe.resultSha256) { throw "V4 $side probe raw source/result hash does not recompute." }
+        $parsedProbeResult=[Text.Encoding]::UTF8.GetString($resultBytes)|ConvertFrom-Json -AsHashtable
+        if((ConvertTo-Json -InputObject $parsedProbeResult -Depth 20 -Compress) -cne (ConvertTo-Json -InputObject $probe.result -Depth 20 -Compress)) {
+            throw "V4 $side probe parsed result differs from its hashed raw output."
+        }
+        if($probe.sourceSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or $probe.exeSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or
+            $probe.resultSha256 -cnotmatch '^[0-9A-Fa-f]{64}$' -or $probe.protocol -cne 'dxui-header-compat-probe-v4' -or
+            $probe.hostArchitecture -cne 'X86' -or $probe.librarySha256 -cne $b.librarySha256 -or
+            $probe.result.profile -cne $side -or ($probe.result.apiRevision -isnot [int] -and $probe.result.apiRevision -isnot [long]) -or $probe.result.apiRevision -ne 4 -or
+            $probe.result.diagnosticsEnabled -isnot [bool] -or $probe.result.diagnosticsEnabled -cne $true -or
+            $probe.result.legacyCaptureLinked -isnot [bool] -or $probe.result.legacyCaptureLinked -cne $true -or
+            $probe.result.newCandidateSymbolsLinked -isnot [bool] -or $probe.result.newCandidateSymbolsLinked -ne ($side -ceq 'candidate')) {
+            throw "The V4 $side matched-header probe evidence is missing or mismatched."
+        }
+        if($side -ceq 'candidate' -and ($probe.result.markdownDefaultsAreDefault -isnot [bool] -or $probe.result.markdownDefaultsAreDefault -cne $true)) { throw 'Candidate Markdown defaults are not the documented Default style.' }
+        if($side -ceq 'baseline' -and $null -ne $probe.result.markdownDefaultsAreDefault) { throw 'Baseline probe must mark the new Markdown default as not applicable.' }
+        foreach($type in @('ThemePalette','ProgressBar','RichTextEditorAppearance','LayoutOptions')) {
+            if($probe.result.layout[$type].size -isnot [long] -and $probe.result.layout[$type].size -isnot [int] -or
+                $probe.result.layout[$type].size -le 0 -or
+                $probe.result.layout[$type].align -isnot [long] -and $probe.result.layout[$type].align -isnot [int] -or
+                $probe.result.layout[$type].align -le 0) { throw "V4 $side probe lacks valid $type layout data." }
+        }
+    }
+    if($p.appCompilerContext.baseline.normalizedOptionsSha256 -cne $p.appCompilerContext.candidate.normalizedOptionsSha256) { throw 'V4 normalized app options differ outside reviewed include operands.' }
+    $baseDependency=[ordered]@{Fingerprint=$p.baseline.dependencyFingerprint;Identity=$p.baseline.identity}
+    $candidateDependency=[ordered]@{Fingerprint=$p.candidate.dependencyFingerprint;Identity=$p.candidate.identity}
+    $baseCompiler=[ordered]@{schemaVersion=2;sha256=$p.appCompilerContext.baseline.normalizedProfileSha256;commands=$p.appCompilerContext.baseline.commands}
+    $candidateCompiler=[ordered]@{schemaVersion=2;sha256=$p.appCompilerContext.candidate.normalizedProfileSha256;commands=$p.appCompilerContext.candidate.commands}
+    Assert-RedTildeCompilerComparison -BaselineCompiler $baseCompiler -CandidateCompiler $candidateCompiler -BaselineDependency $baseDependency -CandidateDependency $candidateDependency -ReviewedHeaderDelta -ReviewedProfile $p
+    if($p.baseline.probe.result.newButtonAppearanceValues -ne $null -or
+        ($p.candidate.probe.result.newButtonAppearanceValues -join ',') -cne '4,5') { throw 'V4 candidate appended enum values are missing or baseline enum surface changed.' }
+    $baselineLegacy=@($p.baseline.probe.result.legacyButtonAppearanceValues)
+    $candidateLegacy=@($p.candidate.probe.result.legacyButtonAppearanceValues)
+    $candidateNew=@($p.candidate.probe.result.newButtonAppearanceValues)
+    if($baselineLegacy.Count -ne 4 -or $candidateLegacy.Count -ne 4 -or $candidateNew.Count -ne 2 -or
+        @($baselineLegacy|Where-Object {($_ -isnot [int] -and $_ -isnot [long])}).Count -or
+        @($candidateLegacy|Where-Object {($_ -isnot [int] -and $_ -isnot [long])}).Count -or
+        @($candidateNew|Where-Object {($_ -isnot [int] -and $_ -isnot [long])}).Count -or
+        ($baselineLegacy -join ',') -cne '0,1,2,3' -or ($candidateLegacy -join ',') -cne '0,1,2,3' -or ($candidateNew -join ',') -cne '4,5') {
+        throw 'V4 probe enum values must be JSON integer arrays with stable legacy and appended candidate values.'
+    }
+    if($p.baseline.probe.sourceSha256 -cne $p.candidate.probe.sourceSha256 -or
+        $p.baseline.probe.hostArchitecture -cne 'X86' -or $p.candidate.probe.hostArchitecture -cne 'X86' -or
+        $p.baseline.probe.result.legacyButtonAppearanceValues -join ',' -cne '0,1,2,3' -or
+        $p.candidate.probe.result.legacyButtonAppearanceValues -join ',' -cne '0,1,2,3') { throw 'V4 probe sources, host architecture, or legacy enum contract differ.' }
+    return $p
+}
 function Get-RedTildeReviewedHeaderDeltaProfile {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$Root)
@@ -656,6 +789,11 @@ function Get-RedTildeReviewedHeaderDeltaProfile {
     }
     if($profile.profileId -ceq 'redtilde-dxui-parsed-snapshot-api4-v2') {
         return Assert-RedTildeReviewedHeaderDeltaProfileV2 -Profile $profile
+    }
+    if($profile.profileId -ceq 'redtilde-dxui-markdown-caption-api4-v4') {
+        $raw=[IO.File]::ReadAllBytes($path)
+        $sha=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($raw))
+        return Assert-RedTildeReviewedHeaderDeltaProfileV4 -Profile $profile -ProfileBytesSha256 $sha
     }
     throw 'The fixed reviewed-header profile has an unknown profile ID.'
 }
@@ -698,7 +836,22 @@ function Assert-RedTildeReviewedHeaderDelta {
     $candidateClone=ConvertFrom-Json -InputObject (Json $CandidateDependency) -AsHashtable
     $baselineClone.Remove('Fingerprint');$candidateClone.Remove('Fingerprint')
     $baselineClone.Identity.Remove('commit');$candidateClone.Identity.Remove('commit')
-    if((Json $baselineClone) -cne (Json $candidateClone)) { throw 'Reviewed-header mode permits only the exact profile-bound commit and fingerprint changes.' }
+    if($Profile.profileId -ceq 'redtilde-dxui-markdown-caption-api4-v4') {
+        function CanonicalJsonValue($Value) {
+            if($Value -is [Collections.IDictionary]) {
+                $ordered=[ordered]@{}
+                foreach($key in @($Value.Keys|Sort-Object -CaseSensitive)) { $ordered[$key]=CanonicalJsonValue $Value[$key] }
+                return $ordered
+            }
+            if($Value -is [array]) { return ,@($Value|ForEach-Object { CanonicalJsonValue $_ }) }
+            return $Value
+        }
+        if((Json (CanonicalJsonValue $baselineClone)) -cne (Json (CanonicalJsonValue $candidateClone))) {
+            throw 'V4 permits only the exact profile-bound commit/fingerprint value changes; identity property order is ignored.'
+        }
+    } elseif((Json $baselineClone) -cne (Json $candidateClone)) {
+        throw 'Reviewed-header mode permits only the exact profile-bound commit and fingerprint changes.'
+    }
 }
 
 function Get-RedTildePairedAdmissionCandidate {

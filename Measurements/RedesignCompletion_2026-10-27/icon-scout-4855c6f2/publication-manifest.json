@@ -1,0 +1,58 @@
+{
+  "schema": "redtilde-icon-scout-publication-manifest-v1",
+  "publicationStatus": "Reviewed descriptive archive; decoder candidate rejected",
+  "performanceAcceptance": false,
+  "files": [
+    {
+      "path": ".gitattributes",
+      "bytes": 61,
+      "sha256": "22106984A6C1274EAD5C283789CA11D75B303658949AAA627698747E7B2D6160"
+    },
+    {
+      "path": "canonical-results.json",
+      "bytes": 14458,
+      "sha256": "263B5E61B1C81C9AA3EFCFA697BD27DEB6608B91BACF58F95C75BA87AF63876D"
+    },
+    {
+      "path": "declaration.json",
+      "bytes": 1681,
+      "sha256": "A917C9B2381C75D07B3A6868F83A03AE99BC189632A40F55CEDA09ACDE62C332"
+    },
+    {
+      "path": "evidence-source-hashes.json",
+      "bytes": 1383,
+      "sha256": "3FB5E29DC0BD1B0F5F267DCE366F7DE14FBF2579935A48795AF8BDCCC938823F"
+    },
+    {
+      "path": "frozen-bindings.json",
+      "bytes": 29395,
+      "sha256": "A608AA4DCC03572C14D85EFB605A77FDD90FF962BF86FBDCE0A85C9F9C347F02"
+    },
+    {
+      "path": "metric-effects.csv",
+      "bytes": 5464,
+      "sha256": "07E83FAABF3C580898049AC84505414746DEE094EEDD8F4CC91DDA9E4CB992F1"
+    },
+    {
+      "path": "raw-process-metrics.csv",
+      "bytes": 3669,
+      "sha256": "2BB288CC75D38CC0B809EBC6DF10B5D94AC21EF07FCB7189EAEDA6B74932BBE1"
+    },
+    {
+      "path": "raw-report-hashes.json",
+      "bytes": 11894,
+      "sha256": "6B351C9D123F7016B785CF2D6E2FBCE974085EEDEF402032099BB670FF968E80"
+    },
+    {
+      "path": "README.md",
+      "bytes": 3541,
+      "sha256": "3773F2BC1AC22618703EF40858221E02B3D45B68190DD73E0ECD2B33B4403F95"
+    },
+    {
+      "path": "replay-summary.json",
+      "bytes": 1055,
+      "sha256": "4D165D3D30CA3965C8CCDA6A0D7219B71B2E924910EFAB2E628A8392687FB4BD"
+    }
+  ],
+  "rootProjectionChecks": 850
+}

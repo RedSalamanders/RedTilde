@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "scenario": "caption-close-hover",
+  "fixtureBasename": "Markdown styling example",
+  "effectiveSystemPreference": "dark",
+  "systemPreferenceSource": "windows-preference-or-light-fallback",
+  "requestedDpi": 144,
+  "nativeWindowDpi": 144,
+  "actualHostDpi": 144,
+  "simulatedDpi": false,
+  "requestedWidthPx": 2160,
+  "requestedHeightPx": 1350,
+  "actualWidthPx": 2160,
+  "actualHeightPx": 1350,
+  "actualWidthDip": 1440,
+  "actualHeightDip": 900,
+  "filesModelFrozen": false,
+  "reparseFixtureRemoved": false,
+  "hidden": true,
+  "qualification": "Owned hidden application render; no physical-monitor or native-platform acceptance"
+}

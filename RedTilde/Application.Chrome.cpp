@@ -182,11 +182,15 @@ void Application::BuildUi()
     Icon(minimizeButton, L"\xE921");
     Icon(maximizeButton, L"\xE922");
     Icon(closeButton, L"\xE8BB");
-    for (auto *caption : {minimizeButton, maximizeButton, closeButton})
+    for (auto *caption : {minimizeButton, maximizeButton})
     {
-        caption->SetAppearance(DxUi::ButtonAppearance::Subtle);
+        caption->SetFocusable(false);
+        caption->SetAppearance(DxUi::ButtonAppearance::Caption);
         THROW_IF_FAILED(caption->SetContentFontSizeDip(12.f));
     }
+    closeButton->SetFocusable(false);
+    closeButton->SetAppearance(DxUi::ButtonAppearance::CaptionClose);
+    THROW_IF_FAILED(closeButton->SetContentFontSizeDip(12.f));
     commandBar = root->AddChild<Surface>();
     commandBar->borderBottom = true;
     const std::array<std::pair<unsigned, Command>, 14> buttons{{{IDS_UNDO, Command::Undo},
@@ -657,6 +661,7 @@ void Application::Layout()
     mirror->SetVisible(split);
     mirror->SetBounds(D2D1::RectF(mid + 24, top + 56, right - 24, bottom - 24));
     DxUi::RichTextEditorAppearance appearance;
+    appearance.markdownPresentation = DxUi::RichText::MarkdownPresentationStyle::Subtle;
     appearance.drawBorder = false;
     appearance.drawFocusIndicator = false;
     appearance.useAccentLinkColor = true;

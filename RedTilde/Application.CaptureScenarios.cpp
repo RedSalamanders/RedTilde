@@ -76,6 +76,21 @@ void Application::PrepareDesignScenario()
                               scenario == L"find" || scenario == L"focus" || scenario == L"equation" || reference;
     std::wstring fixtureName;
     bool frozenFilesModel{}, reparseRemoved{};
+    if (scenario == L"markdown-style" || scenario == L"caption-close-hover" || scenario == L"caption-maximize-hover")
+    {
+        // Invented content reproduces the user's Markdown example without
+        // exposing a loaded filename or ambient filesystem model.
+        SetDocument(L"## Show the flow\n\n```mermaid\ngraph LR\nA[Think] --> B[Write]\nB --> C[Refine]\n```\n\n"
+                    L"## An equation\n\n$$ x = \\frac{-b + \\sqrt{b^2 - 4ac}}{2a} $$\n\n"
+                    L"Place the caret inside the equation to see the native inspector preview.\n\n"
+                    L"## Details\n\n| View | Purpose |\n| --- | --- |\n| Compose | Stay in the writing |\n"
+                    L"| Source | Inspect exact Markdown |\n| Split | Keep both visible |\n\n"
+                    L"> Simple tools. Thoughtful defaults. Your files stay yours.\n");
+        fixtureName = L"Markdown styling example";
+        settings.view = EditorView::Compose;
+        settings.showFiles = false;
+        settings.showOutline = false;
+    }
     if (fixtureScene)
     {
         GUID id{};

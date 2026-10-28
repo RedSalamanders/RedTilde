@@ -268,6 +268,41 @@ function Assert-ReviewedHeaderProbeContext($Profile) {
         $Profile.abiProbe.fullApplicationLinkContextExact -ceq $false) 'The isolated source probe must not be represented as full application compile/link context equivalence.'
 }
 
+function Assert-V4ProfileProbeEvidence($Profile) {
+    Require ($Profile.abiProbe.protocol -ceq 'dxui-header-compat-probe-v4' -and
+        $Profile.abiProbe.sourceSha256 -cmatch '^[0-9A-F]{64}$' -and
+        $Profile.abiProbe.scope -match 'no.*binary interchangeability') 'V4 probe summary or its explicit scope limit is missing.'
+    foreach($side in 'baseline','candidate') {
+        $probe=$Profile[$side].probe
+        try {$source=[Convert]::FromBase64String([string]$probe.sourceBase64);$result=[Convert]::FromBase64String([string]$probe.resultBase64)} catch {throw "V4 $side raw probe source/result is not valid base64."}
+        Require ([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($source)) -ceq $probe.sourceSha256 -and
+            [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($result)) -ceq $probe.resultSha256) "V4 $side source/result proof hash does not recompute."
+        $parsed=[Text.Encoding]::UTF8.GetString($result)|ConvertFrom-Json -AsHashtable
+        Require ((ConvertTo-Json $parsed -Depth 30 -Compress) -ceq (ConvertTo-Json $probe.result -Depth 30 -Compress)) "V4 $side raw probe output differs from its parsed record."
+        Require ($probe.protocol -ceq 'dxui-header-compat-probe-v4' -and
+            ($probe.result.apiRevision -is [int] -or $probe.result.apiRevision -is [long]) -and $probe.result.apiRevision -eq 4 -and
+            $probe.result.diagnosticsEnabled -is [bool] -and $probe.result.diagnosticsEnabled -and
+            $probe.result.legacyCaptureLinked -is [bool] -and $probe.result.legacyCaptureLinked) "V4 $side must preserve diagnostics and link the legacy capture API."
+        Require (($probe.result.markdownDefaultsAreDefault -is [bool]) -or ($side -ceq 'baseline' -and $null -eq $probe.result.markdownDefaultsAreDefault)) "V4 $side Markdown-default result has invalid applicability/type."
+        Require ($probe.result.newCandidateSymbolsLinked -is [bool] -and $probe.result.newCandidateSymbolsLinked -eq ($side -ceq 'candidate')) "V4 $side candidate-only symbols are not correctly linked."
+        foreach($type in 'ThemePalette','ProgressBar','RichTextEditorAppearance','LayoutOptions') {
+            $layout=$probe.result.layout[$type]
+            Require (($layout.size -is [int] -or $layout.size -is [long]) -and $layout.size -gt 0 -and
+                ($layout.align -is [int] -or $layout.align -is [long]) -and $layout.align -gt 0) "V4 $side $type layout is invalid."
+        }
+    }
+    $base=$Profile.baseline.probe.result;$candidate=$Profile.candidate.probe.result
+    Require ($null -eq $base.markdownDefaultsAreDefault -and $candidate.markdownDefaultsAreDefault -is [bool] -and $candidate.markdownDefaultsAreDefault) 'V4 default-style evidence differs from applicability/expected candidate behavior.'
+    Require (($base.legacyButtonAppearanceValues -join ',') -ceq '0,1,2,3' -and
+        ($candidate.legacyButtonAppearanceValues -join ',') -ceq '0,1,2,3' -and
+        ($candidate.newButtonAppearanceValues -join ',') -ceq '4,5' -and $null -eq $base.newButtonAppearanceValues) 'V4 enum values changed the legacy surface or omitted appended values.'
+    Require ($base.layout.ProgressBar.size -eq $candidate.layout.ProgressBar.size) 'V4 ProgressBar size must remain unchanged.'
+}
+function Refresh-V4ProbeResult($Profile,[string]$Side) {
+    $probe=$Profile[$Side].probe;$bytes=[Text.Encoding]::UTF8.GetBytes((ConvertTo-Json $probe.result -Depth 30 -Compress)+"`n")
+    $probe.resultBase64=[Convert]::ToBase64String($bytes);$probe.resultSha256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes))
+}
+
 function Get-ReviewedHeaderProfileEvidence {
     param([Collections.IDictionary]$Study,$Comparison,[string]$StudyRoot,$Inventories)
     function Get-ProfileRows($Headers,[string]$Side) {
@@ -295,7 +330,9 @@ function Get-ReviewedHeaderProfileEvidence {
     if($profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1') {
         $path=Join-Path $PSScriptRoot 'Fixtures/ReviewedHeaderDeltaProfile.v1.json'
     } elseif($profileId -ceq 'redtilde-dxui-parsed-snapshot-api4-v2') {
-        $path=Join-Path $repoRoot 'Build/ReviewedHeaderDeltaProfile.json'
+        $path=Join-Path $PSScriptRoot 'Fixtures/ReviewedHeaderDeltaProfile.v2.json'
+    } elseif($profileId -ceq 'redtilde-dxui-markdown-caption-api4-v4') {
+        $path=Join-Path $PSScriptRoot 'Fixtures/ReviewedHeaderDeltaProfile.v4.json'
     } else { throw 'The independent auditor does not recognize this reviewed-header profile ID.' }
     Require (Test-Path -LiteralPath $path -PathType Leaf) 'The fixed reviewed-header profile evidence is missing.'
     $raw=[IO.File]::ReadAllBytes($path);$hash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($raw))
@@ -304,26 +341,24 @@ function Get-ReviewedHeaderProfileEvidence {
         [Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $StudyRoot $Study.reviewedHeaderDelta.file))) -ceq [Convert]::ToBase64String($raw)) 'Copied study profile bytes differ from the fixed repository profile.'
     $profile=[Text.Encoding]::UTF8.GetString($raw)|ConvertFrom-Json -AsHashtable
     $isV1=$profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1'
+    $isV2=$profileId -ceq 'redtilde-dxui-parsed-snapshot-api4-v2'
+    $isV4=$profileId -ceq 'redtilde-dxui-markdown-caption-api4-v4'
     if($isV1) {
         Require ($profile.schema -ceq 'redtilde-reviewed-dxui-header-delta-profile-v1' -and
             $profile.profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1' -and
             $profile.status -ceq 'ready-reviewed-exact-pair') 'The fixed v1 profile is blocked or has an unknown ID.'
-        Require ($profile.baseline.commit -ceq '2fed82465dcee9f213753754e0e8e54f353cf38f' -and
-            $profile.baseline.tree -ceq '2c0641bc363bf713cfc709d721c3f6549dd5aef8' -and
-            $profile.candidate.commit -ceq '47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a' -and
-            $profile.candidate.tree -ceq '3ee2e12647ca2e05113823eb172bb0facf879021' -and
-            $profile.expectedApiRevision -eq 4) 'The v1 profile does not bind the exact SDK commit/tree/API pair.'
+        Require ($profile.baseline.commit -ceq '2fed82465dcee9f213753754e0e8e54f353cf38f' -and $profile.baseline.tree -ceq '2c0641bc363bf713cfc709d721c3f6549dd5aef8' -and $profile.candidate.commit -ceq '47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a' -and $profile.candidate.tree -ceq '3ee2e12647ca2e05113823eb172bb0facf879021' -and $profile.expectedApiRevision -eq 4) 'The v1 profile does not bind the exact SDK commit/tree/API pair.'
         $expectedPairPaths=[string[]]@('include/DxUi/DxUi.h','include/DxUi/RichDocument.h')
-    } else {
+    } elseif($isV2) {
         Require ($profile.schema -ceq 'redtilde-reviewed-dxui-header-delta-profile-v2' -and
             $profile.profileId -ceq 'redtilde-dxui-parsed-snapshot-api4-v2' -and
             $profile.status -ceq 'ready-reviewed-exact-pair') 'The fixed v2 profile is blocked or has an unknown ID.'
-        Require ($profile.baseline.commit -ceq '47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a' -and
-            $profile.baseline.tree -ceq '3ee2e12647ca2e05113823eb172bb0facf879021' -and
-            $profile.candidate.commit -ceq '4077f57df8207eac6c39c43437feb45b19d23cf8' -and
-            $profile.candidate.tree -ceq '18be66885916f67cafd8aeb761207bf15fbd9120' -and
-            $profile.expectedApiRevision -eq 4) 'The v2 profile does not bind the exact SDK commit/tree/API pair.'
+        Require ($profile.baseline.commit -ceq '47a9d25995f8dc84b5ca71a2ab75ba405ed8d74a' -and $profile.baseline.tree -ceq '3ee2e12647ca2e05113823eb172bb0facf879021' -and $profile.candidate.commit -ceq '4077f57df8207eac6c39c43437feb45b19d23cf8' -and $profile.candidate.tree -ceq '18be66885916f67cafd8aeb761207bf15fbd9120' -and $profile.expectedApiRevision -eq 4) 'The v2 profile does not bind the exact SDK commit/tree/API pair.'
         $expectedPairPaths=[string[]]@('include/DxUi/DxUi.h','include/DxUi/MarkdownSyntax.h','include/DxUi/RichDocument.h')
+    } else {
+        Require ($profile.schema -ceq 'redtilde-reviewed-dxui-header-delta-profile-v4' -and $profile.status -ceq 'ready-reviewed-exact-pair' -and ($profile.expectedApiRevision -is [int] -or $profile.expectedApiRevision -is [long]) -and $profile.expectedApiRevision -eq 4) 'The fixed v4 profile is blocked or has an unknown ID/revision.'
+        Require ($profile.baseline.commit -ceq '98c795b765a10d1805ae0a7c35a8ade535fb7fd6' -and $profile.baseline.tree -ceq '02694dfd718673d2d8e50241c015f908318154e5' -and $profile.candidate.commit -ceq '086ad82a5872768db23ea83862ab4af13dff0c5b' -and $profile.candidate.tree -ceq '0c674a6a8f17cd5e7f142d584f59d4ed12ddda99') 'The v4 profile does not bind the exact SDK commit/tree pair.'
+        $expectedPairPaths=[string[]]@('include/DxUi/DxUi.h','include/DxUi/RichTextLayout.h','include/DxUi/RichTextPresentation.h')
     }
     Require ($profile.allOtherInventoryRowsMustBeIdentical -ceq $true -and $profile.packageHeadersUnchanged -ceq $true -and
         ($profile.dependencyFieldChanges -join '|') -ceq 'Fingerprint|Identity.commit' -and
@@ -345,13 +380,26 @@ function Get-ReviewedHeaderProfileEvidence {
         $dependency=$Study[$side].build.dependency;$expected=$profile[$side]
         Require ($dependency.Identity.commit -ceq $expected.commit -and $dependency.Fingerprint -ceq $expected.dependencyFingerprint -and
             $dependency.Identity.apiRevision -eq 4) "The $side SDK identity differs from the exact profile."
-        Require (($dependency.Identity|ConvertTo-Json -Depth 20 -Compress) -ceq
-            ($expected.identity|ConvertTo-Json -Depth 20 -Compress)) "The $side complete SDK toolchain identity differs from the exact profile."
+        if($isV4) {
+            $actualKeys=[string[]]@($dependency.Identity.Keys);[Array]::Sort($actualKeys,[StringComparer]::Ordinal)
+            $expectedKeys=[string[]]@($expected.identity.Keys);[Array]::Sort($expectedKeys,[StringComparer]::Ordinal)
+            Require (($actualKeys -join '|') -ceq ($expectedKeys -join '|')) "$side V4 identity field set differs from the exact profile."
+            foreach($field in $expectedKeys) {
+                $actualValue=$dependency.Identity[$field];$expectedValue=$expected.identity[$field]
+                Require ($null -ne $actualValue -and $null -ne $expectedValue -and
+                    $actualValue.GetType() -eq $expectedValue.GetType() -and $actualValue -ceq $expectedValue) "$side V4 identity field type/value differs: $field."
+            }
+        } else {
+            Require (($dependency.Identity|ConvertTo-Json -Depth 20 -Compress) -ceq
+                ($expected.identity|ConvertTo-Json -Depth 20 -Compress)) "$side complete SDK toolchain identity differs from the exact profile."
+        }
         $profileRows=Get-ProfileRows $expected.publicHeaders $side
         Require (($Inventories[$side].source -join "`n") -ceq ($profileRows.source -join "`n") -and
             ($Inventories[$side].package -join "`n") -ceq ($profileRows.package -join "`n")) "$side order-independent complete inventory differs from the fixed profile."
     }
-    if($isV1) {
+    if($isV4) {
+        Assert-V4ProfileProbeEvidence $profile
+    } elseif($isV1) {
     Require ($profile.abiProbe.protocol -ceq 'dxui-readonly-source-snapshot-abi-probe-v1' -and
         $profile.abiProbe.sourceSha256 -cmatch '^[0-9A-F]{64}$' -and
         $profile.abiProbe.fullReceiptSha256 -cmatch '^[0-9A-F]{64}$' -and
@@ -569,7 +617,11 @@ function Assert-DependencyEvidence($Study,$Comparison,[string]$StudyRoot) {
         $profile=Get-ReviewedHeaderProfileEvidence $Study $Comparison $StudyRoot $inventories
         $allowed=if($Study.reviewedHeaderDelta.profileId -ceq 'redtilde-dxui-readonly-snapshot-api4-v1') {
             @('include/DxUi/DxUi.h','include/DxUi/RichDocument.h')
-        } else { @('include/DxUi/DxUi.h','include/DxUi/MarkdownSyntax.h','include/DxUi/RichDocument.h') }
+        } elseif($Study.reviewedHeaderDelta.profileId -ceq 'redtilde-dxui-parsed-snapshot-api4-v2') {
+            @('include/DxUi/DxUi.h','include/DxUi/MarkdownSyntax.h','include/DxUi/RichDocument.h')
+        } elseif($Study.reviewedHeaderDelta.profileId -ceq 'redtilde-dxui-markdown-caption-api4-v4') {
+            @('include/DxUi/DxUi.h','include/DxUi/RichTextLayout.h','include/DxUi/RichTextPresentation.h')
+        } else { throw 'Unknown reviewed-header dependency profile.' }
         $baselineHeaderRows=@{};foreach($row in $inventories.baseline.source+$inventories.baseline.package){$parts=$row.Split(':',2);$baselineHeaderRows[$parts[0]]=$parts[1]}
         $candidateHeaderRows=@{};foreach($row in $inventories.candidate.source+$inventories.candidate.package){$parts=$row.Split(':',2);$candidateHeaderRows[$parts[0]]=$parts[1]}
         Require ((@($baselineHeaderRows.Keys|Sort-Object -CaseSensitive)-join "`n") -ceq (@($candidateHeaderRows.Keys|Sort-Object -CaseSensitive)-join "`n")) 'Reviewed-header path sets differ.'
@@ -581,11 +633,32 @@ function Assert-DependencyEvidence($Study,$Comparison,[string]$StudyRoot) {
             Require ($pair.sourcePath -cin $allowed -and $pair.baselineSha256 -ceq $baselineHeaderRows[$pair.sourcePath] -and
                 $pair.candidateSha256 -ceq $candidateHeaderRows[$pair.sourcePath]) 'A reviewed source-header hash pair differs from its full inventory.'
         }
-        $baselineClone=ConvertFrom-Json -InputObject ($base|ConvertTo-Json -Depth 100 -Compress) -AsHashtable
-        $candidateClone=ConvertFrom-Json -InputObject ($candidate|ConvertTo-Json -Depth 100 -Compress) -AsHashtable
-        $baselineClone.Remove('Fingerprint');$candidateClone.Remove('Fingerprint')
-        $baselineClone.Identity.Remove('commit');$candidateClone.Identity.Remove('commit')
-        Require (($baselineClone|ConvertTo-Json -Depth 100 -Compress) -ceq ($candidateClone|ConvertTo-Json -Depth 100 -Compress)) 'Reviewed profile permits only its exact dependency commit/fingerprint pair.'
+        if($Study.reviewedHeaderDelta.profileId -ceq 'redtilde-dxui-markdown-caption-api4-v4') {
+            $expectedOuter=[string[]]@('Fingerprint','Identity')
+            $expectedIdentity=[string[]]@('apiRevision','platform','toolset','vcToolsVersion','windowsSdkVersion','runtimeFamily',
+                'preferredToolArchitecture','disableStlAnnotations','releaseOptimizationPolicy','msbuildSha256','compilerSha256',
+                'linkerSha256','windowsHeaderSha256','kernel32Sha256','ucrtSha256','commit')
+            foreach($entry in @(@{name='baseline';value=$base},@{name='candidate';value=$candidate})) {
+                $outerKeys=[string[]]@($entry.value.Keys);[Array]::Sort($outerKeys,[StringComparer]::Ordinal)
+                $wantedOuter=[string[]]@($expectedOuter);[Array]::Sort($wantedOuter,[StringComparer]::Ordinal)
+                Require (($outerKeys -join '|') -ceq ($wantedOuter -join '|')) "$($entry.name) V4 dependency has missing/extra/case-changed outer keys."
+                $identityKeys=[string[]]@($entry.value.Identity.Keys);[Array]::Sort($identityKeys,[StringComparer]::Ordinal)
+                $wantedIdentity=[string[]]@($expectedIdentity);[Array]::Sort($wantedIdentity,[StringComparer]::Ordinal)
+                Require (($identityKeys -join '|') -ceq ($wantedIdentity -join '|')) "$($entry.name) V4 identity has missing/extra/case-changed keys."
+            }
+            foreach($field in $expectedIdentity) {
+                if($field -ceq 'commit'){continue}
+                $left=$base.Identity[$field];$right=$candidate.Identity[$field]
+                Require ($null -ne $left -and $null -ne $right -and
+                    $left.GetType() -eq $right.GetType() -and $left -ceq $right) "V4 dependency identity changed type/value for $field."
+            }
+        } else {
+            $baselineClone=ConvertFrom-Json -InputObject ($base|ConvertTo-Json -Depth 100 -Compress) -AsHashtable
+            $candidateClone=ConvertFrom-Json -InputObject ($candidate|ConvertTo-Json -Depth 100 -Compress) -AsHashtable
+            $baselineClone.Remove('Fingerprint');$candidateClone.Remove('Fingerprint')
+            $baselineClone.Identity.Remove('commit');$candidateClone.Identity.Remove('commit')
+            Require (($baselineClone|ConvertTo-Json -Depth 100 -Compress) -ceq ($candidateClone|ConvertTo-Json -Depth 100 -Compress)) 'Reviewed profile permits only its exact dependency commit/fingerprint pair.'
+        }
         return
     }
     Require ($Study.baseline.publicHeaders.sourceSha256 -ceq $Study.candidate.publicHeaders.sourceSha256 -and
@@ -613,10 +686,26 @@ function Assert-DependencyEvidence($Study,$Comparison,[string]$StudyRoot) {
 }
 if($SelfTest) {
     $repoRoot=Split-Path $PSScriptRoot -Parent
-    $profilePath=Join-Path $repoRoot 'Build/ReviewedHeaderDeltaProfile.json'
+    $profilePath=Join-Path $PSScriptRoot 'Fixtures/ReviewedHeaderDeltaProfile.v2.json'
     $profileBytes=[IO.File]::ReadAllBytes($profilePath)
     $profileHash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($profileBytes))
     $profile=[Text.Encoding]::UTF8.GetString($profileBytes)|ConvertFrom-Json -AsHashtable
+    $profileV2=$profile;$profileV2Bytes=$profileBytes;$profileV2Hash=$profileHash
+    $v4Path=Join-Path $PSScriptRoot 'Fixtures/ReviewedHeaderDeltaProfile.v4.json'
+    $v4Bytes=[IO.File]::ReadAllBytes($v4Path)
+    Require ([Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($v4Bytes)) -ceq '94435355531812AE70BE124E185A5D685C16A94C8052A6C1E4BAC4DD5D381997') 'The final LF-normalized V4 fixture must remain byte exact.'
+    $v4=[Text.Encoding]::UTF8.GetString($v4Bytes)|ConvertFrom-Json -AsHashtable
+    Assert-V4ProfileProbeEvidence $v4
+    foreach($case in @(
+        @{name='rehash malformed diagnostics boolean';edit={param($p)$p.candidate.probe.result.diagnosticsEnabled=1;Refresh-V4ProbeResult $p candidate}},
+        @{name='rehash malformed enum values';edit={param($p)$p.candidate.probe.result.newButtonAppearanceValues=@(4,6);Refresh-V4ProbeResult $p candidate}},
+        @{name='rehash malformed layout';edit={param($p)$p.candidate.probe.result.layout.LayoutOptions.size='256';Refresh-V4ProbeResult $p candidate}},
+        @{name='raw proof hash mismatch';edit={param($p)$p.baseline.probe.resultSha256='0'*64}})) {
+        $bad=ConvertFrom-Json -InputObject (ConvertTo-Json $v4 -Depth 100 -Compress) -AsHashtable
+        & $case.edit $bad
+        $rejected=$false;try {Assert-V4ProfileProbeEvidence $bad} catch {$rejected=$true}
+        Require $rejected "V4 actual-profile selftest rejects $($case.name)."
+    }
     Require ($profile.status -ceq 'ready-reviewed-exact-pair') 'Private new-mode selftest requires the approved fixed profile data.'
     $fixtureRoot=Join-Path $repoRoot ('.build/independent-header-profile-selftest/'+[guid]::NewGuid().ToString('N'))
     [void][IO.Directory]::CreateDirectory($fixtureRoot)
@@ -643,7 +732,7 @@ if($SelfTest) {
             $identity=ConvertFrom-Json -InputObject (ConvertTo-Json $binding.identity -Depth 30 -Compress) -AsHashtable
             $dependency=[ordered]@{Fingerprint=$binding.dependencyFingerprint;Identity=$identity}
             $headers=ConvertFrom-Json -InputObject (ConvertTo-Json $binding.publicHeaders -Depth 30 -Compress) -AsHashtable
-            $headers.sha256=$headers.combinedSha256
+            $headers['sha256']=$headers.combinedSha256
             $inputs=ConvertFrom-Json -InputObject (ConvertTo-Json $commonInputs -Depth 10 -Compress) -AsHashtable
             $study[$side]=[ordered]@{build=[ordered]@{platform='x64';dependency=$dependency};publicHeaders=$headers;inputs=$inputs}
         }
@@ -744,6 +833,62 @@ if($SelfTest) {
     }
     [IO.File]::WriteAllBytes($profileCopy,[byte[]]@($profileBytes+@(0x20)))
     Assert-HeaderProfileRejected $study $comparison 'copied profile bytes differ from the fixed profile'
+    [IO.File]::WriteAllBytes($profileCopy,$profileBytes)
+    $profile=$v4;$profileBytes=$v4Bytes;$profileHash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($profileBytes))
+    [IO.File]::WriteAllBytes($profileCopy,$profileBytes)
+    $v4Fixture=& $makeStudy;$v4Study=$v4Fixture[0];$v4Comparison=$v4Fixture[1]
+    Assert-CommonHarnessInputIdentity $v4Study $v4Comparison
+    Assert-DependencyEvidence $v4Study $v4Comparison $fixtureRoot
+    Require $true 'Full reviewed-header dependency auditor accepts the exact final V4 fixture and three-header delta.'
+    # Keep the portable self-test independent of private retained-study locations.
+    # The full retained four-study audit is run separately with explicit arguments.
+    $fullV4Study=ConvertFrom-Json -InputObject (ConvertTo-Json $v4Study -Depth 100 -Compress) -AsHashtable
+    $fullV4Comparison=ConvertFrom-Json -InputObject (ConvertTo-Json $v4Comparison -Depth 100 -Compress) -AsHashtable
+    Assert-DependencyEvidence $fullV4Study $fullV4Comparison $fixtureRoot
+    Require $true 'Full reviewed-header dependency auditor accepts a portable exact V4 fixture.'
+    $reorderedV4Study=ConvertFrom-Json -InputObject (ConvertTo-Json $fullV4Study -Depth 100 -Compress) -AsHashtable
+    foreach($side in 'baseline','candidate') {
+        $identity=$reorderedV4Study[$side].build.dependency.Identity
+        $pairs=@($identity.GetEnumerator());[Array]::Reverse($pairs);$identity.Clear()
+        foreach($pair in $pairs) {$identity[$pair.Key]=$pair.Value}
+    }
+    Assert-DependencyEvidence $reorderedV4Study $fullV4Comparison $fixtureRoot
+    Require $true 'Full V4 auditor compares SDK identity fields semantically when JSON key order differs.'
+    $refreshInventory={
+        param($headers)
+        $source=[string[]]@($headers.files|Where-Object {$_.path -clike 'include/*'}|ForEach-Object {$_.path+':'+$_.sha256})
+        $package=[string[]]@($headers.files|Where-Object {$_.path -clike 'package-include/*'}|ForEach-Object {$_.path+':'+$_.sha256})
+        [Array]::Sort($source,[StringComparer]::Ordinal);[Array]::Sort($package,[StringComparer]::Ordinal)
+        $all=[string[]]@($source+$package);[Array]::Sort($all,[StringComparer]::Ordinal)
+        $hashRows={param([string[]]$rows)[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($rows -join [char]10))))}
+        $headers.sourceSha256=& $hashRows $source
+        $headers.packageSha256=& $hashRows $package
+        $headers.combinedSha256=& $hashRows $all
+        $headers.sha256=$headers.combinedSha256
+    }
+    foreach($case in @(
+        @{label='wrong allowed header';edit={param($s)$row=$s.candidate.publicHeaders.files|Where-Object {$_.path -ceq 'include/DxUi/RichTextLayout.h'}|Select-Object -First 1;$row.sha256='A'*64}},
+        @{label='changed package row';edit={param($s)$row=$s.candidate.publicHeaders.files|Where-Object {$_.path -ceq 'package-include/wil/com_apartment_variable.h'}|Select-Object -First 1;$row.sha256='B'*64}},
+        @{label='extra identity field';edit={param($s)$s.candidate.build.dependency.Identity['unreviewed']='x'}},
+        @{label='case-changed identity key';edit={param($s)$value=$s.candidate.build.dependency.Identity.apiRevision;$s.candidate.build.dependency.Identity.Remove('apiRevision');$s.candidate.build.dependency.Identity['ApiRevision']=$value}},
+        @{label='string identity type';edit={param($s)$s.candidate.build.dependency.Identity.apiRevision='4'}})) {
+        $bad=ConvertFrom-Json -InputObject (ConvertTo-Json $fullV4Study -Depth 100 -Compress) -AsHashtable
+        & $case.edit $bad
+        if($case.label -in @('wrong allowed header','changed package row')) { & $refreshInventory $bad.candidate.publicHeaders }
+        $rejected=$false
+        try {Assert-DependencyEvidence $bad $fullV4Comparison $fixtureRoot} catch {$rejected=$true}
+        Require $rejected "V4 full dependency auditor rejects $($case.label) on portable fixture data."
+    }
+    foreach($case in @(
+        @{label='null identity type';edit={param($s)$s.candidate.build.dependency.Identity.apiRevision=$null}},
+        @{label='changed numeric identity type';edit={param($s)$s.candidate.build.dependency.Identity.apiRevision=[double]4}})) {
+        $bad=ConvertFrom-Json -InputObject (ConvertTo-Json $fullV4Study -Depth 100 -Compress) -AsHashtable
+        & $case.edit $bad
+        $rejected=$false
+        try {Assert-DependencyEvidence $bad $fullV4Comparison $fixtureRoot} catch {$rejected=$true}
+        Require $rejected "V4 full dependency auditor rejects $($case.label) on portable fixture data."
+    }
+    $profile=$profileV2;$profileBytes=$profileV2Bytes;$profileHash=$profileV2Hash
     [IO.File]::WriteAllBytes($profileCopy,$profileBytes)
     $v1Bytes=[IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'Fixtures/ReviewedHeaderDeltaProfile.v1.json'))
     $v1Hash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($v1Bytes))

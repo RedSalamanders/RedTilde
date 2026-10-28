@@ -1,0 +1,30 @@
+{
+  "schema": "redtilde-performance-public-replay-summary-v1",
+  "canonicalChecks": 1993,
+  "canonicalStudies": 2,
+  "nativeReportSlots": 32,
+  "rawDerivedScalarChecks": 288,
+  "metricRows": 24,
+  "frozenArtifactsRehashed": 10,
+  "pairing": "unchanged log-block formula",
+  "blockRangeInterpretation": "Observed two-block range only; not a confidence interval.",
+  "decision": "Decoder candidate rejected for this closeout; no repeatable material working-set saving visible.",
+  "scope": "Two-block descriptive scout only. Observed block ranges are not confidence intervals. No rerun, new study, rebaseline, owner, quiet-host or performance-acceptance claim.",
+  "sourceDataUnchanged": true,
+  "nativeOrProbeRunsByProjection": 0,
+  "performanceAcceptance": false,
+  "fullComparisonOrQualification": false,
+  "quietHostProven": false,
+  "allocationOwnership": "not inferred",
+  "privateControlsUnstable": {
+    "aa": [
+      "Compose",
+      "Split"
+    ],
+    "ab": [
+      "Compose",
+      "Split"
+    ]
+  },
+  "individualProcessMetricsRetained": true
+}
