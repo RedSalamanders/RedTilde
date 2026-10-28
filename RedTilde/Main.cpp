@@ -12,10 +12,17 @@
 namespace
 {
 #if defined(__SANITIZE_ADDRESS__)
+// The isolated use-after-free probe deliberately reads volatile storage for ASan detection.
+// Owner: RedTilde test maintainers; review: 2027-01-31.
+#pragma warning(push)
+#if defined(_M_ARM64)
+#pragma warning(disable : 4746)
+#endif
 __declspec(noinline) int ProbeRead(const volatile int *pointer)
 {
     return pointer[1];
 }
+#pragma warning(pop)
 int SanitizerProbe()
 {
     std::vector<int> values(4, 42);
