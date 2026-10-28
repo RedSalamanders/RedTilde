@@ -40,6 +40,10 @@ HRESULT EnsureWinHttpImports() noexcept
         return result;
     }
 }
+// Existing identity/RAII/reference traits intentionally delete these implicit operations.
+// Preserve aggregate and overload behavior. Owner: repository maintainers; review: 2027-01-31.
+#pragma warning(push)
+#pragma warning(disable : 4625 4626 5026 5027)
 struct Transfer final
 {
     wil::unique_handle ready;
@@ -110,6 +114,7 @@ struct Transfer final
         }
     }
 };
+#pragma warning(pop)
 HRESULT ContentLength(HINTERNET request, std::size_t maximum, std::optional<std::size_t> &output) noexcept
 {
     std::array<wchar_t, 32> text{};

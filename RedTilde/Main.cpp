@@ -52,12 +52,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int)
             return 1;
         for (int index = 1; index < count; ++index)
         {
-            const std::wstring_view argument(arguments[index]);
+            const std::wstring_view argument(arguments[static_cast<size_t>(index)]);
             auto value = [&]() -> std::wstring
             {
                 if (++index >= count)
                     throw std::invalid_argument("Missing command argument");
-                return arguments[index];
+                return arguments[static_cast<size_t>(index)];
             };
             if (argument == L"--capture")
             {

@@ -176,6 +176,10 @@ class RichImageLoader final
 
   private:
     friend class RedTilde::DesignRefreshProbe;
+// Existing identity/RAII/reference traits intentionally delete these implicit operations.
+// Preserve aggregate and overload behavior. Owner: repository maintainers; review: 2027-01-31.
+#pragma warning(push)
+#pragma warning(disable : 4625 4626 5026 5027)
     struct State
     {
         static constexpr std::size_t MaximumJobs = MaximumResults, MaximumResultBytes = 67108864u,
@@ -281,5 +285,6 @@ class RichImageLoader final
             }
         }
     };
+#pragma warning(pop)
     std::shared_ptr<State> state_;
 };

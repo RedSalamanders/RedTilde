@@ -166,7 +166,7 @@ void Application::PrepareDesignScenario()
             RequireCapture(folderSnapshot && folderSnapshot->root == writing && !folderFiles.Busy() && SUCCEEDED(folderSnapshot->status) &&
                                SUCCEEDED(folderSnapshot->watchStatus),
                            "The owned Files capture fixture did not complete its bounded scan/watch preparation");
-            RequireCapture(folderSnapshot->markdownCount == (reference ? 20 : 6) &&
+            RequireCapture(folderSnapshot->markdownCount == (reference ? 20u : 6u) &&
                                std::ranges::none_of(folderSnapshot->entries, [](const auto &entry) { return entry.name == L"Not followed.md"; }),
                            "Files capture fixture included a hidden/system/non-Markdown/reparse-target entry");
             if (reference)

@@ -152,10 +152,12 @@ void Application::RefreshFiles(bool rootChanged)
     visibleFilePaths.clear();
     if (!folderSnapshot)
     {
-        setFooter(Resource(requested.empty() ? IDS_FILESUNTITLED : FAILED(folderAdmissionStatus) ? IDS_FILESUNAVAILABLE : IDS_FILESLOADING));
-        filesTree->SetEmptyStateText(Resource(requested.empty()               ? IDS_FILESUNTITLED
-                                              : FAILED(folderAdmissionStatus) ? IDS_FILESUNAVAILABLE
-                                                                              : IDS_FILESLOADING));
+        setFooter(Resource(static_cast<unsigned>(requested.empty()               ? IDS_FILESUNTITLED
+                                                 : FAILED(folderAdmissionStatus) ? IDS_FILESUNAVAILABLE
+                                                                                 : IDS_FILESLOADING)));
+        filesTree->SetEmptyStateText(Resource(static_cast<unsigned>(requested.empty()               ? IDS_FILESUNTITLED
+                                                                    : FAILED(folderAdmissionStatus) ? IDS_FILESUNAVAILABLE
+                                                                                                    : IDS_FILESLOADING)));
         filesTree->NotifyDataChanged();
         return;
     }
@@ -586,7 +588,7 @@ LRESULT Application::FrameHitTest(HWND hwnd, LPARAM point) const
     // Hit the same client-space geometry that the host lays out and paints,
     // including a harness DPI transition before the next native frame.
     const float scale = 96.f / host.GetDpi();
-    const D2D1_POINT_2F dip{screen.x * scale, screen.y * scale};
+    const D2D1_POINT_2F dip{static_cast<float>(screen.x) * scale, static_cast<float>(screen.y) * scale};
     const auto contains = [&](const DxUi::Control *c)
     {
         const auto r = c->GetBounds();
