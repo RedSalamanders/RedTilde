@@ -69,6 +69,12 @@ function Get-PackageMarkdownLink([string] $Text) {
         while ($i + $length -lt $characters.Length -and $characters[$i + $length] -eq '`') { $length++ }
         $closing = -1
         for ($j = $i + $length; $j -lt $characters.Length; $j++) {
+            # A blank line ends the paragraph; unmatched delimiters cannot hide later blocks.
+            if ($characters[$j] -eq "`n") {
+                $next = $j + 1
+                while ($next -lt $characters.Length -and $characters[$next] -in @(' ',"`t")) { $next++ }
+                if ($next -lt $characters.Length -and $characters[$next] -eq "`n") { break }
+            }
             if ($characters[$j] -ne '`') { continue }
             $run = 1
             while ($j + $run -lt $characters.Length -and $characters[$j + $run] -eq '`') { $run++ }
@@ -81,13 +87,16 @@ function Get-PackageMarkdownLink([string] $Text) {
         } else { $i += $length - 1 }
     }
     $textProse = [string]::new($characters)
-    $lineNumber = 0
-    foreach ($line in $textProse -split "`n") {
-        $lineNumber++
-        $definition = [regex]::Match($line, '^\s{0,3}\[[^\]]+\]:\s*')
+    $lines = $textProse -split "`n"
+    for ($lineIndex = 0; $lineIndex -lt $lines.Count; $lineIndex++) {
+        $line = $lines[$lineIndex]
+        $definition = [regex]::Match($line, '^[ \t]{0,3}\[[^\]]+\]:[ \t]*')
         if ($definition.Success) {
             $destination = Read-PackageMarkdownDestination $line $definition.Length
-            if ($null -ne $destination -and $destination.Target) { [pscustomobject]@{ Target = $destination.Target; Line = $lineNumber } }
+            if (($null -eq $destination -or -not $destination.Target) -and $lineIndex + 1 -lt $lines.Count -and $lines[$lineIndex + 1].Trim()) {
+                $destination = Read-PackageMarkdownDestination $lines[$lineIndex + 1] 0
+            }
+            if ($null -ne $destination -and $destination.Target) { [pscustomobject]@{ Target = $destination.Target; Line = $lineIndex + 1 } }
         }
     }
     $brackets = [Collections.Generic.Stack[int]]::new()
@@ -102,8 +111,8 @@ function Get-PackageMarkdownLink([string] $Text) {
         if ($null -eq $destination -or -not $destination.Target) { continue }
         $end = $destination.End
         while ($end -lt $textProse.Length -and [char]::IsWhiteSpace($textProse[$end])) { $end++ }
-        if ($end -lt $textProse.Length -and $textProse[$end] -in @('"',"'")) {
-            $quote = $textProse[$end]; $end++
+        if ($end -lt $textProse.Length -and $textProse[$end] -in @('"',"'",'(')) {
+            $quote = if ($textProse[$end] -eq '(') { ')' } else { $textProse[$end] }; $end++
             while ($end -lt $textProse.Length -and $textProse[$end] -ne $quote) { if ($textProse[$end] -eq '\') { $end++ }; $end++ }
             $end++
             while ($end -lt $textProse.Length -and [char]::IsWhiteSpace($textProse[$end])) { $end++ }
@@ -125,7 +134,9 @@ function ConvertFrom-PackageScalar([string] $Value) {
     if ($Value.StartsWith('"')) {
         $match = [regex]::Match($Value, '^(?<value>"(?:[^"\\]|\\.)*")(?: +#.*)?$')
         if (-not $match.Success) { throw 'Invalid double-quoted scalar' }
-        return ConvertFrom-Json -InputObject $match.Groups['value'].Value -ErrorAction Stop
+        # JsonDocument preserves strings on every supported PowerShell 7 runtime, including ISO dates.
+        $document = [System.Text.Json.JsonDocument]::Parse($match.Groups['value'].Value)
+        try { return $document.RootElement.GetString() } finally { $document.Dispose() }
     }
     $valueText = [regex]::Replace($Value, ' +#.*$', '')
     if ($valueText -match '^[-?:,\[\]{}#&*!|>''"%@`]' -or $valueText.Contains(': ') -or $valueText.EndsWith(':')) { throw 'Unsupported YAML scalar; quote the value' }
@@ -194,11 +205,13 @@ function Get-PackageMarkdownProblem([string] $Path, [string] $Root) {
     foreach ($link in Get-PackageMarkdownLink $text) {
         $target = $link.Target
         if ($target.StartsWith('#') -or $target.StartsWith('//')) { continue }
+        $fileUri = $false
         if ($target -match '^[A-Za-z][A-Za-z0-9+.-]*:' -and -not [IO.Path]::IsPathRooted($target)) {
             if ($target.StartsWith('file:', [StringComparison]::OrdinalIgnoreCase)) { $target = ([Uri]$target).LocalPath }
             else { continue }
+            $fileUri = $true
         }
-        $target = [Uri]::UnescapeDataString($target.Split('#', 2)[0])
+        if (-not $fileUri) { $target = [Uri]::UnescapeDataString($target.Split('#', 2)[0]) }
         if (-not $target) { continue }
         $resolved = [IO.Path]::GetFullPath([IO.Path]::Combine([IO.Path]::GetDirectoryName($Path), $target))
         $relative = [IO.Path]::GetRelativePath($Root, $resolved)
@@ -216,6 +229,8 @@ function Get-SkillPackageIntegrity {
     $markdown = [Collections.Generic.List[string]]::new()
     $actualGuidance = [Collections.Generic.List[string]]::new()
     $skills = 0
+    $rootProblem = Get-PackageReparseProblem $rootPath $rootPath
+    if ($rootProblem) { return [pscustomobject]@{ Problems = @($rootProblem); Skills = 0; Guidance = 0 } }
     $pending = [Collections.Generic.Stack[string]]::new()
     $pending.Push($rootPath)
     while ($pending.Count) {
@@ -261,7 +276,7 @@ function Get-SkillPackageIntegrity {
     if (-not [IO.Directory]::Exists($skillRoot)) { $problems.Add('Missing .agents/skills directory') }
     elseif (@((Join-Path $rootPath '.agents'), $skillRoot) | Where-Object { [IO.File]::GetAttributes($_) -band [IO.FileAttributes]::ReparsePoint }) { $problems.Add('Skill package ancestry contains a reparse point') }
     else {
-        foreach ($folder in Get-ChildItem -LiteralPath $skillRoot -Directory) {
+        foreach ($folder in Get-ChildItem -LiteralPath $skillRoot -Directory -Force) {
             if ($folder.Attributes -band [IO.FileAttributes]::ReparsePoint) { $problems.Add("Reparse skill package: $($folder.Name)"); continue }
             $skills++
             $path = Join-Path $folder.FullName 'SKILL.md'

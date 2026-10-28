@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Check continued references and parenthesized link titles, preserve literal file-URI filenames and quoted timestamps, reject linked roots before discovery, and validate hidden skill packages; extend focused fixtures without claiming model or native qualification.
 - Reject malformed or instruction-free skills, validate required skill UI packages and local references, and enforce an explicit root/scoped AGENTS inventory with isolated positive/negative fixtures. Structural/tooling passes do not establish model decisions or native product qualification.
 - Remove unrelated Python/PyYAML discovery from Format and Tooling receipt identity; preserve the selected formatter and actual toolchain/runtime inputs.
 - Record verified remote-main integration for RedTilde and DxUi, preserve the adopted SDK commit and independent dirty work, and complete obsolete branch/worktree retirement with recovery evidence. Keep the original-UI performance findings, unqualified policy and blocked hosted/manual acceptance gates open.

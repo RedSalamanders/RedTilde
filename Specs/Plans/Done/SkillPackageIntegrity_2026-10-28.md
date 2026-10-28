@@ -40,6 +40,12 @@ runtime behavior nor changes the skill/tooling scope of this completed record.
 
 ## Durable owner and limits
 
+PR review follow-up applied the reproduced shared Markdown/file-URI cases and hidden-directory, linked-root and
+quoted-timestamp controls to this independent validator. The package suite now passes 58 controls, including
+continued definitions, parenthesized titles, blank paragraph boundaries and literal URI filenames. Prior validator
+and PrePush receipts remain attached to their original source; the follow-up needs new candidate acceptance.
+The parser remains explicitly bounded; no full CommonMark conformance or new native claim is inferred.
+
 `Specs/Testing/Testing_SkillPackages.md` owns grammar/package/inventory requirements and validation limits. The
 separate tooling migration retains its Python-probe/planner ownership. Structural checks do not establish that
 a model follows the instructions or that native product/platform/performance gates pass.

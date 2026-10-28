@@ -8,6 +8,7 @@ $prefix = "---`nname: example-skill`ndescription: Read the owning contract.`n---
 $cases = @(
     @{ Name = 'valid'; Text = $prefix + 'Read the contract.'; Valid = $true },
     @{ Name = 'Unicode'; Text = $prefix.Replace('Read the owning contract.', 'Préserver 日本語.') + 'Read.'; Valid = $true },
+    @{ Name = 'double quoted timestamp'; Text = $prefix.Replace('Read the owning contract.', '"2026-10-28T09:00:00Z"') + 'Read.'; Valid = $true },
     @{ Name = 'CRLF'; Text = ($prefix + 'Read.').Replace("`n", "`r`n"); Valid = $true },
     @{ Name = 'optional metadata'; Text = $prefix.Replace('description: Read the owning contract.', "description: 'Preserve: the contract'`nmetadata:`n  author: Example") + 'Read.'; Valid = $true },
     @{ Name = 'ordinary words'; Text = $prefix.Replace('Read the owning contract.', 'Notify owners of yesterday events.') + 'Read.'; Valid = $true },
@@ -70,6 +71,21 @@ try {
     $null = Expect-Integrity 'inline-code pseudo-link ignored'
     Write-Fixture '.agents/skills/example-skill/SKILL.md' ($prefix + '``inline ` [example](missing.md)' + "`n" + 'still code`` and ' + $body)
     $null = Expect-Integrity 'matching multiline code span ignored'
+    Write-Fixture '.agents/skills/example-skill/SKILL.md' ($prefix + 'first `' + "`n `t`n[Missing](missing.md)`n`n" + 'last `')
+    $null = Expect-Integrity 'unmatched code delimiters cannot cross paragraphs' 'Missing local reference'
+    Write-Fixture '.agents/skills/example-skill/SKILL.md' ($prefix + '[Read](missing.md (Owning contract))')
+    $null = Expect-Integrity 'parenthesized title does not hide a missing target' 'Missing local reference'
+    Write-Fixture '.agents/skills/example-skill/SKILL.md' ($prefix + '[Read](../../../Specs/contract(v1).md (Owning contract))')
+    $null = Expect-Integrity 'valid parenthesized title'
+    Write-Fixture '.agents/skills/example-skill/SKILL.md' ($prefix + "[procedure]:`n  references/missing.md`n[Read][procedure]")
+    $null = Expect-Integrity 'continued reference definition checks missing target' 'Missing local reference'
+    Write-Fixture '.agents/skills/example-skill/SKILL.md' ($prefix + "[procedure]:`n  <../../../Specs/contract with spaces.md>`n[Read][procedure]")
+    $null = Expect-Integrity 'valid continued reference definition'
+    foreach ($name in @('guide#v1.md', 'literal%20.md')) {
+        Write-Fixture "Specs/$name" '# Literal filename'
+        Write-Fixture '.agents/skills/example-skill/SKILL.md' ($prefix + '[File](' + ([Uri](Join-Path $fixture "Specs/$name")).AbsoluteUri + ')')
+        $null = Expect-Integrity "file URI preserves literal filename $name"
+    }
     Write-Fixture '.agents/skills/example-skill/SKILL.md' ($prefix + '[Network](//example.invalid/reference)')
     $null = Expect-Integrity 'protocol-relative external URL is not a local target'
     Write-Fixture 'owned-skill.md' ($prefix + 'Read the owned fixture.')
@@ -87,7 +103,28 @@ try {
         $null = Expect-Integrity 'reparse skill entrypoint is refused before reading' 'reparse'
         [IO.File]::Delete($skillPath)
     }
+    $rootAlias = Join-Path $fixture 'root-alias'
+    $rootLinkCreated = $false
+    try {
+        $null = New-Item -ItemType SymbolicLink -Path $rootAlias -Target $fixture -ErrorAction Stop
+        $rootLinkCreated = $true
+    } catch {
+        if ($_.CategoryInfo.Category -ne 'PermissionDenied' -and $_.Exception -isnot [NotSupportedException]) { throw }
+        Write-Host 'SKIP linked-root fixture: this host cannot create a symbolic link.'
+    }
+    if ($rootLinkCreated) {
+        try {
+            $linked = Get-SkillPackageIntegrity $rootAlias
+            if ($linked.Skills -ne 0 -or $linked.Guidance -ne 0 -or -not @($linked.Problems | Where-Object { $_ -like '*reparse*' }).Count) { throw 'Linked root was traversed before package admission' }
+            $checks++
+        } finally { [IO.Directory]::Delete($rootAlias) }
+    }
     Write-Fixture '.agents/skills/example-skill/SKILL.md' ($prefix + $body)
+    $hidden = Join-Path $fixture '.agents/skills/hidden-skill'
+    Write-Fixture '.agents/skills/hidden-skill/SKILL.md' 'Malformed hidden skill'
+    [IO.File]::SetAttributes($hidden, [IO.FileAttributes]::Hidden -bor [IO.FileAttributes]::Directory)
+    try { $null = Expect-Integrity 'hidden packages still receive structure validation' 'Missing YAML frontmatter fences' }
+    finally { [IO.File]::SetAttributes($hidden, [IO.FileAttributes]::Directory); [IO.File]::Delete((Join-Path $hidden 'SKILL.md')); [IO.Directory]::Delete($hidden) }
     Write-Fixture '.agents/skills/example-skill/SKILL.md' $prefix
     $null = Expect-Integrity 'empty instructions through package API' 'Empty skill instructions'
     Write-Fixture '.agents/skills/example-skill/SKILL.md' ($prefix + '[Missing](references/missing.md)')

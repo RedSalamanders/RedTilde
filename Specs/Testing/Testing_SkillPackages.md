@@ -26,7 +26,10 @@ local grammar and fail explicitly. This validation does not change any skill's i
 
 All package Markdown and inventoried guidance files have inline and reference-style Markdown destinations checked. Encoded
 filenames, balanced/escaped parentheses and angle-delimited paths are supported. External/protocol-relative URLs
-and fragment-only links are not fetched. Fenced examples and matching inline code spans are ignored. Missing local targets and
+and fragment-only links are not fetched. Quoted/parenthesized inline titles and next-line reference destinations
+retain their target checks. Fenced examples and matching inline code spans within a blank-line-delimited paragraph
+are ignored; unmatched backticks cannot pair across that paragraph boundary. File URI paths are decoded once,
+preserving literal hash and percent characters. Missing local targets and
 references escaping this repository fail; heading existence, command signatures and model behavior are not inferred.
 
 ## Scoped guidance ownership
@@ -42,7 +45,9 @@ reparse directories; a dependency or test fixture must not become repository gui
 `Tests/Tooling.Tests.SkillPackages.ps1` exercises missing fences, empty bodies, duplicate names, wrong names/types,
 invalid UI metadata, missing procedure files, scope deletion/addition/empty content and ownership exclusions.
 The parser controls include balanced filenames, inline-code pseudo-links and protocol-relative URLs. Reparse
-entrypoints are refused before opening them; link creation is explicitly skipped only on hosts without that
+entrypoints are refused before opening them. The supplied root is admitted before directory discovery or metadata reads, and hidden skill
+directories receive the same structural validation as visible packages. Quoted ISO timestamps remain strings on
+all supported PowerShell 7 runtimes. Link creation is explicitly skipped only on hosts without that
 capability, without adding the skipped control to the passing count. Every test link targets the same owned fixture
 and is removed as a link before ordinary fixture cleanup.
 Only the exact independent module/fixture paths `Build/SkillPackageIntegrity.psm1` and
