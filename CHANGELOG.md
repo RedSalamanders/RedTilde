@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Record the resumed memory/control investigation with independently replayed, privacy-checked evidence and reduced historical cache/binary retention (49.437 GiB). DxUi main and the new diagnostic revision pass all six hosted native profiles; fresh RedTilde main CI remains billing-blocked. Preserve the original performance findings, source identities and open hosted ARM64 gate while testing resource-retention hypotheses.
 - Record verified remote-main integration for RedTilde and DxUi, preserve the adopted SDK commit and independent dirty work, and complete obsolete branch/worktree retirement with recovery evidence. Keep the original-UI performance findings, unqualified policy and blocked hosted/manual acceptance gates open.
 - Record the final twelve SDK keyboard/menu suite passes with verified restoration, the current paired benchmark's inconclusive policy/control outcome, and verified retirement of another merged worktree. Keep the consumer performance and billing-blocked hosted ARM64 gates open during the requested integration.
 - Complete V4 dependency evidence validation with an exact three-header allowlist and order-independent, type-strict SDK identity checks; add portable acceptance and tamper controls. Archive the fresh four-study comparison and final native qualification, retaining the original-UI performance findings, unqualified upstream policy and billing-blocked hosted ARM64 gate.

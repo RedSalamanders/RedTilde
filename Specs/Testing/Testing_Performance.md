@@ -53,6 +53,16 @@ primary process counter or attribute it to an application allocation. See Micros
 [extended-query contract](https://learn.microsoft.com/en-us/windows/win32/api/psapi/nf-psapi-queryworkingsetex)
 and [working-set definition](https://learn.microsoft.com/en-us/windows/win32/memory/working-set).
 
+A state-aligned diagnostic checkpoint follows the exact primary snapshot and precedes idle, report serialization
+and other diagnostic inventory. Bracket nonce/event/file setup separately with process counters, retain known
+handle/storage costs, and prohibit message pumping while the observer owns the checkpoint. Such a snapshot
+includes diagnostic setup and is not untouched production-process memory. A resource-retention counterfactual
+must bind the same executable and unchanged UI/source behavior to explicit process conditions, prove the intended
+resource path was exercised or excluded, and report CPU-versus-memory costs. Cumulative build/paint counters
+are not live-resource counts. Preserve all fixed slots and any refused setup attempt; diagnostic differences
+do not replace primary acceptance outcomes. Public projections use safe mapping labels without raw paths,
+account SIDs, volume/file identifiers or allocation addresses; private evidence retains the original bindings.
+
 An owned-process heap trace must retain its executable, collection declaration, raw stream digests, loss and
 schema counters, observer query brackets and versioned decoder. StackWalk association uses the original-event
 timestamp/process/thread in its payload; a later header timestamp or an unknown header process is not that

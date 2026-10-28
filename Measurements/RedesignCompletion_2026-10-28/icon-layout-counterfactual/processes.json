@@ -1,0 +1,430 @@
+{
+  "schema": "icon-layout-counterfactual-process-projection-v1",
+  "processes": [
+    {
+      "slot": 1,
+      "view": "Compose",
+      "mode": "Default",
+      "cycles": 64,
+      "primaryFinal": {
+        "privateBytes": 46444544,
+        "workingSetBytes": 55029760,
+        "handles": 1094
+      },
+      "diagnosticEntry": {
+        "privateBytes": 46444544,
+        "workingSetBytes": 55033856,
+        "handles": 1098
+      },
+      "setupDeltas": {
+        "privateBytesDeltaFromPrimary": 0,
+        "workingSetBytesDeltaFromPrimary": 4096,
+        "handleDeltaFromPrimary": 4
+      },
+      "residentCategories": {
+        "MEM_IMAGE": 28098560,
+        "MEM_PRIVATE": 24166400,
+        "MEM_MAPPED": 2736128
+      },
+      "traditionalTotalBytes": 55001088,
+      "exTotalBytes": 59289600,
+      "exMinusTraditionalBytes": 4288512,
+      "cacheCounts": {
+        "cachedBrushes": 16,
+        "configuredTextFormats": 16,
+        "rootLogicalChildren": 15
+      },
+      "iconModeProof": {
+        "attempts": 14,
+        "builds": 14,
+        "buttonsWithBuilds": 14,
+        "counterScope": "cumulative per-target counters; not live-layout counts",
+        "excludedProvisionalTargets": 1,
+        "explicitEnvironment": true,
+        "factoryLookups": 14,
+        "fallbackPreparationCalls": 0,
+        "locallyVisibleTargets": 18,
+        "mode": "Default",
+        "preparationCalls": 14,
+        "preparedPaints": 2786,
+        "protocol": "icon-layout-owner-v1",
+        "sizedScalarTargets": 18,
+        "suppressedTargets": 0,
+        "targets": 19
+      },
+      "mappingIdentityComplete": false
+    },
+    {
+      "slot": 2,
+      "view": "Compose",
+      "mode": "Fallback",
+      "cycles": 64,
+      "primaryFinal": {
+        "privateBytes": 44761088,
+        "workingSetBytes": 54906880,
+        "handles": 1094
+      },
+      "diagnosticEntry": {
+        "privateBytes": 44761088,
+        "workingSetBytes": 54910976,
+        "handles": 1098
+      },
+      "setupDeltas": {
+        "privateBytesDeltaFromPrimary": 0,
+        "workingSetBytesDeltaFromPrimary": 4096,
+        "handleDeltaFromPrimary": 4
+      },
+      "residentCategories": {
+        "MEM_IMAGE": 28098560,
+        "MEM_PRIVATE": 24051712,
+        "MEM_MAPPED": 2727936
+      },
+      "traditionalTotalBytes": 54878208,
+      "exTotalBytes": 59166720,
+      "exMinusTraditionalBytes": 4288512,
+      "cacheCounts": {
+        "cachedBrushes": 16,
+        "configuredTextFormats": 16,
+        "rootLogicalChildren": 15
+      },
+      "iconModeProof": {
+        "attempts": 0,
+        "builds": 0,
+        "buttonsWithBuilds": 0,
+        "counterScope": "cumulative per-target counters; not live-layout counts",
+        "excludedProvisionalTargets": 1,
+        "explicitEnvironment": true,
+        "factoryLookups": 0,
+        "fallbackPreparationCalls": 14,
+        "locallyVisibleTargets": 18,
+        "mode": "Fallback",
+        "preparationCalls": 14,
+        "preparedPaints": 0,
+        "protocol": "icon-layout-owner-v1",
+        "sizedScalarTargets": 18,
+        "suppressedTargets": 19,
+        "targets": 19
+      },
+      "mappingIdentityComplete": false
+    },
+    {
+      "slot": 3,
+      "view": "Compose",
+      "mode": "Fallback",
+      "cycles": 64,
+      "primaryFinal": {
+        "privateBytes": 46133248,
+        "workingSetBytes": 54964224,
+        "handles": 1094
+      },
+      "diagnosticEntry": {
+        "privateBytes": 46133248,
+        "workingSetBytes": 54968320,
+        "handles": 1098
+      },
+      "setupDeltas": {
+        "privateBytesDeltaFromPrimary": 0,
+        "workingSetBytesDeltaFromPrimary": 4096,
+        "handleDeltaFromPrimary": 4
+      },
+      "residentCategories": {
+        "MEM_IMAGE": 28098560,
+        "MEM_PRIVATE": 24100864,
+        "MEM_MAPPED": 2740224
+      },
+      "traditionalTotalBytes": 54939648,
+      "exTotalBytes": 59228160,
+      "exMinusTraditionalBytes": 4288512,
+      "cacheCounts": {
+        "cachedBrushes": 16,
+        "configuredTextFormats": 16,
+        "rootLogicalChildren": 15
+      },
+      "iconModeProof": {
+        "attempts": 0,
+        "builds": 0,
+        "buttonsWithBuilds": 0,
+        "counterScope": "cumulative per-target counters; not live-layout counts",
+        "excludedProvisionalTargets": 1,
+        "explicitEnvironment": true,
+        "factoryLookups": 0,
+        "fallbackPreparationCalls": 14,
+        "locallyVisibleTargets": 18,
+        "mode": "Fallback",
+        "preparationCalls": 14,
+        "preparedPaints": 0,
+        "protocol": "icon-layout-owner-v1",
+        "sizedScalarTargets": 18,
+        "suppressedTargets": 19,
+        "targets": 19
+      },
+      "mappingIdentityComplete": false
+    },
+    {
+      "slot": 4,
+      "view": "Compose",
+      "mode": "Default",
+      "cycles": 64,
+      "primaryFinal": {
+        "privateBytes": 44826624,
+        "workingSetBytes": 55033856,
+        "handles": 1092
+      },
+      "diagnosticEntry": {
+        "privateBytes": 44826624,
+        "workingSetBytes": 55037952,
+        "handles": 1096
+      },
+      "setupDeltas": {
+        "privateBytesDeltaFromPrimary": 0,
+        "workingSetBytesDeltaFromPrimary": 4096,
+        "handleDeltaFromPrimary": 4
+      },
+      "residentCategories": {
+        "MEM_IMAGE": 28098560,
+        "MEM_PRIVATE": 24170496,
+        "MEM_MAPPED": 2736128
+      },
+      "traditionalTotalBytes": 55005184,
+      "exTotalBytes": 59293696,
+      "exMinusTraditionalBytes": 4288512,
+      "cacheCounts": {
+        "cachedBrushes": 16,
+        "configuredTextFormats": 16,
+        "rootLogicalChildren": 15
+      },
+      "iconModeProof": {
+        "attempts": 14,
+        "builds": 14,
+        "buttonsWithBuilds": 14,
+        "counterScope": "cumulative per-target counters; not live-layout counts",
+        "excludedProvisionalTargets": 1,
+        "explicitEnvironment": true,
+        "factoryLookups": 14,
+        "fallbackPreparationCalls": 0,
+        "locallyVisibleTargets": 18,
+        "mode": "Default",
+        "preparationCalls": 14,
+        "preparedPaints": 2786,
+        "protocol": "icon-layout-owner-v1",
+        "sizedScalarTargets": 18,
+        "suppressedTargets": 0,
+        "targets": 19
+      },
+      "mappingIdentityComplete": false
+    },
+    {
+      "slot": 5,
+      "view": "Split",
+      "mode": "Fallback",
+      "cycles": 64,
+      "primaryFinal": {
+        "privateBytes": 46321664,
+        "workingSetBytes": 55472128,
+        "handles": 1094
+      },
+      "diagnosticEntry": {
+        "privateBytes": 46321664,
+        "workingSetBytes": 55476224,
+        "handles": 1098
+      },
+      "setupDeltas": {
+        "privateBytesDeltaFromPrimary": 0,
+        "workingSetBytesDeltaFromPrimary": 4096,
+        "handleDeltaFromPrimary": 4
+      },
+      "residentCategories": {
+        "MEM_IMAGE": 28127232,
+        "MEM_PRIVATE": 24510464,
+        "MEM_MAPPED": 2805760
+      },
+      "traditionalTotalBytes": 55443456,
+      "exTotalBytes": 59731968,
+      "exMinusTraditionalBytes": 4288512,
+      "cacheCounts": {
+        "cachedBrushes": 15,
+        "configuredTextFormats": 11,
+        "rootLogicalChildren": 15
+      },
+      "iconModeProof": {
+        "attempts": 0,
+        "builds": 0,
+        "buttonsWithBuilds": 0,
+        "counterScope": "cumulative per-target counters; not live-layout counts",
+        "excludedProvisionalTargets": 1,
+        "explicitEnvironment": true,
+        "factoryLookups": 0,
+        "fallbackPreparationCalls": 14,
+        "locallyVisibleTargets": 18,
+        "mode": "Fallback",
+        "preparationCalls": 14,
+        "preparedPaints": 0,
+        "protocol": "icon-layout-owner-v1",
+        "sizedScalarTargets": 18,
+        "suppressedTargets": 19,
+        "targets": 19
+      },
+      "mappingIdentityComplete": false
+    },
+    {
+      "slot": 6,
+      "view": "Split",
+      "mode": "Default",
+      "cycles": 64,
+      "primaryFinal": {
+        "privateBytes": 46555136,
+        "workingSetBytes": 55779328,
+        "handles": 1094
+      },
+      "diagnosticEntry": {
+        "privateBytes": 46555136,
+        "workingSetBytes": 55783424,
+        "handles": 1098
+      },
+      "setupDeltas": {
+        "privateBytesDeltaFromPrimary": 0,
+        "workingSetBytesDeltaFromPrimary": 4096,
+        "handleDeltaFromPrimary": 4
+      },
+      "residentCategories": {
+        "MEM_IMAGE": 28127232,
+        "MEM_PRIVATE": 24821760,
+        "MEM_MAPPED": 2801664
+      },
+      "traditionalTotalBytes": 55750656,
+      "exTotalBytes": 60039168,
+      "exMinusTraditionalBytes": 4288512,
+      "cacheCounts": {
+        "cachedBrushes": 15,
+        "configuredTextFormats": 11,
+        "rootLogicalChildren": 15
+      },
+      "iconModeProof": {
+        "attempts": 14,
+        "builds": 14,
+        "buttonsWithBuilds": 14,
+        "counterScope": "cumulative per-target counters; not live-layout counts",
+        "excludedProvisionalTargets": 1,
+        "explicitEnvironment": true,
+        "factoryLookups": 14,
+        "fallbackPreparationCalls": 0,
+        "locallyVisibleTargets": 18,
+        "mode": "Default",
+        "preparationCalls": 14,
+        "preparedPaints": 2786,
+        "protocol": "icon-layout-owner-v1",
+        "sizedScalarTargets": 18,
+        "suppressedTargets": 0,
+        "targets": 19
+      },
+      "mappingIdentityComplete": false
+    },
+    {
+      "slot": 7,
+      "view": "Split",
+      "mode": "Default",
+      "cycles": 64,
+      "primaryFinal": {
+        "privateBytes": 46325760,
+        "workingSetBytes": 55291904,
+        "handles": 1096
+      },
+      "diagnosticEntry": {
+        "privateBytes": 46325760,
+        "workingSetBytes": 55296000,
+        "handles": 1100
+      },
+      "setupDeltas": {
+        "privateBytesDeltaFromPrimary": 0,
+        "workingSetBytesDeltaFromPrimary": 4096,
+        "handleDeltaFromPrimary": 4
+      },
+      "residentCategories": {
+        "MEM_IMAGE": 28127232,
+        "MEM_PRIVATE": 24350720,
+        "MEM_MAPPED": 2785280
+      },
+      "traditionalTotalBytes": 55263232,
+      "exTotalBytes": 59551744,
+      "exMinusTraditionalBytes": 4288512,
+      "cacheCounts": {
+        "cachedBrushes": 15,
+        "configuredTextFormats": 11,
+        "rootLogicalChildren": 15
+      },
+      "iconModeProof": {
+        "attempts": 14,
+        "builds": 14,
+        "buttonsWithBuilds": 14,
+        "counterScope": "cumulative per-target counters; not live-layout counts",
+        "excludedProvisionalTargets": 1,
+        "explicitEnvironment": true,
+        "factoryLookups": 14,
+        "fallbackPreparationCalls": 0,
+        "locallyVisibleTargets": 18,
+        "mode": "Default",
+        "preparationCalls": 14,
+        "preparedPaints": 2786,
+        "protocol": "icon-layout-owner-v1",
+        "sizedScalarTargets": 18,
+        "suppressedTargets": 0,
+        "targets": 19
+      },
+      "mappingIdentityComplete": false
+    },
+    {
+      "slot": 8,
+      "view": "Split",
+      "mode": "Fallback",
+      "cycles": 64,
+      "primaryFinal": {
+        "privateBytes": 46084096,
+        "workingSetBytes": 55439360,
+        "handles": 1098
+      },
+      "diagnosticEntry": {
+        "privateBytes": 46084096,
+        "workingSetBytes": 55443456,
+        "handles": 1102
+      },
+      "setupDeltas": {
+        "privateBytesDeltaFromPrimary": 0,
+        "workingSetBytesDeltaFromPrimary": 4096,
+        "handleDeltaFromPrimary": 4
+      },
+      "residentCategories": {
+        "MEM_IMAGE": 28127232,
+        "MEM_PRIVATE": 24494080,
+        "MEM_MAPPED": 2789376
+      },
+      "traditionalTotalBytes": 55410688,
+      "exTotalBytes": 59699200,
+      "exMinusTraditionalBytes": 4288512,
+      "cacheCounts": {
+        "cachedBrushes": 15,
+        "configuredTextFormats": 11,
+        "rootLogicalChildren": 15
+      },
+      "iconModeProof": {
+        "attempts": 0,
+        "builds": 0,
+        "buttonsWithBuilds": 0,
+        "counterScope": "cumulative per-target counters; not live-layout counts",
+        "excludedProvisionalTargets": 1,
+        "explicitEnvironment": true,
+        "factoryLookups": 0,
+        "fallbackPreparationCalls": 14,
+        "locallyVisibleTargets": 18,
+        "mode": "Fallback",
+        "preparationCalls": 14,
+        "preparedPaints": 0,
+        "protocol": "icon-layout-owner-v1",
+        "sizedScalarTargets": 18,
+        "suppressedTargets": 19,
+        "targets": 19
+      },
+      "mappingIdentityComplete": false
+    }
+  ],
+  "scope": "All8 study processes; separate4-cycle smoke excluded; counters cumulative, not live COM counts"
+}

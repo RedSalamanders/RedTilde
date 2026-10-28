@@ -2,12 +2,28 @@
   "schema": "redtilde-public-evidence-manifest-v1",
   "files": [
     {
+      "path": ".gitattributes",
+      "sha256": "22106984A6C1274EAD5C283789CA11D75B303658949AAA627698747E7B2D6160"
+    },
+    {
       "path": "README.md",
-      "sha256": "76DEDBB1D2184F0C8AFAE4CAD8DA0FCEF171F67D9C7474CC83A5BC09C3357E75"
+      "sha256": "1A5F22179A7EBA420D85A7AA44CBA1D01E4D0EEED69E55C3B0A2F06E300E78BD"
     },
     {
       "path": "performance-projection.json",
       "sha256": "A7C8B5BAF6578D5A3EE6B35B15BB168307E47060E8393F452CD188BB009004CC"
+    },
+    {
+      "path": "retention-20261028.md",
+      "sha256": "849ABA6D5C5E384A4CDE53C887AA42B070B5BFACDF51F9E92E5EB7FFFEF6FBA8"
+    },
+    {
+      "path": "diagnostics-0b8e76-census/projection-manifest.json",
+      "sha256": "67423E1302DD04C0123A2C0E2BC9B0D532E329ABB423CB1BFA531F706936C25F"
+    },
+    {
+      "path": "icon-layout-counterfactual/manifest.json",
+      "sha256": "813502316829C5D09B370618FE39FC21E28D12142627D86001A3182B9716A064"
     }
   ]
 }
