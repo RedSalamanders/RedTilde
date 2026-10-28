@@ -21,9 +21,9 @@ only within their recorded native/pin/toolchain/profile identities.
 - [x] Prepare current-source/common-harness comparisons against actual PR main and original UI, with the exact V4 public-header profile. Preserve earlier cohorts and do not reuse PB-only V3 seals.
 - [x] Collect and independently audit fresh A/A and A/B studies for both references. Publish all 48 metric rows, same-side vectors, and source/profile/input hashes in the [public projection](../../../Measurements/RedesignCompletion_2026-10-28/README.md); private raw studies remain separate.
 - [ ] Attribute and resolve the two stable original-UI working-set findings and the two command findings with unstable controls. No optimization/advice acceptance, quiet-host finding or rebaseline is supported.
-- [ ] Complete affected final build/runtime/tooling/format/PrePush obligations and synchronize normative specs/changelog; keep unsupported physical/native platform gates honest.
-- [ ] Merge reviewed SDK history to remote main while preserving the exact adopted commit, then merge the reviewed consumer and verify both remote trees. The owner requests integration with disclosed qualification holds; no performance cost is accepted.
-- [ ] Seal dirty work and useful evidence, remove proved-obsolete local/remote branches and nested worktrees, verify preservation and final primary checkout state.
+- [x] Complete local final build/runtime/tooling/format and PrePush accounting, and synchronize normative specs/changelog. SDK documentation continuation `6c201b71` additionally passes all nineteen Debug suites and full tooling; all three native input identities and executable hashes remain unchanged. Deferred CI remains explicitly pending rather than passed; physical/platform and performance holds stay separate.
+- [x] Merge reviewed SDK PR121 as `881e5d5ff252d5988c1357a5c64d14f480b46793`, preserving SDK086 ancestry, then consumer PR22 as `5d91134454693f5c1b4f05991b9cb719df491e4a`. Both remote merge trees equal their reviewed heads. The owner requested integration with disclosed holds; no performance cost is accepted.
+- [x] Seal dirty work and useful evidence, remove thirty-six proved-obsolete local branches and nine merged worktrees, and verify both feature branches absent remotely. Both remotes retain only main. Dirty and frozen qualification/diagnostic worktrees remain useful and protected; cleanup is not a qualification pass.
 
 No review-required performance policy, skipped job, unstable control, cross-build
 or manual-platform hold becomes a pass because integration/cleanup was requested.
@@ -86,6 +86,16 @@ source ZIP entries were byte-verified before removal. Its branch was main-merged
 Protected work was rechecked: all222 preserved copies, all20 current dirty source
 files and the original user deletion remain unchanged. The newer SDK documentation
 continuation does not change source/header/build/benchmark implementation from SDK086.
+
+Both primary checkouts now use main. RedTilde's untracked review file conflicted
+with a newly tracked upstream path: the fast-forward initially refused, its exact
+bytes were safely put aside and then restored after integration. It is now a
+modified tracked file rather than an untracked one; its SHA-256 remains unchanged.
+The user's deleted example remains deleted. Neither local change was committed.
+GitHub had already removed the two merged remote feature refs automatically;
+explicit deletion requests therefore found no ref, and a fresh remote inventory
+confirmed only main remains. Exact native/raw evidence and recovery maps remain
+under the approved qualification archive. R10 and the hosted/manual gates stay WIP.
 ## Progress checklist
 
 - [x] Added title-bar follow-up: connect nonclient input to canonical button hover/press/release/cancel handling, retain maximize hit testing for Snap, and validate neutral/red hover without taking desktop focus. At that checkpoint it did not resume the saved performance/CI queue; the user resumed that queue on 28 October.

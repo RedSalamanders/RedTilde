@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Record verified remote-main integration for RedTilde and DxUi, preserve the adopted SDK commit and independent dirty work, and complete obsolete branch/worktree retirement with recovery evidence. Keep the original-UI performance findings, unqualified policy and blocked hosted/manual acceptance gates open.
 - Record the final twelve SDK keyboard/menu suite passes with verified restoration, the current paired benchmark's inconclusive policy/control outcome, and verified retirement of another merged worktree. Keep the consumer performance and billing-blocked hosted ARM64 gates open during the requested integration.
 - Complete V4 dependency evidence validation with an exact three-header allowlist and order-independent, type-strict SDK identity checks; add portable acceptance and tamper controls. Archive the fresh four-study comparison and final native qualification, retaining the original-UI performance findings, unqualified upstream policy and billing-blocked hosted ARM64 gate.
 - Admit only the reviewed SDK98-to-SDK086 Markdown/caption header delta for fresh performance comparisons. Bind complete matching header/library/probe/compiler/link evidence to immutable LF profile bytes, preserve legacy profile replay, and cover malformed or tampered proofs. No performance thresholds, metric family or policy approval changes.
