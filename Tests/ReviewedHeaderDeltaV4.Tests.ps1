@@ -110,4 +110,3 @@ try {
     if($failures.Count){throw ('V4 invalid fixtures accepted: '+($failures -join ', '))}
     Write-Output "V4 synthetic positive and negative cases passed; evidence retained at $testRoot"
 } finally {Remove-Module Performance -ErrorAction SilentlyContinue;Import-Module $moduleSource -Force}
-
