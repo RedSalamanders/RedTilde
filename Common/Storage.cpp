@@ -27,8 +27,9 @@ HRESULT LastError() noexcept
 std::uint64_t ContentHash(std::string_view bytes) noexcept
 {
     std::uint64_t hash = 14695981039346656037ull;
-    for (unsigned char value : bytes)
+    for (const char unit : bytes)
     {
+        const auto value = static_cast<unsigned char>(unit);
         hash ^= value;
         hash *= 1099511628211ull;
     }
@@ -123,7 +124,7 @@ catch (const std::bad_alloc &)
 }
 catch (const std::filesystem::filesystem_error &error)
 {
-    return HRESULT_FROM_WIN32(error.code().value());
+    return HRESULT_FROM_WIN32(static_cast<DWORD>(error.code().value()));
 }
 
 HRESULT LoadDocument(const std::filesystem::path &path, StoredDocument &document) noexcept

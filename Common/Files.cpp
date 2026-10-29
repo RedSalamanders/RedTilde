@@ -39,8 +39,8 @@ wil::unique_handle OpenDirectory(const std::filesystem::path &path, bool watch =
     // are visited. A checked parent cannot be renamed or converted to a reparse
     // point to redirect descent. Watch handles permit ordinary external changes.
     return wil::unique_handle(CreateFileW(path.c_str(), FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES,
-                                          FILE_SHARE_READ | (watch ? FILE_SHARE_WRITE | FILE_SHARE_DELETE : 0), nullptr, OPEN_EXISTING,
-                                          FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT | (watch ? FILE_FLAG_OVERLAPPED : 0), nullptr));
+                                          FILE_SHARE_READ | (watch ? FILE_SHARE_WRITE | FILE_SHARE_DELETE : 0u), nullptr, OPEN_EXISTING,
+                                          FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT | (watch ? FILE_FLAG_OVERLAPPED : 0u), nullptr));
 }
 FilesCaseSensitivity DirectoryCaseSensitivity(HANDLE directory) noexcept
 {
@@ -206,6 +206,10 @@ struct Scan
         }
     }
 };
+// Existing identity/RAII/reference traits intentionally delete these implicit operations.
+// Preserve aggregate and overload behavior. Owner: repository maintainers; review: 2027-01-31.
+#pragma warning(push)
+#pragma warning(disable : 4625 4626)
 class DirectoryWatch final
 {
   public:
@@ -300,6 +304,7 @@ class DirectoryWatch final
         Arm();
     }
 };
+#pragma warning(pop)
 } // namespace
 
 bool IsMarkdownFile(const std::filesystem::path &path) noexcept
@@ -394,6 +399,10 @@ std::vector<std::size_t> FilterMarkdownFiles(const FilesSnapshot &snapshot, std:
     return selected;
 }
 
+// Existing identity/RAII/reference traits intentionally delete these implicit operations.
+// Preserve aggregate and overload behavior. Owner: repository maintainers; review: 2027-01-31.
+#pragma warning(push)
+#pragma warning(disable : 4625 4626 5026 5027)
 struct FilesService::State
 {
     struct Request
@@ -530,10 +539,11 @@ struct FilesService::State
         {
             // Threadpool ABI boundary: publish a concrete failed result and stop
             // admission; a stopped worker must never accept an unserviceable root.
-            self->Fail(HRESULT_FROM_WIN32(error.code().value()));
+            self->Fail(HRESULT_FROM_WIN32(static_cast<DWORD>(error.code().value())));
         }
     }
 };
+#pragma warning(pop)
 FilesService::~FilesService()
 {
     Close();

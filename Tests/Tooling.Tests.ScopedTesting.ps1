@@ -392,7 +392,7 @@ if(-not $Expected){throw 'The manifest switch was not bound'}
         Put (Join-Path $buildRoot 'Build/RedTilde.DxUi.props') '<Project />'
         Put (Join-Path $buildRoot 'Tests/test-scopes.json') '{"runtimeFiles":[]}'
         Put (Join-Path $buildRoot 'Tests/GuardFixture.cpp') 'first source bytes'
-        foreach($name in @('Harness.psm1','ScopedTesting.psm1')){Copy-Item -LiteralPath (Join-Path $root "Build/$name") -Destination (Join-Path $buildRoot "Build/$name")}
+        foreach($name in @('Harness.psm1','ScopedTesting.psm1','BuildConsole.psm1','DxUiPaths.psm1')){Copy-Item -LiteralPath (Join-Path $root "Build/$name") -Destination (Join-Path $buildRoot "Build/$name")}
         Copy-Item -LiteralPath (Join-Path $root 'build.ps1') -Destination (Join-Path $buildRoot 'build.ps1')
         Put (Join-Path $buildRoot 'Build/Toolchain.psm1') @'
 Set-StrictMode -Version Latest
@@ -437,13 +437,16 @@ if($args -contains '/t:Clean'){
 }
 if(Test-Path (Join-Path $root '.build/mock-fail')){$global:LASTEXITCODE=9;return}
 [void](New-Item -ItemType Directory -Path $output -Force);[void](New-Item -ItemType Directory -Path $intermediate -Force)
+$logOption=[string](@($args|Where-Object{$_ -like '/flp:logfile=*'})[0])
+$nativeLog=($logOption.Substring('/flp:logfile='.Length) -split ';',2)[0]
+[IO.File]::WriteAllText($nativeLog,$(if(Test-Path (Join-Path $root '.build/mock-warning')){'fixture.cpp(1): warning C4100: injected diagnostic'}else{'Fixture native build completed.'}))
 $token=Join-Path $intermediate 'compiled-input.hash';$exe=Join-Path $output 'RedTilde.exe'
 if(-not(Test-Path $token)){
     $sourceHash=(Get-FileHash (Join-Path $root 'Tests/GuardFixture.cpp')).Hash
-    $headerHash=(Get-FileHash (Join-Path $root '.build/dependencies/DxUi/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/vcpkg_installed/x64/x64-windows/include/guard.h')).Hash
+    $headerHash=(Get-FileHash (Join-Path $root '.build/dependencies/DxUi/aaaaaaaaaaaaaaaa/vcpkg_installed/x64/x64-windows/include/guard.h')).Hash
     $compilerHash=(Get-FileHash (Join-Path $root 'Tools/VC/bin/HostX86/x64/cl.exe')).Hash
     $sdkCommit=([string](Get-Content (Join-Path $root '.build/dependencies/DxUi/DxUi.identity.x64.json') -Raw|ConvertFrom-Json).Identity.commit)
-    $sdkSourceHash=(Get-FileHash (Join-Path $root ".build/dependencies/DxUi/source/$sdkCommit/src/GuardFixture.cpp")).Hash
+    $sdkSourceHash=(Get-FileHash (Join-Path $root ".build/dependencies/DxUi/source/$($sdkCommit.Substring(0,16))/src/GuardFixture.cpp")).Hash
     $bytes=[Text.Encoding]::UTF8.GetBytes($sourceHash+$headerHash+$compilerHash+$sdkSourceHash)
     $compiled=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes))
     [IO.File]::WriteAllText($token,$compiled);[IO.File]::WriteAllText($exe,$compiled)
@@ -454,14 +457,16 @@ $global:LASTEXITCODE=0
         $sdkRoot=Join-Path $buildRoot '.build/dependencies/DxUi/source';[void](New-Item -ItemType Directory -Path $sdkRoot -Force)
         $sdkSource=Join-Path $sdkRoot 'fixture-source';New-Repository $sdkSource;Put (Join-Path $sdkSource 'include/source.h') 'source header';Put (Join-Path $sdkSource 'src/GuardFixture.cpp') 'pinned SDK implementation bytes';Put (Join-Path $sdkSource 'capabilities.json') '{"apiRevision":4}'
         Invoke-FixtureGit $sdkSource @('add','-A');Invoke-FixtureGit $sdkSource @('commit','-qm','fixture SDK source and header')
-        $commit=(& git -C $sdkSource rev-parse HEAD).Trim();$sdkSourceCommitted=Join-Path $sdkRoot $commit;Move-Item -LiteralPath $sdkSource -Destination $sdkSourceCommitted
+        $commit=(& git -C $sdkSource rev-parse HEAD).Trim();$sdkSourceCommitted=Join-Path $sdkRoot $commit.Substring(0,16);Move-Item -LiteralPath $sdkSource -Destination $sdkSourceCommitted
         $fingerprint=('a'*64) -join ''
-        $packageInclude=Join-Path $buildRoot ".build/dependencies/DxUi/$fingerprint/vcpkg_installed/x64/x64-windows/include"
-        Put (Join-Path $packageInclude 'guard.h') 'package header v1'
         $identity=@{commit=$commit;apiRevision=4;platform='x64';toolset='v145';vcToolsVersion='14.50.00000';windowsSdkVersion='10.0.26100.0';runtimeFamily='MD';preferredToolArchitecture='x86';disableStlAnnotations=$false}
+        Import-Module (Join-Path $buildRoot 'Build/DxUiPaths.psm1') -Force
+        $verifiedOutput=Initialize-DxUiOutputRoot -DependencyRoot (Join-Path $buildRoot '.build/dependencies/DxUi') -BuildIdentity @{Fingerprint=$fingerprint;Identity=$identity}
+        $packageInclude=Join-Path $verifiedOutput 'vcpkg_installed/x64/x64-windows/include'
+        Put (Join-Path $packageInclude 'guard.h') 'package header v1'
         Put (Join-Path $buildRoot '.build/dependencies/DxUi/DxUi.identity.x64.json') (@{Fingerprint=$fingerprint;Identity=$identity}|ConvertTo-Json -Depth 4)
         Put (Join-Path $buildRoot 'Dependencies/DxUi.lock.json') (@{repository='https://github.com/RedSalamanders/DxUi';commit=$commit;apiRevision=4;targets=@('DxUi')}|ConvertTo-Json -Depth 4)
-        $resolvedOutput=(Join-Path $buildRoot ".build/dependencies/DxUi/$fingerprint")+'\'
+        $resolvedOutput=(Join-Path $buildRoot ".build/dependencies/DxUi/$($fingerprint.Substring(0,16))")+'\'
         $resolvedXml='<Project><PropertyGroup><DxUiRoot>'+[Security.SecurityElement]::Escape($sdkSourceCommitted)+'</DxUiRoot><DxUiConsumerOutputRoot>'+[Security.SecurityElement]::Escape($resolvedOutput)+'</DxUiConsumerOutputRoot><DxUiConsumerLockFile>'+[Security.SecurityElement]::Escape((Join-Path $buildRoot 'Dependencies/DxUi.lock.json'))+'</DxUiConsumerLockFile><DxUiConsumerToolset>v145</DxUiConsumerToolset><DxUiConsumerVCToolsVersion>14.50.00000</DxUiConsumerVCToolsVersion><DxUiConsumerSdkVersion>10.0.26100.0</DxUiConsumerSdkVersion><DxUiConsumerPreferredToolArchitecture>x86</DxUiConsumerPreferredToolArchitecture></PropertyGroup></Project>'
         Put (Join-Path $buildRoot '.build/dependencies/DxUi/DxUi.resolved.x64.props') $resolvedXml
         Invoke-FixtureGit $buildRoot @('add','-A');Invoke-FixtureGit $buildRoot @('commit','-qm','fixture build inputs')

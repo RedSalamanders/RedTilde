@@ -78,15 +78,15 @@ void Terminated() noexcept
 {
     Fatal(0xE0525401);
 }
-void InvalidParameter(const wchar_t *, const wchar_t *, const wchar_t *, unsigned, uintptr_t)
+void InvalidParameter(const wchar_t *, const wchar_t *, const wchar_t *, unsigned, uintptr_t) noexcept
 {
     Fatal(0xE0525402);
 }
-void PureCall()
+void PureCall() noexcept
 {
     Fatal(0xE0525403);
 }
-void Aborted(int)
+void Aborted(int) noexcept
 {
     Fatal(0xE0525404);
 }
@@ -97,7 +97,7 @@ try
     std::error_code error;
     std::filesystem::create_directories(directory, error);
     if (error)
-        return HRESULT_FROM_WIN32(error.value());
+        return HRESULT_FROM_WIN32(static_cast<DWORD>(error.value()));
     std::vector<std::filesystem::path> dumps;
     for (std::filesystem::directory_iterator iterator(directory, error), end; !error && iterator != end; iterator.increment(error))
     {
@@ -129,7 +129,7 @@ catch (const std::bad_alloc &)
 }
 catch (const std::filesystem::filesystem_error &error)
 {
-    return HRESULT_FROM_WIN32(error.code().value());
+    return HRESULT_FROM_WIN32(static_cast<DWORD>(error.code().value()));
 }
 [[noreturn]] void CrashProbe() noexcept
 {
