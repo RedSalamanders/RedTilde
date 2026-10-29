@@ -1,7 +1,7 @@
 # Active plans
 
 
-- [Redesign completion and rendering compatibility](RedesignCompletionAndRendering_2026-10-24.md) — **paused by user**; local resume queue saved, current
+- [Redesign completion and rendering compatibility](RedesignCompletionAndRendering_2026-10-24.md) — **active**; historical pause/resume queues preserved, current
   execution coordinator with a top checklist, current-source defects, complete review inventory, native math
   and Mermaid compatibility/test matrices, measured simplification and exact-pin final qualification. Existing
   creation/design and DxUi audit owners remain authoritative for their requirements. The owner selected finishing
@@ -23,8 +23,6 @@
   source-bound six-profile builds, x64 native tests and matched captures are archived. R10 performance and
   broader input/platform/CI/release qualification keep this parent plan active. The completion coordinator
   now sequences the remaining work; earlier source-bound results do not qualify a later pin automatically.
-
-proposal pages and pictures are in its folder. Not implemented; start at R0 and open decisions D1–D5.
 
 - [RedMonitor adoption](RedMonitor_Adoption_2026-10-23.md) — pinned producer, optional viewer and consumer qualification.
 

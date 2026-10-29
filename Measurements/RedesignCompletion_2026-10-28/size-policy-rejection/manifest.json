@@ -1,0 +1,15 @@
+{
+  "schema": "redtilde-public-os-rejection-manifest-v1",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "3EFC5C5A5F35D86C2D678C26A1568349BFF9B76DF1AC723A9553E50C77BCEF03",
+      "bytes": 2688
+    },
+    {
+      "path": "projection.json",
+      "sha256": "0A45B08600098891D22EE75944875D546A2526C529DEE83CD62C14BB8C0A9E84",
+      "bytes": 10347
+    }
+  ]
+}

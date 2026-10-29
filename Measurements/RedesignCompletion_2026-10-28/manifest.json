@@ -7,7 +7,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "1A5F22179A7EBA420D85A7AA44CBA1D01E4D0EEED69E55C3B0A2F06E300E78BD"
+      "sha256": "24FD0925C17BD967E95B99C478A35016915379A7312720BF061B9ABD22B834AB"
     },
     {
       "path": "performance-projection.json",
@@ -15,7 +15,7 @@
     },
     {
       "path": "retention-20261028.md",
-      "sha256": "849ABA6D5C5E384A4CDE53C887AA42B070B5BFACDF51F9E92E5EB7FFFEF6FBA8"
+      "sha256": "902BDDB77A3F274A8ACB57C452D9ADBFB7668194799F6F6AC025C483BE5964A3"
     },
     {
       "path": "diagnostics-0b8e76-census/projection-manifest.json",
@@ -24,6 +24,10 @@
     {
       "path": "icon-layout-counterfactual/manifest.json",
       "sha256": "813502316829C5D09B370618FE39FC21E28D12142627D86001A3182B9716A064"
+    },
+    {
+      "path": "size-policy-rejection/manifest.json",
+      "sha256": "9BEA85372567A033FD6A26AF8841A032BEF622DC64EDA3F8655BD6015F1E6BFB"
     }
   ]
 }
