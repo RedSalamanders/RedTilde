@@ -27,3 +27,8 @@
 proposal pages and pictures are in its folder. Not implemented; start at R0 and open decisions D1–D5.
 
 - [RedMonitor adoption](RedMonitor_Adoption_2026-10-23.md) — pinned producer, optional viewer and consumer qualification.
+
+- [Production-readiness review](ProductionReview_2026-10-28.md) — whole-repository review at `1c3554c`: ranked
+  findings (CI gate, line-ending preservation, session-end and recovery loss windows, file-safety failure paths,
+  UX, tooling selection), simplification candidates and remediation order. Owner decisions Q1–Q17 are recorded;
+  no questions are open. Not started.

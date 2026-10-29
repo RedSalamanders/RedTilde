@@ -4,6 +4,10 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Add the production-readiness review plan for `1c3554c`: verified findings ranked by severity (CI gate,
+  line-ending preservation, session-end and recovery loss windows, file-safety failure paths, UX and test
+  selection), refuted candidates, simplification candidates, owner decisions Q1–Q17 and the remediation order.
+  Documentation only; no product behavior changes, and remediation has not started.
 - Preserve the unsuccessful caption optimization and hidden-file-pane investigation as rejected performance leads; keep original-UI regressions and unstable controls open, and track the distinct DxUi main ARM64 Release Menu failure alongside the billing-blocked RedTilde ARM64 gate.
 - Record the resumed memory/control investigation with independently replayed, privacy-checked evidence and reduced historical cache/binary retention (49.437 GiB). DxUi main and the new diagnostic revision pass all six hosted native profiles; fresh RedTilde main CI remains billing-blocked. Preserve the original performance findings, source identities and open hosted ARM64 gate while testing resource-retention hypotheses.
 - Preserve package-reference checks after indented code by limiting fence markers to zero through three leading spaces and testing both opener and closer admission.
