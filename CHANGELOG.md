@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Update the redesign checklist with the preserved submenu timer regressions, current SDK qualification and the bounded allocation-attribution investigation. Retain the original performance findings, separate consumer-pin adoption, and billing-blocked hosted RedTilde ARM64.
 - Archive the rejected Release size-policy experiment: all six builds and current x64 native/input checks pass, but the fixed private comparison fails its required Compose memory improvement. Preserve all metric estimates, block signs and collector failure history; keep the original performance findings and billing-blocked hosted ARM64 open. Record the separately reproduced DxUi stationary-pointer submenu failure and its pending corrected-source qualification without changing the consumer pin.
 - Update the active redesign qualification checklist after retiring obsolete performance caches, completing SDK runner and Menu readiness corrections, and qualifying the private Release size candidate's six builds. Preserve the original performance findings, rejected routing trial, historical queues and local edits; keep runtime, independent policy and billing-blocked hosted ARM64 gates explicit.
 - Preserve the unsuccessful caption optimization and hidden-file-pane investigation as rejected performance leads; keep original-UI regressions and unstable controls open, and track the distinct DxUi main ARM64 Release Menu failure alongside the billing-blocked RedTilde ARM64 gate.
