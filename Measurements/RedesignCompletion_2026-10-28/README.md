@@ -21,7 +21,14 @@ requires every measured/warmup call to return `S_FALSE`, including sticky reject
 by a final no-op. At native producer `8ccb8a14`, all six local builds, three x64 real native oracles, three full
 Embedded runs, actual ASan detection and affected Tooling/full validators pass. Metadata child `c1c207a8`
 preserves that producer identity. Independent replay verifies 737 file bindings; prior products/reports are
-unchanged. Local ARM64 results are cross-builds and hosted execution is still pending. This diagnostic validation
+unchanged. Local ARM64 results are cross-builds. Subsequent actual hosted execution at merge `b7d43757` / head
+`c1c207a8` passes all six native profiles, 126 declared Full outcomes and eight consumer modes with zero skips;
+two expected ASan detectors are separate. Independent replay verifies 505 payload hashes. The
+[reviewed SDK packet](https://github.com/RedSalamanders/DxUi/pull/136) keeps native identity/custody and physical
+interaction limits explicit. The final [PR134 paired workflow](https://github.com/RedSalamanders/DxUi/actions/runs/40869356681)
+completes collection/upload but fails verdict publication and its overall gate under the unqualified measured-base
+policy; its verdict remains inconclusive. SDK numerical replay and the separate eight-process precision study do
+not replace the consumer's canonical comparisons or close command/control, quiet-host or policy holds. This diagnostic validation
 does not establish historical dirty work, stabilize the existing controls or change the canonical metric/policy.
 
 The historical `9cf8b221` result remains historical and is not silently relabeled as current-source evidence. The change in public-header/profile identity requires the fresh current-source study shown here.
@@ -56,3 +63,5 @@ owner's explicit memory cost decision, with all other gates retained. No accepta
 - [Historical retention cleanup](retention-20261028.md) records the owner's requested reduction of redundant caches and old binaries; cleanup is not performance qualification.
 
 Private raw studies and full receipts remain in the controlled evidence archive and are not copied here.
+
+The later exact-head RedTilde PR27 [run 40872751037](https://github.com/RedSalamanders/RedTilde/actions/runs/40872751037) at `f9f5d1cb` also starts zero steps under explicit account-payment/spending-limit annotations. Hosted consumer ARM64 remains open; no consumer pin or product qualification changes follow from this documentation checkpoint.
