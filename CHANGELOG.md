@@ -4,6 +4,19 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Add the production-readiness review plan for `1c3554c`: verified findings ranked by severity (CI gate,
+  line-ending preservation, session-end and recovery loss windows, file-safety failure paths, UX and test
+  selection), refuted candidates, simplification candidates, owner decisions Q1–Q17 and the remediation order.
+  Documentation only; no product behavior changes, and remediation has not started.
+- Record the six-profile hosted SDK diagnostic pass, separate precision evidence and final paired CI policy refusal. Preserve the accepted +2.0045%/+2.2195% application working-set cost, unchanged SDK086 consumer pin, unstable-control/policy holds and exact-head RedTilde billing refusal; hosted consumer ARM64 and integration stay open.
+- Record the upstream clean-Prepare diagnostic's six local builds, three x64 oracle/Embedded profiles, real ASan detection and independently verified preservation; keep hosted, policy/control and consumer-pin obligations open. Archive the rejected private experiment and remove its unused refs/cache while preserving complete recovery and the locked empty directory with an unassigned process owner.
+- Retire five superseded SDK draft PRs and their five remote/five unused local branch names after verifying exact ancestry, complete-bundle recovery and unchanged dirty work. Preserve active corrections, evidence and pending CI; record the newer documentation-only main run's cancellation without relabeling the earlier native failure.
+- Record the owner's explicit acceptance of the measured original-UI working-set costs (+2.0045% Compose/+2.2195% Split) after rejected repair options. Preserve the original findings and keep command/control stability, shared policy, CI, hosted ARM64 and other platform gates open; no rebaseline or waiver follows.
+- Record measured performance advice after the bounded repair routes fail their criteria; distinguish further ownership diagnosis, explicit deferral and owner cost review while keeping noisy controls, unqualified policy, failed CI and hosted ARM64 holds open.
+- Record the fixed single-option initial-batching memory study and its rejection: all four resource and 32 scout processes complete, but both views fail the predeclared working-set consistency criterion and private memory increases. Publish all metric/block/resource observations, preserve source/product recovery, and keep performance, policy and hosted ARM64 gates open.
+- Record the rejected lazy optional-pane memory study with its fixed criterion, complete measurements, focused test results and outstanding redesign performance gates.
+- Record final DxUi build, static, native, ASan and foreground qualification and completed functional plans; retain the inconclusive paired result with 72 unstable controls, unresolved RedTilde memory/command findings and billing-blocked hosted ARM64. Advance bounded private allocation attribution without claiming Release ownership.
+- Update the redesign checklist with the preserved submenu timer regressions, current SDK qualification and the bounded allocation-attribution investigation. Retain the original performance findings, separate consumer-pin adoption, and billing-blocked hosted RedTilde ARM64.
 - Record the validated build-policy matrix, preserved binary-size evidence, completed quiet performance study and explicit merge handoff; retain unresolved performance uncertainty and any hosted CI limits.
 - Record passing local x64 runtime qualification and ARM64 cross-builds for the common build policy, with immutable Release size evidence and remaining performance/CI gates explicit.
 - Record the current native profile and pinned-archive policy audit, qualified native builds and explicit remaining runtime, performance and integration gates.
