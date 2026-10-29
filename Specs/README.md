@@ -18,7 +18,7 @@ in `Dependencies/DxUi.lock.json`. An intended requirement is not evidence that t
 
 Active sequencing is indexed in [Plans/WIP](Plans/WIP/README.md); completed records live in [Plans/Done](Plans/Done/README.md).
 
-The [Changes workflow](Core/Core_Changes.md) owns fragment format, validation and immediate folding before PrePush/final handoff and after integration.
+The [Changes workflow](Core/Core_Changes.md) owns fragment format, validation, and folding merged fragments on the default branch through a pull request of its own.
 
 [RedMonitor integration](Core/Core_RedMonitorIntegration.md) owns the optional diagnostic client, SDK pin and viewer command.
 
