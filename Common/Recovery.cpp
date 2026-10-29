@@ -105,6 +105,10 @@ catch (const std::invalid_argument &)
     return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
 }
 
+// Existing identity/RAII/reference traits intentionally delete these implicit operations.
+// Preserve aggregate and overload behavior. Owner: repository maintainers; review: 2027-01-31.
+#pragma warning(push)
+#pragma warning(disable : 4625 4626 5026 5027)
 struct RecoveryService::State
 {
     std::mutex mutex;
@@ -255,7 +259,7 @@ struct RecoveryService::State
         }
         catch (const std::system_error &error)
         {
-            result = HRESULT_FROM_WIN32(error.code().value());
+            result = HRESULT_FROM_WIN32(static_cast<DWORD>(error.code().value()));
         }
         catch (const std::invalid_argument &)
         {
@@ -267,6 +271,7 @@ struct RecoveryService::State
         self->Notify();
     }
 };
+#pragma warning(pop)
 
 RecoveryService::~RecoveryService()
 {

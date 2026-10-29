@@ -14,7 +14,14 @@
 #include <chrono>
 #include <cstring>
 #include <format>
+// MSVC's external future/PPL templates intentionally use the selected ARM64 volatile model.
+// Owner: RedTilde test maintainers; review on the next MSVC upgrade, by 2027-01-31.
+#pragma warning(push)
+#if defined(_M_ARM64)
+#pragma warning(disable : 4746)
+#endif
 #include <future>
+#pragma warning(pop)
 #include <mutex>
 #include <new>
 #include <optional>
@@ -44,6 +51,10 @@ struct Response
 // This fixture owns a single anonymous IPv4 loopback listener on an ephemeral
 // port. Its protocol is deliberately HTTP test data, not a production server or
 // a replacement transport; it never resolves/connects to an external endpoint.
+// Existing identity/RAII/reference traits intentionally delete these implicit operations.
+// Preserve aggregate and overload behavior. Owner: repository maintainers; review: 2027-01-31.
+#pragma warning(push)
+#pragma warning(disable : 4625 4626)
 class LoopbackImages final
 {
     using SocketEvent = wil::unique_any<WSAEVENT, decltype(&WSACloseEvent), WSACloseEvent>;
@@ -196,6 +207,7 @@ class LoopbackImages final
         (void)SetEvent(release.get());
     }
 };
+#pragma warning(pop)
 std::vector<std::byte> Bitmap()
 {
     constexpr std::array<unsigned char, 62> bytes{0x42, 0x4d, 62, 0, 0, 0, 0, 0,  0, 0, 54, 0, 0, 0, 40,  0,   0, 0, 2, 0, 0,

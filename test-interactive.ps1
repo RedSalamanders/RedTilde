@@ -21,7 +21,7 @@ Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
 $artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
 $pinPath=Join-Path $PSScriptRoot 'Dependencies/DxUi.lock.json'
 $pin=Get-Content -LiteralPath $pinPath -Raw|ConvertFrom-Json
-$source=Join-Path $PSScriptRoot ".build/dependencies/DxUi/source/$($pin.commit)"
+$source=Join-Path $PSScriptRoot ".build/dependencies/DxUi/source/$($pin.commit.Substring(0,16))"
 & (Join-Path $source 'Tools/validate_consumer.ps1') -DxUiRoot $source -LockFile $pinPath
 if($LASTEXITCODE){throw 'The canonical interactive lease source does not match the exact dependency pin.'}
 $resolved=[xml](Get-Content -LiteralPath (Join-Path $PSScriptRoot ".build/dependencies/DxUi/DxUi.resolved.$Platform.props") -Raw)

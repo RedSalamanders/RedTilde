@@ -37,7 +37,8 @@ function Get-RedTildePinnedBuildArguments {
     $wholeProgram=if($Configuration -eq 'Release'){'true'}else{'false'}
     return @("/p:WholeProgramOptimization=$wholeProgram","/p:VCToolsVersion=$($Identity.vcToolsVersion)",
         "/p:PlatformToolset=$($Identity.toolset)","/p:WindowsTargetPlatformVersion=$($Identity.windowsSdkVersion)",
-        "/p:PreferredToolArchitecture=$($Identity.preferredToolArchitecture)")
+        "/p:PreferredToolArchitecture=$($Identity.preferredToolArchitecture)",
+        "/p:ForceImportAfterCppTargets=$(Join-Path $PSScriptRoot 'PinnedDxUiPolicy.targets')")
 }
 Export-ModuleMember -Function Get-RedTildePinnedBuildArguments
 

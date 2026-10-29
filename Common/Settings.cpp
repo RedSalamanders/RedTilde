@@ -77,7 +77,7 @@ catch (const std::bad_alloc &)
 }
 catch (const std::filesystem::filesystem_error &error)
 {
-    return HRESULT_FROM_WIN32(error.code().value());
+    return HRESULT_FROM_WIN32(static_cast<DWORD>(error.code().value()));
 }
 
 HRESULT SaveSettings(const std::filesystem::path &directory, const Settings &settings) noexcept
@@ -86,7 +86,7 @@ try
     std::error_code error;
     std::filesystem::create_directories(directory, error);
     if (error)
-        return HRESULT_FROM_WIN32(error.value());
+        return HRESULT_FROM_WIN32(static_cast<DWORD>(error.value()));
     return WriteBytesAtomic(directory / L"RedTilde.settings", SerializeSettings(settings));
 }
 catch (const std::bad_alloc &)
@@ -95,8 +95,12 @@ catch (const std::bad_alloc &)
 }
 catch (const std::filesystem::filesystem_error &error)
 {
-    return HRESULT_FROM_WIN32(error.code().value());
+    return HRESULT_FROM_WIN32(static_cast<DWORD>(error.code().value()));
 }
+// Existing identity/RAII/reference traits intentionally delete these implicit operations.
+// Preserve aggregate and overload behavior. Owner: repository maintainers; review: 2027-01-31.
+#pragma warning(push)
+#pragma warning(disable : 4625 4626 5026 5027)
 struct SettingsWriter::State
 {
     std::mutex mutex;
@@ -133,6 +137,7 @@ struct SettingsWriter::State
         }
     }
 };
+#pragma warning(pop)
 SettingsWriter::~SettingsWriter()
 {
     Close();

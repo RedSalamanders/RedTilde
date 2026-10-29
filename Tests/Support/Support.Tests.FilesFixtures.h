@@ -112,6 +112,6 @@ catch (const std::bad_alloc &)
 }
 catch (const std::filesystem::filesystem_error &error)
 {
-    return HRESULT_FROM_WIN32(error.code().value());
+    return HRESULT_FROM_WIN32(static_cast<DWORD>(error.code().value()));
 }
 } // namespace RedTilde::Testing
