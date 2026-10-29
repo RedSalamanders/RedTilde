@@ -1,0 +1,15 @@
+{
+  "schema": "public-initial-batching-counterfactual-manifest-v1",
+  "decision": "REJECT_REPAIR_ROUTE",
+  "sourceCommit": "8d0fdee2b2b26df916f731c4749c65290c35b260",
+  "files": {
+    "README.md": {
+      "sha256": "D2F645EFCBD8BA744C621FADE8035EF1C00DA289824B91628BF5AEF533C4B07E",
+      "bytes": 4334
+    },
+    "projection.json": {
+      "sha256": "670A8999404E7BEAC34C02045A21583ADCDD6ED16F19A93B99ECA6C31DB1B414",
+      "bytes": 55647
+    }
+  }
+}

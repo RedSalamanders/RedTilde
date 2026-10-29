@@ -284,11 +284,11 @@ void Application::ApplyTheme()
         theme.accentHover = D2D1::ColorF(dark ? 0xFF999A : 0xB6303C);
         theme.accentPressed = D2D1::ColorF(dark ? 0xFFABAC : 0xA12A34);
         theme.selectionFill = theme.selectionInactiveFill = D2D1::ColorF(dark ? 0xA63B46 : 0xF2CFD3);
-        theme.selectionText = D2D1::ColorF(dark ? 0xFFFFFF : 0xA12A34);
+        theme.selectionText = D2D1::ColorF(dark ? 0xFFFFFFu : 0xA12A34);
         theme.focusStroke = theme.accent;
-        theme.windowBackground = D2D1::ColorF(dark ? 0x17191E : settings.appearance == Appearance::Paper ? 0xEDE6D8 : 0xF0F1F4);
-        theme.surfaceBackground = D2D1::ColorF(dark ? 0x1C1F25 : settings.appearance == Appearance::Paper ? 0xF3EDDF : 0xF8F8FA);
-        theme.cardBackground = theme.inputFill = D2D1::ColorF(dark ? 0x22252B : settings.appearance == Appearance::Paper ? 0xFFFAEF : 0xFFFFFF);
+        theme.windowBackground = D2D1::ColorF(dark ? 0x17191Eu : settings.appearance == Appearance::Paper ? 0xEDE6D8u : 0xF0F1F4u);
+        theme.surfaceBackground = D2D1::ColorF(dark ? 0x1C1F25u : settings.appearance == Appearance::Paper ? 0xF3EDDFu : 0xF8F8FAu);
+        theme.cardBackground = theme.inputFill = D2D1::ColorF(dark ? 0x22252Bu : settings.appearance == Appearance::Paper ? 0xFFFAEFu : 0xFFFFFFu);
         theme.buttonBorder = theme.borderDefault;
     }
     BOOL animation = TRUE;
@@ -725,7 +725,9 @@ void Application::SetView(EditorView view)
     (void)SynchronizeMirror();
     if (!current())
         return;
-    modeHint->SetText(Resource(view == EditorView::Source ? IDS_SOURCEHINT : view == EditorView::Split ? IDS_SPLITHINT : IDS_BANNER));
+    modeHint->SetText(Resource(static_cast<unsigned>(view == EditorView::Source  ? IDS_SOURCEHINT
+                                                     : view == EditorView::Split ? IDS_SPLITHINT
+                                                                                 : IDS_BANNER)));
     if (!current())
         return;
     floating->SetVisible(false);
@@ -1796,7 +1798,7 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         {
             const LPARAM clientPoint = MAKELPARAM(static_cast<SHORT>(point.x), static_cast<SHORT>(point.y));
             bool handled{};
-            const auto clientMessage = message == WM_NCLBUTTONDBLCLK ? WM_LBUTTONDBLCLK : WM_LBUTTONDOWN;
+            const UINT clientMessage = message == WM_NCLBUTTONDBLCLK ? WM_LBUTTONDBLCLK : WM_LBUTTONDOWN;
             const auto result = host.HandleMessage(hwnd, clientMessage, MK_LBUTTON, clientPoint, handled);
             if (handled)
                 return result;

@@ -1,5 +1,6 @@
 # Active plans
 
+- **ACTIVE**: [Native build policy, terminal results and short DxUi paths](NativeBuildPolicyCoherence_2026-10-28.md). Shared /Wall without /WX, zero-warning validation, Debug/ASan symbols, Release-only ICF, terminal results and verified short dependency folders.
 
 - [Redesign completion and rendering compatibility](RedesignCompletionAndRendering_2026-10-24.md) — **active**; historical pause/resume queues preserved, current
   execution coordinator with a top checklist, current-source defects, complete review inventory, native math

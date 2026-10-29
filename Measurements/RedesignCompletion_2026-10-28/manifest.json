@@ -7,7 +7,7 @@
     },
     {
       "path": "README.md",
-      "sha256": "24FD0925C17BD967E95B99C478A35016915379A7312720BF061B9ABD22B834AB"
+      "sha256": "A7F3B6AA9E30E0C9318700CFDE1CDB8775848B66514F0779A1BD8E58315A0A16"
     },
     {
       "path": "performance-projection.json",
@@ -28,6 +28,18 @@
     {
       "path": "size-policy-rejection/manifest.json",
       "sha256": "9BEA85372567A033FD6A26AF8841A032BEF622DC64EDA3F8655BD6015F1E6BFB"
+    },
+    {
+      "path": "lazy-pane-counterfactual/MANIFEST.json",
+      "sha256": "79F0F13CCFD54DD6D39F4E9C4DF1BEE12BC2850D270CA6065779E8D4C9371B5B"
+    },
+    {
+      "path": "initial-batching-counterfactual/MANIFEST.json",
+      "sha256": "4E0805B2B815935D683F0EF23750B4F3C5ED00C454169E47CC2D275C087FC96A"
+    },
+    {
+      "path": "performance-advice.md",
+      "sha256": "AE8035519A009D66C69A4A1687014CD9B0514F8D776296BB210A41F2C99198DA"
     }
   ]
 }

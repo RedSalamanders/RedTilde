@@ -23,8 +23,9 @@ void Require(bool condition, const char *message)
 std::string JsonString(std::string_view value)
 {
     std::string result = "\"";
-    for (const unsigned char c : value)
+    for (const char unit : value)
     {
+        const auto c = static_cast<unsigned char>(unit);
         if (c == '\\' || c == '"')
         {
             result += '\\';
@@ -88,6 +89,10 @@ bool CanonicalLeaseOwnsParent() noexcept
 }
 } // namespace
 
+// Existing identity/RAII/reference traits intentionally delete these implicit operations.
+// Preserve aggregate and overload behavior. Owner: repository maintainers; review: 2027-01-31.
+#pragma warning(push)
+#pragma warning(disable : 4626 5027)
 class DesignInteractiveProbe final
 {
     struct Outcome
@@ -528,6 +533,7 @@ class DesignInteractiveProbe final
         return WriteResult();
     }
 };
+#pragma warning(pop)
 
 int RunDesignInteractiveProbe(Application &app, const LaunchOptions &options)
 {

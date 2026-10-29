@@ -76,7 +76,7 @@ void RegisterFilesTests(const std::filesystem::path &root, const std::function<v
             for (unsigned first = 0; first < 128; ++first)
                 for (unsigned second = 0; second < 128; ++second)
                 {
-                    const std::array<wchar_t, 2> pair{static_cast<wchar_t>(first), static_cast<wchar_t>(second)};
+                    const std::array<wchar_t, 2> pair{{static_cast<wchar_t>(first), static_cast<wchar_t>(second)}};
                     const std::wstring_view sample(pair.data(), pair.size());
                     Require(AnalyzeDocument(sample).words == referenceWordCount(sample),
                             "every ordered ASCII pair preserves legacy word-run boundaries");

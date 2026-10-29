@@ -12,10 +12,17 @@
 namespace
 {
 #if defined(__SANITIZE_ADDRESS__)
+// The isolated use-after-free probe deliberately reads volatile storage for ASan detection.
+// Owner: RedTilde test maintainers; review: 2027-01-31.
+#pragma warning(push)
+#if defined(_M_ARM64)
+#pragma warning(disable : 4746)
+#endif
 __declspec(noinline) int ProbeRead(const volatile int *pointer)
 {
     return pointer[1];
 }
+#pragma warning(pop)
 int SanitizerProbe()
 {
     std::vector<int> values(4, 42);
@@ -52,12 +59,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int)
             return 1;
         for (int index = 1; index < count; ++index)
         {
-            const std::wstring_view argument(arguments[index]);
+            const std::wstring_view argument(arguments[static_cast<size_t>(index)]);
             auto value = [&]() -> std::wstring
             {
                 if (++index >= count)
                     throw std::invalid_argument("Missing command argument");
-                return arguments[index];
+                return arguments[static_cast<size_t>(index)];
             };
             if (argument == L"--capture")
             {

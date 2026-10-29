@@ -96,6 +96,10 @@ namespace
 {
 // Product branding only. Shared controls, focus, input and editor presentation
 // belong to DxUi. Keep the resource bytes across device loss, never a second host.
+// Existing identity/RAII/reference traits intentionally delete these implicit operations.
+// Preserve aggregate and overload behavior. Owner: repository maintainers; review: 2027-01-31.
+#pragma warning(push)
+#pragma warning(disable : 4625 4626 5026 5027)
 class BrandMark final : public DxUi::Control
 {
     BrandMarkPixels source;
@@ -139,6 +143,7 @@ class BrandMark final : public DxUi::Control
         target->DrawBitmap(bitmap.get(), GetBounds());
     }
 };
+#pragma warning(pop)
 void Section(DxUi::Label *label)
 {
     THROW_IF_FAILED(label->SetTypographyOverride(DxUi::LabelTypography{11.f, DWRITE_FONT_WEIGHT_SEMI_BOLD, .88f}));
@@ -564,7 +569,8 @@ void Application::Layout()
     exitFocus->SetBounds(D2D1::RectF(width - 288, 4, width - 144, 36));
     const std::array<DxUi::Button *, 3> captions{minimizeButton, maximizeButton, closeButton};
     for (unsigned i = 0; i < 3; ++i)
-        captions[i]->SetBounds(D2D1::RectF(width - 138 + i * 46, 0, width - 92 + i * 46, std::min(36.f, bar)));
+        captions[i]->SetBounds(
+            D2D1::RectF(width - 138 + static_cast<float>(i) * 46.f, 0, width - 92 + static_cast<float>(i) * 46.f, std::min(36.f, bar)));
     maximizeButton->SetText(IsZoomed(window.get()) ? L"\xE923" : L"\xE922");
     float x = 12;
     auto place = [&](DxUi::Button *button, float w)
@@ -667,11 +673,12 @@ void Application::Layout()
     appearance.useAccentLinkColor = true;
     appearance.paddingDip = 0;
     appearance.maximumTextWidthDip = focus ? 680.f : static_cast<float>(settings.readingWidth);
-    appearance.bodyFontSizeDip = (focus ? 18.f : split ? 15.f : 16.f) * settings.textScale / 100.f;
-    appearance.codeFontSizeDip = 13.5f * settings.textScale / 100.f;
+    appearance.bodyFontSizeDip = (focus ? 18.f : split ? 15.f : 16.f) * static_cast<float>(settings.textScale) / 100.f;
+    appearance.codeFontSizeDip = 13.5f * static_cast<float>(settings.textScale) / 100.f;
     appearance.lineHeightMultiplier = settings.view == EditorView::Source ? 1.75f : 1.65f;
-    appearance.headingFontSizeDip = {34.f * settings.textScale / 100.f, 23.f * settings.textScale / 100.f, 20.f * settings.textScale / 100.f,
-                                     18.f * settings.textScale / 100.f, 16.f * settings.textScale / 100.f, 16.f * settings.textScale / 100.f};
+    appearance.headingFontSizeDip = {34.f * static_cast<float>(settings.textScale) / 100.f, 23.f * static_cast<float>(settings.textScale) / 100.f,
+                                     20.f * static_cast<float>(settings.textScale) / 100.f, 18.f * static_cast<float>(settings.textScale) / 100.f,
+                                     16.f * static_cast<float>(settings.textScale) / 100.f, 16.f * static_cast<float>(settings.textScale) / 100.f};
     appearance.headingLineHeightMultiplier = {1.2f, 1.3f, 1.3f, 1.3f, 1.3f, 1.3f};
     appearance.paragraphSpacingAfterLines = 18.f / 26.4f;
     appearance.listItemSpacingDip = 10.f;
@@ -739,7 +746,8 @@ void Application::Layout()
     previews[0] = previews[systemDark ? 2 : 1];
     for (unsigned i = 0; i < 4; ++i)
     {
-        themeButtons[i]->SetBounds(D2D1::RectF(dx + (i % 2) * 168, top + 104 + (i / 2) * 80, dx + 156 + (i % 2) * 168, top + 168 + (i / 2) * 80));
+        themeButtons[i]->SetBounds(D2D1::RectF(dx + static_cast<float>(i % 2) * 168.f, top + 104 + static_cast<float>(i / 2) * 80.f,
+                                               dx + 156 + static_cast<float>(i % 2) * 168.f, top + 168 + static_cast<float>(i / 2) * 80.f));
         themeButtons[i]->SetThemePreview(previews[i]);
         themeButtons[i]->SetToggleState(static_cast<unsigned>(settings.appearance) == i);
     }
@@ -768,7 +776,8 @@ void Application::Layout()
     findText->SetBounds(D2D1::RectF(fx + 12, fy + 10, fx + 204, fy + 46));
     findCount->SetBounds(D2D1::RectF(fx + 212, fy + 14, fx + 310, fy + 42));
     for (unsigned i = 0; i < 3; ++i)
-        findBar->GetLogicalChild(i + 2)->SetBounds(D2D1::RectF(fx + 314 + i * 44, fy + 10, fx + 354 + i * 44, fy + 46));
+        findBar->GetLogicalChild(i + 2)->SetBounds(
+            D2D1::RectF(fx + 314 + static_cast<float>(i) * 44.f, fy + 10, fx + 354 + static_cast<float>(i) * 44.f, fy + 46));
     replaceText->SetBounds(D2D1::RectF(fx + 12, fy + 58, fx + 236, fy + 94));
     findBar->GetLogicalChild(6)->SetBounds(D2D1::RectF(fx + 244, fy + 58, fx + 326, fy + 94));
     findBar->GetLogicalChild(7)->SetBounds(D2D1::RectF(fx + 334, fy + 58, fx + 448, fy + 94));
@@ -796,7 +805,8 @@ void Application::Layout()
     recoveryDescription->SetBounds(D2D1::RectF(draftLeft + 20, top + 68, draftRight - 20, top + 128));
     recoveryPreview->SetBounds(D2D1::RectF(draftLeft + 20, top + 136, draftRight - 20, bottom - 80));
     for (unsigned i = 0; i < 3; ++i)
-        recoveryPanel->GetLogicalChild(i + 3)->SetBounds(D2D1::RectF(draftLeft + 20 + i * 208, bottom - 62, draftLeft + 220 + i * 208, bottom - 28));
+        recoveryPanel->GetLogicalChild(i + 3)->SetBounds(
+            D2D1::RectF(draftLeft + 20 + static_cast<float>(i) * 208.f, bottom - 62, draftLeft + 220 + static_cast<float>(i) * 208.f, bottom - 28));
     stats->SetBounds(D2D1::RectF(16, height - 26, width / 2, height - 2));
     positionStatus->SetBounds(D2D1::RectF(width / 2, height - 26, width - 16, height - 2));
     focusPill->SetBounds(focus ? D2D1::RectF(width / 2 - 224, height - 50, width / 2 + 224, height - 10)
