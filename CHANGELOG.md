@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Record the upstream clean-Prepare diagnostic's six local builds, three x64 oracle/Embedded profiles, real ASan detection and independently verified preservation; keep hosted, policy/control and consumer-pin obligations open. Archive the rejected private experiment and remove its unused refs/cache while preserving complete recovery and the locked empty directory with an unassigned process owner.
 - Retire five superseded SDK draft PRs and their five remote/five unused local branch names after verifying exact ancestry, complete-bundle recovery and unchanged dirty work. Preserve active corrections, evidence and pending CI; record the newer documentation-only main run's cancellation without relabeling the earlier native failure.
 - Record the owner's explicit acceptance of the measured original-UI working-set costs (+2.0045% Compose/+2.2195% Split) after rejected repair options. Preserve the original findings and keep command/control stability, shared policy, CI, hosted ARM64 and other platform gates open; no rebaseline or waiver follows.
 - Record measured performance advice after the bounded repair routes fail their criteria; distinguish further ownership diagnosis, explicit deferral and owner cost review while keeping noisy controls, unqualified policy, failed CI and hosted ARM64 holds open.

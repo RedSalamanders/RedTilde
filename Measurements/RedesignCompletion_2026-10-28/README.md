@@ -16,6 +16,14 @@ At exact producer `e0908338`, six consumer build profiles passed. Its x64 native
 
 The newer documentation-only DxUi main merge `0e372f56` adds a separate production-review plan; its [observed main run](https://github.com/RedSalamanders/DxUi/actions/runs/40861307533) is cancelled, with a failed overall gate. The previous [native-bearing main run](https://github.com/RedSalamanders/DxUi/actions/runs/40681696889) at `2cf30d7e` retains its ARM64 Release Menu popup geometry-readiness failure. The assertion's blur wording does not identify a blur defect. The separate SDK correction at `dbb6f1be` passes all six local builds, full static checks, 57 ordinary x64 suite executions, actual ASan detection and twelve zero-skip foreground outcomes with verified local restoration. [PR131 CI](https://github.com/RedSalamanders/DxUi/actions/runs/40798600608) passes all six native profiles, including ARM64. Its paired job and overall gate fail: 144 receipts and all 78 metric rows reconcile, but all 72 controls are unstable and the base policy is unqualified. The fixes and documentation remain reviewable drafts; no green overall CI or merge is claimed. The consumer retains its exact SDK086 pin, and library qualification does not implicitly adopt a new dependency.
 
+The separate clean-Prepare diagnostic correction in [SDK PR134](https://github.com/RedSalamanders/DxUi/pull/134)
+requires every measured/warmup call to return `S_FALSE`, including sticky rejection of an earlier `S_OK` followed
+by a final no-op. At native producer `8ccb8a14`, all six local builds, three x64 real native oracles, three full
+Embedded runs, actual ASan detection and affected Tooling/full validators pass. Metadata child `c1c207a8`
+preserves that producer identity. Independent replay verifies 737 file bindings; prior products/reports are
+unchanged. Local ARM64 results are cross-builds and hosted execution is still pending. This diagnostic validation
+does not establish historical dirty work, stabilize the existing controls or change the canonical metric/policy.
+
 The historical `9cf8b221` result remains historical and is not silently relabeled as current-source evidence. The change in public-header/profile identity requires the fresh current-source study shown here.
 
 ## Optimization disposition
