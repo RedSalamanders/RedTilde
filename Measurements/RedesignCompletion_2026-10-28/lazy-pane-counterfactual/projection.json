@@ -1,0 +1,532 @@
+{
+  "schema": "public-draft-lazy-optional-panes-scout32-v1",
+  "draft": true,
+  "decision": "REJECT_REPAIR_ROUTE",
+  "experiment": {
+    "sourceCommit": "07191110d5da5543f5e6245c31cc728c5b8f54c4",
+    "baselineSourceCommit": "e0908338cf5373978b5ef8d69cdd4ef6c3eba33b",
+    "baselineExeSha256": "C994554BD46FD4663A6187A26D67443941D534096CDB5CCBA53D40446D402511",
+    "candidateExeSha256": "8005934131C1C010A33E441083B076B9CF8E0F194DD1A6BECCB752325E4B6611",
+    "sdkPin": "086ad82a5872768db23ea83862ab4af13dff0c5b",
+    "protocol": "independent-ABBA-BAAB-v1",
+    "seed": 20261028,
+    "blocksPerView": 4,
+    "processes": 32,
+    "cycles": 64,
+    "warmups": 2,
+    "controlDiagnostics": false,
+    "runtime": "normal x64 Release; no private allocation tracing"
+  },
+  "predeclaredInvestmentCriterion": {
+    "bothViewsRequired": true,
+    "minimumMedianWsDropBytes": 65536,
+    "minimumNegativeWsBlocks": 3,
+    "blocksPerView": 4,
+    "maximumCommandGeometricChange": 0.05,
+    "interpretation": "Investment decision only; unchanged canonical bands/judge. No primary acceptance."
+  },
+  "criterionResults": {
+    "Compose": {
+      "wsMedianDropBytes": 268288.0,
+      "wsNegativeBlocks": 4,
+      "commandGeometricChange": 0.010764202792485212,
+      "passed": true
+    },
+    "Split": {
+      "wsMedianDropBytes": 147456.0,
+      "wsNegativeBlocks": 2,
+      "commandGeometricChange": 0.017173032095656186,
+      "passed": false
+    }
+  },
+  "reason": "Split has only two declining WS blocks out of four; the predeclared three-block requirement fails. Both median WS drops and both command limits pass, but overall both-view criterion fails.",
+  "metrics": [
+    {
+      "view": "Compose",
+      "metric": "commandUs",
+      "baselineMedian": 312.875,
+      "candidateMedian": 312.875,
+      "pairedChange": 0.010764202792485212,
+      "blockSigns": [
+        "-",
+        "-",
+        "+",
+        "+"
+      ],
+      "blockLogContrasts": [
+        -0.0024174402701970382,
+        -0.020698952702523175,
+        0.06072406096394441,
+        0.005219056714128818
+      ],
+      "negativeBlocks": 2,
+      "unit": "microseconds",
+      "primaryOutcome": true,
+      "p": 0.75,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change",
+      "controlsStable": false
+    },
+    {
+      "view": "Compose",
+      "metric": "preparationSubmissionUs",
+      "baselineMedian": 4584.175,
+      "candidateMedian": 4668.200000000001,
+      "pairedChange": 0.010631187689158992,
+      "blockSigns": [
+        "+",
+        "+",
+        "-",
+        "-"
+      ],
+      "blockLogContrasts": [
+        0.02114311021272419,
+        0.03195508729870694,
+        -0.007184761562402536,
+        -0.003613140082465077
+      ],
+      "negativeBlocks": 2,
+      "unit": "microseconds",
+      "primaryOutcome": false
+    },
+    {
+      "view": "Compose",
+      "metric": "gpuWaitUs",
+      "baselineMedian": 11619.75,
+      "candidateMedian": 11529.05,
+      "pairedChange": -0.01075835179530827,
+      "blockSigns": [
+        "-",
+        "-",
+        "-",
+        "-"
+      ],
+      "blockLogContrasts": [
+        -0.007876725309875095,
+        -0.014503027641713375,
+        -0.006799340510525266,
+        -0.014087471757855324
+      ],
+      "negativeBlocks": 4,
+      "unit": "microseconds",
+      "primaryOutcome": false
+    },
+    {
+      "view": "Compose",
+      "metric": "completedEditUs",
+      "baselineMedian": 16591.1,
+      "candidateMedian": 16606.775,
+      "pairedChange": -0.00017250783201574227,
+      "blockSigns": [
+        "+",
+        "+",
+        "-",
+        "-"
+      ],
+      "blockLogContrasts": [
+        0.001784730540425941,
+        0.00251177489242931,
+        -0.0013751803119442078,
+        -0.0036114159737239814
+      ],
+      "negativeBlocks": 2,
+      "unit": "microseconds",
+      "primaryOutcome": true,
+      "p": 1.0,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change",
+      "controlsStable": true
+    },
+    {
+      "view": "Compose",
+      "metric": "cleanCompletedUs",
+      "baselineMedian": 16953.025,
+      "candidateMedian": 16823.425,
+      "pairedChange": -0.0028695736514019834,
+      "blockSigns": [
+        "-",
+        "-",
+        "+",
+        "-"
+      ],
+      "blockLogContrasts": [
+        -0.0017081544749497249,
+        -0.0022427174776413366,
+        0.0017962568408777602,
+        -0.00934017997356411
+      ],
+      "negativeBlocks": 3,
+      "unit": "microseconds",
+      "primaryOutcome": true,
+      "p": 0.375,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change",
+      "controlsStable": true
+    },
+    {
+      "view": "Compose",
+      "metric": "ownerCpuCycles",
+      "baselineMedian": 8502560.75,
+      "candidateMedian": 8428608.0,
+      "pairedChange": 0.006027731222786778,
+      "blockSigns": [
+        "+",
+        "+",
+        "-",
+        "-"
+      ],
+      "blockLogContrasts": [
+        0.02190792342203196,
+        0.02875771262986468,
+        -0.013203089621539288,
+        -0.013423997928609857
+      ],
+      "negativeBlocks": 2,
+      "unit": "CPU cycles",
+      "primaryOutcome": true,
+      "p": 0.625,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change",
+      "controlsStable": false
+    },
+    {
+      "view": "Compose",
+      "metric": "commandOwnerCpuCycles",
+      "baselineMedian": 476993.75,
+      "candidateMedian": 490467.0,
+      "pairedChange": 0.0237741739636582,
+      "blockSigns": [
+        "+",
+        "+",
+        "+",
+        "+"
+      ],
+      "blockLogContrasts": [
+        0.003527295881208054,
+        0.03733379979188731,
+        0.027796708308517302,
+        0.025326072249069517
+      ],
+      "negativeBlocks": 0,
+      "unit": "CPU cycles",
+      "primaryOutcome": false
+    },
+    {
+      "view": "Compose",
+      "metric": "privateBytes",
+      "baselineMedian": 45967360.0,
+      "candidateMedian": 45471744.0,
+      "pairedChange": -0.008249434663466785,
+      "blockSigns": [
+        "-",
+        "-",
+        "-",
+        "-"
+      ],
+      "blockLogContrasts": [
+        -0.0034502609350152732,
+        -0.0016487154598853727,
+        -0.0018760164825186772,
+        -0.02615960531658902
+      ],
+      "negativeBlocks": 4,
+      "unit": "bytes",
+      "primaryOutcome": true,
+      "p": 0.125,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change",
+      "controlsStable": false
+    },
+    {
+      "view": "Compose",
+      "metric": "workingSetBytes",
+      "baselineMedian": 55062528.0,
+      "candidateMedian": 54794240.0,
+      "pairedChange": -0.0047204664410503685,
+      "blockSigns": [
+        "-",
+        "-",
+        "-",
+        "-"
+      ],
+      "blockLogContrasts": [
+        -0.0012827498231391845,
+        -0.00939512347931517,
+        -0.0065142525759641825,
+        -0.0017344462379985793
+      ],
+      "negativeBlocks": 4,
+      "unit": "bytes",
+      "primaryOutcome": true,
+      "p": 0.125,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change",
+      "controlsStable": true
+    },
+    {
+      "view": "Split",
+      "metric": "commandUs",
+      "baselineMedian": 320.875,
+      "candidateMedian": 334.59999999999997,
+      "pairedChange": 0.017173032095656186,
+      "blockSigns": [
+        "-",
+        "+",
+        "+",
+        "+"
+      ],
+      "blockLogContrasts": [
+        -0.0163652977445279,
+        0.027189278129290145,
+        0.04305819791068697,
+        0.014226790963396352
+      ],
+      "negativeBlocks": 1,
+      "unit": "microseconds",
+      "primaryOutcome": true,
+      "p": 0.375,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change",
+      "controlsStable": false
+    },
+    {
+      "view": "Split",
+      "metric": "preparationSubmissionUs",
+      "baselineMedian": 6048.924999999999,
+      "candidateMedian": 5814.700000000001,
+      "pairedChange": -0.03123776891081073,
+      "blockSigns": [
+        "-",
+        "-",
+        "-",
+        "-"
+      ],
+      "blockLogContrasts": [
+        -0.01137480422126772,
+        -0.029412124420622153,
+        -0.05938309027912354,
+        -0.026774272094304965
+      ],
+      "negativeBlocks": 4,
+      "unit": "microseconds",
+      "primaryOutcome": false
+    },
+    {
+      "view": "Split",
+      "metric": "gpuWaitUs",
+      "baselineMedian": 10286.475,
+      "candidateMedian": 10455.375,
+      "pairedChange": 0.016196049253303733,
+      "blockSigns": [
+        "+",
+        "+",
+        "+",
+        "+"
+      ],
+      "blockLogContrasts": [
+        0.0070072035807053476,
+        0.0016772816244662193,
+        0.03682025608591122,
+        0.01876042832904632
+      ],
+      "negativeBlocks": 0,
+      "unit": "microseconds",
+      "primaryOutcome": false
+    },
+    {
+      "view": "Split",
+      "metric": "completedEditUs",
+      "baselineMedian": 16626.050000000003,
+      "candidateMedian": 16680.25,
+      "pairedChange": 0.002076637627883556,
+      "blockSigns": [
+        "+",
+        "+",
+        "+",
+        "+"
+      ],
+      "blockLogContrasts": [
+        0.0009864092714571963,
+        0.002747198948066517,
+        0.0020387128162497508,
+        0.002525616549974997
+      ],
+      "negativeBlocks": 0,
+      "unit": "microseconds",
+      "primaryOutcome": true,
+      "p": 0.125,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change",
+      "controlsStable": true
+    },
+    {
+      "view": "Split",
+      "metric": "cleanCompletedUs",
+      "baselineMedian": 16763.824999999997,
+      "candidateMedian": 16742.524999999998,
+      "pairedChange": -0.0021328488837669196,
+      "blockSigns": [
+        "-",
+        "-",
+        "+",
+        "-"
+      ],
+      "blockLogContrasts": [
+        -0.005763089034563782,
+        -0.00044578667664132103,
+        0.0020328396787634424,
+        -0.004364470548642749
+      ],
+      "negativeBlocks": 3,
+      "unit": "microseconds",
+      "primaryOutcome": true,
+      "p": 0.375,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change",
+      "controlsStable": true
+    },
+    {
+      "view": "Split",
+      "metric": "ownerCpuCycles",
+      "baselineMedian": 10799459.25,
+      "candidateMedian": 10472713.75,
+      "pairedChange": -0.0299445985656976,
+      "blockSigns": [
+        "-",
+        "-",
+        "-",
+        "-"
+      ],
+      "blockLogContrasts": [
+        -0.017126580860791486,
+        -0.022695922941380016,
+        -0.039940729356590585,
+        -0.041845143781146385
+      ],
+      "negativeBlocks": 4,
+      "unit": "CPU cycles",
+      "primaryOutcome": true,
+      "p": 0.125,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change",
+      "controlsStable": false
+    },
+    {
+      "view": "Split",
+      "metric": "commandOwnerCpuCycles",
+      "baselineMedian": 532682.5,
+      "candidateMedian": 547253.5,
+      "pairedChange": 0.015942529475556983,
+      "blockSigns": [
+        "+",
+        "+",
+        "-",
+        "+"
+      ],
+      "blockLogContrasts": [
+        0.02308147203111893,
+        0.034878720144266004,
+        -0.006656024277238805,
+        0.011962960420210826
+      ],
+      "negativeBlocks": 1,
+      "unit": "CPU cycles",
+      "primaryOutcome": false
+    },
+    {
+      "view": "Split",
+      "metric": "privateBytes",
+      "baselineMedian": 46264320.0,
+      "candidateMedian": 45621248.0,
+      "pairedChange": -0.010974641153855755,
+      "blockSigns": [
+        "-",
+        "+",
+        "-",
+        "-"
+      ],
+      "blockLogContrasts": [
+        -0.03239728865352658,
+        0.0017534450553814418,
+        -0.012843797610249456,
+        -0.0006535859601927824
+      ],
+      "negativeBlocks": 3,
+      "unit": "bytes",
+      "primaryOutcome": true,
+      "p": 0.375,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change",
+      "controlsStable": false
+    },
+    {
+      "view": "Split",
+      "metric": "workingSetBytes",
+      "baselineMedian": 55543808.0,
+      "candidateMedian": 55396352.0,
+      "pairedChange": -0.0011736568837559533,
+      "blockSigns": [
+        "-",
+        "+",
+        "-",
+        "+"
+      ],
+      "blockLogContrasts": [
+        -0.005571190234953262,
+        0.0012482894980101558,
+        -0.007414043597911072,
+        0.007039559701399299
+      ],
+      "negativeBlocks": 2,
+      "unit": "bytes",
+      "primaryOutcome": true,
+      "p": 0.875,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change",
+      "controlsStable": true
+    }
+  ],
+  "audit": {
+    "typedChecks": 1635,
+    "typedPassed": true,
+    "independentRawReports": 32,
+    "independentMedianChecks": 288,
+    "hashChecks": {
+      "retainedOutputs": 113,
+      "fixedInputs": 22,
+      "candidateInputs": 76
+    },
+    "allHashesMatched": true,
+    "canonicalCallerActualOsExitCode": 0
+  },
+  "observer": {
+    "totalSamples": 139,
+    "validBusyIntervals": 138,
+    "maximumBusyPercent": 31.834862385321102,
+    "meanBusyPercent": 11.490318353629416,
+    "coverage": {
+      "samples": 138,
+      "maximumGapSeconds": 1.063786,
+      "complete": true
+    },
+    "quietClaim": false
+  },
+  "limitations": [
+    "Four-block two-sided minimum p=.125 before Holm. All primary findings remain no-resolved-change.",
+    "No same-binary AA cohort in this bounded AB scout; within-block controls and chronology remain retained.",
+    "No quiet-host claim: mean total CPU11.4903%, maximum31.8349%; selected process sampling is incomplete.",
+    "Observed medians do not identify physical allocation ownership or close the prior original-UI flags.",
+    "No rerun, extension, exclusion, cap or threshold change; further qualification of this route is held."
+  ],
+  "evidenceDigests": {
+    "releaseDeclarationSha256": "707882A753F5F883D9CF058543719F6956D8411508D025CF24181CDDF4BE75DA",
+    "comparisonSha256": "73321FB8637570541083F8EFA8AB16D3F2470775BB4923FD1CD3EBB33BA57AE6",
+    "studySha256": "2AAED6D659291F6B2674DFD1B1DB5E634D2CB986157093936FDAE8FF37C9E0AD",
+    "completionSha256": "92569DDE965F500FE84B07EC9DB962BD6E804BBB65AD86F91894CE9620925F38",
+    "typedEvidenceSha256": "A29D0D4C4FCCC34C2BC9200C12ECD7042E18F307EC49EF1ED1E45F0631F3E613",
+    "independentAuditSha256": "4D5AE9783B7190BFA1718F02C8397CE07BB18233239CCCDC8FDA36C79BAFAB32"
+  },
+  "primaryAcceptance": false,
+  "originalUiFlagClosure": false,
+  "newFullQualification": false
+}
