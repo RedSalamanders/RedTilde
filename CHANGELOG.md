@@ -4,6 +4,9 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Record the validated build-policy matrix, preserved binary-size evidence, completed quiet performance study and explicit merge handoff; retain unresolved performance uncertainty and any hosted CI limits.
+- Record passing local x64 runtime qualification and ARM64 cross-builds for the common build policy, with immutable Release size evidence and remaining performance/CI gates explicit.
+- Record the current native profile and pinned-archive policy audit, qualified native builds and explicit remaining runtime, performance and integration gates.
 - Scope the MSVC ARM64 volatile-model notice to the deliberate isolated crash/sanitizer probe. Keep the selected volatile model, genuine crash/sanitizer detection and ordinary warnings unchanged.
 - Scope the MSVC ARM64 volatile-model notice annotation to the external future/PPL include in the remote-image test fixture. Preserve the selected volatile model and ordinary warning checks on owned code.
 - Lock DxUi API4 at 6ed0512c68743c57ac209e22010679d211c4a42b for the native warning/Release folding policy. Preserve the consumer API boundary and restore matching headers/archive through the normal entrypoint; complete product qualification is tracked by the indexed native policy plan.
