@@ -473,26 +473,40 @@ item lands, not in this plan.
       ref found no credential shapes (tokens, cloud keys, private keys, JWTs, assigned secrets) and no employer
       name in file contents.
     - Run gitleaks as well before publishing; it is not installed here.
-  - Map the identities to one public identity the owner chooses (for example the GitHub noreply address), with
-    `git filter-repo` and a mailmap:
-    - the employer address (96 commits) and the personal-domain address (60 commits) need mapping;
-    - the 25 GitHub web merges already use the noreply address and GitHub as committer.
-  - Do S10 first: move the evidence payloads out, then remove them and every file that leaks local identity from
-    history.
-    - The profile path appears in 64 tracked files: 63 under `Measurements/` (58 in
-      `MathMermaidRecovery_2026-10-20/shared-dxui`) and `Specs/Plans/WIP/RedTilde_2026-10-20.md`, which must be
-      edited, not dropped.
-    - The machine name appears in 19 further evidence files (S5 studies and performance JSON).
-  - Push the rewritten history to a new GitHub repository, then make that one public. Force-pushing over this
-    one is not enough: GitHub keeps every pull request's `refs/pull/*` refs, which would still expose the old
-    commits (PRs #1–#29: 25 merged, 4 open).
-  - Every commit SHA changes. These must be recreated or re-cloned:
-    - the 5 `archive/*` tags;
-    - the open PR branches;
-    - the worktrees (two under `E:/RedTilde.Perf`, one under `.build`, one in `Z:/src/RedTilde-worktrees`);
-    - every clone.
+  - **Identity (owner, 29 October).** Map every author and committer to `Eric Jésover
+    <eric-jesover@users.noreply.github.com>` with `git filter-repo --mailmap`:
+    - the employer address (96 commits) and the personal-domain address (60 commits) are remapped;
+    - the 25 GitHub web merges already use that address and keep GitHub as committer.
+  - **Evidence (owner, 29 October): scrub in place, keep every file.** S10 is no longer a prerequisite; it stays a
+    later ordinary change. `git filter-repo --replace-text` rewrites every blob in every commit:
+    - the local profile path, in its plain and JSON-escaped forms, becomes `%USERPROFILE%`;
+    - the machine name becomes `REDACTED-HOST`.
 
-    Do not carry the local `refs/agents/*` checkpoint ref.
+    Scope at `1c3554c`:
+    - the profile path is in 64 tracked files, 63 under `Measurements/` (58 in
+      `MathMermaidRecovery_2026-10-20/shared-dxui`) plus `Specs/Plans/WIP/RedTilde_2026-10-20.md`;
+    - the machine name is in 19 further evidence files (S5 studies and performance JSON).
+
+    Links and validators keep working. The hashes of the scrubbed files change; the private original stays the
+    byte-exact record for them.
+  - **Open PRs (owner, 29 October): merge first**, then rewrite only `main` and the 5 `archive/*` tags. The
+    owner merged #26; #27 and this plan's PR follow, then #28 (whose check expects earlier folds to be merged).
+  - **Repository (owner, 29 October).**
+    - Rename the current repository to `RedSalamanders/RedTilde-archive`, which stays private and unchanged.
+    - Create a new `RedSalamanders/RedTilde`, push the rewritten `main` and tags, then make it public.
+    - Force-pushing over the current repository is not enough: GitHub keeps every pull request's `refs/pull/*`
+      refs (PRs #1–#29), which would still expose the old commits.
+    - Run both GitHub steps only after the owner reviews the rewritten copy.
+  - **Dry run, 29 October, on a bare clone of `main` at `c851b3c` plus the tags.**
+    - 173 commits rewritten in 2 s, and the commit map written.
+    - One identity remains; the tags are lightweight, so they carry no tagger.
+    - At the tip, 84 of 5,338 files differ, each exactly by the replace rules, with no missed occurrence.
+    - A rescan of every blob and message on every rewritten ref finds no profile path, machine name, employer
+      name or credential shape.
+  - **After the rewrite**, every commit SHA changes. Recreate or re-clone the worktrees (two under
+    `E:/RedTilde.Perf`, one under `.build`, one in `Z:/src/RedTilde-worktrees`) and every clone. Do not carry the
+    local `refs/agents/*` checkpoint ref. Set each clone's `user.email` to the public identity so new commits do
+    not reintroduce the old addresses.
   - 61 distinct RedTilde commit SHAs are cited in tracked Specs and Measurements files, and evidence identity
     depends on exact source SHAs. Keep filter-repo's commit map as an archived old-to-new table, and rewrite the
     citations in the current tree in one follow-up commit.
@@ -502,7 +516,7 @@ item lands, not in this plan.
 ## Remediation order
 
 1. **Gate.**
-   - Relocate evidence (S10), scan every ref, rewrite the history into a new repository (Q17); the owner makes
+   - Merge the open PRs, scan every ref, rewrite the history into a new repository (Q17); the owner makes
      that repository public (Q1).
    - Require the tooling job and the six native checks on `main`, and add the `push: main` trigger.
    - Make PrePush require native proof (PR-01).
@@ -529,6 +543,7 @@ item lands, not in this plan.
    - S2;
    - drop the label caches (S4, Q10) with a paired performance run;
    - S5–S7 and S9;
+   - evidence relocation (S10), no longer a prerequisite of Q17;
    - tooling per Q15 (S11).
 9. **Hygiene.** PR-18, PR-19, PR-22, PR-24, the rest of PR-30.
 
