@@ -468,16 +468,31 @@ item lands, not in this plan.
   - When this lands, update AGENTS.md (“x64 tests in all three configurations”), Testing_Validation, the CI
     native profiles and `Test-Changes.ps1 -Mode PrePush`.
 - **Q17 — History: rewrite it before publishing.**
-  - Before any rewrite, run a secret scan across every ref (for example gitleaks), not just the current tree.
-  - Map the three author and committer identities to one public identity the owner chooses (for example the
-    GitHub noreply address), with `git filter-repo` and a mailmap.
-  - Do S10 first: move the evidence payloads out, then remove them and the five files containing profile paths
-    from history.
+  - Before any rewrite, run a secret scan across every ref, not just the current tree.
+    - **29 October scan.** A pattern scan of every text blob (3,728) and every commit message reachable from any
+      ref found no credential shapes (tokens, cloud keys, private keys, JWTs, assigned secrets) and no employer
+      name in file contents.
+    - Run gitleaks as well before publishing; it is not installed here.
+  - Map the identities to one public identity the owner chooses (for example the GitHub noreply address), with
+    `git filter-repo` and a mailmap:
+    - the employer address (96 commits) and the personal-domain address (60 commits) need mapping;
+    - the 25 GitHub web merges already use the noreply address and GitHub as committer.
+  - Do S10 first: move the evidence payloads out, then remove them and every file that leaks local identity from
+    history.
+    - The profile path appears in 64 tracked files: 63 under `Measurements/` (58 in
+      `MathMermaidRecovery_2026-10-20/shared-dxui`) and `Specs/Plans/WIP/RedTilde_2026-10-20.md`, which must be
+      edited, not dropped.
+    - The machine name appears in 19 further evidence files (S5 studies and performance JSON).
   - Push the rewritten history to a new GitHub repository, then make that one public. Force-pushing over this
     one is not enough: GitHub keeps every pull request's `refs/pull/*` refs, which would still expose the old
-    commits (PRs #1–#24).
-  - Every commit SHA changes. The 5 tags, 6 remote branches and 5 worktrees must be recreated, and every clone
-    re-cloned.
+    commits (PRs #1–#29: 25 merged, 4 open).
+  - Every commit SHA changes. These must be recreated or re-cloned:
+    - the 5 `archive/*` tags;
+    - the open PR branches;
+    - the worktrees (two under `E:/RedTilde.Perf`, one under `.build`, one in `Z:/src/RedTilde-worktrees`);
+    - every clone.
+
+    Do not carry the local `refs/agents/*` checkpoint ref.
   - 61 distinct RedTilde commit SHAs are cited in tracked Specs and Measurements files, and evidence identity
     depends on exact source SHAs. Keep filter-repo's commit map as an archived old-to-new table, and rewrite the
     citations in the current tree in one follow-up commit.
