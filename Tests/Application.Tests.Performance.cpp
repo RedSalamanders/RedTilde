@@ -563,6 +563,10 @@ void WriteEditorPreparationDiagnostics(std::ostream &out, const EditorPreparatio
     }
     out << "]}";
 }
+// Existing identity/RAII/reference traits intentionally delete these implicit operations.
+// Preserve aggregate and overload behavior. Owner: repository maintainers; review: 2027-01-31.
+#pragma warning(push)
+#pragma warning(disable : 4625 4626)
 struct GpuFence
 {
     wil::com_ptr_nothrow<IDXGIDevice2> dxgi;
@@ -602,6 +606,7 @@ struct GpuFence
         Require(WaitForSingleObject(event.get(), 5000) == WAIT_OBJECT_0, "GPU completion deadline expired");
     }
 };
+#pragma warning(pop)
 struct Memory
 {
     PROCESS_MEMORY_COUNTERS_EX process{};
@@ -651,6 +656,10 @@ void MemoryJson(std::ostream &out, const Memory &value)
         << ",\"snapshotCollectionCpu100ns\":" << value.collectionCpu100ns << ",\"snapshotCollectionUs\":" << value.collectionUs;
 }
 } // namespace
+// Existing identity/RAII/reference traits intentionally delete these implicit operations.
+// Preserve aggregate and overload behavior. Owner: repository maintainers; review: 2027-01-31.
+#pragma warning(push)
+#pragma warning(disable : 4625 4626 5027)
 class PerformanceProbe
 {
     Application &app;
@@ -1505,7 +1514,7 @@ class PerformanceProbe
             {
                 const auto crtHeap = reinterpret_cast<HANDLE>(crtHeapValue);
                 if (crtHeap != nullptr &&
-                    std::find(ownedHeaps.begin(), ownedHeaps.begin() + ownedHeapCount, crtHeap) == ownedHeaps.begin() + ownedHeapCount)
+                    std::find(ownedHeaps.data(), ownedHeaps.data() + ownedHeapCount, crtHeap) == ownedHeaps.data() + ownedHeapCount)
                     ownedHeaps[ownedHeapCount++] = crtHeap;
             }
             out << ",\"heapDiagnosticCoverage\":\"explicit-default-and-crt-only\",\"ownedHeapDiagnostics\":";
@@ -1521,6 +1530,7 @@ class PerformanceProbe
         return 0;
     }
 };
+#pragma warning(pop)
 int RunPerformanceProbe(Application &app, const LaunchOptions &options)
 {
     return PerformanceProbe(app, options).Run();

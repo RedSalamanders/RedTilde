@@ -105,3 +105,9 @@ open; the experimental and hardware/upstream status is unchanged.
 Follow the [Changes workflow](Changes/README.md): each change adds one fragment under `Changes/` and never edits `CHANGELOG.md`; after merges, `Tools/Submit-ChangelogFold.ps1` folds the fragments on `main` through a pull request of its own.
 
 Builds require the default MSVC **14.52.x** tools (v145). Release uses /Gy /GL and final /OPT:REF /LTCG; archive and final-link tools must match exactly. The build contract documents the preserved API pin, explicit archive forwarding and policy-specific output identity.
+
+Native builds use the [shared build policy](Specs/Build/Build_ConsoleAndPaths.md):
+/Wall without /WX, zero-warning validation, Debug /ZI and ASan /Zi, and
+Release-only /OPT:ICF. A passing build prints a green result with artifact/log
+links and a quoted launch command. OSC 8 capable terminals can open the local
+file links. Cross-built ARM64 applications still need ARM64 Windows to run.

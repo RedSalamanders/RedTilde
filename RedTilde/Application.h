@@ -103,6 +103,10 @@ struct ApplicationActivity
     std::uint64_t recoveryTextCopies{};
 };
 class PerformanceProbe;
+// Existing identity/RAII/reference traits intentionally delete these implicit operations.
+// Preserve aggregate and overload behavior. Owner: repository maintainers; review: 2027-01-31.
+#pragma warning(push)
+#pragma warning(disable : 4625 4626)
 class Application
 {
   public:
@@ -353,6 +357,7 @@ class Application
     DxUi::Button *Action(DxUi::Panel &parent, unsigned label, Command command, std::wstring tooltip = {});
     DxUi::Label *Label(DxUi::Panel &parent, unsigned label, DxUi::FontRole role = DxUi::FontRole::Body);
 };
+#pragma warning(pop)
 [[nodiscard]] std::wstring_view ResourceView(unsigned id);
 [[nodiscard]] std::wstring Resource(unsigned id);
 [[nodiscard]] std::wstring SampleDocument();

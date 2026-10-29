@@ -1,4 +1,5 @@
 Set-StrictMode -Version Latest
+Import-Module (Join-Path $PSScriptRoot 'DxUiPaths.psm1') -Scope Local -ErrorAction Stop
 
 function Get-RedTildeSourceIdentity {
     param([Parameter(Mandatory)][string] $Root)
@@ -15,8 +16,8 @@ function Get-RedTildeDependencyResolutionSnapshot {
     param([Parameter(Mandatory)][string]$Root,[Parameter(Mandatory)][string]$Platform,[Parameter(Mandatory)]$Dependency)
     $identity=$Dependency.Identity
     $fingerprint=[string]$Dependency.Fingerprint
-    $sourceRoot=[IO.Path]::GetFullPath((Join-Path $Root ".build/dependencies/DxUi/source/$($identity.commit)"))
-    $outputRoot=[IO.Path]::GetFullPath((Join-Path $Root ".build/dependencies/DxUi/$fingerprint"))
+    $sourceRoot=[IO.Path]::GetFullPath((Join-Path $Root ".build/dependencies/DxUi/source/$($identity.commit.Substring(0,16))"))
+    $outputRoot=[IO.Path]::GetFullPath((Join-Path $Root ".build/dependencies/DxUi/$($fingerprint.Substring(0,16))"))
     $lockFile=[IO.Path]::GetFullPath((Join-Path $Root 'Dependencies/DxUi.lock.json'))
     $propsPath=Join-Path $Root ".build/dependencies/DxUi/DxUi.resolved.$Platform.props"
     if(-not(Test-Path -LiteralPath $propsPath -PathType Leaf)){throw 'Resolved DxUi consumer properties are missing.'}
@@ -303,12 +304,13 @@ function Get-RedTildeDependencyPublicHeaders {
         @($pin.targets).Count -ne 1 -or $pin.targets[0] -cne 'DxUi'){
         throw 'Restored DxUi build identity does not match the exact consumer lock.'
     }
-    $include=Join-Path $Root ".build/dependencies/DxUi/source/$commit/include"
+    $include=Join-Path $Root ".build/dependencies/DxUi/source/$($commit.Substring(0,16))/include"
     $sdk=Split-Path $include -Parent
     $sourceDirectory=Join-Path $sdk 'src'
     $capabilitiesPath=Join-Path $sdk 'capabilities.json'
     $triplet=if($platform -ceq 'ARM64') { 'arm64-windows' } else { 'x64-windows' }
-    $packageInclude=Join-Path $Root ".build/dependencies/DxUi/$fingerprint/vcpkg_installed/$platform/$triplet/include"
+    $resolvedOutput=Read-DxUiResolvedOutputRoot -DependencyRoot (Join-Path $Root '.build/dependencies/DxUi') -Platform $platform -BuildIdentity $Dependency
+    $packageInclude=Join-Path $resolvedOutput "vcpkg_installed/$platform/$triplet/include"
     if(-not (Test-Path -LiteralPath $include -PathType Container)) {throw 'Pinned public-header source is missing.'}
     if(-not (Test-Path -LiteralPath $sourceDirectory -PathType Container)) {throw 'Pinned DxUi implementation source is missing.'}
     if(-not (Test-Path -LiteralPath $capabilitiesPath -PathType Leaf)) {throw 'Pinned DxUi capabilities metadata is missing.'}

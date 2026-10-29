@@ -18,7 +18,7 @@ DxUi controls, DirectWrite and Direct2D. Read [Specs/README.md](Specs/README.md)
 
 ## Engineering
 
-- Unicode Win32 APIs, modern C++, `stdcpplatest`, `/W4 /WX /permissive- /sdl /utf-8`. Discover Visual Studio;
+- Unicode Win32 APIs, modern C++, `stdcpplatest`, `/Wall /permissive- /sdl /utf-8`. Discover Visual Studio;
   do not hard-code a developer installation. Keep x64/ARM64 Debug, Release and ASan Debug configurations.
 - WIL owns COM and Windows resources. No manual `Release` or destruction of an owned HWND.
 - No exception escapes Win32/callback boundaries. Catch named exceptions with an explicit fallback; allocation
@@ -90,3 +90,12 @@ Keep the fragment in the change: never fold it in a feature change and never edi
 folded on `main` after merge by `Tools/Submit-ChangelogFold.ps1`, which opens a fold pull request of its own. Run
 `Tools/Test-Changelog.ps1` while editing; PrePush and CI run it with `-Base`, which refuses any `CHANGELOG.md` change
 that is not an exact fold of fragments already on `main`. Validation is read-only.
+
+## Shared native build policy (2026-10-28)
+
+Use /Wall with /WX disabled in every first-party profile. A build is accepted
+only with zero warnings and zero errors; fix actionable diagnostics rather than
+adding blanket suppressions. Ordinary Debug uses /ZI, ASan Debug uses /Zi.
+Release explicitly enables /OPT:ICF; Debug/ASan explicitly disable it.
+Follow Specs/Build/Build_ConsoleAndPaths.md for the common green result, safe
+terminal launch links and short dependency folders with full identity checking.

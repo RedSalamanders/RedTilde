@@ -943,7 +943,8 @@ class DesignRefreshProbe final
                              Require(!app.sidebar->IsVisible() && app.filesSplitter->IsVisible(),
                                      "the right panel collapses before the Files pane becomes an overlay");
                          if (app.filesSplitter->IsVisible())
-                             Require(app.editor->GetBounds().right - app.editor->GetBounds().left >= app.Preferences().readingWidth - 0.1f &&
+                             Require(app.editor->GetBounds().right - app.editor->GetBounds().left >=
+                                             static_cast<float>(app.Preferences().readingWidth) - 0.1f &&
                                          Near(app.Document().GetAppearance().maximumTextWidthDip, static_cast<float>(app.Preferences().readingWidth)),
                                      "inline Files includes its splitter and preserves the requested document measure before overlaying");
                          app.SetView(EditorView::Split);
@@ -2636,9 +2637,9 @@ class DesignRefreshProbe final
                      passThrough('K', true, true, false);
                      for (const auto key : {VK_F2, VK_F11})
                      {
-                         passThrough(key, true, false, false);
-                         passThrough(key, false, true, false);
-                         passThrough(key, false, false, true);
+                         passThrough(static_cast<UINT>(key), true, false, false);
+                         passThrough(static_cast<UINT>(key), false, true, false);
+                         passThrough(static_cast<UINT>(key), false, false, true);
                      }
                      passThrough(VK_F3, true, false, false);
                      passThrough(VK_F3, false, true, false);

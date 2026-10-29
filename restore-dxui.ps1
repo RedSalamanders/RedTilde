@@ -2,13 +2,14 @@
 param([ValidateSet('x64','ARM64')][string] $Platform = 'x64')
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+Import-Module (Join-Path $PSScriptRoot 'Build/DxUiPaths.psm1') -Scope Local -ErrorAction Stop
 $pinPath = Join-Path $PSScriptRoot 'Dependencies/DxUi.lock.json'
 $pin = Get-Content -LiteralPath $pinPath -Raw | ConvertFrom-Json
 if ($pin.repository -cne 'https://github.com/RedSalamanders/DxUi' -or
     $pin.commit -cnotmatch '^[0-9a-f]{40}$' -or $pin.apiRevision -ne 4 -or
     @($pin.targets).Count -ne 1 -or $pin.targets[0] -cne 'DxUi') { throw 'Invalid exact DxUi API-4 lock.' }
 $dependencyRoot = Join-Path $PSScriptRoot '.build/dependencies/DxUi'
-$source = Join-Path $dependencyRoot "source/$($pin.commit)"
+$source = Get-DxUiSourcePath -DependencyRoot $dependencyRoot -Commit $pin.commit
 if (-not (Test-Path -LiteralPath $source)) {
     New-Item -ItemType Directory -Force -Path (Split-Path -Parent $source) | Out-Null
     & git clone -c core.longpaths=true --filter=blob:none --no-checkout "$($pin.repository).git" $source
@@ -35,11 +36,12 @@ if ($identity.Identity -is [Collections.IDictionary]) {
     foreach ($entry in $identity.Identity.PSObject.Properties) { $policyIdentity[$entry.Name] = $entry.Value }
 }
 $policyIdentity['releaseOptimizationPolicy'] = 'Gy-REF-GL-LTCG-full-v1'
+foreach($field in (Get-DxUiNativePolicyFields -RepoRoot $PSScriptRoot).GetEnumerator()){$policyIdentity[$field.Key]=$field.Value}
 $policyHasher = [Security.Cryptography.SHA256]::Create()
 try { $policyFingerprint = ([BitConverter]::ToString($policyHasher.ComputeHash([Text.Encoding]::UTF8.GetBytes(($policyIdentity | ConvertTo-Json -Depth 8 -Compress))))).Replace('-','').ToLowerInvariant() }
 finally { $policyHasher.Dispose() }
 $identity = [pscustomobject]@{ Fingerprint=$policyFingerprint; Identity=$policyIdentity }
-$output = (Join-Path $dependencyRoot $identity.Fingerprint) + '\'
+$output = Initialize-DxUiOutputRoot -DependencyRoot $dependencyRoot -BuildIdentity $identity
 & (Join-Path $source 'vcpkg-install.ps1') -Platform $Platform -OutputRoot $output
 if ($LASTEXITCODE -ne 0) { throw 'DxUi dependency restore failed.' }
 $properties = [ordered]@{

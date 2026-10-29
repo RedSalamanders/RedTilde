@@ -1,10 +1,10 @@
 #include "RedTilde/Application.h"
-#include "../res/Resource.h"
 #include "Application.Tests.DesignRefresh.h"
 #include "Application.Tests.Files.h"
 #include "Application.Tests.HeapDiagnostic.h"
 #include "Application.Tests.RemoteImages.h"
 #include "Support/Support.Tests.TextServices.h"
+#include "res/Resource.h"
 #include <DxUi/RichMath.h>
 #include <DxUi/RichSemanticDocument.h>
 #include <array>
@@ -881,7 +881,12 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                      if (IsWindow(context.window))
                      {
                          if (context.previous)
+// The saved app-owned WNDPROC follows the Win32 no-exception contract; SDK WNDPROC omits noexcept.
+// Owner: RedTilde maintainers; review: 2027-01-31.
+#pragma warning(push)
+#pragma warning(disable : 5039)
                              (void)SetWindowLongPtrW(context.window, GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(context.previous));
+#pragma warning(pop)
                          (void)RemovePropW(context.window, property);
                      }
                  });
@@ -892,7 +897,12 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                      return state.rejection;
                  const bool reenter = message == WM_SETTEXT && std::exchange(state.reenter, false);
                  const bool closeAfterCaption = message == WM_SETTEXT && std::exchange(state.closeAfterCaption, false);
+// The saved app-owned WNDPROC follows the Win32 no-exception contract; SDK WNDPROC omits noexcept.
+// Owner: RedTilde maintainers; review: 2027-01-31.
+#pragma warning(push)
+#pragma warning(disable : 5039)
                  const auto result = CallWindowProcW(state.previous, hwnd, message, wParam, lParam);
+#pragma warning(pop)
                  if (reenter)
                  {
                      try
@@ -929,7 +939,12 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                  }
                  return result;
              };
+// The saved app-owned WNDPROC follows the Win32 no-exception contract; SDK WNDPROC omits noexcept.
+// Owner: RedTilde maintainers; review: 2027-01-31.
+#pragma warning(push)
+#pragma warning(disable : 5039)
              context.previous = reinterpret_cast<WNDPROC>(SetWindowLongPtrW(app.Window(), GWLP_WNDPROC, reinterpret_cast<LONG_PTR>(intercept)));
+#pragma warning(pop)
              Require(context.previous != nullptr, "intercept only the app-owned hidden window");
              context.reject = true;
              app.Document().SetSelection({0, 0});
