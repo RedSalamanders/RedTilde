@@ -4,6 +4,10 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Add the production-readiness review plan for `1c3554c`: verified findings ranked by severity (CI gate,
+  line-ending preservation, session-end and recovery loss windows, file-safety failure paths, UX and test
+  selection), refuted candidates, simplification candidates, owner decisions Q1–Q17 and the remediation order.
+  Documentation only; no product behavior changes, and remediation has not started.
 - Record the six-profile hosted SDK diagnostic pass, separate precision evidence and final paired CI policy refusal. Preserve the accepted +2.0045%/+2.2195% application working-set cost, unchanged SDK086 consumer pin, unstable-control/policy holds and exact-head RedTilde billing refusal; hosted consumer ARM64 and integration stay open.
 - Record the upstream clean-Prepare diagnostic's six local builds, three x64 oracle/Embedded profiles, real ASan detection and independently verified preservation; keep hosted, policy/control and consumer-pin obligations open. Archive the rejected private experiment and remove its unused refs/cache while preserving complete recovery and the locked empty directory with an unassigned process owner.
 - Retire five superseded SDK draft PRs and their five remote/five unused local branch names after verifying exact ancestry, complete-bundle recovery and unchanged dirty work. Preserve active corrections, evidence and pending CI; record the newer documentation-only main run's cancellation without relabeling the earlier native failure.

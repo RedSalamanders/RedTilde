@@ -26,3 +26,8 @@
   now sequences the remaining work; earlier source-bound results do not qualify a later pin automatically.
 
 - [RedMonitor adoption](RedMonitor_Adoption_2026-10-23.md) — pinned producer, optional viewer and consumer qualification.
+
+- [Production-readiness review](ProductionReview_2026-10-28.md) — whole-repository review at `1c3554c`: ranked
+  findings (CI gate, line-ending preservation, session-end and recovery loss windows, file-safety failure paths,
+  UX, tooling selection), simplification candidates and remediation order. Owner decisions Q1–Q17 are recorded;
+  no questions are open. Not started.
