@@ -54,7 +54,8 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>d3d11.lib;dxgi.lib;d2d1.lib;dwrite.lib;ole32.lib;shell32.lib;uuid.lib;advapi32.lib;user32.lib;gdi32.lib;comctl32.lib;windowscodecs.lib;dwmapi.lib;winhttp.lib;ws2_32.lib;delayimp.lib;shcore.lib;dbghelp.lib;bcrypt.lib;imm32.lib;uiautomationcore.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>WINHTTP.dll;WS2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs Condition="'$(RedTildeEnableTests)'=='true'">WINHTTP.dll;WS2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <DelayLoadDLLs Condition="'$(RedTildeEnableTests)'!='true'">WINHTTP.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <Manifest>
       <AdditionalManifestFiles>..\res\RedTilde.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
