@@ -27,7 +27,8 @@
 
 - [RedMonitor adoption](RedMonitor_Adoption_2026-10-23.md) — pinned producer, optional viewer and consumer qualification.
 
-- [Production-readiness review](ProductionReview_2026-10-28.md) — whole-repository review at `1c3554c`: ranked
-  findings (CI gate, line-ending preservation, session-end and recovery loss windows, file-safety failure paths,
-  UX, tooling selection), simplification candidates and remediation order. Owner decisions Q1–Q17 are recorded;
-  no questions are open. Not started.
+- [Production-readiness review](ProductionReview_2026-10-28.md) — whole-repository review at `1c3554c`, with a
+  second pass over every merge through `468cd94`: ranked findings (CI gate, line-ending preservation, session-end
+  and recovery loss windows, file-safety failure paths, re-entrant prompts and menu crashes, test gaps, UX,
+  tooling), simplification candidates and remediation order. Owner decisions Q1–Q17 are recorded; Q18–Q22 are
+  open. Not started.
