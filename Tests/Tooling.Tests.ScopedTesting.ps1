@@ -44,7 +44,7 @@ try{
         Assert (@($manifest.scopes|Where-Object{$_.native -and $_.name -in $plan.scopes}).Count -eq 0) 'Prose selected native tests'
         foreach($scope in @('Tooling','Format')){Assert ($scope -in $plan.scopes) "Prose validation omitted: $scope"}
         if($manifest.project -ceq 'RedTilde'){
-            $plan=Get-ScopedTestPlan $manifest @('docs/examples/weekly-report-2026-10-15.md')
+            $plan=Get-ScopedTestPlan $manifest @('Tests/Fixtures/reference-dark.md')
             foreach($scope in @('Captures','Tooling','Format')){Assert ($scope -in $plan.scopes) "Runtime capture fixture consumer omitted: $scope"}
             $native=@($manifest.scopes|Where-Object{$_.native -and $_.name -in $plan.scopes})
             Assert (-not $plan.full -and $native.Count -eq 1 -and $native[0].name -ceq 'Captures') 'Runtime fixture widened unrelated native coverage'

@@ -86,9 +86,11 @@
   ],
   "rules": [
     {
-      "pattern": "docs/examples/weekly-report-2026-10-15.md",
+      "pattern": "Tests/Fixtures/reference-dark.md",
       "scopes": [
-        "Captures"
+        "Captures",
+        "Tooling",
+        "Format"
       ],
       "reason": "runtime source fixture for reference-dark DPI captures"
     },

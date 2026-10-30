@@ -73,7 +73,7 @@ See the [retention contract](../Specs/Testing/Testing_RunEvidence.md) for verifi
 
 `test.ps1 -Suite Captures` generates 23 actual hidden renders: the normal presentation scenes plus Files,
 Find/Replace, Focus and exact equation source, with narrow and image-2 weekly-report 96/144/192-DPI variants. The
-reference-dark scene reads `docs/examples/weekly-report-2026-10-15.md`, seeds the same twenty-file Reports tree
+reference-dark scene reads `Tests/Fixtures/reference-dark.md`, seeds the same twenty-file Reports tree
 and selects the same current section. At 96 DPI its actual viewport is exactly 1440x900 pixels. Every PNG has a scenario
 sidecar with requested and actual viewport/DPI, native window DPI, simulation state and invented fixture name.
 The receipt binds both files to the exact build, source and DxUi pin. Simulated DPI exercises layout; physical

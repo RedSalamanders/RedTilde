@@ -1,0 +1,1 @@
+- Correct the production review ledger to its 48-file scope and remove the public weekly-report example; keep the reference-dark capture content unchanged in a dedicated test fixture, with runner, scoped coverage and validation documentation updated.

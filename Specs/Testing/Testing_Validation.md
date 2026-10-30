@@ -100,7 +100,7 @@ The app's `--self-test` and `--capture <path> --scenario <name>` never activate 
 clipboard or synthesize desktop input. Drive the same app/control commands as the UI. Native rendering captures
 come from the public host's diagnostic bitmap hook and WIC; record the exact binary/dependency/scenario identity.
 No desktop screenshot or Computer Use capture establishes app correctness.
-`docs/examples/weekly-report-2026-10-15.md` is a runtime input to the reference-dark DPI captures;
+`Tests/Fixtures/reference-dark.md` is a runtime input to the reference-dark DPI captures;
 its edits select `Captures` in addition to normal Tooling/Format validation, rather than prose-only coverage.
 
 Final gates: validator/format, x64 Debug/Release/ASan tests, real sanitizer detection, all ARM64 builds, native
