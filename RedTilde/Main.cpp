@@ -198,7 +198,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int)
             return 1;
         const auto uninitialize = wil::scope_exit([] { CoUninitialize(); });
         if (options.selfTest)
+        {
+#if defined(REDTILDE_ENABLE_TESTS)
             return RunCoreTests(options.dataDirectory, testScope, listTests);
+#else
+            return 2;
+#endif
+        }
         if (!options.headless && std::filesystem::exists(crashes / L"pending.txt"))
         {
             const auto path = crashes.native();

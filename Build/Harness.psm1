@@ -215,10 +215,13 @@ function Get-RedTildeBuildInputSnapshot {
         dependencyHeadersSha256=$headerInventory.sha256
         dependencyResolvedPropsSha256=$dependencyResolution.resolvedPropsSha256
         compilerContextSha256=$toolchain.sha256
+        buildNumber=$(if($env:RedTildeBuildNumber){[int]$env:RedTildeBuildNumber}else{0})
+        testsEnabled=($env:RedTildeEnableTests -ne 'false')
         toolchain=$toolchain
     }
     $rows=@($snapshot.compiledSourceIdentity,$snapshot.dependencyIdentitySha256,$snapshot.dependencyHeadersSha256,
-        $snapshot.dependencyResolvedPropsSha256,$snapshot.compilerContextSha256,$Platform,$Configuration)
+        $snapshot.dependencyResolvedPropsSha256,$snapshot.compilerContextSha256,$Platform,$Configuration,
+        $snapshot.buildNumber,$snapshot.testsEnabled)
     $snapshot['identity']=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($rows -join "`n"))))
     return $snapshot
 }
