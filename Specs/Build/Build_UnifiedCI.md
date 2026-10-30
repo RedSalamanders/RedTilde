@@ -68,3 +68,9 @@ that all six native product pipelines passed.
 ## Project adapter
 
 The adapter preserves exact source, dependency, public-header, compiler-context and artifact attestation. RedTildeBuildNumber freezes the third native version field and participates in build input identity. RedTildeEnableTests is also input-bound. Test mode compiles and enumerates the reviewed native catalog; its Utf8.CI_ASSERTION_PROBE verifies the real Require throws in Release. ProductionOnly removes Core/Files/DesignRefresh/DesignInteractive/RemoteImages test sources and refuses self-test and interactive-test dispatch. Supported hidden capture and performance diagnostics remain product capabilities. Packaging bundles the selected VS VC145 CRT, validates extracted executable bytes/version, renders a hidden fixture and verifies production self-test rejection. The product's experimental status is unchanged.
+
+## Emergency PR merge
+
+An organization owner may explicitly bypass PR merge checks during a recorded emergency through the GitHub PR override or gh pr merge --admin --match-head-commit FULL_SHA. Record the reason, blocked checks, exact reviewed head, rollback and follow-up in the PR and merge commit. The default-branch ruleset uses OrganizationAdmin with pull_request bypass; automation receives no bypass permission and direct/force pushes stay protected. Failed checks remain their actual results, and normal main qualification still runs. Production ZIP/SDK and publication requirements remain unchanged.
+
+Follow the common [emergency merge runbook](https://github.com/RedSalamanders/.github/blob/main/Specs/EmergencyMerge.md), including the reason file and exact-head CLI procedure. No emergency merge is an ordinary fallback after a failed merge attempt. Account restrictions must be resolved before enabling the ruleset; the pending RedPrism/RedTilde public visibility change remains the owner's operation.
