@@ -110,7 +110,7 @@ try {
         $scenarios=@('compose-light','compose-dark','source','split','context-selection','local-source','settings','math','math-dark','mermaid','recovery','narrow','high-contrast','files','find','focus','equation')
         $captures=@($scenarios|ForEach-Object{@{name=$_;scenario=$_;arguments=@()}})
         $captures+=@(96,144,192|ForEach-Object{@{name="narrow-dpi-$_";scenario='narrow';arguments=@('--capture-dpi',"$_")}})
-        $captures+=@(96,144,192|ForEach-Object{@{name="reference-dark-dpi-$_";scenario='reference-dark';arguments=@('--capture-dpi',"$_",'--document',(Join-Path $PSScriptRoot 'docs/examples/weekly-report-2026-10-15.md'))}})
+        $captures+=@(96,144,192|ForEach-Object{@{name="reference-dark-dpi-$_";scenario='reference-dark';arguments=@('--capture-dpi',"$_",'--document',(Join-Path $PSScriptRoot 'Tests/Fixtures/reference-dark.md'))}})
         $captures+=@(96,144,192|ForEach-Object{@{name="markdown-style-dpi-$_";scenario='markdown-style';arguments=@('--capture-dpi',"$_")}})
         foreach($hover in @('caption-close-hover','caption-maximize-hover')) {
             $captures+=@(96,144,192|ForEach-Object{@{name="$hover-dpi-$_";scenario=$hover;arguments=@('--capture-dpi',"$_")}})

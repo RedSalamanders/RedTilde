@@ -37,6 +37,6 @@ readable layout.
 These are manual review steps, not recorded pass results. Use the governed
 hidden harness for screenshots and reproducible application validation.
 
-The existing `s5-performance.md`, `performance-fixture.md` and
-`weekly-report-2026-10-15.md` are separately governed measurement/capture inputs.
+The existing `s5-performance.md` and `performance-fixture.md` are measurement inputs.
+The reference-dark capture input lives in `Tests/Fixtures/reference-dark.md`.
 This sample expansion does not change or replace them.
