@@ -32,3 +32,5 @@
   and recovery loss windows, file-safety failure paths, re-entrant prompts and menu crashes, test gaps, UX,
   tooling), simplification candidates and remediation order. Owner decisions Q1–Q17 are recorded; Q18–Q22 are
   open. Not started.
+
+- [Delivery review](DeliveryReview_2026-10-31.md) — 31 October 2026 review of `146a964`. The high item is binding Restore to the snapshot that was clicked. Medium items cover line endings, waiting for an admitted save, session-end recovery flush, drafts during Open, settings headers, conflict actions, and oversized recovery envelopes. Source-view Enter, the native IME ceiling, and quoted file paste are DxUi pin fixes. Not started.
