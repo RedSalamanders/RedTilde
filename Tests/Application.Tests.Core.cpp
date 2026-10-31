@@ -217,6 +217,24 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
     RegisterFilesTests(root, test);
     RegisterDesignRefreshTests(root, test);
     RegisterRemoteImageTests(root, test);
+    test("Utf8.CI_ASSERTION_PROBE",
+         []
+         {
+             // Verify the same always-on Require used by the regression cases in Release.
+             try
+             {
+                 Require(false, "CI_ASSERTION_PROBE");
+             }
+             catch (const std::runtime_error &error)
+             {
+                 if (std::string_view(error.what()) == "CI_ASSERTION_PROBE")
+                 {
+                     return;
+                 }
+                 throw;
+             }
+             throw std::runtime_error("CI_ASSERTION_PROBE_DISABLED");
+         });
     test("Utf8.BomUnicodeMixedEolRoundTrip",
          [&]
          {

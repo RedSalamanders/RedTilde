@@ -1,10 +1,16 @@
 #pragma code_page(65001)
 #include <windows.h>
 #include "Resource.h"
+#ifndef REDTILDE_BUILD_NUMBER
+#define REDTILDE_BUILD_NUMBER 0
+#endif
+#define REDTILDE_STRING_IMPL(value) #value
+#define REDTILDE_STRING(value) REDTILDE_STRING_IMPL(value)
+#define REDTILDE_VERSION "0.1." REDTILDE_STRING(REDTILDE_BUILD_NUMBER)
 IDI_REDTILDE ICON "RedTilde.ico"
 1 VERSIONINFO
-FILEVERSION 0,1,0,0
-PRODUCTVERSION 0,1,0,0
+FILEVERSION 0,1,REDTILDE_BUILD_NUMBER,0
+PRODUCTVERSION 0,1,REDTILDE_BUILD_NUMBER,0
 FILEFLAGSMASK 0x3fL
 FILEFLAGS 0
 FILEOS VOS_NT_WINDOWS32
@@ -16,11 +22,11 @@ BEGIN
     BEGIN
       VALUE "CompanyName", "RedSalamanders\0"
       VALUE "FileDescription", "RedTilde Markdown editor\0"
-      VALUE "FileVersion", "0.1.0\0"
+      VALUE "FileVersion", REDTILDE_VERSION "\0"
       VALUE "InternalName", "RedTilde\0"
       VALUE "OriginalFilename", "RedTilde.exe\0"
       VALUE "ProductName", "RedTilde\0"
-      VALUE "ProductVersion", "0.1.0 experimental\0"
+      VALUE "ProductVersion", REDTILDE_VERSION " experimental\0"
     END
   END
   BLOCK "VarFileInfo"

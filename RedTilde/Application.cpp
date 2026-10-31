@@ -2058,7 +2058,13 @@ bool Application::RouteShortcut(const MSG &message)
 int Application::Run()
 {
     if (!options.designInteractive.empty())
+    {
+#if defined(REDTILDE_ENABLE_TESTS)
         return RunDesignInteractiveProbe(*this, options);
+#else
+        return 2;
+#endif
+    }
     if (!options.performance.empty())
         return RunPerformanceProbe(*this, options);
     if (options.recoveryProbe)

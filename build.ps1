@@ -1,8 +1,14 @@
 [CmdletBinding()]
 param([ValidateSet('x64','ARM64')][string] $Platform='x64',
-      [ValidateSet('Debug','Release','ASan Debug')][string] $Configuration='Debug', [switch] $SkipRestore)
+      [ValidateSet('Debug','Release','ASan Debug')][string] $Configuration='Debug', [switch] $SkipRestore,
+      [ValidateRange(0,65535)][int]$BuildNumber = $(if ($env:RedTildeBuildNumber) { [int]$env:RedTildeBuildNumber } else { 0 }),
+      [switch]$ProductionOnly)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
+if ($env:CI_NATIVE_BUILDS_DISABLED -eq 'true') { throw 'Native builds are forbidden in compiler-free PR checks.' }
+if ($ProductionOnly -and $Configuration -ne 'Release') { throw 'ProductionOnly requires Release.' }
+$env:RedTildeBuildNumber = [string]$BuildNumber
+$env:RedTildeEnableTests = if ($ProductionOnly) { 'false' } else { 'true' }
 $nativeEntryElapsed = [Diagnostics.Stopwatch]::StartNew()
 Import-Module (Join-Path $PSScriptRoot 'Build/BuildConsole.psm1') -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'Build/Toolchain.psm1') -Force
@@ -67,6 +73,8 @@ if ($sourceIdentity -cne (Get-RedTildeSourceIdentity -Root $PSScriptRoot)) { thr
 $postBuildInputs=Get-RedTildeBuildInputSnapshot -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration -MSBuildPath $msbuild
 if($buildInputs.identity -cne $postBuildInputs.identity){throw 'Compiled source, dependency or compiler context changed during the build. Rebuild before accepting this artifact.'}
 $artifactIdentity=Get-RedTildeArtifactIdentity $PSScriptRoot $Platform $Configuration
+$version=[Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $output 'RedTilde.exe'))
+if($version.FileBuildPart -ne $BuildNumber){throw 'The compiled executable does not carry the frozen build number.'}
 $dependency=Get-Content (Join-Path $PSScriptRoot ".build/dependencies/DxUi/DxUi.identity.$Platform.json") -Raw | ConvertFrom-Json
 $success=[ordered]@{schemaVersion=2;passed=$true;sourceIdentity=$sourceIdentity;compiledSourceIdentity=$buildInputs.compiledSourceIdentity;
     buildInputs=[ordered]@{identity=$buildInputs.identity;dependencyIdentitySha256=$buildInputs.dependencyIdentitySha256;
@@ -75,6 +83,7 @@ $success=[ordered]@{schemaVersion=2;passed=$true;sourceIdentity=$sourceIdentity;
     dependencyHeadersSha256=$buildInputs.dependencyHeadersSha256;dependencyResolvedPropsSha256=$buildInputs.dependencyResolvedPropsSha256;
     compilerContextSha256=$buildInputs.compilerContextSha256;
     platform=$Platform;configuration=$Configuration;dependency=$dependency;artifactIdentity=$artifactIdentity;
+    buildNumber=$BuildNumber;testsEnabled=(-not [bool]$ProductionOnly);
     binarySha256=(Get-FileHash (Join-Path $output 'RedTilde.exe') -Algorithm SHA256).Hash;
     startedUtc=$started.ToString('o');finishedUtc=[DateTime]::UtcNow.ToString('o');runtimeExecuted=$false}
 $receiptTemporary=$receiptPath+'.'+[guid]::NewGuid().ToString('N')+'.tmp'
