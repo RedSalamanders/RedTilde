@@ -54,13 +54,11 @@ dispatch (`RedTilde/Main.cpp` 149–206), `package.ps1` 1–56, and
 `RedTilde/RedTilde.vcxproj` 74–84. The DxUi pin is
 `6ed0512c68743c57ac209e22010679d211c4a42b`, API revision 4.
 
-Not examined line by line: the 23,926-line review inventory, the DxUi review
-ledgers under the redesign folder, every ProductionReview finding beyond the
-ones the later plans still carry, and the DxUi checkout's Source-view Enter,
-IME ceiling, and paste-quote code. Those three stay DxUi pin work. Hosted
-Actions was not queried again; the red team's same-day note that recent `ci.yml`
-runs died at start is unverified here. `ci.yml` itself does contain a `push`
-to `main` and a coordinate job.
+A second pass checked every file-and-line citation in the indexed plans
+against this tree, and every DxUi citation against pin `6ed0512c`. The
+23,926-line review inventory and the DxUi review ledgers are hash and
+narrative records of older commits. They do not carry current line citations,
+and their hashes were not recomputed. Hosted Actions was not queried again.
 
 ## Accuracy of the indexed plans
 
@@ -423,6 +421,100 @@ points here. The next change is Phase 1 code and tests, not another review.
 - **Fix sketch**: Move the build-policy and RedMonitor plans to Done with
   an explicit "shared gates remain on the delivery plan" sentence. Keep
   the creation plan in WIP as the long-horizon register, behind a banner.
+
+## Citation check
+
+225 file-and-line citations were extracted from the indexed plans. The
+delivery review and the red team match the current source. The behavior they
+name is still in the code, and the normative sentences they cite are still
+in the contracts.
+
+Still present, and still required by the spec:
+
+- Restore still takes `recoveryCandidates.front()` after the prompt
+  (`Application.cpp` 1136 and 1147). [Core_FileSafety.md](../../Core/Core_FileSafety.md)
+  still retires that candidate only after the replacement is durable.
+- Close still does not wait for an admitted save (`BeginClose` at 1724).
+  The contract still says an admitted save stays dirty and keeps recovery.
+- There is still no `WM_QUERYENDSESSION` arm (`HandleMessage` at 1759).
+  The contract still says shutdown bypasses the 750 ms debounce
+  (`Recovery.cpp` 196, `Recovery.h` 26–27).
+- `ParseRecovery` still does not catch `length_error` (86–105). The contract
+  still quarantines a partial or corrupt envelope.
+- Insert still writes LF (1274–1288). F2 Apply still copies the draft
+  (1431–1441). [Editor_Markdown.md](../../Editor/Editor_Markdown.md) still
+  requires the original line endings, and `capabilities.json` still lists
+  `strict-utf8-bom-eol-preservation`.
+- The conflict dialog is still Yes/No (`Application.cpp` 1620, `RedTilde.rc`
+  78). The contract still requires reload, Save As, or explicit overwrite.
+- A bad settings header still returns defaults (`Settings.cpp` 14–15) and
+  `LoadSettings` still returns `S_OK` (64–72).
+  [Core_SettingsAndCrashes.md](../../Core/Core_SettingsAndCrashes.md) still
+  says invalid settings fall back per field and the rejected file is retained.
+- [Editor_Markdown.md](../../Editor/Editor_Markdown.md) still puts IME handling
+  ahead of commands that could interrupt composition. `Execute` still returns
+  while a composition is open (`Application.cpp` 1051–1054).
+
+DxUi pin `6ed0512c` still contains the delivery-review library claims:
+`TextInput.cpp` 2660 inserts LF, `NormalizeMultilineLineEndings` at 154 folds
+CR to LF, `RichTextEditor.cpp` 2349 assigns CRLF, `Eol()` at 138 copies an
+existing terminator, the native text store does not override the ceiling
+(`TextStoreTarget.h` 35–38, `DxUi.TextStoreACP.cpp` 201),
+`RichDocument.h` 94 is 65,536 units, paste falls back to raw quotes
+(`RichTextEditor.cpp` 442–444), `FinalizeAsyncMenuController` is `noexcept`
+and calls the host at 4679 (`Menu.cpp` 4643), detach resets the root at
+`WindowHost.cpp` 1535, and both document edits throw `length_error`
+(`RichDocument.cpp` 710, `RichTextCommands.cpp` 1006–1011).
+
+These citations are off. The behavior is still in the tree, at a nearby line
+or under another name:
+
+| Cited | What is there now | The point |
+| --- | --- | --- |
+| `Application.cpp:2209` show state | `ShowWindow(SW_SHOWNORMAL)` is at 2217. No `nCmdShow` symbol. | The launch show state is still ignored. |
+| `Main.cpp:195` throwing `exists` | `CrashProbe()` is at 195. `std::filesystem::exists` is at 208. | The throwing overload is still used. |
+| `Application.cpp:1664-1665` draft Open | The direct `apply()` is at 1666–1667. | A slow Open still replaces text under an open draft. |
+| `Application.cpp:1253` `"link text"` | The string is at 1255. | The placeholder is still inserted. |
+| `RedTilde.vcxproj:53-63` test sources | Those lines are delay-load settings. The test files are at 74–84. | `Application.Tests.Performance.cpp` is still compiled with no test condition. The others compile when `RedTildeEnableTests` is true, which is the default. `package.ps1` still does not pass `-ProductionOnly`. |
+| `DocumentInfo.cpp:62-75` outline | 62–75 is the fence branch. ATX headings and the 128 cap are at 81–96. | There is no Setext parser, so Setext headings are still omitted. |
+| `Files.cpp:342-348` reparse fixture | `Common/Files.cpp` 342 is natural-order sort. The junction fixture is `Tests/Application.Tests.Files.cpp` 342–348. | The fixture exists. It is a junction, not a cloud-tag case. `Common/Files.cpp` 115–122 still refuses every reparse root. |
+| `Application.Navigation.cpp:217-245` no equality check | `FolderCompleted` starts at 219 and checks root and generation, then always calls `RefreshFiles`. | A content compare is still absent. "No equality check" is too broad. |
+
+These citations no longer match, and the described option is not in the pin
+or the current workflow:
+
+- Redesign F02, `DxUi.NativeMath.cpp:69-100`. Those lines map math alphabets.
+  Text mode collapses a newline to a space. It does not keep it as another
+  line. `PreparedMath.h:332-340` is a style branch (`mathbf`), and that header
+  has no multiline rejection.
+- Redesign F03, `DxUi.NativeMath.cpp:240-241,389-412`. Line 240 is `lceil`.
+  The symbol table at 389 is ordinary operators. `\limits` and `\nolimits`
+  set `MathLimits` at 557–561. They are not a Space atom.
+- Redesign F05, `DxUi.RichSemanticDocument.cpp:341-345`. That is the start of
+  `Inline()`. A rejected formula's title is set on the formula element at 411,
+  not on a parent link.
+- Redesign F06, `DxUi.NativeFlowchart.cpp:253-277,290-298`. That is statement
+  and direction parsing. State descriptions replace or append a label at
+  110–126. The behavior exists. The line numbers do not.
+- Redesign F04, `PreparedMath.h:41-52`. Those lines are geometry structs.
+  The fixed script scales are at 68–73, and `displayStyle` exists at 75.
+  "No display style model" overstates the pin.
+- Production review `ci.yml:14` and `ci.yml:47-48`. Line 14 is a
+  workflow-dispatch input. Line 47 is the pull-request resolve step.
+  `CHANGELOG_BASE` is not in this workflow. The `push` trigger for `main`
+  is present. The shared engine's changelog base was not re-read.
+- Production review PR-13 says [Core_FileSafety.md](../../Core/Core_FileSafety.md)
+  requires image initialization to degrade. The contract says a recovery
+  failure stays visible and leaves editing and Save available. It does not
+  mention image startup. `Application.cpp` 203–204 still fails `Initialize`
+  when either recovery or image startup fails.
+
+`Build/NativeBuildPolicy.targets` 15–17 still injects the RedXe, RedPrism, and
+RedSalamander vcpkg include paths, which is what S14 says to remove.
+`RSBuildCompilerDebugInformation` is still at lines 48–49.
+`Tests/Tooling.Tests.BuildConsole.ps1` 6–10 still names a RedSalamander
+sandbox. The warning-suppression blocks listed for S12 are still at the cited
+lines.
 
 ## Rejected conclusions
 
