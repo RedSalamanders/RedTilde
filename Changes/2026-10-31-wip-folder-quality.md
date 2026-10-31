@@ -1,0 +1,1 @@
+- Record the 31 October WIP-folder quality review at `4565105`. The index now has one delivery sequence: the unchecked delivery-review defects are still in the source, and the older plans are a register rather than competing queues. No product behavior changed. Hosted qualification remains open.
