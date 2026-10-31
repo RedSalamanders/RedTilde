@@ -484,9 +484,9 @@ These citations no longer match, and the described option is not in the pin
 or the current workflow:
 
 - Redesign F02, `DxUi.NativeMath.cpp:69-100`. Those lines map math alphabets.
-  Text mode collapses a newline to a space. It does not keep it as another
-  line. `PreparedMath.h:332-340` is a style branch (`mathbf`), and that header
-  has no multiline rejection.
+  The text-mode scan collapses a newline to a space at line 143. It does not
+  keep it as another line. `PreparedMath.h:332-340` is a style branch
+  (`mathbf`), and that header has no multiline rejection.
 - Redesign F03, `DxUi.NativeMath.cpp:240-241,389-412`. Line 240 is `lceil`.
   The symbol table at 389 is ordinary operators. `\limits` and `\nolimits`
   set `MathLimits` at 557–561. They are not a Space atom.
