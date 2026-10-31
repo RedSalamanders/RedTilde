@@ -34,3 +34,5 @@
   open. Not started.
 
 - [Delivery review](DeliveryReview_2026-10-31.md) — 31 October 2026 review of `146a964`. The high item is binding Restore to the snapshot that was clicked. Medium items cover line endings, waiting for an admitted save, session-end recovery flush, drafts during Open, settings headers, conflict actions, and oversized recovery envelopes. Source-view Enter, the native IME ceiling, and quoted file paste are DxUi pin fixes. Not started.
+
+- [Delivery red team](DeliveryRedTeam_2026-10-31.md) — 31 October 2026 second-angle review of `d126a04` (last 15 days = the whole repository). Confirms the delivery-review items still open, adds packaging/probe/Find-latch/Measurements-path findings, and sequences Phase 1–6. Remediation not started. Do not reopen DeliveryReview drops; Q3 vs RT-10 and Q8 vs RT-11 still need a written owner pick.
