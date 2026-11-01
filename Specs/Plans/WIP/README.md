@@ -8,11 +8,11 @@ sequence. The entries below are one register. They are not eight queues.
 ## Execute
 
 - [Delivery review](DeliveryReview_2026-10-31.md) — 13 unchecked product defects. Re-read on 31 October; the anchors still match the source. Start with RT-04, and write the failing test first.
-- [Delivery red team](DeliveryRedTeam_2026-10-31.md) — Phase 1–6 sequence, the extra packaging and probe findings, and the two owner picks that are still open. Remediation has not started.
+- [Delivery red team](DeliveryRedTeam_2026-10-31.md) — Phase 1–6 sequence, the extra packaging and probe findings, and the approved Q3/Q4/Q8 requirements. RT-18 is defensive hardening without a demonstrated failure. Remediation has not started.
 
-## Owner decisions, still unimplemented
+## Owner decisions and current CI precedence
 
-- [Production-readiness review](ProductionReview_2026-10-28.md) — Q1–Q17 were decided on 29 October and have not landed. Q18–Q22 are open. Q3 and Q8 disagree with the delivery drops; implement neither until one sentence names the winner. PR-01's missing `push` trigger is already in `ci.yml`.
+- [Production-readiness review](ProductionReview_2026-10-28.md) — Product decisions remain unimplemented. Q3's five-second recovery cap, Q4's replacement of the busy-close dialog, and Q8's OneDrive/SMB/WSL requirements remain approved; later review drops do not revoke them. The current [unified CI contract](../../Build/Build_UnifiedCI.md) supersedes conflicting CI and test-matrix parts of Q1/Q5/Q16. Q18–Q22 remain open. The `push` trigger is already in `ci.yml`.
 
 ## Registers, not the next edit
 

@@ -6,6 +6,8 @@ first delivery slice in [the red-team sequence](DeliveryRedTeam_2026-10-31.md),
 with a failing test written first.
 
 Date: 2026-10-31
+Documentation correction: 2026-11-01. Preserve the recorded owner decisions,
+apply current unified CI precedence, and classify RT-18 as defensive hardening.
 Reviewed source: `45651052e5868312a1908aabd4a93665abab97c5` (`main`).
 Product tree compared with the delivery-review tip
 `146a96493f2e69d02fbf00b78a468418031a9146`.
@@ -20,26 +22,37 @@ qualification diary.
 Do this, in order:
 
 1. Follow Phase 1 in [DeliveryRedTeam_2026-10-31.md](DeliveryRedTeam_2026-10-31.md):
-   bind Restore to the clicked snapshot, wait for an admitted save, flush
-   recovery on logoff, quarantine an oversized recovery envelope, survive a
-   second close during a prompt, and keep shortcut, save-completion, menu, and
+   bind Restore to the clicked snapshot, replace the busy-close dialog with
+   the approved hidden wait for an admitted save (Q4), flush recovery on
+   logoff, enforce the approved five-second recovery cap (Q3), quarantine an
+   oversized recovery envelope, survive a second close during a prompt, and
+   keep shortcut, save-completion, menu, and
    Find exceptions inside the process. Write the failing tests first.
 2. Then the product half of line endings, the conflict dialog, the settings
-   header, drafts during Open, the staging-file handle, and `SaveDocument`'s
-   `length_error` path.
+   header, drafts during Open, the staging-file handle, and Q8's approved
+   storage compatibility work. Its remaining locations/images work stays in
+   Phase 5. RT-18 is optional defensive hardening, not a confirmed defect.
 3. Then truthful `capabilities.json` and the production-ZIP probe gates.
 4. Leave ARM64 runtime, physical IME and assistive technology, documents over
    65,536 UTF-16 units, full LaTeX and Mermaid, the installer, and paired
    Release performance on the pending list in `capabilities.json`.
 
-Two owner decisions still have two authoritative answers. Pick one in writing
-before implementing either side: the 5-second recovery cap (Q3 versus the
-dropped RT-10), and whether OneDrive, SMB, and WSL are in this 0.1 (Q8 versus
-the dropped RT-11).
+The recorded owner decisions remain authoritative: Q3 requires the five-second
+recovery cap, Q4 replaces the busy-close dialog with a hidden wait and restores
+the window on failure, and Q8 requires OneDrive/cloud, SMB/NAS, and WSL support.
+The later RT-10/RT-11 drops do not revoke those approvals. Update the owning
+contracts and acceptance coverage when the requirements land; a missing spec
+update does not turn an approved requirement into an unanswered question.
+
+For CI routing and Release test/production roles, the current
+[unified CI contract](../../Build/Build_UnifiedCI.md) supersedes conflicting
+parts of Q1/Q5/Q16. PRs remain compiler-free. Both native Release test branches
+must pass before either separate production Release/ZIP branch starts.
 
 ## Method and limits
 
-Read-only. Nothing was built or run. The product paths `RedTilde/`, `Common/`,
+The original 31 October review was read-only; nothing was built or run for
+that review. The product paths `RedTilde/`, `Common/`,
 `Tests/`, `capabilities.json`, `package.ps1`, `Dependencies/`, and `.github/`
 have an empty diff from `146a964` to `4565105`. The commits in between record
 the two delivery plans and a changelog fold.
@@ -65,8 +78,8 @@ and their hashes were not recomputed. Hosted Actions was not queried again.
 | Plan | Still accurate? | Remaining work still there? |
 | --- | --- | --- |
 | [Delivery review](DeliveryReview_2026-10-31.md) | Yes. Anchors still match. All 13 boxes are open. | Yes. This is the defect list. |
-| [Delivery red team](DeliveryRedTeam_2026-10-31.md) | Yes for the items re-read above, including RT-14 through RT-18. | Yes. Remediation has not started. |
-| [Production review](ProductionReview_2026-10-28.md) | The carried-forward defects still match. PR-01's "no push trigger" sentence is stale. Q1–Q17 are decisions, not landings. | The decisions are unimplemented. The remediation order is the wrong delivery order. |
+| [Delivery red team](DeliveryRedTeam_2026-10-31.md) | RT-14 through RT-17 remain confirmed. RT-18 is defensive hardening; no reachable capacity exception was demonstrated. The Q3/Q4/Q8 clarifications preserve existing approvals. | Remediation has not started. |
+| [Production review](ProductionReview_2026-10-28.md) | The carried-forward product defects still match. Q3/Q4/Q8 remain approved. Current unified CI supersedes conflicting parts of Q1/Q5/Q16; the missing `push` claim is corrected. | Product work remains unimplemented. The delivery sequence owns order; the current CI contract owns routing and test/production gates. |
 | [Creation](RedTilde_2026-10-20.md) | S5, S6, and the long-horizon C-items are still open. The 21 October pin, checkout, and "every item remains unchecked" line are stale. | The gates are real. The handoff is not a safe start. |
 | [Design refresh](DesignRefresh_2026-10-22.md) | R1–R9 and V1–V4 are implemented. R10's memory half was accepted on 29 October. The status still cites producer `e0908338` and DxUi `086ad82a`. | Command findings, quiet-host, policy, and hosted ARM64 remain. They are shared gates, not a second design project. |
 | [Redesign completion](RedesignCompletionAndRendering_2026-10-24.md) | The 29 October "stop memory experiments" decision is real. Later unchecked boxes contradict it. "The consumer retains SDK086" is false at the current pin. | A handful of shared gates remain. Most of the 67 open boxes are frozen snapshots. |
@@ -96,9 +109,12 @@ the `--self-test` exit-2 check runs only when `testsEnabled` is already false.
 `REDTILDE_ENABLE_TESTS` gate at 200. The recovery and preferences probes are
 parsed at 151–160 with the same shape. `Application.Tests.Performance.cpp`
 is the test file compiled with no `RedTildeEnableTests` condition (vcxproj 84);
-the sibling test files at 74–83 have the condition. `SaveDocument` returns
-before `DecodeUtf8` can throw on the size pre-check, and it still has no
-`length_error` catch (158–185). `LoadDocument` does catch it (153–155).
+the sibling test files at 74–83 have the condition. `SaveDocument` calls
+`EncodeUtf8`, after rejecting text above `MaximumUnits` (158–185). At the
+pinned codec that guard excludes the capacity `length_error`; no additional
+reachable `length_error` path was demonstrated. RT-18 is therefore defensive
+hardening, not a confirmed failure. `LoadDocument` calls `DecodeUtf8` and
+does catch `length_error` (153–155).
 
 `capabilities.json` still lists `strict-utf8-bom-eol-preservation` under
 `implemented`. The file-safety contract requires original line endings. The
@@ -106,20 +122,29 @@ Insert and F2 Apply paths do not honor that yet.
 
 ### Production review
 
-Q1–Q17 are owner decisions recorded on 29 October. None of the product
-decisions were landed in the files re-read here. Q18–Q22 are still open
-questions. The second-pass coordinate is `468cd94`, which is behind `main`,
-and the defect text was not refreshed after the CI commits that added the
-`push` trigger.
+Q1–Q17 record owner decisions from 29 October. Product remediation remains
+unimplemented, including Q3/Q4/Q8. Q18–Q22 are still open questions. The
+second-pass coordinate is `468cd94`, which is behind `main`.
+
+The current [unified CI contract](../../Build/Build_UnifiedCI.md) supersedes
+the older CI and test-matrix instructions in Q1/Q5/Q16: compiler-free PR
+checks; main qualification after five quiet minutes; test-enabled native
+x64 and ARM64 Release branches; then separate production-only Release/ZIP
+branches after their global AND gate. Production outputs exclude test code;
+Release qualification still executes the real tests and failure probe.
+Debug/ASan extended qualification remains separately required where applicable.
+Do not restore the old six-native-job PR matrix or remove Release tests.
+Q1's visibility and Q17's history actions remain owner operations; this
+precedence note does not execute either.
 
 The remediation order starts with a history rewrite and a new public
 repository. That is an owner action with a force-new-repo consequence. It
 does not fix Restore. Phase 4 of the red team is the matching place for it.
 
-PR-01's remaining claim, a private repository with no required checks, was
-not re-queried. The sentence "There is also no `push` trigger" is false in
-current `.github/workflows/ci.yml` (lines 5–6 and the `coordinate` job at
-117–119).
+PR-01's private-repository and required-check claims were not re-queried in
+the original review. Its original sentence "There is also no `push` trigger"
+is false in current `.github/workflows/ci.yml` (lines 5–6 and the `coordinate`
+job at 117–119); the 1 November documentation correction now says so in PR-01.
 
 ### Creation plan
 
@@ -211,12 +236,13 @@ release. The folder's sequences do not.
 
 | Order | Work | Why it is this high | Where it lives now |
 | --- | --- | --- | --- |
-| 1 | RT-04, RT-02, RT-01, RT-08, PR-34, one exception boundary (RT-12, PR-35, RT-14), with PR-46 tests that fail first | A writer can lose the file, crash, or terminate on these paths during ordinary Close, Restore, and logoff | Red team Phase 1. Production review had them behind a repository rewrite |
-| 2 | RT-03 product half, RT-06, RT-07, RT-09, RT-05, RT-18 | Everyday edits and settings writes violate the file-safety and settings contracts | Red team Phase 2. Creation plan never names them |
+| 1 | RT-04, RT-02 with Q4, RT-01, Q3/PR-04, RT-08, PR-34, one exception boundary (RT-12, PR-35, RT-14), with PR-46 tests that fail first | A writer can lose the file, crash, or terminate on these paths during ordinary Close, Restore, and logoff | Red team Phase 1. Production review had them behind a repository rewrite |
+| 2 | RT-03 product half, RT-06, PR-09/PR-10 under Q8, RT-07, RT-09, RT-05 | Everyday edits and settings writes violate the file-safety and settings contracts | Red team Phase 2. RT-18 is separate optional hardening without a demonstrated failure |
 | 3 | RT-13, RT-15, RT-16, RT-17, and a `capabilities.json` line that matches phase 2 | A local ZIP and the probe switches overstate what the experimental build is | Red team Phase 3 |
-| 4 | One written pick for Q3 and one for Q8. Q18 is already sequenced as PR-34 | Two plans currently authorize opposite work | Production review versus the delivery drops |
+| 4 | Resolve remaining Q18–Q22 choices before their dependent implementations; Q18 is already sequenced as PR-34 | These are the unanswered owner questions. Q3/Q4/Q8 are already approved | Production review; later review drops do not revoke owner decisions |
 | 5 | Q17 rewrite, public repository, required checks, PrePush native proof | Owner action. It makes later merges provable. It does not save the file a writer has open today | Production review step 1; red team Phase 4 |
-| 6 | DxUi pin bump for Source-view Enter, the native IME ceiling, and quoted file paste | Real, and blocked on the DxUi plan. Reimplementing them in RedTilde is already forbidden | Delivery review DX-3, DX-4, and the DxUi half of RT-03 |
+| 6 | Remaining approved Q8/Q13 locations and images work, including cloud-tag handling and real-share/WSL validation | These requirements remain in scope for 0.1; implementation and evidence are still open | Red team Phase 5 and production review Q8/Q13 |
+| Upstream | DxUi pin bump for Source-view Enter, the native IME ceiling, and quoted file paste | Real, and blocked on the DxUi plan. Reimplementing them in RedTilde is already forbidden | Delivery review DX-3, DX-4, and the DxUi half of RT-03 |
 | Later | C1–C12 that are still actually open: performance acceptance, device removal, capacity, font family, broader math and diagrams, drag and drop, installer, ARM64, physical IME and assistive technology | They are the product after a trustworthy 0.1, or they are gates that stay pending | Creation register, design R10, every plan's last checkbox |
 
 C6, the cross-process save race, stays a named future hardening item in
@@ -251,19 +277,18 @@ the local test goes from red to green.
 
 ### The owner-decision loyalist
 
-On 29 October the owner required a 5-second recovery cap (Q3) and full
-OneDrive, SMB, and WSL behavior (Q8). On 31 October the delivery review
-dropped both, citing the file-safety contract, which was never updated
-because the production review says the contract changes when the item lands.
-The red team correctly says both need a written pick, and then sequences
-Phase 1 as if the drop already won. Someone following Q3 will add the cap.
-Someone following the delivery plan will refuse it. The folder has to say
-which document wins. Until that sentence exists, implement neither the cap
-nor the cloud-reparse work. Phase 1 does not depend on either.
+On 29 October the owner required a five-second recovery cap (Q3) and full
+OneDrive/cloud, SMB/NAS, and WSL behavior (Q8). The later delivery drops cited
+the file-safety contract before those requirements had landed. Those review
+drops do not revoke owner decisions. The 1 November correction carries Q3
+into Phase 1 and Q8 into the storage and locations/images slices; update the
+owning contracts and tests with their implementation.
 
-Q4 and RT-02 have the same split at a smaller scale. Q4 says replace the
-busy-close dialog and wait. RT-02 says keep the Yes path and wait after Yes.
-The wait is the shared requirement. The dialog copy is the undecided part.
+Q4 also already chooses the close behavior: replace the busy-close dialog,
+hide the window while waiting for an admitted save, retain recovery until
+success, and reshow with the error on failure. A plain Open can be abandoned
+without a prompt. RT-02's repair and acceptance follow that decision; the
+dialog choice is not undecided.
 
 ### The plan librarian
 
@@ -313,7 +338,7 @@ points here. The next change is Phase 1 code and tests, not another review.
 - **Impact**: The next session starts on changelog closeout for a merged
   policy, or on the redesign diary, and does not reach Restore.
 - **Effort**: S. The index in this change is that fix.
-- **Risk**: LOW. Plan bodies stay where they are. Each filename appears once,
+- **Risk**: LOW. Plan files stay where they are. Each filename appears once,
   which is what `validate.ps1` enforces.
 - **Confidence**: HIGH.
 - **Fix sketch**: Keep one sequence paragraph and a register. Done in this
@@ -353,37 +378,38 @@ points here. The next change is Phase 1 code and tests, not another review.
   into landed, remainder, and shared gate. Do that in the Phase 1 change
   only if it stays a banner; a full rewrite can wait.
 
-### [DOCS-04] Record one winner for Q3 and one for Q8
+### [DOCS-04] Preserve approved Q3/Q4/Q8 decisions — corrected 1 November
 
-- **Evidence**: `ProductionReview_2026-10-28.md` Q3 and Q8.
-  `DeliveryReview_2026-10-31.md` drops RT-10 and RT-11.
-  `DeliveryRedTeam_2026-10-31.md` lines 110–117 leave both as owner picks.
-  `Core_FileSafety.md` still specifies 750 ms and does not require the Files
-  pane on a reparse root.
-- **Impact**: Two plans authorize opposite patches.
-- **Effort**: S once the owner picks. The pick is not this review's to make.
-- **Risk**: HIGH if a session implements either side while both documents
-  look live.
-- **Confidence**: HIGH that the conflict exists. LOW on which side the owner
-  wants now.
-- **Fix sketch**: One sentence in the production review and one in the
-  delivery plans, after the owner speaks. Until then the index says implement
-  neither.
+- **Evidence**: `ProductionReview_2026-10-28.md` records owner approval for
+  Q3's five-second cap, Q4's replacement of the busy-close dialog, and Q8's
+  OneDrive/cloud, SMB/NAS, and WSL support. The later delivery drops did not
+  record a revocation. The domain contracts are updated when the work lands.
+- **Impact**: Treating review drops as new owner choices blocked authorized
+  work and left RT-02 with the wrong dialog behavior.
+- **Effort**: S for this documentation correction. Product implementation
+  and its acceptance tests remain open.
+- **Risk**: Preserve the recorded approvals and current CI precedence;
+  change their scope only with an explicit owner decision.
+- **Confidence**: HIGH. The owner choices are already recorded.
+- **Fix**: The index, this report, and both delivery plans now preserve those
+  choices. Q3 belongs in Phase 1; Q8's storage and locations/images work stays
+  in Phases 2 and 5; RT-02 follows Q4. No repeated approval is required.
 
-### [DOCS-05] Correct the stale half of PR-01
+### [DOCS-05] Correct the stale half of PR-01 — documentation corrected 1 November
 
-- **Evidence**: `ProductionReview_2026-10-28.md` says there is no `push`
+- **Evidence**: `ProductionReview_2026-10-28.md` originally said there was no `push`
   trigger. `.github/workflows/ci.yml` lines 5–6 and 117–119 push `main` into
   the shared coordinate workflow.
-- **Impact**: A session will re-add a trigger that exists, and will treat
+- **Impact**: A session could re-add a trigger that exists, and treat
   the whole CI finding as untouched.
 - **Effort**: S.
 - **Risk**: LOW. Leave the private-repo and required-check claims until
   someone re-queries Actions.
 - **Confidence**: HIGH for the trigger. The red team's "jobs die at start"
   note was not rechecked.
-- **Fix sketch**: Amend PR-01 to say the trigger and coordinator exist, and
-  that hosted execution is unverified since the red team.
+- **Fix**: PR-01 now says the trigger and coordinator exist, and its Q1/Q5/Q16
+  instructions follow current unified CI. Actual hosted acceptance remains a
+  separate open gate; documentation changes do not establish execution.
 
 ### [DOCS-06] Stop treating the 24 October ledgers as plans
 
@@ -535,12 +561,15 @@ lines.
 
 ## Folder shape after this change
 
-The index names one sequence and a register. Plan bodies are unchanged, so
-their evidence and their mistakes stay recoverable. `README.md` points at
-the index instead of the 21 October handoff.
+The index names one sequence and a register. The 1 November correction
+clarifies owner-decision precedence in the linked delivery plans, marks
+conflicting Q1/Q5/Q16 CI instructions superseded, and classifies RT-18 as
+defensive hardening without a demonstrated failure. Historical source and
+runtime evidence remains unchanged. `README.md` points at the index instead
+of the 21 October handoff.
 
 Still to do, as folder work, after Phase 1 starts and without blocking it:
-DOCS-02, DOCS-03's banner, DOCS-04 when the owner picks, DOCS-05, and
+DOCS-02, DOCS-03's banner, DOCS-05's hosted-state follow-up, and
 DOCS-07. DOCS-06 can wait.
 
 A further review-only pull request ahead of Phase 1 is a regression.

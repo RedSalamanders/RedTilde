@@ -1,0 +1,1 @@
+- Correct the WIP delivery guidance to preserve approved Q3/Q4/Q8 requirements, apply the current unified CI contract over conflicting Q1/Q5/Q16 instructions, and classify RT-18 as defensive hardening without a demonstrated failure; product implementation and hosted qualification remain open.

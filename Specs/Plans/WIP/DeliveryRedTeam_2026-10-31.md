@@ -26,8 +26,11 @@ Owning contracts: [File safety](../../Core/Core_FileSafety.md),
 [Editor](../../Editor/Editor_Markdown.md). The
 [production-readiness review](ProductionReview_2026-10-28.md) and
 [delivery review](DeliveryReview_2026-10-31.md) keep their own questions and
-dropped lists. This plan does not reopen a dropped finding. It sequences the
-confirmed holes and the new ones the first two reviews missed or under-weighted.
+dropped lists. Correction, 1 November 2026: recorded Q3/Q4/Q8 owner decisions
+remain approved; the RT-10/RT-11 review drops did not revoke them. Current
+[unified CI](../../Build/Build_UnifiedCI.md) supersedes conflicting Q1/Q5/Q16
+CI and test-matrix instructions. RT-18 is defensive hardening without a
+demonstrated failure. This plan sequences confirmed holes and approved work.
 
 ## Verdict
 
@@ -37,14 +40,16 @@ HTML/script/URL execution). Everyday close, restore, logoff, menu, and
 production-ZIP paths still lose bytes or terminate the process. Two review
 plans already named most of that. Remediation has not started.
 
-A truthful experimental 0.1 may ship only after Phase 1–3 below. ARM64 runtime,
+A truthful experimental 0.1 needs Phases 1–3 and the approved Q8/Q13 work in
+Phase 5, with their validation and release gates still explicit. ARM64 runtime,
 physical IME/AT, installer, documents over 65,536, full LaTeX/Mermaid and paired
 Release performance stay pending.
 
 ## Confirmed still open
 
 Every DeliveryReview item is still unchecked at this tip. ProductionReview
-PR-01, PR-26, PR-30, PR-34, PR-35, PR-46 and Q1, Q5, Q16, Q17 are still open.
+PR-01, PR-26, PR-30, PR-34, PR-35, PR-46 and Q17 remain open. Apply current
+unified CI precedence to Q1/Q5/Q16; obsolete matrices are not pending work.
 
 | ID | Sev | Location | Trigger |
 | --- | --- | --- | --- |
@@ -68,7 +73,8 @@ PR-01, PR-26, PR-30, PR-34, PR-35, PR-46 and Q1, Q5, Q16, Q17 are still open.
 
 ## New findings
 
-Recorded so they are not lost. None of these reopen a DeliveryReview drop.
+RT-14 through RT-17 and RT-19 remain findings. RT-18 is separately classified
+as defensive hardening.
 
 - [ ] **RT-14** — `ReplaceFind` leaves `updatingFind` true if `ApplySourceEdits` throws
   (`Application.Navigation.cpp` 478-480). `RefreshFind` then returns at line 269 for
@@ -89,9 +95,13 @@ Recorded so they are not lost. None of these reopen a DeliveryReview drop.
   `Application.cpp` 2070-2113). Packaging smoke must refuse `--crash-probe` and
   `--recovery-crash-probe`, not only `--self-test`. Effort: S.
 
-- [ ] **RT-18** — `SaveDocument` is `noexcept` and does not catch
-  `std::length_error` (`Storage.cpp` 158-185). `LoadDocument` already does.
-  The unit pre-check makes a throw unlikely. Catch it anyway. Effort: S.
+- **RT-18 — Defensive hardening; no demonstrated failure.** `SaveDocument`
+  is `noexcept` and has no `std::length_error` catch (`Storage.cpp` 158-185).
+  It calls `EncodeUtf8` after rejecting text above `MaximumUnits`, which
+  excludes that codec's capacity exception at this pin. `LoadDocument` uses
+  `DecodeUtf8` and does catch it. Do not count RT-18 as a confirmed defect or
+  release blocker without another reachable throw path. A defensive catch
+  is optional hardening. Effort: S.
 
 - [ ] **RT-19** — Tracked `Measurements/` JSON still contains `C:\Users\…`
   worktree paths (272+ hits). Q17 must scrub or relocate them before any public
@@ -102,36 +112,45 @@ Recorded so they are not lost. None of these reopen a DeliveryReview drop.
 (`Build/ScopedTesting.psm1` 337-364). `Test-ScopedNativeCiProof` is never
 called. Do not treat an `active` billing-blocked workflow as native proof.
 
-## Owner decisions still required
+## Recorded owner decisions and remaining questions
 
-These are not implementation items until the owner picks one. Do not implement
-a dropped DeliveryReview item from this plan.
-
-- **Q3 vs RT-10.** ProductionReview Q3 required a 5 s recovery write cap.
-  DeliveryReview dropped RT-10 because `Core_FileSafety` only requires 750 ms
-  of quiet. Continuous typing plus logoff still loses the burst. Either change
-  the contract and implement the cap, or accept the loss in writing.
-- **Q8 vs RT-11.** ProductionReview Q8 required OneDrive/SMB/WSL. DeliveryReview
-  dropped RT-11 (Files reparse). Open/Save of a single file can work; the Files
-  pane stays unavailable on a cloud reparse root. Either implement PR-31 or
-  state that the Files pane is local-NTFS only in `capabilities.json`.
+- **Q3 / RT-10 remains approved.** Keep the 750 ms quiet debounce and write
+  within five seconds of the first unsubmitted change. Implement PR-04 in
+  Phase 1 with its domain-contract update and deterministic deadline test.
+- **Q4 / RT-02 remains approved.** Replace the busy-close dialog, hide the
+  window while an admitted save settles, retain recovery until success, and
+  reshow with the error on failure. Abandon a plain Open without a prompt.
+- **Q8 / RT-11 remains approved.** OneDrive/cloud, SMB/NAS, and WSL must work
+  fully. Carry storage fallbacks/sharing into Phase 2 and the remaining
+  cloud-tag/same-share image work into Phase 5. Update the owning contract
+  and `capabilities.json`; validate a real share and WSL before claiming
+  support. Later review drops do not revoke these owner decisions.
 
 Q18–Q22 on the production-readiness review remain open (close-while-prompt,
 proxy images, commands at the 65,536 cap, changelog release cut, process weight).
 
 ## Sequence
 
-1. Phase 1 first: RT-04, RT-02, RT-01, RT-08, PR-34, one exception boundary
-   (RT-12 / PR-07 / PR-35 / RT-14). Write the failing tests first (PR-46).
-2. Phase 2: RT-03 product half, RT-06, PR-09, PR-10, RT-07, RT-09, RT-05, RT-18.
-   Source-view Enter, DX-4 and DX-3 wait on the DxUi plan, then a pin bump.
+1. Phase 1 first: RT-04, RT-02 under Q4, RT-01, Q3/PR-04, RT-08, PR-34, one
+   exception boundary (RT-12 / PR-07 / PR-35 / RT-14). Write the failing tests
+   first (PR-46).
+2. Phase 2: RT-03 product half, RT-06, PR-09/PR-10 under Q8, RT-07, RT-09, RT-05.
+   RT-18 stays optional defensive hardening. Source-view Enter, DX-4 and DX-3
+   wait on the DxUi plan, then a pin bump.
 3. Phase 3: RT-13, RT-15, RT-16, RT-17, PR-14, PR-13, truthful
    `capabilities.json` (remove `strict-utf8-bom-eol-preservation` until 2 lands).
-4. Phase 4: owner — Q17 rewrite, Q1 public repo, required checks, PrePush
-   native proof. Until hosted is real, PrePush runs local natives.
-5. Phase 5: only after Q8 / Q13 are reaffirmed — PR-31, PR-12, Q13, PR-27, PR-25 pin.
-6. Phase 6: six builds, x64 Debug/Release/ASan, real ASan probe, portable ZIP
-   smoke including probe refusal. Interactive/IME/ARM64 stay explicit gates.
+4. Phase 4: owner — Q17 rewrite, Q1 public repo, current compiler-free PR
+   checks, and applicable PrePush native proof. Until hosted is real,
+   required local obligations stay local. No native PR matrix is restored.
+5. Phase 5: approved Q8/Q13 locations and images — PR-31, PR-12, Q13, PR-27,
+   PR-25 pin, plus real-share and WSL acceptance before support claims.
+6. Phase 6: qualify under the current unified CI contract. After five quiet
+   minutes on main, both native test-enabled Release branches must pass the
+   real suites and failure probe before either separate production Release/ZIP
+   branch starts. Retain six-build, Debug/ASan, real ASan detection and portable
+   smoke/probe-refusal obligations; extended runs are explicit manual actions.
+   PR checks never establish native acceptance. Interactive/IME/ARM64 gates
+   remain explicit until their actual evidence is accepted.
 
 Do not merge more review-only or changelog-fold pull requests ahead of Phase 1.
 
@@ -139,10 +158,13 @@ Do not merge more review-only or changelog-fold pull requests ahead of Phase 1.
 
 - Two snapshots, dirty Restore, Discard the clicked id before the save
   callback. No crash. The other id remains.
-- Admitted save, block the worker, confirm Close, fail the write. Previous
-  file and recovery snapshot both still exist. Window reshown with the error.
+- Admitted save, block the worker, request Close. No busy-close dialog;
+  window hides while the process and recovery remain. Fail the write:
+  previous file and recovery snapshot both exist; window returns with error.
 - Post `WM_QUERYENDSESSION` while dirty. Snapshot bytes match the editor. No
   silent save of the user file.
+- Continuous typing never reaches 750 ms quiet. Recovery still writes within
+  five seconds of the first unsubmitted change, preserving the quiet debounce.
 - Checksum-valid 200,000-byte recovery envelope. Process starts. File
   quarantined.
 - Second `WM_CLOSE` during the save prompt. No use-after-free. Close runs
@@ -155,9 +177,9 @@ Do not merge more review-only or changelog-fold pull requests ahead of Phase 1.
 ## Leave standing
 
 Same as [DeliveryReview_2026-10-31.md](DeliveryReview_2026-10-31.md): atomic
-replace shape, strict UTF-8, recovery lease, Files child reparse not entered
-until Q8 is reaffirmed, Compose Enter through `Eol()`. Do not reimplement
-Source-view Enter in RedTilde.
+replace shape, strict UTF-8, recovery lease, and refusal to traverse actual
+symlinks and mount points while Q8 adds cloud-tag support; Compose Enter through
+`Eol()`. Do not reimplement Source-view Enter in RedTilde.
 
 ## Explicitly not this 0.1
 
