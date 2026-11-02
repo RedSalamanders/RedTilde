@@ -123,6 +123,28 @@ unsigned CurrentBlockResourceAt(const DxUi::RichText::MarkdownSyntax &syntax, st
     }
     return resource;
 }
+// A display math block owns its closing line terminator. Caret tests and drafts end
+// at the closing delimiter, so the following line is not inside the equation.
+std::size_t WithoutLineEnd(std::wstring_view source, DxUi::RichText::MarkdownRange range) noexcept
+{
+    auto last = std::min(range.last, source.size());
+    while (last > range.first && (source[last - 1] == L'\n' || source[last - 1] == L'\r'))
+        --last;
+    return last;
+}
+// GFM stays on; each optional RichMarkdown family follows its own preference.
+DxUi::RichText::MarkdownExtensions MarkdownExtensionsFor(const Settings &settings) noexcept
+{
+    using DxUi::RichText::MarkdownExtensions;
+    constexpr std::array<MarkdownExtensions, MarkdownSyntaxCount> flags{
+        MarkdownExtensions::Highlight, MarkdownExtensions::Superscript,     MarkdownExtensions::Subscript,    MarkdownExtensions::Inserted,
+        MarkdownExtensions::WikiLinks, MarkdownExtensions::DefinitionLists, MarkdownExtensions::Abbreviations};
+    auto extensions = MarkdownExtensions::All;
+    for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
+        if (settings.markdownSyntax[index])
+            extensions = extensions | flags[index];
+    return extensions;
+}
 } // namespace
 
 std::wstring_view ResourceView(unsigned id)
@@ -248,6 +270,15 @@ DxUi::Button *Application::Action(DxUi::Panel &parent, unsigned label, Command c
     button->SetTooltipText(tooltip.empty() ? Resource(label) : std::move(tooltip));
     button->SetOnClick([this, command] { Execute(command); });
     return button;
+}
+
+void Application::ApplyMarkdownSyntax()
+{
+    // Matching masks keep the read-only mirror eligible for parsed-syntax adoption.
+    const auto extensions = MarkdownExtensionsFor(settings);
+    editor->SetMarkdownAnalysisExtensions(extensions);
+    mirror->SetMarkdownAnalysisExtensions(extensions);
+    equation->SetMarkdownAnalysisExtensions(extensions);
 }
 
 void Application::ApplyTheme()
@@ -847,11 +878,26 @@ void Application::SelectionChanged(bool refreshTools)
                         if (node.kind == Kind::Link)
                             formats[3] = true;
                     }
+            // Own-line $$ and \[ \] display math is a source-owned block, not an inline node.
+            if (syntax && expression.empty())
+                for (const auto &node : syntax->Nodes())
+                    if (node.block.kind == DxUi::RichText::MarkdownBlockKind::FencedCode &&
+                        (node.block.fenceMarker == L'$' || node.block.fenceMarker == L'[') && node.block.closed &&
+                        selection.caret >= node.block.source.first && selection.caret <= WithoutLineEnd(syntax->Source(), node.block.source))
+                    {
+                        auto body = syntax->Slice(node.block.content);
+                        while (!body.empty() && (body.back() == L'\n' || body.back() == L'\r'))
+                            body.remove_suffix(1);
+                        if (body.size() <= DxUi::RichText::MathMaximumSourceUnits)
+                            expression = body;
+                        break;
+                    }
         }
         bool layoutChanged{};
         {
             EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::ToolCaptionPublication);
-            const auto preview = expression.empty() ? std::wstring{} : L"\\[" + expression + L"\\]";
+            // The pinned grammar recognizes display delimiters only on their own lines.
+            const auto preview = expression.empty() ? std::wstring{} : L"\\[\n" + expression + L"\n\\]";
             if (equation->GetText() != preview)
                 equation->SetText(preview);
             const bool nextEquationContext = !expression.empty();
@@ -880,8 +926,8 @@ void Application::SelectionChanged(bool refreshTools)
                 if (documentInfo.headings[i].offset <= selection.caret)
                     currentHeading = i;
             const auto headingId = currentHeading ? std::optional<std::uint64_t>(currentHeading.value() + 1) : std::nullopt;
-            // Model refresh already reconciles and reveals surviving focused rows.
-            // Republish only an actual selection or focus transition.
+            // Model refresh already reconciles surviving focused rows and keeps the viewport.
+            // Republish only an actual selection or focus transition, which reveals it.
             if (outlineTree->GetSelectedItemId() != headingId || outlineTree->GetFocusedItemId() != headingId)
             {
                 ++activity.outlineSelectionUpdates;
@@ -1110,6 +1156,22 @@ void Application::Execute(Command command)
         Layout();
         SavePreferences();
         return;
+    case Command::SyntaxHighlight:
+    case Command::SyntaxSuperscript:
+    case Command::SyntaxSubscript:
+    case Command::SyntaxInserted:
+    case Command::SyntaxWikiLinks:
+    case Command::SyntaxDefinitionLists:
+    case Command::SyntaxAbbreviations:
+    {
+        // Reanalysis keeps source, selection and history; only presentation changes.
+        auto &enabled = settings.markdownSyntax[static_cast<std::size_t>(command) - static_cast<std::size_t>(Command::SyntaxHighlight)];
+        enabled = !enabled;
+        ApplyMarkdownSyntax();
+        Layout();
+        SavePreferences();
+        return;
+    }
     case Command::Recovery:
         ShowRecovery();
         return;
@@ -1276,7 +1338,8 @@ void Application::Execute(Command command)
         semantic = false;
         break;
     case Command::Math:
-        (void)editor->ReplaceSelection(L"\n\n$$ x = \\frac{-b + \\sqrt{b^2 - 4ac}}{2a} $$\n\n");
+        // Display delimiters must own their lines; a one-line $$...$$ stays literal at this pin.
+        (void)editor->ReplaceSelection(L"\n\n$$\nx = \\frac{-b + \\sqrt{b^2 - 4ac}}{2a}\n$$\n\n");
         semantic = false;
         break;
     case Command::Quote:
@@ -1353,31 +1416,35 @@ void Application::LocalSource()
     }
     const auto semantic = editor->GetAcknowledgedSemanticDocument(host);
     const auto selection = editor->GetSelection();
+    const auto source = editor->GetText();
     if (semantic)
     {
         const auto elements = semantic->Elements();
         for (std::size_t index = elements.size(); index > 0; --index)
         {
             const auto &element = elements[index - 1];
-            if (selection.caret >= element.source.first && selection.caret <= element.source.last &&
-                editor->BeginSemanticSourceEdit(host, semantic, index - 1))
+            const bool atCaret = selection.caret >= element.source.first && selection.caret <= element.source.last;
+            // Math keeps its guarded exact-delimiter draft even where the pin also offers a native region.
+            if (element.role == DxUi::RichText::SemanticRole::Math && selection.caret >= element.source.first &&
+                selection.caret <= WithoutLineEnd(source, element.source))
+                break;
+            if (atCaret && element.role != DxUi::RichText::SemanticRole::Math && editor->BeginSemanticSourceEdit(host, semantic, index - 1))
             {
                 CloseDrawers();
                 return;
             }
         }
     }
-    const auto source = editor->GetText();
     std::size_t first = selection.Start(), last = selection.End();
     // Exact math source is a syntax fact; an unrelated preview may still be
     // preparing. Raster acknowledgment is required only for in-document editors.
     if (const auto document = editor->GetSemanticDocument())
         for (const auto &element : document->Elements())
             if (element.role == DxUi::RichText::SemanticRole::Math && selection.caret >= element.source.first &&
-                selection.caret <= element.source.last)
+                selection.caret <= WithoutLineEnd(source, element.source))
             {
                 first = element.source.first;
-                last = element.source.last;
+                last = WithoutLineEnd(source, element.source);
                 break;
             }
     if (first == last)

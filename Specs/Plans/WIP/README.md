@@ -1,30 +1,42 @@
 # Active plans
 
-Source `45651052e5868312a1908aabd4a93665abab97c5` (31 October 2026). Product code
-is unchanged since `146a964`. Read
-[the WIP folder quality review](WipFolderQuality_2026-10-31.md) and execute its
-sequence. The entries below are one register. They are not eight queues.
+- **ACTIVE**: [DxUi 2 November delivery adoption](DxUiDeliveryAdoption_2026-11-02.md). Lock `5fc4d4c3` (API 4),
+  per-family RichMarkdown syntax preferences, declined wiki/data images, own-line display math, guarded math F2 and
+  adapter repairs for the pin's behavior changes. Release/ASan, ARM64 and physical/interactive gates remain open.
 
-## Execute
+- **ACTIVE**: [Native build policy, terminal results and short DxUi paths](NativeBuildPolicyCoherence_2026-10-28.md). Shared /Wall without /WX, zero-warning validation, Debug/ASan symbols, Release-only ICF, terminal results and verified short dependency folders.
 
-- [Delivery review](DeliveryReview_2026-10-31.md) — 13 unchecked product defects. Re-read on 31 October; the anchors still match the source. Start with RT-04, and write the failing test first.
-- [Delivery red team](DeliveryRedTeam_2026-10-31.md) — Phase 1–6 sequence, the extra packaging and probe findings, and the approved Q3/Q4/Q8 requirements. RT-18 is defensive hardening without a demonstrated failure. Remediation has not started.
+- [Redesign completion and rendering compatibility](RedesignCompletionAndRendering_2026-10-24.md) — **active**; historical pause/resume queues preserved, current
+  execution coordinator with a top checklist, current-source defects, complete review inventory, native math
+  and Mermaid compatibility/test matrices, measured simplification and exact-pin final qualification. Existing
+  creation/design and DxUi audit owners remain authoritative for their requirements. The owner selected finishing
+  the current native profiles and qualification; larger language expansion remains separately owned. Implementation
+  and source reviews are recorded; R10 and final qualification remain open.
 
-## Owner decisions and current CI precedence
+- [RedTilde creation](RedTilde_2026-10-20.md) — native app, rich/source editing, media, product UI, repository
+  guidance and release qualification. Start at “Remaining work and session handoff — 2026-10-21” for the current
+  main/source checkpoint, recovery locations and C1–C12 work register: performance/policy, resources/hardware,
+  upstream/platform/input, save-race hardening, capacity, typography, compatibility, assets and release closeout.
+  Bounded native math/diagrams/recovery and local S5 execution are implemented; S5 qualification and S6 remain open.
+  Its PR consolidation checkpoint is historical: DxUi #89–#91 merged on 2026-10-21; their separate performance
+  and product qualification remains open. The preserved baseline archive tags still identify the original evidence.
 
-- [Production-readiness review](ProductionReview_2026-10-28.md) — Product decisions remain unimplemented. Q3's five-second recovery cap, Q4's replacement of the busy-close dialog, and Q8's OneDrive/SMB/WSL requirements remain approved; later review drops do not revoke them. The current [unified CI contract](../../Build/Build_UnifiedCI.md) supersedes conflicting CI and test-matrix parts of Q1/Q5/Q16. Q18–Q22 remain open. The `push` trigger is already in `ci.yml`.
+- [Design refresh](DesignRefresh_2026-10-22.md) — implemented layout and visual refresh: merged document bar, grouped
+  command row, optional Files pane for Markdown in the document's folder tree, outline panel, contextual
+  find/selection tools, focus mode, settings drawer, F2 equation editing and hover-underlined links. Offline
+  proposal pages and pictures are in its folder. R1–R9 and the image-2 visual correction V1–V4 are implemented;
+  source-bound six-profile builds, x64 native tests and matched captures are archived. R10 performance and
+  broader input/platform/CI/release qualification keep this parent plan active. The completion coordinator
+  now sequences the remaining work; earlier source-bound results do not qualify a later pin automatically.
 
-## Registers, not the next edit
+- [RedMonitor adoption](RedMonitor_Adoption_2026-10-23.md) — pinned producer, optional viewer and consumer qualification.
 
-- [RedTilde creation](RedTilde_2026-10-20.md) — S5, S6, and the long-horizon C-register. The 21 October pin, checkout paths, and "every item remains unchecked" line are stale. Text scale and the bounded math and diagram slices have landed.
-- [Design refresh](DesignRefresh_2026-10-22.md) — R1–R9 and V1–V4 are implemented. The 29 October memory-cost acceptance stands. Command findings, quiet-host, policy, and hosted ARM64 remain. The cited producer `e0908338` / DxUi `086ad82a` is not the current pin.
-- [Redesign completion and rendering](RedesignCompletionAndRendering_2026-10-24.md) — qualification diary and the 24 October review ledgers. The decision to stop memory-repair experiments stands. Unchecked boxes that restart allocation attribution, or that still say the consumer is on SDK086, are superseded.
+- [Production-readiness review](ProductionReview_2026-10-28.md) — whole-repository review at `1c3554c`, with a
+  second pass over every merge through `468cd94`: ranked findings (CI gate, line-ending preservation, session-end
+  and recovery loss windows, file-safety failure paths, re-entrant prompts and menu crashes, test gaps, UX,
+  tooling), simplification candidates and remediation order. Owner decisions Q1–Q17 are recorded; Q18–Q22 are
+  open. Not started.
 
-## Closeout candidates
+- [Delivery review](DeliveryReview_2026-10-31.md) — 31 October 2026 review of `146a964`. The high item is binding Restore to the snapshot that was clicked. Medium items cover line endings, waiting for an admitted save, session-end recovery flush, drafts during Open, settings headers, conflict actions, and oversized recovery envelopes. Source-view Enter, the native IME ceiling, and quoted file paste are DxUi pin fixes. Not started.
 
-Shared ARM64, physical input, performance, and release gates stay on the delivery sequence. These two plans are not the active product task.
-
-- [Native build policy](NativeBuildPolicyCoherence_2026-10-28.md) — the policy is merged. One closeout checkbox remains.
-- [RedMonitor adoption](RedMonitor_Adoption_2026-10-23.md) — the adapter checklist is done. The open line repeats the shared gates.
-
-Do not add another review-only plan ahead of Phase 1.
+- [Delivery red team](DeliveryRedTeam_2026-10-31.md) — 31 October 2026 second-angle review of `d126a04` (last 15 days = the whole repository). Confirms the delivery-review items still open, adds packaging/probe/Find-latch/Measurements-path findings, and sequences Phase 1–6. Remediation not started. Do not reopen DeliveryReview drops; Q3 vs RT-10 and Q8 vs RT-11 still need a written owner pick.

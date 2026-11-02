@@ -81,7 +81,7 @@ void Application::PrepareDesignScenario()
         // Invented content reproduces the user's Markdown example without
         // exposing a loaded filename or ambient filesystem model.
         SetDocument(L"## Show the flow\n\n```mermaid\ngraph LR\nA[Think] --> B[Write]\nB --> C[Refine]\n```\n\n"
-                    L"## An equation\n\n$$ x = \\frac{-b + \\sqrt{b^2 - 4ac}}{2a} $$\n\n"
+                    L"## An equation\n\n$$\nx = \\frac{-b + \\sqrt{b^2 - 4ac}}{2a}\n$$\n\n"
                     L"Place the caret inside the equation to see the native inspector preview.\n\n"
                     L"## Details\n\n| View | Purpose |\n| --- | --- |\n| Compose | Stay in the writing |\n"
                     L"| Source | Inspect exact Markdown |\n| Split | Keep both visible |\n\n"
@@ -143,7 +143,7 @@ void Application::PrepareDesignScenario()
         if (scenario == L"equation")
             source = L"# The shape of an idea\n\n"
                      L"A few symbols can make a complicated thought feel clear. Keep the exact source one step away.\n\n"
-                     L"$$x=\\frac{-b+\\sqrt{b^2-4ac}}{2a}$$\n\n"
+                     L"$$\nx=\\frac{-b+\\sqrt{b^2-4ac}}{2a}\n$$\n\n"
                      L"## Keep the meaning\n\n"
                      L"The rendered equation and its source are two views of the same idea. Apply a change, or cancel and keep writing.\n";
         const auto path = writing / (reference ? L"weekly-report-2026-10-15.md" : scenario == L"equation" ? L"Equation notes.md" : L"Ideas.md");
@@ -236,7 +236,7 @@ void Application::PrepareDesignScenario()
             editor->SetSelection({caret, caret});
             SelectionChanged();
             Execute(Command::LocalSource);
-            RequireCapture(HasBlockDraft() && blockDraftText->GetText() == L"$$x=\\frac{-b+\\sqrt{b^2-4ac}}{2a}$$",
+            RequireCapture(HasBlockDraft() && blockDraftText->GetText() == L"$$\nx=\\frac{-b+\\sqrt{b^2-4ac}}{2a}\n$$",
                            "The equation capture did not open its exact guarded TeX draft");
         }
         if (scenario == L"settings")

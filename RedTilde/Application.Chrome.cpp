@@ -321,6 +321,7 @@ void Application::BuildUi()
     equation->SetMarkdownAnalysisProfile(DxUi::RichText::MarkdownProfile::RichMarkdown);
     equation->SetMarkdownRenderingEnabled(true);
     equation->SetAccessibleName(Resource(IDS_READONLY));
+    ApplyMarkdownSyntax();
 
     currentBlockTitle = Label(*sidebar, IDS_CURRENTSECTION, DxUi::FontRole::Small);
     Section(currentBlockTitle);
@@ -432,12 +433,27 @@ void Application::BuildUi()
     outlineToggle = Action(*settingsScroll, IDS_VIEWTOOLS, Command::Outline);
     focusToggle = Action(*settingsScroll, IDS_FOCUS, Command::Focus);
     dimToggle = Action(*settingsScroll, IDS_DIMBLOCKS, Command::DimBlocks);
-    Section(Label(*settingsScroll, IDS_PRIVACYSECTION, DxUi::FontRole::Small));
+    syntaxTitle = Label(*settingsScroll, IDS_SYNTAXSECTION, DxUi::FontRole::Small);
+    Section(syntaxTitle);
+    syntaxIntro = Label(*settingsScroll, IDS_SYNTAXINTRO, DxUi::FontRole::Small);
+    syntaxIntro->SetMultiline(true);
+    for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
+    {
+        const auto offset = static_cast<unsigned>(index);
+        const auto help = Resource(IDS_SYNTAXHIGHLIGHTHELP + offset);
+        syntaxToggles[index] = Action(*settingsScroll, IDS_SYNTAXHIGHLIGHT + offset,
+                                      static_cast<Command>(static_cast<unsigned>(Command::SyntaxHighlight) + offset), help);
+        syntaxToggles[index]->SetAccessibleHelpText(help);
+        syntaxHelp[index] = Label(*settingsScroll, IDS_SYNTAXHIGHLIGHTHELP + offset, DxUi::FontRole::Small);
+        syntaxHelp[index]->SetMultiline(true);
+    }
+    privacyTitle = Label(*settingsScroll, IDS_PRIVACYSECTION, DxUi::FontRole::Small);
+    Section(privacyTitle);
     drawerHelp = Label(*settingsScroll, IDS_LOCALIMAGES, DxUi::FontRole::Small);
     drawerHelp->SetMultiline(true);
-    Action(*settingsScroll, IDS_RECOVERY, Command::Recovery);
-    Action(*settingsScroll, IDS_CLOSE, Command::CloseDrawer);
-    Label(*settingsScroll, IDS_IMMEDIATE, DxUi::FontRole::Small);
+    recoveryAction = Action(*settingsScroll, IDS_RECOVERY, Command::Recovery);
+    drawerClose = Action(*settingsScroll, IDS_CLOSE, Command::CloseDrawer);
+    drawerImmediate = Label(*settingsScroll, IDS_IMMEDIATE, DxUi::FontRole::Small);
     remoteImagesToggle = Action(*settingsScroll, IDS_REMOTEIMAGES, Command::RemoteImages);
     writingTitle = Label(*settingsScroll, IDS_WRITINGSECTION, DxUi::FontRole::Small);
     Section(writingTitle);
@@ -735,7 +751,7 @@ void Application::Layout()
     const float drawerLeft = width - 380;
     drawer->SetBounds(D2D1::RectF(drawerLeft, top, width, bottom));
     settingsScroll->SetBounds(D2D1::RectF(drawerLeft + 16, top + 12, width - 8, bottom - 12));
-    settingsScroll->SetContentHeight(782);
+    settingsScroll->SetContentHeight(1514);
     const float dx = drawerLeft + 24;
     settingsScroll->GetLogicalChild(0)->SetBounds(D2D1::RectF(dx, top + 20, width - 24, top + 52));
     settingsScroll->GetLogicalChild(1)->SetBounds(D2D1::RectF(dx, top + 68, width - 24, top + 92));
@@ -764,13 +780,24 @@ void Application::Layout()
     focusToggle->SetToggleState(focus);
     dimToggle->SetBounds(D2D1::RectF(dx, top + 504, width - 24, top + 540));
     dimToggle->SetToggleState(settings.dimInactiveBlocks);
-    settingsScroll->GetLogicalChild(11)->SetBounds(D2D1::RectF(dx, top + 556, width - 24, top + 580));
-    remoteImagesToggle->SetBounds(D2D1::RectF(dx, top + 592, width - 24, top + 628));
+    syntaxTitle->SetBounds(D2D1::RectF(dx, top + 556, width - 24, top + 580));
+    syntaxIntro->SetBounds(D2D1::RectF(dx, top + 588, width - 24, top + 628));
+    // Each option reserves two lines of explanation beneath its toggle.
+    for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
+    {
+        const float row = top + 640 + static_cast<float>(index) * 92.f;
+        syntaxToggles[index]->SetBounds(D2D1::RectF(dx, row, width - 24, row + 36));
+        syntaxToggles[index]->SetToggleState(settings.markdownSyntax[index]);
+        syntaxHelp[index]->SetBounds(D2D1::RectF(dx, row + 40, width - 24, row + 80));
+    }
+    const float privacy = top + 1288;
+    privacyTitle->SetBounds(D2D1::RectF(dx, privacy, width - 24, privacy + 24));
+    remoteImagesToggle->SetBounds(D2D1::RectF(dx, privacy + 36, width - 24, privacy + 72));
     remoteImagesToggle->SetToggleState(settings.allowRemoteImages);
-    drawerHelp->SetBounds(D2D1::RectF(dx, top + 636, width - 24, top + 676));
-    settingsScroll->GetLogicalChild(13)->SetBounds(D2D1::RectF(dx, top + 692, width - 24, top + 728));
-    settingsScroll->GetLogicalChild(14)->SetBounds(D2D1::RectF(dx + 224, top + 740, width - 24, top + 776));
-    settingsScroll->GetLogicalChild(15)->SetBounds(D2D1::RectF(dx, top + 740, width - 160, top + 776));
+    drawerHelp->SetBounds(D2D1::RectF(dx, privacy + 80, width - 24, privacy + 120));
+    recoveryAction->SetBounds(D2D1::RectF(dx, privacy + 136, width - 24, privacy + 172));
+    drawerClose->SetBounds(D2D1::RectF(dx + 224, privacy + 184, width - 24, privacy + 220));
+    drawerImmediate->SetBounds(D2D1::RectF(dx, privacy + 184, width - 160, privacy + 220));
     const float fx = right - 476, fy = top + 12;
     findBar->SetBounds(D2D1::RectF(fx, fy, right - 16, fy + 104));
     findText->SetBounds(D2D1::RectF(fx + 12, fy + 10, fx + 204, fy + 46));

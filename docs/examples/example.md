@@ -18,7 +18,9 @@ B --> C[Refine]
 
 ## An equation
 
-$$ x = \frac{-b + \sqrt{b^2 - 4ac}}{2a} $$
+$$
+x = \frac{-b + \sqrt{b^2 - 4ac}}{2a}
+$$
 
 Place the caret inside the equation to see the native inspector preview.
 

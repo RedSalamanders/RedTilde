@@ -536,5 +536,48 @@ void RegisterRemoteImageTests(const std::filesystem::path &root, const std::func
                          .c_str());
              closing.Release();
          });
+    test("Editor.WikiImageEmbedsStayUnresolved",
+         [&]
+         {
+             const auto foreground = GetForegroundWindow();
+             const auto fixture = root / L"wiki-image-embeds";
+             std::filesystem::create_directories(fixture / L"Writing");
+             const auto pixels = Bitmap();
+             Require(SUCCEEDED(WriteBytesAtomic(fixture / L"Writing/cover.bmp",
+                                                std::string_view(reinterpret_cast<const char *>(pixels.data()), pixels.size()))),
+                     "seed one invented image that both the ordinary and the wiki embed name");
+             LaunchOptions options;
+             options.headless = true;
+             options.dataDirectory = fixture / L"settings";
+             Application app(options);
+             Require(SUCCEEDED(app.Initialize()), "initialize hidden image worker with default syntax preferences");
+             const std::wstring text = L"# Invented embeds\n\n![Local cover](cover.bmp)\n\n![[cover.bmp]]\n";
+             app.SetDocument(text);
+             app.Document().SetDocumentFilePath((fixture / L"Writing/Ideas.md").native());
+             const auto await = [&](const std::function<bool()> &done)
+             {
+                 const auto deadline = GetTickCount64() + 5000;
+                 while (!done() && GetTickCount64() < deadline)
+                     app.Prepare(16);
+                 Require(done(), "the hidden image worker settles before its test deadline");
+             };
+             await(
+                 [&]
+                 {
+                     return app.Document().GetImageResourceStatistics().readySources == 1 &&
+                            app.Document().GetImageResourceStatistics().failedSources == 1;
+                 });
+             const auto statistics = app.Document().GetImageResourceStatistics();
+             // One 2x1 PBGRA decode: only the ordinary local reference reaches the file loader.
+             Require(statistics.requestedSources == 2 && statistics.decodedBytes == 2u * 1u * 4u,
+                     "the wiki embed is requested but declined, even though a same-named file exists beside the document");
+             app.Execute(Command::SyntaxWikiLinks);
+             app.Prepare(128);
+             Require(!app.Preferences().SyntaxEnabled(MarkdownSyntax::WikiLinks) &&
+                         app.Document().GetImageResourceStatistics().requestedSources == 1 &&
+                         app.Document().GetImageResourceStatistics().failedSources == 0 && app.Document().GetText() == text && !app.Dirty(),
+                     "turning wiki links off leaves the embed as literal text without editing the document");
+             Require(GetForegroundWindow() == foreground, "hidden wiki-embed handling preserves foreground");
+         });
 }
 } // namespace RedTilde

@@ -97,4 +97,10 @@ Hosted setup waits for the hidden, owned GUI bootstrapper with both its --wait s
 
 The [native policy, console and dependency-path contract](Build_ConsoleAndPaths.md) owns /Wall without /WX, zero-warning acceptance, Debug/ASan symbols, Release-only ICF, common terminal results and verified short dependency folders.
 
-The native build-policy candidate locks DxUi API4 at `6ed0512c68743c57ac209e22010679d211c4a42b`. It preserves this consumer's existing API adoption while repairing native warning diagnostics and stable payload type identity under Release COMDAT folding. Restore and compile matching headers/archive from this exact lock. The indexed NativeBuildPolicyCoherence plan records outstanding product and desktop-focus qualification; this pin selection alone is not a green product receipt.
+The consumer locks DxUi API4 at `5fc4d4c383bfa4891ee57a138924107bbbf11a2e`, the reviewed main commit containing the
+2 November 2026 delivery (runtime commit `6df17007`) and its consumer upgrade guide. API revision 4 is unchanged, but
+public object layouts changed: restore and rebuild every profile from matching headers and archive. The previous lock
+`6ed0512c68743c57ac209e22010679d211c4a42b` is the rollback pin, restored only together with its adapters. Packaging
+carries the pin's third-party notices and their `docs/licenses` texts. The indexed
+[DxUi delivery adoption plan](../Plans/WIP/DxUiDeliveryAdoption_2026-11-02.md) records adapter changes and
+outstanding qualification; this pin selection alone is not a green product receipt.

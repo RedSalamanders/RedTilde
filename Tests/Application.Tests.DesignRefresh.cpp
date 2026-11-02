@@ -1099,13 +1099,12 @@ class DesignRefreshProbe final
                      Require(publicationApp.outlineModel.rows.size() == 2 && publicationApp.outlineTree->GetFirstVisibleItemIndex() == 0,
                              "collapsing earlier descendants clamps the retained distant heading into the short model");
                      publicationApp.outlineModel.OnTreeToggleExpanded(1, true);
-                     const auto revealed = publicationApp.outlineTree->GetVisibleItemHitRect(21);
+                     // The pinned Tree keeps the user's viewport across a model refresh; it no longer scrolls to unchanged focus.
                      Require(publicationApp.Activity().outlineSelectionUpdates == rebuilt && publicationApp.outlineModel.rows.size() == 22 &&
                                  publicationApp.outlineTree->GetSelectedItemId() == lastHeading &&
                                  publicationApp.outlineTree->GetFocusedItemId() == lastHeading &&
-                                 publicationApp.outlineTree->GetFirstVisibleItemIndex() > 0 && revealed &&
-                                 Inside(revealed.value(), publicationApp.outlineTree->GetBounds()),
-                             "canonical model refresh reveals the surviving current heading without redundant app publication");
+                                 publicationApp.outlineTree->GetFirstVisibleItemIndex() == 0,
+                             "canonical model refresh keeps the surviving current heading and the viewport without redundant app publication");
                      publicationApp.SetView(EditorView::Split);
                      publicationApp.Document().SetSelection({opening, opening});
                      const auto hiddenUpdates = publicationApp.Activity().outlineSelectionUpdates;
@@ -1567,11 +1566,17 @@ class DesignRefreshProbe final
                  app.SelectionChanged();
                  Require(app.equationContext && app.equation->IsVisible() && app.equation->IsReadOnly() && app.equationHelp->IsVisible(),
                          "only current math exposes the explicitly read-only contextual equation rendering");
+                 app.Prepare(512);
+                 const auto inspected = app.equation->GetAcknowledgedSemanticDocument(app.Host());
+                 Require(inspected && std::ranges::count(inspected->Elements(), DxUi::RichText::SemanticRole::Math,
+                                                         &DxUi::RichText::SemanticElement::role) == 1,
+                         "the inspector renders its preview as one native equation rather than literal delimiters");
                  for (const unsigned index : {3u, 4u, 5u, 13u})
                      Require(!app.tools[index]->IsEnabled(), "inline formatting commands are disabled inside equations");
                  app.Execute(Command::LocalSource);
-                 Require(app.HasBlockDraft() && app.BlockDraft()->GetText() == L"$a_i^2$" && app.Document().IsReadOnly(),
-                         "F2 attaches an exact-delimiter guarded equation draft");
+                 Require(app.HasBlockDraft() && app.BlockDraft()->GetText() == L"$a_i^2$" && app.Document().IsReadOnly() &&
+                             !app.Document().GetSemanticSourceRegion(),
+                         "F2 attaches an exact-delimiter guarded equation draft rather than a native source region");
                  Require(app.BlockDraft()->GetFontRole() == DxUi::FontRole::Monospace,
                          "exact TeX source uses canonical TextField monospace metrics and input geometry");
                  app.Prepare(512);
@@ -2272,6 +2277,70 @@ class DesignRefreshProbe final
                          "Escape returns logical editor routing without creating source/history edits");
                  Require(GetForegroundWindow() == foreground, "live settings never take desktop focus in hidden tests");
              });
+        test("Editor.MarkdownSyntaxOptionsReanalyzeLive",
+             [&]
+             {
+                 using DxUi::RichText::MarkdownExtensions;
+                 using DxUi::RichText::MarkdownInlineKind;
+                 const auto foreground = GetForegroundWindow();
+                 Application app(Options(root, L"syntax-options"));
+                 Success(app.Initialize(), "create hidden syntax-options app");
+                 const std::wstring text = L"Mark ==this== and see [[Home|home]].\n";
+                 app.SetDocument(text);
+                 const auto revision = app.Document().Snapshot();
+                 Resize(app, 800, 560);
+                 app.Execute(Command::Settings);
+                 app.Prepare(256);
+                 const auto inlineKind = [&](MarkdownInlineKind kind)
+                 {
+                     const auto syntax = app.Document().GetMarkdownSyntax();
+                     return syntax && std::ranges::any_of(syntax->Inlines(), [&](const auto &node) { return node.kind == kind; });
+                 };
+                 const auto wikiLink = [&]
+                 {
+                     const auto syntax = app.Document().GetMarkdownSyntax();
+                     return syntax && std::ranges::any_of(syntax->Inlines(), [](const auto &node) { return node.wiki; });
+                 };
+                 const auto views = [&](MarkdownExtensions expected)
+                 {
+                     return app.Document().GetMarkdownAnalysisExtensions() == expected && app.mirror->GetMarkdownAnalysisExtensions() == expected &&
+                            app.equation->GetMarkdownAnalysisExtensions() == expected;
+                 };
+                 // GFM (31) plus every optional RichMarkdown bit through abbreviations.
+                 Require(
+                     views(MarkdownExtensions::RichOptionalMask) && inlineKind(MarkdownInlineKind::Highlight) && wikiLink() &&
+                         std::ranges::all_of(app.syntaxToggles, [](auto *toggle) { return toggle->GetToggleState() == std::optional<bool>(true); }),
+                     "every optional syntax starts enabled on the editor, mirror and inspector and is analysed");
+                 for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
+                 {
+                     const auto bounds = app.syntaxHelp[index]->GetBounds();
+                     DxUi::DesiredSize desired;
+                     Success(DxUi::MeasureControl(*app.syntaxHelp[index], {app.Host()}, DxUi::LayoutConstraints::AtMost(bounds.right - bounds.left),
+                                                  desired),
+                             "measure a syntax explanation at its drawer width");
+                     Require(desired.sizeDip.height <= bounds.bottom - bounds.top + 0.5f &&
+                                 !app.syntaxToggles[index]->GetAccessibleHelpText().empty(),
+                             std::format("syntax explanation {} fits its reserved lines and is the toggle's help text", index).c_str());
+                 }
+                 app.Execute(Command::SyntaxHighlight);
+                 app.Prepare(256);
+                 Require(!app.Preferences().SyntaxEnabled(MarkdownSyntax::Highlight) &&
+                             app.syntaxToggles[0]->GetToggleState() == std::optional<bool>(false) &&
+                             views(static_cast<MarkdownExtensions>(4095u & ~32u)) && !inlineKind(MarkdownInlineKind::Highlight) && wikiLink(),
+                         "turning Highlight off reanalyses all three views and leaves other syntax enabled");
+                 app.Execute(Command::SyntaxWikiLinks);
+                 app.Prepare(256);
+                 Require(!app.Preferences().SyntaxEnabled(MarkdownSyntax::WikiLinks) &&
+                             views(static_cast<MarkdownExtensions>(4095u & ~32u & ~512u)) && !wikiLink(),
+                         "turning wiki links off keeps [[target]] as literal text");
+                 app.Execute(Command::SyntaxHighlight);
+                 app.Execute(Command::SyntaxWikiLinks);
+                 app.Prepare(256);
+                 Require(views(MarkdownExtensions::RichOptionalMask) && inlineKind(MarkdownInlineKind::Highlight) && wikiLink() &&
+                             app.Document().GetText() == text && app.Document().Snapshot().IsSameRevision(revision) && !app.Dirty(),
+                         "syntax options change presentation only, never source, revision or save state");
+                 Require(GetForegroundWindow() == foreground, "syntax options never take desktop focus in hidden tests");
+             });
         test("Rendering.DesignRefreshTypographyAndThemeRoles",
              [&]
              {
@@ -2811,7 +2880,7 @@ class DesignRefreshProbe final
                         "import an equal-length mathematical context at the same ACP");
                 app.Prepare(512);
                 expectBlock(IDS_MATH, 5, "the mathematical context overrides the paragraph's localized kind");
-                Require(app.equationContext && app.equation->GetText() == L"\\[x+y\\]" && !app.tools[3]->IsEnabled() &&
+                Require(app.equationContext && app.equation->GetText() == L"\\[\nx+y\n\\]" && !app.tools[3]->IsEnabled() &&
                             app.tools[2]->GetText() == Resource(IDS_MATH) && app.tools[2]->GetAccessibleName() == Resource(IDS_HEADING) &&
                             app.Activity().selectionCaptionConstructions == paragraphCaptionConstructions + 1,
                         "equation source/action state and localized visible caption change once while the command name stays Heading");
@@ -2825,7 +2894,7 @@ class DesignRefreshProbe final
                         "pending replacement syntax clears stale math and publishes the paragraph caption once");
                 app.Prepare(512);
                 expectBlock(IDS_MATH, 5, "a shifted same-ACP math range preserves the actual kind and count");
-                Require(app.equationContext && app.equation->GetText() == L"\\[x\\]" && app.tools[2]->GetText() == Resource(IDS_MATH) &&
+                Require(app.equationContext && app.equation->GetText() == L"\\[\nx\n\\]" && app.tools[2]->GetText() == Resource(IDS_MATH) &&
                             app.tools[2]->GetAccessibleName() == Resource(IDS_HEADING) &&
                             app.Activity().selectionCaptionConstructions == firstMathCaptionConstructions + 2,
                         "ready replacement syntax publishes its exact equation and restores the math caption once");
@@ -2833,7 +2902,7 @@ class DesignRefreshProbe final
                 app.SelectionChanged(false);
                 app.Prepare(32);
                 Require(app.Activity().selectionCaptionConstructions == settledMathCaptionConstructions && app.equationContext &&
-                            app.equation->GetText() == L"\\[x\\]" && app.tools[2]->GetAccessibleName() == Resource(IDS_HEADING),
+                            app.equation->GetText() == L"\\[\nx\n\\]" && app.tools[2]->GetAccessibleName() == Resource(IDS_HEADING),
                         "repeating current ready math facts reuses the caption and preserves the exact equation and command name");
                 Require((app.Document().*Testing::TextServiceImportProbe::Import)(app.Host(), entry, false),
                         "cancel all transient previews back to the entry source");

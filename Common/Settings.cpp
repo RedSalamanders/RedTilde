@@ -8,6 +8,13 @@
 
 namespace RedTilde
 {
+namespace
+{
+// Indexed by MarkdownSyntax. Missing or invalid keys keep the enabled default.
+constexpr std::array<std::string_view, MarkdownSyntaxCount> MarkdownSyntaxKeys{
+    "syntaxHighlight", "syntaxSuperscript", "syntaxSubscript", "syntaxInserted", "syntaxWikiLinks", "syntaxDefinitionLists", "syntaxAbbreviations"};
+} // namespace
+
 Settings ParseSettings(std::string_view bytes)
 {
     Settings settings;
@@ -43,6 +50,9 @@ Settings ParseSettings(std::string_view bytes)
                     settings.dimInactiveBlocks = number != 0;
                 if (key == "remoteImages" && number <= 1)
                     settings.allowRemoteImages = number != 0;
+                for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
+                    if (key == MarkdownSyntaxKeys[index] && number <= 1)
+                        settings.markdownSyntax[index] = number != 0;
             }
         }
         if (end == bytes.npos)
@@ -55,10 +65,13 @@ Settings ParseSettings(std::string_view bytes)
 
 std::string SerializeSettings(const Settings &settings)
 {
-    return std::format(
+    auto result = std::format(
         "RedTilde.Settings/1\ntheme={}\nview={}\noutline={}\nfiles={}\nfilesWidth={}\nreadingWidth={}\nscale={}\nfocusDimming={}\nremoteImages={}\n",
         static_cast<unsigned>(settings.appearance), static_cast<unsigned>(settings.view), settings.showOutline ? 1 : 0, settings.showFiles ? 1 : 0,
         settings.filesWidth, settings.readingWidth, settings.textScale, settings.dimInactiveBlocks ? 1 : 0, settings.allowRemoteImages ? 1 : 0);
+    for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
+        result += std::format("{}={}\n", MarkdownSyntaxKeys[index], settings.markdownSyntax[index] ? 1 : 0);
+    return result;
 }
 
 HRESULT LoadSettings(const std::filesystem::path &directory, Settings &settings) noexcept

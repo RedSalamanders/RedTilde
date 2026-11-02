@@ -139,6 +139,9 @@ try
     staged.text = DxUi::RichText::DecodeUtf8(std::string_view(bytes).substr(staged.bom ? 3u : 0u));
     if (staged.text.size() > DxUi::RichText::Document::MaximumUnits)
         return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
+    // The pinned decoder admits U+0000 for counted editor source; documents still reject NUL.
+    if (!DxUi::RichText::IsValidUtf16(staged.text))
+        return HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION);
     document = std::move(staged);
     return S_OK;
 }

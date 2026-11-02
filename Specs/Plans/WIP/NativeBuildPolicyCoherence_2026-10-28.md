@@ -39,7 +39,8 @@ Baseline audit: E:/DxUi.Perf/flag-coherence-20261028-aea0f188.
 Current task evidence: E:/DxUi.Perf/build-policy-evidence-20261028.
 RedTilde ARM64 restore and required policy/lease logs are under that task's
 RedTilde-ARM64-restore folder; both exited zero before implementation.
-Candidate dependency: `6ed0512c68743c57ac209e22010679d211c4a42b` (API4). This selects the reviewed warning/ICF repair for product qualification; it is not a final green receipt. The library's x64 ordinary suites passed; final native refresh and desktop focus qualification remain explicit gates. Product validation must use the normal restore entrypoint and matching headers/archive.
+Candidate dependency: `6ed0512c68743c57ac209e22010679d211c4a42b` (API4), superseded on 2 November 2026 by the
+[DxUi delivery adoption](DxUiDeliveryAdoption_2026-11-02.md) lock; results below remain evidence for the old pin only. This selects the reviewed warning/ICF repair for product qualification; it is not a final green receipt. The library's x64 ordinary suites passed; final native refresh and desktop focus qualification remain explicit gates. Product validation must use the normal restore entrypoint and matching headers/archive.
 
 
 The first required post-pin policy check found a missing Platform property in the observer. It now requests the property and has independent x64/ARM64 exception controls. Native build attempt 1 began before this test-only repair and cannot be reused if its source guard rejects the changed input; refresh the matrix after tooling passes.

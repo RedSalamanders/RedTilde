@@ -4,11 +4,17 @@ Inline mathematics stays in the sentence: $E=mc^2$ and $a_i^2$.
 
 ## Equations and matrices
 
-$$x = \frac{-b+\sqrt{b^2-4ac}}{2a}$$
+$$
+x = \frac{-b+\sqrt{b^2-4ac}}{2a}
+$$
 
-$$A = \begin{bmatrix}a&b\\c&d\end{bmatrix}$$
+$$
+A = \begin{bmatrix}a&b\\c&d\end{bmatrix}
+$$
 
-$$\begin{aligned}f(x)&=x^2+1\\f'(x)&=2x\end{aligned}$$
+$$
+\begin{aligned}f(x)&=x^2+1\\f'(x)&=2x\end{aligned}
+$$
 
 Put the caret in an equation and press F2 to edit its exact source. Apply is one
 undoable edit; Esc cancels. Compose, Source and Split keep the same document.
