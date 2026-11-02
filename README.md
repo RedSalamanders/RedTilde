@@ -14,7 +14,7 @@ This is an **experimental 0.1 application**, built against an exact DxUi API-4 c
 math/diagrams and shared presentation APIs. [Rich-text PR #89](https://github.com/RedSalamanders/DxUi/pull/89)
 merged on 2026-10-21; upstream performance and final product qualification remain separate open gates.
 Full language compatibility and large files also remain open. Current limits and gates are in
-[capabilities.json](capabilities.json) and the [active plan](Specs/Plans/WIP/RedTilde_2026-10-20.md).
+[capabilities.json](capabilities.json) and the [active plan index](Specs/Plans/WIP/README.md).
 
 ## Build and run
 
@@ -60,7 +60,8 @@ abbreviations on or off individually; each is on by default and explains its syn
 
 The optional Files pane lists Markdown in the current document's folder and subfolders. Single-click or Enter
 opens through the existing Open and unsaved-changes flow; it does not manage files. See the
-[design contract](Specs/UI/UI_DesignSystem.md) and [active design-refresh plan](Specs/Plans/WIP/DesignRefresh_2026-10-22.md).
+[design contract](Specs/UI/UI_DesignSystem.md). The [design-refresh record](Specs/Plans/WIP/DesignRefresh_2026-10-22.md)
+keeps the proposal art; its remaining gate is R10, sequenced from the [plan index](Specs/Plans/WIP/README.md).
 
 Open/save preserves UTF-8 BOM and existing line endings. Invalid UTF-8/NUL and documents above 65,536 UTF-16
 units are rejected without replacing the current source. Saves are atomic and check for external modifications;

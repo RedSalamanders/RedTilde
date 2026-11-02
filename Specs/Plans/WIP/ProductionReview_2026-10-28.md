@@ -4,6 +4,13 @@ Status: second pass complete on 30 October 2026 at `468cd94`. The owner decided 
 second pass adds PR-34–PR-46, S12–S16 and open questions Q18–Q22, and corrects PR-02. Remediation has not started.
 This plan sequences fixes; durable behavior changes still belong in the owning domain contracts when each item lands.
 
+Documentation correction, 1 November 2026: Q3/Q4/Q8 remain approved owner decisions;
+later review drops did not revoke them. For current sequencing use the [WIP index](README.md).
+The current [unified CI contract](../../Build/Build_UnifiedCI.md) supersedes conflicting
+CI and test-matrix parts of Q1/Q5/Q16: compiler-free PR checks, native test-enabled Release
+qualification, and separate production-only Release/ZIP outputs after both architectures
+pass. The historical review coordinates below do not establish current hosted acceptance.
+
 Scope:
 - **First pass:** `main` at `1c3554c` — the entire repository history (first commit 2026-10-20, PRs #1–#24), with
   DxUi pinned at `086ad82a`. Product code (`RedTilde/`, `Common/`, `res/`), the test sources compiled into the
@@ -47,9 +54,10 @@ or a contract violation with a realistic trigger; **Low** = narrow trigger, hygi
 account spending restriction recorded in the redesign review disposition). The last successful hosted run is
 2026-10-21. Branch protection is unavailable on this plan (`403 Upgrade to GitHub Pro`). PRs #7–#24 merged without
 a passing hosted run, contrary to AGENTS.md (“CI_PENDING requires all named candidate checks to pass before
-merge”). There is also no `push` trigger, so `main` itself is never validated after merge.
+merge”). The original missing-`push` finding is superseded: current `ci.yml` already coordinates main pushes
+under the unified CI contract. That routing change alone does not prove native execution or acceptance.
 Fix: restore hosted minutes, a self-hosted runner, or a public repository; until then treat every merge as
-CI_PENDING and record the local PrePush receipt in the PR. Add a `push: main` trigger.
+CI_PENDING and record the local PrePush receipt in the PR. Preserve the existing main-push coordinator.
 The local gate does not compensate. PrePush checks only that the workflow is `active` before deferring every native
 obligation to CI (`Build/ScopedTesting.psm1:361-362`). A billing-blocked workflow stays `active`, so a clean branch
 gets `LOCAL_OBLIGATIONS_NONE; CI_PENDING` with zero local native evidence. Require proof that a recent run actually
@@ -646,13 +654,18 @@ more sites) and PR-24 (PR-34 bypasses single-flight).
 
 The owner answered Q1–Q17. Each decision names what it changes; the owning domain contract is updated when the
 item lands, not in this plan.
+Q3/Q4/Q8 remain approved. Q1/Q5/Q16 below carry explicit current CI precedence;
+their obsolete native-PR-matrix and Release-test-removal instructions must not be implemented.
 
 - **Q1 — CI: make the repository public.** That gives free hosted Windows x64 and ARM64 runners and branch
   protection.
   - Before publishing, rewrite the history (Q17).
-  - After publishing, protect `main` with the tooling job and the six native jobs as required checks, and add a
-    `push: main` trigger.
-  - Make PrePush require proof that the native steps actually ran (PR-01).
+  - After publishing, protect `main` with the current compiler-free PR checks. The earlier six-native-job PR
+    matrix is superseded by the unified CI contract; the main-push coordinator already exists.
+  - Preserve applicable local PrePush obligations and exact evidence requirements (PR-01). Compiler-free PR
+    success never establishes native acceptance.
+  - Main native qualification starts after five continuous quiet minutes. Both native test-enabled Release
+    branches must pass before either separate production Release/ZIP branch starts.
   - Remove the “private account cannot enforce protected checks” wording from AGENTS.md and Testing_Validation.
   - Changing the repository's visibility is the owner's action.
 - **Q2 — Session end: flush, do not block.**
@@ -669,11 +682,13 @@ item lands, not in this plan.
   - On failure, reshow the window with the error.
   - An Open in flight is abandoned without a prompt.
   - This replaces IDS_CLOSEBUSY (PR-05).
-- **Q5 — Test code: compile it out of Release.**
-  - Release excludes the test sources, the probe classes and friends, and the probe switches.
-  - Debug and ASan Debug keep them.
+- **Q5 — Test code: exclude it from production Release outputs.**
+  - Current unified CI supersedes the earlier configuration-wide exclusion: the shipped production-only
+    Release outputs exclude test sources, probe classes/friends, and test-only switches.
+  - Separate test-enabled native Release outputs retain real test execution and the failure probe; they
+    must not share mutable object outputs with production. Debug and ASan Debug keep their test coverage.
   - The hidden capture harness required by AGENTS stays in every configuration.
-  - Release qualification changes accordingly (Q16).
+  - Complete the remaining production exclusions/probe gates without weakening Release qualification (Q16).
 - **Q6 — Conflicts: one dialog offering Reload, Save as, Overwrite and Cancel**, with no second error box.
   Timestamp-only changes with identical content are not conflicts (PR-11).
 - **Q7 — Unsupported files: clear specific errors.**
@@ -731,15 +746,15 @@ item lands, not in this plan.
     `Measurements/`, and keep the paired-study kit as a supported tool.
   - Move the modules copied across the Red repositories into one shared-tooling repository consumed by exact pin,
     then delete RedTilde's copies and the RedPrism branches.
-- **Q16 — Release tests: drop them from the matrix, keep an on-demand command.**
-  - The test matrix runs x64 tests in Debug and ASan Debug only.
-  - The shipped Release binary gets a smoke run: launch, open and save a fixture, then close cleanly, with no
-    test code present.
-  - One documented command builds Release with the tests included and runs them, for use when an optimizer-only
-    defect is suspected. It builds into its own output directory, which packaging never reads.
-  - S1 (a separate test exe) becomes optional; the opt-in Release test build does not depend on it.
-  - When this lands, update AGENTS.md (“x64 tests in all three configurations”), Testing_Validation, the CI
-    native profiles and `Test-Changes.ps1 -Mode PrePush`.
+- **Q16 — Release qualification: current unified CI supersedes the 29 October matrix choice.**
+  - Do not drop Release tests. Native x64 and ARM64 Release test branches execute the canonical suites and
+    always-on failure probe, with exact source/dependency/toolchain/artifact evidence.
+  - Their global AND gate precedes either separate production-only Release/ZIP branch. Production outputs
+    exclude test code and pass clean-extraction native smoke, including test-switch refusal.
+  - Debug/ASan and other extended qualification run through explicit manual actions; applicable local
+    build/runtime obligations remain. Compiler-free PR checks do not waive them.
+  - Keep test and production outputs separate; packaging consumes only the qualified production role.
+    An on-demand Release test command cannot replace mandatory native Release qualification.
 - **Q17 — History: rewrite it before publishing.**
   - Before any rewrite, run a secret scan across every ref, not just the current tree.
     - **29 October scan.** A pattern scan of every text blob (3,728) and every commit message reachable from any
@@ -819,7 +834,8 @@ The second pass raises these questions; each lists the recommended answer first.
 1. **Gate.**
    - Merge the open PRs, scan every ref, rewrite the history into a new repository (Q17); the owner makes
      that repository public (Q1).
-   - Require the tooling job and the six native checks on `main`, and add the `push: main` trigger.
+   - Protect `main` with the current compiler-free PR checks and preserve the existing main-push coordinator;
+     native Release test and production roles follow the unified CI contract.
    - Make PrePush require native proof (PR-01).
    - Fix test selection (PR-26) and CI artifact re-runs (PR-30).
    - Make capability status truthful (PR-37).
@@ -844,7 +860,8 @@ The second pass raises these questions; each lists the recommended answer first.
    - The recovery relaunch presentation (Q2).
    - The Files pane pinned root and folder commands (Q11).
 8. **Architecture.**
-   - compile tests out of Release (Q5), with the Release smoke run and on-demand Release test command (Q16);
+   - complete production-only Release test exclusions/probe refusal (Q5), preserving the mandatory separate
+     native Release test branches and production smoke (Q16);
      S1 optional;
    - S2;
    - drop the label caches (S4, Q10) with a paired performance run;
@@ -855,6 +872,7 @@ The second pass raises these questions; each lists the recommended answer first.
 9. **Hygiene.** PR-18, PR-19, PR-22, PR-24, the rest of PR-30, PR-43, PR-44, PR-45 (Q21).
 
 Each step needs `Test-Changes.ps1` affected runs, a Changes fragment, and the domain-contract and
-`capabilities.json` updates named in its decision or finding. Until Q5 and Q16 land, qualification remains the
-six builds plus x64 tests in three configurations; afterwards it is the six builds, x64 tests in Debug and ASan
-Debug, and the Release smoke run.
+`capabilities.json` updates named in its decision or finding. Qualification follows the current unified CI
+contract and applicable local validation requirements: compiler-free PR checks, native x64/ARM64 Release test
+execution before production, separate production smoke, and the required six-build/Debug/ASan/native-platform
+obligations. Q5/Q16 never authorize removing Release tests or treating a skipped hosted job as a pass.

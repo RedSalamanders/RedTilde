@@ -28,8 +28,12 @@ RedTilde acceptance scenarios below have not been run on it, so those items stay
 Owning contracts: [File safety](../../Core/Core_FileSafety.md),
 [Settings and crashes](../../Core/Core_SettingsAndCrashes.md),
 [Editor](../../Editor/Editor_Markdown.md). The earlier
-[production-readiness review](ProductionReview_2026-10-28.md) keeps its own questions. This
-plan does not reopen a dropped finding.
+[production-readiness review](ProductionReview_2026-10-28.md) keeps its own questions.
+Correction, 1 November 2026: its recorded Q3/Q4/Q8 owner decisions remain approved. The
+earlier RT-10/RT-11 drops did not revoke them. The delivery sequence carries that work;
+update the owning contracts and acceptance coverage when it lands. Current CI routing
+and Release test/production roles follow [Build_UnifiedCI.md](../../Build/Build_UnifiedCI.md),
+which supersedes conflicting parts of Q1/Q5/Q16.
 
 ## Sequence
 
@@ -154,12 +158,14 @@ plan does not reopen a dropped finding.
   [Core_FileSafety.md](../../Core/Core_FileSafety.md) says edits during an admitted save stay
   dirty and keep recovery, and clean or discard shutdown waits for retirement.
 
-  Repair: after Yes on an admitted save, keep the process until that save returns. Retire
-  recovery only after success. On failure, show the window again and report the error. A plain
-  Open can still be abandoned without this wait.
+  Repair, following approved Q4: replace `IDS_CLOSEBUSY`, hide the window, and keep the
+  process and recovery snapshot until the admitted save returns. Retire recovery only after
+  success. On failure, show the window again and report the error. A plain Open in flight
+  is abandoned without a prompt.
 
-  Acceptance: start a save, block the worker, confirm Close, fail the write. The previous file
-  and the recovery snapshot both still exist.
+  Acceptance: start a save, block the worker, request Close. No busy-close dialog appears;
+  the window hides while the process and recovery remain. Fail the write: the previous file
+  and recovery snapshot still exist, and the window returns with the error.
 
 - [ ] **RT-01** — Flush recovery on `WM_QUERYENDSESSION`. Do not save the user's file on logoff.
   Effort: M.
@@ -295,19 +301,25 @@ plan does not reopen a dropped finding.
   Repair: refuse `--crash-probe` in a production build the same way self-test is refused. Do
   not gate `--performance-probe`.
 
+## Approved requirements carried forward — corrected 1 November 2026
+
+The original RT-10/RT-11 drops described existing behavior against the current domain
+contract. They did not supersede the owner's earlier approved changes:
+
+- **RT-10 / Q3, five-second recovery cap.** Keep the 750 ms quiet debounce and write within
+  five seconds of the first unsubmitted change, including continuous typing. Update
+  [Core_FileSafety.md](../../Core/Core_FileSafety.md) and deterministic deadline coverage
+  when this lands. This remains approved Phase 1 work under PR-04.
+- **RT-11 / Q8, locations.** Implement the approved OneDrive/cloud, SMB/NAS, and WSL support,
+  including cloud reparse tags (PR-31), save fallbacks (PR-09), tolerant sharing (PR-10), and
+  same-share images (Q13c). Update the owning contract and `capabilities.json` with the work;
+  test a real share and WSL before claiming support. Preserve refusal to traverse actual
+  symlinks and mount points. The current reparse-root rejection does not cancel this scope.
+
 ## Dropped
 
-Recorded so they are not reopened.
+The following refuted findings remain dropped.
 
-- **RT-10, the 5-second recovery cap.** [Core_FileSafety.md](../../Core/Core_FileSafety.md)
-  requires 750 ms of quiet. The worker implements that wait (`Common/Recovery.cpp` 196). The cap
-  appears only in [the production-readiness review](ProductionReview_2026-10-28.md) (PR-04 at
-  86-90, and Q3 at 665-666), which would need a file-safety change. Do not implement the cap
-  from this plan.
-- **RT-11, Files reparse rules.** A scan opens directories with `FILE_SHARE_READ` and
-  `FILE_FLAG_OPEN_REPARSE_POINT` (`Common/Files.cpp` 36-43) and refuses a reparse root (115-122).
-  A child that becomes a reparse point is a visible leaf and is not entered. That is the current
-  Files behavior. It does not break Open or Save.
 - **Every Enter is CRLF.** Compose Enter already copies the existing terminator through `Eol()`.
   See RT-03.
 - **`ApplySourceEdits` returning false drops a draft edit.** False means the spelling was

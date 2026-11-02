@@ -1,0 +1,1 @@
+- Record the 31 October WIP-folder quality review at `4565105`, including a check of the plans' file-and-line citations against this tree and DxUi pin `6ed0512c`. The delivery-review defects are still in the source. Five redesign findings cite DxUi lines that no longer contain the described behavior. No product behavior changed. Hosted qualification remains open.
