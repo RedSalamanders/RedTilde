@@ -539,7 +539,12 @@ bool Application::DismissSurface()
         return true;
     }
     if (editor->GetSemanticSourceRegion())
-        return editor->EndSemanticSourceEdit(host);
+    {
+        if (!editor->EndSemanticSourceEdit(host))
+            return false;
+        SelectionChanged();
+        return true;
+    }
     if (settings.focusMode)
     {
         Execute(Command::Focus);

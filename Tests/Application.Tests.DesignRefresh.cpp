@@ -1573,39 +1573,74 @@ class DesignRefreshProbe final
                          "the inspector renders its preview as one native equation rather than literal delimiters");
                  for (const unsigned index : {3u, 4u, 5u, 13u})
                      Require(!app.tools[index]->IsEnabled(), "inline formatting commands are disabled inside equations");
+                 const auto envelope = source.find(L"$a_i^2$");
+                 const bool entryUndo = app.Document().CanUndo(), entryRedo = app.Document().CanRedo();
                  app.Execute(Command::LocalSource);
-                 Require(app.HasBlockDraft() && app.BlockDraft()->GetText() == L"$a_i^2$" && app.Document().IsReadOnly() &&
+                 const auto region = app.Document().GetSemanticSourceRegion();
+                 Require(region && region->source.first == envelope && region->source.last == envelope + 7 && !app.HasBlockDraft() &&
+                             !app.Document().IsReadOnly() && app.Document().GetText() == source,
+                         std::format("F2 shows the exact inline equation envelope in place: region={} [{},{}] expected [{},{}] draft={}",
+                                     region.has_value(), region ? region->source.first : 0u, region ? region->source.last : 0u, envelope,
+                                     envelope + 7, app.HasBlockDraft())
+                             .c_str());
+                 Require(app.DismissSurface() && !app.Document().GetSemanticSourceRegion() && app.Document().GetText() == source && !app.Dirty() &&
+                             app.Document().CanUndo() == entryUndo && app.Document().CanRedo() == entryRedo,
+                         "Escape leaves unedited in-place equation source without touching text or history");
+                 app.Prepare(512);
+                 app.Document().SetSelection({at, at});
+                 app.Execute(Command::LocalSource);
+                 const auto digit = source.find(L"2$");
+                 app.Document().SetSelection({digit, digit + 1});
+                 const std::wstring edited = L"# Exact equation\n\nCode `$fake$` and $a_i^3$ with a tail.\n";
+                 Require(app.Document().GetSemanticSourceRegion() && app.equationContext && app.equation->GetText() == L"\\[\na_i^2\n\\]",
+                         "in-place equation source keeps the rendered inspector preview");
+                 Require(app.Document().GetSemanticSourceRegion() && app.Document().ReplaceSelection(L"3") && app.Document().GetText() == edited &&
+                             app.Dirty(),
+                         "typing inside the in-place equation edits the authoritative source directly");
+                 Require(app.equationContext && app.equation->GetText() == L"\\[\na_i^3\n\\]" && !app.tools[3]->IsEnabled(),
+                         "the inspector previews the TeX being typed and inline formatting stays disabled");
+                 app.Execute(Command::LocalSource);
+                 Require(!app.Document().GetSemanticSourceRegion() && app.Document().GetText() == edited && app.Document().Undo() &&
+                             app.Document().GetText() == source,
+                         "F2 returns to the rendered equation, keeps the edit and one undo restores the exact source");
+
+                 // The guarded local draft remains the F2 surface for ordinary text without a native region.
+                 app.Prepare(512);
+                 const auto tail = source.find(L"tail");
+                 app.Document().SetSelection({tail, tail + 4});
+                 app.Execute(Command::LocalSource);
+                 Require(app.HasBlockDraft() && app.BlockDraft()->GetText() == L"tail" && app.Document().IsReadOnly() &&
                              !app.Document().GetSemanticSourceRegion(),
-                         "F2 attaches an exact-delimiter guarded equation draft rather than a native source region");
+                         "F2 on ordinary selected text attaches a guarded exact-source draft");
                  Require(app.BlockDraft()->GetFontRole() == DxUi::FontRole::Monospace,
-                         "exact TeX source uses canonical TextField monospace metrics and input geometry");
+                         "exact source uses canonical TextField monospace metrics and input geometry");
                  app.Prepare(512);
                  const auto draftHighlights = app.Document().GetSourceHighlights();
                  Require(draftHighlights.size() == 1 && draftHighlights.front().start == app.blockDraftRange.first &&
                              draftHighlights.front().length == app.blockDraftRange.last - app.blockDraftRange.first &&
                              draftHighlights.front().current,
-                         "the open equation draft retains its exact source highlight across completed presentation work");
+                         "the open draft retains its exact source highlight across completed presentation work");
                  const auto anchor = app.Document().TryGetTextInputRangeRects(app.Host(), app.blockDraftRange.first, app.blockDraftRange.last);
                  Require(anchor && !anchor->empty() && !app.pendingBlockPlacement && Near(app.blockDraft->GetBounds().top, anchor->back().bottom + 8),
                          std::format("prepared F2 source must attach below native geometry: anchor={}, pending={}, top={}, expected={}, bottom={}",
                                      anchor && !anchor->empty(), app.pendingBlockPlacement, app.blockDraft->GetBounds().top,
                                      anchor && !anchor->empty() ? anchor->back().bottom + 8 : -1.f, app.page->GetBounds().bottom));
-                 app.BlockDraft()->SetTextAndNotify(L"$a_i^3$");
+                 app.BlockDraft()->SetTextAndNotify(L"end");
                  app.Execute(Command::Find);
                  Require(app.HasBlockDraft() && !app.findBar->IsVisible() && app.Document().GetText() == source,
-                         "another presentation command cannot discard or mutate a pending equation draft");
+                         "another presentation command cannot discard or mutate a pending draft");
                  app.Execute(Command::CloseDrawer);
                  Require(!app.HasBlockDraft() && !app.Document().IsReadOnly() && app.Document().GetSourceHighlights().empty() &&
                              app.Document().GetText() == source && !app.Dirty(),
                          "Cancel preserves exact source/history and restores editing");
-                 app.Document().SetSelection({at, at});
+                 app.Document().SetSelection({tail, tail + 4});
                  app.Execute(Command::LocalSource);
-                 app.BlockDraft()->SetTextAndNotify(L"$a_i^3$");
+                 app.BlockDraft()->SetTextAndNotify(L"end");
                  app.Execute(Command::ApplyBlock);
                  Require(app.Document().GetSourceHighlights().empty() &&
-                             app.Document().GetText() == L"# Exact equation\n\nCode `$fake$` and $a_i^3$ with a tail.\n" && app.Document().Undo() &&
+                             app.Document().GetText() == L"# Exact equation\n\nCode `$fake$` and $a_i^2$ with a end.\n" && app.Document().Undo() &&
                              app.Document().GetText() == source,
-                         "Apply is a single undoable exact-source equation replacement");
+                         "Apply is a single undoable exact-source replacement");
                  app.SetDocument(L"");
                  app.Prepare(512);
                  app.Execute(Command::LocalSource);
@@ -1649,19 +1684,21 @@ class DesignRefreshProbe final
                              preservedLink != linkedSemantic->Elements().end() && preservedLink->title == L"Parent title",
                          "Compose restores native math while preserving parent link title and both history directions");
                  app.Execute(Command::LocalSource);
-                 Require(app.HasBlockDraft() && app.BlockDraft()->GetText() == L"$a_i^2$", "F2 opens the exact linked equation envelope");
-                 app.BlockDraft()->SetTextAndNotify(L"$a_i^3$");
-                 app.Execute(Command::CloseDrawer);
-                 Require(!app.HasBlockDraft() && app.Document().GetText() == linkedEquation && !app.Dirty() &&
-                             app.Document().CanUndo() == linkedUndo && app.Document().CanRedo() == linkedRedo,
-                         "canceling linked equation source leaves its text and history untouched");
+                 Require(app.Document().GetSemanticSourceRegion() && !app.HasBlockDraft(), "F2 opens the exact linked equation source in place");
+                 Require(app.DismissSurface() && !app.Document().GetSemanticSourceRegion() && app.Document().GetText() == linkedEquation &&
+                             !app.Dirty() && app.Document().CanUndo() == linkedUndo && app.Document().CanRedo() == linkedRedo,
+                         "leaving unedited linked equation source keeps its text and history untouched");
+                 app.Prepare(512);
+                 app.Document().SetSelection({equationAt, equationAt});
                  app.Execute(Command::LocalSource);
-                 app.BlockDraft()->SetTextAndNotify(L"$a_i^3$");
-                 app.Execute(Command::ApplyBlock);
+                 const auto linkedDigit = linkedEquation.find(L"2$");
+                 app.Document().SetSelection({linkedDigit, linkedDigit + 1});
+                 Require(app.Document().GetSemanticSourceRegion() && app.Document().ReplaceSelection(L"3"), "edit the linked equation in place");
+                 app.Execute(Command::LocalSource);
                  const std::wstring editedLinkedEquation = L"[Parent](https://example.test \"Parent title\") and $a_i^3$.\n";
-                 Require(app.Document().GetText() == editedLinkedEquation && app.Document().Undo() && app.Document().GetText() == linkedEquation &&
-                             app.Document().Redo() && app.Document().GetText() == editedLinkedEquation,
-                         "F2 apply is one undoable linked equation edit with exact surrounding source");
+                 Require(!app.Document().GetSemanticSourceRegion() && app.Document().GetText() == editedLinkedEquation && app.Document().Undo() &&
+                             app.Document().GetText() == linkedEquation && app.Document().Redo() && app.Document().GetText() == editedLinkedEquation,
+                         "an in-place linked equation edit is one undoable change with exact surrounding source");
                  app.Prepare(512);
                  linkedSemantic = app.Document().GetAcknowledgedSemanticDocument(app.Host());
                  Require(static_cast<bool>(linkedSemantic), "edited linked semantic publication exists");

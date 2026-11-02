@@ -16,8 +16,8 @@ $$
 \begin{aligned}f(x)&=x^2+1\\f'(x)&=2x\end{aligned}
 $$
 
-Put the caret in an equation and press F2 to edit its exact source. Apply is one
-undoable edit; Esc cancels. Compose, Source and Split keep the same document.
+Put the caret in an equation and press F2 to edit its exact source in place. Each
+edit is undoable; F2 or Esc shows it rendered again. Compose, Source and Split keep the same document.
 
 ## State diagram
 

@@ -1260,21 +1260,31 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              const auto first = source.find(L"$a_i^2$");
              app.Document().SetSelection({first + 2, first + 2});
              app.Execute(Command::LocalSource);
-             Require(app.HasBlockDraft() && app.BlockDraft()->GetText() == L"$a_i^2$",
-                     "F2 targets exact math delimiters rather than the whole paragraph");
-             app.BlockDraft()->SetText(L"$a_i^3$");
-             app.Execute(Command::ApplyBlock);
-             Require(app.Document().GetText().find(L"$a_i^3$") != std::wstring::npos && app.Document().Undo() && app.Document().GetText() == source,
-                     "local equation edit and undo preserve the rest and all original EOLs");
+             auto region = app.Document().GetSemanticSourceRegion();
+             Require(region && region->source.first == first && region->source.last == first + 7 && !app.HasBlockDraft(),
+                     "F2 shows exact inline math delimiters in place rather than the whole paragraph");
+             app.Document().SetSelection({first + 5, first + 6});
+             Require(app.Document().ReplaceSelection(L"3"), "edit the inline equation in place");
+             app.Execute(Command::LocalSource);
+             Require(!app.Document().GetSemanticSourceRegion() && app.Document().GetText().find(L"$a_i^3$") != std::wstring::npos &&
+                         app.Document().Undo() && app.Document().GetText() == source,
+                     "in-place equation edit and undo preserve the rest and all original EOLs");
              app.Prepare(1024);
              const auto displayCaret = source.find(L"\\left");
              app.Document().SetSelection({displayCaret, displayCaret});
              app.Execute(Command::LocalSource);
-             Require(app.HasBlockDraft() && !app.Document().GetSemanticSourceRegion() &&
-                         app.BlockDraft()->GetText() == L"$$\r\n\\left(\\frac{1}{2}\\right)+\\begin{bmatrix}a&b\\\\c&d\\end{bmatrix}\r\n$$",
-                     "F2 drafts an own-line display equation's exact delimiter envelope without its closing line terminator");
-             app.Execute(Command::CloseDrawer);
-             Require(!app.HasBlockDraft() && app.Document().GetText() == source, "cancelling the display equation draft leaves the source unchanged");
+             region = app.Document().GetSemanticSourceRegion();
+             const auto displayFirst = source.find(L"$$"), displayLast = source.rfind(L"$$") + 2;
+             Require(region && region->source.first == displayFirst && region->source.last >= displayLast && region->source.last <= source.size() &&
+                         !app.HasBlockDraft(),
+                     std::format("F2 shows the complete own-line display envelope in place: region={} [{},{}] expected [{},{}+]", region.has_value(),
+                                 region ? region->source.first : 0u, region ? region->source.last : 0u, displayFirst, displayLast)
+                         .c_str());
+             Require(app.EquationPreviewText() == L"\\[\n\\left(\\frac{1}{2}\\right)+\\begin{bmatrix}a&b\\\\c&d\\end{bmatrix}\n\\]",
+                     "in-place display source previews its TeX body in the inspector");
+             app.Execute(Command::LocalSource);
+             Require(!app.Document().GetSemanticSourceRegion() && app.Document().GetText() == source,
+                     "leaving unedited display source keeps the document unchanged");
              app.Prepare(1024);
              app.Host().DebugSimulateDeviceLoss();
              app.Prepare(1024);

@@ -51,7 +51,7 @@ try {
     $checks=Get-Content -LiteralPath $result -Raw|ConvertFrom-Json
     $required=@('NativeEditor.KeyboardTextAndUndo','Files.ShortcutFocusAndEscape','Find.TypedQueryTraversalAndEscape',
         'Settings.KeyboardDrawerAndEscape','Focus.KeyboardToggleAndEscape','SelectionToolbar.AltF10TabEnterEscape',
-        'Equation.F2ApplyUndoAndCancel','FileMenu.KeyboardOpenAndDismiss','Window.AltF4AsyncClose')
+        'Equation.F2InPlaceEditUndoAndExit','FileMenu.KeyboardOpenAndDismiss','Window.AltF4AsyncClose')
     if($checks.schemaVersion -ne 1 -or -not $checks.passed -or -not $checks.leaseGuarded -or -not $checks.realKeyboardInput -or
         $checks.clipboardTouched -or @($checks.tests).Count -ne $required.Count -or
         @($checks.tests|Where-Object{-not $_.passed}).Count -or (Compare-Object $required @($checks.tests.name))){
