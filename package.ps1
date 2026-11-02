@@ -24,6 +24,9 @@ $pin=Get-Content (Join-Path $PSScriptRoot 'Dependencies/DxUi.lock.json') -Raw | 
 $source=Join-Path $PSScriptRoot ".build/dependencies/DxUi/source/$($pin.commit.Substring(0,16))"
 Copy-Item -LiteralPath (Join-Path $source 'LICENSE.txt') -Destination (Join-Path $stage 'Dependencies/DxUi-LICENSE.txt')
 Copy-Item -LiteralPath (Join-Path $source 'THIRD-PARTY-NOTICES.md') -Destination (Join-Path $stage 'Dependencies/DxUi-THIRD-PARTY-NOTICES.md')
+# The notice links its full component licenses relative to itself as docs/licenses/*.txt.
+New-Item -ItemType Directory -Force -Path (Join-Path $stage 'Dependencies/docs') | Out-Null
+Copy-Item -LiteralPath (Join-Path $source 'docs/licenses') -Destination (Join-Path $stage 'Dependencies/docs/licenses') -Recurse
 [xml]$resolved=Get-Content (Join-Path $PSScriptRoot ".build/dependencies/DxUi/DxUi.resolved.$Platform.props")
 $triplet=if ($Platform -eq 'ARM64') { 'arm64-windows' } else { 'x64-windows' }
 $wilCopyright=Join-Path ([string]$resolved.Project.PropertyGroup.DxUiConsumerOutputRoot) "vcpkg_installed/$Platform/$triplet/share/wil/copyright"

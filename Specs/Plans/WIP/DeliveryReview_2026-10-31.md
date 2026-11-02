@@ -20,6 +20,11 @@ revision 4. RedTilde links the restored pin. It does not compile a sibling DxUi 
 Library defects below are fixed by a later pin bump after the DxUi delivery-review plan lands.
 Do not reimplement them in RedTilde.
 
+Update, 2 November 2026: the [DxUi delivery adoption](DxUiDeliveryAdoption_2026-11-02.md) moves the lock to
+`5fc4d4c383bfa4891ee57a138924107bbbf11a2e`. That pin's native store overrides the document ceiling (DX-4), declines
+invalid file paste references (DX-3) and no longer hardcodes CRLF for Source-view Enter (RT-03 DxUi half). The
+RedTilde acceptance scenarios below have not been run on it, so those items stay open.
+
 Owning contracts: [File safety](../../Core/Core_FileSafety.md),
 [Settings and crashes](../../Core/Core_SettingsAndCrashes.md),
 [Editor](../../Editor/Editor_Markdown.md). The earlier

@@ -435,16 +435,24 @@ void RegisterFilesTests(const std::filesystem::path &root, const std::function<v
              value.dimInactiveBlocks = false;
              value.allowRemoteImages = true;
              value.focusMode = true;
+             value.markdownSyntax = {false, true, false, true, false, true, false};
              const auto parsed = ParseSettings(SerializeSettings(value));
              Require(parsed.showFiles && parsed.filesWidth == 340 && parsed.readingWidth == 920 && parsed.textScale == 125 &&
                          !parsed.dimInactiveBlocks && parsed.allowRemoteImages && !parsed.focusMode,
                      "design preferences round trip while focus mode remains session-local");
+             Require(parsed.markdownSyntax == value.markdownSyntax && !parsed.SyntaxEnabled(MarkdownSyntax::Highlight) &&
+                         parsed.SyntaxEnabled(MarkdownSyntax::Superscript) && !parsed.SyntaxEnabled(MarkdownSyntax::Abbreviations),
+                     "each optional Markdown syntax preference round trips independently");
+             const auto serialized = SerializeSettings(value);
+             Require(serialized.find("syntaxHighlight=0\n") != serialized.npos && serialized.find("syntaxWikiLinks=0\n") != serialized.npos &&
+                         serialized.find("syntaxDefinitionLists=1\n") != serialized.npos,
+                     "syntax preferences persist under application-owned names rather than library flag values");
              const auto directory = root / L"design-preferences";
              Success(SaveSettings(directory, value), "persist design preferences atomically");
              Settings loaded;
              Success(LoadSettings(directory, loaded), "reload design preferences");
              Require(loaded.showFiles && loaded.filesWidth == 340 && loaded.readingWidth == 920 && loaded.textScale == 125 &&
-                         !loaded.dimInactiveBlocks && loaded.allowRemoteImages,
+                         !loaded.dimInactiveBlocks && loaded.allowRemoteImages && loaded.markdownSyntax == value.markdownSyntax,
                      "atomic settings storage retains every design preference");
          });
     test("Settings.DesignRefreshFieldFallback",
@@ -467,6 +475,15 @@ void RegisterFilesTests(const std::filesystem::path &root, const std::function<v
              Require(old.appearance == Appearance::Paper && old.view == EditorView::Split && !old.showOutline && !old.showFiles &&
                          old.filesWidth == 280 && old.readingWidth == 760 && old.textScale == 100 && old.dimInactiveBlocks && !old.allowRemoteImages,
                      "existing v1 preference files retain compatible defaults for new fields");
+             constexpr std::array<bool, MarkdownSyntaxCount> allSyntax{true, true, true, true, true, true, true};
+             Require(old.markdownSyntax == allSyntax, "files written before the syntax options enable every optional syntax");
+             const auto syntax = ParseSettings("RedTilde.Settings/1\nsyntaxHighlight=2\nsyntaxSuperscript=0x\nsyntaxSubscript=0\nsyntaxInserted=-1\n"
+                                               "syntaxWikiLinks=0\nsyntaxDefinitions=0\nsyntaxAbbreviations=1\n");
+             Require(syntax.SyntaxEnabled(MarkdownSyntax::Highlight) && syntax.SyntaxEnabled(MarkdownSyntax::Superscript) &&
+                         !syntax.SyntaxEnabled(MarkdownSyntax::Subscript) && syntax.SyntaxEnabled(MarkdownSyntax::Inserted) &&
+                         !syntax.SyntaxEnabled(MarkdownSyntax::WikiLinks) && syntax.SyntaxEnabled(MarkdownSyntax::DefinitionLists) &&
+                         syntax.SyntaxEnabled(MarkdownSyntax::Abbreviations),
+                     "invalid or unknown syntax keys keep the enabled default while valid neighbors apply");
          });
 }
 } // namespace RedTilde

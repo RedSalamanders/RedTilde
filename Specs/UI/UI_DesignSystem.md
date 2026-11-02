@@ -178,7 +178,9 @@ rather than a stale category. At final ACP an unterminated line retains its bloc
 the new empty Paragraph line. Classification must preserve the actual source, ACP selection and undo history.
 
 Publish an outline selection only when the selected or focused heading changes. Surviving rows keep the shared
-Tree's reconciliation and reveal behavior after model updates; real heading changes and focus restoration remain
+Tree's reconciliation after model updates, which preserves the viewport rather than scrolling to an unchanged
+focus (for example after expanding or collapsing a heading); a real heading change reveals its row. Real heading
+changes and focus restoration remain
 synchronous, including while the inspector is hidden. Repeated edits within one heading must not repeat the
 same selection publication or change source selection/history.
 
@@ -250,7 +252,11 @@ The Files pane has an open/closed preference (closed by default) and a 200–400
 and Escape/close returns focus to the editor. Focus mode leaves a 40-DIP strip with dimmed document identity,
 dirty state, an Exit focus action and caption buttons; a bottom pill shows word count and save state. The status
 line/column and encoding facts are hidden in Focus mode. Other content
-blocks are dimmed when `dimInactiveBlocks` is enabled. Privacy offers “Load images from the internet”, off
+blocks are dimmed when `dimInactiveBlocks` is enabled. A Markdown syntax section follows Writing: a short intro says
+GFM syntax always works and turned-off syntax stays as typed, then seven full-width toggle buttons (highlight,
+superscript, subscript, inserted, wiki links, definition lists, abbreviations) each name the family with its marker.
+Each toggle exposes pressed state and is followed by a two-line explanation that is also its tooltip and UIA help
+text. All are on by default and apply immediately. Privacy offers “Load images from the internet”, off
 by default, with an explanation that local images always show and enabling remote images contacts servers named
 in the document. The preference applies immediately, persists per user and cancels/evicts remote work and pixels
 when switched off. App workers fetch bounded anonymous HTTP(S); the shared editor never performs network I/O.

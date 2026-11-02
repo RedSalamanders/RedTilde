@@ -1,5 +1,9 @@
 # Active plans
 
+- **ACTIVE**: [DxUi 2 November delivery adoption](DxUiDeliveryAdoption_2026-11-02.md). Lock `5fc4d4c3` (API 4),
+  per-family RichMarkdown syntax preferences, declined wiki/data images, own-line display math, guarded math F2 and
+  adapter repairs for the pin's behavior changes. Release/ASan, ARM64 and physical/interactive gates remain open.
+
 - **ACTIVE**: [Native build policy, terminal results and short DxUi paths](NativeBuildPolicyCoherence_2026-10-28.md). Shared /Wall without /WX, zero-warning validation, Debug/ASan symbols, Release-only ICF, terminal results and verified short dependency folders.
 
 - [Redesign completion and rendering compatibility](RedesignCompletionAndRendering_2026-10-24.md) — **active**; historical pause/resume queues preserved, current

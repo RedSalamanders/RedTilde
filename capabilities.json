@@ -38,6 +38,9 @@
     "live-reading-width-and-text-scale",
     "focus-mode-and-conditional-equation-inspector",
     "default-off-bounded-anonymous-remote-images",
+    "optional-richmarkdown-syntax-preferences",
+    "own-line-display-math-blocks",
+    "declined-wiki-and-data-image-requests",
     "actual-captures-with-synthetic-data-and-dpi-provenance",
     "warned-lease-guarded-keyboard-test-harness",
     "bounded-labelled-redmonitor-producer",
@@ -52,6 +55,7 @@
     "authorized-interactive-menu-and-focus-qualification",
     "paired-release-performance-and-warp-resource-qualification",
     "release-pin-installer-and-file-association-handoff",
-    "full-latex-and-mermaid-language-compatibility"
+    "full-latex-and-mermaid-language-compatibility",
+    "wiki-target-navigation-and-embed-resolution"
   ]
 }

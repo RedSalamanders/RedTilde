@@ -254,17 +254,28 @@ class RichImageLoader final
                 HRESULT status = factoryResult;
                 if (SUCCEEDED(status))
                 {
-                    if (request.SourceKind() == DxUi::RichText::RichImageSourceKind::RemoteHttp)
+                    switch (request.SourceKind())
+                    {
+                    case DxUi::RichText::RichImageSourceKind::RemoteHttp:
                     {
                         std::vector<std::byte> encoded;
                         status = RedTilde::FetchRemoteImage(request.Source(), encoded, request.Cancellation(), state.networkAbort.get());
                         if (SUCCEEDED(status))
                             status = DxUi::RichText::RichImage::Decode(factory.get(), encoded, image, request.Cancellation());
+                        break;
                     }
-                    else
+                    case DxUi::RichText::RichImageSourceKind::LocalFile:
                         status = !state.allowNetworkFiles && request.FilePath().starts_with(L"\\\\")
                                      ? E_ACCESSDENIED
                                      : DxUi::RichText::RichImage::LoadFile(factory.get(), request.FilePath(), image, request.Cancellation());
+                        break;
+                    case DxUi::RichText::RichImageSourceKind::WikiTarget:
+                    case DxUi::RichText::RichImageSourceKind::Data:
+                        // No wiki-target resolver exists and data images stay disabled;
+                        // the embed keeps its exact source rather than reading a guessed path.
+                        status = HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
+                        break;
+                    }
                 }
                 {
                     std::lock_guard lock(state.mutex);

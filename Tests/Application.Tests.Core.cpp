@@ -373,7 +373,10 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Require(exactSourceLimit.size() == DxUi::RichText::MathMaximumSourceUnits && static_cast<bool>(ParseMath(exactSourceLimit)),
                      "the exact source-unit limit is admitted");
              Require(!ParseMath(std::wstring(4097, L'x')), "capacity bounded");
-             Require(!ParseMath(std::wstring(30, L'{') + L"x" + std::wstring(30, L'}')), "recursion bounded");
+             const auto nested = [](unsigned depth) { return std::wstring(depth, L'{') + L"x" + std::wstring(depth, L'}'); };
+             Require(static_cast<bool>(ParseMath(nested(DxUi::RichText::MathMaximumGroupDepth))) &&
+                         !ParseMath(nested(DxUi::RichText::MathMaximumGroupDepth + 1u)),
+                     "recursion is bounded exactly at the pinned group depth");
              const auto text = ParseMath(L"\\text{two words}");
              Require(text && text.root.children.size() == 1 && text.root.children.front().kind == DxUi::RichText::MathKind::Text &&
                          text.root.children.front().text == L"two words" && !text.root.children.front().italic,
@@ -404,6 +407,8 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              };
              Require(operators && hasClass(L"+", DxUi::RichText::MathAtomClass::Binary) && hasClass(L"=", DxUi::RichText::MathAtomClass::Relation),
                      "binary and relation atoms keep distinct spacing classes");
+             // 32 columns keep rows and columns below their 64 limits, so only the cell budget decides.
+             constexpr unsigned matrixColumns = 32;
              const auto matrixSource = [](unsigned rows)
              {
                  std::wstring value = L"\\begin{matrix}";
@@ -411,7 +416,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                  {
                      if (row)
                          value += L"\\\\";
-                     for (unsigned column = 0; column < 16; ++column)
+                     for (unsigned column = 0; column < matrixColumns; ++column)
                      {
                          if (column)
                              value += L'&';
@@ -421,8 +426,10 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                  value += L"\\end{matrix}";
                  return value;
              };
-             Require(static_cast<bool>(ParseMath(matrixSource(8))) && !ParseMath(matrixSource(9)),
-                     "the 128-cell matrix budget admits its boundary and rejects excess cells");
+             constexpr auto budgetRows = static_cast<unsigned>(DxUi::RichText::MathMaximumMatrixCells / matrixColumns);
+             static_assert(budgetRows * matrixColumns == DxUi::RichText::MathMaximumMatrixCells && budgetRows < DxUi::RichText::MathMaximumRows);
+             Require(static_cast<bool>(ParseMath(matrixSource(budgetRows))) && !ParseMath(matrixSource(budgetRows + 1u)),
+                     "the pinned matrix cell budget admits its boundary and rejects excess cells");
          });
     test("Recovery.StrictEnvelopeAndUnicode",
          []
@@ -685,8 +692,9 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                      Require(imeApp.Activity().changes == beforePreview.changes &&
                                  imeApp.Activity().recoverySubmissions == beforePreview.recoverySubmissions,
                              "silent IME preview does not publish a document edit or recovery snapshot");
-                     Require(imeApp.Document().CanUndo() == historyCanUndo && imeApp.Document().CanRedo() == historyCanRedo,
-                             "silent IME preview does not alter seeded undo or redo history");
+                     // A changed transient preview declines undo/redo; cancellation below restores the seeded history.
+                     Require(historyCanRedo && !imeApp.Document().CanUndo() && !imeApp.Document().CanRedo(),
+                             "undo and redo decline while a changed IME preview is active");
 
                      auto nextPreview = preview;
                      nextPreview.text[fixture.selection.Start()] = L'Y';
@@ -696,9 +704,9 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                                  imeApp.Document().GetSelection() == previewSelection && imeApp.SourceMirror().GetSelection() == previewSelection,
                              "successive text-service candidate synchronizes its source even with unchanged ACPs");
                      Require(imeApp.Activity().changes == beforePreview.changes &&
-                                 imeApp.Activity().recoverySubmissions == beforePreview.recoverySubmissions &&
-                                 imeApp.Document().CanUndo() == historyCanUndo && imeApp.Document().CanRedo() == historyCanRedo,
-                             "successive same-ACP preview preserves committed activity and history");
+                                 imeApp.Activity().recoverySubmissions == beforePreview.recoverySubmissions && !imeApp.Document().CanUndo() &&
+                                 !imeApp.Document().CanRedo(),
+                             "successive same-ACP preview preserves committed activity and keeps history declined");
 
                      Require((imeApp.Document().*TextServiceImportProbe::Import)(imeApp.Host(), entry, false),
                              "canonical text-service cancellation restores the entry state");
@@ -1236,12 +1244,19 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Application app(launch);
              Success(app.Initialize(), "create native math app");
              const std::wstring source = L"# Mathematics\r\n\r\nInline $a_i^2$ stays in the line.\r\n\r\n"
-                                         L"$$\\left(\\frac{1}{2}\\right)+\\begin{bmatrix}a&b\\\\c&d\\end{bmatrix}$$\r\n";
+                                         L"$$\r\n\\left(\\frac{1}{2}\\right)+\\begin{bmatrix}a&b\\\\c&d\\end{bmatrix}\r\n$$\r\n";
              app.SetDocument(source);
              app.Prepare(1024);
              auto semantic = app.Document().GetAcknowledgedSemanticDocument(app.Host());
              Require(semantic && std::ranges::count(semantic->Elements(), SemanticRole::Math, &SemanticElement::role) == 2,
-                     "both inline and display equations are native document objects");
+                     "both inline and own-line display equations are native document objects");
+             app.SetDocument(L"$$x$$\r\n");
+             app.Prepare(1024);
+             semantic = app.Document().GetAcknowledgedSemanticDocument(app.Host());
+             Require(semantic && std::ranges::count(semantic->Elements(), SemanticRole::Math, &SemanticElement::role) == 0,
+                     "the pinned grammar keeps one-line double-dollar text literal");
+             app.SetDocument(source);
+             app.Prepare(1024);
              const auto first = source.find(L"$a_i^2$");
              app.Document().SetSelection({first + 2, first + 2});
              app.Execute(Command::LocalSource);
@@ -1251,6 +1266,15 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              app.Execute(Command::ApplyBlock);
              Require(app.Document().GetText().find(L"$a_i^3$") != std::wstring::npos && app.Document().Undo() && app.Document().GetText() == source,
                      "local equation edit and undo preserve the rest and all original EOLs");
+             app.Prepare(1024);
+             const auto displayCaret = source.find(L"\\left");
+             app.Document().SetSelection({displayCaret, displayCaret});
+             app.Execute(Command::LocalSource);
+             Require(app.HasBlockDraft() && !app.Document().GetSemanticSourceRegion() &&
+                         app.BlockDraft()->GetText() == L"$$\r\n\\left(\\frac{1}{2}\\right)+\\begin{bmatrix}a&b\\\\c&d\\end{bmatrix}\r\n$$",
+                     "F2 drafts an own-line display equation's exact delimiter envelope without its closing line terminator");
+             app.Execute(Command::CloseDrawer);
+             Require(!app.HasBlockDraft() && app.Document().GetText() == source, "cancelling the display equation draft leaves the source unchanged");
              app.Prepare(1024);
              app.Host().DebugSimulateDeviceLoss();
              app.Prepare(1024);
@@ -1286,8 +1310,21 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              {
                  const auto math = inspector.find(notation);
                  app.Document().SetSelection({math, math});
-                 Require(app.EquationPreviewText() == L"\\[" + notation + L"\\]", "current syntax drives either math delimiter family");
+                 Require(app.EquationPreviewText() == L"\\[\n" + notation + L"\n\\]", "current syntax drives either math delimiter family");
              }
+             const std::wstring display = L"Before.\r\n\r\n$$\r\nx^2\r\n$$\r\n\r\n\\[\r\ny_1\r\n\\]\r\n";
+             app.SetDocument(display);
+             app.Prepare(1024);
+             for (const auto &notation : {std::wstring(L"x^2"), std::wstring(L"y_1")})
+             {
+                 const auto math = display.find(notation);
+                 app.Document().SetSelection({math, math});
+                 Require(app.EquationPreviewText() == L"\\[\n" + notation + L"\n\\]",
+                         "own-line $$ and \\[ \\] display blocks drive the inspector without their line terminators");
+             }
+             const auto afterDisplay = display.find(L"$$\r\n\r\n") + 4;
+             app.Document().SetSelection({afterDisplay, afterDisplay});
+             Require(app.EquationPreviewText().empty(), "the line after a closing display delimiter is outside the equation");
              const std::wstring spacedSlash = L"**kept** \\( \\text{two words} + x \\) and [parent](https://example.test \"Parent title\")\n";
              app.SetDocument(spacedSlash);
              app.Prepare(1024);
