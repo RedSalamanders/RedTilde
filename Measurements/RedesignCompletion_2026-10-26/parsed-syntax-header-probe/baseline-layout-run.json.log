@@ -1,4 +1,0 @@
-stdout:
-{"sizeofMarkdownSyntax":304,"alignofMarkdownSyntax":8,"sizeofMarkdownParser":64,"alignofMarkdownParser":8,"sizeofRichTextEditor":304,"alignofRichTextEditor":8,"sizeofSourceSnapshot":16,"alignofSourceSnapshot":8,"sizeofRichTextDocument":88,"alignofRichTextDocument":8,"hasReadOnlySourceSynchronization":true,"hasSourceSnapshotMatchesText":false,"hasParsedSnapshotAdoption":false,"hasReadOnlyMarkdownSyntaxAdoption":false,"controlIsPolymorphic":true,"richTextEditorIsPolymorphic":true,"msvcVersion":1952,"msvcLang":202400,"iteratorDebugLevel":0}
-
-stderr:

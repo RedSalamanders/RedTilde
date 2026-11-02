@@ -1,9 +1,0 @@
-{
-  "schemaVersion": 1,
-  "sourceIdentity": "f371c27f926f9840152596d796c11ceb7bbb8340cc1af366ac1ad610d557ac47",
-  "binarySha256": "F067F550068DFA3F7EAAA73FFBECADE9251901AB67AE1358BF6BF69514072A85",
-  "platform": "x64",
-  "archiveSha256": "72F936C047892CEAE530556880F550500321C0C0CEE39112151810CC8FE4F64C",
-  "status": "experimental",
-  "runtimeRedistributableBundled": false
-}

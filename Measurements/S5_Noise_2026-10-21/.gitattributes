@@ -1,4 +1,0 @@
-# Observations and their checksums retain original bytes across checkout.
-* -text -diff
-README.md text eol=lf diff
-.gitattributes text eol=lf diff

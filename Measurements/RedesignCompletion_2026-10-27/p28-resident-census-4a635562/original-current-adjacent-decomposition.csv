@@ -1,5 +1,0 @@
-view,originalSlot,currentSlot,currentMinusOriginalNativeFinalWorkingSetBytes,currentMinusOriginalMEM_IMAGETraditionalBytes,currentMinusOriginalMEM_PRIVATETraditionalBytes,currentMinusOriginalMEM_MAPPEDTraditionalBytes,sumTraditionalTypeDeltasBytes
-Compose,1,2,581632,331776,65536,184320,581632
-Compose,4,3,1744896,331776,1216512,196608,1744896
-Split,6,5,1134592,327680,557056,249856,1134592
-Split,7,8,917504,327680,348160,241664,917504

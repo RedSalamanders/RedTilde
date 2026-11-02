@@ -1,7 +1,0 @@
-DxUi pin verified: e62dd9d9a91a6ad68d88f7f01a6dd075ae31dbd3
-
-  DxUi.vcxproj -> D:\RedTilde\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\x64\Release\DxUi.lib
-  InteractiveLease.Tests.Runner.cpp
-  DxUi.InteractiveLease.vcxproj -> D:\RedTilde\.build\dependencies\DxUi\c9906d30668e0e302ed4f12e92151dc2447447a3d677a94eba36b922db42efd2\x64\Release\DxUi.InteractiveLease.exe
-Run evidence: D:\RedTilde\.build\evidence\test-runs\20261023T010652825Z-42672-2a670837116f4587aee51aca7feb34f0
-Real keyboard/focus checks and desktop restoration checks passed. Evidence: D:\RedTilde\.build\evidence\test-runs\20261023T010652825Z-42672-2a670837116f4587aee51aca7feb34f0\payload

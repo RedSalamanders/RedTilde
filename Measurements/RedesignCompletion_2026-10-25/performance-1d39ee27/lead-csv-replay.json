@@ -1,9 +1,0 @@
-{
-  "passed": true,
-  "csvRows": 72,
-  "csvColumns": 13,
-  "cellsReplayed": 936,
-  "csvSha256": "12668C5CD2369BCD21B31D1FB452D443DA0062918290AF5E01B63B47445AFB58",
-  "projectionSha256": "C5F532E404FC3789ADD5BEB22E1133D1047FC5533C999845858DDEE1CDCF83A2",
-  "scope": "Root replay of every CSV field against the independently reconstructed native-derived JSON rows."
-}

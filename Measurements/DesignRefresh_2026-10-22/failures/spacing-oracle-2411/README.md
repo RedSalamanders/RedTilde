@@ -1,9 +1,0 @@
-# Spacing-oracle runtime failure (DxUi 2411)
-
-This archive preserves the selected raw evidence for run `20261023T003652326Z-36908-1373bb1e32b74ff7b605f32c68228ab1`. Its receipt identifies DxUi SDK pin `2411cbca89b80b7fafb1c7cb84bf996c471b2b80`, app source identity `3dc7bd907bb2d67a1b28026ee48af496e6b79d9cd40be80551718e5fe31e4653`, and the x64 Debug executable used by the run.
-
-The app’s six build configurations had passed. This Full run ended with the Editor suite at 32/33 selected cases: `Rendering.DesignRefreshTypographyAndThemeRoles` failed because the new spacing assertion treated caret extent as full line height. Storage (10), Settings (4), and Recovery (5) completed successfully in this run. A canonical geometry diagnostic measured a 26.4-DIP line frame, a 21.2812-DIP caret extent, and a 0.734375-DIP inset. The assertion correction is in progress; this archive does not claim a final runtime pass.
-
-The design-refresh implementation includes canonical semantic spacing behavior; the earlier “spacing missing” observation is historical. Original binaries and 95 compiled inputs remain preserved privately in `history-3dc-runtime`. This failed run does not qualify a later source pin. Archiving it changes no dependency pin or baseline-v3 package, and it contains no new final-pin performance collection.
-
-`sha256-manifest.json` records the byte length and SHA-256 of each selected original and verifies its exact archived copy. The packet contains the run metadata, receipt, Editor test result and available Editor stdout/stderr logs, the frozen source record, and the Full runner log; it omits other fixtures and unrelated payloads.

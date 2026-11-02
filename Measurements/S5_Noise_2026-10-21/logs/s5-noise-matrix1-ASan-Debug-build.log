@@ -1,9 +1,0 @@
-
-  DxUi.vcxproj -> Z:\src\RedTilde\.build\dependencies\DxUi\4d1745c6e4c73a80590c8b1b40c2dc2a71c88edd09246936b88cca4a8e8c6747\x64\ASan Debug\DxUi.lib
-  DxUi pin verified: dd619ef0c5855307eb57758072658f2e3b777fd8
-  Scope.Tests.Core.cpp
-  Scope.Tests.Performance.cpp
-  Application.cpp
-  Main.cpp
-  RedTilde.vcxproj -> Z:\src\RedTilde\.build\x64\ASan Debug\RedTilde.exe
-Built RedTilde: Z:\src\RedTilde\.build\x64\ASan Debug/RedTilde.exe

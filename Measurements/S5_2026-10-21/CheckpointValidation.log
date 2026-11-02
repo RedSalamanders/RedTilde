@@ -1,8 +1,0 @@
-PASS Specifications and links
-PASS Skills and scoped agent guidance
-PASS Exact dependency and capability status
-PASS Six build configurations and native inventory
-PASS PowerShell syntax
-Performance tooling: median, schedule, exact inference, Holm family, direction and invalid-metric checks passed.
-PASS Performance protocol
-All RedTilde validators passed.

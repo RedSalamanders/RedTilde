@@ -1,9 +1,0 @@
-{
-  "archive": "RedTilde-0.1.0-experimental-x64-20261021-111522-379.zip",
-  "archiveSha256": "41A816713913DDB24A45F26F355B9A4EE3FA59A1885448D55BEFC716622D0BC9",
-  "binarySha256": "F326E6E08307C9F6BC87B6311E1760C98A75A7EFA44BB123A369CAC8471DBA5E",
-  "sourceIdentity": "dc8e5470237f08d9842d585b11685a260781bc000ed3604d938258b3a21a76ff",
-  "extractedCases": 25,
-  "passed": true,
-  "scope": "existing host with installed runtime; experimental package, no clean-machine or installer qualification"
-}

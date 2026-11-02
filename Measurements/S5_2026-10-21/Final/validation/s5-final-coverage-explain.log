@@ -1,2 +1,0 @@
-Selected: validate + format + Core native application tests
-PrePush/Full adds all six builds, three x64 test profiles, crash probes and captures. Native ARM64/physical input/performance remain separate gates. No enabled remote CI is credited.

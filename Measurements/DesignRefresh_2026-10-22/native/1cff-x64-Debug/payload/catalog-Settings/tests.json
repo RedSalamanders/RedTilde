@@ -1,9 +1,0 @@
-{
-  "tests": [
-    {"name":"Settings.DesignRefreshPreferencesRoundTrip","executed":false},
-    {"name":"Settings.DesignRefreshFieldFallback","executed":false},
-    {"name":"Settings.VersionAndFieldFallback","executed":false},
-    {"name":"Settings.AsyncLatestValueSurvivesWriterClose","executed":false}
-  ],
-  "passed": 0, "failed": 0, "selected": 4, "registered": 52, "catalogOnly": true
-}

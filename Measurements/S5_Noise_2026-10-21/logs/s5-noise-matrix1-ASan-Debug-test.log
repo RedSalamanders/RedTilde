@@ -1,4 +1,0 @@
-25 behavioral tests passed.
-Native forced render: 126,3 FPS; private memory 433,3 MiB; dirty edit/render 10,06 ms. Initial app baseline only.
-Real AddressSanitizer heap-use-after-free detection verified.
-Receipt: Z:\src\RedTilde\.build\tests\20261021-111025-805-x64-ASan-Debug\receipt.json

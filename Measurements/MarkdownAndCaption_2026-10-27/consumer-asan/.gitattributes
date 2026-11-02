@@ -1,2 +1,0 @@
-# Preserve the compiler's byte-bound diagnostic, including its native hex legend spacing.
-asan-detector.log -whitespace

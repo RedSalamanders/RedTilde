@@ -1,2 +1,0 @@
-# Harness evidence is byte-bound, including JSON line endings.
-* -text whitespace=trailing-space,space-before-tab,cr-at-eol

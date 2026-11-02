@@ -1,4 +1,0 @@
-# Receipt hashes bind exact bytes, including their original line endings.
-* -text -diff
-README.md text eol=lf diff
-.gitattributes text eol=lf diff

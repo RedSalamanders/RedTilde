@@ -1,8 +1,0 @@
-{
-  "archive": "Z:\\src\\RedTilde\\.build\\package\\RedTilde-0.1.0-experimental-x64-20261021-081915-812.zip",
-  "archiveSha256": "D879FFEBD1317F025F1852F194EE4EBD21250880EFE9B02FFE324A64FD0BFA7C",
-  "binarySha256": "10FCF932B93523710BF8D1B358EFD5F535242BAFEF96FE45FC65F4B7894C5C6F",
-  "passed": 25,
-  "failed": 0,
-  "runtimeRedistributableBundled": false
-}

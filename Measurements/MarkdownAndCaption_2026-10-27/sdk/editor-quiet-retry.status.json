@@ -1,6 +1,0 @@
-{
-  "utc": "2026-10-27T21:35:15.6796227Z",
-  "exitCode": 0,
-  "context": "Complete EditorControls retry after active compiler and linker processes ended; original full-run deadline failure retained",
-  "head": "eb0f10b91bb8de19b0d7671cc7078fd0c1f5e767"
-}
