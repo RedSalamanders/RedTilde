@@ -69,6 +69,18 @@ The guarded local draft owns its separate exact-source highlight while open. Syn
 highlight; Cancel and Apply clear it explicitly before ordinary Find presentation resumes. A closed-Find cache
 must never leave a draft highlight behind or clear an active draft's highlight as incidental work.
 
+### Markdown syntax options
+
+The editor, Split mirror and equation inspector analyse with the RichMarkdown profile and one explicit extension
+mask. GFM tables, task lists, strikethrough, autolinks and the tag filter are always on. Seven optional families
+are individually controlled preferences, each enabled by default: highlight `==text==`, superscript `^text^`,
+subscript `~text~`, inserted `++text++`, wiki links `[[target]]` / `[[target|label]]` / `![[target]]`, definition
+lists (a term followed by `: description` lines) and single-line abbreviation definitions `*[term]: text`.
+Toggling one applies the new mask to all three controls at once, so the mirror stays eligible for parsed-syntax
+adoption. Reanalysis changes presentation only: source, selection, undo history, revision and dirty state are
+unchanged. Text for a disabled family remains exact literal source. Undo and redo decline while a changed
+text-service preview is active and return when it is cancelled or committed.
+
 Shortcuts: Ctrl+N/O/S, Ctrl+Shift+S, Ctrl+Z/Y, Ctrl+B/I, Ctrl+F, Ctrl+1/2/3 for Compose/Source/Split,
 Ctrl+Shift+E for the Files pane, F2 local source, F11 focus mode, Ctrl+, settings, Esc dismiss/restore. Keep native
 IME handling ahead of commands that could interrupt composition. Ctrl accelerators exclude Alt so AltGr text reaches
@@ -135,7 +147,10 @@ Use the pinned native image API with an explicit absolute document path. Relativ
 document directory, never process CWD. Paste uses upstream structured file-reference policy. Decode supported
 local PNG/JPEG/BMP/GIF/TIFF off the UI thread; retain alt text on failure. HTTP(S) requests require the explicit
 privacy opt-in below. Data URI fetch, UNC access by default, script execution and automatic external link
-navigation remain disabled. Asset copying and drag/drop remain separate work.
+navigation remain disabled. Asset copying and drag/drop remain separate work. The image worker branches on every
+request kind: wiki-target (`![[target]]`) and data requests are declined with `ERROR_NOT_SUPPORTED` before any file
+or network access, even when a same-named local file exists. RedTilde resolves no wiki targets and installs no link
+activation handler, so wiki links stay inert.
 
 Mermaid uses the exact library pin's native flowchart subset plus bounded state/class profiles. State syntax
 supports direction, simple declarations/quoted aliases, initial/final `[*]`, transitions with colon labels and
@@ -144,7 +159,9 @@ The deterministic native graph router need not match Mermaid coordinates. Unsupp
 states, block class declarations, namespaces, multiplicities, styles and directives remain exact fenced source.
 
 Mathematics uses native source-backed objects throughout the document and in the read-only inspector. RichMarkdown
-recognizes inline `$...$` / `\(...\)` and display `$$...$$` / `\[...\]` inside one logical Markdown paragraph.
+recognizes inline `$...$` / `\(...\)`. Display math is a source-owned block whose `$$` or `\[` / `\]` delimiters
+stand on their own logical lines; closed `math` and `latex` fences also render as display formulas. At the
+current pin a one-line `$$x$$` or `\[x\]` stays literal. Insert Equation writes own-line delimiters.
 Code, escaped delimiters and CommonMark/GFM profiles retain literal interpretation. Single-dollar notation has
 nonspace content edges and cannot close immediately before a digit. Explicit slash delimiters allow whitespace
 around the formula and use their own closing-delimiter rules, independent of dollar-currency heuristics. `\text{...}`
@@ -153,18 +170,21 @@ limits survive parsing into native layout. A formula reserves its full native he
 exposes its TeX notation through semantic accessibility. View changes do not edit it.
 
 The library parser handles fractions, indexed roots, simultaneous scripts, Greek/operators, named functions,
-text and alphabets, accents, scalable paired delimiters, matrices, cases and aligned/gathered rows. Limits are
-4,096 source units, 512 nodes, depth 24 and 16 rows/columns/128 cells per equation; total mathematical records
-are 4,096 and combined native objects 128. Each preparation event shapes at most one mathematical leaf. Paint
+text and alphabets, accents, scalable paired delimiters, matrices, cases and aligned/gathered rows. The pinned
+limits are 16,384 source units, 4,096 nodes, group depth 64 and 64 rows/columns/1,024 cells per equation; total
+mathematical records are 32,768 and combined native objects 128. Each preparation event shapes at most one mathematical leaf. Paint
 uses cached glyphs/lines and inherits theme/selection brushes. No web runtime, external TeX, packages or network fonts.
 
-F2 on a math object opens its exact source envelope in the guarded local draft. Apply is one source transaction;
-Cancel preserves source/history. Unsupported/malformed/oversized notation remains exact literal source with a
+F2 on a math object opens its exact source envelope in the guarded local draft, even though the pin also offers a
+native math source region. A display block's draft ends at its closing delimiter, excluding that line's terminator;
+a caret at the start of the following line is outside the equation for F2 and the inspector.
+Apply is one source transaction; Cancel preserves source/history. Unsupported/malformed/oversized notation remains exact literal source with a
 diagnostic. Full LaTeX/MathML and arbitrary Mermaid conformance remain separate compatibility goals.
 
 Inspector selection changes use only the shared immutable Markdown syntax for the current source revision.
 While analysis is pending or unavailable, clear the inspector temporarily instead of rescanning the whole source
-with a delimiter fallback. Current syntax excludes code/escaped notation and covers both dollar and slash delimiters.
+with a delimiter fallback. Current syntax excludes code/escaped notation and covers both dollar and slash delimiters,
+inline formulas and closed display blocks. The preview places its `\[` and `\]` delimiters on their own lines.
 
 Aligned equations share right/left operand edges at each ampersand pair; cases align both columns left and
 ordinary matrices center each column. Oversized notation conservatively keeps the remaining inline physical

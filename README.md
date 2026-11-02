@@ -55,6 +55,8 @@ Native code/diagram source regions edit in place. Other selected text or the cur
 draft; Apply commits one undoable edit and Esc cancels. Split's source mirror is read-only and follows selection.
 Right-click or use the context-menu key for headings, inline styles, lists, insertion and table-row/column actions.
 Theme and outline preferences apply to the running window and persist under `%LOCALAPPDATA%\RedTilde`.
+Settings › Markdown syntax turns highlight, superscript, subscript, inserted text, wiki links, definition lists and
+abbreviations on or off individually; each is on by default and explains its syntax.
 
 The optional Files pane lists Markdown in the current document's folder and subfolders. Single-click or Enter
 opens through the existing Open and unsaved-changes flow; it does not manage files. See the
@@ -73,6 +75,8 @@ HTTP(S) image loading; switching it off cancels remote work and removes remote p
 Mermaid supports the pinned native flowchart, state and class subsets; unsupported syntax stays editable fenced source.
 Inline/display mathematics supports fractions, indexed roots, simultaneous scripts, symbols, text, alphabets,
 accents, paired delimiters, matrices, cases and aligned/gathered rows, preserving `$...$`/`$$...$$` and slash delimiters.
+Display `$$` or `\[` / `\]` delimiters stand on their own lines; a one-line `$$x$$` stays literal.
+Wiki-link embeds and data images are declined without file or network access.
 Try the [complex sample documents](docs/examples/README.md) for longer equations,
 larger diagrams and clearly labeled fallback cases.
 Unsupported notation stays editable. Full LaTeX compatibility remains a separate goal. Markdown HTML/scripts and links are never executed.

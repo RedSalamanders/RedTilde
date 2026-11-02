@@ -13,6 +13,12 @@ without a chance to edit the destination.
 tasks. Insert offers link, image, table, Mermaid, equation, quote and code. The context menu adds strike,
 numbered lists and table row/column commands. Unavailable structural actions retain source and explain context.
 
+**Markdown syntax:** tables, task lists, strikethrough and autolinks always work. Settings › Markdown syntax also
+turns on `==highlight==`, `^superscript^`, `~subscript~`, `++inserted++`, wiki links `[[page]]`, definition lists
+(a term line followed by `: definition` lines) and abbreviations (`*[HTML]: Hyper Text Markup Language`). All are on
+by default, each option explains its syntax, and changes apply immediately without editing the document. Text for
+a syntax you turn off stays exactly as typed. RedTilde does not open wiki pages or load `![[file]]` embeds yet.
+
 **Files pane:** press Ctrl+Shift+E to list Markdown files in the saved document's folder and subfolders. Filter by
 name, expand directories, and open a file with a single click or Enter. Opening follows the normal unsaved-changes
 prompt and file-safety rules. The pane is listing/opening only; it does not manage files. Untitled documents show
@@ -30,10 +36,11 @@ The HTTP client loads on demand on the image worker when a permitted image first
 imports stay loaded until exit so outstanding callbacks can retire safely. Windows library loading itself cannot
 be interrupted; cancellation and the request deadline are checked before contacting the image server.
 
-**Equations:** use `$...$` / `\(...\)` inline and `$$...$$` / `\[...\]` for display notation. Fractions,
+**Equations:** use `$...$` / `\(...\)` inline. For display notation, put `$$` (or `\[` and `\]`) on lines of
+their own above and below the formula; a one-line `$$x$$` stays as typed. Fractions,
 indexed roots, simultaneous scripts, Greek/operators, named functions, text, alphabets, accents, scalable
 delimiters, matrices, cases and aligned/gathered rows render natively in the document. Matrix cells use `&`
-and rows use `\\`. Keep display notation in one Markdown paragraph. F2 edits the exact equation, including its
+and rows use `\\`. F2 edits the exact equation, including its
 delimiters, as one undoable source edit. Unsupported notation stays literal with diagnostics. The optional
 inspector uses the same native engine. This bounded notation is not full LaTeX/package compatibility.
 

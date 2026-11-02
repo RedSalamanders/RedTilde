@@ -14,9 +14,13 @@ Unicode writing: Café, 東京 and 😀. **Bold** and *italic* text stay source-
 
 Inline $E=mc^2$ and $a_i^2$ in ordinary prose.
 
-$$x=\frac{-b+\sqrt{b^2-4ac}}{2a}$$
+$$
+x=\frac{-b+\sqrt{b^2-4ac}}{2a}
+$$
 
-$$\begin{bmatrix}a&b\\c&d\end{bmatrix}$$
+$$
+\begin{bmatrix}a&b\\c&d\end{bmatrix}
+$$
 
 ## Diagrams
 

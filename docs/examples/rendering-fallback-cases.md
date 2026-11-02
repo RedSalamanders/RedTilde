@@ -8,33 +8,47 @@ not a supported-feature demonstration. No package, directive or command executes
 Compare with [supported mathematics](complex-math.md), [flowcharts](complex-flowcharts.md)
 and [state/class diagrams](complex-state-and-class-diagrams.md).
 
-## X01 — Unsupported array environment
+## X01 — Repeated array column rule
 
-$$\begin{array}{rcl}x+y&=&3\\x-y&=&1\end{array}$$
+$$
+\begin{array}{l||r}x+y&3\\x-y&1\end{array}
+$$
 
-Use the supported `aligned` or matrix environments in ordinary documents.
+Use single `|` or `:` rules between `array` columns in ordinary documents.
 
 ## X02 — Unsupported user-defined macro
 
-$$\newcommand{\sample}[1]{\frac{#1}{2}}\sample{x}$$
+$$
+\newcommand{\sample}[1]{\frac{#1}{2}}\sample{x}
+$$
 
-## X03 — Unsupported styling command
+## X03 — Unknown color name
 
-$$\color{red}{x^2+y^2}$$
+$$
+\color{unknownname}{x^2+y^2}
+$$
 
-## X04 — Unequal matrix column counts
+## X04 — Unsupported starred matrix alignment
 
-$$\begin{bmatrix}a&b&c\\d&e\end{bmatrix}$$
+$$
+\begin{matrix*}[z]a&b\\c&d\end{matrix*}
+$$
 
 ## X05 — Unmatched scalable delimiter
 
-$$\left(\frac{a+b}{c+d}$$
+$$
+\left(\frac{a+b}{c+d}
+$$
 
 ## X06 — Missing argument and duplicate script
 
-$$\frac{a}$$
+$$
+\frac{a}
+$$
 
-$$x_i_j$$
+$$
+x_i_j
+$$
 
 ## X07 — Unsupported sequence diagram
 
@@ -115,7 +129,9 @@ Ready -->
 
 The supported neighbor below should still render independently:
 
-$$\frac{1}{1+x^2}+\sqrt{1+y^2}$$
+$$
+\frac{1}{1+x^2}+\sqrt{1+y^2}
+$$
 
 ```mermaid
 flowchart LR

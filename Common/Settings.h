@@ -1,4 +1,6 @@
 #pragma once
+#include <array>
+#include <cstddef>
 #include <filesystem>
 #include <memory>
 #include <string>
@@ -19,6 +21,19 @@ enum class EditorView
     Source,
     Split
 };
+// Optional RichMarkdown syntax beyond the always-on GFM set, in drawer order.
+// Each persists under its own application-owned key, never a library enum value.
+enum class MarkdownSyntax
+{
+    Highlight,
+    Superscript,
+    Subscript,
+    Inserted,
+    WikiLinks,
+    DefinitionLists,
+    Abbreviations
+};
+inline constexpr std::size_t MarkdownSyntaxCount = 7;
 struct Settings
 {
     Appearance appearance = Appearance::System;
@@ -31,6 +46,11 @@ struct Settings
     unsigned textScale = 100;
     bool dimInactiveBlocks = true;
     bool allowRemoteImages = false;
+    std::array<bool, MarkdownSyntaxCount> markdownSyntax{true, true, true, true, true, true, true};
+    [[nodiscard]] bool SyntaxEnabled(MarkdownSyntax syntax) const noexcept
+    {
+        return markdownSyntax[static_cast<std::size_t>(syntax)];
+    }
 };
 [[nodiscard]] Settings ParseSettings(std::string_view bytes);
 [[nodiscard]] std::string SerializeSettings(const Settings &settings);

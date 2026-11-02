@@ -80,7 +80,15 @@ enum class Command
     Maximize,
     Close,
     DimBlocks,
-    RemoteImages
+    RemoteImages,
+    // Ordered as MarkdownSyntax; each toggles one optional RichMarkdown syntax.
+    SyntaxHighlight,
+    SyntaxSuperscript,
+    SyntaxSubscript,
+    SyntaxInserted,
+    SyntaxWikiLinks,
+    SyntaxDefinitionLists,
+    SyntaxAbbreviations
 };
 struct LaunchOptions
 {
@@ -205,7 +213,9 @@ class Application
     Surface *filesPane{}, *focusPill{};
     DxUi::Splitter *filesSplitter{};
     DxUi::Label *filesTitle{}, *filesCount{}, *currentBlock{}, *positionStatus{}, *findCount{}, *drawerHelp{}, *currentBlockTitle{},
-        *equationReadOnly{}, *writingTitle{};
+        *equationReadOnly{}, *writingTitle{}, *syntaxTitle{}, *syntaxIntro{}, *privacyTitle{}, *drawerImmediate{};
+    std::array<DxUi::Button *, MarkdownSyntaxCount> syntaxToggles{};
+    std::array<DxUi::Label *, MarkdownSyntaxCount> syntaxHelp{};
     std::array<DxUi::Separator *, 6> commandDividers{};
     DxUi::CardPanel *saveStateChip{};
     DxUi::Label *filesSectionTitle{}, *outlineCount{}, *filesRootIcon{}, *listSummaryIcon{};
@@ -222,7 +232,7 @@ class Application
     } identityMeasure;
     DxUi::TextField *filesFilter{}, *replaceText{};
     DxUi::Button *filesToggle{}, *panelToggle{}, *settingsToggle{}, *overflowButton{}, *exitFocus{}, *fileMenu{}, *saveButton{}, *minimizeButton{},
-        *maximizeButton{}, *closeButton{}, *dimToggle{}, *remoteImagesToggle{};
+        *maximizeButton{}, *closeButton{}, *dimToggle{}, *remoteImagesToggle{}, *recoveryAction{}, *drawerClose{};
     DxUi::NumericStepper *readingWidth{}, *textScale{};
     DxUi::ScrollPanel *settingsScroll{};
     DxUi::CardPanel *selectionHintChip{};
@@ -328,6 +338,7 @@ class Application
     LRESULT FrameHitTest(HWND hwnd, LPARAM point) const;
     void Layout();
     void ApplyTheme();
+    void ApplyMarkdownSyntax();
     [[nodiscard]] const std::wstring &CurrentText() const;
     [[nodiscard]] bool SynchronizeMirror();
     void Changed();
