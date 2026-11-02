@@ -145,7 +145,7 @@ void Application::PrepareDesignScenario()
                      L"A few symbols can make a complicated thought feel clear. Keep the exact source one step away.\n\n"
                      L"$$\nx=\\frac{-b+\\sqrt{b^2-4ac}}{2a}\n$$\n\n"
                      L"## Keep the meaning\n\n"
-                     L"The rendered equation and its source are two views of the same idea. Apply a change, or cancel and keep writing.\n";
+                     L"The rendered equation and its source are two views of the same idea. Edit it in place, then return to the rendering.\n";
         const auto path = writing / (reference ? L"weekly-report-2026-10-15.md" : scenario == L"equation" ? L"Equation notes.md" : L"Ideas.md");
         FileStamp identity;
         RequireCapture(SUCCEEDED(SaveDocument(path, source, false, nullptr, identity)), "Cannot stage the synthetic capture document");
@@ -236,8 +236,9 @@ void Application::PrepareDesignScenario()
             editor->SetSelection({caret, caret});
             SelectionChanged();
             Execute(Command::LocalSource);
-            RequireCapture(HasBlockDraft() && blockDraftText->GetText() == L"$$\nx=\\frac{-b+\\sqrt{b^2-4ac}}{2a}\n$$",
-                           "The equation capture did not open its exact guarded TeX draft");
+            const auto region = editor->GetSemanticSourceRegion();
+            RequireCapture(region && !HasBlockDraft() && editor->GetText().compare(region->source.first, 2, L"$$") == 0,
+                           "The equation capture did not show its exact TeX source in place");
         }
         if (scenario == L"settings")
         {

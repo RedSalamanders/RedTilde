@@ -200,7 +200,10 @@ below its native geometry when space permits, clamping the complete panel into t
 Retry placement after preparation if that geometry is unavailable; a provisional position is not settled
 capture evidence. Show exact delimiters in the shared TextField Monospace role with an accent focus stroke,
 an Equation source label for mathematical context, Apply (Ctrl+Enter) and Cancel (Escape). Apply is one exact
-source transaction; Cancel preserves source revision, selection and undo/redo history.
+source transaction; Cancel preserves source revision, selection and undo/redo history. Equations normally do not
+use this panel: like code and diagrams, F2 shows their exact source in place in the document while the read-only
+inspector keeps rendering the TeX being typed. The panel's Equation source label appears only when that native
+region refuses and F2 falls back to the draft.
 
 ## Files pane
 

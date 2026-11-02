@@ -389,42 +389,41 @@ class DesignInteractiveProbe final
                  Require(app.Document().GetSelection() == retained && app.Document().GetText() == baseline,
                          "Toolbar Escape discarded the preserved source selection");
              });
-        Case("Equation.F2ApplyUndoAndCancel",
+        Case("Equation.F2InPlaceEditUndoAndExit",
              [&]
              {
                  const auto caret = baseline.find(L"a_i^2");
                  app.Document().SetSelection({caret, caret});
                  app.SelectionChanged();
-                 Key(VK_F2);
-                 Await([&] { return app.HasBlockDraft() && app.BlockDraft()->GetText() == L"$a_i^2$" && NativeFocusInside(); },
-                       "F2 did not focus the guarded exact-delimiter equation draft");
-                 Key('A', {VK_CONTROL});
-                 Type(L"$a_i^3$");
-                 Await([&] { return app.BlockDraft()->GetText() == L"$a_i^3$"; }, "Native equation-source typing did not reach the draft");
-                 Key(VK_RETURN, {VK_CONTROL});
-                 auto edited = baseline;
-                 edited.replace(edited.find(L"$a_i^2$"), 7, L"$a_i^3$");
-                 Await([&] { return !app.HasBlockDraft() && app.Document().GetText() == edited && EditorFocused(); },
-                       "Ctrl+Enter did not apply one exact source transaction and restore native editor focus");
-                 Key('Z', {VK_CONTROL});
-                 Await([&] { return app.Document().GetText() == baseline && !app.Dirty(); }, "One undo did not restore the equation source");
-                 app.Document().SetSelection({caret, caret});
-                 app.SelectionChanged();
                  const auto retainedSource = app.Document().Snapshot();
                  const auto retainedRevision = app.Document().Revision();
-                 const auto retainedSelection = app.Document().GetSelection();
                  const bool retainedUndo = app.Document().CanUndo(), retainedRedo = app.Document().CanRedo();
                  Key(VK_F2);
-                 Await([&] { return app.HasBlockDraft(); }, "F2 could not reopen the equation draft");
-                 Key('A', {VK_CONTROL});
-                 Type(L"$a_i^4$");
-                 Await([&] { return app.BlockDraft()->GetText() == L"$a_i^4$"; }, "Cancelled equation draft did not receive native text");
+                 Await([&] { return app.Document().GetSemanticSourceRegion().has_value() && !app.HasBlockDraft() && EditorFocused(); },
+                       "F2 did not show the exact equation source in place with native editor focus");
                  Key(VK_ESCAPE);
-                 Await([&] { return !app.HasBlockDraft() && EditorFocused(); }, "Escape did not cancel the equation draft and restore native focus");
+                 Await([&] { return !app.Document().GetSemanticSourceRegion() && EditorFocused(); },
+                       "Escape did not leave unedited in-place equation source");
                  Require(app.Document().GetText() == baseline && !app.Dirty() && app.Document().Snapshot().IsSameRevision(retainedSource) &&
-                             app.Document().Revision() == retainedRevision && app.Document().GetSelection() == retainedSelection &&
-                             app.Document().CanUndo() == retainedUndo && app.Document().CanRedo() == retainedRedo,
-                         "Cancelled equation source mutated authoritative source, revision, selection or undo/redo history");
+                             app.Document().Revision() == retainedRevision && app.Document().CanUndo() == retainedUndo &&
+                             app.Document().CanRedo() == retainedRedo,
+                         "Leaving unedited equation source mutated authoritative source, revision or undo/redo history");
+                 app.Document().SetSelection({caret, caret});
+                 app.SelectionChanged();
+                 Key(VK_F2);
+                 Await([&] { return app.Document().GetSemanticSourceRegion().has_value() && EditorFocused(); },
+                       "F2 could not reenter equation source");
+                 const auto digit = baseline.find(L"2$", caret);
+                 app.Document().SetSelection({digit, digit + 1});
+                 Type(L"3");
+                 auto edited = baseline;
+                 edited.replace(digit, 1, L"3");
+                 Await([&] { return app.Document().GetText() == edited && app.Dirty(); }, "Native typing did not edit the in-place equation source");
+                 Key(VK_RETURN, {VK_CONTROL});
+                 Await([&] { return !app.Document().GetSemanticSourceRegion() && app.Document().GetText() == edited && EditorFocused(); },
+                       "Ctrl+Enter did not return to the rendered equation with the edit and native focus");
+                 Key('Z', {VK_CONTROL});
+                 Await([&] { return app.Document().GetText() == baseline && !app.Dirty(); }, "One undo did not restore the equation source");
              });
         Case("FileMenu.KeyboardOpenAndDismiss",
              [&]

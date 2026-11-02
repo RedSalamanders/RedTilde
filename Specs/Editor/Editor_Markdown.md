@@ -29,7 +29,8 @@ existing line endings. View changes never reserialize Markdown, reset history or
   one revision reuse its analysis. Structural previews do not apply committed collapse indices to different
   headings; cancellation restores the entry outline and its collapse choices, while a committed heading-structure
   change resets them. Previews and cancellation do not increment committed activity or submit recovery snapshots.
-- **Local source** uses DxUi's source-region API for a prepared code, HTML, metadata or diagram block. F2 enters;
+- **Local source** uses DxUi's source-region API for a prepared code, HTML, metadata or diagram block, or an inline
+  or display equation. F2 enters;
   Esc/F2/Ctrl+Enter returns. IME composition and stale semantic publications refuse the transition.
   For ordinary text without a native source-region action, open a local source draft for the selected range or
   physical line. The rest stays rendered; Apply/Ctrl+Enter commits one snapshot-guarded source transaction,
@@ -175,16 +176,21 @@ limits are 16,384 source units, 4,096 nodes, group depth 64 and 64 rows/columns/
 mathematical records are 32,768 and combined native objects 128. Each preparation event shapes at most one mathematical leaf. Paint
 uses cached glyphs/lines and inherits theme/selection brushes. No web runtime, external TeX, packages or network fonts.
 
-F2 on a math object opens its exact source envelope in the guarded local draft, even though the pin also offers a
-native math source region. A display block's draft ends at its closing delimiter, excluding that line's terminator;
-a caret at the start of the following line is outside the equation for F2 and the inspector.
-Apply is one source transaction; Cancel preserves source/history. Unsupported/malformed/oversized notation remains exact literal source with a
+F2 on a math object shows its exact source envelope, delimiters included, in place through DxUi's native source
+region, like code and diagram blocks. Typing edits the authoritative source directly; each edit is ordinary undoable
+history. F2, Esc or Ctrl+Enter returns to the rendered formula and keeps the edits. A display block ends at its
+closing delimiter, excluding that line's terminator; a caret at the start of the following line is outside the
+equation for F2 and the inspector. If the native region refuses (IME composition or a stale or pending
+publication), F2 falls back to the guarded local draft of the same envelope: Apply is one source transaction and
+Cancel preserves source/history. Unsupported/malformed/oversized notation remains exact literal source with a
 diagnostic. Full LaTeX/MathML and arbitrary Mermaid conformance remain separate compatibility goals.
 
 Inspector selection changes use only the shared immutable Markdown syntax for the current source revision.
 While analysis is pending or unavailable, clear the inspector temporarily instead of rescanning the whole source
 with a delimiter fallback. Current syntax excludes code/escaped notation and covers both dollar and slash delimiters,
 inline formulas and closed display blocks. The preview places its `\[` and `\]` delimiters on their own lines.
+While a math source region is open, the inspector previews the TeX currently between that region's delimiters,
+reading only the region's range, and the current block reads Equation; it clears when the delimiters are incomplete.
 
 Aligned equations share right/left operand edges at each ampersand pair; cases align both columns left and
 ordinary matrices center each column. Oversized notation conservatively keeps the remaining inline physical

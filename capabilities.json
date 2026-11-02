@@ -40,6 +40,7 @@
     "default-off-bounded-anonymous-remote-images",
     "optional-richmarkdown-syntax-preferences",
     "own-line-display-math-blocks",
+    "in-place-equation-source-with-live-preview",
     "declined-wiki-and-data-image-requests",
     "actual-captures-with-synthetic-data-and-dpi-provenance",
     "warned-lease-guarded-keyboard-test-harness",

@@ -39,7 +39,9 @@ headers or objects.
 - Display math is now a source-owned block: `$$` or `\[` / `\]` must stand on their own lines, and one-line
   `$$x$$` / `\[x\]` stays literal. Insert Equation, the inspector preview, capture fixtures and sample documents
   use own-line delimiters; the inspector also follows display blocks.
-- The pin offers a native source region for math. F2 keeps the contract's guarded exact-delimiter draft.
+- The pin offers a native source region for math. Owner decision (2 November 2026): F2 edits equations in place
+  like code and diagrams, and the inspector previews the TeX being typed. The guarded draft remains the fallback
+  when the native region refuses.
 - Tree model refresh now keeps the viewport. A real section transition still reveals the current heading.
 - Library limit changes adopted in tests: math group depth 64, 1,024 matrix cells; undo/redo decline during a
   changed text-service preview and return after cancellation.
@@ -51,7 +53,10 @@ headers or objects.
 - [x] Explicit image-kind handling; wiki embeds and data images stay unresolved.
 - [x] Seven persisted syntax preferences, a Settings section with explanations and live reanalysis of the editor,
   mirror and inspector.
-- [x] Preserve NUL rejection, guarded math F2, own-line display math and the inspector rendering.
+- [x] Preserve NUL rejection, own-line display math and the inspector rendering.
+- [x] In-place equation F2 with a live inspector preview; hidden tests and the equation capture updated.
+- [ ] Interactive `Equation.F2InPlaceEditUndoAndExit` (real keyboard and focus) rewritten for in-place editing:
+  NOT RUN; it needs the owner's agreement to take desktop focus.
 - [x] Tests: settings round trip and fallback, live syntax reanalysis and explanation fit, wiki embed decline,
   inspector rendering, display blocks, updated library limits and history.
 - [x] Convert one-line display equations in the sample and performance fixtures to own-line delimiters.
@@ -81,12 +86,20 @@ Generated receipts stay under `.build/evidence/test-runs`; none are committed.
   failing equation capture (draft ended with the display block's line terminator). Both are repaired and covered.
 - A later review moved the caret test for display blocks to the closing delimiter, so the following line is outside
   the equation for F2 and the inspector; covered by the in-document math test.
-- Final qualification, MSVC 14.52.37025, on the source with every product and test change (later edits are prose
-  and sample Markdown only):
+- Qualification of the first PR commit (math F2 still used the guarded draft), MSVC 14.52.37025:
   - x64 Debug `-Full`: validators, Storage 12, Settings 4, Recovery 5, Editor 49, Preferences, RecoveryRestart,
     Performance smoke (117 FPS forced render), 32 captures and Crash pass.
   - x64 ASan Debug `-Full`: the same suites pass, and real heap-use-after-free detection is verified.
   - x64 Release: Storage, Settings, Recovery, Preferences, RecoveryRestart, Performance smoke, 32 captures and Crash
     pass. Editor first failed one foreground guard: the foreground moved between two windows outside the test
     process (desktop activity, not a hidden-window activation). The immediate Editor rerun passed all 49 cases.
+  - ARM64 Debug, Release and ASan Debug: zero-warning cross-builds only.
+- Qualification of the in-place equation commit, same toolchain, on the final product and test source:
+  - x64 Debug `-Full`: validators and every suite pass (Editor 49, 32 captures, Crash).
+  - x64 ASan Debug `-Full`: every suite passes and real heap-use-after-free detection is verified.
+  - x64 Release: Storage, Settings and Recovery pass. Editor first failed a foreground guard while the owner was
+    using the desktop (both observed windows were outside the test process). The rerun of Editor, Preferences,
+    RecoveryRestart, Performance smoke, 32 captures and Crash passed.
+  - One earlier x64 Debug Editor run failed `Editor.RemoteImagePrivacyOptInRevocationAndShutdown` (Close 4,844 ms,
+    limit 500 ms); its rerun and every later run passed. It is recorded here as a transient.
   - ARM64 Debug, Release and ASan Debug: zero-warning cross-builds only.

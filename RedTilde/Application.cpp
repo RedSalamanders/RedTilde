@@ -132,6 +132,33 @@ std::size_t WithoutLineEnd(std::wstring_view source, DxUi::RichText::MarkdownRan
         --last;
     return last;
 }
+// The live TeX inside an in-place math source region, without its delimiters. Other
+// regions, or an envelope whose delimiters are being edited, yield no expression.
+std::wstring MathRegionExpression(const DxUi::RichText::MarkdownSourceRegion &region, std::wstring_view envelope)
+{
+    using DxUi::RichText::MarkdownSourceRegionKind;
+    const auto trim = [](std::wstring_view text)
+    {
+        while (!text.empty() && (text.front() == L'\n' || text.front() == L'\r'))
+            text.remove_prefix(1);
+        while (!text.empty() && (text.back() == L'\n' || text.back() == L'\r'))
+            text.remove_suffix(1);
+        return text;
+    };
+    envelope = trim(envelope);
+    const auto inner = [&](std::wstring_view open, std::wstring_view close)
+    {
+        return envelope.size() > open.size() + close.size() && envelope.starts_with(open) && envelope.ends_with(close)
+                   ? trim(envelope.substr(open.size(), envelope.size() - open.size() - close.size()))
+                   : std::wstring_view{};
+    };
+    std::wstring_view expression;
+    if (region.kind == MarkdownSourceRegionKind::Inline && region.inlineKind == DxUi::RichText::MarkdownInlineSourceKind::Math)
+        expression = envelope.starts_with(L"\\(") ? inner(L"\\(", L"\\)") : inner(L"$", L"$");
+    else if (region.kind == MarkdownSourceRegionKind::Block)
+        expression = envelope.starts_with(L"$$") ? inner(L"$$", L"$$") : envelope.starts_with(L"\\[") ? inner(L"\\[", L"\\]") : std::wstring_view{};
+    return expression.size() <= DxUi::RichText::MathMaximumSourceUnits ? std::wstring(expression) : std::wstring{};
+}
 // GFM stays on; each optional RichMarkdown family follows its own preference.
 DxUi::RichText::MarkdownExtensions MarkdownExtensionsFor(const Settings &settings) noexcept
 {
@@ -862,12 +889,17 @@ void Application::SelectionChanged(bool refreshTools)
         std::array<bool, 4> formats{};
         {
             EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::InlineSemantics);
+            // In-place math source previews what is being typed; only the region itself is read.
+            if (const auto region = editor->GetSemanticSourceRegion();
+                region && region->source.first <= region->source.last && region->source.last <= source.Length() &&
+                selection.caret >= region->source.first && selection.caret <= region->source.last)
+                expression = MathRegionExpression(*region, source.Slice(region->source.first, region->source.last));
             if (syntax)
                 for (const auto &node : syntax->Inlines())
                     if (selection.caret >= node.source.first && selection.caret <= node.source.last)
                     {
                         using Kind = DxUi::RichText::MarkdownInlineKind;
-                        if (node.kind == Kind::Math && node.value.size() <= DxUi::RichText::MathMaximumSourceUnits)
+                        if (node.kind == Kind::Math && expression.empty() && node.value.size() <= DxUi::RichText::MathMaximumSourceUnits)
                             expression = node.value;
                         if (node.kind == Kind::Strong)
                             formats[0] = true;
@@ -1411,7 +1443,8 @@ void Application::LocalSource()
 {
     if (editor->GetSemanticSourceRegion())
     {
-        (void)editor->EndSemanticSourceEdit(host);
+        if (editor->EndSemanticSourceEdit(host))
+            SelectionChanged();
         return;
     }
     const auto semantic = editor->GetAcknowledgedSemanticDocument(host);
@@ -1423,21 +1456,24 @@ void Application::LocalSource()
         for (std::size_t index = elements.size(); index > 0; --index)
         {
             const auto &element = elements[index - 1];
-            const bool atCaret = selection.caret >= element.source.first && selection.caret <= element.source.last;
-            // Math keeps its guarded exact-delimiter draft even where the pin also offers a native region.
-            if (element.role == DxUi::RichText::SemanticRole::Math && selection.caret >= element.source.first &&
-                selection.caret <= WithoutLineEnd(source, element.source))
-                break;
-            if (atCaret && element.role != DxUi::RichText::SemanticRole::Math && editor->BeginSemanticSourceEdit(host, semantic, index - 1))
+            // Code, diagrams and math edit their exact source in place. A display equation
+            // ends at its closing delimiter, so the following line is not inside it.
+            const auto elementLast =
+                element.role == DxUi::RichText::SemanticRole::Math ? WithoutLineEnd(source, element.source) : element.source.last;
+            if (selection.caret >= element.source.first && selection.caret <= elementLast &&
+                editor->BeginSemanticSourceEdit(host, semantic, index - 1))
             {
                 CloseDrawers();
+                // The block caption and live equation preview follow the region.
+                SelectionChanged();
                 return;
             }
         }
     }
     std::size_t first = selection.Start(), last = selection.End();
-    // Exact math source is a syntax fact; an unrelated preview may still be
-    // preparing. Raster acknowledgment is required only for in-document editors.
+    // When the native region refuses (pending preparation), math falls back to a guarded
+    // draft of its exact envelope. Exact math source is a syntax fact; an unrelated preview
+    // may still be preparing. Raster acknowledgment is required only for in-document editors.
     if (const auto document = editor->GetSemanticDocument())
         for (const auto &element : document->Elements())
             if (element.role == DxUi::RichText::SemanticRole::Math && selection.caret >= element.source.first &&

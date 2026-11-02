@@ -51,7 +51,7 @@ identical CI tests, or `-Mode Full` for an explicit full profile. Pending CI is 
 | Find / settings / focus mode | Ctrl+F / Ctrl+, / F11 |
 | Focus selected-text tools | Alt+F10 |
 
-Native code/diagram source regions edit in place. Other selected text or the current line opens a local source
+Native code, diagram and equation source regions edit in place. Other selected text or the current line opens a local source
 draft; Apply commits one undoable edit and Esc cancels. Split's source mirror is read-only and follows selection.
 Right-click or use the context-menu key for headings, inline styles, lists, insertion and table-row/column actions.
 Theme and outline preferences apply to the running window and persist under `%LOCALAPPDATA%\RedTilde`.
