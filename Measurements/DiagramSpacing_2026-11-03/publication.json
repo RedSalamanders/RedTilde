@@ -1,12 +1,73 @@
 {
-  "status": "PREPUSH_PENDING",
-  "upstreamPr": "https://github.com/RedSalamanders/DxUi/pull/163",
-  "binarySha256": "86AA6DC3D55A85AA526B051754B8DD2E4B27ACF17894496C689F66B8E26C90F0",
+  "status": "PREPUSH_NONINTERACTIVE_PASSED",
+  "qualification": false,
+  "platform": "x64",
+  "configuration": "Release",
+  "sourceCommit": "74ca9b980a17c09aef28c806ce3f773069944f8c",
   "dependency": "703a96c788a79c1e7b28097226a2ca0a735f11bc",
-  "scope": "Publication notes only after the original validated implementation; original evidence is unchanged.",
-  "compiledSourceIdentity": "c07175b34e334c81e2a1b99e100ffaf351d22eb0a358cdf65b43f647f6598f03",
-  "publicationSourceIdentity": "fbbea4d0cafdc05c603e7c0a2982b83b0a7022c8ac79d240f069a9e46d05c04a",
-  "compiledInputsAndExecutableUnchanged": true,
-  "buildReceiptSha256": "1CC1B1C68B088BF8603DFEDCDCB56486DB671C58ED6FC4F6B195CB563C891BFD",
-  "originalSourceIdentity": "e57d6a29f1b7343f0de22990e49aabe2ff4da4d170c825a87dc2ddf5ce1dbfc4"
+  "upstreamPr": "https://github.com/RedSalamanders/DxUi/pull/163",
+  "originalValidation": {
+    "comparison": "review.html",
+    "compiledSourceIdentity": "c07175b34e334c81e2a1b99e100ffaf351d22eb0a358cdf65b43f647f6598f03",
+    "binarySha256": "86AA6DC3D55A85AA526B051754B8DD2E4B27ACF17894496C689F66B8E26C90F0",
+    "receiptSha256": "C9E3897D91BAB01966B83D7FA40C43B0BB5041906F4C7C4DDD7324830279F759",
+    "sourceIdentity": "e57d6a29f1b7343f0de22990e49aabe2ff4da4d170c825a87dc2ddf5ce1dbfc4",
+    "focusedCaptures": 30
+  },
+  "documentationRefresh": {
+    "compiledSourceIdentity": "c07175b34e334c81e2a1b99e100ffaf351d22eb0a358cdf65b43f647f6598f03",
+    "buildReceiptSha256": "1CC1B1C68B088BF8603DFEDCDCB56486DB671C58ED6FC4F6B195CB563C891BFD",
+    "binarySha256": "86AA6DC3D55A85AA526B051754B8DD2E4B27ACF17894496C689F66B8E26C90F0",
+    "compiledInputsAndExecutableUnchanged": true,
+    "sourceIdentity": "fbbea4d0cafdc05c603e7c0a2982b83b0a7022c8ac79d240f069a9e46d05c04a"
+  },
+  "finalBuild": {
+    "errors": 0,
+    "compiledSourceIdentity": "655991203ecb87c62de556f630e905497fed23e2d139d3c5f7233b6854af87b5",
+    "warnings": 0,
+    "binarySha256": "56AC57DF5C29D5474CF0757E971E386A828BE30ABF776BC9EC5C47E0CD1BEE41",
+    "receiptSha256": "EC33F663CD4D754FED5F241D77BC812B17E18BFAC61140F00C88E59B3D4E463A",
+    "sourceIdentity": "feb7936c4992adc79ead35883497cc92092dd03918390e5502324b045694f03e",
+    "rebuildCause": "Byte-preservation Git attributes are governed repository build inputs."
+  },
+  "finalPrePush": {
+    "logSha256": "62FFC68B5AFB378A29918E8D1EF545C1A16EBE6ED9FF8B229623105A7CD68088",
+    "nativeReceiptSha256": "662BAE32EB3B7EF9FBDA7A97100EE0C77307F5546DF79405A90663EE4E0EBB69",
+    "command": "./Test-Changes.ps1 -Mode PrePush -Configuration Release",
+    "nativeCases": 73,
+    "passed": true,
+    "fixtureLimitations": [
+      "Two symbolic-link guidance fixtures skipped because the host cannot create symbolic links"
+    ],
+    "runId": "20261103T203911972Z-33072-0e93ce67e1114f9eaecf32a9d14fd540",
+    "standardCaptures": 32
+  },
+  "preservedProductInputs": {
+    "count": 30,
+    "scope": "Changed product source, resources, dependency lock, tests and examples from the saved pre-publication inventory",
+    "matchOriginalValidatedBytes": true
+  },
+  "preservedOriginalEvidence": {
+    "rawLogsUnchanged": true,
+    "verifiedOriginalEvidenceFiles": 239,
+    "indexPreservesOriginalBytes": true
+  },
+  "performance": {
+    "comparison": "unpaired",
+    "accepted": false,
+    "metrics": {
+      "scenario": "sample-richtext-native-hidden",
+      "cleanFrames": 60,
+      "cleanRenderFps": 62.6588,
+      "dirtyFrames": 120,
+      "dirtyEditAndRenderMs": 0.26973,
+      "workingSetBytes": 51486720,
+      "privateBytes": 41680896,
+      "dpi": 144,
+      "widthPx": 2040,
+      "heightPx": 1170,
+      "qualification": "initial application baseline only; forced native renders, not presentation FPS or a paired non-regression claim"
+    }
+  },
+  "boundary": "The original focused captures and validation receipt keep their original source/executable identities. This publication run checks the unchanged product inputs after preserving evidence bytes in Git. Native ARM64, other configurations, physical input/AT, matched performance and release gates remain separate."
 }
