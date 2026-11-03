@@ -1,0 +1,12 @@
+{
+  "status": "PREPUSH_PENDING",
+  "upstreamPr": "https://github.com/RedSalamanders/DxUi/pull/163",
+  "binarySha256": "86AA6DC3D55A85AA526B051754B8DD2E4B27ACF17894496C689F66B8E26C90F0",
+  "dependency": "703a96c788a79c1e7b28097226a2ca0a735f11bc",
+  "scope": "Publication notes only after the original validated implementation; original evidence is unchanged.",
+  "compiledSourceIdentity": "c07175b34e334c81e2a1b99e100ffaf351d22eb0a358cdf65b43f647f6598f03",
+  "publicationSourceIdentity": "fbbea4d0cafdc05c603e7c0a2982b83b0a7022c8ac79d240f069a9e46d05c04a",
+  "compiledInputsAndExecutableUnchanged": true,
+  "buildReceiptSha256": "1CC1B1C68B088BF8603DFEDCDCB56486DB671C58ED6FC4F6B195CB563C891BFD",
+  "originalSourceIdentity": "e57d6a29f1b7343f0de22990e49aabe2ff4da4d170c825a87dc2ddf5ce1dbfc4"
+}

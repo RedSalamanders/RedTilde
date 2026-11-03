@@ -8,7 +8,7 @@ Source repository: [RedSalamanders/RedTilde](https://github.com/RedSalamanders/R
 
 RedTilde keeps a single Markdown source and undo history while you switch between **Compose**, **Source** and
 **Split**. Select text for contextual tools, navigate the outline, edit a block's source, insert local images,
-or draw supported Mermaid flowchart, state and class diagrams. Inline/display equations render natively in the document. Your files stay local.
+or draw supported Mermaid flowchart, state, class, sequence, pie, ER, Gantt and mind-map diagrams. Inline/display equations render natively in the document. Your files stay local.
 
 This is an **experimental 0.1 application**, built against an exact DxUi API-4 commit with native rich text,
 math/diagrams and shared presentation APIs. [Rich-text PR #89](https://github.com/RedSalamanders/DxUi/pull/89)
@@ -43,6 +43,7 @@ identical CI tests, or `-Mode Full` for an explicit full profile. Pending CI is 
 | Action | Shortcut |
 | --- | --- |
 | New / Open / Save / Save As | Ctrl+N / Ctrl+O / Ctrl+S / Ctrl+Shift+S |
+| Open Folder | Ctrl+Shift+O |
 | Compose / Source / Split | Ctrl+1 / Ctrl+2 / Ctrl+3 |
 | Bold / Italic / Undo / Redo | Ctrl+B / Ctrl+I / Ctrl+Z / Ctrl+Y |
 | Local block source | F2 |
@@ -58,8 +59,10 @@ Theme and outline preferences apply to the running window and persist under `%LO
 Settings › Markdown syntax turns highlight, superscript, subscript, inserted text, wiki links, definition lists and
 abbreviations on or off individually; each is on by default and explains its syntax.
 
-The optional Files pane lists Markdown in the current document's folder and subfolders. Single-click or Enter
-opens through the existing Open and unsaved-changes flow; it does not manage files. See the
+**File → Open Folder...** chooses a persistent root for the Files pane. The first opened file establishes its
+parent when no root exists. Opening other files, Save As, and New keep that root; restarting restores it and the
+pane's saved visibility. The optional pane lists `.md` and `.markdown` files throughout its bounded folder tree.
+Single-click or Enter opens through the existing Open and unsaved-changes flow; it does not manage files. See the
 [design contract](Specs/UI/UI_DesignSystem.md). The [design-refresh record](Specs/Plans/WIP/DesignRefresh_2026-10-22.md)
 keeps the proposal art; its remaining gate is R10, sequenced from the [plan index](Specs/Plans/WIP/README.md).
 
@@ -70,10 +73,16 @@ Debounced session snapshots offer review, restore or discard after a crash. Rest
 
 ## Media and previews
 
+Fenced C-like, JSON, PowerShell and diff code uses DxUi's bounded native syntax colors. Unknown languages retain
+ordinary code ink. The [Markdown showcase](docs/examples/markdown-showcase.md) includes code, tables, Unicode,
+lists, math and diagrams; the [folder notebook](docs/examples/workspace/README.md) exercises nested navigation.
+
 Local PNG/JPEG/BMP/GIF/TIFF images resolve relative to the document file and decode on a worker. Missing or
 unsupported images retain their alternative text. Network paths and remote resources are declined by default. Settings can explicitly enable bounded anonymous
 HTTP(S) image loading; switching it off cancels remote work and removes remote pixels. Links remain inert.
-Mermaid supports the pinned native flowchart, state and class subsets; unsupported syntax stays editable fenced source.
+Mermaid supports the pin's bounded flowchart, state, class, sequence, pie, ER, Gantt and mind-map profiles;
+unsupported syntax stays editable fenced source. The [family gallery](docs/examples/mermaid-supported-families.md)
+shows one small example of each profile; these native profiles do not imply full Mermaid compatibility.
 Inline/display mathematics supports fractions, indexed roots, simultaneous scripts, symbols, text, alphabets,
 accents, paired delimiters, matrices, cases and aligned/gathered rows, preserving `$...$`/`$$...$$` and slash delimiters.
 Display `$$` or `\[` / `\]` delimiters stand on their own lines; a one-line `$$x$$` stays literal.

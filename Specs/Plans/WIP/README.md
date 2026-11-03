@@ -1,6 +1,8 @@
 # Active plans
 
-- **ACTIVE**: [DxUi 2 November delivery adoption](DxUiDeliveryAdoption_2026-11-02.md). Lock `5fc4d4c3` (API 4),
+- [WIP folder quality](WipFolderQuality_2026-10-31.md) — reviewed routing record preserving delivery decisions and the remaining implementation sequence.
+
+- **ACTIVE**: [DxUi 2 November delivery adoption](DxUiDeliveryAdoption_2026-11-02.md). Development lock `2e775e8d` (API 4), readable diagram strokes, shared display fixes and bounded sequence actor/note/numbering expansion,
   per-family RichMarkdown syntax preferences, declined wiki/data images, own-line display math, guarded math F2 and
   adapter repairs for the pin's behavior changes. Release/ASan, ARM64 and physical/interactive gates remain open.
 

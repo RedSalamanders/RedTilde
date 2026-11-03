@@ -28,7 +28,7 @@ button or rich-text behavior is implemented in canonical DxUi and consumed throu
 consumer code must not copy shared controls or reach into library internals.
 
 The available Files pane owns no separate document model and provides listing/opening only. It lists `.md` and
-`.markdown` paths from the current document's folder using an application worker with depth-8 and
+`.markdown` paths from a persistent application-owned selected root using an application worker with depth-8 and
 5,000-total-visited-entry limits. This limit counts entries examined, including names that are not Markdown files.
 The worker publishes only to the UI owner;
 request/root identities cancel obsolete work and reject stale completions. Coalesced directory notifications

@@ -58,7 +58,7 @@ void Application::RefreshOutline()
 void Application::UpdateCurrentFileDirtyBadge(bool dirty)
 {
     lastFilesDirty = dirty;
-    const auto requested = settings.showFiles ? documentPath.parent_path() : std::filesystem::path{};
+    const auto requested = settings.showFiles ? settings.filesRoot : std::filesystem::path{};
     if (requested != folderRoot)
     {
         RefreshFiles();
@@ -116,7 +116,7 @@ void Application::RefreshFiles(bool rootChanged)
             Layout();
         }
     };
-    const auto requested = settings.showFiles ? documentPath.parent_path() : std::filesystem::path{};
+    const auto requested = settings.showFiles ? settings.filesRoot : std::filesystem::path{};
     if (rootChanged || requested != folderRoot)
     {
         if (requested != folderRoot)
@@ -143,6 +143,14 @@ void Application::RefreshFiles(bool rootChanged)
             folderAdmissionStatus = result;
         }
     }
+    if (rootChanged && folderSnapshot)
+        for (const auto &entry : folderSnapshot->entries)
+            if (entry.directory)
+            {
+                const auto relative = documentPath.lexically_relative(entry.path);
+                if (!relative.empty() && *relative.begin() != L"..")
+                    collapsedFolders.erase(entry.path);
+            }
     filesTitle->SetText(requested.empty() ? Resource(IDS_FILES) : requested.filename().empty() ? requested.native() : requested.filename().native());
     filesTitle->SetTooltipText(requested.native());
     filesTitle->SetAccessibleHelpText(requested.native());
@@ -204,6 +212,8 @@ void Application::RefreshFiles(bool rootChanged)
                                       [&](const auto &path) { return MatchesFilesPath(snapshot, path, documentPath); });
     if (current != visibleFilePaths.end())
         filesTree->SetSelectedItemId(static_cast<std::uint64_t>(current - visibleFilePaths.begin() + 1));
+    else
+        filesTree->SetSelectedItemId(std::nullopt);
     auto footer = Text(IDS_FILESCOUNT, snapshot.markdownCount);
     const auto append = [&](std::wstring detail) { footer = Text(IDS_FILESFOOTERDETAIL, footer, detail); };
     if (FAILED(snapshot.status) || snapshot.errorCount)
@@ -244,6 +254,36 @@ void Application::FolderCompleted()
         folderSnapshot = std::move(result);
         RefreshFiles();
     }
+}
+void Application::EnsureFilesRoot()
+{
+    if (!settings.filesRoot.empty() || documentPath.empty())
+        return;
+    std::error_code error;
+    const auto absolute = std::filesystem::absolute(documentPath, error);
+    if (error)
+        return;
+    settings.filesRoot = absolute.parent_path().lexically_normal();
+    SavePreferences();
+}
+void Application::SelectFilesRoot(const std::filesystem::path &path)
+{
+    if (!path.is_absolute() || path.native().find(L'\0') != std::wstring::npos)
+        return;
+    settings.filesRoot = path.lexically_normal();
+    settings.showFiles = true;
+    filesFilter->SetText(L"");
+    RefreshFiles(true);
+    Layout();
+    SavePreferences();
+    host.SetFocusControl(filesTree, !options.headless);
+}
+void Application::OpenFolder()
+{
+    // Selecting a browser root never replaces source or needs discard consent.
+    const auto path = PickFile(false, false, true);
+    if (!path.empty())
+        SelectFilesRoot(path);
 }
 void Application::OpenPath(const std::filesystem::path &path)
 {
@@ -499,6 +539,7 @@ void Application::FileMenu(bool overflow)
     {
         add(IDS_NEW, Command::New, L"Ctrl+N");
         add(IDS_OPEN, Command::Open, L"Ctrl+O");
+        add(IDS_OPENFOLDER, Command::OpenFolder, L"Ctrl+Shift+O");
         add(IDS_SAVEAS, Command::SaveAs, L"Ctrl+Shift+S");
     }
     else

@@ -1,0 +1,71 @@
+{
+  "sourceIdentity": "5eabd933b4e43cf390f7e5cb91ecc08490aa5e92025a52714e0b8b5c52c09a26",
+  "binarySha256": "B31CFAB1456829266CEEA988113A06D26AB95E11BE19293BA4FDDC952A0F0A81",
+  "dependency": "5fc4d4c383bfa4891ee57a138924107bbbf11a2e",
+  "interactive": false,
+  "results": [
+    {
+      "document": "example.md",
+      "sourceSha256": "125E8F55C75E3FA6DA799BA32AD7F935E8B58EA0B07EBA1747081A00AE4E74D0",
+      "capture": "D:\\RedTilde\\.build\\folder-samples-20261103\\example-md.png",
+      "captureSha256": "6C2FF648C72AC7F1C37437BE74261EF3251E7A9548C30180B9BAF45BE99F6AD9",
+      "passed": true
+    },
+    {
+      "document": "markdown-showcase.md",
+      "sourceSha256": "A42FB8240E193ED7C5BD708A6E47BB993440893C04E72BAD2B7DFFA5F57B4AF3",
+      "capture": "D:\\RedTilde\\.build\\folder-samples-20261103\\markdown-showcase-md.png",
+      "captureSha256": "4D198366D5B0D349B17F886ECC70217EF0F16AFE937F9FE1A8C0C77444582B0E",
+      "passed": true
+    },
+    {
+      "document": "syntax-options.md",
+      "sourceSha256": "9DE3CFCC373B331AB9379E46E345D53409DB95B69E73D3CBDA7BC56747722998",
+      "capture": "D:\\RedTilde\\.build\\folder-samples-20261103\\syntax-options-md.png",
+      "captureSha256": "3D9B3EFC4EF8405A0256FFA3E3745D091CF08FFDC91AD34D88BB6FC51DF87AB2",
+      "passed": true
+    },
+    {
+      "document": "front-matter-yaml.md",
+      "sourceSha256": "50EDC6747AA2254645BB2B9ECB8F596BD2A64480DA207EAE95E97B0662B7E199",
+      "capture": "D:\\RedTilde\\.build\\folder-samples-20261103\\front-matter-yaml-md.png",
+      "captureSha256": "7AC4084BE2D2448337A16BBF4A56DF70D7EDB8A9A1D5B35670BCA131768EB876",
+      "passed": true
+    },
+    {
+      "document": "front-matter-toml.md",
+      "sourceSha256": "C838B889D9DE2E14A5F3D6F0CA0DACDAE237346880D1723CC9DBD597D8C1F7D6",
+      "capture": "D:\\RedTilde\\.build\\folder-samples-20261103\\front-matter-toml-md.png",
+      "captureSha256": "E70F813AB8D5F9E7C47373968F32F622362AB898A1FF3D08D5D119A663D1E674",
+      "passed": true
+    },
+    {
+      "document": "workspace/README.md",
+      "sourceSha256": "1CBAA3B557DF414FA2A31EB5C24D8AA1E490D29440C9DCB807F35FAA4C6E14A3",
+      "capture": "D:\\RedTilde\\.build\\folder-samples-20261103\\workspace-README-md.png",
+      "captureSha256": "6E340C027DBDF4A3E03586A36B828A2BA48B97C90EEDDB306A74CC5A94A8CA7E",
+      "passed": true
+    },
+    {
+      "document": "workspace/notes/meeting.md",
+      "sourceSha256": "62421B751C7363583D10A7496D41E55952A3A9EDF017A30D2BBD8E10AB4BE183",
+      "capture": "D:\\RedTilde\\.build\\folder-samples-20261103\\workspace-notes-meeting-md.png",
+      "captureSha256": "E99454BE764C0656C13EB4E67D0A131FF05D343B29EB2EC73DECCD31A0F3FA40",
+      "passed": true
+    },
+    {
+      "document": "workspace/notes/research.markdown",
+      "sourceSha256": "DAE5AC74A090C3207C5678C0EC3016BC10A50AB5AE771995736E60487E512823",
+      "capture": "D:\\RedTilde\\.build\\folder-samples-20261103\\workspace-notes-research-markdown.png",
+      "captureSha256": "B963913CDD79EF5BF01BC7270964B8FA0C973B91E0D41575A85DB85D3A1A2E24",
+      "passed": true
+    },
+    {
+      "document": "workspace/guides/writing.md",
+      "sourceSha256": "9377EB5256C1BA39D3BBD1631F9169A04543E5A4DB8064D24A8102EE5E54F877",
+      "capture": "D:\\RedTilde\\.build\\folder-samples-20261103\\workspace-guides-writing-md.png",
+      "captureSha256": "649B0CC2CB59BBA990E381546A618D4A84F362092020EEB3FDE0EBA92F9C75AC",
+      "passed": true
+    }
+  ]
+}

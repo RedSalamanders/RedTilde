@@ -16,3 +16,9 @@ Tests/Fixtures/reference-dark.md -text whitespace=trailing-space,space-before-ta
 Measurements/RedesignCompletion_2026-10-26/performance-09f22877/** -text whitespace=trailing-space,space-before-tab,cr-at-eol
 Measurements/RedesignCompletion_2026-10-26/qualification-30fb0c2/** -text whitespace=trailing-space,space-before-tab,cr-at-eol
 Measurements/RedesignCompletion_2026-10-26/editor-attempts-30fb0c2/** -text whitespace=trailing-space,space-before-tab,cr-at-eol
+Measurements/FolderNavigation_2026-11-03/** -text whitespace=trailing-space,space-before-tab,cr-at-eol
+Measurements/MermaidDisplay_2026-11-03/** -text whitespace=trailing-space,space-before-tab,cr-at-eol
+Measurements/MermaidSyntax_2026-11-03/** -text whitespace=trailing-space,space-before-tab,cr-at-eol
+Measurements/DiagramSpacing_2026-11-03/** -text whitespace=trailing-space,space-before-tab,cr-at-eol
+# Immutable raw runner output retains its original trailing spaces.
+Measurements/FolderNavigation_2026-11-03/*.log -text whitespace=-blank-at-eol,-blank-at-eof,cr-at-eol

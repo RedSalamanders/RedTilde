@@ -82,7 +82,7 @@ adoption. Reanalysis changes presentation only: source, selection, undo history,
 unchanged. Text for a disabled family remains exact literal source. Undo and redo decline while a changed
 text-service preview is active and return when it is cancelled or committed.
 
-Shortcuts: Ctrl+N/O/S, Ctrl+Shift+S, Ctrl+Z/Y, Ctrl+B/I, Ctrl+F, Ctrl+1/2/3 for Compose/Source/Split,
+Shortcuts: Ctrl+N/O/S, Ctrl+Shift+O for Open Folder, Ctrl+Shift+S, Ctrl+Z/Y, Ctrl+B/I, Ctrl+F, Ctrl+1/2/3 for Compose/Source/Split,
 Ctrl+Shift+E for the Files pane, F2 local source, F11 focus mode, Ctrl+, settings, Esc dismiss/restore. Keep native
 IME handling ahead of commands that could interrupt composition. Ctrl accelerators exclude Alt so AltGr text reaches
 native translation; F2/F11 are unmodified, F3 permits only optional Shift, and Alt+F10 excludes Ctrl/Shift.
@@ -92,10 +92,31 @@ mutually exclusive toggle state exposed through UI Automation; they are not a Ra
 
 ## Files navigation
 
-The available optional Files tree lists `.md` and `.markdown` files in the current document's folder and subfolders. It
+The available optional Files tree lists `.md` and `.markdown` files in the persistent selected root and subfolders. It
 supports listing and opening only. Opening a row uses the ordinary Open path, prompts before replacing dirty
-source, and retains the existing file-safety behavior. Save As and Open change the tree root. An unsaved document
-shows an explanation in place of a listing.
+source, and retains the existing file-safety behavior. The first opened/saved file seeds an empty root. After that,
+Open, Save As and New keep it; Open Folder explicitly changes it without replacing the source. Restart restores
+the root and pane visibility. Without a root, the pane explains Open Folder and Open File.
+
+### Fenced code presentation
+
+The authoritative editor registers DxUi's public `TokenizeBuiltinCode` callback. C-like, JSON, PowerShell and
+diff fences receive bounded keyword, literal and comment ink during native preparation. Unknown languages or
+capacity refusal retain ordinary complete code ink. Tokenization never changes source, selection, history or
+dirty state, and composition never parses code. The existing Subtle code frame supplies language/line presentation;
+an application code-copy command remains separate work.
+Unordered task-list presentation should use the checkbox as its sole visible list marker while preserving its exact source
+anchor, interaction and accessibility. Ordered tasks retain their number. Task markers use the theme accent; high contrast
+uses foreground ink. The Writing preference **Strike through completed tasks** is disabled by default and changes only
+Compose/Split presentation. It strikes the nearest checked item's body, including inline formatting and continuation
+paragraphs; nested unchecked or ordinary list items keep their own state. Toggling it never inserts `~~`, changes source,
+selection, revision, undo/redo history or dirty state. Explicit source strikethrough remains independent of this preference.
+
+Subtle tables reserve ten DIP on each horizontal cell side when their width permits; intrinsic column sizing includes
+those insets. Inline-code chips reserve three DIP at both text endpoints in native glyph metrics so their background
+does not touch the letters or cover adjacent prose. Wrapping, RTL carets and source mapping use those same metrics.
+Fenced-code content retains its separate frame/gutter spacing. Adjacent labeled diagram ranks reserve measured label
+space along the graph direction, including endpoint cardinalities; simple labeled arrows use that inter-box corridor.
 
 Enumeration is bounded and asynchronous: maximum depth 8 and 5,000 total visited entries. Hidden/system entries
 are excluded; reparse points can be listed but are never traversed. Prune directories without Markdown below
@@ -153,11 +174,22 @@ request kind: wiki-target (`![[target]]`) and data requests are declined with `E
 or network access, even when a same-named local file exists. RedTilde resolves no wiki targets and installs no link
 activation handler, so wiki links stay inert.
 
-Mermaid uses the exact library pin's native flowchart subset plus bounded state/class profiles. State syntax
-supports direction, simple declarations/quoted aliases, initial/final `[*]`, transitions with colon labels and
-state descriptions. Class syntax supports simple declarations, colon members, associations and inheritance.
-The deterministic native graph router need not match Mermaid coordinates. Unsupported families, composite
-states, block class declarations, namespaces, multiplicities, styles and directives remain exact fenced source.
+Mermaid uses the exact library pin's bounded flowchart, state, class, sequence, pie, entity-relationship, Gantt and
+mind-map profiles. Supported grouping, members, multiplicities and native style subsets follow that pin's
+`docs/rich-text.md`; do not freeze an older family list into app behavior or examples. The deterministic native
+graph/timeline router need not match Mermaid coordinates. Advanced constructs outside each documented grammar,
+arbitrary CSS and interaction directives remain exact fenced source. Each supported family must remain a native
+diagram in Compose, with exact source/history through Source, Split and F2. Source fallback is local to an
+unsupported object; a supported styled label must not force unrelated Markdown into Source presentation.
+
+The adopted sequence extension adds actor figures and plain aliases; chronological left/right/over notes;
+bare `autonumber` counting messages from one, excluding notes; and solid/dotted messages without arrowheads.
+Derived numbers do not enter the Markdown source. Notes retain their text and order in accessibility, and
+F2 edits use ordinary source undo/redo. Directionless flowchart headers default to top-to-bottom placement.
+Custom number arguments, activations, control fragments and creation/destruction remain whole-fence fallbacks.
+Default diagram connections, arrowheads, lifelines and outlines use effective foreground ink in every theme;
+faint decorative Markdown borders do not control meaningful diagram structure. Authored palettes and explicit
+snapshot/export stroke choices retain the library's separate contract.
 
 Mathematics uses native source-backed objects throughout the document and in the read-only inspector. RichMarkdown
 recognizes inline `$...$` / `\(...\)`. Display math is a source-owned block whose `$$` or `\[` / `\]` delimiters

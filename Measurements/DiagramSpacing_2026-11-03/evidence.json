@@ -1,0 +1,115 @@
+{
+  "status": "FULL_NONINTERACTIVE_PASSED",
+  "qualification": false,
+  "dependency": "703a96c788a79c1e7b28097226a2ca0a735f11bc",
+  "apiRevision": 4,
+  "sourceIdentity": "e57d6a29f1b7343f0de22990e49aabe2ff4da4d170c825a87dc2ddf5ce1dbfc4",
+  "compiledSourceIdentity": "c07175b34e334c81e2a1b99e100ffaf351d22eb0a358cdf65b43f647f6598f03",
+  "binarySha256": "86AA6DC3D55A85AA526B051754B8DD2E4B27ACF17894496C689F66B8E26C90F0",
+  "buildReceiptSha256": "35A2F18884359DEC6F95CE3C1AF2CEB0D85ED1F7363B10856ADA3DBE8081222A",
+  "platform": "x64",
+  "configuration": "Release",
+  "nativeCases": 73,
+  "standardCaptures": 32,
+  "customCaptures": 30,
+  "beforeCaptures": 6,
+  "build": {
+    "sha256": "74DC0B9D05ED24C45E10023A9DB3C7AF2B99B6C6E2B1D5BCAD4953A2200A2CE7",
+    "log": ".build/logs/build-x64-Release-20261103T173009766Z-9c3fe7246b684cbc940ab34ec8b6027f.log",
+    "warnings": 0,
+    "dependencyFingerprint": "ececb7aa1ff8de7fe1ccb8b1554300d6218d2ba72838f9d9e947f631ec49cf6c",
+    "errors": 0
+  },
+  "nativeSelection": {
+    "sha256": "9DF3F2CD526F3668F6AB6A9FF21E92330998E929611D77280A20639DF4FA8534",
+    "runId": "20261103T173252095Z-57616-17358b27076d4e19b56b4dbf3dc1f34b",
+    "passed": true,
+    "scopes": [
+      "Storage",
+      "Settings",
+      "Recovery",
+      "Editor"
+    ]
+  },
+  "finalAffected": {
+    "fixtureLimitations": [
+      "Two symbolic-link guidance fixtures skipped because the host cannot create symbolic links"
+    ],
+    "receiptVerifiedSkipBuild": true,
+    "tooling": "All RedTilde validators passed",
+    "sha256": "5F2671F9E798AA2562232476BA26227ED3016A4DC25CCAE385D2577F8D471E38",
+    "behavioralScopes": "Captures,Crash,Editor,Performance,Preferences,RecoveryRestart",
+    "logSha256": "1C8888C3C763A04333DF05081A0862C1CE68F5D00178C3CCED2F7CC8CC0AD94D",
+    "runId": "20261103T174036300Z-43160-1e46d4b9a4f44adc9ff2b02a08e57d20",
+    "passed": true
+  },
+  "comparison": {
+    "reviewed": true,
+    "manifest": "captures.json",
+    "dpi": [
+      96,
+      144,
+      192
+    ],
+    "hidden": true,
+    "inspection": "All 30 native captures reviewed in normalized inspection crops; original full frames and sidecars retained. Writing settings capture also reviewed.",
+    "manifestSha256": "43248CB7FA8795EEAA7F5832FB2038A3A30F94C8BBDDD1405A30D32964CB9E81",
+    "themes": [
+      "Light",
+      "Dark"
+    ],
+    "html": "review.html",
+    "htmlSha256": "18D91CB8B5DD218CFCF435A0312A56E5F28387C5282765A42CCD16A731D84A76"
+  },
+  "commands": [
+    "./Test-Changes.ps1 -Configuration Release -Scopes Storage,Settings,Recovery,Editor",
+    "./restore-dxui.ps1 -Platform ARM64",
+    "./Test-Changes.ps1 -Configuration Release -SkipBuild",
+    ".build/layout-padding-tasks-20261103/Capture-Details.ps1 -Phase after"
+  ],
+  "performance": {
+    "boundary": "Initial forced-native diagnostic only, not presentation FPS, matched non-regression or total-cost acceptance.",
+    "metrics": {
+      "scenario": "sample-richtext-native-hidden",
+      "cleanFrames": 60,
+      "cleanRenderFps": 62.416,
+      "dirtyFrames": 120,
+      "dirtyEditAndRenderMs": 0.198553,
+      "workingSetBytes": 51609600,
+      "privateBytes": 41701376,
+      "dpi": 144,
+      "widthPx": 2040,
+      "heightPx": 1170,
+      "qualification": "initial application baseline only; forced native renders, not presentation FPS or a paired non-regression claim"
+    },
+    "accepted": false,
+    "comparison": "unpaired"
+  },
+  "firstFailures": {
+    "sharedRenderer": "See the exact shared receipt for the obsolete geometry oracle, dense-join negative control, disk/linker failures and path/permission/tooling recoveries.",
+    "retained": true,
+    "consumerCurrentPin": "No native or capture failures"
+  },
+  "preservation": {
+    "binariesHeadersAndIdentitiesPreserved": true,
+    "method": "Hash-verified copy to the existing approved C workspace before retirement",
+    "retiredGeneratedTrees": [
+      "Current SDK x64 Release intermediates",
+      "Current SDK x64 dependency download cache"
+    ]
+  },
+  "dependencyRestoration": {
+    "source": "Clean independent detached checkout; single matching library through the public consumer interface",
+    "ARM64NativeBuildOrExecution": false,
+    "x64": true,
+    "ARM64Metadata": true,
+    "published": false
+  },
+  "remainingGates": [
+    "Other native build configurations",
+    "Native ARM64 execution",
+    "Real foreground input and physical IME/AT",
+    "Matched performance/resource acceptance",
+    "Hosted CI and release/publication"
+  ]
+}

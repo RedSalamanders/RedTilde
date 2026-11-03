@@ -88,7 +88,9 @@ enum class Command
     SyntaxInserted,
     SyntaxWikiLinks,
     SyntaxDefinitionLists,
-    SyntaxAbbreviations
+    SyntaxAbbreviations,
+    OpenFolder,
+    StrikeCompletedTasks
 };
 struct LaunchOptions
 {
@@ -232,7 +234,7 @@ class Application
     } identityMeasure;
     DxUi::TextField *filesFilter{}, *replaceText{};
     DxUi::Button *filesToggle{}, *panelToggle{}, *settingsToggle{}, *overflowButton{}, *exitFocus{}, *fileMenu{}, *saveButton{}, *minimizeButton{},
-        *maximizeButton{}, *closeButton{}, *dimToggle{}, *remoteImagesToggle{}, *recoveryAction{}, *drawerClose{};
+        *maximizeButton{}, *closeButton{}, *dimToggle{}, *strikeTasksToggle{}, *remoteImagesToggle{}, *recoveryAction{}, *drawerClose{};
     DxUi::NumericStepper *readingWidth{}, *textScale{};
     DxUi::ScrollPanel *settingsScroll{};
     DxUi::CardPanel *selectionHintChip{};
@@ -328,6 +330,9 @@ class Application
     void RefreshOutline();
     [[nodiscard]] bool PreviewOutlineMatchesCommitted() const;
     void RefreshFiles(bool rootChanged = false);
+    void EnsureFilesRoot();
+    void SelectFilesRoot(const std::filesystem::path &path);
+    void OpenFolder();
     void UpdateCurrentFileDirtyBadge(bool dirty);
     void FolderCompleted();
     void OpenPath(const std::filesystem::path &path);
@@ -355,7 +360,7 @@ class Application
     void AskThen(std::function<void()> continuation);
     void Open();
     void Save(bool saveAs = false, bool force = false);
-    std::filesystem::path PickFile(bool saving, bool image = false);
+    std::filesystem::path PickFile(bool saving, bool image = false, bool folder = false);
     void Menu(POINT point, bool insertOnly = false, bool headingOnly = false);
     void LocalSource();
     void ApplyBlockSource();

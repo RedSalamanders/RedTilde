@@ -316,8 +316,12 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              value.appearance = Appearance::Paper;
              value.view = EditorView::Split;
              value.showOutline = false;
+             value.strikeCompletedTasks = true;
              const auto round = ParseSettings(SerializeSettings(value));
              Require(round.appearance == value.appearance && round.view == value.view && !round.showOutline, "settings round trip");
+             Require(round.strikeCompletedTasks && !ParseSettings("RedTilde.Settings/1\nstrikeCompletedTasks=2\n").strikeCompletedTasks &&
+                         !ParseSettings("RedTilde.Settings/1\n").strikeCompletedTasks,
+                     "completed-task preference defaults, validation and round trip");
              const auto invalid = ParseSettings("RedTilde.Settings/1\ntheme=2\nview=99\nscale=900\noutline=0\n");
              Require(invalid.appearance == Appearance::Dark && invalid.view == EditorView::Compose && !invalid.showOutline,
                      "field fallback isolated");
@@ -325,7 +329,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Success(SaveSettings(root, value), "save preferences");
              Settings loaded;
              Success(LoadSettings(root, loaded), "reload preferences");
-             Require(loaded.appearance == Appearance::Paper, "persisted preferences");
+             Require(loaded.appearance == Appearance::Paper && loaded.strikeCompletedTasks, "persisted preferences");
          });
     test("Outline.FencesAndUnicode",
          []

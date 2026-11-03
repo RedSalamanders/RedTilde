@@ -429,6 +429,7 @@ void RegisterFilesTests(const std::filesystem::path &root, const std::function<v
          {
              Settings value;
              value.showFiles = true;
+             value.filesRoot = LR"(C:\Invented notes\東京 = café\Drafts)";
              value.filesWidth = 340;
              value.readingWidth = 920;
              value.textScale = 125;
@@ -437,6 +438,7 @@ void RegisterFilesTests(const std::filesystem::path &root, const std::function<v
              value.focusMode = true;
              value.markdownSyntax = {false, true, false, true, false, true, false};
              const auto parsed = ParseSettings(SerializeSettings(value));
+             Require(parsed.filesRoot == value.filesRoot, "an absolute Unicode folder with spaces and equals signs round trips exactly");
              Require(parsed.showFiles && parsed.filesWidth == 340 && parsed.readingWidth == 920 && parsed.textScale == 125 &&
                          !parsed.dimInactiveBlocks && parsed.allowRemoteImages && !parsed.focusMode,
                      "design preferences round trip while focus mode remains session-local");
@@ -472,6 +474,19 @@ void RegisterFilesTests(const std::filesystem::path &root, const std::function<v
              Require(malformed.filesWidth == 280 && malformed.readingWidth == 760 && malformed.textScale == 100 && malformed.dimInactiveBlocks,
                      "negative, whitespace, overflow and trailing-junk numbers cannot enter live preferences");
              const auto old = ParseSettings("RedTilde.Settings/1\ntheme=3\nview=2\noutline=0\n");
+             Require(old.filesRoot.empty(), "older preferences have no browser root and can seed it from the first opened file");
+             for (const auto invalidRoot :
+                  {std::string("relative/notes"), std::string("C:relative"), std::string("\\root-relative"), std::string("C:\\bad\0folder", 13),
+                   std::string("C:\\bad\rfolder"), std::string("C:\\bad\xff"), std::string(100000, 'x')})
+             {
+                 const auto fallback = ParseSettings("RedTilde.Settings/1\nfilesRoot=" + invalidRoot + "\ntheme=2\n");
+                 Require(fallback.filesRoot.empty() && fallback.appearance == Appearance::Dark,
+                         "invalid, relative, control-bearing and oversized roots fall back independently");
+             }
+             Settings unsafe;
+             unsafe.filesRoot = L"C:\\notes\nremoteImages=1";
+             Require(!ParseSettings(SerializeSettings(unsafe)).allowRemoteImages && SerializeSettings(unsafe).find("filesRoot=") == std::string::npos,
+                     "an invalid folder cannot inject a second preference during serialization");
              Require(old.appearance == Appearance::Paper && old.view == EditorView::Split && !old.showOutline && !old.showFiles &&
                          old.filesWidth == 280 && old.readingWidth == 760 && old.textScale == 100 && old.dimInactiveBlocks && !old.allowRemoteImages,
                      "existing v1 preference files retain compatible defaults for new fields");

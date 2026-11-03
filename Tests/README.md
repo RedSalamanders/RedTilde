@@ -7,7 +7,7 @@ Run `test.ps1 -Configuration Debug -Suite Core`; use `-SkipBuild` for the exact 
 Native cases are compiled from `Application.Tests.Core.cpp` into the same executable and run with `--self-test`.
 Core also runs a hidden child-process probe that changes preferences, closes immediately and verifies the final state after process exit.
 They exercise public controls and app commands without desktop input, clipboard access or foreground activation.
-The native catalog contains 69 cases: Storage (11), Settings (4), Recovery (5) and Editor (49).
+The native catalog contains 73 cases: Storage (12), Settings (4), Recovery (5) and Editor (52).
 Receipts and failed logs remain under `.build/evidence/test-runs/<id>/payload`. The validation contract lists broader gates.
 
 The S5 harness adds `--performance-probe <json>` and `--resource-probe <json>`, with an explicit `--document`
@@ -71,7 +71,7 @@ See the [retention contract](../Specs/Testing/Testing_RunEvidence.md) for verifi
 
 ## Design refresh interaction and captures
 
-`test.ps1 -Suite Captures` generates 23 actual hidden renders: the normal presentation scenes plus Files,
+`test.ps1 -Suite Captures` generates 32 actual hidden renders: the normal presentation scenes plus Files,
 Find/Replace, Focus and exact equation source, with narrow and image-2 weekly-report 96/144/192-DPI variants. The
 reference-dark scene reads `Tests/Fixtures/reference-dark.md`, seeds the same twenty-file Reports tree
 and selects the same current section. At 96 DPI its actual viewport is exactly 1440x900 pixels. Every PNG has a scenario
@@ -89,3 +89,9 @@ selection tools, F2, File menu and asynchronous close. The probe and restoration
 physical IME, touch and assistive technology still require their independent acceptance.
 
 RedMonitor controls verify the two vendored files entirely offline: exact bytes, missing/tampered inputs, invalid locks and reparse paths. No source checkout or viewer build is required. Actual application --redmonitor-probe tests cover cross-process Unicode/severity/PID/TID; installer closure tests belong to RedMonitor.
+
+`Settings.VersionAndFieldFallback` covers the disabled default, invalid values and disk round trip for completed-task
+strike-through. `Editor.DesignRefreshLiveSettingsAndEscape` toggles the real Writing preference across Compose,
+Source and Split while preserving selection, source revision, empty undo history, dirty state and desktop focus.
+The `task-presentation-light` / `task-presentation-dark` hidden capture scenes apply the preference explicitly and
+record its actual value in their scenario sidecars. The corresponding sample is `docs/examples/tasks-and-insets.md`.

@@ -1,0 +1,185 @@
+{
+  "status": "FULL_NONINTERACTIVE_PASSED",
+  "qualification": false,
+  "dependency": "2e775e8d81ff415587a4d885366566ed89df655f",
+  "sourceIdentity": "557a5bd3fde410e7f7fddbd977e149ad6e39f0c571ae6c1ee0a57b268e462ad8",
+  "compiledSourceIdentity": "8083577fadf4a7275938fc6328cf19d6c9590b4b50b06bdcfdcd0fd5f2535ec8",
+  "binarySha256": "A522DA81F960299A044C4DBDE7ECE1924195AE0D13C5AC912156CD5D4CF6FFF0",
+  "buildReceiptSha256": "112FBA23DAFB68F98C9E14865277786D5D3C385FFE3D85CFBE90C5ABC8BBBD11",
+  "platform": "x64",
+  "configuration": "Release",
+  "nativeCases": 73,
+  "standardCaptures": 32,
+  "customCaptures": [
+    {
+      "file": "after-actors-notes-light-96.png",
+      "sha256": "99668A94AF74ADDD76F2080A3AB080BB856BFEAAE7972D08004D47EFD0B9B956",
+      "sourceFixtureSha256": "DA4F3F63A8A7C295FB00ACF32919DB7E6AA8935F0132AA4A087A5462B5299F8B",
+      "dpi": 96,
+      "dark": false,
+      "sidecarSha256": "E86A98BD34BAE08C29712F9DD82683D0B580D14FC2AA4BC75FCC36F1A01FD6DD"
+    },
+    {
+      "file": "after-actors-notes-dark-96.png",
+      "sha256": "3BF911FE0F18516E11F66DC05D9E080FBACC24218134C6AF898499C05E4CBE7E",
+      "sourceFixtureSha256": "DA4F3F63A8A7C295FB00ACF32919DB7E6AA8935F0132AA4A087A5462B5299F8B",
+      "dpi": 96,
+      "dark": true,
+      "sidecarSha256": "9E270453F7F05B7481249DEA6DFA30FF6D4C602B56FD5D77B17EF7ECA67B2D1A"
+    },
+    {
+      "file": "after-actors-notes-light-144.png",
+      "sha256": "0A5157F170F97DF7E7E45402C567D04848D4A0CB9A3F593D9B53B3D9C19C7F0F",
+      "sourceFixtureSha256": "DA4F3F63A8A7C295FB00ACF32919DB7E6AA8935F0132AA4A087A5462B5299F8B",
+      "dpi": 144,
+      "dark": false,
+      "sidecarSha256": "ED50ECB8E000AE696D838A00443E8FD457E3872EEA59CC3CEFC538E8B8B1F81A"
+    },
+    {
+      "file": "after-actors-notes-dark-144.png",
+      "sha256": "41468BFE55DB20DF88556408DE521EA83107DD3854192C0DDDA9D18FC54333A2",
+      "sourceFixtureSha256": "DA4F3F63A8A7C295FB00ACF32919DB7E6AA8935F0132AA4A087A5462B5299F8B",
+      "dpi": 144,
+      "dark": true,
+      "sidecarSha256": "60325D39450A2D5596794F1694B94AB3CA7F67F2C42F4F06AA7F68B38F1C161D"
+    },
+    {
+      "file": "after-actors-notes-light-192.png",
+      "sha256": "73AF66D6FED78EC3696816AB4962C3BBBFA24BFA569762BB1356903232DCBDFF",
+      "sourceFixtureSha256": "DA4F3F63A8A7C295FB00ACF32919DB7E6AA8935F0132AA4A087A5462B5299F8B",
+      "dpi": 192,
+      "dark": false,
+      "sidecarSha256": "10E3D002C4E1971EFE6E0DBF9450EFE897ACC1CE7C688BA5A12B27463EFA7652"
+    },
+    {
+      "file": "after-actors-notes-dark-192.png",
+      "sha256": "E96556513F293A1B9A52E73C7F073687201517EA200CE0E7F4443913C7CBBC32",
+      "sourceFixtureSha256": "DA4F3F63A8A7C295FB00ACF32919DB7E6AA8935F0132AA4A087A5462B5299F8B",
+      "dpi": 192,
+      "dark": true,
+      "sidecarSha256": "51E6F759F25E1443E06651318E2B32D70BA5EBD4ED91BECE1B52549BC8271F3A"
+    },
+    {
+      "file": "after-message-styles-light-96.png",
+      "sha256": "3A0021528118146CC0A37DDFFF856D83CE0680BD4D8AD1B7D1663B8A2E844065",
+      "sourceFixtureSha256": "88F70F12349304679E0F9BEE1C227AF38837475789ADEF268171369B9B411AF8",
+      "dpi": 96,
+      "dark": false,
+      "sidecarSha256": "CC1D7D01406E9273AA640E3789F8BF0676E760C2041F03379B6AB1B296E1813A"
+    },
+    {
+      "file": "after-message-styles-dark-96.png",
+      "sha256": "246851829506FB158F97FE96180029BBB686E3AC3D721B28304EBF1B235C9F8C",
+      "sourceFixtureSha256": "88F70F12349304679E0F9BEE1C227AF38837475789ADEF268171369B9B411AF8",
+      "dpi": 96,
+      "dark": true,
+      "sidecarSha256": "A9BAA912116A9E524BADC503D7AD102A695FDF386BEF151369E2220D801274D5"
+    },
+    {
+      "file": "after-message-styles-light-144.png",
+      "sha256": "E5166C6EC24AAFA5FB59B581EB8804A17D08A8CB97CC5900597AED41E2DE149E",
+      "sourceFixtureSha256": "88F70F12349304679E0F9BEE1C227AF38837475789ADEF268171369B9B411AF8",
+      "dpi": 144,
+      "dark": false,
+      "sidecarSha256": "A4ED92A9E652C45CDEEF9666EB141F14F2E57D9A43BF2C9A765B38C1C74D1CA5"
+    },
+    {
+      "file": "after-message-styles-dark-144.png",
+      "sha256": "444E990BDB19CDCC356584387FEB81FC76475E0E97CF62C8E0C4B4D652CED7B9",
+      "sourceFixtureSha256": "88F70F12349304679E0F9BEE1C227AF38837475789ADEF268171369B9B411AF8",
+      "dpi": 144,
+      "dark": true,
+      "sidecarSha256": "AD3EB1D214B80867399D7D0C74B5C9D6013AB7DFDA0572B749B75E3249659B32"
+    },
+    {
+      "file": "after-message-styles-light-192.png",
+      "sha256": "A0947854DA98950FC92470D09D8792FDBD878B748AFB65FBE39B1DD3412F227A",
+      "sourceFixtureSha256": "88F70F12349304679E0F9BEE1C227AF38837475789ADEF268171369B9B411AF8",
+      "dpi": 192,
+      "dark": false,
+      "sidecarSha256": "332005BD4E550B866AC07E1C871A7AF56254C47A3E09FF4EE650BA0F028F9A4D"
+    },
+    {
+      "file": "after-message-styles-dark-192.png",
+      "sha256": "426F4364C8D95CAB0DD63C798528F9F7FCCB9A6C05F90F10D99010CBB69C5048",
+      "sourceFixtureSha256": "88F70F12349304679E0F9BEE1C227AF38837475789ADEF268171369B9B411AF8",
+      "dpi": 192,
+      "dark": true,
+      "sidecarSha256": "60CB296B7763BB9411B01701CDD2B0512B594985131A013A8608333091E08F18"
+    },
+    {
+      "file": "after-default-direction-light-96.png",
+      "sha256": "4FE4426FF1D007BE2812AB9CA1AE182B6658B0103B0B4714CB498FFBA61E7160",
+      "sourceFixtureSha256": "12576153A137D983FAC3BB28DED8F430C69F8E2C53B4EE7154A9483586E4A478",
+      "dpi": 96,
+      "dark": false,
+      "sidecarSha256": "6915EE00640E6B27175DAB3F5F6AF29C8B41E47AF63C3B457769F420517AF995"
+    },
+    {
+      "file": "after-default-direction-dark-96.png",
+      "sha256": "1748F9121C8B6D4681C23E72760B3BA4ED862A9E89B2EC50489B87E064EC3F31",
+      "sourceFixtureSha256": "12576153A137D983FAC3BB28DED8F430C69F8E2C53B4EE7154A9483586E4A478",
+      "dpi": 96,
+      "dark": true,
+      "sidecarSha256": "6527C873ECB9E5F6DBD921505027931808FAA0E6EC23EB5A31C7E4FB06BDD3DD"
+    },
+    {
+      "file": "after-default-direction-light-144.png",
+      "sha256": "23AD8D870C0C69C06344551C12420D3886A46D5ADB5C964937DE09B8768D0493",
+      "sourceFixtureSha256": "12576153A137D983FAC3BB28DED8F430C69F8E2C53B4EE7154A9483586E4A478",
+      "dpi": 144,
+      "dark": false,
+      "sidecarSha256": "1311A224A37A46E6F6552E6459250FDBD4E0C056282F35FFEECEF7EC968D18BA"
+    },
+    {
+      "file": "after-default-direction-dark-144.png",
+      "sha256": "D9A8169F62985810D3682BB5F9324AFF02C7E4C84AD09CB96EF7F4E124B5001F",
+      "sourceFixtureSha256": "12576153A137D983FAC3BB28DED8F430C69F8E2C53B4EE7154A9483586E4A478",
+      "dpi": 144,
+      "dark": true,
+      "sidecarSha256": "64565F265861587840A1D90672B97EBE321A6047A78FA4A801632AA6E6123EBF"
+    },
+    {
+      "file": "after-default-direction-light-192.png",
+      "sha256": "44EA1F84EC9AB36AD29C37E25D8373ABB483F3C29308F17FE592889C21011D8A",
+      "sourceFixtureSha256": "12576153A137D983FAC3BB28DED8F430C69F8E2C53B4EE7154A9483586E4A478",
+      "dpi": 192,
+      "dark": false,
+      "sidecarSha256": "E46123C0AF703439D1051F415C50787BD2749CB876EEC4D61707BEBA0897F549"
+    },
+    {
+      "file": "after-default-direction-dark-192.png",
+      "sha256": "8F84FB08A54A80FA49A8829CAE0EEA6A81B36011F7CB2B6E240928522DC0868E",
+      "sourceFixtureSha256": "12576153A137D983FAC3BB28DED8F430C69F8E2C53B4EE7154A9483586E4A478",
+      "dpi": 192,
+      "dark": true,
+      "sidecarSha256": "865FB95776685D922F01FD038D7D7E95F3B69EFE21EA920CC8DAEB0042EF9AB6"
+    }
+  ],
+  "canonicalLog": ".build/mermaid-syntax-expansion-20261103/contrast-consumer-final-affected.log",
+  "canonicalLogSha256": "B0B0321517C81094ABDBEB8B0667ADF89D8ACDB0E6F16C4D19DE3B2E3058F0E6",
+  "nativeReceipt": ".build/evidence/test-runs/20261103T145949163Z-42228-5d6c29c77a73431da10cfbbf3d768c4e/payload/receipt.json",
+  "nativeReceiptSha256": "61C246395C449622856DFE2C805F0471199D3F03409E39DE302CECC0B8F2CAEC",
+  "syntaxCheckpoint": "syntax-checkpoint/evidence.json",
+  "fixedCheckpoint": "../MermaidDisplay_2026-11-03/evidence.json",
+  "preservedRefusals": [
+    {
+      "log": ".build/mermaid-syntax-expansion-20261103/consumer-affected.log",
+      "reason": "Prior-pin scoped SkipBuild receipt refused; rebuilt through the canonical entrypoint."
+    },
+    {
+      "log": ".build/mermaid-syntax-expansion-20261103/contrast-consumer-affected.log",
+      "reason": "vcpkg lock correctly refused an overlapping restore/build; original restore completed and final run was sequential."
+    }
+  ],
+  "remainingGates": [
+    "Other x64 configurations and full platform matrix",
+    "Native ARM64 runtime",
+    "Physical input and assistive technology",
+    "Foreground/interactive suites",
+    "Performance policy and paired quiet-host acceptance",
+    "Hosted/release publication"
+  ],
+  "performanceVerdict": "NOT_EVALUATED",
+  "scopeNote": "Actual hidden invented-fixture captures and source/history/native validation; not full Mermaid compatibility or product qualification."
+}

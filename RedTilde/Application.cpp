@@ -198,7 +198,7 @@ std::wstring SampleDocument()
            L"## Show the thinking\n\n"
            L"```mermaid\ngraph LR\nA[An idea] --> B[Find the words]\nB --> C[Make it clear]\n```\n\n"
            L"Mathematics belongs in your document. Inline $E=mc^2$ and display equations stay source-exact:\n\n"
-           L"$$ x = \\frac{-b + \\sqrt{b^2 - 4ac}}{2a} $$\n\n"
+           L"$$\nx = \\frac{-b + \\sqrt{b^2 - 4ac}}{2a}\n$$\n\n"
            L"## Keep the details\n\n"
            L"| View | Best for |\n| --- | --- |\n| Compose | Staying in your writing |\n| Source | Every Markdown detail |\n| Split | Both at a "
            L"glance |\n\n"
@@ -223,7 +223,7 @@ HRESULT Application::Initialize()
 {
     if (options.dataDirectory.empty())
         options.dataDirectory = DefaultDataDirectory();
-    if (!options.headless)
+    if (!options.headless || options.preferencesProbe)
         (void)LoadSettings(options.dataDirectory, settings);
     WNDCLASSEXW cls{sizeof(cls)};
     cls.lpfnWndProc = WindowProc;
@@ -540,6 +540,7 @@ void Application::SetDocument(std::wstring text, std::filesystem::path path, boo
     recovered = false;
     editor->SetText(std::move(text));
     documentPath = std::move(path);
+    EnsureFilesRoot();
     bom = hasBom;
     stamp = identity;
     savedText = editor->GetText();
@@ -1143,6 +1144,9 @@ void Application::Execute(Command command)
     case Command::FileMenu:
         FileMenu();
         return;
+    case Command::OpenFolder:
+        OpenFolder();
+        return;
     case Command::Overflow:
         FileMenu(true);
         return;
@@ -1185,6 +1189,11 @@ void Application::Execute(Command command)
         return;
     case Command::DimBlocks:
         settings.dimInactiveBlocks = !settings.dimInactiveBlocks;
+        Layout();
+        SavePreferences();
+        return;
+    case Command::StrikeCompletedTasks:
+        settings.strikeCompletedTasks = !settings.strikeCompletedTasks;
         Layout();
         SavePreferences();
         return;
@@ -1605,7 +1614,7 @@ void Application::Menu(POINT point, bool insertOnly, bool headingOnly)
         callbacks);
 }
 
-std::filesystem::path Application::PickFile(bool saving, bool image)
+std::filesystem::path Application::PickFile(bool saving, bool image, bool folder)
 {
     if (options.headless)
         return {};
@@ -1616,10 +1625,22 @@ std::filesystem::path Application::PickFile(bool saving, bool image)
         return {};
     const COMDLG_FILTERSPEC markdown[]{{L"Markdown", L"*.md;*.markdown"}, {L"Text files", L"*.txt"}, {L"All files", L"*.*"}};
     const COMDLG_FILTERSPEC pictures[]{{L"Images", L"*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff"}};
-    (void)dialog->SetFileTypes(image ? 1u : 3u, image ? pictures : markdown);
+    if (!folder)
+        (void)dialog->SetFileTypes(image ? 1u : 3u, image ? pictures : markdown);
+    else
+        (void)dialog->SetTitle(Resource(IDS_OPENFOLDER).c_str());
     DWORD flags{};
     (void)dialog->GetOptions(&flags);
-    (void)dialog->SetOptions(flags | FOS_FORCEFILESYSTEM | FOS_NOCHANGEDIR | (saving ? FOS_OVERWRITEPROMPT : FOS_FILEMUSTEXIST));
+    (void)dialog->SetOptions(flags | FOS_FORCEFILESYSTEM | FOS_NOCHANGEDIR |
+                             (folder   ? FOS_PICKFOLDERS | FOS_PATHMUSTEXIST
+                              : saving ? FOS_OVERWRITEPROMPT
+                                       : FOS_FILEMUSTEXIST));
+    if (!settings.filesRoot.empty())
+    {
+        wil::com_ptr<IShellItem> initial;
+        if (SUCCEEDED(SHCreateItemFromParsingName(settings.filesRoot.c_str(), nullptr, IID_PPV_ARGS(initial.put()))))
+            (void)dialog->SetDefaultFolder(initial.get());
+    }
     if (saving)
     {
         (void)dialog->SetDefaultExtension(L"md");
@@ -1744,6 +1765,7 @@ void Application::FileCompleted()
         savedText = std::move(result.document.text);
         dirtyFact.reset();
         documentPath = std::move(result.path);
+        EnsureFilesRoot();
         RefreshFiles(true);
         stamp = result.document.stamp;
         editor->SetDocumentFilePath(documentPath.native());
@@ -2110,7 +2132,7 @@ bool Application::RouteShortcut(const MSG &message)
                 command = Command::New;
                 break;
             case 'O':
-                command = Command::Open;
+                command = shift ? Command::OpenFolder : Command::Open;
                 break;
             case 'S':
                 command = shift ? Command::SaveAs : Command::Save;
@@ -2216,17 +2238,18 @@ int Application::Run()
     }
     if (options.headless)
     {
-        settings.appearance = options.scenario == L"compose-dark" || options.scenario == L"math-dark" || options.scenario == L"reference-dark" ||
-                                      options.scenario == L"markdown-style" || options.scenario == L"caption-close-hover" ||
-                                      options.scenario == L"caption-maximize-hover"
+        settings.appearance = options.scenario == L"sample-document-dark" || options.scenario == L"task-presentation-dark" ||
+                                      options.scenario == L"compose-dark" || options.scenario == L"math-dark" ||
+                                      options.scenario == L"reference-dark" || options.scenario == L"markdown-style" ||
+                                      options.scenario == L"caption-close-hover" || options.scenario == L"caption-maximize-hover"
                                   ? Appearance::Dark
                                   : Appearance::Light;
         ApplyTheme();
         if (options.scenario == L"math" || options.scenario == L"math-dark")
             SetDocument(L"# Mathematics, in the flow\n\nInline $E=mc^2$ shares the text baseline. Exact TeX stays one F2 away.\n\n"
-                        L"$$x=\\frac{-b+\\sqrt{b^2-4ac}}{2a}$$\n\n"
-                        L"$$A=\\begin{bmatrix}a&b\\\\c&d\\end{bmatrix}\\quad \\vec{v}=\\begin{pmatrix}x\\\\y\\end{pmatrix}$$\n\n"
-                        L"$$\\begin{aligned}f(x)&=x^2+1\\\\f'(x)&=2x\\end{aligned}$$\n\n"
+                        L"$$\nx=\\frac{-b+\\sqrt{b^2-4ac}}{2a}\n$$\n\n"
+                        L"$$\nA=\\begin{bmatrix}a&b\\\\c&d\\end{bmatrix}\\quad \\vec{v}=\\begin{pmatrix}x\\\\y\\end{pmatrix}\n$$\n\n"
+                        L"$$\n\\begin{aligned}f(x)&=x^2+1\\\\f'(x)&=2x\\end{aligned}\n$$\n\n"
                         L"Unsupported commands keep their exact source: $\\input{private}$.\n");
         if (options.scenario == L"mermaid")
             SetDocument(L"# Ideas, connected\n\n## A state diagram\n\n```mermaid\nstateDiagram-v2\ndirection LR\n[*] --> Draft\nDraft --> Saved : "

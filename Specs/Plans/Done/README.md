@@ -1,5 +1,7 @@
 # Completed plans
 
+- [Persistent folder navigation, samples and rendering review](FolderNavigationAndSamples_2026-11-03.md) — Open Folder, remembered root, restart/navigation regressions, expanded examples and native code colors; retained rendering gaps and performance/platform gates remain with the active coordinator.
+
 - [Skill package integrity](SkillPackageIntegrity_2026-10-28.md) — bounded structure/UI/reference checks, scoped AGENTS inventory and independent planner/package controls; retained aggregate ARM64 dependency identity failure remains outside this tooling scope.
 
 - [Scoped testing](ScopedTesting_2026-10-21.md) — affected selection, exact success reuse, incremental baselines and qualified native PR coverage.

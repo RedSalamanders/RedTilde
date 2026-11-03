@@ -12,6 +12,46 @@ contracts: [toolchain](../../Build/Build_Toolchain.md), [editor](../../Editor/Ed
 
 ## Coordinates
 
+### Shared renderer follow-up — 3 November 2026
+
+The latest screenshot follow-up selects `703a96c788a79c1e7b28097226a2ca0a735f11bc` (API 4) for label-aware
+inter-box and branch spacing, table/code insets, accent task markers and the persistent Writing preference to
+strike through completed tasks. Source-bound native results and actual hidden captures belong in
+[the spacing/task packet](../../../Measurements/DiagramSpacing_2026-11-03/README.md). Its before checkpoint remains
+`2e775e8d81ff415587a4d885366566ed89df655f`; the setting changes Compose/Split presentation without editing Markdown.
+
+The owner previously requested syntax expansion as well as defects. The validated prior development lock
+`2e775e8d81ff415587a4d885366566ed89df655f` (API 4) adds readable default diagram strokes, sequence actor figures, chronological plain notes,
+bare automatic numbering, unheaded messages and default top-to-bottom flowcharts. Its source-bound native
+and independent consumer results are owned by [the syntax packet](../../../Measurements/MermaidSyntax_2026-11-03/README.md),
+whose evidence summary records the actual outcome separately from this pin selection.
+This commit was local and unpublished at its validation checkpoint. The earlier fixed checkpoint below remains independently preserved; it is
+the immediate implementation rollback for the expansion, while the original app-only slice remains intact.
+
+The intermediate `9ed15504` syntax checkpoint also passes 19 library suites, 73 consumer cases and 32 standard
+captures with 18 additional DPI/theme images. Review exposes faint diagram connections inherited from decorative
+borders. The current pin reuses effective foreground ink for meaningful diagram structure; its source-specific
+results are recorded separately, and the intermediate source, binaries and images remain preserved.
+
+The current pin already contains bounded sequence, pie, ER, Gantt and mind-map profiles in addition to the older
+flowchart/state/class list. Earlier app docs and fallback samples understated that support. Correct those claims
+and verify every named family through the app's acknowledged native document, view switches and exact source.
+The canonical DxUi branch `ej/mermaid-display-fixes-20261103` fixes trailing-space style spans, ER/class shared
+attachment collisions, duplicate unordered-task bullets and code-chrome foreground ink. The fixed checkpoint selected
+immutable local commit `33ce97ce2b29aed4eadb9270bf66e7080d56b9fc` after its zero-warning x64 Release build,
+EditorControls/Embedded/Accessibility/Rendering suites with zero skips, and themed gallery review. This commit
+has not been pushed. Its clean independent consumer cache is validated through the ordinary restore/build
+interfaces. Immediate rollback is `5fc4d4c383bfa4891ee57a138924107bbbf11a2e` and does not undo the unrelated folder
+navigation slice. [Consumer evidence](../../../Measurements/MermaidDisplay_2026-11-03/README.md) records fresh
+app tests and captures as they complete; the existing dirty files and original evidence remain preserved.
+Other profile, physical input and performance gates remain open.
+
+- [x] Canonical immutable DxUi fix and exact local consumer lock.
+- [x] Complete fixed-checkpoint consumer Release validation: 73 native cases, 32 standard captures and 20 custom captures; current syntax-candidate results have their separate packet.
+- [ ] Publish the upstream commit before expecting a fresh remote checkout to restore this development pin.
+
+### Historical 2 November delivery coordinates
+
 | Item | Value |
 | --- | --- |
 | Previous lock (rollback) | `6ed0512c68743c57ac209e22010679d211c4a42b` |

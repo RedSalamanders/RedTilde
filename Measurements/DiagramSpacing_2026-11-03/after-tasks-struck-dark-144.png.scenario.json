@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "scenario": "task-presentation-dark",
+  "fixtureBasename": "text-insets.md",
+  "effectiveSystemPreference": "light",
+  "systemPreferenceSource": "windows-preference-or-light-fallback",
+  "renderedAppearance": "dark",
+  "strikeCompletedTasks": true,
+  "requestedDpi": 144,
+  "nativeWindowDpi": 144,
+  "actualHostDpi": 144,
+  "simulatedDpi": false,
+  "requestedWidthPx": 2160,
+  "requestedHeightPx": 1350,
+  "actualWidthPx": 2160,
+  "actualHeightPx": 1350,
+  "actualWidthDip": 1440,
+  "actualHeightDip": 900,
+  "filesModelFrozen": false,
+  "reparseFixtureRemoved": false,
+  "hidden": true,
+  "qualification": "Owned hidden application render; no physical-monitor or native-platform acceptance"
+}

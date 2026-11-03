@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "scenario": "sample-document-dark",
+  "fixtureBasename": "actors-notes.md",
+  "effectiveSystemPreference": "light",
+  "systemPreferenceSource": "windows-preference-or-light-fallback",
+  "renderedAppearance": "dark",
+  "requestedDpi": 192,
+  "nativeWindowDpi": 144,
+  "actualHostDpi": 192,
+  "simulatedDpi": true,
+  "requestedWidthPx": 2880,
+  "requestedHeightPx": 1800,
+  "actualWidthPx": 2880,
+  "actualHeightPx": 1800,
+  "actualWidthDip": 1440,
+  "actualHeightDip": 900,
+  "filesModelFrozen": false,
+  "reparseFixtureRemoved": false,
+  "hidden": true,
+  "qualification": "Owned hidden application render; no physical-monitor or native-platform acceptance"
+}

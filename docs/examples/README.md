@@ -7,6 +7,15 @@ compatibility. All content is invented and needs no network resources.
 | Document | What to inspect |
 | --- | --- |
 | [Starter](example.md) | Ordinary writing and mixed Markdown |
+| [Markdown showcase](markdown-showcase.md) | Typography, Unicode, nested/task lists, aligned tables, colored code, equations and a flowchart |
+| [Syntax options](syntax-options.md) | Every independently configurable RichMarkdown extension |
+| [Native Mermaid family gallery](mermaid-supported-families.md) | Small positive examples of all eight bounded native profiles |
+| [Sequence actors, notes and numbers](mermaid-sequence.md) | Actor figures, chronological notes, automatic message numbers and plain arrows |
+| [Shared display regressions](mermaid-display-regressions.md) | Styled labels, ER/class fans, task markers and readable code chrome |
+| [Tasks and text insets](tasks-and-insets.md) | Theme accent, optional completed-task strike-through, table cells and inline-code spacing |
+| [YAML metadata](front-matter-yaml.md) | A valid document-start YAML front-matter envelope |
+| [TOML metadata](front-matter-toml.md) | A valid document-start TOML front-matter envelope |
+| [Folder notebook](workspace/README.md) | A realistic nested tree of `.md` and `.markdown` documents for Open Folder and restart |
 | [Technical notes](technical-notes.md) | Small equations, state and class diagrams |
 | [Complex mathematics](complex-math.md) | Nested fractions, roots, scripts, operators, matrices, cases and aligned systems |
 | [Complex flowcharts](complex-flowcharts.md) | Branches, joins, cycles, self/parallel edges, grouped endpoints and four directions |
@@ -36,6 +45,12 @@ readable layout.
 
 These are manual review steps, not recorded pass results. Use the governed
 hidden harness for screenshots and reproducible application validation.
+
+Choose **File → Open Folder...** (Ctrl+Shift+O) and select this examples folder to
+keep all samples in the Files pane. Opening a sample, saving elsewhere, or using
+New keeps the chosen root. Restart restores that folder and the pane's visibility.
+**Open File...** (Ctrl+O) remains available; the first file establishes its parent
+as the root when no folder has been chosen yet.
 
 The existing `s5-performance.md` and `performance-fixture.md` are measurement inputs.
 The reference-dark capture input lives in `Tests/Fixtures/reference-dark.md`.

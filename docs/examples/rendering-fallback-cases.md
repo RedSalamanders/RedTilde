@@ -50,7 +50,7 @@ $$
 x_i_j
 $$
 
-## X07 — Unsupported sequence diagram
+## X07 — Unsupported sequence control blocks
 
 ```mermaid
 sequenceDiagram
@@ -78,17 +78,16 @@ end
 Editor-->>Writer: Show current revision state
 ```
 
-## X08 — Unsupported flowchart subgraph
+## X08 — Unsupported flowchart interaction directive
 
 ```mermaid
 flowchart TD
-subgraph Preparation
 Parse[Parse source] --> Layout[Measure geometry]
-end
 Layout --> Paint[Paint content]
+click Parse "https://example.invalid/notes"
 ```
 
-## X09 — Unsupported composite state
+## X09 — Unsupported parallel composite-state regions
 
 ```mermaid
 stateDiagram-v2
@@ -96,12 +95,13 @@ stateDiagram-v2
 state Editing {
     [*] --> Clean
     Clean --> Dirty : type
-    Dirty --> Clean : save
+    --
+    [*] --> Reviewing
 }
 Editing --> [*]
 ```
 
-## X10 — Unsupported class blocks and multiplicities
+## X10 — Unsupported class interaction directive
 
 ```mermaid
 classDiagram
@@ -110,14 +110,15 @@ class Notebook {
     +open()
 }
 Notebook "1" --> "many" Page
+click Notebook "https://example.invalid/notebook"
 ```
 
-## X11 — Unsupported styling directive
+## X11 — Unsupported arbitrary CSS styling
 
 ```mermaid
 flowchart LR
 A[Source] --> B[Result]
-style A fill:#ffdddd,stroke:#aa0000
+style A filter:blur(4px)
 ```
 
 ## X12 — Malformed edge, followed by a supported neighbor
