@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "reference": "typed-CSharp-subset-enumeration-v1",
+  "knownValueOracles": true,
+  "checks": 207071,
+  "studies": [
+    {
+      "study": "D:\\RedTilde\\.build\\performance\\folder-rendering-20261103-final-paired",
+      "comparisonSha256": "19185721AC0A17B2FE26AE32E6D07107A43626F9FFD06D47EBE938EEFCCD683F",
+      "nativeSlots": 16,
+      "familySize": 12,
+      "independentReferenceMatches": true,
+      "policyAcceptance": "review-required"
+    }
+  ],
+  "completedUtc": "2026-11-03T10:58:24.3550954Z",
+  "acceptance": "numerical/integrity audit only; no policy self-approval"
+}

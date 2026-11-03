@@ -1,5 +1,34 @@
 # Finish RedTilde redesign and DxUi rendering — 2026-10-24
 
+## Public sample review follow-ups — 3 November 2026
+
+The [completed folder/sample slice](../Done/FolderNavigationAndSamples_2026-11-03.md) adopts the existing code
+tokenizer and fixes stale display-math examples without changing the current exact DxUi pin. Its
+[actual native captures and evidence](../../../Measurements/FolderNavigation_2026-11-03/README.md) retain the
+feature comparison with Markdown Viewer and these still-open shared presentation issues:
+
+- [x] Remove the extra ordinary bullet before unordered task checkboxes in canonical DxUi. At pin `5fc4d4c3`,
+  `DxUi.RichSemanticDocument.cpp` emits `Marker(...)` before its task object around lines 1577–1589. Preserve
+  exact task source ranges, checkbox interaction, ordered/nested-list semantics, undo and UIA; adopt a reviewed
+  new pin only after focused native tests and actual light/dark/DPI captures. The tested shared fix is now
+  locked locally; current consumer validation is tracked in the delivery-adoption follow-up.
+- [x] Review the light-theme contrast of code language labels and physical line numbers. Current native
+  captures show weak ink on the code ground; no numerical accessibility ratio is claimed. Keep code geometry,
+  source/selection and bounded preparation intact. DxUi now uses foreground text ink, with light/dark pixel
+  regressions. Application code-copy and broader tokenizer languages remain separate.
+
+The current exact pin already implements bounded sequence, pie, ER, Gantt and mind-map profiles in addition to
+flowchart/state/class. The earlier review understated that support; app documentation and positive/negative
+samples are being corrected. Shared fixes for styled-label admission and ER/class relationship attachment
+collisions join the task/code presentation work above in the
+[delivery-adoption follow-up](DxUiDeliveryAdoption_2026-11-02.md). Broader language compatibility and the reference's
+export/multi-document features remain separate. Existing language/platform/performance gates below stay authoritative.
+
+The later screenshot follow-up adds label-aware rank and sibling spacing, table/code side insets, theme accent task
+markers and optional completed-task strike-through. Its exact-pin geometry, pixel, settings, source/history and
+hidden-DPI capture results are recorded in [the spacing/task packet](../../../Measurements/DiagramSpacing_2026-11-03/README.md).
+This focused implementation does not close the broader A4/A5 language, product or performance checklists.
+
 ## Current closeout checklist — 29 October 2026
 
 **Owner decision, 29 October:** the user explicitly accepts the measured original-UI working-set costs

@@ -1,5 +1,14 @@
 # Application evidence
 
+- [Diagram spacing, text insets and task presentation](DiagramSpacing_2026-11-03/README.md) — exact-pin geometry,
+  raster, source/history, settings and hidden-capture evidence, with broader qualification kept separate.
+
+- [Mermaid sequence syntax expansion, 2026-11-03](MermaidSyntax_2026-11-03/README.md) — separately preserved fixed baseline, actor/note/numbering and plain-arrow examples, exact-pin consumer source/history coverage and hidden theme/DPI captures.
+
+- [Shared Mermaid and Markdown display corrections, 2026-11-03](MermaidDisplay_2026-11-03/README.md) — canonical library defects, an old-pin fail-before app regression, corrected eight-family support claims and exact-pin consumer evidence; broader qualification remains separate.
+
+- [Folder navigation, samples and rendering review, 2026-11-03](FolderNavigation_2026-11-03/README.md) — independent persisted folder root, restart and code-color pixel regressions, nine hidden sample renders, retained environment refusals and a bounded comparison with Markdown Viewer. Broader platform, interaction and performance gates stay explicit.
+
 - [Current-source performance comparison, 2026-10-28](RedesignCompletion_2026-10-28/README.md) — four separately retained actual-PR-base/original-UI A/A and A/B comparisons, all 48 metric rows and same-side control vectors, with public source, binary, profile and input-manifest hashes. Independent audit: 16,891 checks; actual-base A/B has zero resolved regressions, while original-UI A/B retains four (two stable working-set and two command findings with unstable controls). Quiet CPU is unverified and the base policy is unqualified; no performance acceptance is claimed. ICF size scout showed no binary-size change and was rejected.
 - [Latest completed native qualification, 2026-10-27](RedesignCompletion_2026-10-27/p28-native-9cf8b221/README.md) — producer `9cf8b221`: six builds, three Full x64 profiles with 66 cases and 23 capture pairs each, real ASan detection and nine authorized keyboard stages. ARM64 is cross-build only. Later candidates retain separate source identities and qualification gates.
 - [Latest complete current-policy comparison, 2026-10-27](RedesignCompletion_2026-10-27/p28-policy-9cf8b221/README.md) — 576 processes and 72 rows. Original-UI Compose/Split working-set flags are +2.0457%/+2.4615%; Compose private bytes are +2.0952% with unstable controls. Compose command time remains unresolved. Starting-redesign and actual PR18-base comparisons have zero regressions; 36/72 controls are unstable. No performance acceptance is claimed.

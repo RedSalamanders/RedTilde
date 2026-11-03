@@ -70,11 +70,13 @@ void Application::PrepareDesignScenario()
     Layout();
 
     const auto &scenario = options.scenario;
+    if (scenario == L"task-presentation-light" || scenario == L"task-presentation-dark")
+        settings.strikeCompletedTasks = true;
     const bool reference = scenario == L"reference-dark";
     const bool fixtureScene = scenario == L"compose-light" || scenario == L"compose-dark" || scenario == L"source" || scenario == L"split" ||
                               scenario == L"settings" || scenario == L"narrow" || scenario == L"high-contrast" || scenario == L"files" ||
                               scenario == L"find" || scenario == L"focus" || scenario == L"equation" || reference;
-    std::wstring fixtureName;
+    std::wstring fixtureName = options.document.filename().wstring();
     bool frozenFilesModel{}, reparseRemoved{};
     if (scenario == L"markdown-style" || scenario == L"caption-close-hover" || scenario == L"caption-maximize-hover")
     {
@@ -149,6 +151,9 @@ void Application::PrepareDesignScenario()
         const auto path = writing / (reference ? L"weekly-report-2026-10-15.md" : scenario == L"equation" ? L"Equation notes.md" : L"Ideas.md");
         FileStamp identity;
         RequireCapture(SUCCEEDED(SaveDocument(path, source, false, nullptr, identity)), "Cannot stage the synthetic capture document");
+        // Capture scenarios own a synthetic workspace even when a --document
+        // input established another root during launch.
+        settings.filesRoot = writing;
         SetDocument(std::move(source), path, false, identity);
         fixtureName = reference ? L"weekly-report-2026-10-15.md" : L"Writing";
         if (scenario != L"focus" && scenario != L"equation" && scenario != L"settings" && !settings.showFiles)
@@ -262,15 +267,18 @@ void Application::PrepareDesignScenario()
     const auto fixtureUtf8 = DxUi::RichText::EncodeUtf8(fixtureName);
     const auto metadata = std::format(
         "{{\n  \"schemaVersion\": 1,\n  \"scenario\": \"{}\",\n  \"fixtureBasename\": \"{}\",\n"
-        "  \"effectiveSystemPreference\": \"{}\",\n  \"systemPreferenceSource\": \"{}\",\n"
+        "  \"effectiveSystemPreference\": \"{}\",\n  \"systemPreferenceSource\": \"{}\",\n  \"renderedAppearance\": \"{}\",\n"
+        "  \"strikeCompletedTasks\": {},\n"
         "  \"requestedDpi\": {},\n  \"nativeWindowDpi\": {},\n  \"actualHostDpi\": {},\n  \"simulatedDpi\": {},\n"
         "  \"requestedWidthPx\": {},\n  \"requestedHeightPx\": {},\n  \"actualWidthPx\": {},\n  \"actualHeightPx\": {},\n"
         "  \"actualWidthDip\": {},\n  \"actualHeightDip\": {},\n  \"filesModelFrozen\": {},\n  \"reparseFixtureRemoved\": {},\n  \"hidden\": true,\n"
         "  \"qualification\": \"Owned hidden application render; no physical-monitor or native-platform acceptance\"\n}}\n",
         scenarioUtf8, fixtureUtf8, systemDark ? "dark" : "light",
-        scenario == L"settings" ? "synthetic-fixture" : "windows-preference-or-light-fallback", options.captureDpi, nativeDpi, host.GetDpi(),
-        requestedDpi != nativeDpi ? "true" : "false", widthPx, heightPx, host.DebugGetWidthPx(), host.DebugGetHeightPx(), actual.right - actual.left,
-        actual.bottom - actual.top, frozenFilesModel ? "true" : "false", reparseRemoved ? "true" : "false");
+        scenario == L"settings" ? "synthetic-fixture" : "windows-preference-or-light-fallback",
+        settings.appearance == Appearance::Dark || (settings.appearance == Appearance::System && systemDark) ? "dark" : "light",
+        settings.strikeCompletedTasks ? "true" : "false", options.captureDpi, nativeDpi, host.GetDpi(), requestedDpi != nativeDpi ? "true" : "false",
+        widthPx, heightPx, host.DebugGetWidthPx(), host.DebugGetHeightPx(), actual.right - actual.left, actual.bottom - actual.top,
+        frozenFilesModel ? "true" : "false", reparseRemoved ? "true" : "false");
     auto sidecar = options.capture;
     sidecar += L".scenario.json";
     RequireCapture(SUCCEEDED(WriteBytesAtomic(sidecar, metadata)), "Cannot preserve the capture's actual viewport/DPI/scenario provenance");

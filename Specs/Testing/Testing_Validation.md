@@ -100,6 +100,10 @@ The app's `--self-test` and `--capture <path> --scenario <name>` never activate 
 clipboard or synthesize desktop input. Drive the same app/control commands as the UI. Native rendering captures
 come from the public host's diagnostic bitmap hook and WIC; record the exact binary/dependency/scenario identity.
 No desktop screenshot or Computer Use capture establishes app correctness.
+Custom invented documents use `--document <path> --scenario sample-document` for Light or
+`sample-document-dark` for Dark. These scenarios preserve the loaded document rather than substituting a
+built-in fixture. Saved preferences do not choose a hidden capture's theme. Sidecars record the rendered
+appearance separately from the ambient System preference and bind the document's fixture basename.
 `Tests/Fixtures/reference-dark.md` is a runtime input to the reference-dark DPI captures;
 its edits select `Captures` in addition to normal Tooling/Format validation, rather than prose-only coverage.
 
@@ -129,7 +133,7 @@ These record oracles establish error mapping, not recovery from an actually miss
 
 Physical focus/IME/AT, release/package acceptance, hardware-specific qualification and paired resource/performance studies retain their owning gates. Hidden/scoped/native CI passes never close those gates. Native test basenames use contextual `Scope.Tests.Something.h/.cpp`; inventories cover active files only. Immutable historical receipts, archived source and legacy references are not renamed or rewritten.
 
-RedTilde partitions its 69 registered native cases into Storage (11), Settings (4), Recovery (5) and Editor (49). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
+RedTilde partitions its 73 registered native cases into Storage (12), Settings (4), Recovery (5) and Editor (52). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
 
 The hidden responsive-layout/DPI case retains the exact initial foreground and hidden-window assertions. A failure records which predicate changed, whether the observed foreground is the test window or another process-owned window, and whether the original window still exists. These observations do not attribute a historical foreground change or permit activation; preserve the failed run separately from later qualification.
 
@@ -153,8 +157,9 @@ Reusable tooling/formatting evidence also binds the actual selected formatter pa
 
 ## Design refresh scenarios
 
-The hidden capture obligation contains 23 PNG/sidecar pairs: 17 named scenes including Files, Find,
-Focus and equation-source editing, plus narrow and reference-document 96/144/192-DPI variants. Each sidecar records requested,
+The hidden capture obligation contains 32 PNG/sidecar pairs: 17 named scenes including Files, Find,
+Focus and equation-source editing, plus narrow, reference-document, Markdown-style and caption-hover
+96/144/192-DPI variants. Each sidecar records requested,
 native and host DPI, actual pixels/DIP, simulation state and invented fixture basename; the runner verifies PNG
 IHDR dimensions and binds both hashes, toolchain, binary, source and pin in the receipt. Captures never activate
 or publish environment-derived identifiers. The Files fixture freezes its proved model and retires only its

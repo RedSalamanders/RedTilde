@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "status": "PASSED",
+  "completedUtc": "2026-11-03T11:00:36.8923158Z",
+  "scope": "Affected x64 Release; noninteractive",
+  "sourceIdentity": "9f7d9cbf5c536649cbd75bbdab778533dcef6f2d6a0df5320888b3b80b7dac02",
+  "binarySha256": "C0AE0939609E95422B237C43C83050BCFF0918B9EEB89A3F9798C6E4C8FDACEC",
+  "dependency": "5fc4d4c383bfa4891ee57a138924107bbbf11a2e",
+  "buildDiagnostics": {
+    "warnings": 0,
+    "errors": 0
+  },
+  "nativeCases": 72.0,
+  "nativeScopeCounts": {
+    "Storage": 12,
+    "Settings": 4,
+    "Recovery": 5,
+    "Editor": 51
+  },
+  "captureCount": 32,
+  "formatPassed": true,
+  "validatorsPassed": true,
+  "isolatedCrashProbePassed": true,
+  "toolingFixtureSkips": [
+    "reparse-input fixture: host cannot create a symbolic link",
+    "linked-root fixture: host cannot create a symbolic link"
+  ],
+  "nativeReceipt": "final-native-and-captures.json",
+  "scopedLog": "affected-final.log",
+  "performance": {
+    "status": "INCONCLUSIVE; review-required",
+    "studyArchive": "final-paired-study.zip",
+    "comparison": "final-comparison.json",
+    "audit": "final-performance-audit.json",
+    "exactFinalBinaryMatched": true,
+    "processes": 16,
+    "metricRows": 12,
+    "unstableControlRows": 7,
+    "independentAuditChecks": 207071,
+    "archiveSha256": "54D4E83E6B7FA1C49DA58DF48C445D12BCF5806739A196A2EB356193D0846BC8"
+  },
+  "historicalEvidenceNote": "Files without the final- prefix retain their earlier exact candidate identities. Earlier native, capture and paired results were not relabeled as final execution.",
+  "remainingGates": [
+    "Other native build/runtime profiles and native ARM64",
+    "Physical IME, assistive technology and authorized real folder-picker interaction",
+    "Accepted quiet-host performance and upstream/product/release qualification"
+  ]
+}

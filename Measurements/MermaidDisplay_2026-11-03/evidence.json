@@ -1,0 +1,205 @@
+{
+  "status": "FIXED_BASELINE_PASSED",
+  "qualification": false,
+  "checkpoint": "Before owner-requested syntax expansion",
+  "dependency": "33ce97ce2b29aed4eadb9270bf66e7080d56b9fc",
+  "sourceIdentity": "79da7f951ade1fe6ff03b95fcf0e4c0d98e1f8cd3cd818ae9b820d4171cf5751",
+  "binarySha256": "A68D37FEA0205A2850E785684F5F455E13DDF05400F3870B1FF96ABEB8AAC677",
+  "buildReceiptSha256": "31306EDEAE4209FAC0E215BA1FB1BE177AC1668796C8A492744D12A1EA8C5A22",
+  "nativeReceipt": ".build/evidence/test-runs/20261103T124539784Z-55492-d319ecd6124e40b79d9ca19e2c4295cc/payload/receipt.json",
+  "nativeReceiptSha256": "87936BFC5F0E2825F6F88219AF8E19B1CEAAB9DC94A9FB7F55E87B2B094A5906",
+  "nativeCases": 73,
+  "standardCaptures": 32,
+  "customCaptures": [
+    {
+      "name": "after-styled",
+      "file": "after-styled.png",
+      "sha256": "BD29646FF89221C14309E2D67C9F0BB4C22F2D5381CBEE59159563AE4B6980F3",
+      "documentSha256": "29D886BB6077541AE506867A4460182A7F59B674F5517CEDE22449215C171BC0",
+      "dpi": 96,
+      "dark": false
+    },
+    {
+      "name": "after-styled-dark-144",
+      "file": "after-styled-dark-144.png",
+      "sha256": "8D8AC095B31629ADF2D5E8B39BA8629163BC0CB83CA85176C9C65B1099D9DFC8",
+      "documentSha256": "29D886BB6077541AE506867A4460182A7F59B674F5517CEDE22449215C171BC0",
+      "dpi": 144,
+      "dark": true
+    },
+    {
+      "name": "after-styled-192",
+      "file": "after-styled-192.png",
+      "sha256": "7136BF1E39F5FD9025BA23EFEF107C515720C36BE7C5DD70C3F8D7421EDCF8AD",
+      "documentSha256": "29D886BB6077541AE506867A4460182A7F59B674F5517CEDE22449215C171BC0",
+      "dpi": 192,
+      "dark": false
+    },
+    {
+      "name": "after-relationships",
+      "file": "after-relationships.png",
+      "sha256": "E4D3356016E65EA953E4F8B1388B8BF08FD913969B4DA08713CA7ED67671B057",
+      "documentSha256": "D1113442793F715728F05F856FD25119DEFBA2C406469F0D55AF9784E9F11618",
+      "dpi": 96,
+      "dark": false
+    },
+    {
+      "name": "after-relationships-dark-144",
+      "file": "after-relationships-dark-144.png",
+      "sha256": "462C249BF54D3509CB1401B4AF8F07618FB9FD82709240F1DCBE3A456688676A",
+      "documentSha256": "D1113442793F715728F05F856FD25119DEFBA2C406469F0D55AF9784E9F11618",
+      "dpi": 144,
+      "dark": true
+    },
+    {
+      "name": "after-relationships-192",
+      "file": "after-relationships-192.png",
+      "sha256": "8E25DF14D8A2D9050DE48B720E11459E0D22344528ACF4E0E9C9057C2D432670",
+      "documentSha256": "D1113442793F715728F05F856FD25119DEFBA2C406469F0D55AF9784E9F11618",
+      "dpi": 192,
+      "dark": false
+    },
+    {
+      "name": "flowchart-profile",
+      "file": "flowchart-profile.png",
+      "sha256": "F7EBE9A315D0B741CB1B46ACC5C2A5624FDF64F55C044C834C409338EF40750C",
+      "documentSha256": "2B0C69BD65BF3F81DD1099903E29ECC27AFDF910FDBA9938C56B01663D2A5E8D",
+      "dpi": 96,
+      "dark": false
+    },
+    {
+      "name": "state-profile",
+      "file": "state-profile.png",
+      "sha256": "EA8EC1B0006A3F6998E0E92D1027F5F1FC557411BB5544A80F84CD85AF64B5A3",
+      "documentSha256": "E8ABD6D0EEC487DF83BD05C8F0B21EE44BFBFDC3E0EA6777BFCC390D0D91BC83",
+      "dpi": 96,
+      "dark": false
+    },
+    {
+      "name": "class-profile",
+      "file": "class-profile.png",
+      "sha256": "1B74E959CEB25B7B5CAA800630DA06FD1CC152934B4AC516362BBF6FF135D97D",
+      "documentSha256": "C1AF7DB8246F3BCFC1D48EE2DA8CF1BED50DAEF4D4CCD12AA386F4251D6AF4C3",
+      "dpi": 96,
+      "dark": false
+    },
+    {
+      "name": "sequence-profile",
+      "file": "sequence-profile.png",
+      "sha256": "2E754F889991794A65881C6C55B459ED9976128E5415B434D31434C58567EEE3",
+      "documentSha256": "FD8EECB2EB424E6241CEC907DF8C996FD07C365B9EBFE729506D767B95AFF217",
+      "dpi": 96,
+      "dark": false
+    },
+    {
+      "name": "pie-profile",
+      "file": "pie-profile.png",
+      "sha256": "E0D3FE55A777122577775DE2A4C7FB3E57037BF9667F429EAE7792070C7C819A",
+      "documentSha256": "F71EBA518BB3BD69262E4A0C6991F89ECAA2588106707317D0E84D9A2E36169F",
+      "dpi": 96,
+      "dark": false
+    },
+    {
+      "name": "er-profile",
+      "file": "er-profile.png",
+      "sha256": "E94AC55D450C7AAC710096D3E864C553F9AA454DF68FDE9E0668E453F8525EB7",
+      "documentSha256": "2FA46CAD788116D1CADF2AB571E58990B4B9978A1CD993640CC21B842C632961",
+      "dpi": 96,
+      "dark": false
+    },
+    {
+      "name": "gantt-profile",
+      "file": "gantt-profile.png",
+      "sha256": "F2823FD3E252F337CE96E0448BB709FD79DBC848E798CCD54338B96366A3A5AA",
+      "documentSha256": "659DE52BC4ABC8D55645A91C1C4A452301E5FD41A4B74899BD9A6A21EA2B1C79",
+      "dpi": 96,
+      "dark": false
+    },
+    {
+      "name": "mindmap-profile",
+      "file": "mindmap-profile.png",
+      "sha256": "5421D3C4F7351CD7C04D6914E1F50DD7C1A08650696322F4864E316E3FD640A5",
+      "documentSha256": "284A88390C70020730D7FB76C36CFDC0EA54FBE4432183ACAB58AB5C1582CD21",
+      "dpi": 96,
+      "dark": false
+    },
+    {
+      "name": "task-code-light",
+      "file": "task-code-light.png",
+      "sha256": "D3829C89F00214FF2C8E8C6EAC174960426B2689862A525502EF508D5207D6B6",
+      "documentSha256": "3156748A0418FB2A0F454CB90EFF65FD2D285840783B2B9CEDE4A3F020E1D65D",
+      "dpi": 96,
+      "dark": false
+    },
+    {
+      "name": "task-code-dark",
+      "file": "task-code-dark.png",
+      "sha256": "E158B64473193C91D6D609B889C3BA92077A795BE102341323729518DF6C5EF1",
+      "documentSha256": "3156748A0418FB2A0F454CB90EFF65FD2D285840783B2B9CEDE4A3F020E1D65D",
+      "dpi": 144,
+      "dark": true
+    },
+    {
+      "name": "class-fan-light",
+      "file": "class-fan-light.png",
+      "sha256": "CA9E510139D6A2293E03FE78EB45F7C4DF5D81A46B2B1E5F5B9CE7BBCF364B3A",
+      "documentSha256": "10ACDBC5FC29CA38766DD5C2F047D02C10A81CD5FF677E57339E2E384C84CD82",
+      "dpi": 96,
+      "dark": false
+    },
+    {
+      "name": "class-fan-dark",
+      "file": "class-fan-dark.png",
+      "sha256": "B6F368356C8AD9DA50A0D8C237F7694145DE01EE8F6F4B8283D800F33F05EAF9",
+      "documentSha256": "10ACDBC5FC29CA38766DD5C2F047D02C10A81CD5FF677E57339E2E384C84CD82",
+      "dpi": 144,
+      "dark": true
+    },
+    {
+      "name": "family-gallery",
+      "file": "family-gallery.png",
+      "sha256": "3AD50064BA8C60C08682B706D208B095EA9D0748E1F448EFE4EBF9B09324B747",
+      "documentSha256": "C7C657B6901BBE2D4596D6C0033080789B7113443BA3E273CFDE8955450D16DE",
+      "dpi": 96,
+      "dark": false
+    },
+    {
+      "name": "display-regressions",
+      "file": "display-regressions.png",
+      "sha256": "9D66B479F195C0CEFE34BF5C0F185CD048151751B368C58C03FBC44B9C6C2F9E",
+      "documentSha256": "E6E210CF06823AE0CEFC4337BA675B1D16520437B8D5DCFE8D4A92DA5E7607E7",
+      "dpi": 144,
+      "dark": true
+    }
+  ],
+  "review": "review.html",
+  "oldPin": "5fc4d4c383bfa4891ee57a138924107bbbf11a2e",
+  "oldPinResult": {
+    "qualification": false,
+    "dependency": "5fc4d4c383bfa4891ee57a138924107bbbf11a2e",
+    "binarySha256": "9940DDCCC86DFE40471FF6C903633BD3DC3D96A2B75C1F0B5726888940F40C52",
+    "receipt": ".build\\evidence\\test-runs\\20261103T115203015Z-42752-f71530d9df7a46c98c39c2ac78c6fcdf\\payload\\receipt.json",
+    "passed": 51,
+    "failed": 1,
+    "failures": [
+      {
+        "name": "Editor.NativeMermaidProfilesAndDisplayRegressions",
+        "passed": false,
+        "error": "Mermaid case 8 acknowledges native geometry without a whole-document fallback"
+      }
+    ]
+  },
+  "initialIncorrectDarkCapture": "Retained as capture setup error; see .build/mermaid-display-20261103/capture-setup-correction.json",
+  "preservedFailures": [
+    "old-pin-regression-tests.log",
+    "consumer-affected.log: disk full",
+    "consumer-affected-after-space-repair.log: ARM64 metadata"
+  ],
+  "recoveryManifests": [
+    ".build/mermaid-display-20261103/old-pin-cache-retirement.json",
+    ".build/mermaid-display-20261103/arm64-download-cache-retirement.json",
+    "D:/DxUi/.build/mermaid-display-20261103/intermediate-retirement-manifest.json"
+  ],
+  "performance": "Unpaired smoke only; no acceptance",
+  "publishStatus": "Local immutable library commit; not pushed"
+}

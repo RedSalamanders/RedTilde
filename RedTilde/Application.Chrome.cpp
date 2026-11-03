@@ -259,6 +259,7 @@ void Application::BuildUi()
     editor->SetAccessibleAutomationId(L"RedTilde.Document");
     editor->SetMarkdownAnalysisProfile(DxUi::RichText::MarkdownProfile::RichMarkdown);
     editor->SetMarkdownRenderingEnabled(true);
+    editor->SetCodeTokenizer(DxUi::RichText::TokenizeBuiltinCode);
     editor->SetRemoteImagesEnabled(settings.allowRemoteImages);
     editor->SetViewMode(DxUi::RichText::ViewMode::Rich);
     editor->SetOnTextChanged([this] { Changed(); });
@@ -433,6 +434,8 @@ void Application::BuildUi()
     outlineToggle = Action(*settingsScroll, IDS_VIEWTOOLS, Command::Outline);
     focusToggle = Action(*settingsScroll, IDS_FOCUS, Command::Focus);
     dimToggle = Action(*settingsScroll, IDS_DIMBLOCKS, Command::DimBlocks);
+    strikeTasksToggle = Action(*settingsScroll, IDS_STRIKECOMPLETEDTASKS, Command::StrikeCompletedTasks, Resource(IDS_STRIKECOMPLETEDTASKSHELP));
+    strikeTasksToggle->SetAccessibleHelpText(Resource(IDS_STRIKECOMPLETEDTASKSHELP));
     syntaxTitle = Label(*settingsScroll, IDS_SYNTAXSECTION, DxUi::FontRole::Small);
     Section(syntaxTitle);
     syntaxIntro = Label(*settingsScroll, IDS_SYNTAXINTRO, DxUi::FontRole::Small);
@@ -684,6 +687,7 @@ void Application::Layout()
     mirror->SetBounds(D2D1::RectF(mid + 24, top + 56, right - 24, bottom - 24));
     DxUi::RichTextEditorAppearance appearance;
     appearance.markdownPresentation = DxUi::RichText::MarkdownPresentationStyle::Subtle;
+    appearance.strikeCompletedTasks = settings.strikeCompletedTasks;
     appearance.drawBorder = false;
     appearance.drawFocusIndicator = false;
     appearance.useAccentLinkColor = true;
@@ -751,7 +755,7 @@ void Application::Layout()
     const float drawerLeft = width - 380;
     drawer->SetBounds(D2D1::RectF(drawerLeft, top, width, bottom));
     settingsScroll->SetBounds(D2D1::RectF(drawerLeft + 16, top + 12, width - 8, bottom - 12));
-    settingsScroll->SetContentHeight(1514);
+    settingsScroll->SetContentHeight(1566);
     const float dx = drawerLeft + 24;
     settingsScroll->GetLogicalChild(0)->SetBounds(D2D1::RectF(dx, top + 20, width - 24, top + 52));
     settingsScroll->GetLogicalChild(1)->SetBounds(D2D1::RectF(dx, top + 68, width - 24, top + 92));
@@ -780,17 +784,19 @@ void Application::Layout()
     focusToggle->SetToggleState(focus);
     dimToggle->SetBounds(D2D1::RectF(dx, top + 504, width - 24, top + 540));
     dimToggle->SetToggleState(settings.dimInactiveBlocks);
-    syntaxTitle->SetBounds(D2D1::RectF(dx, top + 556, width - 24, top + 580));
-    syntaxIntro->SetBounds(D2D1::RectF(dx, top + 588, width - 24, top + 628));
+    strikeTasksToggle->SetBounds(D2D1::RectF(dx, top + 556, width - 24, top + 592));
+    strikeTasksToggle->SetToggleState(settings.strikeCompletedTasks);
+    syntaxTitle->SetBounds(D2D1::RectF(dx, top + 608, width - 24, top + 632));
+    syntaxIntro->SetBounds(D2D1::RectF(dx, top + 640, width - 24, top + 680));
     // Each option reserves two lines of explanation beneath its toggle.
     for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
     {
-        const float row = top + 640 + static_cast<float>(index) * 92.f;
+        const float row = top + 692 + static_cast<float>(index) * 92.f;
         syntaxToggles[index]->SetBounds(D2D1::RectF(dx, row, width - 24, row + 36));
         syntaxToggles[index]->SetToggleState(settings.markdownSyntax[index]);
         syntaxHelp[index]->SetBounds(D2D1::RectF(dx, row + 40, width - 24, row + 80));
     }
-    const float privacy = top + 1288;
+    const float privacy = top + 1340;
     privacyTitle->SetBounds(D2D1::RectF(dx, privacy, width - 24, privacy + 24));
     remoteImagesToggle->SetBounds(D2D1::RectF(dx, privacy + 36, width - 24, privacy + 72));
     remoteImagesToggle->SetToggleState(settings.allowRemoteImages);

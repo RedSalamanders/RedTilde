@@ -1,0 +1,254 @@
+{
+  "schemaVersion": 1,
+  "protocol": "independent-ABBA-BAAB-v1",
+  "judge": "redtilde-paired-log-sign-flip-holm-v2",
+  "independentBlocksPerScenario": 2,
+  "familySize": 12,
+  "sameBinaryControl": false,
+  "acceptance": "review-required; new app judge does not qualify upstream D4c",
+  "metrics": [
+    {
+      "scenario": "Compose",
+      "metric": "commandUs",
+      "blocks": 2,
+      "baselineMedian": 308.2,
+      "candidateMedian": 290.57500000000005,
+      "pairedChange": -0.05494217579501559,
+      "p": 0.5,
+      "band": 0.05,
+      "controlDrift": [
+        0.21591895803183803,
+        0.06400270910938044,
+        0.3113085322968723,
+        0.05754766485919205
+      ],
+      "controlsStable": false,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change"
+    },
+    {
+      "scenario": "Compose",
+      "metric": "ownerCpuCycles",
+      "blocks": 2,
+      "baselineMedian": 9753455.75,
+      "candidateMedian": 9784742.0,
+      "pairedChange": -0.011856974220843308,
+      "p": 1.0,
+      "band": 0.05,
+      "controlDrift": [
+        0.0945377283934542,
+        0.0669013556303314,
+        0.056549519039440055,
+        0.05361007967328457
+      ],
+      "controlsStable": false,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change"
+    },
+    {
+      "scenario": "Compose",
+      "metric": "completedEditUs",
+      "blocks": 2,
+      "baselineMedian": 16837.625,
+      "candidateMedian": 16524.075,
+      "pairedChange": -0.01896424755976389,
+      "p": 0.5,
+      "band": 0.05,
+      "controlDrift": [
+        0.005189337890502799,
+        0.0031489846407897204,
+        0.007191966307265707,
+        0.005091547909315319
+      ],
+      "controlsStable": true,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change"
+    },
+    {
+      "scenario": "Compose",
+      "metric": "cleanCompletedUs",
+      "blocks": 2,
+      "baselineMedian": 16423.75,
+      "candidateMedian": 16728.25,
+      "pairedChange": 0.020258714621229634,
+      "p": 0.5,
+      "band": 0.05,
+      "controlDrift": [
+        0.04770108114530114,
+        0.014978408687115419,
+        0.02447427458521334,
+        0.026926421679809187
+      ],
+      "controlsStable": true,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change"
+    },
+    {
+      "scenario": "Compose",
+      "metric": "privateBytes",
+      "blocks": 2,
+      "baselineMedian": 46882816.0,
+      "candidateMedian": 47054848.0,
+      "pairedChange": 0.00762556684349458,
+      "p": 0.5,
+      "band": 0.02,
+      "controlDrift": [
+        0.0040034812880765935,
+        0.005026432099835332,
+        0.02032085561497321,
+        0.005393649412788193
+      ],
+      "controlsStable": false,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change"
+    },
+    {
+      "scenario": "Compose",
+      "metric": "workingSetBytes",
+      "blocks": 2,
+      "baselineMedian": 55924736.0,
+      "candidateMedian": 55965696.0,
+      "pairedChange": 0.0006193613909668549,
+      "p": 1.0,
+      "band": 0.02,
+      "controlDrift": [
+        0.001972530683810647,
+        0.008239154210718191,
+        0.0022717279788949662,
+        0.0035797779076562897
+      ],
+      "controlsStable": true,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change"
+    },
+    {
+      "scenario": "Split",
+      "metric": "commandUs",
+      "blocks": 2,
+      "baselineMedian": 310.92499999999995,
+      "candidateMedian": 302.975,
+      "pairedChange": -0.040611014629032494,
+      "p": 1.0,
+      "band": 0.05,
+      "controlDrift": [
+        0.1618705035971223,
+        0.0428172510083773,
+        0.19131614654002727,
+        0.1096810296586459
+      ],
+      "controlsStable": false,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change"
+    },
+    {
+      "scenario": "Split",
+      "metric": "ownerCpuCycles",
+      "blocks": 2,
+      "baselineMedian": 12759579.0,
+      "candidateMedian": 13289566.5,
+      "pairedChange": 0.04034525509897935,
+      "p": 0.5,
+      "band": 0.05,
+      "controlDrift": [
+        0.0892857652170218,
+        0.09993159527635398,
+        0.0219453765590073,
+        0.027935761163429995
+      ],
+      "controlsStable": false,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change"
+    },
+    {
+      "scenario": "Split",
+      "metric": "completedEditUs",
+      "blocks": 2,
+      "baselineMedian": 16514.675000000003,
+      "candidateMedian": 16736.525,
+      "pairedChange": 0.009737728890132136,
+      "p": 0.5,
+      "band": 0.05,
+      "controlDrift": [
+        0.0011784343484833038,
+        0.018894204385483504,
+        0.009243234858461902,
+        0.004477531905766163
+      ],
+      "controlsStable": true,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change"
+    },
+    {
+      "scenario": "Split",
+      "metric": "cleanCompletedUs",
+      "blocks": 2,
+      "baselineMedian": 16891.425000000003,
+      "candidateMedian": 16380.9,
+      "pairedChange": -0.023325548596250467,
+      "p": 0.5,
+      "band": 0.05,
+      "controlDrift": [
+        0.008535689313944994,
+        0.031082953870520624,
+        0.003406943421671249,
+        0.007448290313832651
+      ],
+      "controlsStable": true,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change"
+    },
+    {
+      "scenario": "Split",
+      "metric": "privateBytes",
+      "blocks": 2,
+      "baselineMedian": 46450688.0,
+      "candidateMedian": 46583808.0,
+      "pairedChange": 0.004299482447078118,
+      "p": 0.5,
+      "band": 0.02,
+      "controlDrift": [
+        0.01283308083058543,
+        0.0017570060616709515,
+        0.007020007020007046,
+        0.002108036890645537
+      ],
+      "controlsStable": true,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change"
+    },
+    {
+      "scenario": "Split",
+      "metric": "workingSetBytes",
+      "blocks": 2,
+      "baselineMedian": 56557568.0,
+      "candidateMedian": 56657920.0,
+      "pairedChange": 0.003637238893528405,
+      "p": 1.0,
+      "band": 0.02,
+      "controlDrift": [
+        0.0037664783427495685,
+        0.0005068790731354023,
+        0.00531411516342728,
+        0.006423673763984228
+      ],
+      "controlsStable": true,
+      "adjustedP": 1.0,
+      "finding": "no-resolved-change"
+    }
+  ],
+  "dependencyComparisonMode": "same-pin",
+  "reviewedHeaderDelta": null,
+  "sourceIdentity": "5eabd933b4e43cf390f7e5cb91ecc08490aa5e92025a52714e0b8b5c52c09a26",
+  "harnessInputs": {
+    "Tests/Application.Tests.Performance.cpp": "722ACC76B89F717EAF3F663D4B86C289347BD374658009932905F76B9252794F",
+    "Tests/Application.Tests.HeapDiagnostic.h": "5A89343563D46AAD9D3FC5E81683000EDC3F9571BDEA3DDF82E2CA6DA46AB537",
+    "RedTilde/Main.cpp": "1315F7579E72DE2722DA8989AA890C42CF705C4EF3289716753829E87B30DA45",
+    "RedTilde/EditDiagnostics.h": "779E4A6B708C39CF103D641CE0745983D52E0AB511F6D1DEDF4FF785EBED0E34",
+    "performance-paired.ps1": "A7487DA58293B9A8D6FED98AC37D7FC38CD7E75C12C65D9AD0E6250D513C8877",
+    "Build/Performance.psm1": "DBFC54E65A6D755850E803C0DFBBD729B8313A528679CD89B8A6BCD9D8F2E0AD",
+    "Build/Harness.psm1": "EDB495102634938397EF3E0CCD2AB49BBC32C7DB28BA40DF7BF8DF2C9449C394",
+    "docs/examples/s5-performance.md": "B5C0A6B6476C2DCEF4959CEF5E7F59400147D9F23C700C257418CC1A55DCF50E",
+    "Build/ReviewedHeaderDeltaProfile.json": "94435355531812AE70BE124E185A5D685C16A94C8052A6C1E4BAC4DD5D381997"
+  },
+  "completedUtc": "2026-11-03T10:47:24.7513087Z"
+}

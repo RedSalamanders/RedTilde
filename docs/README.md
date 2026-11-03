@@ -19,10 +19,14 @@ turns on `==highlight==`, `^superscript^`, `~subscript~`, `++inserted++`, wiki l
 by default, each option explains its syntax, and changes apply immediately without editing the document. Text for
 a syntax you turn off stays exactly as typed. RedTilde does not open wiki pages or load `![[file]]` embeds yet.
 
-**Files pane:** press Ctrl+Shift+E to list Markdown files in the saved document's folder and subfolders. Filter by
+**Files pane:** choose **File → Open Folder...** (Ctrl+Shift+O) to select a notebook root, or use **Open File...**
+(Ctrl+O); the first file establishes its containing folder when no root exists. The selected root stays in place
+when opening another file, using New, or saving elsewhere. Restart restores the folder and the pane's saved
+visibility. Folder selection preserves unsaved writing. Press Ctrl+Shift+E to show or hide the pane. Filter by
 name, expand directories, and open a file with a single click or Enter. Opening follows the normal unsaved-changes
-prompt and file-safety rules. The pane is listing/opening only; it does not manage files. Untitled documents show
-why there is no listing yet. At most 5,000 directory entries are examined to depth 8; the pane reports the actual
+prompt and file-safety rules. The pane is listing/opening only; it does not manage files. Without a selected root,
+the empty pane explains how to open a folder or file. An unavailable remembered folder reports an error while
+editing remains available; choose Open Folder to replace it. At most 5,000 directory entries are examined to depth 8; the pane reports the actual
 Markdown result count separately from traversal-limit or access errors.
 
 **Images:** save the document first when you want relative image paths. Insert an image from file or paste an
@@ -45,10 +49,15 @@ press F2, Esc or Ctrl+Enter to see it rendered again. Each edit is undoable, and
 you type. Unsupported notation stays literal with diagnostics. The optional
 inspector uses the same native engine. This bounded notation is not full LaTeX/package compatibility.
 
-**Mermaid:** flowcharts, simple state diagrams and simple class diagrams use native C++ rendering. State
-transitions support initial/final markers, labels and descriptions; class diagrams support members, associations
-and inheritance. Composite states, class blocks/namespaces/multiplicities, styles/directives and other families
-remain fenced source. F2 edits a diagram in place. See the [editor contract](../Specs/Editor/Editor_Markdown.md).
+**Mermaid:** bounded flowchart, state, class, sequence, pie, ER, Gantt and mind-map profiles use native C++
+rendering. The current pin already includes these eight profiles. Supported grouping, members, cardinalities
+and native style subsets follow the exact pinned DxUi guide; advanced control blocks, arbitrary CSS,
+interaction directives and other unsupported constructs retain exact fenced source. F2 edits a diagram in
+place. Try the [family gallery](examples/mermaid-supported-families.md) and
+[display regressions](examples/mermaid-display-regressions.md); see the [editor contract](../Specs/Editor/Editor_Markdown.md).
+
+The [sequence sample](examples/mermaid-sequence.md) covers the expanded actor, plain note, automatic
+numbering and unheaded-message syntax. Numbering starts at one and excludes notes; authored source stays exact.
 
 **Files and diagnostics:** save explicitly to write your Markdown file. Recovery checkpoints unsaved writing
 after 750 ms of quiet. On restart, inspect the source preview, Restore a copy, Discard snapshot or Keep for

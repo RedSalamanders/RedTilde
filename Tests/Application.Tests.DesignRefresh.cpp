@@ -1707,6 +1707,239 @@ class DesignRefreshProbe final
                  Require(retainedLink != linkedSemantic->Elements().end() && retainedLink->title == L"Parent title",
                          "apply/undo/redo preserves the neighboring parent link title");
              });
+        test("Editor.PersistentFolderNavigationAndRestart",
+             [&]
+             {
+                 const auto library = root / L"folder-library";
+                 const auto first = library / L"overview.md", nested = library / L"Notes/meeting.markdown";
+                 const auto external = root / L"folder-outside/other.md";
+                 WriteFixture(first, "# Overview\n");
+                 WriteFixture(nested, "# Meeting\n");
+                 WriteFixture(external, "# Other\n");
+                 auto launch = Options(root, L"folder-restart-settings");
+                 launch.preferencesProbe = true; // Isolated persisted preferences with a hidden, non-activating window.
+                 {
+                     Application app(launch);
+                     Success(app.Initialize(), "initialize the persistent-folder app");
+                     app.SetDocument(L"# Overview\n", first);
+                     Require(app.Preferences().filesRoot == library, "the first file establishes its parent as the persistent root");
+                     app.SelectFilesRoot(library);
+                     Await(app, [&] { return app.folderSnapshot && !app.folderFiles.Busy(); });
+                     Require(app.folderRoot == library && app.folderSnapshot->markdownCount == 2,
+                             "Open Folder publishes Markdown from the chosen root and nested folders");
+                     const auto generation = app.folderSnapshot->generation;
+                     app.OpenPath(nested);
+                     Await(app, [&] { return app.documentPath == nested; });
+                     Require(app.folderRoot == library && app.folderSnapshot->generation == generation &&
+                                 std::ranges::any_of(app.filesModel.rows, [](const auto &row) { return row.text == L"meeting.markdown"; }),
+                             "a nested file retains the same scan generation and expands its ancestors");
+                     app.Document().SetSelection({0, 0});
+                     Require(app.Document().ReplaceSelection(L"Draft "), "create an unsaved edit before selecting a folder");
+                     const auto source = app.Document().Snapshot();
+                     const auto selection = app.Document().GetSelection();
+                     app.SelectFilesRoot(external.parent_path());
+                     Await(app, [&] { return app.folderSnapshot && app.folderSnapshot->root == external.parent_path(); });
+                     Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selection && app.Dirty(),
+                             "selecting a folder preserves an unsaved document, its source revision and selection");
+                     Require(app.Document().Undo() && !app.Dirty(), "folder selection preserves the original undo history");
+                     app.SelectFilesRoot(library);
+                     Await(app, [&] { return app.folderSnapshot && app.folderSnapshot->root == library; });
+                     app.OpenPath(external);
+                     Await(app, [&] { return app.documentPath == external; });
+                     Require(app.Preferences().filesRoot == library && app.folderSnapshot->markdownCount == 2,
+                             "opening an external file retains every Markdown entry in the chosen library");
+                     app.OpenPath(root / L"missing-folder/missing.md");
+                     Await(app, [&] { return !app.files.Busy(); });
+                     Require(app.documentPath == external && app.Preferences().filesRoot == library,
+                             "a failed Open preserves the document and selected root");
+                     app.Execute(Command::New);
+                     Require(app.documentPath.empty() && app.Preferences().filesRoot == library && app.folderSnapshot,
+                             "New retains the chosen folder while creating an untitled document");
+                     app.Execute(Command::Files);
+                     Require(!app.folderFilesActive && app.Preferences().filesRoot == library,
+                             "hiding Files stops its worker and retains the selected root");
+                     app.Execute(Command::Files);
+                     Await(app, [&] { return app.folderSnapshot && app.folderSnapshot->root == library && !app.folderFiles.Busy(); });
+                     const auto settled = app.Activity();
+                     app.Prepare(32);
+                     Require(app.Activity().filesModelRebuilds == settled.filesModelRebuilds,
+                             "an idle persistent tree does not rebuild or introduce polling work");
+                     Await(app, [&] { return !app.preferenceWriter.Busy(); });
+                     Success(app.preferenceWriter.Status(), "the chosen root and visibility reach durable preferences");
+                 }
+                 {
+                     Application restarted(launch);
+                     Success(restarted.Initialize(), "restart using the same isolated settings directory");
+                     Await(restarted, [&] { return restarted.folderSnapshot && !restarted.folderFiles.Busy(); });
+                     Require(restarted.Preferences().showFiles && restarted.folderRoot == library && restarted.folderSnapshot->markdownCount == 2 &&
+                                 restarted.documentPath.empty() && !restarted.Dirty(),
+                             "startup restores the library independently of the last document without creating unsaved edits");
+                     restarted.SelectFilesRoot(root / L"removed-library");
+                     Await(restarted, [&] { return restarted.folderSnapshot && FAILED(restarted.folderSnapshot->status); });
+                     Require(restarted.Document().ReplaceSelection(L"Still editable "), "an unavailable remembered folder never disables editing");
+                     const auto retained = restarted.Document().Snapshot();
+                     restarted.SelectFilesRoot(library);
+                     Await(restarted, [&] { return restarted.folderSnapshot && restarted.folderSnapshot->root == library; });
+                     Require(restarted.Document().Snapshot().IsSameRevision(retained),
+                             "Open Folder recovers an unavailable root without losing edits");
+                     Await(restarted, [&] { return !restarted.preferenceWriter.Busy(); });
+                     Success(restarted.preferenceWriter.Status(), "the replacement folder is durable before ending the fixture");
+                 }
+             });
+        test("Editor.NativeCodeHighlightingPreservesSource",
+             [&]
+             {
+                 Application app(Options(root, L"code-highlighting"));
+                 Success(app.Initialize(), "create hidden code rendering app");
+                 app.SetDocument(L"# Code example\n\n```cpp\n// A small example\nconst int answer = 42;\n```\n");
+                 app.Prepare(256);
+                 const auto source = app.Document().Snapshot();
+                 const auto selection = app.Document().GetSelection();
+                 const auto colored = root / L"code-colored.png", plain = root / L"code-plain.png";
+                 Require(app.Capture(colored), "capture default language-aware code ink");
+                 app.Document().SetCodeTokenizer({});
+                 app.Prepare(256);
+                 Require(app.Capture(plain), "capture ordinary code ink for an independent pixel comparison");
+                 std::string coloredBytes, plainBytes;
+                 Success(ReadBytes(colored, coloredBytes), "read highlighted rendering");
+                 Success(ReadBytes(plain, plainBytes), "read ordinary rendering");
+                 Require(coloredBytes != plainBytes && app.Document().Snapshot().IsSameRevision(source) &&
+                             app.Document().GetSelection() == selection && !app.Document().CanUndo() && !app.Dirty(),
+                         "the application's default tokenizer changes actual code pixels while preserving source, selection and history");
+             });
+        test(
+            "Editor.NativeMermaidProfilesAndDisplayRegressions",
+            [&]
+            {
+                Application app(Options(root, L"mermaid-profiles"));
+                Success(app.Initialize(), "create hidden native Mermaid consumer");
+                constexpr std::array<std::wstring_view, 18> bodies{
+                    L"flowchart LR\nDraft[Draft] --> Saved[Saved]\n",
+                    L"stateDiagram-v2\n[*] --> Draft\nDraft --> Saved : save\nSaved --> [*]\n",
+                    L"classDiagram\nDocument <|-- Markdown\nMarkdown : +save()\n",
+                    L"sequenceDiagram\nparticipant Writer\nparticipant Notebook\nWriter->>Notebook: Save draft\nNotebook-->>Writer: Saved\n",
+                    L"pie showData title Notebook review\n\"Reviewed\" : 60\n\"Draft\" : 40\n",
+                    L"erDiagram\nNOTEBOOK ||--o{ NOTE : contains\nNOTE ||--o{ REVISION : retains\n",
+                    L"gantt\ndateFormat YYYY-MM-DD\ntitle Notebook review\nsection Writing\nDraft : 2026-11-03, 2d\nReview : 2026-11-05, 1d\n",
+                    L"mindmap\n  root((Notebook))\n    Drafts\n      Ideas\n    Research\n",
+                    L"flowchart LR\nA[<b>Warning: </b>] -->|<i>continue </i>| B[Continue]\n",
+                    L"erDiagram\nCUSTOMER ||--o{ ORDER : places\nORDER ||--|{ LINE-ITEM : contains\n"
+                    L"CUSTOMER }|..|{ DELIVERY-ADDRESS : uses\n",
+                    L"classDiagram\nNotebook \"1\" --> \"*\" Note\nNotebook \"1\" --> \"*\" Attachment\n",
+                    L"sequenceDiagram\nactor Writer as Author\nparticipant App as Editor\nautonumber\n"
+                    L"Note left of Writer: Draft\nWriter->App: Save\nNote over App,Writer: Shared\nApp-->Writer: Saved\n"
+                    L"Note right of App: Stored\n",
+                    L"sequenceDiagram\nNote over Writer: One participant\nNote over Writer,App: Two participants\n",
+                    L"sequenceDiagram\nautonumber\nWriter->>App: Save\nApp-->>Writer: Saved\n",
+                    L"sequenceDiagram\nWriter->App: Save\nApp-->Writer: Saved\nWriter-)Writer: Continue\n",
+                    L"flowchart\nDraft --> Saved\n",
+                    L"flowchart TB\nNotebook -->|Retain the exact Markdown source| Source\nNotebook -->|Prepare a readable preview| Compose\n",
+                    L"flowchart TD\nDraft -->|review| Summary\nNotes -->|check| Preview\nDraft -->|preview| Preview\nNotes -->|summarize| Summary\n"};
+                for (const auto appearance : {Appearance::Light, Appearance::Dark})
+                {
+                    app.settings.appearance = appearance;
+                    app.ApplyTheme();
+                    for (std::size_t index = 0; index < bodies.size(); ++index)
+                    {
+                        const auto source =
+                            L"# Native diagram\n\n```mermaid\n" + std::wstring(bodies[index]) + L"```\n\nNeighboring prose stays rendered.\n";
+                        app.SetView(EditorView::Compose);
+                        app.SetDocument(source);
+                        app.Prepare(1024);
+                        const auto snapshot = app.Document().Snapshot();
+                        const auto at = source.find(L"```mermaid\n") + 11;
+                        app.Document().SetSelection({at, at});
+                        const auto selection = app.Document().GetSelection();
+                        const auto requireNative = [&]
+                        {
+                            const auto semantic = app.Document().GetAcknowledgedSemanticDocument(app.Host());
+                            Require(semantic && app.Document().GetMarkdownRenderingStatus() == DxUi::MarkdownRenderingStatus::Semantic,
+                                    std::format("Mermaid case {} acknowledges native geometry without a whole-document fallback", index));
+                            const auto diagram = std::ranges::find(semantic->Elements(), DxUi::RichText::SemanticRole::Diagram,
+                                                                   &DxUi::RichText::SemanticElement::role);
+                            Require(diagram != semantic->Elements().end() && diagram->display.last == diagram->display.first + 1 &&
+                                        semantic->Diagnostics().empty() &&
+                                        std::ranges::count(semantic->Elements(), DxUi::RichText::SemanticRole::Heading,
+                                                           &DxUi::RichText::SemanticElement::role) == 1,
+                                    std::format("Mermaid case {} is one native object with rich neighbors, not a literal code fallback", index));
+                            if (index == 11u)
+                                Require(diagram->name.find(L"Author") != std::wstring::npos && diagram->name.find(L"Editor") != std::wstring::npos &&
+                                            diagram->name.find(L"Draft") < diagram->name.find(L"1. Save") &&
+                                            diagram->name.find(L"1. Save") < diagram->name.find(L"Shared") &&
+                                            diagram->name.find(L"Shared") < diagram->name.find(L"2. Saved") &&
+                                            diagram->name.find(L"2. Saved") < diagram->name.find(L"Stored"),
+                                        "consumer accessibility retains actor aliases, notes and derived message order");
+                        };
+                        requireNative();
+                        for (const auto view : {EditorView::Source, EditorView::Split, EditorView::Compose})
+                        {
+                            app.SetView(view);
+                            app.Prepare(1024);
+                            Require(app.Document().Snapshot().IsSameRevision(snapshot) && app.Document().GetSelection() == selection &&
+                                        !app.Document().CanUndo() && !app.Document().CanRedo() && !app.Dirty(),
+                                    "native diagram view switches preserve exact source, ACP selection and clean history");
+                            if (view == EditorView::Split)
+                                Require(app.SourceMirror().GetText() == source, "Split derives its mirror from the exact diagram source");
+                        }
+                        requireNative();
+                        app.Execute(Command::LocalSource);
+                        Require(app.Document().GetSemanticSourceRegion().has_value() && !app.HasBlockDraft(),
+                                "F2 enters the library-owned exact diagram source region");
+                        app.Execute(Command::LocalSource);
+                        app.Prepare(1024);
+                        Require(!app.Document().GetSemanticSourceRegion() && app.Document().Snapshot().IsSameRevision(snapshot) &&
+                                    app.Document().GetSelection() == selection && !app.Document().CanUndo() && !app.Document().CanRedo() &&
+                                    !app.Dirty(),
+                                "leaving unedited diagram source preserves its revision, selection and history");
+                        requireNative();
+                        if (index == 11u)
+                        {
+                            app.Execute(Command::LocalSource);
+                            const auto noteAt = source.find(L"Shared");
+                            app.Document().SetSelection({noteAt, noteAt + 6u});
+                            Require(app.Document().ReplaceSelection(L"Reviewed"), "edit one note through the authoritative F2 source region");
+                            app.Execute(Command::LocalSource);
+                            app.Prepare(1024);
+                            auto edited = source;
+                            edited.replace(noteAt, 6u, L"Reviewed");
+                            Require(app.Document().GetText() == edited && app.Document().CanUndo(), "note edits preserve every other authored byte");
+                            Require(app.Document().Undo(), "undo the F2 note edit");
+                            app.Prepare(1024);
+                            Require(app.Document().GetText() == source && !app.Document().CanUndo() && app.Document().CanRedo(),
+                                    "undo restores exact extended Mermaid source without a view-switch history entry");
+                            requireNative();
+                            Require(app.Document().Redo() && app.Document().GetText() == edited && app.Document().Undo(),
+                                    "redo and undo retain the same source-backed note transaction");
+                            app.Prepare(1024);
+                            requireNative();
+                        }
+                    }
+                }
+                const auto fixture = root / L"native-profile.md";
+                const std::wstring captureSource = L"# Native capture\n\n```mermaid\nflowchart LR\nA[<b>Warning: </b>] --> B[Continue]\n```\n";
+                WriteFixture(fixture, DxUi::RichText::EncodeUtf8(captureSource));
+                for (const bool dark : {false, true})
+                {
+                    auto captureOptions = Options(root, dark ? L"native-capture-dark" : L"native-capture-light");
+                    captureOptions.scenario = dark ? L"sample-document-dark" : L"sample-document";
+                    captureOptions.document = fixture;
+                    captureOptions.capture = root / (dark ? L"native-capture-dark.png" : L"native-capture-light.png");
+                    auto sidecar = captureOptions.capture;
+                    sidecar += L".scenario.json";
+                    Application captureApp(std::move(captureOptions));
+                    Success(captureApp.Initialize(), "create hidden custom-document capture");
+                    Require(captureApp.Run() == 0 && captureApp.Document().GetText() == captureSource &&
+                                captureApp.Document().GetMarkdownRenderingStatus() == DxUi::MarkdownRenderingStatus::Semantic,
+                            "custom capture scenarios keep the supplied diagram and rich neighboring heading");
+                    Color(captureApp.Host().GetTheme().cardBackground, dark ? 0x22252Bu : 0xFFFFFFu,
+                          "the custom capture's actual native palette follows its explicit Light/Dark scenario");
+                    std::string metadata;
+                    Success(ReadBytes(sidecar, metadata), "read the custom capture's actual theme provenance");
+                    Require(metadata.find(dark ? "\"renderedAppearance\": \"dark\"" : "\"renderedAppearance\": \"light\"") != std::string::npos &&
+                                metadata.find("\"fixtureBasename\": \"native-profile.md\"") != std::string::npos,
+                            "the sidecar names the actual rendered appearance and invented input basename");
+                }
+            });
         test("Editor.DesignRefreshFilesRerootFilterAndDirtyOpen",
              [&]
              {
@@ -1815,16 +2048,16 @@ class DesignRefreshProbe final
                          "headless refusal of dirty-document consent prevents tree-open data loss");
                  Require(app.Document().Undo() && !app.Dirty(), "return to the clean source before an admitted open");
                  app.OpenPath(other);
-                 Await(app, [&] { return app.documentPath == other && app.folderSnapshot && app.folderSnapshot->root == other.parent_path(); });
-                 Require(app.Document().GetText() == L"# Published\n" && app.folderRoot == other.parent_path(),
-                         "the normal async Open completion re-roots Files only after successful load");
+                 Await(app, [&] { return app.documentPath == other && app.folderSnapshot && app.folderSnapshot->root == first.parent_path(); });
+                 Require(app.Document().GetText() == L"# Published\n" && app.folderRoot == first.parent_path() && !app.filesTree->GetSelectedItemId(),
+                         "opening a file outside the browser root retains its tree and clears the previous file selection");
                  const auto savedAs = directory / L"Archive/renamed.md";
                  std::filesystem::create_directories(savedAs.parent_path());
                  Success(app.files.Submit(true, savedAs, app.Document().GetText(), false),
                          "admit the save-as writer stage without a native file picker");
-                 Await(app, [&] { return app.documentPath == savedAs && app.folderSnapshot && app.folderSnapshot->root == savedAs.parent_path(); });
-                 Require(app.folderRoot == savedAs.parent_path() && !app.Dirty(),
-                         "successful Save As completion re-roots Files and preserves the saved baseline");
+                 Await(app, [&] { return app.documentPath == savedAs && app.folderSnapshot && app.folderSnapshot->root == first.parent_path(); });
+                 Require(app.folderRoot == first.parent_path() && !app.Dirty(),
+                         "successful Save As retains the browser root and preserves the saved baseline");
                  app.Document().SetSelection(selection);
                  app.CloseDrawers();
                  Require(app.DismissSurface() && !app.Preferences().showFiles && app.Host().GetFocusControl() == &app.Document() &&
@@ -2009,6 +2242,7 @@ class DesignRefreshProbe final
                  WriteFixture(nextDocument, "# Renamed document\n");
                  StoredDocument next;
                  Success(LoadDocument(nextDocument, next), "read the replacement root fixture");
+                 app.SelectFilesRoot(nextDirectory);
                  app.SetDocument(next.text, nextDocument, next.bom, next.stamp);
                  Await(app, [&] { return app.folderSnapshot && app.folderSnapshot->root == nextDirectory && !app.folderFiles.Busy(); });
                  const auto renamed =
@@ -2063,6 +2297,7 @@ class DesignRefreshProbe final
                  Require(!app.files.Busy() && app.documentPath == document && app.Document().Snapshot().IsSameRevision(retained),
                          "invoking a folder whose name ends in .md never submits a file-open command");
                  const auto missing = directory / L"unavailable/current.md";
+                 app.SelectFilesRoot(missing.parent_path());
                  app.SetDocument(L"Still editable\n", missing);
                  Await(app, [&] { return app.folderSnapshot && app.folderSnapshot->root == missing.parent_path(); });
                  Require(FAILED(app.folderSnapshot->status) && app.folderSnapshot->errorCount > 0 &&
@@ -2072,6 +2307,7 @@ class DesignRefreshProbe final
                  // without allocation injection, thread hooks or native desktop UI.
                  app.folderFiles.Close();
                  app.documentPath = directory / L"next/current.md";
+                 app.settings.filesRoot = app.documentPath.parent_path();
                  app.RefreshFiles(true);
                  Require(app.filesCount->GetText() == Resource(IDS_FILESUNAVAILABLE),
                          "a rejected scan admission retains its error instead of waiting forever for an unsubmitted result");
@@ -2081,6 +2317,7 @@ class DesignRefreshProbe final
                  app.folderFilesActive = false;
                  app.documentPath = L"R:\\current.md";
                  app.folderRoot = L"R:\\";
+                 app.settings.filesRoot = app.folderRoot;
                  app.folderSnapshot = FilesSnapshot{};
                  app.folderSnapshot->root = app.folderRoot;
                  app.RefreshFiles();
@@ -2278,7 +2515,7 @@ class DesignRefreshProbe final
                  const auto foreground = GetForegroundWindow();
                  Application app(Options(root, L"design-settings"));
                  Success(app.Initialize(), "create hidden live-settings app");
-                 app.SetDocument(L"# Settings preserve writing\n\nA retained source.\n");
+                 app.SetDocument(L"# Settings preserve writing\n\nA retained source.\n\n- [x] Completed **work**\n- [ ] Open work\n");
                  const auto revision = app.Document().Snapshot();
                  Resize(app, 800, 560);
                  app.Execute(Command::Settings);
@@ -2296,6 +2533,25 @@ class DesignRefreshProbe final
                  app.Execute(Command::DimBlocks);
                  Require(!app.Preferences().dimInactiveBlocks && app.dimToggle->GetToggleState() == std::optional<bool>(false),
                          "focus dimming is a live persisted preference with a real toggle state");
+                 const auto selection = app.Document().GetSelection();
+                 Require(!app.Preferences().strikeCompletedTasks && !app.Document().GetAppearance().strikeCompletedTasks,
+                         "completed-task strike-through starts disabled");
+                 app.Execute(Command::StrikeCompletedTasks);
+                 app.SetView(EditorView::Split);
+                 app.Prepare(256);
+                 Require(app.Preferences().strikeCompletedTasks && app.Document().GetAppearance().strikeCompletedTasks &&
+                             app.mirror->GetAppearance().strikeCompletedTasks && app.strikeTasksToggle->GetToggleState() == std::optional<bool>(true),
+                         "the real preference applies to Compose and the Split mirror");
+                 app.SetView(EditorView::Source);
+                 app.SetView(EditorView::Compose);
+                 app.Execute(Command::StrikeCompletedTasks);
+                 app.Prepare(256);
+                 const auto retainedSelection = app.Document().GetSelection();
+                 Require(!app.Document().GetAppearance().strikeCompletedTasks && !app.mirror->GetAppearance().strikeCompletedTasks &&
+                             app.Document().Snapshot().IsSameRevision(revision) && selection.anchor == retainedSelection.anchor &&
+                             selection.caret == retainedSelection.caret && !app.Dirty(),
+                         "completion presentation round-trips views without changing source, selection, revision or dirty state");
+                 Require(!app.Document().CanUndo(), "presentation commands leave the empty undo history unchanged");
                  Require(!app.Preferences().allowRemoteImages && !app.Document().RemoteImagesEnabled() &&
                              app.remoteImagesToggle->GetToggleState() == std::optional<bool>(false),
                          "the privacy control starts off and reports the actual editor image policy");

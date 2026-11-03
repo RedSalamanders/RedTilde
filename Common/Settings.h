@@ -41,11 +41,13 @@ struct Settings
     bool focusMode = false;
     bool showOutline = true;
     bool showFiles = false;
+    std::filesystem::path filesRoot;
     unsigned filesWidth = 280;
     unsigned readingWidth = 760;
     unsigned textScale = 100;
     bool dimInactiveBlocks = true;
     bool allowRemoteImages = false;
+    bool strikeCompletedTasks = false;
     std::array<bool, MarkdownSyntaxCount> markdownSyntax{true, true, true, true, true, true, true};
     [[nodiscard]] bool SyntaxEnabled(MarkdownSyntax syntax) const noexcept
     {

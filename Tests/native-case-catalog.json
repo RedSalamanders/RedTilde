@@ -214,6 +214,18 @@
       "scope": "Editor"
     },
     {
+      "name": "Editor.PersistentFolderNavigationAndRestart",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.NativeCodeHighlightingPreservesSource",
+      "scope": "Editor"
+    },
+    {
+      "name": "Editor.NativeMermaidProfilesAndDisplayRegressions",
+      "scope": "Editor"
+    },
+    {
       "name": "Editor.DesignRefreshFilesRerootFilterAndDirtyOpen",
       "scope": "Editor"
     },

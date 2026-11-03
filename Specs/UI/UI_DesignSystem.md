@@ -44,6 +44,11 @@ The document's outer focus rectangle is decorative and omitted in ordinary theme
 caret, selection, text services and keyboard routing; high contrast forces the shared focus indicator. In ordinary
 light/dark themes links underline on hover or caret, with persistent underlines in high contrast.
 
+Document task markers share the current theme accent and use foreground ink in high contrast. The Writing drawer
+offers **Strike through completed tasks**, disabled by default, with a real toggle state and explanatory help.
+It applies immediately to Compose and Split. Code chips keep three-DIP text insets; table cells keep ten-DIP side
+insets when space permits. Diagram labels determine the spacing between adjacent boxes along their direction.
+
 The `reference-dark` harness scene uses the visible weekly-report source from image 2 with invented continuation,
 the same twenty-file tree, seven headings and current section. Its canonical comparison is 1440x900 pixels at
 96 DPI; additional 144/192-DPI captures keep the same DIP viewport. Source, pane state, requested/actual dimensions,
@@ -207,12 +212,20 @@ region refuses and F2 falls back to the draft.
 
 ## Files pane
 
-The Files pane is available, closed by default, and lists Markdown files from the open document's containing folder
-and subfolders. It is a listing/open surface only: it does not create, rename, delete, move, reveal or otherwise
+The Files pane is available, closed by default, and lists Markdown files from a persistent selected root and its
+subfolders. File offers distinct Open File (Ctrl+O) and Open Folder (Ctrl+Shift+O) commands. The folder picker uses
+the native filesystem folder dialog; accepting it shows Files, clears its name filter and focuses the tree without
+replacing the current document, selection or undo history, even when the document is dirty. It is a listing/open
+surface only: it does not create, rename, delete, move, reveal or otherwise
 operate on files. Its first command-row toggle uses Ctrl+Shift+E. The pane width is 280 DIP by default and persists
 within 200–400 DIP. Opening moves focus into the tree; Escape or closing returns focus to the authoritative editor
 with its source selection intact. The folder name is visible; its full path is a tooltip and UIA help text. An
-untitled document explains that saving is required before files can be listed. Open/Save As re-roots the listing.
+empty root explains that Open Folder or Open File establishes a root. The first successfully opened/saved file
+establishes its parent only when no root exists. Thereafter Open, Save As and New retain that root; only explicit
+Open Folder replaces it. Opening a nested file expands its ancestors without restarting enumeration. A file
+outside the selected root clears the previous tree selection while the full root listing remains available.
+Closing Files stops its worker but retains the selected root. Restart restores the root and saved visibility;
+an unavailable folder reports the existing access error and never blocks editing or silently changes roots.
 
 List `.md` and `.markdown` files. Exclude hidden and system entries. Show a directory only when Markdown exists
 below it, directories before files, and natural Explorer-style ordering within each kind. Expand ancestors of the

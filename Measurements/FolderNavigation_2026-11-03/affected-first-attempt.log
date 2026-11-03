@@ -1,0 +1,292 @@
+Native test naming: 13 files checked.
+Test plan: Affected (x64 Release); baseline: branch merge base with origin/main (no matching iteration baseline); scopes: Storage, Settings, Recovery, Editor, Preferences, RecoveryRestart, Performance, Captures, Crash, Tooling, Format
+  capabilities.json: unmapped input; conservative full fallback => Storage, Settings, Recovery, Editor, Preferences, RecoveryRestart, Performance, Captures, Crash, Sanitizer, Tooling, Format
+  Changes/2026-11-03-folders-samples-rendering.md: documentation/skill validation => Tooling, Format
+  Common/Settings.cpp: settings model, durable process exit and live editor appearance => Settings, Preferences, Editor
+  Common/Settings.cpp: native source formatting => Format
+  Common/Settings.h: settings model, durable process exit and live editor appearance => Settings, Preferences, Editor
+  Common/Settings.h: native header formatting => Format
+  docs/examples/example.md: documentation/skill validation => Tooling, Format
+  docs/examples/front-matter-toml.md: documentation/skill validation => Tooling, Format
+  docs/examples/front-matter-yaml.md: documentation/skill validation => Tooling, Format
+  docs/examples/markdown-showcase.md: documentation/skill validation => Tooling, Format
+  docs/examples/README.md: documentation/skill validation => Tooling, Format
+  docs/examples/syntax-options.md: documentation/skill validation => Tooling, Format
+  docs/examples/workspace/guides/writing.md: documentation/skill validation => Tooling, Format
+  docs/examples/workspace/notes/meeting.md: documentation/skill validation => Tooling, Format
+  docs/examples/workspace/notes/research.markdown: documentation; no native test input => 
+  docs/examples/workspace/README.md: documentation/skill validation => Tooling, Format
+  docs/README.md: documentation/skill validation => Tooling, Format
+  README.md: documentation/skill validation => Tooling, Format
+  RedTilde/Application.CaptureScenarios.cpp: application ownership, shared bootstrap, native command routing and presentation => Storage, Settings, Recovery, Editor, Preferences, RecoveryRestart, Performance, Captures, Crash, Sanitizer, Tooling, Format
+  RedTilde/Application.CaptureScenarios.cpp: native source formatting => Format
+  RedTilde/Application.Chrome.cpp: application ownership, shared bootstrap, native command routing and presentation => Storage, Settings, Recovery, Editor, Preferences, RecoveryRestart, Performance, Captures, Crash, Sanitizer, Tooling, Format
+  RedTilde/Application.Chrome.cpp: native source formatting => Format
+  RedTilde/Application.cpp: application ownership, shared bootstrap, native command routing and presentation => Storage, Settings, Recovery, Editor, Preferences, RecoveryRestart, Performance, Captures, Crash, Sanitizer, Tooling, Format
+  RedTilde/Application.cpp: native source formatting => Format
+  RedTilde/Application.h: application ownership, shared bootstrap, native command routing and presentation => Storage, Settings, Recovery, Editor, Preferences, RecoveryRestart, Performance, Captures, Crash, Sanitizer, Tooling, Format
+  RedTilde/Application.h: native header formatting => Format
+  RedTilde/Application.Navigation.cpp: application ownership, shared bootstrap, native command routing and presentation => Storage, Settings, Recovery, Editor, Preferences, RecoveryRestart, Performance, Captures, Crash, Sanitizer, Tooling, Format
+  RedTilde/Application.Navigation.cpp: native source formatting => Format
+  res/RedTilde.rc: embedded chrome, product resources and capture inputs => Storage, Settings, Recovery, Editor, Preferences, RecoveryRestart, Performance, Captures, Crash, Sanitizer, Tooling, Format
+  res/Resource.h: embedded chrome, product resources and capture inputs => Storage, Settings, Recovery, Editor, Preferences, RecoveryRestart, Performance, Captures, Crash, Sanitizer, Tooling, Format
+  res/Resource.h: native header formatting => Format
+  Specs/Core/Core_Architecture.md: documentation/skill validation => Tooling, Format
+  Specs/Core/Core_SettingsAndCrashes.md: documentation/skill validation => Tooling, Format
+  Specs/Editor/Editor_Markdown.md: documentation/skill validation => Tooling, Format
+  Specs/Plans/WIP/FolderNavigationAndSamples_2026-11-03.md: documentation/skill validation => Tooling, Format
+  Specs/Plans/WIP/README.md: documentation/skill validation => Tooling, Format
+  Specs/UI/UI_DesignSystem.md: documentation/skill validation => Tooling, Format
+  Tests/Application.Tests.DesignRefresh.cpp: hidden design refresh behavior and native presentation => Editor
+  Tests/Application.Tests.DesignRefresh.cpp: native source formatting => Format
+  Tests/Application.Tests.Files.cpp: Files, versioned preferences and revision-bound document-position registration units => Storage, Settings, Editor
+  Tests/Application.Tests.Files.cpp: native source formatting => Format
+  Tests/native-case-catalog.json: source/list/execution union must equal the reviewed case partition => Storage, Settings, Recovery, Editor, Tooling
+DxUi pin verified: 5fc4d4c383bfa4891ee57a138924107bbbf11a2e
+Visual Studio: C:\Program Files\Microsoft Visual Studio\18\Insiders
+MSVC toolset:  14.52.37025, the default MSBuild compiles with; vcpkg is pinned to 14.52
+Overlay triplet D:\RedTilde\.build\dependencies\DxUi\09a486e59d8c98bc\vcpkg-triplets\x64\x64-windows.cmake unchanged
+Installing DxUi dependencies (x64-windows)
+Detecting compiler hash for triplet x64-windows...
+Compiler found: C:/Program Files/Microsoft Visual Studio/18/Insiders/VC/Tools/MSVC/14.52.37025/bin/Hostx64/x64/cl.exe
+The following packages are already installed:
+  * vcpkg-cmake:x64-windows@2025-08-07
+  * vcpkg-cmake-config:x64-windows@2026-07-21
+    wil:x64-windows@1.0.260126.7
+wil provides CMake targets:
+
+  # this is heuristically generated, and may not be correct
+  find_package(wil CONFIG REQUIRED)
+  target_link_libraries(main PRIVATE WIL::WIL)
+
+All requested installations completed successfully in: 647 us
+vcpkg dependencies are ready.
+DxUi 5fc4d4c383bfa4891ee57a138924107bbbf11a2e, API 4, x64 restored.
+
+  DxUi.vcxproj -> D:\RedTilde\.build\dependencies\DxUi\09a486e59d8c98bc\x64\Release\DxUi.lib
+  Verified local RedMonitor client 9ebea6577fe9a5ced7647283c918f51f67d666fd; no viewer dependency.
+  DxUi pin verified: 5fc4d4c383bfa4891ee57a138924107bbbf11a2e
+  RedTilde.vcxproj -> D:\RedTilde\.build\x64\Release\RedTilde.exe
+BUILD SUCCEEDED: RedTilde | x64 | Release | 00:00:15
+Diagnostics: 0 warning(s), 0 error(s)
+Artifact: D:\RedTilde\.build\x64\Release\RedTilde.exe
+Log: D:\RedTilde\.build\logs\build-x64-Release-20261103T104008099Z-e604ba544e42409d973809223eefbe68.log
+Run: D:\RedTilde\.build\x64\Release\RedTilde.exe
+& 'D:\RedTilde\.build\x64\Release\RedTilde.exe'
+Changelog valid: 5 pending fragment(s).
+Changelog valid: 1 pending fragment(s).
+PASS changelog: editing permits one valid dated Unicode change
+PASS changelog: reject notes.md without mutation
+PASS changelog: reject 2026-02-30-invalid.md without mutation
+PASS changelog: reject 2026-10-21-Upper.md without mutation
+PASS changelog: reject 2026-10-21-empty.md without mutation
+PASS changelog: reject 2026-10-21-blank-bullet.md without mutation
+PASS changelog: reject 2026-10-21-paragraph.md without mutation
+PASS changelog: reject 2026-10-21-two.md without mutation
+PASS changelog: reject 2026-10-21-margin.md without mutation
+Folded 1 changelog fragment(s) into CHANGELOG.md, newest first.
+Changelog is valid and fully folded.
+PASS changelog: single-fragment final gate is read-only and requires folding
+What if: Performing the operation "Fold 1 changelog fragment(s) and remove their source files" on target "D:\RedTilde\.build\changelog-fixtures\changelog-87ec4c1c8cba4534ba58eb28fc6cc055".
+PASS changelog: preview writes nothing
+What if: Performing the operation "Fold 1 changelog fragment(s) and remove their source files" on target "D:\RedTilde\.build\changelog-fixtures\changelog-75f8188e9ec74f868624dd07fbbb7bdf\requested-checkout".
+Folded 1 changelog fragment(s) into CHANGELOG.md, newest first.
+Changelog valid: 0 pending fragment(s).
+PASS changelog: relative roots follow PowerShell location without touching the process directory
+Folded 3 changelog fragment(s) into CHANGELOG.md, newest first.
+No changelog fragments to fold.
+PASS changelog: newest first, stable topic order, preserve released history and README
+Folded 1 changelog fragment(s) into CHANGELOG.md, newest first.
+PASS changelog: preserve BOM, CRLF and Unicode bytes
+Folded 1 changelog fragment(s) into CHANGELOG.md, newest first.
+PASS changelog: retry after publication cleans fragments without duplicate entries
+Folded 1 changelog fragment(s) into CHANGELOG.md, newest first.
+PASS changelog: released heading with space does not suppress a new entry
+Folded 1 changelog fragment(s) into CHANGELOG.md, newest first.
+PASS changelog: released heading with tab does not suppress a new entry
+PASS changelog: missing README, invalid headings, unexpected files and directories fail
+PASS changelog: overlapping fold fails without touching inputs
+Folded 1 changelog fragment(s) into CHANGELOG.md, newest first.
+PASS changelog: Unreleased heading at EOF is supported
+Changelog valid: 2 pending fragment(s); CHANGELOG.md changes since origin/main are exact folds.
+Folded 1 changelog fragment(s) into CHANGELOG.md, newest first.
+Folded 2 changelog fragment(s) into CHANGELOG.md, newest first.
+Folded 1 changelog fragment(s) into CHANGELOG.md, newest first.
+PASS changelog: CHANGELOG.md changes only by an exact fold of fragments the merge base holds
+PASS changelog: a fold stays exact when the default branch meanwhile gains a fragment with the same text
+What if: Performing the operation "Push the fold of 2 fragment(s) from main at dd1340b47856" on target "origin changelog/fold-dd1340b47856".
+Folding origin/main at dd1340b47856 in D:\RedTilde\.build\changelog-fixtures\changelog-9fa4e25110894c43970c709eadcfa6cf\wt\changelog-fold-927c00b4
+Folded 2 changelog fragment(s) into CHANGELOG.md, newest first.
+Changelog is valid and fully folded.
+Changelog valid: 0 pending fragment(s); CHANGELOG.md changes since dd1340b4785699b8d38bf519ecf0e419426fc3e5 are exact folds.
+Pushed changelog/fold-dd1340b47856: 2 fragment(s) folded from main at dd1340b47856.
+Open its pull request against main.
+changelog/fold-dd1340b47856 is already pushed for main at dd1340b47856.
+Open its pull request against main.
+PASS changelog: fold submission pushes one exact fold branch and leaves the caller checkout untouched
+Folding origin/main at a45a41db9a1e in D:\RedTilde\.build\changelog-fixtures\changelog-3c57160f03a148c5b7da6e42e26b99cb\wt\changelog-fold-22864932
+Folded 2 changelog fragment(s) into CHANGELOG.md, newest first.
+Changelog is valid and fully folded.
+Changelog valid: 0 pending fragment(s); CHANGELOG.md changes since a45a41db9a1e80daea272d9e68d3fca886cd93d8 are exact folds.
+What if: Performing the operation "Push the fold of 2 fragment(s) from main at a45a41db9a1e" on target "origin changelog/fold-a45a41db9a1e".
+Fold 2 changelog fragment(s)
+
+Folded from main at a45a41db9a1e by Tools/Submit-ChangelogFold.ps1:
+- Changes/2026-10-21-second.md
+- Changes/2026-10-20-first.md
+
+
+ CHANGELOG.md                 | 3 +++
+ Changes/2026-10-20-first.md  | 1 -
+ Changes/2026-10-21-second.md | 2 --
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+Folding origin/main at a45a41db9a1e in D:\RedTilde\.build\changelog-fixtures\changelog-3c57160f03a148c5b7da6e42e26b99cb\wt\changelog-fold-275269bd
+Folded 2 changelog fragment(s) into CHANGELOG.md, newest first.
+Changelog is valid and fully folded.
+Changelog valid: 0 pending fragment(s); CHANGELOG.md changes since a45a41db9a1e80daea272d9e68d3fca886cd93d8 are exact folds.
+Pushed changelog/fold-a45a41db9a1e: 2 fragment(s) folded from main at a45a41db9a1e.
+Open its pull request against main.
+changelog/fold-a45a41db9a1e is already pushed for main at a45a41db9a1e.
+What if: Performing the operation "Open the fold pull request against main" on target "fixture/example changelog/fold-a45a41db9a1e".
+changelog/fold-a45a41db9a1e is already pushed for main at a45a41db9a1e.
+Fold pull request: https://github.com/fixture/example/pull/7
+PASS changelog: fold submission opens one pull request; WhatIf writes to neither the remote nor GitHub
+PASS changelog: a default branch without a Changes folder has nothing to fold
+PASS changelog: a fold whose post-checkout hook fails reports it and leaves no worktree behind
+PASS changelog: invalid UTF-8 in CHANGELOG.md is refused without mutation
+Folded 1 changelog fragment(s) into CHANGELOG.md, newest first.
+PASS changelog: links inside the checkout are refused; a junction above it is accepted
+PASS changelog: a spelling of the root that differs only in case is the root only where the file system ignores case
+Folded 1 changelog fragment(s) into CHANGELOG.md, newest first.
+PASS changelog: an interrupted cleanup names the fragment and a rerun finishes it
+PASS changelog: the public PrePush runner validates the changelog against origin/main before build or test discovery
+PASS changelog: a timed-out fixture child is terminated before fixture cleanup
+Changelog behavior: 32 passed, 0 failed.
+PASS Changes workflow
+PASS Specifications and links
+Validated structure/packages for 9 skills and 6 guidance files; model decisions were not evaluated.
+PASS Skill structure, package references and scoped guidance
+SKIP reparse-input fixture: this host cannot create a symbolic link.
+SKIP linked-root fixture: this host cannot create a symbolic link.
+Skill structure/package/guidance: 62 behavioral fixtures passed; model decisions were not evaluated.
+PASS Skill package regression fixtures
+PASS Exact dependency and capability status
+PASS Release policy: 6 native profiles, 6 pinned-archive profiles, compiler/linker negative controls.
+PASS interactive lease policy: 6 lease and 6 pinned-archive profiles; 4 SDK-default, 4 toolset-override and 8 mixed-case controls with verified dependency identities. Evidence: D:\RedTilde\.build\ReleaseBuildPolicy\4adcaae6a0fc41d9a3ae6d7778eac984\interactive-lease-policy.json
+Verified required toolchain: {"installation":"C:\\Program Files\\Microsoft Visual Studio\\18\\Insiders","version":"14.52.37025","host":"x64","platform":"x64"}
+PASS CI toolchain verification and missing-family/local-install refusal controls.
+PASS /Wall without /WX, Debug/ASan symbols, Release-only ICF and independent negative controls.
+PASS Evaluated Release compiler and linker policy
+PASS zero-warning results, green output, safe terminal links, plain launch commands and short-path collision refusal.
+PASS Build console and short dependency paths
+PASS delayed GUI success waits and preserves install path with spaces
+PASS reboot-required success is accepted only after exact tools verify
+PASS GUI failure overrides stale success and retains output diagnostics
+PASS successful installer cannot admit another compiler family
+PASS successful installer cannot admit missing VC/Tools/MSVC/14.52.37025/bin/Hostx64/x64/cl.exe
+PASS successful installer cannot admit missing VC/Tools/MSVC/14.52.37025/lib/x64/clang_rt.asan_dynamic-x86_64.lib
+PASS successful installer cannot admit missing VC/Tools/Llvm/x64/bin/llvm-pdbutil.exe
+PASS successful installer cannot admit missing SDK
+PASS verified existing tools never download or install
+PASS VerifyOnly refuses before installer launch
+PASS Local refuses before installer launch
+PASS BadSignature refuses before installer launch
+Retained MSVC setup fixtures: D:\RedTilde\.build\msvc-setup-fixtures\89ddc912279d42b0841dc31b6c0f931b
+PASS hosted MSVC setup: 12 behavioral cases. No real installer ran.
+PASS Hosted MSVC setup
+PASS Six build configurations and native inventory
+Run evidence: D:\RedTilde\.build\evidence-tooling-tests\284940dc739b4c749e71e32222f29768\ordinary\.build\evidence\test-runs\20261103T104217560Z-45652-2b2ead0f74364b258aab78f3f7b96edd
+Run evidence: D:\RedTilde\.build\evidence-tooling-tests\284940dc739b4c749e71e32222f29768\ordinary\.build\evidence\test-runs\20261103T104217578Z-45652-274b077042174228b2caae08866044f2
+Run evidence: D:\RedTilde\.build\evidence-tooling-tests\284940dc739b4c749e71e32222f29768\ordinary\.build\evidence\test-runs\20261103T104217824Z-45652-81bf5462b8d74b6d86acb43ab8feef82
+Run evidence: D:\RedTilde\.build\evidence-tooling-tests\284940dc739b4c749e71e32222f29768\ordinary\.build\evidence\test-runs\20261103T104217849Z-45652-1c84170cbb7d4d70b6bc6c0471a22b7a
+Run evidence: D:\RedTilde\.build\evidence-tooling-tests\284940dc739b4c749e71e32222f29768\ordinary\.build\evidence\test-runs\20261103T104217898Z-45652-388de31f9d8a4ed4bc9596df9421ca6c
+Run evidence: D:\RedTilde\.build\evidence-tooling-tests\284940dc739b4c749e71e32222f29768\ordinary\.build\evidence\test-runs\20261103T104217919Z-45652-167c0f885b1f4ba59a88fb14302587da
+Run evidence: D:\RedTilde\.build\evidence-tooling-tests\284940dc739b4c749e71e32222f29768\ordinary\.build\evidence\test-runs\20261103T104217945Z-45652-10aa3508f0584d79bc285d314bec0da8
+Run evidence: D:\RedTilde\.build\evidence-tooling-tests\284940dc739b4c749e71e32222f29768\ordinary\.build\evidence\test-runs\20261103T104217956Z-45652-aabadf7d7cfa4dd2bf5b5e77178727a6
+Run evidence: D:\RedTilde\.build\evidence-tooling-tests\284940dc739b4c749e71e32222f29768\interrupted\.build\evidence\test-runs\20261103T104222443Z-51500-a52c4cd3e9aa4070ba000f261c160dde
+Run evidence: D:\RedTilde\.build\evidence-tooling-tests\284940dc739b4c749e71e32222f29768\interrupted\.build\evidence\test-runs\20261103T104222988Z-45652-b977ae94db4146dfadfd96f7481b7cec
+Run evidence: D:\RedTilde\.build\evidence-tooling-tests\284940dc739b4c749e71e32222f29768\native-output\.build\evidence\test-runs\20261103T104223008Z-45652-40cb75b8c2d64147ba19703b06f5ffd4
+Run evidence: D:\RedTilde\.build\evidence-tooling-tests\284940dc739b4c749e71e32222f29768\cached-native-metadata\.build\evidence\test-runs\20261103T104224618Z-45652-52c9b1e14400462da32f06332b77a0be
+PASS 37 evidence preservation checks; fixtures retained at D:\RedTilde\.build\evidence-tooling-tests\284940dc739b4c749e71e32222f29768
+PASS Run evidence retention
+PASS RedMonitor client offline-exact-bytes
+PASS RedMonitor client tampered-Client.h
+PASS RedMonitor client missing-Client.h
+PASS RedMonitor client tampered-LICENSE.txt
+PASS RedMonitor client missing-LICENSE.txt
+PASS RedMonitor client invalid-repository
+PASS RedMonitor client invalid-commit
+PASS RedMonitor client invalid-apiRevision
+PASS RedMonitor client invalid-duplicate
+PASS RedMonitor client invalid-traversal
+PASS RedMonitor client invalid-hash
+PASS RedMonitor client reparse-vendor
+PASS 12 offline client controls; retained D:\RedTilde\.build\client-sdk-tests\Unicode 日 space\757acaabac454dcfa7916a9e376e86da
+PASS RedMonitor SDK consumption
+PASS active native naming and inventory are contextual and complete
+PASS unknown executable inputs widen even though formatting also matches
+PASS isolated skill package checks select tooling while shared Build policy stays full
+PASS prose omits native tests, declared runtime Markdown selects its consumer, and empty changes select nothing
+PASS actual consumers and standalone test owners are selected
+PASS invalid selectors and absolute/traversing paths are rejected
+PASS committed/staged/working/deleted/rename sides/Unicode/untracked are independently discovered
+PASS missing comparison refs fail with a full-run remedy
+PASS native identity changes with source/binary/runtime/profile/environment
+PASS missing required runtime inputs and JSON-only profiles fail before identity creation
+PASS only intact identical successful receipts are reusable
+PASS compiled identity excludes prose but includes embedded Markdown and inline generators
+PASS iteration state is source/index/profile/environment bound and rejects corruption
+Validated policy 1, adapter, source syntax and compiler-free PR delegation for RedSalamanders/RedTilde.
+PASS current CI delegates no native PR work and qualifies both architectures after main batching
+PASS live project/include consumers follow added dependencies and terminate include cycles
+PASS only a clean committed candidate can delegate matching enabled CI, always as pending
+PASS disabled/unavailable CI, stale workflow and mismatched profiles keep obligations local
+PASS working and clean-commit races during coverage lookup refuse delegation
+PASS direct default-branch pushes have no forthcoming PR coverage
+PASS tooling identity never discovers an unrelated Python installation
+PASS tooling identity includes the selected formatter bytes
+PASS package and performance entrypoints share current build artifact admission
+PASS retained CI proof requires all six actual successful native executions
+PASS public runner expands empty and explicit tooling argument arrays exactly
+PASS public default records a successful affected baseline and then runs nothing unchanged
+PASS a later edit selects only the newly affected scope, not earlier branch changes
+PASS explicit identical success is reused and partial selection never advances the default baseline
+PASS failures and post-run mutations never advance the affected baseline or retain reusable success
+PASS public build refuses a profile junction before receipt or restore writes
+PASS first build cleans and records guarded receipt
+PASS docs-only changes reuse byte-identical output without clean
+PASS source bytes with a restored older mtime clean before MSBuild reuse
+PASS changed installed package-header bytes invalidate the build input identity
+PASS changed selected compiler bytes invalidate the build context
+PASS dirty tracked or untracked pinned SDK implementation source refuses build reuse
+PASS resolved DxUi consumer properties cannot redirect the SDK source or package root
+PASS foreign first executable search match fails closed instead of attesting a later compiler
+PASS legacy or incomplete receipts force a clean and are never admitted for SkipBuild
+PASS failed build leaves a revoked receipt that SkipBuild admission rejects
+PASS public build receipt invalidates content changes despite restored timestamps and preserves docs-only outputs
+Scoped testing: 40 cases passed.
+PASS Scope contracts and public runner
+PASS PowerShell syntax
+Independent evidence reference: 4324 checks passed, 0 studies.
+/c /I"<ROOT>\INCLUDE" /O2 /W4 /WX /Fo"<ROOT>\.BUILD\OBJ\\"
+V4 synthetic positive and negative cases passed; evidence retained at D:\RedTilde\.build\v4-validator-tests\1525a612329e4a8e8b6b3282cc2b985c
+Performance tooling: numerical policy and independent compiler identity checks passed (4772 reference/audit assertions).
+Performance observation: 37 behavioral checks passed.
+Independent evidence reference: 4324 checks passed, 0 studies.
+Independent evidence reference: 1742 checks passed, 1 studies.
+Independent evidence reference: 2751 checks passed, 1 studies.
+Independent evidence reference: 17902 checks passed, 1 studies.
+Diagnostic evidence: 13 integrity-consistent malformed receipts rejected.
+Editor preparation fixture: 2 accepted schema and 7 malformed variants checked.
+Receipt: D:\RedTilde\.build\diagnostic-evidence\c6d7c70196114b868a13aeffd11a6e30\receipt.json
+PASS Performance protocol
+All RedTilde validators passed.
+Run evidence: D:\RedTilde\.build\evidence\test-runs\20261103T104516507Z-52348-4804f348a5494ebc978f5d96cd47c424
+12 behavioral tests passed (Storage).
+4 behavioral tests passed (Settings).
+5 behavioral tests passed (Recovery).
+51 behavioral tests passed (Editor).
+Native forced render: 61.3 FPS; private memory 40.1 MiB; dirty edit/render 0.20 ms. Initial app baseline only.
+32 actual hidden application captures generated with viewport/DPI provenance.
+Isolated local crash dump and marker verified.
+Receipt: D:\RedTilde\.build\evidence\test-runs\20261103T104516507Z-52348-4804f348a5494ebc978f5d96cd47c424\payload\receipt.json

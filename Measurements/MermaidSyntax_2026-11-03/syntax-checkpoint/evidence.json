@@ -1,0 +1,123 @@
+{
+  "status": "SYNTAX_CHECKPOINT_PASSED",
+  "qualification": false,
+  "sourceIdentity": "28c3b9907dd6ac82cf9e68688f583e49154290c1ac3feaf1ddd15ecb9f86bdcb",
+  "dependency": "9ed15504fd481421388ab2dd1380374ff70c112a",
+  "binarySha256": "361D3893358C0A65CFB0BA8A062702C7032C5038444BD239F9F61EB791251797",
+  "nativeCases": 73,
+  "standardCaptures": 32,
+  "customCaptures": 18,
+  "nativeReceipt": ".build/evidence/test-runs/20261103T142304937Z-55644-8edfb654b6884282a81f8d301b6df3ec/payload/receipt.json",
+  "nativeReceiptSha256": "C9BF2620717B27CD937BABE7E6BBD8AA1FA0FFF3ECF1A2D4E950C77C4C47937F",
+  "reason": "Preserved before correcting observed low-contrast default diagram connections",
+  "captures": [
+    {
+      "file": "after-actors-notes-light-96.png",
+      "sha256": "CE725E0FC1F7968DCF4F5AD59C28D5AC678916B79D8DFB49C090DA2C79D7226A",
+      "dpi": 96,
+      "dark": false
+    },
+    {
+      "file": "after-actors-notes-dark-96.png",
+      "sha256": "7EF0EC1BD70858547C855C378548B786D24EB799B318A6A73921AD003F039E17",
+      "dpi": 96,
+      "dark": true
+    },
+    {
+      "file": "after-actors-notes-light-144.png",
+      "sha256": "2FFE9F680EC1BD8D22D2E5E11CDFB8FBCEA4529FDEB2293FFE776F24419D4E04",
+      "dpi": 144,
+      "dark": false
+    },
+    {
+      "file": "after-actors-notes-dark-144.png",
+      "sha256": "6355D8640F7A9D16FD6C40817CA9BC44EEA988881E889D474F9B85EF7A13C065",
+      "dpi": 144,
+      "dark": true
+    },
+    {
+      "file": "after-actors-notes-light-192.png",
+      "sha256": "0CEE1CD82B3DC1CF8AD3E1FADF6E39247175AED2CB025BD9962375EE8FB83510",
+      "dpi": 192,
+      "dark": false
+    },
+    {
+      "file": "after-actors-notes-dark-192.png",
+      "sha256": "6612E56C9E0CF9C2745BB79F4A9E71822D3D4E12F249AB461086603D3D50A490",
+      "dpi": 192,
+      "dark": true
+    },
+    {
+      "file": "after-message-styles-light-96.png",
+      "sha256": "96A1743113DFF985401D1E6A9927F2984AA678A9FC18C68E0C8C95D5DC50225F",
+      "dpi": 96,
+      "dark": false
+    },
+    {
+      "file": "after-message-styles-dark-96.png",
+      "sha256": "78EC8E9921C9998D8BD5889B580D810B811EE4E95AC4E09A04CA6EC7CA4B5083",
+      "dpi": 96,
+      "dark": true
+    },
+    {
+      "file": "after-message-styles-light-144.png",
+      "sha256": "E63799728910332EFEC06D94B948F2D0DBF4144DAA12C9A403E285F6F935AF35",
+      "dpi": 144,
+      "dark": false
+    },
+    {
+      "file": "after-message-styles-dark-144.png",
+      "sha256": "23628091F965C7713A1DCD7B6CC9DB1B9D1A4C73AE049FA9A3E683D223D23C5D",
+      "dpi": 144,
+      "dark": true
+    },
+    {
+      "file": "after-message-styles-light-192.png",
+      "sha256": "B61B1551E9C286D40DD7C2EBCC99B8950824835BB7F7A9BC3E3782B39AFDF04D",
+      "dpi": 192,
+      "dark": false
+    },
+    {
+      "file": "after-message-styles-dark-192.png",
+      "sha256": "94A57AAEDA43A68CA4C800A51B7141786AEB13978B6B914F7DD0A646A1CA3BE3",
+      "dpi": 192,
+      "dark": true
+    },
+    {
+      "file": "after-default-direction-light-96.png",
+      "sha256": "F281511521A4837CD22F0E9DDFE9E8039C9281D8335DD3E831CEC54EBADE169E",
+      "dpi": 96,
+      "dark": false
+    },
+    {
+      "file": "after-default-direction-dark-96.png",
+      "sha256": "BC3B691153521FBB90B5D38729325E13912C0E5B9984D1512514FF419A570486",
+      "dpi": 96,
+      "dark": true
+    },
+    {
+      "file": "after-default-direction-light-144.png",
+      "sha256": "9DF71232AC32349A1D7CF3FFD74FAAE16B6D6BEE64436203121B848C5B8A8DF6",
+      "dpi": 144,
+      "dark": false
+    },
+    {
+      "file": "after-default-direction-dark-144.png",
+      "sha256": "BB3C6D9E0C9CC5D97D5775514E14EDC7FFEA8C66EAE4AA56C2D44FB988C1B801",
+      "dpi": 144,
+      "dark": true
+    },
+    {
+      "file": "after-default-direction-light-192.png",
+      "sha256": "53808C1896CFB4ECBABE29D9F3D46BF4DE20F01EA3FCA7CD0F5D117D1F31B1F7",
+      "dpi": 192,
+      "dark": false
+    },
+    {
+      "file": "after-default-direction-dark-192.png",
+      "sha256": "A3546E5CCDCC618AE1636F7CCAB9FA709CDFB977C7FAD8869F5BBB049620E86F",
+      "dpi": 192,
+      "dark": true
+    }
+  ]
+}

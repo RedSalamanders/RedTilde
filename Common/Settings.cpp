@@ -1,10 +1,13 @@
 #include "Settings.h"
 #include "Storage.h"
+#include <DxUi/RichDocument.h>
+#include <algorithm>
 #include <charconv>
 #include <format>
 #include <mutex>
 #include <new>
 #include <optional>
+#include <stdexcept>
 
 namespace RedTilde
 {
@@ -13,6 +16,14 @@ namespace
 // Indexed by MarkdownSyntax. Missing or invalid keys keep the enabled default.
 constexpr std::array<std::string_view, MarkdownSyntaxCount> MarkdownSyntaxKeys{
     "syntaxHighlight", "syntaxSuperscript", "syntaxSubscript", "syntaxInserted", "syntaxWikiLinks", "syntaxDefinitionLists", "syntaxAbbreviations"};
+// Settings are line-based. Keep a Windows folder's UTF-8 value lossless, bounded,
+// absolute and free of control characters so it cannot introduce another field.
+bool ValidFilesRoot(const std::filesystem::path &path)
+{
+    const auto &text = path.native();
+    return path.is_absolute() && text.size() <= 32767 && DxUi::RichText::IsValidUtf16(text) &&
+           std::ranges::none_of(text, [](wchar_t unit) { return unit < L' '; });
+}
 } // namespace
 
 Settings ParseSettings(std::string_view bytes)
@@ -28,6 +39,19 @@ Settings ParseSettings(std::string_view bytes)
         if (split != line.npos)
         {
             const auto key = line.substr(0, split), value = line.substr(split + 1);
+            if (key == "filesRoot" && value.size() <= 3u * 32767u)
+            {
+                try
+                {
+                    std::filesystem::path path(DxUi::RichText::DecodeUtf8(value));
+                    if (ValidFilesRoot(path))
+                        settings.filesRoot = path.lexically_normal();
+                }
+                catch (const std::invalid_argument &)
+                {
+                    // A malformed UTF-8 folder keeps its default; other preferences still apply.
+                }
+            }
             unsigned number{};
             const auto parsed = std::from_chars(value.data(), value.data() + value.size(), number);
             if (parsed.ec == std::errc{} && parsed.ptr == value.data() + value.size())
@@ -50,6 +74,8 @@ Settings ParseSettings(std::string_view bytes)
                     settings.dimInactiveBlocks = number != 0;
                 if (key == "remoteImages" && number <= 1)
                     settings.allowRemoteImages = number != 0;
+                if (key == "strikeCompletedTasks" && number <= 1)
+                    settings.strikeCompletedTasks = number != 0;
                 for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
                     if (key == MarkdownSyntaxKeys[index] && number <= 1)
                         settings.markdownSyntax[index] = number != 0;
@@ -69,8 +95,11 @@ std::string SerializeSettings(const Settings &settings)
         "RedTilde.Settings/1\ntheme={}\nview={}\noutline={}\nfiles={}\nfilesWidth={}\nreadingWidth={}\nscale={}\nfocusDimming={}\nremoteImages={}\n",
         static_cast<unsigned>(settings.appearance), static_cast<unsigned>(settings.view), settings.showOutline ? 1 : 0, settings.showFiles ? 1 : 0,
         settings.filesWidth, settings.readingWidth, settings.textScale, settings.dimInactiveBlocks ? 1 : 0, settings.allowRemoteImages ? 1 : 0);
+    result += std::format("strikeCompletedTasks={}\n", settings.strikeCompletedTasks ? 1 : 0);
     for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
         result += std::format("{}={}\n", MarkdownSyntaxKeys[index], settings.markdownSyntax[index] ? 1 : 0);
+    if (ValidFilesRoot(settings.filesRoot))
+        result += std::format("filesRoot={}\n", DxUi::RichText::EncodeUtf8(settings.filesRoot.native()));
     return result;
 }
 

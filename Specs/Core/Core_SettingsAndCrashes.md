@@ -2,11 +2,19 @@
 
 Settings live under `%LOCALAPPDATA%\RedTilde` and use a versioned UTF-8 document. A caller may select an isolated
 data directory for tests. Themes are System, Light, Dark and Paper. Respect Windows high contrast before custom
-colors. Persist appearance, view, outline visibility, Files-pane visibility and width, reading width, text scale,
-inactive-block dimming, remote-image opt-in and optional Markdown syntax. Defaults are System appearance, Compose view, outline visible, Files pane closed,
+colors. Persist appearance, view, outline visibility, Files-pane visibility, selected root and width, reading width, text scale,
+inactive-block dimming, completed-task strike-through, remote-image opt-in and optional Markdown syntax. The
+`strikeCompletedTasks` field accepts only 0 or 1; missing or invalid values keep the disabled default. It is live
+presentation policy shared by Compose and Split. Defaults are System appearance, Compose view, outline visible, Files pane closed,
 Files width 280 DIP, reading width 760 DIP, text scale 100%, inactive-block dimming enabled, remote images disabled and every optional Markdown syntax enabled. Files widths are
 limited to 200–400 DIP, reading width to 480–1040 DIP, and text scale to 75–200%; invalid fields fall back
 independently without discarding valid neighboring settings.
+The version-1 `filesRoot` field holds a strict UTF-8 absolute Windows path, bounded to 32,767 UTF-16 units and
+excluding control characters. Spaces, Unicode, backslashes and equals signs round trip without escaping or
+normalizing document content. Missing/invalid roots fall back independently to empty. Serialization omits invalid
+roots so a folder cannot introduce another line-based preference. Restoring a root does no synchronous directory
+enumeration: the ordinary bounded Files worker reports availability. Root persistence is independent of document
+and recovery state; hiding Files retains it, and only explicit folder selection replaces an established root.
 Focus mode is session-local and is not persisted. Apply persisted
 appearance, reading width, text scale and dimming immediately; no restart is required. Reduced motion follows
 Windows preferences. The version-1 `remoteImages=0|1` field defaults independently to disabled on missing or invalid
