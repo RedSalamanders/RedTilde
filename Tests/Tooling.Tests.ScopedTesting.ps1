@@ -484,14 +484,23 @@ $global:LASTEXITCODE=0
             $process=[Diagnostics.Process]::Start($start)
             try{$stdout=$process.StandardOutput.ReadToEndAsync();$stderr=$process.StandardError.ReadToEndAsync();if(-not $process.WaitForExit(30000)){$process.Kill($true);throw 'Mocked public build fixture timed out'};[pscustomobject]@{exit=$process.ExitCode;text=$stdout.GetAwaiter().GetResult()+$stderr.GetAwaiter().GetResult()}}finally{$process.Dispose()}
         }
-        function Assert-GuardRefusesArtifact([string]$Reason){
+        function Assert-GuardArtifact([string]$Reason,[switch]$Allowed,[uint32]$BuildNumber=0){
             $pwsh=Join-Path $PSHOME 'pwsh.exe'
             $probe=Join-Path $buildRoot '.build/assert-artifact.ps1'
             Put $probe "Import-Module '$($buildRoot.Replace("'","''"))/Build/Harness.psm1' -Force; Assert-RedTildeTestArtifact -Root '$($buildRoot.Replace("'","''"))' -Platform x64 -Configuration Debug"
             $start=[Diagnostics.ProcessStartInfo]::new($pwsh);$start.UseShellExecute=$false;$start.RedirectStandardOutput=$true;$start.RedirectStandardError=$true
+            # Admission must use the same explicit synthetic version as the build. Inheriting the hosted
+            # product version would reject intact fixtures and make unrelated negative controls vacuous.
+            $start.Environment['RedTildeBuildNumber']=[string]$BuildNumber
             foreach($argument in @('-NoProfile','-File',$probe)){$start.ArgumentList.Add($argument)}
             $process=[Diagnostics.Process]::Start($start)
-            try{$stdout=$process.StandardOutput.ReadToEndAsync();$stderr=$process.StandardError.ReadToEndAsync();if(-not $process.WaitForExit(30000)){$process.Kill($true);throw 'Mocked artifact admission timed out'};Assert ($process.ExitCode -ne 0) "Stale build receipt admitted after $Reason"}finally{$process.Dispose()}
+            try{
+                $stdout=$process.StandardOutput.ReadToEndAsync();$stderr=$process.StandardError.ReadToEndAsync()
+                if(-not $process.WaitForExit(30000)){$process.Kill($true);throw 'Mocked artifact admission timed out'}
+                $output=$stdout.GetAwaiter().GetResult()+$stderr.GetAwaiter().GetResult()
+                if($Allowed){Assert ($process.ExitCode -eq 0) "Current build receipt refused for ${Reason}: $output"}
+                else{Assert ($process.ExitCode -ne 0) "Stale build receipt admitted after $Reason"}
+            }finally{$process.Dispose()}
         }
         Case 'public build refuses a profile junction before receipt or restore writes' {
             $protected=Join-Path $buildRoot '.build/protected-profile';Put (Join-Path $protected 'marker.txt') 'keep this target unchanged'
@@ -519,13 +528,16 @@ $global:LASTEXITCODE=0
             $run=Invoke-BuildFixture;Assert ($run.exit -eq 0) "Docs-only build failed: $($run.text)"
             Assert ((Get-FileHash $exe).Hash -ceq $before) 'Docs-only build changed executable bytes'
             Assert (@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count -eq 1) 'Docs-only edit unnecessarily cleaned profile'
-            Import-Module (Join-Path $buildRoot 'Build/Harness.psm1') -Force
-            Assert-RedTildeTestArtifact -Root $buildRoot -Platform x64 -Configuration Debug|Out-Null
+            Assert-GuardArtifact 'documentation-only build' -Allowed
+        }
+        Case 'artifact admission uses the explicit fixture version and refuses a mismatched product version' {
+            Assert-GuardArtifact 'matching fixture version zero' -Allowed
+            Assert-GuardArtifact 'mismatched product version' -BuildNumber 137
         }
         Case 'source bytes with a restored older mtime clean before MSBuild reuse' {
             $source=Join-Path $buildRoot 'Tests/GuardFixture.cpp';$oldTime=[IO.File]::GetLastWriteTimeUtc($source);$exe=Join-Path $buildRoot '.build/x64/Debug/RedTilde.exe';$before=(Get-FileHash $exe).Hash
             Put $source 'changed compiled source bytes';[IO.File]::SetLastWriteTimeUtc($source,$oldTime)
-            Assert-GuardRefusesArtifact 'source bytes changed with an old timestamp'
+            Assert-GuardArtifact 'source bytes changed with an old timestamp'
             $run=Invoke-BuildFixture;Assert ($run.exit -eq 0) "Restored-mtime build failed: $($run.text)"
             Assert ((Get-FileHash $exe).Hash -cne $before) 'Changed source bytes were reused from old object despite timestamp restoration'
             Assert (@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count -eq 2) 'Changed source did not clean owned profile'
@@ -548,7 +560,7 @@ $global:LASTEXITCODE=0
             $trackedSource=Join-Path $sdkSourceCommitted 'src/GuardFixture.cpp'
             $cleanCount=@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count
             Put $trackedSource 'dirty tracked SDK implementation'
-            Assert-GuardRefusesArtifact 'dirty pinned SDK implementation source'
+            Assert-GuardArtifact 'dirty pinned SDK implementation source'
             $run=Invoke-BuildFixture;Assert ($run.exit -ne 0) 'Dirty tracked SDK source was accepted by the public build entrypoint'
             Assert (@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count -eq $cleanCount) 'Dirty SDK source reached profile clean'
             Assert (-not (Get-Content (Join-Path $buildRoot '.build/x64/Debug/build-receipt.json') -Raw|ConvertFrom-Json).passed) 'Dirty SDK source retained a passed receipt'
@@ -557,7 +569,7 @@ $global:LASTEXITCODE=0
 
             $untrackedSource=Join-Path $sdkSourceCommitted 'src/Unexpected.cpp';Put $untrackedSource 'untracked SDK implementation'
             $cleanCount=@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count
-            Assert-GuardRefusesArtifact 'untracked pinned SDK implementation source'
+            Assert-GuardArtifact 'untracked pinned SDK implementation source'
             $run=Invoke-BuildFixture;Assert ($run.exit -ne 0) 'Untracked SDK source was accepted by the public build entrypoint'
             Assert (@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count -eq $cleanCount) 'Untracked SDK source reached profile clean'
             Remove-Item -LiteralPath $untrackedSource -Force
@@ -569,7 +581,7 @@ $global:LASTEXITCODE=0
             $cleanCount=@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count
             $redirected=$original.Replace([Security.SecurityElement]::Escape($sdkSourceCommitted),[Security.SecurityElement]::Escape((Join-Path $buildRoot '.build/foreign-sdk')))
             Put $propsPath $redirected
-            Assert-GuardRefusesArtifact 'redirected DxUiRoot in resolved properties'
+            Assert-GuardArtifact 'redirected DxUiRoot in resolved properties'
             $run=Invoke-BuildFixture;Assert ($run.exit -ne 0) 'Redirected SDK source root was accepted'
             Assert (@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count -eq $cleanCount) 'Redirected resolved properties reached profile clean'
             Put $propsPath $original
@@ -579,7 +591,7 @@ $global:LASTEXITCODE=0
             $redirectedOutput=(Join-Path $buildRoot '.build/foreign-package')+'\'
             $redirected=$original.Replace([Security.SecurityElement]::Escape($resolvedOutput),[Security.SecurityElement]::Escape($redirectedOutput))
             Put $propsPath $redirected
-            Assert-GuardRefusesArtifact 'redirected DxUiConsumerOutputRoot in resolved properties'
+            Assert-GuardArtifact 'redirected DxUiConsumerOutputRoot in resolved properties'
             $run=Invoke-BuildFixture;Assert ($run.exit -ne 0) 'Redirected package root was accepted'
             Assert (@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count -eq $cleanCount) 'Redirected package root reached profile clean'
             Put $propsPath $original
@@ -599,11 +611,11 @@ $global:LASTEXITCODE=0
         Case 'legacy or incomplete receipts force a clean and are never admitted for SkipBuild' {
             $receiptPath=Join-Path $buildRoot '.build/x64/Debug/build-receipt.json';$receipt=Get-Content $receiptPath -Raw|ConvertFrom-Json
             $receipt.schemaVersion=1;$receipt|ConvertTo-Json -Depth 10|Set-Content -LiteralPath $receiptPath -Encoding utf8
-            Assert-GuardRefusesArtifact 'legacy receipt'
+            Assert-GuardArtifact 'legacy receipt'
             $run=Invoke-BuildFixture;Assert ($run.exit -eq 0) "Legacy receipt recovery failed: $($run.text)"
             $receipt=Get-Content $receiptPath -Raw|ConvertFrom-Json;$receipt.buildInputs=$null
             $receipt|ConvertTo-Json -Depth 10|Set-Content -LiteralPath $receiptPath -Encoding utf8
-            Assert-GuardRefusesArtifact 'incomplete receipt'
+            Assert-GuardArtifact 'incomplete receipt'
             $run=Invoke-BuildFixture;Assert ($run.exit -eq 0) "Incomplete receipt recovery failed: $($run.text)"
             Assert (@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count -eq 11) 'Invalid receipt did not force clean'
         }
@@ -612,7 +624,7 @@ $global:LASTEXITCODE=0
             Assert ($run.exit -ne 0) 'Mock build failure reported success'
             $receipt=Get-Content (Join-Path $buildRoot '.build/x64/Debug/build-receipt.json') -Raw|ConvertFrom-Json
             Assert (-not $receipt.passed) 'Failed attempt retained a passed build receipt'
-            Assert-GuardRefusesArtifact 'failed build attempt'
+            Assert-GuardArtifact 'failed build attempt'
         }
     }
     Write-Host "Scoped testing: $passed cases passed."

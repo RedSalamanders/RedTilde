@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "claim": "Tooling fixture verification only",
+  "baseCommit": "68b509b70ff2d0f7b5fe65f256a1b59980620644",
+  "test": "Tests/Tooling.Tests.ScopedTesting.ps1",
+  "testSha256": "A84E6C265DBFD0FFA8FF95D9AB6C74C76C00342D4A39FC1994CD54F3D9485A62",
+  "inheritedBuildNumber": 137,
+  "mockBuildNumber": 0,
+  "negativeAdmissionBuildNumber": 137,
+  "scopedCasesPassed": 41,
+  "beforeLogSha256": "8F3E49BD514410D2FB5EF7107ECBDFD5EE2A59C2ED86D44230575D63F5059512",
+  "afterLogSha256": "4FA5E3F8270F9F67B6BD11F02C4430537A1AF3893F961DEB40BFD4F951ED28C3",
+  "fullValidationPassed": true,
+  "fullValidationLogSha256": "A1550B6FC6E358513F8AD90921E303A2DC96F5BDEDF38CD8B16247DEA1F1BE10",
+  "formatPassed": true,
+  "formatLogSha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855",
+  "nativeRuntimeClaim": false
+}
