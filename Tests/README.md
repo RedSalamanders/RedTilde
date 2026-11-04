@@ -71,7 +71,7 @@ See the [retention contract](../Specs/Testing/Testing_RunEvidence.md) for verifi
 
 ## Design refresh interaction and captures
 
-`test.ps1 -Suite Captures` generates 34 actual hidden renders: the normal presentation scenes plus Files,
+`test.ps1 -Suite Captures` generates 36 actual hidden renders: the normal presentation scenes plus Files,
 Find/Replace, Focus and exact equation source, with narrow and image-2 weekly-report 96/144/192-DPI variants. The
 reference-dark scene reads `Tests/Fixtures/reference-dark.md`, seeds the same twenty-file Reports tree
 and selects the same current section. At 96 DPI its actual viewport is exactly 1440x900 pixels. Every PNG has a scenario

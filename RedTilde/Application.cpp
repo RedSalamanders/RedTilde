@@ -2240,9 +2240,9 @@ int Application::Run()
     {
         settings.appearance = options.scenario == L"sample-document-dark" || options.scenario == L"task-presentation-dark" ||
                                       options.scenario == L"compose-dark" || options.scenario == L"math-dark" ||
-                                      options.scenario == L"quote-scroll-dark" || options.scenario == L"reference-dark" ||
-                                      options.scenario == L"markdown-style" || options.scenario == L"caption-close-hover" ||
-                                      options.scenario == L"caption-maximize-hover"
+                                      options.scenario == L"quote-scroll-dark" || options.scenario == L"diagram-label-dark" ||
+                                      options.scenario == L"reference-dark" || options.scenario == L"markdown-style" ||
+                                      options.scenario == L"caption-close-hover" || options.scenario == L"caption-maximize-hover"
                                   ? Appearance::Dark
                                   : Appearance::Light;
         ApplyTheme();

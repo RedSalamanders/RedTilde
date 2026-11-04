@@ -77,6 +77,8 @@ RT-18 remains optional defensive hardening, not a newly confirmed defect.
 <a id="t-u1"></a>
 ### T-U1 — remaining editing and product interaction
 
+- [ ] Adopt the shared contrast-aware diagram-label background correction and verify actual light/dark
+  native captures at the exact pin without changing Mermaid source or history.
 - [x] Adopt the shared quote/callout inner-margin correction and enable the native themed document scrollbar
   in Compose, Source and Split; cover overflow, paging/dragging, themes, DPI, narrow layout and source/history
   preservation with hidden native tests and captures. [Scoped closeout](../Done/QuoteMarginsAndScrollbars_2026-11-04.md)

@@ -8,6 +8,10 @@ Quotes and callouts leave a small inner margin on both sides. Long documents sho
 current theme in Compose, Source and each Split pane; click its track or drag the thumb to move through the document.
 See the [actual native captures and matched comparisons](../Measurements/QuoteMarginsAndScrollbars_2026-11-04/README.md).
 
+Diagram arrow labels blend into the graph background when contrast is sufficient. Otherwise a subtle light
+or dark backing improves readability. Notes and filled groups keep their own surface; Mermaid source and
+undo history stay unchanged.
+
 **Local editing:** F2 on a code or diagram object opens its exact source in place. On ordinary text, F2 opens
 the selected range/current line in a source draft while the rest stays rendered. Apply/Ctrl+Enter commits one
 edit, and Esc cancels. Link insertion opens a reviewable source draft rather than replacing selected words
