@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Record the repaired main qualification gate: native x64 and ARM64 Release each pass all 75 cases, 36 captures and the assertion probe before production starts; retain source, receipt and executable identities while keeping production, physical-input and performance acceptance separate.
 - Use the synthetic executable's explicit version for every build-admission fixture probe; retain hostile inherited product versions and reject an explicitly mismatched version without weakening source, header or compiler guards.
 - Adopt shared diagram arrow-label backgrounds that blend with the graph canvas and use a subtle contrast fallback, with native light/dark capture scenarios and preserved source/history.
 - Keep the existing Save/Discard/Cancel question when Close is requested again; ignore the duplicate and allow a fresh Close after Cancel.
