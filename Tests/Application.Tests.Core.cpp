@@ -951,7 +951,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                  }
                  Application *owner{};
                  unsigned prompts{};
-                 std::function<void()> settle;
+                 std::function<void(std::size_t, std::string_view)> settle;
                  LaunchOptions launch;
                  launch.headless = true;
                  launch.dataDirectory = directory;
@@ -959,26 +959,40 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                  {
                      if (++prompts == 1)
                      {
+                         const auto checkpoints = owner->Activity().recoverySubmissions;
                          owner->Execute(Command::DiscardRecovery);
-                         settle();
+                         settle(survivors, "discard inside the unsaved prompt");
                          Require(owner->RecoveryCount() == survivors, "the clicked candidate retires while the unsaved prompt is open");
+                         if (survivors)
+                             Require(owner->Activity().recoverySubmissions > checkpoints,
+                                     "drawer refresh checkpoints the live dirty document before the wait accepts settlement");
                      }
                      return IDNO;
                  };
                  Application app(std::move(launch));
                  owner = &app;
-                 settle = [&]
+                 settle = [&](std::size_t expected, std::string_view phase)
                  {
-                     for (unsigned turn = 0; turn < 1000 && !app.RecoverySettled(); ++turn)
+                     for (unsigned turn = 0; turn < 1000; ++turn)
                      {
+                         // Publishing candidate retirement refreshes the drawer,
+                         // which can checkpoint again. Check terminal facts after
+                         // pumping UI, with no later pump invalidating the wait.
                          app.Prepare();
+                         if (app.RecoveryReady() && app.RecoverySettled() && app.RecoveryCount() == expected)
+                         {
+                             Require(SUCCEEDED(app.RecoveryStatus()), "the recovery worker settles successfully");
+                             return;
+                         }
                          std::this_thread::sleep_for(std::chrono::milliseconds(5));
                      }
-                     app.Prepare();
-                     Require(app.RecoverySettled(), "recovery mutation settles inside the hidden prompt loop");
+                     throw std::runtime_error(std::format("Recovery did not settle after {}: ready={}, settled={}, candidates={} (expected {}), "
+                                                          "status=0x{:08X}, submissions={}",
+                                                          phase, app.RecoveryReady(), app.RecoverySettled(), app.RecoveryCount(), expected,
+                                                          static_cast<std::uint32_t>(app.RecoveryStatus()), app.Activity().recoverySubmissions));
                  };
                  Success(app.Initialize(), "create hidden Restore identity app");
-                 settle();
+                 settle(survivors + 1, "initial candidate scan");
                  Require(app.RecoveryCount() == survivors + 1, "all inactive candidates are offered");
                  app.SetDocument(L"Current notebook");
                  app.Document().SetSelection({16, 16});
@@ -1001,7 +1015,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                                  app.Document().GetText() == snapshots[remaining].text &&
                                  app.Document().GetSelection() == snapshots[remaining].selection,
                              "a fresh Restore can explicitly choose the remaining exact copy");
-                     settle();
+                     settle(0, "fresh Restore durability");
                  }
                  Require(GetForegroundWindow() == foreground, "hidden Restore identity coverage preserves desktop foreground");
              }

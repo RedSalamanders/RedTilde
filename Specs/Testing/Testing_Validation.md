@@ -152,6 +152,9 @@ Discard command and worker completion while the hidden unsaved question is open.
 remaining and an empty list: Restore must preserve the exact dirty revision, selection and undo history,
 leave the other copy available, and allow a fresh explicit Restore of that copy. Keep the original unchanged-code
 wrong-copy failure separate from successful fixed runs. The hidden scenario preserves foreground focus.
+Evaluate the recovery wait's terminal facts after pumping hidden UI: ready, settled and the expected candidate
+count must agree, with successful worker status. Publishing retirement can refresh the drawer and submit a
+new checkpoint. Do not pump again after accepting the wait and then assert its earlier settled observation.
 
 The hidden responsive-layout/DPI case retains the exact initial foreground and hidden-window assertions. A failure records which predicate changed, whether the observed foreground is the test window or another process-owned window, and whether the original window still exists. These observations do not attribute a historical foreground change or permit activation; preserve the failed run separately from later qualification.
 
