@@ -1,0 +1,1 @@
+- Record the repaired main qualification gate: native x64 and ARM64 Release each pass all 75 cases, 36 captures and the assertion probe before production starts; retain source, receipt and executable identities while keeping production, physical-input and performance acceptance separate.
