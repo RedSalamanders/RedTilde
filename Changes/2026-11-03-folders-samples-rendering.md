@@ -1,1 +1,0 @@
-- Add Open Folder and remember the Markdown tree root across file opens, Save As, New and restart; expand the sample notebook, enable native fenced-code syntax colors and correct the welcome equation's display delimiters. Full language compatibility and platform/performance qualification remain separate gates.
