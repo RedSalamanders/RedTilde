@@ -296,6 +296,10 @@
     {
       "name": "Editor.NestedViewRequestSupersedesOuterSplit",
       "scope": "Editor"
+    },
+    {
+      "name": "Recovery.DuplicateCloseKeepsUnsavedPrompt",
+      "scope": "Recovery"
     }
   ]
 }

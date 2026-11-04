@@ -71,6 +71,18 @@ void Application::PrepareDesignScenario()
 
     const auto &scenario = options.scenario;
     std::wstring fixtureName = options.document.filename().wstring();
+    if (scenario == L"diagram-label-light" || scenario == L"diagram-label-dark")
+    {
+        SetDocument(L"# Notebook review\n\n```mermaid\nstateDiagram-v2\ndirection LR\n"
+                    L"[*] --> Draft\nDraft --> Reviewed: Review\nReviewed --> Saved: Save\n```\n\n"
+                    L"## Message labels\n\n```mermaid\nsequenceDiagram\nparticipant Writer\nparticipant Editor\n"
+                    L"Writer->>Editor: Review draft\nEditor-->>Writer: Ready to save\n```\n");
+        settings.appearance = scenario == L"diagram-label-dark" ? Appearance::Dark : Appearance::Light;
+        settings.view = EditorView::Compose;
+        settings.showFiles = false;
+        settings.showOutline = false;
+        fixtureName = L"Notebook review";
+    }
     if (scenario == L"quote-scroll-light" || scenario == L"quote-scroll-dark")
     {
         std::wstring notebook = L"# Notebook observations\n\n"

@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "scenario": "diagram-label-light",
+  "fixtureBasename": "Notebook review",
+  "effectiveSystemPreference": "light",
+  "systemPreferenceSource": "windows-preference-or-light-fallback",
+  "renderedAppearance": "light",
+  "strikeCompletedTasks": false,
+  "requestedDpi": 96,
+  "nativeWindowDpi": 144,
+  "actualHostDpi": 96,
+  "simulatedDpi": true,
+  "requestedWidthPx": 1440,
+  "requestedHeightPx": 900,
+  "actualWidthPx": 1440,
+  "actualHeightPx": 900,
+  "actualWidthDip": 1440,
+  "actualHeightDip": 900,
+  "filesModelFrozen": false,
+  "reparseFixtureRemoved": false,
+  "hidden": true,
+  "qualification": "Owned hidden application render; no physical-monitor or native-platform acceptance"
+}
