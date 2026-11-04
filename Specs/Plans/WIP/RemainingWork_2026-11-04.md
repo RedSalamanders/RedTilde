@@ -33,8 +33,9 @@ ordinary CI success accepts R10, a measurement policy, quiet-host behavior or an
 
 ## Execution order
 
-The current **product** slice is the 4 November quote-padding and themed-scrollbar correction in T-U1,
-requested after consolidation began. Then continue T-S1, followed by T-S2. T-Q1 is the first **qualification** repair and can be
+The current **product** slice is T-U1's prepared diagram-label background correction and T-S1's accepted
+duplicate-Close behavior. Quote padding and themed scrollbars have their scoped closeout. Continue the
+remaining T-S1 work, followed by T-S2. T-Q1 is the first **qualification** repair and can be
 investigated independently. Do not start another redesign, repin the SDK or rerun unchanged failed studies
 instead of resolving these owners. Every implementation slice updates its domain contract and has a
 meaningful failing-then-passing regression where applicable.
@@ -49,8 +50,10 @@ meaningful failing-then-passing regression where applicable.
   (RT-01/PR-03, Q2); keep the 750 ms quiet debounce and enforce the approved five-second staleness cap
   under continuous typing (RT-10/PR-04, Q3).
 - [ ] Quarantine oversized checksum-valid recovery envelopes and retain recoverable contents on failure (RT-08).
-- [ ] Implement the approved Q18 rule: keep the existing Save/Discard/Cancel prompt and ignore duplicate Close (PR-34), and contain shortcut,
-  menu, save-completion and Find failure paths without leaving `updatingFind` latched (RT-12/14, PR-07/35).
+- [ ] Qualify the implemented Q18 rule: keep the existing Save/Discard/Cancel prompt and ignore duplicate
+  Close (PR-34). The hidden Recovery regression passes; the current exact-pin profile matrix is still running.
+- [ ] Contain shortcut, menu, save-completion and Find failure paths without leaving `updatingFind` latched
+  (RT-12/14, PR-07/35).
 
 Owner: `RedTilde/Application.cpp`, `Application.Navigation.cpp`, `Common/Recovery.cpp`, `Common/AsyncFiles.h`.
 Acceptance: deterministic Restore+Discard, close-during-save success/failure, continuous typing, logoff,
@@ -132,10 +135,21 @@ Unexplained historical failures remain unexplained unless a bounded investigatio
   at `1cd59c0`: a text mock executable has version zero but inherited CI's nonzero product build number.
   The counterexample reproduces the exact frozen-version refusal with inherited value 137. The fixture now
   explicitly requests zero while retaining that hostile inherited value; all 40 scoped-tooling cases pass.
-- [ ] Repair and natively requalify ARM64's two actual Editor failures from the retained artifact:
-  `Editor.DesignRefreshEquationContextAndDraftGuards` (native equation preview) and
-  `Window.DesignRefreshPersistentStatusFacts` (heading-context label). The original execution passed 50 and
-  failed 2 of 52 Editor cases; listings are not executions. Its retained generic capture is 1028 by 749 pixels. The two checks assumed wide-only sidebar content. The candidate uses the existing verified Resize helper, covers narrow-to-wide equation preparation, and declares the status viewport; fresh native ARM64 execution is still required. The x64 build-number fixture repair is independent.
+- [x] Repair and natively requalify the two historical ARM64 Editor fixtures:
+  `Editor.DesignRefreshEquationContextAndDraftGuards` and `Window.DesignRefreshPersistentStatusFacts`.
+  The original run passed 50 and failed 2 of 52 Editor cases because its narrow viewport omitted wide-only
+  sidebar content. The explicit Resize/status-viewport correction now passes native ARM64 in
+  [run 41814935803](https://github.com/RedSalamanders/RedTilde/actions/runs/41814935803/job/126523416663)
+  at `ca16d32e`, SDK `8c6c2818`: all 74 native cases, all 34 captures and the Release assertion probe pass.
+  Original receipt SHA-256: `CB216DF3DA5FD69E1225130FEDD41DAEAE83EB8257D1E0EF2348A87A86203285`.
+  This closes those fixtures at that pin; current-pin native ARM64 remains T-Q2.
+- [ ] Complete x64's newly observed admission-fixture repair from the same run. Its synthetic build is
+  explicitly version zero, while the following in-process admission check inherits the hosted product
+  version. The unchanged test reproduces the exact refusal under inherited version 137. The isolated tooling
+  correction in [PR48](https://github.com/RedSalamanders/RedTilde/pull/48) gives every admission probe an
+  explicit fixture version, retains the hostile build environment and adds a wrong-version negative control.
+  All 41 scoped cases and complete tooling validation pass under inherited version 137; exact-head PR checks
+  pass at `330b9ac6`. Publication remains pending, and the combined main gate still requires a fresh successful run.
 - [ ] After a reviewed correction, run the canonical main qualification and verify both native Release test roles
   and their failure probes before either separate production role. Production was skipped in the failed run.
 
@@ -180,6 +194,9 @@ is included here, without rebuilding or packaging the separate viewer.
   main native qualification after five quiet minutes and the global test-before-production gate.
 - [ ] Audit Q15's legacy header validators and shared-module migration by actual callers before retiring tools;
   keep paired-study tooling supported and follow tooling governance for any later change.
+- [ ] Diagnose the hosted-MSVC fixture launch refusal at observed 272-character paths in the isolated
+  checkout. Canonical short-path full validation passes; retain the failed long-root run separately and
+  coordinate the analogous SDK tooling boundary with D-T1.
 - [ ] Reconcile dispositions of remaining production/delivery findings and rejected worktree/cache cleanups;
   never treat earlier removal refusals as permission for a new cleanup.
 - [ ] Apply normal Changes fragments and a separate post-merge fold when authorized. No cleanup changes the
@@ -193,11 +210,9 @@ RT-10/11's old drops did not cancel them. Current unified CI supersedes obsolete
 
 | Open owner item | Current disposition |
 | --- | --- |
-| Q18: second close during a prompt | Accepted: retain the existing prompt and ignore duplicate Close. Implementation and qualification are owned by T-S1. |
 | Q19: system proxy, direct-only failure or a setting | Decide before T-I1's proxy work. |
 | Q20: size-limit command behavior | Decide unchanged-document error versus preemptive disable before changing the capacity UX. |
 | Q21: release cut | Settle the application release command and exact validator transition; the library's support does not migrate this app implicitly. |
-| Q22: consolidate WIP | Completed by this cleanup. The separate cross-repository fold-cadence question remains undecided; current policy stays in force. |
 
 <a id="t-deferred"></a>
 ## Explicitly deferred scope
@@ -211,6 +226,8 @@ Do not reopen dropped findings without new evidence.
 
 Each row closes only with its own source-bound implementation, meaningful regression, domain/capability update
 and applicable build/runtime/resource evidence or an explicit permitted owner disposition. Preserve raw failures,
-refusals and original experiment identities. Use `Test-Changes.ps1 -Explain`/affected execution and PrePush accounting;
-do not run native builds or focus-taking tests for this documentation-only consolidation. Existing Done plans remain
-historical. This plan closes only when all required rows have evidence or an explicit transferred/deferred owner.
+refusals and original experiment identities. Use `Test-Changes.ps1 -Explain`/affected execution and PrePush accounting.
+This is now the execution plan for the user's implementation request: selected slices include code, meaningful
+regressions, authoritative documentation and applicable native builds. Focus-taking tests still require agreement
+to the time. Existing Done plans remain historical. This plan closes only when all required rows have evidence
+or an explicit transferred/deferred owner.

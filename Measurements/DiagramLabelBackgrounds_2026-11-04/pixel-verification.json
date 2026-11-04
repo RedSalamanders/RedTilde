@@ -1,0 +1,283 @@
+{
+  "afterPin": "2a7e7c28f95a70193e4a2f68a89001d54b4d2131",
+  "fixture": "Notebook review; unchanged state diagram",
+  "beforeExecutableSha256": "32C283265213643ADE3D0A0DD7A5B4730176E2AB3ECBE6A9805CD2763A76ECBE",
+  "pixels": [
+    {
+      "matched": true,
+      "afterLabelRgb": [
+        236,
+        236,
+        236
+      ],
+      "theme": "light",
+      "labelSample": [
+        564,
+        410
+      ],
+      "label": "Review",
+      "beforeCanvasRgb": [
+        236,
+        236,
+        236
+      ],
+      "canvasSample": [
+        540,
+        410
+      ],
+      "afterCanvasRgb": [
+        236,
+        236,
+        236
+      ],
+      "beforeLabelRgb": [
+        255,
+        255,
+        255
+      ],
+      "dpi": 96
+    },
+    {
+      "matched": true,
+      "afterLabelRgb": [
+        236,
+        236,
+        236
+      ],
+      "theme": "light",
+      "labelSample": [
+        572,
+        518
+      ],
+      "label": "Save",
+      "beforeCanvasRgb": [
+        236,
+        236,
+        236
+      ],
+      "canvasSample": [
+        540,
+        518
+      ],
+      "afterCanvasRgb": [
+        236,
+        236,
+        236
+      ],
+      "beforeLabelRgb": [
+        255,
+        255,
+        255
+      ],
+      "dpi": 96
+    },
+    {
+      "matched": true,
+      "afterLabelRgb": [
+        50,
+        53,
+        59
+      ],
+      "theme": "dark",
+      "labelSample": [
+        564,
+        410
+      ],
+      "label": "Review",
+      "beforeCanvasRgb": [
+        50,
+        53,
+        59
+      ],
+      "canvasSample": [
+        540,
+        410
+      ],
+      "afterCanvasRgb": [
+        50,
+        53,
+        59
+      ],
+      "beforeLabelRgb": [
+        34,
+        37,
+        43
+      ],
+      "dpi": 96
+    },
+    {
+      "matched": true,
+      "afterLabelRgb": [
+        50,
+        53,
+        59
+      ],
+      "theme": "dark",
+      "labelSample": [
+        572,
+        518
+      ],
+      "label": "Save",
+      "beforeCanvasRgb": [
+        50,
+        53,
+        59
+      ],
+      "canvasSample": [
+        540,
+        518
+      ],
+      "afterCanvasRgb": [
+        50,
+        53,
+        59
+      ],
+      "beforeLabelRgb": [
+        34,
+        37,
+        43
+      ],
+      "dpi": 96
+    },
+    {
+      "matched": true,
+      "afterLabelRgb": [
+        236,
+        236,
+        236
+      ],
+      "theme": "light",
+      "labelSample": [
+        1128,
+        820
+      ],
+      "label": "Review",
+      "beforeCanvasRgb": [
+        236,
+        236,
+        236
+      ],
+      "canvasSample": [
+        1080,
+        820
+      ],
+      "afterCanvasRgb": [
+        236,
+        236,
+        236
+      ],
+      "beforeLabelRgb": [
+        255,
+        255,
+        255
+      ],
+      "dpi": 192
+    },
+    {
+      "matched": true,
+      "afterLabelRgb": [
+        236,
+        236,
+        236
+      ],
+      "theme": "light",
+      "labelSample": [
+        1144,
+        1036
+      ],
+      "label": "Save",
+      "beforeCanvasRgb": [
+        236,
+        236,
+        236
+      ],
+      "canvasSample": [
+        1080,
+        1036
+      ],
+      "afterCanvasRgb": [
+        236,
+        236,
+        236
+      ],
+      "beforeLabelRgb": [
+        255,
+        255,
+        255
+      ],
+      "dpi": 192
+    },
+    {
+      "matched": true,
+      "afterLabelRgb": [
+        50,
+        53,
+        59
+      ],
+      "theme": "dark",
+      "labelSample": [
+        1128,
+        820
+      ],
+      "label": "Review",
+      "beforeCanvasRgb": [
+        50,
+        53,
+        59
+      ],
+      "canvasSample": [
+        1080,
+        820
+      ],
+      "afterCanvasRgb": [
+        50,
+        53,
+        59
+      ],
+      "beforeLabelRgb": [
+        34,
+        37,
+        43
+      ],
+      "dpi": 192
+    },
+    {
+      "matched": true,
+      "afterLabelRgb": [
+        50,
+        53,
+        59
+      ],
+      "theme": "dark",
+      "labelSample": [
+        1144,
+        1036
+      ],
+      "label": "Save",
+      "beforeCanvasRgb": [
+        50,
+        53,
+        59
+      ],
+      "canvasSample": [
+        1080,
+        1036
+      ],
+      "afterCanvasRgb": [
+        50,
+        53,
+        59
+      ],
+      "beforeLabelRgb": [
+        34,
+        37,
+        43
+      ],
+      "dpi": 192
+    }
+  ],
+  "beforePin": "8c6c2818d084e6124fb2c08eddc00bdba7a9d2aa",
+  "schemaVersion": 1,
+  "fixtureSha256": "8A78C09EB2A47CE29AAD7507CE5ED97C16C37AC1E11CFD9AF4FFB527ABCDF945",
+  "afterExecutableSha256": "88DEC3AB0CA64F2E2A1BEFBAA9B900646821501DFD3263C9B886BA4019F268D0"
+}

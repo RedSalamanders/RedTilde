@@ -133,7 +133,12 @@ These record oracles establish error mapping, not recovery from an actually miss
 
 Physical focus/IME/AT, release/package acceptance, hardware-specific qualification and paired resource/performance studies retain their owning gates. Hidden/scoped/native CI passes never close those gates. Native test basenames use contextual `Scope.Tests.Something.h/.cpp`; inventories cover active files only. Immutable historical receipts, archived source and legacy references are not renamed or rewritten.
 
-RedTilde partitions its 74 registered native cases into Storage (12), Settings (4), Recovery (5) and Editor (53). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
+RedTilde partitions its 75 registered native cases into Storage (12), Settings (4), Recovery (6) and Editor (53). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
+
+`Recovery.DuplicateCloseKeepsUnsavedPrompt` uses an owned hidden window and a test-only prompt callback.
+The callback sends a second window Close and command Close while the original choice is pending. Assert one
+prompt, no queued continuation, unchanged dirty source/history after Cancel, and a fresh prompt whose Discard
+can finish closing. The callback does not run in production builds and does not replace physical dialog coverage.
 
 The hidden responsive-layout/DPI case retains the exact initial foreground and hidden-window assertions. A failure records which predicate changed, whether the observed foreground is the test window or another process-owned window, and whether the original window still exists. These observations do not attribute a historical foreground change or permit activation; preserve the failed run separately from later qualification.
 
@@ -157,9 +162,9 @@ Reusable tooling/formatting evidence also binds the actual selected formatter pa
 
 ## Design refresh scenarios
 
-The hidden capture obligation contains 32 PNG/sidecar pairs: 17 named scenes including Files, Find,
-Focus and equation-source editing, plus narrow, reference-document, Markdown-style and caption-hover
-96/144/192-DPI variants. Each sidecar records requested,
+The hidden capture obligation contains 36 PNG/sidecar pairs: 21 named scenes including Files, Find,
+Focus, equation-source editing, quote/scrollbar and diagram-label Light/Dark scenes, plus narrow,
+reference-document, Markdown-style and caption-hover 96/144/192-DPI variants. Each sidecar records requested,
 native and host DPI, actual pixels/DIP, simulation state and invented fixture basename; the runner verifies PNG
 IHDR dimensions and binds both hashes, toolchain, binary, source and pin in the receipt. Captures never activate
 or publish environment-derived identifiers. The Files fixture freezes its proved model and retires only its
