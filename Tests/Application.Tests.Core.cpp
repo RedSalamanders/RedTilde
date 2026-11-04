@@ -882,6 +882,51 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Require(WindowCaption(app.Window()) == L"renamed-😀.md — RedTilde" && !app.Dirty() && app.Document().GetText() == L"latest",
                      "native identity follows the newest Unicode filename and clean state");
          });
+    test("Recovery.DuplicateCloseKeepsUnsavedPrompt",
+         [&]
+         {
+             const auto foreground = GetForegroundWindow();
+             Application *owner{};
+             unsigned prompts{};
+             int response = IDCANCEL;
+             bool inside{}, ignored{};
+             LaunchOptions launch;
+             launch.headless = true;
+             launch.dataDirectory = root / L"duplicate-close-prompt";
+             launch.unsavedPromptForTest = [&]
+             {
+                 ++prompts;
+                 if (inside || response != IDCANCEL)
+                     return response;
+                 inside = true;
+                 const auto window = owner->Window();
+                 (void)SendMessageW(window, WM_CLOSE, 0, 0);
+                 owner->Execute(Command::Close);
+                 ignored = prompts == 1 && owner->Window() == window && IsWindow(window);
+                 inside = false;
+                 return response;
+             };
+             Application app(std::move(launch));
+             owner = &app;
+             Success(app.Initialize(), "create hidden duplicate-close app");
+             app.SetDocument(L"Notebook review");
+             app.Document().SetSelection({15, 15});
+             Require(app.Document().ReplaceSelection(L"!"), "admit dirty source for the unsaved prompt");
+             const auto source = app.Document().Snapshot();
+             const auto selection = app.Document().GetSelection();
+             const auto window = app.Window();
+             (void)SendMessageW(window, WM_CLOSE, 0, 0);
+             Require(prompts == 1 && ignored && app.Window() == window && IsWindow(window),
+                     "nested native and command Close retain the original prompt and owner");
+             Require(app.Dirty() && app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selection &&
+                         app.Document().CanUndo(),
+                     "Cancel preserves the exact dirty revision, selection and undo history");
+             response = IDNO;
+             (void)SendMessageW(window, WM_CLOSE, 0, 0);
+             Require(prompts == 2 && app.Host().GetHwnd() == nullptr,
+                     "a fresh Close after Cancel asks again and honors the original Discard continuation");
+             Require(GetForegroundWindow() == foreground, "the hidden prompt regression preserves desktop foreground");
+         });
     test("Window.CaptionRetriesFailedAndSupersededNativeWrites",
          [&]
          {

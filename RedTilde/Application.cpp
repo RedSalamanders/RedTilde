@@ -1662,6 +1662,8 @@ std::filesystem::path Application::PickFile(bool saving, bool image, bool folder
 
 void Application::AskThen(std::function<void()> continuation)
 {
+    if (unsavedPromptOpen)
+        return;
     if (blockDraft->IsVisible())
     {
         Status(IDS_BLOCKPENDING);
@@ -1677,10 +1679,26 @@ void Application::AskThen(std::function<void()> continuation)
         continuation();
         return;
     }
-    if (options.headless)
+    if (options.headless
+#if defined(REDTILDE_ENABLE_TESTS)
+        && !options.unsavedPromptForTest
+#endif
+    )
         return;
-    const int choice =
-        MessageBoxW(window.get(), Resource(IDS_SAVEQUESTION).c_str(), Resource(IDS_APP).c_str(), MB_ICONQUESTION | MB_YESNOCANCEL | MB_DEFBUTTON3);
+    int choice = IDCANCEL;
+    {
+        // A modal loop can dispatch another Close. The original question alone
+        // owns this continuation until its answer has been collected.
+        unsavedPromptOpen = true;
+        const auto restore = wil::scope_exit([&] { unsavedPromptOpen = false; });
+#if defined(REDTILDE_ENABLE_TESTS)
+        if (options.headless)
+            choice = options.unsavedPromptForTest();
+        else
+#endif
+            choice = MessageBoxW(window.get(), Resource(IDS_SAVEQUESTION).c_str(), Resource(IDS_APP).c_str(),
+                                 MB_ICONQUESTION | MB_YESNOCANCEL | MB_DEFBUTTON3);
+    }
     if (choice == IDNO)
         continuation();
     else if (choice == IDYES)
@@ -1885,7 +1903,7 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
 {
     if (message == WM_CLOSE)
     {
-        if (closing)
+        if (closing || unsavedPromptOpen)
             return 0;
         if (blockDraft->IsVisible())
         {
@@ -2240,9 +2258,9 @@ int Application::Run()
     {
         settings.appearance = options.scenario == L"sample-document-dark" || options.scenario == L"task-presentation-dark" ||
                                       options.scenario == L"compose-dark" || options.scenario == L"math-dark" ||
-                                      options.scenario == L"quote-scroll-dark" || options.scenario == L"reference-dark" ||
-                                      options.scenario == L"markdown-style" || options.scenario == L"caption-close-hover" ||
-                                      options.scenario == L"caption-maximize-hover"
+                                      options.scenario == L"quote-scroll-dark" || options.scenario == L"diagram-label-dark" ||
+                                      options.scenario == L"reference-dark" || options.scenario == L"markdown-style" ||
+                                      options.scenario == L"caption-close-hover" || options.scenario == L"caption-maximize-hover"
                                   ? Appearance::Dark
                                   : Appearance::Light;
         ApplyTheme();

@@ -147,6 +147,11 @@ The lane remains outside the document measure and never covers text. Theme, DPI,
 preserve the authoritative source, selection and undo history. The hidden `quote-scroll-light` and
 `quote-scroll-dark` scenarios use an invented overflowing notebook to show margins and the actual scrollbar.
 
+Native arrow labels match the shaded diagram canvas when text reaches 4.5:1 contrast. Otherwise a minimal
+neutral light/dark backing improves readability. Opaque backing masks crossing routes; note/group labels
+retain their own surface, and selected/high-contrast content retains its resolved theme pair. Hidden
+`diagram-label-light` and `diagram-label-dark` notebook scenarios show the actual shared renderer.
+
 Compose body is 16 DIP with a 1.65 line-height multiplier; H1 is 34/1.2 bold and H2 is 23/1.3 bold. List items
 have 10-DIP separation and paragraphs retain a line of bottom space. Shared semantic minima credit real source
 blank lines: one separator fills the paragraph margin; additional blank lines keep distinct caret sites. Headings and strong text use document

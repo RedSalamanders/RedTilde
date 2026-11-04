@@ -1,0 +1,95 @@
+{
+  "edited": false,
+  "files": [
+    {
+      "file": "before-light-96.png",
+      "sha256": "1E2D56ABAC3880D290FB57FFEAE2CC3E03DE1FCE0EF64A8A68E5565581082CD9"
+    },
+    {
+      "file": "after-light-96.png",
+      "sha256": "D024E47B01C6EB723C697C717901DCBEC807D2263F0A08EFCCAE3C7A44B05AB6"
+    },
+    {
+      "file": "before-light-96.png.scenario.json",
+      "sha256": "6BDC01C86DF00CB8892000F4BB697B3710B7013F763AB381CD5BAB4C4413787B"
+    },
+    {
+      "file": "after-light-96.png.scenario.json",
+      "sha256": "6BDC01C86DF00CB8892000F4BB697B3710B7013F763AB381CD5BAB4C4413787B"
+    },
+    {
+      "file": "before-light-192.png",
+      "sha256": "D1D55A0E79FD0831D9637640E1A0F4DD2E00148921A6A266DA7408A9F81C1DCA"
+    },
+    {
+      "file": "after-light-192.png",
+      "sha256": "E902DE5EDD506E39C85F7F57378066A1FF68765C6D1F0BEFD13E39F389DEBF2D"
+    },
+    {
+      "file": "before-light-192.png.scenario.json",
+      "sha256": "6E2685616F8B925787031C2CBFF5354C93A4246AF4645B54A232AFB105D5AC0B"
+    },
+    {
+      "file": "after-light-192.png.scenario.json",
+      "sha256": "6E2685616F8B925787031C2CBFF5354C93A4246AF4645B54A232AFB105D5AC0B"
+    },
+    {
+      "file": "diagram-label-light.png",
+      "sha256": "0486AD52B25082F76C14C96FB6DD33AB37B9B695C400D1789540954B2A900B7C"
+    },
+    {
+      "file": "diagram-label-light.png.scenario.json",
+      "sha256": "549FA7D3F9C5EEF9B80FDDF2B2B7E27FF0BE4C664D63C9BB867849309CC226EE"
+    },
+    {
+      "file": "before-dark-96.png",
+      "sha256": "0FE06D43D7EC9D11FD81895806CDAB653F88BB04EFCA0A90C55E7345608CE244"
+    },
+    {
+      "file": "after-dark-96.png",
+      "sha256": "9EBBD70FEFF97E493ECD567DAFC8F834A55278D90DC7F62DBCE85DDBDFE999C3"
+    },
+    {
+      "file": "before-dark-96.png.scenario.json",
+      "sha256": "8FA6A2E422885F497C05B359F0F8E33FD16D4108275C67C592A50A9478EBD7E6"
+    },
+    {
+      "file": "after-dark-96.png.scenario.json",
+      "sha256": "8FA6A2E422885F497C05B359F0F8E33FD16D4108275C67C592A50A9478EBD7E6"
+    },
+    {
+      "file": "before-dark-192.png",
+      "sha256": "49DE7D1D5E1BD0DB9A2611649C86110DCA5B82EF8430CEC677DA5F5BDB859639"
+    },
+    {
+      "file": "after-dark-192.png",
+      "sha256": "A523AD8C69F4D69E4ACBE447489789028ABCCFC66AABD163BBB88C630BD29856"
+    },
+    {
+      "file": "before-dark-192.png.scenario.json",
+      "sha256": "7A0C7792678B1A1D8C116122BD0588B1ABA43C52BF7A692848DFEA37BACDD7DB"
+    },
+    {
+      "file": "after-dark-192.png.scenario.json",
+      "sha256": "7A0C7792678B1A1D8C116122BD0588B1ABA43C52BF7A692848DFEA37BACDD7DB"
+    },
+    {
+      "file": "diagram-label-dark.png",
+      "sha256": "990FCE94348B23C1862C5ED66B43B4DB8660E8A13A2634761DE124150A5AB569"
+    },
+    {
+      "file": "diagram-label-dark.png.scenario.json",
+      "sha256": "EF65D311C7399BC3B752924976BD37A4B412E64C83BC6A8765F7B851C8D4A3DC"
+    },
+    {
+      "file": "pixel-verification.json",
+      "sha256": "FC2637D5323198E3B021E48C120797AFAB20272A1D4DBFEEEA027CEB0E60276E"
+    },
+    {
+      "file": "Notebook-review.md",
+      "sha256": "8A78C09EB2A47CE29AAD7507CE5ED97C16C37AC1E11CFD9AF4FFB527ABCDF945"
+    }
+  ],
+  "originalHarnessCaptures": true,
+  "schemaVersion": 1
+}

@@ -70,3 +70,16 @@ const int observations = 12;
 ```
 
 Switch between light, dark and high contrast, and verify source/undo after F2.
+
+## Arrow labels share the graph surface
+
+Review and Save should read directly on the graph canvas, with no contrasting badge when the theme already
+provides sufficient contrast. A custom low-contrast palette may add a subtle light or dark backing.
+
+```mermaid
+stateDiagram-v2
+direction LR
+[*] --> Draft
+Draft --> Reviewed: Review
+Reviewed --> Saved: Save
+```
