@@ -300,6 +300,10 @@
     {
       "name": "Recovery.DuplicateCloseKeepsUnsavedPrompt",
       "scope": "Recovery"
+    },
+    {
+      "name": "Recovery.RestoreKeepsClickedIdentityAcrossUnsavedPrompt",
+      "scope": "Recovery"
     }
   ]
 }
