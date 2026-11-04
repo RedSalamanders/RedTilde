@@ -1,1 +1,0 @@
-- Adopt shared diagram arrow-label backgrounds that blend with the graph canvas and use a subtle contrast fallback, with native light/dark capture scenarios and preserved source/history.

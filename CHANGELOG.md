@@ -4,6 +4,9 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Use the synthetic executable's explicit version for every build-admission fixture probe; retain hostile inherited product versions and reject an explicitly mismatched version without weakening source, header or compiler guards.
+- Adopt shared diagram arrow-label backgrounds that blend with the graph canvas and use a subtle contrast fallback, with native light/dark capture scenarios and preserved source/history.
+- Keep the existing Save/Discard/Cancel question when Close is requested again; ignore the duplicate and allow a fresh Close after Cancel.
 - Enable themed document scrollbars across editing views, adopt shared quote/callout inner margins and add hidden rendering/interaction coverage; consolidate WIP with a preserved transfer ledger and isolate mocked-build version inputs from hosted qualification.
 - Adopt shared Mermaid/display corrections with positive coverage for all eight existing native diagram profiles, repair stale unsupported-feature sample labels and document exact-pin validation separately from broader qualification.
 - Adopt the expanded DxUi sequence profile with actor figures, chronological plain notes, bare message numbering, unheaded solid/dotted messages and default top-to-bottom flowcharts. Use readable foreground strokes for diagram structure. Add public examples and Light/Dark consumer regressions for rendering, accessibility, Source/Split/Compose, F2 and undo/redo. Preserve separately validated defect and syntax checkpoints; broader platform and performance qualification remain separate.
