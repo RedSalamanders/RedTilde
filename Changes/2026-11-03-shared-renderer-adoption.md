@@ -1,1 +1,0 @@
-- Adopt shared Mermaid/display corrections with positive coverage for all eight existing native diagram profiles, repair stale unsupported-feature sample labels and document exact-pin validation separately from broader qualification.
