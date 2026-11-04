@@ -691,6 +691,7 @@ void Application::Layout()
     appearance.drawBorder = false;
     appearance.drawFocusIndicator = false;
     appearance.useAccentLinkColor = true;
+    appearance.showVerticalScrollbar = true;
     appearance.paddingDip = 0;
     appearance.maximumTextWidthDip = focus ? 680.f : static_cast<float>(settings.readingWidth);
     appearance.bodyFontSizeDip = (focus ? 18.f : split ? 15.f : 16.f) * static_cast<float>(settings.textScale) / 100.f;

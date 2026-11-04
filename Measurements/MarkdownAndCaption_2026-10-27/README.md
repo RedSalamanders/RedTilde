@@ -60,6 +60,6 @@ receipts, and the [consumer ASan packet](consumer-asan/README.md) includes actua
 three-DPI captures and the detector diagnostic. Six manifests bind 150 raw files.
 
 Native ARM64 execution, physical input, release/hosted CI and paired performance
-remain open in the [WIP coordinator](../../Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md).
+remain open in the [WIP coordinator](../../Specs/Plans/Done/RedesignCompletionAndRendering_2026-10-24.md).
 Cross-builds and unpaired measurements cannot close them. The original
 performance/CI/keyboard/Menu/merge command queue stays paused.

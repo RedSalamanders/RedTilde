@@ -70,13 +70,28 @@ void Application::PrepareDesignScenario()
     Layout();
 
     const auto &scenario = options.scenario;
+    std::wstring fixtureName = options.document.filename().wstring();
+    if (scenario == L"quote-scroll-light" || scenario == L"quote-scroll-dark")
+    {
+        std::wstring notebook = L"# Notebook observations\n\n"
+                                L"> A useful notebook keeps the observation beside its explanation.\n>\n"
+                                L"> Keep one thought per paragraph, and leave room for the next question.\n\n"
+                                L"> [!NOTE]\n> A little space makes this note easier to read.\n\n";
+        for (unsigned paragraph = 0; paragraph < 40; ++paragraph)
+            notebook += L"A notebook leaves room to collect another observation, then return to the question.\n\n";
+        SetDocument(notebook);
+        settings.appearance = scenario == L"quote-scroll-dark" ? Appearance::Dark : Appearance::Light;
+        settings.view = EditorView::Compose;
+        settings.showFiles = false;
+        settings.showOutline = false;
+        fixtureName = L"Notebook observations";
+    }
     if (scenario == L"task-presentation-light" || scenario == L"task-presentation-dark")
         settings.strikeCompletedTasks = true;
     const bool reference = scenario == L"reference-dark";
     const bool fixtureScene = scenario == L"compose-light" || scenario == L"compose-dark" || scenario == L"source" || scenario == L"split" ||
                               scenario == L"settings" || scenario == L"narrow" || scenario == L"high-contrast" || scenario == L"files" ||
                               scenario == L"find" || scenario == L"focus" || scenario == L"equation" || reference;
-    std::wstring fixtureName = options.document.filename().wstring();
     bool frozenFilesModel{}, reparseRemoved{};
     if (scenario == L"markdown-style" || scenario == L"caption-close-hover" || scenario == L"caption-maximize-hover")
     {

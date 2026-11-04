@@ -29,7 +29,7 @@ The change retains source/history, keyboard commands, UI Automation and high-con
 - Document: continuous canvas, matched heading/body scale, heading/list margins and visible next section.
 - Outline: frameless hierarchy, heading count, current section and block tools immediately after short outlines.
 
-The accepted target is [proposal art](../../Specs/Plans/WIP/DesignRefresh_2026-10-22/compose-dark.html).
+The accepted target is [proposal art](../../Specs/Plans/Done/DesignRefresh_2026-10-22/compose-dark.html).
 Native Fluent glyph strokes, text rasterization and line wrapping can differ from its browser SVG/text rendering;
 no pixel-equivalence claim is made. The reference's hovered-link decoration is an interaction state, separately
 covered by shared link tests. Every actual PNG retains its scenario sidecar and build/source/pin identity.

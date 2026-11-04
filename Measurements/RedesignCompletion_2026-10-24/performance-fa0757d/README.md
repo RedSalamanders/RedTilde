@@ -120,4 +120,4 @@ This proposal is an aggregate projection containing all 48 rows (12 metrics in e
 
 
 
-The [execution checklist](../../../Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md) owns current qualification. Later diagnostics and fixes do not rewrite this completed cohort.
+The [execution checklist](../../../Specs/Plans/Done/RedesignCompletionAndRendering_2026-10-24.md) owns current qualification. Later diagnostics and fixes do not rewrite this completed cohort.

@@ -162,10 +162,9 @@ std::vector<BYTE> ReadBrandMarkRaster(const std::filesystem::path &path, float d
     Require(visible > 16, "the brand-mark region contains rendered icon pixels");
     return region;
 }
-std::vector<BYTE> ReadCaptionButtonRaster(const std::filesystem::path &path, D2D1_RECT_F bounds, float dpi)
+std::vector<BYTE> ReadControlRaster(const std::filesystem::path &path, D2D1_RECT_F bounds, float dpi)
 {
-    // This crop-only reader is local because the caption oracle must ignore changing editor/body pixels;
-    // the existing brand-mark reader intentionally has different fixed-region semantics.
+    // Control oracles compare only their region; the brand-mark reader has a fixed-region/alpha contract.
     wil::com_ptr<IWICImagingFactory> factory;
     Success(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(factory.put())),
             "create a WIC decoder for the hidden caption-button capture");
@@ -838,7 +837,7 @@ class DesignRefreshProbe final
                      // Resize has settled content. Snapshot each synthetic input
                      // step before pumping real-pointer leave for the hidden HWND.
                      Require(app.Capture(idlePath, false), "capture idle caption close control without showing the window");
-                     const auto idlePixels = ReadCaptionButtonRaster(idlePath, app.closeButton->GetBounds(), app.Host().GetDpi());
+                     const auto idlePixels = ReadControlRaster(idlePath, app.closeButton->GetBounds(), app.Host().GetDpi());
                      const auto closeHit = HitControl(app, app.closeButton);
                      const auto closeCenter = center(app.closeButton);
                      (void)SendMessageW(app.Window(), WM_NCMOUSEMOVE, static_cast<WPARAM>(closeHit), screenPoint(closeCenter));
@@ -847,7 +846,7 @@ class DesignRefreshProbe final
                      const auto hoverPath = root / std::format(L"caption-close-hover-{}.png", dpi);
                      Require(app.Capture(hoverPath, false), "capture hovered caption close control without showing the window");
                      Require(app.closeButton->IsHovered(), "capturing a prepared interaction frame preserves its synthetic hover state");
-                     Require(idlePixels != ReadCaptionButtonRaster(hoverPath, app.closeButton->GetBounds(), app.Host().GetDpi()),
+                     Require(idlePixels != ReadControlRaster(hoverPath, app.closeButton->GetBounds(), app.Host().GetDpi()),
                              std::format("close hover changes its rendered pixels at {} DPI", dpi));
                      (void)SendMessageW(app.Window(), WM_NCMOUSELEAVE, 0, 0);
                      Require(!app.closeButton->IsHovered() && !app.maximizeButton->IsHovered() && !app.minimizeButton->IsHovered(),
@@ -860,7 +859,7 @@ class DesignRefreshProbe final
 #endif
                      const auto pressedPath = root / std::format(L"caption-close-pressed-{}.png", dpi);
                      Require(app.Capture(pressedPath, false), "capture pressed caption close control without showing the window");
-                     Require(idlePixels != ReadCaptionButtonRaster(pressedPath, app.closeButton->GetBounds(), app.Host().GetDpi()),
+                     Require(idlePixels != ReadControlRaster(pressedPath, app.closeButton->GetBounds(), app.Host().GetDpi()),
                              std::format("pressed Close changes its rendered pixels at {} DPI", dpi));
                      (void)SendMessageW(app.Window(), WM_CANCELMODE, 0, 0);
                      Require(GetCapture() != app.Window() && closeClicks == 0, "cancel clears caption press without invoking Close");
@@ -1553,6 +1552,7 @@ class DesignRefreshProbe final
              {
                  Application app(Options(root, L"design-equation"));
                  Success(app.Initialize(), "create hidden contextual-equation app");
+                 Resize(app, 1024, 900, 96);
                  const std::wstring source = L"# Exact equation\n\nCode `$fake$` and $a_i^2$ with a tail.\n";
                  app.SetDocument(source);
                  app.Prepare(512);
@@ -1566,6 +1566,10 @@ class DesignRefreshProbe final
                  app.SelectionChanged();
                  Require(app.equationContext && app.equation->IsVisible() && app.equation->IsReadOnly() && app.equationHelp->IsVisible(),
                          "only current math exposes the explicitly read-only contextual equation rendering");
+                 app.Prepare(512);
+                 Require(!app.sidebar->IsVisible() && !app.equation->GetAcknowledgedSemanticDocument(app.Host()),
+                         "narrow layout defers the hidden equation inspector instead of requiring wide-only resources");
+                 Resize(app, 1440, 900, 96);
                  app.Prepare(512);
                  const auto inspected = app.equation->GetAcknowledgedSemanticDocument(app.Host());
                  Require(inspected && std::ranges::count(inspected->Elements(), DxUi::RichText::SemanticRole::Math,
@@ -2634,6 +2638,101 @@ class DesignRefreshProbe final
                          "syntax options change presentation only, never source, revision or save state");
                  Require(GetForegroundWindow() == foreground, "syntax options never take desktop focus in hidden tests");
              });
+        test("Rendering.DocumentThemedScrollbars",
+             [&]
+             {
+                 const auto foreground = GetForegroundWindow();
+                 Application app(Options(root, L"document-scrollbars"));
+                 Success(app.Initialize(), "create hidden scrollbar app");
+                 std::wstring text = L"> A useful notebook keeps the observation beside its explanation.\n>\n"
+                                     L"> Keep one thought per paragraph, and leave room for the next question.\n\n";
+                 for (unsigned line = 0; line < 80; ++line)
+                     text += L"A notebook paragraph leaves enough room for the next observation.\n\n";
+                 app.SetDocument(text);
+                 app.Document().SetSelection({text.size(), text.size()});
+                 Require(app.Document().ReplaceSelection(L"!") && app.Document().Undo(), "scrollbar fixture retains redo history");
+                 const DxUi::RichText::Selection selection{4, 4};
+                 app.Document().SetSelection(selection);
+                 const auto source = app.Document().Snapshot();
+                 const auto revision = app.Document().Revision();
+                 for (const UINT dpi : {96u, 144u, 192u})
+                     for (const auto theme : {Appearance::Light, Appearance::Dark, Appearance::Paper})
+                         for (const auto view : {EditorView::Compose, EditorView::Source, EditorView::Split})
+                         {
+                             Resize(app, 1440, 900, dpi, false);
+                             app.settings.appearance = theme;
+                             app.Execute(view == EditorView::Compose  ? Command::Compose
+                                         : view == EditorView::Source ? Command::Source
+                                                                      : Command::Split);
+                             app.ApplyTheme();
+                             app.Layout();
+                             app.Prepare(512);
+                             Require(app.Document().GetAppearance().showVerticalScrollbar && app.SourceMirror().GetAppearance().showVerticalScrollbar,
+                                     "Compose, Source and the Split mirror opt into the native scrollbar lane");
+                             for (auto *editor : std::array<DxUi::RichTextEditor *, 2>{app.editor, app.mirror})
+                             {
+                                 if (!editor->IsVisible())
+                                     continue;
+                                 const auto info = editor->GetScrollInfo();
+                                 Require(info && info->viewportHeightDip > 0 && info->contentHeightDip > info->viewportHeightDip,
+                                         std::format(
+                                             "long document overflows at DPI {}, theme {}, view {}, mirror {} (ready {}, viewport {}, content {})",
+                                             dpi, static_cast<int>(theme), static_cast<int>(view), editor == app.mirror, info.has_value(),
+                                             info ? info->viewportHeightDip : 0, info ? info->contentHeightDip : 0));
+                                 (void)editor->SetScrollOffsetDip(0);
+                                 const auto bounds = editor->GetBounds();
+                                 const auto lane = D2D1::RectF(bounds.right - 8, bounds.top + 2, bounds.right, bounds.bottom - 2);
+                                 const auto image = root / std::format(L"scrollbar-{}-{}-{}-{}.png", dpi, static_cast<int>(theme),
+                                                                       static_cast<int>(view), editor == &app.Document() ? 0 : 1);
+                                 Require(app.Capture(image), "capture a hidden overflow scrollbar");
+                                 const auto ordinary = ReadControlRaster(image, lane, app.Host().GetDpi());
+                                 const auto palette = app.Host().GetTheme();
+                                 auto marked = palette;
+                                 marked.scrollbarThumb = D2D1::ColorF(.1f, .8f, .35f, 1);
+                                 app.Host().SetTheme(marked);
+                                 Require(app.Capture(image), "capture the same native scrollbar with a distinct theme thumb");
+                                 Require(ordinary != ReadControlRaster(image, lane, app.Host().GetDpi()),
+                                         "overflow thumb pixels respond to the host theme in the scrollbar lane");
+                                 app.Host().SetTheme(palette);
+                                 app.Prepare(512);
+                                 const auto page = D2D1::Point2F(bounds.right - 4, bounds.bottom - 12);
+                                 Require(editor->OnMouseDown(app.Host(), page, false, 0) && editor->GetScrollInfo()->offsetDip > 0,
+                                         "clicking below the thumb pages the document");
+                                 (void)editor->OnMouseUp(app.Host(), page, false, 0);
+                                 (void)editor->SetScrollOffsetDip(0);
+                                 const auto thumb = D2D1::Point2F(bounds.right - 4, bounds.top + 6);
+                                 Require(editor->OnMouseDown(app.Host(), thumb, false, 0) && app.Host().GetCapturedControl() == editor,
+                                         "primary thumb press owns native control capture");
+                                 const auto dragged = D2D1::Point2F(thumb.x, thumb.y + 60);
+                                 (void)editor->OnMouseMove(app.Host(), dragged, 0);
+                                 Require(editor->GetScrollInfo()->offsetDip > 0 && editor->OnMouseUp(app.Host(), dragged, false, 0) &&
+                                             app.Host().GetCapturedControl() == nullptr,
+                                         "thumb drag scrolls and release retires capture");
+                             }
+                             Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().Revision() == revision &&
+                                         app.Document().GetText() == text && app.Document().GetSelection() == selection &&
+                                         !app.Document().CanUndo() && app.Document().CanRedo(),
+                                     "scrolling, theme, DPI and view changes preserve source ACP and redo history");
+                         }
+                 app.SetDocument(L"A short notebook.\n");
+                 app.Execute(Command::Compose);
+                 app.Layout();
+                 app.Prepare(512);
+                 const auto shortInfo = app.Document().GetScrollInfo();
+                 Require(shortInfo && shortInfo->contentHeightDip <= shortInfo->viewportHeightDip, "a fitting document has no scroll extent");
+                 const auto bounds = app.Document().GetBounds();
+                 const auto lane = D2D1::RectF(bounds.right - 8, bounds.top + 2, bounds.right, bounds.bottom - 2);
+                 const auto image = root / L"scrollbar-fitting.png";
+                 Require(app.Capture(image), "capture the fitting document");
+                 const auto fitting = ReadControlRaster(image, lane, app.Host().GetDpi());
+                 auto marked = app.Host().GetTheme();
+                 marked.scrollbarThumb = D2D1::ColorF(.1f, .8f, .35f, 1);
+                 app.Host().SetTheme(marked);
+                 Require(app.Capture(image) && fitting == ReadControlRaster(image, lane, app.Host().GetDpi()),
+                         "a fitting document paints no phantom thumb");
+                 Require(!IsWindowVisible(app.Window()) && GetForegroundWindow() == foreground,
+                         "scrollbar regression never shows a window or takes desktop focus");
+             });
         test("Rendering.DesignRefreshTypographyAndThemeRoles",
              [&]
              {
@@ -3043,6 +3142,7 @@ class DesignRefreshProbe final
             {
                 Application app(Options(root, L"design-status"));
                 Success(app.Initialize(), "create hidden persistent-status app");
+                Resize(app, 1440, 900, 96);
                 {
                     const auto loader = app.images.state_;
                     Require(static_cast<bool>(loader), "the hidden app owns its image-loader state");

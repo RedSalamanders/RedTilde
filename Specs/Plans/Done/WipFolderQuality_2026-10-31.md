@@ -1,6 +1,19 @@
 # WIP folder quality — 31 October 2026
 
-Status: review complete. This document does not change product behavior. It is the
+Status: DONE — scoped implementation/review record; outstanding acceptance is transferred.
+Archived: 4 November 2026
+Current work: [the single remaining-work plan](../WIP/RemainingWork_2026-11-04.md).
+Original: `Specs/Plans/WIP/WipFolderQuality_2026-10-31.md` at `1cd59c08528cc1e20720a45ef833bb9e69c315e4`; SHA-256 `0B6407CD7C9D55B838917D38B9E52FFAB33A90E6F962F9485B21A11E228ECBD5`.
+[Original committed record](https://github.com/RedSalamanders/RedTilde/blob/1cd59c08528cc1e20720a45ef833bb9e69c315e4/Specs/Plans/WIP/WipFolderQuality_2026-10-31.md).
+
+The dated record below preserves decisions, source-specific evidence, failures and rejected hypotheses.
+Transferred items are not completed features. Old pins, billing blocks, draft/merge claims and historical
+queues describe their recorded checkpoints; the new plan owns current status. This archive does not
+waive performance, consumer, native-platform, physical-input or release gates.
+
+## Historical record
+
+Historical status: review complete. This document does not change product behavior. It is the
 navigation record for [the WIP index](README.md). The next product edit is the
 first delivery slice in [the red-team sequence](DeliveryRedTeam_2026-10-31.md),
 with a failing test written first.

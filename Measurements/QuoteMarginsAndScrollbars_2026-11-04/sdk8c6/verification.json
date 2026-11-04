@@ -1,0 +1,30 @@
+{
+  "dependency": "8c6c2818d084e6124fb2c08eddc00bdba7a9d2aa",
+  "captures": [
+    {
+      "sha256": "F56C3B02831FCD413E6EAA35F78F10C87AE677B70AA1A4C87EE39F24BF0C4670",
+      "file": "quote-scroll-dark.png"
+    },
+    {
+      "sha256": "E87CBEFB420033ABC6EBD98D99D18DB1BAB81086367F85688A2245717859220E",
+      "file": "quote-scroll-dark.png.scenario.json"
+    },
+    {
+      "sha256": "DC66434692EA529C82AA0679C0EDE82AB01ABC06B5D6F7740C0BC1EB493AEC2F",
+      "file": "quote-scroll-light.png"
+    },
+    {
+      "sha256": "787D8171EDC747C38D34EA2824B5204D0CA9F51253BBE72D84101E6F6679B781",
+      "file": "quote-scroll-light.png.scenario.json"
+    }
+  ],
+  "run": "20261104T090859180Z-45360-b0f3f358029c4666be37e662e6e241e9",
+  "receiptSha256": "77AB771D02E9DDCB5CF26FA474F32F9CADF224F972AAE54755BD0899F83A0E68",
+  "binarySha256": "32C283265213643ADE3D0A0DD7A5B4730176E2AB3ECBE6A9805CD2763A76ECBE",
+  "passed": true,
+  "configuration": "Release",
+  "platform": "x64",
+  "interactive": false,
+  "sourceIdentity": "2c989517e11ae9b46cce0ed695138df2896cd95939aa8355cc54710759142ed9",
+  "buildReceiptSha256": "DE7F097E7B3215F095601B5F0B48B9882FD65F0E29C51A1247C83AF6D77D34A5"
+}

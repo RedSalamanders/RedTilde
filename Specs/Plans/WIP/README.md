@@ -1,44 +1,7 @@
-# Active plans
+# Active work
 
-- [WIP folder quality](WipFolderQuality_2026-10-31.md) — reviewed routing record preserving delivery decisions and the remaining implementation sequence.
+- **ACTIVE**: [Remaining work and qualification](RemainingWork_2026-11-04.md) — the single current plan for RedTilde. Start with its verified checkpoint and ordered tasks; deferred scope and unanswered owner decisions remain explicit.
 
-- **ACTIVE**: [DxUi 2 November delivery adoption](DxUiDeliveryAdoption_2026-11-02.md). Development lock `2e775e8d` (API 4), readable diagram strokes, shared display fixes and bounded sequence actor/note/numbering expansion,
-  per-family RichMarkdown syntax preferences, declined wiki/data images, own-line display math, guarded math F2 and
-  adapter repairs for the pin's behavior changes. Release/ASan, ARM64 and physical/interactive gates remain open.
-
-- **ACTIVE**: [Native build policy, terminal results and short DxUi paths](NativeBuildPolicyCoherence_2026-10-28.md). Shared /Wall without /WX, zero-warning validation, Debug/ASan symbols, Release-only ICF, terminal results and verified short dependency folders.
-
-- [Redesign completion and rendering compatibility](RedesignCompletionAndRendering_2026-10-24.md) — **active**; historical pause/resume queues preserved, current
-  execution coordinator with a top checklist, current-source defects, complete review inventory, native math
-  and Mermaid compatibility/test matrices, measured simplification and exact-pin final qualification. Existing
-  creation/design and DxUi audit owners remain authoritative for their requirements. The owner selected finishing
-  the current native profiles and qualification; larger language expansion remains separately owned. Implementation
-  and source reviews are recorded; R10 and final qualification remain open.
-
-- [RedTilde creation](RedTilde_2026-10-20.md) — native app, rich/source editing, media, product UI, repository
-  guidance and release qualification. Start at “Remaining work and session handoff — 2026-10-21” for the current
-  main/source checkpoint, recovery locations and C1–C12 work register: performance/policy, resources/hardware,
-  upstream/platform/input, save-race hardening, capacity, typography, compatibility, assets and release closeout.
-  Bounded native math/diagrams/recovery and local S5 execution are implemented; S5 qualification and S6 remain open.
-  Its PR consolidation checkpoint is historical: DxUi #89–#91 merged on 2026-10-21; their separate performance
-  and product qualification remains open. The preserved baseline archive tags still identify the original evidence.
-
-- [Design refresh](DesignRefresh_2026-10-22.md) — implemented layout and visual refresh: merged document bar, grouped
-  command row, optional Files pane for Markdown in the document's folder tree, outline panel, contextual
-  find/selection tools, focus mode, settings drawer, F2 equation editing and hover-underlined links. Offline
-  proposal pages and pictures are in its folder. R1–R9 and the image-2 visual correction V1–V4 are implemented;
-  source-bound six-profile builds, x64 native tests and matched captures are archived. R10 performance and
-  broader input/platform/CI/release qualification keep this parent plan active. The completion coordinator
-  now sequences the remaining work; earlier source-bound results do not qualify a later pin automatically.
-
-- [RedMonitor adoption](RedMonitor_Adoption_2026-10-23.md) — pinned producer, optional viewer and consumer qualification.
-
-- [Production-readiness review](ProductionReview_2026-10-28.md) — whole-repository review at `1c3554c`, with a
-  second pass over every merge through `468cd94`: ranked findings (CI gate, line-ending preservation, session-end
-  and recovery loss windows, file-safety failure paths, re-entrant prompts and menu crashes, test gaps, UX,
-  tooling), simplification candidates and remediation order. Owner decisions Q1–Q17 are recorded; Q18–Q22 are
-  open. Not started.
-
-- [Delivery review](DeliveryReview_2026-10-31.md) — 31 October 2026 review of `146a964`. The high item is binding Restore to the snapshot that was clicked. Medium items cover line endings, waiting for an admitted save, session-end recovery flush, drafts during Open, settings headers, conflict actions, and oversized recovery envelopes. Source-view Enter, the native IME ceiling, and quoted file paste are DxUi pin fixes. Not started.
-
-- [Delivery red team](DeliveryRedTeam_2026-10-31.md) — 31 October 2026 second-angle review of `d126a04` (last 15 days = the whole repository). Confirms the delivery-review items still open, adds packaging/probe/Find-latch/Measurements-path findings, and sequences Phase 1–6. Remediation not started. Do not reopen DeliveryReview drops; Q3 vs RT-10 and Q8 vs RT-11 still need a written owner pick.
+[Completed and superseded records](../Done/README.md) retain decisions, evidence, failures and detailed appendices.
+[The consolidation ledger](../Done/WipConsolidation_2026-11-04.md) accounts for every original unchecked direct-plan item.
+Add new in-scope work to the current plan instead of creating another overlapping queue.

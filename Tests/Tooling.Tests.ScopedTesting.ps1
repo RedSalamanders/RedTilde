@@ -475,7 +475,10 @@ $global:LASTEXITCODE=0
         $buildBinary=Join-Path $PSHOME 'pwsh.exe'
         function Invoke-BuildFixture([switch]$NoRestore,[string[]]$Extra=@()){
             $start=[Diagnostics.ProcessStartInfo]::new($buildBinary);$start.UseShellExecute=$false;$start.RedirectStandardOutput=$true;$start.RedirectStandardError=$true
-            $arguments=@('-NoProfile','-File',(Join-Path $buildRoot 'build.ps1'),'-Platform','x64','-Configuration','Debug')
+            # Hosted qualification supplies a nonzero product build number. The mocked text executable has no
+            # version resource, so freeze zero explicitly while retaining a hostile inherited value as a regression.
+            $start.Environment['RedTildeBuildNumber']='137'
+            $arguments=@('-NoProfile','-File',(Join-Path $buildRoot 'build.ps1'),'-Platform','x64','-Configuration','Debug','-BuildNumber','0')
             if(-not $NoRestore){$arguments+= '-SkipRestore'}
             foreach($argument in $arguments+$Extra){$start.ArgumentList.Add($argument)}
             $process=[Diagnostics.Process]::Start($start)
@@ -507,6 +510,7 @@ $global:LASTEXITCODE=0
             $run=Invoke-BuildFixture;Assert ($run.exit -eq 0) "Fixture initial build failed: $($run.text)"
             $receipt=Get-Content (Join-Path $buildRoot '.build/x64/Debug/build-receipt.json') -Raw|ConvertFrom-Json
             Assert ($receipt.schemaVersion -eq 2 -and $receipt.passed) 'Build did not publish the guarded receipt'
+            Assert ($receipt.buildNumber -eq 0) 'Mock build inherited the hosted product version instead of its explicit fixture version'
             Assert (@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt')|Where-Object{$_ -match '/t:Clean'}).Count -eq 1) 'Unattested first build did not clean owned profile'
         }
         Case 'docs-only changes reuse byte-identical output without clean' {

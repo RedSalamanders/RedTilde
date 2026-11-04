@@ -1,6 +1,19 @@
 # Delivery review — 31 October 2026
 
-Status: not started
+Status: SUPERSEDED — sequencing consolidated; unfinished product work remains open under the new owner.
+Archived: 4 November 2026
+Current work: [the single remaining-work plan](../WIP/RemainingWork_2026-11-04.md).
+Original: `Specs/Plans/WIP/DeliveryReview_2026-10-31.md` at `1cd59c08528cc1e20720a45ef833bb9e69c315e4`; SHA-256 `9BEE548E9C60518EC1D24C91647B8DDB8DED27073867817BB1C3699CCD700D1B`.
+[Original committed record](https://github.com/RedSalamanders/RedTilde/blob/1cd59c08528cc1e20720a45ef833bb9e69c315e4/Specs/Plans/WIP/DeliveryReview_2026-10-31.md).
+
+The dated record below preserves decisions, source-specific evidence, failures and rejected hypotheses.
+Transferred items are not completed features. Old pins, billing blocks, draft/merge claims and historical
+queues describe their recorded checkpoints; the new plan owns current status. This archive does not
+waive performance, consumer, native-platform, physical-input or release gates.
+
+## Historical record
+
+Historical status: not started
 Date: 2026-10-31
 
 This plan is a non-normative execution record. It does not change product behavior. Durable
@@ -45,7 +58,7 @@ which supersedes conflicting parts of Q1/Q5/Q16.
 
 ## High
 
-- [ ] **RT-04** — Bind Restore to the snapshot that was clicked. Effort: S.
+- **Transferred to [T-S1](../WIP/RemainingWork_2026-11-04.md#t-s1).** **RT-04** — Bind Restore to the snapshot that was clicked. Effort: S.
 
   `Command::RestoreRecovery` (`RedTilde/Application.cpp` 1131-1150) only checks that
   `recoveryCandidates` is non-empty, then `AskThen` runs later. The lambda reads
@@ -79,7 +92,7 @@ which supersedes conflicting parts of Q1/Q5/Q16.
 
 ## Medium
 
-- [ ] **RT-03** — Convert F2 draft Apply and the Mermaid, math, quote and fence inserts to the
+- **Transferred to [T-S2](../WIP/RemainingWork_2026-11-04.md#t-s2).** **RT-03** — Convert F2 draft Apply and the Mermaid, math, quote and fence inserts to the
   document newline. Source-view Enter is a DxUi pin fix, not a RedTilde reimplementation.
   Effort: M.
 
@@ -114,7 +127,7 @@ which supersedes conflicting parts of Q1/Q5/Q16.
   the pin half: Enter and Shift+Enter in Source, in all three endings, save byte-exact. Compose
   Enter must keep preserving the existing ending.
 
-- [ ] **DX-4** — Native IME 64 Ki ceiling is a DxUi pin fix (`NativeTextStoreTarget`). Effort: M,
+- **Transferred to [T-U1](../WIP/RemainingWork_2026-11-04.md#t-u1).** **DX-4** — Native IME 64 Ki ceiling is a DxUi pin fix (`NativeTextStoreTarget`). Effort: M,
   in DxUi. Not a `RedTilde.cpp` change.
 
   `TextStoreTarget::GetMaximumDocumentTextUnits` returns `std::numeric_limits<size_t>::max()`
@@ -131,7 +144,7 @@ which supersedes conflicting parts of Q1/Q5/Q16.
   a native store at 65,530 units whose final composition would reach 65,540 fails the insert, and
   the last in-range preview remains.
 
-- [ ] **DX-3** — Quoted file-paste fallback is a DxUi pin fix. Effort: M, in DxUi.
+- **Transferred to [T-U1](../WIP/RemainingWork_2026-11-04.md#t-u1).** **DX-3** — Quoted file-paste fallback is a DxUi pin fix. Effort: M, in DxUi.
 
   `RichTextEditor::TryPrepareClipboardPaste` (`DxUi.RichTextEditor.cpp` 375 at the pin) falls
   back to raw quotes when `BuildMarkdownFileReference` fails (427-447). The path is appended
@@ -142,7 +155,7 @@ which supersedes conflicting parts of Q1/Q5/Q16.
   create an image node. RedTilde already refuses a `\\server\share` image unless network files
   are allowed (`RedTilde/ImageLoader.h` 265-267; `allowNetworkFiles` defaults false).
 
-- [ ] **RT-02** — Wait for an admitted save before exit, and retire recovery only after success.
+- **Transferred to [T-S1](../WIP/RemainingWork_2026-11-04.md#t-s1).** **RT-02** — Wait for an admitted save before exit, and retire recovery only after success.
   Effort: M.
 
   Close while `files.Busy()` shows `IDS_CLOSEBUSY` (`res/RedTilde.rc` 130), default No
@@ -167,7 +180,7 @@ which supersedes conflicting parts of Q1/Q5/Q16.
   the window hides while the process and recovery remain. Fail the write: the previous file
   and recovery snapshot still exist, and the window returns with the error.
 
-- [ ] **RT-01** — Flush recovery on `WM_QUERYENDSESSION`. Do not save the user's file on logoff.
+- **Transferred to [T-S1](../WIP/RemainingWork_2026-11-04.md#t-s1).** **RT-01** — Flush recovery on `WM_QUERYENDSESSION`. Do not save the user's file on logoff.
   Effort: M.
 
   `HandleMessage` has no `WM_QUERYENDSESSION` or `WM_ENDSESSION` arm. An unhandled message
@@ -185,7 +198,7 @@ which supersedes conflicting parts of Q1/Q5/Q16.
   Acceptance: post `WM_QUERYENDSESSION` while dirty; the snapshot bytes match the editor. A
   snapshot that was already settled can stay as it is.
 
-- [ ] **RT-05** — Hold Open completion while an F2 draft is open. Effort: S.
+- **Transferred to [T-S2](../WIP/RemainingWork_2026-11-04.md#t-s2).** **RT-05** — Hold Open completion while an F2 draft is open. Effort: S.
 
   Starting Open goes through `AskThen` (1568-1582), so a visible draft already blocks a new Open
   (1541-1544). A slow Open that was started first is different. The draft does not change the
@@ -201,7 +214,7 @@ which supersedes conflicting parts of Q1/Q5/Q16.
   Acceptance: a delayed Open completion, then an F2 draft. The draft text survives, and the
   loaded file is not applied until the draft is closed.
 
-- [ ] **RT-09** — A bad settings header must stay on disk. Effort: S.
+- **Transferred to [T-S2](../WIP/RemainingWork_2026-11-04.md#t-s2).** **RT-09** — A bad settings header must stay on disk. Effort: S.
 
   A missing `RedTilde.Settings/1` header makes `ParseSettings` return defaults
   (`Common/Settings.cpp` 11-15). `LoadSettings` still returns `S_OK` (64-72). Startup ignores
@@ -218,7 +231,7 @@ which supersedes conflicting parts of Q1/Q5/Q16.
   `Settings.VersionAndFieldFallback` (`Tests/Application.Tests.Core.cpp` 312-324) covers field
   fallback and an unknown schema's in-memory defaults. It does not cover this overwrite.
 
-- [ ] **RT-07** — Conflict dialog offers Reload, Save As and Overwrite. A post-replace read
+- **Transferred to [T-S2](../WIP/RemainingWork_2026-11-04.md#t-s2).** **RT-07** — Conflict dialog offers Reload, Save As and Overwrite. A post-replace read
   failure is not a conflict. Effort: M.
 
   [Core_FileSafety.md](../../Core/Core_FileSafety.md) requires reload, Save As, or explicit
@@ -243,7 +256,7 @@ which supersedes conflicting parts of Q1/Q5/Q16.
   Acceptance: Reload, Save As and Overwrite each do what they say, and a failed readback after
   a successful replace does not show the conflict dialog.
 
-- [ ] **RT-08** — Quarantine an oversized checksum-valid recovery envelope instead of terminating.
+- **Transferred to [T-S1](../WIP/RemainingWork_2026-11-04.md#t-s1).** **RT-08** — Quarantine an oversized checksum-valid recovery envelope instead of terminating.
   Effort: M.
 
   `DecodeUtf8` throws `std::length_error` above `MaximumUnits * 3` bytes or 65,536 UTF-16 units
@@ -268,7 +281,7 @@ which supersedes conflicting parts of Q1/Q5/Q16.
 
 ## Low
 
-- [ ] **RT-06** — Close the staging handle before deleting a failed temp. Effort: S.
+- **Transferred to [T-S2](../WIP/RemainingWork_2026-11-04.md#t-s2).** **RT-06** — Close the staging handle before deleting a failed temp. Effort: S.
 
   `removeTemporary` runs `DeleteFileW` while the share-none handle can still be open
   (`Common/Storage.cpp` 102-109). An early return from a write or flush failure leaves the
@@ -277,7 +290,7 @@ which supersedes conflicting parts of Q1/Q5/Q16.
   Repair: `file.reset()` before `DeleteFileW`. Acceptance: an injected flush failure leaves no
   temp. Do not claim the destination file is deleted.
 
-- [ ] **RT-12** — Shortcut and save-completion exceptions stay in the process. Effort: S.
+- **Transferred to [T-S1](../WIP/RemainingWork_2026-11-04.md#t-s1).** **RT-12** — Shortcut and save-completion exceptions stay in the process. Effort: S.
 
   `RouteShortcut` (1994) and the pump's `FileCompleted` (2231) run from `Run` (2223-2231),
   outside `WindowProc`'s catch (1698-1721). They are inside `wWinMain`'s catch, which returns 1
@@ -287,7 +300,7 @@ which supersedes conflicting parts of Q1/Q5/Q16.
   Repair: the same "source retained" fallback `WindowProc` already uses (1718-1720). Acceptance:
   a throw from save completion leaves the process up and the document dirty.
 
-- [ ] **RT-13** — Gate `--crash-probe` the way production self-test is gated. Leave
+- **Transferred to [T-Q2](../WIP/RemainingWork_2026-11-04.md#t-q2).** **RT-13** — Gate `--crash-probe` the way production self-test is gated. Leave
   `--performance-probe`. Effort: S.
 
   `--crash-probe` is parsed and run before the self-test gate (`RedTilde/Main.cpp` 149-150 and

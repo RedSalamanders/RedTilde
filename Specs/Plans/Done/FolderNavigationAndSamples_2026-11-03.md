@@ -57,6 +57,6 @@ not a claim that every sample was visually compared in both applications.
 | Metadata parsers | Private static toml++ 3.4.0 and rapidyaml 0.16.0 validate closed Markdown front matter without source rewriting or application schemas. General UI controls do not need them. DxUi's 2 November production review retains metadata defects and incomplete qualification; this change does not certify or modify those parsers. |
 
 Remaining language/performance/product qualification stays in
-[the rendering coordinator](../WIP/RedesignCompletionAndRendering_2026-10-24.md),
-[delivery adoption](../WIP/DxUiDeliveryAdoption_2026-11-02.md) and
+[the rendering coordinator](RedesignCompletionAndRendering_2026-10-24.md),
+[delivery adoption](DxUiDeliveryAdoption_2026-11-02.md) and
 [validation](../../Testing/Testing_Validation.md). No platform or focus gate is waived by this focused work.

@@ -63,7 +63,7 @@ abbreviations on or off individually; each is on by default and explains its syn
 parent when no root exists. Opening other files, Save As, and New keep that root; restarting restores it and the
 pane's saved visibility. The optional pane lists `.md` and `.markdown` files throughout its bounded folder tree.
 Single-click or Enter opens through the existing Open and unsaved-changes flow; it does not manage files. See the
-[design contract](Specs/UI/UI_DesignSystem.md). The [design-refresh record](Specs/Plans/WIP/DesignRefresh_2026-10-22.md)
+[design contract](Specs/UI/UI_DesignSystem.md). The [design-refresh record](Specs/Plans/Done/DesignRefresh_2026-10-22.md)
 keeps the proposal art; its remaining gate is R10, sequenced from the [plan index](Specs/Plans/WIP/README.md).
 
 Open/save preserves UTF-8 BOM and existing line endings. Invalid UTF-8/NUL and documents above 65,536 UTF-16

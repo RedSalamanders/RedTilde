@@ -1,0 +1,1 @@
+- Enable themed document scrollbars across editing views, adopt shared quote/callout inner margins and add hidden rendering/interaction coverage; consolidate WIP with a preserved transfer ledger and isolate mocked-build version inputs from hosted qualification.

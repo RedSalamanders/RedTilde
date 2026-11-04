@@ -17,4 +17,4 @@ insets, accent task markers and the persistent **Strike through completed tasks*
 to off and changes presentation only. The public [example](../../docs/examples/tasks-and-insets.md) exercises the setting.
 
 These focused results do not close the separate platform, real-input, assistive-technology, release or matched
-performance gates in [the rendering coordinator](../../Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md).
+performance gates in [the rendering coordinator](../../Specs/Plans/Done/RedesignCompletionAndRendering_2026-10-24.md).

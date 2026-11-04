@@ -246,6 +246,10 @@
       "scope": "Editor"
     },
     {
+      "name": "Rendering.DocumentThemedScrollbars",
+      "scope": "Editor"
+    },
+    {
       "name": "Rendering.DesignRefreshTypographyAndThemeRoles",
       "scope": "Editor"
     },

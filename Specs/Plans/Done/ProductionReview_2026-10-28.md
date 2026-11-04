@@ -1,6 +1,19 @@
 # Production-readiness review — 28 October 2026
 
-Status: second pass complete on 30 October 2026 at `468cd94`. The owner decided Q1–Q17 on 29 October 2026. The
+Status: SUPERSEDED — sequencing consolidated; unfinished product work remains open under the new owner.
+Archived: 4 November 2026
+Current work: [the single remaining-work plan](../WIP/RemainingWork_2026-11-04.md).
+Original: `Specs/Plans/WIP/ProductionReview_2026-10-28.md` at `1cd59c08528cc1e20720a45ef833bb9e69c315e4`; SHA-256 `14324CB6A2AB0573DCCABE24584BF9E7D11ACE72C8C0F8F1EF9CE29060E290E4`.
+[Original committed record](https://github.com/RedSalamanders/RedTilde/blob/1cd59c08528cc1e20720a45ef833bb9e69c315e4/Specs/Plans/WIP/ProductionReview_2026-10-28.md).
+
+The dated record below preserves decisions, source-specific evidence, failures and rejected hypotheses.
+Transferred items are not completed features. Old pins, billing blocks, draft/merge claims and historical
+queues describe their recorded checkpoints; the new plan owns current status. This archive does not
+waive performance, consumer, native-platform, physical-input or release gates.
+
+## Historical record
+
+Historical status: second pass complete on 30 October 2026 at `468cd94`. The owner decided Q1–Q17 on 29 October 2026. The
 second pass adds PR-34–PR-46, S12–S16 and open questions Q18–Q22, and corrects PR-02. Remediation has not started.
 This plan sequences fixes; durable behavior changes still belong in the owning domain contracts when each item lands.
 
@@ -772,7 +785,7 @@ their obsolete native-PR-matrix and Release-test-removal instructions must not b
 
     Scope at `1c3554c`:
     - the profile path is in 64 tracked files, 63 under `Measurements/` (58 in
-      `MathMermaidRecovery_2026-10-20/shared-dxui`) plus `Specs/Plans/WIP/RedTilde_2026-10-20.md`;
+      `MathMermaidRecovery_2026-10-20/shared-dxui`) plus `Specs/Plans/Done/RedTilde_2026-10-20.md`;
     - the machine name is in 19 further evidence files (S5 studies and performance JSON).
 
     Links and validators keep working. The hashes of the scrubbed files change; the private original stays the

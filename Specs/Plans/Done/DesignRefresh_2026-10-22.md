@@ -1,10 +1,23 @@
 # Design refresh — 2026-10-22
 
+Status: DONE — scoped implementation/review record; outstanding acceptance is transferred.
+Archived: 4 November 2026
+Current work: [the single remaining-work plan](../WIP/RemainingWork_2026-11-04.md).
+Original: `Specs/Plans/WIP/DesignRefresh_2026-10-22.md` at `1cd59c08528cc1e20720a45ef833bb9e69c315e4`; SHA-256 `CDE97A22F7595E93EE2E4BF50D8883CB4D14392437E4DBA34DB0F1F6FB3B31D4`.
+[Original committed record](https://github.com/RedSalamanders/RedTilde/blob/1cd59c08528cc1e20720a45ef833bb9e69c315e4/Specs/Plans/WIP/DesignRefresh_2026-10-22.md).
+
+The dated record below preserves decisions, source-specific evidence, failures and rejected hypotheses.
+Transferred items are not completed features. Old pins, billing blocks, draft/merge claims and historical
+queues describe their recorded checkpoints; the new plan owns current status. This archive does not
+waive performance, consumer, native-platform, physical-input or release gates.
+
+## Historical record
+
 The [24 October completion coordinator](RedesignCompletionAndRendering_2026-10-24.md) now sequences the
 remaining review, correction, compatibility and R10 qualification work. This plan retains the accepted design,
 implemented R/V history and its R10 summary gate; do not open a second optimization backlog here.
 
-Status: IMPLEMENTED; exact frozen current producer `e0908338cf5373978b5ef8d69cdd4ef6c3eba33b` / DxUi `086ad82a` is locally qualified across six consumer builds, three x64 native/capture profiles (67 cases and 32 pairs each, including ASan detection), and the nine-stage keyboard/focus run. The earlier `a5e75197` native qualification remains historical. The 2026-10-28 current-source comparison separately audits actual-PR-base and original-UI A/A and A/B studies (48 metric rows, 384 native slots total). Actual-base A/B has zero resolved regressions; original-UI A/B retains four findings (two stable working-set and two command findings with unstable controls). Quiet CPU is unverified and the upstream base policy is unqualified. The ICF size scout showed no binary-size change and was rejected. On 29 October the owner explicitly accepts the measured working-set costs (+2.0045% Compose/+2.2195% Split); raw findings remain unchanged. Command/control, shared-policy and final-source/hosted qualification remain OPEN; this plan stays WIP. See the [current public evidence packet](../../../Measurements/RedesignCompletion_2026-10-28/README.md). Owner: RedTilde application UI (layout, commands, theme adapter, Files pane),
+Historical status: IMPLEMENTED; exact frozen current producer `e0908338cf5373978b5ef8d69cdd4ef6c3eba33b` / DxUi `086ad82a` is locally qualified across six consumer builds, three x64 native/capture profiles (67 cases and 32 pairs each, including ASan detection), and the nine-stage keyboard/focus run. The earlier `a5e75197` native qualification remains historical. The 2026-10-28 current-source comparison separately audits actual-PR-base and original-UI A/A and A/B studies (48 metric rows, 384 native slots total). Actual-base A/B has zero resolved regressions; original-UI A/B retains four findings (two stable working-set and two command findings with unstable controls). Quiet CPU is unverified and the upstream base policy is unqualified. The ICF size scout showed no binary-size change and was rejected. On 29 October the owner explicitly accepts the measured working-set costs (+2.0045% Compose/+2.2195% Split); raw findings remain unchanged. Command/control, shared-policy and final-source/hosted qualification remain OPEN; this plan stays WIP. See the [current public evidence packet](../../../Measurements/RedesignCompletion_2026-10-28/README.md). Owner: RedTilde application UI (layout, commands, theme adapter, Files pane),
 with DxUi owning shared controls and rich-text link rendering. Implementation, dependency adoption and qualification are tracked below.
 
 The owner judged the previous window "not nice" and requested this design and its complete implementation.
@@ -37,7 +50,7 @@ The PNGs were rendered on 2026-10-22 by headless Microsoft Edge 155.0.4283.62 at
 scale 1. After editing a page, re-render it from the repository root; the profile stays under ignored `.build`:
 
 ```powershell
-$dir = (Resolve-Path Specs/Plans/WIP/DesignRefresh_2026-10-22).Path
+$dir = (Resolve-Path Specs/Plans/Done/DesignRefresh_2026-10-22).Path
 $edge = "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe"
 foreach ($name in 'compose-light','compose-dark','split','find-selection','focus','settings','equation') {
     & $edge --headless=new --disable-gpu --hide-scrollbars --no-first-run --force-device-scale-factor=1 `
@@ -72,7 +85,7 @@ to browser proposal art. V1–V4 complete this visual correction; R10 and the pa
 - [x] R7: contextual tools: selection toolbar and docked Find/Replace; the current nine-stage app keyboard slice passes, with broader C5 acceptance separate.
 - [x] R8: Focus mode, Settings drawer and F2 equation editor presentation.
 - [x] R9: link presentation (DxUi rich text upstream, then pin adoption).
-- [ ] R10: resolve the performance optimization/advice gate and remaining qualification holds before scoped closeout. The [current-source 2026-10-28 packet](../../../Measurements/RedesignCompletion_2026-10-28/README.md) contains four separately audited actual-PR-base/original-UI A/A and A/B studies, all 48 metric rows, same-side vectors and public source/profile/input hashes. Actual-base A/B has zero resolved regressions; original-UI A/B retains four findings: two stable working-set findings and two command findings with unstable controls. Quiet CPU is unverified and the upstream base policy remains unqualified. The same-source ICF size scout is rejected because file size and image size were unchanged and `.text` did not change. The owner explicitly accepts the measured memory cost on 29 October after reviewing rejected repair options; this disposes of the owner memory cost/advice item only. Command/control, shared policy, quiet-host, CI and platform gates remain open. The earlier `138a648`, `fd24623`, [2026-10-24 checkpoint](../../../Measurements/DesignRefresh_2026-10-24/README.md), seven-flag `fa0757d` cohort and eight-flag v5r3 cohort remain historical evidence. Hosted RedTilde ARM64 remains explicitly open under the billing restriction; retain this plan in WIP and keep parent requirements open.
+- **Transferred to [T-P1](../WIP/RemainingWork_2026-11-04.md#t-p1).** R10: resolve the performance optimization/advice gate and remaining qualification holds before scoped closeout. The [current-source 2026-10-28 packet](../../../Measurements/RedesignCompletion_2026-10-28/README.md) contains four separately audited actual-PR-base/original-UI A/A and A/B studies, all 48 metric rows, same-side vectors and public source/profile/input hashes. Actual-base A/B has zero resolved regressions; original-UI A/B retains four findings: two stable working-set findings and two command findings with unstable controls. Quiet CPU is unverified and the upstream base policy remains unqualified. The same-source ICF size scout is rejected because file size and image size were unchanged and `.text` did not change. The owner explicitly accepts the measured memory cost on 29 October after reviewing rejected repair options; this disposes of the owner memory cost/advice item only. Command/control, shared policy, quiet-host, CI and platform gates remain open. The earlier `138a648`, `fd24623`, [2026-10-24 checkpoint](../../../Measurements/DesignRefresh_2026-10-24/README.md), seven-flag `fa0757d` cohort and eight-flag v5r3 cohort remain historical evidence. Hosted RedTilde ARM64 remains explicitly open under the billing restriction; retain this plan in WIP and keep parent requirements open.
 
 The [current keyboard packet](../../../Measurements/RedesignCompletion_2026-10-24/keyboard-da8aafb/README.md)
 records all nine stages at `da8aafb` / SDK `baff43d8`, with exact artifact continuity to the functional and
