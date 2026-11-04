@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "claim": "Native Release test gate only; production completion, physical input and paired performance are separate",
+  "sourceCommit": "1c600d6018686c8ae486ee13fce56c6ca2f13ba8",
+  "sdkCommit": "2a7e7c28f95a70193e4a2f68a89001d54b4d2131",
+  "apiRevision": 4,
+  "runId": 41853861400,
+  "runUrl": "https://github.com/RedSalamanders/RedTilde/actions/runs/41853861400",
+  "nativeDigest": "3abab6ebf8b727d752845e1cf1755329475e90f1eabb242013c4563b555433ab",
+  "roles": [
+    {
+      "platform": "x64",
+      "hostArchitecture": "X64",
+      "registered": 75,
+      "executed": 75,
+      "failed": 0,
+      "unexpectedSkipped": 0,
+      "assertionProbePassed": true,
+      "capturePairs": 36,
+      "regressionReceiptSha256": "DF3C2B6A472676BCFC2E474A0FA26518C670A9291B44AA2E3EAA8DCF9DEDFD9B",
+      "canonicalReceiptSha256": "3BAE05D708F306B5201D4763D45C4D2FB949517A43926E21CB78DFE6BCFB823E",
+      "executableSha256": "3f23de97b4c6cfa13344ebe92909a006a98b4816381e7233cc0a9170e37937d7",
+      "completedAt": "2026-11-04T16:21:08.911595+01:00"
+    },
+    {
+      "platform": "ARM64",
+      "hostArchitecture": "Arm64",
+      "registered": 75,
+      "executed": 75,
+      "failed": 0,
+      "unexpectedSkipped": 0,
+      "assertionProbePassed": true,
+      "capturePairs": 36,
+      "regressionReceiptSha256": "EC87553EF3D77D605CB922E1A541253D4A35B32B5EBE0C7843D0A72D3940AD1D",
+      "canonicalReceiptSha256": "0B8FFFAB7A7FD0D8186A0533F1E27030271ED9EFAB2E5B12807A750F85C96E2A",
+      "executableSha256": "f289b6410c1a09fd56ab1051ec552f48320ecd7af81f53059aa34c83dfdb9983",
+      "completedAt": "2026-11-04T16:32:51.5261849+01:00"
+    }
+  ],
+  "testGate": {
+    "passed": true,
+    "jobId": 126675067973,
+    "completedAt": "2026-11-04T15:33:24Z"
+  },
+  "productionAdmittedAfterBothNativeRoles": true,
+  "productionCompletionClaim": false
+}

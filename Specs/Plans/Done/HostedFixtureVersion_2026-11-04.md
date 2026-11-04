@@ -8,8 +8,11 @@ Status: DONE — isolated tooling implementation, regression and authoritative d
 - [x] Keep source, package-header, compiler, SDK-source and dependency-redirection negative controls under a matching version.
 - [x] Pass all 41 scoped-tooling cases and complete validation under inherited version 137; pass formatting and the change-fragment check.
 - [x] Merge the durable fixture requirement into [the validation contract](../../Testing/Testing_Validation.md).
+- [x] Verify the repaired combined main test gate at `1c600d60`: native x64 and ARM64 Release each pass all
+  75 cases, 36 captures and the assertion probe before either production role starts.
 
 The [evidence packet](../../../Measurements/HostedFixtureVersion_2026-11-04/README.md) retains the source
 and raw-log identities. No native application source, runtime build-admission rule, dependency pin or product
-version policy changes. This closes the fixture implementation, not the combined hosted main gate: a fresh
-successful x64/ARM64 qualification is still owned by T-Q1 in the [active plan](../WIP/RemainingWork_2026-11-04.md).
+version policy changes. The [source-bound main gate proof](../../../Measurements/HostedFixtureVersion_2026-11-04/main-test-gate.json)
+also closes T-Q1. Production completion, the other native runtime profiles, physical interaction and performance
+remain with T-Q2/T-P1 in the [active plan](../WIP/RemainingWork_2026-11-04.md).
