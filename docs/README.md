@@ -70,6 +70,8 @@ numbering and unheaded-message syntax. Numbering starts at one and excludes note
 **Files and diagnostics:** save explicitly to write your Markdown file. Recovery checkpoints unsaved writing
 after 750 ms of quiet. On restart, inspect the source preview, Restore a copy, Discard snapshot or Keep for
 later; reopen pending snapshots from Settings. Restored copies require Save As and suggest a recovered filename.
+Restore stays bound to the copy you selected while answering an unsaved-change question. If that snapshot
+has since been discarded, the current document stays unchanged. You can then choose another available copy.
 Unapplied local drafts are preserved as proposed edits in the previewable recovery copy. Cancelling a clean
 draft retires that proposed snapshot. Another live app's snapshots are excluded. Corrupt/newer data is retained
 as `.quarantine` under `RedTilde\Recovery`. A crash before the quiet interval can lose the newest keystrokes.
