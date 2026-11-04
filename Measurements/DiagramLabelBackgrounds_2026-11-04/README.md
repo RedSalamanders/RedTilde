@@ -46,6 +46,13 @@ The canvas itself is unchanged. [Exact pixel observations](pixel-verification.js
 
 ## Regression boundaries
 
+The [qualification projection](qualification.json) records six zero-warning/zero-error builds and complete
+Release, Debug and ASan Debug native runs at the implementation/pin above. Each x64 profile passes all 75
+registered cases, 36 standard captures and its process/recovery/crash/performance-smoke obligations. The real
+ASan heap-use-after-free detection probe also passes. These are 225 case executions and 108 standard captures;
+the three ARM64 profiles are cross-builds only. The final profile's initial capacity-guard refusal and exact
+resume are retained separately from the accepted builds. No native assertion or source input was weakened.
+
 The SDK raster fixture checks nine diagram arrangements, four readable/low-contrast themes, two DPI values
 and explicit/default fill calls: 144 native raster renders. Independent checks cover contrast, minimal fallback,
 near-black ink, cardinalities, group/note containment and stable preparation/layout counters. A separate

@@ -20,6 +20,12 @@ its x64 Release/Debug/ASan consumer checks pass in the [scoped closeout](../Done
 Other qualification stays with T-Q1/T-Q2. Do not restore an older
 SDK086/SDK702 development pin merely because a historical checklist names it.
 
+The current diagram-label adoption advances API 4 explicitly to `2a7e7c28` in
+[PR47](https://github.com/RedSalamanders/RedTilde/pull/47). Its
+[scoped closeout](../Done/DiagramLabelBackgroundsAndClosePrompt_2026-11-04.md) records six builds, all 75 cases
+and 36 captures in each x64 profile, the real ASan probe and the accepted duplicate-Close rule. Current-pin
+native ARM64, physical/interactive and performance acceptance remain separately owned below.
+
 | Completed scope | Evidence and limit |
 | --- | --- |
 | Persistent folder root, Open Folder/Open File, restart restoration and expanded public examples | [Folder/sample closeout](../Done/FolderNavigationAndSamples_2026-11-03.md); [packet](../../../Measurements/FolderNavigation_2026-11-03/README.md). |
@@ -33,9 +39,9 @@ ordinary CI success accepts R10, a measurement policy, quiet-host behavior or an
 
 ## Execution order
 
-The current **product** slice is T-U1's prepared diagram-label background correction and T-S1's accepted
-duplicate-Close behavior. Quote padding and themed scrollbars have their scoped closeout. Continue the
-remaining T-S1 work, followed by T-S2. T-Q1 is the first **qualification** repair and can be
+T-U1's prepared diagram-label correction and T-S1's accepted duplicate-Close behavior have their scoped
+closeout, following quote padding and themed scrollbars. Continue the remaining T-S1 work, followed by T-S2.
+T-Q1 is the first **qualification** repair and can be
 investigated independently. Do not start another redesign, repin the SDK or rerun unchanged failed studies
 instead of resolving these owners. Every implementation slice updates its domain contract and has a
 meaningful failing-then-passing regression where applicable.
@@ -50,8 +56,9 @@ meaningful failing-then-passing regression where applicable.
   (RT-01/PR-03, Q2); keep the 750 ms quiet debounce and enforce the approved five-second staleness cap
   under continuous typing (RT-10/PR-04, Q3).
 - [ ] Quarantine oversized checksum-valid recovery envelopes and retain recoverable contents on failure (RT-08).
-- [ ] Qualify the implemented Q18 rule: keep the existing Save/Discard/Cancel prompt and ignore duplicate
-  Close (PR-34). The hidden Recovery regression passes; the current exact-pin profile matrix is still running.
+- [x] Implement and qualify Q18: keep the existing Save/Discard/Cancel prompt and ignore duplicate native
+  or command Close (PR-34). The hidden regression covers Cancel and a fresh Discard in all three x64 profiles.
+  [Scoped closeout](../Done/DiagramLabelBackgroundsAndClosePrompt_2026-11-04.md)
 - [ ] Contain shortcut, menu, save-completion and Find failure paths without leaving `updatingFind` latched
   (RT-12/14, PR-07/35).
 
@@ -80,8 +87,9 @@ RT-18 remains optional defensive hardening, not a newly confirmed defect.
 <a id="t-u1"></a>
 ### T-U1 — remaining editing and product interaction
 
-- [ ] Adopt the shared contrast-aware diagram-label background correction and verify actual light/dark
-  native captures at the exact pin without changing Mermaid source or history.
+- [x] Adopt the shared contrast-aware diagram-label background correction and verify actual Light/Dark,
+  96/192-DPI native captures at exact API-4 pin `2a7e7c28` without changing Mermaid source or history.
+  [Original comparisons and exact qualification](../../../Measurements/DiagramLabelBackgrounds_2026-11-04/README.md)
 - [x] Adopt the shared quote/callout inner-margin correction and enable the native themed document scrollbar
   in Compose, Source and Split; cover overflow, paging/dragging, themes, DPI, narrow layout and source/history
   preservation with hidden native tests and captures. [Scoped closeout](../Done/QuoteMarginsAndScrollbars_2026-11-04.md)
@@ -143,13 +151,13 @@ Unexplained historical failures remain unexplained unless a bounded investigatio
   at `ca16d32e`, SDK `8c6c2818`: all 74 native cases, all 34 captures and the Release assertion probe pass.
   Original receipt SHA-256: `CB216DF3DA5FD69E1225130FEDD41DAEAE83EB8257D1E0EF2348A87A86203285`.
   This closes those fixtures at that pin; current-pin native ARM64 remains T-Q2.
-- [ ] Complete x64's newly observed admission-fixture repair from the same run. Its synthetic build is
+- [x] Implement x64's newly observed admission-fixture repair from the same run. Its synthetic build is
   explicitly version zero, while the following in-process admission check inherits the hosted product
   version. The unchanged test reproduces the exact refusal under inherited version 137. The isolated tooling
   correction in [PR48](https://github.com/RedSalamanders/RedTilde/pull/48) gives every admission probe an
   explicit fixture version, retains the hostile build environment and adds a wrong-version negative control.
   All 41 scoped cases and complete tooling validation pass under inherited version 137; exact-head PR checks
-  pass at `330b9ac6`. Publication remains pending, and the combined main gate still requires a fresh successful run.
+  pass at `330b9ac6`. PR48 records its separate publication; the combined main gate still requires a fresh successful run.
 - [ ] After a reviewed correction, run the canonical main qualification and verify both native Release test roles
   and their failure probes before either separate production role. Production was skipped in the failed run.
 
@@ -161,6 +169,11 @@ follow-up is removed. Completion correctly reported failed native qualification.
 
 <a id="t-q2"></a>
 ### T-Q2 — exact-pin adoption, native/physical acceptance and release
+
+- [x] Qualify the current API-4 diagram/Close implementation at `2a7e7c28`: six zero-warning/zero-error builds,
+  all 75 cases and 36 captures in each x64 profile, process/recovery/crash/performance-smoke checks and real ASan
+  detection. [Source-bound evidence](../../../Measurements/DiagramLabelBackgrounds_2026-11-04/qualification.json)
+  preserves the final-profile storage admission refusal and its exact resume. This does not close native ARM64 or physical gates.
 
 - [x] Complete the six local builds at API-4 pin `8c6c2818`, all 74 cases in each x64 profile, real ASan
   detection, the complete nine-scope Release replay and canonical validators/formatting. The
@@ -175,7 +188,7 @@ follow-up is removed. Completion correctly reported failed native qualification.
   the obsolete rule that removes tests from every Release build.
 - [ ] Coordinate future checked-failure/API changes with the
   [single DxUi plan](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Plans/WIP/RemainingWork_2026-11-04.md) and active
-  [API 5 PR162](https://github.com/RedSalamanders/DxUi/pull/162). Keep API 4 / `8c6c2818` until a separate
+  [API 5 PR162](https://github.com/RedSalamanders/DxUi/pull/162). Keep API 4 / `2a7e7c28` until a separate
   reviewed consumer migration has matching headers, library, adapters and fresh qualification.
 - [ ] Complete C11/C12/S6 release decisions: packaging, any installer/file associations, exact release handoff,
   truthful capability limits and publication evidence. Source merge is not product release acceptance.

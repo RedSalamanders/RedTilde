@@ -2,6 +2,8 @@
 
 ## Consolidated records — 4 November 2026
 
+- [Diagram label backgrounds and duplicate Close](DiagramLabelBackgroundsAndClosePrompt_2026-11-04.md) — exact-pin contrast/canvas rendering, original matched captures, prompt reentrancy regression and six-profile scoped qualification; broader correctness and acceptance remain in WIP.
+
 - [Quote inner margins and themed document scrollbars](QuoteMarginsAndScrollbars_2026-11-04.md) — exact-pin x64 Release/Debug/ASan checks, actual hidden captures and scoped UI closeout; broader acceptance stays in WIP.
 
 - [WIP consolidation and complete transfer ledger](WipConsolidation_2026-11-04.md) — one current owner, explicit dispositions and preserved original source identities.
