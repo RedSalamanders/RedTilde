@@ -69,4 +69,4 @@ cross-process replacement, native ARM64 app execution, physical IME/touch/assist
 focus-taking tests remain open. WARP/clean/dirty/hidden resource acceptance, strict paired performance, upstream
 PR #89/#90 merge qualification and release handoff also remain open. No desktop focus test was authorized or run.
 CI results belong to their exact merge source; pending jobs are not passes and cannot qualify the different
-immutable dependency pin. See the [active plan](../../Specs/Plans/WIP/RedTilde_2026-10-20.md).
+immutable dependency pin. See the [active plan](../../Specs/Plans/Done/RedTilde_2026-10-20.md).

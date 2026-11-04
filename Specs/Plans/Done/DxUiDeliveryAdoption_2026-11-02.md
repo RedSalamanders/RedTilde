@@ -1,6 +1,19 @@
 # DxUi 2 November delivery adoption
 
-Status: ACTIVE
+Status: SUPERSEDED — sequencing consolidated; unfinished product work remains open under the new owner.
+Archived: 4 November 2026
+Current work: [the single remaining-work plan](../WIP/RemainingWork_2026-11-04.md).
+Original: `Specs/Plans/WIP/DxUiDeliveryAdoption_2026-11-02.md` at `1cd59c08528cc1e20720a45ef833bb9e69c315e4`; SHA-256 `7B61B61A1CE18A16FF53CA96DFBD30D544DE0FFB2C9C91F5ADCE8A52E48DEA75`.
+[Original committed record](https://github.com/RedSalamanders/RedTilde/blob/1cd59c08528cc1e20720a45ef833bb9e69c315e4/Specs/Plans/WIP/DxUiDeliveryAdoption_2026-11-02.md).
+
+The dated record below preserves decisions, source-specific evidence, failures and rejected hypotheses.
+Transferred items are not completed features. Old pins, billing blocks, draft/merge claims and historical
+queues describe their recorded checkpoints; the new plan owns current status. This archive does not
+waive performance, consumer, native-platform, physical-input or release gates.
+
+## Historical record
+
+Historical status: ACTIVE
 Date: 2026-11-02
 Owner: RedTilde maintainers
 
@@ -48,7 +61,7 @@ Other profile, physical input and performance gates remain open.
 
 - [x] Canonical immutable DxUi fix and exact local consumer lock.
 - [x] Complete fixed-checkpoint consumer Release validation: 73 native cases, 32 standard captures and 20 custom captures; current syntax-candidate results have their separate packet.
-- [ ] Publish the upstream commit before expecting a fresh remote checkout to restore this development pin.
+- [x] Publish the upstream commit before expecting a fresh remote checkout to restore this development pin. _Closed at consolidation: Upstream PR163 and consumer PR44 are merged; exact pin is published._
 
 ### Historical 2 November delivery coordinates
 
@@ -95,7 +108,7 @@ headers or objects.
   mirror and inspector.
 - [x] Preserve NUL rejection, own-line display math and the inspector rendering.
 - [x] In-place equation F2 with a live inspector preview; hidden tests and the equation capture updated.
-- [ ] Interactive `Equation.F2InPlaceEditUndoAndExit` (real keyboard and focus) rewritten for in-place editing:
+- **Transferred to [T-U1](../WIP/RemainingWork_2026-11-04.md#t-u1).** Interactive `Equation.F2InPlaceEditUndoAndExit` (real keyboard and focus) rewritten for in-place editing:
   NOT RUN; it needs the owner's agreement to take desktop focus.
 - [x] Tests: settings round trip and fallback, live syntax reanalysis and explanation fit, wiki embed decline,
   inspector rendering, display blocks, updated library limits and history.
@@ -108,11 +121,11 @@ headers or objects.
 - [x] Replace fallback specimens X01, X03 and X04, which the pin now renders (`array`, `\color`, padded matrix
   rows), with forms upstream's math corpus rejects: repeated `||` array rules, an unknown color name and an
   invalid starred-matrix alignment. They were not separately executed in RedTilde.
-- [ ] Commit, push and merge this change through the normal PR workflow; hosted PR checks are compiler-free.
-- [ ] [Delivery review](DeliveryReview_2026-10-31.md) DX-3, DX-4 and the RT-03 DxUi half: upstream fixes are present
+- [x] Commit, push and merge this change through the normal PR workflow; hosted PR checks are compiler-free. _Closed at consolidation: Upstream PR163 and consumer PR44 are merged; exact pin is published._
+- **Transferred to [T-U1](../WIP/RemainingWork_2026-11-04.md#t-u1).** [Delivery review](DeliveryReview_2026-10-31.md) DX-3, DX-4 and the RT-03 DxUi half: upstream fixes are present
   at this pin; RedTilde acceptance remains that plan's work.
-- [ ] Wiki-target navigation and embed resolution: not designed; tracked as a pending capability.
-- [ ] Native ARM64 runtime, physical IME/AT/touch, interactive focus and paired performance: NOT RUN.
+- **Transferred to [T-DEFERRED](../WIP/RemainingWork_2026-11-04.md#t-deferred).** Wiki-target navigation and embed resolution: not designed; tracked as a pending capability.
+- **Transferred to [T-Q2](../WIP/RemainingWork_2026-11-04.md#t-q2).** Native ARM64 runtime, physical IME/AT/touch, interactive focus and paired performance: NOT RUN.
 
 ## Evidence
 

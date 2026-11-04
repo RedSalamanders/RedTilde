@@ -1,6 +1,19 @@
 # Delivery red team — 31 October 2026
 
-Status: review complete. Remediation has not started. This plan is a non-normative
+Status: SUPERSEDED — sequencing consolidated; unfinished product work remains open under the new owner.
+Archived: 4 November 2026
+Current work: [the single remaining-work plan](../WIP/RemainingWork_2026-11-04.md).
+Original: `Specs/Plans/WIP/DeliveryRedTeam_2026-10-31.md` at `1cd59c08528cc1e20720a45ef833bb9e69c315e4`; SHA-256 `443AC2D9FE6F4228327F227D12E69A1E7CD151C461C40DF7D4BE74618F82D500`.
+[Original committed record](https://github.com/RedSalamanders/RedTilde/blob/1cd59c08528cc1e20720a45ef833bb9e69c315e4/Specs/Plans/WIP/DeliveryRedTeam_2026-10-31.md).
+
+The dated record below preserves decisions, source-specific evidence, failures and rejected hypotheses.
+Transferred items are not completed features. Old pins, billing blocks, draft/merge claims and historical
+queues describe their recorded checkpoints; the new plan owns current status. This archive does not
+waive performance, consumer, native-platform, physical-input or release gates.
+
+## Historical record
+
+Historical status: review complete. Remediation has not started. This plan is a non-normative
 execution record. It does not change product behavior. Durable behavior still
 belongs in the owning domain contract when each item lands.
 
@@ -76,20 +89,20 @@ unified CI precedence to Q1/Q5/Q16; obsolete matrices are not pending work.
 RT-14 through RT-17 and RT-19 remain findings. RT-18 is separately classified
 as defensive hardening.
 
-- [ ] **RT-14** — `ReplaceFind` leaves `updatingFind` true if `ApplySourceEdits` throws
+- **Transferred to [T-S1](../WIP/RemainingWork_2026-11-04.md#t-s1).** **RT-14** — `ReplaceFind` leaves `updatingFind` true if `ApplySourceEdits` throws
   (`Application.Navigation.cpp` 478-480). `RefreshFind` then returns at line 269 for
   the rest of the session. Effort: S. Same exception boundary as RT-12 / PR-35.
 
-- [ ] **RT-15** — `package.ps1` builds Release without `-ProductionOnly`. The
+- **Transferred to [T-Q2](../WIP/RemainingWork_2026-11-04.md#t-q2).** **RT-15** — `package.ps1` builds Release without `-ProductionOnly`. The
   `--self-test` exit-2 check runs only when `testsEnabled` is already false
   (`package.ps1` 5, 54-56). A local ZIP ships the test catalog. Hosted Production
   uses `-ProductionOnly` and has never run. Effort: S.
 
-- [ ] **RT-16** — `Application.Tests.Performance.cpp` is always compiled
+- **Transferred to [T-Q2](../WIP/RemainingWork_2026-11-04.md#t-q2).** **RT-16** — `Application.Tests.Performance.cpp` is always compiled
   (`RedTilde.vcxproj` 84, no `Condition`). `--performance-probe` may remain a
   product diagnostic; the test `.cpp` is not that remainder. Effort: S.
 
-- [ ] **RT-17** — Gate `--recovery-crash-probe`, `--recovery-restart-probe` and
+- **Transferred to [T-Q2](../WIP/RemainingWork_2026-11-04.md#t-q2).** **RT-17** — Gate `--recovery-crash-probe`, `--recovery-restart-probe` and
   `--preferences-probe` the same way as `--crash-probe` (RT-13). They are parsed
   and dispatched without `REDTILDE_ENABLE_TESTS` (`Main.cpp` 151-166;
   `Application.cpp` 2070-2113). Packaging smoke must refuse `--crash-probe` and
@@ -103,7 +116,7 @@ as defensive hardening.
   release blocker without another reachable throw path. A defensive catch
   is optional hardening. Effort: S.
 
-- [ ] **RT-19** — Tracked `Measurements/` JSON still contains `C:\Users\…`
+- **Transferred to [T-G1](../WIP/RemainingWork_2026-11-04.md#t-g1).** **RT-19** — Tracked `Measurements/` JSON still contains `C:\Users\…`
   worktree paths (272+ hits). Q17 must scrub or relocate them before any public
   repository. Effort: owner + rewrite.
 

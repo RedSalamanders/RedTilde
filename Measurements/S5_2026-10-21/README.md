@@ -13,7 +13,7 @@ This is a handoff, not a completed performance/resource qualification packet.
 
 ## Start here next session
 
-Continue the indexed plan at `Specs/Plans/WIP/RedTilde_2026-10-20.md`. Read this file before launching work.
+Continue the indexed plan at `Specs/Plans/Done/RedTilde_2026-10-20.md`. Read this file before launching work.
 Use `Z:\src\RedTilde` on branch `ej/redtilde-s5`; do not start again from the creation commit. The tested code
 commit is **`2c3efa1bbede19cf882b0b1dc5d5030b92efec94`**. Later checkpoint commits add documentation/evidence.
 The application has no remote configured; preserve its local commits and the external checkpoint below.

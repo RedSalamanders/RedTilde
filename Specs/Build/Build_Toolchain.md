@@ -97,18 +97,19 @@ Hosted setup waits for the hidden, owned GUI bootstrapper with both its --wait s
 
 The [native policy, console and dependency-path contract](Build_ConsoleAndPaths.md) owns /Wall without /WX, zero-warning acceptance, Debug/ASan symbols, Release-only ICF, common terminal results and verified short dependency folders.
 
-The consumer locks DxUi API4 at `703a96c788a79c1e7b28097226a2ca0a735f11bc`, adding label-aware diagram spacing,
-table/code insets, theme task markers and optional completed-task strike-through to the prior shared syntax/stroke
-checkpoint. The implementation was validated before source publication. Publishing or merging the exact pin
+The consumer locks DxUi API4 at `8c6c2818d084e6124fb2c08eddc00bdba7a9d2aa`, adding quote/callout inner margins
+and recoverable Debug sequence-label allocation to the prior label-aware diagram spacing, table/code insets,
+theme task markers and optional completed-task strike-through checkpoint. Publishing or merging the exact pin
 makes it available to other machines without supplying additional native or product qualification.
 The local cache is a clean independent detached Git checkout,
 validated and built through the ordinary public consumer interface. No sibling archive or copied source is linked.
 API revision 4 is unchanged. Restore and rebuild each consumer profile from its matching headers and archive;
-profile qualification remains explicit. `2e775e8d81ff415587a4d885366566ed89df655f` is the immediate spacing/task rollback;
+profile qualification remains explicit. `703a96c788a79c1e7b28097226a2ca0a735f11bc` is the immediate quote-margin rollback;
+`2e775e8d81ff415587a4d885366566ed89df655f` is the earlier spacing/task rollback;
 `9ed15504fd481421388ab2dd1380374ff70c112a` is the earlier stroke rollback;
 `33ce97ce2b29aed4eadb9270bf66e7080d56b9fc` precedes syntax expansion;
 `5fc4d4c383bfa4891ee57a138924107bbbf11a2e` precedes the display fix. The older
 `6ed0512c68743c57ac209e22010679d211c4a42b` predates the 2 November adapters and is restored only with those adapters. Packaging
 carries the pin's third-party notices and their `docs/licenses` texts. The indexed
-[DxUi delivery adoption plan](../Plans/WIP/DxUiDeliveryAdoption_2026-11-02.md) records adapter changes and
+[DxUi delivery adoption plan](../Plans/Done/DxUiDeliveryAdoption_2026-11-02.md) records adapter changes and
 outstanding qualification; this pin selection alone is not a green product receipt.

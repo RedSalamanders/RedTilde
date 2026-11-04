@@ -18,7 +18,7 @@ and [translation diagnostics](failures/native-translation-4cb/tests.json) also r
 The lasting contracts live in the [design system](../../Specs/UI/UI_DesignSystem.md),
 [editor specification](../../Specs/Editor/Editor_Markdown.md),
 [architecture](../../Specs/Core/Core_Architecture.md) and [validation rules](../../Specs/Testing/Testing_Validation.md).
-The [design plan](../../Specs/Plans/WIP/DesignRefresh_2026-10-22.md) remains open during qualification.
+The [design plan](../../Specs/Plans/Done/DesignRefresh_2026-10-22.md) remains open during qualification.
 Paired performance, the separately requested shared desktop window, native ARM64 runtime,
 physical IME/touch/assistive technology and release acceptance remain distinct gates.
 

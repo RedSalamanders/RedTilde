@@ -134,10 +134,18 @@ separate foreground acceptance check.
 Compose uses DxUi's opt-in `MarkdownPresentationStyle::Subtle`: H1/H2 have a subtle
 neutral separator, tables fit their content and use horizontal row rules, standalone
 display equations and diagrams center within their available measure, and quotes
-have a shaded surface. Source view keeps literal source styling. Editing, selection,
+have a shaded surface with six-DIP inner margins on both horizontal sides. Nested lists, tables and callouts
+use the shared inset geometry; narrow containers clamp padding to retain text width. Source view keeps literal source styling. Editing, selection,
 history and accessible semantic roles are unchanged. The hidden `markdown-style`
 capture scenario reproduces the supplied example with invented content; captures
 record actual viewport and DPI. Different screenshot scales do not establish a font-size defect.
+
+Compose, Source, the Split source mirror and the equation inspector enable DxUi's native vertical scrollbar.
+The lane stays reserved to avoid width jumps; the theme-resolved track/thumb appear only when content exceeds
+the viewport. Page clicks, thumb dragging and wheel scrolling share the control's bounded scroll offset.
+The lane remains outside the document measure and never covers text. Theme, DPI, view and scroll changes
+preserve the authoritative source, selection and undo history. The hidden `quote-scroll-light` and
+`quote-scroll-dark` scenarios use an invented overflowing notebook to show margins and the actual scrollbar.
 
 Compose body is 16 DIP with a 1.65 line-height multiplier; H1 is 34/1.2 bold and H2 is 23/1.3 bold. List items
 have 10-DIP separation and paragraphs retain a line of bottom space. Shared semantic minima credit real source

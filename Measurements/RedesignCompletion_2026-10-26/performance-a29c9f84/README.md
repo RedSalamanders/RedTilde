@@ -26,4 +26,4 @@ The raw-report aggregate SHA-256 recipe is: sort by cohort, phase, scenario, num
 
 No performance-policy qualification or acceptance is claimed. The current original-UI Split CPU finding, unstable controls, hosted ARM64, and separate focus/desktop gates remain open.
 
-The current P22 checklist remains in the [WIP plan](../../../Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md); it keeps performance acceptance, hosted ARM64, focus verification, and wrapper-admission issues open.
+The current P22 checklist remains in the [WIP plan](../../../Specs/Plans/Done/RedesignCompletionAndRendering_2026-10-24.md); it keeps performance acceptance, hosted ARM64, focus verification, and wrapper-admission issues open.

@@ -1,0 +1,87 @@
+{
+  "releasePrePush": {
+    "suites": "Captures,Crash,Editor,Performance,Preferences,Recovery,RecoveryRestart,Settings,Storage",
+    "run": "20261104T101225252Z-54080-6bcd6da5017b41838371ee94aed8cc01",
+    "receiptSha256": "A5B0C1C21F725919D4134A045C80DF7B7F74A552C91F5ED7585C9F99C84994F0",
+    "passed": true
+  },
+  "implementationCommit": "6c7f63615368f710399d64dcf10ec7a0e3a3f5a3",
+  "schemaVersion": 1,
+  "sdkCommit": "8c6c2818d084e6124fb2c08eddc00bdba7a9d2aa",
+  "binarySha256": "32C283265213643ADE3D0A0DD7A5B4730176E2AB3ECBE6A9805CD2763A76ECBE",
+  "apiRevision": 4,
+  "compiledSourceIdentity": "a8febb058fbd4484eb78eb473839ad9a553dc0f80cf2071f203235f7ac0d1820",
+  "priorFailure": {
+    "completedEditorCases": 51,
+    "outcome": "Editor watchdog timeout after 90 seconds",
+    "cause": "Not established; overlapped SDK compilation and native rendering suites",
+    "sameExecutableAsSequentialPass": true,
+    "reportedCaseFailuresBeforeTimeout": 0,
+    "nextCase": "Performance.NativeCompletedFramesPreserveSourceAndHistory",
+    "originalRawRunAndProgramAndSymbolsRetained": true,
+    "selectedEditorCases": 53,
+    "run": "20261104T094117014Z-20624-26360a8d4130430c8c82a83beea677bc"
+  },
+  "remaining": [
+    "Native ARM64 execution",
+    "Physical input and assistive technology",
+    "Paired performance acceptance",
+    "Loaded-host timeout diagnosis"
+  ],
+  "claim": "Scoped functional verification only",
+  "realAsanDetection": {
+    "heapUseAfterFreeDetected": true,
+    "run": "20261104T092400410Z-46972-76e1f758d70a432db4416347de94c415"
+  },
+  "builds": [
+    {
+      "logSha256": "B4ED9794BA42A1ED48F3037E6242A22CF00DC4F8DFC83FE59276D4669A0B0112",
+      "platform": "x64",
+      "errors": 0,
+      "runtimeVerified": true,
+      "configuration": "Release",
+      "warnings": 0
+    },
+    {
+      "logSha256": "ECCB679BE62F45FBC751229993079CCE6A41C860B8123F3E07DFF7C953E48F25",
+      "platform": "x64",
+      "errors": 0,
+      "runtimeVerified": true,
+      "configuration": "Debug",
+      "warnings": 0
+    },
+    {
+      "logSha256": "E3360B95DF6F9504D02AE8249530FE50168226BA8681EBCDCE71B86804EDCD64",
+      "platform": "x64",
+      "errors": 0,
+      "runtimeVerified": true,
+      "configuration": "ASan Debug",
+      "warnings": 0
+    },
+    {
+      "logSha256": "288E00C308CC80E0348ED5A7B9C1494AA6E93DFD51847CE636335106087389D3",
+      "platform": "ARM64",
+      "errors": 0,
+      "runtimeVerified": false,
+      "configuration": "Release",
+      "warnings": 0
+    },
+    {
+      "logSha256": "B6FAB62F044DA623DE21015737FEC43F4DBE2E1D4350BD677D7330D13DED0943",
+      "platform": "ARM64",
+      "errors": 0,
+      "runtimeVerified": false,
+      "configuration": "Debug",
+      "warnings": 0
+    },
+    {
+      "logSha256": "2998971A69CE5AC0D45ED3C82372E5B2297A2BED375857FBEABC7B9BC4D0D312",
+      "platform": "ARM64",
+      "errors": 0,
+      "runtimeVerified": false,
+      "configuration": "ASan Debug",
+      "warnings": 0
+    }
+  ],
+  "sourceIdentity": "0b8f18680740b3cba712bbadb90e71802c4c613483996c52c59286930d1bd5ae"
+}

@@ -16065,7 +16065,7 @@ the current performance policy or accept the remaining regressions.
     },
     {
       "repository": "RedTilde",
-      "path": "Specs/Plans/WIP/DesignRefresh_2026-10-22.md",
+      "path": "Specs/Plans/Done/DesignRefresh_2026-10-22.md",
       "sha256": "b385681de050a142b345a088669139142cc45d463d353380b373fdec16831040",
       "category": "planning-document",
       "generated": false,
@@ -16098,7 +16098,7 @@ the current performance policy or accept the remaining regressions.
     },
     {
       "repository": "RedTilde",
-      "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
+      "path": "Specs/Plans/Done/RedesignCompletionAndRendering_2026-10-24.md",
       "sha256": "3db7683cdc9e1ebd114ce1c7ed4769b8b52da80733448b7e7f5c8edc455b70d5",
       "category": "planning-document",
       "generated": false,
@@ -16273,7 +16273,7 @@ the current performance policy or accept the remaining regressions.
         {
           "recordedUtc": "2026-10-26",
           "priorReviewBaseCommit": "740db520914aff559b9184c445040cdd3bdfffac",
-          "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
+          "path": "Specs/Plans/Done/RedesignCompletionAndRendering_2026-10-24.md",
           "sha256": "fc7f07e4dc8d768510905a7a36eefde27bf16090bb2ce5ec3afd285fe91363ec",
           "reviewStatus": "reviewed-delta",
           "reviewer": "final-delta-review",
@@ -16311,7 +16311,7 @@ the current performance policy or accept the remaining regressions.
         {
           "recordedUtc": "2026-10-26",
           "priorReviewBaseCommit": "0f68857bc383f6dccd1dbe793b01a5a1fd70291c",
-          "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
+          "path": "Specs/Plans/Done/RedesignCompletionAndRendering_2026-10-24.md",
           "sha256": "8dcd5db4781797b67697ad70cd8a3399e677a87a9005356f0e250f183a55dd8a",
           "reviewStatus": "reviewed-delta",
           "reviewer": "final-delta-review",
@@ -16320,7 +16320,7 @@ the current performance policy or accept the remaining regressions.
         {
           "recordedUtc": "2026-10-26T07:53:36.9873592Z",
           "priorReviewBaseCommit": "0f68857bc383f6dccd1dbe793b01a5a1fd70291c",
-          "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
+          "path": "Specs/Plans/Done/RedesignCompletionAndRendering_2026-10-24.md",
           "sha256": "bffc53e7f59586d12fc560f9a2613cda7c307ee8e741edab7f729ea441ca0fe6",
           "reviewStatus": "reviewed-delta",
           "reviewer": "final-delta-review",
@@ -16372,7 +16372,7 @@ the current performance policy or accept the remaining regressions.
         {
           "recordedUtc": "2026-10-26T08:06:19.1562608Z",
           "priorReviewBaseCommit": null,
-          "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
+          "path": "Specs/Plans/Done/RedesignCompletionAndRendering_2026-10-24.md",
           "sha256": "2e41d262ded3a5810a72a436065587624f998aa23ce3858f69228872290ae742",
           "reviewStatus": "reviewed-delta",
           "reviewer": "lead-and-independent-p18-delta-review",
@@ -16424,7 +16424,7 @@ the current performance policy or accept the remaining regressions.
         {
           "recordedUtc": "2026-10-26T08:46:27.5952268Z",
           "priorReviewBaseCommit": null,
-          "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
+          "path": "Specs/Plans/Done/RedesignCompletionAndRendering_2026-10-24.md",
           "sha256": "96467052080c6be3ac082a647017327db4ed79e3fe3b509f26ecb8d972650f45",
           "reviewStatus": "reviewed-delta",
           "reviewer": "lead-and-independent-p18-delta-review",
@@ -16475,7 +16475,7 @@ the current performance policy or accept the remaining regressions.
         },
         {
           "recordedUtc": "2026-10-26T12:09:49.5557154Z",
-          "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
+          "path": "Specs/Plans/Done/RedesignCompletionAndRendering_2026-10-24.md",
           "sha256": "307600b312ad7514471e6f675008bafce86d7ca586b7d3f94d9d325555bb415e",
           "reviewStatus": "reviewed-delta",
           "reviewer": "lead-and-independent-p18-delta-review",
@@ -16497,7 +16497,7 @@ the current performance policy or accept the remaining regressions.
         },
         {
           "recordedUtc": "2026-10-26T14:28:47.8008928Z",
-          "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md",
+          "path": "Specs/Plans/Done/RedesignCompletionAndRendering_2026-10-24.md",
           "sha256": "1dc4d1412d0c5e6547a94371de98126791f214b70a12484521430679629d5dc0",
           "reviewStatus": "reviewed-delta",
           "reviewer": "lead-p19-evidence-closeout-review",
@@ -16721,7 +16721,7 @@ the current performance policy or accept the remaining regressions.
           },
           "recordedUtc": "2026-10-27T02:29:22.785383+00:00",
           "priorReviewBaseCommit": "798fcbe79bdd4eb5dec08bef4d4cc5f7c8e9b7a3",
-          "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md"
+          "path": "Specs/Plans/Done/RedesignCompletionAndRendering_2026-10-24.md"
         },
         {
           "sha256": "7464a740277f9eba74e2adc0368c5881001433bdcd473d0adc4133f8dc5de80a",
@@ -16744,7 +16744,7 @@ the current performance policy or accept the remaining regressions.
           },
           "recordedUtc": "2026-10-27T04:39:51.747012+00:00",
           "priorReviewBaseCommit": "eed2abe9885c57f44ab192155b341582782020f9",
-          "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md"
+          "path": "Specs/Plans/Done/RedesignCompletionAndRendering_2026-10-24.md"
         },
         {
           "sha256": "ace5489eac5a0812a5760589810f5c72c7eb457b9013a724238fff1515be3057",
@@ -16767,7 +16767,7 @@ the current performance policy or accept the remaining regressions.
           },
           "recordedUtc": "2026-10-27T06:05:13.640753+00:00",
           "priorReviewBaseCommit": "eed2abe9885c57f44ab192155b341582782020f9",
-          "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24.md"
+          "path": "Specs/Plans/Done/RedesignCompletionAndRendering_2026-10-24.md"
         }
       ],
       "reviewDeltaSourceState": "working-tree-documentation-bound-by-hash",
@@ -16775,7 +16775,7 @@ the current performance policy or accept the remaining regressions.
     },
     {
       "repository": "RedTilde",
-      "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24/review-disposition.md",
+      "path": "Specs/Plans/Done/RedesignCompletionAndRendering_2026-10-24/review-disposition.md",
       "sha256": "a9a740f3fce979dd9038b25b28cf26d966b221054a180c6494db17ed86609300",
       "category": "planning-review-record",
       "generated": false,
@@ -23797,7 +23797,7 @@ the current performance policy or accept the remaining regressions.
     },
     {
       "repository": "RedTilde",
-      "path": "Specs/Plans/WIP/RedesignCompletionAndRendering_2026-10-24/review-inventory.md",
+      "path": "Specs/Plans/Done/RedesignCompletionAndRendering_2026-10-24/review-inventory.md",
       "disposition": "Self-ledger file intentionally excluded from its own content hash and source-review count."
     },
     {

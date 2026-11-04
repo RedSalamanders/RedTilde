@@ -2,7 +2,7 @@
 
 The owner requested commit, push and merge after receiving the open performance and qualification status.
 This checkpoint records integration, not performance acceptance or a completed product qualification.
-The [design-refresh plan](../../Specs/Plans/WIP/DesignRefresh_2026-10-22.md) remains in WIP with R10 open.
+The [design-refresh plan](../../Specs/Plans/Done/DesignRefresh_2026-10-22.md) remains in WIP with R10 open.
 
 ## Completed implementation
 
