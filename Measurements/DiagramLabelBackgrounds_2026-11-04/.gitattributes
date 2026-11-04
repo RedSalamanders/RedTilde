@@ -1,0 +1,4 @@
+# Preserve original harness captures, sidecars, fixture bytes and evidence projections.
+* -text whitespace=trailing-space,space-before-tab,cr-at-eol
+README.md text
+.gitattributes text eol=lf

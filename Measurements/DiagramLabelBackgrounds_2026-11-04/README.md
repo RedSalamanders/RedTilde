@@ -15,6 +15,8 @@ These are original hidden application-harness captures with invented notebook, W
 No desktop screenshot, image edit or substituted mockup is involved. PNGs keep their original scenario
 sidecars; [capture hashes](capture-hashes.json) bind the published bytes. Requested simulated DPI is distinct
 from the sidecars' native window DPI. The captures do not establish physical-monitor or native ARM64 support.
+Packet-local Git attributes preserve the original fixture, PNG, sidecar and JSON bytes across publication
+and checkout. Verification compares both working files and published Git blobs with the original hashes.
 
 ![Dark diagram labels](diagram-label-dark.png)
 
