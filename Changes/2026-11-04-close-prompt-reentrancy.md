@@ -1,1 +1,0 @@
-- Keep the existing Save/Discard/Cancel question when Close is requested again; ignore the duplicate and allow a fresh Close after Cancel.

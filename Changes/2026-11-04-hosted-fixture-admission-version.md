@@ -1,1 +1,0 @@
-- Use the synthetic executable's explicit version for every build-admission fixture probe; retain hostile inherited product versions and reject an explicitly mismatched version without weakening source, header or compiler guards.
