@@ -146,8 +146,12 @@ follow-up is removed. Completion correctly reported failed native qualification.
 <a id="t-q2"></a>
 ### T-Q2 — exact-pin adoption, native/physical acceptance and release
 
-- [ ] Complete/reconcile the required latest-source Debug/ASan profiles, real ASan detection, applicable input,
-  WARP/resource and native ARM64 evidence. Cross-builds and old-pin matrices do not establish current runtime support.
+- [x] Complete the six local builds at API-4 pin `8c6c2818`, all 74 cases in each x64 profile, real ASan
+  detection, the complete nine-scope Release replay and canonical validators/formatting. The
+  [scoped record](../../../Measurements/QuoteMarginsAndScrollbars_2026-11-04/qualification.json) retains exact identities.
+- [ ] Complete applicable native ARM64 and physical/input qualification. Cross-builds and old-pin matrices
+  do not establish current runtime support. Retain the 90-second loaded-host Editor timeout and its same-binary
+  sequential pass as separate observations; diagnose that responsiveness boundary with T-P1 before accepting it.
 - [ ] Qualify real keyboard/focus/clipboard, physical IME, UIA/assistive technology and touch on named scenarios;
   arrange interactive timing with the user before taking focus.
 - [ ] Verify production-only sources, all test/probe refusal paths, native/production output separation and

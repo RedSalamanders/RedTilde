@@ -40,6 +40,17 @@ delivery and platform work stays in the [single active plan](../../Specs/Plans/W
 
 ## Current native rendering
 
+Final [scoped qualification](qualification.json) records all six zero-warning/zero-error builds and the
+complete nine-scope x64 Release replay at `6c7f6361`, run
+`20261104T101225252Z-54080-6bcd6da5017b41838371ee94aed8cc01`. It passes all 74 cases, the process/recovery/crash
+checks and all 34 captures. Full canonical-path validators and formatting also pass in both repositories.
+
+An earlier Release attempt, `20261104T094117014Z-20624-26360a8d4130430c8c82a83beea677bc`, reached 51 of 53
+Editor cases before its unchanged 90-second watchdog expired during completed-frame checks. It overlapped
+SDK compilation/rendering. The same executable passes the subsequent sequential replay; this does not prove
+the cause of the earlier timeout. The original failed run, executable and symbols remain retained, and
+loaded-host responsiveness remains a T-P1/T-Q2 observation rather than a performance acceptance claim.
+
 The final API-4 adoption at `8c6c2818d084e6124fb2c08eddc00bdba7a9d2aa` includes the Debug sequence-label
 allocation repair and explicit viewport fixtures for the two historical ARM64 failures. Its x64 Release run
 `20261104T090859180Z-45360-b0f3f358029c4666be37e662e6e241e9` passes the same 74 native cases and all 34 captures,
