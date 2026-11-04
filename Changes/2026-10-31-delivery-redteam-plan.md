@@ -1,1 +1,0 @@
-- Record the 31 October delivery red-team plan for `d126a04`: confirmed open data-loss and crash paths, new packaging and probe findings, and the Phase 1–6 sequence. Remediation has not started; hosted CI and the Q17 rewrite remain owner gates.
