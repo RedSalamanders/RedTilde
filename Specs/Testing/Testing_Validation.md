@@ -28,6 +28,13 @@ Use `format.ps1 -Check` for C++. Scoped iteration uses `Test-Changes.ps1 -Explai
 PrePush accounts for existing enabled CI; pending CI is never recorded as a pass. Do not rerun an identical full
 matrix without a changed source, pin, binary, profile or unresolved result.
 
+Mock build/admission fixtures use an explicit version matching their synthetic executable, independently of
+the inherited hosted product version. Every positive and negative admission probe receives that same explicit
+version in an isolated child process. A separate negative probe requests a different version and must be refused.
+Keep source-byte, installed-header, compiler-context and resolved-dependency refusals under the matching
+version so an unrelated inherited-version mismatch cannot make those negative controls pass vacuously.
+Fixture tests never change the application's real build-admission or version policy.
+
 Native test filenames use `Scope.Tests.Behavior.cpp/.h`. Cover strict Unicode and EOL/BOM round trips, invalid
 input/capacity rejection, atomic write failure, external conflict, dirty-state/undo, view history/selection,
 semantic formatting, local source, search/outline, image decoding/cancellation, Mermaid literal fallback,
