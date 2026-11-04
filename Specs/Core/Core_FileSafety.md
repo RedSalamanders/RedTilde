@@ -17,6 +17,9 @@ the cross-process check/replace race; a stronger conditional-write protocol is a
 
 New/Open/Close prompt Save, Discard, Cancel when dirty. Save As cancellation cancels the original action. Undo
 back to saved text clears dirty; the saved baseline is exact source content, not just a transaction counter.
+While the Save/Discard/Cancel question is open, duplicate native or command Close requests are ignored.
+They keep the original prompt and continuation; they neither cancel it nor queue another Close. Cancel
+leaves the current source, selection and history intact. A later fresh Close may ask again normally.
 The application may reuse that exact dirty result only for the same immutable source revision, saved baseline
 and recovered-copy state. Replacing the saved baseline invalidates the result, including successful asynchronous
 save completion without another live edit. Equal-length replacements, direct resets, undo/redo and text-service

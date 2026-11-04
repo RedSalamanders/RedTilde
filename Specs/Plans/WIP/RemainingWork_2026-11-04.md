@@ -49,7 +49,7 @@ meaningful failing-then-passing regression where applicable.
   (RT-01/PR-03, Q2); keep the 750 ms quiet debounce and enforce the approved five-second staleness cap
   under continuous typing (RT-10/PR-04, Q3).
 - [ ] Quarantine oversized checksum-valid recovery envelopes and retain recoverable contents on failure (RT-08).
-- [ ] Resolve reentrant close while a prompt is active (PR-34; Q18 remains a decision), and contain shortcut,
+- [ ] Implement the approved Q18 rule: keep the existing Save/Discard/Cancel prompt and ignore duplicate Close (PR-34), and contain shortcut,
   menu, save-completion and Find failure paths without leaving `updatingFind` latched (RT-12/14, PR-07/35).
 
 Owner: `RedTilde/Application.cpp`, `Application.Navigation.cpp`, `Common/Recovery.cpp`, `Common/AsyncFiles.h`.
@@ -193,7 +193,7 @@ RT-10/11's old drops did not cancel them. Current unified CI supersedes obsolete
 
 | Open owner item | Current disposition |
 | --- | --- |
-| Q18: second close during a prompt | Decide queued close versus immediate prompt cancellation before T-S1's reentrant-close change. |
+| Q18: second close during a prompt | Accepted: retain the existing prompt and ignore duplicate Close. Implementation and qualification are owned by T-S1. |
 | Q19: system proxy, direct-only failure or a setting | Decide before T-I1's proxy work. |
 | Q20: size-limit command behavior | Decide unchanged-document error versus preemptive disable before changing the capacity UX. |
 | Q21: release cut | Settle the application release command and exact validator transition; the library's support does not migrate this app implicitly. |

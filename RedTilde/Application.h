@@ -100,6 +100,10 @@ struct LaunchOptions
     unsigned captureDpi{}, viewportWidthPx{}, viewportHeightPx{};
     std::wstring scenario = L"compose-light";
     std::filesystem::path document, capture, dataDirectory, benchmark, performance, designInteractive;
+#if defined(REDTILDE_ENABLE_TESTS)
+    // Hidden harness replacement for the ordinary unsaved-change question.
+    std::function<int()> unsavedPromptForTest;
+#endif
 };
 struct ApplicationActivity
 {
@@ -313,7 +317,7 @@ class Application
         EditorView view;
     };
     std::optional<SelectionToolsFocusRequest> selectionToolsFocus;
-    bool bom{}, closing{}, initialized{}, initializing{};
+    bool bom{}, closing{}, initialized{}, initializing{}, unsavedPromptOpen{};
     bool waitingForPreferences{};
     FileStamp stamp;
     DocumentInfo documentInfo;
