@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "claim": "Nine named real keyboard/focus stages only; not physical IME, touch, assistive technology or clipboard acceptance",
+  "implementationCommit": "31d6f59e20237dff220b0dc93723f95193e0fe81",
+  "sdkCommit": "2a7e7c28f95a70193e4a2f68a89001d54b4d2131",
+  "apiRevision": 4,
+  "platform": "x64",
+  "configuration": "Release",
+  "run": "20261105T085350075Z-2868-548aa95c0e3747639f197da45b75e58e",
+  "passed": true,
+  "userAgreedToCurrentTime": true,
+  "confirmationCountdownSeconds": 30,
+  "realKeyboardInput": true,
+  "leaseGuarded": true,
+  "clipboardTouched": false,
+  "foreground": "unchanged",
+  "keyboardFocus": "unchanged",
+  "pointer": "restored",
+  "binarySha256": "A93A6A7CF09AB5617A8B071FB024D9936AC4114171246C237C646C1CE94EA497",
+  "buildReceiptSha256": "9EE9E91827F0C89831F8F53B70ABA894DE7D194CB9C439ADAD271FF36B46B6D5",
+  "leaseBinarySha256": "B5E92D404A849F6AD83C2EB68980FC7E3EED9E9D47630A69CFF8A8B386C834BD",
+  "canonicalReceiptSha256": "A8762B156BD0DCDD085007AA7A3D7CCC3E546905C44FD245C5040611888F52DF",
+  "childResultSha256": "9311C2E0D4A2BB33DBF5063E9E08A4AA34AE1422A16A042CFAAB160254AE331C",
+  "completionSha256": "C23254E5E0D0D1780E78CCC15CE6FBDDB22326A1AE4FE079150A3013201D50E2",
+  "tests": [
+    {
+      "name": "NativeEditor.KeyboardTextAndUndo",
+      "passed": true
+    },
+    {
+      "name": "Files.ShortcutFocusAndEscape",
+      "passed": true
+    },
+    {
+      "name": "Find.TypedQueryTraversalAndEscape",
+      "passed": true
+    },
+    {
+      "name": "Settings.KeyboardDrawerAndEscape",
+      "passed": true
+    },
+    {
+      "name": "Focus.KeyboardToggleAndEscape",
+      "passed": true
+    },
+    {
+      "name": "SelectionToolbar.AltF10TabEnterEscape",
+      "passed": true
+    },
+    {
+      "name": "Equation.F2InPlaceEditUndoAndExit",
+      "passed": true
+    },
+    {
+      "name": "FileMenu.KeyboardOpenAndDismiss",
+      "passed": true
+    },
+    {
+      "name": "Window.AltF4AsyncClose",
+      "passed": true
+    }
+  ]
+}
