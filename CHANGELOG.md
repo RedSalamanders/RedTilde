@@ -4,6 +4,9 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Reject checksum-valid recovery envelopes that exceed decoded text capacity without terminating; retain complete quarantine bytes and earlier quarantine files on name collision.
+  - Make save/close fixtures create their owned parent directories before seeding files, independently of asynchronous recovery setup.
+  - Retain counterexamples and source-bound qualification: six zero-warning builds, all 82 cases and 36 hidden captures in each x64 profile, and real ASan detection. Native ARM64 runtime and broader recovery/performance gates remain separate.
 - Run editor behavior, completed-frame diagnostics and renderer lifecycle checks in separate bounded hidden processes, verifying the exact complete catalog union with the existing child timeout.
 - Fixed Close during asynchronous Save to wait for the admitted write, retain recovery on failure, and protect later edits; Close now abandons a pending Open safely.
 - Qualify all nine real keyboard/focus stages at API-4 pin `2a7e7c28`, including F2 in-place equation editing and undo, through the user-approved canonical countdown/desktop lease; verify unchanged foreground/focus and restored pointer while retaining separate IME, touch, assistive-technology and clipboard gates.
