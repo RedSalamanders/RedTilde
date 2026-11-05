@@ -507,7 +507,13 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                      // exit 77 without a CRT/WER dialog. Restore on every normal
                      // path; production termination handling is untouched.
                      const auto previous = std::set_terminate([]() noexcept { ExitProcess(77); });
+// The CRT's borrowed terminate_handler type omits noexcept. Restoring it only
+// installs the original pointer; this call never invokes that handler.
+// Owner: RedTilde test maintainers; review: 2027-01-31.
+#pragma warning(push)
+#pragma warning(disable : 5039)
                      const auto restore = wil::scope_exit([previous] { (void)std::set_terminate(previous); });
+#pragma warning(pop)
                      Require(ParseRecovery(invalid.back().second, parsed) == HRESULT_FROM_WIN32(ERROR_INVALID_DATA),
                              "decoded source beyond the editor capacity is an ordinary invalid envelope");
                  }
