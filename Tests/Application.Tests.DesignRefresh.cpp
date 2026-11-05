@@ -657,21 +657,22 @@ class DesignRefreshProbe final
                          if (WaitForSingleObject(gate->entered.get(), 0) == WAIT_OBJECT_0)
                              (void)WaitForSingleObject(gate->finished.get(), 10000);
                      });
-                 const std::wstring source = L"```mermaid\ngraph LR\nA --> B\n```\n";
+                 const std::wstring source = L"# Local draft\r\n\r\nA note waiting for the reader.\r\n";
                  app.SetDocument(source);
                  app.Prepare(256);
                  app.Execute(Command::Open);
                  Require(WaitForSingleObject(gate->entered.get(), 10000) == WAIT_OBJECT_0, "the actual reader reaches its owned admission gate");
-                 app.Document().SetSelection({14, 14});
+                 const auto note = source.find(L"note");
+                 app.Document().SetSelection({note, note + 4});
                  app.Execute(Command::LocalSource);
-                 Require(app.HasBlockDraft(), "open a pending local diagram draft while the read is in flight");
-                 app.BlockDraft()->SetTextAndNotify(L"graph BT\nA --> B");
+                 Require(app.HasBlockDraft(), "open a pending ordinary-text draft while the read is in flight");
+                 app.BlockDraft()->SetTextAndNotify(L"A revised note");
                  const auto entry = app.Document().Snapshot();
                  Require(SetEvent(gate->proceed.get()) && WaitForSingleObject(gate->finished.get(), 10000) == WAIT_OBJECT_0,
                          "publish the actual reader completion after the draft exists");
                  Await(app, [&] { return app.heldOpen.has_value(); });
-                 Require(app.HasBlockDraft() && app.Document().Snapshot().IsSameRevision(entry) &&
-                             app.BlockDraft()->GetText() == L"graph BT\nA --> B" && app.documentPath.empty(),
+                 Require(app.HasBlockDraft() && app.Document().Snapshot().IsSameRevision(entry) && app.BlockDraft()->GetText() == L"A revised note" &&
+                             app.documentPath.empty(),
                          "Open completion holds its staged source without replacing or hiding the current draft");
                  app.Execute(Command::CloseDrawer);
                  Await(app, [&] { return app.documentPath == target && !app.heldOpen; });
