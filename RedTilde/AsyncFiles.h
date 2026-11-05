@@ -22,6 +22,19 @@ class AsyncFiles
         StoredDocument document;
         HRESULT status{};
     };
+#if defined(REDTILDE_ENABLE_TESTS)
+    // Test-only admission barrier around the real filesystem operation. The
+    // worker owns the events through publication, even when its UI is closed.
+    struct TestGate
+    {
+        TestGate() = default;
+        TestGate(const TestGate &) = delete;
+        TestGate &operator=(const TestGate &) = delete;
+        wil::unique_event entered{CreateEventW(nullptr, TRUE, FALSE, nullptr)};
+        wil::unique_event proceed{CreateEventW(nullptr, TRUE, FALSE, nullptr)};
+        wil::unique_event finished{CreateEventW(nullptr, TRUE, FALSE, nullptr)};
+    };
+#endif
 
   private:
 // Existing identity/RAII/reference traits intentionally delete these implicit operations.
@@ -35,6 +48,9 @@ class AsyncFiles
         UINT message{};
         bool closing{}, busy{};
         std::optional<Result> result;
+#if defined(REDTILDE_ENABLE_TESTS)
+        std::shared_ptr<TestGate> testGate;
+#endif
     };
 #pragma warning(pop)
     struct Job
@@ -42,12 +58,38 @@ class AsyncFiles
         std::shared_ptr<State> state;
         Result result;
         std::optional<FileStamp> expected;
+#if defined(REDTILDE_ENABLE_TESTS)
+        std::shared_ptr<TestGate> testGate;
+#endif
     };
     std::shared_ptr<State> state;
     static void CALLBACK Worker(PTP_CALLBACK_INSTANCE, void *context) noexcept
     {
         const std::unique_ptr<Job> job(static_cast<Job *>(context));
         auto &result = job->result;
+#if defined(REDTILDE_ENABLE_TESTS)
+        const auto signalFinished = wil::scope_exit(
+            [&]
+            {
+                if (job->testGate)
+                    (void)SetEvent(job->testGate->finished.get());
+            });
+        if (job->testGate)
+        {
+            (void)SetEvent(job->testGate->entered.get());
+            if (WaitForSingleObject(job->testGate->proceed.get(), 30000) != WAIT_OBJECT_0)
+            {
+                result.status = HRESULT_FROM_WIN32(ERROR_TIMEOUT);
+                std::lock_guard lock(job->state->mutex);
+                if (!job->state->closing)
+                {
+                    job->state->result = std::move(result);
+                    (void)PostMessageW(job->state->window, job->state->message, 0, 0);
+                }
+                return;
+            }
+        }
+#endif
         if (result.saving)
             result.status = SaveDocument(result.path, result.document.text, result.document.bom, job->expected ? &job->expected.value() : nullptr,
                                          result.document.stamp);
@@ -90,6 +132,13 @@ class AsyncFiles
         std::lock_guard lock(state->mutex);
         return state->busy;
     }
+#if defined(REDTILDE_ENABLE_TESTS)
+    void SetTestGate(std::shared_ptr<TestGate> gate)
+    {
+        std::lock_guard lock(state->mutex);
+        state->testGate = std::move(gate);
+    }
+#endif
     HRESULT Submit(bool saving, std::filesystem::path path, std::wstring text = {}, bool bom = false, std::optional<FileStamp> expected = {})
     {
         auto job = std::make_unique<Job>();
@@ -102,6 +151,9 @@ class AsyncFiles
         std::lock_guard lock(state->mutex);
         if (state->busy || state->closing)
             return HRESULT_FROM_WIN32(ERROR_BUSY);
+#if defined(REDTILDE_ENABLE_TESTS)
+        job->testGate = state->testGate;
+#endif
         state->busy = true;
         if (!TrySubmitThreadpoolCallback(Worker, job.get(), nullptr))
         {

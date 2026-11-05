@@ -1,4 +1,5 @@
 #include "RedTilde/Application.h"
+#include "Application.Tests.Close.h"
 #include "Application.Tests.DesignRefresh.h"
 #include "Application.Tests.Files.h"
 #include "Application.Tests.HeapDiagnostic.h"
@@ -215,6 +216,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
         report.flush();
     };
     RegisterFilesTests(root, test);
+    RegisterCloseTests(root, test);
     RegisterDesignRefreshTests(root, test);
     RegisterRemoteImageTests(root, test);
     test("Utf8.CI_ASSERTION_PROBE",

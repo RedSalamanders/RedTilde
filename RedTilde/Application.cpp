@@ -245,6 +245,9 @@ HRESULT Application::Initialize()
     if (!host.Attach(window.get(), {.forceWarp = options.forceWarp, .batchInitialRootChildren = true}))
         return HRESULT_FROM_WIN32(GetLastError());
     files.Initialize(window.get(), FileReady);
+#if defined(REDTILDE_ENABLE_TESTS)
+    files.SetTestGate(options.fileGateForTest);
+#endif
     const MARGINS frame{1, 1, 1, 1};
     (void)DwmExtendFrameIntoClientArea(window.get(), &frame);
     SetWindowPos(window.get(), nullptr, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
@@ -1623,6 +1626,10 @@ void Application::Menu(POINT point, bool insertOnly, bool headingOnly)
 
 std::filesystem::path Application::PickFile(bool saving, bool image, bool folder)
 {
+#if defined(REDTILDE_ENABLE_TESTS)
+    if (options.headless && options.filePickerForTest && !image && !folder)
+        return options.filePickerForTest(saving);
+#endif
     if (options.headless)
         return {};
     wil::com_ptr<IFileDialog> dialog;

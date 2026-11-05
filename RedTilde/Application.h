@@ -103,6 +103,8 @@ struct LaunchOptions
 #if defined(REDTILDE_ENABLE_TESTS)
     // Hidden harness replacement for the ordinary unsaved-change question.
     std::function<int()> unsavedPromptForTest;
+    std::function<std::filesystem::path(bool)> filePickerForTest;
+    std::shared_ptr<AsyncFiles::TestGate> fileGateForTest;
 #endif
 };
 struct ApplicationActivity
