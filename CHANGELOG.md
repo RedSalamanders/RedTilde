@@ -4,6 +4,8 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Insert Quote and Code Block transform selected text in Compose, Source and Split through the shared DxUi source transaction, preserving outside text, line endings, selection direction and one-step Undo/Redo. Refused edits retain the selection instead of replacing it with a sample. Hidden regression checks observe activation by the owned test process while permitting ordinary use of other windows. Six zero-warning builds, all 83 cases and 36 captures in each x64 profile, and real ASan detection pass with original failures and source/native archives preserved.
+- Verify the repaired recovery-envelope source on hosted native x64 and ARM64 Release: all 82 cases, 36 captures and assertion probes pass in each role, both test-disabled production ZIPs pass smoke after the combined gate, and downloaded canonical receipt and ZIP hashes match their manifests. Retain the earlier failed source and broader platform/performance gates separately.
 - Reject checksum-valid recovery envelopes that exceed decoded text capacity without terminating; retain complete quarantine bytes and earlier quarantine files on name collision.
   - Make save/close fixtures create their owned parent directories before seeding files, independently of asynchronous recovery setup.
   - Retain counterexamples and source-bound qualification: six zero-warning builds, all 82 cases and 36 hidden captures in each x64 profile, and real ASan detection. Native ARM64 runtime and broader recovery/performance gates remain separate.

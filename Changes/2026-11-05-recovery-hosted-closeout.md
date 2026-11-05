@@ -1,1 +1,0 @@
-- Verify the repaired recovery-envelope source on hosted native x64 and ARM64 Release: all 82 cases, 36 captures and assertion probes pass in each role, both test-disabled production ZIPs pass smoke after the combined gate, and downloaded canonical receipt and ZIP hashes match their manifests. Retain the earlier failed source and broader platform/performance gates separately.
