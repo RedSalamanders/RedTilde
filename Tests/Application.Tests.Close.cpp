@@ -95,6 +95,8 @@ void Release(const std::shared_ptr<AsyncFiles::TestGate> &gate)
 }
 void Seed(Application &app, const std::filesystem::path &path)
 {
+    // Fixture paths are owned here; recovery creates its own directories asynchronously.
+    std::filesystem::create_directories(path.parent_path());
     Success(WriteBytesAtomic(path, "Notebook\r\n"), "seed original Markdown bytes");
     StoredDocument document;
     Success(LoadDocument(path, document), "read original identity");
@@ -255,6 +257,7 @@ void RegisterCloseTests(const std::filesystem::path &root, const std::function<v
         Application app(launch);
         Success(app.Initialize(), "create hidden open-close app");
         const auto release = ReleaseOnExit(gate);
+        std::filesystem::create_directories(target.parent_path());
         Success(WriteBytesAtomic(target, "Different notebook\n"), "seed pending Open");
         app.SetDocument(L"Current notebook\n");
         app.Execute(Command::Open);
