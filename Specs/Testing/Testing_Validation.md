@@ -44,6 +44,10 @@ and `All` selection retain their complete case sets. Empty/duplicate groups, omi
 execution and failed/timeout children cannot qualify a group. This separates expensive independent scenarios
 from the behavioral batch; it changes no case assertion or performance acceptance band. Preserve earlier
 whole-Editor timeouts with their original source, binary and raw reports.
+When original working input bytes differ from governed checkout text conversion, retain originals and
+their per-file map/archive hash. A Git commit alone does not recreate those working bytes. Label later
+Git-derived checkouts as reconstructed and verify actual identity before reuse; never rewrite historical
+receipts or guess line endings to satisfy a source hash.
 
 Native test filenames use `Scope.Tests.Behavior.cpp/.h`. Cover strict Unicode and EOL/BOM round trips, invalid
 input/capacity rejection, atomic write failure, external conflict, dirty-state/undo, view history/selection,

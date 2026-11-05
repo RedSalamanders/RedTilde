@@ -2,6 +2,8 @@
 
 ## Completed scopes — 5 November 2026
 
+- [Close during Save and bounded Editor validation](CloseDuringSave_2026-11-05.md) — durable save settlement, failed-write recovery, safe Open abandonment, lifecycle counterexample, exact bounded case union, six builds and three complete x64 profiles; broader acceptance remains in WIP.
+
 - [Recovery Restore identity](RecoveryRestoreIdentity_2026-11-05.md) — clicked-snapshot binding, missing-copy refusal, retained counterexample and fixture synchronization failure, six builds and three complete native x64 profiles; broader recovery work remains in WIP.
 
 - [Real keyboard and focus qualification](KeyboardAndFocusQualification_2026-11-05.md) — nine named stages including F2, explicit timing agreement, canonical warning/lease and verified foreground/focus/pointer restoration; physical IME/touch/AT/clipboard acceptance stays separate.

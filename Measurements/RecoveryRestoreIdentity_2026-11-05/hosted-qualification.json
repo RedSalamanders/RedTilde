@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "claim": "Hosted Release qualification of Restore source only; later lifecycle candidate has separate gates",
+  "runUrl": "https://github.com/RedSalamanders/RedTilde/actions/runs/42000363611",
+  "commit": "83e764a0d3ab552e43e6e87b7cad7712b1ef1ca8",
+  "sdkCommit": "2a7e7c28f95a70193e4a2f68a89001d54b4d2131",
+  "apiRevision": 4,
+  "nativeDigest": "3c0ae61845e6bb8d8999dba677abe64fafc1b94ed675c31552a8d603423df799",
+  "version": "0.1.258",
+  "combinedTestGateCompletedUtc": "2026-11-05T09:42:34Z",
+  "platforms": [
+    {
+      "platform": "x64",
+      "nativeCasesPassed": 76,
+      "nativeFailures": 0,
+      "captures": 36,
+      "assertionProbePassed": true,
+      "canonicalReceiptSha256": "0818ae66479f89cbc488c4e8af7e37872c656268fde516581ea3c7b8cd9b8dc8",
+      "regressionReceiptSha256": "89CA2EF79C72E4FCA8CDD3BD457EC2E5648C09D72DE013C360624055BDA214AC",
+      "productionReceiptSha256": "F3B9952AB99C62DB42CA71ACFC96A7A6989366AF9A6761B56EBA1FE3064275D8",
+      "productionTestModeDisabled": true,
+      "productionSmokePassed": true,
+      "productionStartedUtc": "2026-11-05T09:42:37Z",
+      "archives": [
+        {
+          "file": "RedTilde-0.1.258-x64-20261105-095425-142.zip",
+          "sha256": "6b9ba0ecbae697066e0d8bde9c43acb65c1a7a1cfb06f247fe395b19d5979686",
+          "size": 3186778
+        }
+      ]
+    },
+    {
+      "platform": "ARM64",
+      "nativeCasesPassed": 76,
+      "nativeFailures": 0,
+      "captures": 36,
+      "assertionProbePassed": true,
+      "canonicalReceiptSha256": "dd2370f628f13a74a0e974c9261bd34a99f21bbd950e0129221618a6de1e23f1",
+      "regressionReceiptSha256": "5FB9B7E219486BC484FA398B6F7E88601D65CA8C31C3FE40ABECB6AFB0709F19",
+      "productionReceiptSha256": "7D165491DB8344621CED34C44DCD14C8D369E009EF82D10190E8D9F6EE6E8C2B",
+      "productionTestModeDisabled": true,
+      "productionSmokePassed": true,
+      "productionStartedUtc": "2026-11-05T09:42:37Z",
+      "archives": [
+        {
+          "file": "RedTilde-0.1.258-ARM64-20261105-021101-816.zip",
+          "sha256": "8febe0d70136b606ed35e525db3a74002483234ed6b5ebc1f619ec12f4cf46a1",
+          "size": 3628210
+        }
+      ]
+    }
+  ]
+}

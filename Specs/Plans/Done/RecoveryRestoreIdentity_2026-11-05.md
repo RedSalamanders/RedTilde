@@ -16,6 +16,9 @@ Status: DONE — scoped implementation, regression, build/runtime and domain-doc
   completed profiles and resume only the final ARM64 ASan build on 5 November.
 - [x] Merge lasting behavior into [file safety](../../Core/Core_FileSafety.md), the
   [validation contract](../../Testing/Testing_Validation.md) and [usage documentation](../../../docs/README.md).
+- [x] Retain and verify hosted main `83e764a0` / run 42000363611: native x64/ARM64 Release each pass
+  76 cases, 36 captures and assertion probes; both production ZIPs pass after the combined gate with tests
+  disabled and successful smoke. [Original receipt/archive identities](../../../Measurements/RecoveryRestoreIdentity_2026-11-05/hosted-qualification.json)
 
 Implementation and stabilized fixture: `31d6f59e20237dff220b0dc93723f95193e0fe81`.
 SDK pin: `2a7e7c28f95a70193e4a2f68a89001d54b4d2131`, API 4.

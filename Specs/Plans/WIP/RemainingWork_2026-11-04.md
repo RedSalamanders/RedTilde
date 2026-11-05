@@ -30,8 +30,16 @@ physical/interactive and performance acceptance remain separately owned.
 The recovery Restore follow-up is implemented at `31d6f59e`, retaining that same API-4 pin. Its
 [scoped closeout](../Done/RecoveryRestoreIdentity_2026-11-05.md) records six zero-warning builds, all 76 native
 cases and 36 captures in each x64 profile, real ASan detection, the original wrong-copy counterexample and
-the corrected hidden-wait synchronization. Its app candidate still needs its own hosted/native ARM64 runtime
-acceptance; the earlier 75-case hosted receipts remain bound to `1c600d60`.
+the corrected hidden-wait synchronization. Hosted main `83e764a0` now passes native x64/ARM64 Release,
+each with all 76 cases and 36 captures, plus both test-disabled production ZIPs and clean-extraction smoke.
+[Verified original receipts and archive identities](../../../Measurements/RecoveryRestoreIdentity_2026-11-05/hosted-qualification.json)
+remain separate from the earlier 75-case `1c600d60` run and the later close-during-save candidate.
+
+Close during Save is qualified at `15ac77cf`, still API 4 / `2a7e7c28`. Its
+[scoped closeout](../Done/CloseDuringSave_2026-11-05.md) records six zero-warning builds, all 81 cases and
+36 captures per x64 profile, real ASan detection, retained contract/lifecycle counterexamples and both original
+whole-Editor timeouts. Current Editor execution preserves the full case union and each child's 90-second
+watchdog. This candidate's native ARM64, physical, performance and release gates remain open.
 
 | Completed scope | Evidence and limit |
 | --- | --- |
@@ -59,8 +67,9 @@ meaningful failing-then-passing regression where applicable.
 - [x] Bind Restore to the exact snapshot clicked before entering a dirty-document prompt (RT-04/PR-06).
   Revalidate its id after the prompt/save; a missing copy leaves the current document and other candidates
   intact. [Code, counterexample, six builds and all three native x64 profiles](../Done/RecoveryRestoreIdentity_2026-11-05.md)
-- [ ] Complete the approved close-during-save contract: hide while an admitted save completes, retain recovery
-  until success, and reshow with the failure; abandon an Open in flight (RT-02/PR-05, Q4).
+- [x] Complete Q4 / RT-02 / PR-05: hide while an admitted save settles, retain recovery until success,
+  reshow with failure, protect later edits and abandon Open. Real I/O-barrier regressions, six builds and
+  three complete x64 profiles pass in the [scoped closeout](../Done/CloseDuringSave_2026-11-05.md).
 - [ ] Implement immediate recovery submission on session end, bounded settlement and restart presentation
   (RT-01/PR-03, Q2); keep the 750 ms quiet debounce and enforce the approved five-second staleness cap
   under continuous typing (RT-10/PR-04, Q3).
@@ -71,7 +80,7 @@ meaningful failing-then-passing regression where applicable.
 - [ ] Contain shortcut, menu, save-completion and Find failure paths without leaving `updatingFind` latched
   (RT-12/14, PR-07/35).
 
-Owner: `RedTilde/Application.cpp`, `Application.Navigation.cpp`, `Common/Recovery.cpp`, `Common/AsyncFiles.h`.
+Owner: `RedTilde/Application.cpp`, `Application.Navigation.cpp`, `Common/Recovery.cpp`, `RedTilde/AsyncFiles.h`.
 Acceptance: deterministic Restore+Discard, close-during-save success/failure, continuous typing, logoff,
 malformed envelope, second close and size-limit tests. See the retained
 [Phase 1 detail](../Done/DeliveryRedTeam_2026-10-31.md#phase-1-acceptance).
@@ -185,6 +194,11 @@ follow-up is removed. Completion correctly reported failed native qualification.
 <a id="t-q2"></a>
 ### T-Q2 — exact-pin adoption, native/physical acceptance and release
 
+- [x] Qualify close-during-save at `15ac77cf`, API 4 / `2a7e7c28`: six zero-warning builds, all 81 cases
+  and 36 captures per x64 profile, exact bounded Editor partitions, real ASan detection and verified app/SDK/
+  source preservation. [Exact evidence](../../../Measurements/CloseDuringSave_2026-11-05/qualification.json)
+  retains both counterexamples/timeouts and the final-profile-only continuation.
+
 - [x] Qualify Restore identity at `31d6f59e`, API 4 / `2a7e7c28`: six zero-warning builds, all 76 cases and
   36 captures per x64 profile, the real ASan detection probe and byte-verified native artifact preservation.
   [Exact source-bound record](../../../Measurements/RecoveryRestoreIdentity_2026-11-05/qualification.json)
@@ -201,6 +215,10 @@ follow-up is removed. Completion correctly reported failed native qualification.
 - [x] Verify current-pin native ARM64 Release at main `1c600d60`: all 75 cases, 36 captures and the Release
   assertion probe pass on the hosted Arm64 machine. The [test-gate proof](../../../Measurements/HostedFixtureVersion_2026-11-04/main-test-gate.json)
   retains its original canonical receipt and executable hashes separately from x64.
+- [x] Complete Restore's hosted Release gate at `83e764a0`: native x64/ARM64 each pass 76 cases, 36 captures
+  and assertion probes; both test-disabled production ZIPs pass smoke and byte verification after the combined
+  test gate. [Source-bound hosted record](../../../Measurements/RecoveryRestoreIdentity_2026-11-05/hosted-qualification.json)
+  closes that candidate only; `15ac77cf` needs its own hosted runtime/production acceptance.
 - [ ] Complete applicable native ARM64 Debug/ASan and physical/input qualification. Cross-builds and old-pin matrices
   do not establish those runtime profiles. Retain the 90-second loaded-host Editor timeout and its same-binary
   sequential pass as separate observations; diagnose that responsiveness boundary with T-P1 before accepting it.
