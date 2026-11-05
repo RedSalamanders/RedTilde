@@ -1,0 +1,1 @@
+- Reject checksum-valid recovery envelopes that exceed decoded text capacity without terminating; retain complete quarantine bytes and earlier quarantine files on name collision.
