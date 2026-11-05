@@ -129,8 +129,17 @@ void RegisterCloseTests(const std::filesystem::path &root, const std::function<v
              app.Execute(Command::Save);
              Entered(gate);
              const auto window = app.Window();
+             app.Host().SetFocusControl(&app.Document(), false);
+             Require(app.Document().HasFocus(), "seed logical editor focus without acquiring desktop focus");
+             const auto pendingRevision = app.Document().Snapshot();
              (void)SendMessageW(window, WM_CLOSE, 0, 0);
              app.Execute(Command::Close);
+             app.Execute(Command::New);
+             (void)SendMessageW(window, WM_CHAR, L'X', 0);
+             Require(app.Document().Snapshot().IsSameRevision(pendingRevision), "queued commands and text cannot edit while Close waits");
+             (void)SendMessageW(window, WM_SHOWWINDOW, FALSE, 0);
+             (void)SendMessageW(window, WM_KILLFOCUS, 0, 0);
+             Require(!app.Document().HasFocus(), "waiting Close still delivers hide and focus-loss lifecycle to the native host");
              Pump(app);
              Require(app.Window() == window && app.Host().GetHwnd() == window && !IsWindowVisible(window) && Copies(launch.dataDirectory).size() == 1,
                      "duplicate Close preserves the hidden notification owner and recovery before the save finishes");
