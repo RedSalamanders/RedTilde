@@ -64,6 +64,9 @@ struct DocumentPosition
 // A previous revision's physical line count is only an allocation hint, bounded
 // by the incoming source. It never supplies or preserves any metadata/storage.
 [[nodiscard]] DocumentInfo AnalyzeDocument(std::wstring_view text, std::size_t previousPhysicalLineCount = 0);
+// Normalize only newly inserted/replaced text to the document's first physical
+// terminator; an empty or unterminated document uses CRLF. Existing source is not rewritten.
+[[nodiscard]] std::wstring NormalizeInsertedLineEndings(std::wstring_view insertion, std::wstring_view document);
 // Logarithmic read of the analyzed revision: no source scan or allocation.
 // Oversized ACPs clamp to source end. An ACP between CR/LF stays at the prior
 // line's content end; the following line begins only after the complete pair.

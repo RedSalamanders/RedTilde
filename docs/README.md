@@ -31,6 +31,9 @@ protected, and a cancelled Close cannot later apply that abandoned file.
 the selected range/current line in a source draft while the rest stays rendered. Apply/Ctrl+Enter commits one
 edit, and Esc cancels. Link insertion opens a reviewable source draft rather than replacing selected words
 without a chance to edit the destination.
+New templates and changed drafts follow the first line ending in the document; an empty document uses CRLF.
+Untouched source keeps its original line endings, including mixed files. Recovery previews use the same rule
+as Apply, and Undo restores the complete original source.
 
 **Formatting:** the Text style menu offers paragraph/headings; the toolbar offers bold/italic/code, bullets and
 tasks. Insert offers link, image, table, Mermaid, equation, quote and code. The context menu adds strike,

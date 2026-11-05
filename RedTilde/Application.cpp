@@ -686,6 +686,7 @@ void Application::CheckpointRecovery(bool immediate)
     auto selection = editor->GetSelection();
     bool needsRecovery = Dirty();
     std::wstring_view draft;
+    std::wstring normalizedDraft;
     bool changedDraft{};
     if (HasBlockDraft() && editor->Snapshot().IsSameRevision(blockDraftSnapshot) && editor->Revision() == blockDraftRevision)
     {
@@ -693,14 +694,16 @@ void Application::CheckpointRecovery(bool immediate)
         const std::wstring_view source = CurrentText();
         if (draft != source.substr(blockDraftRange.first, blockDraftRange.last - blockDraftRange.first))
         {
+            normalizedDraft = NormalizeInsertedLineEndings(draft, source);
+            draft = normalizedDraft;
             if (!DxUi::RichText::IsValidUtf16(draft) ||
                 source.size() - (blockDraftRange.last - blockDraftRange.first) + draft.size() > DxUi::RichText::Document::MaximumUnits)
             {
                 Status(IDS_RECOVERYFAILED);
                 return;
             }
-            changedDraft = true;
-            needsRecovery = true;
+            changedDraft = draft != source.substr(blockDraftRange.first, blockDraftRange.last - blockDraftRange.first);
+            needsRecovery = needsRecovery || changedDraft;
         }
     }
     if (needsRecovery)
@@ -1440,12 +1443,13 @@ void Application::Execute(Command command)
         break;
     }
     case Command::Mermaid:
-        (void)editor->ReplaceSelection(L"\n\n```mermaid\ngraph LR\nA[Idea] --> B[Write]\nB --> C[Share]\n```\n\n");
+        (void)editor->ReplaceSelection(
+            NormalizeInsertedLineEndings(L"\n\n```mermaid\ngraph LR\nA[Idea] --> B[Write]\nB --> C[Share]\n```\n\n", CurrentText()));
         semantic = false;
         break;
     case Command::Math:
         // Display delimiters must own their lines; a one-line $$...$$ stays literal at this pin.
-        (void)editor->ReplaceSelection(L"\n\n$$\nx = \\frac{-b + \\sqrt{b^2 - 4ac}}{2a}\n$$\n\n");
+        (void)editor->ReplaceSelection(NormalizeInsertedLineEndings(L"\n\n$$\nx = \\frac{-b + \\sqrt{b^2 - 4ac}}{2a}\n$$\n\n", CurrentText()));
         semantic = false;
         break;
     case Command::Quote:
@@ -1456,7 +1460,8 @@ void Application::Execute(Command command)
         const bool changed = selection.Start() != selection.End()
                                  ? editor->WrapSelectionInMarkdownBlock(quote ? MarkdownBlockKind::BlockQuote : MarkdownBlockKind::FencedCode,
                                                                         quote ? std::wstring_view{} : std::wstring_view(L"text"))
-                                 : editor->ReplaceSelection(quote ? L"\n> A thought worth keeping.\n" : L"\n\n```text\nYour code here\n```\n\n");
+                                 : editor->ReplaceSelection(NormalizeInsertedLineEndings(
+                                       quote ? L"\n> A thought worth keeping.\n" : L"\n\n```text\nYour code here\n```\n\n", CurrentText()));
         Status(changed ? IDS_FORMATTED : IDS_NOTAVAILABLE);
         semantic = false;
         break;
@@ -1610,7 +1615,9 @@ void Application::ApplyBlockSource()
         Status(IDS_NOTAVAILABLE);
         return;
     }
-    const std::wstring value(blockDraftText->GetText());
+    const auto draft = blockDraftText->GetText();
+    const auto original = blockDraftSnapshot.Slice(blockDraftRange.first, blockDraftRange.last);
+    const std::wstring value = draft == original ? std::wstring(draft) : NormalizeInsertedLineEndings(draft, CurrentText());
     if (!DxUi::RichText::IsValidUtf16(value) ||
         blockDraftSnapshot.Length() - (blockDraftRange.last - blockDraftRange.first) + value.size() > DxUi::RichText::Document::MaximumUnits)
     {

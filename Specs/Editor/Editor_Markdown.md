@@ -5,6 +5,12 @@
 The exact Markdown source is authoritative. Preserve UTF-8 encoding, optional BOM, Unicode scalar pairs and
 existing line endings. View changes never reserialize Markdown, reset history or move selection.
 
+New Mermaid, equation, empty-selection quote and fenced-code templates use the document's first physical
+terminator (LF, CRLF or CR), with CRLF for an empty or unterminated document. Mixed outside source remains
+unchanged. Changed ordinary F2 drafts and their recovery previews normalize only the replacement text by
+that same policy. An unchanged draft preserves its exact original mixed endings. Validate editor capacity
+after normalization, and keep each accepted replacement in one source/history transaction.
+
 - **Compose** renders supported Markdown and edits its source through DxUi semantic commands.
 - **Source** displays exact Markdown in the same editor/document/history.
 - **Split** keeps Compose editable and shows a read-only exact-source mirror. Entering Split synchronizes

@@ -11,6 +11,8 @@ The v0 source limit is 65,536 UTF-16 units. Bounded reads reject files above the
 Atomic save stages a unique sibling temporary file with `CREATE_NEW`, writes all bytes, flushes and closes it,
 then uses `ReplaceFileW` for an existing destination or `MoveFileExW` for a new destination. Remove only the
 owned temporary file on failure. Never clear dirty state on failed/cancelled storage or change path/BOM prematurely.
+Close the exclusive staging handle before failure cleanup, including failed WriteFile and FlushFileBuffers
+paths. Directed native faults must leave the target bytes/stamp unchanged and no owned `.tmp` behind.
 An existing file identity (size, last-write and content fingerprint) is checked immediately before replacement;
 external modifications require a choice to reload, Save As or explicitly overwrite. Atomicity does not eliminate
 the cross-process check/replace race; a stronger conditional-write protocol is a future hardening item.

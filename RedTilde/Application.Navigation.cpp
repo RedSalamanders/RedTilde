@@ -709,9 +709,12 @@ void Application::ReplaceFind(bool all)
         return;
     }
     const auto after = edits.front().source.first + replacement.size();
-    updatingFind = true;
-    const bool applied = editor->ApplySourceEdits(source, revision, edits, {after, after});
-    updatingFind = false;
+    bool applied{};
+    {
+        updatingFind = true;
+        const auto resetUpdatingFind = wil::scope_exit([&] { updatingFind = false; });
+        applied = editor->ApplySourceEdits(source, revision, edits, {after, after});
+    }
     if (!applied)
         Status(IDS_NOTAVAILABLE);
     RefreshFind();

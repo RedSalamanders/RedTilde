@@ -1,5 +1,12 @@
 # Validation and evidence
 
+Storage failure regressions direct write and flush refusal through a thread-local fault under
+`REDTILDE_ENABLE_TESTS`; production builds contain neither the setter nor the injection branches. Assert
+the actual owned staging handle closes before deletion, original bytes/stamp survive, and no `.tmp` remains.
+Rejected settings tests cover synchronous/asynchronous persistence and real hidden view changes. Draft and
+template tests compare exact LF/CRLF/CR/mixed source, normalized recovery previews, unchanged-draft identity
+and one-step history. Find uses invalid precommit UTF-16 admission to prove suppression unwinds and retry works.
+
 Hidden no-activation scenarios observe foreground events filtered to the test process, including brief
 activation followed by restoration or window destruction. Subscribe before creating the application,
 retain the observation throughout the scenario, and check both queued events and current ownership.

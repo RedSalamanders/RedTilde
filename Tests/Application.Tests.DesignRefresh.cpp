@@ -1883,6 +1883,27 @@ class DesignRefreshProbe final
                  Require(app.findMatches.size() == 5000 && app.findSource && app.findSource->IsSameRevision(app.Document().Snapshot()) &&
                              app.Host().RenderInitialFrameForShow() && app.Document().GetSelection().Start() == 4999,
                          "a current match beyond the bounded highlight prefix stays selected and renderable with cached exact source ranges");
+                 app.SetDocument(L"cat cat");
+                 app.findText->SetTextAndNotify(L"cat");
+                 app.replaceText->SetText(std::wstring(1, static_cast<wchar_t>(0xd800)));
+                 const auto failedSource = app.Document().Snapshot();
+                 bool rejected{};
+                 try
+                 {
+                     app.ReplaceFind(true);
+                 }
+                 catch (const std::invalid_argument &)
+                 {
+                     // A deliberately invalid precommit source edit exercises
+                     // the Find guard without injecting a callback failure.
+                     rejected = true;
+                 }
+                 Require(rejected && !app.updatingFind && app.Document().Snapshot().IsSameRevision(failedSource) && !app.Document().CanUndo(),
+                         "failed source-edit admission releases Find suppression without changing source or history");
+                 app.replaceText->SetTextAndNotify(L"dog");
+                 app.ReplaceFind(true);
+                 Require(app.Document().GetText() == L"dog dog" && !app.updatingFind && app.findMatches.empty() && app.Document().Undo(),
+                         "Find and Replace remain usable after the rejected transaction");
              });
         test("Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
              [&]
