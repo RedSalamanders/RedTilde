@@ -35,11 +35,31 @@ Keep source-byte, installed-header, compiler-context and resolved-dependency ref
 version so an unrelated inherited-version mismatch cannot make those negative controls pass vacuously.
 Fixture tests never change the application's real build-admission or version policy.
 
+The reviewed Core catalog keeps Storage, Settings, Recovery and Editor ownership. The complete Editor list
+is checked before execution. The public runner executes its behavior, Performance-prefix and Rendering-prefix
+cases in three separate hidden child processes (`EditorBehavior`, `EditorPerformance`, `EditorRendering`),
+each with the unchanged 90-second watchdog. Every child must execute exactly its declared cases, and their
+unique union must equal the full Editor catalog before recording a successful Editor result. Direct `Editor`
+and `All` selection retain their complete case sets. Empty/duplicate groups, omissions, duplicates, catalog-only
+execution and failed/timeout children cannot qualify a group. This separates expensive independent scenarios
+from the behavioral batch; it changes no case assertion or performance acceptance band. Preserve earlier
+whole-Editor timeouts with their original source, binary and raw reports.
+When original working input bytes differ from governed checkout text conversion, retain originals and
+their per-file map/archive hash. A Git commit alone does not recreate those working bytes. Label later
+Git-derived checkouts as reconstructed and verify actual identity before reuse; never rewrite historical
+receipts or guess line endings to satisfy a source hash.
+
 Native test filenames use `Scope.Tests.Behavior.cpp/.h`. Cover strict Unicode and EOL/BOM round trips, invalid
 input/capacity rejection, atomic write failure, external conflict, dirty-state/undo, view history/selection,
 semantic formatting, local source, search/outline, image decoding/cancellation, Mermaid literal fallback,
 equation parsing/unsupported input, settings fallback/live application and isolated crash reports. Native math
 tests require both inline/display objects, matrix/delimiter geometry, local source/undo and device replacement.
+File-lifecycle regressions hold the real worker at an event barrier before I/O, then execute the ordinary Close
+command in a hidden window. Cover save success, actual replacement failure, retained recovery and original bytes,
+duplicate Close, later edits, a usable retry, Open abandonment and stale-result refusal after Cancel. Test-only
+barriers and picker substitution are excluded from production; release them on every fixture exit and retain
+source-bound failing receipts before changing runtime behavior. Pump only the owned HWND, including its shutdown
+notifications after host retirement, without acquiring desktop focus or clipboard.
 State/class diagrams must become native objects with exact local source access. Recovery checks strict Unicode
 envelopes, corruption/future versions, live-session leases, coalescing, cancellation, dirty Save As restoration,
 unapplied drafts, original-file preservation and a real process crash followed by restart.

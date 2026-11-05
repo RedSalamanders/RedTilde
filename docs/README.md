@@ -12,6 +12,11 @@ Diagram arrow labels blend into the graph background when contrast is sufficient
 or dark backing improves readability. Notes and filled groups keep their own surface; Mermaid source and
 undo history stay unchanged.
 
+**Closing files:** Close hides the window while an already admitted Save finishes. A failed write restores
+the window with an error and keeps your source and recovery copy. Edits made after Save still need a
+Save/Discard/Cancel choice. Close abandons an Open that is still loading; any edits typed meanwhile remain
+protected, and a cancelled Close cannot later apply that abandoned file.
+
 **Local editing:** F2 on a code or diagram object opens its exact source in place. On ordinary text, F2 opens
 the selected range/current line in a source draft while the rest stays rendered. Apply/Ctrl+Enter commits one
 edit, and Esc cancels. Link insertion opens a reviewable source draft rather than replacing selected words

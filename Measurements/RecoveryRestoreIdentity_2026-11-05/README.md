@@ -3,6 +3,13 @@
 Implementation and stabilized fixture: `31d6f59e20237dff220b0dc93723f95193e0fe81`.
 Dependency: `2a7e7c28f95a70193e4a2f68a89001d54b4d2131`, API 4.
 
+Hosted main `83e764a0` completes [run 42000363611](https://github.com/RedSalamanders/RedTilde/actions/runs/42000363611):
+both native x64/ARM64 Release roles pass 76 cases, 36 captures and their assertion probes. Both production
+roles start after the combined gate, disable test mode and pass clean-extraction smoke. Original native/
+production receipts and actual ZIP bytes are retained and rehashed in the
+[safe hosted projection](hosted-qualification.json). This accepts that Restore candidate's Release scope;
+the later close-during-save source and physical/performance gates remain separate.
+
 Restore previously read the first recovery entry in its continuation after the unsaved-change question or
 an admitted save. Recovery completions could remove that entry while the question pumped messages. The
 continuation could restore another snapshot or dereference an empty list.

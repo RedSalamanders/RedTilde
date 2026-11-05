@@ -1,6 +1,11 @@
 {
   "version": 1,
   "cases": [
+    { "name": "Recovery.CloseDuringSaveWaitsForDurableSuccess", "scope": "Recovery" },
+    { "name": "Recovery.CloseDuringSaveFailurePreservesSourceAndRecovery", "scope": "Recovery" },
+    { "name": "Recovery.CloseDuringSaveRechecksLaterEdits", "scope": "Recovery" },
+    { "name": "Recovery.CloseAbandonsPlainOpenWithoutPrompt", "scope": "Recovery" },
+    { "name": "Recovery.CloseAbandonsOpenAndProtectsLaterEdits", "scope": "Recovery" },
     {
       "name": "Utf8.CI_ASSERTION_PROBE",
       "scope": "Storage"

@@ -245,6 +245,9 @@ HRESULT Application::Initialize()
     if (!host.Attach(window.get(), {.forceWarp = options.forceWarp, .batchInitialRootChildren = true}))
         return HRESULT_FROM_WIN32(GetLastError());
     files.Initialize(window.get(), FileReady);
+#if defined(REDTILDE_ENABLE_TESTS)
+    files.SetTestGate(options.fileGateForTest);
+#endif
     const MARGINS frame{1, 1, 1, 1};
     (void)DwmExtendFrameIntoClientArea(window.get(), &frame);
     SetWindowPos(window.get(), nullptr, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
@@ -1126,6 +1129,8 @@ void Application::CloseDrawers()
 
 void Application::Execute(Command command)
 {
+    if (closing || closingAfterSave)
+        return;
     using namespace DxUi::RichText;
     // Presentation/structural changes cannot interrupt native IME composition.
     DxUi::NativeTextInputState native;
@@ -1623,6 +1628,10 @@ void Application::Menu(POINT point, bool insertOnly, bool headingOnly)
 
 std::filesystem::path Application::PickFile(bool saving, bool image, bool folder)
 {
+#if defined(REDTILDE_ENABLE_TESTS)
+    if (options.headless && options.filePickerForTest && !image && !folder)
+        return options.filePickerForTest(saving);
+#endif
     if (options.headless)
         return {};
     wil::com_ptr<IFileDialog> dialog;
@@ -1764,9 +1773,12 @@ void Application::FileCompleted()
     auto &result = completed.value();
     if (FAILED(result.status))
     {
+        const bool failedClose = closingAfterSave;
+        if (failedClose)
+            ResumeAfterSaveClose();
         MonitorDiagnostics::Write(RedMonitor::Severity::Error,
                                   result.saving ? L"save failed; source and previous target retained" : L"open failed; current document retained");
-        if (result.saving && result.status == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH) && !options.headless)
+        if (result.saving && result.status == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH) && !options.headless && !failedClose)
         {
             const int choice =
                 MessageBoxW(window.get(), Resource(IDS_CONFLICT).c_str(), Resource(IDS_APP).c_str(), MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2);
@@ -1778,7 +1790,7 @@ void Application::FileCompleted()
         }
         const auto error = ErrorText(result.status);
         const auto message = std::vformat(Resource(result.saving ? IDS_SAVEFAILED : IDS_OPENFAILED), std::make_wformat_args(error));
-        if (!options.headless)
+        if (!options.headless && !failedClose)
             MessageBoxW(window.get(), message.c_str(), Resource(IDS_ERROR).c_str(), MB_OK | MB_ICONERROR);
         feedback->SetText(message);
         afterSave = {};
@@ -1796,6 +1808,23 @@ void Application::FileCompleted()
         editor->SetDocumentFilePath(documentPath.native());
         Changed();
         Status(IDS_SAVED);
+        if (closingAfterSave)
+        {
+            if (Dirty())
+            {
+                // Save owns only its admitted immutable source. Closing cannot
+                // discard edits typed after that snapshot was submitted.
+                ResumeAfterSaveClose();
+                AskThen([this] { BeginClose(); });
+            }
+            else
+            {
+                closingAfterSave = false;
+                visibleBeforeSaveClose = false;
+                BeginClose();
+            }
+            return;
+        }
         if (afterSave)
         {
             auto continuation = std::move(afterSave);
@@ -1896,6 +1925,14 @@ void Application::BeginClose()
         window.reset();
     }
 }
+void Application::ResumeAfterSaveClose()
+{
+    closingAfterSave = false;
+    // Restore the existing placement without interrupting whoever has focus
+    // now. Headless harness windows must remain hidden on every failure path.
+    if (std::exchange(visibleBeforeSaveClose, false) && !options.headless)
+        ShowWindow(window.get(), SW_SHOWNA);
+}
 void Application::FinishClose()
 {
     if (closing && !preferenceWriter.Busy() && recovery.Finished())
@@ -1910,7 +1947,7 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
 {
     if (message == WM_CLOSE)
     {
-        if (closing || unsavedPromptOpen)
+        if (closing || closingAfterSave || unsavedPromptOpen)
             return 0;
         if (blockDraft->IsVisible())
         {
@@ -1920,18 +1957,27 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         }
         if (files.Busy())
         {
-            if (options.headless)
+            if (files.Saving())
             {
-                Status(IDS_BUSY);
+                // Keep the host and notification HWND alive until the admitted
+                // write/replace reports success. Recovery remains available if
+                // storage fails or the process ends while the save is pending.
+                CheckpointRecovery(true);
+                afterSave = {};
+                closingAfterSave = true;
+                visibleBeforeSaveClose = IsWindowVisible(window.get()) != FALSE;
+                ShowWindow(window.get(), SW_HIDE);
                 return 0;
             }
-            const int choice =
-                MessageBoxW(hwnd, Resource(IDS_CLOSEBUSY).c_str(), Resource(IDS_APP).c_str(), MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2);
-            if (choice == IDYES)
-            {
-                BeginClose();
-            }
-            return 0;
+            // An Open has no write to settle. Invalidate that worker's state
+            // before the ordinary dirty question; Cancel must also refuse its
+            // late result, and Save must be free to admit a new operation.
+            files.Close();
+            files.Initialize(window.get(), FileReady);
+#if defined(REDTILDE_ENABLE_TESTS)
+            files.SetTestGate(options.fileGateForTest);
+#endif
+            openingSnapshot.reset();
         }
         AskThen([this] { BeginClose(); });
         return 0;
@@ -2019,6 +2065,13 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
     {
         FileCompleted();
         return 0;
+    }
+    if (closingAfterSave)
+    {
+        const bool nativeLifecycle = message == WM_SHOWWINDOW || message == WM_KILLFOCUS || message == WM_ACTIVATE || message == WM_ACTIVATEAPP ||
+                                     message == WM_CANCELMODE || message == WM_CAPTURECHANGED || message == WM_SIZE || message == WM_DPICHANGED;
+        if (!nativeLifecycle)
+            return DefWindowProcW(hwnd, message, wParam, lParam);
     }
     if (message == ImageReady)
     {
@@ -2372,7 +2425,9 @@ int Application::Run()
     MSG message{};
     while (GetMessageW(&message, nullptr, 0, 0) > 0)
     {
-        if (!RouteShortcut(message) && !host.DispatchKeyboardMessage(message))
+        if (closingAfterSave)
+            DispatchMessageW(&message);
+        else if (!RouteShortcut(message) && !host.DispatchKeyboardMessage(message))
         {
             TranslateMessage(&message);
             DispatchMessageW(&message);

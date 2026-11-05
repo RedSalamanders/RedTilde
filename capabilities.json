@@ -15,6 +15,8 @@
     "selection-context-tools",
     "source-find-and-atx-outline",
     "asynchronous-document-open-save",
+    "close-waits-for-admitted-save-and-preserves-failed-write-recovery",
+    "close-abandons-open-and-protects-concurrent-edits",
     "strict-utf8-bom-eol-preservation",
     "atomic-save-and-external-change-check",
     "dirty-document-prompts",

@@ -1,4 +1,5 @@
 #include "RedTilde/Application.h"
+#include "Application.Tests.Close.h"
 #include "Application.Tests.DesignRefresh.h"
 #include "Application.Tests.Files.h"
 #include "Application.Tests.HeapDiagnostic.h"
@@ -184,7 +185,16 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
             owner = CoreTestScope::Editor;
         else
             throw std::invalid_argument("Unmapped native test prefix");
-        if (scope != CoreTestScope::All && owner != scope)
+        const bool editorPartition =
+            scope == CoreTestScope::EditorBehavior || scope == CoreTestScope::EditorPerformance || scope == CoreTestScope::EditorRendering;
+        if (editorPartition)
+        {
+            if (owner != CoreTestScope::Editor || (scope == CoreTestScope::EditorPerformance && prefix != "Performance") ||
+                (scope == CoreTestScope::EditorRendering && prefix != "Rendering") ||
+                (scope == CoreTestScope::EditorBehavior && (prefix == "Performance" || prefix == "Rendering")))
+                return;
+        }
+        else if (scope != CoreTestScope::All && owner != scope)
             return;
         if (selected++)
             report << ",\n";
@@ -215,6 +225,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
         report.flush();
     };
     RegisterFilesTests(root, test);
+    RegisterCloseTests(root, test);
     RegisterDesignRefreshTests(root, test);
     RegisterRemoteImageTests(root, test);
     test("Utf8.CI_ASSERTION_PROBE",

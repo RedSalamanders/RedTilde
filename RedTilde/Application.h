@@ -103,6 +103,8 @@ struct LaunchOptions
 #if defined(REDTILDE_ENABLE_TESTS)
     // Hidden harness replacement for the ordinary unsaved-change question.
     std::function<int()> unsavedPromptForTest;
+    std::function<std::filesystem::path(bool)> filePickerForTest;
+    std::shared_ptr<AsyncFiles::TestGate> fileGateForTest;
 #endif
 };
 struct ApplicationActivity
@@ -318,6 +320,7 @@ class Application
     };
     std::optional<SelectionToolsFocusRequest> selectionToolsFocus;
     bool bom{}, closing{}, initialized{}, initializing{}, unsavedPromptOpen{};
+    bool closingAfterSave{}, visibleBeforeSaveClose{};
     bool waitingForPreferences{};
     FileStamp stamp;
     DocumentInfo documentInfo;
@@ -371,6 +374,7 @@ class Application
     void FindNext(bool previous = false);
     void CloseDrawers();
     void BeginClose();
+    void ResumeAfterSaveClose();
     void RecoveryCompleted();
     void ShowRecovery();
     void FinishClose();
@@ -387,7 +391,10 @@ enum class CoreTestScope
     Storage,
     Settings,
     Recovery,
-    Editor
+    Editor,
+    EditorBehavior,
+    EditorPerformance,
+    EditorRendering
 };
 int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope = CoreTestScope::All, bool listOnly = false);
 int RunPerformanceProbe(Application &app, const LaunchOptions &options);
