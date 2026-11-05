@@ -2066,7 +2066,9 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         FileCompleted();
         return 0;
     }
-    if (closingAfterSave)
+    const bool nativeLifecycle = message == WM_SHOWWINDOW || message == WM_KILLFOCUS || message == WM_ACTIVATE || message == WM_ACTIVATEAPP ||
+                                 message == WM_CANCELMODE || message == WM_CAPTURECHANGED || message == WM_SIZE || message == WM_DPICHANGED;
+    if (closingAfterSave && !nativeLifecycle)
         return DefWindowProcW(hwnd, message, wParam, lParam);
     if (message == ImageReady)
     {
