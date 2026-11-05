@@ -620,6 +620,96 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                  Require(entry.path().extension() != L".rtd", "clean session and adopted snapshot retired");
              Require(FAILED(restart.Discard(L"..\\outside")), "foreign paths cannot be discarded");
          });
+    test("Recovery.IndependentDocumentCheckpointsAndLeases",
+         [&]
+         {
+             const auto directory = root / L"recovery-documents";
+             const auto wait = [](const std::function<bool()> &predicate)
+             {
+                 for (unsigned turn = 0; turn < 1200; ++turn)
+                 {
+                     if (predicate())
+                         return;
+                     std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                 }
+                 Require(false, "document recovery worker timed out");
+             };
+             RecoveryService writer;
+             Success(writer.Initialize(directory), "initialize shared document worker");
+             wait([&] { return writer.Ready(); });
+             for (unsigned document = 0; document < 3; ++document)
+                 Success(
+                     writer.SubmitDocument(
+                         document, RecoverySnapshot{L"draft " + std::to_wstring(document), L"Z:\\Notebook\\same.md", document == 1, {0, 3}, 1}, true),
+                     "independent documents may share a source location");
+             wait([&] { return writer.Settled(); });
+             Success(writer.Status(), "every admitted document is durable");
+             RecoveryService observer;
+             Success(observer.Initialize(directory), "scan while all document leases are active");
+             wait([&] { return observer.Ready(); });
+             Require(observer.TakeCandidates().empty(), "no active document is offered by another process");
+             observer.Stop();
+             wait([&] { return observer.Finished(); });
+             Require(FAILED(writer.SubmitDocument(RecoveryService::MaximumDocuments, RecoverySnapshot{}, true)),
+                     "out-of-range document identity is refused");
+             Success(writer.SubmitDocument(1, std::nullopt, true), "retire only the matching saved document");
+             Success(writer.SubmitDocument(2, RecoverySnapshot{L"latest second 😀\r\n", {}, true, {4, 0}, 2}, true),
+                     "update a different document without erasing the first");
+             writer.Stop();
+             wait([&] { return writer.Finished(); });
+             Success(writer.Status(), "stop flushes every pending document");
+             RecoveryService restart;
+             Success(restart.Initialize(directory), "restart scans every inactive document");
+             wait([&] { return restart.Ready(); });
+             const auto candidates = restart.TakeCandidates();
+             Require(candidates.size() == 2 && std::ranges::any_of(candidates, [](const auto &value) { return value.snapshot.text == L"draft 0"; }) &&
+                         std::ranges::any_of(candidates,
+                                             [](const auto &value)
+                                             {
+                                                 return value.snapshot.text == L"latest second 😀\r\n" && value.snapshot.bom &&
+                                                        value.snapshot.selection == DxUi::RichText::Selection{4, 0};
+                                             }),
+                     "restart retains exact source, encoding and selection for both unsaved documents");
+             restart.Stop();
+             wait([&] { return restart.Finished(); });
+         });
+    test("Recovery.ContinuousTypingCannotStarveCheckpoint",
+         [&]
+         {
+             const auto directory = root / L"recovery-continuous";
+             RecoveryService writer;
+             Success(writer.Initialize(directory), "initialize continuous-edit worker");
+             for (unsigned turn = 0; turn < 1000 && !writer.Ready(); ++turn)
+                 std::this_thread::sleep_for(std::chrono::milliseconds(5));
+             Require(writer.Ready(), "continuous-edit worker is ready");
+             const auto start = GetTickCount64();
+             unsigned generation{};
+             bool observed{};
+             while (GetTickCount64() - start < 6200)
+             {
+                 ++generation;
+                 Success(writer.Submit(RecoverySnapshot{L"continuous " + std::to_wstring(generation), {}, false, {0, 0}, generation}),
+                         "continuous edit remains admitted without an immediate flush");
+                 for (const auto &entry : std::filesystem::directory_iterator(directory / L"Recovery"))
+                     if (entry.path().extension() == L".rtd")
+                     {
+                         std::string bytes;
+                         RecoverySnapshot checkpoint;
+                         Success(ReadBytes(entry.path(), bytes), "read complete checkpoint while typing continues");
+                         Success(ParseRecovery(bytes, checkpoint), "a continuous-edit checkpoint remains valid");
+                         Require(checkpoint.generation > 1 && checkpoint.generation <= generation,
+                                 "checkpoint contains a recently admitted immutable generation");
+                         observed = true;
+                     }
+                 std::this_thread::sleep_for(std::chrono::milliseconds(40));
+             }
+             Require(observed, "a five-second deadline checkpoints without waiting for quiet typing");
+             writer.Stop();
+             for (unsigned turn = 0; turn < 1000 && !writer.Finished(); ++turn)
+                 std::this_thread::sleep_for(std::chrono::milliseconds(5));
+             Require(writer.Finished(), "shutdown bypasses quiet-time debounce");
+             Success(writer.Status(), "final continuous edit is durable");
+         });
     test("Recovery.CorruptAndFutureDataQuarantined",
          [&]
          {

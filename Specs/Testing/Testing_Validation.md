@@ -71,6 +71,13 @@ notifications after host retirement, without acquiring desktop focus or clipboar
 State/class diagrams must become native objects with exact local source access. Recovery checks strict Unicode
 envelopes, corruption/future versions, live-session leases, coalescing, cancellation, dirty Save As restoration,
 unapplied drafts, original-file preservation and a real process crash followed by restart.
+The crash/restart probe edits two actual Markdown files through ordinary Files activation, checkpoints both,
+crashes the isolated child, then restores both exact sources as independent dirty Save As copies. It also proves
+both original files unchanged. Native workspace cases cover Compose/Source/Split histories and oriented selection,
+external file changes while inactive, all-document prompt cancellation, duplicate original paths, untitled copies,
+64-document refusal, active leases, independently retired checkpoints, continuous typing's five-second admission
+bound, cancelled/final session termination and holding a completed Open behind a local draft. These hidden cases
+do not acquire desktop focus or claim OS restart, physical IME/AT or real-location qualification.
 
 App-derived work has behavioral coverage: hidden mirrors retain their revision through Compose/Source edits;
 entering Split and subsequent Split edits synchronize source/selection without resetting editable history.

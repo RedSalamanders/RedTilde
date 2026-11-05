@@ -32,6 +32,13 @@ retirement is still pending, hide the application window and retain its notifica
 writer is idle and recovery has finished. Recheck both states after dispatched messages as well as completion
 notifications; either service may finish first. Window destruction requires both finished states; service closure
 clears its notification binding. Do not join storage on the UI thread or retire the HWND after only one service completes.
+`WM_QUERYENDSESSION` immediately permits session termination and requests checkpoints for every dirty workspace
+document without a modal save question or shutdown-blocking reason. At final `WM_ENDSESSION(TRUE)`, editing
+commands stop, all workspace checkpoints are requested again and recovery may wait for at most 2,000 ms. A
+failure/timeout is recorded; it cannot turn the bounded allowance into an indefinite join. `WM_ENDSESSION(FALSE)`
+keeps the window, histories, pending snapshots and editing available. Ordinary Close retains its asynchronous
+worker-settlement contract. An ordinary visible launch registers Windows application restart for update/logoff
+coordination with crash/hang restart disabled; crash recovery remains the next ordinary launch's local preview.
 Synchronous native window and accessibility notifications during document-change publication may re-enter
 accepted Close; resumed updates must stop before using controls detached by that Close. This includes the
 Files badge publication before selection synchronization and recovery checkpointing.

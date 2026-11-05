@@ -23,8 +23,9 @@ struct RecoveryCandidate
 [[nodiscard]] std::string SerializeRecovery(const RecoverySnapshot &snapshot);
 [[nodiscard]] HRESULT ParseRecovery(std::string_view bytes, RecoverySnapshot &snapshot) noexcept;
 
-// One event-driven worker, one coalesced immutable snapshot, 750 ms quiet-time
-// debounce. The worker owns its lease and all filesystem access. No UI joins.
+// One event-driven worker, up to 64 independently coalesced document snapshots.
+// Each uses 750 ms quiet time and a five-second maximum admission delay. The
+// worker owns all leases and filesystem access. No UI joins.
 class RecoveryService final
 {
   public:
@@ -34,6 +35,9 @@ class RecoveryService final
     RecoveryService &operator=(const RecoveryService &) = delete;
     [[nodiscard]] HRESULT Initialize(std::filesystem::path dataDirectory, HWND window = nullptr, UINT message = 0) noexcept;
     [[nodiscard]] HRESULT Submit(std::optional<RecoverySnapshot> snapshot, bool immediate = false, std::wstring retireAfterWrite = {}) noexcept;
+    static constexpr unsigned MaximumDocuments = 64;
+    [[nodiscard]] HRESULT SubmitDocument(unsigned document, std::optional<RecoverySnapshot> snapshot, bool immediate = false,
+                                         std::wstring retireAfterWrite = {}) noexcept;
     [[nodiscard]] HRESULT Discard(std::wstring id) noexcept;
     [[nodiscard]] std::vector<RecoveryCandidate> TakeCandidates();
     [[nodiscard]] std::vector<std::wstring> TakeRetired();
@@ -41,6 +45,9 @@ class RecoveryService final
     [[nodiscard]] bool Settled() const noexcept;
     [[nodiscard]] bool Finished() const noexcept;
     [[nodiscard]] HRESULT Status() const noexcept;
+    // Only the final WM_ENDSESSION boundary may wait, bounded by the caller's
+    // shutdown allowance. Ordinary editing/Close continue asynchronously.
+    [[nodiscard]] HRESULT WaitForSettlement(DWORD milliseconds) const noexcept;
     void Stop() noexcept;
     void Close() noexcept;
 

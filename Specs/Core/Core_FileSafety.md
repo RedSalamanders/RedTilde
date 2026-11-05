@@ -15,7 +15,11 @@ An existing file identity (size, last-write and content fingerprint) is checked 
 external modifications require a choice to reload, Save As or explicitly overwrite. Atomicity does not eliminate
 the cross-process check/replace race; a stronger conditional-write protocol is a future hardening item.
 
-New/Open/Close prompt Save, Discard, Cancel when dirty. Save As cancellation cancels the original action. Undo
+New/explicit Open File/Open Folder/Close prompt Save, Discard, Cancel for every dirty workspace document.
+Files-pane activation retains each document and never prompts. Discard approval is staged until the requested
+action is admitted; cancelling a later question or picker retains even earlier approved documents. An approval
+is specific to the document's workspace identity and immutable source, so later edits are protected again.
+Save As cancellation cancels the original action. Undo
 back to saved text clears dirty; the saved baseline is exact source content, not just a transaction counter.
 While the Save/Discard/Cancel question is open, duplicate native or command Close requests are ignored.
 They keep the original prompt and continuation; they neither cancel it nor queue another Close. Cancel
@@ -43,7 +47,10 @@ short-circuit that comparison; source revision alone never establishes that a do
 
 Recovery is an independent per-session UTF-8 snapshot under LocalAppData, containing document path/encoding and
 source. It must never replace the user's Markdown file automatically. A clean save retires the matching snapshot.
-Restart offers a read-only source preview with Restore a copy, Discard snapshot and Keep for later. The settings
+Restart offers a read-only source preview with Restore a copy, Discard snapshot and Keep for later. When several
+copies are available, **Restore all copies** retains them as independent documents without overwriting the current
+workspace. Capacity is checked before starting. Restored documents with identical original paths and untitled
+copies remain separately reachable through Open documents. The settings
 drawer can reopen pending snapshots. Restored source retains BOM, line endings, original location for relative
 images and source selection; it is dirty and Save requires Save As. It never silently overwrites the original.
 
@@ -53,11 +60,19 @@ If it is no longer offered, stop with a localized explanation; retain the curren
 history, path and dirty/recovered state and every other candidate. Never substitute the next list entry.
 A later explicit Restore may choose another available copy. Successful retirement names only the captured id.
 
-Each process owns a random session identity and an exclusive lease. A single event-driven worker coalesces
-one immutable latest value and writes after 750 ms of quiet; explicit checkpoints and shutdown bypass debounce.
+Each process owns a random session identity and up to 64 distinct, exclusively leased document identities.
+A single event-driven worker coalesces one immutable latest value per document and writes after 750 ms of quiet,
+or admits a checkpoint after at most five seconds of continuous submissions. The bound concerns admission to
+filesystem I/O, not an unbounded filesystem completion time. Explicit checkpoints and shutdown bypass debounce.
+Continuous typing in one document cannot postpone another's due checkpoint. Retirement and storage errors remain
+document-specific; a later successful write to a different document cannot clear an outstanding snapshot failure.
 It never writes from the crash handler. A clean save/undo retires only this session's snapshot. Edits made during
 an admitted save remain dirty and retain recovery. Clean/discard shutdown waits asynchronously for retirement.
 Recovery failure is visible and leaves editing and explicit Save available.
+All dirty retained documents are checkpointed independently. After a crash/relaunch, the last durable source,
+selection, BOM and original location of each copy remain available; live Undo/Redo histories are not serialized.
+An isolated child-process regression edits two actual files through Files navigation, checkpoints them, crashes,
+then relaunches and restores both exact sources while proving both originals unchanged and requiring Save As.
 An unapplied local source draft is checkpointed as a proposed replacement in the recovery copy. The live source
 and history remain unchanged. Restart previews that proposed text before Restore; Cancel retires it when the
 authoritative source is clean. Invalid or oversized drafts retain the last valid checkpoint and show failure.

@@ -1412,6 +1412,8 @@ class PerformanceProbe
         out << ",\"activity\":{\"changes\":" << app.activity.changes - activity.changes << ",\"layouts\":" << app.activity.layouts - activity.layouts
             << ",\"mirrorResets\":" << app.activity.mirrorResets - activity.mirrorResets
             << ",\"recoverySubmissions\":" << app.activity.recoverySubmissions - activity.recoverySubmissions
+            << ",\"workspaceSwitches\":" << app.activity.workspaceSwitches - activity.workspaceSwitches
+            << ",\"workspaceRetainedPeak\":" << app.activity.workspaceRetainedPeak
             << ",\"captionRequests\":" << app.activity.captionRequests - activity.captionRequests
             << ",\"captionCalls\":" << app.activity.captionCalls - activity.captionCalls << "},\"resources\":[";
         if (options.resourceProbe)

@@ -100,10 +100,10 @@ try {
         $exit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--recovery-crash-probe','--data-dir',$recovery) -LogPrefix (Join-Path $run 'recovery-crash')
         if ($exit -eq 0 -or $exit -eq 6) { throw 'Recovery crash probe failed to durably checkpoint before its intentional crash.' }
         $snapshots=@(Get-ChildItem (Join-Path $recovery 'Recovery') -Filter '*.rtd' -File)
-        if ($snapshots.Count -ne 1) { throw 'Expected one isolated recovery snapshot after crash.' }
+        if ($snapshots.Count -ne 2) { throw 'Expected two independently leased document snapshots after crash.' }
         $exit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--recovery-restart-probe','--data-dir',$recovery) -LogPrefix (Join-Path $run 'recovery-restart')
-        if ($exit -ne 0) { throw 'Restart did not restore the exact unsaved source as a dirty Save As copy.' }
-        $receipt.results+=@{scope='RecoveryCrashRestart';exactSourceRestored=$true;originalProtectedBySaveAs=$true}
+        if ($exit -ne 0) { throw 'Restart did not restore both exact unsaved sources as independent dirty Save As copies.' }
+        $receipt.results+=@{scope='RecoveryCrashRestart';restoredDocumentCount=2;exactSourceRestored=$true;originalProtectedBySaveAs=$true}
     }
     if('Performance' -in $Suites){
         $performance=Join-Path $run 'performance.json'
