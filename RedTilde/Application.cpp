@@ -1234,9 +1234,16 @@ void Application::Execute(Command command)
     case Command::RestoreRecovery:
         if (!recoveryCandidates.empty())
             AskThen(
-                [this]
+                [this, candidate = recoveryCandidates.front()]
                 {
-                    const auto candidate = recoveryCandidates.front();
+                    // A prompt or admitted save can pump recovery completions.
+                    // Only the exact copy clicked before that boundary may restore.
+                    if (std::none_of(recoveryCandidates.begin(), recoveryCandidates.end(),
+                                     [&candidate](const auto &current) { return current.id == candidate.id; }))
+                    {
+                        Status(IDS_RECOVERYUNAVAILABLE);
+                        return;
+                    }
                     SetDocument(candidate.snapshot.text, candidate.snapshot.originalPath, candidate.snapshot.bom);
                     recovered = true;
                     editor->SetSelection(candidate.snapshot.selection);
@@ -1247,7 +1254,7 @@ void Application::Execute(Command command)
                         Status(IDS_RECOVERYFAILED);
                         return;
                     }
-                    recoveryCandidates.erase(recoveryCandidates.begin());
+                    std::erase_if(recoveryCandidates, [&candidate](const auto &current) { return current.id == candidate.id; });
                     CloseDrawers();
                     Status(IDS_RECOVERED);
                 });

@@ -140,12 +140,21 @@ These record oracles establish error mapping, not recovery from an actually miss
 
 Physical focus/IME/AT, release/package acceptance, hardware-specific qualification and paired resource/performance studies retain their owning gates. Hidden/scoped/native CI passes never close those gates. Native test basenames use contextual `Scope.Tests.Something.h/.cpp`; inventories cover active files only. Immutable historical receipts, archived source and legacy references are not renamed or rewritten.
 
-RedTilde partitions its 75 registered native cases into Storage (12), Settings (4), Recovery (6) and Editor (53). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
+RedTilde partitions its 76 registered native cases into Storage (12), Settings (4), Recovery (7) and Editor (53). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
 
 `Recovery.DuplicateCloseKeepsUnsavedPrompt` uses an owned hidden window and a test-only prompt callback.
 The callback sends a second window Close and command Close while the original choice is pending. Assert one
 prompt, no queued continuation, unchanged dirty source/history after Cancel, and a fresh prompt whose Discard
 can finish closing. The callback does not run in production builds and does not replace physical dialog coverage.
+
+`Recovery.RestoreKeepsClickedIdentityAcrossUnsavedPrompt` removes the clicked candidate through the normal
+Discard command and worker completion while the hidden unsaved question is open. Cover both another candidate
+remaining and an empty list: Restore must preserve the exact dirty revision, selection and undo history,
+leave the other copy available, and allow a fresh explicit Restore of that copy. Keep the original unchanged-code
+wrong-copy failure separate from successful fixed runs. The hidden scenario preserves foreground focus.
+Evaluate the recovery wait's terminal facts after pumping hidden UI: ready, settled and the expected candidate
+count must agree, with successful worker status. Publishing retirement can refresh the drawer and submit a
+new checkpoint. Do not pump again after accepting the wait and then assert its earlier settled observation.
 
 The hidden responsive-layout/DPI case retains the exact initial foreground and hidden-window assertions. A failure records which predicate changed, whether the observed foreground is the test window or another process-owned window, and whether the original window still exists. These observations do not attribute a historical foreground change or permit activation; preserve the failed run separately from later qualification.
 

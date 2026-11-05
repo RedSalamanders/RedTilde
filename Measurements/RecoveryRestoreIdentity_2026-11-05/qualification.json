@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "claim": "Source-bound functional and build verification; no paired-performance, physical-input or native ARM64-runtime acceptance",
+  "implementationCommit": "31d6f59e20237dff220b0dc93723f95193e0fe81",
+  "sdkCommit": "2a7e7c28f95a70193e4a2f68a89001d54b4d2131",
+  "apiRevision": 4,
+  "compiledSourceIdentity": "5e137713537ca826ed99f57a7a82253eeb597eaab84bb669688cd20b5665584a",
+  "canonicalCompiledSourceMatched": true,
+  "builds": [
+    {
+      "platform": "x64",
+      "configuration": "Debug",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": true,
+      "buildLogSha256": "FC7A8DD950B53B075A56D183AB0F5C313028C20DAA5E91DBE82B6A7AF498A1F5",
+      "buildReceiptSha256": "24BA8B350127E6860C7F5695B5FF3B7B4506D126A86AC63D3ACB1263EBA1296D",
+      "binarySha256": "6C2B1F58B64ABAD44A3522EF26DF15746CB16239F2C98FD66FCD99249D0E96C3"
+    },
+    {
+      "platform": "x64",
+      "configuration": "Release",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": true,
+      "buildLogSha256": "51EA637DB6E1E3D226C0AB09657E18AD102EC2640D2E43134AD38DD047A0BD3F",
+      "buildReceiptSha256": "4B7A17E81750AEC0F4340A7F277B14B84C7C5613A75725D4578DD41340BB97AD",
+      "binarySha256": "7E956B2072428C07A72BDFCBEC7ADF8834ABFC484D6E56F29B8059357D1EED08"
+    },
+    {
+      "platform": "x64",
+      "configuration": "ASan Debug",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": true,
+      "buildLogSha256": "12485B09854FD0029676D4D8CACBF136C492E1B5FFFD40C1F01134EDB4EF92BE",
+      "buildReceiptSha256": "1CF96096A92EE79D38A913254EBAB06D00DCBD1BC7B3E2018ED8A6C935D3BC1E",
+      "binarySha256": "29B98E0EE02FEF351B12191F1E7CCAE0EEBA408A0444F0DE7F0266C322ED2AFA"
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Release",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": false,
+      "buildLogSha256": "BCBE25CBA32FFA6D5CD4DDAB1AD293FD346539130B02DC296F103C3E7F0056D6",
+      "buildReceiptSha256": "0E75597D16B3E357AF6F4D057F526C75FE68ABD62ECFEA971D95B1E9FBFC0C28",
+      "binarySha256": "50C0A19DA965344D5992518FFDA657716527570F1AE83E8AFCA67FB093F7872E"
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Debug",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": false,
+      "buildLogSha256": "BE430DEB66F7838CE3DD6AD76888EB9E07C81552FF5A710A81A2844D49B2CD64",
+      "buildReceiptSha256": "91EC50E3E024B9749BD004C6A40DC43F56B4C3AD92056B4242F2318729608376",
+      "binarySha256": "766334BA8B74CD21D34AEEBD6577D64C5E97A142A4EE8C2C92A4B333C3256B21"
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "ASan Debug",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": false,
+      "buildLogSha256": "E179763E22706BB92058224245391777C73D415D72AD1DFC15F620F476B81AA2",
+      "buildReceiptSha256": "CE691ED0698AB3F79D3B69B6516968263CE8B1DC8BF1225A584728747380B0AA",
+      "binarySha256": "FF93BFD877CB71A1A5BB667C6A85859D036793F735DBBFBAFE71519FCAB1EC49"
+    }
+  ],
+  "nativeRuns": [
+    {
+      "platform": "x64",
+      "configuration": "Debug",
+      "run": "20261104T163306836Z-50304-d79f924c44b74ac88dbc73f20eb5dc1c",
+      "passed": true,
+      "casesPassed": 76,
+      "casesFailed": 0,
+      "capturePairs": 36,
+      "scopes": [
+        "Capture",
+        "Crash",
+        "Editor",
+        "InteractiveProbeRefusal",
+        "PerformanceBaseline",
+        "PreferencesProcessExit",
+        "Recovery",
+        "RecoveryCrashRestart",
+        "Settings",
+        "Storage"
+      ],
+      "receiptSha256": "EF7BAA54AF31A0047E6A390491D4882D3B711F7812BD193FDE4198CE3BA51EB9",
+      "completionSha256": "CAE8B4B764B35BB17779A1E4B0D572EBF2AA09C8C1053FE406AA7E2AAB54392E",
+      "testLogSha256": "226C3CC59E7FA1990C3C2A1D55411A6DC40D159454E61184481DC22B44922729",
+      "binarySha256": "6C2B1F58B64ABAD44A3522EF26DF15746CB16239F2C98FD66FCD99249D0E96C3"
+    },
+    {
+      "platform": "x64",
+      "configuration": "Release",
+      "run": "20261104T164017292Z-50212-d1aaf5cc91e94bffacb709bed1c96962",
+      "passed": true,
+      "casesPassed": 76,
+      "casesFailed": 0,
+      "capturePairs": 36,
+      "scopes": [
+        "Capture",
+        "Crash",
+        "Editor",
+        "InteractiveProbeRefusal",
+        "PerformanceBaseline",
+        "PreferencesProcessExit",
+        "Recovery",
+        "RecoveryCrashRestart",
+        "Settings",
+        "Storage"
+      ],
+      "receiptSha256": "AEF132A569D3AADB6C235260F67B435477FBF6D569A067D47E3491C6D506EC80",
+      "completionSha256": "12F671835A7FD877A48EF1699A7B00BD885CBA9F8403701E0BD58BF5295CD835",
+      "testLogSha256": "1E5B2C7115DD88D2DFDFE808D59CB1007AF21AEC5EF9B33ABB0ECE918C2E5C26",
+      "binarySha256": "7E956B2072428C07A72BDFCBEC7ADF8834ABFC484D6E56F29B8059357D1EED08"
+    },
+    {
+      "platform": "x64",
+      "configuration": "ASan Debug",
+      "run": "20261104T164514320Z-22996-d22003da6b514849b553a54bc9a2df42",
+      "passed": true,
+      "casesPassed": 76,
+      "casesFailed": 0,
+      "capturePairs": 36,
+      "scopes": [
+        "AddressSanitizer",
+        "Capture",
+        "Crash",
+        "Editor",
+        "InteractiveProbeRefusal",
+        "PerformanceBaseline",
+        "PreferencesProcessExit",
+        "Recovery",
+        "RecoveryCrashRestart",
+        "Settings",
+        "Storage"
+      ],
+      "receiptSha256": "FA580744F6D2B0A708813B3D53A38B044A1E873F6B5F8335167A8FF763176E49",
+      "completionSha256": "A2952C2AB25123617B0DC77D00A10E301B0397D4C122EB58347397870B67E061",
+      "testLogSha256": "C808042EAE787761F00821FAE5A0AB8FB350338F8CFB7596D66BEB0A66958970",
+      "binarySha256": "29B98E0EE02FEF351B12191F1E7CCAE0EEBA408A0444F0DE7F0266C322ED2AFA",
+      "realAsanDetection": true
+    }
+  ],
+  "retainedNativeArtifacts": [
+    {
+      "profile": "x64-Debug",
+      "archiveSha256": "9A8F48032D6FDA4657A02F36DC5EF96635660EF2E20D1EF7040884DB9F39249E",
+      "originalExecutableAndReceiptVerified": true
+    },
+    {
+      "profile": "x64-Release",
+      "archiveSha256": "B4107BD6A97244A9C914F7B21DAB90AB6EC6F548F946A6D405E37A3EE8778748",
+      "originalExecutableAndReceiptVerified": true
+    },
+    {
+      "profile": "x64-ASan-Debug",
+      "archiveSha256": "B3C0645F5A83A564E3BCBB1DF6A98ABBDD0C7B995FFF982745F7BE166C58C812",
+      "originalExecutableAndReceiptVerified": true
+    },
+    {
+      "profile": "ARM64-Release",
+      "archiveSha256": "1887C9D46BEDDC86C1BB967932A77D57B9A066762F038896098055D0A15CFF21",
+      "originalExecutableAndReceiptVerified": true
+    },
+    {
+      "profile": "ARM64-Debug",
+      "archiveSha256": "E5614A5E813EC03454442290EFFC905E81AE62E909F02225B0F1EA6E51280807",
+      "originalExecutableAndReceiptVerified": true
+    },
+    {
+      "profile": "ARM64-ASan-Debug",
+      "archiveSha256": "5C77FCF18797AB1A87B9CB89664133C0D1CAB5617E1C0E5E394D262C1AAE9C12",
+      "originalExecutableAndReceiptVerified": true
+    }
+  ],
+  "counterfactual": {
+    "counterfactualSource": "a6a34ccb0fdb060b9f295e5a9a59adf0ac5a0893",
+    "nativeTestExit": 1,
+    "registered": 76,
+    "selected": 7,
+    "passed": 6,
+    "failed": 1,
+    "expectedAssertion": "a vanished clicked candidate cannot restore or retire another copy",
+    "nativeTestsSha256": "A725910537EFF2B2CFD929F4C5FC83722959B997B6981A035EE8A4CD4FC39A57",
+    "canonicalReceiptSha256": "4D1213E21E51BE6CEA8BF07A453B1A7F9CA3E9AC9E06F641A86594456AE5A6B0",
+    "rawLogSha256": "2A057A0A4A60A04129DE26366F0D8ED0187423B90CBFC2C0AFECDEEE67A84805",
+    "nativeRunId": "20261104T161140153Z-59104-b834dc60494e48be99a6480a9c963a5a"
+  },
+  "firstDebugFixtureFailure": {
+    "sourceCommit": "924d1ce6ecda0df942590f0f8e4147ae18c7c536",
+    "nativeRun": "20261104T162528723Z-27684-27345ffadd444dabb195f97a153fbd09",
+    "nativeTestsSha256": "9FCF608EFA24335CF250DA5EC279A7DAF05DF7CAC1BF6FB44D58C1257B3C0935",
+    "nativeReceiptSha256": "322DDFBC602F6D621383DDCE2B5231ED6D15312C25DFDD7C7BA982EB995AC0AB",
+    "reason": "recovery mutation settles inside the hidden prompt loop",
+    "selected": 7,
+    "passed": 6,
+    "failed": 1,
+    "finding": "The fixture pumps UI after waiting for settled; recovery drawer refresh can submit a fresh checkpoint from CloseDrawers."
+  },
+  "continuation": {
+    "finalCrossBuildResumed": "2026-11-05",
+    "fiveCompletedBuildsRetained": true,
+    "completedProfilesRerun": false
+  },
+  "remaining": [
+    "Native ARM64 runtime for this app candidate",
+    "Physical focus, IME, touch and assistive technology",
+    "Paired performance and physical-device acceptance",
+    "Other remaining-work items and separate release acceptance"
+  ]
+}

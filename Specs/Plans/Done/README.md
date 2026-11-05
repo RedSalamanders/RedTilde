@@ -1,5 +1,11 @@
 # Completed and archived plans
 
+## Completed scopes — 5 November 2026
+
+- [Recovery Restore identity](RecoveryRestoreIdentity_2026-11-05.md) — clicked-snapshot binding, missing-copy refusal, retained counterexample and fixture synchronization failure, six builds and three complete native x64 profiles; broader recovery work remains in WIP.
+
+- [Real keyboard and focus qualification](KeyboardAndFocusQualification_2026-11-05.md) — nine named stages including F2, explicit timing agreement, canonical warning/lease and verified foreground/focus/pointer restoration; physical IME/touch/AT/clipboard acceptance stays separate.
+
 ## Consolidated records — 4 November 2026
 
 - [Diagram label backgrounds and duplicate Close](DiagramLabelBackgroundsAndClosePrompt_2026-11-04.md) — exact-pin contrast/canvas rendering, original matched captures, prompt reentrancy regression and six-profile scoped qualification; broader correctness and acceptance remain in WIP.

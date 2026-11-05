@@ -1,7 +1,7 @@
 # RedTilde remaining delivery and qualification
 
 Status: ACTIVE
-Updated: 4 November 2026
+Updated: 5 November 2026
 Owner: RedTilde maintainers; shared controls stay with DxUi.
 
 This is the **only active RedTilde plan**. It replaces the ten overlapping planning queues listed in the
@@ -27,6 +27,12 @@ and 36 captures in each x64 profile, the real ASan probe and the accepted duplic
 native ARM64 Release also passes in the source-bound hosted run below. ARM64 Debug/ASan,
 physical/interactive and performance acceptance remain separately owned.
 
+The recovery Restore follow-up is implemented at `31d6f59e`, retaining that same API-4 pin. Its
+[scoped closeout](../Done/RecoveryRestoreIdentity_2026-11-05.md) records six zero-warning builds, all 76 native
+cases and 36 captures in each x64 profile, real ASan detection, the original wrong-copy counterexample and
+the corrected hidden-wait synchronization. Its app candidate still needs its own hosted/native ARM64 runtime
+acceptance; the earlier 75-case hosted receipts remain bound to `1c600d60`.
+
 | Completed scope | Evidence and limit |
 | --- | --- |
 | Persistent folder root, Open Folder/Open File, restart restoration and expanded public examples | [Folder/sample closeout](../Done/FolderNavigationAndSamples_2026-11-03.md); [packet](../../../Measurements/FolderNavigation_2026-11-03/README.md). |
@@ -50,7 +56,9 @@ meaningful failing-then-passing regression where applicable.
 <a id="t-s1"></a>
 ### T-S1 — recovery, shutdown and exception safety
 
-- [ ] Bind Restore to the exact snapshot clicked before entering a dirty-document prompt (RT-04/PR-06).
+- [x] Bind Restore to the exact snapshot clicked before entering a dirty-document prompt (RT-04/PR-06).
+  Revalidate its id after the prompt/save; a missing copy leaves the current document and other candidates
+  intact. [Code, counterexample, six builds and all three native x64 profiles](../Done/RecoveryRestoreIdentity_2026-11-05.md)
 - [ ] Complete the approved close-during-save contract: hide while an admitted save completes, retain recovery
   until success, and reshow with the failure; abandon an Open in flight (RT-02/PR-05, Q4).
 - [ ] Implement immediate recovery submission on session end, bounded settlement and restart presentation
@@ -97,8 +105,10 @@ RT-18 remains optional defensive hardening, not a newly confirmed defect.
   records the exact pin, all three x64 profiles, ASan detection and actual hidden captures.
 - [ ] Qualify Source-view Enter, native IME capacity and quoted file-paste behavior through the exact adopted
   DxUi pin (DX-3/DX-4 and the RT-03 shared half); do not implement competing editor logic in the app.
-- [ ] Complete the agreed real-keyboard `Equation.F2InPlaceEditUndoAndExit` check through the existing restoring
-  desktop lease. A hidden test does not close this gate.
+- [x] Complete real-keyboard `Equation.F2InPlaceEditUndoAndExit` through the existing restoring desktop lease.
+  All nine keyboard/focus stages pass at `31d6f59e` after explicit timing agreement and the visible 30-second
+  countdown. Foreground/focus remain unchanged and the pointer is restored.
+  [Named checks and exact receipt identities](../Done/KeyboardAndFocusQualification_2026-11-05.md)
 - [ ] Implement remaining Q9/Q14 window placement, work-area clamping, launch show state, Find case/repeat,
   confirmed explicit link opening, text-scale shortcuts and last-document/session startup policy.
   Last-folder restoration is already implemented; last-document/session startup is a separate requirement.
@@ -175,6 +185,11 @@ follow-up is removed. Completion correctly reported failed native qualification.
 <a id="t-q2"></a>
 ### T-Q2 — exact-pin adoption, native/physical acceptance and release
 
+- [x] Qualify Restore identity at `31d6f59e`, API 4 / `2a7e7c28`: six zero-warning builds, all 76 cases and
+  36 captures per x64 profile, the real ASan detection probe and byte-verified native artifact preservation.
+  [Exact source-bound record](../../../Measurements/RecoveryRestoreIdentity_2026-11-05/qualification.json)
+  retains both initial failures and the exact final-profile continuation; it supplies no native ARM64 runtime or physical acceptance.
+
 - [x] Qualify the current API-4 diagram/Close implementation at `2a7e7c28`: six zero-warning/zero-error builds,
   all 75 cases and 36 captures in each x64 profile, process/recovery/crash/performance-smoke checks and real ASan
   detection. [Source-bound evidence](../../../Measurements/DiagramLabelBackgrounds_2026-11-04/qualification.json)
@@ -189,7 +204,11 @@ follow-up is removed. Completion correctly reported failed native qualification.
 - [ ] Complete applicable native ARM64 Debug/ASan and physical/input qualification. Cross-builds and old-pin matrices
   do not establish those runtime profiles. Retain the 90-second loaded-host Editor timeout and its same-binary
   sequential pass as separate observations; diagnose that responsiveness boundary with T-P1 before accepting it.
-- [ ] Qualify real keyboard/focus/clipboard, physical IME, UIA/assistive technology and touch on named scenarios;
+- [x] Qualify the nine named real keyboard/focus stages in x64 Release at `31d6f59e`, API 4 / `2a7e7c28`:
+  editor input/undo, Files, Find, Settings, Focus, selection tools, F2, File menu and clean asynchronous close.
+  [Original receipt projection](../../../Measurements/RecoveryRestoreIdentity_2026-11-05/keyboard-qualification.json)
+  records explicit timing consent, real input and independently verified desktop restoration.
+- [ ] Qualify clipboard, physical IME, UIA/assistive technology and touch on named scenarios;
   arrange interactive timing with the user before taking focus.
 - [ ] Verify production-only sources, all test/probe refusal paths, native/production output separation and
   clean-extraction smoke. Recheck RT-13/15/16/17 against the current unified implementation rather than applying

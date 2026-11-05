@@ -32,6 +32,12 @@ Restart offers a read-only source preview with Restore a copy, Discard snapshot 
 drawer can reopen pending snapshots. Restored source retains BOM, line endings, original location for relative
 images and source selection; it is dirty and Save requires Save As. It never silently overwrites the original.
 
+Restore captures the clicked candidate's identity and immutable snapshot before asking about unsaved changes.
+After the prompt or a successful admitted save, revalidate that exact identity before changing the editor.
+If it is no longer offered, stop with a localized explanation; retain the current source revision, selection,
+history, path and dirty/recovered state and every other candidate. Never substitute the next list entry.
+A later explicit Restore may choose another available copy. Successful retirement names only the captured id.
+
 Each process owns a random session identity and an exclusive lease. A single event-driven worker coalesces
 one immutable latest value and writes after 750 ms of quiet; explicit checkpoints and shutdown bypass debounce.
 It never writes from the crash handler. A clean save/undo retires only this session's snapshot. Edits made during

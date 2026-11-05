@@ -927,6 +927,99 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                      "a fresh Close after Cancel asks again and honors the original Discard continuation");
              Require(GetForegroundWindow() == foreground, "the hidden prompt regression preserves desktop foreground");
          });
+    test("Recovery.RestoreKeepsClickedIdentityAcrossUnsavedPrompt",
+         [&]
+         {
+             const auto foreground = GetForegroundWindow();
+             // Try the nonempty remainder first: the old continuation restores
+             // the wrong copy without needing to dereference an empty vector.
+             for (const unsigned survivors : {1u, 0u})
+             {
+                 const auto directory = root / std::format(L"restore-clicked-{}", survivors);
+                 std::filesystem::create_directories(directory / L"Recovery");
+                 std::vector<std::filesystem::path> candidates;
+                 std::vector<RecoverySnapshot> snapshots;
+                 for (unsigned index = 0; index <= survivors; ++index)
+                 {
+                     candidates.push_back(directory / L"Recovery" / std::format(L"session-{:032x}.rtd", index + 1));
+                     snapshots.push_back({std::format(L"Notebook copy {} — 東京\r\n", index),
+                                          directory / std::format(L"notebook-{}.md", index),
+                                          index != 0,
+                                          {2, 5},
+                                          index + 1});
+                     Success(WriteBytesAtomic(candidates.back(), SerializeRecovery(snapshots.back())), "seed inactive recovery copy");
+                 }
+                 Application *owner{};
+                 unsigned prompts{};
+                 std::function<void(std::size_t, std::string_view)> settle;
+                 LaunchOptions launch;
+                 launch.headless = true;
+                 launch.dataDirectory = directory;
+                 launch.unsavedPromptForTest = [&]
+                 {
+                     if (++prompts == 1)
+                     {
+                         const auto checkpoints = owner->Activity().recoverySubmissions;
+                         owner->Execute(Command::DiscardRecovery);
+                         settle(survivors, "discard inside the unsaved prompt");
+                         Require(owner->RecoveryCount() == survivors, "the clicked candidate retires while the unsaved prompt is open");
+                         if (survivors)
+                             Require(owner->Activity().recoverySubmissions > checkpoints,
+                                     "drawer refresh checkpoints the live dirty document before the wait accepts settlement");
+                     }
+                     return IDNO;
+                 };
+                 Application app(std::move(launch));
+                 owner = &app;
+                 settle = [&](std::size_t expected, std::string_view phase)
+                 {
+                     for (unsigned turn = 0; turn < 1000; ++turn)
+                     {
+                         // Publishing candidate retirement refreshes the drawer,
+                         // which can checkpoint again. Check terminal facts after
+                         // pumping UI, with no later pump invalidating the wait.
+                         app.Prepare();
+                         if (app.RecoveryReady() && app.RecoverySettled() && app.RecoveryCount() == expected)
+                         {
+                             Require(SUCCEEDED(app.RecoveryStatus()), "the recovery worker settles successfully");
+                             return;
+                         }
+                         std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                     }
+                     throw std::runtime_error(std::format("Recovery did not settle after {}: ready={}, settled={}, candidates={} (expected {}), "
+                                                          "status=0x{:08X}, submissions={}",
+                                                          phase, app.RecoveryReady(), app.RecoverySettled(), app.RecoveryCount(), expected,
+                                                          static_cast<std::uint32_t>(app.RecoveryStatus()), app.Activity().recoverySubmissions));
+                 };
+                 Success(app.Initialize(), "create hidden Restore identity app");
+                 settle(survivors + 1, "initial candidate scan");
+                 Require(app.RecoveryCount() == survivors + 1, "all inactive candidates are offered");
+                 app.SetDocument(L"Current notebook");
+                 app.Document().SetSelection({16, 16});
+                 Require(app.Document().ReplaceSelection(L" continued"), "make the current notebook dirty");
+                 const auto current = app.Document().Snapshot();
+                 const auto selection = app.Document().GetSelection();
+                 app.Execute(Command::Recovery);
+                 app.Execute(Command::RestoreRecovery);
+                 Require(prompts == 1 && app.RecoveryCount() == survivors && !app.RequiresSaveAs(),
+                         "a vanished clicked candidate cannot restore or retire another copy");
+                 Require(app.Dirty() && app.Document().Snapshot().IsSameRevision(current) && app.Document().GetSelection() == selection &&
+                             app.Document().CanUndo(),
+                         "stale Restore preserves the exact current revision, selection and undo history");
+                 if (survivors)
+                 {
+                     const auto remaining = std::filesystem::exists(candidates[0]) ? 0u : 1u;
+                     Require(std::filesystem::exists(candidates[remaining]), "the unchosen recovery copy remains on disk");
+                     app.Execute(Command::RestoreRecovery);
+                     Require(prompts == 2 && app.RecoveryCount() == 0 && app.RequiresSaveAs() && app.Dirty() &&
+                                 app.Document().GetText() == snapshots[remaining].text &&
+                                 app.Document().GetSelection() == snapshots[remaining].selection,
+                             "a fresh Restore can explicitly choose the remaining exact copy");
+                     settle(0, "fresh Restore durability");
+                 }
+                 Require(GetForegroundWindow() == foreground, "hidden Restore identity coverage preserves desktop foreground");
+             }
+         });
     test("Window.CaptionRetriesFailedAndSupersededNativeWrites",
          [&]
          {
