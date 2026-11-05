@@ -12,6 +12,7 @@ compatibility. All content is invented and needs no network resources.
 | [Native Mermaid family gallery](mermaid-supported-families.md) | Small positive examples of all eight bounded native profiles |
 | [Sequence actors, notes and numbers](mermaid-sequence.md) | Actor figures, chronological notes, automatic message numbers and plain arrows |
 | [Shared display regressions](mermaid-display-regressions.md) | Styled labels, ER/class fans, task markers and readable code chrome |
+| [Layout and mathematical spacing](layout-and-math-regressions.md) | The BT preparation pipeline, LR inheritance, close accents and gathered vectors |
 | [Tasks and text insets](tasks-and-insets.md) | Theme accent, optional completed-task strike-through, table cells and inline-code spacing |
 | [YAML metadata](front-matter-yaml.md) | A valid document-start YAML front-matter envelope |
 | [TOML metadata](front-matter-toml.md) | A valid document-start TOML front-matter envelope |

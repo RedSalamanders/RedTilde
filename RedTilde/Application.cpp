@@ -2083,6 +2083,11 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
             sessionEndRecoveryStatus = recovery.WaitForSettlement(2000);
             if (FAILED(sessionEndRecoveryStatus))
                 MonitorDiagnostics::Write(RedMonitor::Severity::Warning, L"Session-end recovery did not settle within its bounded allowance");
+            // End the ordinary process loop without the clean-close path that
+            // retires dirty copies. A hidden fixture owns only its test window,
+            // never the parent harness's message loop (as for WM_DESTROY).
+            if (!options.headless)
+                PostQuitMessage(0);
         }
         return 0;
     }
