@@ -1,0 +1,238 @@
+{
+  "schemaVersion": 1,
+  "claim": "Selection transformation and owned-window no-activation correctness; six builds and three complete x64 native profiles",
+  "implementationCommit": "4c967858d4482e45d114e0f4455fe1efefbd2b4a",
+  "sdkCommit": "f765aeca5e059dbe768841b605b1be6a5f6ea942",
+  "apiRevision": 4,
+  "compiledSourceIdentity": "621e089ea0203d103fd38004134df78d5acce1db93aeee821901cbdb56767b12",
+  "originalSourceInputs": {
+    "inputCount": 140,
+    "canonicalOriginalBytesMatched": true,
+    "archiveSha256": "E19FE7658FDC59E1E7272900E59C19D6C239201A7063A2EC2CCF0F114CB81C75"
+  },
+  "builds": [
+    {
+      "warnings": 0,
+      "buildReceiptSha256": "32AAAFC6B4FC5DC9FA1BB9DC760E96412078005D13306F8423684EEDA438A5B4",
+      "platform": "x64",
+      "nativeRuntime": true,
+      "binarySha256": "43BB821FDB9904DCEE380FE5D53E6F0528C59FC196157323B62D8A3E28D67368",
+      "buildLogSha256": "47AA96731BDC2F21CEBCCF54C2E3258A75C648CFE6EACE093EAEC00BD577378C",
+      "configuration": "Release",
+      "errors": 0
+    },
+    {
+      "warnings": 0,
+      "buildReceiptSha256": "4A0C5E1108246D8A8AFA8DCCAA6C16F872638711AD352470E38CF28D63FBF982",
+      "platform": "x64",
+      "nativeRuntime": true,
+      "binarySha256": "FC13D6488BA22A5E2770EC31644A9778A814E233E9A9CCE3C55E32DD10858D1A",
+      "buildLogSha256": "EBE63609974CAC3CE96B32EAFDBE6ED6F28268F4C51C7436F5E0E0A998EF58AC",
+      "configuration": "Debug",
+      "errors": 0
+    },
+    {
+      "warnings": 0,
+      "buildReceiptSha256": "48203C9A7F6DCFC5A44331F678DF15E9A0AD5A425A8653292C793B03FD8B178D",
+      "platform": "x64",
+      "nativeRuntime": true,
+      "binarySha256": "2FCCA9CFC3354E2084E266D14A4714C99490BF85620F30DEAFAD575E756C3C35",
+      "buildLogSha256": "731D70DD3841D4C7E2FA42522571FB4BA89277E9FD5796992FC9D1822CF1AC0C",
+      "configuration": "ASan Debug",
+      "errors": 0
+    },
+    {
+      "warnings": 0,
+      "buildReceiptSha256": "A32B956F9C4D26EBB04B4858F572F0B40D408E72D90C18F454139C1A0E204C9C",
+      "platform": "ARM64",
+      "nativeRuntime": false,
+      "binarySha256": "583F6A35D8874D73FE4A4DE41045709B3A770F33D9F5B324B67260DE2529FA77",
+      "buildLogSha256": "DE33CD3C0C0400D4A03A8D8F794465345D1FB3A35A4F1C117EE13191D43CC67D",
+      "configuration": "Release",
+      "errors": 0
+    },
+    {
+      "warnings": 0,
+      "buildReceiptSha256": "CD8240F1571CA2E58DCF765DF627BA0CD0205DF16A064887A79D4755BDF899EC",
+      "platform": "ARM64",
+      "nativeRuntime": false,
+      "binarySha256": "170F971256784C136DB4C27F0FD9720A3DB3D19DFA4AA81FE3B4E0DA999A0312",
+      "buildLogSha256": "D01A42FDEAA8F9B807DBE2D14DF69F78204C36DC0291572A2F667298C05514ED",
+      "configuration": "Debug",
+      "errors": 0
+    },
+    {
+      "warnings": 0,
+      "buildReceiptSha256": "B68361BBD231BC6367EBE8B9D378A528896BA05C17DF79AF516826C04124E59A",
+      "platform": "ARM64",
+      "nativeRuntime": false,
+      "binarySha256": "CDDEDAE232BC5E98DE63CF61E450735E83196B6713E2316E92FC57F8E9577508",
+      "buildLogSha256": "AB376D8399C81F96D274C07DD2007FE5CCB11FE49FF4D71A67BCC90033A177DC",
+      "configuration": "ASan Debug",
+      "errors": 0
+    }
+  ],
+  "nativeRuns": [
+    {
+      "editorPartitions": {
+        "EditorBehavior": 48,
+        "EditorPerformance": 3,
+        "EditorRendering": 3
+      },
+      "runId": "20261105T205646736Z-42396-c6c04d11af3e4030831b6da369f360ad",
+      "canonicalReceiptSha256": "B49485185E4B0868C8E24F26199A946D22EE4881DE6FD44E9E4B5B6638F3FAAA",
+      "passed": 83,
+      "configuration": "Release",
+      "scopes": [
+        "Capture",
+        "Crash",
+        "Editor",
+        "InteractiveProbeRefusal",
+        "PerformanceBaseline",
+        "PreferencesProcessExit",
+        "Recovery",
+        "RecoveryCrashRestart",
+        "Settings",
+        "Storage"
+      ],
+      "completionSha256": "2E1A9DEABCE05C59B90434854E26551973D988D72E6E91C51C5649BE7CC789AB",
+      "captures": 36,
+      "nativeRunArchiveSha256": "28B4C4FC25D801FAD248DB771325678FF40B82F3101BECF857D5C1EF26580F9A",
+      "failed": 0
+    },
+    {
+      "editorPartitions": {
+        "EditorBehavior": 48,
+        "EditorPerformance": 3,
+        "EditorRendering": 3
+      },
+      "runId": "20261105T210237972Z-14772-c47d85befdcf439b81ded4b105612659",
+      "canonicalReceiptSha256": "3557B296AD419913B81EEBCFF07A27EB883E1CDA8310CA98A009029FF8C77141",
+      "passed": 83,
+      "configuration": "Debug",
+      "scopes": [
+        "Capture",
+        "Crash",
+        "Editor",
+        "InteractiveProbeRefusal",
+        "PerformanceBaseline",
+        "PreferencesProcessExit",
+        "Recovery",
+        "RecoveryCrashRestart",
+        "Settings",
+        "Storage"
+      ],
+      "completionSha256": "01766B373545ADA6E337291EADF812F9AE362D9485DE18CC85E444FDBD6E7894",
+      "captures": 36,
+      "nativeRunArchiveSha256": "504AD47F391AFE9F24D82C5055D8FFD42AF3164F452BAA1B5286B0FCA702531F",
+      "failed": 0
+    },
+    {
+      "editorPartitions": {
+        "EditorBehavior": 48,
+        "EditorPerformance": 3,
+        "EditorRendering": 3
+      },
+      "runId": "20261105T210843522Z-30032-262de42c82ec4158b2b789e7bdc97dcd",
+      "canonicalReceiptSha256": "D682E186FE95B08888E2781442CA44BBB652E396A7016D64309B0501980F9F1A",
+      "passed": 83,
+      "configuration": "ASan Debug",
+      "scopes": [
+        "AddressSanitizer",
+        "Capture",
+        "Crash",
+        "Editor",
+        "InteractiveProbeRefusal",
+        "PerformanceBaseline",
+        "PreferencesProcessExit",
+        "Recovery",
+        "RecoveryCrashRestart",
+        "Settings",
+        "Storage"
+      ],
+      "completionSha256": "782A85CA690D5CE5EA7A8541783546BD63F83E29A10B54385A4AC41142004665",
+      "captures": 36,
+      "nativeRunArchiveSha256": "E3F703D61AB716F26784F1F154D1BC99A04E0113D4D44E928729A59368AD9F74",
+      "failed": 0
+    }
+  ],
+  "nativeArtifacts": [
+    {
+      "profile": "x64-Release",
+      "nativeArchiveSha256": "9B2EA540621272523A137C2F9788FB4C9990E50A1B7DE8C478C82FD70D4B6A6B",
+      "sdkArchiveSha256": "C0F450B42913F109E255C935710809765B9E2886B23DCF1FB6752E79F1B30637"
+    },
+    {
+      "profile": "x64-Debug",
+      "nativeArchiveSha256": "497E5F2B5058E9B8C4F50FC275C06F894DF5F4A2C18C7A8B0BEE26A59E66FFE2",
+      "sdkArchiveSha256": "6DC8482BEC46E1548E0E2568FD38E6F9AB650941730120CEFFF43292413D3377"
+    },
+    {
+      "profile": "x64-ASan-Debug",
+      "nativeArchiveSha256": "EB2F948142AF4D4E02D962FBB7D173B60447E2EE5AB7729B3FFF166157EFECDB",
+      "sdkArchiveSha256": "BA14563A2E28998555ABFF6829FC43D19FE24637FE7E933440DEDBE05B2AA361"
+    },
+    {
+      "profile": "ARM64-Release",
+      "nativeArchiveSha256": "83ACB015536B7EB6D96BE4E6D35FB3EABB9049204D0EFB2674D6BCDA8E55ACEA",
+      "sdkArchiveSha256": "9BE77703D53435529379C28A5BD36BBC2A998C242FDAB1B067F5FADB0772D0EF"
+    },
+    {
+      "profile": "ARM64-Debug",
+      "nativeArchiveSha256": "D02D7DEEEDF236AA605DCA7B220E49A71DE7B8840E5457C107C418B192B5E992",
+      "sdkArchiveSha256": "3B98F7A72EB0E914E13A6D2370E1EFC6FCEC84417D0E106A681C9AE1514E347E"
+    },
+    {
+      "profile": "ARM64-ASan-Debug",
+      "nativeArchiveSha256": "A19AACF5794B4E449678A8AE04DFCC2F7E300E2DA390B4C3FF09F1FF7E665BA6",
+      "sdkArchiveSha256": "588EF942F7460605779CC9BCAEE735A88F7C0B13C65F5DB37A27B54EA1F22A6B"
+    }
+  ],
+  "realAsanDetection": true,
+  "counterexample": {
+    "sourceCommit": "1f0cf8926e720217318c6bd3dbbfa9674c070ad4",
+    "failed": 3,
+    "failures": [
+      {
+        "name": "Window.DesignRefreshResponsiveLayoutAndDpi",
+        "error": "DPI/layout scenarios preserve the desktop: foregroundChanged=true testWindowVisible=false observedIsTestWindow=false initialOwnerAvailable=true observedOwnerAvailable=true initialProcessIsTest=false observedProcessIsTest=false initialWindowStillExists=true initialForegroundWasNull=false observedForegroundWasNull=false initialOwnerAtEntry=true initialProcessAtEntryIsTest=false"
+      },
+      {
+        "name": "Outline.DesignRefreshHierarchyCurrentAndFindCounts",
+        "error": "outline publication probes never acquire desktop focus: initialForegroundWasNull=false observedForegroundWasNull=false initialOwnerAtEntry=true observedOwnerAvailable=true initialProcessAtEntryIsTest=false observedProcessIsTest=false initialWindowStillExists=false"
+      },
+      {
+        "name": "Editor.SelectedBlockInsertionsRetainSourceAndHistory",
+        "error": "Insert transforms exact selected content and retains all outside source"
+      }
+    ],
+    "runId": "20261105T135940455Z-45776-2cc71ec283f3496489716adf45f050d4",
+    "passed": 45,
+    "archives": [
+      {
+        "sha256": "A9CD13071546E487DBCD80CC774B82C151405E064354CA531F8C5A01CBB57A7D",
+        "name": "application.zip"
+      },
+      {
+        "sha256": "23B6F6CE400CAF32CC16C71AAD951AA62635D4B7F7B39A7A2050E82F87F430A2",
+        "name": "sdk.zip"
+      },
+      {
+        "sha256": "76FB35A5B0EE3DE232803036F9D08BE9BAAD2162363C677C78A10535F3B9F281",
+        "name": "native-run.zip"
+      },
+      {
+        "sha256": "0B01FF6C568A117118CD62B4C47BF044422680721AF67E21F2A34F72EB770250",
+        "name": "operation-logs.zip"
+      }
+    ],
+    "canonicalReceiptSha256": "A12517EAF41BE488D143CF1F04822BDC14039221097F82185865F29689792C2B",
+    "testsSha256": "22B175AF4E4C0BB9BBBD83A5333205E193B371B4D478F0AE4948E30BDB195877"
+  },
+  "limits": [
+    "ARM64 entries are cross-builds, not runtime execution",
+    "No new foreground or physical IME/AT acceptance",
+    "Unpaired functional smoke does not accept R10",
+    "Original unrelated foreground changes remain observations with their causes unassigned"
+  ]
+}

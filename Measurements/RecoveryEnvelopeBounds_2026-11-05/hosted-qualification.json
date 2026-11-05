@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "claim": "Source-specific hosted native x64/ARM64 Release tests and production smoke",
+  "sourceCommit": "3e1362d004431b721c2d110285b4feff146d7df0",
+  "runId": 42024995782,
+  "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42024995782",
+  "testGateCompletedUtc": "2026-11-05T12:41:06Z",
+  "bothProductionRolesStartedAfterTestGate": true,
+  "profiles": [
+    {
+      "production": {
+        "archive": "RedTilde-0.1.281-x64-20261105-125245-990.zip",
+        "archiveBytes": 3187775,
+        "testModeDisabled": true,
+        "smokePassed": true,
+        "archiveSha256": "cff67cc620328f2d968f7746f71978420414d2c01dc116ca48718aa9adf3f971",
+        "version": "0.1.281",
+        "startedUtc": "2026-11-05T12:41:09Z"
+      },
+      "canonicalReceiptSha256": "ee15438556d70c89c2fffc68c90d6c4422bb1bd745a358e0fd51ddf6a86b538b",
+      "platform": "x64",
+      "unexpectedSkipped": 0,
+      "registered": 82,
+      "assertionProbePassed": true,
+      "failed": 0,
+      "executed": 82,
+      "regressionManifestSha256": "B0F83AF9036631AC06552832F198903BC35035627C7BFD8B46F5508B6C3CBE9C",
+      "dependency": "2a7e7c28f95a70193e4a2f68a89001d54b4d2131",
+      "productionManifestSha256": "953E78370C7CDC80DB45A8F2181BA0DD775AED1B1418268E267E682C9AADCD1D",
+      "expectedSkipped": 0,
+      "executableSha256": "8BDDC4F422C67231B178F4038ED092A43A6A1EFBCF9BDE1C1E5F9C54BD223FDD",
+      "captures": 36
+    },
+    {
+      "production": {
+        "archive": "RedTilde-0.1.281-ARM64-20261105-050608-567.zip",
+        "archiveBytes": 3628161,
+        "testModeDisabled": true,
+        "smokePassed": true,
+        "archiveSha256": "02d3b363138e0e544ce36192d690c6d5fc26b67a15dbdea39ef2d3edc3febb2f",
+        "version": "0.1.281",
+        "startedUtc": "2026-11-05T12:41:09Z"
+      },
+      "canonicalReceiptSha256": "fd24e2c65c2d37fbd048e34509235382ecb4de5deedf57439436110217e0a5da",
+      "platform": "ARM64",
+      "unexpectedSkipped": 0,
+      "registered": 82,
+      "assertionProbePassed": true,
+      "failed": 0,
+      "executed": 82,
+      "regressionManifestSha256": "97C9CA1F1EACB2F4776C2897B92EDF57587A24975294C2FAEC0F8E55BB6A6E13",
+      "dependency": "2a7e7c28f95a70193e4a2f68a89001d54b4d2131",
+      "productionManifestSha256": "C0A49764B54884C9FC8D47DDB0E5817E12D4B43C819D6D9EF6F925787AD770A2",
+      "expectedSkipped": 0,
+      "executableSha256": "76BA88E71FC5088DD53DA267B2ACD560D5E091F40DFC619E40B26FB5FFC41401",
+      "captures": 36
+    }
+  ],
+  "provenance": {
+    "runMetadataSha256": "F4B5054CE18B052149A4FEF809115759D091E6FE6B08F2E49E8A3EA13E8F328E",
+    "githubOuterArtifactDigestVerified": false,
+    "downloadedCanonicalReceiptsAndProductionZipsVerified": true,
+    "note": "gh run download extracts artifacts; downloaded production ZIPs and canonical receipts were checked against their manifests"
+  },
+  "limits": [
+    "Closes repaired RT-08 source only; the original failed source remains failed",
+    "No native ARM64 Debug/ASan or new physical-input acceptance",
+    "No paired-performance acceptance"
+  ]
+}
