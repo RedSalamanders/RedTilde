@@ -1,0 +1,1 @@
+- Run editor behavior, completed-frame diagnostics and renderer lifecycle checks in separate bounded hidden processes, verifying the exact complete catalog union with the existing child timeout.

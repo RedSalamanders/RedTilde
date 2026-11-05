@@ -380,6 +380,23 @@ function Get-RedTildeDependencyPublicHeaders {
     $hash=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($rows -join "`n"))))
     [ordered]@{schemaVersion=2;sha256=$hash;sourceSha256=$sourceHeaders.sha256;packageSha256=$packageHeaders.sha256;files=$files}
 }
-Export-ModuleMember -Function Get-RedTildeSourceIdentity,Get-RedTildeBuildToolchainSnapshot,Assert-RedTildeOwnedCleanDirectories,
+function Get-RedTildeCoreTestPartitions {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][ValidateSet('Storage','Settings','Recovery','Editor')][string]$Group,
+          [Parameter(Mandatory)][object[]]$Cases)
+    $owned=@($Cases|Where-Object scope -ceq $Group|ForEach-Object name)
+    if(-not $owned.Count -or @($owned|Sort-Object -Unique).Count -ne $owned.Count){throw 'Missing or duplicate native group cases.'}
+    if($Group -cne 'Editor'){return [pscustomobject]@{scope=$Group;cases=$owned}}
+    $partitions=@(
+        [pscustomobject]@{scope='EditorBehavior';cases=@($owned|Where-Object {$_ -cnotmatch '^(Performance|Rendering)\.'})},
+        [pscustomobject]@{scope='EditorPerformance';cases=@($owned|Where-Object {$_ -cmatch '^Performance\.'})},
+        [pscustomobject]@{scope='EditorRendering';cases=@($owned|Where-Object {$_ -cmatch '^Rendering\.'})}
+    )|Where-Object {$_.cases.Count}
+    $union=@($partitions|ForEach-Object cases)
+    if($union.Count -ne $owned.Count -or @(Compare-Object $owned $union -CaseSensitive).Count -or
+       @($union|Sort-Object -Unique).Count -ne $union.Count){throw 'Incomplete native Editor partition union.'}
+    return $partitions
+}
+Export-ModuleMember -Function Get-RedTildeCoreTestPartitions,Get-RedTildeSourceIdentity,Get-RedTildeBuildToolchainSnapshot,Assert-RedTildeOwnedCleanDirectories,
     Assert-RedTildeCanonicalBuildDirectories,Get-RedTildeBuildInputSnapshot,Get-RedTildeArtifactIdentity,
     Invoke-RedTildeHarness,Assert-RedTildeTestArtifact,Get-RedTildeDependencyPublicHeaders

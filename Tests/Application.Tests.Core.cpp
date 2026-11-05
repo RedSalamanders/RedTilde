@@ -185,7 +185,16 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
             owner = CoreTestScope::Editor;
         else
             throw std::invalid_argument("Unmapped native test prefix");
-        if (scope != CoreTestScope::All && owner != scope)
+        const bool editorPartition =
+            scope == CoreTestScope::EditorBehavior || scope == CoreTestScope::EditorPerformance || scope == CoreTestScope::EditorRendering;
+        if (editorPartition)
+        {
+            if (owner != CoreTestScope::Editor || (scope == CoreTestScope::EditorPerformance && prefix != "Performance") ||
+                (scope == CoreTestScope::EditorRendering && prefix != "Rendering") ||
+                (scope == CoreTestScope::EditorBehavior && (prefix == "Performance" || prefix == "Rendering")))
+                return;
+        }
+        else if (scope != CoreTestScope::All && owner != scope)
             return;
         if (selected++)
             report << ",\n";

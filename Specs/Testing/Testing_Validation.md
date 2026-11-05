@@ -35,6 +35,16 @@ Keep source-byte, installed-header, compiler-context and resolved-dependency ref
 version so an unrelated inherited-version mismatch cannot make those negative controls pass vacuously.
 Fixture tests never change the application's real build-admission or version policy.
 
+The reviewed Core catalog keeps Storage, Settings, Recovery and Editor ownership. The complete Editor list
+is checked before execution. The public runner executes its behavior, Performance-prefix and Rendering-prefix
+cases in three separate hidden child processes (`EditorBehavior`, `EditorPerformance`, `EditorRendering`),
+each with the unchanged 90-second watchdog. Every child must execute exactly its declared cases, and their
+unique union must equal the full Editor catalog before recording a successful Editor result. Direct `Editor`
+and `All` selection retain their complete case sets. Empty/duplicate groups, omissions, duplicates, catalog-only
+execution and failed/timeout children cannot qualify a group. This separates expensive independent scenarios
+from the behavioral batch; it changes no case assertion or performance acceptance band. Preserve earlier
+whole-Editor timeouts with their original source, binary and raw reports.
+
 Native test filenames use `Scope.Tests.Behavior.cpp/.h`. Cover strict Unicode and EOL/BOM round trips, invalid
 input/capacity rejection, atomic write failure, external conflict, dirty-state/undo, view history/selection,
 semantic formatting, local source, search/outline, image decoding/cancellation, Mermaid literal fallback,

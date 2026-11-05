@@ -50,16 +50,23 @@ try {
         }
         $execute=$nativeGroups
         foreach($group in $execute){
-            $core=Join-Path $run ('core-'+$group)
-            $exit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--self-test','--test-scope',$group,'--data-dir',$core) -LogPrefix (Join-Path $run ('core-'+$group))
-            if($exit -ne 0){throw "Behavioral tests failed: $group ($exit). Read '$core/tests.json'."}
-            $summary=Get-Content (Join-Path $core 'tests.json') -Raw|ConvertFrom-Json
             $expected=@($catalog.cases|Where-Object{$group -ceq 'All' -or $_.scope -ceq $group}|ForEach-Object name)
-            if($summary.catalogOnly -or $summary.failed -ne 0 -or $summary.passed -ne $expected.Count -or
-                $summary.selected -ne $expected.Count -or $summary.registered -ne $catalog.cases.Count -or
-                (Compare-Object $expected @($summary.tests.name)) -or @($summary.tests|Where-Object{-not $_.passed}).Count){throw "Incomplete or catalog-only behavioral execution: $group"}
-            $receipt.results+=@{scope=$group;passed=$summary.passed;failed=$summary.failed;cases=$summary.tests.name}
-            Write-Host "$($summary.passed) behavioral tests passed ($group)."
+            $partitions=@(Get-RedTildeCoreTestPartitions -Group $group -Cases $catalog.cases)
+            $executed=@()
+            foreach($partition in $partitions){
+                $core=Join-Path $run ('core-'+$partition.scope)
+                $exit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--self-test','--test-scope',$partition.scope,'--data-dir',$core) -LogPrefix (Join-Path $run ('core-'+$partition.scope))
+                if($exit -ne 0){throw "Behavioral tests failed: $($partition.scope) ($exit). Read '$core/tests.json'."}
+                $summary=Get-Content (Join-Path $core 'tests.json') -Raw|ConvertFrom-Json
+                if($summary.catalogOnly -or $summary.failed -ne 0 -or $summary.passed -ne $partition.cases.Count -or
+                    $summary.selected -ne $partition.cases.Count -or $summary.registered -ne $catalog.cases.Count -or
+                    (Compare-Object $partition.cases @($summary.tests.name) -CaseSensitive) -or @($summary.tests|Where-Object{-not $_.passed}).Count){throw "Incomplete or catalog-only behavioral execution: $($partition.scope)"}
+                $executed+=@($summary.tests.name)
+                Write-Host "$($summary.passed) behavioral tests passed ($($partition.scope))."
+            }
+            if($executed.Count -ne $expected.Count -or @(Compare-Object $expected $executed -CaseSensitive).Count -or
+               @($executed|Sort-Object -Unique).Count -ne $executed.Count){throw "Incomplete behavioral group union: $group"}
+            $receipt.results+=@{scope=$group;passed=$executed.Count;failed=0;cases=$executed;partitions=@($partitions.scope)}
         }
         if($nativeGroups.Count -eq 4){
             foreach($bad in @(

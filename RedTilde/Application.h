@@ -391,7 +391,10 @@ enum class CoreTestScope
     Storage,
     Settings,
     Recovery,
-    Editor
+    Editor,
+    EditorBehavior,
+    EditorPerformance,
+    EditorRendering
 };
 int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope = CoreTestScope::All, bool listOnly = false);
 int RunPerformanceProbe(Application &app, const LaunchOptions &options);

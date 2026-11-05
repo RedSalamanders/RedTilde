@@ -20,6 +20,24 @@ function New-Repository([string]$Directory){
     Invoke-FixtureGit $Directory @('config','user.name','Scope fixture');Invoke-FixtureGit $Directory @('config','user.email','fixture@example.invalid')
 }
 try{
+    Case 'Editor child partitions preserve the exact reviewed union without extending child timeouts' {
+        Import-Module (Join-Path $root 'Build/Harness.psm1') -Force
+        $cases=@(
+            @{name='Editor.Typed';scope='Editor'},@{name='Window.Close';scope='Editor'},
+            @{name='Performance.Frames';scope='Editor'},@{name='Rendering.Resources';scope='Editor'},
+            @{name='Storage.Bytes';scope='Storage'}
+        )
+        $parts=@(Get-RedTildeCoreTestPartitions -Group Editor -Cases $cases)
+        Assert ($parts.Count -eq 3 -and $parts[0].scope -ceq 'EditorBehavior' -and $parts[1].scope -ceq 'EditorPerformance' -and
+                $parts[2].scope -ceq 'EditorRendering') 'Stable bounded child scopes'
+        Assert ((@($parts[0].cases) -join ',') -ceq 'Editor.Typed,Window.Close') 'Behavior excludes only separately executed diagnostic/render cases'
+        Assert ((@($parts[1].cases) -join ',') -ceq 'Performance.Frames' -and (@($parts[2].cases) -join ',') -ceq 'Rendering.Resources') 'Independent exact partition expectations'
+        $storage=@(Get-RedTildeCoreTestPartitions -Group Storage -Cases $cases)
+        Assert ($storage.Count -eq 1 -and $storage[0].scope -ceq 'Storage' -and $storage[0].cases[0] -ceq 'Storage.Bytes') 'Ordinary groups remain intact'
+        $refused=$false
+        try{Get-RedTildeCoreTestPartitions -Group Editor -Cases @($cases[0],$cases[0])|Out-Null}catch [System.Management.Automation.RuntimeException]{$refused=$_.Exception.Message -like '*duplicate native group*'}
+        Assert $refused 'Duplicate case ownership is refused'
+    }
     Case 'active native naming and inventory are contextual and complete' {
         Assert ((Assert-ScopedTestNames $root) -gt 0) 'Empty inventory'
         $paths=@(Get-Content (Join-Path $root $manifest.nativeInventory) -Raw|ConvertFrom-Json)
