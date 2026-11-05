@@ -111,6 +111,11 @@
       "reason": "bounded anonymous image transport and editor policy adoption"
     },
     {
+      "pattern": "Tests/Application.Tests.Close.*",
+      "scopes": ["Recovery"],
+      "reason": "real file-worker admission, asynchronous shutdown, recovery retention and stale Open refusal"
+    },
+    {
       "pattern": "Tests/Application.Tests.Files.*",
       "scopes": [
         "Storage",
