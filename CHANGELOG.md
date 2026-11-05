@@ -4,6 +4,8 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Qualify all nine real keyboard/focus stages at API-4 pin `2a7e7c28`, including F2 in-place equation editing and undo, through the user-approved canonical countdown/desktop lease; verify unchanged foreground/focus and restored pointer while retaining separate IME, touch, assistive-technology and clipboard gates.
+- Bind Restore to the recovery copy selected before an unsaved-change prompt or save; stop with a localized explanation if that copy disappears, preserving the current document and other snapshots. Add hidden regressions for another remaining copy, an empty list and a fresh explicit Restore.
 - Record the repaired main qualification gate: native x64 and ARM64 Release each pass all 75 cases, 36 captures and the assertion probe before production starts; retain source, receipt and executable identities while keeping production, physical-input and performance acceptance separate.
 - Use the synthetic executable's explicit version for every build-admission fixture probe; retain hostile inherited product versions and reject an explicitly mismatched version without weakening source, header or compiler guards.
 - Adopt shared diagram arrow-label backgrounds that blend with the graph canvas and use a subtle contrast fallback, with native light/dark capture scenarios and preserved source/history.

@@ -1,1 +1,0 @@
-- Qualify all nine real keyboard/focus stages at API-4 pin `2a7e7c28`, including F2 in-place equation editing and undo, through the user-approved canonical countdown/desktop lease; verify unchanged foreground/focus and restored pointer while retaining separate IME, touch, assistive-technology and clipboard gates.

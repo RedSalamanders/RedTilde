@@ -1,1 +1,0 @@
-- Bind Restore to the recovery copy selected before an unsaved-change prompt or save; stop with a localized explanation if that copy disappears, preserving the current document and other snapshots. Add hidden regressions for another remaining copy, an empty list and a fresh explicit Restore.
