@@ -100,11 +100,11 @@ void Seed(Application &app, const std::filesystem::path &path)
     Success(LoadDocument(path, document), "read original identity");
     app.SetDocument(document.text, path, document.bom, document.stamp);
 }
-void Edit(Application &app, std::wstring_view text)
+void Edit(Application &app, std::wstring text)
 {
     const auto end = app.Document().GetText().size();
     app.Document().SetSelection({end, end});
-    Require(app.Document().ReplaceSelection(text), "admit a real source edit");
+    Require(app.Document().ReplaceSelection(std::move(text)), "admit a real source edit");
 }
 } // namespace
 void RegisterCloseTests(const std::filesystem::path &root, const std::function<void(std::string_view, const std::function<void()> &)> &test)
@@ -217,56 +217,55 @@ void RegisterCloseTests(const std::filesystem::path &root, const std::function<v
              Require(actual.text == admitted && Copies(launch.dataDirectory).size() == 1,
                      "only the admitted text reaches the original and later text stays recoverable");
          });
-    for (const bool editDuringOpen : {false, true})
-        test(editDuringOpen ? "Recovery.CloseAbandonsOpenAndProtectsLaterEdits" : "Recovery.CloseAbandonsPlainOpenWithoutPrompt",
-             [&, editDuringOpen]
-             {
-                 const auto foreground = GetForegroundWindow();
-                 unsigned prompts{};
-                 int answer = IDCANCEL;
-                 LaunchOptions launch;
-                 launch.headless = true;
-                 launch.dataDirectory = root / (editDuringOpen ? L"close-open-edited" : L"close-open-clean");
-                 const auto target = launch.dataDirectory / L"other.md";
-                 launch.filePickerForTest = [&](bool saving)
-                 {
-                     Require(!saving, "this fixture opens through the ordinary picker boundary");
-                     return target;
-                 };
-                 launch.unsavedPromptForTest = [&]
-                 {
-                     ++prompts;
-                     return answer;
-                 };
-                 const auto gate = launch.fileGateForTest = std::make_shared<AsyncFiles::TestGate>();
-                 Application app(launch);
-                 Success(app.Initialize(), "create hidden open-close app");
-                 const auto release = ReleaseOnExit(gate);
-                 Success(WriteBytesAtomic(target, "Different notebook\n"), "seed pending Open");
-                 app.SetDocument(L"Current notebook\n");
-                 app.Execute(Command::Open);
-                 Entered(gate);
-                 if (editDuringOpen)
-                     Edit(app, L"Retained edit\n");
-                 const auto revision = app.Document().Snapshot();
-                 (void)SendMessageW(app.Window(), WM_CLOSE, 0, 0);
-                 if (editDuringOpen)
-                     Require(prompts == 1 && app.Window() && app.Dirty(), "Close abandons Open before asking about the new edits");
-                 else
-                     Require(prompts == 0 && app.Host().GetHwnd() == nullptr,
-                             "plain Open is abandoned without a busy-close prompt or a filesystem join");
-                 Release(gate);
-                 if (editDuringOpen)
-                 {
-                     Pump(app);
-                     Require(app.Document().Snapshot().IsSameRevision(revision) && app.Document().CanUndo(),
-                             "abandoned Open cannot publish into the retained source after Cancel");
-                     answer = IDNO;
-                     (void)SendMessageW(app.Window(), WM_CLOSE, 0, 0);
-                     Require(prompts == 2, "a fresh Close can discard only after another explicit choice");
-                 }
-                 Await(app, [&] { return app.Window() == nullptr; }, "Open abandonment settles ordinary asynchronous shutdown");
-                 Require(GetForegroundWindow() == foreground, "hidden Open abandonment preserves desktop foreground");
-             });
+    auto closeOpen = [&](bool editDuringOpen)
+    {
+        const auto foreground = GetForegroundWindow();
+        unsigned prompts{};
+        int answer = IDCANCEL;
+        LaunchOptions launch;
+        launch.headless = true;
+        launch.dataDirectory = root / (editDuringOpen ? L"close-open-edited" : L"close-open-clean");
+        const auto target = launch.dataDirectory / L"other.md";
+        launch.filePickerForTest = [&](bool saving)
+        {
+            Require(!saving, "this fixture opens through the ordinary picker boundary");
+            return target;
+        };
+        launch.unsavedPromptForTest = [&]
+        {
+            ++prompts;
+            return answer;
+        };
+        const auto gate = launch.fileGateForTest = std::make_shared<AsyncFiles::TestGate>();
+        Application app(launch);
+        Success(app.Initialize(), "create hidden open-close app");
+        const auto release = ReleaseOnExit(gate);
+        Success(WriteBytesAtomic(target, "Different notebook\n"), "seed pending Open");
+        app.SetDocument(L"Current notebook\n");
+        app.Execute(Command::Open);
+        Entered(gate);
+        if (editDuringOpen)
+            Edit(app, L"Retained edit\n");
+        const auto revision = app.Document().Snapshot();
+        (void)SendMessageW(app.Window(), WM_CLOSE, 0, 0);
+        if (editDuringOpen)
+            Require(prompts == 1 && app.Window() && app.Dirty(), "Close abandons Open before asking about the new edits");
+        else
+            Require(prompts == 0 && app.Host().GetHwnd() == nullptr, "plain Open is abandoned without a busy-close prompt or a filesystem join");
+        Release(gate);
+        if (editDuringOpen)
+        {
+            Pump(app);
+            Require(app.Document().Snapshot().IsSameRevision(revision) && app.Document().CanUndo(),
+                    "abandoned Open cannot publish into the retained source after Cancel");
+            answer = IDNO;
+            (void)SendMessageW(app.Window(), WM_CLOSE, 0, 0);
+            Require(prompts == 2, "a fresh Close can discard only after another explicit choice");
+        }
+        Await(app, [&] { return app.Window() == nullptr; }, "Open abandonment settles ordinary asynchronous shutdown");
+        Require(GetForegroundWindow() == foreground, "hidden Open abandonment preserves desktop foreground");
+    };
+    test("Recovery.CloseAbandonsPlainOpenWithoutPrompt", [&] { closeOpen(false); });
+    test("Recovery.CloseAbandonsOpenAndProtectsLaterEdits", [&] { closeOpen(true); });
 }
 } // namespace RedTilde
