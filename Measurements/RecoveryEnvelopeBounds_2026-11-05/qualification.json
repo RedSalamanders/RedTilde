@@ -7,10 +7,10 @@
   "compiledSourceIdentity": "39b7d538bc367d9dfc56ff1c3d6de93067317862b7d3ac3735dda22659e5a96b",
   "canonicalCompiledSourceMatched": true,
   "originalSourceInputs": {
-    "kind": "retained original working inputs",
     "canonicalOriginalBytesMatched": true,
-    "archiveSha256": "E572F240D56AE763BD4CF5BE20DFD481D5F70ABE3CA55A5F0561240EC3A862AC",
-    "inputCount": 139
+    "kind": "retained original working inputs",
+    "inputCount": 139,
+    "archiveSha256": "E572F240D56AE763BD4CF5BE20DFD481D5F70ABE3CA55A5F0561240EC3A862AC"
   },
   "builds": [
     {
@@ -189,24 +189,24 @@
   ],
   "realAsanDetection": true,
   "counterexample": {
+    "exitCode": 77,
     "canonicalReceiptSha256": "9E58929B506F69387D893E0EB7FC6B7B0347A9657FC715DEB4D2A5A60D736354",
+    "oversizedInputSha256": "4DE87CD5B5A97236E2055023E1DFC23BF10E7847C1871812B7B24E7D3C44D37F",
+    "partialTestsSha256": "BBC650A40349D0F4CF157CD97BAC5E918DFE337BFA31D8EB5F284489B4E4F560",
     "runId": "20261105T111057312Z-56116-5f9d6a424e2f4c4e890fedc74fc6aea0",
     "sourceCommit": "0c279c596f8fc856a83ed54360627207d0c87bad",
-    "nativeArchiveSha256": "D48D41BACF3C02C034F6871968251511928F2CC5851236388F25166170078B07",
-    "oversizedInputSha256": "4DE87CD5B5A97236E2055023E1DFC23BF10E7847C1871812B7B24E7D3C44D37F",
-    "exitCode": 77,
-    "partialTestsSha256": "BBC650A40349D0F4CF157CD97BAC5E918DFE337BFA31D8EB5F284489B4E4F560"
+    "nativeArchiveSha256": "D48D41BACF3C02C034F6871968251511928F2CC5851236388F25166170078B07"
   },
   "retainedFixtureFailure": {
-    "testsSha256": "1E61407AC6183D7DB1F61D6188F78FD593D06BDCFA03A87751395E8EA7076E77",
-    "passed": 10,
-    "canonicalReceiptSha256": "4A138AB728464E89950049DBA6292CBE5021B93E109208A91323064AB017F00A",
-    "runId": "20261105T112127777Z-11172-37c38639724f4778a9e64b2caf7899cb",
-    "nativeArchiveSha256": "3F40DAB1E08C01399BDFCB1C56E6611E98CB6BADBF1CC339A344672BFF45343D",
     "oversizedEnvelopeCasePassed": true,
-    "sourceCommit": "0b4bda83a730502916949a02ae2da0e09098ada9",
+    "disposition": "Test fixture parents are now explicitly created, independently of asynchronous recovery setup; original failure remains retained",
+    "nativeArchiveSha256": "3F40DAB1E08C01399BDFCB1C56E6611E98CB6BADBF1CC339A344672BFF45343D",
+    "passed": 10,
     "failed": 3,
-    "disposition": "Test fixture parents are now explicitly created, independently of asynchronous recovery setup; original failure remains retained"
+    "sourceCommit": "0b4bda83a730502916949a02ae2da0e09098ada9",
+    "testsSha256": "1E61407AC6183D7DB1F61D6188F78FD593D06BDCFA03A87751395E8EA7076E77",
+    "runId": "20261105T112127777Z-11172-37c38639724f4778a9e64b2caf7899cb",
+    "canonicalReceiptSha256": "4A138AB728464E89950049DBA6292CBE5021B93E109208A91323064AB017F00A"
   },
   "limits": [
     "ARM64 profiles are cross-builds only",
@@ -215,18 +215,18 @@
     "Original failed fixture run and counterexample remain failed; later passes do not rewrite their outcomes"
   ],
   "priorHostedFailure": {
-    "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42016141956",
-    "failedJobsLogSha256": "AC4AD3464CC9AD345360C878637D94B96B3F9E4CAA8114218C9AEEC9737CFB27",
-    "platform": "ARM64",
-    "canonicalReceiptSha256": "1B927CC7B5E46E74DF04F1418F395DA1D01580E1DA18B129D041446C4FAF1998",
-    "registered": 81,
-    "testsSha256": "65FAB006D4E08590C14698079A8DF0F2531F47D3D75CF8BC09E3AD3AA3427B2A",
-    "productionWithheld": true,
     "recoveryPassed": 10,
+    "recoveryFailed": 2,
+    "testsSha256": "65FAB006D4E08590C14698079A8DF0F2531F47D3D75CF8BC09E3AD3AA3427B2A",
     "runId": 42016141956,
     "configuration": "Release",
-    "recoveryFailed": 2,
+    "productionWithheld": true,
     "disposition": "Original Open fixture-seeding failures retained; the repaired source requires fresh native ARM64 qualification",
-    "sourceCommit": "94b9d431583b5f2a3e7896b8d6a7d62c6e9ba2e8"
+    "canonicalReceiptSha256": "1B927CC7B5E46E74DF04F1418F395DA1D01580E1DA18B129D041446C4FAF1998",
+    "platform": "ARM64",
+    "sourceCommit": "94b9d431583b5f2a3e7896b8d6a7d62c6e9ba2e8",
+    "failedJobsLogSha256": "AC4AD3464CC9AD345360C878637D94B96B3F9E4CAA8114218C9AEEC9737CFB27",
+    "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42016141956",
+    "registered": 81
   }
 }
