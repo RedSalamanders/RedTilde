@@ -66,6 +66,11 @@ changed, snapshot-guarded local draft still submits the same immediate null reti
 a recovery text copy. Changed valid drafts produce the same validated proposed source and selection; this must
 not change live source/history, worker validation, latest-value coalescing or the quiet interval.
 
+Recovery parsing bounds decoded UTF-16 units independently of encoded UTF-8 byte lengths. A checksum-valid
+payload beyond the editor's unit capacity returns invalid-data status from the noexcept boundary, preserving
+every caller output field. Startup quarantines complete original bytes without truncation; if the quarantine
+name already exists, retain both the unrenamed input and earlier quarantine. Other valid full-capacity snapshots
+remain available. Expected malformed/oversized input must never terminate the parser or recovery worker.
 Snapshots are strict versioned UTF-8 envelopes with bounded path/source lengths, BOM, selection, generation and
 a payload checksum. Partial/corrupt or newer-version data is renamed `.quarantine` without overwriting it.
 Startup scans at most 512 entries and offers at most 64 valid inactive sessions; remaining files are retained.

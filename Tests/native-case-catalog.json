@@ -1,6 +1,7 @@
 {
   "version": 1,
   "cases": [
+    { "name": "Recovery.OversizedValidEnvelopeRejectsAndPreservesQuarantine", "scope": "Recovery" },
     { "name": "Recovery.CloseDuringSaveWaitsForDurableSuccess", "scope": "Recovery" },
     { "name": "Recovery.CloseDuringSaveFailurePreservesSourceAndRecovery", "scope": "Recovery" },
     { "name": "Recovery.CloseDuringSaveRechecksLaterEdits", "scope": "Recovery" },

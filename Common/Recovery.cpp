@@ -100,6 +100,13 @@ catch (const std::bad_alloc &)
 {
     return E_OUTOFMEMORY;
 }
+catch (const std::length_error &)
+{
+    // Encoded byte bounds do not imply decoded editor-unit bounds. Reject this
+    // expected input failure at the noexcept boundary without publishing staged
+    // output, allowing the scanner to preserve/quarantine the original bytes.
+    return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+}
 catch (const std::invalid_argument &)
 {
     return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);

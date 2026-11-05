@@ -13,6 +13,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <exception>
 #include <format>
 #include <fstream>
 #include <functional>
@@ -471,6 +472,89 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Success(ParseRecovery(SerializeRecovery(maximum), parsed), "maximum Unicode document fits the recovery envelope");
              Require(parsed.text == maximum.text, "full-capacity recovery does not truncate source");
          });
+    test("Recovery.OversizedValidEnvelopeRejectsAndPreservesQuarantine",
+         [&]
+         {
+             constexpr auto maximum = DxUi::RichText::Document::MaximumUnits;
+             const auto directory = root / L"oversized-recovery";
+             const auto recoveryDirectory = directory / L"Recovery";
+             std::filesystem::create_directories(recoveryDirectory);
+             auto envelope = [](std::string_view text, std::uint64_t generation)
+             {
+                 // Independent encoded-length/checksum construction deliberately
+                 // bypasses the serializer's already-correct source-unit guard.
+                 const auto metadata = std::format("0 {} 0 0 0 {}", text.size(), generation);
+                 const auto payload = std::string(text);
+                 return std::string("RedTilde.Recovery/1\n") + metadata + std::format(" {}\n", ContentHash(metadata + "\n" + payload)) + payload;
+             };
+             std::vector<std::string> payloads{std::string(maximum + 1, 'a')};
+             std::string bmp, supplementary;
+             for (std::size_t index = 0; index <= maximum; ++index)
+                 bmp += "界";
+             for (std::size_t index = 0; index <= maximum / 2; ++index)
+                 supplementary += "😀";
+             payloads.push_back(std::move(bmp));
+             payloads.push_back(std::move(supplementary));
+             std::vector<std::pair<std::filesystem::path, std::string>> invalid;
+             const RecoverySnapshot original{L"Retain this notebook", L"Z:\\writing\\notebook.md", true, {2, 7}, 52};
+             for (std::size_t index = 0; index < payloads.size(); ++index)
+             {
+                 invalid.emplace_back(recoveryDirectory / std::format(L"session-{:032x}.rtd", index + 1), envelope(payloads[index], index + 1));
+                 Success(WriteBytesAtomic(invalid.back().first, invalid.back().second), "retain the original checksum-valid oversized input");
+                 auto parsed = original;
+                 {
+                     // This owned headless process records a noexcept escape as
+                     // exit 77 without a CRT/WER dialog. Restore on every normal
+                     // path; production termination handling is untouched.
+                     const auto previous = std::set_terminate([]() noexcept { ExitProcess(77); });
+// The CRT's borrowed terminate_handler type omits noexcept. Restoring it only
+// installs the original pointer; this call never invokes that handler.
+// Owner: RedTilde test maintainers; review: 2027-01-31.
+#pragma warning(push)
+#pragma warning(disable : 5039)
+                     const auto restore = wil::scope_exit([previous] { (void)std::set_terminate(previous); });
+#pragma warning(pop)
+                     Require(ParseRecovery(invalid.back().second, parsed) == HRESULT_FROM_WIN32(ERROR_INVALID_DATA),
+                             "decoded source beyond the editor capacity is an ordinary invalid envelope");
+                 }
+                 Require(parsed.text == original.text && parsed.originalPath == original.originalPath && parsed.bom == original.bom &&
+                             parsed.selection == original.selection && parsed.generation == original.generation,
+                         "oversized input leaves every prior output field unchanged");
+             }
+             const auto collision = recoveryDirectory / L"session-00000000000000000000000000000004.rtd";
+             auto preserved = collision;
+             preserved += L".quarantine";
+             const std::string priorQuarantine = "Earlier quarantine must remain byte-for-byte intact.\n";
+             Success(WriteBytesAtomic(collision, invalid.front().second), "seed an invalid envelope beside an existing quarantine");
+             Success(WriteBytesAtomic(preserved, priorQuarantine), "seed the earlier quarantine");
+             const RecoverySnapshot boundary{std::wstring(maximum, L'界'), {}, false, {maximum, maximum}, 99};
+             const auto valid = recoveryDirectory / L"session-00000000000000000000000000000005.rtd";
+             Success(WriteBytesAtomic(valid, SerializeRecovery(boundary)), "seed a valid full-capacity recovery copy");
+             RecoveryService service;
+             Success(service.Initialize(directory), "start the real recovery scanner");
+             for (unsigned turn = 0; turn < 1000 && !service.Ready(); ++turn)
+                 std::this_thread::sleep_for(std::chrono::milliseconds(5));
+             Require(service.Ready() && SUCCEEDED(service.Status()), "oversized envelopes cannot terminate the recovery worker");
+             const auto candidates = service.TakeCandidates();
+             Require(candidates.size() == 1 && candidates.front().snapshot.text == boundary.text &&
+                         candidates.front().snapshot.selection == boundary.selection && candidates.front().snapshot.generation == boundary.generation,
+                     "the valid maximum-sized copy remains offered without truncation");
+             for (const auto &[path, bytes] : invalid)
+             {
+                 auto quarantine = path;
+                 quarantine += L".quarantine";
+                 std::string actual;
+                 Success(ReadBytes(quarantine, actual), "read quarantined oversized original");
+                 Require(actual == bytes && !std::filesystem::exists(path), "quarantine preserves every original envelope byte");
+             }
+             std::string actual;
+             Success(ReadBytes(collision, actual), "read the unrenamed original after a quarantine-name collision");
+             Require(actual == invalid.front().second, "failed quarantine movement retains the recoverable original");
+             Success(ReadBytes(preserved, actual), "read the earlier quarantine after the collision");
+             Require(actual == priorQuarantine, "quarantine never overwrites earlier evidence");
+             service.Close();
+         });
+
     test("Recovery.DebounceLeaseCoalescingAndRetirement",
          [&]
          {
