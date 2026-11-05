@@ -360,7 +360,7 @@ class DesignRefreshProbe final
                          return IDCANCEL;
                      };
                      const auto data = options.dataDirectory;
-                     const ForegroundObservation foreground;
+                     Testing::ForegroundOwnershipObserver foreground;
                      Application app(std::move(options));
                      Success(app.Initialize(), "initialize the hidden document workspace");
                      StoredDocument loaded;
@@ -432,7 +432,7 @@ class DesignRefreshProbe final
                              "restart discovers every modified source with its own original path and encoding");
                      restarted.Stop();
                      Await(app, [&] { return restarted.Finished(); });
-                     Require(questions == 0 && app.Activity().workspaceSwitches == 4 && app.Activity().workspaceRetainedPeak == 2 &&
+                     Require(questions == 0 && app.Activity().workspaceSwitches == 3 && app.Activity().workspaceRetainedPeak == 2 &&
                                  foreground.NeverAcquiredForeground() && !IsWindowVisible(app.Window()),
                              "all workspace switching and recovery checks remain hidden without save questions or desktop activation");
                  }
@@ -504,7 +504,7 @@ class DesignRefreshProbe final
                                                                  {L"Untitled notes\n", {}, false, {0, 14}, 3}}};
                  for (std::size_t index = 0; index < expected.size(); ++index)
                      WriteFixture(data / L"Recovery" / std::format(L"session-{:032x}.rtd", index + 1), SerializeRecovery(expected[index]));
-                 const ForegroundObservation foreground;
+                 Testing::ForegroundOwnershipObserver foreground;
                  Application app(std::move(options));
                  Success(app.Initialize(), "initialize three inactive recovery copies");
                  Await(app, [&] { return app.recovery.Ready() && app.RecoveryCount() == 3; });

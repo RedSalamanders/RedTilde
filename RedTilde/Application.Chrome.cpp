@@ -864,9 +864,9 @@ void Application::Layout()
         const float buttonWidth = (draftRight - draftLeft - 48.f) / 2.f;
         for (unsigned i = 0; i < 4; ++i)
         {
-            const float left = draftLeft + 20 + static_cast<float>(i % 2) * (buttonWidth + 8.f);
+            const float buttonLeft = draftLeft + 20 + static_cast<float>(i % 2) * (buttonWidth + 8.f);
             const float buttonTop = bottom - 106 + static_cast<float>(i / 2) * 44.f;
-            recoveryPanel->GetLogicalChild(i + 3)->SetBounds(D2D1::RectF(left, buttonTop, left + buttonWidth, buttonTop + 34));
+            recoveryPanel->GetLogicalChild(i + 3)->SetBounds(D2D1::RectF(buttonLeft, buttonTop, buttonLeft + buttonWidth, buttonTop + 34));
         }
     }
     else
