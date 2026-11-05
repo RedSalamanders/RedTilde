@@ -1,5 +1,6 @@
 #include "Application.Tests.Close.h"
 #include "RedTilde/Application.h"
+#include "Support/Support.Tests.Foreground.h"
 #include "res/Resource.h"
 #include <chrono>
 #include <stdexcept>
@@ -114,7 +115,7 @@ void RegisterCloseTests(const std::filesystem::path &root, const std::function<v
     test("Recovery.CloseDuringSaveWaitsForDurableSuccess",
          [&]
          {
-             const auto foreground = GetForegroundWindow();
+             Testing::ForegroundOwnershipObserver foreground;
              LaunchOptions launch;
              launch.headless = true;
              launch.dataDirectory = root / L"close-save-success";
@@ -150,12 +151,12 @@ void RegisterCloseTests(const std::filesystem::path &root, const std::function<v
              StoredDocument actual;
              Success(LoadDocument(target, actual), "read saved target after asynchronous shutdown");
              Require(actual.text == saved && Copies(launch.dataDirectory).empty(), "successful close saves the admitted bytes before retirement");
-             Require(GetForegroundWindow() == foreground, "hidden save-close success preserves foreground");
+             Require(foreground.NeverAcquiredForeground(), "hidden save-close success preserves foreground");
          });
     test("Recovery.CloseDuringSaveFailurePreservesSourceAndRecovery",
          [&]
          {
-             const auto foreground = GetForegroundWindow();
+             Testing::ForegroundOwnershipObserver foreground;
              LaunchOptions launch;
              launch.headless = true;
              launch.dataDirectory = root / L"close-save-failure";
@@ -197,7 +198,7 @@ void RegisterCloseTests(const std::filesystem::path &root, const std::function<v
              app.Execute(Command::Save);
              Await(app, [&] { return !app.Dirty(); }, "editing remains usable and an explicit retry can succeed");
              Require(app.Window() && app.Host().GetHwnd(), "a later Save does not silently retry the abandoned Close");
-             Require(GetForegroundWindow() == foreground && !IsWindowVisible(app.Window()), "headless failure coverage preserves desktop state");
+             Require(foreground.NeverAcquiredForeground() && !IsWindowVisible(app.Window()), "headless failure coverage preserves desktop state");
          });
     test("Recovery.CloseDuringSaveRechecksLaterEdits",
          [&]
@@ -236,7 +237,7 @@ void RegisterCloseTests(const std::filesystem::path &root, const std::function<v
          });
     auto closeOpen = [&](bool editDuringOpen)
     {
-        const auto foreground = GetForegroundWindow();
+        Testing::ForegroundOwnershipObserver foreground;
         unsigned prompts{};
         int answer = IDCANCEL;
         LaunchOptions launch;
@@ -281,7 +282,7 @@ void RegisterCloseTests(const std::filesystem::path &root, const std::function<v
             Require(prompts == 2, "a fresh Close can discard only after another explicit choice");
         }
         Await(app, [&] { return app.Window() == nullptr; }, "Open abandonment settles ordinary asynchronous shutdown");
-        Require(GetForegroundWindow() == foreground, "hidden Open abandonment preserves desktop foreground");
+        Require(foreground.NeverAcquiredForeground(), "hidden Open abandonment preserves desktop foreground");
     };
     test("Recovery.CloseAbandonsPlainOpenWithoutPrompt", [&] { closeOpen(false); });
     test("Recovery.CloseAbandonsOpenAndProtectsLaterEdits", [&] { closeOpen(true); });

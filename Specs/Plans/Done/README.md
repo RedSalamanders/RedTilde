@@ -2,6 +2,8 @@
 
 ## Completed scopes — 5 November 2026
 
+- [Selected quote and code insertions](SelectedBlockInsertions_2026-11-05.md) — actual command transformation, exact source/history/focus regressions, preserved counterexample, owned-window activation checks, six builds and three complete x64 profiles.
+
 - [Recovery envelope bounds and deterministic file fixtures](RecoveryEnvelopeBounds_2026-11-05.md) — decoded-capacity refusal, complete quarantine preservation, retained parser/fixture failures, six builds and three complete x64 profiles; broader recovery and native ARM64 acceptance remain in WIP.
 
 - [Close during Save and bounded Editor validation](CloseDuringSave_2026-11-05.md) — durable save settlement, failed-write recovery, safe Open abandonment, lifecycle counterexample, exact bounded case union, six builds and three complete x64 profiles; broader acceptance remains in WIP.

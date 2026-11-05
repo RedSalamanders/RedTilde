@@ -76,6 +76,15 @@
       "interactive": false
     },
     {
+      "path": "Tests/Support/Support.Tests.Foreground.h",
+      "suite": "Core",
+      "executable": "RedTilde.exe",
+      "arguments": [
+        "--self-test"
+      ],
+      "interactive": false
+    },
+    {
       "path": "Tests/Support/Support.Tests.TextServices.h",
       "suite": "Core",
       "executable": "RedTilde.exe",

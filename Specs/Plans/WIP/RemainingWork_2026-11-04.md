@@ -113,6 +113,16 @@ RT-18 remains optional defensive hardening, not a newly confirmed defect.
 <a id="t-u1"></a>
 ### T-U1 — remaining editing and product interaction
 
+- [x] Complete the 5 November selected-block request: Insert Quote and Code Block transform the selected
+  content through shared DxUi commands, preserve unselected text and original line endings, and commit one
+  undoable edit in Compose, Source and Split. Retain the existing empty-selection templates and test actual
+  application command dispatch; rejection never replaces selected text with a sample. Six builds, all 83
+  cases and 36 captures per x64 profile pass in the [scoped closeout](../Done/SelectedBlockInsertions_2026-11-05.md).
+- [ ] Verify the new `graph BT`, class-inheritance LR, accent and gathered-matrix corrections against an
+  exact qualified DxUi pin with native application captures; the prior scoped rendering fixes remain historical.
+- [ ] Keep each modified file while switching within the left-pane root without prompting. Prompt when
+  explicitly opening a new file/folder or closing, and persist/recover every modified document after a crash
+  and relaunch. Preserve per-document source/selection/history and saved identity through switching.
 - [x] Adopt the shared contrast-aware diagram-label background correction and verify actual Light/Dark,
   96/192-DPI native captures at exact API-4 pin `2a7e7c28` without changing Mermaid source or history.
   [Original comparisons and exact qualification](../../../Measurements/DiagramLabelBackgrounds_2026-11-04/README.md)
@@ -231,6 +241,10 @@ follow-up is removed. Completion correctly reported failed native qualification.
   ASan detection and canonical integration matching the original 139 compiled inputs.
   [Exact evidence](../../../Measurements/RecoveryEnvelopeBounds_2026-11-05/qualification.json) retains the
   parser counterexample, original local/hosted fixture failures and the local fixture repair.
+- [x] Verify RT-08's repaired main `3e1362d0` in [run 42024995782](https://github.com/RedSalamanders/RedTilde/actions/runs/42024995782):
+  native x64/ARM64 Release each pass all 82 cases, 36 captures and assertion probes; both test-disabled production
+  ZIPs pass smoke after the combined gate. [Original receipt/ZIP hashes and ordering](../../../Measurements/RecoveryEnvelopeBounds_2026-11-05/hosted-qualification.json)
+  close that source only and retain the earlier failed source separately.
 - [ ] Complete applicable native ARM64 Debug/ASan and physical/input qualification. Cross-builds and old-pin matrices
   do not establish those runtime profiles. Retain the 90-second loaded-host Editor timeout and its same-binary
   sequential pass as separate observations; diagnose that responsiveness boundary with T-P1 before accepting it.
@@ -245,7 +259,7 @@ follow-up is removed. Completion correctly reported failed native qualification.
   the obsolete rule that removes tests from every Release build.
 - [ ] Coordinate future checked-failure/API changes with the
   [single DxUi plan](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Plans/WIP/RemainingWork_2026-11-04.md) and active
-  [API 5 PR162](https://github.com/RedSalamanders/DxUi/pull/162). Keep API 4 / `2a7e7c28` until a separate
+  [API 5 PR162](https://github.com/RedSalamanders/DxUi/pull/162). Keep this consumer's explicit API-4 lock until a separate
   reviewed consumer migration has matching headers, library, adapters and fresh qualification.
 - [ ] Complete C11/C12/S6 release decisions: packaging, any installer/file associations, exact release handoff,
   truthful capability limits and publication evidence. Source merge is not product release acceptance.
@@ -288,7 +302,8 @@ RT-10/11's old drops did not cancel them. Current unified CI supersedes obsolete
 ## Explicitly deferred scope
 
 Full LaTeX/Mermaid parity, wiki navigation/embed resolution, documents above 65,536 UTF-16 units, broad font-family
-choices (C8), export/multi-document features and optional new product surfaces remain separately selected work.
+choices (C8), export and optional new product surfaces remain separately selected work. The 5 November
+multi-document switching/recovery request is now selected under T-U1 above and is no longer part of that deferral.
 Current syntax options and text-size support are implemented; they do not imply those larger capabilities.
 Do not reopen dropped findings without new evidence.
 
