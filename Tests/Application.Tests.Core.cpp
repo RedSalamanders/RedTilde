@@ -1340,6 +1340,61 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Require(!app.Host().GetTheme().dark, "light applies live");
              Require(app.Capture(root / L"test-compose.png"), "actual app capture");
          });
+    test("Editor.SelectedBlockInsertionsRetainSourceAndHistory",
+         [&]
+         {
+             struct Fixture
+             {
+                 std::wstring_view source, selected, quote, code;
+             };
+             constexpr std::array fixtures{Fixture{L"Before selected after", L"selected", L"Before \r\n\r\n> selected\r\n\r\n after",
+                                                   L"Before \r\n\r\n```text\r\nselected\r\n```\r\n\r\n after"},
+                                           Fixture{L"Title\r\n\r\nα 😀\r\n第二行\r\n\r\nTail\r\n", L"α 😀\r\n第二行",
+                                                   L"Title\r\n\r\n> α 😀\r\n> 第二行\r\n\r\nTail\r\n",
+                                                   L"Title\r\n\r\n```text\r\nα 😀\r\n第二行\r\n```\r\n\r\nTail\r\n"}};
+             const auto foreground = GetForegroundWindow();
+             for (const auto view : {Command::Compose, Command::Source, Command::Split})
+             {
+                 LaunchOptions launch;
+                 launch.headless = true;
+                 launch.dataDirectory = root / L"selected-blocks";
+                 Application app(launch);
+                 Success(app.Initialize(), "create hidden selected-block app");
+                 app.Execute(view);
+                 for (const auto &fixture : fixtures)
+                     for (const auto command : {Command::Quote, Command::Fence})
+                     {
+                         app.SetDocument(std::wstring(fixture.source));
+                         app.Prepare(128);
+                         const auto first = fixture.source.find(fixture.selected);
+                         Require(first != fixture.source.npos, "fixture selects real source");
+                         const DxUi::RichText::Selection before{first + fixture.selected.size(), first};
+                         app.Document().SetSelection(before);
+                         const auto snapshot = app.Document().Snapshot();
+                         app.Execute(command);
+                         Require(app.Document().GetText() == (command == Command::Quote ? fixture.quote : fixture.code) && app.Dirty(),
+                                 "Insert transforms exact selected content and retains all outside source");
+                         const auto after = app.Document().GetSelection();
+                         Require(after.anchor > after.caret && app.Host().GetFocusControl() == &app.Document(),
+                                 "Insert retains selection direction and logical editor focus");
+                         const auto transformed = app.Document().Snapshot();
+                         app.Execute(Command::Undo);
+                         Require(app.Document().Snapshot().IsSameRevision(snapshot) && app.Document().GetSelection() == before && !app.Dirty() &&
+                                     !app.Document().CanUndo(),
+                                 "one application Undo restores exact source, direction and clean saved state");
+                         app.Execute(Command::Redo);
+                         Require(app.Document().Snapshot().IsSameRevision(transformed) && app.Document().GetSelection() == after && app.Dirty(),
+                                 "one application Redo restores the whole selection transformation");
+                     }
+                 app.SetDocument({});
+                 app.Execute(Command::Quote);
+                 Require(app.Document().GetText() == L"\n> A thought worth keeping.\n", "empty-selection Quote retains its insertion template");
+                 app.SetDocument({});
+                 app.Execute(Command::Fence);
+                 Require(app.Document().GetText() == L"\n\n```text\nYour code here\n```\n\n", "empty-selection Code retains its insertion template");
+             }
+             Require(GetForegroundWindow() == foreground, "headless block insertion preserves desktop foreground");
+         });
     test("Editor.LocalDiagramSourceAndLiteralFallback",
          [&]
          {

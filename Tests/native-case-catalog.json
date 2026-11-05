@@ -1,6 +1,7 @@
 {
   "version": 1,
   "cases": [
+    { "name": "Editor.SelectedBlockInsertionsRetainSourceAndHistory", "scope": "Editor" },
     { "name": "Recovery.OversizedValidEnvelopeRejectsAndPreservesQuarantine", "scope": "Recovery" },
     { "name": "Recovery.CloseDuringSaveWaitsForDurableSuccess", "scope": "Recovery" },
     { "name": "Recovery.CloseDuringSaveFailurePreservesSourceAndRecovery", "scope": "Recovery" },

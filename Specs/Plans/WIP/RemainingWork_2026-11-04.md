@@ -113,6 +113,15 @@ RT-18 remains optional defensive hardening, not a newly confirmed defect.
 <a id="t-u1"></a>
 ### T-U1 — remaining editing and product interaction
 
+- [ ] Complete the 5 November selected-block request: Insert Quote and Code Block transform the selected
+  content through shared DxUi commands, preserve unselected text and original line endings, and commit one
+  undoable edit in Compose, Source and Split. Retain the existing empty-selection templates and test actual
+  application command dispatch; rejection never replaces selected text with a sample.
+- [ ] Verify the new `graph BT`, class-inheritance LR, accent and gathered-matrix corrections against an
+  exact qualified DxUi pin with native application captures; the prior scoped rendering fixes remain historical.
+- [ ] Keep each modified file while switching within the left-pane root without prompting. Prompt when
+  explicitly opening a new file/folder or closing, and persist/recover every modified document after a crash
+  and relaunch. Preserve per-document source/selection/history and saved identity through switching.
 - [x] Adopt the shared contrast-aware diagram-label background correction and verify actual Light/Dark,
   96/192-DPI native captures at exact API-4 pin `2a7e7c28` without changing Mermaid source or history.
   [Original comparisons and exact qualification](../../../Measurements/DiagramLabelBackgrounds_2026-11-04/README.md)
