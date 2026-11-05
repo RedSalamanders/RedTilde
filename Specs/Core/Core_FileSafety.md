@@ -23,10 +23,10 @@ leaves the current source, selection and history intact. A later fresh Close may
 
 Close during an admitted save hides the window and keeps its notification owner, file worker and recovery
 alive until the actual write/replace completes. Duplicate Close requests and queued editing commands are ignored
-while waiting. Close supersedes an older New/Open continuation attached to that save. Success updates the saved
+while waiting. Close supersedes an older New/Open continuation attached to that save.
 The host still receives native hide, focus-loss, capture-cancellation and size/DPI lifecycle notifications;
 waiting must not strand text input, logical focus, prepared content or window geometry.
-baseline to the admitted text; close and retire recovery only when the current source is clean. If edits made
+Success updates the saved baseline to the admitted text; close and retire recovery only when the current source is clean. If edits made
 after admission remain, restore the window and apply the ordinary Save/Discard/Cancel protection to those edits.
 Failure cancels the pending Close, preserves source/path/history and recovery, and restores the previous window
 placement without activation with the storage error visible in the status area. It does not automatically retry
