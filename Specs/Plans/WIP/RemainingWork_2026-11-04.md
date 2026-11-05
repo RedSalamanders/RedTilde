@@ -297,7 +297,8 @@ RT-10/11's old drops did not cancel them. Current unified CI supersedes obsolete
 ## Explicitly deferred scope
 
 Full LaTeX/Mermaid parity, wiki navigation/embed resolution, documents above 65,536 UTF-16 units, broad font-family
-choices (C8), export/multi-document features and optional new product surfaces remain separately selected work.
+choices (C8), export and optional new product surfaces remain separately selected work. The 5 November
+multi-document switching/recovery request is now selected under T-U1 above and is no longer part of that deferral.
 Current syntax options and text-size support are implemented; they do not imply those larger capabilities.
 Do not reopen dropped findings without new evidence.
 

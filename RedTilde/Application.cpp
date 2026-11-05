@@ -1396,13 +1396,18 @@ void Application::Execute(Command command)
         semantic = false;
         break;
     case Command::Quote:
-        (void)editor->ReplaceSelection(L"\n> A thought worth keeping.\n");
-        semantic = false;
-        break;
     case Command::Fence:
-        (void)editor->ReplaceSelection(L"\n\n```text\nYour code here\n```\n\n");
+    {
+        const auto selection = editor->GetSelection();
+        const bool quote = command == Command::Quote;
+        const bool changed = selection.Start() != selection.End()
+                                 ? editor->WrapSelectionInMarkdownBlock(quote ? MarkdownBlockKind::BlockQuote : MarkdownBlockKind::FencedCode,
+                                                                        quote ? std::wstring_view{} : std::wstring_view(L"text"))
+                                 : editor->ReplaceSelection(quote ? L"\n> A thought worth keeping.\n" : L"\n\n```text\nYour code here\n```\n\n");
+        Status(changed ? IDS_FORMATTED : IDS_NOTAVAILABLE);
         semantic = false;
         break;
+    }
     case Command::LocalSource:
         LocalSource();
         return;

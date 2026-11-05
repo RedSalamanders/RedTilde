@@ -1,5 +1,13 @@
 # Validation and evidence
 
+Hidden no-activation scenarios observe foreground events filtered to the test process, including brief
+activation followed by restoration or window destruction. Subscribe before creating the application,
+retain the observation throughout the scenario, and check both queued events and current ownership.
+Teardown-specific coverage checks again after destruction of the owned application.
+Do not require an unrelated user window to remain foreground: the person may switch or close their own
+windows during a hidden run. Keep window-visibility checks and all logical-focus assertions. Observer
+negative controls replay its callback privately; they never activate a window or emit a false desktop event.
+
 The hidden `markdown-style` capture scenario uses invented content matching the
 heading/flow/equation/table/quote example. The Captures suite runs it at 96, 144
 and 192 DPI and preserves each image's actual viewport/DPI provenance. Verify
@@ -160,7 +168,7 @@ These record oracles establish error mapping, not recovery from an actually miss
 
 Physical focus/IME/AT, release/package acceptance, hardware-specific qualification and paired resource/performance studies retain their owning gates. Hidden/scoped/native CI passes never close those gates. Native test basenames use contextual `Scope.Tests.Something.h/.cpp`; inventories cover active files only. Immutable historical receipts, archived source and legacy references are not renamed or rewritten.
 
-RedTilde partitions its 82 registered native cases into Storage (12), Settings (4), Recovery (13) and Editor (53). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
+RedTilde partitions its 83 registered native cases into Storage (12), Settings (4), Recovery (13) and Editor (54). Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
 
 File-seeding fixtures create their owned parent directories explicitly before writing. Application initialization only admits asynchronous recovery setup; tests must not depend on its worker having created a fixture directory before the first storage call.
 

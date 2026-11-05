@@ -4,6 +4,7 @@
 #include "Application.Tests.Files.h"
 #include "Application.Tests.HeapDiagnostic.h"
 #include "Application.Tests.RemoteImages.h"
+#include "Support/Support.Tests.Foreground.h"
 #include "Support/Support.Tests.TextServices.h"
 #include "res/Resource.h"
 #include <DxUi/RichMath.h>
@@ -644,7 +645,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              launch.dataDirectory = root;
              Application app(launch);
              Success(app.Initialize(), "create hidden app");
-             const auto foreground = GetForegroundWindow();
+             Testing::ForegroundOwnershipObserver foreground;
              app.SetDocument(L"# Hello\n\nUnicode 😀 **words**\n");
              app.Document().SetSelection({9, 16});
              Require(app.Document().ReplaceSelection(L"世界"), "edit source");
@@ -658,7 +659,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Require(app.Document().Snapshot().IsSameRevision(snapshot) && app.Document().CanUndo(), "same source revision and history");
              Require(app.Dirty(), "edited source dirty");
              Require(app.Document().Undo() && !app.Dirty(), "undo to saved source clears dirty");
-             Require(GetForegroundWindow() == foreground, "hidden app never acquires foreground");
+             Require(foreground.NeverAcquiredForeground(), "hidden app never acquires foreground");
          });
     test("Editor.HiddenMirrorSynchronizesWithoutEditingSource",
          [&]
@@ -738,7 +739,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              }};
              for (const auto &fixture : fixtures)
              {
-                 const HWND foregroundBefore = GetForegroundWindow();
+                 Testing::ForegroundOwnershipObserver foregroundBefore;
                  HWND appWindow{};
                  {
                      LaunchOptions imeLaunch;
@@ -852,10 +853,10 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                              "one undo restores committed IME source in both panes");
                      Require(imeApp.Document().Redo() && imeApp.Document().GetText() == previewText && imeApp.SourceMirror().GetText() == previewText,
                              "redo restores committed IME source in both panes");
-                     Require(!IsWindowVisible(appWindow) && GetForegroundWindow() == foregroundBefore,
+                     Require(!IsWindowVisible(appWindow) && foregroundBefore.NeverAcquiredForeground(),
                              "hidden IME regression never shows or activates its app window");
                  }
-                 Require(GetForegroundWindow() == foregroundBefore, "IME regression restores the original foreground window");
+                 Require(foregroundBefore.NeverAcquiredForeground(), "hidden IME regression never acquires desktop foreground");
              }
          });
     test("Editor.OutlineTracksShiftedOffsetsAndChangedLabels",
@@ -980,7 +981,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
     test("Recovery.DuplicateCloseKeepsUnsavedPrompt",
          [&]
          {
-             const auto foreground = GetForegroundWindow();
+             Testing::ForegroundOwnershipObserver foreground;
              Application *owner{};
              unsigned prompts{};
              int response = IDCANCEL;
@@ -1020,12 +1021,12 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              (void)SendMessageW(window, WM_CLOSE, 0, 0);
              Require(prompts == 2 && app.Host().GetHwnd() == nullptr,
                      "a fresh Close after Cancel asks again and honors the original Discard continuation");
-             Require(GetForegroundWindow() == foreground, "the hidden prompt regression preserves desktop foreground");
+             Require(foreground.NeverAcquiredForeground(), "the hidden prompt regression preserves desktop foreground");
          });
     test("Recovery.RestoreKeepsClickedIdentityAcrossUnsavedPrompt",
          [&]
          {
-             const auto foreground = GetForegroundWindow();
+             Testing::ForegroundOwnershipObserver foreground;
              // Try the nonempty remainder first: the old continuation restores
              // the wrong copy without needing to dereference an empty vector.
              for (const unsigned survivors : {1u, 0u})
@@ -1112,7 +1113,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                              "a fresh Restore can explicitly choose the remaining exact copy");
                      settle(0, "fresh Restore durability");
                  }
-                 Require(GetForegroundWindow() == foreground, "hidden Restore identity coverage preserves desktop foreground");
+                 Require(foreground.NeverAcquiredForeground(), "hidden Restore identity coverage preserves desktop foreground");
              }
          });
     test("Window.CaptionRetriesFailedAndSupersededNativeWrites",
@@ -1233,7 +1234,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Require(app.Activity().captionCalls == before.captionCalls + 1 && WindowCaption(app.Window()) == L"outer.md — RedTilde",
                      "superseded native write cannot cache the stale outer identity as applied");
              const HWND hiddenWindow = app.Window();
-             const HWND foreground = GetForegroundWindow();
+             Testing::ForegroundOwnershipObserver foreground;
              context.closeAfterCaption = true;
              app.Document().SetSelection({0, 0});
              Require(app.Document().ReplaceSelection(L"trigger"), "caption-triggered nested-close edit is admitted");
@@ -1244,7 +1245,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Require((app.Window() == nullptr && !IsWindow(hiddenWindow)) ||
                          (app.Window() == hiddenWindow && IsWindow(hiddenWindow) && !IsWindowVisible(hiddenWindow)),
                      "accepted Close destroys the owned window or retains it hidden while admitted persistence finishes");
-             Require(GetForegroundWindow() == foreground, "hidden native-close regression preserves foreground focus");
+             Require(foreground.NeverAcquiredForeground(), "hidden native-close regression preserves foreground focus");
          });
     test("Editor.DirtyCacheTracksDirectResetAndSameLengthUndo",
          [&]
@@ -1352,7 +1353,13 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                                            Fixture{L"Title\r\n\r\nα 😀\r\n第二行\r\n\r\nTail\r\n", L"α 😀\r\n第二行",
                                                    L"Title\r\n\r\n> α 😀\r\n> 第二行\r\n\r\nTail\r\n",
                                                    L"Title\r\n\r\n```text\r\nα 😀\r\n第二行\r\n```\r\n\r\nTail\r\n"}};
-             const auto foreground = GetForegroundWindow();
+             {
+                 Testing::ForegroundOwnershipObserver negativeControl;
+                 Require(negativeControl.NeverAcquiredForeground(), "hidden observer starts without activation");
+                 Testing::ForegroundOwnershipObserverProbe::ReplayOwnedEvent(negativeControl);
+                 Require(!negativeControl.NeverAcquiredForeground(), "an owned foreground event is a failing no-activation observation");
+             }
+             Testing::ForegroundOwnershipObserver foreground;
              for (const auto view : {Command::Compose, Command::Source, Command::Split})
              {
                  LaunchOptions launch;
@@ -1392,8 +1399,30 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                  app.SetDocument({});
                  app.Execute(Command::Fence);
                  Require(app.Document().GetText() == L"\n\n```text\nYour code here\n```\n\n", "empty-selection Code retains its insertion template");
+                 app.SetDocument(L"Protected words");
+                 app.Document().SetSelection({9u, 0u});
+                 app.Document().SetReadOnly(true);
+                 const auto protectedSource = app.Document().Snapshot();
+                 for (const auto command : {Command::Quote, Command::Fence})
+                 {
+                     app.Execute(command);
+                     Require(app.Document().Snapshot().IsSameRevision(protectedSource) &&
+                                 app.Document().GetSelection() == DxUi::RichText::Selection{9u, 0u} && !app.Dirty() && !app.Document().CanUndo(),
+                             "a refused selected Insert retains protected writing instead of using a sample template");
+                 }
+                 app.Document().SetReadOnly(false);
+                 app.SetDocument(std::wstring(DxUi::RichText::Document::MaximumUnits, L'x'));
+                 app.Document().SetSelection({4u, 1u});
+                 const auto fullSource = app.Document().Snapshot();
+                 for (const auto command : {Command::Quote, Command::Fence})
+                 {
+                     app.Execute(command);
+                     Require(app.Document().Snapshot().IsSameRevision(fullSource) &&
+                                 app.Document().GetSelection() == DxUi::RichText::Selection{4u, 1u} && !app.Dirty() && !app.Document().CanUndo(),
+                             "capacity refusal never replaces selected writing with the shorter sample template");
+                 }
              }
-             Require(GetForegroundWindow() == foreground, "headless block insertion preserves desktop foreground");
+             Require(foreground.NeverAcquiredForeground(), "headless block insertion never acquires desktop foreground");
          });
     test("Editor.LocalDiagramSourceAndLiteralFallback",
          [&]

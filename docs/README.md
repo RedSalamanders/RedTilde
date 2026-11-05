@@ -29,6 +29,9 @@ without a chance to edit the destination.
 **Formatting:** the Text style menu offers paragraph/headings; the toolbar offers bold/italic/code, bullets and
 tasks. Insert offers link, image, table, Mermaid, equation, quote and code. The context menu adds strike,
 numbered lists and table row/column commands. Unavailable structural actions retain source and explain context.
+Select text before **Insert → Quote** or **Insert → Code Block** to turn that text into the block. This works
+in Compose, Source and Split, preserves the selected wording and line endings, and takes one Undo to reverse.
+With no selection, the commands insert their usual editable example.
 
 **Markdown syntax:** tables, task lists, strikethrough and autolinks always work. Settings › Markdown syntax also
 turns on `==highlight==`, `^superscript^`, `~subscript~`, `++inserted++`, wiki links `[[page]]`, definition lists

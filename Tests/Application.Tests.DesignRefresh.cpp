@@ -1,5 +1,6 @@
 #include "Application.Tests.DesignRefresh.h"
 #include "RedTilde/Application.h"
+#include "Support/Support.Tests.Foreground.h"
 #include "Support/Support.Tests.TextServices.h"
 #include "res/Resource.h"
 #include <UIAutomation.h>
@@ -541,7 +542,7 @@ class DesignRefreshProbe final
         test("Window.Image2QuietChromeAndCompactInspector",
              [&]
              {
-                 const auto foreground = GetForegroundWindow();
+                 Testing::ForegroundOwnershipObserver foreground;
                  Application app(Options(root, L"image2-visual"));
                  Success(app.Initialize(), "create the hidden image-2 comparison app");
                  app.SetDocument(L"# Weekly report\n\n15 October 2026\n\n## What changed since last report\n\n- First item\n- Second item\n\n## In "
@@ -580,12 +581,12 @@ class DesignRefreshProbe final
                      Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selection,
                              "visual layout and DPI changes preserve the authoritative document and selection");
                  }
-                 Require(GetForegroundWindow() == foreground && !IsWindowVisible(app.Window()), "image-2 verification preserves the desktop");
+                 Require(foreground.NeverAcquiredForeground() && !IsWindowVisible(app.Window()), "image-2 verification preserves the desktop");
              });
         test("Editor.HiddenCurrentBlockPublishesLatestOnReveal",
              [&]
              {
-                 const auto foreground = GetForegroundWindow();
+                 Testing::ForegroundOwnershipObserver foreground;
                  Application app(Options(root, L"hidden-current-block", L"narrow"));
                  Success(app.Initialize(), "create the hidden current-block publication app");
                  Resize(app, 820, 560, 96, false);
@@ -745,13 +746,13 @@ class DesignRefreshProbe final
                      },
                      "the narrow Files overlay hides the sidebar");
                  Require(app.Document().Snapshot().IsSameRevision(entrySource) && app.currentBlockTitle->GetText() == title &&
-                             GetForegroundWindow() == foreground && !IsWindowVisible(app.Window()),
+                             foreground.NeverAcquiredForeground() && !IsWindowVisible(app.Window()),
                          "all reveal paths preserve the document and static title without activating the hidden app");
              });
         test("Window.DesignRefreshMergedFrameHitTests",
              [&]
              {
-                 const auto foreground = GetForegroundWindow();
+                 Testing::ForegroundOwnershipObserver foreground;
                  Application app(Options(root, L"design-frame"));
                  Success(app.Initialize(), "create hidden merged-frame app");
                  Resize(app, 1440, 900);
@@ -784,12 +785,12 @@ class DesignRefreshProbe final
                  app.Execute(Command::Focus);
                  Require(HitControl(app, app.exitFocus) == HTCLIENT && HitControl(app, app.maximizeButton) == HTMAXBUTTON,
                          "Focus mode retains Exit focus and native caption targets");
-                 Require(GetForegroundWindow() == foreground && !IsWindowVisible(app.Window()), "frame probing never shows or activates its window");
+                 Require(foreground.NeverAcquiredForeground() && !IsWindowVisible(app.Window()), "frame probing never shows or activates its window");
              });
         test("Window.DesignRefreshCaptionButtonPointerLifecycle",
              [&]
              {
-                 const auto foreground = GetForegroundWindow();
+                 Testing::ForegroundOwnershipObserver foreground;
                  Application app(Options(root, L"caption-pointer-lifecycle"));
                  Success(app.Initialize(), "create hidden caption-button lifecycle app");
                  const auto source = app.Document().Snapshot();
@@ -901,83 +902,89 @@ class DesignRefreshProbe final
                              app.Document().CanUndo() == canUndo && app.Document().CanRedo() == canRedo &&
                              app.Host().GetFocusControl() == keyboardFocus,
                          "caption pointer handling preserves exact source, selection, undo history and keyboard focus");
-                 Require(GetForegroundWindow() == foreground && !IsWindowVisible(app.Window()),
+                 Require(foreground.NeverAcquiredForeground() && !IsWindowVisible(app.Window()),
                          "caption pointer and raster coverage never shows or activates the hidden test window");
              });
         test("Window.DesignRefreshResponsiveLayoutAndDpi",
              [&]
              {
+                 Testing::ForegroundOwnershipObserver foregroundOwnership;
                  const auto foreground = GetForegroundWindow();
                  DWORD initialProcessAtEntry{};
                  const bool initialOwnerAtEntry = GetWindowThreadProcessId(foreground, &initialProcessAtEntry) != 0;
-                 Application app(Options(root, L"design-layout"));
-                 Success(app.Initialize(), "create hidden responsive-layout app");
-                 app.Execute(Command::Files);
-                 const auto source = app.Document().Snapshot();
-                 const auto selected = app.Document().GetSelection();
-                 const bool undo = app.Document().CanUndo(), redo = app.Document().CanRedo();
-                 for (const UINT dpi : {96u, 144u, 192u})
-                     for (const unsigned width : {800u, 1120u, 1136u, 1142u, 1200u, 1300u, 1440u})
-                     {
-                         Resize(app, width, width == 800 ? 560 : 900, dpi);
-                         CheckChrome(app);
-                         const auto actual = app.Host().GetClientBoundsDip();
-                         if (actual.right < 1142)
+                 {
+                     Application app(Options(root, L"design-layout"));
+                     Success(app.Initialize(), "create hidden responsive-layout app");
+                     app.Execute(Command::Files);
+                     const auto source = app.Document().Snapshot();
+                     const auto selected = app.Document().GetSelection();
+                     const bool undo = app.Document().CanUndo(), redo = app.Document().CanRedo();
+                     for (const UINT dpi : {96u, 144u, 192u})
+                         for (const unsigned width : {800u, 1120u, 1136u, 1142u, 1200u, 1300u, 1440u})
                          {
-                             Require(!app.sidebar->IsVisible() && !app.filesSplitter->IsVisible() && app.filesPane->IsVisible() &&
-                                         Near(app.page->GetBounds().left, 0),
-                                     std::format("Files overlay width={} dpi={} files={} reading={} sidebar={} splitter={} pane={} left={}",
-                                                 actual.right, dpi, app.settings.filesWidth, app.settings.readingWidth, app.sidebar->IsVisible(),
-                                                 app.filesSplitter->IsVisible(), app.filesPane->IsVisible(), app.page->GetBounds().left)
-                                         .c_str());
-                             if (width == 800)
-                                 Require(app.overflowButton->IsVisible(), "the minimum-width command row moves hidden groups into overflow");
-                         }
-                         if (actual.right >= 1382)
-                             Require(app.sidebar->IsVisible() && app.filesPane->IsVisible() && app.filesSplitter->IsVisible() &&
-                                         !Overlap(app.filesPane->GetBounds(), app.page->GetBounds()) &&
-                                         !Overlap(app.sidebar->GetBounds(), app.page->GetBounds()),
-                                     "wide layout shows both panes beside the canvas without overlap");
-                         if (actual.right >= 1142 && actual.right <= 1300)
-                             Require(!app.sidebar->IsVisible() && app.filesSplitter->IsVisible(),
-                                     "the right panel collapses before the Files pane becomes an overlay");
-                         if (app.filesSplitter->IsVisible())
-                             Require(app.editor->GetBounds().right - app.editor->GetBounds().left >=
+                             Resize(app, width, width == 800 ? 560 : 900, dpi);
+                             CheckChrome(app);
+                             const auto actual = app.Host().GetClientBoundsDip();
+                             if (actual.right < 1142)
+                             {
+                                 Require(!app.sidebar->IsVisible() && !app.filesSplitter->IsVisible() && app.filesPane->IsVisible() &&
+                                             Near(app.page->GetBounds().left, 0),
+                                         std::format("Files overlay width={} dpi={} files={} reading={} sidebar={} splitter={} pane={} left={}",
+                                                     actual.right, dpi, app.settings.filesWidth, app.settings.readingWidth, app.sidebar->IsVisible(),
+                                                     app.filesSplitter->IsVisible(), app.filesPane->IsVisible(), app.page->GetBounds().left)
+                                             .c_str());
+                                 if (width == 800)
+                                     Require(app.overflowButton->IsVisible(), "the minimum-width command row moves hidden groups into overflow");
+                             }
+                             if (actual.right >= 1382)
+                                 Require(app.sidebar->IsVisible() && app.filesPane->IsVisible() && app.filesSplitter->IsVisible() &&
+                                             !Overlap(app.filesPane->GetBounds(), app.page->GetBounds()) &&
+                                             !Overlap(app.sidebar->GetBounds(), app.page->GetBounds()),
+                                         "wide layout shows both panes beside the canvas without overlap");
+                             if (actual.right >= 1142 && actual.right <= 1300)
+                                 Require(!app.sidebar->IsVisible() && app.filesSplitter->IsVisible(),
+                                         "the right panel collapses before the Files pane becomes an overlay");
+                             if (app.filesSplitter->IsVisible())
+                                 Require(
+                                     app.editor->GetBounds().right - app.editor->GetBounds().left >=
                                              static_cast<float>(app.Preferences().readingWidth) - 0.1f &&
                                          Near(app.Document().GetAppearance().maximumTextWidthDip, static_cast<float>(app.Preferences().readingWidth)),
                                      "inline Files includes its splitter and preserves the requested document measure before overlaying");
-                         app.SetView(EditorView::Split);
-                         CheckChrome(app);
-                         Require(app.SourceMirror().IsReadOnly() && !app.sidebar->IsVisible(),
-                                 "Split retains a derived read-only mirror and available width");
-                         app.SetView(EditorView::Compose);
-                         Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selected &&
-                                     app.Document().CanUndo() == undo && app.Document().CanRedo() == redo,
-                                 "responsive pane transitions preserve source, selection and both history directions");
+                             app.SetView(EditorView::Split);
+                             CheckChrome(app);
+                             Require(app.SourceMirror().IsReadOnly() && !app.sidebar->IsVisible(),
+                                     "Split retains a derived read-only mirror and available width");
+                             app.SetView(EditorView::Compose);
+                             Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selected &&
+                                         app.Document().CanUndo() == undo && app.Document().CanRedo() == redo,
+                                     "responsive pane transitions preserve source, selection and both history directions");
+                         }
+                     const auto observedForeground = GetForegroundWindow();
+                     const bool testWindowVisible = IsWindowVisible(app.Window()) != FALSE;
+                     if (!foregroundOwnership.NeverAcquiredForeground() || testWindowVisible)
+                     {
+                         DWORD initialProcess{}, observedProcess{};
+                         const bool initialOwnerAvailable = GetWindowThreadProcessId(foreground, &initialProcess) != 0;
+                         const bool observedOwnerAvailable = GetWindowThreadProcessId(observedForeground, &observedProcess) != 0;
+                         Require(false,
+                                 std::format("DPI/layout scenarios preserve the desktop: foregroundChanged={} testWindowVisible={} "
+                                             "observedIsTestWindow={} initialOwnerAvailable={} observedOwnerAvailable={} "
+                                             "initialProcessIsTest={} observedProcessIsTest={} initialWindowStillExists={} "
+                                             "initialForegroundWasNull={} observedForegroundWasNull={} initialOwnerAtEntry={} "
+                                             "initialProcessAtEntryIsTest={}",
+                                             observedForeground != foreground, testWindowVisible, observedForeground == app.Window(),
+                                             initialOwnerAvailable, observedOwnerAvailable, initialProcess == GetCurrentProcessId(),
+                                             observedProcess == GetCurrentProcessId(), IsWindow(foreground) != FALSE, foreground == nullptr,
+                                             observedForeground == nullptr, initialOwnerAtEntry, initialProcessAtEntry == GetCurrentProcessId())
+                                     .c_str());
                      }
-                 const auto observedForeground = GetForegroundWindow();
-                 const bool testWindowVisible = IsWindowVisible(app.Window()) != FALSE;
-                 if (observedForeground != foreground || testWindowVisible)
-                 {
-                     DWORD initialProcess{}, observedProcess{};
-                     const bool initialOwnerAvailable = GetWindowThreadProcessId(foreground, &initialProcess) != 0;
-                     const bool observedOwnerAvailable = GetWindowThreadProcessId(observedForeground, &observedProcess) != 0;
-                     Require(false, std::format("DPI/layout scenarios preserve the desktop: foregroundChanged={} testWindowVisible={} "
-                                                "observedIsTestWindow={} initialOwnerAvailable={} observedOwnerAvailable={} "
-                                                "initialProcessIsTest={} observedProcessIsTest={} initialWindowStillExists={} "
-                                                "initialForegroundWasNull={} observedForegroundWasNull={} initialOwnerAtEntry={} "
-                                                "initialProcessAtEntryIsTest={}",
-                                                observedForeground != foreground, testWindowVisible, observedForeground == app.Window(),
-                                                initialOwnerAvailable, observedOwnerAvailable, initialProcess == GetCurrentProcessId(),
-                                                observedProcess == GetCurrentProcessId(), IsWindow(foreground) != FALSE, foreground == nullptr,
-                                                observedForeground == nullptr, initialOwnerAtEntry, initialProcessAtEntry == GetCurrentProcessId())
-                                        .c_str());
                  }
+                 Require(foregroundOwnership.NeverAcquiredForeground(), "responsive-layout teardown never activates the owned window");
              });
         test("Editor.DesignRefreshFocusViewsAndToggleStates",
              [&]
              {
-                 const auto foreground = GetForegroundWindow();
+                 Testing::ForegroundOwnershipObserver foreground;
                  Application app(Options(root, L"design-focus"));
                  Success(app.Initialize(), "create hidden focus/view app");
                  app.SetDocument(L"# Durable source\n\nThe writing stays exact.\n");
@@ -1032,110 +1039,113 @@ class DesignRefreshProbe final
                  Require(app.stats->GetText() == std::vformat(Resource(IDS_FOCUSCOUNTS), std::make_wformat_args(savedWords, saved)),
                          "undoing to the saved revision updates the focused pill to Saved and the original word count");
                  Require(app.DismissSurface(), "leave the focused status-pill check through Escape routing");
-                 Require(GetForegroundWindow() == foreground, "hidden focus transitions change logical routing only");
+                 Require(foreground.NeverAcquiredForeground(), "hidden focus transitions change logical routing only");
              });
         test("Outline.DesignRefreshHierarchyCurrentAndFindCounts",
              [&]
              {
-                 const auto foreground = GetForegroundWindow();
-                 DWORD initialForegroundProcess{};
-                 const bool initialForegroundOwnerAvailable = GetWindowThreadProcessId(foreground, &initialForegroundProcess) != 0;
                  {
-                     Application publicationApp(Options(root, L"design-outline-publication"));
-                     Success(publicationApp.Initialize(), "create hidden outline-publication app");
-                     std::wstring publicationSource = L"Preamble.\n\n# Root\n\nOpening.\n\n";
-                     for (unsigned index = 0; index < 20; ++index)
-                         publicationSource += L"## Section " + std::to_wstring(index + 1) + L"\n\nBody.\n\n";
-                     publicationSource += L"# Last\n\nTail.\n";
-                     publicationApp.SetDocument(publicationSource);
-                     Resize(publicationApp, 1440, 560, 96);
-                     Require(publicationApp.sidebar->IsVisible() && publicationApp.outlineModel.rows.size() == 22 &&
-                                 !publicationApp.outlineTree->GetSelectedItemId() && !publicationApp.outlineTree->GetFocusedItemId(),
-                             "preamble has no current heading in either canonical tree identity");
-                     const auto opening = publicationSource.find(L"Opening");
-                     const std::optional<std::uint64_t> rootHeading{1}, lastHeading{22};
-                     const auto entering = publicationApp.Activity().outlineSelectionUpdates;
-                     publicationApp.Document().SetSelection({opening, opening});
-                     Require(publicationApp.Activity().outlineSelectionUpdates == entering + 1 &&
-                                 publicationApp.outlineTree->GetSelectedItemId() == rootHeading &&
-                                 publicationApp.outlineTree->GetFocusedItemId() == rootHeading,
-                             "entering a section synchronously publishes both selected and focused heading identities");
-                     const auto stable = publicationApp.Activity().outlineSelectionUpdates;
-                     const bool priorUndo = publicationApp.Document().CanUndo();
-                     for (unsigned edit = 0; edit < 8; ++edit)
+                     Testing::ForegroundOwnershipObserver foregroundOwnership;
+                     const auto foreground = GetForegroundWindow();
+                     DWORD initialForegroundProcess{};
+                     const bool initialForegroundOwnerAvailable = GetWindowThreadProcessId(foreground, &initialForegroundProcess) != 0;
                      {
-                         const DxUi::RichText::Selection caret{opening + edit % 2, opening + edit % 2};
-                         publicationApp.Document().SetSelection(caret);
-                         Require(publicationApp.Document().ReplaceSelection(L"x") && publicationApp.Document().Undo() &&
-                                     publicationApp.Document().GetText() == publicationSource && publicationApp.Document().GetSelection() == caret &&
-                                     publicationApp.Document().CanUndo() == priorUndo && publicationApp.Document().CanRedo() &&
-                                     !publicationApp.Dirty(),
-                                 "prose edit and one undo preserve exact source, caret and history within the current section");
-                         publicationApp.Prepare(64);
+                         Application publicationApp(Options(root, L"design-outline-publication"));
+                         Success(publicationApp.Initialize(), "create hidden outline-publication app");
+                         std::wstring publicationSource = L"Preamble.\n\n# Root\n\nOpening.\n\n";
+                         for (unsigned index = 0; index < 20; ++index)
+                             publicationSource += L"## Section " + std::to_wstring(index + 1) + L"\n\nBody.\n\n";
+                         publicationSource += L"# Last\n\nTail.\n";
+                         publicationApp.SetDocument(publicationSource);
+                         Resize(publicationApp, 1440, 560, 96);
+                         Require(publicationApp.sidebar->IsVisible() && publicationApp.outlineModel.rows.size() == 22 &&
+                                     !publicationApp.outlineTree->GetSelectedItemId() && !publicationApp.outlineTree->GetFocusedItemId(),
+                                 "preamble has no current heading in either canonical tree identity");
+                         const auto opening = publicationSource.find(L"Opening");
+                         const std::optional<std::uint64_t> rootHeading{1}, lastHeading{22};
+                         const auto entering = publicationApp.Activity().outlineSelectionUpdates;
+                         publicationApp.Document().SetSelection({opening, opening});
+                         Require(publicationApp.Activity().outlineSelectionUpdates == entering + 1 &&
+                                     publicationApp.outlineTree->GetSelectedItemId() == rootHeading &&
+                                     publicationApp.outlineTree->GetFocusedItemId() == rootHeading,
+                                 "entering a section synchronously publishes both selected and focused heading identities");
+                         const auto stable = publicationApp.Activity().outlineSelectionUpdates;
+                         const bool priorUndo = publicationApp.Document().CanUndo();
+                         for (unsigned edit = 0; edit < 8; ++edit)
+                         {
+                             const DxUi::RichText::Selection caret{opening + edit % 2, opening + edit % 2};
+                             publicationApp.Document().SetSelection(caret);
+                             Require(publicationApp.Document().ReplaceSelection(L"x") && publicationApp.Document().Undo() &&
+                                         publicationApp.Document().GetText() == publicationSource &&
+                                         publicationApp.Document().GetSelection() == caret && publicationApp.Document().CanUndo() == priorUndo &&
+                                         publicationApp.Document().CanRedo() && !publicationApp.Dirty(),
+                                     "prose edit and one undo preserve exact source, caret and history within the current section");
+                             publicationApp.Prepare(64);
+                         }
+                         Require(publicationApp.Activity().outlineSelectionUpdates == stable &&
+                                     publicationApp.outlineTree->GetSelectedItemId() == rootHeading &&
+                                     publicationApp.outlineTree->GetFocusedItemId() == rootHeading,
+                                 "caret, edit, undo and syntax refreshes never republish an unchanged current section");
+                         publicationApp.outlineTree->SetFocusedItemId(2);
+                         Require(publicationApp.outlineTree->GetSelectedItemId() == rootHeading &&
+                                     publicationApp.outlineTree->GetFocusedItemId() == std::optional<std::uint64_t>{2},
+                                 "canonical tree focus can differ from its selected item");
+                         publicationApp.Document().SetSelection({opening + 3, opening + 3});
+                         Require(publicationApp.Activity().outlineSelectionUpdates == stable + 1 &&
+                                     publicationApp.outlineTree->GetSelectedItemId() == rootHeading &&
+                                     publicationApp.outlineTree->GetFocusedItemId() == rootHeading,
+                                 "a changed focused identity is immediately reconciled even when selection already matches");
+                         const auto tail = publicationSource.find(L"Tail");
+                         publicationApp.Document().SetSelection({tail, tail});
+                         Require(publicationApp.Activity().outlineSelectionUpdates == stable + 2 &&
+                                     publicationApp.outlineTree->GetSelectedItemId() == lastHeading &&
+                                     publicationApp.outlineTree->GetFocusedItemId() == lastHeading &&
+                                     publicationApp.outlineTree->GetFirstVisibleItemIndex() > 0,
+                                 "an actual section transition immediately selects, focuses and reveals the distant heading");
+                         const auto rebuilt = publicationApp.Activity().outlineSelectionUpdates;
+                         publicationApp.outlineModel.OnTreeToggleExpanded(1, false);
+                         Require(publicationApp.outlineModel.rows.size() == 2 && publicationApp.outlineTree->GetFirstVisibleItemIndex() == 0,
+                                 "collapsing earlier descendants clamps the retained distant heading into the short model");
+                         publicationApp.outlineModel.OnTreeToggleExpanded(1, true);
+                         // The pinned Tree keeps the user's viewport across a model refresh; it no longer scrolls to unchanged focus.
+                         Require(publicationApp.Activity().outlineSelectionUpdates == rebuilt && publicationApp.outlineModel.rows.size() == 22 &&
+                                     publicationApp.outlineTree->GetSelectedItemId() == lastHeading &&
+                                     publicationApp.outlineTree->GetFocusedItemId() == lastHeading &&
+                                     publicationApp.outlineTree->GetFirstVisibleItemIndex() == 0,
+                                 "canonical model refresh keeps the surviving current heading and the viewport without redundant app publication");
+                         publicationApp.SetView(EditorView::Split);
+                         publicationApp.Document().SetSelection({opening, opening});
+                         const auto hiddenUpdates = publicationApp.Activity().outlineSelectionUpdates;
+                         Require(!publicationApp.sidebar->IsVisible() && hiddenUpdates == rebuilt + 1 &&
+                                     publicationApp.outlineTree->GetSelectedItemId() == rootHeading &&
+                                     publicationApp.outlineTree->GetFocusedItemId() == rootHeading,
+                                 "hidden Split presentation still receives actual current-section transitions immediately");
+                         publicationApp.SetView(EditorView::Compose);
+                         Require(publicationApp.sidebar->IsVisible() && publicationApp.Activity().outlineSelectionUpdates == hiddenUpdates &&
+                                     publicationApp.outlineTree->GetSelectedItemId() == rootHeading &&
+                                     publicationApp.outlineTree->GetFocusedItemId() == rootHeading &&
+                                     publicationApp.Document().GetText() == publicationSource && publicationApp.Document().CanUndo() == priorUndo &&
+                                     publicationApp.Document().CanRedo(),
+                                 "revealing the panel preserves its already current identity and the exact source/history");
+                         publicationApp.Document().SetSelection({0, 0});
+                         const auto cleared = publicationApp.Activity().outlineSelectionUpdates;
+                         publicationApp.Document().SetSelection({1, 1});
+                         Require(cleared == hiddenUpdates + 1 && publicationApp.Activity().outlineSelectionUpdates == cleared &&
+                                     !publicationApp.outlineTree->GetSelectedItemId() && !publicationApp.outlineTree->GetFocusedItemId(),
+                                 "leaving all sections clears both identities once and repeated preamble carets remain inert");
                      }
-                     Require(publicationApp.Activity().outlineSelectionUpdates == stable &&
-                                 publicationApp.outlineTree->GetSelectedItemId() == rootHeading &&
-                                 publicationApp.outlineTree->GetFocusedItemId() == rootHeading,
-                             "caret, edit, undo and syntax refreshes never republish an unchanged current section");
-                     publicationApp.outlineTree->SetFocusedItemId(2);
-                     Require(publicationApp.outlineTree->GetSelectedItemId() == rootHeading &&
-                                 publicationApp.outlineTree->GetFocusedItemId() == std::optional<std::uint64_t>{2},
-                             "canonical tree focus can differ from its selected item");
-                     publicationApp.Document().SetSelection({opening + 3, opening + 3});
-                     Require(publicationApp.Activity().outlineSelectionUpdates == stable + 1 &&
-                                 publicationApp.outlineTree->GetSelectedItemId() == rootHeading &&
-                                 publicationApp.outlineTree->GetFocusedItemId() == rootHeading,
-                             "a changed focused identity is immediately reconciled even when selection already matches");
-                     const auto tail = publicationSource.find(L"Tail");
-                     publicationApp.Document().SetSelection({tail, tail});
-                     Require(publicationApp.Activity().outlineSelectionUpdates == stable + 2 &&
-                                 publicationApp.outlineTree->GetSelectedItemId() == lastHeading &&
-                                 publicationApp.outlineTree->GetFocusedItemId() == lastHeading &&
-                                 publicationApp.outlineTree->GetFirstVisibleItemIndex() > 0,
-                             "an actual section transition immediately selects, focuses and reveals the distant heading");
-                     const auto rebuilt = publicationApp.Activity().outlineSelectionUpdates;
-                     publicationApp.outlineModel.OnTreeToggleExpanded(1, false);
-                     Require(publicationApp.outlineModel.rows.size() == 2 && publicationApp.outlineTree->GetFirstVisibleItemIndex() == 0,
-                             "collapsing earlier descendants clamps the retained distant heading into the short model");
-                     publicationApp.outlineModel.OnTreeToggleExpanded(1, true);
-                     // The pinned Tree keeps the user's viewport across a model refresh; it no longer scrolls to unchanged focus.
-                     Require(publicationApp.Activity().outlineSelectionUpdates == rebuilt && publicationApp.outlineModel.rows.size() == 22 &&
-                                 publicationApp.outlineTree->GetSelectedItemId() == lastHeading &&
-                                 publicationApp.outlineTree->GetFocusedItemId() == lastHeading &&
-                                 publicationApp.outlineTree->GetFirstVisibleItemIndex() == 0,
-                             "canonical model refresh keeps the surviving current heading and the viewport without redundant app publication");
-                     publicationApp.SetView(EditorView::Split);
-                     publicationApp.Document().SetSelection({opening, opening});
-                     const auto hiddenUpdates = publicationApp.Activity().outlineSelectionUpdates;
-                     Require(!publicationApp.sidebar->IsVisible() && hiddenUpdates == rebuilt + 1 &&
-                                 publicationApp.outlineTree->GetSelectedItemId() == rootHeading &&
-                                 publicationApp.outlineTree->GetFocusedItemId() == rootHeading,
-                             "hidden Split presentation still receives actual current-section transitions immediately");
-                     publicationApp.SetView(EditorView::Compose);
-                     Require(publicationApp.sidebar->IsVisible() && publicationApp.Activity().outlineSelectionUpdates == hiddenUpdates &&
-                                 publicationApp.outlineTree->GetSelectedItemId() == rootHeading &&
-                                 publicationApp.outlineTree->GetFocusedItemId() == rootHeading &&
-                                 publicationApp.Document().GetText() == publicationSource && publicationApp.Document().CanUndo() == priorUndo &&
-                                 publicationApp.Document().CanRedo(),
-                             "revealing the panel preserves its already current identity and the exact source/history");
-                     publicationApp.Document().SetSelection({0, 0});
-                     const auto cleared = publicationApp.Activity().outlineSelectionUpdates;
-                     publicationApp.Document().SetSelection({1, 1});
-                     Require(cleared == hiddenUpdates + 1 && publicationApp.Activity().outlineSelectionUpdates == cleared &&
-                                 !publicationApp.outlineTree->GetSelectedItemId() && !publicationApp.outlineTree->GetFocusedItemId(),
-                             "leaving all sections clears both identities once and repeated preamble carets remain inert");
-                 }
-                 const auto observedForeground = GetForegroundWindow();
-                 if (observedForeground != foreground)
-                 {
-                     DWORD observedProcess{};
-                     const bool observedOwnerAvailable = GetWindowThreadProcessId(observedForeground, &observedProcess) != 0;
-                     Require(false, std::format("outline publication probes never acquire desktop focus: initialForegroundWasNull={} "
-                                                "observedForegroundWasNull={} initialOwnerAtEntry={} observedOwnerAvailable={} "
-                                                "initialProcessAtEntryIsTest={} observedProcessIsTest={} initialWindowStillExists={}",
-                                                foreground == nullptr, observedForeground == nullptr, initialForegroundOwnerAvailable,
-                                                observedOwnerAvailable, initialForegroundProcess == GetCurrentProcessId(),
-                                                observedProcess == GetCurrentProcessId(), IsWindow(foreground) != FALSE));
+                     const auto observedForeground = GetForegroundWindow();
+                     if (!foregroundOwnership.NeverAcquiredForeground())
+                     {
+                         DWORD observedProcess{};
+                         const bool observedOwnerAvailable = GetWindowThreadProcessId(observedForeground, &observedProcess) != 0;
+                         Require(false, std::format("outline publication probes never acquire desktop focus: initialForegroundWasNull={} "
+                                                    "observedForegroundWasNull={} initialOwnerAtEntry={} observedOwnerAvailable={} "
+                                                    "initialProcessAtEntryIsTest={} observedProcessIsTest={} initialWindowStillExists={}",
+                                                    foreground == nullptr, observedForeground == nullptr, initialForegroundOwnerAvailable,
+                                                    observedOwnerAvailable, initialForegroundProcess == GetCurrentProcessId(),
+                                                    observedProcess == GetCurrentProcessId(), IsWindow(foreground) != FALSE));
+                     }
                  }
                  Application app(Options(root, L"design-outline"));
                  Success(app.Initialize(), "create hidden outline-tree app");
@@ -2440,7 +2450,7 @@ class DesignRefreshProbe final
         test("Editor.DesignRefreshTransientSurfacesAndClose",
              [&]
              {
-                 const auto foreground = GetForegroundWindow();
+                 Testing::ForegroundOwnershipObserver foreground;
                  const auto document = root / L"design-close-fixture/current.md";
                  WriteFixture(document, "# Retained\n\nFind this text.\n");
                  Application app(Options(root, L"design-close"));
@@ -2511,12 +2521,12 @@ class DesignRefreshProbe final
                  }
                  Require(app.Window() == nullptr && !app.folderFiles.TakeResult(),
                          "asynchronous retirement finishes without a late UI result or UI-thread join");
-                 Require(GetForegroundWindow() == foreground, "watch/surface shutdown never steals desktop focus");
+                 Require(foreground.NeverAcquiredForeground(), "watch/surface shutdown never steals desktop focus");
              });
         test("Editor.DesignRefreshLiveSettingsAndEscape",
              [&]
              {
-                 const auto foreground = GetForegroundWindow();
+                 Testing::ForegroundOwnershipObserver foreground;
                  Application app(Options(root, L"design-settings"));
                  Success(app.Initialize(), "create hidden live-settings app");
                  app.SetDocument(L"# Settings preserve writing\n\nA retained source.\n\n- [x] Completed **work**\n- [ ] Open work\n");
@@ -2572,14 +2582,14 @@ class DesignRefreshProbe final
                  Require(app.DismissSurface() && !app.drawer->IsVisible() && app.Host().GetFocusControl() == &app.Document() &&
                              app.Document().Snapshot().IsSameRevision(revision) && !app.Dirty(),
                          "Escape returns logical editor routing without creating source/history edits");
-                 Require(GetForegroundWindow() == foreground, "live settings never take desktop focus in hidden tests");
+                 Require(foreground.NeverAcquiredForeground(), "live settings never take desktop focus in hidden tests");
              });
         test("Editor.MarkdownSyntaxOptionsReanalyzeLive",
              [&]
              {
                  using DxUi::RichText::MarkdownExtensions;
                  using DxUi::RichText::MarkdownInlineKind;
-                 const auto foreground = GetForegroundWindow();
+                 Testing::ForegroundOwnershipObserver foreground;
                  Application app(Options(root, L"syntax-options"));
                  Success(app.Initialize(), "create hidden syntax-options app");
                  const std::wstring text = L"Mark ==this== and see [[Home|home]].\n";
@@ -2636,12 +2646,12 @@ class DesignRefreshProbe final
                  Require(views(MarkdownExtensions::RichOptionalMask) && inlineKind(MarkdownInlineKind::Highlight) && wikiLink() &&
                              app.Document().GetText() == text && app.Document().Snapshot().IsSameRevision(revision) && !app.Dirty(),
                          "syntax options change presentation only, never source, revision or save state");
-                 Require(GetForegroundWindow() == foreground, "syntax options never take desktop focus in hidden tests");
+                 Require(foreground.NeverAcquiredForeground(), "syntax options never take desktop focus in hidden tests");
              });
         test("Rendering.DocumentThemedScrollbars",
              [&]
              {
-                 const auto foreground = GetForegroundWindow();
+                 Testing::ForegroundOwnershipObserver foreground;
                  Application app(Options(root, L"document-scrollbars"));
                  Success(app.Initialize(), "create hidden scrollbar app");
                  std::wstring text = L"> A useful notebook keeps the observation beside its explanation.\n>\n"
@@ -2730,14 +2740,14 @@ class DesignRefreshProbe final
                  app.Host().SetTheme(marked);
                  Require(app.Capture(image) && fitting == ReadControlRaster(image, lane, app.Host().GetDpi()),
                          "a fitting document paints no phantom thumb");
-                 Require(!IsWindowVisible(app.Window()) && GetForegroundWindow() == foreground,
+                 Require(!IsWindowVisible(app.Window()) && foreground.NeverAcquiredForeground(),
                          "scrollbar regression never shows a window or takes desktop focus");
              });
         test("Rendering.DesignRefreshTypographyAndThemeRoles",
              [&]
              {
                  {
-                     const auto foreground = GetForegroundWindow();
+                     Testing::ForegroundOwnershipObserver foreground;
                      Application lazy(Options(root, L"design-lazy-layout"));
                      Success(lazy.Initialize(), "create hidden app before its first explicit preparation");
                      Require(lazy.Host().GetTypographyRevision() == 0 && lazy.Host().GetDeviceContext() == nullptr &&
@@ -2782,7 +2792,7 @@ class DesignRefreshProbe final
                                  lazy.Document().GetSelection() == selection && !lazy.Document().CanUndo() && lazy.Document().CanRedo() &&
                                  !lazy.Dirty(),
                              "deferred canonical family selection matches native typography and leaves the derived source/history exact");
-                     Require(GetForegroundWindow() == foreground && !IsWindowVisible(lazy.Window()),
+                     Require(foreground.NeverAcquiredForeground() && !IsWindowVisible(lazy.Window()),
                              "lazy-resource checks never show or activate the owned test window");
                  }
                  Application app(Options(root, L"design-render"));
@@ -2871,7 +2881,7 @@ class DesignRefreshProbe final
                  Require(systemPreviewOnDark.has_value() && updatedDarkPreview.has_value() && updatedLightPreview.has_value() &&
                              systemPreviewOnDark.value() == updatedDarkPreview.value() && systemPreviewOnDark.value() != updatedLightPreview.value(),
                          "System appearance preview uses the cached dark system preference while explicit Light is selected");
-                 const auto captureForeground = GetForegroundWindow();
+                 Testing::ForegroundOwnershipObserver captureForeground;
                  std::string firstSettingsCapture;
                  for (const bool initialSystemDark : {false, true})
                  {
@@ -2908,7 +2918,7 @@ class DesignRefreshProbe final
                      Require(captureApp.Document().Snapshot().IsSameRevision(captureSource) && captureApp.Document().Revision() == captureRevision &&
                                  captureApp.Document().GetSelection() == captureSelection && captureApp.Document().CanUndo() == captureUndo &&
                                  captureApp.Document().CanRedo() && captureApp.Host().GetFocusControl() == captureFocus &&
-                                 GetForegroundWindow() == captureForeground && !IsWindowVisible(captureApp.Window()),
+                                 captureForeground.NeverAcquiredForeground() && !IsWindowVisible(captureApp.Window()),
                              "Settings fixture rendering preserves source, selection, both history directions and hidden logical focus");
                      std::string settingsCapture;
                      Success(ReadBytes(captureOptions.capture, settingsCapture), "read the actual Settings PNG");
@@ -2979,7 +2989,7 @@ class DesignRefreshProbe final
         test("Editor.DesignRefreshDeferredSelectionToolsFocus",
              [&]
              {
-                 const auto foreground = GetForegroundWindow();
+                 Testing::ForegroundOwnershipObserver foreground;
                  Application app(Options(root, L"design-deferred-tools"));
                  Success(app.Initialize(), "create hidden deferred-tools app");
                  app.SetDocument(L"# Prepared tools\n\nSelect these careful words.\n");
@@ -3133,7 +3143,7 @@ class DesignRefreshProbe final
                      modifiers(false, false, false);
                      app.CloseDrawers();
                  }
-                 Require(GetForegroundWindow() == foreground && !IsWindowVisible(app.Window()),
+                 Require(foreground.NeverAcquiredForeground() && !IsWindowVisible(app.Window()),
                          "deferred logical-focus tests never take the desktop");
              });
         test(

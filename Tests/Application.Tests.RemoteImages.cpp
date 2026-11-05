@@ -7,6 +7,7 @@
 #include "Common/RemoteImage.h"
 #include "Common/RemoteImageImports.h"
 #include "RedTilde/Application.h"
+#include "Support/Support.Tests.Foreground.h"
 #include <DxUi/RichImage.h>
 #include <algorithm>
 #include <array>
@@ -434,7 +435,7 @@ void RegisterRemoteImageTests(const std::filesystem::path &root, const std::func
     test("Editor.RemoteImagePrivacyOptInRevocationAndShutdown",
          [&]
          {
-             const HWND foreground = GetForegroundWindow();
+             Testing::ForegroundOwnershipObserver foreground;
              const auto fixture = root / L"remote-image-policy";
              std::filesystem::create_directories(fixture / L"Writing");
              const auto pixels = Bitmap();
@@ -521,25 +522,25 @@ void RegisterRemoteImageTests(const std::filesystem::path &root, const std::func
              app.Document().SetDocumentFilePath((fixture / L"Writing/Ideas.md").native());
              app.Execute(Command::RemoteImages);
              await([&] { return closing.Count() == 1; });
-             const HWND foregroundBeforeClose = GetForegroundWindow();
+             const bool foregroundBeforeClose = foreground.NeverAcquiredForeground();
              const auto before = GetTickCount64();
              (void)SendMessageW(app.Window(), WM_CLOSE, 0, 0);
              const auto closeMilliseconds = GetTickCount64() - before;
-             const HWND foregroundAfterClose = GetForegroundWindow();
+             const bool foregroundAfterClose = foreground.NeverAcquiredForeground();
              Require(
                  closeMilliseconds < 500,
                  std::format("clean Close invalidates the active network publisher without a UI-thread join: {} ms (limit <500)", closeMilliseconds)
                      .c_str());
-             Require(foregroundBeforeClose == foreground && foregroundAfterClose == foreground,
-                     std::format("hidden remote-image policy preserves foreground: before Close matches entry={}, Close preserves foreground={}",
-                                 foregroundBeforeClose == foreground, foregroundAfterClose == foregroundBeforeClose)
+             Require(foregroundBeforeClose && foregroundAfterClose,
+                     std::format("hidden remote-image policy never activates: before Close={}, through Close={}", foregroundBeforeClose,
+                                 foregroundAfterClose)
                          .c_str());
              closing.Release();
          });
     test("Editor.WikiImageEmbedsStayUnresolved",
          [&]
          {
-             const auto foreground = GetForegroundWindow();
+             Testing::ForegroundOwnershipObserver foreground;
              const auto fixture = root / L"wiki-image-embeds";
              std::filesystem::create_directories(fixture / L"Writing");
              const auto pixels = Bitmap();
@@ -577,7 +578,7 @@ void RegisterRemoteImageTests(const std::filesystem::path &root, const std::func
                          app.Document().GetImageResourceStatistics().requestedSources == 1 &&
                          app.Document().GetImageResourceStatistics().failedSources == 0 && app.Document().GetText() == text && !app.Dirty(),
                      "turning wiki links off leaves the embed as literal text without editing the document");
-             Require(GetForegroundWindow() == foreground, "hidden wiki-embed handling preserves foreground");
+             Require(foreground.NeverAcquiredForeground(), "hidden wiki-embed handling preserves foreground");
          });
 }
 } // namespace RedTilde

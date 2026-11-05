@@ -52,6 +52,18 @@ the character. RedTilde must not filter ordinary editor characters locally to co
 
 ## Formatting and navigation
 
+Insert Quote and Insert Code Block transform a nonempty selection through
+`RichTextEditor::WrapSelectionInMarkdownBlock` in Compose, Source and the primary Split editor. Quote prefixes
+each selected physical line; Code Block encloses the exact payload with a fence longer than any selected run
+of backticks and the `text` language. Retain unselected spelling and every original selected CRLF, LF or CR.
+Use the document's first line-ending style for new separators (CRLF when there is none), adding the blank
+separation required to make a block without deleting outside content. Preserve selection direction and
+logical editor focus. One Undo restores the original source, selection and clean/dirty identity; one Redo
+restores the whole transformation. A selected command refused for capacity, read-only/disabled input or an
+active text-service preview/composition must retain source, selection and history and show the unavailable
+status. Never replace a refused selection with sample content. With a collapsed selection, retain the
+existing Quote and Code Block insertion templates. These source transactions require no prepared rich geometry.
+
 Provide New, Open, Save, Save As, undo/redo, bold, italic, strike, inline code, headings, paragraphs, bullets,
 numbered lists, tasks, quotes, links, images, fenced code, tables and table-row/column actions. Commands use the
 public planner when supported. An outline derives from ATX headings outside fences and navigates source ranges.
