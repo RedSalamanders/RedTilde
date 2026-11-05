@@ -1,5 +1,9 @@
 # RedTilde guide
 
+Invalid or oversized recovery copies are kept intact in quarantine instead of interrupting recovery. Valid
+copies remain available. An existing quarantine file is preserved; the original input stays intact if it
+cannot be moved beside that earlier file. Recovery never silently truncates your writing.
+
 The [root README](../README.md) covers launching and shortcuts. Start with Compose, select text for formatting,
 and use Source to inspect exact Markdown. Switch views freely; the document, source selection and undo history
 are shared. Split is an editable Compose pane next to a read-only source mirror.
