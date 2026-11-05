@@ -12,6 +12,12 @@ for taskbar and Alt+Tab identity. The app owns non-client hit testing, caption a
 and caption-button UI Automation; DxUi's host owns only the client area and must not paint over or compete with the
 app frame. Repeated edits with the same displayed identity skip redundant native title writes; save-state feedback,
 Unicode, undo and document replacement stay exact.
+Close during Save hides the existing window until the admitted write settles. A failed save restores its
+placement without activation and shows the storage error in the existing status area; source and recovery
+remain available. Ignore duplicate Close and queued commands while waiting. If later edits are still dirty
+after success, restore the window and use the ordinary unsaved-changes question. Close abandons a pending Open
+before applying that same question to any new edits. The [file-safety contract](../Core/Core_FileSafety.md)
+owns storage, continuation and recovery semantics.
 Cold header layout reserves bounded identity space without initializing host typography. Once the host prepares
 typography, measure the filename canonically and reuse it until text, available width, typography revision or DPI changes.
 

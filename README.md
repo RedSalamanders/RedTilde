@@ -69,6 +69,9 @@ keeps the proposal art; its remaining gate is R10, sequenced from the [plan inde
 Open/save preserves UTF-8 BOM and existing line endings. Invalid UTF-8/NUL and documents above 65,536 UTF-16
 units are rejected without replacing the current source. Saves are atomic and check for external modifications;
 New/Open/Close protect unsaved edits. Crash reports stay under `RedTilde\Crashes` and are never uploaded.
+Closing during Save hides the window until the write finishes. A failure restores the window with the error
+and keeps your edits and recovery copy; edits typed after Save still receive the unsaved-changes question.
+Closing during Open abandons the load and protects any edits made in the meantime.
 Debounced session snapshots offer review, restore or discard after a crash. Restoring creates a dirty copy requiring Save As; original files are protected.
 
 ## Media and previews

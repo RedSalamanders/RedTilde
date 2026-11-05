@@ -40,6 +40,12 @@ input/capacity rejection, atomic write failure, external conflict, dirty-state/u
 semantic formatting, local source, search/outline, image decoding/cancellation, Mermaid literal fallback,
 equation parsing/unsupported input, settings fallback/live application and isolated crash reports. Native math
 tests require both inline/display objects, matrix/delimiter geometry, local source/undo and device replacement.
+File-lifecycle regressions hold the real worker at an event barrier before I/O, then execute the ordinary Close
+command in a hidden window. Cover save success, actual replacement failure, retained recovery and original bytes,
+duplicate Close, later edits, a usable retry, Open abandonment and stale-result refusal after Cancel. Test-only
+barriers and picker substitution are excluded from production; release them on every fixture exit and retain
+source-bound failing receipts before changing runtime behavior. Pump only the owned HWND, including its shutdown
+notifications after host retirement, without acquiring desktop focus or clipboard.
 State/class diagrams must become native objects with exact local source access. Recovery checks strict Unicode
 envelopes, corruption/future versions, live-session leases, coalescing, cancellation, dirty Save As restoration,
 unapplied drafts, original-file preservation and a real process crash followed by restart.

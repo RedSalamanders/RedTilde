@@ -20,6 +20,19 @@ back to saved text clears dirty; the saved baseline is exact source content, not
 While the Save/Discard/Cancel question is open, duplicate native or command Close requests are ignored.
 They keep the original prompt and continuation; they neither cancel it nor queue another Close. Cancel
 leaves the current source, selection and history intact. A later fresh Close may ask again normally.
+
+Close during an admitted save hides the window and keeps its notification owner, file worker and recovery
+alive until the actual write/replace completes. Duplicate Close requests and queued editing commands are ignored
+while waiting. Close supersedes an older New/Open continuation attached to that save. Success updates the saved
+baseline to the admitted text; close and retire recovery only when the current source is clean. If edits made
+after admission remain, restore the window and apply the ordinary Save/Discard/Cancel protection to those edits.
+Failure cancels the pending Close, preserves source/path/history and recovery, and restores the previous window
+placement without activation with the storage error visible in the status area. It does not automatically retry
+an overwrite or the Close; another explicit Save remains available. Hidden harness windows remain hidden.
+An Open in flight is abandoned without a busy-operation prompt or filesystem join. Invalidate its worker/session
+before asking about any edits made during Open, so Cancel retains those edits and a late Open cannot replace them.
+An affirmative Save in that question can admit a new operation independently of the abandoned reader.
+
 The application may reuse that exact dirty result only for the same immutable source revision, saved baseline
 and recovered-copy state. Replacing the saved baseline invalidates the result, including successful asynchronous
 save completion without another live edit. Equal-length replacements, direct resets, undo/redo and text-service

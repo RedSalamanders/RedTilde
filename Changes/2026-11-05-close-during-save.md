@@ -1,0 +1,1 @@
+- Fixed Close during asynchronous Save to wait for the admitted write, retain recovery on failure, and protect later edits; Close now abandons a pending Open safely.

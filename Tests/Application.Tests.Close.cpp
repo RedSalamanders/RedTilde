@@ -172,6 +172,12 @@ void RegisterCloseTests(const std::filesystem::path &root, const std::function<v
                          app.Document().GetSelection() == selection && app.Document().CanUndo(),
                      "failed save keeps the exact source, selection, history and live host");
              Require(Copies(launch.dataDirectory).size() == 1, "failed close retains durable recovery");
+             std::string envelope;
+             Success(ReadBytes(Copies(launch.dataDirectory).front(), envelope), "read retained failed-save recovery");
+             RecoverySnapshot snapshot;
+             Success(ParseRecovery(envelope, snapshot), "validate retained failed-save envelope");
+             Require(snapshot.text == app.Document().GetText() && snapshot.selection == selection && snapshot.originalPath == target,
+                     "failed save keeps the exact edited source, selection and original identity recoverable");
              denyWrite.reset();
              StoredDocument actual;
              Success(LoadDocument(target, actual), "read original after failed close");

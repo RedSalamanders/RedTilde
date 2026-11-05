@@ -320,6 +320,7 @@ class Application
     };
     std::optional<SelectionToolsFocusRequest> selectionToolsFocus;
     bool bom{}, closing{}, initialized{}, initializing{}, unsavedPromptOpen{};
+    bool closingAfterSave{}, visibleBeforeSaveClose{};
     bool waitingForPreferences{};
     FileStamp stamp;
     DocumentInfo documentInfo;
@@ -373,6 +374,7 @@ class Application
     void FindNext(bool previous = false);
     void CloseDrawers();
     void BeginClose();
+    void ResumeAfterSaveClose();
     void RecoveryCompleted();
     void ShowRecovery();
     void FinishClose();

@@ -46,7 +46,7 @@ class AsyncFiles
         std::mutex mutex;
         HWND window{};
         UINT message{};
-        bool closing{}, busy{};
+        bool closing{}, busy{}, saving{};
         std::optional<Result> result;
 #if defined(REDTILDE_ENABLE_TESTS)
         std::shared_ptr<TestGate> testGate;
@@ -132,6 +132,13 @@ class AsyncFiles
         std::lock_guard lock(state->mutex);
         return state->busy;
     }
+    bool Saving() const noexcept
+    {
+        if (!state)
+            return false;
+        std::lock_guard lock(state->mutex);
+        return state->busy && state->saving;
+    }
 #if defined(REDTILDE_ENABLE_TESTS)
     void SetTestGate(std::shared_ptr<TestGate> gate)
     {
@@ -155,6 +162,7 @@ class AsyncFiles
         job->testGate = state->testGate;
 #endif
         state->busy = true;
+        state->saving = saving;
         if (!TrySubmitThreadpoolCallback(Worker, job.get(), nullptr))
         {
             state->busy = false;
