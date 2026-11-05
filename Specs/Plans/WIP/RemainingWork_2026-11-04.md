@@ -41,6 +41,12 @@ Close during Save is qualified at `15ac77cf`, still API 4 / `2a7e7c28`. Its
 whole-Editor timeouts. Current Editor execution preserves the full case union and each child's 90-second
 watchdog. This candidate's native ARM64, physical, performance and release gates remain open.
 
+RT-08 is qualified at `bc024dd8`, with the same pin: six zero-warning builds, all 82 cases and 36 captures
+per x64 profile, real ASan detection and exact native/SDK/source closures. The
+[scoped closeout](../Done/RecoveryEnvelopeBounds_2026-11-05.md) retains the parser termination and fixture
+failures. Earlier Close main `94b9d431` passed hosted x64 but failed two native ARM64 Open fixture writes;
+production was withheld. The repaired candidate still requires its own hosted native/production acceptance.
+
 | Completed scope | Evidence and limit |
 | --- | --- |
 | Persistent folder root, Open Folder/Open File, restart restoration and expanded public examples | [Folder/sample closeout](../Done/FolderNavigationAndSamples_2026-11-03.md); [packet](../../../Measurements/FolderNavigation_2026-11-03/README.md). |
@@ -73,7 +79,9 @@ meaningful failing-then-passing regression where applicable.
 - [ ] Implement immediate recovery submission on session end, bounded settlement and restart presentation
   (RT-01/PR-03, Q2); keep the 750 ms quiet debounce and enforce the approved five-second staleness cap
   under continuous typing (RT-10/PR-04, Q3).
-- [ ] Quarantine oversized checksum-valid recovery envelopes and retain recoverable contents on failure (RT-08).
+- [x] Quarantine oversized checksum-valid recovery envelopes and retain complete original contents and
+  earlier quarantine files on collision (RT-08). Independent counterexample, three Unicode classes, valid
+  boundary, six builds and three complete x64 profiles pass in the [scoped closeout](../Done/RecoveryEnvelopeBounds_2026-11-05.md).
 - [x] Implement and qualify Q18: keep the existing Save/Discard/Cancel prompt and ignore duplicate native
   or command Close (PR-34). The hidden regression covers Cancel and a fresh Discard in all three x64 profiles.
   [Scoped closeout](../Done/DiagramLabelBackgroundsAndClosePrompt_2026-11-04.md)
@@ -219,6 +227,10 @@ follow-up is removed. Completion correctly reported failed native qualification.
   and assertion probes; both test-disabled production ZIPs pass smoke and byte verification after the combined
   test gate. [Source-bound hosted record](../../../Measurements/RecoveryRestoreIdentity_2026-11-05/hosted-qualification.json)
   closes that candidate only; `15ac77cf` needs its own hosted runtime/production acceptance.
+- [x] Qualify RT-08 at `bc024dd8`: six zero-warning builds, 82 cases and 36 captures per x64 profile, real
+  ASan detection and canonical integration matching the original 139 compiled inputs.
+  [Exact evidence](../../../Measurements/RecoveryEnvelopeBounds_2026-11-05/qualification.json) retains the
+  parser counterexample, original local/hosted fixture failures and the local fixture repair.
 - [ ] Complete applicable native ARM64 Debug/ASan and physical/input qualification. Cross-builds and old-pin matrices
   do not establish those runtime profiles. Retain the 90-second loaded-host Editor timeout and its same-binary
   sequential pass as separate observations; diagnose that responsiveness boundary with T-P1 before accepting it.

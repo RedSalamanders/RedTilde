@@ -1,2 +1,3 @@
 - Reject checksum-valid recovery envelopes that exceed decoded text capacity without terminating; retain complete quarantine bytes and earlier quarantine files on name collision.
-- Make save/close fixtures create their owned parent directories before seeding files, independently of asynchronous recovery setup.
+  - Make save/close fixtures create their owned parent directories before seeding files, independently of asynchronous recovery setup.
+  - Retain counterexamples and source-bound qualification: six zero-warning builds, all 82 cases and 36 hidden captures in each x64 profile, and real ASan detection. Native ARM64 runtime and broader recovery/performance gates remain separate.
