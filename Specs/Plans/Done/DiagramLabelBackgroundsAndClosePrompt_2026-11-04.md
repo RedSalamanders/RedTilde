@@ -30,5 +30,7 @@ compilation, not a native test failure. No ARM64 runtime or physical-input accep
 
 Durable behavior belongs to [file safety](../../Core/Core_FileSafety.md),
 [design](../../UI/UI_DesignSystem.md) and [validation](../../Testing/Testing_Validation.md).
-Remaining shutdown/storage/editing correctness, current-pin native ARM64, physical input/AT, paired performance
+Current-pin native ARM64 Release subsequently passes in the
+[hosted test-gate proof](../../../Measurements/HostedFixtureVersion_2026-11-04/main-test-gate.json).
+Remaining shutdown/storage/editing correctness, native ARM64 Debug/ASan, physical input/AT, paired performance
 and combined hosted-main acceptance retain their owners in the [single active plan](../WIP/RemainingWork_2026-11-04.md).

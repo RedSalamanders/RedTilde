@@ -21,8 +21,22 @@ be refused. Source-byte, installed-header, compiler-context and resolved-depende
 their matching version, so unrelated version drift cannot make them pass vacuously. Real build admission,
 source identity, compiler/dependency checks and product version policy are unchanged.
 
-This is tooling-fixture verification. It does not establish native runtime or production qualification.
+The preceding observations are tooling-fixture verification. They do not establish native runtime or production qualification.
 The original main run passed its independent native ARM64 role: 74 cases, 34 captures and the Release
 assertion probe at SDK `8c6c2818d084e6124fb2c08eddc00bdba7a9d2aa`; the original native receipt has SHA-256
 `CB216DF3DA5FD69E1225130FEDD41DAEAE83EB8257D1E0EF2348A87A86203285`. Its failed x64 role still prevented
-the combined test gate and production. A fresh successful main qualification is required to close that gate.
+the combined test gate and production. That historical failed run remains failed.
+
+## Repaired main test gate
+
+[Main run 41853861400](https://github.com/RedSalamanders/RedTilde/actions/runs/41853861400) at
+`1c600d6018686c8ae486ee13fce56c6ca2f13ba8`, SDK API 4 / `2a7e7c28f95a70193e4a2f68a89001d54b4d2131`,
+passes both native Release regression roles. Each discovers and executes all 75 cases with zero failures or
+skips, records all 36 capture pairs and passes its Release assertion probe. The ARM64 receipt identifies an
+Arm64 host; this is native execution, separate from the local cross-builds.
+
+[The test-gate projection](main-test-gate.json) retains the regression metadata and original canonical receipt
+SHA-256 values, executable identities and exact source/native digest. Original downloaded receipts remain
+private and their hashes match the hosted regression metadata. The combined test gate completes at
+`2026-11-04T15:33:24Z`; both production roles start afterward. This closes the repaired test-before-production
+gate without claiming production completion, physical input or paired performance acceptance.

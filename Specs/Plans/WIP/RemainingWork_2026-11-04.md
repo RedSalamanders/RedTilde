@@ -24,7 +24,8 @@ The current diagram-label adoption advances API 4 explicitly to `2a7e7c28` in
 [PR47](https://github.com/RedSalamanders/RedTilde/pull/47). Its
 [scoped closeout](../Done/DiagramLabelBackgroundsAndClosePrompt_2026-11-04.md) records six builds, all 75 cases
 and 36 captures in each x64 profile, the real ASan probe and the accepted duplicate-Close rule. Current-pin
-native ARM64, physical/interactive and performance acceptance remain separately owned below.
+native ARM64 Release also passes in the source-bound hosted run below. ARM64 Debug/ASan,
+physical/interactive and performance acceptance remain separately owned.
 
 | Completed scope | Evidence and limit |
 | --- | --- |
@@ -157,12 +158,16 @@ Unexplained historical failures remain unexplained unless a bounded investigatio
   correction in [PR48](https://github.com/RedSalamanders/RedTilde/pull/48) gives every admission probe an
   explicit fixture version, retains the hostile build environment and adds a wrong-version negative control.
   All 41 scoped cases and complete tooling validation pass under inherited version 137; exact-head PR checks
-  pass at `330b9ac6`. PR48 records its separate publication; the combined main gate still requires a fresh successful run.
-- [ ] After a reviewed correction, run the canonical main qualification and verify both native Release test roles
-  and their failure probes before either separate production role. Production was skipped in the failed run.
+  pass at the integrated head `98eb8fa9` before merge. PR48 records its separate publication.
+- [x] Run the corrected canonical main qualification at `1c600d60`, SDK API 4 / `2a7e7c28`:
+  [run 41853861400](https://github.com/RedSalamanders/RedTilde/actions/runs/41853861400) passes both native
+  x64 and ARM64 Release roles, each with all 75 cases, 36 captures, zero failures/skips and a successful
+  Release assertion probe. The combined gate completes before either production role starts.
+  [Retained receipt identities and ordering](../../../Measurements/HostedFixtureVersion_2026-11-04/main-test-gate.json)
+  close this test-gate repair. Production completion remains separately owned by T-Q2.
 
-This is a current tooling/qualification failure, not the older account/billing obstruction. PR44's compiler-free
-checks and local 73-case passes remain valid in their original scopes.
+The tooling/qualification failures are repaired; they were separate from the older account/billing obstruction.
+PR44's compiler-free checks and local 73-case passes remain valid in their original scopes.
 Admission artifact expected/downloaded digests match in both regression branches and completion. The logged
 `digest-mismatch: error` is a download-action input policy, not a reported integrity failure; that mistaken draft
 follow-up is removed. Completion correctly reported failed native qualification.
@@ -173,13 +178,16 @@ follow-up is removed. Completion correctly reported failed native qualification.
 - [x] Qualify the current API-4 diagram/Close implementation at `2a7e7c28`: six zero-warning/zero-error builds,
   all 75 cases and 36 captures in each x64 profile, process/recovery/crash/performance-smoke checks and real ASan
   detection. [Source-bound evidence](../../../Measurements/DiagramLabelBackgrounds_2026-11-04/qualification.json)
-  preserves the final-profile storage admission refusal and its exact resume. This does not close native ARM64 or physical gates.
+  preserves the final-profile storage admission refusal and its exact resume. This local matrix does not close native ARM64 or physical gates.
 
 - [x] Complete the six local builds at API-4 pin `8c6c2818`, all 74 cases in each x64 profile, real ASan
   detection, the complete nine-scope Release replay and canonical validators/formatting. The
   [scoped record](../../../Measurements/QuoteMarginsAndScrollbars_2026-11-04/qualification.json) retains exact identities.
-- [ ] Complete applicable native ARM64 and physical/input qualification. Cross-builds and old-pin matrices
-  do not establish current runtime support. Retain the 90-second loaded-host Editor timeout and its same-binary
+- [x] Verify current-pin native ARM64 Release at main `1c600d60`: all 75 cases, 36 captures and the Release
+  assertion probe pass on the hosted Arm64 machine. The [test-gate proof](../../../Measurements/HostedFixtureVersion_2026-11-04/main-test-gate.json)
+  retains its original canonical receipt and executable hashes separately from x64.
+- [ ] Complete applicable native ARM64 Debug/ASan and physical/input qualification. Cross-builds and old-pin matrices
+  do not establish those runtime profiles. Retain the 90-second loaded-host Editor timeout and its same-binary
   sequential pass as separate observations; diagnose that responsiveness boundary with T-P1 before accepting it.
 - [ ] Qualify real keyboard/focus/clipboard, physical IME, UIA/assistive technology and touch on named scenarios;
   arrange interactive timing with the user before taking focus.
