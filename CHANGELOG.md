@@ -4,6 +4,14 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Remember normal window bounds and maximized state, restore them within an attached monitor's work area at the current DPI, and honor explicit launcher show states without forcing focus after nonactivating or minimized launches.
+- Add Ctrl+plus/minus, Ctrl+0 and high-resolution Ctrl+wheel for the existing 75–200% document text-size preference, retaining source, selection and undo history in every view.
+- Adopt exact API-4 DxUi `a1915ffd` so available Unicode text wins over coexisting bitmap clipboard offers by default; retain file-list priority, source-preserving refusal and application-owned image-asset policy.
+- Make owned-heap diagnostic tests independent of sanitizer allocator layout, retain independently counted native boundaries, and prove empty, exact, truncated and failure cases with bounded deterministic providers.
+- Reopen the last active saved document after the initial recovery scan, give recovery copies precedence, and retain newer writing or an explicit New when an automatic startup read is delayed or unavailable.
+- Retain the exact six-build qualification for Find, zoom, window placement, recovery-first startup and confirmed link opening: each x64 profile passes 127 cases and 36 captures, with the actual symbolic-link privilege failure preserved. Record real ASan detection, rejected fixture/tool attempts and the remaining current-source hosted native gates.
+- Add case-insensitive Find with Match case, repeat the retained search with Find closed, and select the next match after each single replacement while preserving exact source and undo history.
+- Add explicit Open link and Ctrl-click confirmation for http, https and mailto destinations, dispatch on a separate STA, and preserve source/history when confirmation is cancelled, superseded or closed.
 - Close linked-file save safety against original hosted native symbolic-link, Debug/Release and x64 ASan evidence and verified production ZIPs; preserve the distinct failed ARM64 ASan heap-fixture cohort and all broader location, physical-input and performance gates.
 - Reject structured native-tool exception dumps before attestation or green build output even when MSBuild exits successfully; test node prefixes, hexadecimal forms, clean footers and ordinary-text false positives.
 - Preserve symbolic entries and hardlink identities when saving: resolve symbolic targets, protect admitted hardlink source in an independent durable recovery copy before in-place mutation, retain failed-write recovery for restart and keep newer ordinary checkpoints independent. Add native alias, recovery admission, failure and restart regressions; cloud/SMB/WSL and platform qualification remain separately owned.

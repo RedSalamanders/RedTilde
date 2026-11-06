@@ -1,1 +1,0 @@
-- Add case-insensitive Find with Match case, repeat the retained search with Find closed, and select the next match after each single replacement while preserving exact source and undo history.

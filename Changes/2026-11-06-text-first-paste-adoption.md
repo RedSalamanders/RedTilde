@@ -1,1 +1,0 @@
-- Adopt exact API-4 DxUi `a1915ffd` so available Unicode text wins over coexisting bitmap clipboard offers by default; retain file-list priority, source-preserving refusal and application-owned image-asset policy.

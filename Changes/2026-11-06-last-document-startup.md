@@ -1,1 +1,0 @@
-- Reopen the last active saved document after the initial recovery scan, give recovery copies precedence, and retain newer writing or an explicit New when an automatic startup read is delayed or unavailable.
