@@ -23,6 +23,8 @@ An ordinary file conflict uses one accessible native task dialog offering **Relo
 consequence of each action. Cancelling it never opens a second generic error box. A stale choice, failed Reload
 or invalid/oversized file keeps the current document and uses the localized existing status area. Hidden harness
 tests supply choices without opening a desktop dialog or acquiring focus; they do not claim native dialog pixels.
+The application manifest declares Common Controls v6 for the task-dialog import; every native catalog/startup
+run must reach the application dispatcher, including test-enabled and production builds.
 Cold header layout reserves bounded identity space without initializing host typography. Once the host prepares
 typography, measure the filename canonically and reuse it until text, available width, typography revision or DPI changes.
 
