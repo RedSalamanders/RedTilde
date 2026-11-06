@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "claim": "Original hosted Debug and ASan evidence; ARM64 ASan remains failed",
+  "implementationCommit": "020cb0b9480e4560d61d4b2b181a3793cb4a7ef9",
+  "sdkCommit": "ba94f4eb0cd8bbdeecb0b96d5e21fb325fe2d9c9",
+  "runs": [
+    {
+      "runId": "42193366709",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42193366709",
+      "sourceCommit": "48f1f44712054d3f03939ba8581840823bd41f31",
+      "outcome": "success",
+      "platforms": [
+        {
+          "platform": "x64",
+          "configuration": "Debug",
+          "outcome": "passed",
+          "runId": "20261106T092637610Z-7716-957aa0074a874f2c8c2e76da2950a1a3",
+          "canonicalSourceIdentity": "e0d9d669664cbf7be77fb1dbe8f2ab816de6c6c68963607377428651bf8efb4f",
+          "sdkCommit": "ba94f4eb0cd8bbdeecb0b96d5e21fb325fe2d9c9",
+          "binarySha256": "A6FBFA96DAA25872BD04A5B475C0F77FE9B602BFC28F9EEB02BD2F0E95EE8971",
+          "buildLogSha256": "741955D2E8A0C3AE39F5D3AEF3CA82657A9040E436C714DBA4AF5756BC175D04",
+          "warnings": 0,
+          "errors": 0,
+          "receiptMember": "evidence/test-runs/20261106T092637610Z-7716-957aa0074a874f2c8c2e76da2950a1a3/payload/receipt.json",
+          "receiptSha256": "F1C51AE85001EBEC8ACFB01C37DA0A53F00A0C7ADE93D8C6C55E02A29CD3D869",
+          "completionSha256": "6CB8CEDC970D01514344B3036137B101DDC6C997E245EAAEE891575E7F6686FF",
+          "actualStorageCasesPassed": 25,
+          "actualSymbolicLinkCasePassed": true,
+          "storageSummarySha256": "34A661887F8F1EDE70006818DF5BEBE58A13627F274CA6FD6C553382AB11BE32",
+          "nativeArchitecture": "X64",
+          "casesPassed": 117,
+          "casesFailed": 0,
+          "captures": 36
+        },
+        {
+          "platform": "ARM64",
+          "configuration": "Debug",
+          "outcome": "passed",
+          "runId": "20261106T093959622Z-5456-43bf3257015147e9b186218cb05f8704",
+          "canonicalSourceIdentity": "e0d9d669664cbf7be77fb1dbe8f2ab816de6c6c68963607377428651bf8efb4f",
+          "sdkCommit": "ba94f4eb0cd8bbdeecb0b96d5e21fb325fe2d9c9",
+          "binarySha256": "322AC40D57ECFA0B8EFC6B2A67B440F9BE50DBA8F5E29A0E6AD47F1834302493",
+          "buildLogSha256": "A87FC6145AA2237BAA5ABD92EBCFC24ADB64D9678BBF7FA6EEEE648611D0B248",
+          "warnings": 0,
+          "errors": 0,
+          "receiptMember": "evidence/test-runs/20261106T093959622Z-5456-43bf3257015147e9b186218cb05f8704/payload/receipt.json",
+          "receiptSha256": "1C6E5106C8676A55D4918DA4AD8D799E08C391D24CADD324C92D896168A7C758",
+          "completionSha256": "E8A22825C29C9C66D1743582FDC842E59DC10E9DA94F41EAC85FFD94C5FE2613",
+          "actualStorageCasesPassed": 25,
+          "actualSymbolicLinkCasePassed": true,
+          "storageSummarySha256": "34A661887F8F1EDE70006818DF5BEBE58A13627F274CA6FD6C553382AB11BE32",
+          "nativeArchitecture": "Arm64",
+          "casesPassed": 117,
+          "casesFailed": 0,
+          "captures": 36
+        }
+      ],
+      "originalArtifactWrappers": [
+        {
+          "id": 13493290059,
+          "name": "qualification-ARM64-Debug",
+          "bytes": 15511178,
+          "sha256": "C8CFACC3ED8C223FB4FEDBF549781EC8A956716FFD71AB8543898B3500F6C30D",
+          "reportedDigestVerified": true
+        },
+        {
+          "id": 13491696613,
+          "name": "msvc-14.52-9a9fdcce2c5642b6bc337c4c501c8551",
+          "bytes": 1373064,
+          "sha256": "412AA91C67EDCE36FDCF825163E023D1FFE5981B6DBBEE5A6D909C233B441B4D",
+          "reportedDigestVerified": true
+        },
+        {
+          "id": 13491567931,
+          "name": "qualification-x64-Debug",
+          "bytes": 15459247,
+          "sha256": "16636CADEC84345B367CA2C688D8C557B357F948155F07B53CB0CA7B938B2EDC",
+          "reportedDigestVerified": true
+        },
+        {
+          "id": 13490039642,
+          "name": "msvc-14.52-c84a0a0a9f8f4c5bba503b654201ff4d",
+          "bytes": 1325822,
+          "sha256": "C418BEC8A36120203DAA37F960A18FE651C800D8AEDEA09021730A7BF4E52FE3",
+          "reportedDigestVerified": true
+        }
+      ]
+    },
+    {
+      "runId": "42193373082",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42193373082",
+      "sourceCommit": "48f1f44712054d3f03939ba8581840823bd41f31",
+      "outcome": "failure",
+      "platforms": [
+        {
+          "platform": "x64",
+          "configuration": "ASan Debug",
+          "outcome": "passed",
+          "runId": "20261106T092904337Z-6340-36f176e1fbb145d280da0164f443141f",
+          "canonicalSourceIdentity": "e0d9d669664cbf7be77fb1dbe8f2ab816de6c6c68963607377428651bf8efb4f",
+          "sdkCommit": "ba94f4eb0cd8bbdeecb0b96d5e21fb325fe2d9c9",
+          "binarySha256": "37A3C179F000E7B0307345BB1E2B033A3BACE7826D14113FF6C83ADD5CB509AF",
+          "buildLogSha256": "275E81FA941E390F9C76403648A9EEDC5EA3FF224B230C21A5161779434B607E",
+          "warnings": 0,
+          "errors": 0,
+          "receiptMember": "evidence/test-runs/20261106T092904337Z-6340-36f176e1fbb145d280da0164f443141f/payload/receipt.json",
+          "receiptSha256": "B9BBBD1F2167D7C78D1E2BDB694BBA4293F01BDB6C4CDD53CA2FEAA591098A0B",
+          "completionSha256": "0BCCD4A52C03009F4710AD73B9594D054A35E7D0EBBBE3AAFDC64C83330F85B7",
+          "actualStorageCasesPassed": 25,
+          "actualSymbolicLinkCasePassed": true,
+          "storageSummarySha256": "34A661887F8F1EDE70006818DF5BEBE58A13627F274CA6FD6C553382AB11BE32",
+          "nativeArchitecture": "X64",
+          "casesPassed": 117,
+          "casesFailed": 0,
+          "captures": 36,
+          "realAsanDetection": true
+        },
+        {
+          "platform": "ARM64",
+          "configuration": "ASan Debug",
+          "outcome": "failed-or-interrupted",
+          "runId": "20261106T093659481Z-3956-7d6796b3d89047febdb8ec461288a6cf",
+          "canonicalSourceIdentity": "e0d9d669664cbf7be77fb1dbe8f2ab816de6c6c68963607377428651bf8efb4f",
+          "sdkCommit": "ba94f4eb0cd8bbdeecb0b96d5e21fb325fe2d9c9",
+          "binarySha256": "0897FE8D7087D13551FDB801A4FD1BB21F7B2010B2EF696DB0E5E7D8D853CBE2",
+          "buildLogSha256": "DA18E82A3CF5CA99B867370A18AC004B46E1F3C21F3E1945C2E61404DEC23C96",
+          "warnings": 0,
+          "errors": 0,
+          "receiptMember": "evidence/test-runs/20261106T093659481Z-3956-7d6796b3d89047febdb8ec461288a6cf/payload/receipt.json",
+          "receiptSha256": "15F0F0BF46CF7B80506F9CE0DC0435D14F3E8761B14C794185E8034EB90758BF",
+          "completionSha256": "8E177F974F0CAA4C9962BF65ABC86373D4A5640B50DBE06BA61CE6B6216BAA44",
+          "actualStorageCasesPassed": 25,
+          "actualSymbolicLinkCasePassed": true,
+          "storageSummarySha256": "34A661887F8F1EDE70006818DF5BEBE58A13627F274CA6FD6C553382AB11BE32",
+          "nativeArchitecture": "Arm64",
+          "failedCase": "Performance.OwnedHeapDiagnosticDistinguishesBusyFreeAndPartialCoverage",
+          "failedPredicate": "a bounded partial walk retains its explicit truncation instead of claiming complete coverage",
+          "performanceSummarySha256": "89155A04336753A4BA6D268D2E45490FBA8C5CD31B714CF8518B88D05403EE65",
+          "remainingCoverage": "Rendering, captures and subsequent crash/restart probes did not run; this is a failed cohort",
+          "originalNativeEntryCount": "not retained; no count or truncation cause is inferred from later controlled cases"
+        }
+      ],
+      "originalArtifactWrappers": [
+        {
+          "id": 13492002500,
+          "name": "qualification-ARM64-ASan Debug",
+          "bytes": 2310654,
+          "sha256": "8D0D01ED884AED0B6764E3FAC853E3466E178D11376F94D7FAC4D4B6E7FEAD76",
+          "reportedDigestVerified": true
+        },
+        {
+          "id": 13491767660,
+          "name": "qualification-x64-ASan Debug",
+          "bytes": 15469496,
+          "sha256": "9A0D37C5D6165210AADCDB2097982C5A01E6D233F10FD3A5EB2C05FC442D5ED4",
+          "reportedDigestVerified": true
+        },
+        {
+          "id": 13491187658,
+          "name": "msvc-14.52-62cb961442ab4ec1aa70386f0d5259f6",
+          "bytes": 1326721,
+          "sha256": "0FC4072625CFC30E12A6BF04FBB7D9F7A69F95713B6BB84FF6E468C91286799F",
+          "reportedDigestVerified": true
+        },
+        {
+          "id": 13491027911,
+          "name": "msvc-14.52-518cbe01210f43afa8406364c2c38afb",
+          "bytes": 1371519,
+          "sha256": "204F3F0A645498EC296BADF63FD29B1888B6311E02F4A1E720C635A3B668B047",
+          "reportedDigestVerified": true
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Original failed ARM64 ASan cohort is not relabelled or replaced",
+    "Actual native symbolic-link saves passed on all four manual profile/platform entries",
+    "No original executable reconstruction, later interaction qualification, physical-input/AT or performance acceptance is implied"
+  ]
+}

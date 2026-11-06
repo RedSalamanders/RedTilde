@@ -130,12 +130,14 @@ malformed envelope, second close and size-limit tests. See the retained
   [Scoped closeout](../Done/FileSafetyAndUiBoundaries_2026-11-06.md).
 - [ ] Implement and qualify the approved replace fallbacks and cloud tags for OneDrive/cloud, SMB/NAS and
   WSL (PR-09/10/31, Q8), including real-location evidence before support claims.
-- [ ] Preserve symlink/hard-link identities under the approved distinct write policies (Q12).
+- [x] Preserve symlink/hard-link identities under the approved distinct write policies (Q12).
   Implementation `020cb0b9` preserves hardlink aliases with independent durable recovery and separately follows
   symbolic targets. [Local evidence](../../../Measurements/LinkedSaveAndCosmeticSettlement_2026-11-06/README.md)
   records six zero-warning builds, 116 passing cases per x64 profile and real mid-write crash/restart recovery.
-  The actual symlink fixture fails with Win32 1314 on this host; retain it as a failure and require actual
-  source-bound hosted execution before closing Q12.
+  The local symlink fixture's Win32 1314 remains a failure. Actual hosted symbolic-link cases now pass on
+  native x64/ARM64 Release and Debug and both ASan Storage partitions. The
+  [scoped closeout](../Done/LinkedFileSaveSafety_2026-11-06.md) binds original receipts and package hashes.
+  ARM64 ASan's later heap-fixture failure remains with T-Q1; no complete ASan cohort is claimed for it.
 - [x] Expose specific unsupported-encoding/capacity errors under the current 65,536 UTF-16-unit limit (Q7).
   [Scoped closeout](../Done/FileSafetyAndUiBoundaries_2026-11-06.md).
 

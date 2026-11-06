@@ -8,7 +8,22 @@ inputs at source identity `d61f23122799323153c044b6c3689266d5baadcd03b86984f1cbc
 Each x64 profile passes 116 cases and 36 standard captures. The actual symbolic-link fixture fails with Win32
 1314 before it can create its owned link. That failure remains visible: these are incomplete local runtime
 results. ARM64 entries are cross-builds. Complete symbolic-link and native-platform acceptance requires
-separately source-bound hosted execution.
+separately source-bound hosted execution, now recorded below.
+
+The [verified hosted Release packet](hosted-qualification.json) binds main `4e85948b` in
+[run 42194292018](https://github.com/RedSalamanders/RedTilde/actions/runs/42194292018): all seven jobs,
+117 native cases and 36 captures on each architecture, both assertion probes, all thirteen original wrapper
+digests and both inner production ZIP hashes for version `0.1.330`.
+
+The [extended packet](extended-hosted-qualification.json) independently verifies canonical receipt/build-log
+members and all four wrappers for each manual run at `48f1f447`.
+[Debug 42193366709](https://github.com/RedSalamanders/RedTilde/actions/runs/42193366709) passes all 117 cases
+and 36 captures on native x64/ARM64.
+[ASan 42193373082](https://github.com/RedSalamanders/RedTilde/actions/runs/42193373082) passes that complete
+coverage and actual detector on x64. ARM64 passes all 25 Storage cases, including actual symbolic-link saves,
+then fails the existing owned-heap partial-coverage predicate. Rendering, captures and later crash/restart
+probes did not run on that failed ARM64 cohort. Its original native entry count was not retained; no cause
+or entry count is invented from later controlled fixtures. The repaired fixture needs fresh source-bound execution.
 
 The frozen original hardlink counterexample returned save success while breaking shared identity and leaving
 the other alias unchanged. The new writer locks the shared file, validates its complete identity and expected
@@ -39,5 +54,6 @@ Durable behavior belongs to [file safety](../../Specs/Core/Core_FileSafety.md),
 [validation](../../Specs/Testing/Testing_Validation.md) and
 [build admission](../../Specs/Build/Build_ConsoleAndPaths.md); usage is in the
 [application guide](../../docs/README.md). The [single active plan](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md)
-keeps Q12 open until actual symbolic-link execution is accepted. Physical input/AT, real-share/cloud/WSL and
+records Q12's [scoped completion](../../Specs/Plans/Done/LinkedFileSaveSafety_2026-11-06.md) with actual symbolic-link
+execution, while the ARM64 ASan heap-fixture failure retains its owner. Physical input/AT, real-share/cloud/WSL and
 paired-performance acceptance remain separate. Unpaired diagnostics establish no performance verdict.
