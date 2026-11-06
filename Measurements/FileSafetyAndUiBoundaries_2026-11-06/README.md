@@ -5,7 +5,14 @@ Exact dependency: DxUi API 4 at `0ffaa1a6ae43f074f60e419eaa5becc5bc3fe0b3`.
 The [verified qualification](qualification.json) binds six zero-warning builds, 108 cases and 36 captures
 in each x64 profile, the real ASan detector, canonical app/SDK/run archives and 141 original compiled inputs.
 The compiled source identity is `6f21f442c5fd75be423a71db23d11af22aa6a42be551c5fe8062d76b3a4f8dde`.
-ARM64 entries are cross-builds, with native execution retained as a separate gate.
+Local ARM64 entries are cross-builds. The additive
+[hosted Release packet](hosted-qualification.json) verifies main `a25f1835` in
+[run 42165374140](https://github.com/RedSalamanders/RedTilde/actions/runs/42165374140):
+all seven jobs pass, with all 108 cases, 36 captures and the assertion probe on
+both native x64 and ARM64. Both test-disabled production ZIPs (`0.1.310`) pass
+clean-extraction smoke. All thirteen original GitHub artifact wrappers match their
+reported SHA256 digests; canonical receipts and inner production ZIP bytes are
+independently verified. ARM64 Debug/ASan and physical qualification stay separate.
 
 Save uses one conflict surface with Reload, Save As, Overwrite and Cancel. Its asynchronous continuations
 revalidate the approved workspace, immutable source, baseline, BOM and recovered-copy facts. Failed or stale
@@ -44,4 +51,4 @@ managed images, remaining UI work, native/physical qualification, API migration 
 
 The previous workspace/rendering implementation has an independently verified
 [hosted Release packet](../WorkspaceRecoveryAndRendering_2026-11-06/hosted-qualification.json).
-It does not qualify this later save-safety candidate.
+It retains the earlier source independently of the new save-safety hosted packet.

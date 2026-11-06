@@ -1,6 +1,6 @@
 # Save safety and UI failure boundaries
 
-Status: DONE — implementation and scoped local native qualification.
+Status: DONE — implementation, scoped local profiles and hosted native Release qualification.
 Implementation: `7a5ecc49d40d9ef007329fb9d21f2b1c69fbb771`.
 Dependency: DxUi API 4 at `0ffaa1a6ae43f074f60e419eaa5becc5bc3fe0b3`.
 
@@ -12,6 +12,8 @@ Dependency: DxUi API 4 at `0ffaa1a6ae43f074f60e419eaa5becc5bc3fe0b3`.
 - [x] Repair long-checkout fixtures while retaining dedicated long-path and actual NTFS coverage.
 - [x] Complete six zero-warning builds, 324 native case executions, 108 hidden captures and real ASan detection.
 - [x] Verify original app/SDK/source/run archives and update normative specifications, catalog and usage docs.
+- [x] Verify hosted main `a25f1835`: all 108 cases and 36 captures on native x64/ARM64 Release,
+  both production ZIP smoke checks, all seven jobs and thirteen original artifact digests.
 
 The [source-bound packet](../../../Measurements/FileSafetyAndUiBoundaries_2026-11-06/README.md) records 141
 actual compiled inputs and independent original failures. This closes RT-07/Q6/Q7/C6 and the RT-12/PR-07/35

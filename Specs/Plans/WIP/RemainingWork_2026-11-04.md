@@ -74,6 +74,12 @@ six zero-warning builds, all 108 cases and 36 captures in each x64 profile, real
 compiled inputs. Its [scoped closeout](../Done/FileSafetyAndUiBoundaries_2026-11-06.md) retains independent
 counterexamples and the first startup failure. Q8/Q12 and the other location, UI and qualification work remain open.
 
+That exact save-safety source now passes all seven hosted Release jobs at main `a25f1835` in
+[run 42165374140](https://github.com/RedSalamanders/RedTilde/actions/runs/42165374140): all 108 cases,
+36 captures and the assertion probe on native x64/ARM64, plus both test-disabled production ZIP smoke checks.
+The [verified original artifact packet](../../../Measurements/FileSafetyAndUiBoundaries_2026-11-06/hosted-qualification.json)
+closes this source's hosted Release gate. ARM64 Debug/ASan, physical, performance and later SDK adoption remain separate.
+
 ## Execution order
 
 T-U1's prepared diagram-label correction and T-S1's accepted duplicate-Close behavior have their scoped
