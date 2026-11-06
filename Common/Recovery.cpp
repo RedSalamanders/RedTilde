@@ -1,4 +1,5 @@
 #include "Recovery.h"
+#include "MonitorDiagnostics.h"
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -16,6 +17,20 @@ namespace
 {
 constexpr std::string_view Magic = "RedTilde.Recovery/1\n";
 constexpr std::size_t MaximumCandidates = 64;
+constexpr std::size_t MaximumScannedEntries = 512;
+HRESULT CreateRecoveryId(std::wstring &id)
+{
+    GUID guid{};
+    const auto result = CoCreateGuid(&guid);
+    if (FAILED(result))
+        return result;
+    std::wstring staged;
+    staged.reserve(32u);
+    for (const auto value : std::as_bytes(std::span(&guid, 1)))
+        staged += std::format(L"{:02x}", static_cast<unsigned>(value));
+    id.swap(staged);
+    return S_OK;
+}
 bool ValidId(std::wstring_view id) noexcept
 {
     return id.size() == 32 && std::ranges::all_of(id, [](wchar_t c) { return (c >= L'0' && c <= L'9') || (c >= L'a' && c <= L'f'); });
@@ -35,10 +50,11 @@ std::filesystem::path SnapshotPath(const std::filesystem::path &root, std::wstri
 {
     return root / (L"session-" + std::wstring(id) + L".rtd");
 }
-wil::unique_handle Lease(const std::filesystem::path &root, std::wstring_view id)
+wil::unique_handle Lease(const std::filesystem::path &root, std::wstring_view id, bool createNew = false)
 {
     const auto path = root / (L"session-" + std::wstring(id) + L".lease");
-    return wil::unique_handle(CreateFileW(path.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_HIDDEN, nullptr));
+    return wil::unique_handle(
+        CreateFileW(path.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, createNew ? CREATE_NEW : OPEN_ALWAYS, FILE_ATTRIBUTE_HIDDEN, nullptr));
 }
 HRESULT Remove(const std::filesystem::path &path) noexcept
 {
@@ -47,6 +63,91 @@ HRESULT Remove(const std::filesystem::path &path) noexcept
     return HRESULT_FROM_WIN32(GetLastError());
 }
 } // namespace
+
+struct SaveRecoveryProtection::State
+{
+    State() = default;
+    State(const State &) = delete;
+    State &operator=(const State &) = delete;
+    ~State()
+    {
+        lease.reset();
+        if (ownsLease)
+            (void)Remove(leasePath);
+        // A failed/interrupted save deliberately retains the snapshot.
+    }
+    std::filesystem::path snapshot, leasePath;
+    wil::unique_handle lease;
+    bool ownsLease{};
+};
+SaveRecoveryProtection::SaveRecoveryProtection() = default;
+SaveRecoveryProtection::~SaveRecoveryProtection() = default;
+HRESULT SaveRecoveryProtection::Admit(const std::filesystem::path &dataDirectory, const RecoverySnapshot &snapshot) noexcept
+try
+{
+    if (dataDirectory.empty() || !dataDirectory.is_absolute())
+        return E_INVALIDARG;
+    const auto bytes = SerializeRecovery(snapshot); // Validate before any filesystem mutation.
+    const auto root = dataDirectory / L"Recovery";
+    std::error_code error;
+    std::filesystem::create_directories(root, error);
+    if (error)
+        return HRESULT_FROM_WIN32(static_cast<DWORD>(error.value()));
+    std::size_t scanned{};
+    for (std::filesystem::directory_iterator entry(root, error), end; !error && entry != end; entry.increment(error))
+        if (++scanned >= MaximumScannedEntries)
+            return HRESULT_FROM_WIN32(ERROR_TOO_MANY_OPEN_FILES);
+    if (error)
+        return HRESULT_FROM_WIN32(static_cast<DWORD>(error.value()));
+    auto staged = std::make_unique<State>();
+    std::wstring id;
+    const auto generated = CreateRecoveryId(id);
+    if (FAILED(generated))
+        return generated;
+    staged->snapshot = SnapshotPath(root, id);
+    staged->leasePath = root / (L"session-" + id + L".lease");
+    staged->lease = Lease(root, id, true);
+    if (!staged->lease)
+        return HRESULT_FROM_WIN32(GetLastError());
+    staged->ownsLease = true;
+    const auto attributes = GetFileAttributesW(staged->snapshot.c_str());
+    if (attributes != INVALID_FILE_ATTRIBUTES)
+        return HRESULT_FROM_WIN32(ERROR_FILE_EXISTS);
+    const auto absent = GetLastError();
+    if (absent != ERROR_FILE_NOT_FOUND)
+        return HRESULT_FROM_WIN32(absent);
+    const auto written = WriteBytesAtomic(staged->snapshot, bytes);
+    if (FAILED(written))
+        return written;
+    state = std::move(staged);
+    return S_OK;
+}
+catch (const std::bad_alloc &)
+{
+    return E_OUTOFMEMORY;
+}
+catch (const std::length_error &)
+{
+    return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
+}
+catch (const std::invalid_argument &)
+{
+    return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+}
+catch (const std::filesystem::filesystem_error &error)
+{
+    return HRESULT_FROM_WIN32(static_cast<DWORD>(error.code().value()));
+}
+HRESULT SaveRecoveryProtection::Retire() noexcept
+{
+    if (!state)
+        return S_OK;
+    const auto result = Remove(state->snapshot);
+    if (FAILED(result))
+        MonitorDiagnostics::Write(RedMonitor::Severity::Warning, L"Saved linked-file content; its independent recovery copy could not be retired.");
+    state.reset();
+    return result;
+}
 
 std::string SerializeRecovery(const RecoverySnapshot &snapshot)
 {
@@ -162,7 +263,7 @@ struct RecoveryService::State
             const auto name = entry.path().filename().native();
             if (!name.starts_with(L"session-") || !name.ends_with(L".rtd"))
                 continue;
-            if (++scanned > 512)
+            if (++scanned > MaximumScannedEntries)
                 break;
             const auto candidate = std::wstring_view(name).substr(8, name.size() - 12);
             if (!ValidId(candidate) || candidate == id || candidates.size() >= MaximumCandidates)
@@ -325,13 +426,9 @@ try
     Close();
     auto staged = std::make_shared<State>();
     staged->root = std::move(directory) / L"Recovery";
-    GUID guid{};
-    const HRESULT generated = CoCreateGuid(&guid);
+    const HRESULT generated = CreateRecoveryId(staged->id);
     if (FAILED(generated))
         return generated;
-    const auto bytes = std::as_bytes(std::span(&guid, 1));
-    for (const auto value : bytes)
-        staged->id += std::format(L"{:02x}", static_cast<unsigned>(value));
     staged->wake.reset(CreateEventW(nullptr, FALSE, FALSE, nullptr));
     if (!staged->wake)
         return HRESULT_FROM_WIN32(GetLastError());

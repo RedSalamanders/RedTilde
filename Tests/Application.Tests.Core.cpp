@@ -166,6 +166,58 @@ void RequireResourcePhase(std::string_view report, std::string_view phase, bool 
         RequireCompletedResourceCost(JsonObjectAfter(entry, "\"preparation\":"), "reset frame flush count is in the bounded root-child range");
 }
 } // namespace
+int RunLinkedSaveInterruptionProbe(const std::filesystem::path &root, bool restart)
+{
+    const auto target = root / L"notebook.md", alias = root / L"same-notebook.md";
+    auto marker = root / L"partial-write-admitted.txt";
+    const std::wstring admitted = L"Complete admitted source 世界\r\nretained after abrupt process exit\r\n";
+    if (!restart)
+    {
+        std::filesystem::create_directories(root);
+        FileStamp original, saved;
+        Success(SaveDocument(target, L"Original file bytes", false, nullptr, original), "seed interruption target");
+        Require(CreateHardLinkW(alias.c_str(), target.c_str(), nullptr), "seed interruption alias");
+        const SaveRecoveryContext recovery{root, {9, 2}, 121};
+        SetAtomicWriteFailureForTest(AtomicWriteFailure::InPlacePartialWrite);
+        SetAtomicWriteHookForTest(
+            [](AtomicWriteCheckpoint phase, const std::filesystem::path &, void *context) noexcept
+            {
+                if (phase != AtomicWriteCheckpoint::InPlacePartialWritten)
+                    return;
+                const auto &path = *static_cast<const std::filesystem::path *>(context);
+                if (FAILED(WriteBytesAtomic(path, "durable recovery preceded this partial target write")))
+                    return;
+                // Owned test child only: terminate while the writer and recovery
+                // lease are still live. No destructor or crash-path recovery write.
+                if (!TerminateProcess(GetCurrentProcess(), 79))
+                    std::terminate();
+            },
+            &marker);
+        (void)SaveDocument(target, admitted, true, &original, saved, false, nullptr, &recovery);
+        return 6; // The exact intentional exit must occur inside the write.
+    }
+    std::string marked, primary, shared;
+    FileStamp first, second;
+    Success(ReadBytes(marker, marked), "child reached its protected partial write");
+    Require(marked == "durable recovery preceded this partial target write", "exact interruption marker");
+    Success(ReadBytes(target, primary, &first), "read partial target after process exit");
+    Success(ReadBytes(alias, shared, &second), "read partial alias after process exit");
+    Require(primary == shared && first == second && primary != "Original file bytes" &&
+                primary != "\xEF\xBB\xBF" + DxUi::RichText::EncodeUtf8(admitted),
+            "process really stopped with shared partial bytes, not before admission or after complete success");
+    RecoveryService recovery;
+    Success(recovery.Initialize(root), "restart linked-save recovery");
+    Success(recovery.WaitForSettlement(5000), "restart scan settles after OS releases the crashed process lease");
+    Require(recovery.Ready(), "restart scan is complete");
+    const auto candidates = recovery.TakeCandidates();
+    Require(candidates.size() == 1 && candidates[0].snapshot.text == admitted && candidates[0].snapshot.originalPath == target &&
+                candidates[0].snapshot.bom && candidates[0].snapshot.selection == DxUi::RichText::Selection{9, 2} &&
+                candidates[0].snapshot.generation == 121,
+            "restart offers complete immutable admitted source, BOM, location, selection and generation");
+    Success(WriteBytesAtomic(root / L"linked-save-restart.json", "{\"recoveryComplete\":true,\"partialSharedTarget\":true,\"releasedLease\":true}\n"),
+            "publish independently verified restart outcome");
+    return 0;
+}
 int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool listOnly)
 {
     std::filesystem::create_directories(root);

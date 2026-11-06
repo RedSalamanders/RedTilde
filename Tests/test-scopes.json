@@ -112,8 +112,8 @@
     },
     {
       "pattern": "Tests/Application.Tests.Close.*",
-      "scopes": ["Recovery"],
-      "reason": "real file-worker admission, asynchronous shutdown, recovery retention and stale Open refusal"
+      "scopes": ["Recovery", "Editor"],
+      "reason": "real file-worker admission, asynchronous shutdown, recovery retention, stale Open refusal and source-bound editor save commands"
     },
     {
       "pattern": "Tests/Application.Tests.Files.*",
@@ -160,6 +160,7 @@
       "pattern": "Tests/Support/Support.Tests.StorageSafety.h",
       "scopes": [
         "Storage",
+        "Recovery",
         "Tooling"
       ],
       "reason": "directed storage checkpoints and reviewed native storage case registrations"

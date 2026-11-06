@@ -1,6 +1,8 @@
 #pragma once
+#include "Common/Recovery.h"
 #include "Common/Storage.h"
 #include <cstring>
+#include <format>
 #include <functional>
 #include <stdexcept>
 #include <wil/resource.h>
@@ -12,6 +14,60 @@ inline void RequireStorage(bool condition, const char *message)
     if (!condition)
         throw std::runtime_error(message);
 }
+// The startup scanner deliberately omits leased snapshots. These storage tests
+// inspect complete envelopes directly to prove durability before mutation.
+inline std::vector<RecoverySnapshot> ProtectedSaveSnapshots(const std::filesystem::path &dataDirectory)
+{
+    std::vector<RecoverySnapshot> values;
+    const auto directory = dataDirectory / L"Recovery";
+    if (!std::filesystem::exists(directory))
+        return values;
+    for (const auto &entry : std::filesystem::directory_iterator(directory))
+        if (entry.path().extension() == L".rtd")
+        {
+            std::string bytes;
+            RecoverySnapshot value;
+            RequireStorage(SUCCEEDED(ReadBytes(entry.path(), bytes)) && SUCCEEDED(ParseRecovery(bytes, value)), "complete save protection envelope");
+            values.push_back(std::move(value));
+        }
+    return values;
+}
+struct LinkedSaveCheckpoint
+{
+    std::filesystem::path dataDirectory, newAlias;
+    std::string observedBytes;
+    std::vector<RecoverySnapshot> snapshots;
+    HRESULT result = E_UNEXPECTED;
+    unsigned protectedCalls{}, stagedCalls{};
+    static void Observe(AtomicWriteCheckpoint phase, const std::filesystem::path &path, void *context) noexcept
+    {
+        // Test-hook ABI: report inspection failure without escaping into storage.
+        try
+        {
+            auto &self = *static_cast<LinkedSaveCheckpoint *>(context);
+            if (phase == AtomicWriteCheckpoint::Staged && !self.newAlias.empty())
+            {
+                ++self.stagedCalls;
+                self.result = CreateHardLinkW(self.newAlias.c_str(), path.c_str(), nullptr) ? S_OK : HRESULT_FROM_WIN32(GetLastError());
+                self.newAlias.clear();
+            }
+            if (phase == AtomicWriteCheckpoint::InPlaceProtected)
+            {
+                ++self.protectedCalls;
+                self.result = ReadBytes(path, self.observedBytes);
+                self.snapshots = ProtectedSaveSnapshots(self.dataDirectory);
+            }
+        }
+        catch (const std::bad_alloc &)
+        {
+            std::terminate();
+        }
+        catch (const std::exception &)
+        {
+            static_cast<LinkedSaveCheckpoint *>(context)->result = E_FAIL;
+        }
+    }
+};
 struct StorageCheckpoint
 {
     StorageCheckpoint() = default;
@@ -42,6 +98,255 @@ struct StorageCheckpoint
 inline void RegisterStorageSafetyTests(const std::filesystem::path &root,
                                        const std::function<void(std::string_view, const std::function<void()> &)> &test)
 {
+    test(
+        "Storage.HardlinkSavePreservesAliasesAndProtectsBeforeMutation",
+        [&]
+        {
+            const auto directory = root / L"hardlink-success";
+            std::filesystem::create_directories(directory);
+            const auto path = directory / L"notes.md", alias = directory / L"same-notes.md";
+            FileStamp original;
+            RequireStorage(SUCCEEDED(SaveDocument(path, L"original\r\n", true, nullptr, original)), "seed linked document");
+            RequireStorage(CreateHardLinkW(alias.c_str(), path.c_str(), nullptr), "create owned same-volume hardlink");
+            const SaveRecoveryContext recovery{directory / L"state", {9, 2}, 42};
+            LinkedSaveCheckpoint checkpoint{recovery.dataDirectory};
+            SetAtomicWriteHookForTest(LinkedSaveCheckpoint::Observe, &checkpoint);
+            const auto clear = wil::scope_exit([] { SetAtomicWriteHookForTest(nullptr, nullptr); });
+            FileStamp saved;
+            RequireStorage(SUCCEEDED(SaveDocument(path, L"Revised 世界 😀\r\n", true, &original, saved, false, nullptr, &recovery)),
+                           "save protected hardlinked document");
+            RequireStorage(checkpoint.protectedCalls == 1 && SUCCEEDED(checkpoint.result) &&
+                               checkpoint.observedBytes == "\xEF\xBB\xBF"
+                                                           "original\r\n" &&
+                               checkpoint.snapshots.size() == 1 && checkpoint.snapshots[0].text == L"Revised 世界 😀\r\n" &&
+                               checkpoint.snapshots[0].originalPath == path && checkpoint.snapshots[0].bom &&
+                               checkpoint.snapshots[0].selection == recovery.selection && checkpoint.snapshots[0].generation == recovery.generation,
+                           "complete immutable recovery is durable while every original byte still exists");
+            StoredDocument actual, shared;
+            RequireStorage(SUCCEEDED(LoadDocument(path, actual)) && SUCCEEDED(LoadDocument(alias, shared)) && actual.text == L"Revised 世界 😀\r\n" &&
+                               actual.bom && actual.stamp == shared.stamp && actual.stamp == saved && actual.stamp.volume == original.volume &&
+                               actual.stamp.fileIndex == original.fileIndex && actual.stamp.fileIndexHigh == original.fileIndexHigh,
+                           "all aliases retain the same full native identity, BOM, EOLs and admitted source");
+            RequireStorage(ProtectedSaveSnapshots(recovery.dataDirectory).empty(), "successful flushed save retires only its independent checkpoint");
+        });
+    test(
+        "Storage.HardlinkFailuresRetainCompleteRecoveryAndBaseline",
+        [&]
+        {
+            for (const auto fault : {AtomicWriteFailure::InPlaceWrite, AtomicWriteFailure::InPlacePartialWrite, AtomicWriteFailure::InPlaceFlush})
+            {
+                const auto directory = root / (L"hardlink-fault-" + std::to_wstring(static_cast<unsigned>(fault)));
+                std::filesystem::create_directories(directory);
+                const auto path = directory / L"notes.md", alias = directory / L"same-notes.md";
+                FileStamp original;
+                RequireStorage(SUCCEEDED(SaveDocument(path, L"original", false, nullptr, original)) &&
+                                   CreateHardLinkW(alias.c_str(), path.c_str(), nullptr),
+                               "seed linked write-fault fixture");
+                const SaveRecoveryContext recovery{directory / L"state", {3, 1}, 73};
+                SetAtomicWriteFailureForTest(fault);
+                const auto clear = wil::scope_exit([] { SetAtomicWriteFailureForTest(AtomicWriteFailure::None); });
+                FileStamp saved = original;
+                const auto result = SaveDocument(path, L"complete admitted replacement\r\n世界", true, &original, saved, false, nullptr, &recovery);
+                RequireStorage(FAILED(result) && saved == original, "failed in-place write never publishes the caller's saved baseline");
+                SetAtomicWriteFailureForTest(AtomicWriteFailure::None);
+                const auto snapshots = ProtectedSaveSnapshots(recovery.dataDirectory);
+                RequireStorage(snapshots.size() == 1 && snapshots[0].text == L"complete admitted replacement\r\n世界" && snapshots[0].bom &&
+                                   snapshots[0].originalPath == path && snapshots[0].selection == recovery.selection && snapshots[0].generation == 73,
+                               "each failure retains all admitted source and recovery metadata, even after a partial target write");
+                std::string primary, secondary;
+                FileStamp a, b;
+                RequireStorage(SUCCEEDED(ReadBytes(path, primary, &a)) && SUCCEEDED(ReadBytes(alias, secondary, &b)) && primary == secondary &&
+                                   a.fileIndex == original.fileIndex && a.fileIndexHigh == original.fileIndexHigh && a.volume == original.volume &&
+                                   a == b,
+                               "failure preserves the shared object across every alias");
+                if (fault == AtomicWriteFailure::InPlaceWrite)
+                    RequireStorage(primary == "original", "pre-write failure leaves original bytes intact");
+                RecoveryService restart;
+                RequireStorage(SUCCEEDED(restart.Initialize(recovery.dataDirectory)) && SUCCEEDED(restart.WaitForSettlement(5000)) && restart.Ready(),
+                               "restart completes recovery scan");
+                const auto candidates = restart.TakeCandidates();
+                RequireStorage(candidates.size() == 1 && candidates[0].snapshot.text == snapshots[0].text && candidates[0].snapshot.generation == 73,
+                               "ordinary restart offers the exact independent admitted version");
+            }
+        });
+    test("Recovery.SaveProtectionSurvivesOrdinaryCoalescingAndRetirement",
+         [&]
+         {
+             const auto directory = root / L"independent-save-protection";
+             const RecoverySnapshot admitted{L"admitted source", root / L"notes.md", true, {8, 2}, 80};
+             {
+                 SaveRecoveryProtection protection;
+                 RequireStorage(SUCCEEDED(protection.Admit(directory, admitted)), "admit independently leased save checkpoint");
+                 RecoveryService writer;
+                 RequireStorage(SUCCEEDED(writer.Initialize(directory)) && SUCCEEDED(writer.WaitForSettlement(5000)) && writer.Ready(),
+                                "start ordinary recovery");
+                 RequireStorage(writer.TakeCandidates().empty(), "active save lease is never offered as an abandoned session");
+                 RequireStorage(SUCCEEDED(writer.Submit(RecoverySnapshot{L"newer edits", {}, false, {0, 2}, 81}, true)) &&
+                                    SUCCEEDED(writer.WaitForSettlement(5000)) && SUCCEEDED(writer.Submit(std::nullopt, true)) &&
+                                    SUCCEEDED(writer.WaitForSettlement(5000)),
+                                "ordinary newer checkpoint and clean retirement complete");
+                 writer.Close();
+                 const auto snapshots = ProtectedSaveSnapshots(directory);
+                 RequireStorage(snapshots.size() == 1 && snapshots[0].text == admitted.text && snapshots[0].generation == 80,
+                                "coalescing and retiring the ordinary session never overwrites or deletes admitted save protection");
+             }
+             RecoveryService restart;
+             RequireStorage(SUCCEEDED(restart.Initialize(directory)) && SUCCEEDED(restart.WaitForSettlement(5000)),
+                            "scan released protection after interruption");
+             const auto candidates = restart.TakeCandidates();
+             RequireStorage(candidates.size() == 1 && candidates[0].snapshot.text == admitted.text &&
+                                candidates[0].snapshot.selection == admitted.selection,
+                            "guard destruction retains a complete, discoverable recovery copy");
+         });
+    test("Storage.HardlinkAdmissionFailureNeverMutatesTarget",
+         [&]
+         {
+             const auto directory = root / L"hardlink-admission";
+             std::filesystem::create_directories(directory);
+             const auto path = directory / L"notes.md", alias = directory / L"same.md";
+             FileStamp original;
+             RequireStorage(SUCCEEDED(SaveDocument(path, L"retained", false, nullptr, original)) &&
+                                CreateHardLinkW(alias.c_str(), path.c_str(), nullptr),
+                            "seed admission target");
+             FileStamp saved = original;
+             RequireStorage(FAILED(SaveDocument(path, L"new source", false, &original, saved)), "hardlink save without recovery context is declined");
+             const auto blocked = directory / L"blocked-state";
+             RequireStorage(SUCCEEDED(WriteBytesAtomic(blocked, "a file blocks the recovery directory")), "seed unavailable recovery location");
+             const SaveRecoveryContext unavailable{blocked, {0, 0}, 1}, invalid{directory / L"state", {1000, 0}, 2};
+             RequireStorage(FAILED(SaveDocument(path, L"new source", false, &original, saved, false, nullptr, &unavailable)) &&
+                                FAILED(SaveDocument(path, L"new source", false, &original, saved, false, nullptr, &invalid)),
+                            "unavailable or invalid recovery fails admission");
+             const auto fullDirectory = directory / L"full-state";
+             std::filesystem::create_directories(fullDirectory / L"Recovery");
+             for (unsigned index = 0; index < 512; ++index)
+             {
+                 const auto leaf = fullDirectory / L"Recovery" / (L"unrelated-" + std::to_wstring(index));
+                 wil::unique_handle file(CreateFileW(leaf.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr));
+                 RequireStorage(static_cast<bool>(file), "seed the bounded recovery-directory admission fixture");
+             }
+             const SaveRecoveryContext full{fullDirectory, {0, 0}, 3};
+             RequireStorage(SaveDocument(path, L"new source", false, &original, saved, false, nullptr, &full) ==
+                                HRESULT_FROM_WIN32(ERROR_TOO_MANY_OPEN_FILES),
+                            "full recovery-directory budget declines before target mutation");
+             StoredDocument actual, shared;
+             RequireStorage(saved == original && SUCCEEDED(LoadDocument(path, actual)) && SUCCEEDED(LoadDocument(alias, shared)) &&
+                                actual.text == L"retained" && actual.stamp == original && shared.stamp == original,
+                            "every admission failure preserves original bytes, all identities and caller baseline");
+         });
+    test("Storage.HardlinkSaveSuccessSurvivesBlockedRecoveryRetirement",
+         [&]
+         {
+             const auto directory = root / L"hardlink-retirement";
+             std::filesystem::create_directories(directory);
+             const auto path = directory / L"notes.md", alias = directory / L"same.md";
+             FileStamp original;
+             RequireStorage(SUCCEEDED(SaveDocument(path, L"original", false, nullptr, original)) &&
+                                CreateHardLinkW(alias.c_str(), path.c_str(), nullptr),
+                            "seed retirement fixture");
+             const SaveRecoveryContext recovery{directory / L"state", {0, 4}, 101};
+             struct Inspection
+             {
+                 explicit Inspection(std::filesystem::path input) : directory(std::move(input)) {}
+                 Inspection(const Inspection &) = delete;
+                 Inspection &operator=(const Inspection &) = delete;
+                 std::filesystem::path directory;
+                 wil::unique_handle record;
+                 HRESULT result = E_UNEXPECTED;
+             } inspection{recovery.dataDirectory};
+             SetAtomicWriteHookForTest(
+                 [](AtomicWriteCheckpoint phase, const std::filesystem::path &, void *context) noexcept
+                 {
+                     if (phase != AtomicWriteCheckpoint::InPlaceProtected)
+                         return;
+                     auto &current = *static_cast<Inspection *>(context);
+                     // A test-only reader keeps the complete protection file but
+                     // denies its deletion. The production scanner omits live leases.
+                     try
+                     {
+                         for (const auto &entry : std::filesystem::directory_iterator(current.directory / L"Recovery"))
+                             if (entry.path().extension() == L".rtd")
+                                 current.record.reset(CreateFileW(entry.path().c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
+                                                                  FILE_ATTRIBUTE_NORMAL, nullptr));
+                         current.result = current.record ? S_OK : E_FAIL;
+                     }
+                     catch (const std::bad_alloc &)
+                     {
+                         std::terminate();
+                     }
+                     catch (const std::exception &)
+                     {
+                         current.result = E_FAIL; // Test-hook ABI reports inspection failure.
+                     }
+                 },
+                 &inspection);
+             const auto clear = wil::scope_exit([] { SetAtomicWriteHookForTest(nullptr, nullptr); });
+             FileStamp saved;
+             RequireStorage(SUCCEEDED(SaveDocument(path, L"fully saved", false, &original, saved, false, nullptr, &recovery)) &&
+                                SUCCEEDED(inspection.result),
+                            "recovery retirement failure cannot turn completed storage into a failed save");
+             inspection.record.reset();
+             StoredDocument actual, shared;
+             RequireStorage(SUCCEEDED(LoadDocument(path, actual)) && SUCCEEDED(LoadDocument(alias, shared)) && actual.text == L"fully saved" &&
+                                actual.stamp == shared.stamp && actual.stamp == saved,
+                            "successful known-byte stamp remains the new baseline");
+             const auto snapshots = ProtectedSaveSnapshots(recovery.dataDirectory);
+             RequireStorage(snapshots.size() == 1 && snapshots[0].text == actual.text && snapshots[0].generation == 101,
+                            "blocked retirement retains an extra valid recovery copy");
+         });
+    test("Storage.NewHardlinkDuringStagingSelectsProtectedInPlaceSave",
+         [&]
+         {
+             const auto directory = root / L"late-hardlink";
+             std::filesystem::create_directories(directory);
+             const auto path = directory / L"notes.md", alias = directory / L"late-alias.md";
+             FileStamp original;
+             RequireStorage(SUCCEEDED(SaveDocument(path, L"original", false, nullptr, original)), "seed late-link target");
+             const SaveRecoveryContext recovery{directory / L"state", {0, 3}, 94};
+             LinkedSaveCheckpoint checkpoint{recovery.dataDirectory, alias};
+             SetAtomicWriteHookForTest(LinkedSaveCheckpoint::Observe, &checkpoint);
+             const auto clear = wil::scope_exit([] { SetAtomicWriteHookForTest(nullptr, nullptr); });
+             FileStamp saved;
+             RequireStorage(SUCCEEDED(SaveDocument(path, L"new admitted source", false, &original, saved, false, nullptr, &recovery)) &&
+                                checkpoint.stagedCalls == 1 && checkpoint.protectedCalls == 1 && SUCCEEDED(checkpoint.result),
+                            "final staging check detects a new alias and reselects protected in-place writing");
+             StoredDocument actual, shared;
+             RequireStorage(SUCCEEDED(LoadDocument(path, actual)) && SUCCEEDED(LoadDocument(alias, shared)) &&
+                                actual.text == L"new admitted source" && actual.stamp == shared.stamp && saved == actual.stamp &&
+                                actual.stamp.fileIndex == original.fileIndex && actual.stamp.fileIndexHigh == original.fileIndexHigh,
+                            "late-created alias receives the same admitted bytes without splitting the object");
+         });
+    test("Storage.SymbolicSavePreservesEntryAndResolvesFinalTarget",
+         [&]
+         {
+             const auto directory = root / L"symbolic-save";
+             std::filesystem::create_directories(directory);
+             const auto target = directory / L"世界.md", link = directory / L"linked-notes.md";
+             FileStamp original;
+             RequireStorage(SUCCEEDED(SaveDocument(target, L"original", false, nullptr, original)), "seed symlink target");
+             const auto created = CreateSymbolicLinkW(link.c_str(), target.filename().c_str(), SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE);
+             const auto linkError = GetLastError();
+             RequireStorage(created, std::format("create owned relative symlink (Win32 {})", linkError).c_str());
+             const auto removeLink = wil::scope_exit([&] { (void)DeleteFileW(link.c_str()); });
+             FileStamp saved;
+             RequireStorage(SUCCEEDED(SaveDocument(link, L"revised target\r\n", true, &original, saved)), "save final symlink target atomically");
+             const auto attributes = GetFileAttributesW(link.c_str());
+             StoredDocument actual, followed;
+             RequireStorage(attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_REPARSE_POINT) &&
+                                SUCCEEDED(LoadDocument(target, actual)) && SUCCEEDED(LoadDocument(link, followed)) &&
+                                actual.text == L"revised target\r\n" && actual.bom && actual.stamp == followed.stamp && actual.stamp == saved &&
+                                (actual.stamp.fileIndex != original.fileIndex || actual.stamp.fileIndexHigh != original.fileIndexHigh),
+                            "relative Unicode symlink remains intact while its target receives atomic replacement");
+             const auto alias = directory / L"hardlinked-target.md";
+             RequireStorage(CreateHardLinkW(alias.c_str(), target.c_str(), nullptr), "add hardlink to symlink target");
+             const SaveRecoveryContext recovery{directory / L"state", {0, 4}, 111};
+             const auto prior = saved;
+             RequireStorage(SUCCEEDED(SaveDocument(link, L"shared target", false, &prior, saved, false, nullptr, &recovery)),
+                            "symlink to hardlinked target selects protected save");
+             RequireStorage(SUCCEEDED(LoadDocument(alias, actual)) && actual.text == L"shared target" && actual.stamp == saved &&
+                                actual.stamp.fileIndex == prior.fileIndex && actual.stamp.fileIndexHigh == prior.fileIndexHigh &&
+                                (GetFileAttributesW(link.c_str()) & FILE_ATTRIBUTE_REPARSE_POINT),
+                            "symbolic entry and hardlink target identity both survive");
+         });
     test("Storage.StampMatchesFullNativeFileIdentity",
          [&]
          {

@@ -104,6 +104,14 @@ try {
         $exit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--recovery-restart-probe','--data-dir',$recovery) -LogPrefix (Join-Path $run 'recovery-restart')
         if ($exit -ne 0) { throw 'Restart did not restore both exact unsaved sources as independent dirty Save As copies.' }
         $receipt.results+=@{scope='RecoveryCrashRestart';restoredDocumentCount=2;exactSourceRestored=$true;originalProtectedBySaveAs=$true}
+        $linked=Join-Path $run 'linked-save-interruption'
+        $exit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--linked-save-crash-probe','--data-dir',$linked) -LogPrefix (Join-Path $run 'linked-save-crash')
+        if($exit -ne 79){throw 'Linked save child did not stop at the protected partial-write checkpoint.'}
+        $exit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--linked-save-restart-probe','--data-dir',$linked) -LogPrefix (Join-Path $run 'linked-save-restart')
+        if($exit -ne 0){throw 'Interrupted linked save did not retain its complete independently leased recovery copy.'}
+        $verified=Get-Content (Join-Path $linked 'linked-save-restart.json') -Raw|ConvertFrom-Json
+        if(-not $verified.recoveryComplete -or -not $verified.partialSharedTarget -or -not $verified.releasedLease){throw 'Incomplete linked save restart verification.'}
+        $receipt.results+=@{scope='LinkedSaveCrashRestart';completeAdmittedSource=$true;partialSharedTarget=$true;crashedLeaseReleased=$true}
     }
     if('Performance' -in $Suites){
         $performance=Join-Path $run 'performance.json'

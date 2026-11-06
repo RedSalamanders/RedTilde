@@ -23,6 +23,24 @@ struct RecoveryCandidate
 [[nodiscard]] std::string SerializeRecovery(const RecoverySnapshot &snapshot);
 [[nodiscard]] HRESULT ParseRecovery(std::string_view bytes, RecoverySnapshot &snapshot) noexcept;
 
+// Worker-owned, exclusively leased immutable save copy. Destruction preserves
+// its envelope for restart; only a successful write explicitly retires it.
+// Ordinary autosave submissions/retirements cannot coalesce or delete this id.
+class SaveRecoveryProtection final
+{
+  public:
+    SaveRecoveryProtection();
+    ~SaveRecoveryProtection();
+    SaveRecoveryProtection(const SaveRecoveryProtection &) = delete;
+    SaveRecoveryProtection &operator=(const SaveRecoveryProtection &) = delete;
+    [[nodiscard]] HRESULT Admit(const std::filesystem::path &dataDirectory, const RecoverySnapshot &snapshot) noexcept;
+    [[nodiscard]] HRESULT Retire() noexcept;
+
+  private:
+    struct State;
+    std::unique_ptr<State> state;
+};
+
 // One event-driven worker, up to 64 independently coalesced document snapshots.
 // Each uses 750 ms quiet time and a five-second maximum admission delay. The
 // worker owns all leases and filesystem access. No UI joins.

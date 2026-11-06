@@ -151,6 +151,8 @@ class Application
     // Interaction probes settle content first, then capture without pumping
     // ambient pointer-leave messages for their deliberately hidden HWND.
     bool Capture(const std::filesystem::path &path, bool prepareContent = true);
+    // Bounded harness owner turns, including independent editor/mirror cosmetics.
+    // This is not the production event loop or an input-readiness prerequisite.
     void Prepare(unsigned turns = 128);
     [[nodiscard]] bool Dirty() const;
     [[nodiscard]] Editor &Document() const
@@ -472,6 +474,9 @@ enum class CoreTestScope
     EditorRendering
 };
 int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope = CoreTestScope::All, bool listOnly = false);
+#if defined(REDTILDE_ENABLE_TESTS)
+int RunLinkedSaveInterruptionProbe(const std::filesystem::path &root, bool restart);
+#endif
 int RunPerformanceProbe(Application &app, const LaunchOptions &options);
 int RunDesignInteractiveProbe(Application &app, const LaunchOptions &options);
 } // namespace RedTilde

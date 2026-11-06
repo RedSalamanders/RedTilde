@@ -23,7 +23,9 @@ DxUi controls, DirectWrite and Direct2D. Read [Specs/README.md](Specs/README.md)
 - WIL owns COM and Windows resources. No manual `Release` or destruction of an owned HWND.
 - No exception escapes Win32/callback boundaries. Catch named exceptions with an explicit fallback; allocation
   failure is fatal at application boundaries. Never silently discard an edit or storage error.
-- File saves stage in the destination directory and atomically replace; preserve original UTF-8 BOM and EOLs.
+- Ordinary file saves stage in the destination directory and atomically replace; preserve original UTF-8 BOM and EOLs.
+  Symbolic links save their followed target. Multiple hardlinks require an independent durable recovery copy before
+  an in-place write that preserves all aliases; failed writes retain that copy and the old saved baseline.
   A successful write/replace is required before clearing dirty state. Reject invalid/oversized input before
   replacing the current document. Prompt before New, Open or Close would discard unsaved changes.
 - Filesystem/codec work belongs to application workers. Keep queues bounded, publish on the UI owner, cancel

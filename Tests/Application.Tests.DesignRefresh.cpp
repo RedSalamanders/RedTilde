@@ -4040,5 +4040,35 @@ class DesignRefreshProbe final
 void RegisterDesignRefreshTests(const std::filesystem::path &root, const std::function<void(std::string_view, const std::function<void()> &)> &test)
 {
     DesignRefreshProbe::Register(root, test);
+    test("Editor.CapturesSettleIndependentSourceCosmetics",
+         [&]
+         {
+             Testing::ForegroundOwnershipObserver foreground;
+             LaunchOptions launch;
+             launch.headless = true;
+             launch.dataDirectory = root / L"source-cosmetic-capture";
+             launch.viewportWidthPx = 1280;
+             launch.viewportHeightPx = 960;
+             Application app(launch);
+             Success(app.Initialize(), "create hidden source-cosmetic capture fixture");
+             std::wstring source;
+             for (unsigned row = 0; row < 16384; ++row)
+                 source += L" \n";
+             app.SetDocument(source);
+             app.SetView(EditorView::Source);
+             auto appearance = app.Document().GetAppearance();
+             appearance.sourceLineNumbers = true;
+             appearance.sourceWhitespaceMarks = true;
+             app.Document().SetAppearance(appearance);
+             const auto snapshot = app.Document().Snapshot();
+             Require(app.Capture(launch.dataDirectory / L"prepared-guides.png"), "capture prepared source through the owned harness");
+             const auto state = app.Document().DebugGetState();
+             Require(!app.Host().HasPendingContentPreparation() && !state.markdownPreparationPending && !state.sourceInkPreparationPending &&
+                         !state.codeInkPreparationPending && !state.sourceGuidesPreparationPending,
+                     "a completed documentation capture includes independent source ink and guides after content becomes ready");
+             Require(app.Document().Snapshot().IsSameRevision(snapshot) && app.Document().GetText() == source && !app.Document().CanUndo(),
+                     "settling capture cosmetics never edits source or creates history");
+             Require(foreground.NeverAcquiredForeground() && !IsWindowVisible(app.Window()), "source-cosmetic capture preserves desktop ownership");
+         });
 }
 } // namespace RedTilde

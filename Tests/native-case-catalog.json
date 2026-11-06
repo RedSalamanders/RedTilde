@@ -1,6 +1,15 @@
 {
   "version": 1,
   "cases": [
+    { "name": "Editor.CapturesSettleIndependentSourceCosmetics", "scope": "Editor" },
+    { "name": "Storage.HardlinkSaveSuccessSurvivesBlockedRecoveryRetirement", "scope": "Storage" },
+    { "name": "Editor.HardlinkSaveWorkerRetainsAliasesAndLaterEdits", "scope": "Editor" },
+    { "name": "Storage.HardlinkSavePreservesAliasesAndProtectsBeforeMutation", "scope": "Storage" },
+    { "name": "Storage.HardlinkFailuresRetainCompleteRecoveryAndBaseline", "scope": "Storage" },
+    { "name": "Recovery.SaveProtectionSurvivesOrdinaryCoalescingAndRetirement", "scope": "Recovery" },
+    { "name": "Storage.HardlinkAdmissionFailureNeverMutatesTarget", "scope": "Storage" },
+    { "name": "Storage.NewHardlinkDuringStagingSelectsProtectedInPlaceSave", "scope": "Storage" },
+    { "name": "Storage.SymbolicSavePreservesEntryAndResolvesFinalTarget", "scope": "Storage" },
     { "name": "Storage.StampMatchesFullNativeFileIdentity", "scope": "Storage" },
     { "name": "Editor.RecoverableCommandsAndMenusRetainSourceAndDraftFocus", "scope": "Editor" },
     { "name": "Editor.FileCompletionFailureRetainsPendingWriteAndCancelsClose", "scope": "Editor" },

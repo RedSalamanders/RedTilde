@@ -29,6 +29,11 @@ Synthetic hover is applied after the final preparation message pump and retained
 through readback. At each DPI, resting, close-hover and maximize-hover PNG hashes
 must differ, so valid provenance alone cannot qualify a missing visual state.
 Interaction probes settle content before staging synthetic input and capture the prepared frame without pumping ambient pointer-leave messages for their hidden HWND. Standalone captures retain their final preparation step.
+The bounded application preparation helper drains independent Markdown analysis, source/code ink, line numbers
+and whitespace marks for both visible editor surfaces before declaring capture quiescence. Content readiness
+alone does not establish completed cosmetic publication. This harness rule never makes cosmetic work a
+production input/frame prerequisite; visible production windows continue through their event-driven host wakes.
+The large source-guide capture regression preserves exact source/history and proves no desktop activation.
 The shared host stages hidden captures before swap-chain presentation; a consumer
 must not read the D2D swap-chain target after Present and assume it is the current frame.
 Release-policy evaluation uses the pinned SDK's current defaults plus explicit
@@ -182,7 +187,15 @@ These record oracles establish error mapping, not recovery from an actually miss
 
 Physical focus/IME/AT, release/package acceptance, hardware-specific qualification and paired resource/performance studies retain their owning gates. Hidden/scoped/native CI passes never close those gates. Native test basenames use contextual `Scope.Tests.Something.h/.cpp`; inventories cover active files only. Immutable historical receipts, archived source and legacy references are not renamed or rewritten.
 
-RedTilde partitions its 108 registered native cases into Storage (19), Settings (4), Recovery (18) and Editor (67). Registration scanning includes reviewed Core `.cpp` and `.h` files from the native inventory. Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
+RedTilde partitions its 117 registered native cases into Storage (25), Settings (4), Recovery (19) and Editor (69). Registration scanning includes reviewed Core `.cpp` and `.h` files from the native inventory. Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
+
+RecoveryRestart also runs test-only `--linked-save-crash-probe` and `--linked-save-restart-probe` children in one
+explicit absolute harness directory. The first exits with exactly 79 after an admitted hardlink write has changed
+only part of the shared target, while its writer and independent recovery lease are still live. The second proves
+the OS released that lease and the ordinary scanner offers the complete admitted source/BOM/path/selection/generation.
+Both aliases must contain the same actual partial bytes. A durable checkpoint marker distinguishes this controlled
+interruption from a setup failure; no destructor or fault-handler recovery write may supply the missing content.
+The commands are absent from test-disabled production builds and never create a window or acquire desktop input.
 
 File-seeding fixtures create their owned parent directories explicitly before writing. Application initialization only admits asynchronous recovery setup; tests must not depend on its worker having created a fixture directory before the first storage call.
 

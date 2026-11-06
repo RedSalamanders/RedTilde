@@ -4,6 +4,14 @@ Invalid or oversized recovery copies are kept intact in quarantine instead of in
 copies remain available. An existing quarantine file is preserved; the original input stays intact if it
 cannot be moved beside that earlier file. Recovery never silently truncates your writing.
 
+Saving through a symbolic link keeps the link and updates its target. A file with several hardlinks keeps those
+aliases and their shared identity: RedTilde first stores an independent complete recovery copy, then writes the
+shared file in place. If that write fails or is interrupted, it can leave partial file bytes; restart offers the
+complete admitted source as a recovery copy. Unavailable recovery storage prevents that write from starting.
+
+The [linked-save evidence](../Measurements/LinkedSaveAndCosmeticSettlement_2026-11-06/README.md) records the
+actual interrupted-write recovery checks and the remaining symbolic-link runtime verification.
+
 Every modified workspace document has its own recovery copy. Healthy editing checkpoints after a short pause,
 with a five-second maximum admission delay while typing continuously. After a crash and relaunch, preview the
 last durable copies and choose **Restore a copy** or **Restore all copies**. Each restored document remains dirty
@@ -13,6 +21,8 @@ files, but is not saved in recovery copies.
 The [root README](../README.md) covers launching and shortcuts. Start with Compose, select text for formatting,
 and use Source to inspect exact Markdown. Switch views freely; the document, source selection and undo history
 are shared. Split is an editable Compose pane next to a read-only source mirror.
+Source stays editable while syntax colours and code decorations finish appearing. Those updates preserve
+your selection and never cancel a selection drag or withhold an otherwise ready document frame.
 
 Quotes and callouts leave a small inner margin on both sides. Long documents show a scrollbar matching the
 current theme in Compose, Source and each Split pane; click its track or drag the thumb to move through the document.

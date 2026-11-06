@@ -62,6 +62,7 @@ class AsyncFiles
         std::optional<FileStamp> expected;
         bool sameIdentityOnly{};
         std::filesystem::path baselinePath;
+        std::optional<SaveRecoveryContext> recovery;
 #if defined(REDTILDE_ENABLE_TESTS)
         std::shared_ptr<TestGate> testGate;
 #endif
@@ -97,7 +98,8 @@ class AsyncFiles
         if (result.saving)
         {
             result.status = SaveDocument(result.path, result.document.text, result.document.bom, job->expected ? &job->expected.value() : nullptr,
-                                         result.document.stamp, job->sameIdentityOnly, job->baselinePath.empty() ? nullptr : &job->baselinePath);
+                                         result.document.stamp, job->sameIdentityOnly, job->baselinePath.empty() ? nullptr : &job->baselinePath,
+                                         job->recovery ? &job->recovery.value() : nullptr);
             if (result.status == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE))
                 result.rejectedUnits = result.document.text.size();
         }
@@ -155,7 +157,8 @@ class AsyncFiles
     }
 #endif
     HRESULT Submit(bool saving, std::filesystem::path path, std::wstring text = {}, bool bom = false, std::optional<FileStamp> expected = {},
-                   bool sameIdentityOnly = false, bool reloading = false, std::filesystem::path baselinePath = {})
+                   bool sameIdentityOnly = false, bool reloading = false, std::filesystem::path baselinePath = {},
+                   std::optional<SaveRecoveryContext> recovery = {})
     {
         auto job = std::make_unique<Job>();
         job->state = state;
@@ -167,6 +170,7 @@ class AsyncFiles
         job->sameIdentityOnly = sameIdentityOnly;
         job->result.reloading = reloading;
         job->baselinePath = std::move(baselinePath);
+        job->recovery = std::move(recovery);
         std::lock_guard lock(state->mutex);
         if (state->busy || state->closing)
             return HRESULT_FROM_WIN32(ERROR_BUSY);

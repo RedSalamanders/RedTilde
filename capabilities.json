@@ -23,6 +23,8 @@
     "strict-utf8-bom-eol-preservation",
     "document-terminator-aware-insertions-and-drafts",
     "atomic-save-and-external-change-check",
+    "hardlink-preserving-save-with-independent-recovery",
+    "complete-recovery-after-in-place-save-interruption",
     "single-context-bound-save-conflict-choice",
     "save-as-current-object-conflict-baseline",
     "specific-utf8-and-capacity-diagnostics",
