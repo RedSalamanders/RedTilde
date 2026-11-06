@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "implementationCommit": "fe9b7d15b522630ed54fc8891516b24137a4d5fc",
+  "canonicalValidation": {
+    "rootClass": "canonical short worktree",
+    "logSha256": "6659B5DDC15F71BE44F09B9117C15FF2E94EF20E085F14C5593CE8654399DEF5",
+    "passed": true,
+    "documentationFilesByteCompared": 27,
+    "compiledSourceIdentity": "e16c614ca7728e2869fa8ec45dbdd8ecc408d256e86e097674003a0587056166",
+    "compiledInputsMatched": 140
+  },
+  "format": {
+    "formatterVersion": "22.1.3",
+    "passed": true,
+    "logSha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+  },
+  "retainedLongCheckoutAttempt": {
+    "disposition": "original failure retained; canonical identical-input tooling passes; long-checkout portability remains an explicit tooling item",
+    "passed": false,
+    "failedScope": "Hosted MSVC setup mock executable launch",
+    "logSha256": "9A16F72BC063E7E47CEBA1D125F3C3C6321D0618416AF1F32EA043D5D82411AE"
+  }
+}

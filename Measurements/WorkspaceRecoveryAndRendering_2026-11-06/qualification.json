@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "claim": "Scoped functional verification, six zero-warning builds and three complete noninteractive x64 runtime profiles",
+  "implementationCommit": "fe9b7d15b522630ed54fc8891516b24137a4d5fc",
+  "apiRevision": 4,
+  "compiledSourceIdentity": "e16c614ca7728e2869fa8ec45dbdd8ecc408d256e86e097674003a0587056166",
+  "originalSourceInputs": {
+    "inputCount": 140,
+    "archiveSha256": "69C3799B946F0116D07CBCF3C6BB72365C5A686BA7076015740853746BC9AFD4",
+    "canonicalOriginalBytesMatched": true
+  },
+  "builds": [
+    {
+      "platform": "x64",
+      "configuration": "Release",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": true,
+      "buildLogSha256": "1E4B70B03956C320EA4377820878CC423A81FE29870FB533C77E88EC920D5094",
+      "binarySha256": "6CBD63C43920DD4E28652F38B42E7FF48361582D9B9AF8FC8BD7512145969349",
+      "buildReceiptSha256": "2EC28A2B0A6391E79C2BAA1A9B96419A09D2075BA5452659BB4A0819A9391450"
+    },
+    {
+      "platform": "x64",
+      "configuration": "Debug",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": true,
+      "buildLogSha256": "7AA581283B0D8E0B214C06180F12E24519D4CA89AADACBBCFE7F9BBD9F87A8C7",
+      "binarySha256": "4B31B972722C2C212C1835EF21ECE9DAB3B6AF0244DF25CE6EF1CC517B58E709",
+      "buildReceiptSha256": "E2171DAA7A48F84431942AF12D94F3992122C9E5867E0717301FD764D73BF286"
+    },
+    {
+      "platform": "x64",
+      "configuration": "ASan Debug",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": true,
+      "buildLogSha256": "44717A10584216FC7CBE0DB64D9C8575CBA65A0A04A9AEBE9A8AD88CCA60B22A",
+      "binarySha256": "7789932ED11B491D668692326F2E27E4A8A55F5D98F0583BCACF273A3A2FF4BC",
+      "buildReceiptSha256": "B351200F16E7B4CF5C555CDF2022C641E8D16E2AD16CD08B0FAAB50A73D6AB3A"
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Release",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": false,
+      "buildLogSha256": "706672906962974070F6E8DB26694A12956F894F6E7E7F7C2F93694DE714590A",
+      "binarySha256": "A41008222A2E5FAE6801DF38DBC010F06230A715201DA74127105E10A21C164C",
+      "buildReceiptSha256": "116E2C3941A3B1411203DBAD156302850A316491C2B70F6ED5ABD1F1DBBE9DF4"
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Debug",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": false,
+      "buildLogSha256": "FDF96343F21CFC2D47EF9C7994F95AB6C2365D93EA9C5C96A265524037205867",
+      "binarySha256": "1A5CD4557D9DAF8782F20180B1C347B59568B290395A37B8B11423482F02C889",
+      "buildReceiptSha256": "CCA9CBB411B07EA35F030650C1395D86E017F068ECD8639B1015237DBA0E07F1"
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "ASan Debug",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": false,
+      "buildLogSha256": "AC1A4E7B4214D19E667BA36BCDBA2F70DB80EA4D1591AF4ADEB4DC67E775D6F1",
+      "binarySha256": "84DB75D1E65754C0F34FD02EBDC675F9008EF1F7F7252BCE4EE857C3F26591FA",
+      "buildReceiptSha256": "6D6427C942DEA0FE341EE15C35CB29D798D4FCB7E68902EAFB59118226023D1B"
+    }
+  ],
+  "nativeRuns": [
+    {
+      "configuration": "Release",
+      "runId": "20261106T004329912Z-47516-7c89ed53279645139f7f7018fe351246",
+      "passed": 91,
+      "failed": 0,
+      "captures": 36,
+      "canonicalReceiptSha256": "1BD665A587231F105F309B05A44FA9AC25BA83BDEC9BA479D1F69B1C70FD7CA0",
+      "completionSha256": "56F4E705FCD2804AE0B444B2EC9D9C12D82873EA20FE965A016A5ABA318CE7AB",
+      "nativeRunArchiveSha256": "22E7D003220273CE96D88EA85919373E7E762FEDF239141EC2DCD5219A32CDD9",
+      "editorPartitions": {
+        "EditorPerformance": 3,
+        "EditorBehavior": 51,
+        "EditorRendering": 3
+      },
+      "scopes": [
+        "Capture",
+        "Crash",
+        "Editor",
+        "InteractiveProbeRefusal",
+        "PerformanceBaseline",
+        "PreferencesProcessExit",
+        "Recovery",
+        "RecoveryCrashRestart",
+        "Settings",
+        "Storage"
+      ]
+    },
+    {
+      "configuration": "Debug",
+      "runId": "20261106T004807131Z-21556-fc313c08ef57417790fab6c170cc6524",
+      "passed": 91,
+      "failed": 0,
+      "captures": 36,
+      "canonicalReceiptSha256": "7651A7AD33CB770EC17A8A6275D65269A453F9EB93CB28D363747CAA50DB16D8",
+      "completionSha256": "B7529EE0309A536EECD2ED4C515934243272178205ACF8BB20A906DC1950534E",
+      "nativeRunArchiveSha256": "805F8BFF2CB6AB9F7D47FF8DE5723BA72861B548E6CA0C6963E6F080532D272A",
+      "editorPartitions": {
+        "EditorPerformance": 3,
+        "EditorBehavior": 51,
+        "EditorRendering": 3
+      },
+      "scopes": [
+        "Capture",
+        "Crash",
+        "Editor",
+        "InteractiveProbeRefusal",
+        "PerformanceBaseline",
+        "PreferencesProcessExit",
+        "Recovery",
+        "RecoveryCrashRestart",
+        "Settings",
+        "Storage"
+      ]
+    },
+    {
+      "configuration": "ASan Debug",
+      "runId": "20261106T005246338Z-42276-6c37cf170b1b49fb89587c44e5b3c391",
+      "passed": 91,
+      "failed": 0,
+      "captures": 36,
+      "canonicalReceiptSha256": "468CB2F330AAD00D7097CD70958444A3C0A723D94C7A0D116C6C6F82A26E484B",
+      "completionSha256": "4E0ED468E4B1E0F46D123B44BA256B2F80F47B38C665FB82A371B41AD732B16B",
+      "nativeRunArchiveSha256": "5303CEC06F48DEEEED2036B044E6D972692147BD4A5A8C894BE2061D2237F152",
+      "editorPartitions": {
+        "EditorPerformance": 3,
+        "EditorBehavior": 51,
+        "EditorRendering": 3
+      },
+      "scopes": [
+        "AddressSanitizer",
+        "Capture",
+        "Crash",
+        "Editor",
+        "InteractiveProbeRefusal",
+        "PerformanceBaseline",
+        "PreferencesProcessExit",
+        "Recovery",
+        "RecoveryCrashRestart",
+        "Settings",
+        "Storage"
+      ]
+    }
+  ],
+  "nativeArtifacts": [
+    {
+      "profile": "x64-Release",
+      "nativeArchiveSha256": "64AF688C1779FEAFE27D26EED4B90FA502A9165E1F71A9F97BB619CBB0B4D770",
+      "sdkArchiveSha256": "E1AC12F6D94A304C3592DE5C7FBDFF6F8D884596C4CCBE55F173F5600D3DE3EE"
+    },
+    {
+      "profile": "x64-Debug",
+      "nativeArchiveSha256": "283C2B4B5BDC2441CF82F60B590152498B8304A3182322FDD88A273BC9A29A03",
+      "sdkArchiveSha256": "F72B3935FAE7A53F2A073EB6EA196ACA78446389834B3203DF3C6E62EFE57D93"
+    },
+    {
+      "profile": "x64-ASan-Debug",
+      "nativeArchiveSha256": "E99C0D6E752618952341529DED5FF4B5EFA1C12E8537392D433BDDE24A15AE2B",
+      "sdkArchiveSha256": "B46A4AD2887841066F919376DA8B72185CBBABEA8231EAA006E01AA95CA47BEC"
+    },
+    {
+      "profile": "ARM64-Release",
+      "nativeArchiveSha256": "B9D6A92DBB7C1436D9B7747DCB94A89D042C094988100ABD4EEA880652EC9D4F",
+      "sdkArchiveSha256": "DF417AF9AECBA6A9C89908889193FAC56BF85CE9C561058CE7BADD8E410E65C2"
+    },
+    {
+      "profile": "ARM64-Debug",
+      "nativeArchiveSha256": "8B2F93C7AE62635C68A38A599886508488474A79DB018A45DC922B1D8D43E527",
+      "sdkArchiveSha256": "C2A155BFAE8AFC0CF5B7B213E63EC4DB8F55C9D52B932E292677BA0E42DA7C95"
+    },
+    {
+      "profile": "ARM64-ASan-Debug",
+      "nativeArchiveSha256": "EEB2AE31696F6590CD970FA4AC87F464E62421D0DFF89A0DEB65E3950AFF5187",
+      "sdkArchiveSha256": "752CFDA65022EEACB182DF29D8570C584358E8B3FD4452D83FD3F83FA398D42F"
+    }
+  ],
+  "realAsanDetection": true,
+  "limits": [
+    "ARM64 entries are cross-builds, not native runtime execution",
+    "No new foreground, physical IME, assistive-technology or physical device acceptance",
+    "Functional and unpaired smoke results do not establish paired performance acceptance",
+    "Original failed, diagnostic and refused attempts remain separately retained"
+  ],
+  "sdkCommit": "8dc328dec0a80cc0e36fa08e5364265ebd25d37e"
+}

@@ -269,6 +269,14 @@ class RichImageLoader final
                                      ? E_ACCESSDENIED
                                      : DxUi::RichText::RichImage::LoadFile(factory.get(), request.FilePath(), image, request.Cancellation());
                         break;
+                    case DxUi::RichText::RichImageSourceKind::NetworkFile:
+                        // SDK admission and this application's transport policy
+                        // are independent. Ordinary opt-in does not authorize a
+                        // filesystem network operation through an empty local path.
+                        status = state.allowNetworkFiles
+                                     ? DxUi::RichText::RichImage::LoadFile(factory.get(), request.Source(), image, request.Cancellation())
+                                     : E_ACCESSDENIED;
+                        break;
                     case DxUi::RichText::RichImageSourceKind::WikiTarget:
                     case DxUi::RichText::RichImageSourceKind::Data:
                         // No wiki-target resolver exists and data images stay disabled;

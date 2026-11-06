@@ -365,11 +365,29 @@ void Application::BuildUi()
     filesFooterDivider->SetOrientation(DxUi::SeparatorOrientation::Horizontal);
     filesModel.invoked = [this](std::uint64_t id)
     {
+        if (id > WorkspaceGroupId && id <= WorkspaceGroupId + RecoveryService::MaximumDocuments)
+        {
+            const auto key = static_cast<unsigned>(id - WorkspaceGroupId - 1);
+            if (key != activeDocumentKey)
+                for (std::size_t index = 0; index < inactiveDocuments.size(); ++index)
+                    if (inactiveDocuments[index].recoveryKey == key)
+                    {
+                        (void)SwitchWorkspaceDocument(index);
+                        break;
+                    }
+            return;
+        }
         if (id && id <= visibleFilePaths.size())
             OpenPath(visibleFilePaths[static_cast<std::size_t>(id - 1)]);
     };
     filesModel.expanded = [this](std::uint64_t id, bool expanded)
     {
+        if (id == WorkspaceGroupId)
+        {
+            workspaceCollapsed = !expanded;
+            RefreshFiles();
+            return;
+        }
         if (!id || id > visibleFilePaths.size())
             return;
         const auto path = visibleFilePaths[static_cast<std::size_t>(id - 1)];
@@ -514,6 +532,8 @@ void Application::BuildUi()
     Action(*recoveryPanel, IDS_RESTORE, Command::RestoreRecovery)->SetPrimary(true);
     Action(*recoveryPanel, IDS_DISCARD, Command::DiscardRecovery);
     Action(*recoveryPanel, IDS_LATER, Command::LaterRecovery);
+    restoreAllRecovery = Action(*recoveryPanel, IDS_RESTOREALL, Command::RestoreAllRecovery);
+    restoreAllRecovery->SetVisible(false);
     focusPill = root->AddChild<Surface>(Surface::Kind::Floating);
     stats = Label(*focusPill, IDS_SAVED, DxUi::FontRole::Small);
     THROW_IF_FAILED(stats->SetTypographyOverride(DxUi::LabelTypography{12.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
@@ -837,10 +857,22 @@ void Application::Layout()
     recoveryPanel->SetBounds(D2D1::RectF(draftLeft, top + 8, draftRight, bottom - 8));
     recoveryPanel->GetLogicalChild(0)->SetBounds(D2D1::RectF(draftLeft + 20, top + 24, draftRight - 20, top + 60));
     recoveryDescription->SetBounds(D2D1::RectF(draftLeft + 20, top + 68, draftRight - 20, top + 128));
-    recoveryPreview->SetBounds(D2D1::RectF(draftLeft + 20, top + 136, draftRight - 20, bottom - 80));
-    for (unsigned i = 0; i < 3; ++i)
-        recoveryPanel->GetLogicalChild(i + 3)->SetBounds(
-            D2D1::RectF(draftLeft + 20 + static_cast<float>(i) * 208.f, bottom - 62, draftLeft + 220 + static_cast<float>(i) * 208.f, bottom - 28));
+    const bool multipleRecovery = restoreAllRecovery->IsVisible();
+    recoveryPreview->SetBounds(D2D1::RectF(draftLeft + 20, top + 136, draftRight - 20, bottom - (multipleRecovery ? 124.f : 80.f)));
+    if (multipleRecovery)
+    {
+        const float buttonWidth = (draftRight - draftLeft - 48.f) / 2.f;
+        for (unsigned i = 0; i < 4; ++i)
+        {
+            const float buttonLeft = draftLeft + 20 + static_cast<float>(i % 2) * (buttonWidth + 8.f);
+            const float buttonTop = bottom - 106 + static_cast<float>(i / 2) * 44.f;
+            recoveryPanel->GetLogicalChild(i + 3)->SetBounds(D2D1::RectF(buttonLeft, buttonTop, buttonLeft + buttonWidth, buttonTop + 34));
+        }
+    }
+    else
+        for (unsigned i = 0; i < 3; ++i)
+            recoveryPanel->GetLogicalChild(i + 3)->SetBounds(D2D1::RectF(draftLeft + 20 + static_cast<float>(i) * 208.f, bottom - 62,
+                                                                         draftLeft + 220 + static_cast<float>(i) * 208.f, bottom - 28));
     stats->SetBounds(D2D1::RectF(16, height - 26, width / 2, height - 2));
     positionStatus->SetBounds(D2D1::RectF(width / 2, height - 26, width - 16, height - 2));
     focusPill->SetBounds(focus ? D2D1::RectF(width / 2 - 224, height - 50, width / 2 + 224, height - 10)

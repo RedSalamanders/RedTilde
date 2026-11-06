@@ -7,6 +7,28 @@
 
 namespace RedTilde
 {
+std::wstring NormalizeInsertedLineEndings(std::wstring_view insertion, std::wstring_view document)
+{
+    const auto first = document.find_first_of(L"\r\n");
+    const auto eol = first == document.npos                                                                    ? std::wstring_view(L"\r\n")
+                     : document[first] == L'\r' && first + 1 < document.size() && document[first + 1] == L'\n' ? document.substr(first, 2)
+                                                                                                               : document.substr(first, 1);
+    std::wstring normalized;
+    normalized.reserve(insertion.size());
+    for (std::size_t at = 0; at < insertion.size(); ++at)
+    {
+        const auto unit = insertion[at];
+        if (unit != L'\r' && unit != L'\n')
+            normalized.push_back(unit);
+        else
+        {
+            normalized.append(eol);
+            if (unit == L'\r' && at + 1 < insertion.size() && insertion[at + 1] == L'\n')
+                ++at;
+        }
+    }
+    return normalized;
+}
 namespace
 {
 constexpr std::size_t MaximumRetiredLineIndexCapacity = 16384;

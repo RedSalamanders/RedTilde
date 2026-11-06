@@ -9,6 +9,11 @@ presentation policy shared by Compose and Split. Defaults are System appearance,
 Files width 280 DIP, reading width 760 DIP, text scale 100%, inactive-block dimming enabled, remote images disabled and every optional Markdown syntax enabled. Files widths are
 limited to 200–400 DIP, reading width to 480–1040 DIP, and text scale to 75–200%; invalid fields fall back
 independently without discarding valid neighboring settings.
+A rejected or unknown settings header returns `ERROR_BAD_FORMAT` and leaves both caller settings and the
+original file untouched. Synchronous and asynchronous preference writers validate the existing header
+before publication; changing views must not overwrite rejected settings with defaults. Preserve the file
+until it is explicitly repaired or removed. A valid existing settings file uses its read stamp for the
+ordinary guarded atomic replacement; missing files may be created.
 The version-1 `filesRoot` field holds a strict UTF-8 absolute Windows path, bounded to 32,767 UTF-16 units and
 excluding control characters. Spaces, Unicode, backslashes and equals signs round trip without escaping or
 normalizing document content. Missing/invalid roots fall back independently to empty. Serialization omits invalid
@@ -32,6 +37,13 @@ retirement is still pending, hide the application window and retain its notifica
 writer is idle and recovery has finished. Recheck both states after dispatched messages as well as completion
 notifications; either service may finish first. Window destruction requires both finished states; service closure
 clears its notification binding. Do not join storage on the UI thread or retire the HWND after only one service completes.
+`WM_QUERYENDSESSION` immediately permits session termination and requests checkpoints for every dirty workspace
+document without a modal save question or shutdown-blocking reason. At final `WM_ENDSESSION(TRUE)`, editing
+commands stop, all workspace checkpoints are requested again and recovery may wait for at most 2,000 ms. A
+failure/timeout is recorded; it cannot turn the bounded allowance into an indefinite join. `WM_ENDSESSION(FALSE)`
+keeps the window, histories, pending snapshots and editing available. Ordinary Close retains its asynchronous
+worker-settlement contract. An ordinary visible launch registers Windows application restart for update/logoff
+coordination with crash/hang restart disabled; crash recovery remains the next ordinary launch's local preview.
 Synchronous native window and accessibility notifications during document-change publication may re-enter
 accepted Close; resumed updates must stop before using controls detached by that Close. This includes the
 Files badge publication before selection synchronization and recovery checkpointing.

@@ -5,6 +5,12 @@
 The exact Markdown source is authoritative. Preserve UTF-8 encoding, optional BOM, Unicode scalar pairs and
 existing line endings. View changes never reserialize Markdown, reset history or move selection.
 
+New Mermaid, equation, empty-selection quote and fenced-code templates use the document's first physical
+terminator (LF, CRLF or CR), with CRLF for an empty or unterminated document. Mixed outside source remains
+unchanged. Changed ordinary F2 drafts and their recovery previews normalize only the replacement text by
+that same policy. An unchanged draft preserves its exact original mixed endings. Validate editor capacity
+after normalization, and keep each accepted replacement in one source/history transaction.
+
 - **Compose** renders supported Markdown and edits its source through DxUi semantic commands.
 - **Source** displays exact Markdown in the same editor/document/history.
 - **Split** keeps Compose editable and shows a read-only exact-source mirror. Entering Split synchronizes
@@ -105,10 +111,28 @@ mutually exclusive toggle state exposed through UI Automation; they are not a Ra
 ## Files navigation
 
 The available optional Files tree lists `.md` and `.markdown` files in the persistent selected root and subfolders. It
-supports listing and opening only. Opening a row uses the ordinary Open path, prompts before replacing dirty
-source, and retains the existing file-safety behavior. The first opened/saved file seeds an empty root. After that,
-Open, Save As and New keep it; Open Folder explicitly changes it without replacing the source. Restart restores
-the root and pane visibility. Without a root, the pane explains Open Folder and Open File.
+supports listing and opening only. Opening a row activates a retained document or reads a new document into the
+workspace without a save question. Each of at most 64 documents retains its authoritative source, oriented ACP
+selection, Undo/Redo history, exact saved-content baseline, BOM, file stamp and recovered-copy state. Reopening a
+retained path does no read and does not replace edits with an externally changed file. Global Compose/Source/Split
+presentation and the read-only Split mirror use the newly active source; presentation does not merge histories.
+The first opened/saved file seeds an empty root. After that, Open File, Save As and New keep that root. Explicit
+Open File, Open Folder, New and Close protect every dirty document through Save/Discard/Cancel. A decision applies
+only to the exact document/source revision shown; edits made during an asynchronous save/open need fresh protection.
+Cancel, including cancelling the file/folder picker, retains all sources and histories. Successful Open File/New
+starts a new workspace; successful Open Folder starts an empty workspace at the new root. Restart restores the
+root and pane visibility. Without a root, the pane explains Open Folder and Open File.
+
+When multiple documents are retained, the Files tree also exposes an **Open documents** group. Its stable
+workspace identities distinguish untitled/missing files and separate recovered copies with the same original
+path. Folder listing, expansion, filtering and the persistent root remain independent. Dirty dots cover retained
+documents as well as the active file. Capacity refusal explains the limit and preserves every source, selection
+and history; it must never evict an edited document to admit a completed read. Switching declines atomically
+while a file operation, local draft, native composition or an unsaved question owns the current binding.
+
+An Open completion arriving while a local source draft is active retains its staged result. It cannot replace
+the editor, close the draft or discard its text. After Apply/Cancel, the ordinary source-specific unsaved protection
+runs before that exact staged result is applied. A later Close invalidates both the reader and any held result.
 
 ### Fenced code presentation
 

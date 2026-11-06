@@ -4,6 +4,7 @@
 #include <charconv>
 #include <combaseapi.h>
 #include <format>
+#include <map>
 #include <mutex>
 #include <span>
 #include <stdexcept>
@@ -120,18 +121,34 @@ struct RecoveryService::State
 {
     std::mutex mutex;
     wil::unique_event wake;
+    wil::unique_event settlement;
     std::filesystem::path root;
     std::wstring id;
     HWND window{};
     UINT message{};
-    std::optional<RecoverySnapshot> pending;
-    std::wstring retire;
+    struct PendingSnapshot
+    {
+        std::optional<RecoverySnapshot> snapshot;
+        std::wstring retire;
+        ULONGLONG first{}, latest{};
+        bool immediate{};
+    };
+    std::map<unsigned, PendingSnapshot> pending;
     std::vector<std::wstring> discards;
     std::vector<std::wstring> retired;
     std::vector<RecoveryCandidate> candidates;
-    bool changed{}, immediate{}, stopping{}, ready{}, settled{}, finished{};
+    bool stopping{}, ready{}, settled{}, finished{};
     HRESULT status = S_OK;
-    HRESULT snapshotStatus = S_OK;
+    std::array<HRESULT, RecoveryService::MaximumDocuments> snapshotStatuses{};
+    [[nodiscard]] std::wstring DocumentId(unsigned document) const
+    {
+        if (!document)
+            return id;
+        unsigned tail{};
+        for (const wchar_t digit : std::wstring_view(id).substr(24))
+            tail = (tail << 4) | static_cast<unsigned>(digit <= L'9' ? digit - L'0' : digit - L'a' + 10);
+        return id.substr(0, 24) + std::format(L"{:08x}", tail ^ document);
+    }
     void Notify() const noexcept
     {
         if (window)
@@ -179,55 +196,69 @@ struct RecoveryService::State
         try
         {
             std::filesystem::create_directories(self->root);
-            auto lease = Lease(self->root, self->id);
-            if (!lease)
+            std::map<unsigned, wil::unique_handle> leases;
+            leases.emplace(0u, Lease(self->root, self->id));
+            if (!leases.at(0u))
                 throw std::system_error(static_cast<int>(GetLastError()), std::system_category());
             self->Scan();
             {
                 std::lock_guard lock(self->mutex);
                 self->ready = true;
-                self->settled = !self->changed;
+                self->settled = self->pending.empty();
+                if (self->settled)
+                    SetEvent(self->settlement.get());
                 self->Notify();
             }
             for (;;)
             {
-                (void)WaitForSingleObject(self->wake.get(), INFINITE);
-                // A quiet-time wait, never a periodic UI timer or a busy loop.
-                for (;;)
-                {
-                    bool now{};
-                    {
-                        std::lock_guard lock(self->mutex);
-                        now = self->immediate || self->stopping || !self->discards.empty();
-                    }
-                    if (now || WaitForSingleObject(self->wake.get(), 750) == WAIT_TIMEOUT)
-                        break;
-                }
-                std::optional<RecoverySnapshot> snapshot;
-                std::wstring retire;
+                std::vector<std::pair<unsigned, PendingSnapshot>> due;
                 std::vector<std::wstring> discards;
-                bool changed{}, stopping{};
+                DWORD delay = INFINITE;
+                bool stopping{};
                 {
                     std::lock_guard lock(self->mutex);
-                    snapshot = std::move(self->pending);
-                    self->pending.reset();
-                    retire = std::move(self->retire);
-                    self->retire.clear();
+                    const auto now = GetTickCount64();
+                    for (auto item = self->pending.begin(); item != self->pending.end();)
+                    {
+                        const auto deadline = std::min(item->second.latest + 750u, item->second.first + 5000u);
+                        if (self->stopping || item->second.immediate || deadline <= now)
+                        {
+                            due.emplace_back(item->first, std::move(item->second));
+                            item = self->pending.erase(item);
+                        }
+                        else
+                        {
+                            delay = std::min(delay, static_cast<DWORD>(deadline - now));
+                            ++item;
+                        }
+                    }
                     discards.swap(self->discards);
-                    changed = std::exchange(self->changed, false);
-                    self->immediate = false;
                     stopping = self->stopping;
                 }
-                result = S_OK;
-                std::optional<HRESULT> snapshotOutcome;
-                if (changed)
+                if (due.empty() && discards.empty() && !stopping)
                 {
-                    result = snapshot ? WriteBytesAtomic(SnapshotPath(self->root, self->id), SerializeRecovery(*snapshot))
-                                      : Remove(SnapshotPath(self->root, self->id));
-                    snapshotOutcome = result;
+                    // Wait until an event or the earliest document deadline.
+                    // Continuous edits cannot postpone a checkpoint indefinitely.
+                    (void)WaitForSingleObject(self->wake.get(), delay);
+                    continue;
+                }
+                result = S_OK;
+                for (auto &[document, update] : due)
+                {
+                    const auto id = self->DocumentId(document);
+                    auto &lease = leases[document];
+                    if (!lease)
+                        lease = Lease(self->root, id);
+                    const HRESULT outcome = !lease            ? HRESULT_FROM_WIN32(GetLastError())
+                                            : update.snapshot ? WriteBytesAtomic(SnapshotPath(self->root, id), SerializeRecovery(*update.snapshot))
+                                                              : Remove(SnapshotPath(self->root, id));
+                    {
+                        std::lock_guard lock(self->mutex);
+                        self->snapshotStatuses[document] = outcome;
+                    }
                     // Retire a restored candidate only after its replacement is durable.
-                    if (SUCCEEDED(result) && !retire.empty())
-                        discards.push_back(std::move(retire));
+                    if (SUCCEEDED(outcome) && !update.retire.empty())
+                        discards.push_back(std::move(update.retire));
                 }
                 for (const auto &candidate : discards)
                 {
@@ -246,19 +277,21 @@ struct RecoveryService::State
                 }
                 {
                     std::lock_guard lock(self->mutex);
-                    if (snapshotOutcome)
-                        self->snapshotStatus = *snapshotOutcome;
-                    self->status = FAILED(self->snapshotStatus) ? self->snapshotStatus : result;
-                    self->settled = !self->changed && self->discards.empty();
+                    const auto failed = std::ranges::find_if(self->snapshotStatuses, [](HRESULT value) { return FAILED(value); });
+                    self->status = failed != self->snapshotStatuses.end() ? *failed : result;
+                    self->settled = self->pending.empty() && self->discards.empty();
+                    if (self->settled)
+                        SetEvent(self->settlement.get());
                     self->Notify();
                     if (stopping && self->settled)
                         break;
-                    if (!self->settled)
-                        SetEvent(self->wake.get());
                 }
             }
-            lease.reset();
-            (void)Remove(self->root / (L"session-" + self->id + L".lease"));
+            for (auto &[document, lease] : leases)
+            {
+                lease.reset();
+                (void)Remove(self->root / (L"session-" + self->DocumentId(document) + L".lease"));
+            }
         }
         catch (const std::bad_alloc &)
         {
@@ -273,8 +306,10 @@ struct RecoveryService::State
             result = HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
         }
         std::lock_guard lock(self->mutex);
-        self->status = FAILED(result) ? result : self->snapshotStatus;
+        if (FAILED(result))
+            self->status = result;
         self->ready = self->settled = self->finished = true;
+        SetEvent(self->settlement.get());
         self->Notify();
     }
 };
@@ -300,6 +335,9 @@ try
     staged->wake.reset(CreateEventW(nullptr, FALSE, FALSE, nullptr));
     if (!staged->wake)
         return HRESULT_FROM_WIN32(GetLastError());
+    staged->settlement.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+    if (!staged->settlement)
+        return HRESULT_FROM_WIN32(GetLastError());
     staged->window = window;
     staged->message = message;
     auto ownership = std::make_unique<std::shared_ptr<State>>(staged);
@@ -314,21 +352,31 @@ catch (const std::bad_alloc &)
     return E_OUTOFMEMORY;
 }
 HRESULT RecoveryService::Submit(std::optional<RecoverySnapshot> snapshot, bool immediate, std::wstring retire) noexcept
+{
+    return SubmitDocument(0u, std::move(snapshot), immediate, std::move(retire));
+}
+HRESULT RecoveryService::SubmitDocument(unsigned document, std::optional<RecoverySnapshot> snapshot, bool immediate, std::wstring retire) noexcept
 try
 {
-    if (!state || (!retire.empty() && !ValidId(retire)))
+    if (!state || document >= MaximumDocuments || (!retire.empty() && !ValidId(retire)))
         return E_INVALIDARG;
     if (snapshot)
         Validate(*snapshot);
     std::lock_guard lock(state->mutex);
     if (state->stopping || state->finished)
         return E_ABORT;
-    state->pending = std::move(snapshot);
+    const auto now = GetTickCount64();
+    auto [item, inserted] = state->pending.try_emplace(document);
+    auto &pending = item->second;
+    if (inserted)
+        pending.first = now;
+    pending.latest = now;
+    pending.snapshot = std::move(snapshot);
     if (!retire.empty())
-        state->retire = std::move(retire);
-    state->changed = true;
+        pending.retire = std::move(retire);
     state->settled = false;
-    state->immediate = state->immediate || immediate;
+    ResetEvent(state->settlement.get());
+    pending.immediate = pending.immediate || immediate;
     SetEvent(state->wake.get());
     return S_OK;
 }
@@ -350,6 +398,7 @@ try
         return E_ABORT;
     state->discards.push_back(std::move(id));
     state->settled = false;
+    ResetEvent(state->settlement.get());
     SetEvent(state->wake.get());
     return S_OK;
 }
@@ -398,6 +447,15 @@ HRESULT RecoveryService::Status() const noexcept
         return S_OK;
     std::lock_guard lock(state->mutex);
     return state->status;
+}
+HRESULT RecoveryService::WaitForSettlement(DWORD milliseconds) const noexcept
+{
+    if (!state)
+        return S_OK;
+    const DWORD result = WaitForSingleObject(state->settlement.get(), milliseconds);
+    if (result == WAIT_OBJECT_0)
+        return Status();
+    return HRESULT_FROM_WIN32(result == WAIT_TIMEOUT ? ERROR_TIMEOUT : GetLastError());
 }
 void RecoveryService::Stop() noexcept
 {

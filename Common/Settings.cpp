@@ -13,6 +13,7 @@ namespace RedTilde
 {
 namespace
 {
+constexpr std::string_view SettingsHeader = "RedTilde.Settings/1\n";
 // Indexed by MarkdownSyntax. Missing or invalid keys keep the enabled default.
 constexpr std::array<std::string_view, MarkdownSyntaxCount> MarkdownSyntaxKeys{
     "syntaxHighlight", "syntaxSuperscript", "syntaxSubscript", "syntaxInserted", "syntaxWikiLinks", "syntaxDefinitionLists", "syntaxAbbreviations"};
@@ -29,7 +30,7 @@ bool ValidFilesRoot(const std::filesystem::path &path)
 Settings ParseSettings(std::string_view bytes)
 {
     Settings settings;
-    if (!bytes.starts_with("RedTilde.Settings/1\n"))
+    if (!bytes.starts_with(SettingsHeader))
         return settings;
     while (!bytes.empty())
     {
@@ -110,6 +111,8 @@ try
     const HRESULT result = ReadBytes(directory / L"RedTilde.settings", bytes);
     if (FAILED(result))
         return result;
+    if (!bytes.starts_with(SettingsHeader))
+        return HRESULT_FROM_WIN32(ERROR_BAD_FORMAT);
     settings = ParseSettings(bytes);
     return S_OK;
 }
@@ -129,7 +132,15 @@ try
     std::filesystem::create_directories(directory, error);
     if (error)
         return HRESULT_FROM_WIN32(static_cast<DWORD>(error.value()));
-    return WriteBytesAtomic(directory / L"RedTilde.settings", SerializeSettings(settings));
+    const auto path = directory / L"RedTilde.settings";
+    std::string existing;
+    FileStamp stamp;
+    const HRESULT read = ReadBytes(path, existing, &stamp);
+    if (FAILED(read) && read != HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND))
+        return read;
+    if (SUCCEEDED(read) && !existing.starts_with(SettingsHeader))
+        return HRESULT_FROM_WIN32(ERROR_BAD_FORMAT);
+    return WriteBytesAtomic(path, SerializeSettings(settings), &stamp);
 }
 catch (const std::bad_alloc &)
 {

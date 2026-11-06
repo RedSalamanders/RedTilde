@@ -285,6 +285,20 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Success(LoadDocument(path, loaded), "read after rejected save");
              Require(loaded.text == L"external", "external contents retained");
              Require(FAILED(SaveDocument(root / L"missing" / L"file.md", L"mine", false, nullptr, unused)), "missing-parent failure surfaced");
+             for (const auto failure : {AtomicWriteFailure::Write, AtomicWriteFailure::Flush})
+             {
+                 SetAtomicWriteFailureForTest(failure);
+                 const auto resetFailure = wil::scope_exit([] { SetAtomicWriteFailureForTest(AtomicWriteFailure::None); });
+                 Require(WriteBytesAtomic(path, "replacement") == HRESULT_FROM_WIN32(ERROR_WRITE_FAULT),
+                         "directed write and flush faults preserve their real operation failure");
+                 StoredDocument retained;
+                 Success(LoadDocument(path, retained), "read target after staged failure");
+                 Require(retained.text == L"external" && retained.stamp == loaded.stamp,
+                         "failed staging leaves the original bytes and identity intact");
+                 for (const auto &entry : std::filesystem::directory_iterator(root))
+                     Require(entry.path().extension() != L".tmp",
+                             "both injected failure phases close and delete their owned share-none staging file");
+             }
              for (const auto &entry : std::filesystem::directory_iterator(root))
                  Require(entry.path().extension() != L".tmp", "no owned temporary leaked");
          });
@@ -343,6 +357,35 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Settings loaded;
              Success(LoadSettings(root, loaded), "reload preferences");
              Require(loaded.appearance == Appearance::Paper && loaded.strikeCompletedTasks, "persisted preferences");
+             const auto rejected = root / L"rejected-settings";
+             std::filesystem::create_directories(rejected);
+             constexpr std::string_view original = "RedTilde.Settings/9\nview=2\nunknown=keep these bytes\n";
+             Success(WriteBytesAtomic(rejected / L"RedTilde.settings", original), "seed rejected settings bytes");
+             Require(LoadSettings(rejected, loaded) == HRESULT_FROM_WIN32(ERROR_BAD_FORMAT) && loaded.appearance == Appearance::Paper,
+                     "a rejected header is reported without replacing caller settings");
+             loaded.view = EditorView::Source;
+             Require(SaveSettings(rejected, loaded) == HRESULT_FROM_WIN32(ERROR_BAD_FORMAT),
+                     "default or changed view cannot overwrite a rejected header");
+             SettingsWriter writer;
+             writer.Initialize(rejected);
+             Success(writer.Submit(loaded), "admit an asynchronous preference update");
+             for (unsigned turn = 0; turn < 1000 && writer.Busy(); ++turn)
+                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
+             Require(!writer.Busy() && writer.Status() == HRESULT_FROM_WIN32(ERROR_BAD_FORMAT),
+                     "the asynchronous writer reports the same header refusal");
+             writer.Close();
+             LaunchOptions launch;
+             launch.headless = true;
+             launch.dataDirectory = rejected;
+             {
+                 Application app(launch);
+                 Success(app.Initialize(), "start with defaults beside the retained rejected header");
+                 app.SetView(EditorView::Source);
+                 app.SetView(EditorView::Split);
+             }
+             std::string preserved;
+             Success(ReadBytes(rejected / L"RedTilde.settings", preserved), "read rejected settings after real view switches");
+             Require(preserved == original, "rejected settings remain byte-exact after synchronous, asynchronous and application view changes");
          });
     test("Outline.FencesAndUnicode",
          []
@@ -619,6 +662,96 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              for (const auto &entry : std::filesystem::directory_iterator(directory / L"Recovery"))
                  Require(entry.path().extension() != L".rtd", "clean session and adopted snapshot retired");
              Require(FAILED(restart.Discard(L"..\\outside")), "foreign paths cannot be discarded");
+         });
+    test("Recovery.IndependentDocumentCheckpointsAndLeases",
+         [&]
+         {
+             const auto directory = root / L"recovery-documents";
+             const auto wait = [](const std::function<bool()> &predicate)
+             {
+                 for (unsigned turn = 0; turn < 1200; ++turn)
+                 {
+                     if (predicate())
+                         return;
+                     std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                 }
+                 Require(false, "document recovery worker timed out");
+             };
+             RecoveryService writer;
+             Success(writer.Initialize(directory), "initialize shared document worker");
+             wait([&] { return writer.Ready(); });
+             for (unsigned document = 0; document < 3; ++document)
+                 Success(
+                     writer.SubmitDocument(
+                         document, RecoverySnapshot{L"draft " + std::to_wstring(document), L"Z:\\Notebook\\same.md", document == 1, {0, 3}, 1}, true),
+                     "independent documents may share a source location");
+             wait([&] { return writer.Settled(); });
+             Success(writer.Status(), "every admitted document is durable");
+             RecoveryService observer;
+             Success(observer.Initialize(directory), "scan while all document leases are active");
+             wait([&] { return observer.Ready(); });
+             Require(observer.TakeCandidates().empty(), "no active document is offered by another process");
+             observer.Stop();
+             wait([&] { return observer.Finished(); });
+             Require(FAILED(writer.SubmitDocument(RecoveryService::MaximumDocuments, RecoverySnapshot{}, true)),
+                     "out-of-range document identity is refused");
+             Success(writer.SubmitDocument(1, std::nullopt, true), "retire only the matching saved document");
+             Success(writer.SubmitDocument(2, RecoverySnapshot{L"latest second 😀\r\n", {}, true, {4, 0}, 2}, true),
+                     "update a different document without erasing the first");
+             writer.Stop();
+             wait([&] { return writer.Finished(); });
+             Success(writer.Status(), "stop flushes every pending document");
+             RecoveryService restart;
+             Success(restart.Initialize(directory), "restart scans every inactive document");
+             wait([&] { return restart.Ready(); });
+             const auto candidates = restart.TakeCandidates();
+             Require(candidates.size() == 2 && std::ranges::any_of(candidates, [](const auto &value) { return value.snapshot.text == L"draft 0"; }) &&
+                         std::ranges::any_of(candidates,
+                                             [](const auto &value)
+                                             {
+                                                 return value.snapshot.text == L"latest second 😀\r\n" && value.snapshot.bom &&
+                                                        value.snapshot.selection == DxUi::RichText::Selection{4, 0};
+                                             }),
+                     "restart retains exact source, encoding and selection for both unsaved documents");
+             restart.Stop();
+             wait([&] { return restart.Finished(); });
+         });
+    test("Recovery.ContinuousTypingCannotStarveCheckpoint",
+         [&]
+         {
+             const auto directory = root / L"recovery-continuous";
+             RecoveryService writer;
+             Success(writer.Initialize(directory), "initialize continuous-edit worker");
+             for (unsigned turn = 0; turn < 1000 && !writer.Ready(); ++turn)
+                 std::this_thread::sleep_for(std::chrono::milliseconds(5));
+             Require(writer.Ready(), "continuous-edit worker is ready");
+             const auto start = GetTickCount64();
+             unsigned generation{};
+             bool observed{};
+             while (GetTickCount64() - start < 6200)
+             {
+                 ++generation;
+                 Success(writer.Submit(RecoverySnapshot{L"continuous " + std::to_wstring(generation), {}, false, {0, 0}, generation}),
+                         "continuous edit remains admitted without an immediate flush");
+                 for (const auto &entry : std::filesystem::directory_iterator(directory / L"Recovery"))
+                     if (entry.path().extension() == L".rtd")
+                     {
+                         std::string bytes;
+                         RecoverySnapshot checkpoint;
+                         Success(ReadBytes(entry.path(), bytes), "read complete checkpoint while typing continues");
+                         Success(ParseRecovery(bytes, checkpoint), "a continuous-edit checkpoint remains valid");
+                         Require(checkpoint.generation > 1 && checkpoint.generation <= generation,
+                                 "checkpoint contains a recently admitted immutable generation");
+                         observed = true;
+                     }
+                 std::this_thread::sleep_for(std::chrono::milliseconds(40));
+             }
+             Require(observed, "a five-second deadline checkpoints without waiting for quiet typing");
+             writer.Stop();
+             for (unsigned turn = 0; turn < 1000 && !writer.Finished(); ++turn)
+                 std::this_thread::sleep_for(std::chrono::milliseconds(5));
+             Require(writer.Finished(), "shutdown bypasses quiet-time debounce");
+             Success(writer.Status(), "final continuous edit is durable");
          });
     test("Recovery.CorruptAndFutureDataQuarantined",
          [&]
@@ -1395,10 +1528,38 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                      }
                  app.SetDocument({});
                  app.Execute(Command::Quote);
-                 Require(app.Document().GetText() == L"\n> A thought worth keeping.\n", "empty-selection Quote retains its insertion template");
+                 Require(app.Document().GetText() == L"\r\n> A thought worth keeping.\r\n",
+                         "empty-selection Quote uses the default CRLF document terminator");
                  app.SetDocument({});
                  app.Execute(Command::Fence);
-                 Require(app.Document().GetText() == L"\n\n```text\nYour code here\n```\n\n", "empty-selection Code retains its insertion template");
+                 Require(app.Document().GetText() == L"\r\n\r\n```text\r\nYour code here\r\n```\r\n\r\n",
+                         "empty-selection Code uses the default CRLF document terminator");
+                 for (const auto &[source, eol] : std::array<std::pair<std::wstring_view, std::wstring_view>, 5>{{{L"Intro\nTail\n", L"\n"},
+                                                                                                                  {L"Intro\r\nTail\r\n", L"\r\n"},
+                                                                                                                  {L"Intro\rTail\r", L"\r"},
+                                                                                                                  {L"Intro\r\nTail\n", L"\r\n"},
+                                                                                                                  {L"Intro", L"\r\n"}}})
+                     for (const auto command : {Command::Quote, Command::Fence, Command::Mermaid, Command::Math})
+                     {
+                         app.SetDocument(std::wstring(source));
+                         app.Document().SetSelection({source.size(), source.size()});
+                         const auto original = app.Document().Snapshot();
+                         std::wstring inserted;
+                         if (command == Command::Quote)
+                             inserted = std::format(L"{0}> A thought worth keeping.{0}", eol);
+                         else if (command == Command::Fence)
+                             inserted = std::format(L"{0}{0}```text{0}Your code here{0}```{0}{0}", eol);
+                         else if (command == Command::Mermaid)
+                             inserted = std::format(L"{0}{0}```mermaid{0}graph LR{0}A[Idea] --> B[Write]{0}B --> C[Share]{0}```{0}{0}", eol);
+                         else
+                             inserted = std::format(L"{0}{0}$${0}x = \\frac{{-b + \\sqrt{{b^2 - 4ac}}}}{{2a}}{0}$${0}{0}", eol);
+                         app.Execute(command);
+                         Require(app.Document().GetText() == std::wstring(source) + inserted && app.Dirty(),
+                                 "all four real Insert templates use the first document terminator while preserving mixed outside source");
+                         Require(app.Document().Undo() && app.Document().Snapshot().IsSameRevision(original) && !app.Document().CanUndo() &&
+                                     !app.Dirty(),
+                                 "each normalized template is one exact-source undoable edit in every view");
+                     }
                  app.SetDocument(L"Protected words");
                  app.Document().SetSelection({9u, 0u});
                  app.Document().SetReadOnly(true);
@@ -1488,6 +1649,64 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              app.Execute(Command::ApplyBlock);
              Require(app.Document().GetText() == L"A different revision" && app.HasBlockDraft(), "stale draft cannot replace a newer revision");
              app.Execute(Command::CloseDrawer);
+             struct EolDraft
+             {
+                 std::wstring_view source, selected, eol;
+             };
+             constexpr EolDraft drafts[] = {{L"First\r\nSecond\r\n\r\nTail\n", L"First\r\nSecond", L"\r\n"},
+                                            {L"First\nSecond\n\nTail\r\n", L"First\nSecond", L"\n"},
+                                            {L"First\rSecond\r\rTail\n", L"First\rSecond", L"\r"},
+                                            {L"First\nSecond\r\n\r\nTail\r", L"First\nSecond", L"\n"},
+                                            {L"First Second", L"First Second", L"\r\n"}};
+             unsigned index{};
+             for (const auto &draft : drafts)
+             {
+                 auto isolated = launch;
+                 isolated.dataDirectory = root / L"draft-eol" / std::to_wstring(index++);
+                 Application target(isolated);
+                 Success(target.Initialize(), "create an isolated draft line-ending app");
+                 target.SetDocument(std::wstring(draft.source), {}, true);
+                 target.Prepare();
+                 const DxUi::RichText::Selection before{0, draft.selected.size()};
+                 target.Document().SetSelection(before);
+                 const auto snapshot = target.Document().Snapshot();
+                 target.Execute(Command::LocalSource);
+                 Require(target.HasBlockDraft(), "ordinary multiline selection opens a guarded draft");
+                 target.Execute(Command::ApplyBlock);
+                 Require(target.Document().Snapshot().IsSameRevision(snapshot) && !target.Dirty() && !target.Document().CanUndo(),
+                         "unchanged F2 Apply preserves exact mixed line endings and history");
+                 target.Prepare();
+                 target.Document().SetSelection(before);
+                 target.Execute(Command::LocalSource);
+                 target.BlockDraft()->SetText(L"Changed\nNext");
+                 target.CheckpointRecovery(true);
+                 for (unsigned turn = 0; turn < 1000 && !target.RecoverySettled(); ++turn)
+                 {
+                     target.Prepare();
+                     std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                 }
+                 Require(target.RecoverySettled() && SUCCEEDED(target.RecoveryStatus()), "normalized draft recovery settles successfully");
+                 const auto replacement = std::wstring(L"Changed") + std::wstring(draft.eol) + L"Next";
+                 const auto expected = replacement + std::wstring(draft.source.substr(draft.selected.size()));
+                 unsigned copies{};
+                 for (const auto &entry : std::filesystem::directory_iterator(isolated.dataDirectory / L"Recovery"))
+                     if (entry.path().extension() == L".rtd")
+                     {
+                         std::string bytes;
+                         RecoverySnapshot proposed;
+                         Success(ReadBytes(entry.path(), bytes), "read normalized draft checkpoint");
+                         Success(ParseRecovery(bytes, proposed), "parse normalized draft checkpoint");
+                         Require(proposed.text == expected && proposed.bom && proposed.selection == DxUi::RichText::Selection{0, replacement.size()},
+                                 "recovery previews the same normalized insertion and unchanged outside source as Apply");
+                         ++copies;
+                     }
+                 Require(copies == 1 && target.Document().Snapshot().IsSameRevision(snapshot), "draft checkpoint never commits live source");
+                 target.Execute(Command::ApplyBlock);
+                 Require(target.Document().GetText() == expected && target.Document().Undo() &&
+                             target.Document().Snapshot().IsSameRevision(snapshot) && target.Document().GetSelection() == before &&
+                             !target.Document().CanUndo(),
+                         "F2 Apply uses document endings and one Undo restores exact source and selection");
+             }
          });
     test("Editor.DeviceLossAndLocalImagePixels",
          [&]

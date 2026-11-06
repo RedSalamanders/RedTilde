@@ -214,6 +214,18 @@ void Await(Application &app, const std::function<bool()> &complete, std::chrono:
     while (!complete() && std::chrono::steady_clock::now() < end)
     {
         app.Prepare(32);
+        // Prepare stops after host retirement; only this owned notification
+        // window may still need to receive asynchronous shutdown completions.
+        if (const auto window = app.Window())
+        {
+            MSG message{};
+            unsigned processed{};
+            while (processed++ < 64 && app.Window() == window && PeekMessageW(&message, window, 0, 0, PM_REMOVE))
+            {
+                TranslateMessage(&message);
+                DispatchMessageW(&message);
+            }
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
     Require(complete(), "hidden application did not settle the expected bounded worker result");
@@ -330,6 +342,343 @@ class DesignRefreshProbe final
   public:
     static void Register(const std::filesystem::path &root, const std::function<void(std::string_view, const std::function<void()> &)> &test)
     {
+        test("Editor.WorkspaceSwitchRetainsEveryHistoryAndRecovery",
+             [&]
+             {
+                 for (const auto view : {EditorView::Compose, EditorView::Source, EditorView::Split})
+                 {
+                     const auto suffix = std::to_wstring(static_cast<unsigned>(view));
+                     const auto directory = root / (L"workspace-files-" + suffix);
+                     const auto first = directory / L"Alpha.md", second = directory / L"Beta.markdown";
+                     WriteFixture(first, "\xef\xbb\xbf# Alpha\r\nA useful notebook.\r\n");
+                     WriteFixture(second, "# Beta\nA second notebook.\n");
+                     unsigned questions{};
+                     auto options = Options(root, L"workspace-ui-" + suffix);
+                     options.unsavedPromptForTest = [&]
+                     {
+                         ++questions;
+                         return IDCANCEL;
+                     };
+                     const auto data = options.dataDirectory;
+                     Testing::ForegroundOwnershipObserver foreground;
+                     Application app(std::move(options));
+                     Success(app.Initialize(), "initialize the hidden document workspace");
+                     StoredDocument loaded;
+                     Success(LoadDocument(first, loaded), "read Alpha's original source and encoding");
+                     app.SetDocument(loaded.text, first, loaded.bom, loaded.stamp);
+                     app.SetView(view);
+                     app.Execute(Command::Files);
+                     Await(app, [&] { return app.folderSnapshot && app.folderSnapshot->markdownCount == 2; });
+                     app.Document().SetSelection({7, 2});
+                     Require(app.Document().ReplaceSelection(L"Alpha edited"), "edit Alpha's selected word");
+                     app.Document().SetSelection({7, 2});
+                     Require(app.Document().ReplaceSelection(L"Beta") && app.Document().Undo(), "retain an independent Alpha Redo branch");
+                     const auto alphaSource = app.Document().Snapshot();
+                     const auto alphaSelection = app.Document().GetSelection();
+                     const std::wstring alpha = L"# Alpha edited\r\nA useful notebook.\r\n";
+                     Require(app.Document().GetText() == alpha && app.Dirty() && app.Document().CanUndo() && app.Document().CanRedo(),
+                             "Alpha has the independently specified source and both history branches");
+                     app.OpenPath(second);
+                     Await(app, [&] { return app.documentPath == second && !app.files.Busy(); });
+                     Require(questions == 0 && app.inactiveDocuments.size() == 1 && app.Document().GetText() == L"# Beta\nA second notebook.\n" &&
+                                 !app.Document().CanUndo() && app.folderRoot == directory,
+                             "a Files-pane switch keeps the dirty document without asking or changing the root");
+                     app.Document().SetSelection({6, 2});
+                     Require(app.Document().ReplaceSelection(L"Beta revised"), "edit Beta independently");
+                     app.Document().SetSelection({6, 2});
+                     const auto betaSource = app.Document().Snapshot();
+                     const auto betaSelection = app.Document().GetSelection();
+                     const std::wstring beta = L"# Beta revised\nA second notebook.\n";
+                     WriteFixture(first, "# External revision\r\n");
+                     app.OpenPath(first);
+                     Require(!app.files.Busy() && questions == 0 && app.documentPath == first && app.bom && app.stamp == loaded.stamp &&
+                                 app.Document().Snapshot().IsSameRevision(alphaSource) && app.Document().GetSelection() == alphaSelection,
+                             "cached activation retains exact source, BOM, saved identity and oriented selection despite an external file change");
+                     Require(app.Document().Undo() && app.Document().GetText() == loaded.text && !app.Dirty() && app.Document().Redo() &&
+                                 app.Document().GetText() == alpha && app.Dirty() && app.Document().Redo() &&
+                                 app.Document().GetText() == L"# Beta edited\r\nA useful notebook.\r\n" && app.Document().Undo() &&
+                                 app.Document().GetText() == alpha,
+                             "Alpha's independent Undo/Redo and saved-content identity survive repeated switches");
+                     app.OpenPath(second);
+                     Require(app.documentPath == second && app.Document().Snapshot().IsSameRevision(betaSource) &&
+                                 app.Document().GetSelection() == betaSelection && app.Document().Undo() &&
+                                 app.Document().GetText() == L"# Beta\nA second notebook.\n" && !app.Dirty() && app.Document().Redo() &&
+                                 app.Document().GetText() == beta && app.Dirty(),
+                             "Beta's history never contains an Alpha edit");
+                     Require(app.SourceMirror().Snapshot().Text() == beta || view != EditorView::Split,
+                             "the visible Split mirror derives from the newly active source");
+                     app.CheckpointWorkspaceRecovery();
+                     Await(app, [&] { return app.recovery.Settled(); });
+                     Success(app.recovery.Status(), "every dirty workspace document is durable");
+                     RecoveryService observer;
+                     Success(observer.Initialize(data), "scan while both workspace documents retain active leases");
+                     Await(app, [&] { return observer.Ready(); });
+                     Require(observer.TakeCandidates().empty(), "another process cannot offer an active workspace's snapshots");
+                     observer.Stop();
+                     Await(app, [&] { return observer.Finished(); });
+                     app.recovery.Stop();
+                     Await(app, [&] { return app.recovery.Finished(); });
+                     RecoveryService restarted;
+                     Success(restarted.Initialize(data), "scan the ended workspace on restart");
+                     Await(app, [&] { return restarted.Ready(); });
+                     const auto copies = restarted.TakeCandidates();
+                     Require(copies.size() == 2 &&
+                                 std::ranges::any_of(
+                                     copies, [&](const auto &copy)
+                                     { return copy.snapshot.originalPath == first && copy.snapshot.text == alpha && copy.snapshot.bom; }) &&
+                                 std::ranges::any_of(
+                                     copies, [&](const auto &copy)
+                                     { return copy.snapshot.originalPath == second && copy.snapshot.text == beta && !copy.snapshot.bom; }),
+                             "restart discovers every modified source with its own original path and encoding");
+                     restarted.Stop();
+                     Await(app, [&] { return restarted.Finished(); });
+                     Require(questions == 0 && app.Activity().workspaceSwitches == 3 && app.Activity().workspaceRetainedPeak == 2 &&
+                                 foreground.NeverAcquiredForeground() && !IsWindowVisible(app.Window()),
+                             "all workspace switching and recovery checks remain hidden without save questions or desktop activation");
+                 }
+             });
+        test("Recovery.WorkspaceExplicitActionsProtectEveryDirtyDocument",
+             [&]
+             {
+                 const auto directory = root / L"workspace-actions";
+                 const auto first = directory / L"Alpha.md", second = directory / L"Beta.md";
+                 WriteFixture(first, "# Alpha\n");
+                 WriteFixture(second, "# Beta\n");
+                 unsigned questions{};
+                 bool cancelSecond = true;
+                 auto options = Options(root, L"workspace-action-ui");
+                 options.unsavedPromptForTest = [&] { return ++questions == 2 && cancelSecond ? IDCANCEL : IDNO; };
+                 Application app(std::move(options));
+                 Success(app.Initialize(), "initialize the hidden explicit-action workspace");
+                 StoredDocument loaded;
+                 Success(LoadDocument(first, loaded), "read the first explicit-action fixture");
+                 app.SetDocument(loaded.text, first, loaded.bom, loaded.stamp);
+                 app.Document().SetSelection({7, 7});
+                 Require(app.Document().ReplaceSelection(L" changed"), "modify Alpha before switching");
+                 app.OpenPath(second);
+                 Await(app, [&] { return app.documentPath == second && !app.files.Busy(); });
+                 app.Document().SetSelection({6, 6});
+                 Require(app.Document().ReplaceSelection(L" changed"), "modify Beta before an explicit action");
+                 Require(questions == 0, "ordinary workspace navigation never opens the save question");
+                 app.Execute(Command::New);
+                 Require(questions == 2 && app.inactiveDocuments.size() == 1 && app.Dirty() && !app.closing,
+                         "Cancel on a later document cancels New without discarding either modified source");
+                 const auto retained = [&]
+                 {
+                     std::vector<std::wstring> source{app.Document().GetText()};
+                     for (const auto &document : app.inactiveDocuments)
+                         source.push_back(document.state.Text());
+                     std::ranges::sort(source);
+                     return source;
+                 }();
+                 Require(retained == std::vector<std::wstring>{L"# Alpha changed\n", L"# Beta changed\n"},
+                         "both exact sources remain retained after cancellation");
+                 cancelSecond = false;
+                 for (const auto command : {Command::Open, Command::OpenFolder})
+                 {
+                     questions = 0;
+                     app.Execute(command); // The owned headless picker cancels after the save decisions.
+                     Require(questions == 2 && app.inactiveDocuments.size() == 1 && app.Dirty() && !app.files.Busy(),
+                             "explicit Open File/Folder asks about every dirty document and picker cancellation retains the workspace");
+                 }
+                 questions = 0;
+                 const auto window = app.Window();
+                 (void)SendMessageW(window, WM_CLOSE, 0, 0);
+                 Require(questions == 2 && app.closing, "Close asks about both dirty documents before accepting Discard");
+                 Await(app, [&] { return !app.Window(); });
+                 StoredDocument original;
+                 Success(LoadDocument(first, original), "read Alpha after explicit discard");
+                 Require(original.text == L"# Alpha\n", "discard never writes Alpha's original file");
+                 Success(LoadDocument(second, original), "read Beta after explicit discard");
+                 Require(original.text == L"# Beta\n", "discard never writes Beta's original file");
+             });
+        test("Recovery.RestoreAllKeepsIndependentCopiesAndNavigation",
+             [&]
+             {
+                 auto options = Options(root, L"restore-all-workspace", L"recovery");
+                 const auto data = options.dataDirectory;
+                 const auto original = data / L"Documents/Notes.md";
+                 WriteFixture(original, "# Original\r\n");
+                 const std::array<RecoverySnapshot, 3> expected{{{L"First copy 東京\r\n", original, true, {15, 0}, 1},
+                                                                 {L"Second copy 😀\n", original, false, {14, 0}, 2},
+                                                                 {L"Untitled notes\n", {}, false, {0, 14}, 3}}};
+                 for (std::size_t index = 0; index < expected.size(); ++index)
+                     WriteFixture(data / L"Recovery" / std::format(L"session-{:032x}.rtd", index + 1), SerializeRecovery(expected[index]));
+                 Testing::ForegroundOwnershipObserver foreground;
+                 Application app(std::move(options));
+                 Success(app.Initialize(), "initialize three inactive recovery copies");
+                 Await(app, [&] { return app.recovery.Ready() && app.RecoveryCount() == 3; });
+                 app.Execute(Command::Recovery);
+                 Resize(app, 800, 560);
+                 Require(app.restoreAllRecovery->IsVisible() && app.recoveryPanel->IsVisible(),
+                         "multiple copies expose the explicit Restore all action beside the read-only preview");
+                 for (std::size_t index = 3; index < 7; ++index)
+                 {
+                     const auto *button = app.recoveryPanel->GetLogicalChild(index);
+                     Require(Inside(button->GetBounds(), app.recoveryPanel->GetBounds()) &&
+                                 !Overlap(button->GetBounds(), app.recoveryPreview->GetBounds()),
+                             "all recovery actions fit the narrow panel without covering the preview");
+                     for (std::size_t previous = 3; previous < index; ++previous)
+                         Require(!Overlap(button->GetBounds(), app.recoveryPanel->GetLogicalChild(previous)->GetBounds()),
+                                 "recovery actions never overlap each other");
+                 }
+                 app.Execute(Command::RestoreAllRecovery);
+                 Require(app.inactiveDocuments.size() == 2 && app.RecoveryCount() == 0 && app.Dirty() && app.RequiresSaveAs(),
+                         "Restore all retains every copy in a separate dirty document");
+                 std::vector<unsigned> keys{app.activeDocumentKey};
+                 for (const auto &document : app.inactiveDocuments)
+                 {
+                     Require(document.dirty && document.recovered, "every inactive restored copy requires Save As");
+                     keys.push_back(document.recoveryKey);
+                 }
+                 std::vector<std::wstring> found;
+                 for (const auto key : keys)
+                 {
+                     app.filesModel.OnTreeItemInvoked(Application::WorkspaceGroupId + key + 1);
+                     const auto source = app.Document().GetText();
+                     const auto expectedCopy = std::ranges::find_if(expected, [&](const auto &value) { return value.text == source; });
+                     Require(expectedCopy != expected.end() && app.Document().GetSelection() == expectedCopy->selection &&
+                                 app.documentPath == expectedCopy->originalPath && app.bom == expectedCopy->bom && app.Dirty() &&
+                                 app.RequiresSaveAs() && !app.Document().CanUndo(),
+                             "workspace ids distinguish identical original paths and untitled copies with exact source, encoding and selection");
+                     found.push_back(source);
+                 }
+                 std::ranges::sort(found);
+                 Require(std::ranges::adjacent_find(found) == found.end() && found.size() == 3,
+                         "all three independently specified sources are reachable without aliasing duplicate paths");
+                 app.CheckpointWorkspaceRecovery();
+                 Await(app, [&] { return app.recovery.Settled(); });
+                 Success(app.recovery.Status(), "all replacement copies become durable before their originals retire");
+                 StoredDocument unchanged;
+                 Success(LoadDocument(original, unchanged), "read original after restoring all copies");
+                 Require(unchanged.text == L"# Original\r\n" && foreground.NeverAcquiredForeground(),
+                         "restore and navigation neither overwrite the original nor acquire foreground");
+             });
+        test("Recovery.SessionEndCheckpointsEveryDocumentAndCancellationKeepsEditing",
+             [&]
+             {
+                 unsigned questions{};
+                 auto options = Options(root, L"workspace-session-end");
+                 const auto data = options.dataDirectory;
+                 options.unsavedPromptForTest = [&]
+                 {
+                     ++questions;
+                     return IDCANCEL;
+                 };
+                 Application app(std::move(options));
+                 Success(app.Initialize(), "initialize hidden session-end workspace");
+                 app.SetDocument(L"Alpha\r\n", data / L"Alpha.md", true);
+                 app.Document().SetSelection({0, 0});
+                 Require(app.Document().ReplaceSelection(L"Edited ") && app.StartWorkspaceDocument(), "retain Alpha before editing Beta");
+                 app.SetDocument(L"Beta\n", data / L"Beta.md");
+                 app.Document().SetSelection({0, 0});
+                 Require(app.Document().ReplaceSelection(L"Edited "), "modify Beta independently before shutdown");
+                 const auto source = app.Document().Snapshot();
+                 const auto selection = app.Document().GetSelection();
+                 const auto window = app.Window();
+                 const auto flags = static_cast<LPARAM>(ENDSESSION_LOGOFF | ENDSESSION_CLOSEAPP);
+                 Require(SendMessageW(window, WM_QUERYENDSESSION, 0, flags) == TRUE && !app.sessionEnding && questions == 0,
+                         "the session query permits shutdown without opening a save question or destroying the editor");
+                 (void)SendMessageW(window, WM_ENDSESSION, FALSE, flags);
+                 Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selection && app.Document().CanUndo() &&
+                             !app.sessionEnding,
+                         "cancelled shutdown keeps exact source, selection and history live");
+                 Require(app.Document().ReplaceSelection(L"Later "), "editing remains available after a cancelled session end");
+                 (void)SendMessageW(window, WM_ENDSESSION, TRUE, flags);
+                 Require(app.sessionEnding && app.sessionEndRecoveryStatus == S_OK && app.recovery.Settled() && questions == 0 &&
+                             app.Window() == window && !app.closing,
+                         "final shutdown settles both recovery copies within its bounded allowance without destructive Close");
+                 const auto final = app.Document().Snapshot();
+                 app.Execute(Command::New);
+                 Require(app.Document().Snapshot().IsSameRevision(final), "queued commands cannot change the final shutdown checkpoint");
+                 std::vector<RecoverySnapshot> copies;
+                 for (const auto &entry : std::filesystem::directory_iterator(data / L"Recovery"))
+                     if (entry.path().extension() == L".rtd")
+                     {
+                         std::string bytes;
+                         Success(ReadBytes(entry.path(), bytes), "read a final session checkpoint");
+                         RecoverySnapshot copy;
+                         Success(ParseRecovery(bytes, copy), "validate a final session checkpoint");
+                         copies.push_back(std::move(copy));
+                     }
+                 Require(copies.size() == 2 &&
+                             std::ranges::any_of(copies, [](const auto &copy) { return copy.text == L"Edited Alpha\r\n" && copy.bom; }) &&
+                             std::ranges::any_of(copies, [&](const auto &copy) { return copy.text == app.Document().GetText() && !copy.bom; }),
+                         "final session-end recovery contains every dirty document including edits after the cancelled query");
+             });
+        test("Editor.WorkspaceCapacityRefusesWithoutEvictingEdits",
+             [&]
+             {
+                 auto options = Options(root, L"workspace-capacity");
+                 Application app(std::move(options));
+                 Success(app.Initialize(), "initialize bounded document workspace");
+                 const auto directory = root / L"workspace-capacity-files";
+                 for (unsigned index = 0; index < RecoveryService::MaximumDocuments; ++index)
+                 {
+                     if (index)
+                         Require(app.StartWorkspaceDocument(), "admit each document within the declared workspace capacity");
+                     app.SetDocument(std::format(L"Document {}\r\n", index), directory / std::format(L"Notes-{}.md", index));
+                     app.Document().SetSelection({0, 0});
+                     Require(app.Document().ReplaceSelection(L"Edited "), "retain an independent edit in every workspace slot");
+                 }
+                 const auto source = app.Document().Snapshot();
+                 const auto selection = app.Document().GetSelection();
+                 const auto key = app.activeDocumentKey;
+                 Require(app.inactiveDocuments.size() == 63 && !app.StartWorkspaceDocument() && app.Document().Snapshot().IsSameRevision(source) &&
+                             app.Document().GetSelection() == selection && app.activeDocumentKey == key && app.inactiveDocuments.size() == 63,
+                         "capacity refusal leaves all documents, the active source and selection untouched");
+                 const auto extra = directory / L"Extra.md";
+                 WriteFixture(extra, "# Extra file\n");
+                 app.OpenPath(extra);
+                 Await(app, [&] { return !app.files.Busy(); });
+                 Require(app.Document().Snapshot().IsSameRevision(source) && app.activeDocumentKey == key && app.inactiveDocuments.size() == 63,
+                         "a completed Files read cannot evict a dirty document when the workspace is full");
+                 for (const auto &document : app.inactiveDocuments)
+                     Require(document.dirty && document.state.CanUndo() && document.state.Text().starts_with(L"Edited Document "),
+                             "every retained history and exact edited prefix survives both refusals");
+                 Require(app.Document().CanUndo() && app.feedback->GetText() == Resource(IDS_WORKSPACEFULL) &&
+                             app.Activity().workspaceSwitches == 63 && app.Activity().workspaceRetainedPeak == 64,
+                         "the capacity explanation remains visible and the active Undo history remains available");
+             });
+        test("Editor.OpenCompletionWaitsForLocalDraft",
+             [&]
+             {
+                 auto options = Options(root, L"open-draft-completion");
+                 const auto target = root / L"open-draft-file/Next.md";
+                 WriteFixture(target, "# Next file\n");
+                 options.filePickerForTest = [&](bool saving) { return saving ? std::filesystem::path{} : target; };
+                 const auto gate = options.fileGateForTest = std::make_shared<AsyncFiles::TestGate>();
+                 Application app(std::move(options));
+                 Success(app.Initialize(), "initialize local draft versus asynchronous Open");
+                 const auto release = wil::scope_exit(
+                     [&]
+                     {
+                         (void)SetEvent(gate->proceed.get());
+                         if (WaitForSingleObject(gate->entered.get(), 0) == WAIT_OBJECT_0)
+                             (void)WaitForSingleObject(gate->finished.get(), 10000);
+                     });
+                 const std::wstring source = L"# Local draft\r\n\r\nA note waiting for the reader.\r\n";
+                 app.SetDocument(source);
+                 app.Prepare(256);
+                 app.Execute(Command::Open);
+                 Require(WaitForSingleObject(gate->entered.get(), 10000) == WAIT_OBJECT_0, "the actual reader reaches its owned admission gate");
+                 const auto note = source.find(L"note");
+                 app.Document().SetSelection({note, note + 4});
+                 app.Execute(Command::LocalSource);
+                 Require(app.HasBlockDraft(), "open a pending ordinary-text draft while the read is in flight");
+                 app.BlockDraft()->SetTextAndNotify(L"A revised note");
+                 const auto entry = app.Document().Snapshot();
+                 Require(SetEvent(gate->proceed.get()) && WaitForSingleObject(gate->finished.get(), 10000) == WAIT_OBJECT_0,
+                         "publish the actual reader completion after the draft exists");
+                 Await(app, [&] { return app.heldOpen.has_value(); });
+                 Require(app.HasBlockDraft() && app.Document().Snapshot().IsSameRevision(entry) && app.BlockDraft()->GetText() == L"A revised note" &&
+                             app.documentPath.empty(),
+                         "Open completion holds its staged source without replacing or hiding the current draft");
+                 app.Execute(Command::CloseDrawer);
+                 Await(app, [&] { return app.documentPath == target && !app.heldOpen; });
+                 Require(!app.HasBlockDraft() && app.Document().GetText() == L"# Next file\n" && !app.Dirty(),
+                         "cancelling the local draft resumes the exact staged Open once");
+             });
         test("Editor.SplitMirrorFallbackRecoversAfterHiddenEdits",
              [&]
              {
@@ -1534,6 +1883,27 @@ class DesignRefreshProbe final
                  Require(app.findMatches.size() == 5000 && app.findSource && app.findSource->IsSameRevision(app.Document().Snapshot()) &&
                              app.Host().RenderInitialFrameForShow() && app.Document().GetSelection().Start() == 4999,
                          "a current match beyond the bounded highlight prefix stays selected and renderable with cached exact source ranges");
+                 app.SetDocument(L"cat cat");
+                 app.findText->SetTextAndNotify(L"cat");
+                 app.replaceText->SetText(std::wstring(1, static_cast<wchar_t>(0xd800)));
+                 const auto failedSource = app.Document().Snapshot();
+                 bool rejected{};
+                 try
+                 {
+                     app.ReplaceFind(true);
+                 }
+                 catch (const std::invalid_argument &)
+                 {
+                     // A deliberately invalid precommit source edit exercises
+                     // the Find guard without injecting a callback failure.
+                     rejected = true;
+                 }
+                 Require(rejected && !app.updatingFind && app.Document().Snapshot().IsSameRevision(failedSource) && !app.Document().CanUndo(),
+                         "failed source-edit admission releases Find suppression without changing source or history");
+                 app.replaceText->SetTextAndNotify(L"dog");
+                 app.ReplaceFind(true);
+                 Require(app.Document().GetText() == L"dog dog" && !app.updatingFind && app.findMatches.empty() && app.Document().Undo(),
+                         "Find and Replace remain usable after the rejected transaction");
              });
         test("Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
              [&]
@@ -2057,14 +2427,13 @@ class DesignRefreshProbe final
                  Require(app.Document().ReplaceSelection(L"Uncommitted "), "make the current document dirty before a tree open");
                  const auto retained = app.Document().GetText();
                  app.OpenPath(other);
-                 app.Prepare(128);
-                 Require(app.documentPath == first && app.Document().GetText() == retained && !app.files.Busy(),
-                         "headless refusal of dirty-document consent prevents tree-open data loss");
-                 Require(app.Document().Undo() && !app.Dirty(), "return to the clean source before an admitted open");
-                 app.OpenPath(other);
                  Await(app, [&] { return app.documentPath == other && app.folderSnapshot && app.folderSnapshot->root == first.parent_path(); });
-                 Require(app.Document().GetText() == L"# Published\n" && app.folderRoot == first.parent_path() && !app.filesTree->GetSelectedItemId(),
-                         "opening a file outside the browser root retains its tree and clears the previous file selection");
+                 Require(app.inactiveDocuments.size() == 1 && app.inactiveDocuments.front().state.Text() == retained &&
+                             app.inactiveDocuments.front().dirty && app.inactiveDocuments.front().state.CanUndo(),
+                         "a tree open retains the previous dirty source and history without a save question");
+                 Require(app.Document().GetText() == L"# Published\n" && app.folderRoot == first.parent_path() &&
+                             app.filesTree->GetSelectedItemId() == Application::WorkspaceGroupId + app.activeDocumentKey + 1,
+                         "opening a file outside the browser root retains the tree and selects its retained workspace entry");
                  const auto savedAs = directory / L"Archive/renamed.md";
                  std::filesystem::create_directories(savedAs.parent_path());
                  Success(app.files.Submit(true, savedAs, app.Document().GetText(), false),

@@ -10,6 +10,16 @@
 
 namespace RedTilde
 {
+#ifdef REDTILDE_ENABLE_TESTS
+namespace
+{
+thread_local AtomicWriteFailure atomicWriteFailure{};
+}
+void SetAtomicWriteFailureForTest(AtomicWriteFailure failure) noexcept
+{
+    atomicWriteFailure = failure;
+}
+#endif
 namespace
 {
 constexpr DWORD MaximumBytes = 4u * 65536u + 4096u;
@@ -99,12 +109,25 @@ try
     }
     if (!file)
         return HRESULT_FROM_WIN32(ERROR_FILE_EXISTS);
-    auto removeTemporary = wil::scope_exit([&] { DeleteFileW(temporary.c_str()); });
+    auto removeTemporary = wil::scope_exit(
+        [&]
+        {
+            file.reset(); // The share-none staging handle must close before deletion on every failure path.
+            DeleteFileW(temporary.c_str());
+        });
     DWORD written{};
+#ifdef REDTILDE_ENABLE_TESTS
+    if (atomicWriteFailure == AtomicWriteFailure::Write)
+        return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
+#endif
     if (!bytes.empty() && !WriteFile(file.get(), bytes.data(), static_cast<DWORD>(bytes.size()), &written, nullptr))
         return LastError();
     if (written != bytes.size())
         return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
+#ifdef REDTILDE_ENABLE_TESTS
+    if (atomicWriteFailure == AtomicWriteFailure::Flush)
+        return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
+#endif
     if (!FlushFileBuffers(file.get()))
         return LastError();
     file.reset();

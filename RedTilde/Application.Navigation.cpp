@@ -58,6 +58,31 @@ void Application::RefreshOutline()
 void Application::UpdateCurrentFileDirtyBadge(bool dirty)
 {
     lastFilesDirty = dirty;
+    auto *const tree = filesTree;
+    const auto lifetime = GetControlLifetimeToken(*tree);
+    const auto key = activeDocumentKey;
+    if (!inactiveDocuments.empty())
+    {
+        const auto id = WorkspaceGroupId + activeDocumentKey + 1;
+        const auto item = std::find_if(filesModel.rows.begin(), filesModel.rows.end(), [&](const auto &row) { return row.id == id; });
+        if (item != filesModel.rows.end())
+        {
+            const auto badge = dirty ? Resource(IDS_FILESEDITED) : std::wstring{};
+            if (item->badgeText != badge || item->badgeIsDot != dirty)
+            {
+                item->badgeText = badge;
+                item->badgeIsDot = dirty;
+                const bool published = tree->NotifyItemPresentationChanged(id);
+                if (closing || lifetime.expired() || filesTree != tree || host.GetRoot() != root || activeDocumentKey != key || Dirty() != dirty)
+                    return;
+                if (!published)
+                {
+                    RefreshFiles();
+                    return;
+                }
+            }
+        }
+    }
     const auto requested = settings.showFiles ? settings.filesRoot : std::filesystem::path{};
     if (requested != folderRoot)
     {
@@ -83,11 +108,13 @@ void Application::UpdateCurrentFileDirtyBadge(bool dirty)
     if (row == filesModel.rows.end())
         return; // Filtering or a future visibility rule hides this file; a later structural refresh reads Dirty().
 
-    const auto badgeText = dirty ? Resource(IDS_FILESEDITED) : std::wstring{};
-    if (row->badgeText == badgeText && row->badgeIsDot == dirty)
+    const bool edited = dirty || std::ranges::any_of(inactiveDocuments, [&](const auto &document)
+                                                     { return document.dirty && MatchesFilesPath(snapshot, document.path, documentPath); });
+    const auto badgeText = edited ? Resource(IDS_FILESEDITED) : std::wstring{};
+    if (row->badgeText == badgeText && row->badgeIsDot == edited)
         return;
     row->badgeText = badgeText;
-    row->badgeIsDot = dirty;
+    row->badgeIsDot = edited;
 
     const auto snapshotGeneration = snapshot.generation;
     const auto snapshotRevision = snapshot.revision;
@@ -103,7 +130,7 @@ void Application::UpdateCurrentFileDirtyBadge(bool dirty)
         return;
     const auto currentRow =
         std::find_if(filesModel.rows.begin(), filesModel.rows.end(), [&](const auto &candidate) { return candidate.id == itemId; });
-    if (currentRow != filesModel.rows.end() && currentRow->badgeText == badgeText && currentRow->badgeIsDot == dirty)
+    if (currentRow != filesModel.rows.end() && currentRow->badgeText == badgeText && currentRow->badgeIsDot == edited)
         RefreshFiles();
 }
 void Application::RefreshFiles(bool rootChanged)
@@ -158,6 +185,46 @@ void Application::RefreshFiles(bool rootChanged)
     ++activity.filesModelRebuilds;
     filesModel.rows.clear();
     visibleFilePaths.clear();
+    const std::wstring filter(filesFilter->GetText());
+    if (!inactiveDocuments.empty())
+    {
+        std::vector<DxUi::TreeItemData> documents;
+        const auto append = [&](unsigned key, const std::filesystem::path &path, bool dirty)
+        {
+            const auto name = path.empty() ? Resource(IDS_UNTITLED) : path.filename().native();
+            if (!filter.empty() &&
+                FindNLSStringEx(LOCALE_NAME_INVARIANT, FIND_FROMSTART | NORM_IGNORECASE, name.data(), static_cast<int>(name.size()), filter.data(),
+                                static_cast<int>(filter.size()), nullptr, nullptr, nullptr, 0) < 0)
+                return;
+            DxUi::TreeItemData item;
+            item.id = WorkspaceGroupId + key + 1;
+            item.parentId = WorkspaceGroupId;
+            item.depth = 1;
+            item.text = name;
+            item.iconText = L"\xE8A5";
+            item.tooltipText = path.native();
+            item.badgeIsDot = dirty;
+            if (dirty)
+                item.badgeText = Resource(IDS_FILESEDITED);
+            documents.push_back(std::move(item));
+        };
+        append(activeDocumentKey, documentPath, Dirty());
+        for (const auto &document : inactiveDocuments)
+            append(document.recoveryKey, document.path, document.dirty);
+        if (!documents.empty())
+        {
+            DxUi::TreeItemData group;
+            group.id = WorkspaceGroupId;
+            group.text = Resource(IDS_OPENDOCUMENTS);
+            group.hasChildren = true;
+            group.expanded = !workspaceCollapsed || !filter.empty();
+            const bool expanded = group.expanded;
+            filesModel.rows.push_back(std::move(group));
+            if (expanded)
+                for (auto &document : documents)
+                    filesModel.rows.push_back(std::move(document));
+        }
+    }
     if (!folderSnapshot)
     {
         setFooter(Resource(static_cast<unsigned>(requested.empty()               ? IDS_FILESUNTITLED
@@ -167,13 +234,14 @@ void Application::RefreshFiles(bool rootChanged)
                                                                     : FAILED(folderAdmissionStatus) ? IDS_FILESUNAVAILABLE
                                                                                                     : IDS_FILESLOADING)));
         filesTree->NotifyDataChanged();
+        filesTree->SetSelectedItemId(inactiveDocuments.empty() ? std::nullopt
+                                                               : std::optional<std::uint64_t>(WorkspaceGroupId + activeDocumentKey + 1));
         return;
     }
     const auto &snapshot = folderSnapshot.value();
     visibleFilePaths.reserve(snapshot.entries.size());
     for (const auto &entry : snapshot.entries)
         visibleFilePaths.push_back(entry.path);
-    const std::wstring filter(filesFilter->GetText());
     for (const auto index : FilterMarkdownFiles(snapshot, filter))
     {
         const auto &entry = snapshot.entries[index];
@@ -199,7 +267,9 @@ void Application::RefreshFiles(bool rootChanged)
         item.expanded = item.hasChildren && (!filter.empty() || !collapsedFolders.contains(entry.path));
         if (entry.directory && !item.expanded)
             item.badgeText = std::to_wstring(entry.markdownCount);
-        else if (MatchesFilesPath(snapshot, entry.path, documentPath) && Dirty())
+        else if ((MatchesFilesPath(snapshot, entry.path, documentPath) && Dirty()) ||
+                 std::ranges::any_of(inactiveDocuments,
+                                     [&](const auto &document) { return document.dirty && MatchesFilesPath(snapshot, entry.path, document.path); }))
         {
             item.badgeText = Resource(IDS_FILESEDITED);
             item.badgeIsDot = true;
@@ -213,7 +283,8 @@ void Application::RefreshFiles(bool rootChanged)
     if (current != visibleFilePaths.end())
         filesTree->SetSelectedItemId(static_cast<std::uint64_t>(current - visibleFilePaths.begin() + 1));
     else
-        filesTree->SetSelectedItemId(std::nullopt);
+        filesTree->SetSelectedItemId(inactiveDocuments.empty() ? std::nullopt
+                                                               : std::optional<std::uint64_t>(WorkspaceGroupId + activeDocumentKey + 1));
     auto footer = Text(IDS_FILESCOUNT, snapshot.markdownCount);
     const auto append = [&](std::wstring detail) { footer = Text(IDS_FILESFOOTERDETAIL, footer, detail); };
     if (FAILED(snapshot.status) || snapshot.errorCount)
@@ -280,10 +351,124 @@ void Application::SelectFilesRoot(const std::filesystem::path &path)
 }
 void Application::OpenFolder()
 {
-    // Selecting a browser root never replaces source or needs discard consent.
-    const auto path = PickFile(false, false, true);
-    if (!path.empty())
-        SelectFilesRoot(path);
+    AskWorkspaceThen(
+        [this]
+        {
+            const auto path = PickFile(false, false, true);
+            if (path.empty())
+                return;
+            ResetWorkspace();
+            SetDocument({});
+            SelectFilesRoot(path);
+        });
+}
+bool Application::SwitchWorkspaceDocument(std::size_t index)
+{
+    if (closing || closingAfterSave || sessionEnding || switchingDocument || !root || host.GetRoot() != root)
+        return false;
+    if (index >= inactiveDocuments.size() || files.Busy() || HasBlockDraft() || unsavedPromptOpen)
+    {
+        Status(IDS_BUSY);
+        return false;
+    }
+    auto *const primary = editor;
+    auto *const owner = root;
+    const auto primaryLifetime = GetControlLifetimeToken(*primary);
+    const auto ownerLifetime = GetControlLifetimeToken(*owner);
+    const auto current = [&]
+    { return !closing && !primaryLifetime.expired() && !ownerLifetime.expired() && editor == primary && root == owner && host.GetRoot() == owner; };
+    const bool previousDirty = Dirty();
+    CheckpointRecovery(true);
+    if (!current())
+        return false;
+    auto &document = inactiveDocuments[index];
+    {
+        switchingDocument = true;
+        const auto restore = wil::scope_exit([&] { switchingDocument = false; });
+        if (!primary->ExchangeDocumentState(document.state))
+        {
+            Status(IDS_BUSY);
+            return false;
+        }
+        ++activity.workspaceSwitches;
+        activity.workspaceRetainedPeak = std::max(activity.workspaceRetainedPeak, static_cast<std::uint64_t>(inactiveDocuments.size() + 1));
+        if (!current())
+            return true; // The exchange committed before a callback retired its owner.
+        documentPath.swap(document.path);
+        savedText.swap(document.savedText);
+        collapsedHeadings.swap(document.collapsedHeadings);
+        std::swap(bom, document.bom);
+        std::swap(recovered, document.recovered);
+        std::swap(stamp, document.stamp);
+        std::swap(activeDocumentKey, document.recoveryKey);
+        document.dirty = previousDirty;
+        dirtyFact.reset();
+        primary->SetDocumentFilePath(documentPath.native());
+    }
+    if (!current())
+        return true;
+    previewCollapsedHeadings.reset();
+    previewCommittedOutline.reset();
+    documentAnalysisSource.reset();
+    committedAnalysisSource.reset();
+    mirroredSource.reset();
+    selectionFactsSource.reset();
+    findSource.reset();
+    SetView(settings.view);
+    if (!current())
+        return true; // The binding committed before a reentrant teardown.
+    Changed();
+    if (!current())
+        return true;
+    RefreshFiles();
+    if (current())
+        host.SetFocusControl(primary, !options.headless);
+    return true;
+}
+bool Application::StartWorkspaceDocument()
+{
+    if (documentPath.empty() && !Dirty() && !editor->CanUndo() && !editor->CanRedo())
+        return true;
+    if (inactiveDocuments.size() + 1 >= RecoveryService::MaximumDocuments)
+    {
+        Status(IDS_WORKSPACEFULL);
+        return false;
+    }
+    unsigned key{};
+    while (key == activeDocumentKey || std::ranges::any_of(inactiveDocuments, [&](const auto &document) { return document.recoveryKey == key; }))
+        ++key;
+    WorkspaceDocument document;
+    document.recoveryKey = key;
+    inactiveDocuments.push_back(std::move(document));
+    if (SwitchWorkspaceDocument(inactiveDocuments.size() - 1))
+        return true;
+    inactiveDocuments.pop_back();
+    return false;
+}
+void Application::ResetWorkspace()
+{
+    for (const auto &document : inactiveDocuments)
+        if (FAILED(recovery.SubmitDocument(document.recoveryKey, std::nullopt, true)))
+            Status(IDS_RECOVERYFAILED);
+    if (FAILED(recovery.SubmitDocument(activeDocumentKey, std::nullopt, true)))
+        Status(IDS_RECOVERYFAILED);
+    inactiveDocuments.clear();
+    workspaceCollapsed = false;
+    activeDocumentKey = 0;
+    workspaceApprovals.clear();
+    openingApprovals.clear();
+}
+void Application::CheckpointWorkspaceRecovery()
+{
+    CheckpointRecovery(true);
+    for (const auto &document : inactiveDocuments)
+    {
+        std::optional<RecoverySnapshot> snapshot;
+        if (document.dirty)
+            snapshot = RecoverySnapshot{document.state.Text(), document.path, document.bom, document.state.GetSelection(), ++recoveryGeneration};
+        if (FAILED(recovery.SubmitDocument(document.recoveryKey, std::move(snapshot), true)))
+            Status(IDS_RECOVERYFAILED);
+    }
 }
 void Application::OpenPath(const std::filesystem::path &path)
 {
@@ -296,13 +481,22 @@ void Application::OpenPath(const std::filesystem::path &path)
             item != entries.end() && item->directory)
             return;
     }
-    AskThen(
-        [this, path]
+    if (files.Busy() || HasBlockDraft() || unsavedPromptOpen || closing || closingAfterSave || switchingDocument || sessionEnding)
+    {
+        Status(IDS_BUSY);
+        return;
+    }
+    for (std::size_t index = 0; index < inactiveDocuments.size(); ++index)
+        if (inactiveDocuments[index].path == path ||
+            (folderSnapshot && MatchesFilesPath(folderSnapshot.value(), path, inactiveDocuments[index].path)))
         {
-            openingSnapshot = editor->Snapshot();
-            const HRESULT result = files.Submit(false, path);
-            Status(FAILED(result) ? IDS_BUSY : IDS_LOADING);
-        });
+            (void)SwitchWorkspaceDocument(index);
+            return;
+        }
+    openingSnapshot = editor->Snapshot();
+    const HRESULT result = files.Submit(false, path);
+    openingFromFiles = SUCCEEDED(result);
+    Status(FAILED(result) ? IDS_BUSY : IDS_LOADING);
 }
 void Application::RefreshFind()
 {
@@ -515,9 +709,12 @@ void Application::ReplaceFind(bool all)
         return;
     }
     const auto after = edits.front().source.first + replacement.size();
-    updatingFind = true;
-    const bool applied = editor->ApplySourceEdits(source, revision, edits, {after, after});
-    updatingFind = false;
+    bool applied{};
+    {
+        updatingFind = true;
+        const auto resetUpdatingFind = wil::scope_exit([&] { updatingFind = false; });
+        applied = editor->ApplySourceEdits(source, revision, edits, {after, after});
+    }
     if (!applied)
         Status(IDS_NOTAVAILABLE);
     RefreshFind();

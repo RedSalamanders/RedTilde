@@ -279,6 +279,8 @@ HRESULT Application::Initialize()
     }
     initializing = false;
     Layout();
+    if (!options.headless && FAILED(RegisterApplicationRestart(L"", RESTART_NO_CRASH | RESTART_NO_HANG)))
+        MonitorDiagnostics::Write(RedMonitor::Severity::Warning, L"Windows restart registration unavailable; ordinary recovery remains enabled");
     return S_OK;
 }
 
@@ -555,6 +557,8 @@ void Application::SetDocument(std::wstring text, std::filesystem::path path, boo
 }
 void Application::Changed()
 {
+    if (switchingDocument)
+        return;
     if (editDiagnostics)
         editDiagnostics->Mark(EditPhase::Enter);
     ++activity.changes;
@@ -682,6 +686,7 @@ void Application::CheckpointRecovery(bool immediate)
     auto selection = editor->GetSelection();
     bool needsRecovery = Dirty();
     std::wstring_view draft;
+    std::wstring normalizedDraft;
     bool changedDraft{};
     if (HasBlockDraft() && editor->Snapshot().IsSameRevision(blockDraftSnapshot) && editor->Revision() == blockDraftRevision)
     {
@@ -689,14 +694,16 @@ void Application::CheckpointRecovery(bool immediate)
         const std::wstring_view source = CurrentText();
         if (draft != source.substr(blockDraftRange.first, blockDraftRange.last - blockDraftRange.first))
         {
+            normalizedDraft = NormalizeInsertedLineEndings(draft, source);
+            draft = normalizedDraft;
             if (!DxUi::RichText::IsValidUtf16(draft) ||
                 source.size() - (blockDraftRange.last - blockDraftRange.first) + draft.size() > DxUi::RichText::Document::MaximumUnits)
             {
                 Status(IDS_RECOVERYFAILED);
                 return;
             }
-            changedDraft = true;
-            needsRecovery = true;
+            changedDraft = draft != source.substr(blockDraftRange.first, blockDraftRange.last - blockDraftRange.first);
+            needsRecovery = needsRecovery || changedDraft;
         }
     }
     if (needsRecovery)
@@ -714,7 +721,7 @@ void Application::CheckpointRecovery(bool immediate)
     }
     const bool flush = immediate || !snapshot.has_value();
     ++activity.recoverySubmissions;
-    if (FAILED(recovery.Submit(std::move(snapshot), flush)))
+    if (FAILED(recovery.SubmitDocument(activeDocumentKey, std::move(snapshot), flush)))
         Status(IDS_RECOVERYFAILED);
 }
 void Application::RecoveryCompleted()
@@ -755,7 +762,10 @@ void Application::ShowRecovery()
     CloseDrawers();
     const auto &snapshot = recoveryCandidates.front().snapshot;
     const auto path = snapshot.originalPath.empty() ? Resource(IDS_UNTITLED) : snapshot.originalPath.native();
-    recoveryDescription->SetText(std::vformat(Resource(IDS_RECOVERYHELP), std::make_wformat_args(path)));
+    const auto count = recoveryCandidates.size();
+    restoreAllRecovery->SetVisible(count > 1);
+    recoveryDescription->SetText(count > 1 ? std::vformat(Resource(IDS_RECOVERYMULTIPLEHELP), std::make_wformat_args(count, path))
+                                           : std::vformat(Resource(IDS_RECOVERYHELP), std::make_wformat_args(path)));
     recoveryPreview->SetText(snapshot.text);
     recoveryPanel->SetVisible(true);
     host.SetFocusControl(recoveryPanel->GetLogicalChild(3), !options.headless);
@@ -810,7 +820,7 @@ void Application::SetView(EditorView view)
 void Application::SelectionChanged(bool refreshTools)
 {
     EditDiagnostics::SelectionInvocation selectionInvocation(editDiagnostics);
-    if (closing || !floating)
+    if (closing || switchingDocument || !floating)
         return;
     if (editor->IsSelectionGestureActive())
     {
@@ -1125,11 +1135,13 @@ void Application::CloseDrawers()
     host.SetFocusControl(editor, !options.headless);
     if (!initializing && !closing)
         CheckpointRecovery();
+    if (hadBlockDraft && heldOpen)
+        (void)PostMessageW(window.get(), FileReady, 0, 0);
 }
 
 void Application::Execute(Command command)
 {
-    if (closing || closingAfterSave)
+    if (closing || closingAfterSave || sessionEnding || switchingDocument)
         return;
     using namespace DxUi::RichText;
     // Presentation/structural changes cannot interrupt native IME composition.
@@ -1249,12 +1261,14 @@ void Application::Execute(Command command)
                         Status(IDS_RECOVERYUNAVAILABLE);
                         return;
                     }
+                    if (!StartWorkspaceDocument() || closing || host.GetRoot() != root)
+                        return;
                     SetDocument(candidate.snapshot.text, candidate.snapshot.originalPath, candidate.snapshot.bom);
                     recovered = true;
                     editor->SetSelection(candidate.snapshot.selection);
                     Changed();
                     const auto snapshot = RecoverySnapshot{editor->GetText(), documentPath, bom, editor->GetSelection(), ++recoveryGeneration};
-                    if (FAILED(recovery.Submit(snapshot, true, candidate.id)))
+                    if (FAILED(recovery.SubmitDocument(activeDocumentKey, snapshot, true, candidate.id)))
                     {
                         Status(IDS_RECOVERYFAILED);
                         return;
@@ -1264,10 +1278,52 @@ void Application::Execute(Command command)
                     Status(IDS_RECOVERED);
                 });
         return;
+    case Command::RestoreAllRecovery:
+    {
+        if (files.Busy() || HasBlockDraft() || unsavedPromptOpen || recoveryCandidates.empty())
+        {
+            Status(IDS_BUSY);
+            return;
+        }
+        const auto candidates = recoveryCandidates;
+        const std::size_t reuse = documentPath.empty() && !Dirty() && !editor->CanUndo() && !editor->CanRedo() ? 1u : 0u;
+        if (inactiveDocuments.size() + 1 + candidates.size() - reuse > RecoveryService::MaximumDocuments)
+        {
+            Status(IDS_WORKSPACEFULL);
+            return;
+        }
+        for (const auto &candidate : candidates)
+        {
+            if (std::ranges::none_of(recoveryCandidates, [&](const auto &current) { return current.id == candidate.id; }))
+                continue; // A completion retired this exact copy; never substitute another.
+            if (!StartWorkspaceDocument() || closing || host.GetRoot() != root)
+                return;
+            SetDocument(candidate.snapshot.text, candidate.snapshot.originalPath, candidate.snapshot.bom);
+            if (closing || host.GetRoot() != root)
+                return;
+            recovered = true;
+            editor->SetSelection(candidate.snapshot.selection);
+            Changed();
+            if (closing || host.GetRoot() != root)
+                return;
+            const auto snapshot = RecoverySnapshot{editor->GetText(), documentPath, bom, editor->GetSelection(), ++recoveryGeneration};
+            if (FAILED(recovery.SubmitDocument(activeDocumentKey, snapshot, true, candidate.id)))
+            {
+                Status(IDS_RECOVERYFAILED);
+                return; // Keep the original candidate until its replacement can be admitted.
+            }
+            std::erase_if(recoveryCandidates, [&](const auto &current) { return current.id == candidate.id; });
+        }
+        RefreshFiles();
+        CloseDrawers();
+        Status(IDS_RECOVERED);
+        return;
+    }
     case Command::New:
-        AskThen(
+        AskWorkspaceThen(
             [this]
             {
+                ResetWorkspace();
                 SetDocument({});
                 host.SetFocusControl(editor, !options.headless);
             });
@@ -1387,12 +1443,13 @@ void Application::Execute(Command command)
         break;
     }
     case Command::Mermaid:
-        (void)editor->ReplaceSelection(L"\n\n```mermaid\ngraph LR\nA[Idea] --> B[Write]\nB --> C[Share]\n```\n\n");
+        (void)editor->ReplaceSelection(
+            NormalizeInsertedLineEndings(L"\n\n```mermaid\ngraph LR\nA[Idea] --> B[Write]\nB --> C[Share]\n```\n\n", CurrentText()));
         semantic = false;
         break;
     case Command::Math:
         // Display delimiters must own their lines; a one-line $$...$$ stays literal at this pin.
-        (void)editor->ReplaceSelection(L"\n\n$$\nx = \\frac{-b + \\sqrt{b^2 - 4ac}}{2a}\n$$\n\n");
+        (void)editor->ReplaceSelection(NormalizeInsertedLineEndings(L"\n\n$$\nx = \\frac{-b + \\sqrt{b^2 - 4ac}}{2a}\n$$\n\n", CurrentText()));
         semantic = false;
         break;
     case Command::Quote:
@@ -1403,7 +1460,8 @@ void Application::Execute(Command command)
         const bool changed = selection.Start() != selection.End()
                                  ? editor->WrapSelectionInMarkdownBlock(quote ? MarkdownBlockKind::BlockQuote : MarkdownBlockKind::FencedCode,
                                                                         quote ? std::wstring_view{} : std::wstring_view(L"text"))
-                                 : editor->ReplaceSelection(quote ? L"\n> A thought worth keeping.\n" : L"\n\n```text\nYour code here\n```\n\n");
+                                 : editor->ReplaceSelection(NormalizeInsertedLineEndings(
+                                       quote ? L"\n> A thought worth keeping.\n" : L"\n\n```text\nYour code here\n```\n\n", CurrentText()));
         Status(changed ? IDS_FORMATTED : IDS_NOTAVAILABLE);
         semantic = false;
         break;
@@ -1557,7 +1615,9 @@ void Application::ApplyBlockSource()
         Status(IDS_NOTAVAILABLE);
         return;
     }
-    const std::wstring value(blockDraftText->GetText());
+    const auto draft = blockDraftText->GetText();
+    const auto original = blockDraftSnapshot.Slice(blockDraftRange.first, blockDraftRange.last);
+    const std::wstring value = draft == original ? std::wstring(draft) : NormalizeInsertedLineEndings(draft, CurrentText());
     if (!DxUi::RichText::IsValidUtf16(value) ||
         blockDraftSnapshot.Length() - (blockDraftRange.last - blockDraftRange.first) + value.size() > DxUi::RichText::Document::MaximumUnits)
     {
@@ -1728,9 +1788,39 @@ void Application::AskThen(std::function<void()> continuation)
         Save();
     }
 }
+void Application::AskWorkspaceThen(std::function<void()> continuation, std::vector<WorkspaceApproval> approved)
+{
+    if (closing || closingAfterSave || unsavedPromptOpen || switchingDocument || sessionEnding || !root || host.GetRoot() != root)
+        return;
+    const auto accepted = [&](unsigned key, const DxUi::RichText::SourceSnapshot &source)
+    { return std::ranges::any_of(approved, [&](const auto &value) { return value.key == key && value.source.IsSameRevision(source); }); };
+    if (!Dirty() || accepted(activeDocumentKey, editor->Snapshot()))
+    {
+        const auto pending = std::find_if(inactiveDocuments.begin(), inactiveDocuments.end(), [&](const auto &document)
+                                          { return document.dirty && !accepted(document.recoveryKey, document.state.Snapshot()); });
+        if (pending == inactiveDocuments.end())
+        {
+            workspaceApprovals = std::move(approved);
+            continuation();
+            return;
+        }
+        if (!SwitchWorkspaceDocument(static_cast<std::size_t>(pending - inactiveDocuments.begin())))
+            return;
+        if (closing || !root || host.GetRoot() != root)
+            return;
+    }
+    const auto promptingSource = editor->Snapshot();
+    const auto promptingKey = activeDocumentKey;
+    AskThen(
+        [this, promptingSource, promptingKey, continuation = std::move(continuation), approved = std::move(approved)]() mutable
+        {
+            approved.push_back({promptingKey, promptingSource});
+            AskWorkspaceThen(std::move(continuation), std::move(approved));
+        });
+}
 void Application::Open()
 {
-    AskThen(
+    AskWorkspaceThen(
         [this]
         {
             const auto path = PickFile(false);
@@ -1741,7 +1831,11 @@ void Application::Open()
             if (FAILED(hr))
                 Status(IDS_BUSY);
             else
+            {
+                openingFromFiles = false;
+                openingApprovals = workspaceApprovals;
                 Status(IDS_LOADING);
+            }
         });
 }
 void Application::Save(bool saveAs, bool force)
@@ -1772,9 +1866,15 @@ void Application::Save(bool saveAs, bool force)
 }
 void Application::FileCompleted()
 {
-    auto completed = files.Take();
+    auto completed = heldOpen && !HasBlockDraft() ? std::exchange(heldOpen, std::nullopt) : files.Take();
     if (!completed)
         return;
+    if (!completed->saving && HasBlockDraft())
+    {
+        heldOpen = std::move(completed);
+        Status(IDS_BLOCKPENDING);
+        return;
+    }
     auto &result = completed.value();
     if (FAILED(result.status))
     {
@@ -1798,6 +1898,8 @@ void Application::FileCompleted()
         if (!options.headless && !failedClose)
             MessageBoxW(window.get(), message.c_str(), Resource(IDS_ERROR).c_str(), MB_OK | MB_ICONERROR);
         feedback->SetText(message);
+        if (!result.saving)
+            openingFromFiles = false;
         afterSave = {};
         return;
     }
@@ -1820,13 +1922,21 @@ void Application::FileCompleted()
                 // Save owns only its admitted immutable source. Closing cannot
                 // discard edits typed after that snapshot was submitted.
                 ResumeAfterSaveClose();
-                AskThen([this] { BeginClose(); });
+                AskWorkspaceThen([this] { BeginClose(); });
             }
             else
             {
-                closingAfterSave = false;
-                visibleBeforeSaveClose = false;
-                BeginClose();
+                if (std::ranges::any_of(inactiveDocuments, [](const auto &document) { return document.dirty; }))
+                {
+                    ResumeAfterSaveClose();
+                    AskWorkspaceThen([this] { BeginClose(); });
+                }
+                else
+                {
+                    closingAfterSave = false;
+                    visibleBeforeSaveClose = false;
+                    BeginClose();
+                }
             }
             return;
         }
@@ -1842,16 +1952,27 @@ void Application::FileCompleted()
         // User may have typed while a slow open ran. Recheck dirty state before
         // replacing the source; this is a new consent decision, not a stale one.
         auto staged = std::make_shared<AsyncFiles::Result>(std::move(result));
+        const bool fromFiles = std::exchange(openingFromFiles, false);
+        const auto entrySource = std::exchange(openingSnapshot, std::nullopt);
+        auto approvals = std::exchange(openingApprovals, {});
         auto apply = [this, staged]
         {
+            ResetWorkspace();
             SetDocument(std::move(staged->document.text), std::move(staged->path), staged->document.bom, staged->document.stamp);
             Status(IDS_SAVED);
         };
-        if (openingSnapshot && editor->Snapshot().IsSameRevision(openingSnapshot.value()))
+        if (fromFiles)
+        {
+            if (StartWorkspaceDocument() && !closing && host.GetRoot() == root)
+            {
+                SetDocument(std::move(staged->document.text), std::move(staged->path), staged->document.bom, staged->document.stamp);
+                Status(IDS_SAVED);
+            }
+        }
+        else if (entrySource && editor->Snapshot().IsSameRevision(entrySource.value()))
             apply();
         else
-            AskThen(std::move(apply));
-        openingSnapshot.reset();
+            AskWorkspaceThen(std::move(apply), std::move(approvals));
     }
 }
 void Application::ServiceImages()
@@ -1909,7 +2030,8 @@ void Application::BeginClose()
 {
     // Reaching this point means the user saved or explicitly discarded source.
     // Retire only this session's snapshot and wait asynchronously for its result.
-    (void)recovery.Submit(std::nullopt, true);
+    ResetWorkspace();
+    (void)recovery.SubmitDocument(activeDocumentKey, std::nullopt, true);
     recovery.Stop();
     closing = true;
     files.Close();
@@ -1950,9 +2072,35 @@ void Application::FinishClose()
 }
 LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    if (message == WM_QUERYENDSESSION)
+    {
+        if (!closing)
+            CheckpointWorkspaceRecovery();
+        return TRUE; // Honor shutdown immediately; never create a shutdown blocker.
+    }
+    if (message == WM_ENDSESSION)
+    {
+        sessionEnding = wParam != FALSE;
+        if (sessionEnding)
+        {
+            if (!closing)
+                CheckpointWorkspaceRecovery();
+            // Windows may terminate us when this message returns. Only this
+            // final system boundary waits; recovery never needs a UI callback.
+            sessionEndRecoveryStatus = recovery.WaitForSettlement(2000);
+            if (FAILED(sessionEndRecoveryStatus))
+                MonitorDiagnostics::Write(RedMonitor::Severity::Warning, L"Session-end recovery did not settle within its bounded allowance");
+            // End the ordinary process loop without the clean-close path that
+            // retires dirty copies. A hidden fixture owns only its test window,
+            // never the parent harness's message loop (as for WM_DESTROY).
+            if (!options.headless)
+                PostQuitMessage(0);
+        }
+        return 0;
+    }
     if (message == WM_CLOSE)
     {
-        if (closing || closingAfterSave || unsavedPromptOpen)
+        if (closing || closingAfterSave || unsavedPromptOpen || switchingDocument)
             return 0;
         if (blockDraft->IsVisible())
         {
@@ -1984,7 +2132,9 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
 #endif
             openingSnapshot.reset();
         }
-        AskThen([this] { BeginClose(); });
+        heldOpen.reset();
+        openingFromFiles = false;
+        AskWorkspaceThen([this] { BeginClose(); });
         return 0;
     }
     if ((message == WM_NCLBUTTONDOWN || message == WM_NCLBUTTONDBLCLK) && (wParam == HTCLOSE || wParam == HTMAXBUTTON || wParam == HTMINBUTTON) &&
@@ -2277,9 +2427,30 @@ int Application::Run()
         return RunPerformanceProbe(*this, options);
     if (options.recoveryProbe)
     {
+        // Isolated harness fixtures: exercise the real Files worker, independent
+        // histories and checkpoint leases before the intentional child crash.
+        const auto directory = options.dataDirectory / L"Workspace";
+        std::filesystem::create_directories(directory);
+        const auto alpha = directory / L"Alpha.md", beta = directory / L"Beta.md";
+        if (FAILED(WriteBytesAtomic(alpha, "\xef\xbb\xbf# Alpha\r\n")) || FAILED(WriteBytesAtomic(beta, "# Beta\n")))
+            return 6;
+        StoredDocument loaded;
+        if (FAILED(LoadDocument(alpha, loaded)))
+            return 6;
+        SetDocument(loaded.text, alpha, loaded.bom, loaded.stamp);
         editor->SetSelection({0, 0});
         (void)editor->ReplaceSelection(L"Recovered after crash: 東京 😀\r\n");
-        CheckpointRecovery(true);
+        OpenPath(beta);
+        for (unsigned turn = 0; turn < 1000 && documentPath != beta; ++turn)
+        {
+            Prepare(32);
+            (void)WaitForSingleObject(GetCurrentProcess(), 5);
+        }
+        if (documentPath != beta || inactiveDocuments.size() != 1)
+            return 6;
+        editor->SetSelection({0, 0});
+        (void)editor->ReplaceSelection(L"A second unsaved copy: 世界\n");
+        CheckpointWorkspaceRecovery();
         for (unsigned turn = 0; turn < 1000 && !recovery.Settled(); ++turn)
             (void)WaitForSingleObject(GetCurrentProcess(), 5);
         if (!recovery.Settled() || FAILED(recovery.Status()))
@@ -2290,11 +2461,23 @@ int Application::Run()
     {
         Prepare();
         RecoveryCompleted();
-        if (recoveryCandidates.size() != 1)
+        if (recoveryCandidates.size() != 2)
             return 7;
-        Execute(Command::RestoreRecovery);
-        const bool correct = Dirty() && recovered && editor->GetText().starts_with(L"Recovered after crash: 東京 😀\r\n");
-        CheckpointRecovery(true);
+        Execute(Command::RestoreAllRecovery);
+        const auto expected = [&](const std::filesystem::path &path, std::wstring_view text, bool hasBom)
+        {
+            return path.filename() == (hasBom ? L"Alpha.md" : L"Beta.md") &&
+                   text == (hasBom ? L"Recovered after crash: 東京 😀\r\n# Alpha\r\n" : L"A second unsaved copy: 世界\n# Beta\n");
+        };
+        bool correct = Dirty() && recovered && inactiveDocuments.size() == 1 && expected(documentPath, editor->GetText(), bom);
+        for (const auto &document : inactiveDocuments)
+            correct = correct && document.dirty && document.recovered && expected(document.path, document.state.Text(), document.bom);
+        StoredDocument original;
+        correct = correct && SUCCEEDED(LoadDocument(options.dataDirectory / L"Workspace/Alpha.md", original)) && original.text == L"# Alpha\r\n" &&
+                  original.bom;
+        correct = correct && SUCCEEDED(LoadDocument(options.dataDirectory / L"Workspace/Beta.md", original)) && original.text == L"# Beta\n" &&
+                  !original.bom;
+        CheckpointWorkspaceRecovery();
         recovery.Stop();
         for (unsigned turn = 0; turn < 1000 && !recovery.Finished(); ++turn)
             (void)WaitForSingleObject(GetCurrentProcess(), 5);

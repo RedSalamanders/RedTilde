@@ -241,4 +241,8 @@ IDS_SYNTAXDEFINITIONSHELP "A term line followed by lines that start with â€œ: â€
 IDS_SYNTAXABBREVIATIONSHELP "A line like *[HTML]: Hyper Text Markup Language explains each HTML on hover."
 IDS_STRIKECOMPLETEDTASKS "Strike through completed tasks"
 IDS_STRIKECOMPLETEDTASKSHELP "Shows completed task text with a line through it in Compose and Split. Your Markdown stays unchanged."
+IDS_WORKSPACEFULL "This workspace has 64 documents. Save your changes, then open a new file or folder to start another workspace."
+IDS_RESTOREALL "Restore all copies"
+IDS_RECOVERYMULTIPLEHELP "{0} unsaved copies are available. Previewed original: {1}\nRestore all keeps each copy separately; Save As protects the originals."
+IDS_OPENDOCUMENTS "Open documents"
 END

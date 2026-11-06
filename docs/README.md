@@ -4,6 +4,12 @@ Invalid or oversized recovery copies are kept intact in quarantine instead of in
 copies remain available. An existing quarantine file is preserved; the original input stays intact if it
 cannot be moved beside that earlier file. Recovery never silently truncates your writing.
 
+Every modified workspace document has its own recovery copy. Healthy editing checkpoints after a short pause,
+with a five-second maximum admission delay while typing continuously. After a crash and relaunch, preview the
+last durable copies and choose **Restore a copy** or **Restore all copies**. Each restored document remains dirty
+and requires Save As; the original files stay untouched. The live Undo/Redo history is retained while switching
+files, but is not saved in recovery copies.
+
 The [root README](../README.md) covers launching and shortcuts. Start with Compose, select text for formatting,
 and use Source to inspect exact Markdown. Switch views freely; the document, source selection and undo history
 are shared. Split is an editable Compose pane next to a read-only source mirror.
@@ -25,6 +31,9 @@ protected, and a cancelled Close cannot later apply that abandoned file.
 the selected range/current line in a source draft while the rest stays rendered. Apply/Ctrl+Enter commits one
 edit, and Esc cancels. Link insertion opens a reviewable source draft rather than replacing selected words
 without a chance to edit the destination.
+New templates and changed drafts follow the first line ending in the document; an empty document uses CRLF.
+Untouched source keeps its original line endings, including mixed files. Recovery previews use the same rule
+as Apply, and Undo restores the complete original source.
 
 **Formatting:** the Text style menu offers paragraph/headings; the toolbar offers bold/italic/code, bullets and
 tasks. Insert offers link, image, table, Mermaid, equation, quote and code. The context menu adds strike,
@@ -42,9 +51,12 @@ a syntax you turn off stays exactly as typed. RedTilde does not open wiki pages 
 **Files pane:** choose **File → Open Folder...** (Ctrl+Shift+O) to select a notebook root, or use **Open File...**
 (Ctrl+O); the first file establishes its containing folder when no root exists. The selected root stays in place
 when opening another file, using New, or saving elsewhere. Restart restores the folder and the pane's saved
-visibility. Folder selection preserves unsaved writing. Press Ctrl+Shift+E to show or hide the pane. Filter by
-name, expand directories, and open a file with a single click or Enter. Opening follows the normal unsaved-changes
-prompt and file-safety rules. The pane is listing/opening only; it does not manage files. Without a selected root,
+visibility. Switching file rows keeps each document's edits, selection and Undo/Redo without a save question.
+Open documents also keeps untitled files and recovered copies reachable, including copies with the same original
+path. Explicit Open File, Open Folder, New and Close ask about every modified document; cancelling a question or
+picker keeps the workspace. The workspace holds up to 64 documents and explains the limit before refusing another
+file. Press Ctrl+Shift+E to show or hide the pane. Filter by name, expand directories, and open a file with a single
+click or Enter. The pane is listing/opening only; it does not manage files. Without a selected root,
 the empty pane explains how to open a folder or file. An unavailable remembered folder reports an error while
 editing remains available; choose Open Folder to replace it. At most 5,000 directory entries are examined to depth 8; the pane reports the actual
 Markdown result count separately from traversal-limit or access errors.

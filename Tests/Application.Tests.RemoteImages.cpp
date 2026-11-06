@@ -579,6 +579,47 @@ void RegisterRemoteImageTests(const std::filesystem::path &root, const std::func
                          app.Document().GetImageResourceStatistics().failedSources == 0 && app.Document().GetText() == text && !app.Dirty(),
                      "turning wiki links off leaves the embed as literal text without editing the document");
              Require(foreground.NeverAcquiredForeground(), "hidden wiki-embed handling preserves foreground");
+             if (!app.Preferences().allowRemoteImages)
+                 app.Execute(Command::RemoteImages);
+             RichImageLoader loader;
+             Require(SUCCEEDED(loader.Initialize(app.Window(), WM_APP + 0x317, 0x6e6574)), "initialize a network-denied application transport");
+             auto localhost = (fixture / L"Writing/cover.bmp").native();
+             std::replace(localhost.begin(), localhost.end(), L'\\', L'/');
+             const std::wstring localAuthority = L"file://localhost/" + localhost;
+             const std::array<std::pair<std::wstring, std::wstring>, 4> network{
+                 {{L"//files.example.test/share/cover.bmp", (fixture / L"Writing/Ideas.md").native()},
+                  {L"file://files.example.test/share/cover.bmp", (fixture / L"Writing/Ideas.md").native()},
+                  {localAuthority, (fixture / L"Writing/Ideas.md").native()},
+                  {L"cover.bmp", L"\\\\files.example.test\\share\\Ideas.md"}}};
+             for (const auto &[destination, base] : network)
+             {
+                 const auto source = L"![Network image](<" + destination + L">)\n";
+                 app.SetDocument(source);
+                 app.Document().SetDocumentFilePath(base);
+                 // Prepare the SDK host directly so this owned transport, not
+                 // Application::ServiceImages, claims the classified request.
+                 std::vector<DxUi::RichText::RichImageRequest> requests;
+                 for (unsigned turn = 0; turn < 256 && requests.empty(); ++turn)
+                 {
+                     (void)app.Host().RenderInitialFrameForShow();
+                     app.Document().TakePendingImageRequests(requests);
+                 }
+                 Require(requests.size() == 1 && requests[0].SourceKind() == DxUi::RichText::RichImageSourceKind::NetworkFile &&
+                             requests[0].FilePath().empty(),
+                         "authority, localhost and relative UNC images require classified network identities after explicit SDK opt-in");
+                 Require(SUCCEEDED(loader.Submit(requests)), "submit classified identity to the default-deny app transport");
+                 for (unsigned turn = 0; turn < 1000 && !loader.HasResults(); ++turn)
+                     std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                 std::vector<RichImageLoader::Result> results;
+                 loader.Drain(results);
+                 Require(results.size() == 1 && results[0].request == requests[0] && results[0].status == E_ACCESSDENIED && !results[0].image,
+                         "default app transport explicitly denies network files, including an existing localhost image, before I/O");
+                 Require(app.Document().CompleteImageRequest(results[0].request, {}) && app.Document().GetText() == source &&
+                             !app.Document().CanUndo() && !app.Dirty(),
+                         "network refusal publishes an editable alternative without changing source or history");
+             }
+             loader.Shutdown();
+             Require(foreground.NeverAcquiredForeground(), "classified network refusal never acquires foreground");
          });
 }
 } // namespace RedTilde

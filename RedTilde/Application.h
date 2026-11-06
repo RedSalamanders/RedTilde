@@ -90,7 +90,8 @@ enum class Command
     SyntaxDefinitionLists,
     SyntaxAbbreviations,
     OpenFolder,
-    StrikeCompletedTasks
+    StrikeCompletedTasks,
+    RestoreAllRecovery
 };
 struct LaunchOptions
 {
@@ -117,6 +118,7 @@ struct ApplicationActivity
     std::uint64_t filesModelRebuilds{};
     mutable std::uint64_t dirtyTextComparisons{};
     std::uint64_t recoveryTextCopies{};
+    std::uint64_t workspaceSwitches{}, workspaceRetainedPeak = 1;
 };
 class PerformanceProbe;
 // Existing identity/RAII/reference traits intentionally delete these implicit operations.
@@ -279,6 +281,7 @@ class Application
     Surface *recoveryPanel{};
     DxUi::TextField *recoveryPreview{};
     DxUi::Label *recoveryDescription{};
+    DxUi::Button *restoreAllRecovery{};
     DxUi::RichText::SourceSnapshot blockDraftSnapshot;
     DxUi::RichText::MarkdownRange blockDraftRange;
     std::uint64_t blockDraftRevision{};
@@ -286,6 +289,29 @@ class Application
     std::array<DxUi::Button *, 3> modeButtons{};
     DxUi::Button *outlineToggle{}, *focusToggle{};
     std::filesystem::path documentPath, folderRoot;
+    struct WorkspaceDocument
+    {
+        DxUi::RichText::Document state;
+        std::filesystem::path path;
+        std::wstring savedText;
+        FileStamp stamp;
+        std::set<std::uint64_t> collapsedHeadings;
+        unsigned recoveryKey{};
+        bool bom{}, recovered{}, dirty{};
+    };
+    struct WorkspaceApproval
+    {
+        unsigned key{};
+        DxUi::RichText::SourceSnapshot source;
+    };
+    std::vector<WorkspaceDocument> inactiveDocuments;
+    static constexpr std::uint64_t WorkspaceGroupId = std::uint64_t{1} << 63;
+    bool workspaceCollapsed{};
+    std::vector<WorkspaceApproval> workspaceApprovals, openingApprovals;
+    unsigned activeDocumentKey{};
+    bool switchingDocument{}, openingFromFiles{};
+    bool sessionEnding{};
+    HRESULT sessionEndRecoveryStatus = S_OK;
     bool lastFilesDirty{}, folderFilesActive{};
     HRESULT folderAdmissionStatus = S_OK;
     struct FilesFooterMeasureCache
@@ -327,6 +353,7 @@ class Application
     DocumentLineIndexStorage documentLineIndexStorage;
     std::function<void()> afterSave;
     std::optional<DxUi::RichText::SourceSnapshot> openingSnapshot;
+    std::optional<AsyncFiles::Result> heldOpen;
     static constexpr UINT ImageReady = WM_APP + 401, FileReady = WM_APP + 402, PreferencesReady = WM_APP + 403, RecoveryReadyMessage = WM_APP + 404,
                           FolderReady = WM_APP + 405;
     static LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM) noexcept;
@@ -343,6 +370,11 @@ class Application
     void UpdateCurrentFileDirtyBadge(bool dirty);
     void FolderCompleted();
     void OpenPath(const std::filesystem::path &path);
+    [[nodiscard]] bool SwitchWorkspaceDocument(std::size_t index);
+    [[nodiscard]] bool StartWorkspaceDocument();
+    void ResetWorkspace();
+    void CheckpointWorkspaceRecovery();
+    void AskWorkspaceThen(std::function<void()> continuation, std::vector<WorkspaceApproval> approved = {});
     void RefreshFind();
     void ReplaceFind(bool all);
     void FileMenu(bool overflow = false);

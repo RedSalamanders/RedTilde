@@ -1,0 +1,354 @@
+{
+  "schemaVersion": 1,
+  "claim": "Private retained originals; hashes identify files without relabelling failed or diagnostic attempts as acceptance",
+  "attempts": [
+    {
+      "archiveSet": "multidocument-first-tests-154b8eb",
+      "source": "154b8eb",
+      "disposition": "unaccepted original local-source/F2 fixture failure; corrected fixture retained",
+      "topLevelFiles": [
+        {
+          "name": "app-native.json",
+          "bytes": 861,
+          "sha256": "FCC4B85ADD8B791C29617FF4D2859FA2E0380ED329C4A080A71345B1679FB6C2"
+        },
+        {
+          "name": "app-native.zip",
+          "bytes": 13287101,
+          "sha256": "B71C86F13DD8EE76408888CAA555A1D84D2A82E54D9955E5D8C9544E1F0A6819"
+        },
+        {
+          "name": "compiled-working-inputs.json",
+          "bytes": 15053,
+          "sha256": "A4149B2E97CA43D7E20275F23981F86E1482F4A9793E524B0214918BA448CCA2"
+        },
+        {
+          "name": "compiled-working-inputs.zip",
+          "bytes": 1082221,
+          "sha256": "CF58944307B43C6A61098A44C2648430F5C51F1857C558625F75FE1755100275"
+        },
+        {
+          "name": "Release-sdk-counterexample-retired.json",
+          "bytes": 11482,
+          "sha256": "92EDEF2F8FFA912395DEBF1A64C244EE8E857C764BA2F5421C689C7B410EFFE1"
+        },
+        {
+          "name": "run.json",
+          "bytes": 79951,
+          "sha256": "4E7EEB4BB3EE1540569D8431F0D7F9B087AB3B9809F7CEB29050999206A52FE3"
+        },
+        {
+          "name": "run.zip",
+          "bytes": 2416067,
+          "sha256": "DDCEB48C82797BF15EEC26FB748FAEB16578FBF7932F9B38EBB91886ABF76306"
+        },
+        {
+          "name": "sdk-native.json",
+          "bytes": 735,
+          "sha256": "CA924609F8176215709845799C2FA616E22186B9C7B165B5F531D72FC597A8E4"
+        },
+        {
+          "name": "sdk-native.zip",
+          "bytes": 58636873,
+          "sha256": "87B167D7AE66D4B518E0BDD82483D9ED5A97C3A7EF875078BC43F12CC1105216"
+        },
+        {
+          "name": "source.zip",
+          "bytes": 120298305,
+          "sha256": "4E4A9C110B23968ABF3B888F5F4B6FD9DBCBB0E52A7CFEB70A7D525E2CA316E4"
+        }
+      ]
+    },
+    {
+      "archiveSet": "storage-counterexamples-20261106",
+      "source": "c49dd63e / isolated candidate",
+      "disposition": "isolated fail-before/pass-after flush cleanup and bad-settings probes, not application qualification",
+      "topLevelFiles": [
+        {
+          "name": "preservation.json",
+          "bytes": 8854,
+          "sha256": "1740DA739D0BD556515DDBBB2AC1075C8C04A5E1947DB79901EE6CA03CBD0F20"
+        },
+        {
+          "name": "probe.zip",
+          "bytes": 7549211,
+          "sha256": "61F059A4A347E1C2A1F5785456DADB46309269D587882A73F9111DD9AB80DB35"
+        }
+      ]
+    },
+    {
+      "archiveSet": "multidocument-warning-build-17aa4592",
+      "source": "17aa4592045321ae2e3ce0d02f7bec3b1cb64997",
+      "disposition": "unaccepted build: unhandled NetworkFile switch warning; no runtime qualification claim",
+      "topLevelFiles": [
+        {
+          "name": "app-objects-retired.json",
+          "bytes": 6748,
+          "sha256": "2A0E796515F071E381C801753D9F72AAA482360963B980318869F703A7631276"
+        },
+        {
+          "name": "disposition.json",
+          "bytes": 340,
+          "sha256": "05A167513379BB810770D1DB878677A9EB0CF220A68E85EB6C112CCD80A11A40"
+        },
+        {
+          "name": "original-warning-build.log",
+          "bytes": 32199,
+          "sha256": "362E8EAED05116B648E47AD5058A22F731877708ECFD91C37A9AE11627FFB6F8"
+        },
+        {
+          "name": "producer-objects-retired.json",
+          "bytes": 11508,
+          "sha256": "78EC59C152B52E722CA520AB761A464C523979B9AE848F33BF17C24B0F807364"
+        },
+        {
+          "name": "producer-sdk.json",
+          "bytes": 740,
+          "sha256": "5425ACA487CC5E9EC39B9C68AF877DBA13F94FF7889B61C51182B618BD0D5A8E"
+        },
+        {
+          "name": "producer-sdk.zip",
+          "bytes": 58700006,
+          "sha256": "E6F50AA4EE65AC2246BCDCA08E052A36589B5A2FDEA921478ADD9EBBF91AED60"
+        },
+        {
+          "name": "unaccepted-app.json",
+          "bytes": 867,
+          "sha256": "F7C9364E321E3B30AC469D6AD8C97404929CE914B3A1BA7512DC599D92A48F1F"
+        },
+        {
+          "name": "unaccepted-app.zip",
+          "bytes": 13403869,
+          "sha256": "871A77B75EF92F065C4C03D5514D5F278C49338482A3652544D570E8215DBB8D"
+        }
+      ]
+    },
+    {
+      "archiveSet": "multidocument-recovery-c49dd63e-20261106",
+      "source": "c49dd63ec4736227c7badc9e1917f7d5454f6f45",
+      "disposition": "earlier six-profile qualified workspace implementation at older SDK pin; not current-source qualification",
+      "topLevelFiles": [
+        {
+          "name": "ARM64-ASan-Debug-app-objects-retired.json",
+          "bytes": 7106,
+          "sha256": "7815D5CF806921E1D0154645ED4CD75C57D4E0806E55C43775C9A5CDB373B60F"
+        },
+        {
+          "name": "ARM64-ASan-Debug-native.json",
+          "bytes": 1063,
+          "sha256": "D03347B85621C3C0B925079F3211B6758BD8E8A5556F2FD287DD6BB69A675B1A"
+        },
+        {
+          "name": "ARM64-ASan-Debug-native.zip",
+          "bytes": 20883860,
+          "sha256": "F6D7559A45DC29DF17334E14CC1186D010A0369D830186E47258C9D83062B74B"
+        },
+        {
+          "name": "ARM64-ASan-Debug-sdk-objects-retired.json",
+          "bytes": 12365,
+          "sha256": "8D3E9EE66A87E6B251034D65A248759862383DB7C4CC1F87E1F25DE6438B07D0"
+        },
+        {
+          "name": "ARM64-ASan-Debug-sdk.json",
+          "bytes": 933,
+          "sha256": "DFC072F3C100508CE20333D662AC25923283A7FC17B4259C4B5EF380C1BE0295"
+        },
+        {
+          "name": "ARM64-ASan-Debug-sdk.zip",
+          "bytes": 37356566,
+          "sha256": "F9B7E10ACC47BA4F3A5F0617E70A064041C500A7326775E9E5ECD4B80002B5D8"
+        },
+        {
+          "name": "ARM64-Debug-app-objects-retired.json",
+          "bytes": 6878,
+          "sha256": "2A80C6C86A2E1D0584AC0DDCCFBA33A0C335D39CB9EBAFB4C1DC5900595B19BD"
+        },
+        {
+          "name": "ARM64-Debug-native.json",
+          "bytes": 877,
+          "sha256": "212193420C28CAC76D4DBA46EBBAEEF6ECD1CF2CF5C24FDABEF630E6EC1BB710"
+        },
+        {
+          "name": "ARM64-Debug-native.zip",
+          "bytes": 21157584,
+          "sha256": "C127960BDFBAB6CECE450A4E758B2D987C8756184C6E953BFFCD87CD13A3DBC2"
+        },
+        {
+          "name": "ARM64-Debug-sdk-objects-retired.json",
+          "bytes": 11481,
+          "sha256": "036693E0AA1F38E61FB92A627CE5CBBC71E207B2AC29F4F2560E035494350458"
+        },
+        {
+          "name": "ARM64-Debug-sdk.json",
+          "bytes": 898,
+          "sha256": "DD62626F577D6F4E68B36F7E2FCC91D8CC6FCFA4D74BBF3BA77FAAE1F3ABEE05"
+        },
+        {
+          "name": "ARM64-Debug-sdk.zip",
+          "bytes": 38403864,
+          "sha256": "E9C395A6E18E0E15D4399A8738526DFA0F488AA5BE052EA98028B047B295FDEA"
+        },
+        {
+          "name": "ARM64-Release-app-objects-retired.json",
+          "bytes": 6723,
+          "sha256": "3A3B68305163D4EBC77C2F3B213DB28E8953D2FC003E19D6A51161296AAD8F98"
+        },
+        {
+          "name": "ARM64-Release-native.json",
+          "bytes": 880,
+          "sha256": "7D5E1209EB47843BC9F89530CE38D065A76C7AF076E5940899642B99DC8A0C2A"
+        },
+        {
+          "name": "ARM64-Release-native.zip",
+          "bytes": 13203374,
+          "sha256": "D393766678A1B8A2C8122F1613B24A98DDC76BB43A3EF89A7E687D4692887105"
+        },
+        {
+          "name": "ARM64-Release-sdk-objects-retired.json",
+          "bytes": 11606,
+          "sha256": "4E23AFC5E15036CA2B944DA48F41A31F5533BEFE54754A1B66C8B69F0D7BCE43"
+        },
+        {
+          "name": "ARM64-Release-sdk.json",
+          "bytes": 751,
+          "sha256": "7C0883E964DD2A9F32E233431A8DC3744A936CBA59888A7DEACC9C30311DD2BA"
+        },
+        {
+          "name": "ARM64-Release-sdk.zip",
+          "bytes": 58668237,
+          "sha256": "894C5A77422F8B20BAEC8846C5D70403A839A82D498D2E7FCFB0D8787D523632"
+        },
+        {
+          "name": "original-compiled-inputs.json",
+          "bytes": 20771,
+          "sha256": "D1681A2A0A142451D425245DD9C4D82AE6014C811FCF25195A4952A442F16719"
+        },
+        {
+          "name": "original-compiled-inputs.zip",
+          "bytes": 1082315,
+          "sha256": "1159861520E91EC81F8AEF10A7C6D233748D0C8A32CFA4752F4168A3CEFDE9EE"
+        },
+        {
+          "name": "x64-ASan-Debug-app-objects-retired.json",
+          "bytes": 7105,
+          "sha256": "CA51ED81604F2C3438B0E78CD6B71F2FB9D45910E264D61B1A774D1E0A136D25"
+        },
+        {
+          "name": "x64-ASan-Debug-native-run.json",
+          "bytes": 183174,
+          "sha256": "DE6CD289F37F678842CFBD4FC522EAF2FFFBC08CAF913A8D8976F9788820C56D"
+        },
+        {
+          "name": "x64-ASan-Debug-native-run.zip",
+          "bytes": 17564344,
+          "sha256": "00AA2F4A01E16ABEDA885AEE9ADCDC11FAC89159016433D6C2D00865D3CE3CC2"
+        },
+        {
+          "name": "x64-ASan-Debug-native.json",
+          "bytes": 1058,
+          "sha256": "E9EE44FA3690010D73B68780F69A0DDB89A906AD8DE580C09690DC8C74326214"
+        },
+        {
+          "name": "x64-ASan-Debug-native.zip",
+          "bytes": 22321256,
+          "sha256": "8CFF961E4835271670CEC8271B5356463FCF4ECFB5EC36276021110F4654EFC5"
+        },
+        {
+          "name": "x64-ASan-Debug-sdk-objects-retired.json",
+          "bytes": 12237,
+          "sha256": "086B510E4554CA1F74C1EFD81ABB550BDA6D18DE23326574295D8262BDE390D9"
+        },
+        {
+          "name": "x64-ASan-Debug-sdk.json",
+          "bytes": 928,
+          "sha256": "DAF8CD83BED18AA876BA2D23636CCA8FFB309B9C139CE34C443C989A5292CFE9"
+        },
+        {
+          "name": "x64-ASan-Debug-sdk.zip",
+          "bytes": 39568269,
+          "sha256": "0C7369AEBC5A8BFCA1604CE7858F7B2AC0000D89363ADFC5A63E6654BEE6266A"
+        },
+        {
+          "name": "x64-Debug-app-objects-retired.json",
+          "bytes": 6874,
+          "sha256": "60412EBF5D13C11D39387A04345A267557B498670AA36589FB89A6B11B76DA83"
+        },
+        {
+          "name": "x64-Debug-native-run.json",
+          "bytes": 182844,
+          "sha256": "B5D90A22747B7561A0396C317096959A97FF5BCD45145C178D761A72F174FF23"
+        },
+        {
+          "name": "x64-Debug-native-run.zip",
+          "bytes": 17555428,
+          "sha256": "2168B87297A2535FA08E26BBDDF8A62B9723E6C2D12C262D834A27D2B8201C71"
+        },
+        {
+          "name": "x64-Debug-native.json",
+          "bytes": 873,
+          "sha256": "D1BE7AABF09493C2788FA768B169FD52F6E12F5CD0544D3F91BC4BB587F0AAE9"
+        },
+        {
+          "name": "x64-Debug-native.zip",
+          "bytes": 20691888,
+          "sha256": "D6FCC108A4170817CE46037ED7B2BAA9FA3698BAFC61E30C81A8DEB201C06DF9"
+        },
+        {
+          "name": "x64-Debug-sdk-objects-retired.json",
+          "bytes": 11354,
+          "sha256": "58FF55EB99A10248462D80B8647DBBF3D8BCEE812C67A01CBA46D16C10D9C50D"
+        },
+        {
+          "name": "x64-Debug-sdk.json",
+          "bytes": 894,
+          "sha256": "C6BC9C71F1BE1ED2F53C15CE598DBACD51D7CA3231A4718DADBBDDF9048C616D"
+        },
+        {
+          "name": "x64-Debug-sdk.zip",
+          "bytes": 36468292,
+          "sha256": "C5A7704E095766DA705CB680F7260B450CCE9CF28ADD93EA1A0318FF4FC1ADBB"
+        },
+        {
+          "name": "x64-Release-app-objects-retired.json",
+          "bytes": 6723,
+          "sha256": "9EA83EA81D74FB92E29E9D4216E3966FBA47CED1DEE81A52B2BED7E2D5396233"
+        },
+        {
+          "name": "x64-Release-native-run.json",
+          "bytes": 182848,
+          "sha256": "F6E58FC6267CA2D7A0FC7DBC295142D99E7F1B05904B0E64020FA973F1A4C5AF"
+        },
+        {
+          "name": "x64-Release-native-run.zip",
+          "bytes": 17552204,
+          "sha256": "DB91FC14A606FC5653A9A5D2B8610E05CAC3A9B43E76BCEC078C05F71DC974F9"
+        },
+        {
+          "name": "x64-Release-native.json",
+          "bytes": 876,
+          "sha256": "19CC6E2DB2FC9C15668552981226C627F4B756ECC857C70C550424D6F1DE5883"
+        },
+        {
+          "name": "x64-Release-native.zip",
+          "bytes": 13295877,
+          "sha256": "FEE3BB08813E489BB718304F7D244C375AC3990295A744D9791871533A1367F4"
+        },
+        {
+          "name": "x64-Release-sdk-objects-retired.json",
+          "bytes": 11482,
+          "sha256": "5BC91D0BB49204AF7373FD2E03236FC17249715B495734194F62F23AD016D8F7"
+        },
+        {
+          "name": "x64-Release-sdk.json",
+          "bytes": 747,
+          "sha256": "6F629E6825E6A82593EF5957B5DB0080A5CEF4F00F523A23FEF3C458889E3701"
+        },
+        {
+          "name": "x64-Release-sdk.zip",
+          "bytes": 58636472,
+          "sha256": "27AA050F5FA4E633625B37C8B73197209979F04B02ADD146A2DBE82B96B75387"
+        }
+      ]
+    }
+  ]
+}
