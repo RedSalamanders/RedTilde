@@ -1,7 +1,7 @@
 # RedTilde remaining delivery and qualification
 
 Status: ACTIVE
-Updated: 5 November 2026
+Updated: 6 November 2026
 Owner: RedTilde maintainers; shared controls stay with DxUi.
 
 This is the **only active RedTilde plan**. It replaces the ten overlapping planning queues listed in the
@@ -58,6 +58,9 @@ production was withheld. The repaired candidate still requires its own hosted na
 The approved narrow memory-cost disposition remains narrow. No functional pass, screenshot, PR merge or
 ordinary CI success accepts R10, a measurement policy, quiet-host behavior or another candidate's performance.
 
+
+Current workspace/rendering implementation: `fe9b7d15`, exact API-4 DxUi `8dc328de`. The [scoped closeout](../Done/WorkspaceRecoveryAndRendering_2026-11-06.md) records six zero-warning builds, all 91 cases and 36 captures in each x64 profile, real ASan detection, independent file/draft/settings failure tests and sixteen actual rendering captures. This closes the listed workspace, recovery admission, EOL, RT-06/09/14 and rendering adoption scopes; the remaining conflict/location, image-consent, performance and native/physical gates stay below.
+
 ## Execution order
 
 T-U1's prepared diagram-label correction and T-S1's accepted duplicate-Close behavior have their scoped
@@ -76,7 +79,7 @@ meaningful failing-then-passing regression where applicable.
 - [x] Complete Q4 / RT-02 / PR-05: hide while an admitted save settles, retain recovery until success,
   reshow with failure, protect later edits and abandon Open. Real I/O-barrier regressions, six builds and
   three complete x64 profiles pass in the [scoped closeout](../Done/CloseDuringSave_2026-11-05.md).
-- [ ] Implement immediate recovery submission on session end, bounded settlement and restart presentation
+- [x] Implement immediate recovery submission on session end, bounded settlement and restart presentation
   (RT-01/PR-03, Q2); keep the 750 ms quiet debounce and enforce the approved five-second staleness cap
   under continuous typing (RT-10/PR-04, Q3).
 - [x] Quarantine oversized checksum-valid recovery envelopes and retain complete original contents and
@@ -85,8 +88,8 @@ meaningful failing-then-passing regression where applicable.
 - [x] Implement and qualify Q18: keep the existing Save/Discard/Cancel prompt and ignore duplicate native
   or command Close (PR-34). The hidden regression covers Cancel and a fresh Discard in all three x64 profiles.
   [Scoped closeout](../Done/DiagramLabelBackgroundsAndClosePrompt_2026-11-04.md)
-- [ ] Contain shortcut, menu, save-completion and Find failure paths without leaving `updatingFind` latched
-  (RT-12/14, PR-07/35).
+- [x] Unwind `updatingFind` after a rejected replacement and verify a subsequent valid replacement/Undo (RT-14); [scoped closeout](../Done/WorkspaceRecoveryAndRendering_2026-11-06.md).
+- [ ] Complete the remaining shortcut, menu and save-completion exception boundaries (RT-12, PR-07/35).
 
 Owner: `RedTilde/Application.cpp`, `Application.Navigation.cpp`, `Common/Recovery.cpp`, `RedTilde/AsyncFiles.h`.
 Acceptance: deterministic Restore+Discard, close-during-save success/failure, continuous typing, logoff,
@@ -96,13 +99,12 @@ malformed envelope, second close and size-limit tests. See the retained
 <a id="t-s2"></a>
 ### T-S2 — lossless files and storage semantics
 
-- [ ] Preserve the document terminator for F2 Apply and insertion commands (RT-03 product half), hold Open
+- [x] Preserve the document terminator for F2 Apply and insertion commands (RT-03 product half), hold Open
   completion while a local-source draft is open (RT-05), and keep a bad settings header on disk (RT-09).
 - [ ] Implement the approved single conflict surface: Reload, Save As, Overwrite, Cancel; distinguish failed
   readback from a real content conflict and avoid poisoning the next save stamp (RT-07, Q6).
-- [ ] Close staging handles before failure cleanup (RT-06), document the achievable cross-process save-race
-  contract (C6), and implement the approved replace fallbacks, sharing, cloud tags and same-target stamping
-  for OneDrive/cloud, SMB/NAS and WSL (PR-09/10/31, Q8).
+- [x] Close staging handles before failure cleanup (RT-06); independent write/flush failure tests preserve bytes/stamps and leave no temporary file. [scoped closeout](../Done/WorkspaceRecoveryAndRendering_2026-11-06.md).
+- [ ] Document the achievable cross-process save-race contract (C6), and implement the approved replace fallbacks, sharing, cloud tags and same-target stamping for OneDrive/cloud, SMB/NAS and WSL (PR-09/10/31, Q8).
 - [ ] Preserve symlink/hard-link identities under the approved distinct write policies (Q12), and expose
   specific unsupported-encoding/capacity errors under the current 65,536 UTF-16-unit limit (Q7).
 
@@ -118,9 +120,9 @@ RT-18 remains optional defensive hardening, not a newly confirmed defect.
   undoable edit in Compose, Source and Split. Retain the existing empty-selection templates and test actual
   application command dispatch; rejection never replaces selected text with a sample. Six builds, all 83
   cases and 36 captures per x64 profile pass in the [scoped closeout](../Done/SelectedBlockInsertions_2026-11-05.md).
-- [ ] Verify the new `graph BT`, class-inheritance LR, accent and gathered-matrix corrections against an
+- [x] Verify the new `graph BT`, class-inheritance LR, accent and gathered-matrix corrections against an
   exact qualified DxUi pin with native application captures; the prior scoped rendering fixes remain historical.
-- [ ] Keep each modified file while switching within the left-pane root without prompting. Prompt when
+- [x] Keep each modified file while switching within the left-pane root without prompting. Prompt when
   explicitly opening a new file/folder or closing, and persist/recover every modified document after a crash
   and relaunch. Preserve per-document source/selection/history and saved identity through switching.
 - [x] Adopt the shared contrast-aware diagram-label background correction and verify actual Light/Dark,

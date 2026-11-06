@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "claim": "Actual application harness captures with invented fixture data; non-activating owned windows",
+  "candidate": {
+    "binarySha256": "6CBD63C43920DD4E28652F38B42E7FF48361582D9B9AF8FC8BD7512145969349",
+    "sdkCommit": "8dc328dec0a80cc0e36fa08e5364265ebd25d37e",
+    "captures": 16,
+    "sourceCommit": "fe9b7d15b522630ed54fc8891516b24137a4d5fc"
+  },
+  "baseline": {
+    "retainedOriginalCaptures": 16,
+    "binarySha256": "4618B9EAE36A2FC4867AB3CC996268381D804B80B5691378F8BA0732329114F2",
+    "publishedCaptures": 4,
+    "sdkCommit": "2a7e7c28f95a70193e4a2f68a89001d54b4d2131",
+    "sourceCommit": "bc024dd88d061a8530ead80a5c6df7505a88637d"
+  },
+  "images": [
+    {
+      "file": "captures/Pipeline-light-96.png",
+      "scenario": "sample-document-light",
+      "dpi": 96,
+      "fixture": "Pipeline.md",
+      "fixtureSha256": "29837D9CAD09A4CCEC0B14FA5351483B13AB3B1A714897C2BD50360BEFC61C90",
+      "sha256": "3288BE1C7D5994F27A4913595BDB97E4BC0DBC5F55F2608765CFFAD510A292B1"
+    },
+    {
+      "file": "captures/Pipeline-dark-96.png",
+      "scenario": "sample-document-dark",
+      "dpi": 96,
+      "fixture": "Pipeline.md",
+      "fixtureSha256": "29837D9CAD09A4CCEC0B14FA5351483B13AB3B1A714897C2BD50360BEFC61C90",
+      "sha256": "20192D35BD8B4DFF787AE2053D874D0F42ECBC61ACCA42EDB0F03AE93CB39693"
+    },
+    {
+      "file": "captures/Pipeline-light-192.png",
+      "scenario": "sample-document-light",
+      "dpi": 192,
+      "fixture": "Pipeline.md",
+      "fixtureSha256": "29837D9CAD09A4CCEC0B14FA5351483B13AB3B1A714897C2BD50360BEFC61C90",
+      "sha256": "9F2EB8180691D9126692827CA24C5BFD479968568EE113515D1D6FA5E2490DDD"
+    },
+    {
+      "file": "captures/Pipeline-dark-192.png",
+      "scenario": "sample-document-dark",
+      "dpi": 192,
+      "fixture": "Pipeline.md",
+      "fixtureSha256": "29837D9CAD09A4CCEC0B14FA5351483B13AB3B1A714897C2BD50360BEFC61C90",
+      "sha256": "4617DA6A11D02B858EF69E22C9C27C49B3428121939D4D537FC4D46A66BB3FCD"
+    },
+    {
+      "file": "baseline/Pipeline-light-96.png",
+      "scenario": "sample-document-light",
+      "dpi": 96,
+      "fixture": "Pipeline.md",
+      "fixtureSha256": "29837D9CAD09A4CCEC0B14FA5351483B13AB3B1A714897C2BD50360BEFC61C90",
+      "sha256": "CC285083ACB74D499C2D318F3256BB82FEE5E70FF4FE1E4670A438A1B2438B09"
+    },
+    {
+      "file": "captures/Classes-light-96.png",
+      "scenario": "sample-document-light",
+      "dpi": 96,
+      "fixture": "Classes.md",
+      "fixtureSha256": "6E9C0925591FAF4B36A3BA42F11E229B0532B05EF64AB4B998BB3ECAF023940B",
+      "sha256": "18E1AD0AA1D773365D379022128CA338C6EDBFFC57BCCBE67BAE354B1830EAAE"
+    },
+    {
+      "file": "captures/Classes-dark-96.png",
+      "scenario": "sample-document-dark",
+      "dpi": 96,
+      "fixture": "Classes.md",
+      "fixtureSha256": "6E9C0925591FAF4B36A3BA42F11E229B0532B05EF64AB4B998BB3ECAF023940B",
+      "sha256": "F8BDC3D569A04FB994056134FF8CA97E3C89F33ADF9BB3882A8DA104E06F90CA"
+    },
+    {
+      "file": "captures/Classes-light-192.png",
+      "scenario": "sample-document-light",
+      "dpi": 192,
+      "fixture": "Classes.md",
+      "fixtureSha256": "6E9C0925591FAF4B36A3BA42F11E229B0532B05EF64AB4B998BB3ECAF023940B",
+      "sha256": "CB4A5710F27A32200B9F91AB73B647837FDD0FC71565D3DFFD96F170463B7FD7"
+    },
+    {
+      "file": "captures/Classes-dark-192.png",
+      "scenario": "sample-document-dark",
+      "dpi": 192,
+      "fixture": "Classes.md",
+      "fixtureSha256": "6E9C0925591FAF4B36A3BA42F11E229B0532B05EF64AB4B998BB3ECAF023940B",
+      "sha256": "C21EA7361CD652AF29A8D339DF2D19503459C53E2029F5016B8CEE4679AD6189"
+    },
+    {
+      "file": "baseline/Classes-light-96.png",
+      "scenario": "sample-document-light",
+      "dpi": 96,
+      "fixture": "Classes.md",
+      "fixtureSha256": "6E9C0925591FAF4B36A3BA42F11E229B0532B05EF64AB4B998BB3ECAF023940B",
+      "sha256": "7D37EEADAED820EF29636F6CAE832CED54B6F4F9407998F8BE024865923663AF"
+    },
+    {
+      "file": "captures/Accents-light-96.png",
+      "scenario": "sample-document-light",
+      "dpi": 96,
+      "fixture": "Accents.md",
+      "fixtureSha256": "A9E6358BC6ECC49BEBA1704C7FC597A693ECE477C2A79938485094F2DE26D085",
+      "sha256": "C8C27BC430D484FE8D29098B485BA0749BA4601B25B50353196107EAF4AD23EA"
+    },
+    {
+      "file": "captures/Accents-dark-96.png",
+      "scenario": "sample-document-dark",
+      "dpi": 96,
+      "fixture": "Accents.md",
+      "fixtureSha256": "A9E6358BC6ECC49BEBA1704C7FC597A693ECE477C2A79938485094F2DE26D085",
+      "sha256": "AFE9572AA9C7C54D95FFA528530AB6794D33CACF009CE2252B54B66087DCE91E"
+    },
+    {
+      "file": "captures/Accents-light-192.png",
+      "scenario": "sample-document-light",
+      "dpi": 192,
+      "fixture": "Accents.md",
+      "fixtureSha256": "A9E6358BC6ECC49BEBA1704C7FC597A693ECE477C2A79938485094F2DE26D085",
+      "sha256": "6DDB1E1ADD5C7D2D26C0AED7CA96D4BE466EEB3BADEF0A42553F770D20B09CEA"
+    },
+    {
+      "file": "captures/Accents-dark-192.png",
+      "scenario": "sample-document-dark",
+      "dpi": 192,
+      "fixture": "Accents.md",
+      "fixtureSha256": "A9E6358BC6ECC49BEBA1704C7FC597A693ECE477C2A79938485094F2DE26D085",
+      "sha256": "FA2179562E196A2915417E2C6ECD3CF7B45346607DD15AA1057153FB2D1016E1"
+    },
+    {
+      "file": "baseline/Accents-light-96.png",
+      "scenario": "sample-document-light",
+      "dpi": 96,
+      "fixture": "Accents.md",
+      "fixtureSha256": "A9E6358BC6ECC49BEBA1704C7FC597A693ECE477C2A79938485094F2DE26D085",
+      "sha256": "39331FA2BE30F715F4E179972815FB6576270D837794F00D8665DEC42C4E0602"
+    },
+    {
+      "file": "captures/Gathered-light-96.png",
+      "scenario": "sample-document-light",
+      "dpi": 96,
+      "fixture": "Gathered.md",
+      "fixtureSha256": "0FDF5EB15711412A518C01C7B6195913BA4F38EFE4A20D265F7ADCE7D8179316",
+      "sha256": "4D87CF2DEA18FA28A036791182D3DDF56D50DAE0FCA0C403F5102CEA80881600"
+    },
+    {
+      "file": "captures/Gathered-dark-96.png",
+      "scenario": "sample-document-dark",
+      "dpi": 96,
+      "fixture": "Gathered.md",
+      "fixtureSha256": "0FDF5EB15711412A518C01C7B6195913BA4F38EFE4A20D265F7ADCE7D8179316",
+      "sha256": "4D49A5F8AC8BAF60C652C0BB6CBD6BF9AAC0C3A94028ABBCD1B53AD59904F30C"
+    },
+    {
+      "file": "captures/Gathered-light-192.png",
+      "scenario": "sample-document-light",
+      "dpi": 192,
+      "fixture": "Gathered.md",
+      "fixtureSha256": "0FDF5EB15711412A518C01C7B6195913BA4F38EFE4A20D265F7ADCE7D8179316",
+      "sha256": "838A60AEE5BECA300832CF933FF8F815646A8195F1489DF596E96CEBFC680466"
+    },
+    {
+      "file": "captures/Gathered-dark-192.png",
+      "scenario": "sample-document-dark",
+      "dpi": 192,
+      "fixture": "Gathered.md",
+      "fixtureSha256": "0FDF5EB15711412A518C01C7B6195913BA4F38EFE4A20D265F7ADCE7D8179316",
+      "sha256": "454EAA5A5FAB846E720893DE44BC0158D82BAED5F9925AB7246FF31D84E150A4"
+    },
+    {
+      "file": "baseline/Gathered-light-96.png",
+      "scenario": "sample-document-light",
+      "dpi": 96,
+      "fixture": "Gathered.md",
+      "fixtureSha256": "0FDF5EB15711412A518C01C7B6195913BA4F38EFE4A20D265F7ADCE7D8179316",
+      "sha256": "71943993C9A194A98A30E9DAD82677DFB195CA414E1DE4017347F8E3D6046ABF"
+    }
+  ],
+  "review": {
+    "light96AllFour": "reviewed: authored class direction, continuous connector, balanced pipeline, accent clearance and non-overlapping gathered rows",
+    "dark192": "reviewed: class relation and gathered equation; remaining theme/DPI captures retained with hashes"
+  }
+}
