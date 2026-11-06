@@ -12,8 +12,10 @@
 #include <dwmapi.h>
 #include <format>
 #include <fstream>
+#include <mutex>
 #include <new>
 #include <psapi.h>
+#include <shellapi.h>
 #include <shobjidl.h>
 #include <thread>
 #include <type_traits>
@@ -175,6 +177,28 @@ DxUi::RichText::MarkdownExtensions MarkdownExtensionsFor(const Settings &setting
 }
 } // namespace
 
+struct Application::ExternalLinkState
+{
+    explicit ExternalLinkState(HWND owner) : window(owner) {}
+    ExternalLinkState(const ExternalLinkState &) = delete;
+    ExternalLinkState &operator=(const ExternalLinkState &) = delete;
+    ExternalLinkState(ExternalLinkState &&) = delete;
+    ExternalLinkState &operator=(ExternalLinkState &&) = delete;
+    std::mutex mutex;
+    HWND window{};
+    bool busy{};
+    std::optional<HRESULT> completed;
+};
+struct Application::ExternalLinkJob
+{
+    std::shared_ptr<ExternalLinkState> state;
+    std::wstring destination;
+#if defined(REDTILDE_ENABLE_TESTS)
+    std::function<HRESULT(std::wstring_view)> launchForTest;
+    std::shared_ptr<AsyncFiles::TestGate> gate;
+#endif
+};
+
 std::wstring_view ResourceView(unsigned id)
 {
     const wchar_t *value{};
@@ -207,10 +231,17 @@ std::wstring SampleDocument()
            L"Images use ordinary Markdown: `![description](images/photo.png)`. Insert a local image from the toolbar or paste a file path.\n";
 }
 
-Application::Application(LaunchOptions value) : options(std::move(value)) {}
+Application::Application(LaunchOptions value) : options(std::move(value))
+{
+    startupPolicy = !options.headless;
+#if defined(REDTILDE_ENABLE_TESTS)
+    startupPolicy = startupPolicy || options.startupRestoreForTest;
+#endif
+}
 Application::~Application()
 {
     closing = true;
+    CloseExternalLinks();
     preferenceWriter.Close();
     recovery.Close();
     files.Close();
@@ -224,7 +255,7 @@ HRESULT Application::Initialize()
 {
     if (options.dataDirectory.empty())
         options.dataDirectory = DefaultDataDirectory();
-    if (!options.headless || options.preferencesProbe)
+    if (startupPolicy || options.preferencesProbe)
         (void)LoadSettings(options.dataDirectory, settings);
     WNDCLASSEXW cls{sizeof(cls)};
     cls.lpfnWndProc = WindowProc;
@@ -238,11 +269,47 @@ HRESULT Application::Initialize()
     const UINT dpi = GetDpiForSystem();
     RECT bounds{0, 0, MulDiv(options.scenario == L"narrow" ? 820 : 1360, static_cast<int>(dpi), 96), MulDiv(900, static_cast<int>(dpi), 96)};
     (void)AdjustWindowRectExForDpi(&bounds, WS_OVERLAPPEDWINDOW, FALSE, 0, dpi);
+    RECT requested = bounds;
+    unsigned savedDpi = dpi;
+    RECT workArea{0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN)};
+    if (!options.headless)
+    {
+        if (settings.windowPlacement)
+        {
+            requested = settings.windowPlacement.value().normalBounds;
+            savedDpi = settings.windowPlacement.value().dpi;
+        }
+        MONITORINFO monitor{sizeof(monitor)};
+        const HMONITOR target =
+            settings.windowPlacement ? MonitorFromRect(&requested, MONITOR_DEFAULTTONEAREST) : MonitorFromPoint(POINT{}, MONITOR_DEFAULTTOPRIMARY);
+        if (GetMonitorInfoW(target, &monitor))
+            workArea = monitor.rcWork;
+        if (!settings.windowPlacement)
+        {
+            const LONG width = bounds.right - bounds.left, height = bounds.bottom - bounds.top;
+            requested = {workArea.left + (workArea.right - workArea.left - width) / 2, workArea.top + (workArea.bottom - workArea.top - height) / 2,
+                         0, 0};
+            requested.right = requested.left + width;
+            requested.bottom = requested.top + height;
+        }
+        bounds = ClampWindowBounds(requested, workArea, savedDpi, dpi);
+    }
     window.reset(CreateWindowExW(options.headless ? WS_EX_NOACTIVATE : 0, cls.lpszClassName, Resource(IDS_APP).c_str(), WS_OVERLAPPEDWINDOW,
-                                 CW_USEDEFAULT, CW_USEDEFAULT, bounds.right - bounds.left, bounds.bottom - bounds.top, nullptr, nullptr,
-                                 cls.hInstance, this));
+                                 options.headless ? CW_USEDEFAULT : bounds.left, options.headless ? CW_USEDEFAULT : bounds.top,
+                                 bounds.right - bounds.left, bounds.bottom - bounds.top, nullptr, nullptr, cls.hInstance, this));
     if (!window)
         return HRESULT_FROM_WIN32(GetLastError());
+    if (!options.headless)
+    {
+        const unsigned actualDpi = GetDpiForWindow(window.get());
+        bounds = ClampWindowBounds(requested, workArea, savedDpi, actualDpi);
+        if (!SetWindowPos(window.get(), nullptr, bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top,
+                          SWP_NOZORDER | SWP_NOACTIVATE))
+            return HRESULT_FROM_WIN32(GetLastError());
+        const bool maximized = settings.windowPlacement && settings.windowPlacement.value().maximized;
+        settings.windowPlacement = WindowPlacementSettings{bounds, actualDpi, maximized};
+        windowPlacementDirty = true;
+    }
     if (!host.Attach(window.get(), {.forceWarp = options.forceWarp, .batchInitialRootChildren = true}))
         return HRESULT_FROM_WIN32(GetLastError());
     files.Initialize(window.get(), FileReady);
@@ -262,10 +329,15 @@ HRESULT Application::Initialize()
     currentBlockPublishedFacts.reset();
     BuildUi();
     ApplyTheme();
-    SetDocument(SampleDocument());
+    SetDocument(startupPolicy ? std::wstring{} : SampleDocument());
+    if (startupPolicy && options.document.empty())
+    {
+        startupSource = editor->Snapshot();
+        startupPending = true;
+    }
     if (!options.document.empty())
     {
-        if (options.headless)
+        if (options.headless && !startupPolicy)
         {
             StoredDocument loaded;
             RETURN_IF_FAILED(LoadDocument(options.document, loaded));
@@ -283,6 +355,337 @@ HRESULT Application::Initialize()
     if (!options.headless && FAILED(RegisterApplicationRestart(L"", RESTART_NO_CRASH | RESTART_NO_HANG)))
         MonitorDiagnostics::Write(RedMonitor::Severity::Warning, L"Windows restart registration unavailable; ordinary recovery remains enabled");
     return S_OK;
+}
+
+RECT Application::ClampWindowBounds(RECT requested, RECT workArea, unsigned savedDpi, unsigned currentDpi) noexcept
+{
+    // Application policy uses screen coordinates throughout. Never feed
+    // WINDOWPLACEMENT's taskbar-relative workspace coordinates to SetWindowPos.
+    if (workArea.right <= workArea.left || workArea.bottom <= workArea.top)
+        return {0, 0, 1, 1};
+    if (savedDpi < 48u || savedDpi > 768u)
+        savedDpi = 96;
+    if (currentDpi < 48u || currentDpi > 768u)
+        currentDpi = 96;
+    const auto workWidth = static_cast<long long>(workArea.right) - workArea.left;
+    const auto workHeight = static_cast<long long>(workArea.bottom) - workArea.top;
+    const auto scaled = [&](long long size) { return (std::clamp(size, 1ll, 32768ll) * currentDpi + savedDpi / 2u) / savedDpi; };
+    const auto minimumWidth = std::min(workWidth, static_cast<long long>(800u) * currentDpi / 96u);
+    const auto minimumHeight = std::min(workHeight, static_cast<long long>(560u) * currentDpi / 96u);
+    const auto width = std::clamp(scaled(static_cast<long long>(requested.right) - requested.left), minimumWidth, workWidth);
+    const auto height = std::clamp(scaled(static_cast<long long>(requested.bottom) - requested.top), minimumHeight, workHeight);
+    const auto left =
+        std::clamp(static_cast<long long>(requested.left), static_cast<long long>(workArea.left), static_cast<long long>(workArea.right) - width);
+    const auto top =
+        std::clamp(static_cast<long long>(requested.top), static_cast<long long>(workArea.top), static_cast<long long>(workArea.bottom) - height);
+    return {static_cast<LONG>(left), static_cast<LONG>(top), static_cast<LONG>(left + width), static_cast<LONG>(top + height)};
+}
+
+int Application::InitialShowCommand() const noexcept
+{
+    if (options.explicitShowCommand)
+        return options.showCommand;
+    return settings.windowPlacement && settings.windowPlacement.value().maximized ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL;
+}
+
+bool Application::MayRequestNativeFocus() const noexcept
+{
+    return !options.headless && window && IsWindowVisible(window.get()) && !IsIconic(window.get()) && GetForegroundWindow() == window.get();
+}
+
+void Application::RecordWindowPlacement(bool persist)
+{
+    if (!initialized || initializing || options.headless || closing || !window || IsIconic(window.get()))
+        return;
+    auto placement = settings.windowPlacement.value_or(WindowPlacementSettings{});
+    placement.maximized = IsZoomed(window.get()) != FALSE;
+    if (!placement.maximized)
+    {
+        if (!GetWindowRect(window.get(), &placement.normalBounds))
+            return;
+        placement.dpi = GetDpiForWindow(window.get());
+    }
+    if (!ValidWindowPlacement(placement))
+        return;
+    const auto previous = settings.windowPlacement;
+    if (!previous || !EqualRect(&previous.value().normalBounds, &placement.normalBounds) || previous.value().dpi != placement.dpi ||
+        previous.value().maximized != placement.maximized)
+    {
+        settings.windowPlacement = placement;
+        windowPlacementDirty = true;
+    }
+    if (persist && windowPlacementDirty)
+        SavePreferences();
+}
+
+void Application::AbandonStartupRestore()
+{
+    startupPending = false;
+    startupSource.reset();
+    if (!std::exchange(startupOpening, false))
+        return;
+    // Only this one automatic read is abandoned. Its worker retains its old
+    // closed notification state; no filesystem wait or desktop interaction occurs.
+    files.Close();
+    files.Initialize(window.get(), FileReady);
+#if defined(REDTILDE_ENABLE_TESTS)
+    files.SetTestGate(options.fileGateForTest);
+#endif
+    heldOpen.reset();
+    openingSnapshot.reset();
+    openingFromFiles = false;
+    openingApprovals.clear();
+}
+
+void Application::RememberActiveDocument()
+{
+    if (initializing || closing)
+        return;
+    const auto path = recovered ? std::filesystem::path{} : documentPath;
+    if (settings.lastDocument != path)
+    {
+        settings.lastDocument = path;
+        SavePreferences();
+    }
+}
+
+bool Application::SupportedExternalLink(std::wstring_view destination) noexcept
+{
+    // Application-owned shell policy, not another Markdown/URL parser. DxUi
+    // supplies the resolved destination; executable/file/custom schemes stay inert.
+    if (destination.empty() || destination.size() > DxUi::RichText::Document::MaximumUnits ||
+        std::ranges::any_of(destination, [](wchar_t unit) { return unit <= L' ' || unit == 0x7f || unit == L'"'; }))
+        return false;
+    const auto starts = [&](std::wstring_view prefix)
+    {
+        return destination.size() >= prefix.size() &&
+               std::ranges::all_of(destination.substr(0, prefix.size()), [](wchar_t unit) { return unit < 0x80; }) &&
+               CompareStringOrdinal(destination.data(), static_cast<int>(prefix.size()), prefix.data(), static_cast<int>(prefix.size()), TRUE) ==
+                   CSTR_EQUAL;
+    };
+    if (starts(L"mailto:"))
+        return destination.size() > 7u;
+    const std::size_t authority = starts(L"https://") ? 8u : starts(L"http://") ? 7u : 0u;
+    return authority != 0u && destination.size() > authority && destination.find_first_of(L"/?#", authority) != authority;
+}
+
+std::optional<std::size_t> Application::CurrentLinkElement(const std::shared_ptr<const DxUi::RichText::SemanticDocument> &document) const
+{
+    if (!document || !editor->Snapshot().MatchesText(document->Syntax()->Source()))
+        return std::nullopt;
+    const auto selection = editor->GetSelection();
+    const auto elements = document->Elements();
+    for (std::size_t index = 0; index < elements.size(); ++index)
+    {
+        const auto &element = elements[index];
+        if (element.role == DxUi::RichText::SemanticRole::Link && !element.wiki && selection.Start() >= element.source.first &&
+            selection.Start() < element.source.last && selection.End() <= element.source.last)
+            return index;
+    }
+    return std::nullopt;
+}
+
+void Application::RequestOpenLink(const DxUi::RichTextLinkActivation &activation)
+{
+    if (closing || !root || host.GetRoot() != root)
+        return;
+    if (closingAfterSave || sessionEnding || switchingDocument || linkPromptOpen || HasBlockDraft() || activation.wiki ||
+        !SupportedExternalLink(activation.destination))
+    {
+        Status(IDS_LINKUNAVAILABLE);
+        return;
+    }
+    const auto semantic = editor->GetSemanticDocument();
+    const auto source = editor->Snapshot();
+    if (!semantic || !source.MatchesText(semantic->Syntax()->Source()) ||
+        std::ranges::none_of(semantic->Elements(),
+                             [&](const auto &element)
+                             {
+                                 return element.role == DxUi::RichText::SemanticRole::Link && element.source == activation.source &&
+                                        element.destination == activation.destination && !element.wiki;
+                             }))
+    {
+        Status(IDS_LINKCHANGED);
+        return;
+    }
+    if (externalLink)
+    {
+        std::lock_guard lock(externalLink->mutex);
+        if (externalLink->busy)
+        {
+            // No UI callback or status publication while holding a worker lock.
+            return;
+        }
+    }
+    std::wstring destination(activation.destination); // Own every byte before the modal/reentrant boundary.
+    const auto selection = editor->GetSelection();
+    const auto key = activeDocumentKey;
+    auto *const owner = root;
+    auto *const primary = editor;
+    const auto lifetime = GetControlLifetimeToken(*primary);
+    bool approved{};
+    linkPromptOpen = true;
+    const auto unwind = wil::scope_exit([&] { linkPromptOpen = false; });
+#if defined(REDTILDE_ENABLE_TESTS)
+    const auto testLaunch = options.launchLinkForTest;
+#endif
+    if (options.headless)
+    {
+#if defined(REDTILDE_ENABLE_TESTS)
+        const auto confirm = options.confirmLinkForTest;
+        if (!confirm || !testLaunch)
+            return;
+        approved = confirm(destination);
+#else
+        return;
+#endif
+    }
+    else
+    {
+        const auto message = std::vformat(Resource(IDS_OPENLINKCONFIRM), std::make_wformat_args(destination));
+        approved = MessageBoxW(window.get(), message.c_str(), Resource(IDS_OPENLINK).c_str(), MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) == IDYES;
+    }
+    if (!approved)
+        return;
+    if (closing || lifetime.expired() || host.GetRoot() != owner || editor != primary)
+        return;
+    if (sessionEnding || activeDocumentKey != key || !primary->Snapshot().IsSameRevision(source) || primary->GetSelection() != selection)
+    {
+        Status(IDS_LINKCHANGED);
+        return;
+    }
+    if (!externalLink)
+        externalLink = std::make_shared<ExternalLinkState>(window.get());
+    auto job = std::make_unique<ExternalLinkJob>();
+    job->state = externalLink;
+    job->destination = std::move(destination);
+#if defined(REDTILDE_ENABLE_TESTS)
+    if (options.headless)
+    {
+        job->launchForTest = testLaunch;
+        job->gate = options.linkGateForTest;
+    }
+#endif
+    HRESULT admitted = S_OK;
+    {
+        std::lock_guard lock(externalLink->mutex);
+        if (externalLink->busy || !externalLink->window)
+            admitted = HRESULT_FROM_WIN32(ERROR_BUSY);
+        else
+        {
+            externalLink->busy = true;
+            externalLink->completed.reset();
+            // A fresh short-lived STA is required by shell extensions. Unlike
+            // the MTA codec/file workers it cannot borrow an arbitrary pool apartment.
+            // The EXE owns only value/shared-state data; Close invalidates posting
+            // without waiting for another application's shell handler.
+            wil::unique_handle thread(CreateThread(nullptr, 0, ExternalLinkWorker, job.get(), 0, nullptr));
+            if (!thread)
+            {
+                const DWORD error = GetLastError();
+                admitted = HRESULT_FROM_WIN32(error ? error : ERROR_NOT_ENOUGH_MEMORY);
+                externalLink->busy = false;
+            }
+            else
+                (void)job.release();
+        }
+    }
+    Status(FAILED(admitted) ? IDS_LINKFAILED : IDS_LINKOPENING);
+}
+
+DWORD WINAPI Application::ExternalLinkWorker(void *context) noexcept
+{
+    const std::unique_ptr<ExternalLinkJob> job(static_cast<ExternalLinkJob *>(context));
+#if defined(REDTILDE_ENABLE_TESTS)
+    const auto settled = wil::scope_exit(
+        [&]
+        {
+            if (job->gate)
+                (void)SetEvent(job->gate->finished.get());
+        });
+#endif
+    HRESULT result = E_FAIL;
+    try
+    {
+#if defined(REDTILDE_ENABLE_TESTS)
+        bool admitted = true;
+        if (job->gate)
+        {
+            (void)SetEvent(job->gate->entered.get());
+            admitted = WaitForSingleObject(job->gate->proceed.get(), 30000) == WAIT_OBJECT_0;
+        }
+        if (!admitted)
+            result = HRESULT_FROM_WIN32(ERROR_TIMEOUT);
+        else
+#endif
+        {
+            result = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+            if (SUCCEEDED(result))
+            {
+                const wil::unique_couninitialize_call apartment;
+#if defined(REDTILDE_ENABLE_TESTS)
+                if (job->launchForTest)
+                    result = job->launchForTest(job->destination);
+                else
+#endif
+                {
+                    SHELLEXECUTEINFOW launch{sizeof(launch)};
+                    launch.fMask = SEE_MASK_FLAG_NO_UI | SEE_MASK_NOASYNC;
+                    launch.lpVerb = L"open";
+                    launch.lpFile = job->destination.c_str();
+                    launch.nShow = SW_SHOWNORMAL;
+                    // No process handle is requested or retained.
+                    if (ShellExecuteExW(&launch))
+                        result = S_OK;
+                    else
+                    {
+                        const DWORD error = GetLastError();
+                        result = HRESULT_FROM_WIN32(error ? error : ERROR_OPEN_FAILED);
+                    }
+                }
+            }
+        }
+    }
+    catch (const std::bad_alloc &)
+    {
+        std::terminate();
+    }
+    catch (const std::exception &error)
+    {
+        // No C++ exception crosses the Windows thread ABI. Retain the cause
+        // once and publish the ordinary failed-launch status on the UI owner.
+        MonitorDiagnostics::WriteUtf8(RedMonitor::Severity::Error, error.what());
+        result = E_FAIL;
+    }
+    std::lock_guard lock(job->state->mutex);
+    job->state->busy = false;
+    job->state->completed = result;
+    if (job->state->window)
+        (void)PostMessageW(job->state->window, ExternalLinkReady, 0, 0);
+    return 0;
+}
+
+void Application::ExternalLinkCompleted()
+{
+    if (!externalLink)
+        return;
+    std::optional<HRESULT> completed;
+    {
+        std::lock_guard lock(externalLink->mutex);
+        completed = std::exchange(externalLink->completed, std::nullopt);
+    }
+    if (completed && !closing && root && host.GetRoot() == root)
+        Status(SUCCEEDED(completed.value()) ? IDS_LINKOPENED : IDS_LINKFAILED);
+}
+
+void Application::CloseExternalLinks() noexcept
+{
+    if (externalLink)
+    {
+        std::lock_guard lock(externalLink->mutex);
+        externalLink->window = nullptr;
+        externalLink->completed.reset();
+    }
 }
 
 DxUi::Label *Application::Label(DxUi::Panel &parent, unsigned label, DxUi::FontRole role)
@@ -541,8 +944,10 @@ void Application::Status(unsigned id)
     if (feedback)
         feedback->SetText(Resource(id));
 }
-void Application::SetDocument(std::wstring text, std::filesystem::path path, bool hasBom, FileStamp identity)
+void Application::SetDocument(std::wstring text, std::filesystem::path path, bool hasBom, FileStamp identity, bool rememberForStartup)
 {
+    if (!initializing)
+        AbandonStartupRestore();
     recovered = false;
     editor->SetText(std::move(text));
     documentPath = std::move(path);
@@ -555,6 +960,8 @@ void Application::SetDocument(std::wstring text, std::filesystem::path path, boo
     SetView(settings.view);
     Changed();
     RefreshFiles(true);
+    if (rememberForStartup)
+        RememberActiveDocument();
 }
 void Application::Changed()
 {
@@ -747,8 +1154,29 @@ void Application::RecoveryCompleted()
     if (!recoveryOffered && recovery.Ready())
     {
         recoveryOffered = true;
-        if (!recoveryCandidates.empty() && (!options.headless || options.recoveryRestartProbe || options.scenario == L"recovery"))
+        if (!recoveryCandidates.empty() && (startupPolicy || options.recoveryRestartProbe || options.scenario == L"recovery"))
             ShowRecovery();
+    }
+    if (startupPending && recovery.Ready())
+    {
+        startupPending = false;
+        if (SUCCEEDED(recovery.Status()) && recoveryCandidates.empty() && startupSource && editor->Snapshot().IsSameRevision(startupSource.value()) &&
+            !settings.lastDocument.empty() && documentPath.empty() && !files.Busy() && !HasBlockDraft() && !sessionEnding)
+        {
+            openingSnapshot = editor->Snapshot();
+            const HRESULT result = files.Submit(false, settings.lastDocument);
+            startupOpening = SUCCEEDED(result);
+            if (startupOpening)
+                Status(IDS_LOADING);
+            else
+            {
+                startupSource.reset();
+                openingSnapshot.reset();
+                Status(IDS_BUSY);
+            }
+        }
+        else
+            startupSource.reset();
     }
 }
 void Application::ShowRecovery()
@@ -757,7 +1185,7 @@ void Application::ShowRecovery()
     {
         recoveryPanel->SetVisible(false);
         Status(IDS_NORECOVERY);
-        host.SetFocusControl(editor, !options.headless);
+        host.SetFocusControl(editor, MayRequestNativeFocus());
         return;
     }
     CloseDrawers();
@@ -769,7 +1197,7 @@ void Application::ShowRecovery()
                                            : std::vformat(Resource(IDS_RECOVERYHELP), std::make_wformat_args(path)));
     recoveryPreview->SetText(snapshot.text);
     recoveryPanel->SetVisible(true);
-    host.SetFocusControl(recoveryPanel->GetLogicalChild(3), !options.headless);
+    host.SetFocusControl(recoveryPanel->GetLogicalChild(3), MayRequestNativeFocus());
     Layout();
 }
 void Application::SetView(EditorView view)
@@ -1099,7 +1527,7 @@ void Application::SelectionChanged(bool refreshTools)
     if (selectionToolsFocus)
     {
         selectionToolsFocus.reset();
-        host.SetFocusControl(floatingActions.front(), !options.headless);
+        host.SetFocusControl(floatingActions.front(), MayRequestNativeFocus());
     }
 }
 
@@ -1116,6 +1544,8 @@ void Application::SavePreferences()
     const HRESULT result = preferenceWriter.Submit(settings);
     if (FAILED(result))
         Status(IDS_SETTINGSFAILED);
+    else
+        windowPlacementDirty = false;
 }
 void Application::CloseDrawers()
 {
@@ -1133,7 +1563,7 @@ void Application::CloseDrawers()
         editor->SetSourceHighlights({});
     RefreshFind();
     Layout();
-    host.SetFocusControl(editor, !options.headless);
+    host.SetFocusControl(editor, MayRequestNativeFocus());
     if (!initializing && !closing)
         CheckpointRecovery();
     if (hadBlockDraft && heldOpen)
@@ -1170,7 +1600,7 @@ void Application::Execute(Command command) noexcept
 {
     RunUiAction([&] { ExecuteCommand(command); });
 }
-void Application::ExecuteCommand(Command command)
+void Application::ExecuteCommand(Command command, unsigned zoomSteps)
 {
     if (closing || closingAfterSave || sessionEnding || switchingDocument)
         return;
@@ -1189,6 +1619,9 @@ void Application::ExecuteCommand(Command command)
         Status(IDS_BLOCKPENDING);
         return;
     }
+    if (command == Command::New || command == Command::Open || command == Command::OpenFolder || command == Command::Close ||
+        command == Command::RestoreRecovery || command == Command::RestoreAllRecovery)
+        AbandonStartupRestore();
     MarkdownCommandRequest request;
     bool semantic = true;
     switch (command)
@@ -1209,7 +1642,7 @@ void Application::ExecuteCommand(Command command)
         RefreshFiles(true);
         Layout();
         SavePreferences();
-        host.SetFocusControl(settings.showFiles ? static_cast<DxUi::Control *>(filesTree) : editor, !options.headless);
+        host.SetFocusControl(settings.showFiles ? static_cast<DxUi::Control *>(filesTree) : editor, MayRequestNativeFocus());
         return;
     case Command::Minimize:
         if (!options.headless)
@@ -1222,6 +1655,25 @@ void Application::ExecuteCommand(Command command)
     case Command::Close:
         SendMessageW(window.get(), WM_CLOSE, 0, 0);
         return;
+    case Command::OpenLink:
+    {
+        const auto document = editor->GetSemanticDocument();
+        const auto index = CurrentLinkElement(document);
+        if (!index)
+        {
+            Status(IDS_LINKUNAVAILABLE);
+            return;
+        }
+        const auto &link = document->Elements()[index.value()];
+        if (link.destination.starts_with(L'#'))
+        {
+            if (!editor->NavigateSemanticElement(host, document, index.value()))
+                Status(IDS_NOTAVAILABLE);
+        }
+        else
+            RequestOpenLink({link.source, link.destination, link.title, link.name, link.wiki});
+        return;
+    }
     case Command::FindPrevious:
         FindNext(true);
         return;
@@ -1270,7 +1722,7 @@ void Application::ExecuteCommand(Command command)
         return;
     case Command::LaterRecovery:
         recoveryPanel->SetVisible(false);
-        host.SetFocusControl(editor, !options.headless);
+        host.SetFocusControl(editor, MayRequestNativeFocus());
         return;
     case Command::DiscardRecovery:
         if (!recoveryCandidates.empty())
@@ -1298,7 +1750,7 @@ void Application::ExecuteCommand(Command command)
                     }
                     if (!StartWorkspaceDocument() || closing || host.GetRoot() != root)
                         return;
-                    SetDocument(candidate.snapshot.text, candidate.snapshot.originalPath, candidate.snapshot.bom);
+                    SetDocument(candidate.snapshot.text, candidate.snapshot.originalPath, candidate.snapshot.bom, {}, false);
                     recovered = true;
                     editor->SetSelection(candidate.snapshot.selection);
                     Changed();
@@ -1333,7 +1785,7 @@ void Application::ExecuteCommand(Command command)
                 continue; // A completion retired this exact copy; never substitute another.
             if (!StartWorkspaceDocument() || closing || host.GetRoot() != root)
                 return;
-            SetDocument(candidate.snapshot.text, candidate.snapshot.originalPath, candidate.snapshot.bom);
+            SetDocument(candidate.snapshot.text, candidate.snapshot.originalPath, candidate.snapshot.bom, {}, false);
             if (closing || host.GetRoot() != root)
                 return;
             recovered = true;
@@ -1360,7 +1812,7 @@ void Application::ExecuteCommand(Command command)
             {
                 ResetWorkspace();
                 SetDocument({});
-                host.SetFocusControl(editor, !options.headless);
+                host.SetFocusControl(editor, MayRequestNativeFocus());
             });
         return;
     case Command::Open:
@@ -1510,18 +1962,41 @@ void Application::ExecuteCommand(Command command)
         findBar->SetVisible(true);
         Layout();
         RefreshFind();
-        host.SetFocusControl(findText, !options.headless);
+        host.SetFocusControl(findText, MayRequestNativeFocus());
         return;
     case Command::FindNext:
         FindNext();
         return;
+    case Command::FindMatchCase:
+        findMatchCase = !findMatchCase;
+        findSource.reset();
+        findCaseToggle->SetToggleState(findMatchCase);
+        RefreshFind();
+        if (findBar->IsVisible())
+            host.SetFocusControl(findText, MayRequestNativeFocus());
+        return;
+    case Command::ZoomIn:
+    case Command::ZoomOut:
+    case Command::ZoomReset:
+    {
+        const int delta = static_cast<int>(std::min(zoomSteps, 25u)) * (command == Command::ZoomIn ? 5 : -5);
+        const auto scale =
+            command == Command::ZoomReset ? 100u : static_cast<unsigned>(std::clamp(static_cast<int>(settings.textScale) + delta, 75, 200));
+        if (settings.textScale != scale)
+        {
+            settings.textScale = scale;
+            Layout();
+            SavePreferences();
+        }
+        return;
+    }
     case Command::Settings:
         findBar->SetVisible(false);
         RefreshFind();
         floating->SetVisible(false);
         drawer->SetVisible(!drawer->IsVisible());
         Layout();
-        host.SetFocusControl(drawer->IsVisible() ? static_cast<DxUi::Control *>(themeButtons[0]) : editor, !options.headless);
+        host.SetFocusControl(drawer->IsVisible() ? static_cast<DxUi::Control *>(themeButtons[0]) : editor, MayRequestNativeFocus());
         return;
     case Command::Focus:
         settings.focusMode = !settings.focusMode;
@@ -1555,7 +2030,7 @@ void Application::ExecuteCommand(Command command)
         Status(result == MarkdownCommandStatus::Unavailable ? IDS_NOTAVAILABLE : IDS_FORMATTED);
     }
     floating->SetVisible(false);
-    host.SetFocusControl(editor, !options.headless);
+    host.SetFocusControl(editor, MayRequestNativeFocus());
 }
 
 void Application::LocalSource()
@@ -1637,7 +2112,7 @@ void Application::LocalSource()
         editor->SetSourceHighlights(std::span(&block, 1));
     }
     Layout();
-    host.SetFocusControl(blockDraftText, !options.headless);
+    host.SetFocusControl(blockDraftText, MayRequestNativeFocus());
     CheckpointRecovery();
 }
 
@@ -1667,10 +2142,8 @@ void Application::ApplyBlockSource()
     Status(IDS_FORMATTED);
 }
 
-void Application::Menu(POINT point, bool insertOnly, bool headingOnly)
+std::vector<DxUi::MenuFlyoutItem> Application::ContextMenuItems(bool insertOnly, bool headingOnly)
 {
-    if (options.headless)
-        return; // Focus-taking menus are an explicitly interactive gate.
     std::vector<DxUi::MenuFlyoutItem> items;
     auto add = [&](unsigned label, Command command, std::wstring accelerator = {})
     {
@@ -1694,6 +2167,8 @@ void Application::Menu(POINT point, bool insertOnly, bool headingOnly)
             add(IDS_CODE, Command::Code);
             add(IDS_NUMBERED, Command::Numbered);
             add(IDS_LOCAL, Command::LocalSource, L"F2");
+            if (CurrentLinkElement(editor->GetSemanticDocument()))
+                add(IDS_OPENLINK, Command::OpenLink);
             add(IDS_ROWADD, Command::RowAdd);
             add(IDS_ROWREMOVE, Command::RowRemove);
             add(IDS_COLADD, Command::ColumnAdd);
@@ -1710,11 +2185,42 @@ void Application::Menu(POINT point, bool insertOnly, bool headingOnly)
         add(IDS_QUOTE, Command::Quote);
         add(IDS_FENCE, Command::Fence);
     }
+    return items;
+}
+
+void Application::Menu(POINT point, bool insertOnly, bool headingOnly)
+{
+    if (options.headless)
+        return; // Focus-taking menus are an explicitly interactive gate.
+    auto items = ContextMenuItems(insertOnly, headingOnly);
+    const auto source = editor->Snapshot();
+    const auto selection = editor->GetSelection();
+    const auto key = activeDocumentKey;
+    const auto lifetime = GetControlLifetimeToken(*editor);
     floating->SetVisible(false);
     DxUi::ContextMenuSessionCallbacks callbacks;
     callbacks.focusFirstNavigableItem = true;
     (void)DxUi::ContextMenu::ShowAsync(
-        window.get(), point, items, host.GetTheme(), [this](std::optional<int> selected) noexcept { OnMenuClosed(selected); }, callbacks);
+        window.get(), point, items, host.GetTheme(),
+        [this, source, selection, key, lifetime](std::optional<int> selected) noexcept
+        {
+            RunUiAction(
+                [&]
+                {
+                    if (selected == static_cast<int>(Command::OpenLink) + 1)
+                    {
+                        if (closing || lifetime.expired() || !root || host.GetRoot() != root)
+                            return;
+                        if (activeDocumentKey != key || !editor->Snapshot().IsSameRevision(source) || editor->GetSelection() != selection)
+                        {
+                            Status(IDS_LINKCHANGED);
+                            return;
+                        }
+                    }
+                    OnMenuClosed(selected);
+                });
+        },
+        callbacks);
 }
 
 std::filesystem::path Application::PickFile(bool saving, bool image, bool folder)
@@ -2009,7 +2515,7 @@ void Application::OnMenuClosed(std::optional<int> selected) noexcept
             // Commands may retire the root or open a draft/drawer that owns focus.
             if (!closing && root && host.GetRoot() == root && !HasBlockDraft() && !drawer->IsVisible() && !findBar->IsVisible() &&
                 !recoveryPanel->IsVisible())
-                host.SetFocusControl(editor, !options.headless);
+                host.SetFocusControl(editor, MayRequestNativeFocus());
         });
 }
 void Application::FileCompleted() noexcept
@@ -2032,6 +2538,18 @@ void Application::CompleteFileOperation()
         return;
     }
     auto &result = completed.value();
+    const bool automaticStartup = !result.saving && std::exchange(startupOpening, false);
+    if (automaticStartup)
+    {
+        const auto admitted = std::exchange(startupSource, std::nullopt);
+        if (!admitted || !editor->Snapshot().IsSameRevision(admitted.value()) || !recoveryCandidates.empty() || sessionEnding)
+        {
+            openingSnapshot.reset();
+            openingFromFiles = false;
+            Status(IDS_FILECONTEXTCHANGED);
+            return;
+        }
+    }
     if (FAILED(result.status))
     {
         if (result.reloading)
@@ -2060,11 +2578,15 @@ void Application::CompleteFileOperation()
             const auto error = ErrorText(result.status);
             message = std::vformat(Resource(result.saving ? IDS_SAVEFAILED : IDS_OPENFAILED), std::make_wformat_args(error));
         }
-        if (!options.headless && !failedClose)
+        if (!options.headless && !failedClose && !automaticStartup)
             MessageBoxW(window.get(), message.c_str(), Resource(IDS_ERROR).c_str(), MB_OK | MB_ICONERROR);
         feedback->SetText(message);
         if (!result.saving)
+        {
             openingFromFiles = false;
+            if (automaticStartup)
+                openingSnapshot.reset();
+        }
         afterSave = {};
         return;
     }
@@ -2092,6 +2614,7 @@ void Application::CompleteFileOperation()
         EnsureFilesRoot();
         RefreshFiles(true);
         editor->SetDocumentFilePath(documentPath.native());
+        RememberActiveDocument();
         Changed();
         Status(IDS_SAVED);
         if (closingAfterSave)
@@ -2202,6 +2725,10 @@ void Application::BeginClose()
 {
     // Reaching this point means the user saved or explicitly discarded source.
     // Retire only this session's snapshot and wait asynchronously for its result.
+    AbandonStartupRestore();
+    RememberActiveDocument();
+    RecordWindowPlacement(true);
+    CloseExternalLinks();
     ResetWorkspace();
     (void)recovery.SubmitDocument(activeDocumentKey, std::nullopt, true);
     recovery.Stop();
@@ -2244,10 +2771,19 @@ void Application::FinishClose()
 }
 LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    if (message == ExternalLinkReady)
+    {
+        ExternalLinkCompleted();
+        return 0;
+    }
     if (message == WM_QUERYENDSESSION)
     {
         if (!closing)
+        {
+            AbandonStartupRestore();
+            RecordWindowPlacement(true);
             CheckpointWorkspaceRecovery();
+        }
         return TRUE; // Honor shutdown immediately; never create a shutdown blocker.
     }
     if (message == WM_ENDSESSION)
@@ -2277,9 +2813,10 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         if (blockDraft->IsVisible())
         {
             Status(IDS_BLOCKPENDING);
-            host.SetFocusControl(blockDraftText, !options.headless);
+            host.SetFocusControl(blockDraftText, MayRequestNativeFocus());
             return 0;
         }
+        AbandonStartupRestore();
         if (files.Busy())
         {
             if (files.Saving())
@@ -2363,7 +2900,13 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
     {
         auto *info = reinterpret_cast<MINMAXINFO *>(lParam);
         const UINT dpi = GetDpiForWindow(hwnd);
-        info->ptMinTrackSize = {MulDiv(800, static_cast<int>(dpi), 96), MulDiv(560, static_cast<int>(dpi), 96)};
+        MONITORINFO monitor{sizeof(monitor)};
+        const bool available = GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &monitor) != FALSE;
+        info->ptMinTrackSize = {
+            available ? std::min(static_cast<LONG>(MulDiv(800, static_cast<int>(dpi), 96)), monitor.rcWork.right - monitor.rcWork.left)
+                      : MulDiv(800, static_cast<int>(dpi), 96),
+            available ? std::min(static_cast<LONG>(MulDiv(560, static_cast<int>(dpi), 96)), monitor.rcWork.bottom - monitor.rcWork.top)
+                      : MulDiv(560, static_cast<int>(dpi), 96)};
         return 0;
     }
     if (message == PreferencesReady)
@@ -2408,8 +2951,29 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
     }
     if (message == WM_SETTINGCHANGE || message == WM_THEMECHANGED)
         ApplyTheme();
+    if (message == WM_MOUSEWHEEL)
+    {
+        if ((GET_KEYSTATE_WPARAM(wParam) & MK_CONTROL) != 0 && (GetKeyState(VK_MENU) & 0x8000) == 0)
+        {
+            const int accumulated = zoomWheelRemainder + GET_WHEEL_DELTA_WPARAM(wParam);
+            const int steps = accumulated / WHEEL_DELTA;
+            zoomWheelRemainder = accumulated % WHEEL_DELTA;
+            if (steps != 0)
+                RunUiAction([&]
+                            { ExecuteCommand(steps > 0 ? Command::ZoomIn : Command::ZoomOut, static_cast<unsigned>(steps > 0 ? steps : -steps)); });
+            return 0;
+        }
+        zoomWheelRemainder = 0;
+    }
     bool handled{};
     const auto result = host.HandleMessage(hwnd, message, wParam, lParam, handled);
+    if (message == WM_MOVE || message == WM_SIZE || message == WM_EXITSIZEMOVE || message == WM_DPICHANGED)
+    {
+        const bool wasMaximized = settings.windowPlacement && settings.windowPlacement.value().maximized;
+        const bool commitPlacement =
+            message == WM_EXITSIZEMOVE || message == WM_DPICHANGED || (!IsIconic(hwnd) && wasMaximized != (IsZoomed(hwnd) != FALSE));
+        RecordWindowPlacement(commitPlacement);
+    }
     if (message == WM_SIZE || message == WM_DPICHANGED ||
         ((message == WM_MOUSEWHEEL || message == WM_MOUSEHWHEEL) && blockDraft && blockDraft->IsVisible()))
         Layout();
@@ -2574,6 +3138,18 @@ bool Application::RouteShortcut(const MSG &message)
                 break;
             case VK_OEM_COMMA:
                 command = Command::Settings;
+                break;
+            case VK_OEM_PLUS:
+            case VK_ADD:
+                command = Command::ZoomIn;
+                break;
+            case VK_OEM_MINUS:
+            case VK_SUBTRACT:
+                command = Command::ZoomOut;
+                break;
+            case '0':
+            case VK_NUMPAD0:
+                command = Command::ZoomReset;
                 break;
             }
         }
@@ -2785,15 +3361,18 @@ int Application::Run()
         PrepareDesignScenario();
         return options.capture.empty() || Capture(options.capture) ? 0 : 3;
     }
+    if (startupPending)
+        RecoveryCompleted(); // Also settle a scan that completed before the ordinary message loop started.
     (void)host.PrimeForShow();
     if (identityMeasure.typographyRevision != host.GetTypographyRevision())
     {
         Layout();
         (void)host.PrimeForShow();
     }
-    ShowWindow(window.get(), SW_SHOWNORMAL);
+    ShowWindow(window.get(), InitialShowCommand());
     UpdateWindow(window.get());
-    host.SetFocusControl(editor, true);
+    RecordWindowPlacement(true);
+    host.SetFocusControl(editor, MayRequestNativeFocus());
     MSG message{};
     while (GetMessageW(&message, nullptr, 0, 0) > 0)
     {

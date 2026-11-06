@@ -226,6 +226,12 @@ Heap-diagnostic tests distinguish logical allocation requests from native heap s
 may redirect or quarantine the physical allocation; retain an independent range-membership observation and
 require native-payload growth only for the ordinary native allocator. Keep the complete-walk, budget, duplicate,
 invalid-handle and exact-boundary assertions active in every profile.
+Count native entries through the independent membership walk; do not assume that a successful logical
+allocation creates multiple native entries. A positive entry budget may completely cover an empty or
+one-entry heap, while a zero budget remains invalid. Preserve the complete and bounded native reports before
+asserting their outcomes. Deterministic providers must separately prove empty, one-entry, truncated, exact,
+invalid-budget, lock/read/unlock-failure behavior and the bound of at most `entryLimit + 1` provider reads,
+including the final completion/lookahead query. A lookahead entry is never included in payload accounting.
 
 Diagnostic memory is sampled after the primary snapshot, then after 100 and 500 ms of event-driven hidden idle.
 No additional render/preparation is allowed during those waits. Full global thread inventory runs only in the

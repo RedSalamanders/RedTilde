@@ -265,6 +265,7 @@ void Application::BuildUi()
     editor->SetOnTextChanged([this] { Changed(); });
     editor->SetOnSelectionChanged([this] { SelectionChanged(); });
     editor->SetOnContextMenu([this](POINT point, bool) { Menu(point); });
+    editor->SetOnLinkActivated([this](const DxUi::RichTextLinkActivation &activation) { RunUiAction([&] { RequestOpenLink(activation); }); });
     mirror = page->AddChild<SourceMirrorEditor>(*editor);
     mirror->SetMarkdownAnalysisProfile(DxUi::RichText::MarkdownProfile::RichMarkdown);
     mirror->SetMarkdownRenderingEnabled(true);
@@ -293,7 +294,7 @@ void Application::BuildUi()
         const auto offset = documentInfo.headings[static_cast<std::size_t>(id - 1)].offset;
         editor->SetSelection({offset, offset});
         (void)editor->ScrollSourceRangeIntoView(host, offset, offset, true);
-        host.SetFocusControl(editor, !options.headless);
+        host.SetFocusControl(editor, MayRequestNativeFocus());
         SelectionChanged();
     };
     outlineModel.expanded = [this](std::uint64_t id, bool value)
@@ -494,6 +495,7 @@ void Application::BuildUi()
     replaceText->SetPlaceholder(Resource(IDS_REPLACEHINT));
     Action(*findBar, IDS_REPLACE, Command::Replace);
     Action(*findBar, IDS_REPLACEALL, Command::ReplaceAll);
+    findCaseToggle = Action(*findBar, IDS_MATCHCASE, Command::FindMatchCase);
     blockDraft = root->AddChild<Surface>(Surface::Kind::Floating);
     blockDraft->SetVisible(false);
     Label(*blockDraft, IDS_LOCAL, DxUi::FontRole::BodyStrong);
@@ -825,13 +827,19 @@ void Application::Layout()
     recoveryAction->SetBounds(D2D1::RectF(dx, privacy + 136, width - 24, privacy + 172));
     drawerClose->SetBounds(D2D1::RectF(dx + 224, privacy + 184, width - 24, privacy + 220));
     drawerImmediate->SetBounds(D2D1::RectF(dx, privacy + 184, width - 160, privacy + 220));
-    const float fx = right - 476, fy = top + 12;
-    findBar->SetBounds(D2D1::RectF(fx, fy, right - 16, fy + 104));
+    const bool wideFind = right - left >= 660.f;
+    const float fx = std::max(16.f, right - (wideFind ? 644.f : 476.f)), fy = top + 12;
+    findBar->SetBounds(D2D1::RectF(fx, fy, right - 16, fy + (wideFind ? 104.f : 148.f)));
     findText->SetBounds(D2D1::RectF(fx + 12, fy + 10, fx + 204, fy + 46));
-    findCount->SetBounds(D2D1::RectF(fx + 212, fy + 14, fx + 310, fy + 42));
+    findCaseToggle->SetToggleState(findMatchCase);
+    findCaseToggle->SetBounds(wideFind ? D2D1::RectF(fx + 212.f, fy + 10.f, fx + 320.f, fy + 46.f)
+                                       : D2D1::RectF(fx + 12.f, fy + 104.f, fx + 146.f, fy + 140.f));
+    const float findStatus = wideFind ? 328.f : 212.f;
+    const float findButtons = wideFind ? 478.f : 314.f;
+    findCount->SetBounds(D2D1::RectF(fx + findStatus, fy + 14, fx + findStatus + 98.f, fy + 42));
     for (unsigned i = 0; i < 3; ++i)
         findBar->GetLogicalChild(i + 2)->SetBounds(
-            D2D1::RectF(fx + 314 + static_cast<float>(i) * 44.f, fy + 10, fx + 354 + static_cast<float>(i) * 44.f, fy + 46));
+            D2D1::RectF(fx + findButtons + static_cast<float>(i) * 44.f, fy + 10, fx + findButtons + 40.f + static_cast<float>(i) * 44.f, fy + 46));
     replaceText->SetBounds(D2D1::RectF(fx + 12, fy + 58, fx + 236, fy + 94));
     findBar->GetLogicalChild(6)->SetBounds(D2D1::RectF(fx + 244, fy + 58, fx + 326, fy + 94));
     findBar->GetLogicalChild(7)->SetBounds(D2D1::RectF(fx + 334, fy + 58, fx + 448, fy + 94));

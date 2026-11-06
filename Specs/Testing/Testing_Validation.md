@@ -187,7 +187,7 @@ These record oracles establish error mapping, not recovery from an actually miss
 
 Physical focus/IME/AT, release/package acceptance, hardware-specific qualification and paired resource/performance studies retain their owning gates. Hidden/scoped/native CI passes never close those gates. Native test basenames use contextual `Scope.Tests.Something.h/.cpp`; inventories cover active files only. Immutable historical receipts, archived source and legacy references are not renamed or rewritten.
 
-RedTilde partitions its 117 registered native cases into Storage (25), Settings (4), Recovery (19) and Editor (69). Registration scanning includes reviewed Core `.cpp` and `.h` files from the native inventory. Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
+RedTilde partitions its 128 registered native cases into Storage (25), Settings (6), Recovery (19) and Editor (78). Registration scanning includes reviewed Core `.cpp` and `.h` files from the native inventory. Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
 
 RecoveryRestart also runs test-only `--linked-save-crash-probe` and `--linked-save-restart-probe` children in one
 explicit absolute harness directory. The first exits with exactly 79 after an admitted hardlink write has changed
@@ -214,6 +214,15 @@ count must agree, with successful worker status. Publishing retirement can refre
 new checkpoint. Do not pump again after accepting the wait and then assert its earlier settled observation.
 
 The hidden responsive-layout/DPI case retains the exact initial foreground and hidden-window assertions. A failure records which predicate changed, whether the observed foreground is the test window or another process-owned window, and whether the original window still exists. These observations do not attribute a historical foreground change or permit activation; preserve the failed run separately from later qualification.
+
+Hidden startup coverage enables ordinary startup policy only through a test-build-only LaunchOptions field,
+retains WS_EX_NOACTIVATE, and uses actual recovery scanning, file workers and coalesced preference writes.
+Owned I/O barriers distinguish edits before the scan, edits during read and an explicit New that abandons the
+old notification state. Catalog listing and syntax-only compilation never establish runtime startup acceptance.
+External-link cases use explicit confirmation and handoff seams with owned gates. They exercise real fresh-STA
+COM initialization, the shared activation route, source/selection/history preservation, failure publication and
+application destruction before a delayed handoff retires. They never launch a real browser/mail app or contact
+the network. Native shell association and physical interaction acceptance remain with their release/input gates.
 
 The Files dirty-transition regression uses a nontrivial invented folder model, a separately selected/focused row
 and a nonzero scroll position. Dirty/undo must change only the visible current-file badge without rebuilding the

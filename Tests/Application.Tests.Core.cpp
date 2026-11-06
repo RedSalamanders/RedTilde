@@ -441,6 +441,71 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Success(ReadBytes(rejected / L"RedTilde.settings", preserved), "read rejected settings after real view switches");
              Require(preserved == original, "rejected settings remain byte-exact after synchronous, asynchronous and application view changes");
          });
+    test("Settings.LastDocumentPathRoundTripAndFallback",
+         []
+         {
+             Settings value;
+             value.filesRoot = L"C:\\Notebooks\\Pinned root";
+             value.lastDocument = L"D:\\Writing\\R\u00e9sum\u00e9 = \u6771\u4eac \U0001f600.md";
+             const auto round = ParseSettings(SerializeSettings(value));
+             Require(round.lastDocument == value.lastDocument && round.filesRoot == value.filesRoot,
+                     "the last document and the independent Files root preserve Unicode, spaces and equals signs");
+             for (const auto invalid : {"relative.md", "C:\\notes\rmalformed.md", "C:\\bad\xFF.md"})
+             {
+                 const auto parsed = ParseSettings(std::string("RedTilde.Settings/1\nview=2\nlastDocument=") + invalid + "\nscale=125\n");
+                 Require(parsed.lastDocument.empty() && parsed.view == EditorView::Split && parsed.textScale == 125u,
+                         "invalid last-document paths fall back independently without replacing valid neighboring preferences");
+             }
+             value.lastDocument = L"C:\\bad\nview=2";
+             Require(SerializeSettings(value).find("lastDocument=") == std::string::npos &&
+                         ParseSettings("RedTilde.Settings/1\n").lastDocument.empty(),
+                     "invalid paths cannot inject preferences and older settings default to no remembered document");
+         });
+    test("Settings.WindowPlacementRejectsPartialAndUnsafeValues",
+         [&]
+         {
+             Settings value;
+             value.appearance = Appearance::Dark;
+             value.windowPlacement = WindowPlacementSettings{{-1760, 90, -560, 890}, 144u, true};
+             const auto serialized = SerializeSettings(value);
+             const auto round = ParseSettings(serialized);
+             Require(round.windowPlacement && EqualRect(&round.windowPlacement.value().normalBounds, &value.windowPlacement.value().normalBounds) &&
+                         round.windowPlacement.value().dpi == 144u && round.windowPlacement.value().maximized && round.appearance == Appearance::Dark,
+                     "negative screen coordinates, saved DPI and maximized state round trip independently of appearance");
+             Require(serialized.find("windowLeft=-1760\n") != std::string::npos && serialized.find("windowDpi=144\n") != std::string::npos,
+                     "placement uses counted signed screen coordinates and explicit DPI in the existing versioned settings");
+             constexpr std::string_view prefix = "RedTilde.Settings/1\ntheme=2\nscale=125\n";
+             for (const auto invalid :
+                  {"windowLeft=10\nwindowTop=20\nwindowRight=1210\n", "windowLeft=no\nwindowTop=20\nwindowRight=1210\nwindowBottom=820\n",
+                   "windowLeft=10\nwindowTop=20\nwindowRight=10\nwindowBottom=820\n",
+                   "windowLeft=10\nwindowTop=20\nwindowRight=-10\nwindowBottom=820\n",
+                   "windowLeft=999999999999\nwindowTop=20\nwindowRight=1210\nwindowBottom=820\n",
+                   "windowLeft=10\nwindowTop=20\nwindowRight=1048577\nwindowBottom=820\n",
+                   "windowLeft=-2147483648\nwindowTop=20\nwindowRight=2147483647\nwindowBottom=820\n",
+                   "windowLeft=10\nwindowTop=20\nwindowRight=40000\nwindowBottom=820\n",
+                   "windowLeft=10\nwindowTop=20\nwindowRight=1210\nwindowBottom=820\nwindowDpi=0\n",
+                   "windowLeft=10\nwindowTop=20\nwindowRight=1210\nwindowBottom=820\nwindowDpi=broken\n"})
+             {
+                 const auto rejected = ParseSettings(std::string(prefix) + invalid);
+                 Require(!rejected.windowPlacement && rejected.appearance == Appearance::Dark && rejected.textScale == 125u,
+                         "an incomplete, malformed or unsafe placement is rejected as a tuple without discarding neighboring preferences");
+             }
+             const auto old =
+                 ParseSettings("RedTilde.Settings/1\nwindowLeft=10\nwindowTop=20\nwindowRight=1210\nwindowBottom=820\nwindowMaximized=2\n");
+             Require(old.windowPlacement && old.windowPlacement.value().dpi == 96u && !old.windowPlacement.value().maximized,
+                     "missing DPI defaults to 96 and an invalid maximized flag defaults independently to normal");
+             value.windowPlacement.value().normalBounds.right = value.windowPlacement.value().normalBounds.left;
+             Require(SerializeSettings(value).find("windowLeft=") == std::string::npos,
+                     "invalid in-memory geometry never publishes a partial placement record");
+             value.windowPlacement = round.windowPlacement;
+             const auto directory = root / L"window-placement-settings";
+             Success(SaveSettings(directory, value), "persist actual signed placement through the ordinary atomic writer");
+             Settings loaded;
+             Success(LoadSettings(directory, loaded), "reload actual signed placement");
+             Require(loaded.windowPlacement && EqualRect(&loaded.windowPlacement.value().normalBounds, &round.windowPlacement.value().normalBounds) &&
+                         loaded.windowPlacement.value().dpi == 144u && loaded.windowPlacement.value().maximized,
+                     "the durable settings file preserves normal screen bounds and the separate maximized state");
+         });
     test("Outline.FencesAndUnicode",
          []
          {
@@ -2181,6 +2246,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                  return std::pair{complete, report.str()};
              };
              const auto before = sample();
+             Success(WriteBytesAtomic(root / L"owned-heap-before.json", before.second), "retain the initial owned-heap report before assertions");
              Require(before.first && JsonUnsigned(before.second, "actualWalkedHeapCount") == 1 &&
                          JsonUnsigned(before.second, "completeHeapCount") == 1,
                      "the explicit owned heap completes without claiming process-wide coverage");
@@ -2193,11 +2259,17 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                  const auto freeAllocation = wil::scope_exit([&] { allocationReleased = HeapFree(heap.get(), 0, allocation) != FALSE; });
                  std::fill_n(static_cast<std::byte *>(allocation), allocationBytes, std::byte{0x5A});
                  const auto busy = sample();
+                 Success(WriteBytesAtomic(root / L"owned-heap-busy.json", busy.second), "retain the allocated owned-heap report before assertions");
+                 struct NativeMembership
+                 {
+                     bool complete{}, represented{};
+                     std::size_t entries{};
+                 };
                  // Independent membership oracle, rather than a second implementation of byte accounting.
                  const auto nativeOwnership = [&]
                  {
                      if (!HeapLock(heap.get()))
-                         return std::pair{false, false};
+                         return NativeMembership{};
                      const auto unlock = wil::scope_exit([&] { (void)HeapUnlock(heap.get()); });
                      PROCESS_HEAP_ENTRY entry{};
                      bool represented{};
@@ -2205,15 +2277,15 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                      for (std::size_t index = 0; index <= Test::MaximumDiagnosticEntriesPerHeap; ++index)
                      {
                          if (!HeapWalk(heap.get(), &entry))
-                             return std::pair{GetLastError() == ERROR_NO_MORE_ITEMS, represented};
+                             return NativeMembership{GetLastError() == ERROR_NO_MORE_ITEMS, represented, index};
                          if (index == Test::MaximumDiagnosticEntriesPerHeap)
-                             return std::pair{false, represented};
+                             return NativeMembership{false, represented, index + 1u};
                          const auto first = reinterpret_cast<std::uintptr_t>(entry.lpData);
                          if ((entry.wFlags & PROCESS_HEAP_ENTRY_BUSY) && entry.cbData >= allocationBytes && address >= first &&
                              address - first <= entry.cbData - allocationBytes)
                              represented = true;
                      }
-                     return std::pair{false, represented};
+                     return NativeMembership{false, represented, 0u};
                  }();
                  const auto busyBytes = JsonUnsigned(JsonObjectAfter(busy.second, "\"totals\":"), "busyPayloadBytes");
 #if defined(__SANITIZE_ADDRESS__)
@@ -2222,28 +2294,159 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
 #else
                  constexpr bool sanitizerAllocator = false;
 #endif
-                 Require(busy.first && nativeOwnership.first, "both the owned-heap capture and independent membership walk complete");
+                 Require(busy.first && nativeOwnership.complete, "both the owned-heap capture and independent membership walk complete");
                  if constexpr (!sanitizerAllocator)
-                     Require(nativeOwnership.second && busyBytes >= beforeBusy + allocationBytes,
+                     Require(nativeOwnership.represented && busyBytes >= beforeBusy + allocationBytes,
                              "native heap payload includes the independently observed live allocation");
                  Success(
                      WriteBytesAtomic(root / L"owned-heap-allocation-observation.json",
                                       std::format("{{\"sanitizerAllocator\":{},\"logicalAllocationBytes\":{},\"nativeHeapRepresentsAllocation\":{},"
-                                                  "\"busyPayloadBefore\":{},\"busyPayloadAfter\":{}}}",
-                                                  sanitizerAllocator, allocationBytes, nativeOwnership.second, beforeBusy, busyBytes)),
+                                                  "\"nativeWalkedEntries\":{},\"busyPayloadBefore\":{},\"busyPayloadAfter\":{}}}",
+                                                  sanitizerAllocator, allocationBytes, nativeOwnership.represented, nativeOwnership.entries,
+                                                  beforeBusy, busyBytes)),
                      "retain physical versus logical heap observation without claiming process-wide coverage");
                  const auto partial = sample(1);
-                 Require(!partial.first && partial.second.find("\"budgetExceeded\":true") != partial.second.npos &&
+                 const bool mustTruncate = nativeOwnership.entries > 1u;
+                 Success(WriteBytesAtomic(root / L"owned-heap-native-boundaries.json",
+                                          std::format("{{\"independentNativeEntries\":{},\"completeWalk\":{},\"oneEntryBudget\":{}}}",
+                                                      nativeOwnership.entries, busy.second, partial.second)),
+                         "retain complete and bounded native reports before their assertions");
+                 Require(partial.first == !mustTruncate && (partial.second.find("\"budgetExceeded\":true") != partial.second.npos) == mustTruncate &&
                              JsonUnsigned(partial.second, "entryLimit") == 1,
-                         "a bounded partial walk retains its explicit truncation instead of claiming complete coverage");
-                 const auto row = JsonObjectContaining(busy.second, busy.second.find("\"index\":0"));
-                 const auto exact = sample(static_cast<std::size_t>(JsonUnsigned(row, "walkedEntries")));
+                         "the bounded native walk agrees with the independently observed entry count, including empty sanitizer heaps");
+                 const auto exact = sample(std::max<std::size_t>(1u, nativeOwnership.entries));
                  Require(exact.first, "an exact entry-limit boundary recognizes end-of-heap after the final allowed entry");
              }
              const auto freed = sample();
+             Success(WriteBytesAtomic(root / L"owned-heap-freed.json", freed.second), "retain the freed owned-heap report before assertions");
              // Sanitizer quarantine and heap managers may retain physical blocks after a successful logical free.
              Require(allocationReleased && freed.first,
                      "release succeeds and physical heap state remains measurable without requiring purge or working-set trimming");
+             struct ScriptedCalls
+             {
+                 HANDLE expected{};
+                 std::span<const PROCESS_HEAP_ENTRY> entries;
+                 std::size_t cursor{}, reads{}, locks{}, unlocks{};
+                 DWORD error{}, terminalError = ERROR_NO_MORE_ITEMS;
+                 bool allowLock = true, allowUnlock = true;
+                 BOOL Lock(HANDLE supplied) noexcept
+                 {
+                     ++locks;
+                     cursor = 0;
+                     error = ERROR_SUCCESS;
+                     if (supplied != expected || !allowLock)
+                     {
+                         error = ERROR_ACCESS_DENIED;
+                         return FALSE;
+                     }
+                     return TRUE;
+                 }
+                 BOOL Walk(HANDLE supplied, PROCESS_HEAP_ENTRY &entry) noexcept
+                 {
+                     ++reads;
+                     if (supplied != expected)
+                     {
+                         error = ERROR_INVALID_HANDLE;
+                         return FALSE;
+                     }
+                     if (cursor == entries.size())
+                     {
+                         error = terminalError;
+                         return FALSE;
+                     }
+                     entry = entries[cursor++];
+                     error = ERROR_SUCCESS;
+                     return TRUE;
+                 }
+                 BOOL Unlock(HANDLE supplied) noexcept
+                 {
+                     ++unlocks;
+                     if (supplied != expected || !allowUnlock)
+                     {
+                         error = ERROR_ACCESS_DENIED;
+                         return FALSE;
+                     }
+                     return TRUE;
+                 }
+                 DWORD Error() const noexcept
+                 {
+                     return error;
+                 }
+             };
+             struct Replay
+             {
+                 bool complete{};
+                 std::string json;
+                 std::size_t reads{}, locks{}, unlocks{};
+             };
+             std::array<PROCESS_HEAP_ENTRY, 2> scripted{};
+             scripted[0].wFlags = PROCESS_HEAP_ENTRY_BUSY;
+             scripted[0].cbData = 17u;
+             scripted[0].cbOverhead = 3u;
+             scripted[1].cbData = 29u;
+             scripted[1].cbOverhead = 5u;
+             const auto replay = [&](std::span<const PROCESS_HEAP_ENTRY> entries, std::size_t limit, bool lock = true,
+                                     DWORD terminal = ERROR_NO_MORE_ITEMS, bool unlock = true)
+             {
+                 ScriptedCalls calls;
+                 calls.expected = heap.get();
+                 calls.entries = entries;
+                 calls.allowLock = lock;
+                 calls.terminalError = terminal;
+                 calls.allowUnlock = unlock;
+                 std::ostringstream report;
+                 const bool complete = Test::WriteOwnedHeapDiagnostic(report, handles, limit, calls);
+                 return Replay{complete, report.str(), calls.reads, calls.locks, calls.unlocks};
+             };
+             const auto empty = replay({}, 1u);
+             const auto one = replay(std::span(scripted).first(1u), 1u);
+             const auto truncated = replay(scripted, 1u);
+             const auto exact = replay(scripted, 2u);
+             const auto invalid = replay(scripted, 0u);
+             const auto deniedLock = replay(scripted, 2u, false);
+             const auto deniedWalk = replay({}, 1u, true, ERROR_ACCESS_DENIED);
+             const auto deniedUnlock = replay(scripted, 2u, true, ERROR_NO_MORE_ITEMS, false);
+             const auto retainCalls = [](const Replay &value)
+             {
+                 return std::format("{{\"report\":{},\"readCalls\":{},\"lockCalls\":{},\"unlockCalls\":{}}}", value.json, value.reads, value.locks,
+                                    value.unlocks);
+             };
+             Success(WriteBytesAtomic(root / L"owned-heap-controlled-boundaries.json",
+                                      std::format("{{\"empty\":{},\"oneEntry\":{},\"truncated\":{},\"exact\":{},\"invalidBudget\":{},"
+                                                  "\"deniedLock\":{},\"deniedWalk\":{},\"deniedUnlock\":{}}}",
+                                                  retainCalls(empty), retainCalls(one), retainCalls(truncated), retainCalls(exact),
+                                                  retainCalls(invalid), retainCalls(deniedLock), retainCalls(deniedWalk), retainCalls(deniedUnlock))),
+                     "retain all controlled boundary reports before checking the diagnostic");
+             Require(empty.complete && empty.reads == 1u && empty.locks == 1u && empty.unlocks == 1u &&
+                         JsonUnsigned(empty.json, "walkedEntries") == 0u,
+                     "an independently empty provider completes within a positive budget using one end query");
+             Require(one.complete && one.reads == 2u && one.locks == 1u && one.unlocks == 1u && JsonUnsigned(one.json, "walkedEntries") == 1u &&
+                         one.json.find("\"budgetExceeded\":true") == one.json.npos,
+                     "an independently one-entry provider completes at the exact boundary instead of inventing truncation");
+             Require(!truncated.complete && truncated.reads == 2u && truncated.locks == 1u && truncated.unlocks == 1u &&
+                         JsonUnsigned(truncated.json, "walkedEntries") == 1u &&
+                         truncated.json.find("\"budgetExceeded\":true") != truncated.json.npos &&
+                         JsonUnsigned(JsonObjectAfter(truncated.json, "\"totals\":"), "busyPayloadBytes") == 17u &&
+                         JsonUnsigned(JsonObjectAfter(truncated.json, "\"totals\":"), "freePayloadBytes") == 0u,
+                     "the independent two-entry provider always proves truncation and never accounts its lookahead entry");
+             Require(exact.complete && exact.reads == 3u && exact.locks == 1u && exact.unlocks == 1u &&
+                         JsonUnsigned(exact.json, "walkedEntries") == 2u &&
+                         JsonUnsigned(JsonObjectAfter(exact.json, "\"totals\":"), "busyPayloadBytes") == 17u &&
+                         JsonUnsigned(JsonObjectAfter(exact.json, "\"totals\":"), "freePayloadBytes") == 29u &&
+                         JsonUnsigned(JsonObjectAfter(exact.json, "\"totals\":"), "entryOverheadBytes") == 8u,
+                     "the independent exact-boundary provider accounts both entries and performs one bounded completion query");
+             Require(!invalid.complete && invalid.reads == 0u && invalid.locks == 0u && invalid.unlocks == 0u &&
+                         JsonUnsigned(invalid.json, "attemptedHeapCount") == 0u,
+                     "an invalid zero budget refuses before acquiring or walking the provider");
+             Require(!deniedLock.complete && deniedLock.reads == 0u && deniedLock.locks == 1u && deniedLock.unlocks == 0u &&
+                         JsonUnsigned(deniedLock.json, "actualWalkedHeapCount") == 0u,
+                     "lock refusal is incomplete coverage and never walks or unlocks an unowned provider");
+             Require(!deniedWalk.complete && deniedWalk.reads == 1u && deniedWalk.unlocks == 1u &&
+                         JsonUnsigned(JsonObjectContaining(deniedWalk.json, deniedWalk.json.find("\"index\":0")), "error") == ERROR_ACCESS_DENIED,
+                     "a provider read failure cannot be relabelled as end-of-heap");
+             Require(!deniedUnlock.complete && deniedUnlock.reads == 3u && deniedUnlock.unlocks == 1u &&
+                         JsonUnsigned(deniedUnlock.json, "completeHeapCount") == 0u,
+                     "unlock failure retains an incomplete result even after an otherwise complete walk");
              const std::array<HANDLE, 2> duplicate{heap.get(), heap.get()};
              std::ostringstream duplicateReport;
              Require(!Test::WriteOwnedHeapDiagnostic(duplicateReport, duplicate) && JsonUnsigned(duplicateReport.str(), "attemptedHeapCount") == 1 &&

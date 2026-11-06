@@ -6,12 +6,14 @@
 #include <UIAutomation.h>
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <format>
 #include <initializer_list>
 #include <limits>
 #include <mutex>
+#include <objbase.h>
 #include <ranges>
 #include <stdexcept>
 #include <thread>
@@ -1951,6 +1953,544 @@ class DesignRefreshProbe final
                              app.Activity().documentAnalysisUpdates == initialAnalysisUpdates + 8 && app.Document().GetText() == source &&
                              matchesAnalysisFacts(source) && !app.Document().CanUndo() && app.Document().CanRedo(),
                          "application edit/undo transactions reuse warmed bounded storage without changing exact source facts");
+             });
+        test("Editor.ExplicitLinksConfirmAndDispatchWithoutEditing",
+             [&]
+             {
+                 Testing::ForegroundOwnershipObserver foreground;
+                 struct Observation
+                 {
+                     Observation() = default;
+                     Observation(const Observation &) = delete;
+                     Observation &operator=(const Observation &) = delete;
+                     Observation(Observation &&) = delete;
+                     Observation &operator=(Observation &&) = delete;
+                     std::mutex mutex;
+                     std::wstring destination;
+                     unsigned launches{};
+                     DWORD thread{};
+                     bool sta{};
+                     HRESULT nextResult = S_OK;
+                 };
+                 const auto observed = std::make_shared<Observation>();
+                 auto options = Options(root, L"explicit-link-dispatch");
+                 bool approve{};
+                 unsigned confirmations{};
+                 Application *owner{};
+                 options.confirmLinkForTest = [&](std::wstring_view destination)
+                 {
+                     ++confirmations;
+                     Require(destination == L"https://example.invalid/a?x=1&y=2", "confirmation owns the independently specified resolved URL");
+                     if (approve)
+                         owner->Execute(Command::OpenLink); // Duplicate intent must keep the existing confirmation.
+                     return approve;
+                 };
+                 options.launchLinkForTest = [observed](std::wstring_view destination) -> HRESULT
+                 {
+                     APTTYPE type{};
+                     APTTYPEQUALIFIER qualifier{};
+                     const HRESULT apartment = CoGetApartmentType(&type, &qualifier);
+                     std::lock_guard lock(observed->mutex);
+                     observed->destination = destination;
+                     ++observed->launches;
+                     observed->thread = GetCurrentThreadId();
+                     observed->sta = SUCCEEDED(apartment) && (type == APTTYPE_STA || type == APTTYPE_MAINSTA);
+                     return observed->nextResult;
+                 };
+                 auto gate = std::make_shared<AsyncFiles::TestGate>();
+                 (void)SetEvent(gate->proceed.get());
+                 options.linkGateForTest = gate;
+                 Application app(std::move(options));
+                 owner = &app;
+                 Success(app.Initialize(), "create hidden explicit-link owner");
+                 const std::wstring source = L"[Notebook](https://example.invalid/a?x=1&amp;y=2)\r\n";
+                 app.SetDocument(source);
+                 app.Document().SetSelection({source.size(), source.size()});
+                 Require(app.Document().ReplaceSelection(L"!") && app.Document().Undo(), "retain redo before external navigation");
+                 app.Document().SetSelection({9u, 1u});
+                 app.Prepare(512);
+                 const auto snapshot = app.Document().Snapshot();
+                 const auto selected = app.Document().GetSelection();
+                 const auto items = app.ContextMenuItems(false, false);
+                 Require(std::ranges::any_of(
+                             items, [](const auto &item)
+                             { return item.commandId == static_cast<int>(Command::OpenLink) + 1 && item.text == Resource(IDS_OPENLINK); }),
+                         "the real source-context menu exposes its localized explicit Open link command");
+                 app.Execute(Command::OpenLink);
+                 Require(confirmations == 1u && !app.externalLink && app.Document().Snapshot().IsSameRevision(snapshot),
+                         "declining confirmation starts no worker and retains exact source");
+                 approve = true;
+                 const auto semantic = app.Document().GetSemanticDocument();
+                 const auto link = app.CurrentLinkElement(semantic);
+                 Require(link && app.Document().HasLinkActivationHandler() &&
+                             app.Document().NavigateSemanticElement(app.Host(), semantic, link.value()),
+                         "the public activation route used by Ctrl-click delegates to the installed application confirmation handler");
+                 Require(WaitForSingleObject(gate->finished.get(), 3000) == WAIT_OBJECT_0, "the owned STA dispatch completes its fake handoff");
+                 app.Prepare(64);
+                 {
+                     std::lock_guard lock(observed->mutex);
+                     Require(confirmations == 2u && observed->launches == 1u && observed->destination == L"https://example.invalid/a?x=1&y=2" &&
+                                 observed->thread != GetCurrentThreadId() && observed->sta,
+                             "confirmed activation hands exact owned URL bytes to a fresh STA outside the UI thread");
+                     observed->nextResult = E_ACCESSDENIED;
+                 }
+                 Require(app.feedback->GetText() == Resource(IDS_LINKOPENED) && app.Document().Snapshot().IsSameRevision(snapshot) &&
+                             app.Document().GetSelection() == selected && !app.Document().CanUndo() && app.Document().CanRedo() && !app.Dirty(),
+                         "successful navigation changes neither source, directional selection, history nor saved state");
+                 auto failedGate = std::make_shared<AsyncFiles::TestGate>();
+                 (void)SetEvent(failedGate->proceed.get());
+                 app.options.linkGateForTest = failedGate;
+                 app.Execute(Command::OpenLink);
+                 Require(WaitForSingleObject(failedGate->finished.get(), 3000) == WAIT_OBJECT_0,
+                         "the second handoff publishes its actual failed result");
+                 app.Prepare(64);
+                 Require(app.feedback->GetText() == Resource(IDS_LINKFAILED) && app.Document().Snapshot().IsSameRevision(snapshot) &&
+                             app.Document().GetSelection() == selected && app.Document().CanRedo(),
+                         "a failed external handoff reports status while retaining exact source and histories");
+                 for (const auto destination : {L"https://example.invalid/notes", L"HTTP://example.invalid", L"mailto:writer@example.invalid"})
+                     Require(Application::SupportedExternalLink(destination), "the explicit scheme policy accepts its supported destinations");
+                 for (const auto destination :
+                      {L"https://", L"https://?query", L"file:///C:/tool.exe", L"shell:AppsFolder", L"javascript:alert(1)",
+                       L"data:text/plain,writing", L"relative.md", L"https://example.invalid/a b", L"https://example.invalid/\"a"})
+                     Require(!Application::SupportedExternalLink(destination), "unsupported schemes and malformed shell arguments remain inert");
+                 constexpr wchar_t embeddedNull[] = L"https://example.invalid/a\0b";
+                 Require(!Application::SupportedExternalLink(std::wstring_view(embeddedNull, std::size(embeddedNull) - 1u)),
+                         "embedded NUL cannot shorten the confirmed external destination");
+                 Require(foreground.NeverAcquiredForeground(), "link policy and fake shell handoffs never acquire desktop foreground");
+             });
+        test("Editor.LinkConfirmationRejectsSupersededAndClosedOwners",
+             [&]
+             {
+                 Testing::ForegroundOwnershipObserver foreground;
+                 for (const unsigned mode : {0u, 1u, 2u})
+                 {
+                     auto options = Options(root, std::format(L"link-confirmation-context-{}", mode));
+                     Application *owner{};
+                     auto launches = std::make_shared<std::atomic<unsigned>>(0u);
+                     options.launchLinkForTest = [launches](std::wstring_view) -> HRESULT
+                     {
+                         ++*launches;
+                         return S_OK;
+                     };
+                     options.confirmLinkForTest = [&](std::wstring_view)
+                     {
+                         if (mode == 0u)
+                             owner->SetDocument(L"Newer writing");
+                         else if (mode == 1u)
+                             owner->Document().SetSelection({0u, 0u});
+                         else
+                             owner->BeginClose();
+                         return true;
+                     };
+                     Application app(std::move(options));
+                     owner = &app;
+                     Success(app.Initialize(), "create hidden reentrant confirmation owner");
+                     app.SetDocument(L"[Notes](https://example.invalid/notes)\r\n");
+                     app.Document().SetSelection({1u, 1u});
+                     app.Prepare(512);
+                     app.Execute(Command::OpenLink);
+                     Require(launches->load() == 0u && !app.externalLink, "a superseded or closed confirmation never admits a shell dispatch");
+                     if (mode == 0u)
+                         Require(app.Document().GetText() == L"Newer writing", "confirmation reentrancy retains the newer source");
+                     else if (mode == 1u)
+                         Require(app.Document().GetSelection() == DxUi::RichText::Selection{0u, 0u},
+                                 "confirmation reentrancy retains the newer selection");
+                     else
+                         Require(app.Host().GetHwnd() == nullptr, "a confirmation may close its owner without touching detached controls");
+                 }
+                 Require(foreground.NeverAcquiredForeground(), "reentrant confirmation checks retain desktop foreground");
+             });
+        test("Editor.PendingLinkDispatchRetiresAfterApplicationClose",
+             [&]
+             {
+                 Testing::ForegroundOwnershipObserver foreground;
+                 auto gate = std::make_shared<AsyncFiles::TestGate>();
+                 const auto release = wil::scope_exit([&] { (void)SetEvent(gate->proceed.get()); });
+                 auto launches = std::make_shared<std::atomic<unsigned>>(0u);
+                 auto options = Options(root, L"link-dispatch-close");
+                 options.confirmLinkForTest = [](std::wstring_view) { return true; };
+                 options.launchLinkForTest = [launches](std::wstring_view) -> HRESULT
+                 {
+                     ++*launches;
+                     return S_OK;
+                 };
+                 options.linkGateForTest = gate;
+                 auto app = std::make_unique<Application>(std::move(options));
+                 Success(app->Initialize(), "create hidden delayed link owner");
+                 app->SetDocument(L"[Notes](https://example.invalid/notes)\r\n");
+                 app->Document().SetSelection({1u, 1u});
+                 app->Prepare(512);
+                 app->Execute(Command::OpenLink);
+                 Require(WaitForSingleObject(gate->entered.get(), 3000) == WAIT_OBJECT_0 && launches->load() == 0u,
+                         "link command returns while its owned worker is blocked before handoff");
+                 app->BeginClose();
+                 app.reset();
+                 Require(SetEvent(gate->proceed.get()) != FALSE && WaitForSingleObject(gate->finished.get(), 3000) == WAIT_OBJECT_0 &&
+                             launches->load() == 1u,
+                         "the value-owned dispatch retires after application destruction without an owner callback or UI-thread join");
+                 Require(foreground.NeverAcquiredForeground(), "pending-link teardown never takes desktop foreground");
+             });
+        test("Editor.StartupLastDocumentAndRecoveryPrecedence",
+             [&]
+             {
+                 Testing::ForegroundOwnershipObserver foreground;
+                 const auto wait = [](Application &app, const auto &ready)
+                 {
+                     for (unsigned turn = 0; turn < 3000; ++turn)
+                     {
+                         app.Prepare(32);
+                         if (ready())
+                             return;
+                         std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                     }
+                     throw std::runtime_error("Startup fixture did not settle");
+                 };
+                 const auto launch = [&](std::wstring_view name)
+                 {
+                     auto options = Options(root, name);
+                     options.startupRestoreForTest = true;
+                     options.preferencesProbe = true;
+                     return options;
+                 };
+                 {
+                     auto options = launch(L"startup-last-document");
+                     const auto directory = options.dataDirectory;
+                     const auto first = directory / L"Notebook.md", second = directory / L"Second.md";
+                     const auto pinned = directory / L"Pinned folder";
+                     std::filesystem::create_directories(pinned);
+                     Success(WriteBytesAtomic(first, "# Remembered\r\n"), "seed the actual remembered document");
+                     Success(WriteBytesAtomic(second, "# Second\n"), "seed a distinct workspace document");
+                     Settings saved;
+                     saved.lastDocument = first;
+                     saved.filesRoot = pinned;
+                     Success(SaveSettings(directory, saved), "seed independent last-document and Files-root preferences");
+                     Application app(std::move(options));
+                     Success(app.Initialize(), "initialize hidden ordinary-startup policy");
+                     Require(app.Document().GetText().empty() && app.startupPending,
+                             "ordinary startup begins with blank source while recovery scans");
+                     wait(app, [&] { return !app.startupPending && !app.startupOpening && !app.files.Busy(); });
+                     Require(app.Document().GetText() == L"# Remembered\r\n" && app.documentPath == first && !app.Dirty() &&
+                                 !app.Document().CanUndo() && app.settings.filesRoot == pinned,
+                             "the worker reopens exact saved source after a completed empty recovery scan without moving the pinned folder");
+                     app.OpenPath(second);
+                     wait(app, [&] { return !app.files.Busy() && app.documentPath == second; });
+                     Require(app.settings.lastDocument == second && app.SwitchWorkspaceDocument(0u) && app.settings.lastDocument == first,
+                             "successful file opening and retained-workspace switching remember the active normal document");
+                     app.Execute(Command::New);
+                     Require(app.Document().GetText().empty() && app.settings.lastDocument.empty(),
+                             "New remembers a blank untitled startup instead of the previous file");
+                     Require(app.Document().ReplaceSelection(L"Saved new writing\r\n"), "edit the new untitled document before Save As");
+                     const auto target = directory / L"Saved draft.md";
+                     app.Save(true, false, target);
+                     wait(app, [&] { return !app.files.Busy() && app.documentPath == target; });
+                     wait(app, [&] { return !app.preferenceWriter.Busy(); });
+                     Settings durable;
+                     Success(LoadSettings(directory, durable), "read the real coalesced preference publication");
+                     Require(durable.lastDocument == target && !app.Dirty(), "a successful Save As durably remembers its normal document");
+                 }
+                 {
+                     auto options = launch(L"startup-missing-document");
+                     Settings saved;
+                     saved.lastDocument = options.dataDirectory / L"Unavailable.md";
+                     Success(SaveSettings(options.dataDirectory, saved), "seed a remembered path that does not exist");
+                     Application app(std::move(options));
+                     Success(app.Initialize(), "initialize missing-document startup");
+                     wait(app, [&] { return !app.startupPending && !app.startupOpening && !app.files.Busy(); });
+                     Require(app.Document().GetText().empty() && app.documentPath.empty() && !app.Dirty() && !app.Document().CanUndo() &&
+                                 !app.feedback->GetText().empty(),
+                             "an unavailable remembered document leaves a blank clean untitled document with a useful status");
+                 }
+                 {
+                     auto options = launch(L"startup-recovery-precedence");
+                     const auto directory = options.dataDirectory;
+                     const auto original = directory / L"Notebook.md";
+                     std::filesystem::create_directories(directory / L"Recovery");
+                     Success(WriteBytesAtomic(original, "# Original on disk\n"), "seed the existing normal document behind recovery");
+                     Settings saved;
+                     saved.lastDocument = original;
+                     Success(SaveSettings(directory, saved), "seed a normal startup path alongside pending recovery");
+                     const RecoverySnapshot copy{L"# Unsaved recovered writing\r\n", original, false, {2u, 5u}, 17u};
+                     Success(WriteBytesAtomic(directory / L"Recovery" / L"session-00000000000000000000000000000001.rtd", SerializeRecovery(copy)),
+                             "seed an inactive real recovery envelope");
+                     auto gate = std::make_shared<AsyncFiles::TestGate>();
+                     options.fileGateForTest = gate;
+                     const auto release = wil::scope_exit([&] { (void)SetEvent(gate->proceed.get()); });
+                     Application app(std::move(options));
+                     Success(app.Initialize(), "initialize recovery-first startup");
+                     wait(app, [&] { return app.recovery.Ready() && !app.startupPending; });
+                     Require(app.recoveryPanel->IsVisible() && app.recoveryCandidates.size() == 1u && app.Document().GetText().empty() &&
+                                 !app.files.Busy() && !app.startupOpening && WaitForSingleObject(gate->entered.get(), 0) == WAIT_TIMEOUT,
+                             "a pending recovery copy takes precedence before any automatic file-read admission");
+                     app.Execute(Command::RestoreRecovery);
+                     Require(app.Document().GetText() == copy.text && app.recovered && app.Dirty(),
+                             "the chosen recovery source remains an unsaved copy requiring Save As");
+                     std::string unchanged;
+                     Success(ReadBytes(original, unchanged), "read the original after restoring the recovery copy");
+                     Require(unchanged == "# Original on disk\n", "startup and recovery never rewrite the original document");
+                 }
+                 Require(foreground.NeverAcquiredForeground(), "all startup, worker and preference checks retain desktop foreground");
+             });
+        test("Editor.StartupRestoreNeverReplacesNewerIntent",
+             [&]
+             {
+                 Testing::ForegroundOwnershipObserver foreground;
+                 for (const unsigned mode : {0u, 1u, 2u})
+                 {
+                     auto options = Options(root, std::format(L"startup-newer-intent-{}", mode));
+                     options.startupRestoreForTest = true;
+                     options.preferencesProbe = true;
+                     const auto original = options.dataDirectory / L"Remembered.md";
+                     std::filesystem::create_directories(options.dataDirectory);
+                     Success(WriteBytesAtomic(original, "Old remembered writing"), "seed the actual delayed startup document");
+                     Settings saved;
+                     saved.lastDocument = original;
+                     Success(SaveSettings(options.dataDirectory, saved), "seed the delayed startup preference");
+                     auto gate = std::make_shared<AsyncFiles::TestGate>();
+                     options.fileGateForTest = gate;
+                     unsigned prompts{};
+                     options.unsavedPromptForTest = [&]
+                     {
+                         ++prompts;
+                         return IDCANCEL;
+                     };
+                     const auto release = wil::scope_exit([&] { (void)SetEvent(gate->proceed.get()); });
+                     Application app(std::move(options));
+                     Success(app.Initialize(), "initialize an owned hidden startup race");
+                     if (mode == 0u)
+                         Require(app.Document().ReplaceSelection(L"New writing before scan"), "type before recovery-ready publication");
+                     for (unsigned turn = 0; turn < 3000 && app.startupPending; ++turn)
+                     {
+                         app.Prepare(32);
+                         std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                     }
+                     Require(!app.startupPending, "initial recovery admission settles for the startup race");
+                     if (mode == 0u)
+                     {
+                         Require(!app.startupOpening && !app.files.Busy() && app.Document().GetText() == L"New writing before scan" && app.Dirty(),
+                                 "early user writing prevents the automatic read from starting");
+                         continue;
+                     }
+                     Require(WaitForSingleObject(gate->entered.get(), 3000) == WAIT_OBJECT_0 && app.startupOpening,
+                             "the real startup worker reaches its owned I/O barrier");
+                     if (mode == 1u)
+                         Require(app.Document().ReplaceSelection(L"New writing while opening"), "type after the automatic read was admitted");
+                     else
+                         app.Execute(Command::New);
+                     Require(SetEvent(gate->proceed.get()) != FALSE, "release only the owned startup I/O barrier");
+                     Require(WaitForSingleObject(gate->finished.get(), 3000) == WAIT_OBJECT_0, "the actual delayed file read completes");
+                     for (unsigned turn = 0; turn < 3000 && (app.startupOpening || app.files.Busy()); ++turn)
+                     {
+                         app.Prepare(32);
+                         std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                     }
+                     app.Prepare(64);
+                     Require(!app.startupOpening && !app.files.Busy() && app.documentPath.empty() && prompts == 0u,
+                             "a superseded automatic read neither changes document identity nor asks a save question");
+                     if (mode == 1u)
+                         Require(app.Document().GetText() == L"New writing while opening" && app.Dirty() && app.Document().CanUndo(),
+                                 "late user writing and its undo transaction survive automatic-open completion");
+                     else
+                         Require(app.Document().GetText().empty() && !app.Dirty() && !app.Document().CanUndo() && app.settings.lastDocument.empty(),
+                                 "an explicit New abandons the old read even when its blank source revision could otherwise match");
+                 }
+                 Require(foreground.NeverAcquiredForeground(), "startup race checks never activate an application window");
+             });
+        test("Window.PlacementAndLaunchPolicyPreserveHiddenSource",
+             [&]
+             {
+                 Testing::ForegroundOwnershipObserver foreground;
+                 const RECT negativeWork{-1880, 40, 0, 1080};
+                 const RECT expectedNegative{-1880, 40, -680, 840};
+                 auto actual = Application::ClampWindowBounds({-2300, -90, -1100, 710}, negativeWork, 96u, 96u);
+                 Require(EqualRect(&actual, &expectedNegative),
+                         "restoration uses independently specified screen coordinates including left/top taskbar work-area offsets");
+                 const RECT expectedDpi{100, 100, 1600, 1000};
+                 actual = Application::ClampWindowBounds({100, 100, 1100, 700}, {0, 0, 2560, 1440}, 96u, 144u);
+                 Require(EqualRect(&actual, &expectedDpi), "a target DPI change scales the normal size while retaining its bounded screen origin");
+                 const RECT smallWork{0, 0, 640, 480};
+                 actual = Application::ClampWindowBounds({-30000, 40000, 30000, 60000}, smallWork, 96u, 192u);
+                 Require(EqualRect(&actual, &smallWork),
+                         "the first/restored window and its minimum size fit a work area smaller than the usual minimum");
+                 const RECT safeWork{50, 30, 1050, 730};
+                 actual = Application::ClampWindowBounds({std::numeric_limits<LONG>::min(), std::numeric_limits<LONG>::min(),
+                                                          std::numeric_limits<LONG>::max(), std::numeric_limits<LONG>::max()},
+                                                         safeWork, 0u, std::numeric_limits<unsigned>::max());
+                 Require(EqualRect(&actual, &safeWork), "wide intermediates and fallback DPI prevent overflow for hostile geometry");
+                 const RECT invalidWork{0, 0, 1, 1};
+                 actual = Application::ClampWindowBounds({0, 0, 1000, 800}, {5, 5, 4, 4}, 96u, 96u);
+                 Require(EqualRect(&actual, &invalidWork), "an invalid work-area query has a bounded positive fallback");
+                 Application app(Options(root, L"window-placement-policy"));
+                 Success(app.Initialize(), "create hidden placement policy owner");
+                 app.SetDocument(L"Exact notebook\r\n");
+                 const auto source = app.Document().Snapshot();
+                 app.settings.windowPlacement = WindowPlacementSettings{{120, 80, 1120, 780}, 96u, true};
+                 Require(app.InitialShowCommand() == SW_SHOWMAXIMIZED, "ordinary startup restores a saved maximized state");
+                 app.settings.windowPlacement.value().maximized = false;
+                 Require(app.InitialShowCommand() == SW_SHOWNORMAL, "ordinary startup retains a saved normal state");
+                 app.options.explicitShowCommand = true;
+                 for (const int show : {SW_HIDE, SW_SHOWNOACTIVATE, SW_SHOWMINIMIZED, SW_SHOWMINNOACTIVE, SW_SHOWNORMAL, SW_SHOWMAXIMIZED})
+                 {
+                     app.options.showCommand = show;
+                     Require(app.InitialShowCommand() == show, "an explicit launcher show state takes precedence over the saved state");
+                 }
+                 const auto savedPlacement = app.settings.windowPlacement.value();
+                 app.RecordWindowPlacement(true);
+                 Require(EqualRect(&app.settings.windowPlacement.value().normalBounds, &savedPlacement.normalBounds) &&
+                             app.Document().Snapshot().IsSameRevision(source) && !app.Document().CanUndo() && !app.Dirty() &&
+                             !IsWindowVisible(app.Window()) && foreground.NeverAcquiredForeground(),
+                         "headless placement tests preserve the explicit fixture, source/history and desktop foreground without showing a window");
+             });
+        test("Editor.TextScaleShortcutsAndWheelPreserveHistory",
+             [&]
+             {
+                 Application app(Options(root, L"text-scale-input"));
+                 Success(app.Initialize(), "create hidden text-scale input fixture");
+                 app.SetDocument(L"# Heading\r\n\r\nExact source \U0001f600\r\n");
+                 app.Document().SetSelection({app.Document().Snapshot().Length(), app.Document().Snapshot().Length()});
+                 Require(app.Document().ReplaceSelection(L"!") && app.Document().Undo(), "retain redo for presentation-only zoom assertions");
+                 std::array<BYTE, 256> savedKeyboard{};
+                 Require(GetKeyboardState(savedKeyboard.data()) != FALSE, "snapshot the calling thread's modifier state for zoom");
+                 const auto restoreKeyboard = wil::scope_exit(
+                     [&] noexcept
+                     {
+                         if (!SetKeyboardState(savedKeyboard.data()))
+                             std::terminate();
+                     });
+                 const auto modifiers = [&](bool ctrl, bool alt = false, bool shift = false)
+                 {
+                     std::array<BYTE, 256> keys{};
+                     keys[VK_CONTROL] = keys[VK_LCONTROL] = ctrl ? 0x80 : 0;
+                     keys[VK_MENU] = keys[VK_RMENU] = alt ? 0x80 : 0;
+                     keys[VK_SHIFT] = keys[VK_LSHIFT] = shift ? 0x80 : 0;
+                     Require(SetKeyboardState(keys.data()) != FALSE, "set only the test thread's zoom modifiers without injecting input");
+                 };
+                 MSG routed{};
+                 routed.hwnd = app.Window();
+                 routed.message = WM_KEYDOWN;
+                 const auto key = [&](UINT value)
+                 {
+                     routed.wParam = value;
+                     return app.RouteShortcut(routed);
+                 };
+                 const auto wheel = [&](short delta)
+                 { (void)SendMessageW(app.Window(), WM_MOUSEWHEEL, MAKEWPARAM(MK_CONTROL, static_cast<WORD>(delta)), 0); };
+                 for (const auto view : {EditorView::Compose, EditorView::Source, EditorView::Split})
+                 {
+                     app.SetView(view);
+                     app.Document().SetSelection({12u, 2u});
+                     app.Prepare(512);
+                     const auto source = app.Document().Snapshot();
+                     const auto focus = app.Host().GetFocusControl();
+                     modifiers(true);
+                     Require(key(VK_OEM_PLUS) && app.settings.textScale == 105u && key(VK_OEM_MINUS) && app.settings.textScale == 100u,
+                             "Ctrl plus/equal and minus adjust document scale by five percentage points");
+                     Require(key(VK_ADD) && app.settings.textScale == 105u && key(VK_SUBTRACT) && app.settings.textScale == 100u,
+                             "numeric-keypad plus and minus retain the same scale policy");
+                     modifiers(true, false, true);
+                     Require(key(VK_OEM_PLUS) && app.settings.textScale == 105u, "the shifted plus key retains ordinary Ctrl-plus zoom");
+                     modifiers(true, true);
+                     Require(!key(VK_OEM_MINUS) && app.settings.textScale == 105u, "AltGr input is not stolen as a zoom shortcut");
+                     modifiers(true);
+                     Require(key('0') && app.settings.textScale == 100u, "Ctrl zero restores the default document scale");
+                     wheel(60);
+                     Require(app.settings.textScale == 100u, "a partial high-resolution wheel notch waits without changing scale");
+                     wheel(60);
+                     Require(app.settings.textScale == 105u, "two partial notches combine into exactly one text-size step");
+                     wheel(-240);
+                     Require(app.settings.textScale == 95u, "a multi-notch wheel message applies every admitted step in one action");
+                     wheel(-32768);
+                     Require(app.settings.textScale == 75u, "negative wheel input clamps at the existing minimum scale");
+                     wheel(32767);
+                     Require(app.settings.textScale == 200u, "positive wheel input clamps at the existing maximum scale");
+                     const auto layouts = app.Activity().layouts;
+                     wheel(120);
+                     Require(app.settings.textScale == 200u && app.Activity().layouts == layouts,
+                             "an already clamped zoom performs no redundant layout or preference work");
+                     Require(ParseSettings(SerializeSettings(app.settings)).textScale == 200u,
+                             "keyboard and wheel changes use the existing persistent scale preference");
+                     Require(key('0') && app.settings.textScale == 100u && app.Document().Snapshot().IsSameRevision(source) &&
+                                 app.Document().GetSelection() == DxUi::RichText::Selection{12u, 2u} && !app.Document().CanUndo() &&
+                                 app.Document().CanRedo() && !app.Dirty() && app.Host().GetFocusControl() == focus && !IsWindowVisible(app.Window()),
+                             "all zoom paths preserve exact source, directional selection, history, saved state and logical focus in every view");
+                     // End one gesture before testing the next editor view.
+                     (void)SendMessageW(app.Window(), WM_MOUSEWHEEL, MAKEWPARAM(0, 0), 0);
+                 }
+             });
+        test("Editor.FindCaseAndClosedRepeatPreserveSource",
+             [&]
+             {
+                 Application app(Options(root, L"find-case-repeat"));
+                 Success(app.Initialize(), "create hidden case and closed-repeat Find fixture");
+                 const std::wstring source = L"Cat cat CAT\r\n\u00c9cole \u00e9cole \U0001f600 cat";
+                 Require(source.size() == 31u, "the independent UTF-16 Find fixture has its declared source length");
+                 app.SetDocument(source);
+                 app.Execute(Command::Find);
+                 app.findText->SetTextAndNotify(L"cat");
+                 const std::array<std::size_t, 4> expected{0u, 4u, 8u, 28u};
+                 Require(!app.findMatchCase && app.findMatches.size() == expected.size(), "Find starts case-insensitive over exact counted source");
+                 for (std::size_t index = 0; index < expected.size(); ++index)
+                     Require(app.findMatches[index].first == expected[index] && app.findMatches[index].last == expected[index] + 3u,
+                             "case-insensitive Find retains independently specified source ACP ranges across CRLF and a surrogate pair");
+                 app.Document().SetSelection({0u, 0u});
+                 app.Execute(Command::FindNext);
+                 app.Execute(Command::FindNext);
+                 Require(app.Document().GetSelection() == DxUi::RichText::Selection{4u, 7u}, "visible Find reaches the second match");
+                 app.Execute(Command::CloseDrawer);
+                 const auto snapshot = app.Document().Snapshot();
+                 const auto work = app.Activity();
+                 Require(!app.findBar->IsVisible() && app.findMatches.empty() && !app.findSource,
+                         "closing Find retires its visible match presentation");
+                 app.Execute(Command::FindNext);
+                 Require(app.Document().GetSelection() == DxUi::RichText::Selection{8u, 11u},
+                         "closed-bar repeat advances to the retained third match");
+                 app.Execute(Command::FindNext);
+                 Require(app.Document().GetSelection() == DxUi::RichText::Selection{28u, 31u},
+                         "closed-bar repeat uses exact UTF-16 offsets after the supplementary character");
+                 app.Execute(Command::FindNext);
+                 Require(app.Document().GetSelection() == DxUi::RichText::Selection{0u, 3u}, "closed-bar repeat wraps forward");
+                 app.Execute(Command::FindPrevious);
+                 Require(app.Document().GetSelection() == DxUi::RichText::Selection{28u, 31u} && !app.findBar->IsVisible() &&
+                             app.findMatches.empty() && app.Activity().findMatchRebuilds == work.findMatchRebuilds &&
+                             app.Document().Snapshot().IsSameRevision(snapshot) && !app.Document().CanUndo(),
+                         "closed forward/reverse repeats reuse warm matches without source/history edits or reopening Find");
+                 app.Execute(Command::FindMatchCase);
+                 app.Execute(Command::FindNext);
+                 Require(app.findMatchCase && app.Document().GetSelection() == DxUi::RichText::Selection{4u, 7u},
+                         "Match case lazily refreshes the closed cache and skips differently cased source");
+                 const auto caseWork = app.Activity().findMatchRebuilds;
+                 app.Execute(Command::FindNext);
+                 Require(app.Document().GetSelection() == DxUi::RichText::Selection{28u, 31u} && app.Activity().findMatchRebuilds == caseWork,
+                         "the refreshed closed case-sensitive cache remains reusable");
+                 app.Execute(Command::Find);
+                 app.findText->SetTextAndNotify(L"\u00e9cole");
+                 Require(app.findMatches.size() == 1u && app.findMatches[0].first == 19u,
+                         "Match case distinguishes the independently specified accented capital");
+                 app.Execute(Command::FindMatchCase);
+                 Require(app.findMatches.size() == 2u && app.findMatches[0].first == 13u && app.findMatches[1].first == 19u,
+                         "ordinal case-insensitive Find handles non-ASCII text without rewriting its source");
+                 Require(app.findCaseToggle->GetAccessibleName() == Resource(IDS_MATCHCASE),
+                         "the Find preference has its localized accessible command name");
+             });
+        test("Editor.SingleReplaceSelectsFollowingMatch",
+             [&]
+             {
+                 Application app(Options(root, L"find-single-replace"));
+                 Success(app.Initialize(), "create hidden one-action replacement fixture");
+                 app.SetDocument(L"cat cat cat");
+                 app.Execute(Command::Find);
+                 app.findText->SetTextAndNotify(L"cat");
+                 app.replaceText->SetTextAndNotify(L"dog");
+                 app.Document().SetSelection({0u, 0u});
+                 app.Execute(Command::FindNext);
+                 app.Execute(Command::Replace);
+                 Require(app.Document().GetText() == L"dog cat cat" && app.Document().GetSelection() == DxUi::RichText::Selection{4u, 7u},
+                         "one Replace changes the selected match and selects the next match");
+                 app.Execute(Command::Replace);
+                 Require(app.Document().GetText() == L"dog dog cat" && app.Document().GetSelection() == DxUi::RichText::Selection{8u, 11u},
+                         "the following Replace needs one action rather than a separate navigation action");
+                 Require(app.Document().Undo() && app.Document().GetText() == L"dog cat cat" && app.Document().Undo() &&
+                             app.Document().GetText() == L"cat cat cat" && !app.Dirty(),
+                         "each replacement remains one independent source-history transaction");
              });
         test("Editor.DesignRefreshFindReplaceUndoAndCapacity",
              [&]

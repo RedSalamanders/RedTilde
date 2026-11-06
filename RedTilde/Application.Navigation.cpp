@@ -8,6 +8,33 @@ namespace RedTilde
 {
 namespace
 {
+// Application-owned ordinal Find policy preserves counted source ACPs and uses
+// the shared editor boundary predicate instead of searching rendered text.
+void CollectSourceFindMatches(std::wstring_view text, std::wstring_view query, bool matchCase, std::vector<DxUi::RichText::MarkdownRange> &matches)
+{
+    matches.clear();
+    if (query.empty() || query.size() > text.size())
+        return;
+    std::size_t from{};
+    while (from <= text.size() - query.size())
+    {
+        std::size_t position = std::wstring_view::npos;
+        if (matchCase)
+            position = text.find(query, from);
+        else
+        {
+            const int found = FindStringOrdinal(FIND_FROMSTART, text.data() + from, static_cast<int>(text.size() - from), query.data(),
+                                                static_cast<int>(query.size()), TRUE);
+            if (found >= 0)
+                position = from + static_cast<std::size_t>(found);
+        }
+        if (position == std::wstring_view::npos)
+            break;
+        if (DxUi::RichText::IsEditBoundary(text, position) && DxUi::RichText::IsEditBoundary(text, position + query.size()))
+            matches.push_back({position, position + query.size()});
+        from = position + query.size();
+    }
+}
 template <class... Args> std::wstring Text(unsigned id, Args &&...args)
 {
     return std::vformat(ResourceView(id), std::make_wformat_args(args...));
@@ -347,10 +374,11 @@ void Application::SelectFilesRoot(const std::filesystem::path &path)
     RefreshFiles(true);
     Layout();
     SavePreferences();
-    host.SetFocusControl(filesTree, !options.headless);
+    host.SetFocusControl(filesTree, MayRequestNativeFocus());
 }
 void Application::OpenFolder()
 {
+    AbandonStartupRestore();
     AskWorkspaceThen(
         [this]
         {
@@ -407,6 +435,7 @@ bool Application::SwitchWorkspaceDocument(std::size_t index)
     }
     if (!current())
         return true;
+    RememberActiveDocument();
     previewCollapsedHeadings.reset();
     previewCommittedOutline.reset();
     documentAnalysisSource.reset();
@@ -422,7 +451,7 @@ bool Application::SwitchWorkspaceDocument(std::size_t index)
         return true;
     RefreshFiles();
     if (current())
-        host.SetFocusControl(primary, !options.headless);
+        host.SetFocusControl(primary, MayRequestNativeFocus());
     return true;
 }
 bool Application::StartWorkspaceDocument()
@@ -481,6 +510,7 @@ void Application::OpenPath(const std::filesystem::path &path)
             item != entries.end() && item->directory)
             return;
     }
+    AbandonStartupRestore();
     if (files.Busy() || HasBlockDraft() || unsavedPromptOpen || closing || closingAfterSave || switchingDocument || sessionEnding)
     {
         Status(IDS_BUSY);
@@ -507,9 +537,13 @@ void Application::RefreshFind()
         if (findPresentationCleared)
             return;
 
+        closedFindMatches = std::move(findMatches);
         findMatches.clear();
+        closedFindSource = std::move(findSource);
         findSource.reset();
+        closedFindQuery = std::move(findQuery);
         findQuery.clear();
+        closedFindCase = findCachedMatchCase;
         findSectionCounts.clear();
         findSectionCountsValid = false;
         findHighlightedCurrent.reset();
@@ -542,16 +576,19 @@ void Application::RefreshFind()
     findPresentationCleared = false;
     const auto &needle = findText->GetText();
     const auto snapshot = editor->Snapshot();
-    if (!findSource || !findSource->IsSameRevision(snapshot) || findQuery != needle)
+    if (closedFindSource)
     {
-        findMatches.clear();
+        findMatches.swap(closedFindMatches);
+        closedFindMatches.clear();
+        closedFindSource.reset();
+        closedFindQuery.clear();
+    }
+    if (!findSource || !findSource->IsSameRevision(snapshot) || findQuery != needle || findCachedMatchCase != findMatchCase)
+    {
         findQuery = needle;
         findSource = snapshot;
-        const auto &text = CurrentText();
-        if (!needle.empty())
-            for (auto pos = text.find(needle); pos != text.npos; pos = text.find(needle, pos + needle.size()))
-                if (DxUi::RichText::IsEditBoundary(text, pos) && DxUi::RichText::IsEditBoundary(text, pos + needle.size()))
-                    findMatches.push_back({pos, pos + needle.size()});
+        findCachedMatchCase = findMatchCase;
+        CollectSourceFindMatches(CurrentText(), needle, findMatchCase, findMatches);
         ++activity.findMatchRebuilds;
         findSectionCountsValid = false;
         findHighlightsNeedRefresh = true;
@@ -652,16 +689,32 @@ void Application::RefreshFind()
 }
 void Application::FindNext(bool previous)
 {
-    RefreshFind();
-    if (findMatches.empty())
+    const bool visible = findBar->IsVisible();
+    if (visible)
+        RefreshFind();
+    else
+    {
+        const auto snapshot = editor->Snapshot();
+        const auto &query = findText->GetText();
+        if (!closedFindSource || !closedFindSource->IsSameRevision(snapshot) || closedFindQuery != query || closedFindCase != findMatchCase)
+        {
+            CollectSourceFindMatches(CurrentText(), query, findMatchCase, closedFindMatches);
+            closedFindSource = snapshot;
+            closedFindQuery = query;
+            closedFindCase = findMatchCase;
+            ++activity.findMatchRebuilds;
+        }
+    }
+    const auto &matches = visible ? findMatches : closedFindMatches;
+    if (matches.empty())
         return;
     const auto selection = editor->GetSelection();
     std::size_t index{};
     if (previous)
     {
-        index = findMatches.size() - 1;
-        for (std::size_t i = findMatches.size(); i > 0; --i)
-            if (findMatches[i - 1].first < selection.Start())
+        index = matches.size() - 1;
+        for (std::size_t i = matches.size(); i > 0; --i)
+            if (matches[i - 1].first < selection.Start())
             {
                 index = i - 1;
                 break;
@@ -669,11 +722,11 @@ void Application::FindNext(bool previous)
     }
     else
     {
-        const auto next = std::find_if(findMatches.begin(), findMatches.end(), [&](const auto &r) { return r.first >= selection.End(); });
-        if (next != findMatches.end())
-            index = static_cast<std::size_t>(next - findMatches.begin());
+        const auto next = std::find_if(matches.begin(), matches.end(), [&](const auto &r) { return r.first >= selection.End(); });
+        if (next != matches.end())
+            index = static_cast<std::size_t>(next - matches.begin());
     }
-    const auto range = findMatches[index];
+    const auto range = matches[index];
     editor->SetSelection({range.first, range.last});
     (void)editor->ScrollSourceRangeIntoView(host, range.first, range.last, false);
     SelectionChanged();
@@ -718,6 +771,8 @@ void Application::ReplaceFind(bool all)
     if (!applied)
         Status(IDS_NOTAVAILABLE);
     RefreshFind();
+    if (applied && !all)
+        FindNext();
 }
 void Application::FileMenu(bool overflow)
 {
@@ -792,7 +847,7 @@ bool Application::DismissSurface()
             RefreshFiles(true);
             Layout();
             SavePreferences();
-            host.SetFocusControl(editor, !options.headless);
+            host.SetFocusControl(editor, MayRequestNativeFocus());
         }
         return true;
     }

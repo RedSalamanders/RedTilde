@@ -17,9 +17,9 @@ constexpr std::string_view SettingsHeader = "RedTilde.Settings/1\n";
 // Indexed by MarkdownSyntax. Missing or invalid keys keep the enabled default.
 constexpr std::array<std::string_view, MarkdownSyntaxCount> MarkdownSyntaxKeys{
     "syntaxHighlight", "syntaxSuperscript", "syntaxSubscript", "syntaxInserted", "syntaxWikiLinks", "syntaxDefinitionLists", "syntaxAbbreviations"};
-// Settings are line-based. Keep a Windows folder's UTF-8 value lossless, bounded,
+// Settings are line-based. Keep a Windows folder/document UTF-8 value lossless, bounded,
 // absolute and free of control characters so it cannot introduce another field.
-bool ValidFilesRoot(const std::filesystem::path &path)
+bool ValidPreferencePath(const std::filesystem::path &path)
 {
     const auto &text = path.native();
     return path.is_absolute() && text.size() <= 32767 && DxUi::RichText::IsValidUtf16(text) &&
@@ -27,11 +27,23 @@ bool ValidFilesRoot(const std::filesystem::path &path)
 }
 } // namespace
 
+bool ValidWindowPlacement(const WindowPlacementSettings &placement) noexcept
+{
+    const auto &bounds = placement.normalBounds;
+    constexpr LONG coordinateLimit = 1048576;
+    return placement.dpi >= 48u && placement.dpi <= 768u && bounds.left >= -coordinateLimit && bounds.top >= -coordinateLimit &&
+           bounds.right <= coordinateLimit && bounds.bottom <= coordinateLimit && bounds.right > bounds.left && bounds.bottom > bounds.top &&
+           static_cast<long long>(bounds.right) - bounds.left <= 32768 && static_cast<long long>(bounds.bottom) - bounds.top <= 32768;
+}
+
 Settings ParseSettings(std::string_view bytes)
 {
     Settings settings;
     if (!bytes.starts_with(SettingsHeader))
         return settings;
+    std::array<std::optional<int>, 4> windowBounds;
+    std::optional<unsigned> windowDpi{96u};
+    bool windowMaximized{};
     while (!bytes.empty())
     {
         const auto end = bytes.find('\n');
@@ -40,17 +52,31 @@ Settings ParseSettings(std::string_view bytes)
         if (split != line.npos)
         {
             const auto key = line.substr(0, split), value = line.substr(split + 1);
-            if (key == "filesRoot" && value.size() <= 3u * 32767u)
+            if (key == "windowDpi")
+                windowDpi.reset();
+            constexpr std::array<std::string_view, 4> windowKeys{"windowLeft", "windowTop", "windowRight", "windowBottom"};
+            for (std::size_t index = 0; index < windowKeys.size(); ++index)
+                if (key == windowKeys[index])
+                {
+                    int coordinate{};
+                    const auto parsed = std::from_chars(value.data(), value.data() + value.size(), coordinate);
+                    windowBounds[index] =
+                        parsed.ec == std::errc{} && parsed.ptr == value.data() + value.size() ? std::optional<int>{coordinate} : std::nullopt;
+                }
+            if ((key == "filesRoot" || key == "lastDocument") && value.size() <= 3u * 32767u)
             {
                 try
                 {
                     std::filesystem::path path(DxUi::RichText::DecodeUtf8(value));
-                    if (ValidFilesRoot(path))
-                        settings.filesRoot = path.lexically_normal();
+                    if (ValidPreferencePath(path))
+                    {
+                        auto &destination = key == "filesRoot" ? settings.filesRoot : settings.lastDocument;
+                        destination = path.lexically_normal();
+                    }
                 }
                 catch (const std::invalid_argument &)
                 {
-                    // A malformed UTF-8 folder keeps its default; other preferences still apply.
+                    // A malformed UTF-8 preference path keeps its default; neighboring fields still apply.
                 }
             }
             unsigned number{};
@@ -71,6 +97,10 @@ Settings ParseSettings(std::string_view bytes)
                     settings.readingWidth = number;
                 if (key == "scale" && number >= 75 && number <= 200)
                     settings.textScale = number;
+                if (key == "windowDpi" && number >= 48u && number <= 768u)
+                    windowDpi = number;
+                if (key == "windowMaximized" && number <= 1)
+                    windowMaximized = number != 0;
                 if (key == "focusDimming" && number <= 1)
                     settings.dimInactiveBlocks = number != 0;
                 if (key == "remoteImages" && number <= 1)
@@ -86,6 +116,13 @@ Settings ParseSettings(std::string_view bytes)
             break;
         bytes.remove_prefix(end + 1);
     }
+    if (windowDpi && std::ranges::all_of(windowBounds, [](const auto &value) { return value.has_value(); }))
+    {
+        WindowPlacementSettings placement{
+            {windowBounds[0].value(), windowBounds[1].value(), windowBounds[2].value(), windowBounds[3].value()}, windowDpi.value(), windowMaximized};
+        if (ValidWindowPlacement(placement))
+            settings.windowPlacement = placement;
+    }
     // Focus mode is intentionally session-local, so restart never hides commands.
     return settings;
 }
@@ -99,8 +136,17 @@ std::string SerializeSettings(const Settings &settings)
     result += std::format("strikeCompletedTasks={}\n", settings.strikeCompletedTasks ? 1 : 0);
     for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
         result += std::format("{}={}\n", MarkdownSyntaxKeys[index], settings.markdownSyntax[index] ? 1 : 0);
-    if (ValidFilesRoot(settings.filesRoot))
+    if (ValidPreferencePath(settings.filesRoot))
         result += std::format("filesRoot={}\n", DxUi::RichText::EncodeUtf8(settings.filesRoot.native()));
+    if (ValidPreferencePath(settings.lastDocument))
+        result += std::format("lastDocument={}\n", DxUi::RichText::EncodeUtf8(settings.lastDocument.native()));
+    if (settings.windowPlacement && ValidWindowPlacement(settings.windowPlacement.value()))
+    {
+        const auto &placement = settings.windowPlacement.value();
+        const auto &bounds = placement.normalBounds;
+        result += std::format("windowLeft={}\nwindowTop={}\nwindowRight={}\nwindowBottom={}\nwindowDpi={}\nwindowMaximized={}\n", bounds.left,
+                              bounds.top, bounds.right, bounds.bottom, placement.dpi, placement.maximized ? 1 : 0);
+    }
     return result;
 }
 

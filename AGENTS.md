@@ -33,8 +33,9 @@ DxUi controls, DirectWrite and Direct2D. Read [Specs/README.md](Specs/README.md)
 - Preserve source ACP selection, history, IME, keyboard focus and UI Automation. A floating toolbar must retain
   the selection, accept Tab/Esc/Enter, and return focus to the editor after actions.
 - User-visible chrome strings live in `res/RedTilde.rc`. Document examples are content, not chrome.
-- Never execute Markdown HTML, scripts, Mermaid directives or a clicked URL. External navigation requires a
-  separate explicit command. Network image access is declined by default. Unsupported content stays editable.
+- Never execute Markdown HTML, scripts or Mermaid directives. Ordinary link clicks stay inert; Open link,
+  Ctrl+click and the shared explicit navigation action require confirmation before external dispatch.
+  Network image access is declined by default. Unsupported content stays editable.
 - Review the design system and usage docs on every UI change. Screenshots come from the app's deterministic,
   hidden, non-activating harness, with scenario/build provenance. Never substitute desktop capture.
 - No generated products are committed under `.build`. Do not kill independently launched applications.
