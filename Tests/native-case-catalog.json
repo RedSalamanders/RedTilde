@@ -1,6 +1,7 @@
 {
   "version": 1,
   "cases": [
+    { "name": "Editor.CapturesSettleIndependentSourceCosmetics", "scope": "Editor" },
     { "name": "Storage.HardlinkSaveSuccessSurvivesBlockedRecoveryRetirement", "scope": "Storage" },
     { "name": "Editor.HardlinkSaveWorkerRetainsAliasesAndLaterEdits", "scope": "Editor" },
     { "name": "Storage.HardlinkSavePreservesAliasesAndProtectsBeforeMutation", "scope": "Storage" },
