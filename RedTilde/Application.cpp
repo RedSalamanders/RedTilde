@@ -2430,7 +2430,7 @@ void Application::Prepare(unsigned turns)
 {
     if (closing || !host.GetRoot())
         return;
-    const auto cosmeticsPending = [](const Editor *target)
+    const auto cosmeticsPending = [](const DxUi::RichTextEditor *target)
     {
         if (!target || !target->IsVisible())
             return false;
