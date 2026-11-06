@@ -1,0 +1,1 @@
+- Keep MSVC missing-component and NTFS shared-read-only fixture setup within shell path budgets on long checkouts while retaining dedicated long Unicode paths, streams, identity and ownership assertions. The focused native-host tooling checks execute all 12 setup cases and 38 evidence checks without a real installer or desktop input.

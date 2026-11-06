@@ -2,6 +2,8 @@
 
 ## Completed scopes — 6 November 2026
 
+- [Save safety and UI failure boundaries](FileSafetyAndUiBoundaries_2026-11-06.md) — one conflict surface, reliable stamps/full file identity, UTF-8/capacity diagnostics, guarded UI actions, long-checkout fixtures, six builds, 324 cases and 108 hidden captures.
+
 - [Document workspaces, recovery and rendering adoption](WorkspaceRecoveryAndRendering_2026-11-06.md) — retained per-document history/recovery, lossless EOL and storage/settings/Find failures, exact SDK pin, six builds, 273 cases and 108 standard captures.
 
 ## Completed scopes — 5 November 2026

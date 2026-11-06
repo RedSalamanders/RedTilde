@@ -1,6 +1,23 @@
 {
   "version": 1,
   "cases": [
+    { "name": "Storage.StampMatchesFullNativeFileIdentity", "scope": "Storage" },
+    { "name": "Editor.RecoverableCommandsAndMenusRetainSourceAndDraftFocus", "scope": "Editor" },
+    { "name": "Editor.FileCompletionFailureRetainsPendingWriteAndCancelsClose", "scope": "Editor" },
+    { "name": "Editor.CloseExceptionNeverFallsThroughToDefaultDestroy", "scope": "Editor" },
+    { "name": "Storage.UnsupportedFilesReportKnownUnitCount", "scope": "Storage" },
+    { "name": "Editor.OpenErrorsExplainEncodingAndCapacity", "scope": "Editor" },
+    { "name": "Storage.TimestampOnlyTouchDoesNotConflict", "scope": "Storage" },
+    { "name": "Editor.SaveAsSameTargetStillChecksSavedBaseline", "scope": "Editor" },
+    { "name": "Editor.ConflictReloadFailureRetainsSourceAndHistory", "scope": "Editor" },
+    { "name": "Editor.SaveConflictChoicesAreSingleAndSourceBound", "scope": "Editor" },
+    { "name": "Editor.StaleConflictChoicePreservesLaterEdits", "scope": "Editor" },
+    { "name": "Editor.SavePickerCannotRetargetNewerSource", "scope": "Editor" },
+    { "name": "Editor.ConflictReloadPreservesEditsMadeDuringRead", "scope": "Editor" },
+    { "name": "Storage.SharedWriterReadAndSaveAsBaseline", "scope": "Storage" },
+    { "name": "Storage.RechecksIdentityAfterStaging", "scope": "Storage" },
+    { "name": "Storage.PublishedSaveDoesNotDependOnContentReadback", "scope": "Storage" },
+    { "name": "Storage.ReplacementIdentityDetectsEqualBytesAndTimestamp", "scope": "Storage" },
     {
       "name": "Editor.SelectedBlockInsertionsRetainSourceAndHistory",
       "scope": "Editor"

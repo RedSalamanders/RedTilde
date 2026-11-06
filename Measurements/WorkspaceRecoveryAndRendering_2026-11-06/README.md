@@ -75,3 +75,12 @@ managed image assets, R10 and physical/native platform/release gates.
 [Retained attempts](retained-attempts.json) keep counterexamples and unaccepted builds distinct. 
 [Validation provenance](validation.json) records the byte-verified canonical short-checkout pass and the 
 original long-checkout mock-installer refusal. It does not relabel that failed attempt as a pass.
+
+[Hosted main Release run 42146749203](https://github.com/RedSalamanders/RedTilde/actions/runs/42146749203)
+passed all seven jobs at merge `75c0675b`: both native platforms pass all 91 cases, 36 captures and assertion/
+crash checks, followed by both test-disabled production ZIP smoke tests. The
+[hosted record](hosted-qualification.json) verifies all thirteen raw GitHub artifact wrapper digests, both
+canonical native receipts and both inner production ZIP hashes. The original admission batch remains its
+original `running` snapshot; completion is established by the finished jobs and their receipts. This qualifies
+the `fe9b7d15` / `8dc328de` Release scope, separately from the later save-safety candidate, Debug/ASan ARM64,
+physical input and performance acceptance. Recorded test executable identities are not local re-execution.

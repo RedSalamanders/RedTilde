@@ -5,6 +5,7 @@
 #include "Application.Tests.HeapDiagnostic.h"
 #include "Application.Tests.RemoteImages.h"
 #include "Support/Support.Tests.Foreground.h"
+#include "Support/Support.Tests.StorageSafety.h"
 #include "Support/Support.Tests.TextServices.h"
 #include "res/Resource.h"
 #include <DxUi/RichMath.h>
@@ -230,6 +231,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
     RegisterCloseTests(root, test);
     RegisterDesignRefreshTests(root, test);
     RegisterRemoteImageTests(root, test);
+    Testing::RegisterStorageSafetyTests(root, test);
     test("Utf8.CI_ASSERTION_PROBE",
          []
          {

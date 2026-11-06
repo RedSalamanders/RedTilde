@@ -7,6 +7,7 @@
 #include <DxUi/TextInputServices.h>
 #include <algorithm>
 #include <chrono>
+#include <commctrl.h>
 #include <commdlg.h>
 #include <dwmapi.h>
 #include <format>
@@ -1139,10 +1140,44 @@ void Application::CloseDrawers()
         (void)PostMessageW(window.get(), FileReady, 0, 0);
 }
 
-void Application::Execute(Command command)
+void Application::ReportUiFailure(std::string_view cause) noexcept
+{
+    MonitorDiagnostics::WriteUtf8(RedMonitor::Severity::Error, cause);
+    if (reportingUiFailure)
+        return;
+    reportingUiFailure = true;
+    const auto restore = wil::scope_exit([&] { reportingUiFailure = false; });
+    afterSave = {};
+    try
+    {
+        if (closingAfterSave)
+            ResumeAfterSaveClose();
+        if (!closing && root && host.GetRoot() == root)
+            Status(IDS_ACTIONFAILED);
+    }
+    catch (const std::bad_alloc &)
+    {
+        std::terminate();
+    }
+    catch (const std::exception &error)
+    {
+        // Status publication itself can fail. Keep the app/source alive and
+        // retain the second actual cause locally instead of recursing into UI.
+        MonitorDiagnostics::WriteUtf8(RedMonitor::Severity::Error, error.what());
+    }
+}
+void Application::Execute(Command command) noexcept
+{
+    RunUiAction([&] { ExecuteCommand(command); });
+}
+void Application::ExecuteCommand(Command command)
 {
     if (closing || closingAfterSave || sessionEnding || switchingDocument)
         return;
+#if defined(REDTILDE_ENABLE_TESTS)
+    if (options.commandAdmissionForTest)
+        options.commandAdmissionForTest(command);
+#endif
     using namespace DxUi::RichText;
     // Presentation/structural changes cannot interrupt native IME composition.
     DxUi::NativeTextInputState native;
@@ -1679,16 +1714,7 @@ void Application::Menu(POINT point, bool insertOnly, bool headingOnly)
     DxUi::ContextMenuSessionCallbacks callbacks;
     callbacks.focusFirstNavigableItem = true;
     (void)DxUi::ContextMenu::ShowAsync(
-        window.get(), point, items, host.GetTheme(),
-        [this](std::optional<int> selected)
-        {
-            if (closing)
-                return;
-            if (selected)
-                Execute(static_cast<Command>(selected.value() - 1));
-            host.SetFocusControl(editor, true);
-        },
-        callbacks);
+        window.get(), point, items, host.GetTheme(), [this](std::optional<int> selected) noexcept { OnMenuClosed(selected); }, callbacks);
 }
 
 std::filesystem::path Application::PickFile(bool saving, bool image, bool folder)
@@ -1704,8 +1730,10 @@ std::filesystem::path Application::PickFile(bool saving, bool image, bool folder
                         : CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(dialog.put()));
     if (FAILED(hr))
         return {};
-    const COMDLG_FILTERSPEC markdown[]{{L"Markdown", L"*.md;*.markdown"}, {L"Text files", L"*.txt"}, {L"All files", L"*.*"}};
-    const COMDLG_FILTERSPEC pictures[]{{L"Images", L"*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff"}};
+    const auto markdownLabel = Resource(IDS_FILTERMARKDOWN), utf8Label = Resource(IDS_FILTERUTF8), allLabel = Resource(IDS_FILTERALL),
+               imageLabel = Resource(IDS_FILTERIMAGES);
+    const COMDLG_FILTERSPEC markdown[]{{markdownLabel.c_str(), L"*.md;*.markdown"}, {utf8Label.c_str(), L"*.txt"}, {allLabel.c_str(), L"*.*"}};
+    const COMDLG_FILTERSPEC pictures[]{{imageLabel.c_str(), L"*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff"}};
     if (!folder)
         (void)dialog->SetFileTypes(image ? 1u : 3u, image ? pictures : markdown);
     else
@@ -1838,24 +1866,44 @@ void Application::Open()
             }
         });
 }
-void Application::Save(bool saveAs, bool force)
+void Application::Save(bool saveAs, bool force, std::optional<std::filesystem::path> selectedPath)
 {
+    if (closing || !root || host.GetRoot() != root)
+        return;
     saveAs = saveAs || recovered;
     if (files.Busy())
     {
         Status(IDS_BUSY);
         return;
     }
-    auto path = documentPath;
-    if (saveAs || path.empty())
+    const auto source = editor->Snapshot();
+    const auto key = activeDocumentKey;
+    const auto originalPath = documentPath;
+    const auto originalStamp = stamp;
+    const bool originalBom = bom, originalRecovered = recovered;
+    auto path = selectedPath ? selectedPath.value() : documentPath;
+    if (!selectedPath && (saveAs || path.empty()))
         path = PickFile(true);
     if (path.empty())
     {
         afterSave = {};
         return;
     }
-    const auto expected = (!force && !saveAs && path == documentPath) ? std::optional<FileStamp>(stamp) : std::nullopt;
-    const HRESULT hr = files.Submit(true, path, editor->GetText(), bom, expected);
+    if (closing || !root || host.GetRoot() != root)
+    {
+        afterSave = {};
+        return;
+    }
+    if (key != activeDocumentKey || documentPath != originalPath || stamp != originalStamp || bom != originalBom || recovered != originalRecovered ||
+        !editor->Snapshot().IsSameRevision(source))
+    {
+        afterSave = {};
+        Status(IDS_FILECONTEXTCHANGED);
+        return;
+    }
+    const auto expected = (!force && !documentPath.empty()) ? std::optional<FileStamp>(stamp) : std::nullopt;
+    const bool sameIdentityOnly = saveAs && path.lexically_normal() != documentPath.lexically_normal();
+    const HRESULT hr = files.Submit(true, path, editor->GetText(), bom, expected, sameIdentityOnly, false, documentPath);
     if (FAILED(hr))
     {
         afterSave = {};
@@ -1864,8 +1912,115 @@ void Application::Save(bool saveAs, bool force)
     else
         Status(IDS_SAVING);
 }
-void Application::FileCompleted()
+void Application::ResolveSaveConflict(const AsyncFiles::Result &result)
 {
+    if (closing || !root || host.GetRoot() != root)
+    {
+        afterSave = {};
+        return;
+    }
+    const auto source = editor->Snapshot();
+    const auto key = activeDocumentKey;
+    const auto path = documentPath;
+    const auto identity = stamp;
+    const bool originalBom = bom, originalRecovered = recovered;
+    Status(IDS_CONFLICT);
+    SaveConflictChoice choice = SaveConflictChoice::Cancel;
+    {
+        unsavedPromptOpen = true;
+        const auto restore = wil::scope_exit([&] { unsavedPromptOpen = false; });
+#if defined(REDTILDE_ENABLE_TESTS)
+        if (options.headless && options.saveConflictForTest)
+            choice = options.saveConflictForTest();
+        else
+#endif
+            if (!options.headless)
+        {
+            const auto dialogTitle = Resource(IDS_APP), instruction = Resource(IDS_CONFLICT), content = Resource(IDS_CONFLICTHELP);
+            const auto reload = Resource(IDS_RELOAD), saveAs = Resource(IDS_SAVEAS), overwrite = Resource(IDS_OVERWRITE),
+                       cancel = Resource(IDS_CANCEL);
+            const TASKDIALOG_BUTTON buttons[]{
+                {IDS_RELOAD, reload.c_str()}, {IDS_SAVEAS, saveAs.c_str()}, {IDS_OVERWRITE, overwrite.c_str()}, {IDCANCEL, cancel.c_str()}};
+            TASKDIALOGCONFIG config{};
+            config.cbSize = sizeof(config);
+            config.hwndParent = window.get();
+            config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SIZE_TO_CONTENT;
+            config.pszWindowTitle = dialogTitle.c_str();
+            config.pszMainIcon = TD_WARNING_ICON;
+            config.pszMainInstruction = instruction.c_str();
+            config.pszContent = content.c_str();
+            config.cButtons = static_cast<UINT>(std::size(buttons));
+            config.pButtons = buttons;
+            config.nDefaultButton = IDCANCEL;
+            int pressed = IDCANCEL;
+            if (SUCCEEDED(TaskDialogIndirect(&config, &pressed, nullptr, nullptr)))
+            {
+                if (pressed == IDS_RELOAD)
+                    choice = SaveConflictChoice::Reload;
+                else if (pressed == IDS_SAVEAS)
+                    choice = SaveConflictChoice::SaveAs;
+                else if (pressed == IDS_OVERWRITE)
+                    choice = SaveConflictChoice::Overwrite;
+            }
+        }
+    }
+    if (closing || !root || host.GetRoot() != root)
+    {
+        afterSave = {};
+        return;
+    }
+    if (key != activeDocumentKey || path != documentPath || stamp != identity || originalBom != bom || originalRecovered != recovered ||
+        !editor->Snapshot().IsSameRevision(source))
+    {
+        afterSave = {};
+        Status(IDS_FILECONTEXTCHANGED);
+        return;
+    }
+    if (choice == SaveConflictChoice::Overwrite)
+        Save(false, true, result.path);
+    else if (choice == SaveConflictChoice::SaveAs)
+        Save(true);
+    else
+    {
+        afterSave = {};
+        if (choice == SaveConflictChoice::Reload)
+        {
+            conflictReload = ConflictReload{key, source, path};
+            if (SUCCEEDED(files.Submit(false, result.path, {}, false, {}, false, true)))
+                Status(IDS_LOADING);
+            else
+            {
+                conflictReload.reset();
+                Status(IDS_BUSY);
+            }
+        }
+    }
+}
+void Application::OnMenuClosed(std::optional<int> selected) noexcept
+{
+    RunUiAction(
+        [&]
+        {
+            if (closing || !root || host.GetRoot() != root)
+                return;
+            if (selected)
+                Execute(static_cast<Command>(selected.value() - 1));
+            // Commands may retire the root or open a draft/drawer that owns focus.
+            if (!closing && root && host.GetRoot() == root && !HasBlockDraft() && !drawer->IsVisible() && !findBar->IsVisible() &&
+                !recoveryPanel->IsVisible())
+                host.SetFocusControl(editor, !options.headless);
+        });
+}
+void Application::FileCompleted() noexcept
+{
+    RunUiAction([&] { CompleteFileOperation(); });
+}
+void Application::CompleteFileOperation()
+{
+#if defined(REDTILDE_ENABLE_TESTS)
+    if (options.fileCompletionAdmissionForTest)
+        options.fileCompletionAdmissionForTest();
+#endif
     auto completed = heldOpen && !HasBlockDraft() ? std::exchange(heldOpen, std::nullopt) : files.Take();
     if (!completed)
         return;
@@ -1878,23 +2033,32 @@ void Application::FileCompleted()
     auto &result = completed.value();
     if (FAILED(result.status))
     {
+        if (result.reloading)
+            conflictReload.reset();
         const bool failedClose = closingAfterSave;
         if (failedClose)
             ResumeAfterSaveClose();
         MonitorDiagnostics::Write(RedMonitor::Severity::Error,
                                   result.saving ? L"save failed; source and previous target retained" : L"open failed; current document retained");
-        if (result.saving && result.status == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH) && !options.headless && !failedClose)
+        if (result.saving && result.status == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH) && !failedClose)
         {
-            const int choice =
-                MessageBoxW(window.get(), Resource(IDS_CONFLICT).c_str(), Resource(IDS_APP).c_str(), MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2);
-            if (choice == IDYES)
-            {
-                Save(false, true);
-                return;
-            }
+            ResolveSaveConflict(result);
+            return;
         }
-        const auto error = ErrorText(result.status);
-        const auto message = std::vformat(Resource(result.saving ? IDS_SAVEFAILED : IDS_OPENFAILED), std::make_wformat_args(error));
+        std::wstring message;
+        if (result.status == HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION))
+            message = Resource(result.saving ? IDS_SOURCEENCODING : IDS_FILENOTUTF8);
+        else if (result.status == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE))
+        {
+            constexpr auto limit = DxUi::RichText::Document::MaximumUnits;
+            message = result.rejectedUnits ? std::vformat(Resource(IDS_FILETOOLARGECOUNT), std::make_wformat_args(result.rejectedUnits, limit))
+                                           : std::vformat(Resource(IDS_FILETOOLARGELIMIT), std::make_wformat_args(limit));
+        }
+        else
+        {
+            const auto error = ErrorText(result.status);
+            message = std::vformat(Resource(result.saving ? IDS_SAVEFAILED : IDS_OPENFAILED), std::make_wformat_args(error));
+        }
         if (!options.headless && !failedClose)
             MessageBoxW(window.get(), message.c_str(), Resource(IDS_ERROR).c_str(), MB_OK | MB_ICONERROR);
         feedback->SetText(message);
@@ -1903,15 +2067,29 @@ void Application::FileCompleted()
         afterSave = {};
         return;
     }
+    if (result.reloading)
+    {
+        const auto request = std::exchange(conflictReload, std::nullopt);
+        if (closing || !root || host.GetRoot() != root)
+            return;
+        if (!request || activeDocumentKey != request->key || documentPath != request->path || !editor->Snapshot().IsSameRevision(request->source))
+        {
+            Status(IDS_FILECONTEXTCHANGED);
+            return;
+        }
+        SetDocument(std::move(result.document.text), std::move(result.path), result.document.bom, result.document.stamp);
+        Status(IDS_SAVED);
+        return;
+    }
     if (result.saving)
     {
         recovered = false;
         savedText = std::move(result.document.text);
         dirtyFact.reset();
         documentPath = std::move(result.path);
+        stamp = result.document.stamp;
         EnsureFilesRoot();
         RefreshFiles(true);
-        stamp = result.document.stamp;
         editor->SetDocumentFilePath(documentPath.native());
         Changed();
         Status(IDS_SAVED);
@@ -2000,29 +2178,22 @@ LRESULT CALLBACK Application::WindowProc(HWND hwnd, UINT message, WPARAM wParam,
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(app));
     }
     auto *app = reinterpret_cast<Application *>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
-    try
+    if (app && message == WM_NCCALCSIZE && wParam)
     {
-        if (app && message == WM_NCCALCSIZE && wParam)
+        auto *size = reinterpret_cast<NCCALCSIZE_PARAMS *>(lParam);
+        if (IsZoomed(hwnd))
         {
-            auto *size = reinterpret_cast<NCCALCSIZE_PARAMS *>(lParam);
-            if (IsZoomed(hwnd))
-            {
-                const UINT dpi = GetDpiForWindow(hwnd);
-                const int edge = GetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
-                InflateRect(&size->rgrc[0], -edge, -edge);
-            }
-            return 0;
+            const UINT dpi = GetDpiForWindow(hwnd);
+            const int edge = GetSystemMetricsForDpi(SM_CXSIZEFRAME, dpi) + GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
+            InflateRect(&size->rgrc[0], -edge, -edge);
         }
-        if (app && app->initialized)
-            return app->HandleMessage(hwnd, message, wParam, lParam);
+        return 0;
     }
-    catch (const std::bad_alloc &)
+    if (app && app->initialized)
     {
-        std::terminate();
-    }
-    catch (const std::exception &)
-    {
-        OutputDebugStringW(L"RedTilde window callback failed; source retained\n");
+        LRESULT result{};
+        app->RunUiAction([&] { result = app->HandleMessage(hwnd, message, wParam, lParam); });
+        return result; // A failed Close stays handled instead of reaching DefWindowProc.
     }
     return DefWindowProcW(hwnd, message, wParam, lParam);
 }
@@ -2613,18 +2784,26 @@ int Application::Run()
     MSG message{};
     while (GetMessageW(&message, nullptr, 0, 0) > 0)
     {
-        if (closingAfterSave)
-            DispatchMessageW(&message);
-        else if (!RouteShortcut(message) && !host.DispatchKeyboardMessage(message))
-        {
-            TranslateMessage(&message);
-            DispatchMessageW(&message);
-        }
-        if (waitingForPreferences && !preferenceWriter.Busy() && recovery.Finished())
-            (void)SendMessageW(window.get(), PreferencesReady, 0, 0);
-        if (!closing && files.Busy())
-            FileCompleted();
+        DispatchUiMessage(message);
     }
     return static_cast<int>(message.wParam);
+}
+void Application::DispatchUiMessage(const MSG &message) noexcept
+{
+    RunUiAction(
+        [&]
+        {
+            if (closingAfterSave)
+                DispatchMessageW(&message);
+            else if (!RouteShortcut(message) && !host.DispatchKeyboardMessage(message))
+            {
+                TranslateMessage(&message);
+                DispatchMessageW(&message);
+            }
+            if (waitingForPreferences && !preferenceWriter.Busy() && recovery.Finished())
+                (void)SendMessageW(window.get(), PreferencesReady, 0, 0);
+            if (!closing && files.Busy())
+                FileCompleted();
+        });
 }
 } // namespace RedTilde

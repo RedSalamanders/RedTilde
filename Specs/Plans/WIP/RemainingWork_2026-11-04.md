@@ -45,14 +45,17 @@ RT-08 is qualified at `bc024dd8`, with the same pin: six zero-warning builds, al
 per x64 profile, real ASan detection and exact native/SDK/source closures. The
 [scoped closeout](../Done/RecoveryEnvelopeBounds_2026-11-05.md) retains the parser termination and fixture
 failures. Earlier Close main `94b9d431` passed hosted x64 but failed two native ARM64 Open fixture writes;
-production was withheld. The repaired candidate still requires its own hosted native/production acceptance.
+production was withheld. The repaired RT-08 source `3e1362d0` subsequently passed both native Release roles
+and both production roles in [run 42024995782](https://github.com/RedSalamanders/RedTilde/actions/runs/42024995782);
+[its exact hosted packet](../../../Measurements/RecoveryEnvelopeBounds_2026-11-05/hosted-qualification.json)
+keeps that 82-case source distinct from later candidates.
 
 | Completed scope | Evidence and limit |
 | --- | --- |
 | Persistent folder root, Open Folder/Open File, restart restoration and expanded public examples | [Folder/sample closeout](../Done/FolderNavigationAndSamples_2026-11-03.md); [packet](../../../Measurements/FolderNavigation_2026-11-03/README.md). |
 | Native Mermaid display corrections and bounded sequence syntax expansion | Published exact pin above; [syntax packet](../../../Measurements/MermaidSyntax_2026-11-03/README.md). Full Mermaid parity is deferred. |
 | Measured arrow spacing, table/code insets, accent task markers and persistent optional completed-task strike-through | [Comparison and original evidence](../../../Measurements/DiagramSpacing_2026-11-03/README.md), [publication receipt](../../../Measurements/DiagramSpacing_2026-11-03/publication.json). |
-| Current x64 Release implementation checks and source publication | Zero-warning build, 73 native cases, complete noninteractive pre-push, 32 standard captures, and 30 original focused Light/Dark/DPI captures. PR44 checks passed. These are source-bound results, not product-wide acceptance. |
+| Original PR44 x64 Release implementation checks and source publication | Zero-warning build, 73 native cases, complete noninteractive pre-push, 32 standard captures, and 30 original focused Light/Dark/DPI captures. PR44 checks passed. These are source-bound historical results; current source qualification is recorded below. |
 | Design refresh, common build policy and independent RedMonitor client boundary | Scoped implementation is archived below. Their current-candidate performance, physical-input, platform and release gates remain open here. |
 
 The approved narrow memory-cost disposition remains narrow. No functional pass, screenshot, PR merge or
@@ -60,6 +63,16 @@ ordinary CI success accepts R10, a measurement policy, quiet-host behavior or an
 
 
 Current workspace/rendering implementation: `fe9b7d15`, exact API-4 DxUi `8dc328de`. The [scoped closeout](../Done/WorkspaceRecoveryAndRendering_2026-11-06.md) records six zero-warning builds, all 91 cases and 36 captures in each x64 profile, real ASan detection, independent file/draft/settings failure tests and sixteen actual rendering captures. This closes the listed workspace, recovery admission, EOL, RT-06/09/14 and rendering adoption scopes; the remaining conflict/location, image-consent, performance and native/physical gates stay below.
+
+Hosted main `75c0675b` now passes all seven Release jobs for that workspace/rendering scope: native x64/ARM64
+each pass 91 cases, 36 captures and assertion/crash checks, followed by both production ZIP smoke tests.
+[Verified original receipts, all thirteen wrapper digests and both package hashes](../../../Measurements/WorkspaceRecoveryAndRendering_2026-11-06/hosted-qualification.json)
+close that source's Release gate.
+
+The save-safety/UI boundary follow-up is locally qualified at `7a5ecc49`, exact API-4 DxUi `0ffaa1a6`:
+six zero-warning builds, all 108 cases and 36 captures in each x64 profile, real ASan detection and 141 actual
+compiled inputs. Its [scoped closeout](../Done/FileSafetyAndUiBoundaries_2026-11-06.md) retains independent
+counterexamples and the first startup failure. Q8/Q12 and the other location, UI and qualification work remain open.
 
 ## Execution order
 
@@ -89,7 +102,8 @@ meaningful failing-then-passing regression where applicable.
   or command Close (PR-34). The hidden regression covers Cancel and a fresh Discard in all three x64 profiles.
   [Scoped closeout](../Done/DiagramLabelBackgroundsAndClosePrompt_2026-11-04.md)
 - [x] Unwind `updatingFind` after a rejected replacement and verify a subsequent valid replacement/Undo (RT-14); [scoped closeout](../Done/WorkspaceRecoveryAndRendering_2026-11-06.md).
-- [ ] Complete the remaining shortcut, menu and save-completion exception boundaries (RT-12, PR-07/35).
+- [x] Complete shortcut, menu, native-message and save-completion exception boundaries (RT-12, PR-07/35),
+  including preserved pending completion and coherent saved facts. [Scoped closeout](../Done/FileSafetyAndUiBoundaries_2026-11-06.md).
 
 Owner: `RedTilde/Application.cpp`, `Application.Navigation.cpp`, `Common/Recovery.cpp`, `RedTilde/AsyncFiles.h`.
 Acceptance: deterministic Restore+Discard, close-during-save success/failure, continuous typing, logoff,
@@ -101,12 +115,18 @@ malformed envelope, second close and size-limit tests. See the retained
 
 - [x] Preserve the document terminator for F2 Apply and insertion commands (RT-03 product half), hold Open
   completion while a local-source draft is open (RT-05), and keep a bad settings header on disk (RT-09).
-- [ ] Implement the approved single conflict surface: Reload, Save As, Overwrite, Cancel; distinguish failed
+- [x] Implement the approved single conflict surface: Reload, Save As, Overwrite, Cancel; distinguish failed
   readback from a real content conflict and avoid poisoning the next save stamp (RT-07, Q6).
+  [Scoped closeout](../Done/FileSafetyAndUiBoundaries_2026-11-06.md).
 - [x] Close staging handles before failure cleanup (RT-06); independent write/flush failure tests preserve bytes/stamps and leave no temporary file. [scoped closeout](../Done/WorkspaceRecoveryAndRendering_2026-11-06.md).
-- [ ] Document the achievable cross-process save-race contract (C6), and implement the approved replace fallbacks, sharing, cloud tags and same-target stamping for OneDrive/cloud, SMB/NAS and WSL (PR-09/10/31, Q8).
-- [ ] Preserve symlink/hard-link identities under the approved distinct write policies (Q12), and expose
-  specific unsupported-encoding/capacity errors under the current 65,536 UTF-16-unit limit (Q7).
+- [x] Document the achievable best-effort cross-process race contract (C6), recheck after staging and protect
+  sharing/Save As aliases with complete native file identities and reliable successful stamps.
+  [Scoped closeout](../Done/FileSafetyAndUiBoundaries_2026-11-06.md).
+- [ ] Implement and qualify the approved replace fallbacks and cloud tags for OneDrive/cloud, SMB/NAS and
+  WSL (PR-09/10/31, Q8), including real-location evidence before support claims.
+- [ ] Preserve symlink/hard-link identities under the approved distinct write policies (Q12).
+- [x] Expose specific unsupported-encoding/capacity errors under the current 65,536 UTF-16-unit limit (Q7).
+  [Scoped closeout](../Done/FileSafetyAndUiBoundaries_2026-11-06.md).
 
 Owner: `Common/Storage.cpp`, `Common/Settings.cpp`, application save/open paths and
 [file safety](../../Core/Core_FileSafety.md). Real-share/WSL evidence is required before support claims.
@@ -247,6 +267,15 @@ follow-up is removed. Completion correctly reported failed native qualification.
   native x64/ARM64 Release each pass all 82 cases, 36 captures and assertion probes; both test-disabled production
   ZIPs pass smoke after the combined gate. [Original receipt/ZIP hashes and ordering](../../../Measurements/RecoveryEnvelopeBounds_2026-11-05/hosted-qualification.json)
   close that source only and retain the earlier failed source separately.
+- [x] Verify workspace/rendering main `75c0675b` in [run 42146749203](https://github.com/RedSalamanders/RedTilde/actions/runs/42146749203):
+  all seven jobs pass; native x64/ARM64 each pass 91 cases and 36 captures, followed by both production ZIPs.
+  [Canonical receipts, original wrappers and package hashes](../../../Measurements/WorkspaceRecoveryAndRendering_2026-11-06/hosted-qualification.json)
+  close that source's Release gate with exact SDK `8dc328de`.
+- [x] Qualify save safety/UI boundaries at `7a5ecc49`, exact API-4 SDK `0ffaa1a6`: six zero-warning builds,
+  108 cases and 36 captures per x64 profile, actual ASan detection and exact 141-input/source/native closure.
+  [Local qualification](../../../Measurements/FileSafetyAndUiBoundaries_2026-11-06/qualification.json).
+- [ ] Complete the new save-safety candidate's canonical hosted main x64/ARM64 Release and production gates
+  after publication. The preceding `75c0675b` / `8dc328de` results cannot qualify `7a5ecc49` / `0ffaa1a6`.
 - [ ] Complete applicable native ARM64 Debug/ASan and physical/input qualification. Cross-builds and old-pin matrices
   do not establish those runtime profiles. Retain the 90-second loaded-host Editor timeout and its same-binary
   sequential pass as separate observations; diagnose that responsiveness boundary with T-P1 before accepting it.

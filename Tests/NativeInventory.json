@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "files": [
+    { "path": "Tests/Support/Support.Tests.StorageSafety.h", "suite": "Core", "executable": "RedTilde.exe", "arguments": ["--self-test"], "interactive": false },
     { "path": "Tests/Application.Tests.Close.cpp", "suite": "Core", "executable": "RedTilde.exe", "arguments": ["--self-test"], "interactive": false },
     { "path": "Tests/Application.Tests.Close.h", "suite": "Core", "executable": "RedTilde.exe", "arguments": ["--self-test"], "interactive": false },
     {

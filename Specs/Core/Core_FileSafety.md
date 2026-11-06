@@ -7,15 +7,52 @@ length. Regression coverage includes first publication and replacement of a 240-
 Open and save local `.md`, `.markdown` and text files using strict UTF-8. Preserve BOM and original line endings;
 invalid UTF-8/NUL/oversized files fail before replacing the current document. New documents use UTF-8 without BOM.
 The v0 source limit is 65,536 UTF-16 units. Bounded reads reject files above the maximum possible encoded size.
+File pickers label `.txt` as UTF-8 only. Unsupported encoding/NUL has a localized UTF-8 explanation; oversized
+input has a localized limit explanation, including the actual decoded UTF-16-unit count when the bounded valid
+input can be counted. Do not scan arbitrarily large files just to invent a precise count. Caller source/BOM/stamp
+remain unchanged on rejection.
 
 Atomic save stages a unique sibling temporary file with `CREATE_NEW`, writes all bytes, flushes and closes it,
 then uses `ReplaceFileW` for an existing destination or `MoveFileExW` for a new destination. Remove only the
 owned temporary file on failure. Never clear dirty state on failed/cancelled storage or change path/BOM prematurely.
 Close the exclusive staging handle before failure cleanup, including failed WriteFile and FlushFileBuffers
 paths. Directed native faults must leave the target bytes/stamp unchanged and no owned `.tmp` behind.
-An existing file identity (size, last-write and content fingerprint) is checked immediately before replacement;
-external modifications require a choice to reload, Save As or explicitly overwrite. Atomicity does not eliminate
-the cross-process check/replace race; a stronger conditional-write protocol is a future hardening item.
+An existing file identity (volume/file index where supplied by the filesystem, size, last-write and content
+fingerprint) is checked **after staging**, immediately before replacement. A different file object is a conflict
+even if its size, timestamp and bytes match. A timestamp-only touch of the same object with identical size and
+fingerprint does not require a conflict choice. Save As to the current path, an alias of its saved object, or an
+alias of the currently replaced original still checks the original saved baseline. A separately chosen different
+destination has the native picker's overwrite consent. Unknown identities remain conservative.
+Keep the complete 64-bit volume serial and 128-bit identifier returned by
+[`FileIdInfo`](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_id_info), including
+ReFS identifiers. Only explicit unsupported-information errors permit a provider's legacy handle identity;
+other metadata failures propagate. A missing identity never establishes automatic overwrite consent. Native
+NTFS/ReFS diagnostics compare the actual complete handle identity independently of stamp equality.
+Atomicity does not eliminate the cross-process check/replace race; no conditional-write or cross-process lock is
+claimed. Native OneDrive/cloud, SMB/NAS, WSL and link-write policies retain their independent qualification.
+
+Read handles allow cooperative read/write/delete sharing. Compare metadata on the same object before and after
+the bounded content read; an observed unstable read returns `ERROR_RETRY` without changing caller outputs.
+This does not promise a coherent snapshot against an uncooperative writer that changes bytes without an observed
+metadata change. Saving derives the successful stamp from the owned staging object after its exclusive writer
+closes and before publication, combined with the known written bytes. It does not reopen published content to
+decide success. Publication returns that stamp only after Replace/Move succeeds, so an immediately denied read
+cannot report a completed save as failed or poison the next baseline. A later external edit conflicts normally.
+
+An ordinary save conflict has one surface with **Reload / Save As / Overwrite / Cancel**, defaulting to Cancel.
+Cancel, closing the question and cancelling Save As preserve source, selection, history, path, dirty state and
+recovery without another generic error question. Duplicate Close requests keep the existing question.
+Only the explicit Overwrite choice bypasses the expected stamp, for that selected destination and immutable
+document context. Choice/picker continuations revalidate workspace identity, source revision, baseline, location,
+BOM and recovered state before admission. A changed context retains its newer edits and shows a localized status.
+Reload reads asynchronously and replaces only the current document after validating the exact approved source
+and workspace identity again; other retained documents and the root stay intact. Failed or stale Reload retains
+the editable source/history/dirty protection. Closing during an admitted save retains the separate failure
+contract below and does not automatically retry Overwrite or Close.
+An exception before taking a completed worker result retains that pending result and dirty source for later
+processing, cancels older continuations/Close and reports a localized action failure. After a successful write
+has been admitted to application state, publish its path, saved text and stamp together before callbacks or
+fallible view refresh; a later UI failure cannot leave a new saved baseline paired with the old file stamp.
 
 New/explicit Open File/Open Folder/Close prompt Save, Discard, Cancel for every dirty workspace document.
 Files-pane activation retains each document and never prompts. Discard approval is staged until the requested

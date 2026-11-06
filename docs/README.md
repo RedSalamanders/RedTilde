@@ -101,8 +101,15 @@ draft retires that proposed snapshot. Another live app's snapshots are excluded.
 as `.quarantine` under `RedTilde\Recovery`. A crash before the quiet interval can lose the newest keystrokes.
 Undoing to the exact saved text clears dirty state; edits made during a save remain protected against the text
 actually written.
-Files over 65,536 UTF-16 units and malformed
-UTF-8 are rejected, never truncated. Save As can preserve a separate version when another app changed the file.
+Recoverable command, shortcut, menu or completion failures keep the document open and report a status. A failed
+Close does not silently destroy the window. Menu actions that open a local source or Link draft keep typing
+focus in that draft.
+Files over 65,536 UTF-16 units and malformed UTF-8 are rejected with a specific explanation, never truncated.
+When another app changes the file, choose Reload, Save As, Overwrite or Cancel in one question. Cancel keeps
+editing. Save As writes a separate version; selecting the current file or its alias still checks the saved
+baseline. Reload keeps the other open documents and applies only after a successful read. New edits made while
+the question, picker or Reload is pending are retained and require a fresh choice. Touching only the timestamp
+of an otherwise identical file does not require a conflict question.
 Crash reports remain local, with a notification on the next launch. A dump may contain document text; sharing
 one is your choice. Settings use `RedTilde.settings` in LocalAppData; System/Light/Dark/Paper and outline changes
 apply immediately. High contrast takes precedence.

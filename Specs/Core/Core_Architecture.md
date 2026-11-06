@@ -20,6 +20,15 @@ repository and executable. It must launch and test without RedXe, RedPrism or Re
 Library objects remain inside the executable. No plugin ABI is introduced. The native host is used directly;
 RedTilde must not allocate a competing swap chain or render over an uncoordinated chrome HWND.
 
+Application command admission, menu completion, Win32 dispatch and message-loop/worker completion share one
+named-exception boundary. Recoverable `std::exception` failures log the actual cause locally, show a localized
+source-retained status and keep the process/document alive; `std::bad_alloc` remains fatal. A failed Close stays
+handled and never falls through to default window destruction. Cancel stale deferred file actions after a UI
+failure. Status publication has its own bounded fallback and never recursively retries UI after another failure.
+Menu completion revalidates root lifetime after the command and keeps focus in a newly opened local/Link draft,
+drawer or Find/Recovery surface. Hidden supplied-message/callback tests exercise these same entry points without
+opening a desktop menu or injecting input.
+
 RedTilde owns its Win32 non-client frame policy and caption behavior. The merged document bar is app-owned client
 content coordinated with that frame; the native window title remains the filename plus dirty marker for taskbar
 and Alt+Tab identity. The app handles non-client sizing/hit testing, drag regions, caption buttons, DPI and their
@@ -27,14 +36,17 @@ UI Automation behavior. DxUi's `ControlHost` owns and renders the coordinated cl
 button or rich-text behavior is implemented in canonical DxUi and consumed through its public API and reviewed pin;
 consumer code must not copy shared controls or reach into library internals.
 
-The available Files pane owns no separate document model and provides listing/opening only. It lists `.md` and
+The Files pane provides listing/activation; the application retains each opened document's source, oriented
+selection, Undo/Redo history, saved baseline and recovery identity through the same editor's document exchange.
+It lists `.md` and
 `.markdown` paths from a persistent application-owned selected root using an application worker with depth-8 and
 5,000-total-visited-entry limits. This limit counts entries examined, including names that are not Markdown files.
 The worker publishes only to the UI owner;
 request/root identities cancel obsolete work and reject stale completions. Coalesced directory notifications
 refresh the view without polling. Reparse points are never traversed. The pane can open a Markdown path only by
-submitting it to the normal Open flow, preserving dirty prompts, path validation, conflict checks and atomic-save
-rules. Directory enumeration and notification handles follow WIL ownership and close during cancellation/teardown.
+submitting it to the workspace file path, preserving path validation, per-document recovery and conflict checks.
+Switching retained documents does not prompt; explicit New/Open File/Open Folder/Close protect all dirty documents.
+Directory enumeration and notification handles follow WIL ownership and close during cancellation/teardown.
 
 The experimental upstream editor admits 65,536 UTF-16 units and 128 history transactions. Product file admission
 must honor that actual limit and report rejection. Never truncate. Large-file support requires a separately
