@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Close linked-file save safety against original hosted native symbolic-link, Debug/Release and x64 ASan evidence and verified production ZIPs; preserve the distinct failed ARM64 ASan heap-fixture cohort and all broader location, physical-input and performance gates.
 - Reject structured native-tool exception dumps before attestation or green build output even when MSBuild exits successfully; test node prefixes, hexadecimal forms, clean footers and ordinary-text false positives.
 - Preserve symbolic entries and hardlink identities when saving: resolve symbolic targets, protect admitted hardlink source in an independent durable recovery copy before in-place mutation, retain failed-write recovery for restart and keep newer ordinary checkpoints independent. Add native alias, recovery admission, failure and restart regressions; cloud/SMB/WSL and platform qualification remain separately owned.
 - Adopt the exact API-4 DxUi editor-cosmetic implementation: source/code ink, line numbers and whitespace prepare independently of usable content and input, with bounded visible-region work. Add application capture coverage for completed cosmetic publication; broader physical and performance qualification remain separate gates.

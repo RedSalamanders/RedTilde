@@ -2,6 +2,8 @@
 
 ## Completed scopes — 6 November 2026
 
+- [Linked-file save safety](LinkedFileSaveSafety_2026-11-06.md) — Q12, durable full-source protection before shared-target mutation, original crash/restart evidence, six builds and actual hosted symbolic-link execution; the later ARM64 ASan heap-fixture failure remains separately owned.
+
 - [Save safety and UI failure boundaries](FileSafetyAndUiBoundaries_2026-11-06.md) — one conflict surface, reliable stamps/full file identity, UTF-8/capacity diagnostics, guarded UI actions, long-checkout fixtures, six builds, 324 cases and 108 hidden captures.
 
 - [Document workspaces, recovery and rendering adoption](WorkspaceRecoveryAndRendering_2026-11-06.md) — retained per-document history/recovery, lossless EOL and storage/settings/Find failures, exact SDK pin, six builds, 273 cases and 108 standard captures.
