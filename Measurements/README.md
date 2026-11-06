@@ -1,5 +1,7 @@
 # Application evidence
 
+- [Linked-file saves and independent cosmetic settlement, 2026-11-06](LinkedSaveAndCosmeticSettlement_2026-11-06/README.md) — six zero-warning builds; 116 passing cases and one actual symbolic-link fixture capability failure per x64 profile, real interrupted-write recovery, consumer capture counterexample and retained original attempts. Hosted symbolic-link execution remains required.
+
 - [Diagram spacing, text insets and task presentation](DiagramSpacing_2026-11-03/README.md) — exact-pin geometry,
   raster, source/history, settings and hidden-capture evidence, with broader qualification kept separate.
 

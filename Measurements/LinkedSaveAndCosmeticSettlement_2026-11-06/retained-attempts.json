@@ -1,0 +1,367 @@
+{
+  "schemaVersion": 1,
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-linked-save-and-source-cosmetics",
+  "claim": "Retained original attempts, not replacement runtime or performance acceptance",
+  "attempts": [
+    {
+      "id": "hardlink-save-baseline-d1549f03",
+      "sourceCommit": "d1549f037a88c9115fc40f53b00e330d939ffe81",
+      "compiledSourceIdentity": "6f21f442c5fd75be423a71db23d11af22aa6a42be551c5fe8062d76b3a4f8dde",
+      "inputCount": 141,
+      "disposition": "Frozen baseline counterexample",
+      "boundary": "Original Save returns success but splits the linked file identity and leaves the other alias unchanged.",
+      "originalSourceMembersReverified": true,
+      "archiveDigestsRechecked": true,
+      "archives": [
+        {
+          "name": "independent-hardlink-counterexample.zip",
+          "bytes": 4379084,
+          "sha256": "700822F6E3998A13D3DDEE2DC4D2B1A5ED8D232176CE2A9447353AB84CE0A40E"
+        },
+        {
+          "name": "original-compiled-inputs.zip",
+          "bytes": 1099091,
+          "sha256": "7D3EAE1EBFA90363607B765B242A6E5EC4903EFC15EB0A263C5BE4EFF5916922"
+        }
+      ],
+      "records": [
+        {
+          "name": "counterexample.json",
+          "sha256": "20E4A668EF4A5E61757FC4A6F8E8D56AA56436C22B4A13F19824A60D198B4572"
+        },
+        {
+          "name": "original-compiled-inputs.json",
+          "sha256": "297EC8263CD97E4EDBE0B5C4D7DC2B84B5E2BF107C15255CECDF09B5EF73DD7B"
+        }
+      ]
+    },
+    {
+      "id": "linked-save-checkpoint-f968154c",
+      "sourceCommit": "f968154ca7f1bd590842fc833075d8d6a3fcb14d",
+      "compiledSourceIdentity": "2f96fdd66813be39189f103595fa594bb75ef1d88d1e4b9f6a226fb039ca913c",
+      "inputCount": 141,
+      "disposition": "Focused partial validation",
+      "boundary": "Twelve canonical cases pass; actual symbolic-link creation fails with Win32 1314. Initial private project vendor warnings and the corrected external-header setup are retained. No whole-application qualification.",
+      "originalSourceMembersReverified": true,
+      "archiveDigestsRechecked": true,
+      "archives": [
+        {
+          "name": "focused-fixtures.zip",
+          "bytes": 6318,
+          "sha256": "C887F6727286A5AF7C23DDBE8D3696ECB3DA33BA23DE7F97B54E0242BF78B090"
+        },
+        {
+          "name": "focused-native.zip",
+          "bytes": 1351811,
+          "sha256": "EC8582D4D2759D81E112AE5C87FFDF6A4AAF11A75307B6BFB3D68160457DD275"
+        },
+        {
+          "name": "original-compiled-inputs.zip",
+          "bytes": 1105748,
+          "sha256": "7ADA0A0577C4C9CD2766E374EC45C8F0FB4718CE1B98D6CF5F116621323658E4"
+        },
+        {
+          "name": "original-vendor-warning-native.zip",
+          "bytes": 1354363,
+          "sha256": "D2038FB029C5878DECFC3B2F11C7784AE7201B47AEBDAC1F589AE3D1CB5B42AF"
+        }
+      ],
+      "records": [
+        {
+          "name": "candidate-f968-build.log",
+          "sha256": "68216E43FAC07386A00A235C76E64BF237367C9375F27933C688DDAB2E84C35A"
+        },
+        {
+          "name": "candidate-f968-external-build.log",
+          "sha256": "032960F000BD725C868D3729289063BABE4529323C464325885A5B864B8A5DFF"
+        },
+        {
+          "name": "candidate-f968-run.json",
+          "sha256": "A69586EB29CCC271576CFAEE272E3B0E5005AF24B71670C3C359A2D8E7CFEFE2"
+        },
+        {
+          "name": "candidate-f968-run.log",
+          "sha256": "8D117BB482B8987984A1DA2DE1D1486412CCD6AC1191DCF95FF8AA18192140BA"
+        },
+        {
+          "name": "candidate-f968-run.stderr.log",
+          "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+        },
+        {
+          "name": "focused-archive-verification.json",
+          "sha256": "5C64F155D61E6CA846CB07E8E8412DD1FC69C62ACD704855CB393CDE2208A7A3"
+        },
+        {
+          "name": "LinkedSafety-f968-external.vcxproj",
+          "sha256": "EA19104483B539034B042C76A4903A5A576C7C92E4A7FDF14B905E4923ABC7AF"
+        },
+        {
+          "name": "LinkedSafety-f968.cpp",
+          "sha256": "B71EDCDE5066296E236A63A1C154671A8FA4845E56BEBA5FF91826E111170003"
+        },
+        {
+          "name": "LinkedSafety-f968.vcxproj",
+          "sha256": "66440B60CD0704A2422C580A9DC62ED999E23E23DC518C6C2BF9A1B39387F512"
+        },
+        {
+          "name": "original-compiled-inputs.json",
+          "sha256": "A91A3B4A18AE49352B4AA3CBE00A0E2AFD6448DACFC85B3EBEF084A4381A7829"
+        },
+        {
+          "name": "symbolic-capability.json",
+          "sha256": "CCFB5D8FD5011D8F1D13E2FE09A2E811A5B898E542062845D94A670D93F48B95"
+        }
+      ]
+    },
+    {
+      "id": "linked-save-checkpoint-9624be4",
+      "sourceCommit": "9624be4ded30b5281a51aab6b2424deb69cccc44",
+      "compiledSourceIdentity": "f598474a8f8393d4b4da0be0e58c1f27c3e5d5997e63998f8439940a11047b4d",
+      "inputCount": 141,
+      "disposition": "Incomplete native runtime",
+      "boundary": "Zero-warning x64 Release: 114 cases and 36 standard captures pass; the actual symbolic-link fixture fails with Win32 1314. No complete runtime claim.",
+      "originalSourceMembersReverified": true,
+      "archiveDigestsRechecked": true,
+      "archives": [
+        {
+          "name": "original-compiled-inputs.zip",
+          "bytes": 1106300,
+          "sha256": "7F3EAC7680293704B1895B050A480E339C736CCA743A61A86F264A8E4F2C4B75"
+        },
+        {
+          "name": "original-native.zip",
+          "bytes": 13774733,
+          "sha256": "90B8DE0FDEBC0C87EE5503529699F9912719A1ABE130EBA0CECA0CD453C860A2"
+        },
+        {
+          "name": "other-native-run.zip",
+          "bytes": 17515114,
+          "sha256": "95981C0BAA938AB42E28944613679FA46FEBAE5610FE9DC47C5159C3D5F6ECED"
+        },
+        {
+          "name": "storage-capability-failure.zip",
+          "bytes": 33803,
+          "sha256": "373035BAC0EC7F7642F4F22B6554BBE22CF613E73339C51B127B725A98093EDD"
+        }
+      ],
+      "records": [
+        {
+          "name": "link-save-9624be4-other-tests.log",
+          "sha256": "A28AF1DBD82CF71A1B7629FB79582D2D1885CAA1DF85CD8B84417FACF4D05FD1"
+        },
+        {
+          "name": "link-save-9624be4-release-build.log",
+          "sha256": "062A0EEFFCBC7A68E98D5587A555F19346A25714D00EB98CB357CEFA39E8A914"
+        },
+        {
+          "name": "link-save-9624be4-storage-tests.log",
+          "sha256": "491041A16B1AADDB86EC0FB9257D5F879058248716084260874450F173752E8B"
+        },
+        {
+          "name": "original-compiled-inputs.json",
+          "sha256": "33AA19E9350909DCC61D62A3727510806F3D19521EC5095517034F22ED2B8CFC"
+        },
+        {
+          "name": "original-native.json",
+          "sha256": "37C4E8BE65054D0565AAE749136CCBF01A87C12B36FE4C7A59412612B857027F"
+        },
+        {
+          "name": "original-outcome.json",
+          "sha256": "1E157A16FE1E50B9778A3B2F6E459155E777FE016CBECA765983BA0B9D4D98FF"
+        },
+        {
+          "name": "other-native-run.json",
+          "sha256": "A0A01172F183EA08C70A782E2190CE2CEC93F1EF2381BAD44011496F6905CB5C"
+        },
+        {
+          "name": "storage-capability-failure.json",
+          "sha256": "D5FF043023D24902628943431625C49B948E0F2FE549BD170AE11BC5238BF26D"
+        }
+      ]
+    },
+    {
+      "id": "linked-save-checkpoint-dc24feec",
+      "sourceCommit": "dc24feec1ab4598b1f0566c608ae15218d488b45",
+      "compiledSourceIdentity": "e775d79bc61561ecf900974adc8a7c746eb6b44249383099731166bc88dd6094",
+      "inputCount": 141,
+      "disposition": "Focused real crash/restart proof",
+      "boundary": "A real child terminates after durable partial shared-target write; restart finds partial aliases and the independent complete admitted source. This is not a full regression run.",
+      "originalSourceMembersReverified": true,
+      "archiveDigestsRechecked": true,
+      "archives": [
+        {
+          "name": "interruption-native-run.zip",
+          "bytes": 26464,
+          "sha256": "D0644E817EC5F7BDE4BDF5C209D60C1C242745075DC9CB85C8FB30FB576873FA"
+        },
+        {
+          "name": "original-compiled-inputs.zip",
+          "bytes": 1107788,
+          "sha256": "D04B3250FFDA5E795C72FC3D5E095C785D874B4DC62BC8CCDEAE84A0BA66B99C"
+        },
+        {
+          "name": "original-native.zip",
+          "bytes": 13784125,
+          "sha256": "4481A0AAE1436CFAF7F8B5731AD18F50FD092CAF8FDF6E9106DCF1FFA1252579"
+        }
+      ],
+      "records": [
+        {
+          "name": "interruption-native-run.json",
+          "sha256": "1AEFEED495CF7755D0BE438B6BFF0B9802B88F2702E51D1888B20BE42C232263"
+        },
+        {
+          "name": "link-save-dc24feec-interruption-tests.log",
+          "sha256": "B81E110E8E124753E13FD891EA6E78BADC7B72294D4C3865D77546FA1CB06E68"
+        },
+        {
+          "name": "link-save-dc24feec-release-build.log",
+          "sha256": "2BA8E21B015888863F8708B4F72C7B0CC7415ED12FF9B6181788C252F2BF706F"
+        },
+        {
+          "name": "original-compiled-inputs.json",
+          "sha256": "D64825E02D7674F7185869A463E14F0F7ACBA1EBE6117E36786B7CB4463C15C7"
+        },
+        {
+          "name": "original-native.json",
+          "sha256": "323581031A1681A0147CB6E0796DDBC8F3BF37708CF883E5F639B6613EF0D1C8"
+        },
+        {
+          "name": "original-outcome.json",
+          "sha256": "EAF657E4B990296E98DA92B1A93CE993DC8D1FF5B35C2C753B9CEAC5A8EF41F7"
+        }
+      ]
+    },
+    {
+      "id": "linked-save-checkpoint-67b61207",
+      "sourceCommit": "67b61207578c4dc8f998881295db665ad5e8617c",
+      "compiledSourceIdentity": "e1d68f5d04cdd35cacf623d150da369407f1403ddffddb87eae1090d38bbab7c",
+      "inputCount": 141,
+      "disposition": "Focused admission and retirement checks",
+      "boundary": "Thirteen of fourteen private canonical cases pass, including the 512-entry admission bound and blocked checkpoint retirement; symbolic-link creation still fails with Win32 1314. No whole-application qualification.",
+      "originalSourceMembersReverified": true,
+      "archiveDigestsRechecked": true,
+      "archives": [
+        {
+          "name": "original-compiled-inputs.zip",
+          "bytes": 1108480,
+          "sha256": "EF6E88CB1A68CAD9A8B5E3021B8D7B023038D5B0E0F495751FA7FD4CC93AA169"
+        }
+      ],
+      "records": [
+        {
+          "name": "original-compiled-inputs.json",
+          "sha256": "3C039BD660247DCCB5483D406945BA15DF306EBEDC8E6A62447CDD7BC89FB7A7"
+        }
+      ]
+    },
+    {
+      "id": "editor-consumer-capture-a6a739d6",
+      "sourceCommit": "a6a739d6bfa45922edae71bfba9e141a2e9ab605",
+      "compiledSourceIdentity": "18f066dde4d4631181d0d55fdd1521842694990f7852cc02c4cbfca67d732cbf",
+      "inputCount": 141,
+      "disposition": "Independent consumer counterexample",
+      "boundary": "The same new SDK passes 62 of 63 EditorBehavior cases with the old application capture-drain loop. The new independent source-cosmetic settlement case fails; all original run and native bytes are retained.",
+      "originalSourceMembersReverified": true,
+      "archiveDigestsRechecked": true,
+      "archives": [
+        {
+          "name": "original-compiled-inputs.zip",
+          "bytes": 1109134,
+          "sha256": "D9570C31A833DA97B53918D0F28539BF2AA1C187E8F4FADF24FAF4BF6EA100C7"
+        },
+        {
+          "name": "original-editor-run.zip",
+          "bytes": 2405986,
+          "sha256": "FFD68835EAD9BD154BB7DE3426DEF2ACC6EF4DFFBC86707B9AB1D5A3AF2B97B4"
+        },
+        {
+          "name": "original-native.zip",
+          "bytes": 13842245,
+          "sha256": "ED9FE86A2999020CD2E8EDF6A5E8CC16C85330D29C9915ECF3AAA960BA4EA605"
+        }
+      ],
+      "records": [
+        {
+          "name": "editor-consumer-a6a739d6-attempt.json",
+          "sha256": "C7976F07091EA42999BEA683A404D1BDBCA875AF1AEAC35377B8555078149BEE"
+        },
+        {
+          "name": "editor-consumer-a6a739d6-editor-tests.log",
+          "sha256": "FCEBFF146EC2428987308DA8BFC53F9643FB79087EF156A073D0ED089A16D151"
+        },
+        {
+          "name": "editor-consumer-a6a739d6-release-build.log",
+          "sha256": "A4AAB5603FB4BFED4F3F77C225F06C99E3B778B8E040788642514743FC51E7C0"
+        },
+        {
+          "name": "original-compiled-inputs.json",
+          "sha256": "1EF7A42458CF151093C7E9EE62EDA403AE46C98BCDA5AE501088CF95646644E5"
+        },
+        {
+          "name": "original-editor-run.json",
+          "sha256": "823EC9FA685550F5EBE6668D4394E2EB8598C3E0503B5EB234CB440150B811A2"
+        },
+        {
+          "name": "original-native.json",
+          "sha256": "F8AD7B7295D52185AA86A496C25789F9FA302EF7C1292605C571D67799E0FAC8"
+        },
+        {
+          "name": "original-outcome.json",
+          "sha256": "41AE3CA023E130733C329FF42AFED21FA30A98B00F14492260E47679DF7718C0"
+        }
+      ]
+    },
+    {
+      "id": "linked-save-and-cosmetics-local-481ffaa",
+      "sourceCommit": "481ffaaacfd5e189d2f8d8c75bd7f09cde5f64a0",
+      "compiledSourceIdentity": "7d9bedb45473200cbe5fa5fa090448e6c0c7728b5b8a8ef2c3b7dc9dc6449fb7",
+      "inputCount": 141,
+      "disposition": "Rejected compile attempt",
+      "boundary": "C2664 rejects the helper parameter derived Editor pointer for a base RichTextEditor mirror. No tests run. The original compiler log and partial outputs remain retained.",
+      "originalSourceMembersReverified": true,
+      "archiveDigestsRechecked": true,
+      "archives": [
+        {
+          "name": "first-compile-failure-native.zip",
+          "bytes": 285,
+          "sha256": "18DB3B1D68FA3E9B88B21849239848036D68B10A3E99ADF25EE575A4CFA87872"
+        },
+        {
+          "name": "original-compiled-inputs.zip",
+          "bytes": 1109463,
+          "sha256": "63C1B420EF3E9050395C88B16DCBB0AFD3A3CF0166CB6AF40E5AF6282FA46112"
+        }
+      ],
+      "records": [
+        {
+          "name": "build-x64-Release-20261106T082254278Z-bb7a6d02dfe94088aa16381fd9e36981.log",
+          "sha256": "079913C139FB64C57EBE1A72705DA63CFE75BAFE92027D267206EBB316F34A4D"
+        },
+        {
+          "name": "first-compile-failure-native.json",
+          "sha256": "959652075F7E91CEF6F4D094B934A5F4563C4523B4CFCBDBF7E06034723FADD7"
+        },
+        {
+          "name": "first-compile-failure.json",
+          "sha256": "741E01097E3E4F0EC160F79A9E598E4B4FBE13167CECA445B835C4EE81724868"
+        },
+        {
+          "name": "original-compiled-inputs.json",
+          "sha256": "2210049421613E54A993BD3F13C94C379F16DD77AA49F31AA1FE70CE9108FDD7"
+        },
+        {
+          "name": "x64-Release-build.log",
+          "sha256": "65D862873C650881F091B6F239E3A77F12F4A700A61422EC9DD3C74B4844A5A2"
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Symbolic-link fixture capability failures remain failures",
+    "Focused checks and partial builds never replace whole-application qualification",
+    "Archive digest verification does not change an original failed disposition",
+    "The accepted local matrix and later hosted native results have separate exact source identities"
+  ]
+}

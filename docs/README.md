@@ -9,6 +9,9 @@ aliases and their shared identity: RedTilde first stores an independent complete
 shared file in place. If that write fails or is interrupted, it can leave partial file bytes; restart offers the
 complete admitted source as a recovery copy. Unavailable recovery storage prevents that write from starting.
 
+The [linked-save evidence](../Measurements/LinkedSaveAndCosmeticSettlement_2026-11-06/README.md) records the
+actual interrupted-write recovery checks and the remaining symbolic-link runtime verification.
+
 Every modified workspace document has its own recovery copy. Healthy editing checkpoints after a short pause,
 with a five-second maximum admission delay while typing continuously. After a crash and relaunch, preview the
 last durable copies and choose **Restore a copy** or **Restore all copies**. Each restored document remains dirty
