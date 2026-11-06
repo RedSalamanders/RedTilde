@@ -157,6 +157,14 @@
       "reason": "shared invented folder fixtures and bounded reparse leaves"
     },
     {
+      "pattern": "Tests/Support/Support.Tests.StorageSafety.h",
+      "scopes": [
+        "Storage",
+        "Tooling"
+      ],
+      "reason": "directed storage checkpoints and reviewed native storage case registrations"
+    },
+    {
       "pattern": "Tests/README.md",
       "scopes": [
         "Tooling"

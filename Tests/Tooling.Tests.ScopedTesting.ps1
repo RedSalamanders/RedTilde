@@ -89,11 +89,13 @@ try{
             }
             $plan=Get-ScopedTestPlan $manifest @('Tests/Support/Support.Tests.FilesFixtures.h')
             Assert ('Storage' -in $plan.scopes -and 'Editor' -in $plan.scopes -and 'Captures' -in $plan.scopes) 'Shared folder fixture lost a consumer'
+            $plan=Get-ScopedTestPlan $manifest @('Tests/Support/Support.Tests.StorageSafety.h')
+            Assert ('Storage' -in $plan.scopes -and 'Tooling' -in $plan.scopes -and 'Editor' -notin $plan.scopes) 'Storage registration header lost its reviewed consumer'
             $catalog=Get-Content (Join-Path $root 'Tests/native-case-catalog.json') -Raw|ConvertFrom-Json
             # The reviewed native inventory owns registration units, including
             # split suites; a single-file scan silently omitted new Core cases.
             $native=Get-Content (Join-Path $root $manifest.nativeInventory) -Raw|ConvertFrom-Json
-            $declared=@(foreach($unit in @($native.files|Where-Object{$_.suite -ceq 'Core' -and $_.path.EndsWith('.cpp')})){
+            $declared=@(foreach($unit in @($native.files|Where-Object{$_.suite -ceq 'Core' -and [IO.Path]::GetExtension($_.path) -in @('.cpp','.h')})){
                 [regex]::Matches([IO.File]::ReadAllText((Join-Path $root $unit.path)),'\btest\s*\(\s*"([^"]+)"')|ForEach-Object{$_.Groups[1].Value}
             })
             Assert (-not(Compare-Object $declared @($catalog.cases.name))) 'Reviewed native catalog differs from source'
