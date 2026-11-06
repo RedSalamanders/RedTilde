@@ -18,6 +18,8 @@ files, but is not saved in recovery copies.
 The [root README](../README.md) covers launching and shortcuts. Start with Compose, select text for formatting,
 and use Source to inspect exact Markdown. Switch views freely; the document, source selection and undo history
 are shared. Split is an editable Compose pane next to a read-only source mirror.
+Source stays editable while syntax colours and code decorations finish appearing. Those updates preserve
+your selection and never cancel a selection drag or withhold an otherwise ready document frame.
 
 Quotes and callouts leave a small inner margin on both sides. Long documents show a scrollbar matching the
 current theme in Compose, Source and each Split pane; click its track or drag the thumb to move through the document.
