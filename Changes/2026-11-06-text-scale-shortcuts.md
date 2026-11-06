@@ -1,1 +1,0 @@
-- Add Ctrl+plus/minus, Ctrl+0 and high-resolution Ctrl+wheel for the existing 75–200% document text-size preference, retaining source, selection and undo history in every view.
