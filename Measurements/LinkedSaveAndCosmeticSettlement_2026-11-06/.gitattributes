@@ -1,2 +1,4 @@
 local-verification.json -text
 retained-attempts.json -text
+hosted-qualification.json -text
+extended-hosted-qualification.json -text
