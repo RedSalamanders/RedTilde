@@ -128,12 +128,13 @@ malformed envelope, second close and size-limit tests. See the retained
 - [x] Document the achievable best-effort cross-process race contract (C6), recheck after staging and protect
   sharing/Save As aliases with complete native file identities and reliable successful stamps.
   [Scoped closeout](../Done/FileSafetyAndUiBoundaries_2026-11-06.md).
-- [ ] Implement and qualify the approved replace fallbacks and cloud tags for OneDrive/cloud, SMB/NAS and
-  WSL (PR-09/10/31, Q8), including real-location evidence before support claims.
-  The provider-unsupported replacement path now reuses the durable recovery-protected writer, with directed
-  original/candidate checks for provenance, admission, partial-write recovery and conflict revalidation.
-  Six-profile/current-source qualification and real-location evidence remain pending. Read sharing and
-  non-name-surrogate provider paths are already implemented and remain under the same location gate.
+- [x] Implement the provider-unsupported replacement fallback (PR-09/10/31, Q8) through the durable
+  recovery-protected writer. [Scoped closeout](../Done/ProviderSaveFallback_2026-11-07.md): four independent
+  provenance/admission/failure/conflict cases, six zero-warning builds, 131 passing cases plus the actual
+  symbolic-link privilege failure per x64 profile, hidden captures, restart recovery and real ASan detection.
+- [ ] Qualify the replacement fallback, read sharing and non-name-surrogate cloud tags on real
+  OneDrive/cloud, SMB/NAS and WSL locations before support claims. Directed local errors establish the
+  backend contract; they do not supply real-location or hosted native acceptance.
 - [x] Preserve symlink/hard-link identities under the approved distinct write policies (Q12).
   Implementation `020cb0b9` preserves hardlink aliases with independent durable recovery and separately follows
   symbolic targets. [Local evidence](../../../Measurements/LinkedSaveAndCosmeticSettlement_2026-11-06/README.md)
