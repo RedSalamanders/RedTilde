@@ -11,6 +11,7 @@
 
 namespace
 {
+#if defined(REDTILDE_ENABLE_TESTS)
 #if defined(__SANITIZE_ADDRESS__)
 // The isolated use-after-free probe deliberately reads volatile storage for ASan detection.
 // Owner: RedTilde test maintainers; review: 2027-01-31.
@@ -37,6 +38,7 @@ int SanitizerProbe()
     return 4;
 }
 #endif
+#endif
 } // namespace
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
@@ -55,8 +57,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
         const bool startupShow = (startup.dwFlags & STARTF_USESHOWWINDOW) != 0;
         options.showCommand = startupShow ? startup.wShowWindow : showCommand;
         options.explicitShowCommand = startupShow || (showCommand != SW_SHOWNORMAL && showCommand != SW_SHOWDEFAULT);
-        bool sanitizerProbe{};
 #if defined(REDTILDE_ENABLE_TESTS)
+        bool sanitizerProbe{};
         bool linkedSaveCrash{}, linkedSaveRestart{};
 #endif
         CoreTestScope testScope = CoreTestScope::All;
@@ -68,6 +70,16 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
         for (int index = 1; index < count; ++index)
         {
             const std::wstring_view argument(arguments[static_cast<size_t>(index)]);
+#if !defined(REDTILDE_ENABLE_TESTS)
+            // Refuse test entry points before resolving profile paths, installing
+            // the crash handler or dispatching any probe. Capture and performance
+            // diagnostics remain supported production capabilities.
+            if (argument == L"--self-test" || argument == L"--test-scope" || argument == L"--list-tests" ||
+                argument == L"--design-interactive-probe" || argument == L"--crash-probe" || argument == L"--recovery-crash-probe" ||
+                argument == L"--recovery-restart-probe" || argument == L"--preferences-probe" || argument == L"--asan-probe" ||
+                argument == L"--linked-save-crash-probe" || argument == L"--linked-save-restart-probe")
+                return 2;
+#endif
             auto value = [&]() -> std::wstring
             {
                 if (++index >= count)
@@ -160,16 +172,15 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
             }
             else if (argument == L"--list-tests")
                 listTests = true;
+#if defined(REDTILDE_ENABLE_TESTS)
             else if (argument == L"--crash-probe")
                 options.crashProbe = true;
-#if defined(REDTILDE_ENABLE_TESTS)
             else if (argument == L"--linked-save-crash-probe" || argument == L"--linked-save-restart-probe")
             {
                 linkedSaveCrash = argument == L"--linked-save-crash-probe";
                 linkedSaveRestart = !linkedSaveCrash;
                 options.headless = true;
             }
-#endif
             else if (argument == L"--recovery-crash-probe" || argument == L"--recovery-restart-probe")
             {
                 options.recoveryProbe = argument == L"--recovery-crash-probe";
@@ -186,6 +197,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
                 sanitizerProbe = true;
                 options.headless = true;
             }
+#endif
             else if (argument == L"--headless")
                 options.headless = true;
             else if (argument.starts_with(L"--"))
@@ -212,13 +224,17 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
             throw std::invalid_argument("Capture geometry requires a hidden non-performance harness");
         if (options.dataDirectory.empty())
             options.dataDirectory = DefaultDataDirectory();
+#if defined(REDTILDE_ENABLE_TESTS)
         if (sanitizerProbe)
             return SanitizerProbe();
+#endif
         const auto crashes = options.dataDirectory / L"Crashes";
         if (FAILED(InstallCrashHandler(crashes)))
             OutputDebugStringW(L"RedTilde crash handler unavailable\n");
+#if defined(REDTILDE_ENABLE_TESTS)
         if (options.crashProbe)
             CrashProbe();
+#endif
         const HRESULT com = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
         if (FAILED(com))
             return 1;

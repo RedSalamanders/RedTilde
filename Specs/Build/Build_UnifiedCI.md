@@ -67,7 +67,18 @@ that all six native product pipelines passed.
 
 ## Project adapter
 
-The adapter preserves exact source, dependency, public-header, compiler-context and artifact attestation. RedTildeBuildNumber freezes the third native version field and participates in build input identity. RedTildeEnableTests is also input-bound. Test mode compiles and enumerates the reviewed native catalog; its Utf8.CI_ASSERTION_PROBE verifies the real Require throws in Release. ProductionOnly removes Core/Files/DesignRefresh/DesignInteractive/RemoteImages test sources and refuses self-test and interactive-test dispatch. Supported hidden capture and performance diagnostics remain product capabilities. Packaging bundles the selected VS VC145 CRT, validates extracted executable bytes/version, renders a hidden fixture and verifies production self-test rejection. The product's experimental status is unchanged.
+The adapter preserves exact source, dependency, public-header, compiler-context and artifact attestation. RedTildeBuildNumber freezes the third native version field and participates in build input identity. RedTildeEnableTests is also input-bound. Test mode compiles and enumerates the reviewed native catalog; its Utf8.CI_ASSERTION_PROBE verifies the real Require throws in Release. ProductionOnly removes Core/Files/DesignRefresh/DesignInteractive/RemoteImages test sources and refuses self-test and interactive-test dispatch. Supported hidden capture and performance diagnostics remain product capabilities. Packaging bundles the selected VS VC145 CRT, validates extracted executable bytes/version, renders a hidden fixture and verifies every test-only entry point's rejection. The product's experimental status is unchanged.
+
+`package.ps1` requests `build.ps1 -Configuration Release -ProductionOnly` by default. `-SkipBuild` accepts only
+an otherwise valid receipt whose `testsEnabled` is the Boolean `false`; a test-enabled artifact is refused
+before creating package staging. Ordinary test-enabled Release remains required for regression execution.
+Production launch returns 2 when parsing self-test/list/scope, interactive-test, crash, recovery-crash/restart,
+preferences, sanitizer or linked-save crash/restart switches, before application profile resolution, crash-handler
+installation, probe dispatch or window creation. Operand-taking test switches also refuse with missing operands.
+The intentional sanitizer implementation and crash/sanitizer dispatch compile only in test-enabled profiles.
+This boundary does not disable supported hidden captures, benchmarks, performance/resource diagnostics or
+normal RedMonitor integration. The retained performance implementation is product diagnostics, so the old
+blanket demand to remove every file under `Tests/` from every Release role is superseded by this ownership rule.
 
 ## Emergency PR merge
 
