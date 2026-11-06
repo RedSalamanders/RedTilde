@@ -215,10 +215,13 @@ changes and focus restoration remain
 synchronous, including while the inspector is hidden. Repeated edits within one heading must not repeat the
 same selection publication or change source selection/history.
 
-Find/Replace is a 460-DIP overlay at the canvas's upper right. Its first row contains query, current/total
-count, Previous (Shift+F3), Next (F3) and Close; the second contains replacement, Replace and Replace all.
+Find/Replace is an overlay at the canvas's upper right, with at least 16 DIP left inset. With 660 DIP of canvas
+width it uses a 628-DIP wide two-row surface; otherwise its 460-DIP surface adds a third row for Match case.
+The first row contains query, current/total count, Previous (Shift+F3), Next (F3) and Close. Match case sits
+beside the query in the wide form; the second row contains replacement, Replace and Replace all.
 The current match is the exact source selection. Other source highlights and nested per-section outline
-counts are derived from the same cached query/revision, and disappear when Find closes.
+counts are derived from the same cached query/revision/case preference, and disappear when Find closes.
+F3 and Shift+F3 still repeat the retained search without reopening the surface. A single Replace selects the next match.
 Find preserves outline collapse choices; collapsed parents still count all nested matches without exposing hidden
 descendants.
 

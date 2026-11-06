@@ -76,6 +76,7 @@ enum class Command
     Files,
     Overflow,
     FindPrevious,
+    FindMatchCase,
     Replace,
     ReplaceAll,
     Minimize,
@@ -93,7 +94,11 @@ enum class Command
     SyntaxAbbreviations,
     OpenFolder,
     StrikeCompletedTasks,
-    RestoreAllRecovery
+    RestoreAllRecovery,
+    ZoomIn,
+    ZoomOut,
+    ZoomReset,
+    OpenLink
 };
 enum class SaveConflictChoice
 {
@@ -104,6 +109,8 @@ enum class SaveConflictChoice
 };
 struct LaunchOptions
 {
+    int showCommand = SW_SHOWNORMAL;
+    bool explicitShowCommand{};
     bool headless{}, selfTest{}, crashProbe{}, preferencesProbe{}, recoveryProbe{}, recoveryRestartProbe{};
     bool resourceProbe{}, forceWarp{}, controlDiagnostics{};
     unsigned performanceCycles = 12;
@@ -111,6 +118,7 @@ struct LaunchOptions
     std::wstring scenario = L"compose-light";
     std::filesystem::path document, capture, dataDirectory, benchmark, performance, designInteractive;
 #if defined(REDTILDE_ENABLE_TESTS)
+    bool startupRestoreForTest{}; // Exercise ordinary startup policy in a hidden owner; no new production switch.
     // Hidden harness replacement for the ordinary unsaved-change question.
     std::function<int()> unsavedPromptForTest;
     std::function<SaveConflictChoice()> saveConflictForTest;
@@ -119,6 +127,9 @@ struct LaunchOptions
     std::function<void()> fileCompletionAdmissionForTest;
     std::function<std::filesystem::path(bool)> filePickerForTest;
     std::shared_ptr<AsyncFiles::TestGate> fileGateForTest;
+    std::function<bool(std::wstring_view)> confirmLinkForTest;
+    std::function<HRESULT(std::wstring_view)> launchLinkForTest;
+    std::shared_ptr<AsyncFiles::TestGate> linkGateForTest;
 #endif
 };
 struct ApplicationActivity
@@ -147,7 +158,7 @@ class Application
     int Run();
     void Execute(Command command) noexcept;
     void SetView(EditorView view);
-    void SetDocument(std::wstring text, std::filesystem::path path = {}, bool bom = false, FileStamp stamp = {});
+    void SetDocument(std::wstring text, std::filesystem::path path = {}, bool bom = false, FileStamp stamp = {}, bool rememberForStartup = true);
     // Interaction probes settle content first, then capture without pumping
     // ambient pointer-leave messages for their deliberately hidden HWND.
     bool Capture(const std::filesystem::path &path, bool prepareContent = true);
@@ -235,7 +246,7 @@ class Application
         }
     }
     void ReportUiFailure(std::string_view cause) noexcept;
-    void ExecuteCommand(Command command);
+    void ExecuteCommand(Command command, unsigned zoomSteps = 1);
     void DispatchUiMessage(const MSG &message) noexcept;
     void OnMenuClosed(std::optional<int> selected) noexcept;
     EditDiagnostics *editDiagnostics{}; // Borrowed only for a synchronous harness transaction.
@@ -286,6 +297,11 @@ class Application
     std::vector<DxUi::RichText::MarkdownRange> findMatches;
     std::optional<DxUi::RichText::SourceSnapshot> findSource;
     std::wstring findQuery;
+    std::vector<DxUi::RichText::MarkdownRange> closedFindMatches;
+    std::optional<DxUi::RichText::SourceSnapshot> closedFindSource;
+    std::wstring closedFindQuery;
+    bool findMatchCase{}, findCachedMatchCase{}, closedFindCase{};
+    int zoomWheelRemainder{};
     std::vector<std::size_t> findSectionCounts;
     std::uint64_t outlineRowsRevision{}, findBadgeRowsRevision{}, findSectionOutlineRevision{}, findSectionAnalysis{};
     std::optional<std::size_t> findHighlightedCurrent, findDisplayedCurrent, findDisplayedTotal;
@@ -313,6 +329,7 @@ class Application
     DxUi::Label *title{}, *saveState{}, *stats{}, *feedback{}, *outlineTitle{}, *equationHelp{}, *modeHint{};
     DxUi::RichTextEditor *equation{};
     DxUi::TextField *findText{};
+    DxUi::Button *findCaseToggle{};
     DxUi::TextField *blockDraftText{};
     Surface *recoveryPanel{};
     DxUi::TextField *recoveryPreview{};
@@ -384,6 +401,13 @@ class Application
     bool bom{}, closing{}, initialized{}, initializing{}, unsavedPromptOpen{}, reportingUiFailure{};
     bool closingAfterSave{}, visibleBeforeSaveClose{};
     bool waitingForPreferences{};
+    bool windowPlacementDirty{};
+    bool startupPolicy{}, startupPending{}, startupOpening{};
+    struct ExternalLinkState;
+    struct ExternalLinkJob;
+    std::shared_ptr<ExternalLinkState> externalLink;
+    bool linkPromptOpen{};
+    std::optional<DxUi::RichText::SourceSnapshot> startupSource;
     FileStamp stamp;
     DocumentInfo documentInfo;
     DocumentLineIndexStorage documentLineIndexStorage;
@@ -398,7 +422,7 @@ class Application
     };
     std::optional<ConflictReload> conflictReload;
     static constexpr UINT ImageReady = WM_APP + 401, FileReady = WM_APP + 402, PreferencesReady = WM_APP + 403, RecoveryReadyMessage = WM_APP + 404,
-                          FolderReady = WM_APP + 405;
+                          FolderReady = WM_APP + 405, ExternalLinkReady = WM_APP + 406;
     static LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM) noexcept;
     LRESULT HandleMessage(HWND, UINT, WPARAM, LPARAM);
     bool RouteShortcut(const MSG &message);
@@ -424,6 +448,19 @@ class Application
     bool DismissSurface();
     LRESULT FrameHitTest(HWND hwnd, LPARAM point) const;
     void Layout();
+    [[nodiscard]] static RECT ClampWindowBounds(RECT requested, RECT workArea, unsigned savedDpi, unsigned currentDpi) noexcept;
+    [[nodiscard]] int InitialShowCommand() const noexcept;
+    [[nodiscard]] bool MayRequestNativeFocus() const noexcept;
+    void RecordWindowPlacement(bool persist);
+    void AbandonStartupRestore();
+    void RememberActiveDocument();
+    [[nodiscard]] static bool SupportedExternalLink(std::wstring_view destination) noexcept;
+    [[nodiscard]] std::optional<std::size_t> CurrentLinkElement(const std::shared_ptr<const DxUi::RichText::SemanticDocument> &document) const;
+    void RequestOpenLink(const DxUi::RichTextLinkActivation &activation);
+    void ExternalLinkCompleted();
+    void CloseExternalLinks() noexcept;
+    static DWORD WINAPI ExternalLinkWorker(void *context) noexcept;
+    [[nodiscard]] std::vector<DxUi::MenuFlyoutItem> ContextMenuItems(bool insertOnly, bool headingOnly);
     void ApplyTheme();
     void ApplyMarkdownSyntax();
     [[nodiscard]] const std::wstring &CurrentText() const;

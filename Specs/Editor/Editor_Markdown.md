@@ -1,5 +1,10 @@
 # Markdown document and editing
 
+The editor uses DxUi's Unicode-first clipboard preference. When Unicode text and a bitmap coexist, ordinary
+Paste selects the text in one ownership attempt. File-list priority and forced plain-text paste remain governed
+by the shared input contract. This adoption does not add an image-asset persistence callback or an image-first
+settings control; those remain part of the separately owned managed-image work.
+
 ## Source and views
 
 The exact Markdown source is authoritative. Preserve UTF-8 encoding, optional BOM, Unicode scalar pairs and
@@ -76,17 +81,31 @@ public planner when supported. An outline derives from ATX headings outside fenc
 Refresh its source offsets on every edit, including prose inserted before a heading; unchanged labels and levels
 do not require chrome layout. Renaming, changing the level or adding/removing a heading updates the visible outline.
 Find operates on source, wraps with a visible result, and selects/reveals the match. Never search rendered-only text.
-Cache exact match ranges by source revision and query, and section totals by that identity plus the outline rebuild
+Find is case-insensitive by default, using locale-independent ordinal Unicode comparison. A localized Match case
+toggle enables exact case matching. Preserve original UTF-16 ACPs and source edit boundaries in either mode.
+Cache exact match ranges by source revision, query and case preference, and section totals by that identity plus the outline rebuild
 identity. Selection-only caret updates reuse match ranges and section totals; rebuild the bounded highlight list only
 when its source/query or active current match changes. Render at most 4,096 match highlights, including the active
 match even when it falls beyond that prefix, while Find navigation and Replace All continue to use the complete match
 set. Closing Find clears highlights and section badges once; subsequent closed selection/syntax updates do not scan
-source or rebuild badges. Reopening recomputes from the current source and query. Same-ACP text-service preview,
+source or rebuild badges. F3/Shift+F3 repeat the retained query while the bar stays closed. Keep that bounded
+closed navigation cache separate from visible highlights and badges; refresh it only on an explicit repeat when
+its source/query/case identity changes. Transfer its storage on close/reopen rather than duplicating the match set.
+Reopening recomputes from the current source and query. A successful single Replace selects the following match
+without requiring a second navigation action; each replacement remains one undoable source transaction. Same-ACP text-service preview,
 successive preview revisions and cancellation each use the exact current source revision without creating committed
 history or losing the entry source's results on cancel.
 The guarded local draft owns its separate exact-source highlight while open. Syntax refreshes must retain that
 highlight; Cancel and Apply clear it explicitly before ordinary Find presentation resumes. A closed-Find cache
 must never leave a draft highlight behind or clear an active draft's highlight as incidental work.
+
+Ctrl+plus/equal, Ctrl+minus and their numeric-keypad equivalents change the persisted document text scale by
+five percentage points within 75–200%; Ctrl+0 restores 100%. Ctrl+vertical-wheel uses the same command
+admission and accumulates sub-notch deltas; a multi-notch message applies its bounded change in one action.
+An ordinary wheel message ends that partial gesture. Do not intercept AltGr. Consume admitted Ctrl-wheel
+without additionally scrolling. A clamped no-op causes no layout or preference submission. These operations
+preserve exact source revision, directional selection, undo/redo, saved state and logical focus in every view;
+the existing active-composition and pending-local-draft guards still apply.
 
 ### Markdown syntax options
 
@@ -207,8 +226,8 @@ local PNG/JPEG/BMP/GIF/TIFF off the UI thread; retain alt text on failure. HTTP(
 privacy opt-in below. Data URI fetch, UNC access by default, script execution and automatic external link
 navigation remain disabled. Asset copying and drag/drop remain separate work. The image worker branches on every
 request kind: wiki-target (`![[target]]`) and data requests are declined with `ERROR_NOT_SUPPORTED` before any file
-or network access, even when a same-named local file exists. RedTilde resolves no wiki targets and installs no link
-activation handler, so wiki links stay inert.
+or network access, even when a same-named local file exists. RedTilde resolves no wiki targets. The explicit
+external-link activation handler declines wiki destinations, so unresolved wiki links stay inert.
 
 Mermaid uses the exact library pin's bounded flowchart, state, class, sequence, pie, entity-relationship, Gantt and
 mind-map profiles. Supported grouping, members, multiplicities and native style subsets follow that pin's
@@ -267,7 +286,8 @@ line (display: logical leaf) literal with a diagnostic. The inspector clears ove
 ### Remote image policy
 
 Remote image requests are disabled in the shared editor and application preferences by default. The explicit
-Settings privacy toggle enables only absolute HTTP(S) image requests; links remain inert. DxUi resolves and
+Settings privacy toggle enables only absolute HTTP(S) image requests; loading an image never opens a link.
+Explicit confirmed link dispatch is independent of remote-image permission. DxUi resolves and
 cancels immutable requests and decodes bounded encoded images. RedTilde's existing single image worker owns the
 transport and applies the same 32-job/64-MiB completion budget as local images. Opt-off immediately retires remote
 requests/pixels, preserves local identities and prevents stale completion publication.

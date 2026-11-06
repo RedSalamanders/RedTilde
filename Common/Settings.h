@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <memory>
+#include <optional>
 #include <string>
 #include <windows.h>
 
@@ -34,6 +35,13 @@ enum class MarkdownSyntax
     Abbreviations
 };
 inline constexpr std::size_t MarkdownSyntaxCount = 7;
+struct WindowPlacementSettings
+{
+    RECT normalBounds{}; // Physical screen coordinates, never WINDOWPLACEMENT workspace coordinates.
+    unsigned dpi = 96;
+    bool maximized{};
+};
+[[nodiscard]] bool ValidWindowPlacement(const WindowPlacementSettings &placement) noexcept;
 struct Settings
 {
     Appearance appearance = Appearance::System;
@@ -42,12 +50,14 @@ struct Settings
     bool showOutline = true;
     bool showFiles = false;
     std::filesystem::path filesRoot;
+    std::filesystem::path lastDocument;
     unsigned filesWidth = 280;
     unsigned readingWidth = 760;
     unsigned textScale = 100;
     bool dimInactiveBlocks = true;
     bool allowRemoteImages = false;
     bool strikeCompletedTasks = false;
+    std::optional<WindowPlacementSettings> windowPlacement;
     std::array<bool, MarkdownSyntaxCount> markdownSyntax{true, true, true, true, true, true, true};
     [[nodiscard]] bool SyntaxEnabled(MarkdownSyntax syntax) const noexcept
     {

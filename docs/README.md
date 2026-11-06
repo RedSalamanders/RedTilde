@@ -52,6 +52,24 @@ Select text before **Insert → Quote** or **Insert → Code Block** to turn tha
 in Compose, Source and Split, preserves the selected wording and line endings, and takes one Undo to reverse.
 With no selection, the commands insert their usual editable example.
 
+**Find and replace:** Ctrl+F searches the exact Markdown source without changing it. Search ignores letter case
+unless **Match case** is selected. F3 finds the next occurrence and Shift+F3 the previous one, wrapping at the
+ends; both work after closing the Find bar. Replace changes the current occurrence in one undoable edit and
+selects the following match. Replace All is also one undoable edit.
+
+**Text size:** Ctrl+plus/equal or Ctrl+minus changes document text size by 5%; the numeric-keypad keys also
+work. Ctrl+mouse wheel changes the same preference, including high-resolution wheels, and Ctrl+0 restores
+100%. Size stays between 75% and 200%, is remembered in Settings, and leaves your writing and Undo history intact.
+
+**Window:** RedTilde remembers its normal window bounds and maximized state. It fits the window inside an
+attached monitor's work area when reopening, including after changing monitors or display scale. A launcher's
+explicit minimized or other show-state request takes precedence. Minimized bounds are never saved as the normal size.
+
+**Starting again:** launching without a file reopens the last active saved document after checking recovery.
+Pending recovery copies take precedence. A missing document leaves a blank Untitled document and an explanatory
+status. Writing while startup is loading keeps your new text; New cancels that automatic load. Untitled and
+recovered copies become a normal startup file only after Save As. The Files root is remembered separately.
+
 **Markdown syntax:** tables, task lists, strikethrough and autolinks always work. Settings › Markdown syntax also
 turns on `==highlight==`, `^superscript^`, `~subscript~`, `++inserted++`, wiki links `[[page]]`, definition lists
 (a term line followed by `: definition` lines) and abbreviations (`*[HTML]: Hyper Text Markup Language`). All are on
@@ -76,7 +94,12 @@ Explorer file path in rich text. RedTilde references that file; it does not copy
 The image must remain available when reopening the Markdown. Supported files decode asynchronously and
 unsupported/missing images retain alt text. Internet images are off by default. Enable “Load images from the
 internet” in Settings only when you want to contact the image servers named by the document; turning it off
-removes remote images immediately. Links stay inert.
+removes remote images immediately. Ordinary link clicks keep editing.
+
+**Open a link:** put the caret in a link and choose **Open link** from its context menu, or Ctrl+click a rendered
+link. Review the destination and confirm before RedTilde hands it to your default application. Ordinary clicks
+keep editing. External http, https and mailto links are supported; local files, custom schemes and unresolved
+wiki targets stay inert. External dispatch runs away from the UI thread and never changes your source or Undo history.
 
 The HTTP client loads on demand on the image worker when a permitted image first needs it. Its system-library
 imports stay loaded until exit so outstanding callbacks can retire safely. Windows library loading itself cannot

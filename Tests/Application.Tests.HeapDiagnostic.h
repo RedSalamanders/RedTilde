@@ -62,7 +62,30 @@ inline bool ProcessCpu100ns(std::uint64_t &value) noexcept
 // outside HeapLock; while locked, this uses only stack storage and Win32 heap
 // queries. Reported timing covers heap walks and counter reads only; it excludes
 // JSON serialization and stream writes.
-inline bool WriteOwnedHeapDiagnostic(std::ostream &out, std::span<const HANDLE> heaps, std::size_t entryLimit = MaximumDiagnosticEntriesPerHeap)
+struct NativeOwnedHeapDiagnosticCalls
+{
+    BOOL Lock(HANDLE heap) const noexcept
+    {
+        return HeapLock(heap);
+    }
+    BOOL Walk(HANDLE heap, PROCESS_HEAP_ENTRY &entry) const noexcept
+    {
+        return HeapWalk(heap, &entry);
+    }
+    BOOL Unlock(HANDLE heap) const noexcept
+    {
+        return HeapUnlock(heap);
+    }
+    DWORD Error() const noexcept
+    {
+        return GetLastError();
+    }
+};
+
+// The injected provider is test-only, borrowed synchronously and allocation-free
+// while locked. It makes empty, exact, truncated and failed walks independent of
+// the native allocator's current physical layout, including sanitizer redirection.
+template <typename Calls> inline bool WriteOwnedHeapDiagnostic(std::ostream &out, std::span<const HANDLE> heaps, std::size_t entryLimit, Calls &calls)
 {
     LARGE_INTEGER frequency{}, start{}, finish{};
     const bool frequencyReady = QueryPerformanceFrequency(&frequency) != FALSE && frequency.QuadPart > 0;
@@ -95,9 +118,9 @@ inline bool WriteOwnedHeapDiagnostic(std::ostream &out, std::span<const HANDLE> 
             continue;
         }
         ++attemptedHeapCount;
-        if (HeapLock(heaps[i]) == FALSE)
+        if (calls.Lock(heaps[i]) == FALSE)
         {
-            sample.error = GetLastError();
+            sample.error = calls.Error();
             complete = false;
             continue;
         }
@@ -108,14 +131,14 @@ inline bool WriteOwnedHeapDiagnostic(std::ostream &out, std::span<const HANDLE> 
             const auto unlock = wil::scope_exit(
                 [&]
                 {
-                    if (HeapUnlock(heaps[i]) == FALSE)
+                    if (calls.Unlock(heaps[i]) == FALSE)
                     {
-                        sample.error = GetLastError();
+                        sample.error = calls.Error();
                         sample.complete = false;
                     }
                 });
             PROCESS_HEAP_ENTRY entry{};
-            while (sample.walkedEntries < entryLimit && HeapWalk(heaps[i], &entry) != FALSE)
+            while (sample.walkedEntries < entryLimit && calls.Walk(heaps[i], entry) != FALSE)
             {
                 ++sample.walkedEntries;
                 if ((entry.wFlags & PROCESS_HEAP_ENTRY_BUSY) != 0)
@@ -134,11 +157,11 @@ inline bool WriteOwnedHeapDiagnostic(std::ostream &out, std::span<const HANDLE> 
                     AddSaturated(sample.entryOverheadBytes, entry.cbOverhead);
                 }
             }
-            sample.error = GetLastError();
+            sample.error = calls.Error();
             if (sample.walkedEntries == entryLimit)
             {
-                sample.budgetExceeded = HeapWalk(heaps[i], &entry) != FALSE;
-                sample.error = sample.budgetExceeded ? ERROR_MORE_DATA : GetLastError();
+                sample.budgetExceeded = calls.Walk(heaps[i], entry) != FALSE;
+                sample.error = sample.budgetExceeded ? ERROR_MORE_DATA : calls.Error();
             }
             const bool walkComplete = !sample.budgetExceeded && sample.error == ERROR_NO_MORE_ITEMS;
             if (walkComplete)
@@ -189,5 +212,10 @@ inline bool WriteOwnedHeapDiagnostic(std::ostream &out, std::span<const HANDLE> 
     }
     out << "]}";
     return complete;
+}
+inline bool WriteOwnedHeapDiagnostic(std::ostream &out, std::span<const HANDLE> heaps, std::size_t entryLimit = MaximumDiagnosticEntriesPerHeap)
+{
+    NativeOwnedHeapDiagnosticCalls calls;
+    return WriteOwnedHeapDiagnostic(out, heaps, entryLimit, calls);
 }
 } // namespace RedTilde::Test

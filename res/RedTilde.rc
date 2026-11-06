@@ -258,4 +258,12 @@ IDS_WORKSPACEFULL "This workspace has 64 documents. Save your changes, then open
 IDS_RESTOREALL "Restore all copies"
 IDS_RECOVERYMULTIPLEHELP "{0} unsaved copies are available. Previewed original: {1}\nRestore all keeps each copy separately; Save As protects the originals."
 IDS_OPENDOCUMENTS "Open documents"
+IDS_MATCHCASE "Match case"
+IDS_OPENLINK "Open link"
+IDS_OPENLINKCONFIRM "Open this link in your default application?\n\n{0}"
+IDS_LINKUNAVAILABLE "This link cannot be opened here. Supported external links use http, https or mailto."
+IDS_LINKFAILED "The default application could not open this link."
+IDS_LINKCHANGED "The document or selection changed. Choose the link again."
+IDS_LINKOPENING "Opening link..."
+IDS_LINKOPENED "Link sent to the default application."
 END

@@ -1,0 +1,1 @@
+- Make owned-heap diagnostic tests independent of sanitizer allocator layout, retain independently counted native boundaries, and prove empty, exact, truncated and failure cases with bounded deterministic providers.

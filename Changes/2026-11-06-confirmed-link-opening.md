@@ -1,0 +1,1 @@
+- Add explicit Open link and Ctrl-click confirmation for http, https and mailto destinations, dispatch on a separate STA, and preserve source/history when confirmation is cancelled, superseded or closed.

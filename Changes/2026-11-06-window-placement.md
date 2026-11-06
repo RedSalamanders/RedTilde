@@ -1,0 +1,1 @@
+- Remember normal window bounds and maximized state, restore them within an attached monitor's work area at the current DPI, and honor explicit launcher show states without forcing focus after nonactivating or minimized launches.

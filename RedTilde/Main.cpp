@@ -39,7 +39,7 @@ int SanitizerProbe()
 #endif
 } // namespace
 
-int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int)
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
 {
     using namespace RedTilde;
     try
@@ -50,6 +50,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int)
             return monitorCommand;
         MonitorDiagnostics::Write(RedMonitor::Severity::Info, L"application starting");
         LaunchOptions options;
+        STARTUPINFOW startup{sizeof(startup)};
+        GetStartupInfoW(&startup);
+        const bool startupShow = (startup.dwFlags & STARTF_USESHOWWINDOW) != 0;
+        options.showCommand = startupShow ? startup.wShowWindow : showCommand;
+        options.explicitShowCommand = startupShow || (showCommand != SW_SHOWNORMAL && showCommand != SW_SHOWDEFAULT);
         bool sanitizerProbe{};
 #if defined(REDTILDE_ENABLE_TESTS)
         bool linkedSaveCrash{}, linkedSaveRestart{};

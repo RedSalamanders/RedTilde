@@ -9,6 +9,24 @@ presentation policy shared by Compose and Split. Defaults are System appearance,
 Files width 280 DIP, reading width 760 DIP, text scale 100%, inactive-block dimming enabled, remote images disabled and every optional Markdown syntax enabled. Files widths are
 limited to 200–400 DIP, reading width to 480–1040 DIP, and text scale to 75–200%; invalid fields fall back
 independently without discarding valid neighboring settings.
+
+Persist normal window bounds in physical screen coordinates (`windowLeft`, `windowTop`, `windowRight`,
+`windowBottom`), the source `windowDpi` and a separate `windowMaximized=0|1`. The four coordinates form one
+complete tuple; malformed, reversed, zero-size, overflowed or oversized records are ignored. Coordinates are
+bounded to +/-1,048,576 and each extent to 32,768 pixels. Missing DPI defaults to 96; a present DPI outside
+48–768 or a malformed DPI rejects the placement. An invalid maximized flag defaults independently to normal.
+Never serialize a partial/invalid placement, minimized/iconic coordinates or maximized screen bounds as normal bounds.
+On restore choose an attached monitor nearest the saved screen rectangle, scale the saved size for its actual
+window DPI, and clamp both position and size to its work area. On first run center and fit the default size.
+The usual 800x560 DIP minimum must also fit a smaller work area. Use screen coordinates throughout; native
+WINDOWPLACEMENT workspace coordinates must not be passed as screen coordinates. See the
+[Windows coordinate contract](https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-windowplacement).
+Moving/resizing updates the in-memory record; submit through the ordinary coalescing settings worker on
+end-of-move/resize, a maximized/normal transition, DPI change, accepted Close or session query. A successful
+preference admission carries the latest placement; do no synchronous storage work in a window message.
+Ordinary startup restores the saved maximized state. An explicit launch show state from STARTUPINFO/WinMain
+takes precedence. Never force native editor focus after a hidden, minimized or nonactivating launch. Headless
+captures retain their requested deterministic geometry and do not restore or persist native desktop placement.
 A rejected or unknown settings header returns `ERROR_BAD_FORMAT` and leaves both caller settings and the
 original file untouched. Synchronous and asynchronous preference writers validate the existing header
 before publication; changing views must not overwrite rejected settings with defaults. Preserve the file
@@ -20,6 +38,21 @@ normalizing document content. Missing/invalid roots fall back independently to e
 roots so a folder cannot introduce another line-based preference. Restoring a root does no synchronous directory
 enumeration: the ordinary bounded Files worker reports availability. Root persistence is independent of document
 and recovery state; hiding Files retains it, and only explicit folder selection replaces an established root.
+
+The independent version-1 `lastDocument` field uses the same strict, bounded absolute UTF-8 path validation as
+`filesRoot`. Remember the active normal file after a successful Open/Save As and workspace switch; New or an
+untitled/recovered active document on accepted Close clears it. A recovery restore does not publish its original
+path as a newly saved startup document. The persistent folder root never follows this preference implicitly.
+An ordinary launch without an explicit file starts blank and waits for the initial recovery scan. Pending
+recovery copies take precedence; a failed recovery scan leaves editing available without starting an uncertain
+automatic read. With no candidates, reopen the remembered path through the ordinary file worker, using the
+exact admitted blank source identity. Do no synchronous existence/file read on the UI thread. An unavailable
+path leaves a clean blank Untitled document with status, without a modal error or sample substitution.
+Early/late source edits supersede startup restoration without an unsaved-change prompt. Explicit New, Open,
+Open Folder, a Files-row activation or Close abandons that startup read by closing its old notification state;
+the worker owns and retires its values without a UI wait. An explicit file argument takes precedence over the
+remembered path. Hidden deterministic captures continue using their explicit sample/document fixtures.
+Source, selection and history are never recovered from this preference; crash recovery retains that ownership.
 Focus mode is session-local and is not persisted. Apply persisted
 appearance, reading width, text scale and dimming immediately; no restart is required. Reduced motion follows
 Windows preferences. The version-1 `remoteImages=0|1` field defaults independently to disabled on missing or invalid

@@ -36,6 +36,23 @@ UI Automation behavior. DxUi's `ControlHost` owns and renders the coordinated cl
 button or rich-text behavior is implemented in canonical DxUi and consumed through its public API and reviewed pin;
 consumer code must not copy shared controls or reach into library internals.
 
+External link opening is an explicit application action, delegated by DxUi's Ctrl+click/Ctrl+Enter/UIA
+activation callback or a source-context Open link command. Ordinary clicks never launch a destination.
+Only bounded http, https and mailto targets without control characters, whitespace, embedded NUL or quotes
+may reach confirmation; executable/file/custom schemes and unresolved wiki targets remain inert. This is an
+application scheme/argument policy over canonical semantic destinations, not a competing Markdown/URL parser.
+Copy the destination before confirmation, default to No, and preserve the exact source snapshot, selection,
+workspace key and owner lifetime across that reentrant boundary. A changed/closed owner declines dispatch.
+Bind an asynchronously completed Open link menu choice to its original source/selection as well.
+Admit at most one dispatch. A fresh value-owned STA worker initializes COM and calls ShellExecuteEx without
+requesting a browser process handle or displaying shell error UI. No shell/filesystem wait occurs on the UI
+thread. Publish only a bounded status through the owning notification binding; Close clears that binding
+without joining an arbitrary external handler. The worker retains no Application/control pointer. Hidden
+tests use explicit confirmation/handoff seams and owned gates, exercise real STA initialization and complete
+teardown, and never open a real external application or contact the network.
+Native control-focus requests require the app's visible, non-minimized foreground window. Retain logical
+focus without activating a hidden/background owner, including delayed startup/recovery completion.
+
 The Files pane provides listing/activation; the application retains each opened document's source, oriented
 selection, Undo/Redo history, saved baseline and recovery identity through the same editor's document exchange.
 It lists `.md` and

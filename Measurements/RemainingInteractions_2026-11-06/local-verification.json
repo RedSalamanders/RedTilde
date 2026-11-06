@@ -1,0 +1,223 @@
+{
+  "schemaVersion": 1,
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-find-zoom-window-startup-confirmed-links",
+  "claim": "Six zero-warning builds; 127 passing cases and one actual symbolic-link fixture privilege failure per x64 profile",
+  "implementationCommit": "2709f933ce3bb385be0031f3ab7cf78ef4c7004b",
+  "sdkCommit": "a1915ffdd94b18fd1817371f1dc074f6a0b547f1",
+  "apiRevision": 4,
+  "compiledSourceIdentity": "fbcbde099e76509fa2e6c40d0c6f72f97d523324b3ec6f5a33242607f387f772",
+  "inputHash": "fbcbde099e76509fa2e6c40d0c6f72f97d523324b3ec6f5a33242607f387f772",
+  "originalSourceInputs": {
+    "canonicalOriginalBytesMatched": true,
+    "inputCount": 141,
+    "archiveSha256": "AF959AFE6D42CBAF58FFD7C79A35406C2473F93370ACF64EEA88AE43978A80C7"
+  },
+  "builds": [
+    {
+      "platform": "x64",
+      "configuration": "Release",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": true,
+      "binarySha256": "C4196E82016DA5EE0CF4472713604E495912AB2285C37FBAA9CEAF1C07F71B29",
+      "buildReceiptSha256": "A4400B228D7BDDDD64633B67998426D518037ED81C83F945DA5D7C01D33AE900",
+      "buildLogSha256": "816C50A713B8EF2FED44B307FF34CA014046C8B8846C1AB8E37A25C5E2D93031"
+    },
+    {
+      "platform": "x64",
+      "configuration": "Debug",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": true,
+      "binarySha256": "9072DD903DBF184E9C1BF3BC4594691E4E74D4A52E68E1F0D95B9E7D4D1490DC",
+      "buildReceiptSha256": "4FD0C091AFC76EE2292E58FA3EC733B2131619E79EECD34CC6073E04E0625667",
+      "buildLogSha256": "7F3BAC0C0510E94FFF882D92B5AA230ECE6368D045094E591C11322AF88CBC56"
+    },
+    {
+      "platform": "x64",
+      "configuration": "ASan Debug",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": true,
+      "binarySha256": "93514C993BE7F60E9A4313B7C0B0972BFA02011A0AC3D2306492625452413586",
+      "buildReceiptSha256": "E063D861522E20DFD925931FBB4AC59A58EC0EB5A0216862A5376E020CEF6C8F",
+      "buildLogSha256": "47914E15FFD0DEC9B52DFE35B2B9363DADE432DE7385AD26012A81C1BFEE5625"
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Release",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": false,
+      "binarySha256": "DE530C7F5066569B0D96B15CD90FB98276BAE3DCEC49C90996441AEC29AA2033",
+      "buildReceiptSha256": "1D5633B3885BD245EDEAEC789992A6D8A0ADD6DAD5C82AC321137DDAC3C0FDEB",
+      "buildLogSha256": "7DADDC339CD981CDAAF7199F6F4B5FF022248D3D30B8ADA5CC1499ACF77C556A"
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Debug",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": false,
+      "binarySha256": "167793882427446AF39A4B355AB7A9A3C3B053F0A05B6B6914DA32F13E147C61",
+      "buildReceiptSha256": "A2F11F67AF03CF4D3CFC91F6417F1C717B74DAB7100D9B4B8C461A85D1CFDE3A",
+      "buildLogSha256": "3DC78C085CDD4F856FB23139E78AF6D404924974CF7140E4DF5F1FF22FC789FB"
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "ASan Debug",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": false,
+      "binarySha256": "6280637A91A57EEECE305CBD6F8DF0AC9912543B65B4A6225D355F1BBE2BF351",
+      "buildReceiptSha256": "F5737D90D684C1804187273DE673CBC8C59841388C8303A61EDEBAFDF3EBB50D",
+      "buildLogSha256": "54DA4C7346BE8F0BE37076BD3A99637BB38C3FED2EE6C99DC607720070A6EBBA"
+    }
+  ],
+  "nativeRuns": [
+    {
+      "configuration": "Release",
+      "registered": 128,
+      "passed": 127,
+      "failed": 1,
+      "localRuntimeComplete": false,
+      "capabilityFailure": {
+        "case": "Storage.SymbolicSavePreservesEntryAndResolvesFinalTarget",
+        "meaning": "Host cannot create the real symbolic-link fixture; no symbolic-link runtime acceptance",
+        "win32Error": 1314
+      },
+      "standardCaptures": 36,
+      "editorPartitions": {
+        "EditorRendering": 3,
+        "EditorBehavior": 72,
+        "EditorPerformance": 3
+      },
+      "realInterruptedWriteRestart": true,
+      "storageRunId": "20261106T124749808Z-44476-1940ff754ac9490e8ea3f47af67ffa61",
+      "otherRunId": "20261106T124757310Z-10940-cf179c086b45498f9af86f4ad41efc76",
+      "storageCanonicalReceiptSha256": "A00C5331AB09D70A3C7236894C5FB4FD964B6058C4874038221322723372769D",
+      "storageCompletionSha256": "23A029B382FA31016D302E294C315E5B7F7334D3F9942B0CBFD5E8A1B85BB918",
+      "storageCoreSha256": "EAB27283B30DEBFE4B19F6CA8DA8BE5F07B8E2A8A60DD49BE8B6FE23664213F2",
+      "otherCanonicalReceiptSha256": "61207BF25D42C3B6B9F979D946AC9C0E74BD75982E46BAC42EDA06CCC7FFFFB5",
+      "otherCompletionSha256": "DFCACC86C75AF57ADB5B6C8EA8E3F84D08A672FFAE9644FBEB8EC9ADD79C5D6E",
+      "storageRunArchiveSha256": "5C96E40CF50B74F1E1BF3B5BA1A7E554043D9A432CA1F54AB15EA50F5B701DC8",
+      "otherRunArchiveSha256": "1E3B60954C6992D9EE51C2F2ABFE85F572DB8B1ED00E0635365FE280F38508C0"
+    },
+    {
+      "configuration": "Debug",
+      "registered": 128,
+      "passed": 127,
+      "failed": 1,
+      "localRuntimeComplete": false,
+      "capabilityFailure": {
+        "case": "Storage.SymbolicSavePreservesEntryAndResolvesFinalTarget",
+        "meaning": "Host cannot create the real symbolic-link fixture; no symbolic-link runtime acceptance",
+        "win32Error": 1314
+      },
+      "standardCaptures": 36,
+      "editorPartitions": {
+        "EditorRendering": 3,
+        "EditorBehavior": 72,
+        "EditorPerformance": 3
+      },
+      "realInterruptedWriteRestart": true,
+      "storageRunId": "20261106T125720989Z-48464-084c904bc71e48cbb06682bf50bcc462",
+      "otherRunId": "20261106T125729162Z-10708-07dd0b5398ad4f448cb0d67077088b48",
+      "storageCanonicalReceiptSha256": "44D7827C13EE8549B98E5646BF5EAAF576A8BE9E60CB8FD965DEC7BDB255E073",
+      "storageCompletionSha256": "49E5714C5AE5D2D3162088F038462FD328EC55954F03F21481FEECB1D0EF6385",
+      "storageCoreSha256": "EAB27283B30DEBFE4B19F6CA8DA8BE5F07B8E2A8A60DD49BE8B6FE23664213F2",
+      "otherCanonicalReceiptSha256": "8F07C494C6C763DD6D3DE6343F4E67FF05A3A6D1763900982EC864EA10FEBBB6",
+      "otherCompletionSha256": "6048C9242E1C069F1862725096A73D17149EAAF63FDA2135C025AF0F855EF660",
+      "storageRunArchiveSha256": "341414C40AF34720AF5640DE634220D555D27F1DA643BCB421556EC5CAAE47DB",
+      "otherRunArchiveSha256": "2C5B33B853ABD684A0C14DC66495E57D32A9F08068805C3DA2EBA5B8F4291A30"
+    },
+    {
+      "configuration": "ASan Debug",
+      "registered": 128,
+      "passed": 127,
+      "failed": 1,
+      "localRuntimeComplete": false,
+      "capabilityFailure": {
+        "case": "Storage.SymbolicSavePreservesEntryAndResolvesFinalTarget",
+        "meaning": "Host cannot create the real symbolic-link fixture; no symbolic-link runtime acceptance",
+        "win32Error": 1314
+      },
+      "standardCaptures": 36,
+      "editorPartitions": {
+        "EditorRendering": 3,
+        "EditorBehavior": 72,
+        "EditorPerformance": 3
+      },
+      "realInterruptedWriteRestart": true,
+      "storageRunId": "20261106T133854288Z-33156-a9e6b28b5ae24f06b884fe4d83c841ae",
+      "otherRunId": "20261106T133901488Z-35516-af7cf825f0a24809bb5563e88af1f119",
+      "storageCanonicalReceiptSha256": "8FDE6E21B6DBA55F43F3EAD784AE5690B50F57C052F967DA41AF9A7A80978C2F",
+      "storageCompletionSha256": "AEFCDE9403C3D6A5300CDBB471C293725A5AD3A1A3A1B08FE49C99FC44DB31A9",
+      "storageCoreSha256": "EAB27283B30DEBFE4B19F6CA8DA8BE5F07B8E2A8A60DD49BE8B6FE23664213F2",
+      "otherCanonicalReceiptSha256": "9344F6D66A15FF563EF89B12B837E1CE54D0C67DA46C4BF0130F2374D627F104",
+      "otherCompletionSha256": "2BE5510A56741166D39F17D3669C042BC0A20DB852B2F4515B5158BE24D609A5",
+      "storageRunArchiveSha256": "5F8FF211288E7AA486B18CFB9AE54537D56FEFA91378DDD7433B87A105CED610",
+      "otherRunArchiveSha256": "9D93989368258CDF991ABF6C675D490DAB4EEA24653DE170571282CA2818CD75",
+      "realAsanDetection": true
+    }
+  ],
+  "nativeArtifacts": [
+    {
+      "profile": "x64-Release",
+      "nativeArchiveSha256": "457296FEA25F05EB1F93FBB54823A6DC6837FFCC729639C786751794556F9A61",
+      "sdkArchiveSha256": "D4B55409902621B81C1BAD6581CFFFC9AAAB1A9CBCC2B4316F551F86AACE8328"
+    },
+    {
+      "profile": "x64-Debug",
+      "nativeArchiveSha256": "ACF01E0466C734F6778D367D3961AB6866ED7C96E2AEBF2E51C36A6D702B5521",
+      "sdkArchiveSha256": "09572ADD84734B67915AC14AB7F0D7E069342546220442925C43882839720B8B"
+    },
+    {
+      "profile": "x64-ASan-Debug",
+      "nativeArchiveSha256": "C171BC7A83190157BB31F73751D711718905B726065BEAAAC5A7C2AD2F4757D9",
+      "sdkArchiveSha256": "4772E5E295C85703D11887B2297EE742A5912DF2468E948876AACC4DA8EF3EA8"
+    },
+    {
+      "profile": "ARM64-Release",
+      "nativeArchiveSha256": "96D33797FE25696DEC4AE1A70C0106CE0A7EC0C392AFB4D414EF1AE472A72A7F",
+      "sdkArchiveSha256": "29F2F2462449B24966405D2EBF6170D6F4278A5CEA7F68A40C89E782673A68AF"
+    },
+    {
+      "profile": "ARM64-Debug",
+      "nativeArchiveSha256": "69F65B92D768AFE38B019E30CF7357459E944E2563BAE02693B1518097E4F225",
+      "sdkArchiveSha256": "A1ADE4F812D1ED2D64C616D9CD9594C441C6899FE515467615D91BAD58AE8BF9"
+    },
+    {
+      "profile": "ARM64-ASan-Debug",
+      "nativeArchiveSha256": "96D5D7A0CADE8A95A6D989DBA678628E1EB02DDACF03480BA35637F79E87F229",
+      "sdkArchiveSha256": "67DD03D0E24C4ED1F521DA0AB43AF83D457121F3D2B5E7A74E431FAFEC91EACF"
+    }
+  ],
+  "realAsanDetection": true,
+  "localRuntimeComplete": false,
+  "benchmarkInputs": {
+    "application": "Frozen canonical application source and public 128-case catalog",
+    "startup": "Actual asynchronous recovery-first startup and current-intent cancellation",
+    "editor": "Hidden native application with synthetic Unicode and CRLF fixtures; no desktop input or browser launch",
+    "dependency": "Exact API-4 a1915ffd single-library SDK; no API-5 adoption claim",
+    "restart": "Actual child termination during durable partial write and fresh-process complete recovery"
+  },
+  "independentChecks": [
+    "All 141 original compiled-input bytes and every retained archive member verified",
+    "Complete 128-case union equals the public catalog; actual symlink failure retained",
+    "Exact independently specified UTF-16 source and selection, Find case/repeat/history, wheel thresholds and clamped zoom",
+    "Window settings reject malformed tuples; DPI/work-area placement is bounded without desktop takeover",
+    "Startup recovery gate and late user intent exercised with real file workers",
+    "Explicit link confirmation revalidates source and lifetime; owned STA callback and teardown tested without a real browser",
+    "Native heap entry membership observed separately; eight provider-boundary reports precede assertions"
+  ],
+  "limits": [
+    "Local symbolic-link fixture failed with Win32 1314; current-source hosted native execution remains required",
+    "ARM64 entries are cross-builds, not native runtime acceptance",
+    "Original invalid-CRLF zoom fixture cohort remains rejected; corrected cohort is independently retained",
+    "Original ARM64 compiler disk-full attempt remains failed; accepted cross-builds use task-owned compiler temporary files",
+    "No new foreground, physical IME, assistive-technology, real browser association or physical-device acceptance",
+    "No paired-performance or complete-repository acceptance"
+  ]
+}

@@ -1,6 +1,17 @@
 {
   "version": 1,
   "cases": [
+    { "name": "Editor.ExplicitLinksConfirmAndDispatchWithoutEditing", "scope": "Editor" },
+    { "name": "Editor.LinkConfirmationRejectsSupersededAndClosedOwners", "scope": "Editor" },
+    { "name": "Editor.PendingLinkDispatchRetiresAfterApplicationClose", "scope": "Editor" },
+    { "name": "Settings.LastDocumentPathRoundTripAndFallback", "scope": "Settings" },
+    { "name": "Editor.StartupLastDocumentAndRecoveryPrecedence", "scope": "Editor" },
+    { "name": "Editor.StartupRestoreNeverReplacesNewerIntent", "scope": "Editor" },
+    { "name": "Settings.WindowPlacementRejectsPartialAndUnsafeValues", "scope": "Settings" },
+    { "name": "Window.PlacementAndLaunchPolicyPreserveHiddenSource", "scope": "Editor" },
+    { "name": "Editor.TextScaleShortcutsAndWheelPreserveHistory", "scope": "Editor" },
+    { "name": "Editor.FindCaseAndClosedRepeatPreserveSource", "scope": "Editor" },
+    { "name": "Editor.SingleReplaceSelectsFollowingMatch", "scope": "Editor" },
     { "name": "Editor.CapturesSettleIndependentSourceCosmetics", "scope": "Editor" },
     { "name": "Storage.HardlinkSaveSuccessSurvivesBlockedRecoveryRetirement", "scope": "Storage" },
     { "name": "Editor.HardlinkSaveWorkerRetainsAliasesAndLaterEdits", "scope": "Editor" },

@@ -1,0 +1,1 @@
+- Retain the exact six-build qualification for Find, zoom, window placement, recovery-first startup and confirmed link opening: each x64 profile passes 127 cases and 36 captures, with the actual symbolic-link privilege failure preserved. Record real ASan detection, rejected fixture/tool attempts and the remaining current-source hosted native gates.
