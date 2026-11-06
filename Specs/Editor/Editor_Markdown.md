@@ -1,5 +1,10 @@
 # Markdown document and editing
 
+The editor uses DxUi's Unicode-first clipboard preference. When Unicode text and a bitmap coexist, ordinary
+Paste selects the text in one ownership attempt. File-list priority and forced plain-text paste remain governed
+by the shared input contract. This adoption does not add an image-asset persistence callback or an image-first
+settings control; those remain part of the separately owned managed-image work.
+
 ## Source and views
 
 The exact Markdown source is authoritative. Preserve UTF-8 encoding, optional BOM, Unicode scalar pairs and

@@ -97,14 +97,15 @@ Hosted setup waits for the hidden, owned GUI bootstrapper with both its --wait s
 
 The [native policy, console and dependency-path contract](Build_ConsoleAndPaths.md) owns /Wall without /WX, zero-warning acceptance, Debug/ASan symbols, Release-only ICF, common terminal results and verified short dependency folders.
 
-The consumer locks DxUi API4 at `8c6c2818d084e6124fb2c08eddc00bdba7a9d2aa`, adding quote/callout inner margins
-and recoverable Debug sequence-label allocation to the prior label-aware diagram spacing, table/code insets,
-theme task markers and optional completed-task strike-through checkpoint. Publishing or merging the exact pin
+The current consumer locks DxUi API4 at `a1915ffdd94b18fd1817371f1dc074f6a0b547f1`. This adds the selected
+Unicode-first clipboard policy to the independent optional cosmetic preparation checkpoint at `ba94f4eb`;
+the earlier diagram, math, selection-insertion, parser and input repairs remain included. Publishing the exact pin
 makes it available to other machines without supplying additional native or product qualification.
 The local cache is a clean independent detached Git checkout,
 validated and built through the ordinary public consumer interface. No sibling archive or copied source is linked.
 API revision 4 is unchanged. Restore and rebuild each consumer profile from its matching headers and archive;
-profile qualification remains explicit. `703a96c788a79c1e7b28097226a2ca0a735f11bc` is the immediate quote-margin rollback;
+profile qualification remains explicit. `ba94f4eb0cd8bbdeecb0b96d5e21fb325fe2d9c9` is the clipboard-policy rollback;
+`703a96c788a79c1e7b28097226a2ca0a735f11bc` is the historical quote-margin rollback;
 `2e775e8d81ff415587a4d885366566ed89df655f` is the earlier spacing/task rollback;
 `9ed15504fd481421388ab2dd1380374ff70c112a` is the earlier stroke rollback;
 `33ce97ce2b29aed4eadb9270bf66e7080d56b9fc` precedes syntax expansion;
