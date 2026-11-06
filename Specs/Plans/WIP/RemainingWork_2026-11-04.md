@@ -130,6 +130,10 @@ malformed envelope, second close and size-limit tests. See the retained
   [Scoped closeout](../Done/FileSafetyAndUiBoundaries_2026-11-06.md).
 - [ ] Implement and qualify the approved replace fallbacks and cloud tags for OneDrive/cloud, SMB/NAS and
   WSL (PR-09/10/31, Q8), including real-location evidence before support claims.
+  The provider-unsupported replacement path now reuses the durable recovery-protected writer, with directed
+  original/candidate checks for provenance, admission, partial-write recovery and conflict revalidation.
+  Six-profile/current-source qualification and real-location evidence remain pending. Read sharing and
+  non-name-surrogate provider paths are already implemented and remain under the same location gate.
 - [x] Preserve symlink/hard-link identities under the approved distinct write policies (Q12).
   Implementation `020cb0b9` preserves hardlink aliases with independent durable recovery and separately follows
   symbolic targets. [Local evidence](../../../Measurements/LinkedSaveAndCosmeticSettlement_2026-11-06/README.md)

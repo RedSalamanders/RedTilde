@@ -17,6 +17,8 @@ enum class AtomicWriteFailure
     None,
     Write,
     Flush,
+    FlushUnsupported,
+    ReplaceUnsupported,
     InPlaceWrite,
     InPlacePartialWrite,
     InPlaceFlush
@@ -25,6 +27,7 @@ void SetAtomicWriteFailureForTest(AtomicWriteFailure failure) noexcept;
 enum class AtomicWriteCheckpoint
 {
     Staged,
+    ReplacementUnsupported,
     Published,
     InPlaceProtected,
     InPlacePartialWritten
@@ -54,9 +57,11 @@ struct SaveRecoveryContext
     std::uint64_t generation{};
 };
 [[nodiscard]] HRESULT ReadBytes(const std::filesystem::path &path, std::string &bytes, FileStamp *stamp = nullptr) noexcept;
+// The optional flag identifies only an unsupported native replacement. An
+// equal HRESULT from another phase cannot authorize non-atomic publication.
 [[nodiscard]] HRESULT WriteBytesAtomic(const std::filesystem::path &path, std::string_view bytes, const FileStamp *expected = nullptr,
                                        FileStamp *saved = nullptr, bool sameIdentityOnly = false, const std::filesystem::path *baselinePath = nullptr,
-                                       bool rejectHardlinkedTarget = false) noexcept;
+                                       bool rejectHardlinkedTarget = false, bool *unsupportedReplacement = nullptr) noexcept;
 [[nodiscard]] HRESULT LoadDocument(const std::filesystem::path &path, StoredDocument &document, std::size_t *rejectedUnits = nullptr) noexcept;
 [[nodiscard]] HRESULT SaveDocument(const std::filesystem::path &path, std::wstring_view text, bool bom, const FileStamp *expected, FileStamp &saved,
                                    bool sameIdentityOnly = false, const std::filesystem::path *baselinePath = nullptr,

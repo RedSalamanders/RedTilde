@@ -95,9 +95,174 @@ struct StorageCheckpoint
         }
     }
 };
+// Provider fallback exercises the same protected writer with one link rather
+// than alias preservation. The extra hook changes only an owned test's fault
+// after durable recovery admission, or replaces its target before admission.
+struct ProviderSaveCheckpoint
+{
+    LinkedSaveCheckpoint observed;
+    AtomicWriteFailure afterProtection = AtomicWriteFailure::None;
+    bool replaceExternally{};
+    FileStamp external;
+    static void Observe(AtomicWriteCheckpoint phase, const std::filesystem::path &path, void *context) noexcept
+    {
+        auto &self = *static_cast<ProviderSaveCheckpoint *>(context);
+        LinkedSaveCheckpoint::Observe(phase, path, &self.observed);
+        if (phase == AtomicWriteCheckpoint::InPlaceProtected && self.afterProtection != AtomicWriteFailure::None)
+            SetAtomicWriteFailureForTest(self.afterProtection);
+        if (phase == AtomicWriteCheckpoint::ReplacementUnsupported && self.replaceExternally)
+        {
+            self.replaceExternally = false;
+            SetAtomicWriteFailureForTest(AtomicWriteFailure::None);
+            self.observed.result = WriteBytesAtomic(path, "external revision", nullptr, &self.external);
+        }
+    }
+};
+inline void RegisterProviderFallbackTests(const std::filesystem::path &root,
+                                          const std::function<void(std::string_view, const std::function<void()> &)> &test)
+{
+    test("Storage.ProviderFallbackProtectsBeforeMutation",
+         [&]
+         {
+             const auto directory = root / L"provider-success";
+             std::filesystem::create_directories(directory);
+             const auto path = directory / L"notes.md";
+             FileStamp original;
+             RequireStorage(SUCCEEDED(SaveDocument(path, L"original\r\n", true, nullptr, original)), "seed provider document");
+             std::string previous;
+             RequireStorage(SUCCEEDED(ReadBytes(path, previous)), "read original provider bytes");
+             const std::wstring replacement = L"updated \u03a9\r\n";
+             const SaveRecoveryContext recovery{directory / L"state", {7, 2}, 42};
+             LinkedSaveCheckpoint checkpoint{recovery.dataDirectory};
+             SetAtomicWriteFailureForTest(AtomicWriteFailure::ReplaceUnsupported);
+             SetAtomicWriteHookForTest(LinkedSaveCheckpoint::Observe, &checkpoint);
+             const auto clear = wil::scope_exit(
+                 []
+                 {
+                     SetAtomicWriteHookForTest(nullptr, nullptr);
+                     SetAtomicWriteFailureForTest(AtomicWriteFailure::None);
+                 });
+             FileStamp saved;
+             RequireStorage(SUCCEEDED(SaveDocument(path, replacement, true, &original, saved, false, nullptr, &recovery)),
+                            "unsupported replacement uses recovery-protected in-place publication");
+             RequireStorage(checkpoint.protectedCalls == 1 && SUCCEEDED(checkpoint.result) && checkpoint.observedBytes == previous &&
+                                checkpoint.snapshots.size() == 1 && checkpoint.snapshots[0].text == replacement &&
+                                checkpoint.snapshots[0].originalPath == path && checkpoint.snapshots[0].bom &&
+                                checkpoint.snapshots[0].selection == recovery.selection && checkpoint.snapshots[0].generation == recovery.generation,
+                            "exact source and recovery are durable before the first target mutation");
+             StoredDocument loaded;
+             RequireStorage(SUCCEEDED(LoadDocument(path, loaded)) && loaded.text == replacement && loaded.bom && loaded.stamp == saved &&
+                                saved.volume == original.volume && saved.fileIndex == original.fileIndex &&
+                                saved.fileIndexHigh == original.fileIndexHigh,
+                            "provider fallback preserves source, BOM, terminators and complete file identity");
+             RequireStorage(ProtectedSaveSnapshots(recovery.dataDirectory).empty(), "successful fallback retires only its own protection");
+             for (const auto &entry : std::filesystem::directory_iterator(directory))
+                 RequireStorage(entry.path().extension() != L".tmp", "unsupported atomic replacement leaves no staging temporary");
+         });
+    test("Storage.ProviderFallbackRequiresAdmissionAndReplacementProvenance",
+         [&]
+         {
+             const auto directory = root / L"provider-admission";
+             std::filesystem::create_directories(directory);
+             const auto path = directory / L"notes.md";
+             FileStamp original;
+             RequireStorage(SUCCEEDED(SaveDocument(path, L"retained", false, nullptr, original)), "seed provider admission target");
+             FileStamp saved = original;
+             const SaveRecoveryContext recovery{directory / L"state", {0, 0}, 2};
+             LinkedSaveCheckpoint checkpoint{recovery.dataDirectory};
+             SetAtomicWriteHookForTest(LinkedSaveCheckpoint::Observe, &checkpoint);
+             const auto clear = wil::scope_exit(
+                 []
+                 {
+                     SetAtomicWriteHookForTest(nullptr, nullptr);
+                     SetAtomicWriteFailureForTest(AtomicWriteFailure::None);
+                 });
+             SetAtomicWriteFailureForTest(AtomicWriteFailure::ReplaceUnsupported);
+             RequireStorage(SaveDocument(path, L"new source", false, &original, saved) == HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED),
+                            "missing recovery declines unsupported replacement");
+             for (const auto failure : {AtomicWriteFailure::Write, AtomicWriteFailure::Flush, AtomicWriteFailure::FlushUnsupported})
+             {
+                 SetAtomicWriteFailureForTest(failure);
+                 bool unsupported = true;
+                 const auto result = WriteBytesAtomic(path, "new source", &original, &saved, false, nullptr, false, &unsupported);
+                 RequireStorage(FAILED(result) && !unsupported, "only the native replacement operation can authorize fallback");
+                 RequireStorage(FAILED(SaveDocument(path, L"new source", false, &original, saved, false, nullptr, &recovery)),
+                                "staging failures never enter protected mutation, even with an unsupported status");
+             }
+             StoredDocument loaded;
+             RequireStorage(SUCCEEDED(LoadDocument(path, loaded)) && loaded.text == L"retained" && loaded.stamp == original && saved == original &&
+                                checkpoint.protectedCalls == 0 && ProtectedSaveSnapshots(recovery.dataDirectory).empty(),
+                            "unadmitted or unrelated failures preserve target, stamp and recovery state");
+         });
+    test("Storage.ProviderFallbackFailureRetainsRecoverableSource",
+         [&]
+         {
+             for (const auto failure : {AtomicWriteFailure::InPlaceWrite, AtomicWriteFailure::InPlacePartialWrite, AtomicWriteFailure::InPlaceFlush})
+             {
+                 const auto directory = root / (L"provider-failure-" + std::to_wstring(static_cast<unsigned>(failure)));
+                 std::filesystem::create_directories(directory);
+                 const auto path = directory / L"notes.md";
+                 FileStamp original;
+                 RequireStorage(SUCCEEDED(SaveDocument(path, L"original longer contents", false, nullptr, original)), "seed provider failure target");
+                 const std::wstring replacement = L"new source\r\n";
+                 const SaveRecoveryContext recovery{directory / L"state", {9, 2}, 19};
+                 ProviderSaveCheckpoint checkpoint{{recovery.dataDirectory}, failure};
+                 SetAtomicWriteFailureForTest(AtomicWriteFailure::ReplaceUnsupported);
+                 SetAtomicWriteHookForTest(ProviderSaveCheckpoint::Observe, &checkpoint);
+                 const auto clear = wil::scope_exit(
+                     []
+                     {
+                         SetAtomicWriteHookForTest(nullptr, nullptr);
+                         SetAtomicWriteFailureForTest(AtomicWriteFailure::None);
+                     });
+                 FileStamp saved = original;
+                 RequireStorage(SaveDocument(path, replacement, false, &original, saved, false, nullptr, &recovery) ==
+                                        HRESULT_FROM_WIN32(ERROR_WRITE_FAULT) &&
+                                    saved == original && checkpoint.observed.protectedCalls == 1,
+                                "failed non-atomic fallback never advances the saved baseline");
+                 RecoveryService restart;
+                 RequireStorage(SUCCEEDED(restart.Initialize(recovery.dataDirectory)) && SUCCEEDED(restart.WaitForSettlement(5000)),
+                                "scan fallback recovery after interrupted mutation");
+                 const auto candidates = restart.TakeCandidates();
+                 RequireStorage(candidates.size() == 1 && candidates[0].snapshot.text == replacement && candidates[0].snapshot.originalPath == path &&
+                                    candidates[0].snapshot.selection == recovery.selection &&
+                                    candidates[0].snapshot.generation == recovery.generation,
+                                "a failed fallback retains the exact recoverable source independently of partial target bytes");
+             }
+         });
+    test("Storage.ProviderFallbackRechecksConflict",
+         [&]
+         {
+             const auto directory = root / L"provider-conflict";
+             std::filesystem::create_directories(directory);
+             const auto path = directory / L"notes.md";
+             FileStamp original;
+             RequireStorage(SUCCEEDED(SaveDocument(path, L"original", false, nullptr, original)), "seed provider conflict target");
+             const SaveRecoveryContext recovery{directory / L"state", {0, 0}, 5};
+             ProviderSaveCheckpoint checkpoint{{recovery.dataDirectory}, AtomicWriteFailure::None, true};
+             SetAtomicWriteFailureForTest(AtomicWriteFailure::ReplaceUnsupported);
+             SetAtomicWriteHookForTest(ProviderSaveCheckpoint::Observe, &checkpoint);
+             const auto clear = wil::scope_exit(
+                 []
+                 {
+                     SetAtomicWriteHookForTest(nullptr, nullptr);
+                     SetAtomicWriteFailureForTest(AtomicWriteFailure::None);
+                 });
+             FileStamp saved = original;
+             RequireStorage(SaveDocument(path, L"mine", false, &original, saved, false, nullptr, &recovery) ==
+                                    HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH) &&
+                                SUCCEEDED(checkpoint.observed.result) && saved == original,
+                            "fallback rejects a replacement introduced after atomic refusal");
+             StoredDocument loaded;
+             RequireStorage(SUCCEEDED(LoadDocument(path, loaded)) && loaded.text == L"external revision" && loaded.stamp == checkpoint.external &&
+                                checkpoint.observed.protectedCalls == 0 && ProtectedSaveSnapshots(recovery.dataDirectory).empty(),
+                            "the external revision is retained without creating a protection for a refused save");
+         });
+}
 inline void RegisterStorageSafetyTests(const std::filesystem::path &root,
                                        const std::function<void(std::string_view, const std::function<void()> &)> &test)
 {
+    RegisterProviderFallbackTests(root, test);
     test(
         "Storage.HardlinkSavePreservesAliasesAndProtectsBeforeMutation",
         [&]

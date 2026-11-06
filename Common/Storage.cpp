@@ -168,9 +168,12 @@ catch (const std::bad_alloc &)
 }
 
 HRESULT WriteBytesAtomic(const std::filesystem::path &path, std::string_view bytes, const FileStamp *expected, FileStamp *saved,
-                         bool sameIdentityOnly, const std::filesystem::path *baselinePath, bool rejectHardlinkedTarget) noexcept
+                         bool sameIdentityOnly, const std::filesystem::path *baselinePath, bool rejectHardlinkedTarget,
+                         bool *unsupportedReplacement) noexcept
 try
 {
+    if (unsupportedReplacement)
+        *unsupportedReplacement = false;
     if (bytes.size() > MaximumBytes)
         return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
     const DWORD attributes = GetFileAttributesW(path.c_str());
@@ -209,6 +212,8 @@ try
 #ifdef REDTILDE_ENABLE_TESTS
     if (atomicWriteFailure == AtomicWriteFailure::Flush)
         return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
+    if (atomicWriteFailure == AtomicWriteFailure::FlushUnsupported)
+        return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
 #endif
     if (!FlushFileBuffers(file.get()))
         return LastError();
@@ -284,8 +289,28 @@ try
     }
     if (finalExists)
     {
+#ifdef REDTILDE_ENABLE_TESTS
+        if (atomicWriteFailure == AtomicWriteFailure::ReplaceUnsupported)
+        {
+            if (unsupportedReplacement)
+                *unsupportedReplacement = true;
+            if (atomicWriteHook)
+                atomicWriteHook(AtomicWriteCheckpoint::ReplacementUnsupported, path, atomicWriteContext);
+            return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
+        }
+#endif
         if (!ReplaceFileW(path.c_str(), temporary.c_str(), nullptr, 0, nullptr, nullptr))
-            return LastError();
+        {
+            const auto error = GetLastError();
+            const bool unsupported = error == ERROR_NOT_SUPPORTED || error == ERROR_INVALID_FUNCTION || error == ERROR_CALL_NOT_IMPLEMENTED;
+            if (unsupportedReplacement)
+                *unsupportedReplacement = unsupported;
+#ifdef REDTILDE_ENABLE_TESTS
+            if (unsupported && atomicWriteHook)
+                atomicWriteHook(AtomicWriteCheckpoint::ReplacementUnsupported, path, atomicWriteContext);
+#endif
+            return HRESULT_FROM_WIN32(error);
+        }
     }
     else if (!MoveFileExW(temporary.c_str(), path.c_str(), MOVEFILE_WRITE_THROUGH))
         return LastError();
@@ -357,9 +382,9 @@ catch (const std::length_error &)
 
 namespace
 {
-HRESULT SaveLinkedDocument(const std::filesystem::path &target, const std::filesystem::path &originalPath, std::wstring_view text,
-                           std::string_view bytes, bool bom, const FileStamp *expected, FileStamp &saved, bool sameIdentityOnly,
-                           const std::filesystem::path *baselinePath, const SaveRecoveryContext *recovery)
+HRESULT SaveProtectedDocument(const std::filesystem::path &target, const std::filesystem::path &originalPath, std::wstring_view text,
+                              std::string_view bytes, bool bom, const FileStamp *expected, FileStamp &saved, bool sameIdentityOnly,
+                              const std::filesystem::path *baselinePath, const SaveRecoveryContext *recovery)
 {
     // Deny cooperative writers/deletion across every alias until publication.
     // The existing metadata-only probe shares all access and does not prevent this lock.
@@ -531,9 +556,16 @@ try
             if (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
                 return HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
             if (info.nNumberOfLinks > 1u)
-                return SaveLinkedDocument(target, path, text, bytes, bom, expected, saved, sameIdentityOnly, baselinePath, recovery);
+                return SaveProtectedDocument(target, path, text, bytes, bom, expected, saved, sameIdentityOnly, baselinePath, recovery);
         }
-        const auto result = WriteBytesAtomic(target, bytes, expected, &saved, sameIdentityOnly, baselinePath, true);
+        bool unsupportedReplacement{};
+        const auto result = WriteBytesAtomic(target, bytes, expected, &saved, sameIdentityOnly, baselinePath, true, &unsupportedReplacement);
+        // Only an explicit unsupported result from replacement permits this
+        // fallback. Staging, access and sharing failures never authorize writes.
+        // Reuse the same identity lock and independently durable recovery as a
+        // hard-link save; the previous saved stamp survives partial failure.
+        if (unsupportedReplacement)
+            return SaveProtectedDocument(target, path, text, bytes, bom, expected, saved, sameIdentityOnly, baselinePath, recovery);
         if (result != HRESULT_FROM_WIN32(ERROR_RETRY))
             return result;
         // A new hard-link alias appeared during staging. Re-evaluate once;
