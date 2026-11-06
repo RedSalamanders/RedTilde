@@ -598,10 +598,12 @@ void RegisterRemoteImageTests(const std::filesystem::path &root, const std::func
                  app.Document().SetDocumentFilePath(base);
                  // Prepare the SDK host directly so this owned transport, not
                  // Application::ServiceImages, claims the classified request.
-                 for (unsigned turn = 0; turn < 256 && !app.Document().GetAcknowledgedSemanticDocument(app.Host()); ++turn)
-                     (void)app.Host().RenderInitialFrameForShow();
                  std::vector<DxUi::RichText::RichImageRequest> requests;
-                 app.Document().TakePendingImageRequests(requests);
+                 for (unsigned turn = 0; turn < 256 && requests.empty(); ++turn)
+                 {
+                     (void)app.Host().RenderInitialFrameForShow();
+                     app.Document().TakePendingImageRequests(requests);
+                 }
                  Require(requests.size() == 1 && requests[0].SourceKind() == DxUi::RichText::RichImageSourceKind::NetworkFile &&
                              requests[0].FilePath().empty(),
                          "authority, localhost and relative UNC images require classified network identities after explicit SDK opt-in");
