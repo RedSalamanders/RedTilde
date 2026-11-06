@@ -2,6 +2,7 @@
 #include <DxUi/RichDocument.h>
 #include <algorithm>
 #include <atomic>
+#include <cstring>
 #include <format>
 #include <new>
 #include <shlobj.h>
@@ -48,11 +49,37 @@ FileStamp Stamp(const BY_HANDLE_FILE_INFORMATION &info, std::uint64_t hash) noex
             info.dwVolumeSerialNumber,
             (static_cast<std::uint64_t>(info.nFileIndexHigh) << 32u) | info.nFileIndexLow};
 }
+HRESULT CompleteIdentity(HANDLE file, FileStamp &stamp) noexcept
+{
+    FILE_ID_INFO info{};
+    if (GetFileInformationByHandleEx(file, FileIdInfo, &info, sizeof(info)))
+    {
+        stamp.volume = info.VolumeSerialNumber;
+        std::memcpy(&stamp.fileIndex, info.FileId.Identifier, sizeof(stamp.fileIndex));
+        std::memcpy(&stamp.fileIndexHigh, info.FileId.Identifier + sizeof(stamp.fileIndex), sizeof(stamp.fileIndexHigh));
+        return S_OK;
+    }
+    const auto error = GetLastError();
+    // Older remote providers can expose only BY_HANDLE_FILE_INFORMATION's
+    // legacy identity. Preserve that capability without masking other failures.
+    if (error == ERROR_INVALID_PARAMETER || error == ERROR_NOT_SUPPORTED || error == ERROR_INVALID_FUNCTION)
+        return S_OK;
+    return HRESULT_FROM_WIN32(error);
+}
+bool HasIdentity(const FileStamp &stamp) noexcept
+{
+    return stamp.volume && (stamp.fileIndex || stamp.fileIndexHigh);
+}
+bool SameObject(const FileStamp &left, const FileStamp &right) noexcept
+{
+    return HasIdentity(left) && HasIdentity(right) && left.volume == right.volume && left.fileIndex == right.fileIndex &&
+           left.fileIndexHigh == right.fileIndexHigh;
+}
 bool MatchesSavedContent(const FileStamp &current, const FileStamp &expected) noexcept
 {
     // A timestamp-only touch of the same file with identical bytes is harmless.
-    return current.exists == expected.exists && (!current.exists || (current.volume == expected.volume && current.fileIndex == expected.fileIndex &&
-                                                                     current.size == expected.size && current.hash == expected.hash));
+    return current.exists == expected.exists &&
+           (!current.exists || (SameObject(current, expected) && current.size == expected.size && current.hash == expected.hash));
 }
 } // namespace
 
@@ -89,9 +116,12 @@ try
     BY_HANDLE_FILE_INFORMATION after{};
     if (!GetFileInformationByHandle(file.get(), &after))
         return LastError();
-    const auto identity = Stamp(info, ContentHash(staged));
+    auto identity = Stamp(info, ContentHash(staged));
     if (identity != Stamp(after, identity.hash))
         return HRESULT_FROM_WIN32(ERROR_RETRY);
+    const auto identityResult = CompleteIdentity(file.get(), identity);
+    if (FAILED(identityResult))
+        return identityResult;
     if (stamp)
         *stamp = identity;
     bytes.swap(staged);
@@ -167,6 +197,9 @@ try
         writtenStamp = Stamp(info, ContentHash(bytes));
         if (writtenStamp.size != bytes.size())
             return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
+        const auto identityResult = CompleteIdentity(metadata.get(), writtenStamp);
+        if (FAILED(identityResult))
+            return identityResult;
         metadata.reset();
     }
 #ifdef REDTILDE_ENABLE_TESTS
@@ -182,18 +215,20 @@ try
     if (finalExists && (finalAttributes & FILE_ATTRIBUTE_DIRECTORY))
         return HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
     bool compareExpected = expected != nullptr;
-    if (expected && sameIdentityOnly && finalExists && expected->volume && expected->fileIndex)
+    if (expected && sameIdentityOnly && finalExists && HasIdentity(*expected))
     {
         wil::unique_handle target(CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
                                               FILE_ATTRIBUTE_NORMAL, nullptr));
         BY_HANDLE_FILE_INFORMATION info{};
         if (!target || !GetFileInformationByHandle(target.get(), &info))
             return LastError();
-        const auto identity = Stamp(info, 0);
+        auto identity = Stamp(info, 0);
+        const auto identityResult = CompleteIdentity(target.get(), identity);
+        if (FAILED(identityResult))
+            return identityResult;
         // Save As to another object has explicit picker overwrite consent. An
         // alias of the current object still needs its original saved baseline.
-        compareExpected =
-            !identity.volume || !identity.fileIndex || (identity.volume == expected->volume && identity.fileIndex == expected->fileIndex);
+        compareExpected = !HasIdentity(identity) || SameObject(identity, *expected);
         if (!compareExpected && baselinePath && !baselinePath->empty())
         {
             wil::unique_handle original(CreateFileW(baselinePath->c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
@@ -209,9 +244,11 @@ try
                 BY_HANDLE_FILE_INFORMATION originalInfo{};
                 if (!GetFileInformationByHandle(original.get(), &originalInfo))
                     return LastError();
-                const auto originalIdentity = Stamp(originalInfo, 0);
-                compareExpected = !originalIdentity.volume || !originalIdentity.fileIndex ||
-                                  (identity.volume == originalIdentity.volume && identity.fileIndex == originalIdentity.fileIndex);
+                auto originalIdentity = Stamp(originalInfo, 0);
+                const auto originalResult = CompleteIdentity(original.get(), originalIdentity);
+                if (FAILED(originalResult))
+                    return originalResult;
+                compareExpected = !HasIdentity(originalIdentity) || SameObject(identity, originalIdentity);
             }
         }
     }

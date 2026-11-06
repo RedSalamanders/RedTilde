@@ -7,13 +7,17 @@ Run `test.ps1 -Configuration Debug -Suite Core`; use `-SkipBuild` for the exact 
 Native cases are compiled from `Application.Tests.Core.cpp` into the same executable and run with `--self-test`.
 Core also runs a hidden child-process probe that changes preferences, closes immediately and verifies the final state after process exit.
 They exercise public controls and app commands without desktop input, clipboard access or foreground activation.
-The native catalog contains 104 cases: Storage (18), Settings (4), Recovery (18) and Editor (64).
+The native catalog contains 108 cases: Storage (19), Settings (4), Recovery (18) and Editor (67).
 Directed storage checkpoints reproduce edits during staging and post-publication read denial. The same native
 regressions check equal-byte/timestamp object replacement, cooperative sharing and Save As aliases. Hidden app
 commands cover all four conflict choices, duplicate Close, cancelled/stale choices, failed/stale Reload and
 same-target Save As without foreground input or a second conflict error surface.
 Timestamp-only touches avoid spurious conflicts; encoding/capacity cases independently verify the actual unit
 count, specific localized explanation and unchanged source/BOM on refusal.
+Full identity has an independent native `FileIdInfo` oracle, including the complete volume serial and both
+halves of the identifier. Recoverable command/menu/Close/completion and supplied-message shortcut failures
+retain source/history and pending write results. Menu callbacks keep F2/Link draft focus and reject root
+retirement before focusing controls. These supplied messages do not inject desktop input.
 Receipts and failed logs remain under `.build/evidence/test-runs/<id>/payload`. The validation contract lists broader gates.
 
 The S5 harness adds `--performance-probe <json>` and `--resource-probe <json>`, with an explicit `--document`

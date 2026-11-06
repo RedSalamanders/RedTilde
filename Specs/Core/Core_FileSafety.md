@@ -23,6 +23,11 @@ even if its size, timestamp and bytes match. A timestamp-only touch of the same 
 fingerprint does not require a conflict choice. Save As to the current path, an alias of its saved object, or an
 alias of the currently replaced original still checks the original saved baseline. A separately chosen different
 destination has the native picker's overwrite consent. Unknown identities remain conservative.
+Keep the complete 64-bit volume serial and 128-bit identifier returned by
+[`FileIdInfo`](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_id_info), including
+ReFS identifiers. Only explicit unsupported-information errors permit a provider's legacy handle identity;
+other metadata failures propagate. A missing identity never establishes automatic overwrite consent. Native
+NTFS/ReFS diagnostics compare the actual complete handle identity independently of stamp equality.
 Atomicity does not eliminate the cross-process check/replace race; no conditional-write or cross-process lock is
 claimed. Native OneDrive/cloud, SMB/NAS, WSL and link-write policies retain their independent qualification.
 
