@@ -1,0 +1,262 @@
+{
+  "schemaVersion": 1,
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-remaining-interactions-release",
+  "testGateCompletedBeforeBothProductionRoles": true,
+  "claim": "Source-bound hosted main Release qualification; all seven jobs passed",
+  "repository": "RedSalamanders/RedTilde",
+  "runId": "42237510704",
+  "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42237510704",
+  "sourceCommit": "daa022eb6f805cf5219db8e1d2453ac609a49462",
+  "implementationCommit": "2709f933ce3bb385be0031f3ab7cf78ef4c7004b",
+  "engine": {
+    "repository": "RedSalamanders/.github",
+    "ref": "19710a8aeac979a82e83bec82e8b866cee3d3deb"
+  },
+  "nativeDigest": "c7e985b40e777c15593ddda2f3bfe00ea471eb4bb76721189e97977abee0a465",
+  "admittedInputCount": 148,
+  "admissionReceiptSha256": "AB5CFE08844B92F4098A422B1778715D96EB47018AFB0336E1355C0241A3B197",
+  "outcome": "success",
+  "jobs": [
+    {
+      "name": "qualify / admission",
+      "outcome": "success",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42237510704/job/127958902157"
+    },
+    {
+      "name": "qualify / regression (x64, windows-2025-vs2026)",
+      "outcome": "success",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42237510704/job/127959210300"
+    },
+    {
+      "name": "qualify / regression (ARM64, windows-11-vs2026-arm)",
+      "outcome": "success",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42237510704/job/127959210412"
+    },
+    {
+      "name": "qualify / test-gate",
+      "outcome": "success",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42237510704/job/127974987297"
+    },
+    {
+      "name": "qualify / production (x64, windows-2025-vs2026)",
+      "outcome": "success",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42237510704/job/127975119113"
+    },
+    {
+      "name": "qualify / production (ARM64, windows-11-vs2026-arm)",
+      "outcome": "success",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42237510704/job/127975119227"
+    },
+    {
+      "name": "qualify / complete",
+      "outcome": "success",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42237510704/job/127989926918"
+    }
+  ],
+  "nativeRuns": [
+    {
+      "platform": "x64",
+      "configuration": "Release",
+      "countUnit": "case",
+      "registered": 128,
+      "executed": 128,
+      "failed": 0,
+      "expectedSkipped": 0,
+      "unexpectedSkipped": 0,
+      "assertionProbePassed": true,
+      "regressionReceiptSha256": "3F6C1CB24047BC7A344A8284628DC1C79773EC4B3C05FCB071C4CF8505809F17",
+      "canonicalEvidence": [
+        {
+          "path": "20261106T150910118Z-8084-5120ba0df7f04ed697303fe9dd6d5cdc/payload/receipt.json",
+          "sha256": "f7ff2d8373a5625743ba3ff9bc55cc6253feeb55d97b33ebe94a9e3a7bf23044",
+          "verifiedCopies": [
+            "evidence-x64"
+          ]
+        }
+      ],
+      "recordedTestArtifacts": [
+        {
+          "path": ".build/x64/Release/RedTilde.exe",
+          "sha256": "503d325003a31ba3545c5dbefaaa2b713307bcd8bdf48e3d1490c3d3f3562cd9"
+        }
+      ],
+      "nativeArchitecture": "X64",
+      "actualSymbolicLinkCasePassed": true,
+      "casesPassed": 128,
+      "captures": 36,
+      "sdkCommit": "a1915ffdd94b18fd1817371f1dc074f6a0b547f1",
+      "canonicalSourceIdentity": "382316ff5839d2bbd5a5a03926750b536f5a2e795ce7360c34b4a6761d59a7f0",
+      "buildLogSha256": "213C7B0D10DC3A61BB5A176BAE29D74032F3090CA955D388CAD5CB4D0E3CB892",
+      "warnings": 0,
+      "errors": 0
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Release",
+      "countUnit": "case",
+      "registered": 128,
+      "executed": 128,
+      "failed": 0,
+      "expectedSkipped": 0,
+      "unexpectedSkipped": 0,
+      "assertionProbePassed": true,
+      "regressionReceiptSha256": "F12B2149C855CF2212529EF5E465279C46ECCD3CA4946411EB0E69B47908F7E4",
+      "canonicalEvidence": [
+        {
+          "path": "20261106T151826293Z-5336-8de38f8af55047a8964798afebd5bc89/payload/receipt.json",
+          "sha256": "38012002d8d72a94a7bf5ca6744f769361e8457d5192df7a71477cde1e21f9a0",
+          "verifiedCopies": [
+            "evidence-ARM64"
+          ]
+        }
+      ],
+      "recordedTestArtifacts": [
+        {
+          "path": ".build/ARM64/Release/RedTilde.exe",
+          "sha256": "2023e65383fd3274b549562c1835d12a382c2dd201e8a808f6f40e74b3022c34"
+        }
+      ],
+      "nativeArchitecture": "Arm64",
+      "actualSymbolicLinkCasePassed": true,
+      "casesPassed": 128,
+      "captures": 36,
+      "sdkCommit": "a1915ffdd94b18fd1817371f1dc074f6a0b547f1",
+      "canonicalSourceIdentity": "382316ff5839d2bbd5a5a03926750b536f5a2e795ce7360c34b4a6761d59a7f0",
+      "buildLogSha256": "5E4BEB703ECA0781E52186CCDDE67DD8B71FB24703740A1F2828ADEE1F0E4A74",
+      "warnings": 0,
+      "errors": 0
+    }
+  ],
+  "production": [
+    {
+      "platform": "x64",
+      "version": "0.1.342",
+      "kind": "application",
+      "testModeDisabled": true,
+      "smokePassed": true,
+      "receiptSha256": "C20268277626F25B187B4263BDF9F3968B2ACDED10A4A2B6658C781BF232667B",
+      "archives": [
+        {
+          "file": "RedTilde-0.1.342-x64-20261106-153733-144.zip",
+          "bytes": 3281080,
+          "sha256": "61A1056617A0FC59961B94CE326EE31AFC65AF315EC710107D4DDE0865B3474C"
+        }
+      ]
+    },
+    {
+      "platform": "ARM64",
+      "version": "0.1.342",
+      "kind": "application",
+      "testModeDisabled": true,
+      "smokePassed": true,
+      "receiptSha256": "0F97179D8C350678F874251F470FCF8B71666FA0891FED88EB59862FEAFBFC25",
+      "archives": [
+        {
+          "file": "RedTilde-0.1.342-ARM64-20261106-074812-131.zip",
+          "bytes": 3717350,
+          "sha256": "A7BCBCFAEB1DE6AC2F19EB72EF256B87D8DC18C4240B3DD46751300C18E20C83"
+        }
+      ]
+    }
+  ],
+  "originalArtifactWrappers": [
+    {
+      "id": 13519635113,
+      "name": "production-ARM64",
+      "bytes": 3701994,
+      "sha256": "2A5603686AED477998DBDA3FD54B1E789E0786B1EB064568F5417EF0CD90901B",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13518960951,
+      "name": "production-logs-ARM64",
+      "bytes": 3740,
+      "sha256": "CDDCCA0A0E2A2450A400F245169B3463FDDAC5E30F9E43FAED93803B4454820A",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13517207333,
+      "name": "msvc-14.52-d87f52f223084d29a2771c67b95935b6",
+      "bytes": 1325030,
+      "sha256": "D17A37CE223E1853EC258A1ED2E494815B13C2A12F83D7D93B22F7FF9741F7B1",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13516828725,
+      "name": "production-logs-x64",
+      "bytes": 3665,
+      "sha256": "A330A744E3E4EE0359B730FD7801FB8B6D59917B0C5B3B8483691B9B4885FC7D",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13516806250,
+      "name": "regression-ARM64",
+      "bytes": 715,
+      "sha256": "88EB1D7ECA091C1D93816DF067782FAC3674F2E04CADF97A7A1ACE08C8507609",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13516503031,
+      "name": "msvc-14.52-bebd25eea59846f29b7ccf3697fdbb21",
+      "bytes": 1372405,
+      "sha256": "C7CBA45D90142B40AB185F2017C80DDBC1CCDFB9A475684CBA3731B2A86E3046",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13516211350,
+      "name": "evidence-ARM64",
+      "bytes": 15521804,
+      "sha256": "DA5A5A95087D7FF67F91C9072DEACB5355FE08CF9DC8A3F884A6AF3E44F55F44",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13516074300,
+      "name": "production-x64",
+      "bytes": 3274905,
+      "sha256": "BD83236C687CDBC915E3D4709B7199CF70DFD40F337F25CEE3D961E695661D0F",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13515591969,
+      "name": "regression-x64",
+      "bytes": 711,
+      "sha256": "0E1D09CA767A7BB5A140A2836DADA05C60C70841A98AC5692F9F822E1C711F3A",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13515540141,
+      "name": "msvc-14.52-7d793f39aa394820b8820a75f599a096",
+      "bytes": 1372061,
+      "sha256": "C504024E28207F418E6337C917C8B87492FAC0E41FAE938132A766B3BEFDD36C",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13513757519,
+      "name": "evidence-x64",
+      "bytes": 15470779,
+      "sha256": "5D802A8FE1BACA29D716C3C0F55E43769AC84AE92AF7C765444005359396FCD0",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13512612306,
+      "name": "admission",
+      "bytes": 477,
+      "sha256": "A47BDC584770014CC721261A2026B26A97760A822F863A0DCA41313A3D94AC6B",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13512238883,
+      "name": "msvc-14.52-dff7601f91e347aeb90af93510c8127b",
+      "bytes": 1325030,
+      "sha256": "A146BD1B9F4C08A9C990BC4CB01835755EF7C34826CB729CAB09C4683E59DF1A",
+      "reportedDigestVerified": true
+    }
+  ],
+  "limits": [
+    "Release only; no Debug/ASan ARM64, physical IME or assistive-technology acceptance",
+    "API-4 a1915ffd application source; no automatic API-5 adoption or later rendering-candidate qualification",
+    "Recorded test executable hashes are original receipt identities; test executables were not re-executed or independently reconstructed locally",
+    "No paired performance acceptance or GitHub release publication is implied; admission batch outcome remains its original running snapshot"
+  ]
+}

@@ -171,14 +171,14 @@ RT-18 remains optional defensive hardening, not a newly confirmed defect.
   All nine keyboard/focus stages pass at `31d6f59e` after explicit timing agreement and the visible 30-second
   countdown. Foreground/focus remain unchanged and the pointer is restored.
   [Named checks and exact receipt identities](../Done/KeyboardAndFocusQualification_2026-11-05.md)
-- [ ] Implement remaining Q9/Q14 window placement, work-area clamping, launch show state, Find case/repeat,
+- [x] Implement remaining Q9/Q14 window placement, work-area clamping, launch show state, Find case/repeat,
   confirmed explicit link opening, text-scale shortcuts and last-document/session startup policy.
   Last-folder restoration is already implemented; last-document/session startup is a separate requirement.
-  Implementation `2709f933` adds these behaviors with hidden regression coverage and normative
-  settings/editor/UI contracts. [Exact local verification](../../../Measurements/RemainingInteractions_2026-11-06/README.md)
-  records all six zero-warning builds, 127 passing cases and 36 captures per x64 profile, real ASan detection
-  and the actual symbolic-link privilege failure. Current-source hosted native execution, including ARM64
-  ASan's repaired heap fixture, remains required before checking off this row.
+  [Scoped closeout](../Done/RemainingInteractions_2026-11-06.md): `2709f933` has six zero-warning local builds
+  and all six hosted native Release/Debug/ASan combinations, each passing 128 cases and 36 captures.
+  Actual symbolic-link saves, the repaired ARM64 ASan heap fixture and both production ZIPs pass. The local
+  privilege failures and all original rejected cohorts remain retained. Physical input/AT and real browser
+  association stay with T-Q2 rather than being inferred from injected-launcher tests.
 - [ ] Reconcile the current first-party review inventory and retained app/control findings before closing A2/A6,
   including source/history, responsive layout, accessibility and actual interaction coverage.
 
@@ -292,11 +292,12 @@ follow-up is removed. Completion correctly reported failed native qualification.
 - [x] Qualify save safety/UI boundaries at `7a5ecc49`, exact API-4 SDK `0ffaa1a6`: six zero-warning builds,
   108 cases and 36 captures per x64 profile, actual ASan detection and exact 141-input/source/native closure.
   [Local qualification](../../../Measurements/FileSafetyAndUiBoundaries_2026-11-06/qualification.json).
-- [ ] Complete the new save-safety candidate's canonical hosted main x64/ARM64 Release and production gates
-  after publication. The preceding `75c0675b` / `8dc328de` results cannot qualify `7a5ecc49` / `0ffaa1a6`.
-- [ ] Complete applicable native ARM64 Debug/ASan and physical/input qualification. Cross-builds and old-pin matrices
-  do not establish those runtime profiles. Retain the 90-second loaded-host Editor timeout and its same-binary
-  sequential pass as separate observations; diagnose that responsiveness boundary with T-P1 before accepting it.
+- [x] Complete save-safety main `a25f1835` / SDK `0ffaa1a6`: [original hosted qualification](../../../Measurements/FileSafetyAndUiBoundaries_2026-11-06/hosted-qualification.json)
+  records all seven jobs, native x64/ARM64 Release and both production roles at the actual save-safety source.
+- [x] Qualify current API-4 SDK `a1915ffd` in native x64/ARM64 Release, Debug and ASan: each combination passes
+  all 128 cases and 36 captures. [Original receipts, wrappers, actual ASan/symbolic/heap witnesses and ZIP hashes](../../../Measurements/RemainingInteractions_2026-11-06/README.md)
+  close this source's native gate. Physical/input acceptance remains below. Retain the 90-second loaded-host
+  Editor timeout and its same-binary sequential pass separately; T-P1 still owns that responsiveness boundary.
 - [x] Qualify the nine named real keyboard/focus stages in x64 Release at `31d6f59e`, API 4 / `2a7e7c28`:
   editor input/undo, Files, Find, Settings, Focus, selection tools, F2, File menu and clean asynchronous close.
   [Original receipt projection](../../../Measurements/RecoveryRestoreIdentity_2026-11-05/keyboard-qualification.json)
@@ -308,7 +309,7 @@ follow-up is removed. Completion correctly reported failed native qualification.
   the obsolete rule that removes tests from every Release build.
 - [ ] Coordinate future checked-failure/API changes with the
   [single DxUi plan](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Plans/WIP/RemainingWork_2026-11-04.md) and active
-  [API 5 PR162](https://github.com/RedSalamanders/DxUi/pull/162). Keep this consumer's explicit API-4 lock until a separate
+  [implemented API-5 failure contract](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Core/Core_FailureHandling.md). Keep this consumer's explicit API-4 lock until a separate
   reviewed consumer migration has matching headers, library, adapters and fresh qualification.
 - [ ] Complete C11/C12/S6 release decisions: packaging, any installer/file associations, exact release handoff,
   truthful capability limits and publication evidence. Source merge is not product release acceptance.

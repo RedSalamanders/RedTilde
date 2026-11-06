@@ -76,6 +76,7 @@
     "declined-wiki-and-data-image-requests",
     "actual-captures-with-synthetic-data-and-dpi-provenance",
     "warned-lease-guarded-keyboard-test-harness",
+    "source-bound-native-x64-and-arm64-release-debug-asan-qualification",
     "bounded-labelled-redmonitor-producer",
     "header-only-redmonitor-client-and-installed-release-helper"
   ],
@@ -83,7 +84,6 @@
     "upstream-performance-and-product-qualification",
     "documents-over-65536-utf16-units",
     "conditional-cross-process-atomic-replacement",
-    "native-arm64-runtime",
     "physical-ime-touch-and-assistive-technology",
     "authorized-interactive-menu-and-focus-qualification",
     "paired-release-performance-and-warp-resource-qualification",

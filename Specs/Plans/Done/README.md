@@ -2,6 +2,8 @@
 
 ## Completed scopes — 6 November 2026
 
+- [Find, zoom, window placement and recovery-first startup](RemainingInteractions_2026-11-06.md) — Q9/Q14, confirmed link handoff, independent heap boundaries, six native profile/architecture combinations with 768 passing cases and 216 captures, and verified production ZIPs.
+
 - [Linked-file save safety](LinkedFileSaveSafety_2026-11-06.md) — Q12, durable full-source protection before shared-target mutation, original crash/restart evidence, six builds and actual hosted symbolic-link execution; the later ARM64 ASan heap-fixture failure remains separately owned.
 
 - [Save safety and UI failure boundaries](FileSafetyAndUiBoundaries_2026-11-06.md) — one conflict surface, reliable stamps/full file identity, UTF-8/capacity diagnostics, guarded UI actions, long-checkout fixtures, six builds, 324 cases and 108 hidden captures.
