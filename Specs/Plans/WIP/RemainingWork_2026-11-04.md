@@ -174,9 +174,11 @@ RT-18 remains optional defensive hardening, not a newly confirmed defect.
 - [ ] Implement remaining Q9/Q14 window placement, work-area clamping, launch show state, Find case/repeat,
   confirmed explicit link opening, text-scale shortcuts and last-document/session startup policy.
   Last-folder restoration is already implemented; last-document/session startup is a separate requirement.
-  The current implementation adds all of these behaviors with hidden regression coverage and normative
-  settings/editor/UI contracts. Its source checkpoint passes with zero warnings; complete native build/runtime,
-  capture, consumer and hosted verification are still required before checking off this row.
+  Implementation `2709f933` adds these behaviors with hidden regression coverage and normative
+  settings/editor/UI contracts. [Exact local verification](../../../Measurements/RemainingInteractions_2026-11-06/README.md)
+  records all six zero-warning builds, 127 passing cases and 36 captures per x64 profile, real ASan detection
+  and the actual symbolic-link privilege failure. Current-source hosted native execution, including ARM64
+  ASan's repaired heap fixture, remains required before checking off this row.
 - [ ] Reconcile the current first-party review inventory and retained app/control findings before closing A2/A6,
   including source/history, responsive layout, accessibility and actual interaction coverage.
 

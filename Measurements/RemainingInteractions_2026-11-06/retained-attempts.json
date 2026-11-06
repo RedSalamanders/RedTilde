@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-interactions-rejected-attempts",
+  "invalidSelectionFixture": {
+    "claim": "Rejected first runtime cohort; Release build alone passed",
+    "sourceCommit": "eccf4c6b2f378be227d6a039d8b794a94004fe0e",
+    "compiledSourceIdentity": "512d154f5d559831e3c7382685d3c19a85ec9304ce4c8389afb8079da7279912",
+    "nativeArchiveSha256": "C1578A39C430FE10DF6AD9982FCD60798EAA1CE6F9AE864F24930CDDDA8F53EA",
+    "sdkArchiveSha256": "D4B55409902621B81C1BAD6581CFFFC9AAAB1A9CBCC2B4316F551F86AACE8328",
+    "originalSourceArchiveSha256": "5A109713C19477FE14044B86A3A8A6EBB270C5203A79BB0565621A29B0169BDF",
+    "originalSourceInputs": 141,
+    "storage": "24 pass, one symbolic-link fixture fails Win32 1314",
+    "settingsPassed": 6,
+    "recoveryPassed": 19,
+    "editorBehaviorPassed": 71,
+    "editorBehaviorFailed": 1,
+    "failedCase": "Editor.TextScaleShortcutsAndWheelPreserveHistory",
+    "failedPredicate": "Selection splits a Unicode scalar or CRLF",
+    "rootCause": "Fixture anchor ACP 12 lies between the second CR and LF in its source. No zoom path was reached. Replace it with independently specified valid reversed endpoints covering the complete supplementary scalar.",
+    "runs": [
+      {
+        "runId": "20261106T124101832Z-47780-ecefd919532846ddb6e3a59621b3b501",
+        "archiveSha256": "E1776B6385D94D6B34A62C9685045185327243ED510506822D6799C920A39116"
+      },
+      {
+        "runId": "20261106T124109666Z-31892-2b87b7279f864d4898f0a486abf330e0",
+        "archiveSha256": "5D1D5CE1E4C996E90048E9DFA83A091158AF16460923B0EB36CAAA2962418380"
+      }
+    ]
+  },
+  "arm64ToolFailure": {
+    "claim": "Rejected native tool failure; no ARM64 acceptance",
+    "sourceCommit": "2709f933ce3bb385be0031f3ab7cf78ef4c7004b",
+    "sdkCommit": "a1915ffdd94b18fd1817371f1dc074f6a0b547f1",
+    "compiledSourceIdentity": "fbcbde099e76509fa2e6c40d0c6f72f97d523324b3ec6f5a33242607f387f772",
+    "profile": "ARM64-Release",
+    "structuredException": "C0000006",
+    "underlyingStatus": "C000007F (disk full)",
+    "wrapperLogSha256": "E1A8EF4550DF8A110F7F1D04847FE3332FFFEBE14C5C55C0BAE016940484A79B",
+    "msbuildLogSha256": "9286600E6702FEB87BA40E008A37F848C4A9EBD14656CDD4EF68008EF1BFD1AA",
+    "originalLogsSymbolsAndGeneratedShaderBytesRetained": true,
+    "reproducibleObjectIdentitiesRetained": true,
+    "nextAttempt": "Fresh owned profile, more capacity and task-local compiler TEMP/TMP"
+  },
+  "unchangedHeapCounterexample": {
+    "originalHostedRun": 42193373082,
+    "independentProviderCounterexample": "One observed entry with a one-entry budget is a complete walk, not a truncated walk",
+    "configuration": "ASan Debug",
+    "repair": "Observe native entry membership separately and report eight provider boundaries before assertions",
+    "originalEntryCountRetained": false,
+    "currentHostedReexecutionPending": true,
+    "nativeArchitecture": "ARM64"
+  }
+}
