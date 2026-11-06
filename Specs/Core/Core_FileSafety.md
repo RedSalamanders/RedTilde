@@ -16,7 +16,7 @@ An ordinary, singly linked file save stages a unique sibling temporary file with
 then uses `ReplaceFileW` for an existing destination or `MoveFileExW` for a new destination. Remove only the
 owned temporary file on failure. Never clear dirty state on failed/cancelled storage or change path/BOM prematurely.
 Close the exclusive staging handle before failure cleanup, including failed WriteFile and FlushFileBuffers
-paths. Directed native faults must leave the target bytes/stamp unchanged and no owned `.tmp` behind.
+paths. Directed atomic-staging faults must leave the target bytes/stamp unchanged and no owned `.tmp` behind.
 An existing file identity (volume/file index where supplied by the filesystem, size, last-write and content
 fingerprint) is checked **after staging**, immediately before replacement. A different file object is a conflict
 even if its size, timestamp and bytes match. A timestamp-only touch of the same object with identical size and
