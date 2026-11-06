@@ -3,6 +3,11 @@
 Run `RedTilde.exe`, or pass a Markdown filename on the command line. This portable development build requires
 Windows and the matching Microsoft Visual C++ 2026 runtime. It uses local files and requires no account.
 
+Portable ZIPs use the production-only Release role. Self-test, interactive-test, deliberate crash, recovery,
+preferences and sanitizer probe switches return 2 without opening the application or creating profile data.
+Supported hidden capture and performance diagnostics remain available. Building a ZIP with `package.ps1`
+selects that production role automatically; `-SkipBuild` requires its verified test-disabled artifact.
+
 Compose, Source and Split share one document and undo history. Select text for formatting; use F2 for local
 block source. For ordinary text, Apply/Ctrl+Enter commits the draft and Esc cancels. Split's source mirror is
 read-only. The outline navigates headings. Settings apply System/Light/Dark/Paper immediately.

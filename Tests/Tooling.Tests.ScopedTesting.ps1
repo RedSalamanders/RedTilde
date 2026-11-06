@@ -360,12 +360,42 @@ if(-not $Expected){throw 'The manifest switch was not bound'}
     Invoke-FixtureGit $public @('add','-A');Invoke-FixtureGit $public @('commit','-qm','baseline');Invoke-FixtureGit $public @('update-ref','refs/remotes/origin/main','HEAD');Invoke-FixtureGit $public @('switch','-qc','candidate')
     $platform=if([Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString() -eq 'Arm64'){'ARM64'}else{'x64'}
     $state=Join-Path $public ".build/reports/scoped-tests/$platform-Debug/iteration.json"
-    function Run([string[]]$Arguments=@(),[string]$Directory=$public){
+    function Run([string[]]$Arguments=@(),[string]$Directory=$public,[string]$EntryPoint='Test-Changes.ps1'){
         $binary=Join-Path $PSHOME $(if($IsWindows){'pwsh.exe'}else{'pwsh'})
-        $start=[Diagnostics.ProcessStartInfo]::new($binary);$start.UseShellExecute=$false;$start.RedirectStandardOutput=$true;$start.RedirectStandardError=$true
-        foreach($arg in @('-NoProfile','-File',(Join-Path $Directory 'Test-Changes.ps1'),'-Platform',$platform)+$Arguments){$start.ArgumentList.Add($arg)}
+        $start=[Diagnostics.ProcessStartInfo]::new($binary);$start.UseShellExecute=$false;$start.CreateNoWindow=$true;$start.RedirectStandardOutput=$true;$start.RedirectStandardError=$true
+        foreach($arg in @('-NoProfile','-File',(Join-Path $Directory $EntryPoint),'-Platform',$platform)+$Arguments){$start.ArgumentList.Add($arg)}
         $process=[Diagnostics.Process]::Start($start)
         try{$out=$process.StandardOutput.ReadToEndAsync();$err=$process.StandardError.ReadToEndAsync();if(-not $process.WaitForExit(120000)){$process.Kill($true);throw 'Owned protocol fixture timed out'};[pscustomobject]@{Exit=$process.ExitCode;Text=$out.GetAwaiter().GetResult()+$err.GetAwaiter().GetResult()}}finally{$process.Dispose()}
+    }
+    foreach($mode in @('SkipBuild','DefaultBuild')){
+        Case "portable packaging refuses test-enabled artifacts before staging ($mode)" {
+            $packageRoot=Join-Path $fixture ('packaging-'+$mode)
+            Put (Join-Path $packageRoot 'package.ps1') (Get-Content (Join-Path $root 'package.ps1') -Raw)
+            Put (Join-Path $packageRoot 'Build/Harness.psm1') @'
+function Assert-RedTildeTestArtifact {
+    param([string]$Root,[string]$Platform,[string]$Configuration)
+    [pscustomobject]@{Executable=(Join-Path $PSHOME 'pwsh.exe');Build=[pscustomobject]@{testsEnabled=$true}}
+}
+Export-ModuleMember -Function Assert-RedTildeTestArtifact
+'@
+            Put (Join-Path $packageRoot 'build.ps1') @'
+param([string]$Platform,[string]$Configuration,[switch]$ProductionOnly)
+[void][IO.Directory]::CreateDirectory((Join-Path $PSScriptRoot '.build'))
+@{platform=$Platform;configuration=$Configuration;productionOnly=[bool]$ProductionOnly}|ConvertTo-Json|
+    Set-Content -LiteralPath (Join-Path $PSScriptRoot '.build/build-request.json') -Encoding utf8NoBOM
+'@
+            $packageArguments=@(if($mode -ceq 'SkipBuild'){'-SkipBuild'})
+            $run=Run -Directory $packageRoot -EntryPoint 'package.ps1' -Arguments $packageArguments
+            Assert ($run.Exit -ne 0 -and $run.Text.Contains('requires a receipt-verified production-only Release build')) "Test-enabled package was not explicitly refused: $($run.Text)"
+            Assert (-not(Test-Path -LiteralPath (Join-Path $packageRoot '.build/package'))) 'A refused package created staging output'
+            $request=Join-Path $packageRoot '.build/build-request.json'
+            if($mode -ceq 'SkipBuild'){
+                Assert (-not(Test-Path -LiteralPath $request)) 'SkipBuild invoked the build command'
+            }else{
+                $built=Get-Content -LiteralPath $request -Raw|ConvertFrom-Json
+                Assert ($built.productionOnly -and $built.configuration -ceq 'Release' -and $built.platform -ceq $platform) 'Default packaging did not request the production-only Release role'
+            }
+        }
     }
     Case 'public runner expands empty and explicit tooling argument arrays exactly' {
         $r=Run @('-Scopes','Tooling')

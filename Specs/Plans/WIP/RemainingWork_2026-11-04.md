@@ -307,6 +307,9 @@ follow-up is removed. Completion correctly reported failed native qualification.
 - [ ] Verify production-only sources, all test/probe refusal paths, native/production output separation and
   clean-extraction smoke. Recheck RT-13/15/16/17 against the current unified implementation rather than applying
   the obsolete rule that removes tests from every Release build.
+  Implementation is in progress: production parsing refuses all eleven test-only switches before profile or
+  probe work, and packaging requires ProductionOnly plus thirteen actual clean-extraction refusal cases.
+  Source-specific native/production qualification and the retained baseline counterexample remain required.
 - [ ] Coordinate future checked-failure/API changes with the
   [single DxUi plan](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Plans/WIP/RemainingWork_2026-11-04.md) and active
   [implemented API-5 failure contract](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Core/Core_FailureHandling.md). Keep this consumer's explicit API-4 lock until a separate

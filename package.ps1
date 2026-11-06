@@ -1,12 +1,27 @@
+<#
+.SYNOPSIS
+Builds and verifies an experimental production-only portable RedTilde ZIP.
+.DESCRIPTION
+Builds a test-disabled Release artifact, stages its runtime and licenses beneath .build/package, verifies
+the clean extraction through hidden capture, and checks that every test-only entry point refuses without
+creating its private data directory. Never activates a window or launches a diagnostic probe.
+.PARAMETER Platform
+Native package architecture, x64 or ARM64.
+.PARAMETER SkipBuild
+Uses the exact receipt-verified Release artifact already present. Test-enabled artifacts are refused.
+.OUTPUTS
+Portable ZIP and source/binary-bound JSON receipt beneath .build/package; retained staging and smoke evidence.
+#>
 [CmdletBinding()]
 param([ValidateSet('x64','ARM64')][string] $Platform='x64',[switch] $SkipBuild)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-if (-not $SkipBuild) { & (Join-Path $PSScriptRoot 'build.ps1') -Platform $Platform -Configuration Release }
+if (-not $SkipBuild) { & (Join-Path $PSScriptRoot 'build.ps1') -Platform $Platform -Configuration Release -ProductionOnly }
 Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
 $artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform $Platform -Configuration Release
 $exe=$artifact.Executable
 $built=$artifact.Build
+if($built.testsEnabled -isnot [bool] -or $built.testsEnabled){throw 'Portable packaging requires a receipt-verified production-only Release build.'}
 $output=Join-Path $PSScriptRoot '.build/package'
 $version='0.1.'+[string]$built.buildNumber
 $stage=Join-Path $output ('RedTilde-'+$version+'-'+$Platform+'-'+(Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
@@ -54,12 +69,32 @@ if($smokeVersion.FileBuildPart -ne $built.buildNumber -or
     (Get-FileHash -LiteralPath $smokeExe).Hash -cne $built.binarySha256){throw 'Extracted package identity differs from the production build.'}
 $exit=Invoke-RedTildeHarness -Executable $smokeExe -Arguments @('--capture',(Join-Path $smoke 'smoke.png'),'--scenario','compose-light','--data-dir',(Join-Path $smoke 'smoke-data')) -LogPrefix (Join-Path $smoke 'smoke') -TimeoutSeconds 120
 if($exit -ne 0 -or -not(Test-Path -LiteralPath (Join-Path $smoke 'smoke.png'))){throw 'Clean-extraction hidden application smoke failed.'}
-if(-not $built.testsEnabled){
-    $exit=Invoke-RedTildeHarness -Executable $smokeExe -Arguments @('--self-test','--list-tests','--data-dir',(Join-Path $smoke 'test-disabled')) -LogPrefix (Join-Path $smoke 'test-disabled')
-    if($exit -ne 2){throw 'A production ZIP unexpectedly exposes the native self-test catalog.'}
+$refusalCases=@(
+    @{name='self-test';arguments=@('--self-test')},
+    @{name='test-scope';arguments=@('--test-scope','All')},
+    @{name='list-tests';arguments=@('--list-tests')},
+    @{name='interactive';arguments=@('--design-interactive-probe','keyboard')},
+    @{name='crash';arguments=@('--crash-probe')},
+    @{name='recovery-crash';arguments=@('--recovery-crash-probe')},
+    @{name='recovery-restart';arguments=@('--recovery-restart-probe')},
+    @{name='preferences';arguments=@('--preferences-probe')},
+    @{name='asan';arguments=@('--asan-probe')},
+    @{name='linked-save-crash';arguments=@('--linked-save-crash-probe')},
+    @{name='linked-save-restart';arguments=@('--linked-save-restart-probe')},
+    @{name='test-scope-missing-value';arguments=@('--test-scope')},
+    @{name='interactive-missing-value';arguments=@('--design-interactive-probe')}
+)
+$refusals=@()
+foreach($case in $refusalCases){
+    $data=Join-Path $smoke ('refused-'+$case.name+'-data')
+    if(Test-Path -LiteralPath $data){throw 'Production refusal fixture already exists.'}
+    $arguments=@('--headless','--data-dir',$data)+$case.arguments
+    $exit=Invoke-RedTildeHarness -Executable $smokeExe -Arguments $arguments -LogPrefix (Join-Path $smoke ('refused-'+$case.name)) -TimeoutSeconds 30
+    if($exit -ne 2 -or (Test-Path -LiteralPath $data)){throw ('Production test entry point did not refuse before data access: '+$case.name)}
+    $refusals+=[ordered]@{name=$case.name;arguments=$case.arguments;exitCode=$exit;dataDirectoryAbsent=$true}
 }
 Write-Host "Experimental portable package: $archive"
 [ordered]@{schemaVersion=1;sourceIdentity=$built.sourceIdentity;binarySha256=$built.binarySha256;platform=$Platform;
     archiveSha256=(Get-FileHash $archive).Hash;status='experimental';version=$version;smokePassed=$true;
-    testsEnabled=$built.testsEnabled;runtimeRedistributableBundled=$true} |
+    testsEnabled=$built.testsEnabled;runtimeRedistributableBundled=$true;testOnlyEntryPointRefusals=$refusals} |
     ConvertTo-Json -Depth 5 | Set-Content -LiteralPath ($archive+'.receipt.json') -Encoding utf8

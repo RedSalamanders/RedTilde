@@ -189,6 +189,15 @@ Physical focus/IME/AT, release/package acceptance, hardware-specific qualificati
 
 RedTilde partitions its 128 registered native cases into Storage (25), Settings (6), Recovery (19) and Editor (78). Registration scanning includes reviewed Core `.cpp` and `.h` files from the native inventory. Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
 
+Production packaging separately executes thirteen refusal cases against the actual clean-extracted executable:
+self-test, scope, listing, interactive test, crash, recovery crash/restart, preferences, sanitizer, linked-save
+crash/restart, and missing operands for scope/interactive test. Each owned hidden child must return 2 and leave
+its initially absent private data directory absent. Retain every observed result in `testOnlyEntryPointRefusals`
+in the package receipt, bound to the same original executable/version/ZIP as the positive hidden capture smoke.
+A failure retains its raw process logs and blocks packaging acceptance; catalog or source inspection alone
+does not substitute for these executions. Compiler-free public-command fixtures also verify that default
+packaging requests ProductionOnly and that SkipBuild/default paths reject test-enabled artifacts before staging.
+
 RecoveryRestart also runs test-only `--linked-save-crash-probe` and `--linked-save-restart-probe` children in one
 explicit absolute harness directory. The first exits with exactly 79 after an admitted hardlink write has changed
 only part of the shared target, while its writer and independent recovery lease are still live. The second proves

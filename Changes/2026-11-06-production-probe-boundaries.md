@@ -1,0 +1,1 @@
+- Refuse test-only production launch switches before profile/probe work, require production-only portable packaging, and verify all eleven switches plus missing-operand cases against the clean-extracted executable while retaining supported capture/performance diagnostics.
