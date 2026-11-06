@@ -112,8 +112,8 @@
     },
     {
       "pattern": "Tests/Application.Tests.Close.*",
-      "scopes": ["Recovery"],
-      "reason": "real file-worker admission, asynchronous shutdown, recovery retention and stale Open refusal"
+      "scopes": ["Recovery", "Editor"],
+      "reason": "real file-worker admission, asynchronous shutdown, recovery retention, stale Open refusal and source-bound editor save commands"
     },
     {
       "pattern": "Tests/Application.Tests.Files.*",

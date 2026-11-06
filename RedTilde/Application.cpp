@@ -2430,6 +2430,14 @@ void Application::Prepare(unsigned turns)
 {
     if (closing || !host.GetRoot())
         return;
+    const auto cosmeticsPending = [](const Editor *target)
+    {
+        if (!target || !target->IsVisible())
+            return false;
+        const auto state = target->DebugGetState();
+        return state.markdownPreparationPending || state.sourceInkPreparationPending || state.codeInkPreparationPending ||
+               state.sourceGuidesPreparationPending;
+    };
     for (unsigned index = 0; index < turns; ++index)
     {
         (void)host.RenderInitialFrameForShow();
@@ -2464,8 +2472,12 @@ void Application::Prepare(unsigned turns)
             SelectionChanged(pendingSelectionTools || floating->IsVisible());
         if (pendingBlockPlacement)
             Layout();
-        if (!refreshed && !host.HasPendingContentPreparation() && editor->GetImageResourceStatistics().pendingSources == 0 && !files.Busy() &&
-            recovery.Ready() && (!folderFilesActive || folderSnapshot || FAILED(folderFiles.Status())))
+        // This bounded harness drain also settles optional pixels for captures.
+        // Production input/frame readiness remains the host's earlier content
+        // boundary; its event loop never calls this synchronous convenience loop.
+        if (!refreshed && !host.HasPendingContentPreparation() && !cosmeticsPending(editor) && !cosmeticsPending(mirror) &&
+            editor->GetImageResourceStatistics().pendingSources == 0 && !files.Busy() && recovery.Ready() &&
+            (!folderFilesActive || folderSnapshot || FAILED(folderFiles.Status())))
             break;
         // Harness-only bounded event wait; production blocks in GetMessage.
         (void)MsgWaitForMultipleObjectsEx(0, nullptr, 5, QS_ALLINPUT, MWMO_INPUTAVAILABLE);

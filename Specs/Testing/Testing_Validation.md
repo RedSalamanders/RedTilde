@@ -29,6 +29,11 @@ Synthetic hover is applied after the final preparation message pump and retained
 through readback. At each DPI, resting, close-hover and maximize-hover PNG hashes
 must differ, so valid provenance alone cannot qualify a missing visual state.
 Interaction probes settle content before staging synthetic input and capture the prepared frame without pumping ambient pointer-leave messages for their hidden HWND. Standalone captures retain their final preparation step.
+The bounded application preparation helper drains independent Markdown analysis, source/code ink, line numbers
+and whitespace marks for both visible editor surfaces before declaring capture quiescence. Content readiness
+alone does not establish completed cosmetic publication. This harness rule never makes cosmetic work a
+production input/frame prerequisite; visible production windows continue through their event-driven host wakes.
+The large source-guide capture regression preserves exact source/history and proves no desktop activation.
 The shared host stages hidden captures before swap-chain presentation; a consumer
 must not read the D2D swap-chain target after Present and assume it is the current frame.
 Release-policy evaluation uses the pinned SDK's current defaults plus explicit
