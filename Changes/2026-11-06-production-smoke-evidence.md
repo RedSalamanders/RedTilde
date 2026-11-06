@@ -1,1 +1,0 @@
-- Retain the original portable-package smoke receipt in production CI artifacts, including positive capture and per-switch refusal results. Reject missing or mismatched receipt bytes before reporting production success; verify all original native payload members during hosted closeout.
