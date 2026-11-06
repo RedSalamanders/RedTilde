@@ -62,13 +62,18 @@ abbreviations on or off individually; each is on by default and explains its syn
 **File → Open Folder...** chooses a persistent root for the Files pane. The first opened file establishes its
 parent when no root exists. Opening other files, Save As, and New keep that root; restarting restores it and the
 pane's saved visibility. The optional pane lists `.md` and `.markdown` files throughout its bounded folder tree.
-Single-click or Enter opens through the existing Open and unsaved-changes flow; it does not manage files. See the
+Single-click or Enter switches documents while retaining each file's edits, selection and Undo/Redo history. Explicit
+Open File, Open Folder, New and Close protect all dirty documents before replacing the workspace. See the
 [design contract](Specs/UI/UI_DesignSystem.md). The [design-refresh record](Specs/Plans/Done/DesignRefresh_2026-10-22.md)
 keeps the proposal art; its remaining gate is R10, sequenced from the [plan index](Specs/Plans/WIP/README.md).
 
 Open/save preserves UTF-8 BOM and existing line endings. Invalid UTF-8/NUL and documents above 65,536 UTF-16
 units are rejected without replacing the current source. Saves are atomic and check for external modifications;
-New/Open/Close protect unsaved edits. Crash reports stay under `RedTilde\Crashes` and are never uploaded.
+New/Open/Close protect unsaved edits. A file conflict offers Reload, Save As, Overwrite or Cancel in one question.
+Reload replaces the current document only after a successful read and retains the other workspace documents;
+Cancel keeps editing. Save As to the current file or an alias still checks its saved baseline. A save that has
+already published its bytes keeps its successful identity even if another program immediately denies reads.
+Crash reports stay under `RedTilde\Crashes` and are never uploaded.
 Closing during Save hides the window until the write finishes. A failure restores the window with the error
 and keeps your edits and recovery copy; edits typed after Save still receive the unsaved-changes question.
 Closing during Open abandons the load and protects any edits made in the meantime.

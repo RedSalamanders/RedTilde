@@ -7,6 +7,7 @@
 #include <DxUi/TextInputServices.h>
 #include <algorithm>
 #include <chrono>
+#include <commctrl.h>
 #include <commdlg.h>
 #include <dwmapi.h>
 #include <format>
@@ -1704,8 +1705,10 @@ std::filesystem::path Application::PickFile(bool saving, bool image, bool folder
                         : CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(dialog.put()));
     if (FAILED(hr))
         return {};
-    const COMDLG_FILTERSPEC markdown[]{{L"Markdown", L"*.md;*.markdown"}, {L"Text files", L"*.txt"}, {L"All files", L"*.*"}};
-    const COMDLG_FILTERSPEC pictures[]{{L"Images", L"*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff"}};
+    const auto markdownLabel = Resource(IDS_FILTERMARKDOWN), utf8Label = Resource(IDS_FILTERUTF8), allLabel = Resource(IDS_FILTERALL),
+               imageLabel = Resource(IDS_FILTERIMAGES);
+    const COMDLG_FILTERSPEC markdown[]{{markdownLabel.c_str(), L"*.md;*.markdown"}, {utf8Label.c_str(), L"*.txt"}, {allLabel.c_str(), L"*.*"}};
+    const COMDLG_FILTERSPEC pictures[]{{imageLabel.c_str(), L"*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff"}};
     if (!folder)
         (void)dialog->SetFileTypes(image ? 1u : 3u, image ? pictures : markdown);
     else
@@ -1838,24 +1841,44 @@ void Application::Open()
             }
         });
 }
-void Application::Save(bool saveAs, bool force)
+void Application::Save(bool saveAs, bool force, std::optional<std::filesystem::path> selectedPath)
 {
+    if (closing || !root || host.GetRoot() != root)
+        return;
     saveAs = saveAs || recovered;
     if (files.Busy())
     {
         Status(IDS_BUSY);
         return;
     }
-    auto path = documentPath;
-    if (saveAs || path.empty())
+    const auto source = editor->Snapshot();
+    const auto key = activeDocumentKey;
+    const auto originalPath = documentPath;
+    const auto originalStamp = stamp;
+    const bool originalBom = bom, originalRecovered = recovered;
+    auto path = selectedPath ? selectedPath.value() : documentPath;
+    if (!selectedPath && (saveAs || path.empty()))
         path = PickFile(true);
     if (path.empty())
     {
         afterSave = {};
         return;
     }
-    const auto expected = (!force && !saveAs && path == documentPath) ? std::optional<FileStamp>(stamp) : std::nullopt;
-    const HRESULT hr = files.Submit(true, path, editor->GetText(), bom, expected);
+    if (closing || !root || host.GetRoot() != root)
+    {
+        afterSave = {};
+        return;
+    }
+    if (key != activeDocumentKey || documentPath != originalPath || stamp != originalStamp || bom != originalBom || recovered != originalRecovered ||
+        !editor->Snapshot().IsSameRevision(source))
+    {
+        afterSave = {};
+        Status(IDS_FILECONTEXTCHANGED);
+        return;
+    }
+    const auto expected = (!force && !documentPath.empty()) ? std::optional<FileStamp>(stamp) : std::nullopt;
+    const bool sameIdentityOnly = saveAs && path.lexically_normal() != documentPath.lexically_normal();
+    const HRESULT hr = files.Submit(true, path, editor->GetText(), bom, expected, sameIdentityOnly, false, documentPath);
     if (FAILED(hr))
     {
         afterSave = {};
@@ -1863,6 +1886,90 @@ void Application::Save(bool saveAs, bool force)
     }
     else
         Status(IDS_SAVING);
+}
+void Application::ResolveSaveConflict(const AsyncFiles::Result &result)
+{
+    if (closing || !root || host.GetRoot() != root)
+    {
+        afterSave = {};
+        return;
+    }
+    const auto source = editor->Snapshot();
+    const auto key = activeDocumentKey;
+    const auto path = documentPath;
+    const auto identity = stamp;
+    const bool originalBom = bom, originalRecovered = recovered;
+    Status(IDS_CONFLICT);
+    SaveConflictChoice choice = SaveConflictChoice::Cancel;
+    {
+        unsavedPromptOpen = true;
+        const auto restore = wil::scope_exit([&] { unsavedPromptOpen = false; });
+#if defined(REDTILDE_ENABLE_TESTS)
+        if (options.headless && options.saveConflictForTest)
+            choice = options.saveConflictForTest();
+        else
+#endif
+            if (!options.headless)
+        {
+            const auto dialogTitle = Resource(IDS_APP), instruction = Resource(IDS_CONFLICT), content = Resource(IDS_CONFLICTHELP);
+            const auto reload = Resource(IDS_RELOAD), saveAs = Resource(IDS_SAVEAS), overwrite = Resource(IDS_OVERWRITE),
+                       cancel = Resource(IDS_CANCEL);
+            const TASKDIALOG_BUTTON buttons[]{
+                {IDS_RELOAD, reload.c_str()}, {IDS_SAVEAS, saveAs.c_str()}, {IDS_OVERWRITE, overwrite.c_str()}, {IDCANCEL, cancel.c_str()}};
+            TASKDIALOGCONFIG config{};
+            config.cbSize = sizeof(config);
+            config.hwndParent = window.get();
+            config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SIZE_TO_CONTENT;
+            config.pszWindowTitle = dialogTitle.c_str();
+            config.pszMainIcon = TD_WARNING_ICON;
+            config.pszMainInstruction = instruction.c_str();
+            config.pszContent = content.c_str();
+            config.cButtons = static_cast<UINT>(std::size(buttons));
+            config.pButtons = buttons;
+            config.nDefaultButton = IDCANCEL;
+            int pressed = IDCANCEL;
+            if (SUCCEEDED(TaskDialogIndirect(&config, &pressed, nullptr, nullptr)))
+            {
+                if (pressed == IDS_RELOAD)
+                    choice = SaveConflictChoice::Reload;
+                else if (pressed == IDS_SAVEAS)
+                    choice = SaveConflictChoice::SaveAs;
+                else if (pressed == IDS_OVERWRITE)
+                    choice = SaveConflictChoice::Overwrite;
+            }
+        }
+    }
+    if (closing || !root || host.GetRoot() != root)
+    {
+        afterSave = {};
+        return;
+    }
+    if (key != activeDocumentKey || path != documentPath || stamp != identity || originalBom != bom || originalRecovered != recovered ||
+        !editor->Snapshot().IsSameRevision(source))
+    {
+        afterSave = {};
+        Status(IDS_FILECONTEXTCHANGED);
+        return;
+    }
+    if (choice == SaveConflictChoice::Overwrite)
+        Save(false, true, result.path);
+    else if (choice == SaveConflictChoice::SaveAs)
+        Save(true);
+    else
+    {
+        afterSave = {};
+        if (choice == SaveConflictChoice::Reload)
+        {
+            conflictReload = ConflictReload{key, source, path};
+            if (SUCCEEDED(files.Submit(false, result.path, {}, false, {}, false, true)))
+                Status(IDS_LOADING);
+            else
+            {
+                conflictReload.reset();
+                Status(IDS_BUSY);
+            }
+        }
+    }
 }
 void Application::FileCompleted()
 {
@@ -1878,29 +1985,52 @@ void Application::FileCompleted()
     auto &result = completed.value();
     if (FAILED(result.status))
     {
+        if (result.reloading)
+            conflictReload.reset();
         const bool failedClose = closingAfterSave;
         if (failedClose)
             ResumeAfterSaveClose();
         MonitorDiagnostics::Write(RedMonitor::Severity::Error,
                                   result.saving ? L"save failed; source and previous target retained" : L"open failed; current document retained");
-        if (result.saving && result.status == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH) && !options.headless && !failedClose)
+        if (result.saving && result.status == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH) && !failedClose)
         {
-            const int choice =
-                MessageBoxW(window.get(), Resource(IDS_CONFLICT).c_str(), Resource(IDS_APP).c_str(), MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2);
-            if (choice == IDYES)
-            {
-                Save(false, true);
-                return;
-            }
+            ResolveSaveConflict(result);
+            return;
         }
-        const auto error = ErrorText(result.status);
-        const auto message = std::vformat(Resource(result.saving ? IDS_SAVEFAILED : IDS_OPENFAILED), std::make_wformat_args(error));
+        std::wstring message;
+        if (result.status == HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION))
+            message = Resource(result.saving ? IDS_SOURCEENCODING : IDS_FILENOTUTF8);
+        else if (result.status == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE))
+        {
+            constexpr auto limit = DxUi::RichText::Document::MaximumUnits;
+            message = result.rejectedUnits ? std::vformat(Resource(IDS_FILETOOLARGECOUNT), std::make_wformat_args(result.rejectedUnits, limit))
+                                           : std::vformat(Resource(IDS_FILETOOLARGELIMIT), std::make_wformat_args(limit));
+        }
+        else
+        {
+            const auto error = ErrorText(result.status);
+            message = std::vformat(Resource(result.saving ? IDS_SAVEFAILED : IDS_OPENFAILED), std::make_wformat_args(error));
+        }
         if (!options.headless && !failedClose)
             MessageBoxW(window.get(), message.c_str(), Resource(IDS_ERROR).c_str(), MB_OK | MB_ICONERROR);
         feedback->SetText(message);
         if (!result.saving)
             openingFromFiles = false;
         afterSave = {};
+        return;
+    }
+    if (result.reloading)
+    {
+        const auto request = std::exchange(conflictReload, std::nullopt);
+        if (closing || !root || host.GetRoot() != root)
+            return;
+        if (!request || activeDocumentKey != request->key || documentPath != request->path || !editor->Snapshot().IsSameRevision(request->source))
+        {
+            Status(IDS_FILECONTEXTCHANGED);
+            return;
+        }
+        SetDocument(std::move(result.document.text), std::move(result.path), result.document.bom, result.document.stamp);
+        Status(IDS_SAVED);
         return;
     }
     if (result.saving)

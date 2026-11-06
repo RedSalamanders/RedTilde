@@ -18,9 +18,11 @@ class AsyncFiles
     struct Result
     {
         bool saving{};
+        bool reloading{};
         std::filesystem::path path;
         StoredDocument document;
         HRESULT status{};
+        std::size_t rejectedUnits{};
     };
 #if defined(REDTILDE_ENABLE_TESTS)
     // Test-only admission barrier around the real filesystem operation. The
@@ -58,6 +60,8 @@ class AsyncFiles
         std::shared_ptr<State> state;
         Result result;
         std::optional<FileStamp> expected;
+        bool sameIdentityOnly{};
+        std::filesystem::path baselinePath;
 #if defined(REDTILDE_ENABLE_TESTS)
         std::shared_ptr<TestGate> testGate;
 #endif
@@ -91,10 +95,14 @@ class AsyncFiles
         }
 #endif
         if (result.saving)
+        {
             result.status = SaveDocument(result.path, result.document.text, result.document.bom, job->expected ? &job->expected.value() : nullptr,
-                                         result.document.stamp);
+                                         result.document.stamp, job->sameIdentityOnly, job->baselinePath.empty() ? nullptr : &job->baselinePath);
+            if (result.status == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE))
+                result.rejectedUnits = result.document.text.size();
+        }
         else
-            result.status = LoadDocument(result.path, result.document);
+            result.status = LoadDocument(result.path, result.document, &result.rejectedUnits);
         std::lock_guard lock(job->state->mutex);
         if (!job->state->closing)
         {
@@ -146,7 +154,8 @@ class AsyncFiles
         state->testGate = std::move(gate);
     }
 #endif
-    HRESULT Submit(bool saving, std::filesystem::path path, std::wstring text = {}, bool bom = false, std::optional<FileStamp> expected = {})
+    HRESULT Submit(bool saving, std::filesystem::path path, std::wstring text = {}, bool bom = false, std::optional<FileStamp> expected = {},
+                   bool sameIdentityOnly = false, bool reloading = false, std::filesystem::path baselinePath = {})
     {
         auto job = std::make_unique<Job>();
         job->state = state;
@@ -155,6 +164,9 @@ class AsyncFiles
         job->result.document.text = std::move(text);
         job->result.document.bom = bom;
         job->expected = expected;
+        job->sameIdentityOnly = sameIdentityOnly;
+        job->result.reloading = reloading;
+        job->baselinePath = std::move(baselinePath);
         std::lock_guard lock(state->mutex);
         if (state->busy || state->closing)
             return HRESULT_FROM_WIN32(ERROR_BUSY);

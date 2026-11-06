@@ -93,6 +93,13 @@ enum class Command
     StrikeCompletedTasks,
     RestoreAllRecovery
 };
+enum class SaveConflictChoice
+{
+    Cancel,
+    Reload,
+    SaveAs,
+    Overwrite
+};
 struct LaunchOptions
 {
     bool headless{}, selfTest{}, crashProbe{}, preferencesProbe{}, recoveryProbe{}, recoveryRestartProbe{};
@@ -104,6 +111,7 @@ struct LaunchOptions
 #if defined(REDTILDE_ENABLE_TESTS)
     // Hidden harness replacement for the ordinary unsaved-change question.
     std::function<int()> unsavedPromptForTest;
+    std::function<SaveConflictChoice()> saveConflictForTest;
     std::function<std::filesystem::path(bool)> filePickerForTest;
     std::shared_ptr<AsyncFiles::TestGate> fileGateForTest;
 #endif
@@ -354,6 +362,13 @@ class Application
     std::function<void()> afterSave;
     std::optional<DxUi::RichText::SourceSnapshot> openingSnapshot;
     std::optional<AsyncFiles::Result> heldOpen;
+    struct ConflictReload
+    {
+        unsigned key{};
+        DxUi::RichText::SourceSnapshot source;
+        std::filesystem::path path;
+    };
+    std::optional<ConflictReload> conflictReload;
     static constexpr UINT ImageReady = WM_APP + 401, FileReady = WM_APP + 402, PreferencesReady = WM_APP + 403, RecoveryReadyMessage = WM_APP + 404,
                           FolderReady = WM_APP + 405;
     static LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM) noexcept;
@@ -398,7 +413,8 @@ class Application
     void FileCompleted();
     void AskThen(std::function<void()> continuation);
     void Open();
-    void Save(bool saveAs = false, bool force = false);
+    void Save(bool saveAs = false, bool force = false, std::optional<std::filesystem::path> selectedPath = {});
+    void ResolveSaveConflict(const AsyncFiles::Result &result);
     std::filesystem::path PickFile(bool saving, bool image = false, bool folder = false);
     void Menu(POINT point, bool insertOnly = false, bool headingOnly = false);
     void LocalSource();

@@ -41,6 +41,74 @@ struct StorageCheckpoint
 inline void RegisterStorageSafetyTests(const std::filesystem::path &root,
                                        const std::function<void(std::string_view, const std::function<void()> &)> &test)
 {
+    test("Storage.UnsupportedFilesReportKnownUnitCount",
+         [&]
+         {
+             const auto path = root / L"unsupported-units.md";
+             std::string bytes;
+             bytes.reserve(4u * 32769u);
+             for (unsigned index = 0; index < 32769u; ++index)
+                 bytes += "\xF0\x9F\x98\x80";
+             RequireStorage(SUCCEEDED(WriteBytesAtomic(path, bytes)), "seed bounded UTF-8 whose decoded size exceeds capacity");
+             StoredDocument document{L"Retained source", true, {}};
+             std::size_t units{};
+             RequireStorage(LoadDocument(path, document, &units) == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE) && units == 65538u &&
+                                document.text == L"Retained source" && document.bom,
+                            "capacity error reports exact UTF-16 units without changing the current document");
+             RequireStorage(SUCCEEDED(WriteBytesAtomic(path, "\xFF\xFEtext")), "seed UTF-16 bytes in an unsupported file");
+             RequireStorage(LoadDocument(path, document, &units) == HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION) && units == 0 &&
+                                document.text == L"Retained source" && document.bom,
+                            "unsupported encoding remains a specific failure with no invented character count");
+         });
+    test("Storage.TimestampOnlyTouchDoesNotConflict",
+         [&]
+         {
+             const auto path = root / L"timestamp-touch.md";
+             FileStamp original;
+             RequireStorage(SUCCEEDED(SaveDocument(path, L"same source", false, nullptr, original)), "seed timestamp-only target");
+             {
+                 wil::unique_handle file(CreateFileW(path.c_str(), FILE_WRITE_ATTRIBUTES, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                                     nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+                 const auto later = original.modified + 100000000u;
+                 const FILETIME modified{static_cast<DWORD>(later), static_cast<DWORD>(later >> 32u)};
+                 RequireStorage(file && SetFileTime(file.get(), nullptr, nullptr, &modified), "touch the same file without changing bytes");
+             }
+             FileStamp touched;
+             std::string bytes;
+             RequireStorage(SUCCEEDED(ReadBytes(path, bytes, &touched)) && touched.modified != original.modified && touched.hash == original.hash,
+                            "the touch really changed only metadata on the same object");
+             FileStamp saved;
+             RequireStorage(SUCCEEDED(SaveDocument(path, L"new source", false, &original, saved)), "timestamp-only touch does not ask to overwrite");
+         });
+    test("Storage.SharedWriterReadAndSaveAsBaseline",
+         [&]
+         {
+             const auto path = root / L"shared-writer.md";
+             const auto alias = root / L"shared-alias.md";
+             const auto copy = root / L"explicit-other-target.md";
+             FileStamp original;
+             RequireStorage(SUCCEEDED(SaveDocument(path, L"original", false, nullptr, original)), "seed shared-reader target");
+             {
+                 wil::unique_handle writer(CreateFileW(path.c_str(), GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
+                                                       OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+                 StoredDocument actual;
+                 RequireStorage(writer && SUCCEEDED(LoadDocument(path, actual)) && actual.text == L"original" && actual.stamp == original,
+                                "a cooperative writer does not prevent a stable content read");
+             }
+             RequireStorage(SUCCEEDED(WriteBytesAtomic(path, "external")), "replace current target before Save As");
+             RequireStorage(CreateHardLinkW(alias.c_str(), path.c_str(), nullptr), "create an owned alias of the current external object");
+             FileStamp saved = original;
+             RequireStorage(SaveDocument(alias, L"mine", false, &original, saved, true, &path) == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH) &&
+                                saved == original,
+                            "Save As through an alias of a replaced current target still compares the original saved baseline");
+             RequireStorage(SUCCEEDED(WriteBytesAtomic(copy, "other document")), "seed the explicitly chosen different destination");
+             RequireStorage(SUCCEEDED(SaveDocument(copy, L"mine", false, &original, saved, true, &path)),
+                            "Save As to an explicitly approved different object does not inherit the original target's conflict");
+             StoredDocument source, destination;
+             RequireStorage(SUCCEEDED(LoadDocument(path, source)) && source.text == L"external" && SUCCEEDED(LoadDocument(copy, destination)) &&
+                                destination.text == L"mine" && destination.stamp == saved,
+                            "the original external bytes remain while the separate copy publishes its own stamp");
+         });
     test("Storage.RechecksIdentityAfterStaging",
          [&]
          {

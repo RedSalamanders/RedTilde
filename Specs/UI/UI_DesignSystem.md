@@ -18,6 +18,11 @@ remain available. Ignore duplicate Close and queued commands while waiting. If l
 after success, restore the window and use the ordinary unsaved-changes question. Close abandons a pending Open
 before applying that same question to any new edits. The [file-safety contract](../Core/Core_FileSafety.md)
 owns storage, continuation and recovery semantics.
+An ordinary file conflict uses one accessible native task dialog offering **Reload from disk**, **Save as...**,
+**Overwrite** and **Cancel**, with Cancel as the default and escape/close choice. Its explanation names the
+consequence of each action. Cancelling it never opens a second generic error box. A stale choice, failed Reload
+or invalid/oversized file keeps the current document and uses the localized existing status area. Hidden harness
+tests supply choices without opening a desktop dialog or acquiring focus; they do not claim native dialog pixels.
 Cold header layout reserves bounded identity space without initializing host typography. Once the host prepares
 typography, measure the filename canonically and reuse it until text, available width, typography revision or DPI changes.
 
