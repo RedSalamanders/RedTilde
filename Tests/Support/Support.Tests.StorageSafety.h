@@ -1,5 +1,6 @@
 #pragma once
 #include "Common/Storage.h"
+#include <cstring>
 #include <functional>
 #include <stdexcept>
 #include <wil/resource.h>
@@ -41,6 +42,24 @@ struct StorageCheckpoint
 inline void RegisterStorageSafetyTests(const std::filesystem::path &root,
                                        const std::function<void(std::string_view, const std::function<void()> &)> &test)
 {
+    test("Storage.StampMatchesFullNativeFileIdentity",
+         [&]
+         {
+             const auto path = root / L"native-file-identity.md";
+             FileStamp saved;
+             RequireStorage(SUCCEEDED(SaveDocument(path, L"Invented native identity fixture", false, nullptr, saved)),
+                            "seed native identity fixture");
+             wil::unique_handle file(CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
+                                                 FILE_ATTRIBUTE_NORMAL, nullptr));
+             FILE_ID_INFO info{};
+             RequireStorage(file && GetFileInformationByHandleEx(file.get(), FileIdInfo, &info, sizeof(info)),
+                            "query the actual filesystem's full file ID");
+             std::uint64_t low{}, high{};
+             std::memcpy(&low, info.FileId.Identifier, sizeof(low));
+             std::memcpy(&high, info.FileId.Identifier + sizeof(low), sizeof(high));
+             RequireStorage(saved.volume == info.VolumeSerialNumber && saved.fileIndex == low && saved.fileIndexHigh == high,
+                            "saved stamp retains the full 64-bit volume serial and 128-bit filesystem identifier");
+         });
     test("Storage.UnsupportedFilesReportKnownUnitCount",
          [&]
          {

@@ -30,7 +30,7 @@ struct FileStamp
 {
     bool exists{};
     std::uint64_t size{}, modified{}, hash{};
-    std::uint64_t volume{}, fileIndex{};
+    std::uint64_t volume{}, fileIndex{}, fileIndexHigh{};
     bool operator==(const FileStamp &) const = default;
 };
 struct StoredDocument

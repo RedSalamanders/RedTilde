@@ -342,6 +342,122 @@ class DesignRefreshProbe final
   public:
     static void Register(const std::filesystem::path &root, const std::function<void(std::string_view, const std::function<void()> &)> &test)
     {
+        test("Editor.RecoverableCommandsAndMenusRetainSourceAndDraftFocus",
+             [&]
+             {
+                 Testing::ForegroundOwnershipObserver foreground;
+                 auto options = Options(root, L"guarded-command-menu");
+                 bool failCommand{};
+                 options.commandAdmissionForTest = [&](Command command)
+                 {
+                     if (failCommand && command == Command::Fence)
+                         throw std::length_error("DIRECTED_COMMAND_FAILURE");
+                 };
+                 Application app(std::move(options));
+                 Success(app.Initialize(), "initialize hidden guarded-command app");
+                 app.SetDocument(L"Notebook\nA useful observation.\n");
+                 app.Document().SetSelection({0, 8});
+                 Require(app.Document().ReplaceSelection(L"Revised notebook"), "seed dirty source before command failure");
+                 const auto source = app.Document().Snapshot();
+                 const auto selection = app.Document().GetSelection();
+                 failCommand = true;
+                 app.Execute(Command::Fence);
+                 app.OnMenuClosed(static_cast<int>(Command::Fence) + 1);
+                 Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selection && app.Dirty() &&
+                             app.Document().CanUndo() && app.feedback->GetText() == Resource(IDS_ACTIONFAILED),
+                         "direct and real menu-callback entry points contain recoverable failures and retain source/history");
+                 failCommand = false;
+                 for (const auto command : {Command::LocalSource, Command::Link})
+                 {
+                     app.Document().SetSelection({0, 7});
+                     app.OnMenuClosed(static_cast<int>(command) + 1);
+                     Require(app.HasBlockDraft() && app.Host().GetFocusControl() == app.blockDraftText &&
+                                 app.Document().Snapshot().IsSameRevision(source),
+                             "shared menu close keeps focus in the draft opened by F2 or Link");
+                     app.Execute(Command::CloseDrawer);
+                 }
+                 app.options.unsavedPromptForTest = [] { return IDNO; };
+                 app.OnMenuClosed(static_cast<int>(Command::Close) + 1);
+                 Require(app.closing && app.Host().GetRoot() == nullptr, "menu close revalidates a retired root before attempting focus");
+                 Require(foreground.NeverAcquiredForeground(), "menu callback replay never opens a desktop menu or acquires focus");
+             });
+        test("Editor.FileCompletionFailureRetainsPendingWriteAndCancelsClose",
+             [&]
+             {
+                 for (const bool close : {false, true})
+                 {
+                     Testing::ForegroundOwnershipObserver foreground;
+                     auto options = Options(root, close ? L"completion-failure-close" : L"completion-failure-open");
+                     const auto directory = options.dataDirectory;
+                     const auto gate = options.fileGateForTest = std::make_shared<AsyncFiles::TestGate>();
+                     bool failCompletion{};
+                     options.fileCompletionAdmissionForTest = [&]
+                     {
+                         if (std::exchange(failCompletion, false))
+                             throw std::format_error("DIRECTED_COMPLETION_FAILURE");
+                     };
+                     Application app(std::move(options));
+                     Success(app.Initialize(), "initialize hidden completion-boundary app");
+                     const auto release = wil::scope_exit(
+                         [&]
+                         {
+                             (void)SetEvent(gate->proceed.get());
+                             if (WaitForSingleObject(gate->entered.get(), 0) == WAIT_OBJECT_0)
+                                 (void)WaitForSingleObject(gate->finished.get(), 10000);
+                         });
+                     const auto path = directory / L"Notebook.md";
+                     WriteFixture(path, "Notebook\n");
+                     StoredDocument loaded;
+                     Success(LoadDocument(path, loaded), "load completion baseline");
+                     app.SetDocument(loaded.text, path, loaded.bom, loaded.stamp);
+                     app.Document().SetSelection({loaded.text.size(), loaded.text.size()});
+                     Require(app.Document().ReplaceSelection(L"Admitted writing\n"), "seed admitted source");
+                     const auto source = app.Document().Snapshot();
+                     bool staleContinuation{};
+                     app.afterSave = [&] { staleContinuation = true; };
+                     app.Execute(Command::Save);
+                     Require(WaitForSingleObject(gate->entered.get(), 10000) == WAIT_OBJECT_0, "real save reaches admission barrier");
+                     if (close)
+                         (void)SendMessageW(app.Window(), WM_CLOSE, 0, 0);
+                     Require(SetEvent(gate->proceed.get()) && WaitForSingleObject(gate->finished.get(), 10000) == WAIT_OBJECT_0,
+                             "the real write settles before completion failure");
+                     failCompletion = true;
+                     app.FileCompleted();
+                     Require(app.Window() && !app.closing && !app.closingAfterSave && app.Dirty() && app.files.Busy() &&
+                                 app.Document().Snapshot().IsSameRevision(source) && app.feedback->GetText() == Resource(IDS_ACTIONFAILED),
+                             "a completion exception retains the pending result, dirty source and window while cancelling pending Close");
+                     app.FileCompleted();
+                     Require(!app.files.Busy() && !app.Dirty() && app.Window() && !staleContinuation &&
+                                 app.Document().Snapshot().IsSameRevision(source),
+                             "later completion adopts the known write once without replaying an old Close/Open continuation");
+                     StoredDocument actual;
+                     Success(LoadDocument(path, actual), "read completed guarded save");
+                     Require(actual.text == source.Text() && actual.stamp == app.stamp && foreground.NeverAcquiredForeground(),
+                             "the successful saved baseline remains exact and hidden after a recoverable completion failure");
+                 }
+             });
+        test("Editor.CloseExceptionNeverFallsThroughToDefaultDestroy",
+             [&]
+             {
+                 Testing::ForegroundOwnershipObserver foreground;
+                 auto options = Options(root, L"close-exception-boundary");
+                 options.unsavedPromptForTest = []() -> int { throw std::runtime_error("DIRECTED_CLOSE_QUESTION_FAILURE"); };
+                 Application app(std::move(options));
+                 Success(app.Initialize(), "initialize hidden Close-boundary app");
+                 app.SetDocument(L"Notebook\n");
+                 Require(app.Document().ReplaceSelection(L"Unsaved writing\n"), "seed dirty Close source");
+                 const auto source = app.Document().Snapshot();
+                 const auto selection = app.Document().GetSelection();
+                 const auto window = app.Window();
+                 Require(SendMessageW(window, WM_CLOSE, 0, 0) == 0 && IsWindow(window) && app.Window() == window && !app.closing && app.Dirty() &&
+                             app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selection &&
+                             app.Document().CanUndo() && app.feedback->GetText() == Resource(IDS_ACTIONFAILED),
+                         "a recoverable Close failure stays handled and never invokes DefWindowProc destruction");
+                 app.options.unsavedPromptForTest = [] { return IDNO; };
+                 (void)SendMessageW(window, WM_CLOSE, 0, 0);
+                 Require(app.closing && app.Host().GetRoot() == nullptr && foreground.NeverAcquiredForeground(),
+                         "a later explicit discard/Close remains available without desktop takeover");
+             });
         test("Editor.WorkspaceSwitchRetainsEveryHistoryAndRecovery",
              [&]
              {
@@ -3511,6 +3627,20 @@ class DesignRefreshProbe final
                      Require(app.Host().GetFocusControl() == app.floatingActions.front(), "Alt+F10 focuses the prepared first selection action");
                      modifiers(false, false, false);
                      app.CloseDrawers();
+                     Require(app.Document().ReplaceSelection(L"Retained writing"), "seed dirty shortcut-boundary source");
+                     const auto protectedSource = app.Document().Snapshot();
+                     const auto protectedSelection = app.Document().GetSelection();
+                     app.options.commandAdmissionForTest = [](Command command)
+                     {
+                         if (command == Command::LocalSource)
+                             throw std::length_error("DIRECTED_SHORTCUT_FAILURE");
+                     };
+                     routed.wParam = VK_F2;
+                     app.DispatchUiMessage(routed);
+                     Require(app.Document().Snapshot().IsSameRevision(protectedSource) && app.Document().GetSelection() == protectedSelection &&
+                                 app.Dirty() && app.Document().CanUndo() && app.feedback->GetText() == Resource(IDS_ACTIONFAILED),
+                             "the real message-pump shortcut boundary contains a recoverable failure and retains dirty source");
+                     app.options.commandAdmissionForTest = {};
                  }
                  Require(foreground.NeverAcquiredForeground() && !IsWindowVisible(app.Window()),
                          "deferred logical-focus tests never take the desktop");

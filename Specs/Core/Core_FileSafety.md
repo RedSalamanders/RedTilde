@@ -44,6 +44,10 @@ Reload reads asynchronously and replaces only the current document after validat
 and workspace identity again; other retained documents and the root stay intact. Failed or stale Reload retains
 the editable source/history/dirty protection. Closing during an admitted save retains the separate failure
 contract below and does not automatically retry Overwrite or Close.
+An exception before taking a completed worker result retains that pending result and dirty source for later
+processing, cancels older continuations/Close and reports a localized action failure. After a successful write
+has been admitted to application state, publish its path, saved text and stamp together before callbacks or
+fallible view refresh; a later UI failure cannot leave a new saved baseline paired with the old file stamp.
 
 New/explicit Open File/Open Folder/Close prompt Save, Discard, Cancel for every dirty workspace document.
 Files-pane activation retains each document and never prompts. Discard approval is staged until the requested

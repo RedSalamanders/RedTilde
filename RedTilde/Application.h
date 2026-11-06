@@ -9,8 +9,10 @@
 #include "NavigationModel.h"
 #include "UiControls.h"
 #include <array>
+#include <exception>
 #include <filesystem>
 #include <functional>
+#include <new>
 #include <optional>
 #include <set>
 #include <utility>
@@ -112,6 +114,9 @@ struct LaunchOptions
     // Hidden harness replacement for the ordinary unsaved-change question.
     std::function<int()> unsavedPromptForTest;
     std::function<SaveConflictChoice()> saveConflictForTest;
+    // Directed recoverable failures at the real UI entry points; never compiled into production.
+    std::function<void(Command)> commandAdmissionForTest;
+    std::function<void()> fileCompletionAdmissionForTest;
     std::function<std::filesystem::path(bool)> filePickerForTest;
     std::shared_ptr<AsyncFiles::TestGate> fileGateForTest;
 #endif
@@ -140,7 +145,7 @@ class Application
     ~Application();
     [[nodiscard]] HRESULT Initialize();
     int Run();
-    void Execute(Command command);
+    void Execute(Command command) noexcept;
     void SetView(EditorView view);
     void SetDocument(std::wstring text, std::filesystem::path path = {}, bool bom = false, FileStamp stamp = {});
     // Interaction probes settle content first, then capture without pumping
@@ -210,6 +215,27 @@ class Application
     friend class PerformanceProbe;
     friend class DesignRefreshProbe;
     friend class DesignInteractiveProbe;
+    template <class Action> void RunUiAction(Action &&action) noexcept
+    {
+        // All application-owned UI/callback entry points share this boundary.
+        // Recoverable failures retain the document; allocation failure is fatal.
+        try
+        {
+            std::forward<Action>(action)();
+        }
+        catch (const std::bad_alloc &)
+        {
+            std::terminate();
+        }
+        catch (const std::exception &error)
+        {
+            ReportUiFailure(error.what());
+        }
+    }
+    void ReportUiFailure(std::string_view cause) noexcept;
+    void ExecuteCommand(Command command);
+    void DispatchUiMessage(const MSG &message) noexcept;
+    void OnMenuClosed(std::optional<int> selected) noexcept;
     EditDiagnostics *editDiagnostics{}; // Borrowed only for a synchronous harness transaction.
     ApplicationActivity activity;
     std::optional<std::wstring> appliedCaption;
@@ -353,7 +379,7 @@ class Application
         EditorView view;
     };
     std::optional<SelectionToolsFocusRequest> selectionToolsFocus;
-    bool bom{}, closing{}, initialized{}, initializing{}, unsavedPromptOpen{};
+    bool bom{}, closing{}, initialized{}, initializing{}, unsavedPromptOpen{}, reportingUiFailure{};
     bool closingAfterSave{}, visibleBeforeSaveClose{};
     bool waitingForPreferences{};
     FileStamp stamp;
@@ -410,7 +436,8 @@ class Application
     void Status(unsigned id);
     void SavePreferences();
     void ServiceImages();
-    void FileCompleted();
+    void FileCompleted() noexcept;
+    void CompleteFileOperation();
     void AskThen(std::function<void()> continuation);
     void Open();
     void Save(bool saveAs = false, bool force = false, std::optional<std::filesystem::path> selectedPath = {});

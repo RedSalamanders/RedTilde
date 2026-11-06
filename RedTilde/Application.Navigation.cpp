@@ -757,16 +757,7 @@ void Application::FileMenu(bool overflow)
     callbacks.focusFirstNavigableItem = true;
     (void)DxUi::ContextMenu::ShowAsync(
         window.get(), host.DipPointToScreenPoint({bounds.left, bounds.bottom}), items, host.GetTheme(),
-        [this](std::optional<int> selected)
-        {
-            if (closing)
-                return;
-            if (selected)
-                Execute(static_cast<Command>(selected.value() - 1));
-            if (!HasBlockDraft() && !drawer->IsVisible() && !findBar->IsVisible())
-                host.SetFocusControl(editor, !options.headless);
-        },
-        callbacks);
+        [this](std::optional<int> selected) noexcept { OnMenuClosed(selected); }, callbacks);
 }
 bool Application::DismissSurface()
 {

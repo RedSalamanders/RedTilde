@@ -1,6 +1,10 @@
 {
   "version": 1,
   "cases": [
+    { "name": "Storage.StampMatchesFullNativeFileIdentity", "scope": "Storage" },
+    { "name": "Editor.RecoverableCommandsAndMenusRetainSourceAndDraftFocus", "scope": "Editor" },
+    { "name": "Editor.FileCompletionFailureRetainsPendingWriteAndCancelsClose", "scope": "Editor" },
+    { "name": "Editor.CloseExceptionNeverFallsThroughToDefaultDestroy", "scope": "Editor" },
     { "name": "Storage.UnsupportedFilesReportKnownUnitCount", "scope": "Storage" },
     { "name": "Editor.OpenErrorsExplainEncodingAndCapacity", "scope": "Editor" },
     { "name": "Storage.TimestampOnlyTouchDoesNotConflict", "scope": "Storage" },
