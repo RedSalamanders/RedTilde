@@ -1,0 +1,1 @@
+- Record independently verified hosted save-safety qualification: all 108 cases and 36 captures on native x64/ARM64 Release, both production ZIP smoke checks and thirteen original artifact digests. Preserve separate ARM64 Debug/ASan, physical and performance gates.
