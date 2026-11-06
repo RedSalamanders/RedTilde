@@ -304,7 +304,7 @@ follow-up is removed. Completion correctly reported failed native qualification.
   records explicit timing consent, real input and independently verified desktop restoration.
 - [ ] Qualify clipboard, physical IME, UIA/assistive technology and touch on named scenarios;
   arrange interactive timing with the user before taking focus.
-- [ ] Verify production-only sources, all test/probe refusal paths, native/production output separation and
+- [x] Verify production-only sources, all test/probe refusal paths, native/production output separation and
   clean-extraction smoke. Recheck RT-13/15/16/17 against the current unified implementation rather than applying
   the obsolete rule that removes tests from every Release build.
   Implementation and local/x64-production verification are complete at `526cc8db`: six warning-free builds,
@@ -314,8 +314,12 @@ follow-up is removed. Completion correctly reported failed native qualification.
   Debug/ASan original payloads are fully byte-verified in the [hosted packet](../../../Measurements/ProductionProbeBoundaries_2026-11-06/hosted-debug-asan.json).
   Release run [42270561445](https://github.com/RedSalamanders/RedTilde/actions/runs/42270561445) passes all seven
   jobs and both production roles, but its artifacts omit the detailed package smoke receipts. The adapter
-  correction retains and validates those originals; a fresh retained per-switch proof on both architectures
-  remains required before checking this broader gate.
+  correction retains and validates those originals. Exact main `5c19d4bd` now closes this gate:
+  [all four extended native profiles](../../../Measurements/ProductionProbeBoundaries_2026-11-06/hosted-final-debug-asan.json)
+  and [Release plus both original production receipts](../../../Measurements/ProductionProbeBoundaries_2026-11-06/hosted-final-release.json)
+  pass with every original payload/wrapper byte verified. Each native profile passes 128 cases/36 captures;
+  both `0.1.355` packages record all thirteen actual refusals with exit 2 and absent data directories, bound to
+  the original ZIP/executable and actual architecture. Both production roles follow the combined native gate.
 - [ ] Coordinate future checked-failure/API changes with the
   [single DxUi plan](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Plans/WIP/RemainingWork_2026-11-04.md) and active
   [implemented API-5 failure contract](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Core/Core_FailureHandling.md). Keep this consumer's explicit API-4 lock until a separate

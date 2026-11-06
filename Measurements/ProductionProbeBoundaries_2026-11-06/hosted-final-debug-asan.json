@@ -1,0 +1,291 @@
+{
+  "schemaVersion": 1,
+  "workloadOwner": "RedTilde",
+  "fixture": "production-probe-boundaries-hosted-debug-asan",
+  "claim": "Current-source hosted native x64 and ARM64 Debug/ASan: 128 cases and 36 captures per profile, actual symbolic-link saves and independent heap boundaries",
+  "implementationCommit": "526cc8db2d2716d0a86c37c1ce92c992b0e7475b",
+  "sourceCommit": "5c19d4bd3a20f86f990790ee505f9d2310ccf375",
+  "sdkCommit": "a1915ffdd94b18fd1817371f1dc074f6a0b547f1",
+  "runs": [
+    {
+      "runId": "42288032479",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42288032479",
+      "sourceCommit": "5c19d4bd3a20f86f990790ee505f9d2310ccf375",
+      "outcome": "success",
+      "platforms": [
+        {
+          "platform": "x64",
+          "nativeArchitecture": "X64",
+          "configuration": "Debug",
+          "outcome": "passed",
+          "runId": "20261106T203914627Z-1972-c7712d5c0b8c4cadb1f821d1d6ac36ff",
+          "canonicalSourceIdentity": "c4af6f740aff62a9b663058c282cfc11f9c0706b08211e14ced564412017619b",
+          "sdkCommit": "a1915ffdd94b18fd1817371f1dc074f6a0b547f1",
+          "binarySha256": "51605F346445A8877579062D980D4AC68C3326463BC4853E90CFB3AA1481B636",
+          "warnings": 0,
+          "errors": 0,
+          "buildLogSha256": "00D31E6F1D3B07494D54EA774B5580EC7C6AA2668771C55FC664EDA3A4476205",
+          "receiptMember": "evidence/test-runs/20261106T203914627Z-1972-c7712d5c0b8c4cadb1f821d1d6ac36ff/payload/receipt.json",
+          "receiptSha256": "9ECE7EACA5FA0E6F9F2CE3A84D1222FD24D3A89058919D145F35BF81D44B2B5F",
+          "completionSha256": "2B7B190D9530EEEEFB75D3698B30F9B54FE97F12C508CF1E396A4EF9E674DC42",
+          "casesPassed": 128,
+          "casesFailed": 0,
+          "captures": 36,
+          "actualStorageCasesPassed": 25,
+          "actualSymbolicLinkCasePassed": true,
+          "storageSummarySha256": "6E45BCDFD20B1F755769801479FF5745BCBDC1AEF605EEE3B3FEB5C1962E292D",
+          "actualInterruptedWriteRestart": true,
+          "heapBoundary": {
+            "independentNativeEntries": 7,
+            "nativeCasePassed": true,
+            "controlledReportSha256": "F756C01BFFBBE59441A2DDE3F3A634981F5D37F667E3B38C0F4734FAA5D58733",
+            "controlledCases": [
+              "empty",
+              "oneEntry",
+              "truncated",
+              "exact",
+              "invalidBudget",
+              "deniedLock",
+              "deniedWalk",
+              "deniedUnlock"
+            ],
+            "performanceSummarySha256": "04A6393493E806C97D3B9F612EE6146E8017647F06237E37BFCE639CE9DBD48B",
+            "oneEntryBudgetComplete": false,
+            "nativeReportSha256": "AE34D520D23323CC9DCC23403EB362E32C6DCAEAE4F6B0089B24E29A1B737EAA"
+          },
+          "originalPayloadMembers": {
+            "allFileBytesMatchedOriginalManifest": true,
+            "files": 1471,
+            "bytes": 17918221,
+            "pngFiles": 106,
+            "fileIdentitySha256": "5DF172CADD967684F52D8A73A2A3E71CC2A1168390A49CF19DD4C53683541E1B",
+            "limit": "Byte verification does not recreate original filesystem file ids, security descriptors or timestamps"
+          }
+        },
+        {
+          "platform": "ARM64",
+          "nativeArchitecture": "Arm64",
+          "configuration": "Debug",
+          "outcome": "passed",
+          "runId": "20261106T204823703Z-9076-6c5372d5ca814983b37f471032f8b8a4",
+          "canonicalSourceIdentity": "c4af6f740aff62a9b663058c282cfc11f9c0706b08211e14ced564412017619b",
+          "sdkCommit": "a1915ffdd94b18fd1817371f1dc074f6a0b547f1",
+          "binarySha256": "5770122AB23B78E6A2B9169FE9F494147A81F046138E4B0ADD6461F3D37281D4",
+          "warnings": 0,
+          "errors": 0,
+          "buildLogSha256": "AE3722799116121A90F627FF3617229408F53C6A2B57476BF50753835B031590",
+          "receiptMember": "evidence/test-runs/20261106T204823703Z-9076-6c5372d5ca814983b37f471032f8b8a4/payload/receipt.json",
+          "receiptSha256": "736B0BCC9816E2DD304EA6EC4625A86F81F1B9FCA4EDEB920860D35B9B7F96DA",
+          "completionSha256": "EA3A23A7CBD1648688ADB63A9310CBC35B704BD3E73B0B114AEE21BAD0A20449",
+          "casesPassed": 128,
+          "casesFailed": 0,
+          "captures": 36,
+          "actualStorageCasesPassed": 25,
+          "actualSymbolicLinkCasePassed": true,
+          "storageSummarySha256": "6E45BCDFD20B1F755769801479FF5745BCBDC1AEF605EEE3B3FEB5C1962E292D",
+          "actualInterruptedWriteRestart": true,
+          "heapBoundary": {
+            "independentNativeEntries": 3,
+            "nativeCasePassed": true,
+            "controlledReportSha256": "7093C5A335FC85CD240836DDDA077A9CA89637C2FD7719512A8B5A01315F86A5",
+            "controlledCases": [
+              "empty",
+              "oneEntry",
+              "truncated",
+              "exact",
+              "invalidBudget",
+              "deniedLock",
+              "deniedWalk",
+              "deniedUnlock"
+            ],
+            "performanceSummarySha256": "04A6393493E806C97D3B9F612EE6146E8017647F06237E37BFCE639CE9DBD48B",
+            "oneEntryBudgetComplete": false,
+            "nativeReportSha256": "240B49173EB25C3E30041E807DCFC2839BC24E46211DD009A1FD7E295F114B07"
+          },
+          "originalPayloadMembers": {
+            "allFileBytesMatchedOriginalManifest": true,
+            "files": 1471,
+            "bytes": 18025167,
+            "pngFiles": 106,
+            "fileIdentitySha256": "460CDFDC42D47F8AFA423DB04042A61FE90CBDAAB788EE16A761E756E8A1FD96",
+            "limit": "Byte verification does not recreate original filesystem file ids, security descriptors or timestamps"
+          }
+        }
+      ],
+      "originalArtifactWrappers": [
+        {
+          "id": 13540022180,
+          "name": "qualification-ARM64-Debug",
+          "bytes": 15516677,
+          "sha256": "EA1EDAA0E5E693428ACA96B4A41E336174A2DDA2BC80F0529ADCEED3483B9C9C",
+          "reportedDigestVerified": true
+        },
+        {
+          "id": 13539191747,
+          "name": "qualification-x64-Debug",
+          "bytes": 15473030,
+          "sha256": "3EA7DE339AA1AD2CD54F37D82F2ABECD9F36AE59539E6FD0E79D118083DBE3E9",
+          "reportedDigestVerified": true
+        },
+        {
+          "id": 13538268895,
+          "name": "msvc-14.52-85d451afff7a4547bad820bf19b32855",
+          "bytes": 1371610,
+          "sha256": "CF61741110C5E444D11BFDDC17E8631AC7D1C7C0C19168F5FEC7CD3444F6C70B",
+          "reportedDigestVerified": true
+        },
+        {
+          "id": 13537674799,
+          "name": "msvc-14.52-7b1dfeafe016456ea1bc70785295e655",
+          "bytes": 1325888,
+          "sha256": "77882A44A17F04B051F96D74F1869370E48104FCC8B1780C6DDE12364E2ABFF7",
+          "reportedDigestVerified": true
+        }
+      ]
+    },
+    {
+      "runId": "42288038754",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42288038754",
+      "sourceCommit": "5c19d4bd3a20f86f990790ee505f9d2310ccf375",
+      "outcome": "success",
+      "platforms": [
+        {
+          "platform": "x64",
+          "nativeArchitecture": "X64",
+          "configuration": "ASan Debug",
+          "outcome": "passed",
+          "runId": "20261106T203744337Z-7404-24c08aabb65e405fac561f83f8a8cd1e",
+          "canonicalSourceIdentity": "c4af6f740aff62a9b663058c282cfc11f9c0706b08211e14ced564412017619b",
+          "sdkCommit": "a1915ffdd94b18fd1817371f1dc074f6a0b547f1",
+          "binarySha256": "6B638EF206F945617000AD944CCF1115BD7E2AD36A06CDDAB8363974AC80C840",
+          "warnings": 0,
+          "errors": 0,
+          "buildLogSha256": "141D9B0FDD0B7454A96936097D4922F495060770042550A680FCD455E7559D4D",
+          "receiptMember": "evidence/test-runs/20261106T203744337Z-7404-24c08aabb65e405fac561f83f8a8cd1e/payload/receipt.json",
+          "receiptSha256": "384FD414B391B8D375829ABDDD502E5DC53CF6E39890A4BFA4534C7FEFDB9B5E",
+          "completionSha256": "01D32FF43F2AD907873AA5FF018CE2EAE9C81E38A0FF906F036B4C149BF7D853",
+          "casesPassed": 128,
+          "casesFailed": 0,
+          "captures": 36,
+          "actualStorageCasesPassed": 25,
+          "actualSymbolicLinkCasePassed": true,
+          "storageSummarySha256": "6E45BCDFD20B1F755769801479FF5745BCBDC1AEF605EEE3B3FEB5C1962E292D",
+          "actualInterruptedWriteRestart": true,
+          "heapBoundary": {
+            "independentNativeEntries": 3,
+            "nativeCasePassed": true,
+            "controlledReportSha256": "887483ECE86B5A2D7DF5EC037C9E741DA18BC08BB0EBDF6D1840AC030A9BBF70",
+            "controlledCases": [
+              "empty",
+              "oneEntry",
+              "truncated",
+              "exact",
+              "invalidBudget",
+              "deniedLock",
+              "deniedWalk",
+              "deniedUnlock"
+            ],
+            "performanceSummarySha256": "04A6393493E806C97D3B9F612EE6146E8017647F06237E37BFCE639CE9DBD48B",
+            "oneEntryBudgetComplete": false,
+            "nativeReportSha256": "94D4EA199D37A6382AAE9A5D3E5887586DAA6F479F01D752059C1C1B3F482996"
+          },
+          "realAsanDetection": true,
+          "originalPayloadMembers": {
+            "allFileBytesMatchedOriginalManifest": true,
+            "files": 1473,
+            "bytes": 17936071,
+            "pngFiles": 106,
+            "fileIdentitySha256": "593D69D0CE83FE11DE06F40423F5F3F830CDE57BF10D323051B48AA2E0B70482",
+            "limit": "Byte verification does not recreate original filesystem file ids, security descriptors or timestamps"
+          }
+        },
+        {
+          "platform": "ARM64",
+          "nativeArchitecture": "Arm64",
+          "configuration": "ASan Debug",
+          "outcome": "passed",
+          "runId": "20261106T204901479Z-6500-2e95add1ac9b4ad28b8c9e7b02a84872",
+          "canonicalSourceIdentity": "c4af6f740aff62a9b663058c282cfc11f9c0706b08211e14ced564412017619b",
+          "sdkCommit": "a1915ffdd94b18fd1817371f1dc074f6a0b547f1",
+          "binarySha256": "A84ADEF7517984C81963CB0AF6B7E142CC50895AA9DB14895442ADCC8D998BE7",
+          "warnings": 0,
+          "errors": 0,
+          "buildLogSha256": "3397161540F0D63826A7D9D144682A3CA5C1B7D1A9170BDCF276708F1770A3B0",
+          "receiptMember": "evidence/test-runs/20261106T204901479Z-6500-2e95add1ac9b4ad28b8c9e7b02a84872/payload/receipt.json",
+          "receiptSha256": "DA0062A1FFE971DD621EC84EACD11526BC6FC43CB7A71CBADFBEA087F73B4938",
+          "completionSha256": "08699741FA2BEE51A778ED38F221A0AF0F6EE3EC0F45B07D6F4721D0FCC04C28",
+          "casesPassed": 128,
+          "casesFailed": 0,
+          "captures": 36,
+          "actualStorageCasesPassed": 25,
+          "actualSymbolicLinkCasePassed": true,
+          "storageSummarySha256": "6E45BCDFD20B1F755769801479FF5745BCBDC1AEF605EEE3B3FEB5C1962E292D",
+          "actualInterruptedWriteRestart": true,
+          "heapBoundary": {
+            "independentNativeEntries": 1,
+            "nativeCasePassed": true,
+            "controlledReportSha256": "E38C2572AFC804B2DF0D705E8ABCE373AD0A111878C8385106B5E1D5C25519DB",
+            "controlledCases": [
+              "empty",
+              "oneEntry",
+              "truncated",
+              "exact",
+              "invalidBudget",
+              "deniedLock",
+              "deniedWalk",
+              "deniedUnlock"
+            ],
+            "performanceSummarySha256": "04A6393493E806C97D3B9F612EE6146E8017647F06237E37BFCE639CE9DBD48B",
+            "oneEntryBudgetComplete": true,
+            "nativeReportSha256": "A15D9F08505E3DE04E9D8B14197F595FDEEC243A43C83B0AD246AF8BF4728F02"
+          },
+          "realAsanDetection": true,
+          "originalPayloadMembers": {
+            "allFileBytesMatchedOriginalManifest": true,
+            "files": 1475,
+            "bytes": 18028463,
+            "pngFiles": 106,
+            "fileIdentitySha256": "D3604221622281776E1E2A0DD0C20CDDB324F5BF08AC159E9648333B64510C52",
+            "limit": "Byte verification does not recreate original filesystem file ids, security descriptors or timestamps"
+          }
+        }
+      ],
+      "originalArtifactWrappers": [
+        {
+          "id": 13540900332,
+          "name": "qualification-ARM64-ASan Debug",
+          "bytes": 15526830,
+          "sha256": "4F1E8B6C1CA17D5443815C5257DC2AAC245ACB7E05FD5223C5921439BB420AD7",
+          "reportedDigestVerified": true
+        },
+        {
+          "id": 13540290043,
+          "name": "qualification-x64-ASan Debug",
+          "bytes": 15483410,
+          "sha256": "BC3BEC4988248809528C2B18EF4BB2D02EBCD4CF7C38D8165A00ECF87973FEF3",
+          "reportedDigestVerified": true
+        },
+        {
+          "id": 13539735328,
+          "name": "msvc-14.52-ce4a9f593f6041d294fd84e58054e9cc",
+          "bytes": 1371847,
+          "sha256": "4ABF63DFE0CFE1C377B8F1BC2F9CDE57572256C5BA4F355F2F209AF21290F270",
+          "reportedDigestVerified": true
+        },
+        {
+          "id": 13538582519,
+          "name": "msvc-14.52-221b359d61b14009b4073d2f927f14ad",
+          "bytes": 1329348,
+          "sha256": "A12E0B82B40CAD77C2BFCD7A44BC1597BFDCB5A82ACB6F959287B93EB6F8D2CC",
+          "reportedDigestVerified": true
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Original local symbolic-link privilege failures and original rejected hosted ARM64 ASan cohort remain retained",
+    "Current entry observations do not reconstruct the original failed cohort entry count",
+    "Hosted Release/production packaging is separately recorded",
+    "No physical-input/AT, real-browser-association, supported-share/WSL or paired-performance acceptance"
+  ]
+}

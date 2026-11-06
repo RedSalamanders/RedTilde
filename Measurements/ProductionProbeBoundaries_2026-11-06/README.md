@@ -29,7 +29,8 @@ Durable requirements are in [the build/CI contract](../../Specs/Build/Build_Unif
 [validation](../../Specs/Testing/Testing_Validation.md); [portable usage](../../docs/Portable.md) explains the
 command behavior. The [scoped Done record](../../Specs/Plans/Done/ProductionProbeBoundaries_2026-11-06.md)
 closes implementation and these local/x64-production checks. The hosted native-runtime follow-up below
-closes all six runtime profiles. Detailed hosted production proof, physical input/AT, application API-5 migration and performance stay in the
+closes all six runtime profiles. The final production packet below closes the original-receipt proof gap.
+Physical input/AT, application API-5 migration and performance stay in the
 [single active plan](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md).
 
 [Hosted Debug/ASan](hosted-debug-asan.json) independently verifies four native x64/ARM64 profiles at
@@ -38,7 +39,19 @@ recovery and independent heap-boundary controls. Both ASan profiles detect the r
 Every original payload member is checked against its completion manifest, in addition to wrapper digests.
 The local privilege failures remain retained. Release run `42270561445`, exact `03a5ee06`, passes all seven
 jobs, but its production artifacts omit the detailed original smoke receipts. The CI adapter now forwards
-and validates those original bytes; fresh native production receipts remain required to close that proof gap.
+and validates those original bytes; the final source-bound run below supplies that missing proof.
 The adapter checks the complete thirteen-case union and each exit/data-access outcome before reporting success.
 Ten focused fixtures execute its actual production body, covering unchanged-byte forwarding and missing,
 mismatched, incomplete, duplicate, failed, data-writing, wrong-platform, test-enabled and unsuccessful-smoke records.
+
+At exact main `5c19d4bd`, [final Debug/ASan](hosted-final-debug-asan.json) verifies all four extended native
+profiles and [final Release/production](hosted-final-release.json) verifies all seven pipeline jobs. Each of
+the six native profiles passes 128 cases and 36 captures; both real ASan detections pass. Every original
+payload member is checked against its completion manifest, alongside all original wrapper digests.
+
+Both original `0.1.355` production smoke receipts now survive in their artifacts. Each records all thirteen
+actual refusals, exit 2 and an absent data directory, with the positive hidden smoke. Independent review
+checks the complete case union, original receipt bytes, nested ZIP/executable hashes and actual x64/ARM64
+PE machine fields. Both production roles start after the combined native test gate. Earlier omitted-proof
+runs and local privilege failures remain historical records. This closes these production boundaries without
+changing the explicit API-4 pin or the remaining physical, location, performance and product-release gates.
