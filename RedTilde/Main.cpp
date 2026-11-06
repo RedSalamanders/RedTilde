@@ -51,6 +51,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int)
         MonitorDiagnostics::Write(RedMonitor::Severity::Info, L"application starting");
         LaunchOptions options;
         bool sanitizerProbe{};
+#if defined(REDTILDE_ENABLE_TESTS)
+        bool linkedSaveCrash{}, linkedSaveRestart{};
+#endif
         CoreTestScope testScope = CoreTestScope::All;
         bool testScopeSpecified{}, listTests{};
         int count{};
@@ -154,6 +157,14 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int)
                 listTests = true;
             else if (argument == L"--crash-probe")
                 options.crashProbe = true;
+#if defined(REDTILDE_ENABLE_TESTS)
+            else if (argument == L"--linked-save-crash-probe" || argument == L"--linked-save-restart-probe")
+            {
+                linkedSaveCrash = argument == L"--linked-save-crash-probe";
+                linkedSaveRestart = !linkedSaveCrash;
+                options.headless = true;
+            }
+#endif
             else if (argument == L"--recovery-crash-probe" || argument == L"--recovery-restart-probe")
             {
                 options.recoveryProbe = argument == L"--recovery-crash-probe";
@@ -181,6 +192,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int)
         }
         if ((testScopeSpecified || listTests) && !options.selfTest)
             throw std::invalid_argument("Test scope/list options require --self-test");
+#if defined(REDTILDE_ENABLE_TESTS)
+        if ((linkedSaveCrash || linkedSaveRestart) && (options.dataDirectory.empty() || !options.dataDirectory.is_absolute()))
+            throw std::invalid_argument("Linked save probe requires an explicit absolute test data directory");
+#endif
         if (!options.designInteractive.empty() && (options.headless || options.crashProbe || options.preferencesProbe || options.recoveryProbe ||
                                                    options.recoveryRestartProbe || options.dataDirectory.empty()))
             throw std::invalid_argument("Interactive probe requires an explicit data directory and an ordinary visible host");
@@ -203,6 +218,10 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int)
         if (FAILED(com))
             return 1;
         const auto uninitialize = wil::scope_exit([] { CoUninitialize(); });
+#if defined(REDTILDE_ENABLE_TESTS)
+        if (linkedSaveCrash || linkedSaveRestart)
+            return RunLinkedSaveInterruptionProbe(options.dataDirectory, linkedSaveRestart);
+#endif
         if (options.selfTest)
         {
 #if defined(REDTILDE_ENABLE_TESTS)
