@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Refuse test-only production launch switches before profile/probe work and require production-only portable packaging. Verify all thirteen clean-extraction refusal cases, the original production write counterexample, six warning-free builds, actual ASan and source-bound native/SDK archives; retain the local symbolic-link privilege failures and separate hosted ARM64/production gates.
 - Close the Find/zoom/window/recovery-first startup and confirmed-link implementation with source-bound hosted x64/ARM64 Release, Debug and ASan results: 128 cases and 36 captures per combination, real ASan/symbolic-link/heap-boundary evidence and verified `0.1.342` production ZIPs after the combined gate. Archive the scoped plan in Done, remove stale native-runtime gates and retain physical, browser-association, API-5 migration, supported-location and paired-performance work explicitly.
 - Remember normal window bounds and maximized state, restore them within an attached monitor's work area at the current DPI, and honor explicit launcher show states without forcing focus after nonactivating or minimized launches.
 - Add Ctrl+plus/minus, Ctrl+0 and high-resolution Ctrl+wheel for the existing 75–200% document text-size preference, retaining source, selection and undo history in every view.
