@@ -1,0 +1,238 @@
+{
+  "schemaVersion": 1,
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-provider-save-fallback",
+  "claim": "Six zero-warning builds; 131 passing cases and one actual symbolic-link fixture privilege failure per x64 profile",
+  "implementationCommit": "33ea112bb7fed87e7a1578f1df1c2c4457349697",
+  "sdkCommit": "a1915ffdd94b18fd1817371f1dc074f6a0b547f1",
+  "apiRevision": 4,
+  "compiledSourceIdentity": "eefd28e13f540370e9c050253d35437f100f941734d787166ddd11c9d565c548",
+  "inputHash": "eefd28e13f540370e9c050253d35437f100f941734d787166ddd11c9d565c548",
+  "originalSourceInputs": {
+    "inputCount": 141,
+    "canonicalOriginalBytesMatched": true,
+    "archiveSha256": "BC745C2A4FA3E3184788FD8307BF8014462976CE2FCB61CFF1A876C95A5C7A40"
+  },
+  "builds": [
+    {
+      "platform": "x64",
+      "configuration": "Release",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": true,
+      "binarySha256": "81002239AA8A5A30A2A0CF15353EC17F35EDA31E098B1D1F682B84A781BBC8B4",
+      "buildReceiptSha256": "24CE4366EC02F8BAA09FE2434E55309D5918CC3CDECFE18A8CCA08FBB3A8B897",
+      "buildLogSha256": "D229DB3CBFACB1B40B64EE7495FD85D8DC04FF4FE2DAF97EB7E3CE5009D38E3A"
+    },
+    {
+      "platform": "x64",
+      "configuration": "Debug",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": true,
+      "binarySha256": "B7A24D8889CF5036EF89541D1C977DBBFF55AC2DE183B40600E279D8C8CAD410",
+      "buildReceiptSha256": "AB211F9278475F121BAB5FA129B904F3A124EF3A9E629C648297F0EDBE1FC292",
+      "buildLogSha256": "CFDEE96A869CDCF93CE47366AF969DE74654E8123B5A557D9939D9B607A0CD8B"
+    },
+    {
+      "platform": "x64",
+      "configuration": "ASan Debug",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": true,
+      "binarySha256": "E6C820F1408B3B94BCAC89159B22E4935507E8EB638850EA96731A642A39119A",
+      "buildReceiptSha256": "7161647EA62C3C55827BC07A3FD43F6EA65D4B8B071B0006523399FD3CD3A302",
+      "buildLogSha256": "0275C58755704790D7B293FDA7E0F1F9F84DC97D938714FF124D585093BD6170"
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Release",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": false,
+      "binarySha256": "A9B88BB4D922467FED73E476E07B61CAC6A7C052BDB0F5A6F64FDF70D14BC001",
+      "buildReceiptSha256": "6164A6A4311FDE5B733BDA06D5A96092E9D0F97C407AAD9590309A8962A9AB6A",
+      "buildLogSha256": "A24E4BC7138D2AB2F33D0580912295BD181A19B87406AAE1857F36D899E2F6D1"
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Debug",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": false,
+      "binarySha256": "983280EDD577DDE4F7364AC3B3D37C59C2CBC531EB0FFB525E190B7100C028AA",
+      "buildReceiptSha256": "D73761915EBA8895D79B7D4AACF5A48CE7032EE3D53B92F187A97461DC7A84AE",
+      "buildLogSha256": "0131A178E927927133770BC6A7F787AD874E01C86E361821DFE7BD5F5DD6EEE8"
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "ASan Debug",
+      "warnings": 0,
+      "errors": 0,
+      "nativeRuntime": false,
+      "binarySha256": "A5385DFEEA45DABFA34EE937BB566E8125527955A43CD59D954E4779A68A0ABD",
+      "buildReceiptSha256": "1CC8711F038B467CAB1ABC135C048FEE65A850CDD842347A332275D650E23B6D",
+      "buildLogSha256": "3C6E343A303FC272A9DD14FE6F5D394482EE6108BDE104A2332C1F97BD8BF7FB"
+    }
+  ],
+  "nativeRuns": [
+    {
+      "configuration": "Release",
+      "registered": 132,
+      "passed": 131,
+      "failed": 1,
+      "localRuntimeComplete": false,
+      "capabilityFailure": {
+        "case": "Storage.SymbolicSavePreservesEntryAndResolvesFinalTarget",
+        "win32Error": 1314,
+        "meaning": "Host cannot create the real symbolic-link fixture; no symbolic-link runtime acceptance"
+      },
+      "standardCaptures": 36,
+      "editorPartitions": {
+        "EditorBehavior": 72,
+        "EditorPerformance": 3,
+        "EditorRendering": 3
+      },
+      "realInterruptedWriteRestart": true,
+      "storageRunId": "20261106T225607723Z-34924-289e10eda5aa4c698b8a9e6495f17f05",
+      "otherRunId": "20261106T225617957Z-35464-19d9d544efde4979ac59245d5a06dced",
+      "storageCanonicalReceiptSha256": "3B8A8F0B84269CDE3DA354F68F5C926D1A6C1956C39B01F1D379ECE2E0165E39",
+      "storageCompletionSha256": "65A430F7FECA653972B28260C0E2F32AC1B2E59F4CAEFC3C8BF93CF12FD0855F",
+      "storageCoreSha256": "D77DABF6B4203B35E1E0EA34B64341B9E93234BB7548BFBC0EE7272C6F774518",
+      "otherCanonicalReceiptSha256": "30F221959704B74F21E80BCC8E85CE8F3E2B51C14278935F3FFC1C3611D1E0BF",
+      "otherCompletionSha256": "D642638F1E9876E166647A48FE712519DB1F40869EE6EAC7D00D699C06C4A3FC",
+      "storageRunArchiveSha256": "9565FE36E4CF534FA0F8E852CF930A8198DFBF089850086F098C7108E895A407",
+      "otherRunArchiveSha256": "7987AC64EC71A8B180B7379A9EA5A15D9B4DB21EF55829BAAD2CC21054F642B8",
+      "providerFallbackCases": [
+        "Storage.ProviderFallbackProtectsBeforeMutation",
+        "Storage.ProviderFallbackRequiresAdmissionAndReplacementProvenance",
+        "Storage.ProviderFallbackFailureRetainsRecoverableSource",
+        "Storage.ProviderFallbackRechecksConflict"
+      ]
+    },
+    {
+      "configuration": "Debug",
+      "registered": 132,
+      "passed": 131,
+      "failed": 1,
+      "localRuntimeComplete": false,
+      "capabilityFailure": {
+        "case": "Storage.SymbolicSavePreservesEntryAndResolvesFinalTarget",
+        "win32Error": 1314,
+        "meaning": "Host cannot create the real symbolic-link fixture; no symbolic-link runtime acceptance"
+      },
+      "standardCaptures": 36,
+      "editorPartitions": {
+        "EditorBehavior": 72,
+        "EditorPerformance": 3,
+        "EditorRendering": 3
+      },
+      "realInterruptedWriteRestart": true,
+      "storageRunId": "20261106T230237209Z-46812-0f25499bd6a6488d91a696a20fc53c6a",
+      "otherRunId": "20261106T230243646Z-38380-f1ce4287953547bbb4aa73e3ac5603e4",
+      "storageCanonicalReceiptSha256": "9CC0CD14DDDB30FA3DA1E44A30544D68242A27879604031E988183506E383148",
+      "storageCompletionSha256": "E4C5C52EA1B8FE82C96345B26A0013B6702D15DA827B2CDABC122A7A0DD03EE2",
+      "storageCoreSha256": "D77DABF6B4203B35E1E0EA34B64341B9E93234BB7548BFBC0EE7272C6F774518",
+      "otherCanonicalReceiptSha256": "E5CB35F139670BDEA650CA78C5B8501C80376C10DDF2DB8092E4181B3C4F79A5",
+      "otherCompletionSha256": "F9A97470A6DAA6BEAAED58552F16471F1DDB542904DD825411607DB309821F21",
+      "storageRunArchiveSha256": "CD6E9E621F5229A8F1095F0E41F26EA0545427D40541284A7D979EB6FC885657",
+      "otherRunArchiveSha256": "B4E1D5A378A5AF5B01F2789C39374B6511ABB6B13DCCFFDE0A432B1A859A30F3",
+      "providerFallbackCases": [
+        "Storage.ProviderFallbackProtectsBeforeMutation",
+        "Storage.ProviderFallbackRequiresAdmissionAndReplacementProvenance",
+        "Storage.ProviderFallbackFailureRetainsRecoverableSource",
+        "Storage.ProviderFallbackRechecksConflict"
+      ]
+    },
+    {
+      "configuration": "ASan Debug",
+      "registered": 132,
+      "passed": 131,
+      "failed": 1,
+      "localRuntimeComplete": false,
+      "capabilityFailure": {
+        "case": "Storage.SymbolicSavePreservesEntryAndResolvesFinalTarget",
+        "win32Error": 1314,
+        "meaning": "Host cannot create the real symbolic-link fixture; no symbolic-link runtime acceptance"
+      },
+      "standardCaptures": 36,
+      "editorPartitions": {
+        "EditorBehavior": 72,
+        "EditorPerformance": 3,
+        "EditorRendering": 3
+      },
+      "realInterruptedWriteRestart": true,
+      "storageRunId": "20261106T230826799Z-44952-c83fce7889be4e6ea0052ce3df6dd13b",
+      "otherRunId": "20261106T230835829Z-37436-2898f3d99d414e199e15393a41bf2dcc",
+      "storageCanonicalReceiptSha256": "EAB59557B7D67615CCFC8831CEAA39780CF47B94DC1D3DA8D9E4231F6306B751",
+      "storageCompletionSha256": "3A65D73FD402E57B0FBC7A2B59D9845357F04B2C7598827331396B2EC717C2E3",
+      "storageCoreSha256": "D77DABF6B4203B35E1E0EA34B64341B9E93234BB7548BFBC0EE7272C6F774518",
+      "otherCanonicalReceiptSha256": "C7E2D207A14832E88C954109FCAA22E8372C77A67C8ED1F3B88963A6AA46A6FB",
+      "otherCompletionSha256": "7FC803552FB46313377082A031F689618F6C5E9E29A1F16B83078723BD2E7D59",
+      "storageRunArchiveSha256": "EAF38BE2ACEB5EB0C733D421694325A611C1E2AF9528414F2A501D5B64181F9E",
+      "otherRunArchiveSha256": "A9E8FE0699B7994DC7E4A9D759B9145615A90C7BF1BB37356F4D28CADBECEF27",
+      "realAsanDetection": true,
+      "providerFallbackCases": [
+        "Storage.ProviderFallbackProtectsBeforeMutation",
+        "Storage.ProviderFallbackRequiresAdmissionAndReplacementProvenance",
+        "Storage.ProviderFallbackFailureRetainsRecoverableSource",
+        "Storage.ProviderFallbackRechecksConflict"
+      ]
+    }
+  ],
+  "nativeArtifacts": [
+    {
+      "profile": "x64-Release",
+      "nativeArchiveSha256": "001AA56AD6683807CF01754F00C225386C855EE2458204AE2E3E5184BCFE5823",
+      "sdkArchiveSha256": "BE7A914CF6DED34455DD443BF82E568E8070B6FD9C9B29575FCE1867BBB49FCC"
+    },
+    {
+      "profile": "x64-Debug",
+      "nativeArchiveSha256": "866EC3D659F62D70B474176D1F5236968924A232B057027529EB6F76E805F30F",
+      "sdkArchiveSha256": "EC7236A87A8A13A5F0FDB425CEA17940CDFF4B65D50141FF6157A3223BB9FBB1"
+    },
+    {
+      "profile": "x64-ASan-Debug",
+      "nativeArchiveSha256": "511459C3F25DA3FB675FC3F6B18AA099728C0901B2B4A01C9CF0DA32B12CE219",
+      "sdkArchiveSha256": "161B48A7DF053D0E266A0659AE70F4D08ADB13E52940DF4A85D66FA4F8EC54D0"
+    },
+    {
+      "profile": "ARM64-Release",
+      "nativeArchiveSha256": "D4E26A9A1D1DB9C9383FB23A1CA574A9C1A7101FE0C2FB7FD516E69D766EE9DA",
+      "sdkArchiveSha256": "C10463133CB10E1E7E2424400C954C0D11DCFE457AA493B9BA70061CAF02483E"
+    },
+    {
+      "profile": "ARM64-Debug",
+      "nativeArchiveSha256": "78BE4D8A7FAD89B8906048A4CD816B62737A8DCE59F986E554A75400DF7CE5B8",
+      "sdkArchiveSha256": "FA37C69DCD002BFB2ADB1841095ADAE8F08045789F4A486C724F707C77E41C79"
+    },
+    {
+      "profile": "ARM64-ASan-Debug",
+      "nativeArchiveSha256": "D5467B74CF586A1566228FE0B4543DA467DFDEC5A528CE68A8931A66EC1F5942",
+      "sdkArchiveSha256": "BA0A2F6E401E87126B5A8C2709EBC313C157A39B0043A12D34F156E8904B7A08"
+    }
+  ],
+  "realAsanDetection": true,
+  "localRuntimeComplete": false,
+  "benchmarkInputs": {
+    "dependency": "Exact API-4 a1915ffd single-library SDK; no API-5 adoption claim",
+    "editor": "Hidden native application with synthetic Unicode and CRLF fixtures; no desktop input or browser launch",
+    "application": "Frozen provider-save implementation and public 132-case catalog",
+    "startup": "Actual asynchronous recovery-first startup and current-intent cancellation",
+    "restart": "Actual child termination during durable partial write and fresh-process complete recovery"
+  },
+  "independentChecks": [
+    "All 141 original compiled-input bytes and every retained native/SDK/run archive member verified",
+    "Complete 132-case union equals the public catalog; actual symlink privilege failure retained",
+    "Original executable and canonical source/pin-bound receipts match every local profile",
+    "Actual interrupted-write restart and 36 hidden captures per x64 configuration retained",
+    "Four provider-refusal cases verify recovery admission, replacement provenance, interrupted failures and conflict revalidation"
+  ],
+  "limits": [
+    "Local symbolic-link fixture failed with Win32 1314; exact-source hosted native execution remains required",
+    "ARM64 entries are cross-builds, not native runtime acceptance",
+    "Ordinary local functional checks do not by themselves verify the production-only command-line boundary",
+    "No new foreground, physical IME, assistive-technology or physical-device acceptance",
+    "No paired-performance or complete-repository acceptance"
+  ]
+}

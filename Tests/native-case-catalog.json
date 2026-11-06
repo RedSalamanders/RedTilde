@@ -1,6 +1,10 @@
 {
   "version": 1,
   "cases": [
+    { "name": "Storage.ProviderFallbackProtectsBeforeMutation", "scope": "Storage" },
+    { "name": "Storage.ProviderFallbackRequiresAdmissionAndReplacementProvenance", "scope": "Storage" },
+    { "name": "Storage.ProviderFallbackFailureRetainsRecoverableSource", "scope": "Storage" },
+    { "name": "Storage.ProviderFallbackRechecksConflict", "scope": "Storage" },
     { "name": "Editor.ExplicitLinksConfirmAndDispatchWithoutEditing", "scope": "Editor" },
     { "name": "Editor.LinkConfirmationRejectsSupersededAndClosedOwners", "scope": "Editor" },
     { "name": "Editor.PendingLinkDispatchRetiresAfterApplicationClose", "scope": "Editor" },

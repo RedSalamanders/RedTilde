@@ -9,6 +9,12 @@ aliases and their shared identity: RedTilde first stores an independent complete
 shared file in place. If that write fails or is interrupted, it can leave partial file bytes; restart offers the
 complete admitted source as a recovery copy. Unavailable recovery storage prevents that write from starting.
 
+If a storage provider explicitly does not support replacing an existing file, document Save uses that same
+recovery-protected in-place method. It preserves the existing file identity and rechecks conflicts first.
+An interrupted or failed write can leave partial file bytes; the complete admitted writing remains available
+for recovery. Other save failures keep their ordinary error. Actual cloud, network-share and WSL support still
+requires separate location qualification.
+
 The [linked-save evidence](../Measurements/LinkedSaveAndCosmeticSettlement_2026-11-06/README.md) records the
 actual interrupted-write recovery checks and the remaining symbolic-link runtime verification.
 

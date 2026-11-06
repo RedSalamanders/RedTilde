@@ -1,5 +1,9 @@
 # Completed and archived plans
 
+## Completed scopes — 7 November 2026
+
+- [Provider save fallback](ProviderSaveFallback_2026-11-07.md) — durable recovery before provider-refused replacement fallback, provenance and conflict checks; six builds with the explicit local symbolic-link privilege boundary.
+
 ## Completed scopes — 6 November 2026
 
 - [Production probe and packaging boundaries](ProductionProbeBoundaries_2026-11-06.md) — early test-command refusal, ProductionOnly packaging, original write counterexample, six builds and thirteen actual x64 production-package refusals; local symbolic-link and hosted platform gates remain explicit.

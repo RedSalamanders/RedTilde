@@ -7,6 +7,12 @@ Rejected settings tests cover synchronous/asynchronous persistence and real hidd
 template tests compare exact LF/CRLF/CR/mixed source, normalized recovery previews, unchanged-draft identity
 and one-step history. Find uses invalid precommit UTF-16 admission to prove suppression unwinds and retry works.
 
+Provider-fallback fixtures direct an unsupported result at the actual replacement boundary and distinguish
+the same status at flush. Assert independently durable source before mutation, complete file identity/BOM/EOL
+preservation, missing-recovery refusal, unchanged saved facts on write/partial-write/flush failure, recoverable
+source after restart and conflict revalidation after replacement refusal. The actual local Win32 pipeline and
+production-free fault controls establish functional behavior, not native cloud/share/WSL qualification.
+
 Hidden no-activation scenarios observe foreground events filtered to the test process, including brief
 activation followed by restoration or window destruction. Subscribe before creating the application,
 retain the observation throughout the scenario, and check both queued events and current ownership.

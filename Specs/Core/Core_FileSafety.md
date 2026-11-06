@@ -15,6 +15,16 @@ remain unchanged on rejection.
 An ordinary, singly linked file save stages a unique sibling temporary file with `CREATE_NEW`, writes all bytes, flushes and closes it,
 then uses `ReplaceFileW` for an existing destination or `MoveFileExW` for a new destination. Remove only the
 owned temporary file on failure. Never clear dirty state on failed/cancelled storage or change path/BOM prematurely.
+An existing document whose actual `ReplaceFileW` operation returns `ERROR_NOT_SUPPORTED`,
+`ERROR_INVALID_FUNCTION` or `ERROR_CALL_NOT_IMPLEMENTED` may use the same recovery-protected in-place writer
+as a hardlink save. Reopen under the cooperative writer/deletion lock and recheck the expected identity/content
+before admitting an independently durable recovery copy of the complete intended source. Preserve the existing
+file object and publish its new stamp only after complete write, truncation, flush and identity verification.
+This fallback is non-atomic: failure may leave partial target bytes, but must retain the old saved baseline and
+complete recovery copy. Missing or unavailable recovery declines before target mutation. Only provenance from
+the replacement operation authorizes fallback; an equal HRESULT from staging, flush, readback or metadata does
+not. Access/sharing failures never authorize fallback. Raw settings/recovery atomic writes retain their ordinary
+failure result. Real cloud/share/WSL qualification remains separate from directed local provider refusals.
 Close the exclusive staging handle before failure cleanup, including failed WriteFile and FlushFileBuffers
 paths. Directed atomic-staging faults must leave the target bytes/stamp unchanged and no owned `.tmp` behind.
 An existing file identity (volume/file index where supplied by the filesystem, size, last-write and content

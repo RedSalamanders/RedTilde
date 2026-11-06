@@ -1,0 +1,98 @@
+{
+  "scope": "Focused local Win32 provider-refusal comparison; no complete application or real-share qualification",
+  "sourceCommit": "33ea112bb7fed87e7a1578f1df1c2c4457349697",
+  "sdkCommit": "a1915ffdd94b18fd1817371f1dc074f6a0b547f1",
+  "apiRevision": 4,
+  "baselinePassed": 1,
+  "baselineTotal": 4,
+  "candidatePassed": 4,
+  "candidateTotal": 4,
+  "archiveSha256": "990B282A70F0BF5CD5B1D3D3B08DAB2FD65439BFDCAF73DC2661D7D500BEA646",
+  "files": [
+    {
+      "path": "Common/Storage.cpp",
+      "bytes": 27479,
+      "sha256": "D21D28D9D57D2A58FAB9FF529F911C3BFC1FCD171ED858E808E807ADDC57AE5F"
+    },
+    {
+      "path": "Common/Storage.h",
+      "bytes": 3012,
+      "sha256": "B5941769795F32E2E7FA74CC3790AA947EEEB77C224664EDA71649B0DF140370"
+    },
+    {
+      "path": "Tests/Support/Support.Tests.StorageSafety.h",
+      "bytes": 46398,
+      "sha256": "E924859AF1B95EE9D1AF7E42BC1E4A09E735EB8F3C614BF90CBCAC6EE0EFEFA6"
+    },
+    {
+      "path": ".build/Storage-before-provider-fallback-with-seams.cpp",
+      "bytes": 26910,
+      "sha256": "DBB13D0CA73DFE8B7D88CEC03403592BBF5FAFA1908C4ED80FBA259580F4D131"
+    },
+    {
+      "path": ".build/ProviderFallbackNative/ProviderProbe.cpp",
+      "bytes": 1920,
+      "sha256": "949DD3B9762713BA8D15C742109A089EA53CDBC3731E3E05CDF923738C9B0109"
+    },
+    {
+      "path": ".build/ProviderFallbackNative/ProviderBaseline.vcxproj",
+      "bytes": 2748,
+      "sha256": "1887B40796C160577EFBE41D8ADD6087E2C9BDFBCBC6923C5FF7C9D591653CD6"
+    },
+    {
+      "path": ".build/ProviderFallbackNative/ProviderCandidate.vcxproj",
+      "bytes": 2724,
+      "sha256": "992C4526B2FD1DCB5CF274CCD540905CFE1749CF3F98D0D766F5335F270D7FB3"
+    },
+    {
+      "path": ".build/ProviderFallbackNative/baseline-corrected-build.log",
+      "bytes": 185,
+      "sha256": "004C9D70F2A24576DBFAD3B323F585AD2C400906336CD11758466B050DD59656"
+    },
+    {
+      "path": ".build/ProviderFallbackNative/candidate-build.log",
+      "bytes": 244,
+      "sha256": "364AE2402582D7CE78986C75FE373DCDE7D86D4288A351F145E518AC7135F925"
+    },
+    {
+      "path": ".build/ProviderFallbackNative/baseline-run.log",
+      "bytes": 454,
+      "sha256": "4FB4CF03A2E1B2A132304EF1A58F04B9342854AA04E17710689B43C75EC2D2FC"
+    },
+    {
+      "path": ".build/ProviderFallbackNative/candidate-run.log",
+      "bytes": 258,
+      "sha256": "CF8D507DC01E5FC55C397F7FA1E6221C7CF7AAD0D5177AA924926334DCF1528E"
+    },
+    {
+      "path": ".build/ProviderFallbackNative/baseline-bin/ProviderProbe.exe",
+      "bytes": 433664,
+      "sha256": "2309E841DB9D006CD2FA5561D88FCF09A294392D29F7A89DA79C7B8CD829AFEF"
+    },
+    {
+      "path": ".build/ProviderFallbackNative/baseline-bin/ProviderProbe.pdb",
+      "bytes": 4444160,
+      "sha256": "8DA792669527A76A577344E5E2D837C4635033271D7E61DC72D27AAB8C4A51E7"
+    },
+    {
+      "path": ".build/ProviderFallbackNative/candidate-bin/ProviderProbe.exe",
+      "bytes": 434176,
+      "sha256": "9D8A4A3F191588899D223B0A219F95D7495D7252E2CB607FB26128F79AA13910"
+    },
+    {
+      "path": ".build/ProviderFallbackNative/candidate-bin/ProviderProbe.pdb",
+      "bytes": 4444160,
+      "sha256": "B7767462B308F8713BA76D7F658A5E6D4F33FD21ED7FDD32EE1F882EA8A5033B"
+    },
+    {
+      "path": ".build/ProviderFallbackNative/original-sdk-identity.json",
+      "bytes": 814,
+      "sha256": "1A18D4CA18D9C5C5307E8CF8B896DD143D091D9906B354C9DAFCEE9FEED5C4F8"
+    },
+    {
+      "path": ".build/ProviderFallbackNative/original-sdk-header-bindings.json",
+      "bytes": 904,
+      "sha256": "B546CA2DFC480B24CA4F17EC04EFC5EC37AF60DA684B7B9480B99DA5EB7121D4"
+    }
+  ]
+}
