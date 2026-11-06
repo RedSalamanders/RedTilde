@@ -1,1 +1,0 @@
-- Save existing documents through a recovery-protected in-place writer when their provider explicitly refuses native replacement, preserving file identity and conflict checks. Keep durable recoverable source and the old saved baseline after partial failure; other operation failures never authorize fallback.
