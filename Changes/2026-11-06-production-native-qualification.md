@@ -1,1 +1,0 @@
-- Close production-boundary qualification at exact main `5c19d4bd`: verify six native profiles, all original payloads and both `0.1.355` portable smoke receipts with thirteen actual launch refusals each. Retain earlier omitted-proof and privilege failures; keep physical, API-5 adoption and performance gates separate.
