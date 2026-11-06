@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-retained-save-safety-attempts",
+  "claim": "Original independent counterexamples and unaccepted startup build; no failed build is qualified",
+  "attempts": [
+    {
+      "retentionId": "file-safety-instrumented-baseline-2ef76e94",
+      "disposition": "Three independent storage regressions fail before implementation: a late external replacement is overwritten, denied post-publication readback reports a failed save, and an equal-byte/equal-time replacement loses object identity.",
+      "files": [
+        {
+          "file": "diagnostic.json",
+          "bytes": 1664,
+          "sha256": "3233C2DD163917DB96815135DFC1F49FC87EF65EE30A2F8770D1EB952FA393A2"
+        },
+        {
+          "file": "diagnostic.zip",
+          "bytes": 872660,
+          "sha256": "8CFAC04431243FFBF08F8409A184DC370A5966548516171712DF6833FB2FE881"
+        },
+        {
+          "file": "original-compiled-inputs.json",
+          "bytes": 23958,
+          "sha256": "E5E73ECB26C6294F451215ECBEF09DB83C801A6D90A7B9372AF51985B8F3CB25"
+        },
+        {
+          "file": "original-compiled-inputs.zip",
+          "bytes": 1088329,
+          "sha256": "C06FBCDBC0A7DB5137AFF071FD155660B387C8BD9E7DC5B2C4DA80AFFA0D16E6"
+        }
+      ]
+    },
+    {
+      "retentionId": "file-safety-startup-failure-77ea3cf",
+      "disposition": "The first zero-warning application build exits with 0xC0000138 (STATUS_ORDINAL_NOT_FOUND); the native common-controls v6 manifest dependency was missing. Binary, symbols, manifest-bearing source and original/replayed startup diagnostics remain retained. No successful native test claim is made for it.",
+      "files": [
+        {
+          "file": "catalog-replay-exit.json",
+          "bytes": 103,
+          "sha256": "FE82D0A515404400A07BA2739E679728380AEC3AAC0DEFF31F469F067B628F21"
+        },
+        {
+          "file": "catalog-replay.stderr.log",
+          "bytes": 0,
+          "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+        },
+        {
+          "file": "catalog-replay.stdout.log",
+          "bytes": 0,
+          "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+        },
+        {
+          "file": "first-test-failure.log",
+          "bytes": 388,
+          "sha256": "0E94216897F4E53803734004FEE4B4DCAC7A51E6DF213B4AB195C14F6FD5D9A4"
+        },
+        {
+          "file": "original-compiled-inputs.json",
+          "bytes": 23961,
+          "sha256": "F9FBE2CC92C302DAA0C361DBFDD60B663E8B3249EB0E2BF4438EE2DF13B7998D"
+        },
+        {
+          "file": "original-compiled-inputs.zip",
+          "bytes": 1095510,
+          "sha256": "03E5DF10C24CE816FBCAE563FDCDC9FC99C7B4BBD3BF52677DBBED703D6881DF"
+        },
+        {
+          "file": "unaccepted-native.json",
+          "bytes": 887,
+          "sha256": "8BAAEAFA4BFACB29D13D5BAEA6327E05A7A6A2547E4FE6EEA5F9AD8769839378"
+        },
+        {
+          "file": "unaccepted-native.zip",
+          "bytes": 13574075,
+          "sha256": "C987DC68F1050CDF70B78319B434E5A313DF9043BB060E74D28507FCBC1DFAC1"
+        },
+        {
+          "file": "zero-warning-build.log",
+          "bytes": 1688,
+          "sha256": "1EACF43BF122EBC3AF2EE281E7C769293672B9BC7747692911B635997B81D48F"
+        }
+      ]
+    },
+    {
+      "retentionId": "full-file-identity-baseline-3c673cb",
+      "disposition": "An independent FILE_ID_INFO oracle exposes truncated native volume/file identities on actual NTFS and ReFS before the complete 64-bit volume/128-bit file-id repair. Isolated probes are distinct from the final whole-application matrix.",
+      "files": [
+        {
+          "file": "diagnostic.json",
+          "bytes": 1843,
+          "sha256": "51300750A2F2E00434AD21151C763A999669E89ABFFD108B3AE939DED33B54F0"
+        },
+        {
+          "file": "diagnostic.zip",
+          "bytes": 900003,
+          "sha256": "7E1D11303366F570C53DFDA48FF53053A757E3D43FB1F7A80995910FF1EFD648"
+        },
+        {
+          "file": "original-compiled-inputs.json",
+          "bytes": 23961,
+          "sha256": "1966437396866D8700EB251A2F8417373436D8FC9096EF7D18D2FA4BC13A9E13"
+        },
+        {
+          "file": "original-compiled-inputs.zip",
+          "bytes": 1098323,
+          "sha256": "E8056488DFBDB7E916BA428F7232B7C8ECBD10F6D4338573DC7FCB8E09A1E0CE"
+        }
+      ]
+    }
+  ]
+}
