@@ -26,7 +26,8 @@ enum class AtomicWriteCheckpoint
 {
     Staged,
     Published,
-    InPlaceProtected
+    InPlaceProtected,
+    InPlacePartialWritten
 };
 using AtomicWriteHook = void (*)(AtomicWriteCheckpoint, const std::filesystem::path &, void *) noexcept;
 void SetAtomicWriteHookForTest(AtomicWriteHook hook, void *context) noexcept;

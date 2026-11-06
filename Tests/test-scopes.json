@@ -160,6 +160,7 @@
       "pattern": "Tests/Support/Support.Tests.StorageSafety.h",
       "scopes": [
         "Storage",
+        "Recovery",
         "Tooling"
       ],
       "reason": "directed storage checkpoints and reviewed native storage case registrations"

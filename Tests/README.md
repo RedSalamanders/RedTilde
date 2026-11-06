@@ -10,6 +10,8 @@ They exercise public controls and app commands without desktop input, clipboard 
 The native catalog contains 115 cases: Storage (24), Settings (4), Recovery (19) and Editor (68).
 Linked-file cases check complete recovery before mutation, all hardlink identities, pre-write/partial-write/flush
 failures, restart discovery, independent recovery leases, failed admission, late aliases and followed symbolic targets.
+RecoveryRestart additionally terminates an owned child during a protected partial hardlink write, then verifies
+the released lease and complete admitted recovery in a fresh process. It uses no desktop input or crash-handler writes.
 Directed storage checkpoints reproduce edits during staging and post-publication read denial. The same native
 regressions check equal-byte/timestamp object replacement, cooperative sharing and Save As aliases. Hidden app
 commands cover all four conflict choices, duplicate Close, cancelled/stale choices, failed/stale Reload and

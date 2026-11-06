@@ -472,6 +472,9 @@ enum class CoreTestScope
     EditorRendering
 };
 int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope = CoreTestScope::All, bool listOnly = false);
+#if defined(REDTILDE_ENABLE_TESTS)
+int RunLinkedSaveInterruptionProbe(const std::filesystem::path &root, bool restart);
+#endif
 int RunPerformanceProbe(Application &app, const LaunchOptions &options);
 int RunDesignInteractiveProbe(Application &app, const LaunchOptions &options);
 } // namespace RedTilde

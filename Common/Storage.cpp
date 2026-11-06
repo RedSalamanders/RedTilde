@@ -415,6 +415,8 @@ HRESULT SaveLinkedDocument(const std::filesystem::path &target, const std::files
         const auto partial = static_cast<DWORD>((std::max)(std::size_t{1u}, bytes.size() / 2u));
         if (!bytes.empty() && !WriteFile(file.get(), bytes.data(), partial, &written, nullptr))
             return LastError();
+        if (atomicWriteHook)
+            atomicWriteHook(AtomicWriteCheckpoint::InPlacePartialWritten, target, atomicWriteContext);
         return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
     }
 #endif
