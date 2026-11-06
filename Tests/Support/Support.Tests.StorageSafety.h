@@ -216,10 +216,82 @@ inline void RegisterStorageSafetyTests(const std::filesystem::path &root,
              RequireStorage(FAILED(SaveDocument(path, L"new source", false, &original, saved, false, nullptr, &unavailable)) &&
                                 FAILED(SaveDocument(path, L"new source", false, &original, saved, false, nullptr, &invalid)),
                             "unavailable or invalid recovery fails admission");
+             const auto fullDirectory = directory / L"full-state";
+             std::filesystem::create_directories(fullDirectory / L"Recovery");
+             for (unsigned index = 0; index < 512; ++index)
+             {
+                 const auto leaf = fullDirectory / L"Recovery" / (L"unrelated-" + std::to_wstring(index));
+                 wil::unique_handle file(CreateFileW(leaf.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr));
+                 RequireStorage(static_cast<bool>(file), "seed the bounded recovery-directory admission fixture");
+             }
+             const SaveRecoveryContext full{fullDirectory, {0, 0}, 3};
+             RequireStorage(SaveDocument(path, L"new source", false, &original, saved, false, nullptr, &full) ==
+                                HRESULT_FROM_WIN32(ERROR_TOO_MANY_OPEN_FILES),
+                            "full recovery-directory budget declines before target mutation");
              StoredDocument actual, shared;
              RequireStorage(saved == original && SUCCEEDED(LoadDocument(path, actual)) && SUCCEEDED(LoadDocument(alias, shared)) &&
                                 actual.text == L"retained" && actual.stamp == original && shared.stamp == original,
                             "every admission failure preserves original bytes, all identities and caller baseline");
+         });
+    test("Storage.HardlinkSaveSuccessSurvivesBlockedRecoveryRetirement",
+         [&]
+         {
+             const auto directory = root / L"hardlink-retirement";
+             std::filesystem::create_directories(directory);
+             const auto path = directory / L"notes.md", alias = directory / L"same.md";
+             FileStamp original;
+             RequireStorage(SUCCEEDED(SaveDocument(path, L"original", false, nullptr, original)) &&
+                                CreateHardLinkW(alias.c_str(), path.c_str(), nullptr),
+                            "seed retirement fixture");
+             const SaveRecoveryContext recovery{directory / L"state", {0, 4}, 101};
+             struct Inspection
+             {
+                 explicit Inspection(std::filesystem::path input) : directory(std::move(input)) {}
+                 Inspection(const Inspection &) = delete;
+                 Inspection &operator=(const Inspection &) = delete;
+                 std::filesystem::path directory;
+                 wil::unique_handle record;
+                 HRESULT result = E_UNEXPECTED;
+             } inspection{recovery.dataDirectory};
+             SetAtomicWriteHookForTest(
+                 [](AtomicWriteCheckpoint phase, const std::filesystem::path &, void *context) noexcept
+                 {
+                     if (phase != AtomicWriteCheckpoint::InPlaceProtected)
+                         return;
+                     auto &current = *static_cast<Inspection *>(context);
+                     // A test-only reader keeps the complete protection file but
+                     // denies its deletion. The production scanner omits live leases.
+                     try
+                     {
+                         for (const auto &entry : std::filesystem::directory_iterator(current.directory / L"Recovery"))
+                             if (entry.path().extension() == L".rtd")
+                                 current.record.reset(CreateFileW(entry.path().c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
+                                                                  FILE_ATTRIBUTE_NORMAL, nullptr));
+                         current.result = current.record ? S_OK : E_FAIL;
+                     }
+                     catch (const std::bad_alloc &)
+                     {
+                         std::terminate();
+                     }
+                     catch (const std::exception &)
+                     {
+                         current.result = E_FAIL; // Test-hook ABI reports inspection failure.
+                     }
+                 },
+                 &inspection);
+             const auto clear = wil::scope_exit([] { SetAtomicWriteHookForTest(nullptr, nullptr); });
+             FileStamp saved;
+             RequireStorage(SUCCEEDED(SaveDocument(path, L"fully saved", false, &original, saved, false, nullptr, &recovery)) &&
+                                SUCCEEDED(inspection.result),
+                            "recovery retirement failure cannot turn completed storage into a failed save");
+             inspection.record.reset();
+             StoredDocument actual, shared;
+             RequireStorage(SUCCEEDED(LoadDocument(path, actual)) && SUCCEEDED(LoadDocument(alias, shared)) && actual.text == L"fully saved" &&
+                                actual.stamp == shared.stamp && actual.stamp == saved,
+                            "successful known-byte stamp remains the new baseline");
+             const auto snapshots = ProtectedSaveSnapshots(recovery.dataDirectory);
+             RequireStorage(snapshots.size() == 1 && snapshots[0].text == actual.text && snapshots[0].generation == 101,
+                            "blocked retirement retains an extra valid recovery copy");
          });
     test("Storage.NewHardlinkDuringStagingSelectsProtectedInPlaceSave",
          [&]

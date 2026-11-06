@@ -1,6 +1,7 @@
 {
   "version": 1,
   "cases": [
+    { "name": "Storage.HardlinkSaveSuccessSurvivesBlockedRecoveryRetirement", "scope": "Storage" },
     { "name": "Editor.HardlinkSaveWorkerRetainsAliasesAndLaterEdits", "scope": "Editor" },
     { "name": "Storage.HardlinkSavePreservesAliasesAndProtectsBeforeMutation", "scope": "Storage" },
     { "name": "Storage.HardlinkFailuresRetainCompleteRecoveryAndBaseline", "scope": "Storage" },
