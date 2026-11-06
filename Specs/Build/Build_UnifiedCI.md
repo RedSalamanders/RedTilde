@@ -72,6 +72,12 @@ The adapter preserves exact source, dependency, public-header, compiler-context 
 `package.ps1` requests `build.ps1 -Configuration Release -ProductionOnly` by default. `-SkipBuild` accepts only
 an otherwise valid receipt whose `testsEnabled` is the Boolean `false`; a test-enabled artifact is refused
 before creating package staging. Ordinary test-enabled Release remains required for regression execution.
+The production artifact MUST include the original package receipt as `portable-smoke.json`, preserving its
+exact bytes, positive-capture result and individual test-only refusal records. Admit its platform, ZIP SHA-256,
+Boolean production/test mode, the complete thirteen-case refusal union and each observed successful outcome
+before writing a successful outer CI receipt. Missing, duplicate or unsuccessful cases fail admission.
+A missing or mismatched original receipt fails the production role. An outer `smokePassed` Boolean alone
+does not establish independently reviewable clean-extraction evidence.
 Production launch returns 2 when parsing self-test/list/scope, interactive-test, crash, recovery-crash/restart,
 preferences, sanitizer or linked-save crash/restart switches, before application profile resolution, crash-handler
 installation, probe dispatch or window creation. Operand-taking test switches also refuse with missing operands.

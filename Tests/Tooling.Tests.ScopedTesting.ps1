@@ -20,6 +20,56 @@ function New-Repository([string]$Directory){
     Invoke-FixtureGit $Directory @('config','user.name','Scope fixture');Invoke-FixtureGit $Directory @('config','user.email','fixture@example.invalid')
 }
 try{
+    foreach($mode in @('Complete','Missing','Mismatch','Incomplete','Duplicate','Failed','Created','WrongPlatform','TestEnabled','SmokeFailed')){
+    Case ('production CI retains original smoke proof before reporting success ('+$mode+')') {
+        $adapter=Join-Path $root 'Tools/Invoke-ProjectCi.ps1'
+        $tokens=$null;$errors=$null
+        $ast=[Management.Automation.Language.Parser]::ParseFile($adapter,[ref]$tokens,[ref]$errors)
+        Assert ($errors.Count -eq 0) 'Actual production adapter did not parse'
+        $clauses=@($ast.FindAll({param($node)$node -is [Management.Automation.Language.IfStatementAst]},$true)|ForEach-Object Clauses|
+            Where-Object {$_.Item1.Extent.Text -ceq '$Phase -eq ''Production''' -and $_.Item2.Extent.Text.Contains("Run 'package.ps1'")})
+        Assert ($clauses.Count -eq 1) 'Actual production phase was not selected exactly once'
+        $body=$clauses[0].Item2.Extent.Text
+        $production=[scriptblock]::Create($body.Substring(1,$body.Length-2))
+        $root=Join-Path $fixture ('production-proof-'+$mode)
+        $Platform='x64';$context=[pscustomobject]@{root=$root}
+        function Run([string]$Script,[string[]]$CommandArguments){
+            Assert ($Script -ceq 'package.ps1' -and ($CommandArguments -join '|') -ceq '-Platform|x64|-SkipBuild') 'Production did not use the public package command'
+            $package=Join-Path $root '.build/package/synthetic-x64-0.zip'
+            Put $package 'original synthetic package bytes'
+            if($mode -ceq 'Missing'){return}
+            $names=@('self-test','test-scope','list-tests','interactive','crash','recovery-crash','recovery-restart',
+                'preferences','asan','linked-save-crash','linked-save-restart','test-scope-missing-value','interactive-missing-value')
+            $refusals=@($names|ForEach-Object {@{name=$_;exitCode=2;dataDirectoryAbsent=$true}})
+            if($mode -ceq 'Incomplete'){$refusals=$refusals[0..11]}
+            if($mode -ceq 'Duplicate'){$refusals[12].name=$refusals[0].name}
+            if($mode -ceq 'Failed'){$refusals[12].exitCode=0}
+            if($mode -ceq 'Created'){$refusals[12].dataDirectoryAbsent=$false}
+            $record=[ordered]@{platform='x64';testsEnabled=$false;smokePassed=$true;
+                archiveSha256=$(if($mode -ceq 'Mismatch'){'0'*64}else{(Get-FileHash $package).Hash});
+                testOnlyEntryPointRefusals=$refusals}
+            if($mode -ceq 'WrongPlatform'){$record.platform='ARM64'}
+            if($mode -ceq 'TestEnabled'){$record.testsEnabled=$true}
+            if($mode -ceq 'SmokeFailed'){$record.smokePassed=$false}
+            Put ($package+'.receipt.json') (($record|ConvertTo-Json -Depth 5)+"`n ")
+        }
+        function Write-CiProductionReceipt($Context,$Archives,[bool]$TestModeDisabled,[bool]$SmokePassed){
+            Assert ($TestModeDisabled -and $SmokePassed -and $Archives.Count -eq 1) 'Production summary arguments changed'
+            Put (Join-Path $root '.build/ci/production/x64/outer.json') 'synthetic successful summary'
+        }
+        $refused=$false
+        try{& $production}catch{$refused=$_.Exception.Message.StartsWith('Original production package smoke receipt',[StringComparison]::Ordinal)}
+        $output=Join-Path $root '.build/ci/production/x64/portable-smoke.json'
+        if($mode -ceq 'Complete'){
+            Assert (-not $refused -and (Test-Path -LiteralPath $output)) 'Production discarded its actual smoke receipt'
+            $original=Join-Path $root '.build/package/synthetic-x64-0.zip.receipt.json'
+            Assert ((Get-FileHash $output).Hash -ceq (Get-FileHash $original).Hash) 'Production normalized or replaced the original smoke bytes'
+        }else{
+            Assert $refused 'Production accepted missing or mismatched original smoke proof'
+            Assert (-not (Test-Path -LiteralPath $output) -and -not (Test-Path -LiteralPath (Join-Path $root '.build/ci/production/x64/outer.json'))) 'Production reported success before admitting original proof'
+        }
+    }
+    }
     Case 'Editor child partitions preserve the exact reviewed union without extending child timeouts' {
         Import-Module (Join-Path $root 'Build/Harness.psm1') -Force
         $cases=@(
