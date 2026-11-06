@@ -197,6 +197,12 @@ in the package receipt, bound to the same original executable/version/ZIP as the
 A failure retains its raw process logs and blocks packaging acceptance; catalog or source inspection alone
 does not substitute for these executions. Compiler-free public-command fixtures also verify that default
 packaging requests ProductionOnly and that SkipBuild/default paths reject test-enabled artifacts before staging.
+Exercise the actual production adapter phase with complete, missing, mismatched, incomplete, duplicate,
+failed, data-writing, wrong-platform, test-enabled and unsuccessful-smoke original receipts.
+Successful forwarding preserves the receipt bytes; refusal occurs before emitting a successful summary or
+forwarded proof. Hosted review verifies the original per-switch results and ZIP/binary bindings, alongside
+every canonical native payload member and capture hash. Original green runs that omitted detailed proof
+remain recorded with that limitation; never reconstruct their missing receipts from a later run.
 
 RecoveryRestart also runs test-only `--linked-save-crash-probe` and `--linked-save-restart-probe` children in one
 explicit absolute harness directory. The first exits with exactly 79 after an admitted hardlink write has changed

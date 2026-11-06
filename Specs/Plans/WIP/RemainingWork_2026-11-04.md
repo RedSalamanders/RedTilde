@@ -310,8 +310,12 @@ follow-up is removed. Completion correctly reported failed native qualification.
   Implementation and local/x64-production verification are complete at `526cc8db`: six warning-free builds,
   127 passing cases/36 captures per x64 profile plus the actual Win32 1314 failure, real ASan, and thirteen
   passing refusals against the clean-extracted production ZIP. The [scoped closeout](../Done/ProductionProbeBoundaries_2026-11-06.md)
-  retains the original exit-0/preferences-write counterexample. Exact-source hosted native ARM64 and both
-  production roles remain required before checking this broader gate.
+  retains the original exit-0/preferences-write counterexample. All six hosted native profiles now pass;
+  Debug/ASan original payloads are fully byte-verified in the [hosted packet](../../../Measurements/ProductionProbeBoundaries_2026-11-06/hosted-debug-asan.json).
+  Release run [42270561445](https://github.com/RedSalamanders/RedTilde/actions/runs/42270561445) passes all seven
+  jobs and both production roles, but its artifacts omit the detailed package smoke receipts. The adapter
+  correction retains and validates those originals; a fresh retained per-switch proof on both architectures
+  remains required before checking this broader gate.
 - [ ] Coordinate future checked-failure/API changes with the
   [single DxUi plan](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Plans/WIP/RemainingWork_2026-11-04.md) and active
   [implemented API-5 failure contract](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Core/Core_FailureHandling.md). Keep this consumer's explicit API-4 lock until a separate

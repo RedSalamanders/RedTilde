@@ -28,6 +28,17 @@ older blanket demand to remove every `Tests/` source from every Release role is 
 Durable requirements are in [the build/CI contract](../../Specs/Build/Build_UnifiedCI.md) and
 [validation](../../Specs/Testing/Testing_Validation.md); [portable usage](../../docs/Portable.md) explains the
 command behavior. The [scoped Done record](../../Specs/Plans/Done/ProductionProbeBoundaries_2026-11-06.md)
-closes implementation and these local/x64-production checks. Native ARM64 runtime/production, physical
-input/AT, application API-5 migration and performance stay in the
+closes implementation and these local/x64-production checks. The hosted native-runtime follow-up below
+closes all six runtime profiles. Detailed hosted production proof, physical input/AT, application API-5 migration and performance stay in the
 [single active plan](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md).
+
+[Hosted Debug/ASan](hosted-debug-asan.json) independently verifies four native x64/ARM64 profiles at
+`7d1c6ecb`, each with all 128 cases, 36 captures, actual symbolic-link saves, original interrupted-write
+recovery and independent heap-boundary controls. Both ASan profiles detect the real instrumented fault.
+Every original payload member is checked against its completion manifest, in addition to wrapper digests.
+The local privilege failures remain retained. Release run `42270561445`, exact `03a5ee06`, passes all seven
+jobs, but its production artifacts omit the detailed original smoke receipts. The CI adapter now forwards
+and validates those original bytes; fresh native production receipts remain required to close that proof gap.
+The adapter checks the complete thirteen-case union and each exit/data-access outcome before reporting success.
+Ten focused fixtures execute its actual production body, covering unchanged-byte forwarding and missing,
+mismatched, incomplete, duplicate, failed, data-writing, wrong-platform, test-enabled and unsuccessful-smoke records.

@@ -18,7 +18,7 @@ Normal regression or explicit Full qualification; never advances automatic Relea
 .PARAMETER DevelopmentEngine
 Allows a local engine under development for compiler-free checks only.
 .OUTPUTS
-Canonical test evidence, source-bound receipts and qualified ZIPs; GitHub job output paths.
+Canonical test evidence, source-bound receipts and qualified ZIPs; original portable-smoke.json production proof and GitHub job output paths.
 .NOTES
 Requires PowerShell 7.4 and Git. Native work is hosted-only and uses the matching architecture.
 Static never invokes compiler fixtures. No publication or source/pin updates.
@@ -69,7 +69,24 @@ if ($Phase -in @('ReleaseTestBuild','Qualification','Production')) {
 if ($Phase -eq 'Production') {
     Run 'package.ps1' @('-Platform',$Platform,'-SkipBuild')
     $archives = @(Get-ChildItem (Join-Path $root '.build/package') -Filter "*-$Platform-*.zip" -File | ForEach-Object FullName)
+    if ($archives.Count -ne 1) { throw 'Expected one original production package and smoke receipt.' }
+    $smokePath = $archives[0]+'.receipt.json'
+    if (-not (Test-Path -LiteralPath $smokePath -PathType Leaf)) { throw 'Original production package smoke receipt is missing.' }
+    $smoke = Get-Content -LiteralPath $smokePath -Raw | ConvertFrom-Json
+    $expectedRefusals = @('self-test','test-scope','list-tests','interactive','crash','recovery-crash','recovery-restart',
+        'preferences','asan','linked-save-crash','linked-save-restart','test-scope-missing-value','interactive-missing-value')
+    if ($smoke.platform -cne $Platform -or $smoke.testsEnabled -isnot [bool] -or $smoke.testsEnabled -or
+        $smoke.smokePassed -isnot [bool] -or -not $smoke.smokePassed -or
+        $smoke.archiveSha256 -ine (Get-FileHash -LiteralPath $archives[0] -Algorithm SHA256).Hash -or
+        @($smoke.testOnlyEntryPointRefusals).Count -ne $expectedRefusals.Count -or
+        @(Compare-Object $expectedRefusals @($smoke.testOnlyEntryPointRefusals.name) -CaseSensitive).Count -or
+        @($smoke.testOnlyEntryPointRefusals | Where-Object { $_.exitCode -ne 2 -or $_.dataDirectoryAbsent -isnot [bool] -or -not $_.dataDirectoryAbsent }).Count) {
+        throw 'Original production package smoke receipt is incomplete or mismatched.'
+    }
     Write-CiProductionReceipt -Context $context -Archives $archives -TestModeDisabled $true -SmokePassed $true
+    # The workflow uploads this directory. A summary boolean cannot replace the
+    # original clean-extraction capture and per-switch refusal results.
+    Copy-Item -LiteralPath $smokePath -Destination (Join-Path $root ".build/ci/production/$Platform/portable-smoke.json")
     return
 }
 if ($Platform -eq 'x64') { Run 'validate.ps1' }
