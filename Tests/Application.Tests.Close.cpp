@@ -116,6 +116,53 @@ void Edit(Application &app, std::wstring text)
 } // namespace
 void RegisterCloseTests(const std::filesystem::path &root, const std::function<void(std::string_view, const std::function<void()> &)> &test)
 {
+    test("Editor.HardlinkSaveWorkerRetainsAliasesAndLaterEdits",
+         [&]
+         {
+             for (const bool saveAs : {false, true})
+             {
+                 Testing::ForegroundOwnershipObserver foreground;
+                 LaunchOptions launch;
+                 launch.headless = true;
+                 launch.dataDirectory = root / (saveAs ? L"worker-link-save-as" : L"worker-link-save");
+                 const auto target = launch.dataDirectory / L"notebook.md", alias = launch.dataDirectory / L"same-notebook.md";
+                 launch.filePickerForTest = [&](bool saving) { return saving ? alias : std::filesystem::path{}; };
+                 const auto gate = launch.fileGateForTest = std::make_shared<AsyncFiles::TestGate>();
+                 Application app(launch);
+                 Success(app.Initialize(), "create hidden linked-file worker fixture");
+                 const auto release = ReleaseOnExit(gate);
+                 Seed(app, target);
+                 Require(CreateHardLinkW(alias.c_str(), target.c_str(), nullptr), "create owned application save alias");
+                 StoredDocument original;
+                 Success(LoadDocument(target, original), "record original shared object identity");
+                 Edit(app, L"Admitted writing\r\n");
+                 const auto admitted = app.Document().GetText();
+                 Checkpoint(app);
+                 app.Execute(saveAs ? Command::SaveAs : Command::Save);
+                 Entered(gate);
+                 Edit(app, L"Later writing\r\n");
+                 const auto later = app.Document().Snapshot();
+                 Checkpoint(app);
+                 Release(gate);
+                 Pump(app);
+                 StoredDocument actual, shared;
+                 Success(LoadDocument(target, actual), "read admitted worker save");
+                 Success(LoadDocument(alias, shared), "read application save alias");
+                 Require(actual.text == admitted && actual.stamp == shared.stamp && actual.stamp.volume == original.stamp.volume &&
+                             actual.stamp.fileIndex == original.stamp.fileIndex && actual.stamp.fileIndexHigh == original.stamp.fileIndexHigh,
+                         "Save and Save As preserve both aliases and write only the admitted immutable source");
+                 Require(app.Dirty() && app.Document().Snapshot().IsSameRevision(later) && app.Document().CanUndo() &&
+                             !HasSaveFailure(app.Host().GetRoot()),
+                         "completed save preserves later source/history and its dirty protection");
+                 app.Execute(Command::Save);
+                 Await(app, [&] { return !app.Dirty(); }, "a later explicit save accepts the preceding successful linked baseline");
+                 Checkpoint(app);
+                 Success(LoadDocument(target, actual), "read final explicitly saved source");
+                 Require(actual.text == app.Document().GetText() && Copies(launch.dataDirectory).empty(),
+                         "clean completion retires only the matching ordinary and independent save copies");
+                 Require(foreground.NeverAcquiredForeground() && !IsWindowVisible(app.Window()), "linked save coverage never takes desktop focus");
+             }
+         });
     test("Editor.OpenErrorsExplainEncodingAndCapacity",
          [&]
          {

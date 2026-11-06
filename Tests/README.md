@@ -7,7 +7,7 @@ Run `test.ps1 -Configuration Debug -Suite Core`; use `-SkipBuild` for the exact 
 Native cases are compiled from `Application.Tests.Core.cpp` into the same executable and run with `--self-test`.
 Core also runs a hidden child-process probe that changes preferences, closes immediately and verifies the final state after process exit.
 They exercise public controls and app commands without desktop input, clipboard access or foreground activation.
-The native catalog contains 114 cases: Storage (24), Settings (4), Recovery (19) and Editor (67).
+The native catalog contains 115 cases: Storage (24), Settings (4), Recovery (19) and Editor (68).
 Linked-file cases check complete recovery before mutation, all hardlink identities, pre-write/partial-write/flush
 failures, restart discovery, independent recovery leases, failed admission, late aliases and followed symbolic targets.
 Directed storage checkpoints reproduce edits during staging and post-publication read denial. The same native

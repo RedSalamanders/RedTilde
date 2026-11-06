@@ -2,6 +2,7 @@
 #include "Common/Recovery.h"
 #include "Common/Storage.h"
 #include <cstring>
+#include <format>
 #include <functional>
 #include <stdexcept>
 #include <wil/resource.h>
@@ -250,8 +251,10 @@ inline void RegisterStorageSafetyTests(const std::filesystem::path &root,
              const auto target = directory / L"世界.md", link = directory / L"linked-notes.md";
              FileStamp original;
              RequireStorage(SUCCEEDED(SaveDocument(target, L"original", false, nullptr, original)), "seed symlink target");
-             RequireStorage(CreateSymbolicLinkW(link.c_str(), target.filename().c_str(), SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE),
-                            "create owned relative symlink");
+             const auto created = CreateSymbolicLinkW(link.c_str(), target.filename().c_str(), SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE);
+             const auto linkError = GetLastError();
+             RequireStorage(created, std::format("create owned relative symlink (Win32 {})", linkError).c_str());
+             const auto removeLink = wil::scope_exit([&] { (void)DeleteFileW(link.c_str()); });
              FileStamp saved;
              RequireStorage(SUCCEEDED(SaveDocument(link, L"revised target\r\n", true, &original, saved)), "save final symlink target atomically");
              const auto attributes = GetFileAttributesW(link.c_str());
