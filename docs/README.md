@@ -4,6 +4,11 @@ Invalid or oversized recovery copies are kept intact in quarantine instead of in
 copies remain available. An existing quarantine file is preserved; the original input stays intact if it
 cannot be moved beside that earlier file. Recovery never silently truncates your writing.
 
+Saving through a symbolic link keeps the link and updates its target. A file with several hardlinks keeps those
+aliases and their shared identity: RedTilde first stores an independent complete recovery copy, then writes the
+shared file in place. If that write fails or is interrupted, it can leave partial file bytes; restart offers the
+complete admitted source as a recovery copy. Unavailable recovery storage prevents that write from starting.
+
 Every modified workspace document has its own recovery copy. Healthy editing checkpoints after a short pause,
 with a five-second maximum admission delay while typing continuously. After a crash and relaunch, preview the
 last durable copies and choose **Restore a copy** or **Restore all copies**. Each restored document remains dirty

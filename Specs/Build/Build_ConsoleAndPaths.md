@@ -39,6 +39,10 @@ A native success summary is green only after native exit success, zero logged
 warnings/errors and the entrypoint's existing provenance/attestation checks.
 Failed builds remain failures. Clean/package-only operations preserve their
 existing meaning and do not pretend to be native compilation.
+An observed structured native-tool exception dump (`ExceptionCode =` with a nonzero eight-digit
+hexadecimal code, including an optional MSBuild node prefix or `0x`) rejects both attestation and
+green result output even if the tool chain returns zero and prints a successful MSBuild footer.
+Ordinary diagnostic prose containing those words and zero exception codes are not exception dumps.
 
 Existing artifact and log paths become local file hyperlinks in terminals with
 OSC 8 support. File URIs use localhost, proper URI escaping, and reject terminal

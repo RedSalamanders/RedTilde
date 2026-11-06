@@ -1,0 +1,1 @@
+- Reject structured native-tool exception dumps before attestation or green build output even when MSBuild exits successfully; test node prefixes, hexadecimal forms, clean footers and ordinary-text false positives.

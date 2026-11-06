@@ -1903,7 +1903,8 @@ void Application::Save(bool saveAs, bool force, std::optional<std::filesystem::p
     }
     const auto expected = (!force && !documentPath.empty()) ? std::optional<FileStamp>(stamp) : std::nullopt;
     const bool sameIdentityOnly = saveAs && path.lexically_normal() != documentPath.lexically_normal();
-    const HRESULT hr = files.Submit(true, path, editor->GetText(), bom, expected, sameIdentityOnly, false, documentPath);
+    const SaveRecoveryContext protection{options.dataDirectory, editor->GetSelection(), ++recoveryGeneration};
+    const HRESULT hr = files.Submit(true, path, editor->GetText(), bom, expected, sameIdentityOnly, false, documentPath, protection);
     if (FAILED(hr))
     {
         afterSave = {};

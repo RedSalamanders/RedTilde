@@ -1,4 +1,4 @@
-# Shared build-console contract, version 1. Kept identical in the five independent repositories.
+# Shared build-console formatting contract, version 1; reject structured native tool exceptions.
 Set-StrictMode -Version Latest
 
 function Get-NativeBuildDiagnostics {
@@ -6,8 +6,12 @@ function Get-NativeBuildDiagnostics {
     param([Parameter(Mandatory)][string]$LogPath)
     $full=[IO.Path]::GetFullPath($LogPath)
     if(-not(Test-Path -LiteralPath $full -PathType Leaf)){throw "Build diagnostics log is missing: $full"}
-    $warnings=0;$errors=0
+    $warnings=0;$errors=0;$toolExceptions=0
     foreach($line in [IO.File]::ReadLines($full)){
+        # A child tool can fail while MSBuild still reports a successful footer.
+        $exception=[regex]::Match($line,'^\s*(?:\d+>)?\s*ExceptionCode\s*=\s*(?:0x)?(?<code>[a-f0-9]{8})\s*$',
+            [Text.RegularExpressions.RegexOptions]::IgnoreCase -bor [Text.RegularExpressions.RegexOptions]::CultureInvariant)
+        if($exception.Success -and $exception.Groups['code'].Value -cne '00000000'){++$toolExceptions}
         # Same canonical MSBuild header grammar as RedSalamander's MSBuildInvocation.
         # Diagnostic-looking text in a message is not a second diagnostic.
         $match=[regex]::Match($line,'^\s*(?:\d+>)?\s*(?:(?:[a-z]:)?[^:\r\n]*:\s*)??(?:[^:\r\n]*?\s+)??(?<kind>warning|error)(?:\s+[^:\s]+)?\s*:',
@@ -16,13 +20,16 @@ function Get-NativeBuildDiagnostics {
             if($match.Groups['kind'].Value -ieq 'warning'){++$warnings}else{++$errors}
         }
     }
-    return [pscustomobject]@{LogPath=$full;WarningCount=$warnings;ErrorCount=$errors}
+    return [pscustomobject]@{LogPath=$full;WarningCount=$warnings;ErrorCount=$errors;ToolExceptionCount=$toolExceptions}
 }
 
 function Assert-NativeBuildDiagnostics {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$LogPath)
     $result=Get-NativeBuildDiagnostics -LogPath $LogPath
+    if($result.ToolExceptionCount -ne 0){
+        throw "Zero-warning build validation failed: $($result.ToolExceptionCount) tool process exception dump(s), despite any successful MSBuild footer. Log: $($result.LogPath)"
+    }
     if($result.WarningCount -ne 0 -or $result.ErrorCount -ne 0){
         throw "Zero-warning build validation failed: $($result.WarningCount) warning(s), $($result.ErrorCount) error(s). Log: $($result.LogPath)"
     }

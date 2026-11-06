@@ -12,7 +12,7 @@ input has a localized limit explanation, including the actual decoded UTF-16-uni
 input can be counted. Do not scan arbitrarily large files just to invent a precise count. Caller source/BOM/stamp
 remain unchanged on rejection.
 
-Atomic save stages a unique sibling temporary file with `CREATE_NEW`, writes all bytes, flushes and closes it,
+An ordinary, singly linked file save stages a unique sibling temporary file with `CREATE_NEW`, writes all bytes, flushes and closes it,
 then uses `ReplaceFileW` for an existing destination or `MoveFileExW` for a new destination. Remove only the
 owned temporary file on failure. Never clear dirty state on failed/cancelled storage or change path/BOM prematurely.
 Close the exclusive staging handle before failure cleanup, including failed WriteFile and FlushFileBuffers
@@ -29,12 +29,38 @@ ReFS identifiers. Only explicit unsupported-information errors permit a provider
 other metadata failures propagate. A missing identity never establishes automatic overwrite consent. Native
 NTFS/ReFS diagnostics compare the actual complete handle identity independently of stamp equality.
 Atomicity does not eliminate the cross-process check/replace race; no conditional-write or cross-process lock is
-claimed. Native OneDrive/cloud, SMB/NAS, WSL and link-write policies retain their independent qualification.
+claimed. Native OneDrive/cloud, SMB/NAS and WSL retain their independent qualification.
+
+Saving through a symbolic link resolves its final followed target using handle-derived identity and path. Keep
+the symbolic entry intact and protect that chosen entry against cooperative replacement while saving the target.
+Relative targets, Unicode paths and a symbolic link to a hardlinked target use the same target policy. A dangling
+link fails without replacing the link entry. Non-name-surrogate provider reparse tags retain their provider path.
+This does not claim an atomic transaction against retargeted ancestor directories or a chain of changed links.
+
+When the followed file has multiple hardlinks, preserve its native identity and all aliases by writing in place.
+Atomic replacement would split the aliases and is therefore not used. Recheck link count immediately before an
+ordinary staged publication; if a new alias appeared, discard that owned temporary and reevaluate once. Check the
+expected source baseline under the cooperative read/write/delete exclusion of the in-place writer before any
+mutation. Save As still applies its ordinary destination-consent and alias conflict rules.
+
+In-place saves require an independently durable recovery snapshot of the exact admitted source, original requested
+path, BOM, selection and generation before the first target write. The file worker owns that immutable context.
+The checkpoint uses its own random identity and exclusive lease, outside the ordinary coalesced document slots;
+newer edits and ordinary clean retirement cannot overwrite or delete it. Recovery admission validates the envelope,
+bounds its directory examination to 512 entries and flushes/publishes the checkpoint before target mutation. Missing,
+invalid, full or unavailable recovery storage declines the save with original target bytes and caller stamp intact.
+
+Hardlink writes are explicitly non-atomic: a write, truncate or flush failure can leave partial target bytes in every
+alias. Retain dirty state and the previous saved baseline, and keep the complete independent recovery copy. Never
+attempt to write recovery from a crash handler. A successful complete write, truncation, flush and final identity
+check publishes the known-byte stamp, then retires only its own checkpoint. Failed retirement logs a warning and
+retains an extra valid recovery copy without changing the successful save result. Interruption releases the lease;
+ordinary restart offers the retained snapshot through the existing Restore a copy flow and never overwrites originals.
 
 Read handles allow cooperative read/write/delete sharing. Compare metadata on the same object before and after
 the bounded content read; an observed unstable read returns `ERROR_RETRY` without changing caller outputs.
 This does not promise a coherent snapshot against an uncooperative writer that changes bytes without an observed
-metadata change. Saving derives the successful stamp from the owned staging object after its exclusive writer
+metadata change. An ordinary atomic save derives the successful stamp from the owned staging object after its exclusive writer
 closes and before publication, combined with the known written bytes. It does not reopen published content to
 decide success. Publication returns that stamp only after Replace/Move succeeds, so an immediately denied read
 cannot report a completed save as failed or poison the next baseline. A later external edit conflicts normally.
