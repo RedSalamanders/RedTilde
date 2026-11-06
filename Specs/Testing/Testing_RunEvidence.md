@@ -31,6 +31,11 @@ RedTilde preserves exact build/source/runtime checks. Capture scenarios use sepa
 
 Build logs also use fresh timestamp/GUID names under `.build/logs` so a later build cannot overwrite a failure diagnosis.
 
+Tooling setup keeps owned fixture names compact when shell/child-process APIs have a narrower path budget than
+the native evidence implementation. The missing-component setup cases use distinct short counters inside their
+already unique run root; the NTFS shared-read-only hard-link case uses its own compact child root. Dedicated long
+Unicode path/stream, identity, ownership and read-only assertions remain intact and must actually execute.
+
 Inventory attributes and creation/write times come from pinned file handles, rather than cached directory entries.
 Compare inventories in canonical relative-path and stream-name order without relaxing any identity, hash, attribute,
 time or ACL check. Native moves retain the exact intent and observed post-move inventories before comparison; a
