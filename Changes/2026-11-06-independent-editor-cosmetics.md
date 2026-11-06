@@ -1,1 +1,0 @@
-- Adopt the exact API-4 DxUi editor-cosmetic implementation: source/code ink, line numbers and whitespace prepare independently of usable content and input, with bounded visible-region work. Add application capture coverage for completed cosmetic publication; broader physical and performance qualification remain separate gates.
