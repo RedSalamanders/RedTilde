@@ -1,6 +1,9 @@
 {
   "version": 1,
   "cases": [
+    { "name": "Storage.RechecksIdentityAfterStaging", "scope": "Storage" },
+    { "name": "Storage.PublishedSaveDoesNotDependOnContentReadback", "scope": "Storage" },
+    { "name": "Storage.ReplacementIdentityDetectsEqualBytesAndTimestamp", "scope": "Storage" },
     {
       "name": "Editor.SelectedBlockInsertionsRetainSourceAndHistory",
       "scope": "Editor"

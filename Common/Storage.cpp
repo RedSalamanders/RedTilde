@@ -14,10 +14,17 @@ namespace RedTilde
 namespace
 {
 thread_local AtomicWriteFailure atomicWriteFailure{};
-}
+thread_local AtomicWriteHook atomicWriteHook{};
+thread_local void *atomicWriteContext{};
+} // namespace
 void SetAtomicWriteFailureForTest(AtomicWriteFailure failure) noexcept
 {
     atomicWriteFailure = failure;
+}
+void SetAtomicWriteHookForTest(AtomicWriteHook hook, void *context) noexcept
+{
+    atomicWriteHook = hook;
+    atomicWriteContext = context;
 }
 #endif
 namespace
@@ -131,6 +138,10 @@ try
     if (!FlushFileBuffers(file.get()))
         return LastError();
     file.reset();
+#ifdef REDTILDE_ENABLE_TESTS
+    if (atomicWriteHook)
+        atomicWriteHook(AtomicWriteCheckpoint::Staged, path, atomicWriteContext);
+#endif
     if (exists)
     {
         if (!ReplaceFileW(path.c_str(), temporary.c_str(), nullptr, 0, nullptr, nullptr))
@@ -139,6 +150,10 @@ try
     else if (!MoveFileExW(temporary.c_str(), path.c_str(), MOVEFILE_WRITE_THROUGH))
         return LastError();
     removeTemporary.release();
+#ifdef REDTILDE_ENABLE_TESTS
+    if (atomicWriteHook)
+        atomicWriteHook(AtomicWriteCheckpoint::Published, path, atomicWriteContext);
+#endif
     return S_OK;
 }
 catch (const std::bad_alloc &)

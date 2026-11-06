@@ -17,6 +17,13 @@ enum class AtomicWriteFailure
     Flush
 };
 void SetAtomicWriteFailureForTest(AtomicWriteFailure failure) noexcept;
+enum class AtomicWriteCheckpoint
+{
+    Staged,
+    Published
+};
+using AtomicWriteHook = void (*)(AtomicWriteCheckpoint, const std::filesystem::path &, void *) noexcept;
+void SetAtomicWriteHookForTest(AtomicWriteHook hook, void *context) noexcept;
 #endif
 struct FileStamp
 {
