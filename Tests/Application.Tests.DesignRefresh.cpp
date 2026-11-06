@@ -2345,7 +2345,9 @@ class DesignRefreshProbe final
              {
                  Application app(Options(root, L"text-scale-input"));
                  Success(app.Initialize(), "create hidden text-scale input fixture");
-                 app.SetDocument(L"# Heading\r\n\r\nExact source \U0001f600\r\n");
+                 const std::wstring sourceText = L"# Heading\r\n\r\nExact source \U0001f600\r\n";
+                 Require(sourceText.size() == 30u, "the independent zoom fixture has its declared UTF-16 source length");
+                 app.SetDocument(sourceText);
                  app.Document().SetSelection({app.Document().Snapshot().Length(), app.Document().Snapshot().Length()});
                  Require(app.Document().ReplaceSelection(L"!") && app.Document().Undo(), "retain redo for presentation-only zoom assertions");
                  std::array<BYTE, 256> savedKeyboard{};
@@ -2377,7 +2379,7 @@ class DesignRefreshProbe final
                  for (const auto view : {EditorView::Compose, EditorView::Source, EditorView::Split})
                  {
                      app.SetView(view);
-                     app.Document().SetSelection({12u, 2u});
+                     app.Document().SetSelection({28u, 13u});
                      app.Prepare(512);
                      const auto source = app.Document().Snapshot();
                      const auto focus = app.Host().GetFocusControl();
@@ -2409,7 +2411,7 @@ class DesignRefreshProbe final
                      Require(ParseSettings(SerializeSettings(app.settings)).textScale == 200u,
                              "keyboard and wheel changes use the existing persistent scale preference");
                      Require(key('0') && app.settings.textScale == 100u && app.Document().Snapshot().IsSameRevision(source) &&
-                                 app.Document().GetSelection() == DxUi::RichText::Selection{12u, 2u} && !app.Document().CanUndo() &&
+                                 app.Document().GetSelection() == DxUi::RichText::Selection{28u, 13u} && !app.Document().CanUndo() &&
                                  app.Document().CanRedo() && !app.Dirty() && app.Host().GetFocusControl() == focus && !IsWindowVisible(app.Window()),
                              "all zoom paths preserve exact source, directional selection, history, saved state and logical focus in every view");
                      // End one gesture before testing the next editor view.
