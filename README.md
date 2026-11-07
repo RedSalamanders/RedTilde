@@ -10,11 +10,15 @@ RedTilde keeps a single Markdown source and undo history while you switch betwee
 **Split**. Select text for contextual tools, navigate the outline, edit a block's source, insert local images,
 or draw supported Mermaid flowchart, state, class, sequence, pie, ER, Gantt and mind-map diagrams. Inline/display equations render natively in the document. Your files stay local.
 
-This is an **experimental 0.1 application**, built against an exact DxUi API-4 commit with native rich text,
+This is an **experimental 0.1 application**, migrating to an exact DxUi API-5 commit with native rich text,
 math/diagrams and shared presentation APIs. [Rich-text PR #89](https://github.com/RedSalamanders/DxUi/pull/89)
 merged on 2026-10-21; upstream performance and final product qualification remain separate open gates.
 Full language compatibility and large files also remain open. Current limits and gates are in
 [capabilities.json](capabilities.json) and the [active plan index](Specs/Plans/WIP/README.md).
+
+API-5 host/adapters have their own fresh consumer qualification gate. Earlier API-4 receipts retain their source
+identity and do not qualify the migration. Expected refusals retain edits; unexpected C++ failures produce local
+fatal diagnostics through the application-owned reporter.
 
 ## Build and run
 

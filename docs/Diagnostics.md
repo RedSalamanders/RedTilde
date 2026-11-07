@@ -15,3 +15,10 @@ package the viewer. Developers update the client with Update-RedMonitorClient.ps
 then review and commit the header, MIT notice and lock. No sibling checkout is needed.
 Viewer settings belong to RedMonitor. Existing application logs, crash recovery and preferences retain
 their ownership. ETW access may require Performance Log Users membership or elevation.
+
+Unexpected SDK/application callback failures produce a local minidump and a fixed `.record` sidecar under the
+profile's `Crashes` folder. These retain the original failing thread and context; the reporting worker does not
+replace them. Reports may contain document text and remain local. The next ordinary launch identifies a pending
+report. Expected input, capacity and native I/O refusals keep the editable document and show their ordinary status.
+Healthy recovery checkpoints remain separate from fatal reporting. Keep the exact application EXE/PDB and its
+pinned SDK identity with diagnostic evidence. ASan builds retain the sanitizer's independent detection evidence.

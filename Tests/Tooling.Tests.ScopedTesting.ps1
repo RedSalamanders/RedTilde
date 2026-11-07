@@ -39,7 +39,8 @@ try{
             Put $package 'original synthetic package bytes'
             if($mode -ceq 'Missing'){return}
             $names=@('self-test','test-scope','list-tests','interactive','crash','recovery-crash','recovery-restart',
-                'preferences','asan','linked-save-crash','linked-save-restart','test-scope-missing-value','interactive-missing-value')
+                'preferences','asan','linked-save-crash','linked-save-restart','failure-host','failure-host-missing-value',
+                'test-scope-missing-value','interactive-missing-value')
             $refusals=@($names|ForEach-Object {@{name=$_;exitCode=2;dataDirectoryAbsent=$true}})
             if($mode -ceq 'Incomplete'){$refusals=$refusals[0..11]}
             if($mode -ceq 'Duplicate'){$refusals[12].name=$refusals[0].name}

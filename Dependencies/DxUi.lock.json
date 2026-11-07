@@ -1,7 +1,7 @@
 {
   "repository": "https://github.com/RedSalamanders/DxUi",
-  "commit": "a1915ffdd94b18fd1817371f1dc074f6a0b547f1",
-  "apiRevision": 4,
+  "commit": "a287710cc0230152a69da0c74496d654841a05b3",
+  "apiRevision": 5,
   "targets": [
     "DxUi"
   ]

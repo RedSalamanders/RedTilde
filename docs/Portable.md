@@ -28,6 +28,6 @@ Inline/display equations, fractions, indexed roots, scripts, matrices and aligne
 F2 edits exact source. Unsupported notation stays editable. Full language compatibility remains pending. Links,
 Markdown scripts and HTML are never executed. The examples directory contains a starter document.
 
-The dependency is an exact experimental DxUi API-4 pin. Rich-text PR #89 is merged; upstream performance and
+The dependency is an exact experimental DxUi API-5 pin with explicit application failure ownership. Fresh consumer qualification, upstream performance and
 product qualification remain separate gates. Read `capabilities.json` for the current limits and pending work.
 This build is not a production release. License notices are in `LICENSE.txt` and `Dependencies`.

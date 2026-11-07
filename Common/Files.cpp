@@ -1,4 +1,6 @@
 #include "Files.h"
+#include "ProcessWork.h"
+#include <DxUi/Failure.h>
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -453,8 +455,9 @@ struct FilesService::State
     static void CALLBACK Worker(PTP_CALLBACK_INSTANCE instance, void *context) noexcept
     {
         (void)CallbackMayRunLong(instance);
-        const std::unique_ptr<std::shared_ptr<State>> ownership(static_cast<std::shared_ptr<State> *>(context));
-        const auto &self = *ownership;
+        ProcessWorkLease lease = std::move(static_cast<ProcessWorkItem<State> *>(context)->lease);
+        const std::unique_ptr<ProcessWorkItem<State>> ownership(static_cast<ProcessWorkItem<State> *>(context));
+        const auto &self = ownership->state;
         try
         {
             DirectoryWatch watch;
@@ -533,7 +536,7 @@ struct FilesService::State
         {
             // Threadpool ABI boundary: allocation failure is fatal, never a
             // misleading empty tree or a silently swallowed worker failure.
-            std::terminate();
+            DxUi::Failure::FailAllocation();
         }
         catch (const std::filesystem::filesystem_error &error)
         {
@@ -560,7 +563,10 @@ try
     staged->window = window;
     staged->message = message;
     staged->limits = limits;
-    auto ownership = std::make_unique<std::shared_ptr<State>>(staged);
+    auto ownership = std::make_unique<ProcessWorkItem<State>>(staged);
+    const HRESULT admission = ProcessWork::Acquire(ownership->lease);
+    if (FAILED(admission))
+        return admission;
     if (!TrySubmitThreadpoolCallback(State::Worker, ownership.get(), nullptr))
         return HRESULT_FROM_WIN32(GetLastError());
     (void)ownership.release();
@@ -570,7 +576,7 @@ try
 }
 catch (const std::bad_alloc &)
 {
-    std::terminate(); // Application boundary; no partially initialized service survives allocation failure.
+    DxUi::Failure::FailAllocation(); // Application boundary; no partially initialized service survives allocation failure.
 }
 HRESULT FilesService::SetRoot(std::filesystem::path root) noexcept
 try
@@ -599,7 +605,7 @@ try
 }
 catch (const std::bad_alloc &)
 {
-    std::terminate(); // Application boundary; request admission cannot silently lose allocation failure.
+    DxUi::Failure::FailAllocation(); // Application boundary; request admission cannot silently lose allocation failure.
 }
 HRESULT FilesService::Refresh() noexcept
 try
@@ -621,7 +627,7 @@ try
 }
 catch (const std::bad_alloc &)
 {
-    std::terminate(); // Application boundary; latest-value admission either succeeds or terminates.
+    DxUi::Failure::FailAllocation(); // Application boundary; latest-value admission either succeeds or terminates.
 }
 std::optional<FilesSnapshot> FilesService::TakeResult()
 {

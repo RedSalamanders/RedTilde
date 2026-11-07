@@ -511,17 +511,58 @@ class DesignRefreshProbe final
                              foreground.NeverAcquiredForeground(),
                          "late bitmap work cannot alter checkpointed source or acquire the desktop");
              });
+        test("Editor.Api5CheckedAdmissionPreservesWorkspaceAndHistory",
+             [&]
+             {
+                 Testing::ForegroundOwnershipObserver foreground;
+                 Application app(Options(root, L"api5-checked-admission"));
+                 Success(app.Initialize(), "initialize hidden API-5 admission app");
+                 Require(app.SetDocument(L"Saved observation\n"), "admit baseline document");
+                 Require(app.Document().ReplaceSelection(L"Unsaved "), "retain an unsaved source/history before refusal");
+                 const auto source = app.Document().Snapshot();
+                 const auto selection = app.Document().GetSelection();
+                 const auto saved = app.savedText;
+                 const auto path = app.documentPath;
+                 const auto key = app.activeDocumentKey;
+                 for (const auto &candidate : {std::wstring(DxUi::RichText::Document::MaximumUnits + 1u, L'x'), std::wstring(1u, L'\xD800')})
+                 {
+                     Require(!app.SetDocument(candidate), "invalid or oversized source returns an explicit refusal");
+                     Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selection &&
+                                 app.savedText == saved && app.documentPath == path && app.activeDocumentKey == key && app.Dirty() &&
+                                 app.Document().CanUndo(),
+                             "checked source refusal preserves source, selection, saved baseline, dirty workspace and undo history");
+                     Require(app.feedback->GetText() ==
+                                 Resource(candidate.size() > DxUi::RichText::Document::MaximumUnits ? IDS_REPLACEFAILED : IDS_ACTIONFAILED),
+                             "source capacity and invalid-source refusals use the intended status");
+                 }
+                 Require(!app.SetDocument(L"Replacement", L"relative.md") && app.Document().Snapshot().IsSameRevision(source) &&
+                             app.savedText == saved && app.documentPath == path && app.Dirty(),
+                         "invalid document metadata refuses before resetting editable source or its saved baseline");
+                 Require(app.SetDocument(std::wstring(DxUi::RichText::Document::MaximumUnits - 2u, L'x')), "admit near-capacity source");
+                 const auto end = app.Document().Snapshot().Length();
+                 Require(app.Document().TrySetSelection({end, end}) == DxUi::RichText::SourceResult::Success &&
+                             app.Document().ReplaceSelection(L"y") && app.Document().ReplaceSelection(L"z") && app.Document().Undo(),
+                         "seed independent dirty undo and redo history near capacity");
+                 Require(app.Document().TrySetSelection({0u, app.Document().Snapshot().Length()}) == DxUi::RichText::SourceResult::Success,
+                         "select exact near-capacity source");
+                 const auto nearCapacity = app.Document().Snapshot();
+                 const auto selected = app.Document().GetSelection();
+                 for (const auto command : {Command::Quote, Command::Fence})
+                 {
+                     app.Execute(command);
+                     Require(app.Document().Snapshot().IsSameRevision(nearCapacity) && app.Document().GetSelection() == selected &&
+                                 app.Document().CanUndo() && app.Document().CanRedo() && app.Dirty(),
+                             "quote/code capacity refusal preserves the selected source and both history directions");
+                 }
+                 Require(foreground.NeverAcquiredForeground(), "API-5 admission coverage keeps the desktop untouched");
+             });
         test("Editor.RecoverableCommandsAndMenusRetainSourceAndDraftFocus",
              [&]
              {
                  Testing::ForegroundOwnershipObserver foreground;
                  auto options = Options(root, L"guarded-command-menu");
                  bool failCommand{};
-                 options.commandAdmissionForTest = [&](Command command)
-                 {
-                     if (failCommand && command == Command::Fence)
-                         throw std::length_error("DIRECTED_COMMAND_FAILURE");
-                 };
+                 options.commandAdmissionForTest = [&](Command command) { return failCommand && command == Command::Fence ? E_BOUNDS : S_OK; };
                  Application app(std::move(options));
                  Success(app.Initialize(), "initialize hidden guarded-command app");
                  app.SetDocument(L"Notebook\nA useful observation.\n");
@@ -560,11 +601,7 @@ class DesignRefreshProbe final
                      const auto directory = options.dataDirectory;
                      const auto gate = options.fileGateForTest = std::make_shared<AsyncFiles::TestGate>();
                      bool failCompletion{};
-                     options.fileCompletionAdmissionForTest = [&]
-                     {
-                         if (std::exchange(failCompletion, false))
-                             throw std::format_error("DIRECTED_COMPLETION_FAILURE");
-                     };
+                     options.fileCompletionAdmissionForTest = [&] { return std::exchange(failCompletion, false) ? E_FAIL : S_OK; };
                      Application app(std::move(options));
                      Success(app.Initialize(), "initialize hidden completion-boundary app");
                      const auto release = wil::scope_exit(
@@ -605,12 +642,12 @@ class DesignRefreshProbe final
                              "the successful saved baseline remains exact and hidden after a recoverable completion failure");
                  }
              });
-        test("Editor.CloseExceptionNeverFallsThroughToDefaultDestroy",
+        test("Editor.CloseCancellationNeverFallsThroughToDefaultDestroy",
              [&]
              {
                  Testing::ForegroundOwnershipObserver foreground;
                  auto options = Options(root, L"close-exception-boundary");
-                 options.unsavedPromptForTest = []() -> int { throw std::runtime_error("DIRECTED_CLOSE_QUESTION_FAILURE"); };
+                 options.unsavedPromptForTest = [] { return IDCANCEL; };
                  Application app(std::move(options));
                  Success(app.Initialize(), "initialize hidden Close-boundary app");
                  app.SetDocument(L"Notebook\n");
@@ -620,8 +657,8 @@ class DesignRefreshProbe final
                  const auto window = app.Window();
                  Require(SendMessageW(window, WM_CLOSE, 0, 0) == 0 && IsWindow(window) && app.Window() == window && !app.closing && app.Dirty() &&
                              app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selection &&
-                             app.Document().CanUndo() && app.feedback->GetText() == Resource(IDS_ACTIONFAILED),
-                         "a recoverable Close failure stays handled and never invokes DefWindowProc destruction");
+                             app.Document().CanUndo(),
+                         "a cancelled Close stays handled and never invokes DefWindowProc destruction");
                  app.options.unsavedPromptForTest = [] { return IDNO; };
                  (void)SendMessageW(window, WM_CLOSE, 0, 0);
                  Require(app.closing && app.Host().GetRoot() == nullptr && foreground.NeverAcquiredForeground(),
@@ -2710,21 +2747,13 @@ class DesignRefreshProbe final
                          "a current match beyond the bounded highlight prefix stays selected and renderable with cached exact source ranges");
                  app.SetDocument(L"cat cat");
                  app.findText->SetTextAndNotify(L"cat");
-                 app.replaceText->SetText(std::wstring(1, static_cast<wchar_t>(0xd800)));
+                 app.replaceText->SetText(L"dog");
+                 app.Document().SetReadOnly(true);
                  const auto failedSource = app.Document().Snapshot();
-                 bool rejected{};
-                 try
-                 {
-                     app.ReplaceFind(true);
-                 }
-                 catch (const std::invalid_argument &)
-                 {
-                     // A deliberately invalid precommit source edit exercises
-                     // the Find guard without injecting a callback failure.
-                     rejected = true;
-                 }
-                 Require(rejected && !app.updatingFind && app.Document().Snapshot().IsSameRevision(failedSource) && !app.Document().CanUndo(),
+                 app.ReplaceFind(true);
+                 Require(!app.updatingFind && app.Document().Snapshot().IsSameRevision(failedSource) && !app.Document().CanUndo(),
                          "failed source-edit admission releases Find suppression without changing source or history");
+                 app.Document().SetReadOnly(false);
                  app.replaceText->SetTextAndNotify(L"dog");
                  app.ReplaceFind(true);
                  Require(app.Document().GetText() == L"dog dog" && !app.updatingFind && app.findMatches.empty() && app.Document().Undo(),
@@ -4339,11 +4368,7 @@ class DesignRefreshProbe final
                      Require(app.Document().ReplaceSelection(L"Retained writing"), "seed dirty shortcut-boundary source");
                      const auto protectedSource = app.Document().Snapshot();
                      const auto protectedSelection = app.Document().GetSelection();
-                     app.options.commandAdmissionForTest = [](Command command)
-                     {
-                         if (command == Command::LocalSource)
-                             throw std::length_error("DIRECTED_SHORTCUT_FAILURE");
-                     };
+                     app.options.commandAdmissionForTest = [](Command command) { return command == Command::LocalSource ? E_BOUNDS : S_OK; };
                      routed.wParam = VK_F2;
                      app.DispatchUiMessage(routed);
                      Require(app.Document().Snapshot().IsSameRevision(protectedSource) && app.Document().GetSelection() == protectedSelection &&

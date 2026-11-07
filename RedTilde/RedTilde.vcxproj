@@ -72,6 +72,7 @@
     <ClCompile Include="..\Common\RemoteImage.cpp" />
     <ClInclude Include="..\Common\RemoteImageImports.h" />
     <ClCompile Include="..\Tests\Application.Tests.Files.cpp" Condition="'$(RedTildeEnableTests)'=='true'" />
+    <ClCompile Include="..\Tests\Application.Tests.FailureHost.cpp" Condition="'$(RedTildeEnableTests)'=='true'" />
     <ClCompile Include="..\Tests\Application.Tests.Close.cpp" Condition="'$(RedTildeEnableTests)'=='true'" />
     <ClCompile Include="..\Tests\Application.Tests.DesignRefresh.cpp" Condition="'$(RedTildeEnableTests)'=='true'" />
     <ClCompile Include="..\Tests\Application.Tests.DesignInteractive.cpp" Condition="'$(RedTildeEnableTests)'=='true'" />
@@ -81,6 +82,8 @@
     <ClCompile Include="..\Common\DocumentInfo.cpp" />
     <ClCompile Include="..\Common\Settings.cpp" />
     <ClCompile Include="..\Common\CrashHandler.cpp" />
+    <ClCompile Include="..\Common\DxUiFailureHost.cpp" />
+    <ClCompile Include="..\Common\ProcessWork.cpp" />
     <ClCompile Include="..\Common\Recovery.cpp" />
     <ClCompile Include="..\Tests\Application.Tests.Core.cpp" Condition="'$(RedTildeEnableTests)'=='true'" />
     <ClCompile Include="..\Tests\Application.Tests.Performance.cpp" />

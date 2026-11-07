@@ -1,6 +1,10 @@
 {
   "version": 1,
   "cases": [
+    { "name": "Settings.Api5OriginalContextAndNativeIsolation", "scope": "Settings" },
+    { "name": "Settings.Api5ProcessWorkRetiresBeforeReporter", "scope": "Settings" },
+    { "name": "Settings.Api5SessionEndKeepsBoundedAllowance", "scope": "Settings" },
+    { "name": "Editor.Api5CheckedAdmissionPreservesWorkspaceAndHistory", "scope": "Editor" },
     { "name": "Editor.SourceEnterPreservesLineEndings", "scope": "Editor" },
     { "name": "Editor.NativeTextStoreCapacityAdmission", "scope": "Editor" },
     { "name": "Editor.TextServiceCapacityPreservesPreviewAndMirror", "scope": "Editor" },
@@ -40,7 +44,7 @@
     { "name": "Storage.StampMatchesFullNativeFileIdentity", "scope": "Storage" },
     { "name": "Editor.RecoverableCommandsAndMenusRetainSourceAndDraftFocus", "scope": "Editor" },
     { "name": "Editor.FileCompletionFailureRetainsPendingWriteAndCancelsClose", "scope": "Editor" },
-    { "name": "Editor.CloseExceptionNeverFallsThroughToDefaultDestroy", "scope": "Editor" },
+    { "name": "Editor.CloseCancellationNeverFallsThroughToDefaultDestroy", "scope": "Editor" },
     { "name": "Storage.UnsupportedFilesReportKnownUnitCount", "scope": "Storage" },
     { "name": "Editor.OpenErrorsExplainEncodingAndCapacity", "scope": "Editor" },
     { "name": "Storage.TimestampOnlyTouchDoesNotConflict", "scope": "Storage" },

@@ -1,5 +1,7 @@
 #define REDMONITOR_DEFINE_PROVIDER
 #include "MonitorDiagnostics.h"
+#include "ProcessWork.h"
+#include <DxUi/Failure.h>
 #include <RedMonitor/Client.h>
 #include <exception>
 #include <new>
@@ -47,22 +49,27 @@ int MonitorDiagnostics::HandleCommand(std::wstring_view command) noexcept
 #if defined(_DEBUG)
         if (RedMonitor::IsOrdinaryStartup(command))
         {
-            (void)TrySubmitThreadpoolCallback(
-                [](PTP_CALLBACK_INSTANCE, void *) noexcept
-                {
-                    try
+            auto lease = wil::make_unique_nothrow<RedTilde::ProcessWorkLease>();
+            if (!lease || FAILED(RedTilde::ProcessWork::Acquire(*lease)))
+                return -1;
+            if (TrySubmitThreadpoolCallback(
+                    [](PTP_CALLBACK_INSTANCE, void *context) noexcept
                     {
-                        (void)RedMonitor::LaunchInstalledViewer();
-                    }
-                    catch (const std::bad_alloc &)
-                    {
-                        std::terminate();
-                    }
-                    catch (const std::exception &)
-                    { /* Optional helper failure never blocks the app. */
-                    }
-                },
-                nullptr, nullptr);
+                        const std::unique_ptr<RedTilde::ProcessWorkLease> workerLease(static_cast<RedTilde::ProcessWorkLease *>(context));
+                        try
+                        {
+                            (void)RedMonitor::LaunchInstalledViewer();
+                        }
+                        catch (const std::bad_alloc &)
+                        {
+                            DxUi::Failure::FailAllocation();
+                        }
+                        catch (const std::exception &)
+                        { /* Optional helper failure never blocks the app. */
+                        }
+                    },
+                    lease.get(), nullptr))
+                (void)lease.release();
         }
 #endif
         return -1;
@@ -73,7 +80,7 @@ int MonitorDiagnostics::HandleCommand(std::wstring_view command) noexcept
     }
     catch (const std::bad_alloc &)
     {
-        std::terminate();
+        DxUi::Failure::FailAllocation();
     }
     catch (const std::exception &)
     {

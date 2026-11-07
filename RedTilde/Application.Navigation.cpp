@@ -411,11 +411,14 @@ bool Application::SwitchWorkspaceDocument(std::size_t index)
     if (!current())
         return false;
     auto &document = inactiveDocuments[index];
+    if (!AcceptSourceResult(primary->TrySetDocumentFilePath(document.path.native())) || !current())
+        return false;
     {
         switchingDocument = true;
         const auto restore = wil::scope_exit([&] { switchingDocument = false; });
         if (!primary->ExchangeDocumentState(document.state))
         {
+            (void)AcceptSourceResult(primary->TrySetDocumentFilePath(documentPath.native()));
             Status(IDS_BUSY);
             return false;
         }
@@ -432,7 +435,6 @@ bool Application::SwitchWorkspaceDocument(std::size_t index)
         std::swap(activeDocumentKey, document.recoveryKey);
         document.dirty = previousDirty;
         dirtyFact.reset();
-        primary->SetDocumentFilePath(documentPath.native());
     }
     if (!current())
         return true;
@@ -556,7 +558,7 @@ void Application::RefreshFind()
 
         if (findHasHighlights)
         {
-            editor->SetSourceHighlights({});
+            (void)AcceptSourceResult(editor->TrySetSourceHighlights({}));
             ++activity.findHighlightUpdates;
             findHasHighlights = false;
         }
@@ -649,7 +651,8 @@ void Application::RefreshFind()
         }
         if (current > count)
             highlights.back() = {active->first, active->last - active->first, true};
-        editor->SetSourceHighlights(highlights);
+        if (!AcceptSourceResult(editor->TrySetSourceHighlights(highlights)))
+            return;
         ++activity.findHighlightUpdates;
         findHasHighlights = !highlights.empty();
         findHighlightedCurrent = current;
@@ -728,7 +731,8 @@ void Application::FindNext(bool previous)
             index = static_cast<std::size_t>(next - matches.begin());
     }
     const auto range = matches[index];
-    editor->SetSelection({range.first, range.last});
+    if (!AcceptSourceResult(editor->TrySetSelection({range.first, range.last})))
+        return;
     (void)editor->ScrollSourceRangeIntoView(host, range.first, range.last, false);
     SelectionChanged();
 }

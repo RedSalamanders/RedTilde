@@ -1,6 +1,7 @@
 #include "RedTilde/Application.h"
 #include "Application.Tests.Close.h"
 #include "Application.Tests.DesignRefresh.h"
+#include "Application.Tests.FailureHost.h"
 #include "Application.Tests.Files.h"
 #include "Application.Tests.HeapDiagnostic.h"
 #include "Application.Tests.RemoteImages.h"
@@ -285,6 +286,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
     RegisterCloseTests(root, test);
     RegisterDesignRefreshTests(root, test);
     RegisterRemoteImageTests(root, test);
+    RegisterFailureHostTests(root, test);
     Testing::RegisterStorageSafetyTests(root, test);
     test("Utf8.CI_ASSERTION_PROBE",
          []
@@ -710,6 +712,15 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              const RecoverySnapshot maximum{std::wstring(65536, L'界'), {}, false, {65536, 65536}, 100};
              Success(ParseRecovery(SerializeRecovery(maximum), parsed), "maximum Unicode document fits the recovery envelope");
              Require(parsed.text == maximum.text, "full-capacity recovery does not truncate source");
+             for (const auto &invalid :
+                  {RecoverySnapshot{std::wstring(DxUi::RichText::Document::MaximumUnits + 1u, L'x'), {}, false, {}, 1u},
+                   RecoverySnapshot{std::wstring(1u, static_cast<wchar_t>(0xd800)), {}, false, {}, 1u},
+                   RecoverySnapshot{L"\U0001F642", {}, false, {1u, 1u}, 1u}, RecoverySnapshot{L"Retained writing", L"relative.md", false, {}, 1u}})
+             {
+                 std::string retained = "unchanged serialization output";
+                 Require(TrySerializeRecovery(invalid, retained) == E_INVALIDARG && retained == "unchanged serialization output",
+                         "checked recovery serialization rejects invalid source/path/selection before changing its output");
+             }
          });
     test("Recovery.OversizedValidEnvelopeRejectsAndPreservesQuarantine",
          [&]
@@ -1167,15 +1178,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                      DxUi::TextClipboardContent content;
                      content.filePaths.push_back(path);
                      std::wstring replacement = L"unchanged";
-                     bool rejected{};
-                     try
-                     {
-                         rejected = !app.Document().TryPrepareClipboardPaste(content, replacement);
-                     }
-                     catch (const std::invalid_argument &)
-                     {
-                         rejected = true;
-                     }
+                     const bool rejected = !app.Document().TryPrepareClipboardPaste(content, replacement);
                      Require(rejected && replacement == L"unchanged", "hostile file paste declines before producing any Markdown replacement");
                      Require(app.Document().Snapshot().IsSameRevision(snapshot) && app.Document().GetSelection() == selection &&
                                  !app.Document().CanUndo() && !app.Document().CanRedo() && app.Activity().changes == before.changes &&

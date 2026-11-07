@@ -20,14 +20,29 @@ repository and executable. It must launch and test without RedXe, RedPrism or Re
 Library objects remain inside the executable. No plugin ABI is introduced. The native host is used directly;
 RedTilde must not allocate a competing swap chain or render over an uncoordinated chrome HWND.
 
-Application command admission, menu completion, Win32 dispatch and message-loop/worker completion share one
-named-exception boundary. Recoverable `std::exception` failures log the actual cause locally, show a localized
-source-retained status and keep the process/document alive; `std::bad_alloc` remains fatal. A failed Close stays
-handled and never falls through to default window destruction. Cancel stale deferred file actions after a UI
-failure. Status publication has its own bounded fallback and never recursively retries UI after another failure.
+Application command admission, menu completion, Win32 dispatch and message-loop completion share an explicit
+API-5 failure boundary. Expected refusal uses checked HRESULT, source or command results, logs its cause locally
+and retains the document/history. Unexpected C++ exceptions, including allocation failure, require fatal local
+diagnostics and termination; they cannot resume a partially executed UI action. A declined Close stays handled
+and never falls through to default window destruction. Checked completion refusal cancels stale deferred file
+actions, keeps the pending result and permits an explicit later retry. Status publication never recursively
+retries UI after another failure. Native message dispatch and synchronous COM/Win32 calls use audited native
+boundaries so native internally handled exceptions stay native and reentrant application/SDK callbacks regain
+their own scopes. Direct construction is scoped; the outer message loop and final process drain stay outside.
 Menu completion revalidates root lifetime after the command and keeps focus in a newly opened local/Link draft,
 drawer or Find/Recovery surface. Hidden supplied-message/callback tests exercise these same entry points without
 opening a desktop menu or injecting input.
+
+The process owner starts local crash storage and a dedicated report writer, installs SDK protocol-2 hooks, then
+opens worker admission before constructing the application. One counted lease covers each admitted callback
+through its owned data, SDK objects and scopes. Files, recovery, preferences, bitmap creation/cleanup, image
+decoding, link dispatch, optional monitor launch and final WinHTTP notification retirement participate.
+Closing a view does not uninstall the failure host. Ordinary process shutdown closes producers, destroys app
+owners, closes admission and drains work on the COM-initialized owner before process-wide UIA cleanup and the
+failure-host BUSY drain. Each cooperative drain has a five-second deadline; a blocked callback cannot be
+interrupted by it. Timeout is a failed shutdown with fatal diagnostics, never permission to unload live owners.
+The final OS session-end path retains its existing recovery allowance and transfers the process owner to OS
+teardown instead of adding these ordinary shutdown waits. See [crash/shutdown ownership](Core_SettingsAndCrashes.md).
 
 RedTilde owns its Win32 non-client frame policy and caption behavior. The merged document bar is app-owned client
 content coordinated with that frame; the native window title remains the filename plus dirty marker for taskbar

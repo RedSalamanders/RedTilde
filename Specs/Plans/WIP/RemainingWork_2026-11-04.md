@@ -355,10 +355,13 @@ follow-up is removed. Completion correctly reported failed native qualification.
   pass with every original payload/wrapper byte verified. Each native profile passes 128 cases/36 captures;
   both `0.1.355` packages record all thirteen actual refusals with exit 2 and absent data directories, bound to
   the original ZIP/executable and actual architecture. Both production roles follow the combined native gate.
-- [ ] Coordinate future checked-failure/API changes with the
+- [ ] Finish the active checked-failure/API-5 migration with the
   [single DxUi plan](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Plans/WIP/RemainingWork_2026-11-04.md) and active
-  [implemented API-5 failure contract](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Core/Core_FailureHandling.md). Keep this consumer's explicit API-4 lock until a separate
-  reviewed consumer migration has matching headers, library, adapters and fresh qualification.
+  [implemented API-5 failure contract](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Core/Core_FailureHandling.md).
+  Candidate pin `a287710cc0230152a69da0c74496d654841a05b3` has explicit reporter/COM ownership, counted callback
+  retirement, checked document/configuration/codecs and isolated failure/native/session-end regressions. Preliminary
+  compiler checks are diagnostic only; finish fresh consumer builds, native tests, captures, actual ASan and
+  production refusal evidence before closing adoption. API-4 measurements retain their original source identity.
 - [ ] Complete C11/C12/S6 release decisions: packaging, any installer/file associations, exact release handoff,
   truthful capability limits and publication evidence. Source merge is not product release acceptance.
 

@@ -1,5 +1,6 @@
 #include "Storage.h"
 #include "Recovery.h"
+#include <DxUi/Failure.h>
 #include <DxUi/RichDocument.h>
 #include <algorithm>
 #include <atomic>
@@ -164,7 +165,7 @@ try
 }
 catch (const std::bad_alloc &)
 {
-    return E_OUTOFMEMORY;
+    DxUi::Failure::FailAllocation();
 }
 
 HRESULT WriteNewBytesDurable(const std::filesystem::path &path, std::string_view bytes, FileStamp &saved, std::size_t maximumBytes) noexcept
@@ -211,7 +212,7 @@ try
 }
 catch (const std::bad_alloc &)
 {
-    std::terminate();
+    DxUi::Failure::FailAllocation();
 }
 
 HRESULT RemoveCreatedBytesIfUnchanged(const std::filesystem::path &path, const FileStamp &expected, std::size_t maximumBytes) noexcept
@@ -241,7 +242,7 @@ try
 }
 catch (const std::bad_alloc &)
 {
-    std::terminate();
+    DxUi::Failure::FailAllocation();
 }
 
 HRESULT WriteBytesAtomic(const std::filesystem::path &path, std::string_view bytes, const FileStamp *expected, FileStamp *saved,
@@ -402,7 +403,7 @@ try
 }
 catch (const std::bad_alloc &)
 {
-    return E_OUTOFMEMORY;
+    DxUi::Failure::FailAllocation();
 }
 catch (const std::filesystem::filesystem_error &error)
 {
@@ -435,7 +436,9 @@ try
             return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
         }
     }
-    staged.text = DxUi::RichText::DecodeUtf8(encoded);
+    const auto decoded = DxUi::RichText::TryDecodeUtf8(encoded, staged.text);
+    if (decoded != DxUi::RichText::SourceResult::Success)
+        return HRESULT_FROM_WIN32(decoded == DxUi::RichText::SourceResult::CapacityExceeded ? ERROR_FILE_TOO_LARGE : ERROR_NO_UNICODE_TRANSLATION);
     if (staged.text.size() > DxUi::RichText::Document::MaximumUnits)
         return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
     // The pinned decoder admits U+0000 for counted editor source; documents still reject NUL.
@@ -446,7 +449,7 @@ try
 }
 catch (const std::bad_alloc &)
 {
-    return E_OUTOFMEMORY;
+    DxUi::Failure::FailAllocation();
 }
 catch (const std::invalid_argument &)
 {
@@ -603,7 +606,12 @@ try
     if (text.find(L'\0') != text.npos)
         return HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION);
     std::string bytes = bom ? "\xEF\xBB\xBF" : "";
-    bytes += DxUi::RichText::EncodeUtf8(text);
+    std::string encoded;
+    const auto encodedResult = DxUi::RichText::TryEncodeUtf8(text, encoded);
+    if (encodedResult != DxUi::RichText::SourceResult::Success)
+        return HRESULT_FROM_WIN32(encodedResult == DxUi::RichText::SourceResult::CapacityExceeded ? ERROR_FILE_TOO_LARGE
+                                                                                                  : ERROR_NO_UNICODE_TRANSLATION);
+    bytes += encoded;
     for (unsigned attempt = 0u; attempt < 2u; ++attempt)
     {
         std::filesystem::path target = path;
@@ -652,7 +660,7 @@ try
 }
 catch (const std::bad_alloc &)
 {
-    return E_OUTOFMEMORY;
+    DxUi::Failure::FailAllocation();
 }
 catch (const std::invalid_argument &)
 {

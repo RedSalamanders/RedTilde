@@ -100,10 +100,17 @@ Reload reads asynchronously and replaces only the current document after validat
 and workspace identity again; other retained documents and the root stay intact. Failed or stale Reload retains
 the editable source/history/dirty protection. Closing during an admitted save retains the separate failure
 contract below and does not automatically retry Overwrite or Close.
-An exception before taking a completed worker result retains that pending result and dirty source for later
-processing, cancels older continuations/Close and reports a localized action failure. After a successful write
+Checked refusal before taking a completed worker result retains that pending result and dirty source for later
+processing, cancels older continuations/Close and reports a localized action failure. An unexpected C++ exception
+takes the process-owned fatal diagnostic path. After a successful write
 has been admitted to application state, publish its path, saved text and stamp together before callbacks or
 fallible view refresh; a later UI failure cannot leave a new saved baseline paired with the old file stamp.
+
+Use API-5 checked source and codec admission for user, file and recovery content. Invalid or over-capacity source
+does not reset the current source, selection, saved baseline, workspace identity or undo/redo. Validate document
+metadata before replacing source. A new Files slot whose content is refused restores the previous active
+document and removes only its empty provisional slot. A rejected explicit Open does not retire the existing
+workspace. Native I/O failure remains an ordinary checked result; unexpected C++ allocation failure is fatal.
 
 New/explicit Open File/Open Folder/Close prompt Save, Discard, Cancel for every dirty workspace document.
 Files-pane activation retains each document and never prompts. Discard approval is staged until the requested

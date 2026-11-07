@@ -156,8 +156,9 @@ void Icon(DxUi::Button *button, std::wstring glyph)
 }
 } // namespace
 
-void Application::BuildUi()
+HRESULT Application::BuildUi()
 {
+    const DxUi::Failure::Scope constructionScope;
     auto tree = std::make_unique<Surface>();
     root = tree.get();
     documentBar = root->AddChild<Surface>();
@@ -257,21 +258,25 @@ void Application::BuildUi()
     editor = page->AddChild<Editor>();
     editor->SetAccessibleName(Resource(IDS_DOC));
     editor->SetAccessibleAutomationId(L"RedTilde.Document");
-    editor->SetMarkdownAnalysisProfile(DxUi::RichText::MarkdownProfile::RichMarkdown);
-    editor->SetMarkdownRenderingEnabled(true);
+    if (!AcceptSourceResult(editor->TrySetMarkdownAnalysisProfile(DxUi::RichText::MarkdownProfile::RichMarkdown)) ||
+        !AcceptSourceResult(editor->TrySetMarkdownRenderingEnabled(true)))
+        return E_INVALIDARG;
     editor->SetCodeTokenizer(DxUi::RichText::TokenizeBuiltinCode);
     editor->SetRemoteImagesEnabled(settings.allowRemoteImages);
-    editor->SetViewMode(DxUi::RichText::ViewMode::Rich);
+    if (!AcceptSourceResult(editor->TrySetViewMode(DxUi::RichText::ViewMode::Rich)))
+        return E_INVALIDARG;
     editor->SetOnTextChanged([this] { Changed(); });
     editor->SetOnSelectionChanged([this] { SelectionChanged(); });
     editor->SetBitmapPasteHandler([this](std::span<const std::byte> dib, bool v5) { return BeginBitmapPaste(dib, v5); });
     editor->SetOnContextMenu([this](POINT point, bool) { Menu(point); });
     editor->SetOnLinkActivated([this](const DxUi::RichTextLinkActivation &activation) { RunUiAction([&] { RequestOpenLink(activation); }); });
     mirror = page->AddChild<SourceMirrorEditor>(*editor);
-    mirror->SetMarkdownAnalysisProfile(DxUi::RichText::MarkdownProfile::RichMarkdown);
-    mirror->SetMarkdownRenderingEnabled(true);
+    if (!AcceptSourceResult(mirror->TrySetMarkdownAnalysisProfile(DxUi::RichText::MarkdownProfile::RichMarkdown)) ||
+        !AcceptSourceResult(mirror->TrySetMarkdownRenderingEnabled(true)))
+        return E_INVALIDARG;
     mirror->SetReadOnly(true);
-    mirror->SetViewMode(DxUi::RichText::ViewMode::Source);
+    if (!AcceptSourceResult(mirror->TrySetViewMode(DxUi::RichText::ViewMode::Source)))
+        return E_INVALIDARG;
     mirror->SetAccessibleName(Resource(IDS_MIRROR));
     sidebar = root->AddChild<Surface>(Surface::Kind::Sidebar);
     sidebar->borderLeft = true;
@@ -293,7 +298,8 @@ void Application::BuildUi()
         if (!id || id > documentInfo.headings.size())
             return;
         const auto offset = documentInfo.headings[static_cast<std::size_t>(id - 1)].offset;
-        editor->SetSelection({offset, offset});
+        if (!AcceptSourceResult(editor->TrySetSelection({offset, offset})))
+            return;
         (void)editor->ScrollSourceRangeIntoView(host, offset, offset, true);
         host.SetFocusControl(editor, MayRequestNativeFocus());
         SelectionChanged();
@@ -321,8 +327,9 @@ void Application::BuildUi()
     Section(equationHelp);
     equation = sidebar->AddChild<DxUi::RichTextEditor>();
     equation->SetReadOnly(true);
-    equation->SetMarkdownAnalysisProfile(DxUi::RichText::MarkdownProfile::RichMarkdown);
-    equation->SetMarkdownRenderingEnabled(true);
+    if (!AcceptSourceResult(equation->TrySetMarkdownAnalysisProfile(DxUi::RichText::MarkdownProfile::RichMarkdown)) ||
+        !AcceptSourceResult(equation->TrySetMarkdownRenderingEnabled(true)))
+        return E_INVALIDARG;
     equation->SetAccessibleName(Resource(IDS_READONLY));
     ApplyMarkdownSyntax();
 
@@ -564,6 +571,7 @@ void Application::BuildUi()
     floating->SetVisible(false);
     host.SetRoot(std::move(tree));
     host.SetOnEscape([this] { return DismissSurface(); });
+    return S_OK;
 }
 
 void Application::Layout()
@@ -737,10 +745,13 @@ void Application::Layout()
     // The canonical monospace role and its fallback use the same family.
     // Reading that policy needs no host text format or graphics initialization.
     sourceAppearance.bodyFontFamily = DxUi::Typography::GetSpec(DxUi::FontRole::Monospace).familyName;
-    editor->SetAppearance(settings.view == EditorView::Source ? sourceAppearance : appearance);
+    if (!AcceptSourceResult(editor->TrySetAppearance(settings.view == EditorView::Source ? sourceAppearance : appearance)))
+        return;
     editor->SetFocusModeEnabled(focus && settings.dimInactiveBlocks);
-    mirror->SetAppearance(sourceAppearance);
-    equation->SetAppearance(appearance);
+    if (!AcceptSourceResult(mirror->TrySetAppearance(sourceAppearance)))
+        return;
+    if (!AcceptSourceResult(equation->TrySetAppearance(appearance)))
+        return;
     filesPane->SetVisible(settings.showFiles && !focus);
     filesPane->borderRight = fileOverlay;
     filesPane->SetBounds(D2D1::RectF(0, top, filesWidth, bottom));

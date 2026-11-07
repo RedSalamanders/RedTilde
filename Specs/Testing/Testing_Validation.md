@@ -208,7 +208,7 @@ Physical focus/IME/AT, release/package acceptance, hardware-specific qualificati
 
 RedTilde partitions its 128 registered native cases into Storage (25), Settings (6), Recovery (19) and Editor (78). Registration scanning includes reviewed Core `.cpp` and `.h` files from the native inventory. Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
 
-Production packaging separately executes thirteen refusal cases against the actual clean-extracted executable:
+Production packaging separately executes fifteen refusal cases against the actual clean-extracted executable:
 self-test, scope, listing, interactive test, crash, recovery crash/restart, preferences, sanitizer, linked-save
 crash/restart, and missing operands for scope/interactive test. Each owned hidden child must return 2 and leave
 its initially absent private data directory absent. Retain every observed result in `testOnlyEntryPointRefusals`
@@ -346,3 +346,24 @@ CreateWindow with default placement can be constrained by a small hosted desktop
 proof of the actual viewport. Contextual-equation coverage starts at 1024 DIP, verifies deferred hidden preview,
 then reveals and validates native math at 1440 DIP. Persistent sidebar-label checks use a declared 1440-DIP viewport.
 No fixture changes the desktop mode, foreground window or production responsive policy.
+
+## API-5 failure owner and checked refusal
+
+The Settings suite launches isolated `--failure-host-probe` children with explicit absolute data roots. Direct
+and tracked-worker C++ throws and an escaping audited native throw must terminate with exactly one dump,
+protocol-2 sidecar and pending marker. Verify the original thread, exception/address, instruction/stack pointers
+and matching running EXE CodeView GUID/age against the actual minidump streams. A native internally handled
+exception must return normally without a report. Debug/Release also exercise actual CRT allocation refusal;
+ASan retains its separate actual detector rather than treating an allocator abort as the SDK allocation route.
+The worker-drain case holds an SDK owner behind a real native-thread barrier: premature settlement times out,
+explicit release permits full retirement and closed admission refuses another callback. The session-end child
+holds a real bitmap callback, delivers WM_ENDSESSION(TRUE), and measures the terminal allowance from the final
+session message rather than process startup. Its process owner remains alive until OS teardown; the held
+callback must not add an ordinary five-second drain. All children remain hidden and never use desktop input.
+Only the held process created by a case may be terminated on its explicit test deadline.
+
+Editor cases cover malformed/oversized source, invalid metadata, near-capacity Quote/Code Block and read-only
+Find replacement. Assert unchanged source identity, selection, dirty/saved facts and both history directions on
+refusal, then a successful retry. Recovery serialization must reject malformed envelopes before mutation and
+preserve its output buffer. Production packages exclude the new test entry point and refuse both complete and
+missing-value invocations before creating the profile; the package and CI smoke require all fifteen cases.

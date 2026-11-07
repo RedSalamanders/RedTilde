@@ -1,4 +1,5 @@
 #pragma once
+#include "Common/ProcessWork.h"
 #include "Common/Storage.h"
 #include <memory>
 #include <mutex>
@@ -57,6 +58,12 @@ class AsyncFiles
 #pragma warning(pop)
     struct Job
     {
+        Job() = default;
+        Job(const Job &) = delete;
+        Job &operator=(const Job &) = delete;
+        Job(Job &&) = delete;
+        Job &operator=(Job &&) = delete;
+        ProcessWorkLease lease;
         std::shared_ptr<State> state;
         Result result;
         std::optional<FileStamp> expected;
@@ -70,6 +77,7 @@ class AsyncFiles
     std::shared_ptr<State> state;
     static void CALLBACK Worker(PTP_CALLBACK_INSTANCE, void *context) noexcept
     {
+        ProcessWorkLease lease = std::move(static_cast<Job *>(context)->lease);
         const std::unique_ptr<Job> job(static_cast<Job *>(context));
         auto &result = job->result;
 #if defined(REDTILDE_ENABLE_TESTS)
@@ -179,6 +187,12 @@ class AsyncFiles
 #endif
         state->busy = true;
         state->saving = saving;
+        const HRESULT admission = ProcessWork::Acquire(job->lease);
+        if (FAILED(admission))
+        {
+            state->busy = false;
+            return admission;
+        }
         if (!TrySubmitThreadpoolCallback(Worker, job.get(), nullptr))
         {
             state->busy = false;

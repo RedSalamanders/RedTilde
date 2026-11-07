@@ -1,5 +1,7 @@
 #include "Settings.h"
+#include "ProcessWork.h"
 #include "Storage.h"
+#include <DxUi/Failure.h>
 #include <DxUi/RichDocument.h>
 #include <algorithm>
 #include <charconv>
@@ -65,19 +67,17 @@ Settings ParseSettings(std::string_view bytes)
                 }
             if ((key == "filesRoot" || key == "lastDocument") && value.size() <= 3u * 32767u)
             {
-                try
+                std::wstring decoded;
+                if (DxUi::RichText::TryDecodeUtf8(value, decoded) == DxUi::RichText::SourceResult::Success)
                 {
-                    std::filesystem::path path(DxUi::RichText::DecodeUtf8(value));
+                    std::filesystem::path path(std::move(decoded));
                     if (ValidPreferencePath(path))
                     {
                         auto &destination = key == "filesRoot" ? settings.filesRoot : settings.lastDocument;
                         destination = path.lexically_normal();
                     }
                 }
-                catch (const std::invalid_argument &)
-                {
-                    // A malformed UTF-8 preference path keeps its default; neighboring fields still apply.
-                }
+                // A malformed UTF-8 preference path keeps its default; neighboring fields still apply.
             }
             unsigned number{};
             const auto parsed = std::from_chars(value.data(), value.data() + value.size(), number);
@@ -139,10 +139,13 @@ std::string SerializeSettings(const Settings &settings)
     result += std::format("imageFirstPaste={}\n", settings.imageFirstPaste ? 1 : 0);
     for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
         result += std::format("{}={}\n", MarkdownSyntaxKeys[index], settings.markdownSyntax[index] ? 1 : 0);
-    if (ValidPreferencePath(settings.filesRoot))
-        result += std::format("filesRoot={}\n", DxUi::RichText::EncodeUtf8(settings.filesRoot.native()));
-    if (ValidPreferencePath(settings.lastDocument))
-        result += std::format("lastDocument={}\n", DxUi::RichText::EncodeUtf8(settings.lastDocument.native()));
+    std::string encoded;
+    if (ValidPreferencePath(settings.filesRoot) &&
+        DxUi::RichText::TryEncodeUtf8(settings.filesRoot.native(), encoded) == DxUi::RichText::SourceResult::Success)
+        result += std::format("filesRoot={}\n", encoded);
+    if (ValidPreferencePath(settings.lastDocument) &&
+        DxUi::RichText::TryEncodeUtf8(settings.lastDocument.native(), encoded) == DxUi::RichText::SourceResult::Success)
+        result += std::format("lastDocument={}\n", encoded);
     if (settings.windowPlacement && ValidWindowPlacement(settings.windowPlacement.value()))
     {
         const auto &placement = settings.windowPlacement.value();
@@ -167,7 +170,7 @@ try
 }
 catch (const std::bad_alloc &)
 {
-    return E_OUTOFMEMORY;
+    DxUi::Failure::FailAllocation();
 }
 catch (const std::filesystem::filesystem_error &error)
 {
@@ -193,7 +196,7 @@ try
 }
 catch (const std::bad_alloc &)
 {
-    return E_OUTOFMEMORY;
+    DxUi::Failure::FailAllocation();
 }
 catch (const std::filesystem::filesystem_error &error)
 {
@@ -214,8 +217,9 @@ struct SettingsWriter::State
     HRESULT status = S_OK;
     static void CALLBACK Worker(PTP_CALLBACK_INSTANCE, void *context) noexcept
     {
-        const std::unique_ptr<std::shared_ptr<State>> ownership(static_cast<std::shared_ptr<State> *>(context));
-        const auto &shared = *ownership;
+        ProcessWorkLease lease = std::move(static_cast<ProcessWorkItem<State> *>(context)->lease);
+        const std::unique_ptr<ProcessWorkItem<State>> ownership(static_cast<ProcessWorkItem<State> *>(context));
+        const auto &shared = ownership->state;
         for (;;)
         {
             Settings next;
@@ -261,7 +265,13 @@ try
     state->pending = settings;
     if (state->active)
         return S_OK;
-    auto ownership = std::make_unique<std::shared_ptr<State>>(state);
+    auto ownership = std::make_unique<ProcessWorkItem<State>>(state);
+    const HRESULT admission = ProcessWork::Acquire(ownership->lease);
+    if (FAILED(admission))
+    {
+        state->status = admission;
+        return admission;
+    }
     state->active = true;
     if (!TrySubmitThreadpoolCallback(State::Worker, ownership.get(), nullptr))
     {
@@ -274,7 +284,7 @@ try
 }
 catch (const std::bad_alloc &)
 {
-    return E_OUTOFMEMORY;
+    DxUi::Failure::FailAllocation();
 }
 bool SettingsWriter::Busy() const noexcept
 {

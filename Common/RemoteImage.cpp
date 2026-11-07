@@ -1,5 +1,7 @@
 #include "RemoteImage.h"
+#include "ProcessWork.h"
 #include "RemoteImageImports.h"
+#include <DxUi/Failure.h>
 #include <algorithm>
 #include <array>
 #include <limits>
@@ -46,6 +48,8 @@ HRESULT EnsureWinHttpImports() noexcept
 #pragma warning(disable : 4625 4626 5026 5027)
 struct Transfer final
 {
+    // Declared first so final native callback retirement releases all transfer state before the process lease.
+    ProcessWorkLease lease;
     wil::unique_handle ready;
     std::array<std::byte, 65536> buffer{};
     std::atomic<DWORD> notification{}, error{}, received{};
@@ -230,6 +234,9 @@ try
     // WinHTTP requires the application to supply a client certificate after
     // CLIENT_AUTH_CERT_NEEDED. We never supply one or retry that challenge.
     auto transfer = std::make_shared<Transfer>();
+    const HRESULT admitted = ProcessWork::Acquire(transfer->lease);
+    if (FAILED(admitted))
+        return admitted;
     transfer->ready.reset(CreateEventW(nullptr, FALSE, FALSE, nullptr));
     if (!transfer->ready)
         return LastError();
@@ -311,7 +318,7 @@ catch (const std::bad_alloc &)
 {
     // Allocation failure at a worker/service boundary is fatal, never a silent
     // failed-image preference or a partially published encoded buffer.
-    std::terminate();
+    DxUi::Failure::FailAllocation();
 }
 catch (const std::length_error &)
 {

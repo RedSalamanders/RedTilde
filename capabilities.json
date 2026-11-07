@@ -29,7 +29,7 @@
     "single-context-bound-save-conflict-choice",
     "save-as-current-object-conflict-baseline",
     "specific-utf8-and-capacity-diagnostics",
-    "recoverable-ui-action-boundaries",
+    "checked-ui-action-refusals-and-fatal-unexpected-exceptions",
     "menu-command-draft-focus-retention",
     "full-native-file-identity-stamps",
     "dirty-document-prompts",
@@ -84,6 +84,7 @@
     "header-only-redmonitor-client-and-installed-release-helper"
   ],
   "pending": [
+    "api5-consumer-failure-and-native-qualification",
     "upstream-performance-and-product-qualification",
     "documents-over-65536-utf16-units",
     "conditional-cross-process-atomic-replacement",

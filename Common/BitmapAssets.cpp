@@ -1,4 +1,5 @@
 #include "BitmapAssets.h"
+#include <DxUi/Failure.h>
 #include <algorithm>
 #include <array>
 #include <cstring>
@@ -136,7 +137,7 @@ try
 }
 catch (const std::bad_alloc &)
 {
-    std::terminate();
+    DxUi::Failure::FailAllocation();
 }
 catch (const std::filesystem::filesystem_error &error)
 {

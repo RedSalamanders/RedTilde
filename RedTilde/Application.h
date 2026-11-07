@@ -22,6 +22,7 @@
 
 namespace RedTilde
 {
+class ApplicationRuntime;
 enum class Command
 {
     New,
@@ -125,8 +126,8 @@ struct LaunchOptions
     std::function<int()> unsavedPromptForTest;
     std::function<SaveConflictChoice()> saveConflictForTest;
     // Directed recoverable failures at the real UI entry points; never compiled into production.
-    std::function<void(Command)> commandAdmissionForTest;
-    std::function<void()> fileCompletionAdmissionForTest;
+    std::function<HRESULT(Command)> commandAdmissionForTest;
+    std::function<HRESULT()> fileCompletionAdmissionForTest;
     std::function<std::filesystem::path(bool)> filePickerForTest;
     std::shared_ptr<AsyncFiles::TestGate> fileGateForTest;
     std::function<bool(std::wstring_view)> confirmLinkForTest;
@@ -160,7 +161,7 @@ class Application
     int Run();
     void Execute(Command command) noexcept;
     void SetView(EditorView view);
-    void SetDocument(std::wstring text, std::filesystem::path path = {}, bool bom = false, FileStamp stamp = {}, bool rememberForStartup = true);
+    bool SetDocument(std::wstring text, std::filesystem::path path = {}, bool bom = false, FileStamp stamp = {}, bool rememberForStartup = true);
     // Interaction probes settle content first, then capture without pumping
     // ambient pointer-leave messages for their deliberately hidden HWND.
     bool Capture(const std::filesystem::path &path, bool prepareContent = true);
@@ -168,6 +169,10 @@ class Application
     // This is not the production event loop or an input-readiness prerequisite.
     void Prepare(unsigned turns = 128);
     [[nodiscard]] bool Dirty() const;
+    [[nodiscard]] bool IsSessionEnding() const noexcept
+    {
+        return sessionEnding;
+    }
     [[nodiscard]] Editor &Document() const
     {
         return *editor;
@@ -230,24 +235,30 @@ class Application
     friend class PerformanceProbe;
     friend class DesignRefreshProbe;
     friend class DesignInteractiveProbe;
+#if defined(REDTILDE_ENABLE_TESTS)
+    friend int RunFailureHostProbe(std::wstring_view, const std::filesystem::path &, ApplicationRuntime &);
+#endif
     template <class Action> void RunUiAction(Action &&action) noexcept
     {
-        // All application-owned UI/callback entry points share this boundary.
-        // Recoverable failures retain the document; allocation failure is fatal.
+        // Expected refusal uses explicit status/results. Unexpected C++ failures at this ABI/callback
+        // boundary use the process-owned original-context reporter and cannot resume a partial action.
         try
         {
+            const DxUi::Failure::Scope actionScope;
             std::forward<Action>(action)();
         }
         catch (const std::bad_alloc &)
         {
-            std::terminate();
+            DxUi::Failure::FailAllocation();
         }
-        catch (const std::exception &error)
+        catch (const std::exception &)
         {
-            ReportUiFailure(error.what());
+            DxUi::Failure::FailUnexpected();
         }
     }
+    Application(LaunchOptions value, const DxUi::Failure::Scope &constructionScope);
     void ReportUiFailure(std::string_view cause) noexcept;
+    [[nodiscard]] bool AcceptSourceResult(DxUi::RichText::SourceResult result);
     void ExecuteCommand(Command command, unsigned zoomSteps = 1);
     void DispatchUiMessage(const MSG &message) noexcept;
     void OnMenuClosed(std::optional<int> selected) noexcept;
@@ -441,7 +452,7 @@ class Application
     static LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM) noexcept;
     LRESULT HandleMessage(HWND, UINT, WPARAM, LPARAM);
     bool RouteShortcut(const MSG &message);
-    void BuildUi();
+    [[nodiscard]] HRESULT BuildUi();
     void PrepareDesignScenario();
     void RefreshOutline();
     [[nodiscard]] bool PreviewOutlineMatchesCommitted() const;
