@@ -379,6 +379,10 @@ follow-up is removed. Completion correctly reported failed native qualification.
   an unchanged local-file watch and its initial refresh reloads the remote image. Named wait-stage diagnostics
   retain three observed requests instead of two with two ready sources and no pending/failed work. The narrow
   image-reference classification repair passes all 95 ASan editor cases, including unchanged local-watch work.
+  Frozen `2776053` additionally passes all three local x64 nonstorage/capture profiles, retaining the actual
+  symbolic-link privilege refusal. Its first ARM64 Debug compile exposes C4324 padding in the failure host;
+  original source/native/compiler archives are retained. The record-first, explicitly sized owner layout
+  corrects that warning without a suppression; fresh candidate qualification remains pending.
   Original failed/diagnostic candidates and the rejected resolved-source map remain retained. This focused
   pass does not replace the final complete candidate matrix or hosted x64 symbolic-link execution.
 - [ ] Complete C11/C12/S6 release decisions: packaging, any installer/file associations, exact release handoff,

@@ -103,7 +103,10 @@ The crash handler is a last-resort diagnostic, not a recovery save. Recovery sna
 execution. ASan owns sanitizer diagnostics and must still pass a real detection probe before qualification.
 
 DxUi API 5 uses an explicit process-owned protocol-2 reporter. Prepare the bounded crash path, handles and loaded
-DbgHelp before SDK use; start its dedicated writer before installing ProcessHooks. Copy the fixed failure record
+DbgHelp before SDK use; start its dedicated writer before installing ProcessHooks. The app-owned reporter preserves
+the protocol record's natural context alignment, places that record
+first and explicitly accounts for its scalar tail; a size assertion forbids implicit member/tail padding on either
+compile target. Keep compiler warning policy enabled rather than suppressing alignment diagnostics. Copy the fixed record
 without allocation and keep the faulting thread held while the writer attempts its dump. Serialize DbgHelp use.
 The dump exception stream and fixed `.record` sidecar retain the original exception, machine context, thread,
 source site and frames. The writer's thread/context must never replace them. Record the actual native dump

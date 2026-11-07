@@ -2,6 +2,7 @@
 #include "ProcessWork.h"
 #include <DxUi/Failure.h>
 #include <atomic>
+#include <cstdint>
 #include <objbase.h>
 #include <wil/resource.h>
 
@@ -26,13 +27,19 @@ class DxUiFailureHost final
   private:
     static HRESULT Report(void *context, const DxUi::Failure::Record &record) noexcept;
     static DWORD WINAPI Writer(void *context) noexcept;
+    // The protocol context is more strongly aligned than the handles. Put it first and
+    // account for the tail explicitly so neither profile needs implicit padding.
+    DxUi::Failure::Record record_{};
     DxUi::Failure::ProcessHooks hooks_;
     wil::unique_handle request_, stop_, done_, writer_;
-    DxUi::Failure::Record record_{};
     DWORD ownerThread_{};
     std::atomic<unsigned> reportState_{};
     std::atomic<HRESULT> result_{E_PENDING};
+    std::uint32_t reservedTail_[3]{};
 };
+static_assert(sizeof(DxUiFailureHost) == sizeof(DxUi::Failure::Record) + sizeof(DxUi::Failure::ProcessHooks) + 4u * sizeof(wil::unique_handle) +
+                                             sizeof(DWORD) + sizeof(std::atomic<unsigned>) + sizeof(std::atomic<HRESULT>) +
+                                             3u * sizeof(std::uint32_t));
 
 // Declared after COM initialization and before Application. Its destructor runs after every app window/owner.
 class ApplicationRuntime final
