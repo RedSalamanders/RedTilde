@@ -2,6 +2,8 @@
 
 ## Completed scopes — 7 November 2026
 
+- [Native editing qualification](NativeEditingQualification_2026-11-07.md) — Source Enter/EOLs, actual native ACP capacity, hidden-app preview/mirror admission and hostile file-paste names; six zero-warning builds and three x64 runs with the explicit local symlink privilege boundary.
+
 - [Bitmap paste](BitmapPaste_2026-11-07.md) — bounded durable app-owned PNG assets, persisted text/image preference, cancellation and one-step Undo; six local zero-warning builds, six hosted native profiles with 840 passing cases and 228 captures, and both version 0.1.378 production ZIP smoke checks.
 
 - [Provider save fallback](ProviderSaveFallback_2026-11-07.md) — durable recovery before provider-refused replacement fallback, provenance and conflict checks; six builds with the explicit local symbolic-link privilege boundary.

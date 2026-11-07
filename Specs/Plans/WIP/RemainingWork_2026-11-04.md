@@ -172,8 +172,12 @@ RT-18 remains optional defensive hardening, not a newly confirmed defect.
   in Compose, Source and Split; cover overflow, paging/dragging, themes, DPI, narrow layout and source/history
   preservation with hidden native tests and captures. [Scoped closeout](../Done/QuoteMarginsAndScrollbars_2026-11-04.md)
   records the exact pin, all three x64 profiles, ASan detection and actual hidden captures.
-- [ ] Qualify Source-view Enter, native IME capacity and quoted file-paste behavior through the exact adopted
-  DxUi pin (DX-3/DX-4 and the RT-03 shared half); do not implement competing editor logic in the app.
+- [x] Qualify Source Enter, native ACP capacity and quoted file-paste software through exact API-4
+  `a1915ffd` (DX-3/DX-4 and the RT-03 shared half). The
+  [local closeout](../Done/NativeEditingQualification_2026-11-07.md) records actual hidden-app EOL/preview/mirror
+  paths, the public native store on the app-owned headless component, all six clean builds, 143 passing cases
+  and 38 captures per x64 profile, and the actual local symlink privilege failure. No competing editor logic,
+  OS clipboard or physical IME acceptance is implied; fresh hosted 144-case coverage remains with T-Q1.
 - [x] Complete real-keyboard `Equation.F2InPlaceEditUndoAndExit` through the existing restoring desktop lease.
   All nine keyboard/focus stages pass at `31d6f59e` after explicit timing agreement and the visible 30-second
   countdown. Foreground/focus remain unchanged and the pointer is restored.

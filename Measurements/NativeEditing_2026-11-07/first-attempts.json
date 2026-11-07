@@ -1,0 +1,100 @@
+{
+  "benchmarkInputs": {
+    "Tests/Application.Tests.Core.cpp": "73F73A65B1FB26DC47BDBA41C8C981195A1F366FB9EE030A86BB52CB88921E25",
+    "Tests/Support/Support.Tests.TextServices.h": "BA75EFA4AE763CC80BB79C6463D5C929043DDBE5CE0BFD4D0846F9052D822A91",
+    "Tests/native-case-catalog.json": "F47BF9D38B86E0018B82696A6340B4B45903351A84BAE9D96B5115A42C0AF0DA"
+  },
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-native-editing-first-attempts",
+  "inputHash": "741db81d9eb7325f20bd352af3065415daae542309a91ec5be49a15cc755d828",
+  "schemaVersion": 1,
+  "limits": [
+    "First hidden-window attempt never reached native capacity admission",
+    "The WRL warning cohort remains a refused build",
+    "Final local symbolic-link runtime is still unaccepted; native ARM64 and physical IME are separate"
+  ],
+  "attempts": [
+    {
+      "archives": [
+        {
+          "archive": "first-failed-native.zip",
+          "sha256": "2FD9751039F062BA1378761D6C4AE6E7CF909E4D4555A6FCDD83452493DD9D89",
+          "allMemberHashesVerified": true,
+          "members": 3
+        },
+        {
+          "archive": "first-failed-other-run.zip",
+          "sha256": "D79B9409CFA3A1A867EDF8194A210BD982A3844415027D25BD637D2F333344BE",
+          "allMemberHashesVerified": true,
+          "members": 361
+        },
+        {
+          "archive": "first-failed-sdk.zip",
+          "sha256": "5965DF25942FBC0FABBE977B3B8D1D681C8207012DA2465C41369273D9EF413E",
+          "allMemberHashesVerified": true,
+          "members": 2
+        },
+        {
+          "archive": "first-failed-storage-run.zip",
+          "sha256": "D6F837939D0CC1774A3A20A4D2B3953DDEF43E00918DDB66744F0127BBDD46F5",
+          "allMemberHashesVerified": true,
+          "members": 652
+        },
+        {
+          "archive": "original-compiled-inputs.zip",
+          "sha256": "BC9CCECD970B083FEA432FDE6EBDE30B30EA1EA145C09ECF41641C4765CBAFBD",
+          "allMemberHashesVerified": true,
+          "members": 145
+        }
+      ],
+      "original": {
+        "nativeSha256": "2FD9751039F062BA1378761D6C4AE6E7CF909E4D4555A6FCDD83452493DD9D89",
+        "storageRunSha256": "D6F837939D0CC1774A3A20A4D2B3953DDEF43E00918DDB66744F0127BBDD46F5",
+        "sdkSha256": "5965DF25942FBC0FABBE977B3B8D1D681C8207012DA2465C41369273D9EF413E",
+        "allOriginalMembersVerified": true,
+        "otherRunSha256": "D79B9409CFA3A1A867EDF8194A210BD982A3844415027D25BD637D2F333344BE",
+        "sourceCommit": "05082e256c9ae78f0d17de5dfeee27451b88eaaf",
+        "failedCase": {
+          "name": "Editor.NativeTextStoreCapacityAdmission",
+          "passed": false,
+          "error": "the adopted pin creates the actual native ACP store"
+        },
+        "limit": "Native capacity was not evaluated: the fixture requested a live native session on a deliberately hidden HWND. Source Enter and hostile-name tests passed; local symlink privilege failure remains distinct."
+      },
+      "name": "hidden-hwnd-fixture"
+    },
+    {
+      "archives": [
+        {
+          "archive": "first-failed-native.zip",
+          "sha256": "D4FF8D095E6DDCE5F72C2EC38F783E2A784492E4C277615FB4EED11D274532FB",
+          "allMemberHashesVerified": true,
+          "members": 3
+        },
+        {
+          "archive": "first-failed-sdk.zip",
+          "sha256": "CCE623A23981262C807644D2BC3985C84A676CE359923FBEC4C1E13B2E6C6F81",
+          "allMemberHashesVerified": true,
+          "members": 3
+        },
+        {
+          "archive": "original-compiled-inputs.zip",
+          "sha256": "2CABFBDFA55B85AB7349DBD1D4917AA9BD4711DD8F1243F9200F7851913E0A7C",
+          "allMemberHashesVerified": true,
+          "members": 145
+        }
+      ],
+      "original": {
+        "sourceArchiveSha256": "2CABFBDFA55B85AB7349DBD1D4917AA9BD4711DD8F1243F9200F7851913E0A7C",
+        "nativeArchiveSha256": "D4FF8D095E6DDCE5F72C2EC38F783E2A784492E4C277615FB4EED11D274532FB",
+        "sdkArchiveSha256": "CCE623A23981262C807644D2BC3985C84A676CE359923FBEC4C1E13B2E6C6F81",
+        "limit": "Four earlier source-bound profiles passed; this failed ARM64 Debug build is not qualified",
+        "sourceCommit": "18ab6ba185630cdab784805842160202cbaab676",
+        "allOriginalMembersVerified": true,
+        "diagnostic": "C4746 from the test-only classic WRL COM sink instantiated in ARM64 Debug; twelve warning records, zero errors; build refused"
+      },
+      "name": "arm64-wrl-warning"
+    }
+  ],
+  "implementationCommit": "abf5ee69aa76db3a38abde8c4182dd77741afd9a"
+}
