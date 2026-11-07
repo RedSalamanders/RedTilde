@@ -71,6 +71,25 @@ void Application::PrepareDesignScenario()
 
     const auto &scenario = options.scenario;
     std::wstring fixtureName = options.document.filename().wstring();
+    const bool clipboardSettings = scenario == L"image-paste-light" || scenario == L"image-paste-dark";
+    if (clipboardSettings)
+    {
+        SetDocument(WritingFixture());
+        settings.appearance = scenario == L"image-paste-dark" ? Appearance::Dark : Appearance::Light;
+        settings.view = EditorView::Compose;
+        settings.showFiles = false;
+        settings.showOutline = false;
+        const bool imageFirst = scenario == L"image-paste-light";
+        if (settings.imageFirstPaste != imageFirst)
+            Execute(Command::ImageFirstPaste);
+        Execute(Command::Settings);
+        Prepare(512);
+        settingsScroll->SetScrollOffset(1240);
+        RequireCapture(host.GetClipboardPreference() ==
+                           (imageFirst ? DxUi::TextClipboardPreference::ImageFirst : DxUi::TextClipboardPreference::TextFirst),
+                       "The clipboard preference capture must expose the actual live host policy");
+        fixtureName = L"Clipboard picture preferences";
+    }
     if (scenario == L"diagram-label-light" || scenario == L"diagram-label-dark")
     {
         SetDocument(L"# Notebook review\n\n```mermaid\nstateDiagram-v2\ndirection LR\n"
@@ -296,6 +315,7 @@ void Application::PrepareDesignScenario()
         "{{\n  \"schemaVersion\": 1,\n  \"scenario\": \"{}\",\n  \"fixtureBasename\": \"{}\",\n"
         "  \"effectiveSystemPreference\": \"{}\",\n  \"systemPreferenceSource\": \"{}\",\n  \"renderedAppearance\": \"{}\",\n"
         "  \"strikeCompletedTasks\": {},\n"
+        "  \"imageFirstPaste\": {},\n"
         "  \"requestedDpi\": {},\n  \"nativeWindowDpi\": {},\n  \"actualHostDpi\": {},\n  \"simulatedDpi\": {},\n"
         "  \"requestedWidthPx\": {},\n  \"requestedHeightPx\": {},\n  \"actualWidthPx\": {},\n  \"actualHeightPx\": {},\n"
         "  \"actualWidthDip\": {},\n  \"actualHeightDip\": {},\n  \"filesModelFrozen\": {},\n  \"reparseFixtureRemoved\": {},\n  \"hidden\": true,\n"
@@ -303,9 +323,9 @@ void Application::PrepareDesignScenario()
         scenarioUtf8, fixtureUtf8, systemDark ? "dark" : "light",
         scenario == L"settings" ? "synthetic-fixture" : "windows-preference-or-light-fallback",
         settings.appearance == Appearance::Dark || (settings.appearance == Appearance::System && systemDark) ? "dark" : "light",
-        settings.strikeCompletedTasks ? "true" : "false", options.captureDpi, nativeDpi, host.GetDpi(), requestedDpi != nativeDpi ? "true" : "false",
-        widthPx, heightPx, host.DebugGetWidthPx(), host.DebugGetHeightPx(), actual.right - actual.left, actual.bottom - actual.top,
-        frozenFilesModel ? "true" : "false", reparseRemoved ? "true" : "false");
+        settings.strikeCompletedTasks ? "true" : "false", settings.imageFirstPaste ? "true" : "false", options.captureDpi, nativeDpi, host.GetDpi(),
+        requestedDpi != nativeDpi ? "true" : "false", widthPx, heightPx, host.DebugGetWidthPx(), host.DebugGetHeightPx(), actual.right - actual.left,
+        actual.bottom - actual.top, frozenFilesModel ? "true" : "false", reparseRemoved ? "true" : "false");
     auto sidecar = options.capture;
     sidecar += L".scenario.json";
     RequireCapture(SUCCEEDED(WriteBytesAtomic(sidecar, metadata)), "Cannot preserve the capture's actual viewport/DPI/scenario provenance");

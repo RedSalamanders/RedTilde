@@ -89,7 +89,7 @@ See the [retention contract](../Specs/Testing/Testing_RunEvidence.md) for verifi
 
 ## Design refresh interaction and captures
 
-`test.ps1 -Suite Captures` generates 36 actual hidden renders: the normal presentation scenes plus Files,
+`test.ps1 -Suite Captures` generates 38 actual hidden renders: the normal presentation scenes plus Files,
 Find/Replace, Focus and exact equation source, with narrow and image-2 weekly-report 96/144/192-DPI variants. The
 reference-dark scene reads `Tests/Fixtures/reference-dark.md`, seeds the same twenty-file Reports tree
 and selects the same current section. At 96 DPI its actual viewport is exactly 1440x900 pixels. Every PNG has a scenario
@@ -97,6 +97,9 @@ sidecar with requested and actual viewport/DPI, native window DPI, simulation st
 The receipt binds both files to the exact build, source and DxUi pin. Simulated DPI exercises layout; physical
 monitor acceptance remains separate. Files captures retire their owned junction before evidence sealing while
 retaining the proved immutable tree model. No capture activates a window or takes a desktop screenshot.
+The `image-paste-light` and `image-paste-dark` scenes expose the Privacy section with
+image-first enabled and disabled respectively, assert the actual live host policy,
+and record `imageFirstPaste` with the theme/viewport provenance.
 
 After agreeing with the person at the desktop, run `test-interactive.ps1 -Configuration Release -SkipBuild`.
 `-InteractiveAutoStart` is allowed only with explicit prior agreement and displays the canonical 30-second Start
