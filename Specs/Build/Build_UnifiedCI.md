@@ -57,6 +57,12 @@ remains enabled; CodeQL uses explicit C/C++ build mode none, which does not invo
 Compiler-free CodeQL does not analyze generated code as completely as a build-based scan:
 [GitHub build-mode contract](https://docs.github.com/en/code-security/how-tos/find-and-fix-code-vulnerabilities/manage-your-configuration/codeql-for-compiled-languages).
 
+Manual diagnostic qualification selects `platform=All` (the compatibility default), `x64` or `ARM64`.
+A compiler-free selector rejects other values before native setup. Single-architecture evidence establishes only
+that recorded scope and does not advance the normal two-architecture Release/production gate. Explicit owner
+approval may scope delivery to all three x64 runtime profiles and all three ARM64 compilation profiles while
+setting ARM64 runtime aside; record that decision and retain older runtime failures in the delivery ledger.
+
 Publication is an explicit trusted-main action, defaulting to prepare-only. Select an original successful
 qualify.yml run with complete matching receipts and retained ZIPs for both native architectures. Publication
 promotes those exact bytes without building, restamping, signing afterwards or substituting an older green

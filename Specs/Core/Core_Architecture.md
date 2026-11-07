@@ -114,6 +114,11 @@ from decode request identities. Compare destinations only on immutable semantic 
 image references retain their paths across prose edits and reloads without rearming I/O. Removed/retargeted
 references or a changed document base retire the old paths and notification generation before obtaining fresh
 SDK-admitted canonical paths. Never use a hash alone as authority for that equality.
+The shared image-chrome classification excludes HTTP(S), network-file, data and wiki references from local-watch
+invalidation. A remote-only edit must preserve unchanged local watches; otherwise their initial refresh can
+duplicate an opted-in HTTP request. This lexical classification grants no permission, resolves no path and
+performs no I/O: only SDK-admitted LocalFile requests can supply actual watched paths. Keep diagnostic wait
+stages and actual request/resource counters so a completed image cannot be mistaken for a slow worker.
 Over-capacity/failed automatic watching retains editing and explicit Reload rather than admitting extra watchers.
 Closing invalidates publication and wakes the worker; UI teardown never waits for directory I/O. The process-work
 owner still counts that worker until its buffers and overlapped operations have actually drained.

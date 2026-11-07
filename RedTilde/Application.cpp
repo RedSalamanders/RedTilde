@@ -31,6 +31,30 @@ namespace RedTilde
 static_assert(std::is_nothrow_swappable_v<DocumentInfo>, "analysis facts must publish without throwing");
 namespace
 {
+enum class ImageReferenceCategory
+{
+    PossibleFile,
+    Network,
+    Other
+};
+// Shared explanatory-chrome/watch-invalidation policy over semantic values.
+// This performs no URI admission, path resolution, permission grant or I/O;
+// only SDK-admitted LocalFile requests can supply actual watched paths.
+ImageReferenceCategory ImageReferenceCategoryFor(const DxUi::RichText::SemanticElement &element) noexcept
+{
+    if (element.wiki)
+        return ImageReferenceCategory::Other;
+    const auto &value = element.destination;
+    const auto prefix = [&](std::wstring_view text)
+    {
+        return value.size() >= text.size() &&
+               CompareStringOrdinal(value.data(), static_cast<int>(text.size()), text.data(), static_cast<int>(text.size()), TRUE) == CSTR_EQUAL;
+    };
+    if (prefix(L"http://") || prefix(L"https://") || (prefix(L"file://") && value.size() > 7u && value[7u] != L'/') || value.starts_with(L"//") ||
+        value.starts_with(L"\\\\"))
+        return ImageReferenceCategory::Network;
+    return prefix(L"data:") ? ImageReferenceCategory::Other : ImageReferenceCategory::PossibleFile;
+}
 // App-local display categories over the canonical immutable tree, not a parser.
 unsigned CurrentBlockResourceAt(const DxUi::RichText::MarkdownSyntax &syntax, std::size_t caret,
                                 std::optional<std::pair<unsigned, std::size_t>> *listSummary = nullptr) noexcept
@@ -2906,15 +2930,7 @@ void Application::RefreshImageConsent()
             for (const auto &element : semantic->Elements())
                 if (element.role == DxUi::RichText::SemanticRole::Image)
                 {
-                    const auto &value = element.destination;
-                    const auto scheme = [&](std::wstring_view prefix)
-                    {
-                        return value.size() >= prefix.size() && CompareStringOrdinal(value.data(), static_cast<int>(prefix.size()), prefix.data(),
-                                                                                     static_cast<int>(prefix.size()), TRUE) == CSTR_EQUAL;
-                    };
-                    // This only selects explanatory chrome; the SDK and transport independently authorize requests.
-                    if (scheme(L"http://") || scheme(L"https://") || (scheme(L"file://") && value.size() > 7u && value[7u] != L'/') ||
-                        value.starts_with(L"//") || value.starts_with(L"\\\\") || documentPath.native().starts_with(L"\\\\"))
+                    if (ImageReferenceCategoryFor(element) == ImageReferenceCategory::Network || documentPath.native().starts_with(L"\\\\"))
                     {
                         imageConsentHasNetwork = true;
                         break;
@@ -2969,11 +2985,12 @@ void Application::ServiceImages()
     {
         // Decode cancellation ends a job, including successful completion. It
         // does not end the document's ownership of the displayed file. Compare
-        // exact image destinations only when a new immutable tree is published;
-        // ordinary prose changes retain paths and do not rearm directory I/O.
+        // exact possible-file destinations only on immutable publication;
+        // non-file image edits must not rearm local I/O and refetch HTTP images.
         const auto before = imageWatchSemantic ? imageWatchSemantic->Elements() : std::span<const DxUi::RichText::SemanticElement>{};
         const auto after = semantic->Elements();
-        const auto image = [](const auto &element) { return element.role == DxUi::RichText::SemanticRole::Image; };
+        const auto image = [](const auto &element)
+        { return element.role == DxUi::RichText::SemanticRole::Image && ImageReferenceCategoryFor(element) == ImageReferenceCategory::PossibleFile; };
         auto previous = std::ranges::find_if(before, image);
         auto next = std::ranges::find_if(after, image);
         while (previous != before.end() && next != after.end() && previous->destination == next->destination && previous->wiki == next->wiki)

@@ -9,6 +9,10 @@ This is the **only active RedTilde plan**. It replaces the ten overlapping plann
 source identities, failed runs and proposal assets; they are references, not additional execution queues.
 Domain contracts under `Specs/Core`, `Specs/Editor`, `Specs/UI`, `Specs/Build` and `Specs/Testing` remain authoritative.
 
+The owner's **7 November 2026** delivery scope requires x64 Debug, Release and ASan Debug runtime tests and
+ARM64 compilation in all three profiles. ARM64 runtime is explicitly set aside for this delivery. Compilation
+does not establish runtime acceptance or change the normal two-architecture production release gate.
+
 ## Verified starting point
 
 Reviewed main: `1cd59c08528cc1e20720a45ef833bb9e69c315e4` ([PR44](https://github.com/RedSalamanders/RedTilde/pull/44)).
@@ -370,6 +374,13 @@ follow-up is removed. Completion correctly reported failed native qualification.
   88/89 Editor behavior cases; the remaining failure proves that decode completion incorrectly removed its
   file watch. Current code retains canonical paths independently of decode-job cancellation and covers
   retargeting, document-base changes, image removal and unchanged prose. Fresh qualification remains required.
+  At `0daf9924`, Debug/Release pass 125 nonstorage cases and all 40 captures; Storage retains its actual
+  29-pass/one-failure Win32 1314 result. ASan exposes an extra HTTP fetch: a remote-only semantic change rearms
+  an unchanged local-file watch and its initial refresh reloads the remote image. Named wait-stage diagnostics
+  retain three observed requests instead of two with two ready sources and no pending/failed work. The narrow
+  image-reference classification repair passes all 95 ASan editor cases, including unchanged local-watch work.
+  Original failed/diagnostic candidates and the rejected resolved-source map remain retained. This focused
+  pass does not replace the final complete candidate matrix or hosted x64 symbolic-link execution.
 - [ ] Complete C11/C12/S6 release decisions: packaging, any installer/file associations, exact release handoff,
   truthful capability limits and publication evidence. Source merge is not product release acceptance.
 

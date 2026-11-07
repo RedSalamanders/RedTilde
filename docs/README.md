@@ -120,6 +120,7 @@ That choice also permits an image on the current document's exact network share.
 image paths remain blocked. Local image changes refresh automatically within the bounded watch capacity;
 completed image loads and ordinary prose edits keep those watches active. Removing or retargeting an image
 retires its previous file binding, and repeated reloads of one image use one watch slot.
+Changing a remote image also keeps unchanged local-image watches and avoids an extra network reload.
 **File → Reload images** retries images without editing the document. Networks that require a proxy show a
 load failure; image fetching uses a direct connection.
 Use **Block here** to remove a document's remote images or **Reload images** to retry failures without changing

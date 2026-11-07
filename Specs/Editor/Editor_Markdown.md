@@ -385,6 +385,9 @@ decode request's cancellation flag retires the decode job, not the canonical fil
 ordinary prose edits and image reloads; retire it when its references disappear, change destination or change
 document base. Repeated reloads of one file never consume additional watch slots. Optional watch
 capacity/failure preserves manual Reload. These directed native cases do not qualify real remote/cloud providers.
+Adding or changing only a non-file image reference does not retire or rearm unchanged local-file watches.
+It must not trigger an extra HTTP reload. Tests distinguish current semantic image elements from admitted image
+resource bindings: a permission-blocked image appears in the former and not the latter.
 Tests use only an owned loopback server, proving default zero requests, explicit opt-in, exact pixels, refusal,
 cancellation and off/teardown behavior without contacting live internet services.
 

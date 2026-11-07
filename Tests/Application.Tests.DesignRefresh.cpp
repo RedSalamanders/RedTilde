@@ -415,6 +415,22 @@ class DesignRefreshProbe final
                  app.Prepare(128);
                  Require(app.imageWatchPathBuilds == pathBuilds && app.imageFileRefreshes == editRefreshes,
                          "ordinary source edits reuse unchanged image watch paths rather than rebuilding paths or rearming I/O");
+                 const auto sourceWithRemote = app.Document().GetText() + L"\n![Blocked illustration](HtTpS://images.example.test/invented.bmp)\n";
+                 Require(app.SetDocument(sourceWithRemote, fixture / L"Notebook.md"),
+                         "add a blocked remote destination beside the retained local image");
+                 Await(app,
+                       [&]
+                       {
+                           const auto semantic = app.Document().GetSemanticDocument();
+                           const auto stats = app.Document().GetImageResourceStatistics();
+                           return semantic && semantic->Syntax()->Source() == sourceWithRemote &&
+                                  std::ranges::count_if(semantic->Elements(), [](const auto &element)
+                                                        { return element.role == DxUi::RichText::SemanticRole::Image; }) == 2 &&
+                                  stats.requestedSources == 1u && stats.readySources == 1u && stats.pendingSources == 0u;
+                       });
+                 Require(app.imageWatchPathBuilds == pathBuilds && app.imageFileRefreshes == editRefreshes && app.watchedImagePaths.size() == 1u &&
+                             app.watchedImagePaths.front() == image,
+                         "a remote-only semantic change preserves the admitted local watch without rearming I/O or reloading images");
                  Require(SUCCEEDED(WriteBytesAtomic(fixture / L"image-refresh-metrics.json",
                                                     std::format("{{\"automaticRefreshes\":{},\"observedFiles\":1,\"decodedBytesBefore\":8,"
                                                                 "\"decodedBytesAfter\":4,\"sourceUnchanged\":true}}\n",

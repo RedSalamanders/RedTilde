@@ -654,14 +654,19 @@ void RegisterRemoteImageTests(const std::filesystem::path &root, const std::func
              { return std::format(L"# Invented writing\n\n![Local cover](cover.bmp)\n\n![Remote cover]({})\n", server.Url()); };
              app.SetDocument(document(ready));
              app.Document().SetDocumentFilePath((fixture / L"Writing/Ideas.md").native());
-             const auto await = [&](const std::function<bool()> &done, ULONGLONG budget = 5000)
+             const auto await = [&](const char *stage, const std::function<bool()> &done, ULONGLONG budget = 5000)
              {
                  const auto deadline = GetTickCount64() + budget;
                  while (!done() && GetTickCount64() < deadline)
                      app.Prepare(16);
-                 Require(done(), "the hidden image-policy worker settles before its test deadline");
+                 const auto statistics = app.Document().GetImageResourceStatistics();
+                 Require(done(), std::format("image-policy stage {} did not settle in {} ms: ready HTTP={}, blocked HTTP={}, ready sources={}, "
+                                             "pending={}, failed={}, requested={}",
+                                             stage, budget, ready.Count(), pending.Count(), statistics.readySources, statistics.pendingSources,
+                                             statistics.failedSources, statistics.requestedSources)
+                                     .c_str());
              };
-             await([&] { return app.Document().GetImageResourceStatistics().readySources == 1; });
+             await("local-only", [&] { return app.Document().GetImageResourceStatistics().readySources == 1; });
              Require(!app.Preferences().allowRemoteImages && !app.Document().RemoteImagesEnabled() && ready.Count() == 0 &&
                          app.Document().GetImageResourceStatistics().requestedSources == 1,
                      "the default privacy preference emits no HTTP request while a local image renders");
@@ -675,7 +680,7 @@ void RegisterRemoteImageTests(const std::filesystem::path &root, const std::func
              Require(app.Preferences().allowRemoteImages && app.Document().RemoteImagesEnabled() &&
                          app.Document().GetImageResourceStatistics().readySources == 1,
                      "the real privacy command enables remote loading immediately while retaining local pixels");
-             await([&] { return app.Document().GetImageResourceStatistics().readySources == 2; });
+             await("first-opt-in", [&] { return app.Document().GetImageResourceStatistics().readySources == 2; });
              Require(ready.Count() == 1 && app.Document().GetImageResourceStatistics().decodedBytes == 16,
                      "one opted-in anonymous request reaches the canonical native decoder through the application worker");
              app.Execute(Command::RemoteImages);
@@ -687,7 +692,7 @@ void RegisterRemoteImageTests(const std::filesystem::path &root, const std::func
              app.SetDocument(document(pending));
              app.Document().SetDocumentFilePath((fixture / L"Writing/Ideas.md").native());
              app.Execute(Command::RemoteImages);
-             await([&] { return pending.Count() == 1 && app.Document().GetImageResourceStatistics().readySources == 1; });
+             await("blocked-opt-in", [&] { return pending.Count() == 1 && app.Document().GetImageResourceStatistics().readySources == 1; });
              app.Execute(Command::RemoteImages);
              Require(!app.Document().RemoteImagesEnabled() && app.Document().GetImageResourceStatistics().pendingSources == 0 &&
                          app.Document().GetImageResourceStatistics().decodedBytes == 8,
@@ -695,7 +700,9 @@ void RegisterRemoteImageTests(const std::filesystem::path &root, const std::func
              app.SetDocument(document(ready));
              app.Document().SetDocumentFilePath((fixture / L"Writing/Ideas.md").native());
              app.Execute(Command::RemoteImages);
-             await([&] { return ready.Count() == 2 && app.Document().GetImageResourceStatistics().readySources == 2; }, 2000);
+             await(
+                 "replacement-before-release", [&] { return ready.Count() == 2 && app.Document().GetImageResourceStatistics().readySources == 2; },
+                 2000);
              Require(app.Document().GetText() == document(ready) && !app.Dirty() && app.Document().GetImageResourceStatistics().decodedBytes == 16,
                      "the same worker admits a later real request before the cancelled server is released");
              app.Execute(Command::RemoteImages);
@@ -713,7 +720,7 @@ void RegisterRemoteImageTests(const std::filesystem::path &root, const std::func
              app.SetDocument(document(closing));
              app.Document().SetDocumentFilePath((fixture / L"Writing/Ideas.md").native());
              app.Execute(Command::RemoteImages);
-             await([&] { return closing.Count() == 1; });
+             await("close-with-active-request", [&] { return closing.Count() == 1; });
              const bool foregroundBeforeClose = foreground.NeverAcquiredForeground();
              const auto before = GetTickCount64();
              (void)SendMessageW(app.Window(), WM_CLOSE, 0, 0);
