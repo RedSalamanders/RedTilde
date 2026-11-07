@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Close the bitmap-paste hosted native gate with verified original receipts: all six x64/ARM64 profiles pass 140 cases and 38 captures each, including actual symbolic-link saves. Both version 0.1.378 production ZIPs pass smoke checks and 13 test-entry-point refusals each; physical input, real locations, API-5 adoption and performance remain separately owned.
 - Persist clipboard bitmaps as bounded durable local PNG assets off the UI thread, then insert a source-backed image in one undoable transaction only while its original document context still matches. Add the default-text-first/image-first Settings option, exact-ownership cleanup and asynchronous shutdown draining, with native pixel, file-stamp, stale-edit, busy, read-only and close regressions.
 - Verify provider-save fallback on native x64 and ARM64 in Release, Debug and ASan: 132 passing cases and 36 captures per profile, with original payloads and both production package smoke receipts byte-verified. Retain the local symlink-privilege failure separately; real provider locations, physical input, API-5 adoption and performance acceptance remain open.
 - Save existing documents through a recovery-protected in-place writer when their provider explicitly refuses native replacement, preserving file identity and conflict checks. Keep durable recoverable source and the old saved baseline after partial failure; other operation failures never authorize fallback.
