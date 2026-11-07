@@ -264,6 +264,7 @@ void Application::BuildUi()
     editor->SetViewMode(DxUi::RichText::ViewMode::Rich);
     editor->SetOnTextChanged([this] { Changed(); });
     editor->SetOnSelectionChanged([this] { SelectionChanged(); });
+    editor->SetBitmapPasteHandler([this](std::span<const std::byte> dib, bool v5) { return BeginBitmapPaste(dib, v5); });
     editor->SetOnContextMenu([this](POINT point, bool) { Menu(point); });
     editor->SetOnLinkActivated([this](const DxUi::RichTextLinkActivation &activation) { RunUiAction([&] { RequestOpenLink(activation); }); });
     mirror = page->AddChild<SourceMirrorEditor>(*editor);
@@ -477,6 +478,8 @@ void Application::BuildUi()
     drawerClose = Action(*settingsScroll, IDS_CLOSE, Command::CloseDrawer);
     drawerImmediate = Label(*settingsScroll, IDS_IMMEDIATE, DxUi::FontRole::Small);
     remoteImagesToggle = Action(*settingsScroll, IDS_REMOTEIMAGES, Command::RemoteImages);
+    imageFirstPasteToggle = Action(*settingsScroll, IDS_IMAGEFIRSTPASTE, Command::ImageFirstPaste, Resource(IDS_IMAGEFIRSTPASTEHELP));
+    imageFirstPasteToggle->SetAccessibleHelpText(Resource(IDS_IMAGEFIRSTPASTEHELP));
     writingTitle = Label(*settingsScroll, IDS_WRITINGSECTION, DxUi::FontRole::Small);
     Section(writingTitle);
     findBar = root->AddChild<Surface>(Surface::Kind::Floating);
@@ -778,7 +781,7 @@ void Application::Layout()
     const float drawerLeft = width - 380;
     drawer->SetBounds(D2D1::RectF(drawerLeft, top, width, bottom));
     settingsScroll->SetBounds(D2D1::RectF(drawerLeft + 16, top + 12, width - 8, bottom - 12));
-    settingsScroll->SetContentHeight(1566);
+    settingsScroll->SetContentHeight(1614);
     const float dx = drawerLeft + 24;
     settingsScroll->GetLogicalChild(0)->SetBounds(D2D1::RectF(dx, top + 20, width - 24, top + 52));
     settingsScroll->GetLogicalChild(1)->SetBounds(D2D1::RectF(dx, top + 68, width - 24, top + 92));
@@ -824,9 +827,11 @@ void Application::Layout()
     remoteImagesToggle->SetBounds(D2D1::RectF(dx, privacy + 36, width - 24, privacy + 72));
     remoteImagesToggle->SetToggleState(settings.allowRemoteImages);
     drawerHelp->SetBounds(D2D1::RectF(dx, privacy + 80, width - 24, privacy + 120));
-    recoveryAction->SetBounds(D2D1::RectF(dx, privacy + 136, width - 24, privacy + 172));
-    drawerClose->SetBounds(D2D1::RectF(dx + 224, privacy + 184, width - 24, privacy + 220));
-    drawerImmediate->SetBounds(D2D1::RectF(dx, privacy + 184, width - 160, privacy + 220));
+    imageFirstPasteToggle->SetBounds(D2D1::RectF(dx, privacy + 132, width - 24, privacy + 168));
+    imageFirstPasteToggle->SetToggleState(settings.imageFirstPaste);
+    recoveryAction->SetBounds(D2D1::RectF(dx, privacy + 184, width - 24, privacy + 220));
+    drawerClose->SetBounds(D2D1::RectF(dx + 224, privacy + 232, width - 24, privacy + 268));
+    drawerImmediate->SetBounds(D2D1::RectF(dx, privacy + 232, width - 160, privacy + 268));
     const bool wideFind = right - left >= 660.f;
     const float fx = std::max(16.f, right - (wideFind ? 644.f : 476.f)), fy = top + 12;
     findBar->SetBounds(D2D1::RectF(fx, fy, right - 16, fy + (wideFind ? 104.f : 148.f)));

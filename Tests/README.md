@@ -7,7 +7,7 @@ Run `test.ps1 -Configuration Debug -Suite Core`; use `-SkipBuild` for the exact 
 Native cases are compiled from `Application.Tests.Core.cpp` into the same executable and run with `--self-test`.
 Core also runs a hidden child-process probe that changes preferences, closes immediately and verifies the final state after process exit.
 They exercise public controls and app commands without desktop input, clipboard access or foreground activation.
-The native catalog contains 133 cases: Storage (29), Settings (6), Recovery (19) and Editor (79).
+The native catalog contains 140 cases: Storage (30), Settings (7), Recovery (19) and Editor (84).
 The current hidden scenarios cover Find case/repeat and replacement, text-scale key/wheel messages, window
 placement and launch policy, recovery-first last-document startup, confirmed links with an owned fake STA
 handoff, and independent real/controlled heap walks. They preserve exact source/history without opening a

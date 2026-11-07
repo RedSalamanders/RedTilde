@@ -34,6 +34,8 @@
     "full-native-file-identity-stamps",
     "dirty-document-prompts",
     "application-owned-local-image-decoding",
+    "asynchronous-owned-clipboard-png-assets",
+    "persisted-text-first-or-image-first-paste",
     "bounded-native-mermaid-flowcharts",
     "live-system-light-dark-paper-themes",
     "high-contrast-and-reduced-motion",

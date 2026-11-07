@@ -1,5 +1,20 @@
 # File safety
 
+## Bounded clipboard asset files
+
+`WriteNewBytesDurable` is the shared binary-asset writer. It accepts only absolute paths and an explicit
+positive limit no larger than 64 MiB, uses `CREATE_NEW`, and never overwrites an existing entry. Complete
+write, flush, final timestamp/flush and full identity/content stamp capture precede publication of the caller's
+stamp. Failure removes only the writer's newly created partial file through its held ownership handle.
+The ordinary Markdown reader/writer retains its existing smaller encoded-document capacity.
+
+`RemoveCreatedBytesIfUnchanged` opens the exact file without following a reparse entry and holds the
+cooperative write/delete exclusion while comparing full identity, size, timestamp and content. Reparse,
+directory and multiply linked entries are refused; changed bytes remain even if size/time were restored.
+Only an exact match may be marked for deletion. Missing files are already retired. Cleanup never follows
+links, widens the document read limit or removes a same-named replacement. Bitmap assets use these helpers
+off the UI thread; their source/undo ownership belongs to the [editor contract](../Editor/Editor_Markdown.md).
+
 Atomic staging uses a bounded temporary leaf in the destination directory, independently of the target filename's
 length. Regression coverage includes first publication and replacement of a 240-unit target without a leaked temporary;
 `Storage.AtomicSaveKeepsLongLeafWithinPathBudget` exercises that boundary and the saved bytes/stamp.

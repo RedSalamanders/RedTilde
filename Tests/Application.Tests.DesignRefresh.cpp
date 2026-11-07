@@ -1,5 +1,6 @@
 #include "Application.Tests.DesignRefresh.h"
 #include "RedTilde/Application.h"
+#include "Support/Support.Tests.BitmapAssets.h"
 #include "Support/Support.Tests.Foreground.h"
 #include "Support/Support.Tests.TextServices.h"
 #include "res/Resource.h"
@@ -355,6 +356,160 @@ class DesignRefreshProbe final
                          "ordinary clipboard paste retains the Unicode-first default");
                  Require(app.Document().HasBitmapPasteHandler(), "the app owns a bitmap asset paste handler");
                  Require(foreground.NeverAcquiredForeground(), "clipboard image admission never takes desktop focus");
+             });
+        test("Editor.ClipboardBitmapPasteCommitUndoAndBusy",
+             [&]
+             {
+                 Testing::ForegroundOwnershipObserver foreground;
+                 const auto options = Options(root, L"clipboard-image-commit");
+                 Application app(options);
+                 Success(app.Initialize(), "create hidden bitmap transaction app");
+                 const std::wstring original = L"A selected observation.\r\n";
+                 app.SetDocument(original);
+                 app.Prepare(128);
+                 app.Host().SetFocusControl(&app.Document());
+                 app.Document().SetSelection({2, 10});
+                 const auto selection = app.Document().GetSelection();
+                 app.Execute(Command::ImageFirstPaste);
+                 Require(app.Preferences().imageFirstPaste && app.Host().GetClipboardPreference() == DxUi::TextClipboardPreference::ImageFirst &&
+                             app.Document().GetText() == original && app.Document().GetSelection() == selection,
+                         "live image-first setting preserves source and selection");
+                 auto gate = std::make_shared<BitmapPasteWriter::TestGate>();
+                 Require(gate->entered && gate->proceed, "create owned bitmap worker gate");
+                 app.bitmapWriter.SetTestGate(gate);
+                 const auto release = wil::scope_exit([&] { (void)SetEvent(gate->proceed.get()); });
+                 const auto dib = Testing::ClipboardBitmapFixture(true);
+                 Require(!app.BeginBitmapPaste(dib, true), "the synchronous handler defers file I/O and source insertion");
+                 Await(app, [&] { return WaitForSingleObject(gate->entered.get(), 0) == WAIT_OBJECT_0; });
+                 const auto request = app.pendingBitmapPaste->request;
+                 (void)app.BeginBitmapPaste(dib, true);
+                 Require(app.pendingBitmapPaste->request == request && app.Document().GetText() == original,
+                         "one busy paste cannot replace the admitted source request");
+                 (void)SetEvent(gate->proceed.get());
+                 Await(app, [&] { return !app.pendingBitmapPaste && !app.bitmapWriter.Busy() && !app.bitmapWriter.HasResult(); });
+                 const auto pasted = app.Document().GetText();
+                 Require(pasted != original && pasted.starts_with(L"A ![Pasted image](") && pasted.ends_with(L"observation.\r\n") &&
+                             Testing::ClipboardAssetCount(options.dataDirectory) == 1,
+                         "one durable asset produces one source image reference while retaining outside CRLF content");
+                 Await(app,
+                       [&]
+                       {
+                           const auto images = app.Document().GetImageResourceStatistics();
+                           return images.readySources != 0 || images.failedSources != 0;
+                       });
+                 const auto images = app.Document().GetImageResourceStatistics();
+                 Require(images.readySources == 1 && images.failedSources == 0,
+                         "the native document resolves and decodes the durable pasted PNG reference");
+                 Require(app.Document().Undo() && app.Document().GetText() == original && app.Document().GetSelection() == selection,
+                         "one Undo restores the entire original bitmap-paste selection and source");
+                 Require(Testing::ClipboardAssetCount(options.dataDirectory) == 1 && app.Document().Redo() && app.Document().GetText() == pasted,
+                         "asset retention supports exact Redo");
+                 app.Execute(Command::ImageFirstPaste);
+                 Require(!app.Preferences().imageFirstPaste && app.Host().GetClipboardPreference() == DxUi::TextClipboardPreference::TextFirst,
+                         "the app option restores Unicode-first policy without changing pasted source");
+                 Require(foreground.NeverAcquiredForeground(), "bitmap paste never acquires the desktop or clipboard");
+             });
+        test("Editor.ClipboardBitmapPasteDeclinesSupersededSource",
+             [&]
+             {
+                 const auto options = Options(root, L"clipboard-image-stale");
+                 Application app(options);
+                 Success(app.Initialize(), "create stale bitmap transaction app");
+                 const std::wstring original = L"An unchanged paragraph.\n";
+                 app.SetDocument(original);
+                 app.Prepare(128);
+                 app.Host().SetFocusControl(&app.Document());
+                 auto gate = std::make_shared<BitmapPasteWriter::TestGate>();
+                 app.bitmapWriter.SetTestGate(gate);
+                 const auto release = wil::scope_exit([&] { (void)SetEvent(gate->proceed.get()); });
+                 const auto dib = Testing::ClipboardBitmapFixture();
+                 (void)app.BeginBitmapPaste(dib, false);
+                 Await(app, [&] { return WaitForSingleObject(gate->entered.get(), 0) == WAIT_OBJECT_0; });
+                 Require(app.Document().ReplaceSelection(L"new") && app.Document().Undo(), "change then restore source while the bitmap is pending");
+                 Require(!app.pendingBitmapPaste, "a source edit permanently retires the old paste even after Undo");
+                 (void)SetEvent(gate->proceed.get());
+                 Await(app, [&] { return !app.bitmapWriter.Busy() && !app.bitmapWriter.HasResult(); });
+                 Require(app.Document().GetText() == original && app.Document().CanRedo() && Testing::ClipboardAssetCount(options.dataDirectory) == 0,
+                         "a stale worker result preserves newer history and removes only its unreferenced asset");
+             });
+        test("Editor.ClipboardBitmapPasteFailureAndReadOnly",
+             [&]
+             {
+                 const auto options = Options(root, L"clipboard-image-refusal");
+                 Application app(options);
+                 Success(app.Initialize(), "create bitmap refusal app");
+                 const std::wstring original = L"Preserved source.\n";
+                 app.SetDocument(original);
+                 app.Prepare(128);
+                 app.Host().SetFocusControl(&app.Document());
+                 (void)app.BeginBitmapPaste(std::vector<std::byte>(40u), false);
+                 Await(app, [&] { return !app.pendingBitmapPaste && !app.bitmapWriter.Busy() && !app.bitmapWriter.HasResult(); });
+                 Require(app.Document().GetText() == original && !app.Document().CanUndo() &&
+                             Testing::ClipboardAssetCount(options.dataDirectory) == 0,
+                         "malformed bitmap failure retains exact source and history and publishes no file");
+                 auto gate = std::make_shared<BitmapPasteWriter::TestGate>();
+                 app.bitmapWriter.SetTestGate(gate);
+                 const auto release = wil::scope_exit([&] { (void)SetEvent(gate->proceed.get()); });
+                 (void)app.BeginBitmapPaste(Testing::ClipboardBitmapFixture(), false);
+                 Await(app, [&] { return WaitForSingleObject(gate->entered.get(), 0) == WAIT_OBJECT_0; });
+                 app.Document().SetReadOnly(true);
+                 (void)SetEvent(gate->proceed.get());
+                 Await(app, [&] { return !app.pendingBitmapPaste && !app.bitmapWriter.Busy() && !app.bitmapWriter.HasResult(); });
+                 Require(app.Document().GetText() == original && Testing::ClipboardAssetCount(options.dataDirectory) == 0,
+                         "a read-only transition refuses the late paste and retires the owned asset");
+             });
+        test("Editor.ClipboardBitmapPasteCloseDrainsOwnedWorker",
+             [&]
+             {
+                 Testing::ForegroundOwnershipObserver foreground;
+                 Application app(Options(root, L"clipboard-image-close"));
+                 Success(app.Initialize(), "create bitmap close app");
+                 app.SetDocument(L"A clean document.\n");
+                 app.Prepare(128);
+                 app.Host().SetFocusControl(&app.Document());
+                 auto gate = std::make_shared<BitmapPasteWriter::TestGate>();
+                 app.bitmapWriter.SetTestGate(gate);
+                 const auto release = wil::scope_exit([&] { (void)SetEvent(gate->proceed.get()); });
+                 (void)app.BeginBitmapPaste(Testing::ClipboardBitmapFixture(), false);
+                 Await(app, [&] { return WaitForSingleObject(gate->entered.get(), 0) == WAIT_OBJECT_0; });
+                 app.Execute(Command::Close);
+                 Require(app.closing && app.Window() && app.bitmapWriter.Busy() && !app.pendingBitmapPaste,
+                         "accepted Close retains only its notification window until the owned bitmap worker settles");
+                 (void)SetEvent(gate->proceed.get());
+                 Await(app, [&] { return !app.Window(); });
+                 Require(!app.bitmapWriter.Busy() && foreground.NeverAcquiredForeground(),
+                         "cancelled bitmap work drains without a UI-thread join or desktop takeover");
+             });
+        test("Editor.ClipboardBitmapPasteSessionEndRetiresInsertion",
+             [&]
+             {
+                 Testing::ForegroundOwnershipObserver foreground;
+                 const auto options = Options(root, L"clipboard-image-session");
+                 Application app(options);
+                 Success(app.Initialize(), "create bitmap session-end app");
+                 const std::wstring original = L"A session observation.\n";
+                 app.SetDocument(original);
+                 app.Prepare(128);
+                 app.Host().SetFocusControl(&app.Document());
+                 auto gate = std::make_shared<BitmapPasteWriter::TestGate>();
+                 app.bitmapWriter.SetTestGate(gate);
+                 const auto release = wil::scope_exit([&] { (void)SetEvent(gate->proceed.get()); });
+                 (void)app.BeginBitmapPaste(Testing::ClipboardBitmapFixture(), false);
+                 Await(app, [&] { return WaitForSingleObject(gate->entered.get(), 0) == WAIT_OBJECT_0; });
+                 Require(SendMessageW(app.Window(), WM_QUERYENDSESSION, 0, 0) == TRUE,
+                         "session query permits shutdown while bitmap encoding is pending");
+                 (void)SendMessageW(app.Window(), WM_ENDSESSION, FALSE, 0);
+                 Require(!app.sessionEnding && app.pendingBitmapPaste.has_value(), "cancelled system shutdown retains the admitted bitmap operation");
+                 (void)SendMessageW(app.Window(), WM_ENDSESSION, TRUE, 0);
+                 Require(app.sessionEnding && !app.pendingBitmapPaste && app.bitmapWriter.Busy(),
+                         "final session end retires insertion without waiting for the held codec worker");
+                 (void)app.BeginBitmapPaste(Testing::ClipboardBitmapFixture(), false);
+                 Require(!app.pendingBitmapPaste, "final session end refuses another bitmap admission");
+                 (void)SetEvent(gate->proceed.get());
+                 Await(app, [&] { return !app.bitmapWriter.Busy() && !app.bitmapWriter.HasResult(); });
+                 Require(app.Document().GetText() == original && Testing::ClipboardAssetCount(options.dataDirectory) == 0 &&
+                             foreground.NeverAcquiredForeground(),
+                         "late bitmap work cannot alter checkpointed source or acquire the desktop");
              });
         test("Editor.RecoverableCommandsAndMenusRetainSourceAndDraftFocus",
              [&]

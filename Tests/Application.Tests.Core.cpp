@@ -4,6 +4,7 @@
 #include "Application.Tests.Files.h"
 #include "Application.Tests.HeapDiagnostic.h"
 #include "Application.Tests.RemoteImages.h"
+#include "Support/Support.Tests.BitmapAssets.h"
 #include "Support/Support.Tests.Foreground.h"
 #include "Support/Support.Tests.StorageSafety.h"
 #include "Support/Support.Tests.TextServices.h"
@@ -389,6 +390,80 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Require(LoadDocument(path, loaded) == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE) && loaded.text == L"keep", "oversized file rejected");
              FileStamp stamp;
              Require(FAILED(SaveDocument(path, std::wstring(65537, L'x'), false, nullptr, stamp)), "oversized save rejected");
+         });
+    test("Storage.BitmapAssetsEncodeAndRetireOwnedFiles",
+         [&]
+         {
+             const auto initialized = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+             Require(SUCCEEDED(initialized) || initialized == RPC_E_CHANGED_MODE, "use the existing COM apartment for bitmap fixtures");
+             const wil::unique_call<decltype(&CoUninitialize), CoUninitialize> apartment(SUCCEEDED(initialized));
+             const auto directory = root / L"clipboard-assets";
+             for (const bool v5 : {false, true})
+             {
+                 BitmapAsset asset;
+                 const auto dib = Testing::ClipboardBitmapFixture(v5);
+                 Success(CreateBitmapAsset(directory, dib, v5, asset), "encode a real DIB to a durable PNG");
+                 Require(asset.width == 2 && asset.height == 2 && asset.path.extension() == L".png" && asset.uri.starts_with(L"file:"),
+                         "clipboard assets carry their actual dimensions and an absolute file URI");
+                 const std::array<unsigned char, 16> expected{0,   0, 255, 255, 0,   255, 0,   static_cast<unsigned char>(v5 ? 128 : 255),
+                                                              255, 0, 0,   255, 255, 255, 255, static_cast<unsigned char>(v5 ? 64 : 255)};
+                 Require(Testing::ReadClipboardPngPixels(asset.path) == expected,
+                         "independent PNG decoding preserves orientation, colors and DIBV5 alpha");
+                 std::string png;
+                 FileStamp observed;
+                 Success(ReadBytes(asset.path, png, &observed), "read complete generated PNG and native stamp");
+                 Require(observed == asset.stamp && png.starts_with("\x89PNG\r\n\x1a\n"), "the durable stamp describes the actual closed PNG file");
+                 Success(RetireBitmapAsset(asset), "retire an unreferenced owned asset by full identity and content");
+                 Require(!std::filesystem::exists(asset.path), "verified asset cleanup removed its own file");
+             }
+             const auto owned = directory / L"created.bin";
+             FileStamp original;
+             Success(WriteNewBytesDurable(owned, "safe", original, MaximumClipboardPngBytes), "create an independent owned binary");
+             FileStamp untouched = original;
+             Require(FAILED(WriteNewBytesDurable(owned, "evil", untouched, MaximumClipboardPngBytes)) && untouched == original,
+                     "binary publication never replaces an existing entry or advances a refused stamp");
+             {
+                 wil::unique_handle file(
+                     CreateFileW(owned.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+                 Require(bool(file), "open the independent same-identity edit fixture");
+                 DWORD written{};
+                 Require(WriteFile(file.get(), "edit", 4, &written, nullptr) && written == 4 && FlushFileBuffers(file.get()),
+                         "change bytes without replacing the file");
+                 const FILETIME time{static_cast<DWORD>(original.modified), static_cast<DWORD>(original.modified >> 32u)};
+                 Require(SetFileTime(file.get(), nullptr, nullptr, &time) != FALSE, "restore the original metadata timestamp independently");
+             }
+             Require(RemoveCreatedBytesIfUnchanged(owned, original, MaximumClipboardPngBytes) == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH),
+                     "content validation preserves a same-id same-size same-time modification");
+             std::string bytes;
+             Success(ReadBytes(owned, bytes), "read preserved independently modified binary");
+             Require(bytes == "edit", "cleanup retained modified bytes");
+             const auto large = directory / L"bounded-binary.bin";
+             FileStamp largeStamp;
+             Success(WriteNewBytesDurable(large, std::string(300000u, 'x'), largeStamp, MaximumClipboardPngBytes),
+                     "create a bounded asset larger than Markdown input");
+             bytes = "unchanged";
+             Require(ReadBytes(large, bytes) == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE) && bytes == "unchanged",
+                     "asset support never relaxes the Markdown input limit");
+             Success(RemoveCreatedBytesIfUnchanged(large, largeStamp, MaximumClipboardPngBytes), "retire the separately bounded large binary");
+             BitmapAsset refused;
+             Require(FAILED(CreateBitmapAsset(directory, std::vector<std::byte>(40u), false, refused)) && refused.path.empty(),
+                     "malformed bitmap input publishes no asset");
+         });
+    test("Settings.ImageFirstPasteRoundTripAndFallback",
+         [&]
+         {
+             Require(!ParseSettings("RedTilde.Settings/1\n").imageFirstPaste &&
+                         !ParseSettings("RedTilde.Settings/1\nimageFirstPaste=2\n").imageFirstPaste &&
+                         !ParseSettings("RedTilde.Settings/1\nimageFirstPaste=invalid\n").imageFirstPaste,
+                     "missing and invalid clipboard preferences retain Unicode-first behavior");
+             Settings settings;
+             settings.imageFirstPaste = true;
+             Require(ParseSettings(SerializeSettings(settings)).imageFirstPaste, "image-first preference round trips independently");
+             const auto directory = root / L"clipboard-settings";
+             Success(SaveSettings(directory, settings), "persist image-first preference");
+             Settings loaded;
+             Success(LoadSettings(directory, loaded), "restore image-first preference");
+             Require(loaded.imageFirstPaste, "image-first preference survives restart");
          });
     test("Settings.VersionAndFieldFallback",
          [&]

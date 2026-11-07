@@ -57,6 +57,13 @@ struct SaveRecoveryContext
     std::uint64_t generation{};
 };
 [[nodiscard]] HRESULT ReadBytes(const std::filesystem::path &path, std::string &bytes, FileStamp *stamp = nullptr) noexcept;
+// App-created binary assets only: never replace a pre-existing entry. The
+// bounded caller allowance does not change the document read/write limit.
+[[nodiscard]] HRESULT WriteNewBytesDurable(const std::filesystem::path &path, std::string_view bytes, FileStamp &saved,
+                                           std::size_t maximumBytes) noexcept;
+// Remove only the same unchanged single-link file under a write/delete-deny
+// handle. Foreign/replaced/modified/reparse entries remain untouched.
+[[nodiscard]] HRESULT RemoveCreatedBytesIfUnchanged(const std::filesystem::path &path, const FileStamp &expected, std::size_t maximumBytes) noexcept;
 // The optional flag identifies only an unsupported native replacement. An
 // equal HRESULT from another phase cannot authorize non-atomic publication.
 [[nodiscard]] HRESULT WriteBytesAtomic(const std::filesystem::path &path, std::string_view bytes, const FileStamp *expected = nullptr,

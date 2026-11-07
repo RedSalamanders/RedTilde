@@ -392,6 +392,7 @@ void Application::OpenFolder()
 }
 bool Application::SwitchWorkspaceDocument(std::size_t index)
 {
+    pendingBitmapPaste.reset();
     if (closing || closingAfterSave || sessionEnding || switchingDocument || !root || host.GetRoot() != root)
         return false;
     if (index >= inactiveDocuments.size() || files.Busy() || HasBlockDraft() || unsavedPromptOpen)

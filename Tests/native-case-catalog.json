@@ -1,6 +1,13 @@
 {
   "version": 1,
   "cases": [
+    { "name": "Storage.BitmapAssetsEncodeAndRetireOwnedFiles", "scope": "Storage" },
+    { "name": "Settings.ImageFirstPasteRoundTripAndFallback", "scope": "Settings" },
+    { "name": "Editor.ClipboardBitmapPasteCommitUndoAndBusy", "scope": "Editor" },
+    { "name": "Editor.ClipboardBitmapPasteDeclinesSupersededSource", "scope": "Editor" },
+    { "name": "Editor.ClipboardBitmapPasteFailureAndReadOnly", "scope": "Editor" },
+    { "name": "Editor.ClipboardBitmapPasteCloseDrainsOwnedWorker", "scope": "Editor" },
+    { "name": "Editor.ClipboardBitmapPasteSessionEndRetiresInsertion", "scope": "Editor" },
     { "name": "Editor.ClipboardBitmapAssetHandler", "scope": "Editor" },
     { "name": "Storage.ProviderFallbackProtectsBeforeMutation", "scope": "Storage" },
     { "name": "Storage.ProviderFallbackRequiresAdmissionAndReplacementProvenance", "scope": "Storage" },
