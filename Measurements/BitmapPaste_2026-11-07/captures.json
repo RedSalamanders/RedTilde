@@ -1,0 +1,33 @@
+{
+  "implementationCommit": "e08cdb2952433fa85e42ccb11cc04d38cd657ae6",
+  "sdkCommit": "a1915ffdd94b18fd1817371f1dc074f6a0b547f1",
+  "benchmarkInputs": {
+    "Common/BitmapAssets.cpp": "7107C967A0ACDAC68A7B80C840CDA070DDB472CF3FDA7004C76DD5A6AFEA5C90",
+    "Common/Storage.cpp": "D174DE8831A52FE53031D8AB48BA8CDB991D3FEB906860FD7324A656D5E6CB0A",
+    "Common/Settings.cpp": "760F63CE46C654FDAD2F4BCD73C4845AD41E4129E428106DC0E9414CF46D9DA0",
+    "RedTilde/BitmapPaste.h": "940E98663EB68B75DCAE7AD172B59A5F060FF0BA64F4E668E3AFF163AA4DCB00",
+    "RedTilde/Application.cpp": "C5268A3E83EF5EAE95BF40C21BA2B72F1AE944545B85E3BC2A73AC8B4041DEE0",
+    "Tests/Support/Support.Tests.BitmapAssets.h": "6B13016C09DAC0C164CC7E103C65A8C95D39C40B2297C0B523309EA9E8080939",
+    "Tests/Application.Tests.DesignRefresh.cpp": "0797C30390E2B5EE167BE71DE8279756D5D055FF822CDED7D5871E232432FF85"
+  },
+  "fixture": "redtilde-bitmap-paste-preferences-captures",
+  "claim": "Hidden native harness captures with actual host palette, preference and DPI metadata; no desktop takeover or physical-monitor acceptance",
+  "runId": "20261107T033350850Z-30252-e73508046c5e4ec69f790f80db0dd09f",
+  "images": [
+    {
+      "scenarioSha256": "FD0BB9DB82CB21147C55E9206B550C7FC45B02481D362684A02168EB529ED3B1",
+      "sha256": "B91D00530D8B39E72E148ED979EDB39408117B912ECB5F99E4A2E74FD6DD20E6",
+      "file": "captures/image-paste-dark.png"
+    },
+    {
+      "scenarioSha256": "411A0D79C2DBDC229ECEDE56C9AED3F031A69505785EF1529F2A3A58F24B483D",
+      "sha256": "AD7DC0A421CA9326B00778BC028F9066A732506DEA395B0D15BCBE7DFAA27213",
+      "file": "captures/image-paste-light.png"
+    }
+  ],
+  "workloadOwner": "RedTilde",
+  "binarySha256": "24BE2D9CA58617789F7B6DA30BD629EA79A27E1CFD0B579172C7ED3FDAD0A694",
+  "inputHash": "4a5521c7f2e6927968f7c307b7fd55972f5c1f3cdce01f5ddd863d6733afefd1",
+  "capturesReviewed": 2,
+  "schemaVersion": 1
+}

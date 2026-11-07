@@ -2,6 +2,8 @@
 
 ## Completed scopes — 7 November 2026
 
+- [Bitmap paste](BitmapPaste_2026-11-07.md) — bounded durable app-owned PNG assets, persisted text/image preference, cancellation and one-step Undo; six zero-warning builds, 139 passing cases plus the actual local symlink privilege failure and 38 captures per x64 profile.
+
 - [Provider save fallback](ProviderSaveFallback_2026-11-07.md) — durable recovery before provider-refused replacement fallback, provenance and conflict checks; six builds with the explicit local symbolic-link privilege boundary.
 
 ## Completed scopes — 6 November 2026

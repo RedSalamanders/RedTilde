@@ -202,6 +202,13 @@ Details and original counterexamples remain in the
 - [ ] Resolve proxy policy Q19 before changing direct-only remote fetching; preserve all original drops/refutations.
 - [ ] Apply Q8/Q13 real-location acceptance, and make any managed-image-assets/drag-drop adoption an explicit
   app-owned scope (C10), with native resource, cancellation and teardown evidence.
+- [x] Implement app-owned bitmap paste assets and persisted text-first/image-first preference (C10 local scope).
+  The [scoped closeout](../Done/BitmapPaste_2026-11-07.md) records bounded worker publication, source/selection
+  cancellation, Close/session-end retirement, independent PNG pixels/identity checks, one-step Undo/Redo,
+  six zero-warning builds and 139 passing cases plus the actual symlink privilege failure per x64 profile.
+  All original source/native/SDK/run members and 38 captures per profile are verified. ARM64 is cross-build
+  coverage; fresh hosted native and production qualification remain pending. Automatic export, asset cleanup
+  and drag/drop are separate from the implemented paste path.
 
 <a id="t-p1"></a>
 ### T-P1 — R10 performance and resource acceptance
