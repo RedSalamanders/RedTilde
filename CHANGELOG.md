@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Persist clipboard bitmaps as bounded durable local PNG assets off the UI thread, then insert a source-backed image in one undoable transaction only while its original document context still matches. Add the default-text-first/image-first Settings option, exact-ownership cleanup and asynchronous shutdown draining, with native pixel, file-stamp, stale-edit, busy, read-only and close regressions.
 - Verify provider-save fallback on native x64 and ARM64 in Release, Debug and ASan: 132 passing cases and 36 captures per profile, with original payloads and both production package smoke receipts byte-verified. Retain the local symlink-privilege failure separately; real provider locations, physical input, API-5 adoption and performance acceptance remain open.
 - Save existing documents through a recovery-protected in-place writer when their provider explicitly refuses native replacement, preserving file identity and conflict checks. Keep durable recoverable source and the old saved baseline after partial failure; other operation failures never authorize fallback.
 - Close production-boundary qualification at exact main `5c19d4bd`: verify six native profiles, all original payloads and both `0.1.355` portable smoke receipts with thirteen actual launch refusals each. Retain earlier omitted-proof and privilege failures; keep physical, API-5 adoption and performance gates separate.
