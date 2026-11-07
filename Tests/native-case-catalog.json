@@ -1,6 +1,7 @@
 {
   "version": 1,
   "cases": [
+    { "name": "Editor.ClipboardBitmapAssetHandler", "scope": "Editor" },
     { "name": "Storage.ProviderFallbackProtectsBeforeMutation", "scope": "Storage" },
     { "name": "Storage.ProviderFallbackRequiresAdmissionAndReplacementProvenance", "scope": "Storage" },
     { "name": "Storage.ProviderFallbackFailureRetainsRecoverableSource", "scope": "Storage" },

@@ -344,6 +344,18 @@ class DesignRefreshProbe final
   public:
     static void Register(const std::filesystem::path &root, const std::function<void(std::string_view, const std::function<void()> &)> &test)
     {
+        test("Editor.ClipboardBitmapAssetHandler",
+             [&]
+             {
+                 Testing::ForegroundOwnershipObserver foreground;
+                 Application app(Options(root, L"clipboard-image-handler"));
+                 Success(app.Initialize(), "create hidden clipboard-image app");
+                 app.SetDocument(L"A selected observation.\r\n");
+                 Require(app.Host().GetClipboardPreference() == DxUi::TextClipboardPreference::TextFirst,
+                         "ordinary clipboard paste retains the Unicode-first default");
+                 Require(app.Document().HasBitmapPasteHandler(), "the app owns a bitmap asset paste handler");
+                 Require(foreground.NeverAcquiredForeground(), "clipboard image admission never takes desktop focus");
+             });
         test("Editor.RecoverableCommandsAndMenusRetainSourceAndDraftFocus",
              [&]
              {
