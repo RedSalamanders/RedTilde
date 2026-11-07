@@ -1,0 +1,1 @@
+- Close the bitmap-paste hosted native gate with verified original receipts: all six x64/ARM64 profiles pass 140 cases and 38 captures each, including actual symbolic-link saves. Both version 0.1.378 production ZIPs pass smoke checks and 13 test-entry-point refusals each; physical input, real locations, API-5 adoption and performance remain separately owned.
