@@ -1,5 +1,10 @@
 # RedTilde guide
 
+Source-view Enter and Shift+Enter keep your document's LF, CRLF or CR line endings.
+Each Enter is one Undo step. Documents are limited to 65,536 UTF-16 units; text
+input that would exceed the limit leaves your last accepted text intact.
+Invalid file names containing quotes or line breaks are refused when preparing a paste.
+
 **Pasting pictures:** paste a bitmap into Compose or Split to create a local PNG and replace the selection
 with its image reference in one Undo step. When the clipboard also contains text, text wins by default;
 Settings → Privacy → Prefer images when pasting switches that preference. Pasting never waits for image

@@ -7,7 +7,16 @@ Run `test.ps1 -Configuration Debug -Suite Core`; use `-SkipBuild` for the exact 
 Native cases are compiled from `Application.Tests.Core.cpp` into the same executable and run with `--self-test`.
 Core also runs a hidden child-process probe that changes preferences, closes immediately and verifies the final state after process exit.
 They exercise public controls and app commands without desktop input, clipboard access or foreground activation.
-The native catalog contains 140 cases: Storage (30), Settings (7), Recovery (19) and Editor (84).
+The native catalog contains 144 cases: Storage (30), Settings (7), Recovery (19) and Editor (88).
+The editing boundary cases route Enter/Shift+Enter messages through the hidden Source window for LF,
+CRLF and CR, exercise the actual native ACP store on the consumer Editor in a headless ControlHost,
+check its overflow/exact-capacity write locks and owner disconnection, and reject hostile file-paste names
+in every view. A separate hidden-application test checks oversized preview refusal, the last in-range
+Unicode preview, exact-capacity commit and the actual Split mirror. They preserve exact source, selection,
+Undo/Redo and recovery counts. Only the calling thread's keyboard state is temporarily set and restored;
+no desktop input or OS clipboard is used. The native store is reached through the adopted public diagnostic
+surface, without including SDK private test helpers. Hidden HWNDs deliberately have no live native input
+session; the first rejected fixture that requested one remains retained. These cases do not qualify a physical IME or shell clipboard.
 The current hidden scenarios cover Find case/repeat and replacement, text-scale key/wheel messages, window
 placement and launch policy, recovery-first last-document startup, confirmed links with an owned fake STA
 handoff, and independent real/controlled heap walks. They preserve exact source/history without opening a
