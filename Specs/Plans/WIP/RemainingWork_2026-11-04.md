@@ -177,7 +177,8 @@ RT-18 remains optional defensive hardening, not a newly confirmed defect.
   [local closeout](../Done/NativeEditingQualification_2026-11-07.md) records actual hidden-app EOL/preview/mirror
   paths, the public native store on the app-owned headless component, all six clean builds, 143 passing cases
   and 38 captures per x64 profile, and the actual local symlink privilege failure. No competing editor logic,
-  OS clipboard or physical IME acceptance is implied; fresh hosted 144-case coverage remains with T-Q1.
+  OS clipboard or physical IME acceptance is implied. The subsequent hosted receipts verify all six native
+  profiles with 144 passing cases and 38 captures each, including the actual symbolic-link case; see T-Q1.
 - [x] Complete real-keyboard `Equation.F2InPlaceEditUndoAndExit` through the existing restoring desktop lease.
   All nine keyboard/focus stages pass at `31d6f59e` after explicit timing agreement and the visible 30-second
   countdown. Foreground/focus remain unchanged and the pointer is restored.
@@ -237,6 +238,13 @@ Unexplained historical failures remain unexplained unless a bounded investigatio
 
 <a id="t-q1"></a>
 ### T-Q1 — repair current hosted qualification
+
+- [x] Verify native-editing main `1a654d17`, exact API-4 SDK `a1915ffd`: all six native x64/ARM64
+  Release/Debug/ASan profiles pass 144 cases and 38 captures each, totaling 864 cases and 228 captures.
+  The four named editing cases, actual symbolic-link save, real ASan detector and interrupted-write restart
+  pass. Both version 0.1.389 production ZIPs pass native smoke checks and 13 test-entry-point refusals each
+  after the combined native gate. [Original verified receipts](../../../Measurements/NativeEditing_2026-11-07/README.md)
+  retain wrapper/payload/package identities and all original rejected local cohorts.
 
 - [x] Diagnose the x64 failure in [main run 41716394398](https://github.com/RedSalamanders/RedTilde/actions/runs/41716394398)
   at `1cd59c0`: a text mock executable has version zero but inherited CI's nonzero product build number.
