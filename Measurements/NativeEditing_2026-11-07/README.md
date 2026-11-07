@@ -33,8 +33,21 @@ The consumer COM fixture now uses an atomic reference count and RAII retirement;
 no warning policy was suppressed. The final six-profile matrix is a fresh source
 cohort, not an acceptance of either failed attempt.
 
-The [active plan](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md) retains fresh
-hosted execution of all 144 cases, the real symbolic-link case, production-only
-packaging, physical IME/AT/keyboard, formal performance and API-5 adoption. The
+At exact main `1a654d17824672e55b5555417d566a9bea5fe09b`, the original
+[Debug/ASan receipts](hosted-debug-asan.json) and
+[Release/production receipts](hosted-release.json) verify all six native x64/ARM64
+profiles: 144 passing cases and 38 captures each, totaling 864 cases and 228
+captures. Each profile includes the four named editing cases and the actual
+symbolic-link save. ASan detects the real controlled memory error, and the
+interrupted-write restart retains complete admitted source.
+
+Both version 0.1.389 production ZIPs pass their native smoke checks and all 13
+test-only entry-point refusals each. Both production jobs start after the combined
+native test gate. Every original wrapper and canonical payload member is byte
+verified; package and executable hashes match the original smoke receipts. These
+are internal qualified packages, with no GitHub release publication implied.
+
+The [active plan](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md) retains
+physical IME/AT/keyboard, formal performance and API-5 adoption. The
 headless ACP component and hidden preview checks do not qualify physical IME or
 foreground input. Existing gallery pixels are unchanged by this test-only scope.
