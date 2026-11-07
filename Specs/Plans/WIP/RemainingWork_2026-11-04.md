@@ -360,10 +360,16 @@ follow-up is removed. Completion correctly reported failed native qualification.
 - [ ] Finish the active checked-failure/API-5 migration with the
   [single DxUi plan](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Plans/WIP/RemainingWork_2026-11-04.md) and active
   [implemented API-5 failure contract](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Core/Core_FailureHandling.md).
-  Candidate pin `5907e4f5e001b1003ba8ba2f1ec7f9725c1ddb5c` has explicit reporter/COM ownership, counted callback
+  Candidate pin `4ce9b6a9534d869c4f670eced10e773e2cae5ea8` has explicit reporter/COM ownership, counted callback
   retirement, checked document/configuration/codecs and isolated failure/native/session-end regressions. Preliminary
   compiler checks are diagnostic only; finish fresh consumer builds, native tests, captures, actual ASan and
   production refusal evidence before closing adoption. API-4 measurements retain their original source identity.
+  Original API-5 `1d843628` passes Settings/Recovery but fails local-image refresh and terminates during
+  DirectWrite lazy formatting of the 65,536-unit math source. Original images/PDBs/compiler objects, both
+  dumps and the run remain retained. Replacing only the SDK layout object removes the fatal and passes
+  88/89 Editor behavior cases; the remaining failure proves that decode completion incorrectly removed its
+  file watch. Current code retains canonical paths independently of decode-job cancellation and covers
+  retargeting, document-base changes, image removal and unchanged prose. Fresh qualification remains required.
 - [ ] Complete C11/C12/S6 release decisions: packaging, any installer/file associations, exact release handoff,
   truthful capability limits and publication evidence. Source merge is not product release acceptance.
 
