@@ -1,1 +1,0 @@
-- Verify native editing in all six hosted x64/ARM64 profiles with 864 passing cases and 228 captures, plus both version 0.1.389 production ZIP smoke checks and 26 combined test-entry-point refusals; retain original failed local cohorts and separate physical-input, performance and API-5 adoption gates.
