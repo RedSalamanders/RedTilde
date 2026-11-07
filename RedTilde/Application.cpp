@@ -241,6 +241,8 @@ Application::Application(LaunchOptions value) : options(std::move(value))
 Application::~Application()
 {
     closing = true;
+    bitmapWriter.Stop();
+    bitmapWriter.Detach();
     CloseExternalLinks();
     preferenceWriter.Close();
     recovery.Close();
@@ -322,6 +324,8 @@ HRESULT Application::Initialize()
     preferenceWriter.Initialize(options.dataDirectory, window.get(), PreferencesReady);
     RETURN_IF_FAILED(recovery.Initialize(options.dataDirectory, window.get(), RecoveryReadyMessage));
     RETURN_IF_FAILED(images.Initialize(window.get(), ImageReady, 0x5254));
+    RETURN_IF_FAILED(bitmapWriter.Initialize(options.dataDirectory, window.get(), BitmapReady));
+    host.SetClipboardPreference(settings.imageFirstPaste ? DxUi::TextClipboardPreference::ImageFirst : DxUi::TextClipboardPreference::TextFirst);
     initialized = true;
     initializing = true;
     // BuildUi is the sole creation site for the label whose localized facts we cache.
@@ -946,6 +950,7 @@ void Application::Status(unsigned id)
 }
 void Application::SetDocument(std::wstring text, std::filesystem::path path, bool hasBom, FileStamp identity, bool rememberForStartup)
 {
+    pendingBitmapPaste.reset();
     if (!initializing)
         AbandonStartupRestore();
     recovered = false;
@@ -965,6 +970,7 @@ void Application::SetDocument(std::wstring text, std::filesystem::path path, boo
 }
 void Application::Changed()
 {
+    pendingBitmapPaste.reset();
     if (switchingDocument)
         return;
     if (editDiagnostics)
@@ -1251,6 +1257,11 @@ void Application::SelectionChanged(bool refreshTools)
     EditDiagnostics::SelectionInvocation selectionInvocation(editDiagnostics);
     if (closing || switchingDocument || !floating)
         return;
+    if (pendingBitmapPaste && (pendingBitmapPaste->lifetime.expired() || pendingBitmapPaste->documentKey != activeDocumentKey ||
+                               pendingBitmapPaste->view != settings.view || pendingBitmapPaste->documentPath != documentPath ||
+                               pendingBitmapPaste->selection != editor->GetSelection() || editor->IsSelectionGestureActive() ||
+                               editor->Snapshot().ChangedRangeFrom(pendingBitmapPaste->source).kind != DxUi::RichText::SourceChangeKind::Unchanged))
+        pendingBitmapPaste.reset();
     if (editor->IsSelectionGestureActive())
     {
         // Shared editor owns every selection route and the final release event.
@@ -1602,6 +1613,9 @@ void Application::Execute(Command command) noexcept
 }
 void Application::ExecuteCommand(Command command, unsigned zoomSteps)
 {
+    if (command == Command::New || command == Command::Open || command == Command::OpenFolder || command == Command::Close ||
+        command == Command::LocalSource || command == Command::RestoreRecovery || command == Command::RestoreAllRecovery)
+        pendingBitmapPaste.reset();
     if (closing || closingAfterSave || sessionEnding || switchingDocument)
         return;
 #if defined(REDTILDE_ENABLE_TESTS)
@@ -1689,6 +1703,12 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         images.DiscardCancelled();
         remoteImagesToggle->SetToggleState(settings.allowRemoteImages);
         ServiceImages();
+        SavePreferences();
+        return;
+    case Command::ImageFirstPaste:
+        settings.imageFirstPaste = !settings.imageFirstPaste;
+        host.SetClipboardPreference(settings.imageFirstPaste ? DxUi::TextClipboardPreference::ImageFirst : DxUi::TextClipboardPreference::TextFirst);
+        imageFirstPasteToggle->SetToggleState(settings.imageFirstPaste);
         SavePreferences();
         return;
     case Command::DimBlocks:
@@ -2677,6 +2697,73 @@ void Application::CompleteFileOperation()
             AskWorkspaceThen(std::move(apply), std::move(approvals));
     }
 }
+std::optional<std::wstring> Application::BeginBitmapPaste(std::span<const std::byte> dib, bool v5)
+{
+    if (closing || sessionEnding || closingAfterSave || switchingDocument || unsavedPromptOpen || !editor || editor->IsReadOnly() ||
+        settings.view == EditorView::Source || host.GetFocusControl() != editor || editor->IsSelectionGestureActive() ||
+        (blockDraft && blockDraft->IsVisible()))
+        return std::nullopt;
+    PendingBitmapPaste pending;
+    pending.documentKey = activeDocumentKey;
+    pending.source = editor->Snapshot();
+    pending.selection = editor->GetSelection();
+    pending.view = settings.view;
+    pending.documentPath = documentPath;
+    pending.lifetime = GetControlLifetimeToken(*editor);
+    const auto submitted = bitmapWriter.Submit(dib, v5, pending.request);
+    if (FAILED(submitted))
+    {
+        Status(submitted == HRESULT_FROM_WIN32(ERROR_BUSY) ? IDS_IMAGEPASTEBUSY : IDS_IMAGEPASTEFAILED);
+        return std::nullopt;
+    }
+    pendingBitmapPaste = std::move(pending);
+    Status(IDS_IMAGEPASTING);
+    // The synchronous SDK callback owns no I/O. This application completes its
+    // separately guarded source transaction after the durable worker result.
+    return std::nullopt;
+}
+void Application::ServiceBitmapPaste()
+{
+    BitmapPasteWriter::Result result;
+    if (!bitmapWriter.Take(result))
+        return;
+    auto pending = std::exchange(pendingBitmapPaste, std::nullopt);
+    bool keep{};
+    const auto settle = wil::scope_exit(
+        [&]
+        {
+            if (keep)
+                bitmapWriter.Commit(result.request);
+            else if (FAILED(bitmapWriter.Discard(std::move(result))))
+                OutputDebugStringW(L"RedTilde: a declined clipboard asset was retained after a cleanup scheduling error.\n");
+        });
+    if (closing || sessionEnding)
+        return;
+    if (FAILED(result.status))
+    {
+        Status(IDS_IMAGEPASTEFAILED);
+        return;
+    }
+    if (!pending || unsavedPromptOpen || pending->request != result.request || pending->lifetime.expired() ||
+        pending->documentKey != activeDocumentKey || pending->view != settings.view || pending->documentPath != documentPath || !editor ||
+        editor->IsReadOnly() || host.GetFocusControl() != editor || editor->IsSelectionGestureActive() ||
+        editor->GetSelection() != pending->selection ||
+        editor->Snapshot().ChangedRangeFrom(pending->source).kind != DxUi::RichText::SourceChangeKind::Unchanged ||
+        (blockDraft && blockDraft->IsVisible()))
+    {
+        Status(IDS_IMAGEPASTECANCELLED);
+        return;
+    }
+    const auto lifetime = pending->lifetime;
+    const auto alt = Resource(IDS_PASTEDIMAGE);
+    DxUi::RichText::MarkdownCommandRequest request;
+    request.command = DxUi::RichText::MarkdownCommand::InsertImage;
+    request.text = alt;
+    request.destination = result.asset.uri;
+    keep = editor->ExecuteMarkdownCommand(request) == DxUi::RichText::MarkdownCommandStatus::Changed;
+    if (!closing && !lifetime.expired())
+        Status(keep ? IDS_IMAGEPASTED : IDS_IMAGEPASTEFAILED);
+}
 void Application::ServiceImages()
 {
     if (!editor || closing)
@@ -2733,11 +2820,13 @@ void Application::BeginClose()
     (void)recovery.SubmitDocument(activeDocumentKey, std::nullopt, true);
     recovery.Stop();
     closing = true;
+    pendingBitmapPaste.reset();
+    bitmapWriter.Stop();
     files.Close();
     folderFiles.Close();
     images.Shutdown();
     host.Detach();
-    waitingForPreferences = preferenceWriter.Busy() || !recovery.Finished();
+    waitingForPreferences = preferenceWriter.Busy() || !recovery.Finished() || bitmapWriter.Busy();
     if (waitingForPreferences)
     {
         // Keep only a hidden notification window until admitted preferences are
@@ -2748,6 +2837,7 @@ void Application::BeginClose()
     else
     {
         preferenceWriter.Close();
+        bitmapWriter.Detach();
         window.reset();
     }
 }
@@ -2761,16 +2851,26 @@ void Application::ResumeAfterSaveClose()
 }
 void Application::FinishClose()
 {
-    if (closing && !preferenceWriter.Busy() && recovery.Finished())
+    if (closing && !preferenceWriter.Busy() && recovery.Finished() && !bitmapWriter.Busy())
     {
         waitingForPreferences = false;
         recovery.Close();
         preferenceWriter.Close();
+        bitmapWriter.Detach();
         window.reset();
     }
 }
 LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
+    if (message == BitmapReady)
+    {
+        if (wParam == BitmapPasteWriter::Cookie)
+        {
+            ServiceBitmapPaste();
+            FinishClose();
+        }
+        return 0;
+    }
     if (message == ExternalLinkReady)
     {
         ExternalLinkCompleted();
@@ -2791,6 +2891,8 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         sessionEnding = wParam != FALSE;
         if (sessionEnding)
         {
+            pendingBitmapPaste.reset();
+            bitmapWriter.Stop();
             if (!closing)
                 CheckpointWorkspaceRecovery();
             // Windows may terminate us when this message returns. Only this
@@ -2890,6 +2992,8 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
     }
     if (message == WM_NCDESTROY)
     {
+        bitmapWriter.Stop();
+        bitmapWriter.Detach();
         folderFiles.Close();
         folderFilesActive = false;
         host.Detach();
@@ -3004,6 +3108,10 @@ void Application::Prepare(unsigned turns)
     };
     for (unsigned index = 0; index < turns; ++index)
     {
+        if (bitmapWriter.HasResult())
+            ServiceBitmapPaste();
+        if (closing || !host.GetRoot())
+            return;
         (void)host.RenderInitialFrameForShow();
         const bool identityRelayout = identityMeasure.typographyRevision != host.GetTypographyRevision();
         if (identityRelayout)

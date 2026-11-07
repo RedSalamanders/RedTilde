@@ -1,0 +1,62 @@
+{
+  "baseline": {
+    "passedBeforeExpectedFailure": 72,
+    "expectedFailure": {
+      "name": "Editor.ClipboardBitmapAssetHandler",
+      "passed": false,
+      "error": "the app owns a bitmap asset paste handler"
+    },
+    "originalArchiveSha256": "543094528EFA43BA24C51DFF8C92513F94508A1AD27CEC5769CD3B06F8D773CF",
+    "registered": 133,
+    "limit": "The EditorBehavior partition fails at the sole expected new admission case; later Editor partitions were not executed and no complete Editor qualification is claimed",
+    "implementation": "cdf07d65855f4bb46f1d7d254b3264bd0edd1cde",
+    "allOriginalMembersVerified": true
+  },
+  "benchmarkInputs": {
+    "Common/BitmapAssets.cpp": "7107C967A0ACDAC68A7B80C840CDA070DDB472CF3FDA7004C76DD5A6AFEA5C90",
+    "Common/Storage.cpp": "D174DE8831A52FE53031D8AB48BA8CDB991D3FEB906860FD7324A656D5E6CB0A",
+    "Common/Settings.cpp": "760F63CE46C654FDAD2F4BCD73C4845AD41E4129E428106DC0E9414CF46D9DA0",
+    "RedTilde/BitmapPaste.h": "940E98663EB68B75DCAE7AD172B59A5F060FF0BA64F4E668E3AFF163AA4DCB00",
+    "RedTilde/Application.cpp": "C5268A3E83EF5EAE95BF40C21BA2B72F1AE944545B85E3BC2A73AC8B4041DEE0",
+    "Tests/Support/Support.Tests.BitmapAssets.h": "6B13016C09DAC0C164CC7E103C65A8C95D39C40B2297C0B523309EA9E8080939",
+    "Tests/Application.Tests.DesignRefresh.cpp": "0797C30390E2B5EE167BE71DE8279756D5D055FF822CDED7D5871E232432FF85"
+  },
+  "fixture": "redtilde-bitmap-paste-counterexample",
+  "limits": [
+    "Controlled DIB callbacks exercise the actual app worker and editor without using the OS clipboard",
+    "The baseline only reaches the deliberate admission failure, not a complete native suite pass",
+    "ARM64 native, production, physical input and performance acceptance are separate"
+  ],
+  "firstVisualFailure": {
+    "accepted": false,
+    "originalRunArchiveSha256": "B6B22C49CAA368FD3030B9FAD74CF4CE089069C61B0645410A5B280CEFA7275C",
+    "originalNativeArchiveSha256": "C994D38BD82C712FFD3BBCF5A65B13E495768F32DB09ED61B653723AF3047C86",
+    "sourceCommit": "800167ec7ef5a7611f9274ff5b21fc8435689035",
+    "reason": "Visual review found both captures rendered Light, while the dark sidecar derived its label from the changed Settings value. The scene must execute the real theme command and verify/record the actual host palette."
+  },
+  "firstFunctionalFailure": {
+    "sourceWasDirty": true,
+    "originalInputMembersVerified": 140,
+    "sourceArchiveSha256": "C25DB8B60301684DCC2F7C7437DA27761AF77681C7BE906CB6300F7CFBF6D78A",
+    "cause": "Fixture expected an unwrapped file URI; the public image planner correctly protects it with angle brackets. Original source, images and canonical run payload were retained.",
+    "sourceCheckpoint": "cdf07d65855f4bb46f1d7d254b3264bd0edd1cde"
+  },
+  "candidate": {
+    "qualifiedLocalBoundary": "139 pass and one real Win32 1314 symbolic-link privilege failure per profile",
+    "implementation": "e08cdb2952433fa85e42ccb11cc04d38cd657ae6",
+    "allNamedCasesPassInAllThreeX64Profiles": true,
+    "cases": [
+      "Storage.BitmapAssetsEncodeAndRetireOwnedFiles",
+      "Settings.ImageFirstPasteRoundTripAndFallback",
+      "Editor.ClipboardBitmapPasteCommitUndoAndBusy",
+      "Editor.ClipboardBitmapPasteDeclinesSupersededSource",
+      "Editor.ClipboardBitmapPasteFailureAndReadOnly",
+      "Editor.ClipboardBitmapPasteCloseDrainsOwnedWorker",
+      "Editor.ClipboardBitmapPasteSessionEndRetiresInsertion",
+      "Editor.ClipboardBitmapAssetHandler"
+    ]
+  },
+  "workloadOwner": "RedTilde",
+  "inputHash": "4a5521c7f2e6927968f7c307b7fd55972f5c1f3cdce01f5ddd863d6733afefd1",
+  "schemaVersion": 1
+}

@@ -3,7 +3,7 @@
 Settings live under `%LOCALAPPDATA%\RedTilde` and use a versioned UTF-8 document. A caller may select an isolated
 data directory for tests. Themes are System, Light, Dark and Paper. Respect Windows high contrast before custom
 colors. Persist appearance, view, outline visibility, Files-pane visibility, selected root and width, reading width, text scale,
-inactive-block dimming, completed-task strike-through, remote-image opt-in and optional Markdown syntax. The
+inactive-block dimming, completed-task strike-through, remote-image opt-in, image-first paste and optional Markdown syntax. The
 `strikeCompletedTasks` field accepts only 0 or 1; missing or invalid values keep the disabled default. It is live
 presentation policy shared by Compose and Split. Defaults are System appearance, Compose view, outline visible, Files pane closed,
 Files width 280 DIP, reading width 760 DIP, text scale 100%, inactive-block dimming enabled, remote images disabled and every optional Markdown syntax enabled. Files widths are
@@ -55,7 +55,10 @@ remembered path. Hidden deterministic captures continue using their explicit sam
 Source, selection and history are never recovered from this preference; crash recovery retains that ownership.
 Focus mode is session-local and is not persisted. Apply persisted
 appearance, reading width, text scale and dimming immediately; no restart is required. Reduced motion follows
-Windows preferences. The version-1 `remoteImages=0|1` field defaults independently to disabled on missing or invalid
+Windows preferences. The independent version-1 `imageFirstPaste=0|1` field defaults to disabled on missing or
+invalid input. Its live Settings toggle updates the editor host's clipboard preference and queues ordinary
+preference persistence without changing source, selection or history. Unicode-first remains the default.
+The version-1 `remoteImages=0|1` field defaults independently to disabled on missing or invalid
 input. Seven optional Markdown syntax fields — `syntaxHighlight`, `syntaxSuperscript`, `syntaxSubscript`,
 `syntaxInserted`, `syntaxWikiLinks`, `syntaxDefinitionLists` and `syntaxAbbreviations`, each `0|1` — default
 independently to enabled on missing or invalid input and apply immediately. They are application-owned names;
@@ -65,14 +68,17 @@ through the same atomic writer as documents. Settings errors must not prevent ed
 persistence uses one active application worker and one coalesced latest pending state. Admitted writes finish after
 the window closes without joining storage on the UI thread; notifications lose their window binding.
 
-After accepting Close, stop producers and detach the editor host. If an admitted preferences write or recovery
-retirement is still pending, hide the application window and retain its notification HWND until the preferences
-writer is idle and recovery has finished. Recheck both states after dispatched messages as well as completion
-notifications; either service may finish first. Window destruction requires both finished states; service closure
-clears its notification binding. Do not join storage on the UI thread or retire the HWND after only one service completes.
+After accepting Close, stop producers and detach the editor host. If an admitted preferences write, recovery
+retirement or bitmap-asset operation is still pending, hide the application window and retain its notification
+HWND until all three services are idle. A leased bitmap result is still busy until the owner commits or
+declines it. Recheck all states after dispatched messages as well as completion notifications; services may
+finish in any order. Window destruction requires all three finished states; service closure clears its
+notification binding. Do not join storage on the UI thread or retire the HWND after only one service completes.
 `WM_QUERYENDSESSION` immediately permits session termination and requests checkpoints for every dirty workspace
 document without a modal save question or shutdown-blocking reason. At final `WM_ENDSESSION(TRUE)`, editing
 commands stop, all workspace checkpoints are requested again and recovery may wait for at most 2,000 ms. A
+pending bitmap insertion is retired and its worker is stopped without an additional UI-thread wait; a
+cancelled session end retains the admitted operation. Bitmap completion cannot change checkpointed source. A
 failure/timeout is recorded; it cannot turn the bounded allowance into an indefinite join. `WM_ENDSESSION(FALSE)`
 keeps the window, histories, pending snapshots and editing available. Ordinary Close retains its asynchronous
 worker-settlement contract. An ordinary visible launch registers Windows application restart for update/logoff

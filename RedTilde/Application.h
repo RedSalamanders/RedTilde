@@ -1,5 +1,6 @@
 #pragma once
 #include "AsyncFiles.h"
+#include "BitmapPaste.h"
 #include "Common/DocumentInfo.h"
 #include "Common/Files.h"
 #include "Common/Recovery.h"
@@ -98,7 +99,8 @@ enum class Command
     ZoomIn,
     ZoomOut,
     ZoomReset,
-    OpenLink
+    OpenLink,
+    ImageFirstPaste
 };
 enum class SaveConflictChoice
 {
@@ -322,6 +324,19 @@ class Application
     bool updatingFind{}, equationContext{}, pendingSelectionTools{}, pendingBlockPlacement{}, systemDark{};
     AsyncFiles files;
     RichImageLoader images;
+    DxUi::Button *imageFirstPasteToggle{};
+    BitmapPasteWriter bitmapWriter;
+    struct PendingBitmapPaste
+    {
+        std::uint64_t request{};
+        unsigned documentKey{};
+        DxUi::RichText::SourceSnapshot source;
+        DxUi::RichText::Selection selection;
+        EditorView view{};
+        std::filesystem::path documentPath;
+        std::weak_ptr<int> lifetime;
+    };
+    std::optional<PendingBitmapPaste> pendingBitmapPaste;
     std::vector<DxUi::RichText::RichImageRequest> imageRequests;
     Editor *editor{};
     DxUi::RichTextEditor *mirror{};
@@ -422,7 +437,7 @@ class Application
     };
     std::optional<ConflictReload> conflictReload;
     static constexpr UINT ImageReady = WM_APP + 401, FileReady = WM_APP + 402, PreferencesReady = WM_APP + 403, RecoveryReadyMessage = WM_APP + 404,
-                          FolderReady = WM_APP + 405, ExternalLinkReady = WM_APP + 406;
+                          FolderReady = WM_APP + 405, ExternalLinkReady = WM_APP + 406, BitmapReady = WM_APP + 407;
     static LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM) noexcept;
     LRESULT HandleMessage(HWND, UINT, WPARAM, LPARAM);
     bool RouteShortcut(const MSG &message);
@@ -475,6 +490,8 @@ class Application
     void Status(unsigned id);
     void SavePreferences();
     void ServiceImages();
+    std::optional<std::wstring> BeginBitmapPaste(std::span<const std::byte> dib, bool v5);
+    void ServiceBitmapPaste();
     void FileCompleted() noexcept;
     void CompleteFileOperation();
     void AskThen(std::function<void()> continuation);

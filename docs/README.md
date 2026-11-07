@@ -1,5 +1,14 @@
 # RedTilde guide
 
+**Pasting pictures:** paste a bitmap into Compose or Split to create a local PNG and replace the selection
+with its image reference in one Undo step. When the clipboard also contains text, text wins by default;
+Settings → Privacy → Prefer images when pasting switches that preference. Pasting never waits for image
+encoding on the UI thread. Editing or changing documents while a paste is pending cancels its insertion.
+Pictures live in RedTilde's local data `Assets` folder and survive Undo/Redo and recovery. When sharing or
+moving a document, copy its pictures and update the Markdown references; export does not bundle them automatically.
+The [bitmap paste evidence](../Measurements/BitmapPaste_2026-11-07/README.md) includes actual Light/Dark
+preference captures, cancellation and Undo checks, and the remaining platform boundaries.
+
 Invalid or oversized recovery copies are kept intact in quarantine instead of interrupting recovery. Valid
 copies remain available. An existing quarantine file is preserved; the original input stays intact if it
 cannot be moved beside that earlier file. Recovery never silently truncates your writing.

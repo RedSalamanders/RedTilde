@@ -105,6 +105,8 @@ Settings ParseSettings(std::string_view bytes)
                     settings.dimInactiveBlocks = number != 0;
                 if (key == "remoteImages" && number <= 1)
                     settings.allowRemoteImages = number != 0;
+                if (key == "imageFirstPaste" && number <= 1)
+                    settings.imageFirstPaste = number != 0;
                 if (key == "strikeCompletedTasks" && number <= 1)
                     settings.strikeCompletedTasks = number != 0;
                 for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
@@ -134,6 +136,7 @@ std::string SerializeSettings(const Settings &settings)
         static_cast<unsigned>(settings.appearance), static_cast<unsigned>(settings.view), settings.showOutline ? 1 : 0, settings.showFiles ? 1 : 0,
         settings.filesWidth, settings.readingWidth, settings.textScale, settings.dimInactiveBlocks ? 1 : 0, settings.allowRemoteImages ? 1 : 0);
     result += std::format("strikeCompletedTasks={}\n", settings.strikeCompletedTasks ? 1 : 0);
+    result += std::format("imageFirstPaste={}\n", settings.imageFirstPaste ? 1 : 0);
     for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
         result += std::format("{}={}\n", MarkdownSyntaxKeys[index], settings.markdownSyntax[index] ? 1 : 0);
     if (ValidPreferencePath(settings.filesRoot))

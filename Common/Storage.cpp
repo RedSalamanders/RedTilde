@@ -78,12 +78,12 @@ bool SameObject(const FileStamp &left, const FileStamp &right) noexcept
 }
 // Borrow one already-opened file at position zero. Both stable shared reads and
 // protected in-place saves use this one bounded read/identity implementation.
-HRESULT ReadOpenedBytes(HANDLE file, std::string &bytes, FileStamp *stamp)
+HRESULT ReadOpenedBytes(HANDLE file, std::string &bytes, FileStamp *stamp, std::size_t maximumBytes = MaximumBytes)
 {
     BY_HANDLE_FILE_INFORMATION info{};
     if (!GetFileInformationByHandle(file, &info))
         return LastError();
-    if ((info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) || info.nFileSizeHigh || info.nFileSizeLow > MaximumBytes)
+    if ((info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) || info.nFileSizeHigh || info.nFileSizeLow > maximumBytes)
         return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
     std::string staged(info.nFileSizeLow, '\0');
     DWORD count{};
@@ -165,6 +165,83 @@ try
 catch (const std::bad_alloc &)
 {
     return E_OUTOFMEMORY;
+}
+
+HRESULT WriteNewBytesDurable(const std::filesystem::path &path, std::string_view bytes, FileStamp &saved, std::size_t maximumBytes) noexcept
+try
+{
+    if (!path.is_absolute() || !maximumBytes || maximumBytes > 64u * 1024u * 1024u)
+        return E_INVALIDARG;
+    if (bytes.size() > maximumBytes)
+        return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
+    wil::unique_handle file(
+        CreateFileW(path.c_str(), GENERIC_READ | GENERIC_WRITE | DELETE, FILE_SHARE_READ, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr));
+    if (!file)
+        return LastError();
+    auto removeFailed = wil::scope_exit(
+        [&]() noexcept
+        {
+            FILE_DISPOSITION_INFO disposition{TRUE};
+            if (!SetFileInformationByHandle(file.get(), FileDispositionInfo, &disposition, sizeof(disposition)))
+                OutputDebugStringW(L"RedTilde: could not retire an incomplete newly-created asset.\n");
+        });
+    DWORD written{};
+    if (!bytes.empty() && !WriteFile(file.get(), bytes.data(), static_cast<DWORD>(bytes.size()), &written, nullptr))
+        return LastError();
+    if (written != bytes.size())
+        return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
+    if (!FlushFileBuffers(file.get()))
+        return LastError();
+    // A known explicit final timestamp avoids a stamp made before close's
+    // deferred last-write update. No further data writes follow this point.
+    FILETIME now{};
+    GetSystemTimeAsFileTime(&now);
+    if (!SetFileTime(file.get(), nullptr, nullptr, &now) || !FlushFileBuffers(file.get()))
+        return LastError();
+    BY_HANDLE_FILE_INFORMATION info{};
+    if (!GetFileInformationByHandle(file.get(), &info))
+        return LastError();
+    auto stamp = Stamp(info, ContentHash(bytes));
+    RETURN_IF_FAILED(CompleteIdentity(file.get(), stamp));
+    if (stamp.size != bytes.size() || !HasIdentity(stamp) || info.nNumberOfLinks != 1u)
+        return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+    saved = stamp;
+    removeFailed.release();
+    return S_OK;
+}
+catch (const std::bad_alloc &)
+{
+    std::terminate();
+}
+
+HRESULT RemoveCreatedBytesIfUnchanged(const std::filesystem::path &path, const FileStamp &expected, std::size_t maximumBytes) noexcept
+try
+{
+    if (!path.is_absolute() || !HasIdentity(expected) || !maximumBytes || maximumBytes > 64u * 1024u * 1024u)
+        return E_INVALIDARG;
+    wil::unique_handle file(CreateFileW(path.c_str(), GENERIC_READ | DELETE, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
+                                        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
+    if (!file)
+    {
+        const auto error = GetLastError();
+        return error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND ? S_FALSE : HRESULT_FROM_WIN32(error);
+    }
+    BY_HANDLE_FILE_INFORMATION info{};
+    if (!GetFileInformationByHandle(file.get(), &info))
+        return LastError();
+    if ((info.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT)) || info.nNumberOfLinks != 1u)
+        return HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
+    std::string bytes;
+    FileStamp current;
+    RETURN_IF_FAILED(ReadOpenedBytes(file.get(), bytes, &current, maximumBytes));
+    if (current != expected)
+        return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
+    FILE_DISPOSITION_INFO disposition{TRUE};
+    return SetFileInformationByHandle(file.get(), FileDispositionInfo, &disposition, sizeof(disposition)) ? S_OK : LastError();
+}
+catch (const std::bad_alloc &)
+{
+    std::terminate();
 }
 
 HRESULT WriteBytesAtomic(const std::filesystem::path &path, std::string_view bytes, const FileStamp *expected, FileStamp *saved,

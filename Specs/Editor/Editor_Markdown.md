@@ -1,9 +1,8 @@
 # Markdown document and editing
 
-The editor uses DxUi's Unicode-first clipboard preference. When Unicode text and a bitmap coexist, ordinary
-Paste selects the text in one ownership attempt. File-list priority and forced plain-text paste remain governed
-by the shared input contract. This adoption does not add an image-asset persistence callback or an image-first
-settings control; those remain part of the separately owned managed-image work.
+The editor defaults to DxUi's Unicode-first clipboard preference. When Unicode text and a bitmap coexist,
+ordinary Paste selects text in one ownership attempt. Settings provides an independently persisted image-first
+option. File-list priority and forced plain-text paste remain governed by the shared input contract.
 
 ## Source and views
 
@@ -224,10 +223,38 @@ Use the pinned native image API with an explicit absolute document path. Relativ
 document directory, never process CWD. Paste uses upstream structured file-reference policy. Decode supported
 local PNG/JPEG/BMP/GIF/TIFF off the UI thread; retain alt text on failure. HTTP(S) requests require the explicit
 privacy opt-in below. Data URI fetch, UNC access by default, script execution and automatic external link
-navigation remain disabled. Asset copying and drag/drop remain separate work. The image worker branches on every
+navigation remain disabled. External asset copying and drag/drop remain separate work. The image worker branches on every
 request kind: wiki-target (`![[target]]`) and data requests are declined with `ERROR_NOT_SUPPORTED` before any file
 or network access, even when a same-named local file exists. RedTilde resolves no wiki targets. The explicit
 external-link activation handler declines wiki destinations, so unresolved wiki links stay inert.
+
+### Clipboard bitmap assets
+
+RedTilde owns the pinned editor's bitmap-paste callback in Compose and Split. The callback copies at most
+32 MiB of borrowed CF_DIB/CF_DIBV5 bytes and admits one asynchronous operation through creation, owner
+disposition and cleanup. It returns immediately without inserting source. WIC decoding/PNG encoding and all
+filesystem work run on an application-owned COM MTA worker. Validated 24/32-bit RGB/bitfield input is bounded
+to 8192 pixels per side and 64 MiB of decoded/output bytes; embedded/linked color profiles are refused.
+
+The worker creates a unique PNG beneath the local fixed-drive application data directory's `Assets` folder.
+It never replaces an existing file and publishes success only after durable flush and full file-stamp
+capture. The source uses an absolute escaped file URI, so an unsaved document can render the asset immediately.
+These references depend on this local asset store: moving/exporting a document to another machine does not
+copy assets. Accepted assets remain after Undo so Redo, saved documents and crash-recovered Markdown retain
+their image references. Automatic unreferenced-asset collection is outside this contract.
+
+The owner inserts the returned URI through the public Markdown image command only while the admitted source
+snapshot, selection, document identity/path, view, control lifetime and editing context still match. Read-only,
+Source-only, source-draft, prompt, gesture or closing contexts decline. A later source edit retires the request
+permanently even if Undo restores its wording. New/Open/Open Folder, document switching and accepted Close
+also retire pending insertion. Errors, stale results and busy refusal leave source/selection/history unchanged.
+Successful insertion replaces the selection as one undoable edit. A leased result keeps the one-operation
+bound across reentrant change notifications and Close.
+
+Unreferenced declined assets retire on a worker only when identity, size, timestamp, link count and content
+still match the created file. Changed, linked or reparse entries are preserved. Failed cleanup retains the
+complete file and records a diagnostic; it must never delete an unrelated replacement. Shutdown waits
+asynchronously for this worker alongside preferences and recovery, without joining storage on the UI thread.
 
 Mermaid uses the exact library pin's bounded flowchart, state, class, sequence, pie, entity-relationship, Gantt and
 mind-map profiles. Supported grouping, members, multiplicities and native style subsets follow that pin's
