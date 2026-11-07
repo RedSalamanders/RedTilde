@@ -1800,7 +1800,6 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         return;
     case Command::ReloadImages:
         imageFailureStatus = S_OK;
-        imageWatchReloadPending = true;
         editor->ReloadImages();
         images.DiscardCancelled();
         ServiceImages();
