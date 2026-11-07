@@ -206,9 +206,12 @@ Details and original counterexamples remain in the
   The [scoped closeout](../Done/BitmapPaste_2026-11-07.md) records bounded worker publication, source/selection
   cancellation, Close/session-end retirement, independent PNG pixels/identity checks, one-step Undo/Redo,
   six zero-warning builds and 139 passing cases plus the actual symlink privilege failure per x64 profile.
-  All original source/native/SDK/run members and 38 captures per profile are verified. ARM64 is cross-build
-  coverage; fresh hosted native and production qualification remain pending. Automatic export, asset cleanup
-  and drag/drop are separate from the implemented paste path.
+  All original source/native/SDK/run members and 38 captures per profile are verified. The subsequent
+  [hosted Debug/ASan](../../../Measurements/BitmapPaste_2026-11-07/hosted-debug-asan.json) and
+  [Release/production](../../../Measurements/BitmapPaste_2026-11-07/hosted-release.json) receipts verify
+  all six native x64/ARM64 profiles, each with 140 passing cases, the actual symlink fixture and 38 captures.
+  Both version 0.1.378 production ZIPs pass smoke checks and all 26 combined test-entry-point refusals.
+  Automatic export, asset cleanup and drag/drop are separate from the implemented paste path.
 
 <a id="t-p1"></a>
 ### T-P1 — R10 performance and resource acceptance

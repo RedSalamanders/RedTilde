@@ -7,6 +7,16 @@ interrupted-write restart and real ASan detection. All 145 original source input
 and every retained native/SDK/run archive member are independently byte-verified.
 ARM64 entries here are cross-builds; full hosted native acceptance remains separate.
 
+The subsequent [hosted Debug/ASan packet](hosted-debug-asan.json) binds main
+`4761b264`; the [Release/production packet](hosted-release.json) binds main
+`8d68693a`. All six native x64/ARM64 profiles pass 140 cases, including the actual
+symbolic-link save, and 38 captures each: 840 passing cases and 228 captures.
+Every original GitHub wrapper and canonical payload member is independently
+verified. Both version `0.1.378` production ZIPs pass clean-extraction smoke and
+all 13 test-entry-point refusals each, after the combined native Release gate.
+The original images were verified against the smoke receipts and PE architecture.
+No GitHub release was published by these qualification workflows.
+
 The [counterexample](counterfactual.json) retains the original missing-handler
 failure, exact images and source. The corrected app uses its owned bounded worker
 to validate a DIB, encode PNG and durably create a unique asset. Publication checks
@@ -34,7 +44,7 @@ there is no desktop takeover or physical-monitor acceptance claim.
 Text wins when both formats are available unless **Prefer images when pasting** is
 enabled. Assets survive Undo/Redo and recovery. Sharing a document requires copying
 its images and updating their Markdown references. Automatic asset export, cleanup,
-drag/drop, real network locations, native ARM64, physical input, API-5 adoption and
+drag/drop, real network locations, physical input, API-5 adoption and
 formal performance acceptance retain separate owners.
 
 The lasting contracts belong to [editing](../../Specs/Editor/Editor_Markdown.md),

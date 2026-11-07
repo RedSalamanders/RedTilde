@@ -1,8 +1,8 @@
 # Bitmap paste — completed local implementation scope
 
 Status: complete for the app-owned bitmap asset worker, text/image preference,
-deterministic tests, specs, docs and local platform builds. Hosted native and
-production acceptance remains explicitly pending.
+deterministic tests, specs, docs, six local builds and six hosted native profiles.
+Both test-disabled production packages pass their original smoke checks.
 
 Compose and Split accept supported bitmap data through a bounded application worker.
 The worker encodes and durably creates a unique local PNG before the UI owner
@@ -25,6 +25,14 @@ Every original source/native/SDK/run archive member is independently verified.
 ARM64 entries are cross-builds. This local scope does not accept the symlink case,
 hosted native platforms, production packages or the person's OS clipboard.
 
-The [remaining plan](../WIP/RemainingWork_2026-11-04.md) continues to own native
-acceptance, API-5 adoption, real locations, remote-image policy, drag/drop/export,
+The subsequent [Debug/ASan receipts](../../../Measurements/BitmapPaste_2026-11-07/hosted-debug-asan.json)
+at main `4761b264` and [Release/production receipts](../../../Measurements/BitmapPaste_2026-11-07/hosted-release.json)
+at main `8d68693a` verify all six native x64/ARM64 profiles: each passes 140 cases,
+including the actual symbolic-link save, and 38 harness captures. This is 840 cases
+and 228 captures in total. Every original wrapper and canonical payload member is
+verified. Both production ZIPs are version `0.1.378`, start only after the combined
+native Release gate, and pass all 13 test-entry-point refusals each.
+
+The [remaining plan](../WIP/RemainingWork_2026-11-04.md) continues to own API-5
+adoption, real locations, remote-image policy, drag/drop/export,
 physical input/AT and formal performance qualification.

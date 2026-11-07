@@ -1,0 +1,363 @@
+{
+  "schemaVersion": 1,
+  "workloadOwner": "RedTilde",
+  "fixture": "bitmap-paste-hosted-debug-asan",
+  "claim": "Current-source hosted native x64 and ARM64 Debug/ASan: 140 cases and 38 captures per profile, actual symbolic-link saves and independent heap boundaries",
+  "implementationCommit": "e08cdb2952433fa85e42ccb11cc04d38cd657ae6",
+  "sourceCommit": "4761b264b7f6c58cf0fd1b199c23d6d6d53fcde3",
+  "sdkCommit": "a1915ffdd94b18fd1817371f1dc074f6a0b547f1",
+  "runs": [
+    {
+      "runId": "42338156722",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42338156722",
+      "sourceCommit": "4761b264b7f6c58cf0fd1b199c23d6d6d53fcde3",
+      "outcome": "success",
+      "platforms": [
+        {
+          "platform": "x64",
+          "nativeArchitecture": "X64",
+          "configuration": "Debug",
+          "outcome": "passed",
+          "runId": "20261107T043305933Z-9548-2b13e3a821c04b72901edf434d312a38",
+          "canonicalSourceIdentity": "6c5f1faae495fa9791c295c963fc83ce1803bc0660c3ebeff19e8d2cca677def",
+          "sdkCommit": "a1915ffdd94b18fd1817371f1dc074f6a0b547f1",
+          "binarySha256": "AD6F60F4D36D23C4B71CD4DC4339AB49D83C2051F625D38FF755187327C43C67",
+          "warnings": 0,
+          "errors": 0,
+          "buildLogSha256": "73AC1EA3B1C1664E6C6E4873B53C24163EB2ACB5C5541FE662F16AA9E23A94AE",
+          "receiptMember": "evidence/test-runs/20261107T043305933Z-9548-2b13e3a821c04b72901edf434d312a38/payload/receipt.json",
+          "receiptSha256": "18A765F0E445781CA664F4EAC2241A5F63333805642E7237F4C78BBB1E48658D",
+          "completionSha256": "6E86D3A67CE497EFBA9024EC1DF7058E869A5E2019E06D569557CF0E150FBFDC",
+          "casesPassed": 140,
+          "casesFailed": 0,
+          "captures": 38,
+          "actualStorageCasesPassed": 30,
+          "actualSymbolicLinkCasePassed": true,
+          "storageSummarySha256": "0058A9110F3C948D120F5FC53493101BDE68DE05117A76D6BB23E7C6EF6359FC",
+          "actualInterruptedWriteRestart": true,
+          "heapBoundary": {
+            "controlledReportSha256": "488341F8C81978EE72C4664BAA57FA8DDE406DEEA0A16FAC0FC4748656C35542",
+            "controlledCases": [
+              "empty",
+              "oneEntry",
+              "truncated",
+              "exact",
+              "invalidBudget",
+              "deniedLock",
+              "deniedWalk",
+              "deniedUnlock"
+            ],
+            "nativeReportSha256": "C294FB0FD6903D57A933F854B9F5BEE05E0EA32348B34B451B3DECFAA5F99323",
+            "independentNativeEntries": 7,
+            "oneEntryBudgetComplete": false,
+            "performanceSummarySha256": "B40B9147EF46BBB5461775459EBB78EEA19AD3DB0B3DDE540E1747F368BAB10B",
+            "nativeCasePassed": true
+          },
+          "bitmapPreferenceCaptures": [
+            {
+              "nativeDpi": 96,
+              "sidecarSha256": "274D2E52178C236E92DB71FAC552A2BFDBB0D7B15D20442B092FE110EC51EA00",
+              "imageFirstPaste": false,
+              "scenario": "image-paste-dark",
+              "sha256": "B1E9BD151F19E82CED2E20FCDED4D53E0AA5B2A80D8542CEBA282C2877507D84",
+              "renderedAppearance": "dark"
+            },
+            {
+              "nativeDpi": 96,
+              "sidecarSha256": "F75F7780827215E28DEC507B2C02997EE599442A2619C855B222CA482DECED3E",
+              "imageFirstPaste": true,
+              "scenario": "image-paste-light",
+              "sha256": "57A68C250502CA82B6A47BD3B5381A5AAD6B27895CC1DA58CC18C2A6CF94C2CC",
+              "renderedAppearance": "light"
+            }
+          ],
+          "originalPayloadMembers": {
+            "allFileBytesMatchedOriginalManifest": true,
+            "files": 1495,
+            "bytes": 18256271,
+            "pngFiles": 109,
+            "fileIdentitySha256": "27D7B46AE6EECB7C17F868061953CBD82D8D1842987443873D651907AF9DE9AA",
+            "limit": "Byte verification does not recreate original filesystem file ids, security descriptors or timestamps"
+          }
+        },
+        {
+          "platform": "ARM64",
+          "nativeArchitecture": "Arm64",
+          "configuration": "Debug",
+          "outcome": "passed",
+          "runId": "20261107T044827316Z-3004-d9bb9c67624743beaf498474df57225b",
+          "canonicalSourceIdentity": "6c5f1faae495fa9791c295c963fc83ce1803bc0660c3ebeff19e8d2cca677def",
+          "sdkCommit": "a1915ffdd94b18fd1817371f1dc074f6a0b547f1",
+          "binarySha256": "4BB1E95E5878A8F845A52F9B77F463D10E8B1B7E903FCB8DC27C605D89B3F108",
+          "warnings": 0,
+          "errors": 0,
+          "buildLogSha256": "93174AB7B70857B4E18A0E854967FBE6172E966B9BC468443AD5635ED065ECE0",
+          "receiptMember": "evidence/test-runs/20261107T044827316Z-3004-d9bb9c67624743beaf498474df57225b/payload/receipt.json",
+          "receiptSha256": "0C9BDC6841A14CC7D8DE6F2B2B97028D804BCC730FDEA23F6BAB2A6EE4320650",
+          "completionSha256": "3E60E12D5304B878B396FC3C0E3B142876E349C42952B33D58ABF40E0BD549AE",
+          "casesPassed": 140,
+          "casesFailed": 0,
+          "captures": 38,
+          "actualStorageCasesPassed": 30,
+          "actualSymbolicLinkCasePassed": true,
+          "storageSummarySha256": "0058A9110F3C948D120F5FC53493101BDE68DE05117A76D6BB23E7C6EF6359FC",
+          "actualInterruptedWriteRestart": true,
+          "heapBoundary": {
+            "controlledReportSha256": "DE93459C09C005E3D882D7D1C075562FA31D770A450D54A4EE23223D1E3847A3",
+            "controlledCases": [
+              "empty",
+              "oneEntry",
+              "truncated",
+              "exact",
+              "invalidBudget",
+              "deniedLock",
+              "deniedWalk",
+              "deniedUnlock"
+            ],
+            "nativeReportSha256": "BB42627D4E5C968EFC2950FFDE9AC3F6A8CD2E2DE3B33F8F481B72E3D5770E57",
+            "independentNativeEntries": 3,
+            "oneEntryBudgetComplete": false,
+            "performanceSummarySha256": "B40B9147EF46BBB5461775459EBB78EEA19AD3DB0B3DDE540E1747F368BAB10B",
+            "nativeCasePassed": true
+          },
+          "bitmapPreferenceCaptures": [
+            {
+              "nativeDpi": 96,
+              "sidecarSha256": "274D2E52178C236E92DB71FAC552A2BFDBB0D7B15D20442B092FE110EC51EA00",
+              "imageFirstPaste": false,
+              "scenario": "image-paste-dark",
+              "sha256": "B1E9BD151F19E82CED2E20FCDED4D53E0AA5B2A80D8542CEBA282C2877507D84",
+              "renderedAppearance": "dark"
+            },
+            {
+              "nativeDpi": 96,
+              "sidecarSha256": "F75F7780827215E28DEC507B2C02997EE599442A2619C855B222CA482DECED3E",
+              "imageFirstPaste": true,
+              "scenario": "image-paste-light",
+              "sha256": "D36B848D4E84F7EE44D9000BB00B193F34596E518F96C42981BC7A31F9B89D6A",
+              "renderedAppearance": "light"
+            }
+          ],
+          "originalPayloadMembers": {
+            "allFileBytesMatchedOriginalManifest": true,
+            "files": 1512,
+            "bytes": 18340845,
+            "pngFiles": 109,
+            "fileIdentitySha256": "24D4A5D5E945B4B53560F64919903AF996E68B3D4E834C2AF7F5D7DC602C35FF",
+            "limit": "Byte verification does not recreate original filesystem file ids, security descriptors or timestamps"
+          }
+        }
+      ],
+      "originalArtifactWrappers": [
+        {
+          "id": 13560947424,
+          "name": "qualification-ARM64-Debug",
+          "bytes": 15828373,
+          "sha256": "5AA486587F740CF41A3C6A73253423690D4B5D06BE214E1DA919BA0DD2EDFABB",
+          "reportedDigestVerified": true
+        },
+        {
+          "id": 13560735781,
+          "name": "msvc-14.52-d32cef2bca744ba7a058b25451396e3f",
+          "bytes": 1335888,
+          "sha256": "EFF45A62ED27D7C209C2FFA80BBDBCF34B4A9FEA68E61D6A15E49B1B9FAF4D4A",
+          "reportedDigestVerified": true
+        },
+        {
+          "id": 13560364769,
+          "name": "qualification-x64-Debug",
+          "bytes": 15775611,
+          "sha256": "B1B9E10B57A45EF34F476CF9208BA811960AAA270D4CE0D4D865512B395EB174",
+          "reportedDigestVerified": true
+        },
+        {
+          "id": 13560224713,
+          "name": "msvc-14.52-d43dcc4842004eaf973d2791d8cd289f",
+          "bytes": 1372228,
+          "sha256": "AC183E87216D6FC236B2E8128A100906CD4EEE4A8DE04B8B5BA92ADFCCCDDC02",
+          "reportedDigestVerified": true
+        }
+      ]
+    },
+    {
+      "runId": "42338159442",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42338159442",
+      "sourceCommit": "4761b264b7f6c58cf0fd1b199c23d6d6d53fcde3",
+      "outcome": "success",
+      "platforms": [
+        {
+          "platform": "x64",
+          "nativeArchitecture": "X64",
+          "configuration": "ASan Debug",
+          "outcome": "passed",
+          "runId": "20261107T043228847Z-8616-6693e1daa3614ac595bb3bcad2d7a416",
+          "canonicalSourceIdentity": "6c5f1faae495fa9791c295c963fc83ce1803bc0660c3ebeff19e8d2cca677def",
+          "sdkCommit": "a1915ffdd94b18fd1817371f1dc074f6a0b547f1",
+          "binarySha256": "629CBEFD71B525F28B6DAF62886E1C4D7AFD3EC157A5DEA53BBA5E1C2F59ACDF",
+          "warnings": 0,
+          "errors": 0,
+          "buildLogSha256": "9EF100F3378C80A09E162A5D10647F59311E557651D270AA6CE6BA6E8E23AD45",
+          "receiptMember": "evidence/test-runs/20261107T043228847Z-8616-6693e1daa3614ac595bb3bcad2d7a416/payload/receipt.json",
+          "receiptSha256": "58A13F05F055223364C1F2BCC49D9A9840FE34AC961E68B2B868E60D5F464469",
+          "completionSha256": "4624FDAB2856DF10D2880032BB7304DF5AF173CD0C06FAB3F9E5E0E841BF795C",
+          "casesPassed": 140,
+          "casesFailed": 0,
+          "captures": 38,
+          "actualStorageCasesPassed": 30,
+          "actualSymbolicLinkCasePassed": true,
+          "storageSummarySha256": "0058A9110F3C948D120F5FC53493101BDE68DE05117A76D6BB23E7C6EF6359FC",
+          "actualInterruptedWriteRestart": true,
+          "heapBoundary": {
+            "controlledReportSha256": "116BA2FDE16797E769EBFB84504F01F8B3C94BAEA9B9480EA677CD207D518CC8",
+            "controlledCases": [
+              "empty",
+              "oneEntry",
+              "truncated",
+              "exact",
+              "invalidBudget",
+              "deniedLock",
+              "deniedWalk",
+              "deniedUnlock"
+            ],
+            "nativeReportSha256": "F93334C1A0D766B84849EDD4E52513ACAC03779BA7858F0C3DAF5317271CBC72",
+            "independentNativeEntries": 3,
+            "oneEntryBudgetComplete": false,
+            "performanceSummarySha256": "B40B9147EF46BBB5461775459EBB78EEA19AD3DB0B3DDE540E1747F368BAB10B",
+            "nativeCasePassed": true
+          },
+          "realAsanDetection": true,
+          "bitmapPreferenceCaptures": [
+            {
+              "nativeDpi": 96,
+              "sidecarSha256": "274D2E52178C236E92DB71FAC552A2BFDBB0D7B15D20442B092FE110EC51EA00",
+              "imageFirstPaste": false,
+              "scenario": "image-paste-dark",
+              "sha256": "B1E9BD151F19E82CED2E20FCDED4D53E0AA5B2A80D8542CEBA282C2877507D84",
+              "renderedAppearance": "dark"
+            },
+            {
+              "nativeDpi": 96,
+              "sidecarSha256": "F75F7780827215E28DEC507B2C02997EE599442A2619C855B222CA482DECED3E",
+              "imageFirstPaste": true,
+              "scenario": "image-paste-light",
+              "sha256": "57A68C250502CA82B6A47BD3B5381A5AAD6B27895CC1DA58CC18C2A6CF94C2CC",
+              "renderedAppearance": "light"
+            }
+          ],
+          "originalPayloadMembers": {
+            "allFileBytesMatchedOriginalManifest": true,
+            "files": 1497,
+            "bytes": 18251106,
+            "pngFiles": 109,
+            "fileIdentitySha256": "B3FE7D21E470FBD5CE3514BB44A5BA063B49C681AC777C4BC688B93254776897",
+            "limit": "Byte verification does not recreate original filesystem file ids, security descriptors or timestamps"
+          }
+        },
+        {
+          "platform": "ARM64",
+          "nativeArchitecture": "Arm64",
+          "configuration": "ASan Debug",
+          "outcome": "passed",
+          "runId": "20261107T044745014Z-8124-ee95e76cbb0f493eb59a7366590707fc",
+          "canonicalSourceIdentity": "6c5f1faae495fa9791c295c963fc83ce1803bc0660c3ebeff19e8d2cca677def",
+          "sdkCommit": "a1915ffdd94b18fd1817371f1dc074f6a0b547f1",
+          "binarySha256": "7E11F46B60995EAC2DC2A56CB5C4816D45E7450AB0BBE9B1C37CCF2DBECD5351",
+          "warnings": 0,
+          "errors": 0,
+          "buildLogSha256": "6ECA3B009A7B56DD90559288ABAFD482EA68BA512D7D7F8F17326BE2390F7BE2",
+          "receiptMember": "evidence/test-runs/20261107T044745014Z-8124-ee95e76cbb0f493eb59a7366590707fc/payload/receipt.json",
+          "receiptSha256": "D6904D265D86460F7C62CE2E567234F15DCB22C42C096D3A8E55FAEC3A33E9E1",
+          "completionSha256": "C17C21E3565F2B64095F463846D41D32FF90B9C486A71D7C12AF9FE5D1872CF8",
+          "casesPassed": 140,
+          "casesFailed": 0,
+          "captures": 38,
+          "actualStorageCasesPassed": 30,
+          "actualSymbolicLinkCasePassed": true,
+          "storageSummarySha256": "0058A9110F3C948D120F5FC53493101BDE68DE05117A76D6BB23E7C6EF6359FC",
+          "actualInterruptedWriteRestart": true,
+          "heapBoundary": {
+            "controlledReportSha256": "FF473961050F396B56E2E98BADD128B5EEB5CF6D7BFA2B0F06ACFAD049DE3915",
+            "controlledCases": [
+              "empty",
+              "oneEntry",
+              "truncated",
+              "exact",
+              "invalidBudget",
+              "deniedLock",
+              "deniedWalk",
+              "deniedUnlock"
+            ],
+            "nativeReportSha256": "E7B13F822CA11E7CAFE1D86F22486AB53CB7174D8F17CC6BC6A9F5B680E56A43",
+            "independentNativeEntries": 1,
+            "oneEntryBudgetComplete": true,
+            "performanceSummarySha256": "B40B9147EF46BBB5461775459EBB78EEA19AD3DB0B3DDE540E1747F368BAB10B",
+            "nativeCasePassed": true
+          },
+          "realAsanDetection": true,
+          "bitmapPreferenceCaptures": [
+            {
+              "nativeDpi": 96,
+              "sidecarSha256": "274D2E52178C236E92DB71FAC552A2BFDBB0D7B15D20442B092FE110EC51EA00",
+              "imageFirstPaste": false,
+              "scenario": "image-paste-dark",
+              "sha256": "B1E9BD151F19E82CED2E20FCDED4D53E0AA5B2A80D8542CEBA282C2877507D84",
+              "renderedAppearance": "dark"
+            },
+            {
+              "nativeDpi": 96,
+              "sidecarSha256": "F75F7780827215E28DEC507B2C02997EE599442A2619C855B222CA482DECED3E",
+              "imageFirstPaste": true,
+              "scenario": "image-paste-light",
+              "sha256": "D36B848D4E84F7EE44D9000BB00B193F34596E518F96C42981BC7A31F9B89D6A",
+              "renderedAppearance": "light"
+            }
+          ],
+          "originalPayloadMembers": {
+            "allFileBytesMatchedOriginalManifest": true,
+            "files": 1497,
+            "bytes": 18348275,
+            "pngFiles": 109,
+            "fileIdentitySha256": "0B04CAAD03E28BEB7A25673610E49ECFB92FB78875E0D480C380A39731DE0FA7",
+            "limit": "Byte verification does not recreate original filesystem file ids, security descriptors or timestamps"
+          }
+        }
+      ],
+      "originalArtifactWrappers": [
+        {
+          "id": 13561087458,
+          "name": "qualification-ARM64-ASan Debug",
+          "bytes": 15828295,
+          "sha256": "E311E7C54871AAE51C98F36FCA5860019681266A6527E58045601DCE34413EE9",
+          "reportedDigestVerified": true
+        },
+        {
+          "id": 13560632650,
+          "name": "msvc-14.52-ab2446d65cf64f4d88d0861b951278af",
+          "bytes": 1378614,
+          "sha256": "45A03B354B9973F41283D99058AA3A8830EE07E1CCB904A4C81F50BF53E69E1C",
+          "reportedDigestVerified": true
+        },
+        {
+          "id": 13560323862,
+          "name": "msvc-14.52-91f523e3202645e8a2d523b8905229cd",
+          "bytes": 1325345,
+          "sha256": "1B795B235A8AC9623F8A82E20796E827C5E22D1E86D12AEE9721AA6978334F6B",
+          "reportedDigestVerified": true
+        },
+        {
+          "id": 13560179983,
+          "name": "qualification-x64-ASan Debug",
+          "bytes": 15785320,
+          "sha256": "6D973F66BF8085B0FD7887B366F2BF9D14F5B8F2EC409512D501EF01C173B368",
+          "reportedDigestVerified": true
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Original local symbolic-link privilege failures and original rejected hosted ARM64 ASan cohort remain retained",
+    "Current entry observations do not reconstruct the original failed cohort entry count",
+    "Hosted Release/production packaging is separately recorded",
+    "No physical-input/AT, real-browser-association, supported-share/WSL or paired-performance acceptance"
+  ]
+}
