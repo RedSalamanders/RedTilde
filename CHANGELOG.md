@@ -4,6 +4,9 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Verify effective main-branch rules, current access/visibility, shared CI pins and truthful capability boundaries;
+  document that a missing classic branch-protection policy does not negate active rulesets. Preserve the read-only
+  audit separately from native qualification and close that item in the remaining-work plan.
 - Verify native editing in all six hosted x64/ARM64 profiles with 864 passing cases and 228 captures, plus both version 0.1.389 production ZIP smoke checks and 26 combined test-entry-point refusals; retain original failed local cohorts and separate physical-input, performance and API-5 adoption gates.
 - Add exact-pin hidden consumer regressions for Source Enter/Shift+Enter line endings, native text-store overflow and exact-capacity retries, retained-store teardown, and hostile file-paste admission in all views. Check source, caret, history, Split mirror, recovery and no activation through public DxUi APIs; update the normative contracts and guide. These nonvisual qualification changes retain the current SDK pin and gallery pixels; physical IME and OS clipboard acceptance remain separate.
 - Close the bitmap-paste hosted native gate with verified original receipts: all six x64/ARM64 profiles pass 140 cases and 38 captures each, including actual symbolic-link saves. Both version 0.1.378 production ZIPs pass smoke checks and 13 test-entry-point refusals each; physical input, real locations, API-5 adoption and performance remain separately owned.
