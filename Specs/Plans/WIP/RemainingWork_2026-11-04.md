@@ -1,7 +1,7 @@
 # RedTilde remaining delivery and qualification
 
 Status: ACTIVE
-Updated: 6 November 2026
+Updated: 7 November 2026
 Owner: RedTilde maintainers; shared controls stay with DxUi.
 
 This is the **only active RedTilde plan**. It replaces the ten overlapping planning queues listed in the
@@ -132,9 +132,11 @@ malformed envelope, second close and size-limit tests. See the retained
   recovery-protected writer. [Scoped closeout](../Done/ProviderSaveFallback_2026-11-07.md): four independent
   provenance/admission/failure/conflict cases, six zero-warning builds, 131 passing cases plus the actual
   symbolic-link privilege failure per x64 profile, hidden captures, restart recovery and real ASan detection.
+  Exact main `3bf88036` additionally passes all six hosted native profiles (132 cases and 36 captures each),
+  including all four provider cases and actual symbolic-link saves, followed by both production packages.
 - [ ] Qualify the replacement fallback, read sharing and non-name-surrogate cloud tags on real
   OneDrive/cloud, SMB/NAS and WSL locations before support claims. Directed local errors establish the
-  backend contract; they do not supply real-location or hosted native acceptance.
+  backend contract; hosted native acceptance does not supply real-location acceptance.
 - [x] Preserve symlink/hard-link identities under the approved distinct write policies (Q12).
   Implementation `020cb0b9` preserves hardlink aliases with independent durable recovery and separately follows
   symbolic targets. [Local evidence](../../../Measurements/LinkedSaveAndCosmeticSettlement_2026-11-06/README.md)
@@ -309,6 +311,12 @@ follow-up is removed. Completion correctly reported failed native qualification.
   records explicit timing consent, real input and independently verified desktop restoration.
 - [ ] Qualify clipboard, physical IME, UIA/assistive technology and touch on named scenarios;
   arrange interactive timing with the user before taking focus.
+- [x] Qualify provider fallback at main `3bf88036`, exact API-4 SDK `a1915ffd`: all six native profiles
+  pass 132 cases and 36 captures each, with actual symbolic-link/ASan/restart witnesses and original
+  payload bytes verified. [Debug/ASan](../../../Measurements/ProviderSaveFallback_2026-11-07/hosted-debug-asan.json)
+  and [Release/production](../../../Measurements/ProviderSaveFallback_2026-11-07/hosted-release.json)
+  retain source, toolchain, original receipt and package identities. Both `0.1.365` production packages
+  pass positive smoke and all thirteen actual refusals after the combined native Release gate.
 - [x] Verify production-only sources, all test/probe refusal paths, native/production output separation and
   clean-extraction smoke. Recheck RT-13/15/16/17 against the current unified implementation rather than applying
   the obsolete rule that removes tests from every Release build.
