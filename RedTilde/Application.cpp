@@ -13,6 +13,7 @@
 #include <dwmapi.h>
 #include <format>
 #include <fstream>
+#include <iterator>
 #include <mutex>
 #include <new>
 #include <psapi.h>
@@ -2963,13 +2964,41 @@ void Application::ServiceImages()
     auto *const primary = editor;
     const auto lifetime = GetControlLifetimeToken(*primary);
     const auto current = [&]() noexcept { return !lifetime.expired() && !closing && editor == primary; };
-    const auto source = primary->Snapshot();
-    const bool watchBindingChanged = !source.IsSameRevision(imageWatchSource) || imageWatchDocumentPath != documentPath;
+    const auto semantic = primary->GetSemanticDocument();
+    bool watchBindingChanged = imageWatchDocumentPath != documentPath;
+    if (semantic && semantic != imageWatchSemantic)
+    {
+        // Decode cancellation ends a job, including successful completion. It
+        // does not end the document's ownership of the displayed file. Compare
+        // exact image destinations only when a new immutable tree is published;
+        // ordinary prose changes retain paths and do not rearm directory I/O.
+        const auto before = imageWatchSemantic ? imageWatchSemantic->Elements() : std::span<const DxUi::RichText::SemanticElement>{};
+        const auto after = semantic->Elements();
+        const auto image = [](const auto &element) { return element.role == DxUi::RichText::SemanticRole::Image; };
+        auto previous = std::ranges::find_if(before, image);
+        auto next = std::ranges::find_if(after, image);
+        while (previous != before.end() && next != after.end() && previous->destination == next->destination && previous->wiki == next->wiki)
+        {
+            previous = std::find_if(std::next(previous), before.end(), image);
+            next = std::find_if(std::next(next), after.end(), image);
+        }
+        watchBindingChanged = watchBindingChanged || previous != before.end() || next != after.end();
+        imageWatchSemantic = semantic;
+    }
     if (watchBindingChanged)
     {
-        imageWatchSource = source;
         imageWatchDocumentPath = documentPath;
-        imageWatchReloadPending = false;
+        const bool hadPaths = !watchedImagePaths.empty();
+        watchedImagePaths.clear();
+        (void)imageFiles.SetFiles({});
+        if (hadPaths)
+        {
+            // A removed/retargeted image or new document base retires the old
+            // binding. Obtain fresh canonical paths through SDK admission.
+            primary->ReloadImages();
+            if (!current())
+                return;
+        }
     }
     if (const auto notice = imageFiles.TakeResult())
     {
@@ -2977,7 +3006,6 @@ void Application::ServiceImages()
             imageFailureStatus = notice.value().status;
         else
         {
-            imageWatchReloadPending = true;
             ++imageFileRefreshes;
             primary->ReloadImages();
             if (!current())
@@ -2989,27 +3017,20 @@ void Application::ServiceImages()
         return;
     editor->TakePendingImageRequests(imageRequests);
     images.SetDocumentContext(documentPath.native());
-    const auto previousWatchCount = watchedImageRequests.size();
-    std::erase_if(watchedImageRequests, [](const auto &request) { return request.Cancelled(); });
-    bool watchChanged = previousWatchCount != watchedImageRequests.size();
+    bool watchChanged{};
     for (const auto &request : imageRequests)
-        if (request.SourceKind() == DxUi::RichText::RichImageSourceKind::LocalFile &&
-            std::ranges::find(watchedImageRequests, request) == watchedImageRequests.end() && watchedImageRequests.size() < 32u)
+        if (request.SourceKind() == DxUi::RichText::RichImageSourceKind::LocalFile && !request.Cancelled() &&
+            std::ranges::find(watchedImagePaths, request.FilePath(), [](const auto &path) -> const std::wstring & { return path.native(); }) ==
+                watchedImagePaths.end() &&
+            watchedImagePaths.size() < 32u)
         {
-            watchedImageRequests.push_back(request);
+            watchedImagePaths.emplace_back(request.FilePath());
             watchChanged = true;
         }
-    imageWatchNeedsUpdate = imageWatchNeedsUpdate || watchChanged;
-    if (imageWatchNeedsUpdate && (!imageWatchReloadPending || !imageRequests.empty()))
+    if (watchChanged)
     {
         ++imageWatchPathBuilds;
-        std::vector<std::filesystem::path> paths;
-        paths.reserve(watchedImageRequests.size());
-        for (const auto &request : watchedImageRequests)
-            paths.emplace_back(request.FilePath());
-        const auto status = imageFiles.SetFiles(paths);
-        imageWatchNeedsUpdate = false;
-        imageWatchReloadPending = false;
+        const auto status = imageFiles.SetFiles(watchedImagePaths);
         if (FAILED(status))
         {
             (void)imageFiles.SetFiles({}); // Retire the old binding when automatic watching cannot be admitted.

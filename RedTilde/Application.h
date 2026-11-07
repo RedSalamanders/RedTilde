@@ -340,10 +340,10 @@ class Application
     AsyncFiles files;
     RichImageLoader images;
     FileChangeService imageFiles;
-    std::vector<DxUi::RichText::RichImageRequest> watchedImageRequests;
-    DxUi::RichText::SourceSnapshot imageWatchSource;
+    std::vector<std::filesystem::path> watchedImagePaths;
+    std::shared_ptr<const DxUi::RichText::SemanticDocument> imageWatchSemantic;
     std::filesystem::path imageWatchDocumentPath;
-    bool imageWatchReloadPending{}, imageBindingTransition{}, imageWatchNeedsUpdate{};
+    bool imageBindingTransition{};
     std::uint64_t imageFileRefreshes{}, imageWatchPathBuilds{};
     DxUi::Button *imageFirstPasteToggle{};
     BitmapPasteWriter bitmapWriter;

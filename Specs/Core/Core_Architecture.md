@@ -102,12 +102,18 @@ different transport. A network requiring a proxy receives a visible load failure
 This delivery choice resolves Q19; adding proxy configuration is a separately specified feature.
 
 Local image refresh reuses the shared directory-notification implementation, rather than adding a polling
-timer or a second directory enumerator. Admit at most 32 current image request paths in eight directories.
+timer or a second directory enumerator. Admit at most 32 canonical current image paths in eight directories.
 Watch setup and native cancellation/drain stay on the retained worker; source-tagged completion and all editor
 calls stay on the owner. Match bounded notification names and coalesce an active burst for at most 250 ms.
 Overflow refreshes only the existing bounded image set. A first refresh after arming closes the initial decode/
 notification gap. Changes and explicit Reload use the existing bounded SDK reload; network images are retried
 only under their current independent permissions. This does not change source, selection, history or saved state.
+Successful decode marks its request cancelled to retire work; this must not remove the displayed file's watch.
+Watch ownership follows exact image destinations/wiki classification and the current document base, separately
+from decode request identities. Compare destinations only on immutable semantic publication changes. Unchanged
+image references retain their paths across prose edits and reloads without rearming I/O. Removed/retargeted
+references or a changed document base retire the old paths and notification generation before obtaining fresh
+SDK-admitted canonical paths. Never use a hash alone as authority for that equality.
 Over-capacity/failed automatic watching retains editing and explicit Reload rather than admitting extra watchers.
 Closing invalidates publication and wakes the worker; UI teardown never waits for directory I/O. The process-work
 owner still counts that worker until its buffers and overlapped operations have actually drained.

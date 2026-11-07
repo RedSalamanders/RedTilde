@@ -380,7 +380,10 @@ admission and the guarded image reader are specified in [file safety](../Core/Co
 Automatic local refresh watches at most 32 image paths in eight directories through native change notifications,
 without recursive scanning or an idle timer. Coalesce writes for at most 250 ms; overflow reloads the existing
 bounded image set. A refresh after arming closes the initial read/watch gap. UI work retains the same source,
-history and saved baseline; cancelled requests and newer bindings reject stale notifications. Optional watch
+history and saved baseline; newer document/image bindings reject stale notifications. A successfully completed
+decode request's cancellation flag retires the decode job, not the canonical file watch. Keep that watch across
+ordinary prose edits and image reloads; retire it when its references disappear, change destination or change
+document base. Repeated reloads of one file never consume additional watch slots. Optional watch
 capacity/failure preserves manual Reload. These directed native cases do not qualify real remote/cloud providers.
 Tests use only an owned loopback server, proving default zero requests, explicit opt-in, exact pixels, refusal,
 cancellation and off/teardown behavior without contacting live internet services.

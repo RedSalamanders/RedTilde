@@ -212,7 +212,8 @@ void WriteFixture(const std::filesystem::path &path, std::string_view contents =
     std::filesystem::create_directories(path.parent_path());
     Success(WriteBytesAtomic(path, contents), "seed design integration fixture");
 }
-void Await(Application &app, const std::function<bool()> &complete, std::chrono::milliseconds timeout = std::chrono::seconds(10))
+void Await(Application &app, const std::function<bool()> &complete, std::chrono::milliseconds timeout = std::chrono::seconds(10),
+           const std::function<std::string()> &diagnostic = {})
 {
     const auto end = std::chrono::steady_clock::now() + timeout;
     while (!complete() && std::chrono::steady_clock::now() < end)
@@ -232,7 +233,7 @@ void Await(Application &app, const std::function<bool()> &complete, std::chrono:
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
-    Require(complete(), "hidden application did not settle the expected bounded worker result");
+    Require(complete(), diagnostic ? diagnostic() : "hidden application did not settle the expected bounded worker result");
 }
 } // namespace
 
@@ -368,26 +369,43 @@ class DesignRefreshProbe final
                        [&]
                        {
                            const auto stats = app.Document().GetImageResourceStatistics();
-                           return app.imageFileRefreshes >= 1u && !app.imageWatchReloadPending && stats.readySources == 1u &&
-                                  stats.decodedBytes == 8u;
+                           return app.imageFileRefreshes >= 1u && stats.readySources == 1u && stats.decodedBytes == 8u;
                        });
                  const auto source = app.Document().Snapshot();
                  const auto selection = app.Document().GetSelection();
                  const auto saved = app.savedText;
                  const auto refreshes = app.imageFileRefreshes;
                  write(true);
-                 Await(app,
-                       [&]
-                       {
-                           const auto stats = app.Document().GetImageResourceStatistics();
-                           return app.imageFileRefreshes > refreshes && !app.imageWatchReloadPending && stats.readySources == 1u &&
-                                  stats.decodedBytes == 4u;
-                       });
+                 Await(
+                     app,
+                     [&]
+                     {
+                         const auto stats = app.Document().GetImageResourceStatistics();
+                         return app.imageFileRefreshes > refreshes && stats.readySources == 1u && stats.decodedBytes == 4u;
+                     },
+                     std::chrono::seconds(10),
+                     [&]
+                     {
+                         const auto stats = app.Document().GetImageResourceStatistics();
+                         std::size_t jobs{}, results{};
+                         bool active{};
+                         if (const auto state = app.images.state_)
+                         {
+                             const std::lock_guard lock(state->mutex);
+                             jobs = state->jobCount;
+                             results = state->resultCount;
+                             active = state->active;
+                         }
+                         return std::format("changed image did not settle: refreshes={}/{} watches={} pathBuilds={} "
+                                            "ready={} pending={} failed={} bytes={} status={:08X} jobs={} results={} active={}",
+                                            app.imageFileRefreshes, refreshes, app.watchedImagePaths.size(), app.imageWatchPathBuilds,
+                                            stats.readySources, stats.pendingSources, stats.failedSources, stats.decodedBytes,
+                                            static_cast<unsigned>(app.imageFailureStatus), jobs, results, active);
+                     });
                  Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selection && app.savedText == saved &&
                              !app.Dirty() && !app.Document().CanUndo() && !app.Document().CanRedo() && foreground.NeverAcquiredForeground(),
                          "a real image file change replaces decoded pixels without source, history, saved-state or foreground changes");
-                 Require(app.watchedImageRequests.size() == 1u,
-                         "a refreshed ready image replaces its watched request identity rather than consuming another watch slot");
+                 Require(app.watchedImagePaths.size() == 1u, "a refreshed ready image retains one canonical watch path after decode job completion");
                  Require(app.Capture(fixture / L"refreshed-local-image.png"), "capture actual refreshed pixels with invented fixture content");
                  const auto pathBuilds = app.imageWatchPathBuilds;
                  const auto editRefreshes = app.imageFileRefreshes;
@@ -402,12 +420,44 @@ class DesignRefreshProbe final
                                                                 "\"decodedBytesAfter\":4,\"sourceUnchanged\":true}}\n",
                                                                 app.imageFileRefreshes))),
                          "retain deterministic refresh-work counters with the native run");
-                 Require(app.SetDocument(L"# Text-only notebook\n\nAnother invented observation.\n", fixture / L"Text only.md"),
+                 const auto replacement = fixture / L"Illustrations/replacement.bmp";
+                 const auto replacementBytes = Testing::ImageBitmapFixture(false);
+                 Success(WriteBytesAtomic(replacement,
+                                          std::string_view(reinterpret_cast<const char *>(replacementBytes.data()), replacementBytes.size())),
+                         "seed the independently sized replacement image");
+                 Require(app.SetDocument(L"![Replacement cover](Illustrations/replacement.bmp)\n", fixture / L"Notebook.md"),
+                         "retarget the image without changing the document base");
+                 Await(app,
+                       [&]
+                       {
+                           const auto stats = app.Document().GetImageResourceStatistics();
+                           return stats.readySources == 1u && stats.decodedBytes == 8u && app.watchedImagePaths.size() == 1u &&
+                                  app.watchedImagePaths.front() == replacement;
+                       });
+                 const auto movedFixture = fixture / L"Moved";
+                 const auto movedImage = movedFixture / L"Illustrations/replacement.bmp";
+                 std::filesystem::create_directories(movedImage.parent_path());
+                 const auto movedBytes = Testing::ImageBitmapFixture(true);
+                 Success(WriteBytesAtomic(movedImage, std::string_view(reinterpret_cast<const char *>(movedBytes.data()), movedBytes.size())),
+                         "seed a different image at the same relative destination under a new document base");
+                 Require(app.SetDocument(L"![Replacement cover](Illustrations/replacement.bmp)\n", movedFixture / L"Notebook.md"),
+                         "move the document base while retaining the same literal image destination");
+                 Await(app,
+                       [&]
+                       {
+                           const auto stats = app.Document().GetImageResourceStatistics();
+                           return stats.readySources == 1u && stats.decodedBytes == 4u && app.watchedImagePaths.size() == 1u &&
+                                  app.watchedImagePaths.front() == movedImage;
+                       });
+                 Require(app.SetDocument(L"# Text-only notebook\n\nAnother invented observation.\n", movedFixture / L"Notebook.md"),
                          "replace the image document with an image-free source");
                  Await(app, [&] { return app.Document().GetImageResourceStatistics().imageElements == 0u; });
-                 Require(app.watchedImageRequests.empty(), "an image-free replacement retires every old ready image watch identity");
+                 Require(app.watchedImagePaths.empty(), "an image-free replacement retires every old ready image watch path");
                  const auto retiredRefreshes = app.imageFileRefreshes;
                  write(false);
+                 Success(
+                     WriteBytesAtomic(movedImage, std::string_view(reinterpret_cast<const char *>(replacementBytes.data()), replacementBytes.size())),
+                     "change the retired file under the current document base");
                  const auto quietUntil = GetTickCount64() + 400u;
                  while (GetTickCount64() < quietUntil)
                  {
