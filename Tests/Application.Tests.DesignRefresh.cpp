@@ -386,11 +386,13 @@ class DesignRefreshProbe final
                  Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selection && app.savedText == saved &&
                              !app.Dirty() && !app.Document().CanUndo() && !app.Document().CanRedo() && foreground.NeverAcquiredForeground(),
                          "a real image file change replaces decoded pixels without source, history, saved-state or foreground changes");
+                 Require(app.watchedImageRequests.size() == 1u,
+                         "a refreshed ready image replaces its watched request identity rather than consuming another watch slot");
                  Require(app.Capture(fixture / L"refreshed-local-image.png"), "capture actual refreshed pixels with invented fixture content");
                  const auto pathBuilds = app.imageWatchPathBuilds;
                  const auto editRefreshes = app.imageFileRefreshes;
                  const auto end = app.Document().GetText().size();
-                 app.Document().SetSelection(end, end);
+                 app.Document().SetSelection({end, end});
                  Require(app.Document().ReplaceSelection(L"\nAnother invented observation.\n"), "type ordinary prose after the image");
                  app.Prepare(128);
                  Require(app.imageWatchPathBuilds == pathBuilds && app.imageFileRefreshes == editRefreshes,
@@ -400,6 +402,19 @@ class DesignRefreshProbe final
                                                                 "\"decodedBytesAfter\":4,\"sourceUnchanged\":true}}\n",
                                                                 app.imageFileRefreshes))),
                          "retain deterministic refresh-work counters with the native run");
+                 Require(app.SetDocument(L"# Text-only notebook\n\nAnother invented observation.\n", fixture / L"Text only.md"),
+                         "replace the image document with an image-free source");
+                 Await(app, [&] { return app.Document().GetImageResourceStatistics().imageElements == 0u; });
+                 Require(app.watchedImageRequests.empty(), "an image-free replacement retires every old ready image watch identity");
+                 const auto retiredRefreshes = app.imageFileRefreshes;
+                 write(false);
+                 const auto quietUntil = GetTickCount64() + 400u;
+                 while (GetTickCount64() < quietUntil)
+                 {
+                     app.Prepare(4);
+                     std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                 }
+                 Require(app.imageFileRefreshes == retiredRefreshes, "the retired file binding cannot request another editor reload");
              });
         test("Editor.ClipboardBitmapAssetHandler",
              [&]
