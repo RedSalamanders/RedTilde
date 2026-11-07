@@ -387,6 +387,14 @@ class DesignRefreshProbe final
                              !app.Dirty() && !app.Document().CanUndo() && !app.Document().CanRedo() && foreground.NeverAcquiredForeground(),
                          "a real image file change replaces decoded pixels without source, history, saved-state or foreground changes");
                  Require(app.Capture(fixture / L"refreshed-local-image.png"), "capture actual refreshed pixels with invented fixture content");
+                 const auto pathBuilds = app.imageWatchPathBuilds;
+                 const auto editRefreshes = app.imageFileRefreshes;
+                 const auto end = app.Document().GetText().size();
+                 app.Document().SetSelection(end, end);
+                 Require(app.Document().ReplaceSelection(L"\nAnother invented observation.\n"), "type ordinary prose after the image");
+                 app.Prepare(128);
+                 Require(app.imageWatchPathBuilds == pathBuilds && app.imageFileRefreshes == editRefreshes,
+                         "ordinary source edits reuse unchanged image watch paths rather than rebuilding paths or rearming I/O");
                  Require(SUCCEEDED(WriteBytesAtomic(fixture / L"image-refresh-metrics.json",
                                                     std::format("{{\"automaticRefreshes\":{},\"observedFiles\":1,\"decodedBytesBefore\":8,"
                                                                 "\"decodedBytesAfter\":4,\"sourceUnchanged\":true}}\n",

@@ -2991,7 +2991,7 @@ void Application::ServiceImages()
     images.SetDocumentContext(documentPath.native());
     const auto previousWatchCount = watchedImageRequests.size();
     std::erase_if(watchedImageRequests, [](const auto &request) { return request.Cancelled(); });
-    bool watchChanged = watchBindingChanged || previousWatchCount != watchedImageRequests.size();
+    bool watchChanged = previousWatchCount != watchedImageRequests.size();
     for (const auto &request : imageRequests)
         if (request.SourceKind() == DxUi::RichText::RichImageSourceKind::LocalFile &&
             std::ranges::find(watchedImageRequests, request) == watchedImageRequests.end() && watchedImageRequests.size() < 32u)
@@ -2999,13 +2999,16 @@ void Application::ServiceImages()
             watchedImageRequests.push_back(request);
             watchChanged = true;
         }
-    if (watchChanged && (!imageWatchReloadPending || !imageRequests.empty()))
+    imageWatchNeedsUpdate = imageWatchNeedsUpdate || watchChanged;
+    if (imageWatchNeedsUpdate && (!imageWatchReloadPending || !imageRequests.empty()))
     {
+        ++imageWatchPathBuilds;
         std::vector<std::filesystem::path> paths;
         paths.reserve(watchedImageRequests.size());
         for (const auto &request : watchedImageRequests)
             paths.emplace_back(request.FilePath());
         const auto status = imageFiles.SetFiles(paths);
+        imageWatchNeedsUpdate = false;
         imageWatchReloadPending = false;
         if (FAILED(status))
         {

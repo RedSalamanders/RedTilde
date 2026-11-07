@@ -343,8 +343,8 @@ class Application
     std::vector<DxUi::RichText::RichImageRequest> watchedImageRequests;
     DxUi::RichText::SourceSnapshot imageWatchSource;
     std::filesystem::path imageWatchDocumentPath;
-    bool imageWatchReloadPending{}, imageBindingTransition{};
-    std::uint64_t imageFileRefreshes{};
+    bool imageWatchReloadPending{}, imageBindingTransition{}, imageWatchNeedsUpdate{};
+    std::uint64_t imageFileRefreshes{}, imageWatchPathBuilds{};
     DxUi::Button *imageFirstPasteToggle{};
     BitmapPasteWriter bitmapWriter;
     struct PendingBitmapPaste
