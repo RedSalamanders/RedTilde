@@ -75,7 +75,7 @@ void Application::PrepareDesignScenario()
     if (clipboardSettings)
     {
         SetDocument(WritingFixture());
-        settings.appearance = scenario == L"image-paste-dark" ? Appearance::Dark : Appearance::Light;
+        Execute(scenario == L"image-paste-dark" ? Command::ThemeDark : Command::ThemeLight);
         settings.view = EditorView::Compose;
         settings.showFiles = false;
         settings.showOutline = false;
@@ -88,6 +88,9 @@ void Application::PrepareDesignScenario()
         RequireCapture(host.GetClipboardPreference() ==
                            (imageFirst ? DxUi::TextClipboardPreference::ImageFirst : DxUi::TextClipboardPreference::TextFirst),
                        "The clipboard preference capture must expose the actual live host policy");
+        const auto background = host.GetTheme().windowBackground;
+        RequireCapture(!host.GetTheme().highContrast && (background.r + background.g + background.b < 1.5f) == !imageFirst,
+                       "The clipboard preference capture must apply its declared native Light or Dark palette");
         fixtureName = L"Clipboard picture preferences";
     }
     if (scenario == L"diagram-label-light" || scenario == L"diagram-label-dark")
@@ -311,6 +314,7 @@ void Application::PrepareDesignScenario()
     const auto actual = host.GetClientBoundsDip();
     const auto scenarioUtf8 = DxUi::RichText::EncodeUtf8(options.scenario);
     const auto fixtureUtf8 = DxUi::RichText::EncodeUtf8(fixtureName);
+    const auto captureBackground = host.GetTheme().windowBackground;
     const auto metadata = std::format(
         "{{\n  \"schemaVersion\": 1,\n  \"scenario\": \"{}\",\n  \"fixtureBasename\": \"{}\",\n"
         "  \"effectiveSystemPreference\": \"{}\",\n  \"systemPreferenceSource\": \"{}\",\n  \"renderedAppearance\": \"{}\",\n"
@@ -322,7 +326,9 @@ void Application::PrepareDesignScenario()
         "  \"qualification\": \"Owned hidden application render; no physical-monitor or native-platform acceptance\"\n}}\n",
         scenarioUtf8, fixtureUtf8, systemDark ? "dark" : "light",
         scenario == L"settings" ? "synthetic-fixture" : "windows-preference-or-light-fallback",
-        settings.appearance == Appearance::Dark || (settings.appearance == Appearance::System && systemDark) ? "dark" : "light",
+        host.GetTheme().highContrast                                             ? "high-contrast"
+        : captureBackground.r + captureBackground.g + captureBackground.b < 1.5f ? "dark"
+                                                                                 : "light",
         settings.strikeCompletedTasks ? "true" : "false", settings.imageFirstPaste ? "true" : "false", options.captureDpi, nativeDpi, host.GetDpi(),
         requestedDpi != nativeDpi ? "true" : "false", widthPx, heightPx, host.DebugGetWidthPx(), host.DebugGetHeightPx(), actual.right - actual.left,
         actual.bottom - actual.top, frozenFilesModel ? "true" : "false", reparseRemoved ? "true" : "false");
