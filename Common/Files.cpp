@@ -1,5 +1,6 @@
 #include "Files.h"
 #include "ProcessWork.h"
+#include "Storage.h"
 #include <DxUi/Failure.h>
 #include <algorithm>
 #include <array>
@@ -219,6 +220,7 @@ class DirectoryWatch final
     wil::unique_event event;
     HRESULT status = S_OK;
     bool pending{};
+    bool imageFiles{};
     OVERLAPPED overlapped{};
     alignas(DWORD) std::array<std::byte, 16u * 1024u> buffer{};
     ~DirectoryWatch()
@@ -239,13 +241,21 @@ class DirectoryWatch final
         directory.reset();
         event.reset();
     }
-    void Open(const std::filesystem::path &path) noexcept
+    void Open(const std::filesystem::path &path, bool images = false) noexcept
     {
         Close();
         status = S_OK;
+        imageFiles = images;
         if (path.empty())
             return;
-        directory = OpenDirectory(path, true);
+        if (imageFiles)
+        {
+            status = OpenImageDirectoryForNotifications(path.native(), directory);
+            if (FAILED(status))
+                return;
+        }
+        else
+            directory = OpenDirectory(path, true);
         if (!directory)
         {
             status = HRESULT_FROM_WIN32(GetLastError());
@@ -254,7 +264,8 @@ class DirectoryWatch final
         FILE_ATTRIBUTE_TAG_INFO attributes{};
         if (!GetFileInformationByHandleEx(directory.get(), FileAttributeTagInfo, &attributes, sizeof(attributes)))
             status = HRESULT_FROM_WIN32(GetLastError());
-        else if ((attributes.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) || !(attributes.FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+        else if (((attributes.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && (!imageFiles || IsReparseTagNameSurrogate(attributes.ReparseTag))) ||
+                 !(attributes.FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
             status = HRESULT_FROM_WIN32(ERROR_CANT_ACCESS_FILE);
         if (FAILED(status))
         {
@@ -277,8 +288,9 @@ class DirectoryWatch final
         ResetEvent(event.get());
         overlapped = {};
         overlapped.hEvent = event.get();
-        if (ReadDirectoryChangesW(directory.get(), buffer.data(), static_cast<DWORD>(buffer.size()), TRUE,
-                                  FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_ATTRIBUTES, nullptr, &overlapped,
+        const DWORD filter = imageFiles ? FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_LAST_WRITE
+                                        : FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_ATTRIBUTES;
+        if (ReadDirectoryChangesW(directory.get(), buffer.data(), static_cast<DWORD>(buffer.size()), !imageFiles, filter, nullptr, &overlapped,
                                   nullptr))
             pending = true;
         else
@@ -287,9 +299,10 @@ class DirectoryWatch final
             Close();
         }
     }
-    void Complete() noexcept
+    bool Complete(std::span<const std::filesystem::path> observed = {}) noexcept
     {
         DWORD bytes{};
+        bool changed = observed.empty();
         if (!GetOverlappedResult(directory.get(), &overlapped, &bytes, FALSE))
         {
             const DWORD error = GetLastError();
@@ -299,11 +312,40 @@ class DirectoryWatch final
             {
                 status = HRESULT_FROM_WIN32(error);
                 Close();
-                return;
+                return false;
             }
+            changed = true;
+        }
+        if (!bytes)
+            changed = true; // Overflow loses names, so refresh the bounded set.
+        for (std::size_t offset{}; !changed && offset < bytes;)
+        {
+            constexpr auto header = offsetof(FILE_NOTIFY_INFORMATION, FileName);
+            if (bytes - offset < header)
+            {
+                changed = true;
+                break;
+            }
+            const auto *entry = reinterpret_cast<const FILE_NOTIFY_INFORMATION *>(buffer.data() + offset);
+            if (entry->FileNameLength % sizeof(wchar_t) || entry->FileNameLength > bytes - offset - header)
+            {
+                changed = true;
+                break;
+            }
+            const std::wstring_view name(entry->FileName, entry->FileNameLength / sizeof(wchar_t));
+            changed = std::ranges::any_of(observed, [&](const auto &path) { return EqualOrdinal(path.native(), name); });
+            if (!entry->NextEntryOffset)
+                break;
+            if (entry->NextEntryOffset % alignof(DWORD) || entry->NextEntryOffset < header || entry->NextEntryOffset > bytes - offset)
+            {
+                changed = true;
+                break;
+            }
+            offset += entry->NextEntryOffset;
         }
         pending = false;
         Arm();
+        return changed;
     }
 };
 #pragma warning(pop)
@@ -672,6 +714,266 @@ void FilesService::Close() noexcept
         state->window = nullptr;
         state->result.reset();
         state->cancellation.request_stop();
+        SetEvent(state->wake.get());
+    }
+    state.reset();
+}
+
+// Identity-bearing services are neither copied nor moved; their shared State
+// remains owned by ProcessWorkItem until the worker drains native notification I/O.
+#pragma warning(push)
+#pragma warning(disable : 4625 4626 5026 5027)
+struct FileChangeService::State
+{
+    std::mutex mutex;
+    wil::unique_event wake;
+    std::vector<std::filesystem::path> files;
+    std::optional<FileChangeNotice> result;
+    HWND window{};
+    UINT message{};
+    WPARAM cookie{};
+    std::uint64_t generation{}, revision{};
+    bool closing{}, requested{}, notificationPending{}, stopped{};
+    HRESULT stopStatus = S_OK;
+    void Fail(std::uint64_t current, HRESULT failure)
+    {
+        {
+            const std::lock_guard lock(mutex);
+            stopped = true;
+            stopStatus = failure;
+        }
+        Publish(current, failure);
+    }
+    void Publish(std::uint64_t current, HRESULT status)
+    {
+        const std::lock_guard lock(mutex);
+        if (closing || current != generation)
+            return;
+        result = FileChangeNotice{generation, ++revision, status};
+        if (window && !notificationPending)
+            notificationPending = PostMessageW(window, message, cookie, 0) != FALSE;
+    }
+    static void CALLBACK Worker(PTP_CALLBACK_INSTANCE instance, void *context) noexcept
+    {
+        (void)CallbackMayRunLong(instance);
+        ProcessWorkLease lease = std::move(static_cast<ProcessWorkItem<State> *>(context)->lease);
+        const std::unique_ptr<ProcessWorkItem<State>> ownership(static_cast<ProcessWorkItem<State> *>(context));
+        const auto &self = ownership->state;
+        try
+        {
+            std::array<DirectoryWatch, 8u> watches;
+            std::array<std::vector<std::filesystem::path>, 8u> names;
+            std::vector<std::filesystem::path> directories;
+            std::vector<std::filesystem::path> files;
+            std::uint64_t current{};
+            for (;;)
+            {
+                bool requested{};
+                {
+                    const std::lock_guard lock(self->mutex);
+                    if (self->closing)
+                        return;
+                    if (self->requested)
+                    {
+                        current = self->generation;
+                        files = self->files;
+                        self->requested = false;
+                        requested = true;
+                    }
+                }
+                if (requested)
+                {
+                    for (auto &watch : watches)
+                        watch.Close();
+                    for (auto &values : names)
+                        values.clear();
+                    directories.clear();
+                    for (const auto &file : files)
+                    {
+                        const auto parent = file.parent_path();
+                        auto found = std::ranges::find(directories, parent);
+                        if (found == directories.end())
+                        {
+                            directories.push_back(parent);
+                            found = std::prev(directories.end());
+                        }
+                        names[static_cast<std::size_t>(found - directories.begin())].push_back(file.filename());
+                    }
+                    HRESULT status = S_OK;
+                    for (std::size_t i{}; i < directories.size(); ++i)
+                    {
+                        watches[i].Open(directories[i], true);
+                        if (FAILED(watches[i].status))
+                            status = watches[i].status;
+                    }
+                    // Refresh once after arming. This closes the initial
+                    // decode/notification setup gap without a polling timer.
+                    if (!files.empty())
+                        self->Publish(current, status);
+                }
+                std::array<HANDLE, 9u> waits{};
+                std::array<std::size_t, 9u> indexes{};
+                DWORD count = 1u;
+                waits[0] = self->wake.get();
+                for (std::size_t i{}; i < directories.size(); ++i)
+                    if (watches[i].pending)
+                    {
+                        waits[count] = watches[i].event.get();
+                        indexes[count++] = i;
+                    }
+                const auto ready = WaitForMultipleObjects(count, waits.data(), FALSE, INFINITE);
+                if (ready == WAIT_OBJECT_0)
+                    continue;
+                if (ready == WAIT_FAILED)
+                {
+                    self->Fail(current, HRESULT_FROM_WIN32(GetLastError()));
+                    return;
+                }
+                if (ready < WAIT_OBJECT_0 + 1u || ready >= WAIT_OBJECT_0 + count)
+                    continue;
+                const auto index = indexes[ready - WAIT_OBJECT_0];
+                bool changed = watches[index].Complete(names[index]);
+                HRESULT status = watches[index].status;
+                const auto deadline = GetTickCount64() + 250u;
+                while (watches[index].pending)
+                {
+                    // At most 250 ms of coalescing under a continuous writer;
+                    // an idle directory never wakes the worker periodically.
+                    const auto now = GetTickCount64();
+                    if (now >= deadline)
+                        break;
+                    const auto quiet = static_cast<DWORD>(std::min<ULONGLONG>(75u, deadline - now));
+                    const auto next = WaitForMultipleObjects(count, waits.data(), FALSE, quiet);
+                    if (next == WAIT_TIMEOUT || next == WAIT_OBJECT_0)
+                        break;
+                    if (next == WAIT_FAILED)
+                    {
+                        self->Fail(current, HRESULT_FROM_WIN32(GetLastError()));
+                        return;
+                    }
+                    if (next < WAIT_OBJECT_0 + 1u || next >= WAIT_OBJECT_0 + count)
+                        break;
+                    const auto more = indexes[next - WAIT_OBJECT_0];
+                    changed = watches[more].Complete(names[more]) || changed;
+                    if (FAILED(watches[more].status))
+                        status = watches[more].status;
+                    if (!watches[more].pending)
+                        break;
+                }
+                if (changed || FAILED(status))
+                    self->Publish(current, status);
+            }
+        }
+        catch (const std::bad_alloc &)
+        {
+            DxUi::Failure::FailAllocation(); // Threadpool ABI: allocation failure is fatal.
+        }
+        catch (const std::filesystem::filesystem_error &error)
+        {
+            // Threadpool ABI: retain an explicit failed notification; never
+            // publish invented paths or a successful refresh after path failure.
+            std::uint64_t current{};
+            {
+                const std::lock_guard lock(self->mutex);
+                current = self->generation;
+            }
+            self->Fail(current, HRESULT_FROM_WIN32(static_cast<DWORD>(error.code().value())));
+            OutputDebugStringW(L"RedTilde image file notification worker stopped after a path failure.\n");
+        }
+    }
+};
+#pragma warning(pop)
+FileChangeService::~FileChangeService()
+{
+    Close();
+}
+HRESULT FileChangeService::Initialize(HWND window, UINT message, WPARAM cookie) noexcept
+try
+{
+    if (!window || message < WM_APP)
+        return E_INVALIDARG;
+    auto staged = std::make_shared<State>();
+    staged->wake.reset(CreateEventW(nullptr, FALSE, FALSE, nullptr));
+    if (!staged->wake)
+        return HRESULT_FROM_WIN32(GetLastError());
+    staged->window = window;
+    staged->message = message;
+    staged->cookie = cookie;
+    auto ownership = std::make_unique<ProcessWorkItem<State>>(staged);
+    RETURN_IF_FAILED(ProcessWork::Acquire(ownership->lease));
+    if (!TrySubmitThreadpoolCallback(State::Worker, ownership.get(), nullptr))
+        return HRESULT_FROM_WIN32(GetLastError());
+    (void)ownership.release();
+    Close();
+    state = std::move(staged);
+    return S_OK;
+}
+catch (const std::bad_alloc &)
+{
+    DxUi::Failure::FailAllocation();
+}
+HRESULT FileChangeService::SetFiles(std::span<const std::filesystem::path> input) noexcept
+try
+{
+    if (!state)
+        return E_UNEXPECTED;
+    if (input.size() > 32u)
+        return HRESULT_FROM_WIN32(ERROR_TOO_MANY_NAMES);
+    std::vector<std::filesystem::path> files, directories;
+    files.reserve(input.size());
+    for (const auto &path : input)
+    {
+        if (!path.is_absolute() || path.native().starts_with(L"\\\\") || path.native().size() > 32750u ||
+            path.native().find(L'\0') != path.native().npos)
+            return E_INVALIDARG;
+        files.push_back(path.lexically_normal());
+        const auto parent = files.back().parent_path();
+        if (std::ranges::find(directories, parent) == directories.end())
+            directories.push_back(parent);
+        if (directories.size() > 8u)
+            return HRESULT_FROM_WIN32(ERROR_TOO_MANY_NAMES);
+    }
+    std::ranges::sort(files);
+    files.erase(std::unique(files.begin(), files.end()), files.end());
+    const std::lock_guard lock(state->mutex);
+    if (state->closing)
+        return HRESULT_FROM_WIN32(ERROR_CANCELLED);
+    if (state->stopped)
+        return state->stopStatus;
+    if (files == state->files)
+        return S_FALSE;
+    state->files = std::move(files);
+    ++state->generation;
+    state->requested = true;
+    state->result.reset();
+    SetEvent(state->wake.get());
+    return S_OK;
+}
+catch (const std::bad_alloc &)
+{
+    DxUi::Failure::FailAllocation();
+}
+std::optional<FileChangeNotice> FileChangeService::TakeResult()
+{
+    if (!state)
+        return {};
+    const std::lock_guard lock(state->mutex);
+    state->notificationPending = false;
+    auto result = state->result;
+    state->result.reset();
+    if (result && result->generation != state->generation)
+        return {};
+    return result;
+}
+void FileChangeService::Close() noexcept
+{
+    if (!state)
+        return;
+    {
+        const std::lock_guard lock(state->mutex);
+        state->closing = true;
+        state->window = nullptr;
+        state->result.reset();
         SetEvent(state->wake.get());
     }
     state.reset();

@@ -112,9 +112,16 @@ Markdown result count separately from traversal-limit or access errors.
 **Images:** save the document first when you want relative image paths. Insert an image from file or paste an
 Explorer file path in rich text. RedTilde references that file; it does not copy the asset into a new folder.
 The image must remain available when reopening the Markdown. Supported files decode asynchronously and
-unsupported/missing images retain alt text. Internet images are off by default. Enable “Load images from the
-internet” in Settings only when you want to contact the image servers named by the document; turning it off
-removes remote images immediately. Ordinary link clicks keep editing.
+unsupported/missing images retain alt text. Remote images are off by default. Choose **Allow here** in the
+document's image bar to load them for that document, or **Always allow remote images** in Settings. Each open
+document keeps its own permission; a replacement document and restart ask again unless the global setting applies.
+Private/local-network addresses require the separate **Allow images from local networks** choice, off by default.
+That choice also permits an image on the current document's exact network share. Other shares and redirected
+image paths remain blocked. Local image changes refresh automatically within the bounded watch capacity;
+**File → Reload images** retries images without editing the document. Networks that require a proxy show a
+load failure; image fetching uses a direct connection.
+Use **Block here** to remove a document's remote images or **Reload images** to retry failures without changing
+text or Undo history. The bar explains blocked, oversized or failed image loads. Ordinary link clicks keep editing.
 
 **Open a link:** put the caret in a link and choose **Open link** from its context menu, or Ctrl+click a rendered
 link. Review the destination and confirm before RedTilde hands it to your default application. Ordinary clicks

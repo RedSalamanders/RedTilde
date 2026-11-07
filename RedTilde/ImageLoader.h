@@ -1,6 +1,7 @@
 #pragma once
 #include "Common/ProcessWork.h"
 #include "Common/RemoteImage.h"
+#include "Common/Storage.h"
 #include <DxUi/Failure.h>
 #include <DxUi/RichImage.h>
 #include <algorithm>
@@ -35,7 +36,7 @@ class RichImageLoader final
     }
     RichImageLoader(const RichImageLoader &) = delete;
     RichImageLoader &operator=(const RichImageLoader &) = delete;
-    HRESULT Initialize(HWND window, UINT message, WPARAM cookie, bool allowNetworkFiles = false) noexcept
+    HRESULT Initialize(HWND window, UINT message, WPARAM cookie) noexcept
     try
     {
         if (!window || message < WM_APP)
@@ -44,7 +45,6 @@ class RichImageLoader final
         state->window = window;
         state->message = message;
         state->cookie = cookie;
-        state->allowNetworkFiles = allowNetworkFiles;
         state->networkAbort.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
         if (!state->networkAbort)
             return HRESULT_FROM_WIN32(GetLastError());
@@ -117,6 +117,19 @@ class RichImageLoader final
         }
         return scheduled;
     }
+    void SetDocumentContext(std::wstring_view document) noexcept
+    try
+    {
+        if (!state_)
+            return;
+        const std::lock_guard lock(state_->mutex);
+        if (state_->documentPath != document)
+            state_->documentPath.assign(document);
+    }
+    catch (const std::bad_alloc &)
+    {
+        DxUi::Failure::FailAllocation();
+    }
     bool HasResults() const noexcept
     {
         return state_ && state_->hasResults.load(std::memory_order_acquire);
@@ -153,6 +166,15 @@ class RichImageLoader final
         // Still-valid queued requests need the same event-driven wake as Drain.
         if (FAILED(state_->Schedule(state_)))
             OutputDebugStringW(L"RedTilde: image continuation was not admitted during process shutdown.\n");
+    }
+    void SetAllowLocalNetwork(bool allowed) noexcept
+    {
+        if (!state_)
+            return;
+        // Serialize policy publication with the worker's pop/reset of its abort event.
+        const std::lock_guard lock(state_->mutex);
+        if (state_->allowLocalNetwork.exchange(allowed, std::memory_order_relaxed) != allowed && !allowed)
+            static_cast<void>(SetEvent(state_->networkAbort.get()));
     }
     void Drain(std::vector<Result> &output)
     {
@@ -203,7 +225,9 @@ class RichImageLoader final
         DxUi::RichText::RichImageRequest current;
         std::size_t jobCount{}, resultCount{}, resultBytes{};
         std::atomic_bool hasResults{false};
-        bool active{}, closing{}, allowNetworkFiles{};
+        bool active{}, closing{};
+        std::wstring documentPath;
+        std::atomic_bool allowLocalNetwork{};
         HWND window{};
         UINT message{};
         WPARAM cookie{};
@@ -248,6 +272,8 @@ class RichImageLoader final
             for (;;)
             {
                 DxUi::RichText::RichImageRequest request;
+                std::wstring documentPath;
+                bool allowNetworkFiles{};
                 {
                     std::lock_guard lock(state.mutex);
                     if (state.closing || !state.jobCount || state.resultCount == MaximumJobs ||
@@ -259,6 +285,15 @@ class RichImageLoader final
                     }
                     request = state.jobs[0u];
                     state.current = request;
+                    try
+                    {
+                        documentPath = state.documentPath;
+                    }
+                    catch (const std::bad_alloc &)
+                    {
+                        DxUi::Failure::FailAllocation(); // Native callback ABI: allocation failure cannot escape.
+                    }
+                    allowNetworkFiles = state.allowLocalNetwork.load(std::memory_order_relaxed);
                     (void)ResetEvent(state.networkAbort.get());
                     for (std::size_t index = 1u; index < state.jobCount; ++index)
                         state.jobs[index - 1u] = state.jobs[index];
@@ -279,24 +314,38 @@ class RichImageLoader final
                     case DxUi::RichText::RichImageSourceKind::RemoteHttp:
                     {
                         std::vector<std::byte> encoded;
-                        status = RedTilde::FetchRemoteImage(request.Source(), encoded, request.Cancellation(), state.networkAbort.get());
+                        RedTilde::RemoteImageLimits limits;
+                        limits.allowLocalNetwork = state.allowLocalNetwork.load(std::memory_order_relaxed);
+                        status = RedTilde::FetchRemoteImage(request.Source(), encoded, request.Cancellation(), state.networkAbort.get(), limits);
                         if (SUCCEEDED(status))
                             status = DxUi::RichText::RichImage::Decode(factory.get(), encoded, image, request.Cancellation());
                         break;
                     }
                     case DxUi::RichText::RichImageSourceKind::LocalFile:
-                        status = !state.allowNetworkFiles && request.FilePath().starts_with(L"\\\\")
+                    {
+                        std::string encoded;
+                        status = request.FilePath().starts_with(L"\\\\")
                                      ? E_ACCESSDENIED
-                                     : DxUi::RichText::RichImage::LoadFile(factory.get(), request.FilePath(), image, request.Cancellation());
+                                     : RedTilde::ReadImageFileBytes(request.FilePath(), encoded, request.Cancellation());
+                        if (SUCCEEDED(status))
+                            status =
+                                DxUi::RichText::RichImage::Decode(factory.get(), std::as_bytes(std::span(encoded)), image, request.Cancellation());
                         break;
+                    }
                     case DxUi::RichText::RichImageSourceKind::NetworkFile:
                         // SDK admission and this application's transport policy
                         // are independent. Ordinary opt-in does not authorize a
                         // filesystem network operation through an empty local path.
-                        status = state.allowNetworkFiles
-                                     ? DxUi::RichText::RichImage::LoadFile(factory.get(), request.Source(), image, request.Cancellation())
-                                     : E_ACCESSDENIED;
-                        break;
+                        {
+                            std::string encoded;
+                            status = allowNetworkFiles && RedTilde::SharesImageNetworkRoot(documentPath, request.Source())
+                                         ? RedTilde::ReadImageFileBytes(request.Source(), encoded, request.Cancellation())
+                                         : E_ACCESSDENIED;
+                            if (SUCCEEDED(status))
+                                status = DxUi::RichText::RichImage::Decode(factory.get(), std::as_bytes(std::span(encoded)), image,
+                                                                           request.Cancellation());
+                            break;
+                        }
                     case DxUi::RichText::RichImageSourceKind::WikiTarget:
                     case DxUi::RichText::RichImageSourceKind::Data:
                         // No wiki-target resolver exists and data images stay disabled;

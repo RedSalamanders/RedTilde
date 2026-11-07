@@ -3,6 +3,7 @@
 #include <DxUi/Failure.h>
 #include <DxUi/RichDocument.h>
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cstring>
 #include <format>
@@ -162,6 +163,156 @@ try
     if (!file)
         return LastError();
     return ReadOpenedBytes(file.get(), bytes, stamp);
+}
+catch (const std::bad_alloc &)
+{
+    DxUi::Failure::FailAllocation();
+}
+
+namespace
+{
+std::size_t ImageShareEnd(std::wstring_view path) noexcept
+{
+    if (!path.starts_with(L"\\\\") || path.starts_with(L"\\\\?\\") || path.starts_with(L"\\\\.\\"))
+        return path.npos;
+    const auto server = path.find(L'\\', 2u);
+    if (server == path.npos || server == 2u || server + 1u == path.size())
+        return path.npos;
+    const auto share = path.find(L'\\', server + 1u);
+    const auto end = share == path.npos ? path.size() : share;
+    return end == server + 1u ? path.npos : end;
+}
+HRESULT CheckedImageEntry(HANDLE file, bool directory) noexcept
+{
+    FILE_ATTRIBUTE_TAG_INFO info{};
+    if (!GetFileInformationByHandleEx(file, FileAttributeTagInfo, &info, sizeof(info)))
+        return LastError();
+    if (GetFileType(file) != FILE_TYPE_DISK || ((info.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) != directory)
+        return E_INVALIDARG;
+    // Cloud/provider tags without name redirection keep their provider semantics.
+    if ((info.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && IsReparseTagNameSurrogate(info.ReparseTag))
+        return E_ACCESSDENIED;
+    return S_OK;
+}
+HRESULT OpenImageEntry(std::wstring_view path, bool directory, wil::unique_handle &output)
+{
+    if (path.empty() || path.size() > 32750u || path.find(L'\0') != path.npos || std::ranges::any_of(path, [](wchar_t c) { return c < 32u; }))
+        return E_INVALIDARG;
+    std::wstring text(path);
+    std::ranges::replace(text, L'/', L'\\');
+    if (text.starts_with(L"\\\\?\\UNC\\"))
+        text.replace(0u, 8u, L"\\\\");
+    else if (text.starts_with(L"\\\\?\\"))
+        text.erase(0u, 4u);
+    std::size_t rootEnd{};
+    if (text.size() >= 3u && ((text[0] >= L'A' && text[0] <= L'Z') || (text[0] >= L'a' && text[0] <= L'z')) && text[1] == L':' && text[2] == L'\\')
+        rootEnd = 2u;
+    else if (const auto share = ImageShareEnd(text); share != std::wstring_view::npos)
+        rootEnd = share;
+    else
+        return E_INVALIDARG;
+    while (text.size() > rootEnd + 1u && text.back() == L'\\')
+        text.pop_back();
+    if (text.size() <= rootEnd + 1u && !directory)
+        return E_INVALIDARG;
+    const bool unc = text.starts_with(L"\\\\");
+    std::wstring prefix = unc ? L"\\\\?\\UNC\\" : L"\\\\?\\";
+    prefix.append(text, unc ? 2u : 0u, rootEnd - (unc ? 2u : 0u));
+    prefix.push_back(L'\\');
+    std::array<wil::unique_handle, 128u> parents;
+    std::size_t count{};
+    const auto open = [&](bool final) -> HRESULT
+    {
+        const bool isDirectory = !final || directory;
+        const DWORD access = isDirectory ? FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES : GENERIC_READ;
+        const DWORD share = final && directory ? FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE : FILE_SHARE_READ;
+        const DWORD flags = FILE_FLAG_OPEN_REPARSE_POINT | (isDirectory ? FILE_FLAG_BACKUP_SEMANTICS : FILE_FLAG_SEQUENTIAL_SCAN) |
+                            (final && directory ? FILE_FLAG_OVERLAPPED : 0u);
+        wil::unique_handle file(CreateFileW(prefix.c_str(), access, share, nullptr, OPEN_EXISTING, flags, nullptr));
+        if (!file)
+            return LastError();
+        RETURN_IF_FAILED(CheckedImageEntry(file.get(), isDirectory));
+        if (final)
+            output = std::move(file);
+        else
+        {
+            if (count == parents.size())
+                return HRESULT_FROM_WIN32(ERROR_FILENAME_EXCED_RANGE);
+            parents[count++] = std::move(file);
+        }
+        return S_OK;
+    };
+    if (text.size() <= rootEnd + 1u)
+        return open(true);
+    RETURN_IF_FAILED(open(false));
+    std::size_t at = rootEnd + 1u;
+    while (at < text.size())
+    {
+        const auto slash = text.find(L'\\', at);
+        const auto end = slash == text.npos ? text.size() : slash;
+        const auto part = std::wstring_view(text).substr(at, end - at);
+        if (part.empty() || part == L"." || part == L".." || part.find_first_of(L":<>\"|?*") != part.npos)
+            return E_INVALIDARG;
+        if (prefix.back() != L'\\')
+            prefix.push_back(L'\\');
+        prefix.append(part);
+        RETURN_IF_FAILED(open(end == text.size()));
+        at = end + 1u;
+    }
+    return S_OK;
+}
+} // namespace
+bool SharesImageNetworkRoot(std::wstring_view document, std::wstring_view image) noexcept
+{
+    // SDK image requests already contain canonical decoded UNC paths. Do not
+    // reinterpret URI spelling or a local file://localhost authority here.
+    const auto ordinary = [](std::wstring_view path) noexcept -> std::wstring_view
+    {
+        if (path.starts_with(L"\\\\?\\UNC\\"))
+            return path.substr(8u);
+        if (ImageShareEnd(path) != path.npos)
+            return path.substr(2u);
+        return {};
+    };
+    document = ordinary(document);
+    image = ordinary(image);
+    if (document.empty() || image.empty())
+        return false;
+    const auto as = document.find(L'\\'), bs = image.find(L'\\');
+    if (as == document.npos || bs == image.npos || !as || !bs)
+        return false;
+    auto a = document.find(L'\\', as + 1u), b = image.find(L'\\', bs + 1u);
+    a = a == document.npos ? document.size() : a;
+    b = b == image.npos ? image.size() : b;
+    return a > as + 1u && b > bs + 1u &&
+           CompareStringOrdinal(document.data(), static_cast<int>(as), image.data(), static_cast<int>(bs), TRUE) == CSTR_EQUAL &&
+           document.substr(as, a - as) == image.substr(bs, b - bs);
+}
+HRESULT ReadImageFileBytes(std::wstring_view path, std::string &bytes, const std::atomic_bool *cancel) noexcept
+try
+{
+    if (cancel && cancel->load(std::memory_order_relaxed))
+        return HRESULT_FROM_WIN32(ERROR_CANCELLED);
+    wil::unique_handle file;
+    RETURN_IF_FAILED(OpenImageEntry(path, false, file));
+    std::string staged;
+    RETURN_IF_FAILED(ReadOpenedBytes(file.get(), staged, nullptr, 16u * 1024u * 1024u));
+    if (cancel && cancel->load(std::memory_order_relaxed))
+        return HRESULT_FROM_WIN32(ERROR_CANCELLED);
+    bytes.swap(staged);
+    return S_OK;
+}
+catch (const std::bad_alloc &)
+{
+    DxUi::Failure::FailAllocation();
+}
+HRESULT OpenImageDirectoryForNotifications(std::wstring_view path, wil::unique_handle &directory) noexcept
+try
+{
+    wil::unique_handle staged;
+    RETURN_IF_FAILED(OpenImageEntry(path, true, staged));
+    directory = std::move(staged);
+    return S_OK;
 }
 catch (const std::bad_alloc &)
 {

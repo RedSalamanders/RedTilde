@@ -120,6 +120,22 @@ void Application::PrepareDesignScenario()
         settings.showOutline = false;
         fixtureName = L"Notebook observations";
     }
+    if (scenario == L"image-consent-light" || scenario == L"image-consent-dark")
+    {
+        settings.allowRemoteImages = false;
+        settings.allowLocalNetworkImages = false;
+        documentRemoteImagesAllowed = false;
+        editor->SetRemoteImagesEnabled(false);
+        SetDocument(L"# Illustration notebook\n\n"
+                    L"Remote illustrations load only after a choice for this document.\n\n"
+                    L"![Invented landscape](https://images.example.invalid/landscape.png)\n\n"
+                    L"The source, selection and undo history remain yours.\n");
+        settings.appearance = scenario == L"image-consent-dark" ? Appearance::Dark : Appearance::Light;
+        settings.view = EditorView::Compose;
+        settings.showFiles = false;
+        settings.showOutline = false;
+        fixtureName = L"Illustration notebook";
+    }
     if (scenario == L"task-presentation-light" || scenario == L"task-presentation-dark")
         settings.strikeCompletedTasks = true;
     const bool reference = scenario == L"reference-dark";

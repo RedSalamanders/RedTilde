@@ -12,7 +12,12 @@ struct RemoteImageLimits
 {
     unsigned timeoutMilliseconds = 8000;
     std::size_t maximumEncodedBytes = 16777216;
+    bool allowLocalNetwork = false;
 };
+// Numeric address only; no DNS or network access. Uses the Windows address parser.
+// The explicit override permits local unicast,
+// but unspecified and multicast destinations are always refused.
+[[nodiscard]] bool IsRemoteImageAddressAllowed(std::wstring_view address, bool allowLocalNetwork = false) noexcept;
 // Consumer transport policy, separate from DxUi's URI admission and immutable
 // image decoder. Call only on the image worker: HTTP(S), anonymous direct GET,
 // no cookies/redirects/referrer/proxy discovery, and ordinary TLS validation.

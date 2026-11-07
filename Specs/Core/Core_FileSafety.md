@@ -1,5 +1,27 @@
 # File safety
 
+## Image file admission and refresh
+
+Image transport uses `ReadImageFileBytes`, independently bounded to 16 MiB; ordinary document reads keep
+their smaller limit. Open only absolute canonical paths. While opening each component, retain checked parent
+directory handles that exclude cooperative rename/metadata writers. Open entries without following their reparse
+points and reject actual name-surrogate links and mount points; non-name-surrogate cloud/provider tags retain
+their provider semantics. Use the final retained file handle for the complete bounded read and stable metadata
+check, then publish bytes only after cancellation is checked again. Refusal preserves the caller's bytes.
+The component walk admits at most 128 retained parents. This is a cooperative sharing boundary, not a guarantee
+against a filesystem/filter that ignores Windows sharing or a privileged provider changing its semantics.
+
+Network-file images require both image permission and the local-network preference. The document must itself
+be on the same literal UNC server/share; compare server names ordinal-insensitively and share names exactly.
+Never reinterpret a URI, local `file://localhost` result or another share as same-share authorization. SDK requests
+already supply canonical decoded paths. Real OneDrive/cloud, SMB/NAS and WSL qualification remains separate
+from these local ordinary-file, owned-junction and lexical policy cases.
+
+`OpenImageDirectoryForNotifications` reuses the same component/reparse admission for worker-side watch setup.
+Its final overlapped directory handle permits ordinary writes/rename and observes that opened directory object.
+Parent pins end after final handle acquisition; no later path reopen is used for that watch. Notification names
+are hints for bounded refresh, never authorization to read a different path.
+
 ## Bounded clipboard asset files
 
 `WriteNewBytesDurable` is the shared binary-asset writer. It accepts only absolute paths and an explicit

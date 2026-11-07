@@ -452,6 +452,23 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Require(FAILED(CreateBitmapAsset(directory, std::vector<std::byte>(40u), false, refused)) && refused.path.empty(),
                      "malformed bitmap input publishes no asset");
          });
+    test("Settings.LocalNetworkImagePermission",
+         [&]
+         {
+             for (const auto *text :
+                  {"RedTilde.Settings/1\n", "RedTilde.Settings/1\nlocalNetworkImages=2\n", "RedTilde.Settings/1\nlocalNetworkImages=invalid\n"})
+                 Require(!ParseSettings(text).allowLocalNetworkImages, "missing and invalid local-network permission stays off");
+             Settings settings;
+             settings.allowLocalNetworkImages = true;
+             const auto round = ParseSettings(SerializeSettings(settings));
+             Require(round.allowLocalNetworkImages && !round.allowRemoteImages, "LAN permission round trips independently of image consent");
+             const auto directory = root / L"local-network-image-settings";
+             Success(SaveSettings(directory, settings), "persist explicit local-network image preference");
+             Settings loaded;
+             Success(LoadSettings(directory, loaded), "restore explicit local-network image preference");
+             Require(loaded.allowLocalNetworkImages && !loaded.allowRemoteImages,
+                     "the opt-in survives restart without granting internet image consent");
+         });
     test("Settings.ImageFirstPasteRoundTripAndFallback",
          [&]
          {

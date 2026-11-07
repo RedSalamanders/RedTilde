@@ -411,6 +411,9 @@ bool Application::SwitchWorkspaceDocument(std::size_t index)
     if (!current())
         return false;
     auto &document = inactiveDocuments[index];
+    const bool previousImageTransition = imageBindingTransition;
+    imageBindingTransition = true;
+    const auto restoreImageTransition = wil::scope_exit([&] { imageBindingTransition = previousImageTransition; });
     if (!AcceptSourceResult(primary->TrySetDocumentFilePath(document.path.native())) || !current())
         return false;
     {
@@ -433,6 +436,8 @@ bool Application::SwitchWorkspaceDocument(std::size_t index)
         std::swap(recovered, document.recovered);
         std::swap(stamp, document.stamp);
         std::swap(activeDocumentKey, document.recoveryKey);
+        std::swap(documentRemoteImagesAllowed, document.remoteImagesAllowed);
+        primary->SetRemoteImagesEnabled(settings.allowRemoteImages || documentRemoteImagesAllowed);
         document.dirty = previousDirty;
         dirtyFact.reset();
     }
@@ -798,6 +803,7 @@ void Application::FileMenu(bool overflow)
         add(IDS_OPEN, Command::Open, L"Ctrl+O");
         add(IDS_OPENFOLDER, Command::OpenFolder, L"Ctrl+Shift+O");
         add(IDS_SAVEAS, Command::SaveAs, L"Ctrl+Shift+S");
+        add(IDS_IMAGERELOAD, Command::ReloadImages);
     }
     else
         for (const auto &[label, command] : std::array<std::pair<unsigned, Command>, 11>{{{IDS_HEADING, Command::Heading},

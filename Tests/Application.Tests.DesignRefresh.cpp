@@ -2,6 +2,7 @@
 #include "RedTilde/Application.h"
 #include "Support/Support.Tests.BitmapAssets.h"
 #include "Support/Support.Tests.Foreground.h"
+#include "Support/Support.Tests.Images.h"
 #include "Support/Support.Tests.TextServices.h"
 #include "res/Resource.h"
 #include <UIAutomation.h>
@@ -345,6 +346,53 @@ class DesignRefreshProbe final
   public:
     static void Register(const std::filesystem::path &root, const std::function<void(std::string_view, const std::function<void()> &)> &test)
     {
+        test("Editor.LocalImageChangesReloadWithoutEditing",
+             [&]
+             {
+                 Testing::ForegroundOwnershipObserver foreground;
+                 const auto fixture = root / L"image-auto-refresh";
+                 const auto image = fixture / L"Illustrations/cover.bmp";
+                 std::filesystem::create_directories(image.parent_path());
+                 const auto write = [&](bool singlePixel)
+                 {
+                     const auto encoded = Testing::ImageBitmapFixture(singlePixel);
+                     Require(SUCCEEDED(WriteBytesAtomic(image, std::string_view(reinterpret_cast<const char *>(encoded.data()), encoded.size()))),
+                             "write the owned image with independently known decoded dimensions");
+                 };
+                 write(false);
+                 Application app(Options(root, L"image-auto-refresh/settings"));
+                 Require(SUCCEEDED(app.Initialize()) &&
+                             app.SetDocument(L"# Illustration notebook\n\n![Invented cover](Illustrations/cover.bmp)\n", fixture / L"Notebook.md"),
+                         "bind an invented notebook and local image in the hidden production application");
+                 Await(app,
+                       [&]
+                       {
+                           const auto stats = app.Document().GetImageResourceStatistics();
+                           return app.imageFileRefreshes >= 1u && !app.imageWatchReloadPending && stats.readySources == 1u &&
+                                  stats.decodedBytes == 8u;
+                       });
+                 const auto source = app.Document().Snapshot();
+                 const auto selection = app.Document().GetSelection();
+                 const auto saved = app.savedText;
+                 const auto refreshes = app.imageFileRefreshes;
+                 write(true);
+                 Await(app,
+                       [&]
+                       {
+                           const auto stats = app.Document().GetImageResourceStatistics();
+                           return app.imageFileRefreshes > refreshes && !app.imageWatchReloadPending && stats.readySources == 1u &&
+                                  stats.decodedBytes == 4u;
+                       });
+                 Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selection && app.savedText == saved &&
+                             !app.Dirty() && !app.Document().CanUndo() && !app.Document().CanRedo() && foreground.NeverAcquiredForeground(),
+                         "a real image file change replaces decoded pixels without source, history, saved-state or foreground changes");
+                 Require(app.Capture(fixture / L"refreshed-local-image.png"), "capture actual refreshed pixels with invented fixture content");
+                 Require(SUCCEEDED(WriteBytesAtomic(fixture / L"image-refresh-metrics.json",
+                                                    std::format("{{\"automaticRefreshes\":{},\"observedFiles\":1,\"decodedBytesBefore\":8,"
+                                                                "\"decodedBytesAfter\":4,\"sourceUnchanged\":true}}\n",
+                                                                app.imageFileRefreshes))),
+                         "retain deterministic refresh-work counters with the native run");
+             });
         test("Editor.ClipboardBitmapAssetHandler",
              [&]
              {
@@ -688,6 +736,9 @@ class DesignRefreshProbe final
                      StoredDocument loaded;
                      Success(LoadDocument(first, loaded), "read Alpha's original source and encoding");
                      app.SetDocument(loaded.text, first, loaded.bom, loaded.stamp);
+                     app.Execute(Command::DocumentImages);
+                     Require(app.Document().RemoteImagesEnabled() && !app.Preferences().allowRemoteImages,
+                             "Alpha owns an explicit document-only image grant");
                      app.SetView(view);
                      app.Execute(Command::Files);
                      Await(app, [&] { return app.folderSnapshot && app.folderSnapshot->markdownCount == 2; });
@@ -705,6 +756,7 @@ class DesignRefreshProbe final
                      Require(questions == 0 && app.inactiveDocuments.size() == 1 && app.Document().GetText() == L"# Beta\nA second notebook.\n" &&
                                  !app.Document().CanUndo() && app.folderRoot == directory,
                              "a Files-pane switch keeps the dirty document without asking or changing the root");
+                     Require(!app.Document().RemoteImagesEnabled(), "Beta cannot inherit Alpha's image grant");
                      app.Document().SetSelection({6, 2});
                      Require(app.Document().ReplaceSelection(L"Beta revised"), "edit Beta independently");
                      app.Document().SetSelection({6, 2});
@@ -716,6 +768,7 @@ class DesignRefreshProbe final
                      Require(!app.files.Busy() && questions == 0 && app.documentPath == first && app.bom && app.stamp == loaded.stamp &&
                                  app.Document().Snapshot().IsSameRevision(alphaSource) && app.Document().GetSelection() == alphaSelection,
                              "cached activation retains exact source, BOM, saved identity and oriented selection despite an external file change");
+                     Require(app.Document().RemoteImagesEnabled(), "cached Alpha activation restores its own image grant");
                      Require(app.Document().Undo() && app.Document().GetText() == loaded.text && !app.Dirty() && app.Document().Redo() &&
                                  app.Document().GetText() == alpha && app.Dirty() && app.Document().Redo() &&
                                  app.Document().GetText() == L"# Beta edited\r\nA useful notebook.\r\n" && app.Document().Undo() &&
@@ -727,6 +780,7 @@ class DesignRefreshProbe final
                                  app.Document().GetText() == L"# Beta\nA second notebook.\n" && !app.Dirty() && app.Document().Redo() &&
                                  app.Document().GetText() == beta && app.Dirty(),
                              "Beta's history never contains an Alpha edit");
+                     Require(!app.Document().RemoteImagesEnabled(), "cached Beta activation retains its independent blocked policy");
                      Require(app.SourceMirror().Snapshot().Text() == beta || view != EditorView::Split,
                              "the visible Split mirror derives from the newly active source");
                      app.CheckpointWorkspaceRecovery();

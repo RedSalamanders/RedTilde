@@ -3,12 +3,17 @@
 Settings live under `%LOCALAPPDATA%\RedTilde` and use a versioned UTF-8 document. A caller may select an isolated
 data directory for tests. Themes are System, Light, Dark and Paper. Respect Windows high contrast before custom
 colors. Persist appearance, view, outline visibility, Files-pane visibility, selected root and width, reading width, text scale,
-inactive-block dimming, completed-task strike-through, remote-image opt-in, image-first paste and optional Markdown syntax. The
+inactive-block dimming, completed-task strike-through, remote-image opt-in, local-network image opt-in, image-first paste and optional Markdown syntax. The
 `strikeCompletedTasks` field accepts only 0 or 1; missing or invalid values keep the disabled default. It is live
 presentation policy shared by Compose and Split. Defaults are System appearance, Compose view, outline visible, Files pane closed,
 Files width 280 DIP, reading width 760 DIP, text scale 100%, inactive-block dimming enabled, remote images disabled and every optional Markdown syntax enabled. Files widths are
 limited to 200–400 DIP, reading width to 480–1040 DIP, and text scale to 75–200%; invalid fields fall back
 independently without discarding valid neighboring settings.
+
+`remoteImages=0|1` is the persistent “Always allow remote images” choice. `localNetworkImages=0|1` is an
+independent opt-in, disabled when missing or invalid; it grants no image consent itself. Per-document grants
+belong only to the live retained workspace and are absent from settings/recovery. Restart requires renewed
+document consent unless the global choice applies. Neither permission changes nor image reload mark text dirty.
 
 Persist normal window bounds in physical screen coordinates (`windowLeft`, `windowTop`, `windowRight`,
 `windowBottom`), the source `windowDpi` and a separate `windowMaximized=0|1`. The four coordinates form one

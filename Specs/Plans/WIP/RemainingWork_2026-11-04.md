@@ -204,7 +204,9 @@ Details and original counterexamples remain in the
 
 - [ ] Complete Q13: per-document consent, explicit local-network override, address validation at connection
   time, same-share image policy, useful failure reasons, Reload images and bounded event-driven refresh.
-- [ ] Resolve proxy policy Q19 before changing direct-only remote fetching; preserve all original drops/refutations.
+- [x] Resolve Q19 as direct-only fetching with an explicit visible failure on networks requiring a proxy, no
+  PAC/discovery, credentials or silent fallback. The editor and architecture contracts own this delivery choice;
+  source-bound native transport/adoption qualification remains part of Q13 and T-Q2.
 - [ ] Apply Q8/Q13 real-location acceptance, and make any managed-image-assets/drag-drop adoption an explicit
   app-owned scope (C10), with native resource, cancellation and teardown evidence.
 - [x] Implement app-owned bitmap paste assets and persisted text-first/image-first preference (C10 local scope).
@@ -358,7 +360,7 @@ follow-up is removed. Completion correctly reported failed native qualification.
 - [ ] Finish the active checked-failure/API-5 migration with the
   [single DxUi plan](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Plans/WIP/RemainingWork_2026-11-04.md) and active
   [implemented API-5 failure contract](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Core/Core_FailureHandling.md).
-  Candidate pin `a287710cc0230152a69da0c74496d654841a05b3` has explicit reporter/COM ownership, counted callback
+  Candidate pin `5907e4f5e001b1003ba8ba2f1ec7f9725c1ddb5c` has explicit reporter/COM ownership, counted callback
   retirement, checked document/configuration/codecs and isolated failure/native/session-end regressions. Preliminary
   compiler checks are diagnostic only; finish fresh consumer builds, native tests, captures, actual ASan and
   production refusal evidence before closing adoption. API-4 measurements retain their original source identity.
@@ -398,7 +400,7 @@ RT-10/11's old drops did not cancel them. Current unified CI supersedes obsolete
 
 | Open owner item | Current disposition |
 | --- | --- |
-| Q19: system proxy, direct-only failure or a setting | Decide before T-I1's proxy work. |
+| Q19: system proxy, direct-only failure or a setting | Resolved: direct-only with a visible failure, specified under T-I1. |
 | Q20: size-limit command behavior | Decide unchanged-document error versus preemptive disable before changing the capacity UX. |
 | Q21: release cut | Settle the application release command and exact validator transition; the library's support does not migrate this app implicitly. |
 

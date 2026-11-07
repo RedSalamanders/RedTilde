@@ -275,6 +275,15 @@ HRESULT Application::BuildUi()
         !AcceptSourceResult(mirror->TrySetMarkdownRenderingEnabled(true)))
         return E_INVALIDARG;
     mirror->SetReadOnly(true);
+    imageConsent = page->AddChild<Surface>(Surface::Kind::Floating);
+    imageConsent->SetVisible(false);
+    imageConsent->SetAccessibleAutomationId(L"RedTilde.RemoteImageConsent");
+    imageConsentText = Label(*imageConsent, IDS_IMAGECONSENTBLOCKED, DxUi::FontRole::Small);
+    imageConsentText->SetMultiline(true);
+    imageConsentAction = Action(*imageConsent, IDS_IMAGEALLOWHERE, Command::DocumentImages);
+    imageConsentAction->SetAccessibleAutomationId(L"RedTilde.AllowDocumentImages");
+    imageReload = Action(*imageConsent, IDS_IMAGERELOAD, Command::ReloadImages);
+    imageReload->SetAccessibleAutomationId(L"RedTilde.ReloadImages");
     if (!AcceptSourceResult(mirror->TrySetViewMode(DxUi::RichText::ViewMode::Source)))
         return E_INVALIDARG;
     mirror->SetAccessibleName(Resource(IDS_MIRROR));
@@ -485,6 +494,8 @@ HRESULT Application::BuildUi()
     drawerClose = Action(*settingsScroll, IDS_CLOSE, Command::CloseDrawer);
     drawerImmediate = Label(*settingsScroll, IDS_IMMEDIATE, DxUi::FontRole::Small);
     remoteImagesToggle = Action(*settingsScroll, IDS_REMOTEIMAGES, Command::RemoteImages);
+    localNetworkImagesToggle = Action(*settingsScroll, IDS_LOCALNETWORKIMAGES, Command::LocalNetworkImages, Resource(IDS_LOCALNETWORKIMAGESHELP));
+    localNetworkImagesToggle->SetAccessibleHelpText(Resource(IDS_LOCALNETWORKIMAGESHELP));
     imageFirstPasteToggle = Action(*settingsScroll, IDS_IMAGEFIRSTPASTE, Command::ImageFirstPaste, Resource(IDS_IMAGEFIRSTPASTEHELP));
     imageFirstPasteToggle->SetAccessibleHelpText(Resource(IDS_IMAGEFIRSTPASTEHELP));
     writingTitle = Label(*settingsScroll, IDS_WRITINGSECTION, DxUi::FontRole::Small);
@@ -715,9 +726,19 @@ void Application::Layout()
     const bool split = settings.view == EditorView::Split;
     const float mid = (left + right) / 2;
     const float gutter = focus ? 32.f : split ? 24.f : 48.f;
-    editor->SetBounds(D2D1::RectF(left + gutter, top + (focus ? 36.f : 60.f), (split ? mid : right) - gutter, bottom));
+    const float consentHeight = right - left < 600.f ? 104.f : 64.f;
+    const float consentTop = top + 12.f;
+    const float contentTop = std::max(top + (focus ? 36.f : 60.f), imageConsent->IsVisible() ? consentTop + consentHeight + 12.f : top);
+    imageConsent->SetBounds(D2D1::RectF(left + 12.f, consentTop, right - 12.f, consentTop + consentHeight));
+    const bool narrowConsent = right - left < 600.f;
+    imageConsentText->SetBounds(D2D1::RectF(left + 24.f, consentTop + 8.f, narrowConsent ? right - 24.f : right - 256.f, consentTop + 48.f));
+    const float consentButtonsTop = consentTop + (narrowConsent ? 60.f : 14.f);
+    imageConsentAction->SetBounds(D2D1::RectF(narrowConsent ? left + 24.f : right - 244.f, consentButtonsTop,
+                                              narrowConsent ? left + 128.f : right - 140.f, consentButtonsTop + 36.f));
+    imageReload->SetBounds(D2D1::RectF(right - 132.f, consentButtonsTop, right - 24.f, consentButtonsTop + 36.f));
+    editor->SetBounds(D2D1::RectF(left + gutter, contentTop, (split ? mid : right) - gutter, bottom));
     mirror->SetVisible(split);
-    mirror->SetBounds(D2D1::RectF(mid + 24, top + 56, right - 24, bottom - 24));
+    mirror->SetBounds(D2D1::RectF(mid + 24, imageConsent->IsVisible() ? contentTop : top + 56, right - 24, bottom - 24));
     DxUi::RichTextEditorAppearance appearance;
     appearance.markdownPresentation = DxUi::RichText::MarkdownPresentationStyle::Subtle;
     appearance.strikeCompletedTasks = settings.strikeCompletedTasks;
@@ -792,7 +813,7 @@ void Application::Layout()
     const float drawerLeft = width - 380;
     drawer->SetBounds(D2D1::RectF(drawerLeft, top, width, bottom));
     settingsScroll->SetBounds(D2D1::RectF(drawerLeft + 16, top + 12, width - 8, bottom - 12));
-    settingsScroll->SetContentHeight(1614);
+    settingsScroll->SetContentHeight(1658);
     const float dx = drawerLeft + 24;
     settingsScroll->GetLogicalChild(0)->SetBounds(D2D1::RectF(dx, top + 20, width - 24, top + 52));
     settingsScroll->GetLogicalChild(1)->SetBounds(D2D1::RectF(dx, top + 68, width - 24, top + 92));
@@ -837,12 +858,14 @@ void Application::Layout()
     privacyTitle->SetBounds(D2D1::RectF(dx, privacy, width - 24, privacy + 24));
     remoteImagesToggle->SetBounds(D2D1::RectF(dx, privacy + 36, width - 24, privacy + 72));
     remoteImagesToggle->SetToggleState(settings.allowRemoteImages);
-    drawerHelp->SetBounds(D2D1::RectF(dx, privacy + 80, width - 24, privacy + 120));
-    imageFirstPasteToggle->SetBounds(D2D1::RectF(dx, privacy + 132, width - 24, privacy + 168));
+    localNetworkImagesToggle->SetBounds(D2D1::RectF(dx, privacy + 80, width - 24, privacy + 116));
+    localNetworkImagesToggle->SetToggleState(settings.allowLocalNetworkImages);
+    drawerHelp->SetBounds(D2D1::RectF(dx, privacy + 124, width - 24, privacy + 164));
+    imageFirstPasteToggle->SetBounds(D2D1::RectF(dx, privacy + 176, width - 24, privacy + 212));
     imageFirstPasteToggle->SetToggleState(settings.imageFirstPaste);
-    recoveryAction->SetBounds(D2D1::RectF(dx, privacy + 184, width - 24, privacy + 220));
-    drawerClose->SetBounds(D2D1::RectF(dx + 224, privacy + 232, width - 24, privacy + 268));
-    drawerImmediate->SetBounds(D2D1::RectF(dx, privacy + 232, width - 160, privacy + 268));
+    recoveryAction->SetBounds(D2D1::RectF(dx, privacy + 228, width - 24, privacy + 264));
+    drawerClose->SetBounds(D2D1::RectF(dx + 224, privacy + 276, width - 24, privacy + 312));
+    drawerImmediate->SetBounds(D2D1::RectF(dx, privacy + 276, width - 160, privacy + 312));
     const bool wideFind = right - left >= 660.f;
     const float fx = std::max(16.f, right - (wideFind ? 644.f : 476.f)), fy = top + 12;
     findBar->SetBounds(D2D1::RectF(fx, fy, right - 16, fy + (wideFind ? 104.f : 148.f)));

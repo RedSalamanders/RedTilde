@@ -97,7 +97,7 @@ Hosted setup waits for the hidden, owned GUI bootstrapper with both its --wait s
 
 The [native policy, console and dependency-path contract](Build_ConsoleAndPaths.md) owns /Wall without /WX, zero-warning acceptance, Debug/ASan symbols, Release-only ICF, common terminal results and verified short dependency folders.
 
-The API-5 migration locks DxUi at `a287710cc0230152a69da0c74496d654841a05b3`, with protocol-2 process ownership,
+The API-5 migration locks DxUi at `5907e4f5e001b1003ba8ba2f1ec7f9725c1ddb5c`, with protocol-2 process ownership,
 checked source/codec/configuration adapters and input-state continuity. The earlier diagram, math,
 selection-insertion, parser and Unicode-first clipboard repairs remain included. This migration requires fresh
 consumer qualification; the API-4 evidence at `a1915ffdd94b18fd1817371f1dc074f6a0b547f1` cannot qualify it.

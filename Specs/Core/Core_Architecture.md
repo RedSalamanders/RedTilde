@@ -13,6 +13,7 @@ repository and executable. It must launch and test without RedXe, RedPrism or Re
 | RichTextEditor | Authoritative UTF-16 Markdown source, immutable snapshots, selection and undo history |
 | Storage | Strict Unicode codecs, bounded reads, same-directory atomic replacement and file identity |
 | Image service | Bounded application-owned decode jobs, COM/WIC, cancellation and owner completion |
+| Image file notifications | Shared directory-notification machinery in `Common/Files.*`, one process-counted worker, at most 32 files/eight local directories, coalesced owner notification |
 | Mathematics | DxUi source-backed inline/display objects and read-only inspector, native cached glyphs/lines, explicit diagnostics |
 | Files navigation | Application-owned bounded directory enumeration/watch worker, cancellation and stale-result identity; the UI opens files through the normal file-safety path |
 | Harness | Hidden window, direct control commands, render capture and immutable scenario/build receipts |
@@ -90,6 +91,26 @@ binding before workers can post. Image decoding must not join a blocked codec on
 Pruning cancelled image work signals the network-abort event only for a cancelled current remote transfer.
 An empty current request must not wake that event. Pruning still releases completion reservations and schedules
 valid queued work; a cancelled transfer must not prevent a later admitted request from completing.
+
+Network images have two application-owned admission layers: a live workspace-document grant or the persisted
+always-allow preference, followed by a separate local-network preference. Only the authoritative editor issues
+requests; neither permission nor reload changes its source/history. DNS lookup and WinHTTP callbacks retain
+process-work leases and their native buffers through their own completion, including after owner cancellation.
+The selected numeric endpoint is pinned per request while HTTP authority and TLS use the original hostname.
+The direct-only transport does not discover proxies or run PAC scripts, and never silently falls back to a
+different transport. A network requiring a proxy receives a visible load failure with preserved alt/source.
+This delivery choice resolves Q19; adding proxy configuration is a separately specified feature.
+
+Local image refresh reuses the shared directory-notification implementation, rather than adding a polling
+timer or a second directory enumerator. Admit at most 32 current image request paths in eight directories.
+Watch setup and native cancellation/drain stay on the retained worker; source-tagged completion and all editor
+calls stay on the owner. Match bounded notification names and coalesce an active burst for at most 250 ms.
+Overflow refreshes only the existing bounded image set. A first refresh after arming closes the initial decode/
+notification gap. Changes and explicit Reload use the existing bounded SDK reload; network images are retried
+only under their current independent permissions. This does not change source, selection, history or saved state.
+Over-capacity/failed automatic watching retains editing and explicit Reload rather than admitting extra watchers.
+Closing invalidates publication and wakes the worker; UI teardown never waits for directory I/O. The process-work
+owner still counts that worker until its buffers and overlapped operations have actually drained.
 
 Native window captions cache only successfully applied identity text. Skip identical writes during an already-dirty
 typing sequence, but apply filename and dirty-state transitions synchronously. Invalidate the cache before entering

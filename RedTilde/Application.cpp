@@ -23,6 +23,7 @@
 #include <wil/result.h>
 #include <wincodec.h>
 #include <windowsx.h>
+#include <winhttp.h>
 
 namespace RedTilde
 {
@@ -257,6 +258,7 @@ Application::~Application()
     files.Close();
     folderFiles.Close();
     images.Shutdown();
+    imageFiles.Close();
     host.Detach();
     window.reset();
 }
@@ -332,6 +334,8 @@ HRESULT Application::Initialize()
     preferenceWriter.Initialize(options.dataDirectory, window.get(), PreferencesReady);
     RETURN_IF_FAILED(recovery.Initialize(options.dataDirectory, window.get(), RecoveryReadyMessage));
     RETURN_IF_FAILED(images.Initialize(window.get(), ImageReady, 0x5254));
+    RETURN_IF_FAILED(imageFiles.Initialize(window.get(), ImageFileChanged, 0x5254));
+    images.SetAllowLocalNetwork(settings.allowLocalNetworkImages);
     RETURN_IF_FAILED(bitmapWriter.Initialize(options.dataDirectory, window.get(), BitmapReady));
     host.SetClipboardPreference(settings.imageFirstPaste ? DxUi::TextClipboardPreference::ImageFirst : DxUi::TextClipboardPreference::TextFirst);
     initialized = true;
@@ -976,18 +980,37 @@ bool Application::AcceptSourceResult(DxUi::RichText::SourceResult result)
 }
 bool Application::SetDocument(std::wstring text, std::filesystem::path path, bool hasBom, FileStamp identity, bool rememberForStartup)
 {
+    const bool previousImageTransition = imageBindingTransition;
+    imageBindingTransition = true;
+    const auto restoreImageTransition = wil::scope_exit([&] { imageBindingTransition = previousImageTransition; });
     // A checked refusal preserves the entire current document, saved baseline, recovery and pending insertion.
     if (!DxUi::RichText::IsValidSourceUtf16(text))
         return AcceptSourceResult(DxUi::RichText::SourceResult::InvalidSource);
     if (text.size() > DxUi::RichText::Document::MaximumUnits)
         return AcceptSourceResult(DxUi::RichText::SourceResult::CapacityExceeded);
     const auto lifetime = GetControlLifetimeToken(*editor);
+    // A replacement document cannot inherit a one-document grant through synchronous text callbacks.
+    const bool previousDocumentPermission = documentRemoteImagesAllowed;
+    const auto previousPermissionSource = editor->Snapshot();
+    bool permissionCommitted = false;
+    const auto restorePermission = wil::scope_exit(
+        [&]() noexcept
+        {
+            if (!permissionCommitted && !lifetime.expired() && !closing && documentRemoteImagesAllowed == previousDocumentPermission &&
+                editor->Snapshot().IsSameRevision(previousPermissionSource))
+                editor->SetRemoteImagesEnabled(settings.allowRemoteImages || previousDocumentPermission);
+        });
+    editor->SetRemoteImagesEnabled(settings.allowRemoteImages);
+    if (lifetime.expired() || closing)
+        return false;
     if (!AcceptSourceResult(editor->TrySetDocumentFilePath(path.native())) || lifetime.expired() || closing)
         return false;
     if (!AcceptSourceResult(editor->TrySetText(text)))
         return false;
     if (lifetime.expired() || closing)
         return false;
+    documentRemoteImagesAllowed = false;
+    permissionCommitted = true;
     pendingBitmapPaste.reset();
     if (!initializing)
         AbandonStartupRestore();
@@ -1748,11 +1771,38 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         return;
     case Command::RemoteImages:
         settings.allowRemoteImages = !settings.allowRemoteImages;
-        editor->SetRemoteImagesEnabled(settings.allowRemoteImages);
+        editor->SetRemoteImagesEnabled(settings.allowRemoteImages || documentRemoteImagesAllowed);
         images.DiscardCancelled();
         remoteImagesToggle->SetToggleState(settings.allowRemoteImages);
         ServiceImages();
         SavePreferences();
+        return;
+    case Command::LocalNetworkImages:
+        settings.allowLocalNetworkImages = !settings.allowLocalNetworkImages;
+        images.SetAllowLocalNetwork(settings.allowLocalNetworkImages);
+        // Retire existing request identities before applying the new transport policy.
+        editor->SetRemoteImagesEnabled(false);
+        editor->SetRemoteImagesEnabled(settings.allowRemoteImages || documentRemoteImagesAllowed);
+        images.DiscardCancelled();
+        localNetworkImagesToggle->SetToggleState(settings.allowLocalNetworkImages);
+        ServiceImages();
+        SavePreferences();
+        return;
+    case Command::DocumentImages:
+        if (settings.allowRemoteImages)
+            return;
+        documentRemoteImagesAllowed = !documentRemoteImagesAllowed;
+        editor->SetRemoteImagesEnabled(documentRemoteImagesAllowed);
+        images.DiscardCancelled();
+        imageFailureStatus = S_OK;
+        ServiceImages();
+        return;
+    case Command::ReloadImages:
+        imageFailureStatus = S_OK;
+        imageWatchReloadPending = true;
+        editor->ReloadImages();
+        images.DiscardCancelled();
+        ServiceImages();
         return;
     case Command::ImageFirstPaste:
         settings.imageFirstPaste = !settings.imageFirstPaste;
@@ -2832,11 +2882,137 @@ void Application::ServiceBitmapPaste()
     if (!closing && !lifetime.expired())
         Status(keep ? IDS_IMAGEPASTED : IDS_IMAGEPASTEFAILED);
 }
+void Application::RefreshImageConsent()
+{
+    if (!editor || !imageConsent || closing)
+        return;
+    auto *const owner = root;
+    if (!owner || host.GetRoot() != owner)
+        return;
+    const auto lifetime = GetControlLifetimeToken(*owner);
+    const auto semantic = editor->GetSemanticDocument();
+    const auto current = [&]() noexcept
+    {
+        return !lifetime.expired() && !closing && root == owner && host.GetRoot() == owner && editor && editor->GetSemanticDocument() == semantic &&
+               imageConsentSource == semantic;
+    };
+    if (semantic != imageConsentSource || imageConsentPath != documentPath)
+    {
+        imageConsentSource = semantic;
+        imageConsentPath = documentPath;
+        imageConsentHasNetwork = false;
+        imageFailureStatus = S_OK;
+        if (semantic)
+            for (const auto &element : semantic->Elements())
+                if (element.role == DxUi::RichText::SemanticRole::Image)
+                {
+                    const auto &value = element.destination;
+                    const auto scheme = [&](std::wstring_view prefix)
+                    {
+                        return value.size() >= prefix.size() && CompareStringOrdinal(value.data(), static_cast<int>(prefix.size()), prefix.data(),
+                                                                                     static_cast<int>(prefix.size()), TRUE) == CSTR_EQUAL;
+                    };
+                    // This only selects explanatory chrome; the SDK and transport independently authorize requests.
+                    if (scheme(L"http://") || scheme(L"https://") || (scheme(L"file://") && value.size() > 7u && value[7u] != L'/') ||
+                        value.starts_with(L"//") || value.starts_with(L"\\\\") || documentPath.native().starts_with(L"\\\\"))
+                    {
+                        imageConsentHasNetwork = true;
+                        break;
+                    }
+                }
+    }
+    const bool enabled = settings.allowRemoteImages || documentRemoteImagesAllowed;
+    unsigned text = static_cast<unsigned>(!enabled                     ? IDS_IMAGECONSENTBLOCKED
+                                          : settings.allowRemoteImages ? IDS_IMAGECONSENTSETTINGS
+                                                                       : IDS_IMAGECONSENTDOCUMENT);
+    if (FAILED(imageFailureStatus))
+        text = static_cast<unsigned>(imageFailureStatus == E_ACCESSDENIED                             ? IDS_IMAGEPOLICYFAILED
+                                     : imageFailureStatus == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE) ? IDS_IMAGETOOLARGE
+                                     : imageFailureStatus == HRESULT_FROM_WIN32(ERROR_TIMEOUT) ||
+                                             imageFailureStatus == HRESULT_FROM_WIN32(ERROR_WINHTTP_TIMEOUT)
+                                         ? IDS_IMAGETIMEOUT
+                                         : IDS_IMAGELOADFAILED);
+    if (imageConsentText->GetText() != ResourceView(text))
+        imageConsentText->SetText(Resource(text));
+    if (!current())
+        return;
+    const unsigned action = documentRemoteImagesAllowed ? IDS_IMAGEBLOCKHERE : IDS_IMAGEALLOWHERE;
+    if (imageConsentAction->GetText() != ResourceView(action))
+        imageConsentAction->SetText(Resource(action));
+    if (!current())
+        return;
+    imageConsentAction->SetVisible(imageConsentHasNetwork && !settings.allowRemoteImages);
+    if (!current())
+        return;
+    imageReload->SetEnabled(true);
+    if (!current())
+        return;
+    const bool visible = imageConsentHasNetwork || FAILED(imageFailureStatus);
+    if (imageConsent->IsVisible() != visible)
+    {
+        imageConsent->SetVisible(visible);
+        if (current())
+            Layout();
+    }
+}
+
 void Application::ServiceImages()
 {
-    if (!editor || closing)
+    if (!editor || closing || imageBindingTransition || switchingDocument)
+        return;
+    auto *const primary = editor;
+    const auto lifetime = GetControlLifetimeToken(*primary);
+    const auto current = [&]() noexcept { return !lifetime.expired() && !closing && editor == primary; };
+    const auto source = primary->Snapshot();
+    const bool watchBindingChanged = !source.IsSameRevision(imageWatchSource) || imageWatchDocumentPath != documentPath;
+    if (watchBindingChanged)
+    {
+        imageWatchSource = source;
+        imageWatchDocumentPath = documentPath;
+        imageWatchReloadPending = false;
+    }
+    if (const auto notice = imageFiles.TakeResult())
+    {
+        if (FAILED(notice.value().status))
+            imageFailureStatus = notice.value().status;
+        else
+        {
+            imageWatchReloadPending = true;
+            ++imageFileRefreshes;
+            primary->ReloadImages();
+            if (!current())
+                return;
+        }
+    }
+    RefreshImageConsent();
+    if (!current())
         return;
     editor->TakePendingImageRequests(imageRequests);
+    images.SetDocumentContext(documentPath.native());
+    const auto previousWatchCount = watchedImageRequests.size();
+    std::erase_if(watchedImageRequests, [](const auto &request) { return request.Cancelled(); });
+    bool watchChanged = watchBindingChanged || previousWatchCount != watchedImageRequests.size();
+    for (const auto &request : imageRequests)
+        if (request.SourceKind() == DxUi::RichText::RichImageSourceKind::LocalFile &&
+            std::ranges::find(watchedImageRequests, request) == watchedImageRequests.end() && watchedImageRequests.size() < 32u)
+        {
+            watchedImageRequests.push_back(request);
+            watchChanged = true;
+        }
+    if (watchChanged && (!imageWatchReloadPending || !imageRequests.empty()))
+    {
+        std::vector<std::filesystem::path> paths;
+        paths.reserve(watchedImageRequests.size());
+        for (const auto &request : watchedImageRequests)
+            paths.emplace_back(request.FilePath());
+        const auto status = imageFiles.SetFiles(paths);
+        imageWatchReloadPending = false;
+        if (FAILED(status))
+        {
+            (void)imageFiles.SetFiles({}); // Retire the old binding when automatic watching cannot be admitted.
+            imageFailureStatus = status;
+        }
+    }
     images.DiscardCancelled();
     if (!imageRequests.empty())
         (void)images.Submit(imageRequests);
@@ -2845,7 +3021,14 @@ void Application::ServiceImages()
         std::array<RichImageLoader::Result, RichImageLoader::MaximumResults> results;
         const auto count = images.Drain(results);
         for (std::size_t index = 0; index < count; ++index)
-            (void)editor->CompleteImageRequest(results[index].request, std::move(results[index].image));
+        {
+            const bool accepted = primary->CompleteImageRequest(results[index].request, std::move(results[index].image));
+            if (!current())
+                return;
+            if (accepted && FAILED(results[index].status) && results[index].status != HRESULT_FROM_WIN32(ERROR_CANCELLED))
+                imageFailureStatus = results[index].status;
+        }
+        RefreshImageConsent();
     }
 }
 
@@ -2893,6 +3076,7 @@ void Application::BeginClose()
     files.Close();
     folderFiles.Close();
     images.Shutdown();
+    imageFiles.Close();
     host.Detach();
     waitingForPreferences = preferenceWriter.Busy() || !recovery.Finished() || bitmapWriter.Busy();
     if (waitingForPreferences)
@@ -3063,6 +3247,7 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         bitmapWriter.Stop();
         bitmapWriter.Detach();
         folderFiles.Close();
+        imageFiles.Close();
         folderFilesActive = false;
         host.Detach();
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
@@ -3115,7 +3300,7 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         if (!nativeLifecycle)
             return DefWindowProcW(hwnd, message, wParam, lParam);
     }
-    if (message == ImageReady)
+    if (message == ImageReady || message == ImageFileChanged)
     {
         if (wParam == 0x5254)
             ServiceImages();

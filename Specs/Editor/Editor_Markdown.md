@@ -327,15 +327,21 @@ line (display: logical leaf) literal with a diagnostic. The inspector clears ove
 ### Remote image policy
 
 Remote image requests are disabled in the shared editor and application preferences by default. The explicit
-Settings privacy toggle enables only absolute HTTP(S) image requests; loading an image never opens a link.
+Settings privacy toggle, “Always allow remote images”, grants future documents access. Otherwise the document
+shows a nonmodal permission bar for network image sources. “Allow here” grants only the active workspace
+document; “Block here” retires its remote requests and pixels. Switching retained workspace documents restores
+each grant independently. A new/replacement document and crash/session restoration start without a document
+grant. These grants are not serialized into preferences or recovery. Global preference changes do not create
+document grants. Permission, revocation and “Reload images” preserve source, selection, saved state and undo history.
+Loading an image never opens a link.
 Explicit confirmed link dispatch is independent of remote-image permission. DxUi resolves and
 cancels immutable requests and decodes bounded encoded images. RedTilde's existing single image worker owns the
 transport and applies the same 32-job/64-MiB completion budget as local images. Opt-off immediately retires remote
 requests/pixels, preserves local identities and prevents stale completion publication.
 
-The EXE delay-loads `WINHTTP.dll` and the selftest-only `WS2_32.dll`; ordinary startup must not resolve these
-imports on behalf of unused image support. The image worker resolves all WinHTTP imports after pure URI,
-limit and pre-cancellation admission and before its first WinHTTP call. Only the delay loader's missing-module
+The EXE delay-loads `WINHTTP.dll` and `WS2_32.dll`; ordinary startup must not resolve these
+imports on behalf of unused image support. The image worker resolves both network DLLs' imports after pure URI,
+limit and pre-cancellation admission and before its first transport/address-parser call. Only the delay loader's missing-module
 and missing-procedure structured exceptions become failing HRESULTs, preserving its captured Win32 error when
 available; all other structured exceptions continue search. The Windows 11 system-API dependency remains
 required. Imports remain loaded until process exit so late asynchronous handle callbacks cannot outlive their
@@ -344,12 +350,38 @@ preempted by the request abort event. The transfer deadline starts before resolu
 are checked again before entering transport. This does not promise a hard bound on the OS loader itself.
 
 `Common/RemoteImage.*` performs anonymous direct GET with no proxy discovery, cookies, redirects, authentication,
-referrer or client certificate. Standard TLS 1.2/1.3 validation is retained. Require status 200, identity encoding, at
-most 32-KiB headers, 16-MiB encoded bytes and an 8-second whole-transfer deadline; decoded limits remain 4,096 per
+referrer or client certificate. Networks requiring a proxy receive the ordinary visible load failure; there is no
+PAC, automatic proxy discovery, credential prompt or silent transport fallback. This is the explicit direct-only
+Q19 policy. Standard TLS 1.2/1.3 validation is retained. Require status 200, identity encoding, at most 32-KiB headers,
+16-MiB encoded bytes and an 8-second whole-transfer deadline; decoded limits remain 4,096 per
 dimension and 4,194,304 pixels. Failures retain alt text. Request cancellation is checked within 50 ms during active I/O and
 owner-close signals an event; the UI never waits for or closes a network transfer. WinHTTP callbacks retain the
 fixed transfer buffer through the documented final
 [HANDLE_CLOSING notification](https://learn.microsoft.com/en-us/windows/win32/api/winhttp/nc-winhttp-winhttp_status_callback).
+Before transport, resolve through the DNS namespace with the same transfer deadline and abort/cancellation
+signals. The asynchronous lookup owns its input, OVERLAPPED, result memory, Winsock lifetime and process-work
+lease through completion, including after cancellation; the UI and retiring worker never wait for that callback.
+Inspect at most 64 results and select an admitted numeric endpoint, preferring IPv4 when available. Pin that
+endpoint using `WINHTTP_OPTION_RESOLUTION_HOSTNAME` before sending, while retaining the original URL host for
+HTTP authority and normal TLS name validation. No second hostname lookup or unvalidated address fallback is allowed.
+This uses the documented [DNS endpoint option](https://learn.microsoft.com/en-us/windows/win32/winhttp/option-flags)
+and [asynchronous lookup lifetime](https://learn.microsoft.com/en-us/windows/win32/api/ws2tcpip/nf-ws2tcpip-getaddrinfoexw).
+
+Default policy refuses single-label names, loopback, private, link-local, shared-address and non-public numeric
+destinations, including IPv4-mapped IPv6. Public global-unicast IPv6 is admitted; transition/documentation
+prefixes are declined. The separate “Allow images from local networks” preference defaults off and authorizes
+local unicast only after image consent. Unspecified, multicast, invalid and reserved IPv4 destinations remain
+refused. Disabling that preference aborts the active request, retires old request identities and retries only
+under the new policy. A lookup/connection failure preserves alt/source; the permission bar explains privacy,
+size, timeout or generic load failures. Explicit reload uses the SDK's bounded reload path, preserving editing state.
+The File menu also exposes Reload images for local-only documents. Local read/decode/watch refusals expose the
+same nonmodal failure explanation and reload action without granting remote access. Same-share network-file
+admission and the guarded image reader are specified in [file safety](../Core/Core_FileSafety.md).
+Automatic local refresh watches at most 32 image paths in eight directories through native change notifications,
+without recursive scanning or an idle timer. Coalesce writes for at most 250 ms; overflow reloads the existing
+bounded image set. A refresh after arming closes the initial read/watch gap. UI work retains the same source,
+history and saved baseline; cancelled requests and newer bindings reject stale notifications. Optional watch
+capacity/failure preserves manual Reload. These directed native cases do not qualify real remote/cloud providers.
 Tests use only an owned loopback server, proving default zero requests, explicit opt-in, exact pixels, refusal,
 cancellation and off/teardown behavior without contacting live internet services.
 
