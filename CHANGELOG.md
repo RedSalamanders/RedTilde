@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Verify provider-save fallback on native x64 and ARM64 in Release, Debug and ASan: 132 passing cases and 36 captures per profile, with original payloads and both production package smoke receipts byte-verified. Retain the local symlink-privilege failure separately; real provider locations, physical input, API-5 adoption and performance acceptance remain open.
 - Save existing documents through a recovery-protected in-place writer when their provider explicitly refuses native replacement, preserving file identity and conflict checks. Keep durable recoverable source and the old saved baseline after partial failure; other operation failures never authorize fallback.
 - Close production-boundary qualification at exact main `5c19d4bd`: verify six native profiles, all original payloads and both `0.1.355` portable smoke receipts with thirteen actual launch refusals each. Retain earlier omitted-proof and privilege failures; keep physical, API-5 adoption and performance gates separate.
 - Retain the original portable-package smoke receipt in production CI artifacts, including positive capture and per-switch refusal results. Reject missing or mismatched receipt bytes before reporting production success; verify all original native payload members during hosted closeout.
