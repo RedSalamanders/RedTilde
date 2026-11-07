@@ -1,1 +1,0 @@
-- Verify provider-save fallback on native x64 and ARM64 in Release, Debug and ASan: 132 passing cases and 36 captures per profile, with original payloads and both production package smoke receipts byte-verified. Retain the local symlink-privilege failure separately; real provider locations, physical input, API-5 adoption and performance acceptance remain open.
