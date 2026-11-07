@@ -1035,7 +1035,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                  Require(store->QueryInsert(65530, 65530, 10u, &first, &last) == HRESULT_FROM_WIN32(ERROR_BUFFER_OVERFLOW),
                          "native store refuses 65540 UTF16 units before staging");
                  Require(editor.GetText() == original && !editor.CanUndo(), "query refusal preserves exact source and history");
-                 wil::com_ptr<Testing::NativeTextStoreSink> sink = Microsoft::WRL::Make<Testing::NativeTextStoreSink>().Get();
+                 auto sink = Testing::NativeTextStoreSink::Create();
                  Require(sink != nullptr, "allocate owned native-store sink");
                  Success(store->AdviseSink(__uuidof(ITextStoreACPSink), sink.get(), TS_AS_TEXT_CHANGE | TS_AS_SEL_CHANGE),
                          "advise consumer native-store sink");
