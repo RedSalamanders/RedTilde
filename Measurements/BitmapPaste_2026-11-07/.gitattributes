@@ -1,0 +1,2 @@
+# Harness sidecars retain the exact original bytes recorded in captures.json.
+captures/*.scenario.json -text
