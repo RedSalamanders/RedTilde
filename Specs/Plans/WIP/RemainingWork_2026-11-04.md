@@ -372,8 +372,11 @@ is included here, without rebuilding or packaging the separate viewer.
   retain private originals; inventory and scan all refs; prepare a reviewed rewritten copy and commit map;
   preserve the original repository privately; reconcile source citations, worktrees and consumer pins before
   the owner's repository/visibility operations. This cleanup does not rewrite history or change visibility.
-- [ ] Verify current protection/access and reconcile obsolete CI/capability claims. Keep PR checks compiler-free,
-  main native qualification after five quiet minutes and the global test-before-production gate.
+- [x] Verify current protection/access and reconcile current CI/capability claims. The
+  [dated read-only audit](../../../Measurements/RepositoryGovernance_2026-11-07/README.md) confirms effective
+  PR/status/deletion/non-fast-forward rules, consistent engine pins, compiler-free PRs, the five-minute main
+  admission and global test-before-production gate. API-4/native-editing evidence and pending physical,
+  performance, release and language scope remain explicit; no setting or visibility was changed.
 - [ ] Audit Q15's legacy header validators and shared-module migration by actual callers before retiring tools;
   keep paired-study tooling supported and follow tooling governance for any later change.
 - [ ] Diagnose the hosted-MSVC fixture launch refusal at observed 272-character paths in the isolated

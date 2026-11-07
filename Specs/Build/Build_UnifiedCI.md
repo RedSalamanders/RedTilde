@@ -11,6 +11,12 @@ checks its current head, commits only selected formatted source paths by ordinar
 explicitly dispatches fresh compiler-free checks for that exact head. Forks retain a patch for their author.
 PR checks never count as native acceptance. Compiler-dependent tooling runs in main qualification.
 
+Protection verification MUST inspect the effective rules for `main`, including repository or organization
+rulesets, rather than relying only on the classic branch-protection endpoint. A missing classic policy alone
+does not establish an unprotected branch. Verify pull-request enforcement, deletion/non-fast-forward refusal
+and the required aggregate/security contexts against actual provider state; retain the dated read-only result
+separately from this contract. A settings audit does not change visibility, waive checks or qualify native code.
+
 After main has remained unchanged for five continuous minutes, its cheap coordinator submits one native
 admission. Cumulative native identity uses the complete committed Git input tree, file modes, dependencies,
 project adapter and exact engine/policy pins. It is not a truncated files API response or last-merge-only diff.
