@@ -143,7 +143,7 @@ try {
                 ($geometry.requestedDpi -and $geometry.requestedDpi -ne $geometry.actualHostDpi)) { throw "Capture '$name' has invalid geometry provenance." }
             if($scenario -in @('image-paste-light','image-paste-dark','image-consent-light','image-consent-dark') -and
                 ($geometry.imageFirstPaste -ne ($scenario -ceq 'image-paste-light') -or
-                 $geometry.renderedAppearance -cne $(if($scenario -ceq 'image-paste-light'){'light'}else{'dark'}))) { throw "Capture '$name' has inconsistent clipboard/theme policy." }
+                 $geometry.renderedAppearance -cne $(if($scenario.EndsWith('-light',[StringComparison]::Ordinal)){'light'}else{'dark'}))) { throw "Capture '$name' has inconsistent clipboard/theme policy." }
             $png=[IO.File]::ReadAllBytes($output)
             if($png.Length -lt 24 -or [Convert]::ToHexString($png[0..7]) -cne '89504E470D0A1A0A'){throw "Capture '$name' has no PNG header."}
             $width=[uint32]$png[16]*16777216+[uint32]$png[17]*65536+[uint32]$png[18]*256+[uint32]$png[19]

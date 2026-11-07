@@ -177,6 +177,8 @@ Custom invented documents use `--document <path> --scenario sample-document` for
 `sample-document-dark` for Dark. These scenarios preserve the loaded document rather than substituting a
 built-in fixture. Saved preferences do not choose a hidden capture's theme. Sidecars record the rendered
 appearance separately from the ambient System preference and bind the document's fixture basename.
+Image-paste and image-consent captures each verify their explicit Light/Dark appearance independently of the
+clipboard priority preference. A light consent scenario must not inherit the dark expectation from a paste-only guard.
 `Tests/Fixtures/reference-dark.md` is a runtime input to the reference-dark DPI captures;
 its edits select `Captures` in addition to normal Tooling/Format validation, rather than prose-only coverage.
 
