@@ -1,0 +1,502 @@
+{
+  "schemaVersion": 1,
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-provider-save-fallback-release",
+  "testGateCompletedBeforeBothProductionRoles": true,
+  "claim": "Source-bound hosted main Release qualification; all seven jobs passed",
+  "repository": "RedSalamanders/RedTilde",
+  "runId": "42315387452",
+  "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42315387452",
+  "sourceCommit": "3bf8803637f73e272550495818a5ae10335a1268",
+  "implementationCommit": "33ea112bb7fed87e7a1578f1df1c2c4457349697",
+  "engine": {
+    "repository": "RedSalamanders/.github",
+    "ref": "19710a8aeac979a82e83bec82e8b866cee3d3deb"
+  },
+  "nativeDigest": "e18fb77955f5931712d0f7708ae7c732150440dca94d152209cd9f30dbe523e2",
+  "admittedInputCount": 148,
+  "admissionReceiptSha256": "EDEC860706250B58F3D4EF2C6F549EFAF43C5AF326F015B8F026E17CD22C9840",
+  "outcome": "success",
+  "jobs": [
+    {
+      "name": "qualify / admission",
+      "outcome": "success",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42315387452/job/128226621266"
+    },
+    {
+      "name": "qualify / regression (ARM64, windows-11-vs2026-arm)",
+      "outcome": "success",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42315387452/job/128226713516"
+    },
+    {
+      "name": "qualify / regression (x64, windows-2025-vs2026)",
+      "outcome": "success",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42315387452/job/128226713551"
+    },
+    {
+      "name": "qualify / test-gate",
+      "outcome": "success",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42315387452/job/128236629331"
+    },
+    {
+      "name": "qualify / production (x64, windows-2025-vs2026)",
+      "outcome": "success",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42315387452/job/128236699966"
+    },
+    {
+      "name": "qualify / production (ARM64, windows-11-vs2026-arm)",
+      "outcome": "success",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42315387452/job/128236700025"
+    },
+    {
+      "name": "qualify / complete",
+      "outcome": "success",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42315387452/job/128245561832"
+    }
+  ],
+  "nativeRuns": [
+    {
+      "platform": "x64",
+      "configuration": "Release",
+      "countUnit": "case",
+      "registered": 132,
+      "executed": 132,
+      "failed": 0,
+      "expectedSkipped": 0,
+      "unexpectedSkipped": 0,
+      "assertionProbePassed": true,
+      "regressionReceiptSha256": "9313547004C3EB1F4826A5238A84278A46BCECD1E0D15771AE2020A3A80A381F",
+      "canonicalEvidence": [
+        {
+          "path": "20261107T001312834Z-2220-97d1569d36fb48deb2d6eaad6d6550da/payload/receipt.json",
+          "sha256": "719671852033ce26e72566a97584f38c220e2d101f4e13a7a7f697e5963311ef",
+          "verifiedCopies": [
+            "evidence-x64"
+          ]
+        }
+      ],
+      "recordedTestArtifacts": [
+        {
+          "path": ".build/x64/Release/RedTilde.exe",
+          "sha256": "a23f87aa1520d6deab35a2fda822f0c68fedcb26b85c9a57cc35f8b2a36085b0"
+        }
+      ],
+      "nativeArchitecture": "X64",
+      "actualSymbolicLinkCasePassed": true,
+      "casesPassed": 132,
+      "captures": 36,
+      "sdkCommit": "a1915ffdd94b18fd1817371f1dc074f6a0b547f1",
+      "canonicalSourceIdentity": "5af3fb6ed397c02079deadc123245dc305867b52fa83455df2848fb07e47d23a",
+      "originalPayloadMembers": {
+        "allFileBytesMatchedOriginalManifest": true,
+        "files": 1483,
+        "bytes": 17998735,
+        "pngFiles": 106,
+        "fileIdentitySha256": "837741BCA3B7D9B245FF8D618492C7A33B2C74C255098CBB217E9EA60A7F9323",
+        "limit": "Byte verification does not recreate original filesystem file ids, security descriptors or timestamps"
+      },
+      "buildLogSha256": "F2A19F583F9C69C1AA560C92C6FE9E44104637F9E2C6250CBDB4BBC960202E3D",
+      "warnings": 0,
+      "errors": 0
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Release",
+      "countUnit": "case",
+      "registered": 132,
+      "executed": 132,
+      "failed": 0,
+      "expectedSkipped": 0,
+      "unexpectedSkipped": 0,
+      "assertionProbePassed": true,
+      "regressionReceiptSha256": "3CE64CF4551CDDBCE6F43A74290C6FD5733C4C37C5F8965E53F510910A8C8599",
+      "canonicalEvidence": [
+        {
+          "path": "20261107T002549273Z-2940-61d8fa4ea2bf4c5db1c3719a42b29eb4/payload/receipt.json",
+          "sha256": "9bebc68072ff2d2572470b2572dd74570a77c32cc6be472e9de27ff51e0607dd",
+          "verifiedCopies": [
+            "evidence-ARM64"
+          ]
+        }
+      ],
+      "recordedTestArtifacts": [
+        {
+          "path": ".build/ARM64/Release/RedTilde.exe",
+          "sha256": "cb233c69b9c7671651d804116e8096898d021a33020b779459836b410974e350"
+        }
+      ],
+      "nativeArchitecture": "Arm64",
+      "actualSymbolicLinkCasePassed": true,
+      "casesPassed": 132,
+      "captures": 36,
+      "sdkCommit": "a1915ffdd94b18fd1817371f1dc074f6a0b547f1",
+      "canonicalSourceIdentity": "5af3fb6ed397c02079deadc123245dc305867b52fa83455df2848fb07e47d23a",
+      "originalPayloadMembers": {
+        "allFileBytesMatchedOriginalManifest": true,
+        "files": 1485,
+        "bytes": 17992983,
+        "pngFiles": 106,
+        "fileIdentitySha256": "44AA83953B5651216E7C4A1F4040596A326109EE0402AE468F703CFEEB829CB6",
+        "limit": "Byte verification does not recreate original filesystem file ids, security descriptors or timestamps"
+      },
+      "buildLogSha256": "D2D47E9F883007FEF1F3D8D036113F65320393098D93342DC79942D32CDFC99D",
+      "warnings": 0,
+      "errors": 0
+    }
+  ],
+  "production": [
+    {
+      "platform": "x64",
+      "version": "0.1.365",
+      "kind": "application",
+      "testModeDisabled": true,
+      "smokePassed": true,
+      "receiptSha256": "A2288B8B77CA9D653768FED3069C798F4707C4ABED332EC505CB2CE57731DF71",
+      "archives": [
+        {
+          "file": "RedTilde-0.1.365-x64-20261107-003857-933.zip",
+          "bytes": 3280857,
+          "sha256": "D14959385EEF84A9770641C822791EC6440F2C7981E539F3F7F018D5138B4AC3"
+        }
+      ],
+      "originalSmokeReceiptSha256": "93DD6102BD06EC4C8137A40D017E5EAEC54CA9E9D337C0596B2343C289EFB3C0",
+      "binarySha256": "2AC22B4662CCD90A9D3CC1F73CF898752F267DC128670A9C5C6181E5D95ABBA9",
+      "machine": 34404,
+      "refusalCount": 13,
+      "actualRefusals": [
+        {
+          "name": "self-test",
+          "arguments": [
+            "--self-test"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "test-scope",
+          "arguments": [
+            "--test-scope",
+            "All"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "list-tests",
+          "arguments": [
+            "--list-tests"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "interactive",
+          "arguments": [
+            "--design-interactive-probe",
+            "keyboard"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "crash",
+          "arguments": [
+            "--crash-probe"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "recovery-crash",
+          "arguments": [
+            "--recovery-crash-probe"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "recovery-restart",
+          "arguments": [
+            "--recovery-restart-probe"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "preferences",
+          "arguments": [
+            "--preferences-probe"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "asan",
+          "arguments": [
+            "--asan-probe"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "linked-save-crash",
+          "arguments": [
+            "--linked-save-crash-probe"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "linked-save-restart",
+          "arguments": [
+            "--linked-save-restart-probe"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "test-scope-missing-value",
+          "arguments": [
+            "--test-scope"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "interactive-missing-value",
+          "arguments": [
+            "--design-interactive-probe"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        }
+      ]
+    },
+    {
+      "platform": "ARM64",
+      "version": "0.1.365",
+      "kind": "application",
+      "testModeDisabled": true,
+      "smokePassed": true,
+      "receiptSha256": "CD0813C6B8CA3C3EAEAC06961B6BD871AB79475A12DAEADA5F136356D4686DC0",
+      "archives": [
+        {
+          "file": "RedTilde-0.1.365-ARM64-20261106-165437-450.zip",
+          "bytes": 3717740,
+          "sha256": "C73A5DB53FBF9AE797321D7FB1B9A4E0209A141A01658B6C5481376B630AC4C6"
+        }
+      ],
+      "originalSmokeReceiptSha256": "667DE43F056CD0F7E659EA9C9BA69E8AF1ED00B247262CA965A45F9433A41B11",
+      "binarySha256": "4450A47DC185B40D969ACDE0D2A84F33D698122E3F139E22D76621203A9626EE",
+      "machine": 43620,
+      "refusalCount": 13,
+      "actualRefusals": [
+        {
+          "name": "self-test",
+          "arguments": [
+            "--self-test"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "test-scope",
+          "arguments": [
+            "--test-scope",
+            "All"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "list-tests",
+          "arguments": [
+            "--list-tests"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "interactive",
+          "arguments": [
+            "--design-interactive-probe",
+            "keyboard"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "crash",
+          "arguments": [
+            "--crash-probe"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "recovery-crash",
+          "arguments": [
+            "--recovery-crash-probe"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "recovery-restart",
+          "arguments": [
+            "--recovery-restart-probe"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "preferences",
+          "arguments": [
+            "--preferences-probe"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "asan",
+          "arguments": [
+            "--asan-probe"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "linked-save-crash",
+          "arguments": [
+            "--linked-save-crash-probe"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "linked-save-restart",
+          "arguments": [
+            "--linked-save-restart-probe"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "test-scope-missing-value",
+          "arguments": [
+            "--test-scope"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        },
+        {
+          "name": "interactive-missing-value",
+          "arguments": [
+            "--design-interactive-probe"
+          ],
+          "exitCode": 2,
+          "dataDirectoryAbsent": true
+        }
+      ]
+    }
+  ],
+  "originalArtifactWrappers": [
+    {
+      "id": 13553745176,
+      "name": "production-ARM64",
+      "bytes": 3703203,
+      "sha256": "F2B3D9A0A8233D774EC7DF69A184DE1D2F2C0CA60A568A356900CAC3C42E7654",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13553425730,
+      "name": "production-logs-ARM64",
+      "bytes": 3740,
+      "sha256": "660C7B11D653E17FB6FB0B000D9996084789C1138D2B39885DE9460EFC409628",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13552725910,
+      "name": "production-x64",
+      "bytes": 3275384,
+      "sha256": "20FD828D72405BA46152EF2118959DD05C9CA9CD6E0CEE2F28CD2BF3AD4BA76F",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13552725101,
+      "name": "msvc-14.52-33489248ed274c179145243071c93917",
+      "bytes": 1324409,
+      "sha256": "81BB6AA444C3C69DDF8BC6A19EC9189B16A6DA96A13C833DFEEED29D079D712E",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13552282357,
+      "name": "msvc-14.52-62ac4fe5166146318a819c051c61f8ce",
+      "bytes": 1371445,
+      "sha256": "98B876A75FC9FE5794189F299EDCD2DEFEAF64E27615698A023F2717BFB41D8C",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13551779047,
+      "name": "production-logs-x64",
+      "bytes": 3666,
+      "sha256": "3C3959B8FC1D7D0F3F698AA364342E363162AEF6FB45A6D4FA70DACC261DA95C",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13551372715,
+      "name": "regression-ARM64",
+      "bytes": 717,
+      "sha256": "1747668A66AEEA28DF48A6AE12A173D0D9C48CBA677AC2EF411A4D53242941CA",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13551320244,
+      "name": "msvc-14.52-b0784a1e58cf44258f2ea1511dee52c0",
+      "bytes": 1333559,
+      "sha256": "28FCDA988A1BA3281F9D7EF95D61337DA0251E6C5A7043B6D9EFBB4CF169DE38",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13550905748,
+      "name": "admission",
+      "bytes": 476,
+      "sha256": "65CB721E0741923686E45C3059753E50C1CCDB4D3EEF6B6C9F259D7BDAB05664",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13550714589,
+      "name": "evidence-ARM64",
+      "bytes": 15521620,
+      "sha256": "BAF2913F754FC9BA0E31A157AF4B56A9AAC664DE0BA08094302711F7505E8C42",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13550588944,
+      "name": "regression-x64",
+      "bytes": 709,
+      "sha256": "A507E0558CFE6A1F039B2E08D0DB1F2BA1030B5982BAAB30D1126EF01DAE5084",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13550509188,
+      "name": "evidence-x64",
+      "bytes": 15476749,
+      "sha256": "004B4BFC4C54A2022CC66120C55958ADA7BC5409A1D119614B790B7E58B0A2A2",
+      "reportedDigestVerified": true
+    },
+    {
+      "id": 13549724841,
+      "name": "msvc-14.52-d44a1a6f2d0c43efb68913861b06f4a9",
+      "bytes": 1371194,
+      "sha256": "F721CA323966356CEE38395928D9D20E7FE0C31AE6D8FCDDEEB8835BA1CB130D",
+      "reportedDigestVerified": true
+    }
+  ],
+  "limits": [
+    "Debug/ASan profiles are separately recorded; no physical IME or assistive-technology acceptance",
+    "API-4 a1915ffd application source; no automatic API-5 adoption or later rendering-candidate qualification",
+    "Recorded test executable hashes are original receipt identities; test executables were not re-executed or independently reconstructed locally",
+    "No paired performance acceptance or GitHub release publication is implied; admission batch outcome remains its original running snapshot"
+  ]
+}
