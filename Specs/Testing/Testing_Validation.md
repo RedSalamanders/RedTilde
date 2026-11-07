@@ -21,6 +21,16 @@ Do not require an unrelated user window to remain foreground: the person may swi
 windows during a hidden run. Keep window-visibility checks and all logical-focus assertions. Observer
 negative controls replay its callback privately; they never activate a window or emit a false desktop event.
 
+Editing-boundary consumer tests MUST use the exact adopted SDK's public APIs:
+route Source Enter/Shift+Enter through the hidden application's normal window,
+verify LF/CRLF/CR source, caret, one-step history and recovery, and exercise native
+ACP QueryInsert plus locked overflow/in-range retries at the document ceiling.
+Check the actual source mirror and a retained store after owner destruction.
+File-paste admission uses owned structured content, including hostile quote/line
+break names, and verifies unchanged replacement/source/history on refusal in
+every view. Never use the person's clipboard or a private SDK implementation
+header. These controlled cases do not establish physical IME or clipboard acceptance.
+
 The hidden `markdown-style` capture scenario uses invented content matching the
 heading/flow/equation/table/quote example. The Captures suite runs it at 96, 144
 and 192 DPI and preserves each image's actual viewport/DPI provenance. Verify

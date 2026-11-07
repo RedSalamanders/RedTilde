@@ -1,6 +1,9 @@
 {
   "version": 1,
   "cases": [
+    { "name": "Editor.SourceEnterPreservesLineEndings", "scope": "Editor" },
+    { "name": "Editor.NativeTextStoreCapacityAdmission", "scope": "Editor" },
+    { "name": "Editor.FilePasteAdmissionRejectsHostileNames", "scope": "Editor" },
     { "name": "Storage.BitmapAssetsEncodeAndRetireOwnedFiles", "scope": "Storage" },
     { "name": "Settings.ImageFirstPasteRoundTripAndFallback", "scope": "Settings" },
     { "name": "Editor.ClipboardBitmapPasteCommitUndoAndBusy", "scope": "Editor" },

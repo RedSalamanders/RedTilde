@@ -11,6 +11,7 @@
 #include "res/Resource.h"
 #include <DxUi/RichMath.h>
 #include <DxUi/RichSemanticDocument.h>
+#include <DxUi/TextInputServices.h>
 #include <array>
 #include <charconv>
 #include <chrono>
@@ -963,6 +964,176 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Success(ReadBytes(path.native() + L".quarantine", bytes), "quarantined bytes readable");
              Require(bytes == "RedTilde.Recovery/9\nkeep these bytes", "unreadable snapshot is retained intact");
              scanner.Stop();
+         });
+    test("Editor.SourceEnterPreservesLineEndings",
+         [&]
+         {
+             Testing::ForegroundOwnershipObserver foreground;
+             std::array<BYTE, 256> savedKeyboard{};
+             Require(GetKeyboardState(savedKeyboard.data()) != FALSE, "snapshot the calling thread's Enter modifiers");
+             const auto restoreKeyboard = wil::scope_exit(
+                 [&] noexcept
+                 {
+                     if (!SetKeyboardState(savedKeyboard.data()))
+                         std::terminate();
+                 });
+             for (const std::wstring_view eol : {L"\n", L"\r\n", L"\r"})
+                 for (const bool shift : {false, true})
+                 {
+                     LaunchOptions options;
+                     options.headless = true;
+                     options.dataDirectory = root;
+                     Application app(options);
+                     Success(app.Initialize(), "initialize hidden Source Enter app");
+                     const std::wstring original = L"first" + std::wstring(eol) + L"last";
+                     app.SetDocument(original);
+                     app.SetView(EditorView::Source);
+                     const auto end = original.size();
+                     app.Document().SetSelection({end, end});
+                     app.Host().SetFocusControl(&app.Document(), false);
+                     std::array<BYTE, 256> keys{};
+                     keys[VK_SHIFT] = keys[VK_LSHIFT] = shift ? 0x80 : 0;
+                     Require(SetKeyboardState(keys.data()) != FALSE, "set only the owned thread's Enter modifiers");
+                     const auto before = app.Activity();
+                     SendMessageW(app.Window(), WM_KEYDOWN, VK_RETURN, 0);
+                     SendMessageW(app.Window(), WM_CHAR, L'\r', 0);
+                     const std::wstring expected = original + std::wstring(eol);
+                     Require(app.Document().GetText() == expected &&
+                                 app.Document().GetSelection() == DxUi::RichText::Selection{expected.size(), expected.size()},
+                             "native Source Enter and Shift+Enter preserve LF, CRLF and CR with exact ending ACP");
+                     Require(app.Activity().changes == before.changes + 1 && app.Activity().recoverySubmissions == before.recoverySubmissions + 1,
+                             "each native Source Enter publishes exactly one edit and recovery submission");
+                     Require(app.Document().Undo() && app.Document().GetText() == original &&
+                                 app.Document().GetSelection() == DxUi::RichText::Selection{end, end} && !app.Dirty(),
+                             "one undo restores exact saved source, caret and clean state");
+                     Require(app.Document().Redo() && app.Document().GetText() == expected, "Source Enter redo preserves the same terminator");
+                     Require(!IsWindowVisible(app.Window()) && foreground.NeverAcquiredForeground(), "Source Enter never shows or activates its app");
+                 }
+             Require(foreground.NeverAcquiredForeground(), "Source Enter teardown never acquires foreground");
+         });
+    test("Editor.NativeTextStoreCapacityAdmission",
+         [&]
+         {
+             Testing::ForegroundOwnershipObserver foreground;
+             wil::com_ptr<ITextStoreACP> store;
+             {
+                 LaunchOptions options;
+                 options.headless = true;
+                 options.dataDirectory = root;
+                 Application app(options);
+                 Success(app.Initialize(), "initialize hidden native-store capacity app");
+                 const std::wstring original(65530u, L'x');
+                 app.SetDocument(original);
+                 app.SetView(EditorView::Split);
+                 app.Document().SetSelection({65530u, 65530u});
+                 app.Host().SetFocusControl(&app.Document(), false);
+                 store.attach(app.Host().DebugCreateNativeTextInputTextStoreForTest());
+                 Require(store != nullptr, "the adopted pin creates the actual native ACP store");
+                 LONG first{}, last{};
+                 Require(store->QueryInsert(65530, 65530, 10u, &first, &last) == HRESULT_FROM_WIN32(ERROR_BUFFER_OVERFLOW),
+                         "native store refuses 65540 UTF16 units before staging");
+                 Require(app.Document().GetText() == original && !app.Document().CanUndo(), "query refusal preserves exact source and history");
+                 wil::com_ptr<Testing::NativeTextStoreSink> sink = Microsoft::WRL::Make<Testing::NativeTextStoreSink>().Get();
+                 Require(sink != nullptr, "allocate owned native-store sink");
+                 Success(store->AdviseSink(__uuidof(ITextStoreACPSink), sink.get(), TS_AS_TEXT_CHANGE | TS_AS_SEL_CHANGE),
+                         "advise consumer native-store sink");
+                 const auto unadvise = wil::scope_exit([&] { static_cast<void>(store->UnadviseSink(sink.get())); });
+                 struct WriteAttempt
+                 {
+                     ITextStoreACP *store;
+                     std::wstring_view overflow, fitting;
+                     HRESULT refused{E_UNEXPECTED}, accepted{E_UNEXPECTED};
+                 } attempt{store.get(), L"0123456789", L"abc"};
+                 sink->context = &attempt;
+                 sink->action = [](void *context) noexcept
+                 {
+                     auto &value = *static_cast<WriteAttempt *>(context);
+                     TS_TEXTCHANGE change{};
+                     LONG begin{}, end{};
+                     value.refused = value.store->InsertTextAtSelection(0u, value.overflow.data(), static_cast<ULONG>(value.overflow.size()), &begin,
+                                                                        &end, &change);
+                     value.accepted = value.store->InsertTextAtSelection(0u, value.fitting.data(), static_cast<ULONG>(value.fitting.size()), &begin,
+                                                                         &end, &change);
+                     return value.accepted;
+                 };
+                 const auto before = app.Activity();
+                 HRESULT session{E_UNEXPECTED};
+                 Success(store->RequestLock(TS_LF_READWRITE | TS_LF_SYNC, &session), "request native capacity write lock");
+                 Success(session, "native in-range edit remains committable after refusal");
+                 Require(attempt.refused == HRESULT_FROM_WIN32(ERROR_BUFFER_OVERFLOW) && attempt.accepted == S_OK &&
+                             app.Document().GetText() == original + L"abc" && app.SourceMirror().GetText() == original + L"abc",
+                         "overflow preserves the last in-range state and the Split source mirror");
+                 attempt.overflow = L"1234";
+                 attempt.fitting = L"def";
+                 Success(store->RequestLock(TS_LF_READWRITE | TS_LF_SYNC, &session), "request exact-capacity native write lock");
+                 Success(session, "exact remaining capacity commits");
+                 sink->action = nullptr;
+                 Require(attempt.refused == HRESULT_FROM_WIN32(ERROR_BUFFER_OVERFLOW) && attempt.accepted == S_OK &&
+                             app.Document().GetText() == original + L"abcdef" && app.SourceMirror().GetText() == original + L"abcdef" &&
+                             app.Document().GetSelection() == DxUi::RichText::Selection{65536u, 65536u},
+                         "native store admits exactly 65536 units and preserves current source and ACPs");
+                 Require(app.Activity().changes == before.changes + 2 && app.Activity().recoverySubmissions == before.recoverySubmissions + 2,
+                         "only the two accepted native writes publish edits and recovery");
+                 Require(app.Document().Undo() && app.Document().GetText() == original + L"abc" && app.Document().Undo() &&
+                             app.Document().GetText() == original && !app.Dirty(),
+                         "each native write is one independently undoable edit");
+                 Require(!IsWindowVisible(app.Window()) && foreground.NeverAcquiredForeground(),
+                         "native-store capacity check never activates its app");
+             }
+             LONG first{}, last{};
+             Require(FAILED(store->QueryInsert(0, 0, 1u, &first, &last)), "retained native store disconnects after its application is destroyed");
+             Require(foreground.NeverAcquiredForeground(), "native-store teardown never acquires foreground");
+         });
+    test("Editor.FilePasteAdmissionRejectsHostileNames",
+         [&]
+         {
+             Testing::ForegroundOwnershipObserver foreground;
+             LaunchOptions options;
+             options.headless = true;
+             options.dataDirectory = root;
+             Application app(options);
+             Success(app.Initialize(), "initialize hidden file-paste admission app");
+             for (const auto view : {EditorView::Compose, EditorView::Source, EditorView::Split})
+             {
+                 const std::wstring original = L"Safe observation.\r\n";
+                 app.SetDocument(original);
+                 app.SetView(view);
+                 app.Document().SetSelection({5u, 5u});
+                 const auto snapshot = app.Document().Snapshot();
+                 const auto selection = app.Document().GetSelection();
+                 const auto before = app.Activity();
+                 for (const auto &path :
+                      {std::wstring(L"C:\\SyntheticNotes\\draft.png\"\r\n![intruder](https://assets.example.invalid/pixel.png)\r\n\""),
+                       std::wstring(L"C:\\SyntheticNotes\\quote\".png"), std::wstring(L"C:\\SyntheticNotes\\line\nbreak.png")})
+                 {
+                     DxUi::TextClipboardContent content;
+                     content.filePaths.push_back(path);
+                     std::wstring replacement = L"unchanged";
+                     bool rejected{};
+                     try
+                     {
+                         rejected = !app.Document().TryPrepareClipboardPaste(content, replacement);
+                     }
+                     catch (const std::invalid_argument &)
+                     {
+                         rejected = true;
+                     }
+                     Require(rejected && replacement == L"unchanged", "hostile file paste declines before producing any Markdown replacement");
+                     Require(app.Document().Snapshot().IsSameRevision(snapshot) && app.Document().GetSelection() == selection &&
+                                 !app.Document().CanUndo() && !app.Document().CanRedo() && app.Activity().changes == before.changes &&
+                                 app.Activity().recoverySubmissions == before.recoverySubmissions,
+                             "declined file paste preserves source, selection, history and recovery in every view");
+                 }
+                 DxUi::TextClipboardContent ordinary;
+                 ordinary.filePaths.push_back(L"C:\\SyntheticNotes\\safe.png");
+                 std::wstring replacement;
+                 Require(app.Document().TryPrepareClipboardPaste(ordinary, replacement) && !replacement.empty(),
+                         "the same app still prepares ordinary file paste without changing source");
+                 Require(app.Document().GetText() == original && app.Document().Snapshot().IsSameRevision(snapshot),
+                         "file preparation performs no source edit");
+             }
+             Require(!IsWindowVisible(app.Window()) && foreground.NeverAcquiredForeground(),
+                     "file-paste preparation never uses desktop input or clipboard");
          });
     test("Editor.ViewSwitchKeepsSourceSelectionHistory",
          [&]

@@ -9,6 +9,20 @@ option. File-list priority and forced plain-text paste remain governed by the sh
 The exact Markdown source is authoritative. Preserve UTF-8 encoding, optional BOM, Unicode scalar pairs and
 existing line endings. View changes never reserialize Markdown, reset history or move selection.
 
+Source-view Enter and Shift+Enter use that same first physical terminator, retain
+the exact ending UTF-16 caret position, and create one undoable edit and recovery
+submission. RedTilde routes these messages through the adopted DxUi editor.
+The native text store must reject a staged edit beyond 65,536 UTF-16 units before
+changing source, selection or history; an in-range retry remains usable and the
+visible Split mirror follows only accepted source changes. Retained text stores
+disconnect when their application owner is destroyed.
+
+File-paste preparation rejects file names containing quotes, CR or LF before
+producing a Markdown replacement in Compose, Source and Split. A refusal leaves
+the source, output replacement, selection, history and recovery unchanged. This
+prevents an invalid quoted file name from introducing an image or link. Ordinary
+valid file references remain supported; files are not opened during preparation.
+
 New Mermaid, equation, empty-selection quote and fenced-code templates use the document's first physical
 terminator (LF, CRLF or CR), with CRLF for an empty or unterminated document. Mixed outside source remains
 unchanged. Changed ordinary F2 drafts and their recovery previews normalize only the replacement text by
