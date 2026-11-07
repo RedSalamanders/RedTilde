@@ -3,6 +3,7 @@
   "cases": [
     { "name": "Editor.SourceEnterPreservesLineEndings", "scope": "Editor" },
     { "name": "Editor.NativeTextStoreCapacityAdmission", "scope": "Editor" },
+    { "name": "Editor.TextServiceCapacityPreservesPreviewAndMirror", "scope": "Editor" },
     { "name": "Editor.FilePasteAdmissionRejectsHostileNames", "scope": "Editor" },
     { "name": "Storage.BitmapAssetsEncodeAndRetireOwnedFiles", "scope": "Storage" },
     { "name": "Settings.ImageFirstPasteRoundTripAndFallback", "scope": "Settings" },

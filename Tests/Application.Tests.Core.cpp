@@ -1017,22 +1017,24 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Testing::ForegroundOwnershipObserver foreground;
              wil::com_ptr<ITextStoreACP> store;
              {
-                 LaunchOptions options;
-                 options.headless = true;
-                 options.dataDirectory = root;
-                 Application app(options);
-                 Success(app.Initialize(), "initialize hidden native-store capacity app");
+                 // A hidden HWND intentionally has no live native input session.
+                 // Exercise the same consumer Editor in the SDK's headless native host;
+                 // the independent application case below covers preview/mirror/recovery.
+                 std::size_t notices{};
+                 DxUi::ControlHost host;
                  const std::wstring original(65530u, L'x');
-                 app.SetDocument(original);
-                 app.SetView(EditorView::Split);
-                 app.Document().SetSelection({65530u, 65530u});
-                 app.Host().SetFocusControl(&app.Document(), false);
-                 store.attach(app.Host().DebugCreateNativeTextInputTextStoreForTest());
+                 auto owned = std::make_unique<Editor>(original);
+                 auto &editor = *owned;
+                 host.SetRoot(std::move(owned));
+                 editor.SetSelection({65530u, 65530u});
+                 editor.SetOnTextChanged([&] { ++notices; });
+                 host.SetFocusControl(&editor, false);
+                 store.attach(host.DebugCreateNativeTextInputTextStoreForTest());
                  Require(store != nullptr, "the adopted pin creates the actual native ACP store");
                  LONG first{}, last{};
                  Require(store->QueryInsert(65530, 65530, 10u, &first, &last) == HRESULT_FROM_WIN32(ERROR_BUFFER_OVERFLOW),
                          "native store refuses 65540 UTF16 units before staging");
-                 Require(app.Document().GetText() == original && !app.Document().CanUndo(), "query refusal preserves exact source and history");
+                 Require(editor.GetText() == original && !editor.CanUndo(), "query refusal preserves exact source and history");
                  wil::com_ptr<Testing::NativeTextStoreSink> sink = Microsoft::WRL::Make<Testing::NativeTextStoreSink>().Get();
                  Require(sink != nullptr, "allocate owned native-store sink");
                  Success(store->AdviseSink(__uuidof(ITextStoreACPSink), sink.get(), TS_AS_TEXT_CHANGE | TS_AS_SEL_CHANGE),
@@ -1056,33 +1058,89 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                                                                          &end, &change);
                      return value.accepted;
                  };
-                 const auto before = app.Activity();
+                 const auto before = notices;
                  HRESULT session{E_UNEXPECTED};
                  Success(store->RequestLock(TS_LF_READWRITE | TS_LF_SYNC, &session), "request native capacity write lock");
                  Success(session, "native in-range edit remains committable after refusal");
                  Require(attempt.refused == HRESULT_FROM_WIN32(ERROR_BUFFER_OVERFLOW) && attempt.accepted == S_OK &&
-                             app.Document().GetText() == original + L"abc" && app.SourceMirror().GetText() == original + L"abc",
-                         "overflow preserves the last in-range state and the Split source mirror");
+                             editor.GetText() == original + L"abc",
+                         "overflow preserves the last in-range state in the consumer editor");
                  attempt.overflow = L"1234";
                  attempt.fitting = L"def";
                  Success(store->RequestLock(TS_LF_READWRITE | TS_LF_SYNC, &session), "request exact-capacity native write lock");
                  Success(session, "exact remaining capacity commits");
                  sink->action = nullptr;
                  Require(attempt.refused == HRESULT_FROM_WIN32(ERROR_BUFFER_OVERFLOW) && attempt.accepted == S_OK &&
-                             app.Document().GetText() == original + L"abcdef" && app.SourceMirror().GetText() == original + L"abcdef" &&
-                             app.Document().GetSelection() == DxUi::RichText::Selection{65536u, 65536u},
+                             editor.GetText() == original + L"abcdef" && editor.GetSelection() == DxUi::RichText::Selection{65536u, 65536u},
                          "native store admits exactly 65536 units and preserves current source and ACPs");
-                 Require(app.Activity().changes == before.changes + 2 && app.Activity().recoverySubmissions == before.recoverySubmissions + 2,
-                         "only the two accepted native writes publish edits and recovery");
-                 Require(app.Document().Undo() && app.Document().GetText() == original + L"abc" && app.Document().Undo() &&
-                             app.Document().GetText() == original && !app.Dirty(),
+                 Require(notices == before + 2, "only the two accepted native writes notify the consumer editor");
+                 Require(editor.Undo() && editor.GetText() == original + L"abc" && editor.Undo() && editor.GetText() == original && !editor.CanUndo(),
                          "each native write is one independently undoable edit");
-                 Require(!IsWindowVisible(app.Window()) && foreground.NeverAcquiredForeground(),
-                         "native-store capacity check never activates its app");
+                 Require(host.GetHwnd() == nullptr && foreground.NeverAcquiredForeground(),
+                         "native-store capacity check uses no HWND or foreground input");
              }
              LONG first{}, last{};
-             Require(FAILED(store->QueryInsert(0, 0, 1u, &first, &last)), "retained native store disconnects after its application is destroyed");
+             Require(FAILED(store->QueryInsert(0, 0, 1u, &first, &last)),
+                     "retained native store disconnects after its consumer editor host is destroyed");
              Require(foreground.NeverAcquiredForeground(), "native-store teardown never acquires foreground");
+         });
+    test("Editor.TextServiceCapacityPreservesPreviewAndMirror",
+         [&]
+         {
+             Testing::ForegroundOwnershipObserver foreground;
+             {
+                 LaunchOptions options;
+                 options.headless = true;
+                 options.dataDirectory = root;
+                 Application app(options);
+                 Success(app.Initialize(), "initialize hidden capacity preview app");
+                 const std::wstring original(65530u, L'x');
+                 app.SetDocument(original);
+                 app.SetView(EditorView::Split);
+                 app.Document().SetSelection({65530u, 65530u});
+                 DxUi::TextInputState entry;
+                 entry.text = original;
+                 entry.multiline = true;
+                 entry.caretIndex = 65530u;
+                 auto preview = entry;
+                 preview.text += L"\u4eee\U0001F600x";
+                 preview.caretIndex = 65534u;
+                 const auto before = app.Activity();
+                 Require((app.Document().*TextServiceImportProbe::Import)(app.Host(), preview, false),
+                         "last in-range application preview is accepted");
+                 const auto snapshot = app.Document().Snapshot();
+                 const auto selection = app.Document().GetSelection();
+                 auto overflow = entry;
+                 overflow.text += L"0123456789";
+                 overflow.caretIndex = 65540u;
+                 Require(!(app.Document().*TextServiceImportProbe::Import)(app.Host(), overflow, false),
+                         "oversized application preview declines atomically");
+                 Require(app.Document().Snapshot().IsSameRevision(snapshot) && app.Document().GetSelection() == selection &&
+                             app.Document().GetText() == preview.text && app.SourceMirror().GetText() == preview.text &&
+                             app.SourceMirror().GetSelection() == selection && !app.Document().CanUndo() && !app.Document().CanRedo(),
+                         "overflow keeps the last in-range Unicode preview, exact ACPs, history and mirror");
+                 Require(app.Activity().changes == before.changes && app.Activity().recoverySubmissions == before.recoverySubmissions,
+                         "preview and refusal do not publish committed edits or recovery");
+                 auto exact = entry;
+                 exact.text += L"\u4eee\U0001F600xyz";
+                 exact.caretIndex = 65536u;
+                 Require((app.Document().*TextServiceImportProbe::Import)(app.Host(), exact, false) && app.Document().GetText() == exact.text &&
+                             app.SourceMirror().GetText() == exact.text,
+                         "exact-capacity application preview and mirror remain usable after refusal");
+                 Require((app.Document().*TextServiceImportProbe::Import)(app.Host(), entry, false),
+                         "restore entry source through the existing commit protocol");
+                 Require((app.Document().*TextServiceImportProbe::Import)(app.Host(), exact, true), "commit the exact-capacity result once");
+                 Require(app.Document().GetText() == exact.text && app.SourceMirror().GetText() == exact.text &&
+                             app.Document().GetSelection() == DxUi::RichText::Selection{65536u, 65536u} &&
+                             app.Activity().changes == before.changes + 1 && app.Activity().recoverySubmissions == before.recoverySubmissions + 1,
+                         "one exact-capacity result synchronizes source, ACPs, mirror and recovery");
+                 Require(app.Document().Undo() && app.Document().GetText() == original && app.SourceMirror().GetText() == original && !app.Dirty() &&
+                             app.Document().Redo() && app.Document().GetText() == exact.text && app.SourceMirror().GetText() == exact.text,
+                         "one undo and redo preserve the complete exact-capacity result");
+                 Require(!IsWindowVisible(app.Window()) && foreground.NeverAcquiredForeground(),
+                         "application capacity previews stay hidden without native focus");
+             }
+             Require(foreground.NeverAcquiredForeground(), "capacity preview teardown never acquires foreground");
          });
     test("Editor.FilePasteAdmissionRejectsHostileNames",
          [&]

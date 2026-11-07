@@ -24,8 +24,11 @@ negative controls replay its callback privately; they never activate a window or
 Editing-boundary consumer tests MUST use the exact adopted SDK's public APIs:
 route Source Enter/Shift+Enter through the hidden application's normal window,
 verify LF/CRLF/CR source, caret, one-step history and recovery, and exercise native
-ACP QueryInsert plus locked overflow/in-range retries at the document ceiling.
-Check the actual source mirror and a retained store after owner destruction.
+ACP QueryInsert plus locked overflow/in-range retries at the document ceiling on
+the consumer Editor in a headless ControlHost. Do not manufacture an active native
+session for a hidden HWND. Independently check the actual hidden application's
+last accepted preview, overflow refusal, exact-capacity commit and source mirror,
+and check a retained native store after its consumer host is destroyed.
 File-paste admission uses owned structured content, including hostile quote/line
 break names, and verifies unchanged replacement/source/history on refusal in
 every view. Never use the person's clipboard or a private SDK implementation
