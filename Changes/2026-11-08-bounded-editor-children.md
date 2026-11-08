@@ -1,1 +1,0 @@
-- Partition native editor behavior by content, workspace and media while retaining every reviewed case and the unchanged 90-second child guard; flush active-case and elapsed-result diagnostics, preserve legacy scopes and retain the original whole-behavior timeout.

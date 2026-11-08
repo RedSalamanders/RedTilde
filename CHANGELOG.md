@@ -4,6 +4,14 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Adopt the API-5 SDK's source-owned capacity and unsupported diagnostics, preserving their distinct accessibility explanations, neighboring rich content and editing history. Exercise both causes in the real hidden consumer and align the validation spec with current compiler-free PR and main/manual native CI policy.
+- Audit the actual legacy reviewed-header callers and sealed current profile before Q15 retirement; retain supported historical replay and document the remaining shared-module migration.
+- Record a private all-ref/worktree-head history scan and source-reference candidate review, preserving the raw result and the remaining coordinated privacy operation.
+- Partition native editor behavior by content, workspace and media while retaining every reviewed case and the unchanged 90-second child guard; flush active-case and elapsed-result diagnostics, preserve legacy scopes and retain the original whole-behavior timeout.
+- Add document-scoped image consent, a separate local-network preference, bounded DNS endpoint admission and pinning that retains the original HTTP/TLS hostname. Add same-share file policy, guarded image reads, bounded event-driven refresh, explicit reload and useful failure messages. Preserve the transport counterexample and add address, owned-loopback, settings, file/junction and hidden-application regressions; source-bound native qualification remains required before closing adoption.
+  - Preserve unchanged local-file watches across remote-only image edits, avoiding a duplicate HTTP reload; retain named wait-stage counters and regressions for semantic image counts versus admitted resource bindings.
+- Allow x64-only manual diagnostic qualification through the reviewed shared CI engine, while retaining the normal two-architecture production gate and recording the delivery's explicit ARM64 compilation-only scope.
+- Port the exact DxUi API-5 dependency with a prestarted original-context failure reporter, explicit warning-free owner alignment, checked document/codec/configuration admission and counted callback retirement; preserve the bounded OS session-end path, add isolated fatal/native/shutdown and source-retention regressions, and keep fresh consumer/platform qualification explicit.
 - Verify effective main-branch rules, current access/visibility, shared CI pins and truthful capability boundaries;
   document that a missing classic branch-protection policy does not negate active rulesets. Preserve the read-only
   audit separately from native qualification and close that item in the remaining-work plan.
