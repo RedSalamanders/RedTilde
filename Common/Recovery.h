@@ -1,6 +1,7 @@
 #pragma once
 #include "Storage.h"
 #include <DxUi/RichDocument.h>
+#include <cstddef>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -19,6 +20,13 @@ struct RecoveryCandidate
 {
     std::wstring id;
     RecoverySnapshot snapshot;
+};
+struct RecoveryScanStatistics
+{
+    // Startup work, including unrelated names. Published under the service
+    // mutex before Ready; reaching the limit never removes unexamined files.
+    std::size_t examinedEntries{};
+    bool entryLimitReached{};
 };
 [[nodiscard]] std::string SerializeRecovery(const RecoverySnapshot &snapshot);
 [[nodiscard]] HRESULT TrySerializeRecovery(const RecoverySnapshot &snapshot, std::string &output) noexcept;
@@ -64,6 +72,7 @@ class RecoveryService final
     [[nodiscard]] bool Settled() const noexcept;
     [[nodiscard]] bool Finished() const noexcept;
     [[nodiscard]] HRESULT Status() const noexcept;
+    [[nodiscard]] RecoveryScanStatistics ScanStatistics() const noexcept;
     // Only the final WM_ENDSESSION boundary may wait, bounded by the caller's
     // shutdown allowance. Ordinary editing/Close continue asynchronously.
     [[nodiscard]] HRESULT WaitForSettlement(DWORD milliseconds) const noexcept;

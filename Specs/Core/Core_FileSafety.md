@@ -207,6 +207,10 @@ name already exists, retain both the unrenamed input and earlier quarantine. Oth
 remain available. Expected malformed/oversized input must never terminate the parser or recovery worker.
 Snapshots are strict versioned UTF-8 envelopes with bounded path/source lengths, BOM, selection, generation and
 a payload checksum. Partial/corrupt or newer-version data is renamed `.quarantine` without overwriting it.
-Startup scans at most 512 entries and offers at most 64 valid inactive sessions; remaining files are retained.
+Startup examines at most 512 directory entries, counting unrelated names and entry types before filtering for
+session envelopes. A directory filled with unrelated files cannot bypass that bound. It offers at most 64 valid
+inactive sessions; remaining files are retained. The worker publishes the examined-entry count and whether the
+entry limit stopped a nonempty remainder under the service mutex before reporting Ready. Those counters measure
+actual startup work; they do not assert a filesystem completion-time bound or change snapshot ownership.
 Another live session's leased snapshot is never offered or deleted. Candidate retirement after Restore happens
 only after the new session's replacement is durable. The checksum detects corruption, not hostile tampering.

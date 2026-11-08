@@ -842,6 +842,33 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              service.Close();
          });
 
+    test("Recovery.StartupScanCountsUnrelatedEntries",
+         [&]
+         {
+             const auto directory = root / L"recovery-scan-noise";
+             const auto snapshots = directory / L"Recovery";
+             std::filesystem::create_directories(snapshots);
+             constexpr unsigned noiseFiles = 576u;
+             for (unsigned index = 0; index < noiseFiles; ++index)
+             {
+                 std::ofstream file(snapshots / std::format(L"unrelated-{:04}.txt", index), std::ios::binary);
+                 Require(static_cast<bool>(file), "seed an unrelated native directory entry");
+             }
+             RecoveryService service;
+             Success(service.Initialize(directory), "start the actual recovery worker with unrelated files");
+             for (unsigned turn = 0; turn < 1000 && !service.Ready(); ++turn)
+                 std::this_thread::sleep_for(std::chrono::milliseconds(5));
+             Require(service.Ready() && SUCCEEDED(service.Status()), "the bounded native recovery scan completes");
+             const auto observed = service.ScanStatistics();
+             Require(observed.examinedEntries <= 512u && observed.entryLimitReached,
+                     "unrelated entries consume the real recovery startup scan budget");
+             Require(service.TakeCandidates().empty(), "unrelated files do not become recovery candidates");
+             for (unsigned index = 0; index < noiseFiles; ++index)
+                 Require(std::filesystem::file_size(snapshots / std::format(L"unrelated-{:04}.txt", index)) == 0u,
+                         "startup leaves every unrelated fixture file intact");
+             service.Close();
+         });
+
     test("Recovery.DebounceLeaseCoalescingAndRetirement",
          [&]
          {

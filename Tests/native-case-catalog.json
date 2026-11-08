@@ -87,6 +87,7 @@
     { "name": "Settings.AsyncLatestValueSurvivesWriterClose", "scope": "Settings" },
     { "name": "Math.NativeSubsetAndRejection", "scope": "Editor" },
     { "name": "Recovery.StrictEnvelopeAndUnicode", "scope": "Recovery" },
+    { "name": "Recovery.StartupScanCountsUnrelatedEntries", "scope": "Recovery" },
     { "name": "Recovery.DebounceLeaseCoalescingAndRetirement", "scope": "Recovery" },
     { "name": "Recovery.CorruptAndFutureDataQuarantined", "scope": "Recovery" },
     { "name": "Editor.ViewSwitchKeepsSourceSelectionHistory", "scope": "Editor" },

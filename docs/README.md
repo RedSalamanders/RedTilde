@@ -17,6 +17,8 @@ preference captures, cancellation and Undo checks, and the remaining platform bo
 Invalid or oversized recovery copies are kept intact in quarantine instead of interrupting recovery. Valid
 copies remain available. An existing quarantine file is preserved; the original input stays intact if it
 cannot be moved beside that earlier file. Recovery never silently truncates your writing.
+Startup checks at most 512 entries in the recovery folder, including unrelated files, and offers at most 64
+valid inactive sessions. Files beyond that limit stay intact.
 
 Saving through a symbolic link keeps the link and updates its target. A file with several hardlinks keeps those
 aliases and their shared identity: RedTilde first stores an independent complete recovery copy, then writes the
