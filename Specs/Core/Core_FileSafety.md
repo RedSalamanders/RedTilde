@@ -1,5 +1,27 @@
 # File safety
 
+## Image file admission and refresh
+
+Image transport uses `ReadImageFileBytes`, independently bounded to 16 MiB; ordinary document reads keep
+their smaller limit. Open only absolute canonical paths. While opening each component, retain checked parent
+directory handles that exclude cooperative rename/metadata writers. Open entries without following their reparse
+points and reject actual name-surrogate links and mount points; non-name-surrogate cloud/provider tags retain
+their provider semantics. Use the final retained file handle for the complete bounded read and stable metadata
+check, then publish bytes only after cancellation is checked again. Refusal preserves the caller's bytes.
+The component walk admits at most 128 retained parents. This is a cooperative sharing boundary, not a guarantee
+against a filesystem/filter that ignores Windows sharing or a privileged provider changing its semantics.
+
+Network-file images require both image permission and the local-network preference. The document must itself
+be on the same literal UNC server/share; compare server names ordinal-insensitively and share names exactly.
+Never reinterpret a URI, local `file://localhost` result or another share as same-share authorization. SDK requests
+already supply canonical decoded paths. Real OneDrive/cloud, SMB/NAS and WSL qualification remains separate
+from these local ordinary-file, owned-junction and lexical policy cases.
+
+`OpenImageDirectoryForNotifications` reuses the same component/reparse admission for worker-side watch setup.
+Its final overlapped directory handle permits ordinary writes/rename and observes that opened directory object.
+Parent pins end after final handle acquisition; no later path reopen is used for that watch. Notification names
+are hints for bounded refresh, never authorization to read a different path.
+
 ## Bounded clipboard asset files
 
 `WriteNewBytesDurable` is the shared binary-asset writer. It accepts only absolute paths and an explicit
@@ -100,10 +122,17 @@ Reload reads asynchronously and replaces only the current document after validat
 and workspace identity again; other retained documents and the root stay intact. Failed or stale Reload retains
 the editable source/history/dirty protection. Closing during an admitted save retains the separate failure
 contract below and does not automatically retry Overwrite or Close.
-An exception before taking a completed worker result retains that pending result and dirty source for later
-processing, cancels older continuations/Close and reports a localized action failure. After a successful write
+Checked refusal before taking a completed worker result retains that pending result and dirty source for later
+processing, cancels older continuations/Close and reports a localized action failure. An unexpected C++ exception
+takes the process-owned fatal diagnostic path. After a successful write
 has been admitted to application state, publish its path, saved text and stamp together before callbacks or
 fallible view refresh; a later UI failure cannot leave a new saved baseline paired with the old file stamp.
+
+Use API-5 checked source and codec admission for user, file and recovery content. Invalid or over-capacity source
+does not reset the current source, selection, saved baseline, workspace identity or undo/redo. Validate document
+metadata before replacing source. A new Files slot whose content is refused restores the previous active
+document and removes only its empty provisional slot. A rejected explicit Open does not retire the existing
+workspace. Native I/O failure remains an ordinary checked result; unexpected C++ allocation failure is fatal.
 
 New/explicit Open File/Open Folder/Close prompt Save, Discard, Cancel for every dirty workspace document.
 Files-pane activation retains each document and never prompts. Discard approval is staged until the requested

@@ -56,6 +56,7 @@ struct Settings
     unsigned textScale = 100;
     bool dimInactiveBlocks = true;
     bool allowRemoteImages = false;
+    bool allowLocalNetworkImages = false;
     bool imageFirstPaste = false;
     bool strikeCompletedTasks = false;
     std::optional<WindowPlacementSettings> windowPlacement;

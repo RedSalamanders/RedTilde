@@ -3,12 +3,17 @@
 Settings live under `%LOCALAPPDATA%\RedTilde` and use a versioned UTF-8 document. A caller may select an isolated
 data directory for tests. Themes are System, Light, Dark and Paper. Respect Windows high contrast before custom
 colors. Persist appearance, view, outline visibility, Files-pane visibility, selected root and width, reading width, text scale,
-inactive-block dimming, completed-task strike-through, remote-image opt-in, image-first paste and optional Markdown syntax. The
+inactive-block dimming, completed-task strike-through, remote-image opt-in, local-network image opt-in, image-first paste and optional Markdown syntax. The
 `strikeCompletedTasks` field accepts only 0 or 1; missing or invalid values keep the disabled default. It is live
 presentation policy shared by Compose and Split. Defaults are System appearance, Compose view, outline visible, Files pane closed,
 Files width 280 DIP, reading width 760 DIP, text scale 100%, inactive-block dimming enabled, remote images disabled and every optional Markdown syntax enabled. Files widths are
 limited to 200–400 DIP, reading width to 480–1040 DIP, and text scale to 75–200%; invalid fields fall back
 independently without discarding valid neighboring settings.
+
+`remoteImages=0|1` is the persistent “Always allow remote images” choice. `localNetworkImages=0|1` is an
+independent opt-in, disabled when missing or invalid; it grants no image consent itself. Per-document grants
+belong only to the live retained workspace and are absent from settings/recovery. Restart requires renewed
+document consent unless the global choice applies. Neither permission changes nor image reload mark text dirty.
 
 Persist normal window bounds in physical screen coordinates (`windowLeft`, `windowTop`, `windowRight`,
 `windowBottom`), the source `windowDpi` and a separate `windowMaximized=0|1`. The four coordinates form one
@@ -96,3 +101,31 @@ text; the user must choose any later sharing action. A crash probe runs only in 
 
 The crash handler is a last-resort diagnostic, not a recovery save. Recovery snapshots are written during healthy
 execution. ASan owns sanitizer diagnostics and must still pass a real detection probe before qualification.
+
+DxUi API 5 uses an explicit process-owned protocol-2 reporter. Prepare the bounded crash path, handles and loaded
+DbgHelp before SDK use; start its dedicated writer before installing ProcessHooks. The app-owned reporter preserves
+the protocol record's natural context alignment, places that record
+first and explicitly accounts for its scalar tail; a size assertion forbids implicit member/tail padding on either
+compile target. Keep compiler warning policy enabled rather than suppressing alignment diagnostics. Copy the fixed record
+without allocation and keep the faulting thread held while the writer attempts its dump. Serialize DbgHelp use.
+The dump exception stream and fixed `.record` sidecar retain the original exception, machine context, thread,
+source site and frames. The writer's thread/context must never replace them. Record the actual native dump
+HRESULT; report completion has a 15-second bound. Reports use a process-creation identity plus PID/time, and
+healthy retention removes a paired sidecar when retiring its app-owned dump. A missing/unwritable configured
+destination remains a checked diagnostic failure; never silently substitute another directory or upload.
+
+Keep the reporter, registration and COM owner alive until all admitted callbacks and retained UIA peers retire.
+Worker admission is counted before submission, bounded to 256 callbacks, and closes before ordinary process
+drain. A refused submission releases its lease without publishing a job. A callback releases its lease after
+owned SDK objects and scopes; a WinHTTP transfer retains its lease until the final native HANDLE_CLOSING
+notification. Ordinary drain pumps owner/COM messages, preserves WM_QUIT, then disconnects process-wide UIA
+providers and retries failure-host BUSY for a cooperative five seconds. A component must not perform that
+process-wide operation. Final WM_ENDSESSION(TRUE) keeps the existing 2,000-ms recovery-only allowance; its heap
+process owner stays alive until OS teardown so a held codec callback adds no ordinary drain/join deadline.
+
+Expected source/codec/configuration rejection uses checked APIs. Invalid or oversized SetDocument input and
+invalid file metadata leave source, selection, saved facts, recovery and histories intact. Capacity remains
+65,536 UTF-16 units and produces the existing localized source-unchanged limit status. Quote/Code Block and
+Find refusal preserve the selection and both history directions. Recovery parsing/serialization validates
+source, path and selection before writing or publishing; refused serialization preserves its output buffer.
+Unexpected C++ allocation failure remains fatal, including at application worker boundaries.

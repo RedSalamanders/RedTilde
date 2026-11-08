@@ -1,0 +1,729 @@
+{
+  "schemaVersion": 1,
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-api5-image-policy",
+  "inputHash": "ed1202e13777d4fe64518fb5829ed45842ba8de26855df0a69f4ef4e51354e17",
+  "benchmarkInputs": {
+    "Dependencies/DxUi.lock.json": "8CD445BC98C8A388184BFBF7CC00440E61FBF9CCAAC0C41E8473FAC8563729BA",
+    "Common/DxUiFailureHost.cpp": "4E198A12099002129B643F4E3DFB6B4D6102E4961D7C11FB4FCD5B71DE5B3E8F",
+    "Common/ProcessWork.cpp": "313F4CD2BCA5E8EA312455B0D3FA25879532163C24A37175E2092862C8FF4D42",
+    "Common/Storage.cpp": "D42C795A8C1A25D2987FF9463C5430878433A1578A353E449FBF130DB2855760",
+    "RedTilde/Application.cpp": "EB08DBE4D75B8440202547C80A38152FF52045554AF82183A13597E368A97022",
+    "RedTilde/ImageLoader.h": "2BB0410960447152A8F039555500617A79A23328CFFF4D01C703BE77124CEB7C",
+    "Tests/Application.Tests.Core.cpp": "BCB30C13636E6F33847E799AC7424F07B0E249616D9448A34BD3F7418D587CBE",
+    "Tests/native-case-catalog.json": "6A61DF727737D912ED6843301315826894285D948AA50E45B314A26D7ED00F0C"
+  },
+  "implementationCommit": "9feb787e3e789db2f9cfc045e75a6b03f3737ccb",
+  "sourceIdentity": "9107fb1fb8f6b831e0887729655dc6a1f3ede7e96496d417ad75309793175059",
+  "compiledSourceIdentity": "ed1202e13777d4fe64518fb5829ed45842ba8de26855df0a69f4ef4e51354e17",
+  "sdkCommit": "21fae0dc66000b04504ba7862169533ac2943be8",
+  "apiRevision": 5,
+  "originalSourceInputs": {
+    "inputCount": 280,
+    "allOriginalMembersVerified": true,
+    "archiveSha256": "E937079288028B891BF8690B3BF7ECDF5BA012B5BF3C22D7B62B267C71AD07CC"
+  },
+  "builds": [
+    {
+      "errors": 0,
+      "platform": "x64",
+      "binarySha256": "0A91CE6FC6DCECCB9ACC7C36481A9968253E124887D220D110D908A90B2DFB62",
+      "buildLogSha256": "3D03E5D9E69D02B2277AD172A00EC5BF12C3825F160D1783E061C40D9CCE2C7C",
+      "configuration": "Debug",
+      "warnings": 0,
+      "nativeRuntime": true
+    },
+    {
+      "errors": 0,
+      "platform": "x64",
+      "binarySha256": "9408E149D9C25435DD60BF15D39D5F5C23F360F6DDE81118A4FE8C66D4EF39D5",
+      "buildLogSha256": "C5F75BB77398B10572398DA3FB9D027892536EC6E341797E50DBCAA7B2E3AA19",
+      "configuration": "Release",
+      "warnings": 0,
+      "nativeRuntime": true
+    },
+    {
+      "errors": 0,
+      "platform": "x64",
+      "binarySha256": "982C4A754D8F359CCCFE1464CA2D8C69B54A59CEAEEA11A885B38137CC56A2AC",
+      "buildLogSha256": "387209A87BE44EE9B5E5AB3A90184C295F6654D56704914D9340DA626A999A15",
+      "configuration": "ASan Debug",
+      "warnings": 0,
+      "nativeRuntime": true
+    },
+    {
+      "errors": 0,
+      "platform": "ARM64",
+      "binarySha256": "35388B7AFB2E46F2873F9976E49E620BA52776CA9A01A21E2AF576D7D56BE365",
+      "buildLogSha256": "29E1789B33FC27E7D98122CD83C740FB832211BCD97B6DBD5EFC67ED6AAACA74",
+      "configuration": "Debug",
+      "warnings": 0,
+      "nativeRuntime": false
+    },
+    {
+      "errors": 0,
+      "platform": "ARM64",
+      "binarySha256": "7499FFFF0F613CB5A4E8C32A007DA43EF584F250ECD2C215DBF90A9B7E38DCA5",
+      "buildLogSha256": "97107F7E5754DCB717B07D89070B6B0F628F9FBBA22E19B8CD7D529F7D7257DA",
+      "configuration": "Release",
+      "warnings": 0,
+      "nativeRuntime": false
+    },
+    {
+      "errors": 0,
+      "platform": "ARM64",
+      "binarySha256": "5171610F39873B99E7DEA024717C28A6A4077ADCCCAB189FC4B25A72ABC7B655",
+      "buildLogSha256": "B77E6A8646E627A0E08888D9F4E70FB14D254F23687E6CF38B2B2312EBEC369F",
+      "configuration": "ASan Debug",
+      "warnings": 0,
+      "nativeRuntime": false
+    }
+  ],
+  "nativeRuns": [
+    {
+      "configuration": "Debug",
+      "nativeRunArchiveSha256": "790E2551CB2B5B18E863922348BE2C68380076B4BA5C6C3BAAA412817CBC085E",
+      "partitions": [
+        {
+          "cases": [
+            "Settings.DesignRefreshPreferencesRoundTrip",
+            "Settings.DesignRefreshFieldFallback",
+            "Settings.Api5OriginalContextAndNativeIsolation",
+            "Settings.Api5ProcessWorkRetiresBeforeReporter",
+            "Settings.Api5SessionEndKeepsBoundedAllowance",
+            "Settings.LocalNetworkImagePermission",
+            "Settings.ImageFirstPasteRoundTripAndFallback",
+            "Settings.VersionAndFieldFallback",
+            "Settings.LastDocumentPathRoundTripAndFallback",
+            "Settings.WindowPlacementRejectsPartialAndUnsafeValues",
+            "Settings.AsyncLatestValueSurvivesWriterClose"
+          ],
+          "passed": 11,
+          "scope": "Settings"
+        },
+        {
+          "cases": [
+            "Recovery.CloseDuringSaveWaitsForDurableSuccess",
+            "Recovery.CloseDuringSaveFailurePreservesSourceAndRecovery",
+            "Recovery.CloseDuringSaveRechecksLaterEdits",
+            "Recovery.CloseAbandonsPlainOpenWithoutPrompt",
+            "Recovery.CloseAbandonsOpenAndProtectsLaterEdits",
+            "Recovery.WorkspaceExplicitActionsProtectEveryDirtyDocument",
+            "Recovery.RestoreAllKeepsIndependentCopiesAndNavigation",
+            "Recovery.SessionEndCheckpointsEveryDocumentAndCancellationKeepsEditing",
+            "Recovery.SaveProtectionSurvivesOrdinaryCoalescingAndRetirement",
+            "Recovery.StrictEnvelopeAndUnicode",
+            "Recovery.OversizedValidEnvelopeRejectsAndPreservesQuarantine",
+            "Recovery.DebounceLeaseCoalescingAndRetirement",
+            "Recovery.IndependentDocumentCheckpointsAndLeases",
+            "Recovery.ContinuousTypingCannotStarveCheckpoint",
+            "Recovery.CorruptAndFutureDataQuarantined",
+            "Recovery.DuplicateCloseKeepsUnsavedPrompt",
+            "Recovery.RestoreKeepsClickedIdentityAcrossUnsavedPrompt",
+            "Recovery.LocalDraftCancelPreviewRestoreProtectsOriginal",
+            "Recovery.DiscardFailureRetainsCandidateAndRetryClearsError"
+          ],
+          "passed": 19,
+          "scope": "Recovery"
+        },
+        {
+          "cases": [
+            "Editor.DocumentPositionIndexAndNewlineFacts",
+            "Editor.HardlinkSaveWorkerRetainsAliasesAndLaterEdits",
+            "Editor.OpenErrorsExplainEncodingAndCapacity",
+            "Editor.SaveAsSameTargetStillChecksSavedBaseline",
+            "Editor.SaveConflictChoicesAreSingleAndSourceBound",
+            "Editor.StaleConflictChoicePreservesLaterEdits",
+            "Editor.SavePickerCannotRetargetNewerSource",
+            "Editor.ConflictReloadPreservesEditsMadeDuringRead",
+            "Editor.ConflictReloadFailureRetainsSourceAndHistory",
+            "Editor.Api5CheckedAdmissionPreservesWorkspaceAndHistory",
+            "Editor.RecoverableCommandsAndMenusRetainSourceAndDraftFocus",
+            "Editor.FileCompletionFailureRetainsPendingWriteAndCancelsClose",
+            "Editor.CloseCancellationNeverFallsThroughToDefaultDestroy",
+            "Editor.OpenCompletionWaitsForLocalDraft",
+            "Editor.SplitMirrorFallbackRecoversAfterHiddenEdits",
+            "Editor.SplitMirrorNestedEditKeepsNewestPublication",
+            "Editor.SplitMirrorCallbackCanRetireRoot",
+            "Editor.SplitViewTransitionCompletesAfterNestedEdit",
+            "Editor.NestedViewRequestSupersedesOuterSplit",
+            "Editor.HiddenCurrentBlockPublishesLatestOnReveal",
+            "Editor.DocumentAnalysisReusesBoundedLineIndexStorage",
+            "Editor.ExplicitLinksConfirmAndDispatchWithoutEditing",
+            "Editor.LinkConfirmationRejectsSupersededAndClosedOwners",
+            "Editor.PendingLinkDispatchRetiresAfterApplicationClose",
+            "Editor.TextScaleShortcutsAndWheelPreserveHistory",
+            "Editor.FindCaseAndClosedRepeatPreserveSource",
+            "Editor.SingleReplaceSelectsFollowingMatch",
+            "Editor.MarkdownSyntaxOptionsReanalyzeLive",
+            "Editor.CapturesSettleIndependentSourceCosmetics",
+            "Editor.SourceEnterPreservesLineEndings",
+            "Editor.NativeTextStoreCapacityAdmission",
+            "Editor.TextServiceCapacityPreservesPreviewAndMirror",
+            "Editor.FilePasteAdmissionRejectsHostileNames",
+            "Editor.ViewSwitchKeepsSourceSelectionHistory",
+            "Editor.HiddenMirrorSynchronizesWithoutEditingSource",
+            "Editor.OutlineTracksShiftedOffsetsAndChangedLabels",
+            "Editor.DirtyCacheTracksDirectResetAndSameLengthUndo",
+            "Editor.SemanticFormattingUndoAndTheme",
+            "Editor.SelectedBlockInsertionsRetainSourceAndHistory",
+            "Editor.LocalOrdinarySourceCommitCancelAndStale",
+            "Editor.LocalizedResourceViewsRetainStorageAndFormatting"
+          ],
+          "passed": 41,
+          "scope": "EditorContent"
+        },
+        {
+          "cases": [
+            "Editor.WorkspaceSwitchRetainsEveryHistoryAndRecovery",
+            "Editor.WorkspaceCapacityRefusesWithoutEvictingEdits",
+            "Window.DesignRefreshMergedFrameHitTests",
+            "Window.DesignRefreshCaptionButtonPointerLifecycle",
+            "Window.DesignRefreshResponsiveLayoutAndDpi",
+            "Editor.DesignRefreshFocusViewsAndToggleStates",
+            "Outline.DesignRefreshHierarchyCurrentAndFindCounts",
+            "Editor.StartupLastDocumentAndRecoveryPrecedence",
+            "Editor.StartupRestoreNeverReplacesNewerIntent",
+            "Window.PlacementAndLaunchPolicyPreserveHiddenSource",
+            "Editor.DesignRefreshFindReplaceUndoAndCapacity",
+            "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+            "Editor.PersistentFolderNavigationAndRestart",
+            "Editor.DesignRefreshFilesRerootFilterAndDirtyOpen",
+            "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
+            "Editor.DesignRefreshFilesAdmissionErrorsAndRootActions",
+            "Editor.DesignRefreshTransientSurfacesAndClose",
+            "Editor.DesignRefreshLiveSettingsAndEscape",
+            "Editor.DesignRefreshDeferredSelectionToolsFocus",
+            "Window.DesignRefreshPersistentStatusFacts",
+            "Outline.FencesAndUnicode",
+            "Window.CaptionSkipsIdenticalWritesAndPreservesImmediateIdentity",
+            "Window.CaptionRetriesFailedAndSupersededNativeWrites"
+          ],
+          "passed": 23,
+          "scope": "EditorWorkspace"
+        },
+        {
+          "cases": [
+            "Editor.LocalImageChangesReloadWithoutEditing",
+            "Editor.ClipboardBitmapAssetHandler",
+            "Editor.ClipboardBitmapPasteCommitUndoAndBusy",
+            "Editor.ClipboardBitmapPasteDeclinesSupersededSource",
+            "Editor.ClipboardBitmapPasteFailureAndReadOnly",
+            "Editor.ClipboardBitmapPasteCloseDrainsOwnedWorker",
+            "Editor.ClipboardBitmapPasteSessionEndRetiresInsertion",
+            "Window.Image2QuietChromeAndCompactInspector",
+            "Editor.DesignRefreshEquationContextAndDraftGuards",
+            "Editor.NativeCodeHighlightingPreservesSource",
+            "Editor.NativeMermaidProfilesAndDisplayRegressions",
+            "Editor.ImageFileReadAndSharePolicy",
+            "Editor.ImageFileNotificationsAreBoundedAndRetire",
+            "Editor.RemoteImagePublicAddressPolicy",
+            "Editor.RemoteImagesDefaultBlocksOwnedLoopback",
+            "Editor.HttpAnonymousFetchAndNativeDecode",
+            "Editor.HttpRedirectAuthBoundsAndFailures",
+            "Editor.HttpCancellationDeadlineAndOwnerClose",
+            "Editor.DocumentImageConsentAndReload",
+            "Editor.RemoteImagePrivacyOptInRevocationAndShutdown",
+            "Editor.WikiImageEmbedsStayUnresolved",
+            "Math.NativeSubsetAndRejection",
+            "Editor.LocalDiagramSourceAndLiteralFallback",
+            "Editor.DeviceLossAndLocalImagePixels",
+            "Editor.InDocumentMathLocalSourceAndBroaderMermaid"
+          ],
+          "passed": 25,
+          "scope": "EditorMedia"
+        },
+        {
+          "cases": [
+            "Performance.OwnedHeapDiagnosticDistinguishesBusyFreeAndPartialCoverage",
+            "Performance.SelectionDiagnosticRejectsReentryAndUnwinding",
+            "Performance.NativeCompletedFramesPreserveSourceAndHistory"
+          ],
+          "passed": 3,
+          "scope": "EditorPerformance"
+        },
+        {
+          "cases": [
+            "Rendering.DocumentThemedScrollbars",
+            "Rendering.DesignRefreshTypographyAndThemeRoles",
+            "Rendering.NativeDefaultAndWarpResourceLifecycle"
+          ],
+          "passed": 3,
+          "scope": "EditorRendering"
+        }
+      ],
+      "storageArchiveSha256": "13AF841914CCAA9186669D5D3B557DA6E2C338ED2EA6FF1806C9DD17A65A2BA7",
+      "processScopes": [
+        "Capture",
+        "Crash",
+        "Editor",
+        "LinkedSaveCrashRestart",
+        "PerformanceBaseline",
+        "PreferencesProcessExit",
+        "Recovery",
+        "RecoveryCrashRestart",
+        "Settings"
+      ],
+      "allOriginalMembersVerified": true,
+      "captureCount": 40,
+      "storage": "failed: actual symlink privilege 1314; 29 passed; no waiver",
+      "binarySha256": "0A91CE6FC6DCECCB9ACC7C36481A9968253E124887D220D110D908A90B2DFB62",
+      "nonstoragePassed": 125
+    },
+    {
+      "configuration": "Release",
+      "nativeRunArchiveSha256": "EA482E4B0826DE994341EC13A8BD71041991726C43BA554EB52E1546AD8B3D5C",
+      "partitions": [
+        {
+          "cases": [
+            "Settings.DesignRefreshPreferencesRoundTrip",
+            "Settings.DesignRefreshFieldFallback",
+            "Settings.Api5OriginalContextAndNativeIsolation",
+            "Settings.Api5ProcessWorkRetiresBeforeReporter",
+            "Settings.Api5SessionEndKeepsBoundedAllowance",
+            "Settings.LocalNetworkImagePermission",
+            "Settings.ImageFirstPasteRoundTripAndFallback",
+            "Settings.VersionAndFieldFallback",
+            "Settings.LastDocumentPathRoundTripAndFallback",
+            "Settings.WindowPlacementRejectsPartialAndUnsafeValues",
+            "Settings.AsyncLatestValueSurvivesWriterClose"
+          ],
+          "passed": 11,
+          "scope": "Settings"
+        },
+        {
+          "cases": [
+            "Recovery.CloseDuringSaveWaitsForDurableSuccess",
+            "Recovery.CloseDuringSaveFailurePreservesSourceAndRecovery",
+            "Recovery.CloseDuringSaveRechecksLaterEdits",
+            "Recovery.CloseAbandonsPlainOpenWithoutPrompt",
+            "Recovery.CloseAbandonsOpenAndProtectsLaterEdits",
+            "Recovery.WorkspaceExplicitActionsProtectEveryDirtyDocument",
+            "Recovery.RestoreAllKeepsIndependentCopiesAndNavigation",
+            "Recovery.SessionEndCheckpointsEveryDocumentAndCancellationKeepsEditing",
+            "Recovery.SaveProtectionSurvivesOrdinaryCoalescingAndRetirement",
+            "Recovery.StrictEnvelopeAndUnicode",
+            "Recovery.OversizedValidEnvelopeRejectsAndPreservesQuarantine",
+            "Recovery.DebounceLeaseCoalescingAndRetirement",
+            "Recovery.IndependentDocumentCheckpointsAndLeases",
+            "Recovery.ContinuousTypingCannotStarveCheckpoint",
+            "Recovery.CorruptAndFutureDataQuarantined",
+            "Recovery.DuplicateCloseKeepsUnsavedPrompt",
+            "Recovery.RestoreKeepsClickedIdentityAcrossUnsavedPrompt",
+            "Recovery.LocalDraftCancelPreviewRestoreProtectsOriginal",
+            "Recovery.DiscardFailureRetainsCandidateAndRetryClearsError"
+          ],
+          "passed": 19,
+          "scope": "Recovery"
+        },
+        {
+          "cases": [
+            "Editor.DocumentPositionIndexAndNewlineFacts",
+            "Editor.HardlinkSaveWorkerRetainsAliasesAndLaterEdits",
+            "Editor.OpenErrorsExplainEncodingAndCapacity",
+            "Editor.SaveAsSameTargetStillChecksSavedBaseline",
+            "Editor.SaveConflictChoicesAreSingleAndSourceBound",
+            "Editor.StaleConflictChoicePreservesLaterEdits",
+            "Editor.SavePickerCannotRetargetNewerSource",
+            "Editor.ConflictReloadPreservesEditsMadeDuringRead",
+            "Editor.ConflictReloadFailureRetainsSourceAndHistory",
+            "Editor.Api5CheckedAdmissionPreservesWorkspaceAndHistory",
+            "Editor.RecoverableCommandsAndMenusRetainSourceAndDraftFocus",
+            "Editor.FileCompletionFailureRetainsPendingWriteAndCancelsClose",
+            "Editor.CloseCancellationNeverFallsThroughToDefaultDestroy",
+            "Editor.OpenCompletionWaitsForLocalDraft",
+            "Editor.SplitMirrorFallbackRecoversAfterHiddenEdits",
+            "Editor.SplitMirrorNestedEditKeepsNewestPublication",
+            "Editor.SplitMirrorCallbackCanRetireRoot",
+            "Editor.SplitViewTransitionCompletesAfterNestedEdit",
+            "Editor.NestedViewRequestSupersedesOuterSplit",
+            "Editor.HiddenCurrentBlockPublishesLatestOnReveal",
+            "Editor.DocumentAnalysisReusesBoundedLineIndexStorage",
+            "Editor.ExplicitLinksConfirmAndDispatchWithoutEditing",
+            "Editor.LinkConfirmationRejectsSupersededAndClosedOwners",
+            "Editor.PendingLinkDispatchRetiresAfterApplicationClose",
+            "Editor.TextScaleShortcutsAndWheelPreserveHistory",
+            "Editor.FindCaseAndClosedRepeatPreserveSource",
+            "Editor.SingleReplaceSelectsFollowingMatch",
+            "Editor.MarkdownSyntaxOptionsReanalyzeLive",
+            "Editor.CapturesSettleIndependentSourceCosmetics",
+            "Editor.SourceEnterPreservesLineEndings",
+            "Editor.NativeTextStoreCapacityAdmission",
+            "Editor.TextServiceCapacityPreservesPreviewAndMirror",
+            "Editor.FilePasteAdmissionRejectsHostileNames",
+            "Editor.ViewSwitchKeepsSourceSelectionHistory",
+            "Editor.HiddenMirrorSynchronizesWithoutEditingSource",
+            "Editor.OutlineTracksShiftedOffsetsAndChangedLabels",
+            "Editor.DirtyCacheTracksDirectResetAndSameLengthUndo",
+            "Editor.SemanticFormattingUndoAndTheme",
+            "Editor.SelectedBlockInsertionsRetainSourceAndHistory",
+            "Editor.LocalOrdinarySourceCommitCancelAndStale",
+            "Editor.LocalizedResourceViewsRetainStorageAndFormatting"
+          ],
+          "passed": 41,
+          "scope": "EditorContent"
+        },
+        {
+          "cases": [
+            "Editor.WorkspaceSwitchRetainsEveryHistoryAndRecovery",
+            "Editor.WorkspaceCapacityRefusesWithoutEvictingEdits",
+            "Window.DesignRefreshMergedFrameHitTests",
+            "Window.DesignRefreshCaptionButtonPointerLifecycle",
+            "Window.DesignRefreshResponsiveLayoutAndDpi",
+            "Editor.DesignRefreshFocusViewsAndToggleStates",
+            "Outline.DesignRefreshHierarchyCurrentAndFindCounts",
+            "Editor.StartupLastDocumentAndRecoveryPrecedence",
+            "Editor.StartupRestoreNeverReplacesNewerIntent",
+            "Window.PlacementAndLaunchPolicyPreserveHiddenSource",
+            "Editor.DesignRefreshFindReplaceUndoAndCapacity",
+            "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+            "Editor.PersistentFolderNavigationAndRestart",
+            "Editor.DesignRefreshFilesRerootFilterAndDirtyOpen",
+            "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
+            "Editor.DesignRefreshFilesAdmissionErrorsAndRootActions",
+            "Editor.DesignRefreshTransientSurfacesAndClose",
+            "Editor.DesignRefreshLiveSettingsAndEscape",
+            "Editor.DesignRefreshDeferredSelectionToolsFocus",
+            "Window.DesignRefreshPersistentStatusFacts",
+            "Outline.FencesAndUnicode",
+            "Window.CaptionSkipsIdenticalWritesAndPreservesImmediateIdentity",
+            "Window.CaptionRetriesFailedAndSupersededNativeWrites"
+          ],
+          "passed": 23,
+          "scope": "EditorWorkspace"
+        },
+        {
+          "cases": [
+            "Editor.LocalImageChangesReloadWithoutEditing",
+            "Editor.ClipboardBitmapAssetHandler",
+            "Editor.ClipboardBitmapPasteCommitUndoAndBusy",
+            "Editor.ClipboardBitmapPasteDeclinesSupersededSource",
+            "Editor.ClipboardBitmapPasteFailureAndReadOnly",
+            "Editor.ClipboardBitmapPasteCloseDrainsOwnedWorker",
+            "Editor.ClipboardBitmapPasteSessionEndRetiresInsertion",
+            "Window.Image2QuietChromeAndCompactInspector",
+            "Editor.DesignRefreshEquationContextAndDraftGuards",
+            "Editor.NativeCodeHighlightingPreservesSource",
+            "Editor.NativeMermaidProfilesAndDisplayRegressions",
+            "Editor.ImageFileReadAndSharePolicy",
+            "Editor.ImageFileNotificationsAreBoundedAndRetire",
+            "Editor.RemoteImagePublicAddressPolicy",
+            "Editor.RemoteImagesDefaultBlocksOwnedLoopback",
+            "Editor.HttpAnonymousFetchAndNativeDecode",
+            "Editor.HttpRedirectAuthBoundsAndFailures",
+            "Editor.HttpCancellationDeadlineAndOwnerClose",
+            "Editor.DocumentImageConsentAndReload",
+            "Editor.RemoteImagePrivacyOptInRevocationAndShutdown",
+            "Editor.WikiImageEmbedsStayUnresolved",
+            "Math.NativeSubsetAndRejection",
+            "Editor.LocalDiagramSourceAndLiteralFallback",
+            "Editor.DeviceLossAndLocalImagePixels",
+            "Editor.InDocumentMathLocalSourceAndBroaderMermaid"
+          ],
+          "passed": 25,
+          "scope": "EditorMedia"
+        },
+        {
+          "cases": [
+            "Performance.OwnedHeapDiagnosticDistinguishesBusyFreeAndPartialCoverage",
+            "Performance.SelectionDiagnosticRejectsReentryAndUnwinding",
+            "Performance.NativeCompletedFramesPreserveSourceAndHistory"
+          ],
+          "passed": 3,
+          "scope": "EditorPerformance"
+        },
+        {
+          "cases": [
+            "Rendering.DocumentThemedScrollbars",
+            "Rendering.DesignRefreshTypographyAndThemeRoles",
+            "Rendering.NativeDefaultAndWarpResourceLifecycle"
+          ],
+          "passed": 3,
+          "scope": "EditorRendering"
+        }
+      ],
+      "storageArchiveSha256": "4B6A3869F76B58C002D5D6EA373BF72B1FADAE772E3875C31786672A6C8524AF",
+      "processScopes": [
+        "Capture",
+        "Crash",
+        "Editor",
+        "LinkedSaveCrashRestart",
+        "PerformanceBaseline",
+        "PreferencesProcessExit",
+        "Recovery",
+        "RecoveryCrashRestart",
+        "Settings"
+      ],
+      "allOriginalMembersVerified": true,
+      "captureCount": 40,
+      "storage": "failed: actual symlink privilege 1314; 29 passed; no waiver",
+      "binarySha256": "9408E149D9C25435DD60BF15D39D5F5C23F360F6DDE81118A4FE8C66D4EF39D5",
+      "nonstoragePassed": 125
+    },
+    {
+      "configuration": "ASan Debug",
+      "nativeRunArchiveSha256": "293476F11055DF817FEFC0F1113270782320B85EFB28A09803F221BA747D0D42",
+      "partitions": [
+        {
+          "cases": [
+            "Settings.DesignRefreshPreferencesRoundTrip",
+            "Settings.DesignRefreshFieldFallback",
+            "Settings.Api5OriginalContextAndNativeIsolation",
+            "Settings.Api5ProcessWorkRetiresBeforeReporter",
+            "Settings.Api5SessionEndKeepsBoundedAllowance",
+            "Settings.LocalNetworkImagePermission",
+            "Settings.ImageFirstPasteRoundTripAndFallback",
+            "Settings.VersionAndFieldFallback",
+            "Settings.LastDocumentPathRoundTripAndFallback",
+            "Settings.WindowPlacementRejectsPartialAndUnsafeValues",
+            "Settings.AsyncLatestValueSurvivesWriterClose"
+          ],
+          "passed": 11,
+          "scope": "Settings"
+        },
+        {
+          "cases": [
+            "Recovery.CloseDuringSaveWaitsForDurableSuccess",
+            "Recovery.CloseDuringSaveFailurePreservesSourceAndRecovery",
+            "Recovery.CloseDuringSaveRechecksLaterEdits",
+            "Recovery.CloseAbandonsPlainOpenWithoutPrompt",
+            "Recovery.CloseAbandonsOpenAndProtectsLaterEdits",
+            "Recovery.WorkspaceExplicitActionsProtectEveryDirtyDocument",
+            "Recovery.RestoreAllKeepsIndependentCopiesAndNavigation",
+            "Recovery.SessionEndCheckpointsEveryDocumentAndCancellationKeepsEditing",
+            "Recovery.SaveProtectionSurvivesOrdinaryCoalescingAndRetirement",
+            "Recovery.StrictEnvelopeAndUnicode",
+            "Recovery.OversizedValidEnvelopeRejectsAndPreservesQuarantine",
+            "Recovery.DebounceLeaseCoalescingAndRetirement",
+            "Recovery.IndependentDocumentCheckpointsAndLeases",
+            "Recovery.ContinuousTypingCannotStarveCheckpoint",
+            "Recovery.CorruptAndFutureDataQuarantined",
+            "Recovery.DuplicateCloseKeepsUnsavedPrompt",
+            "Recovery.RestoreKeepsClickedIdentityAcrossUnsavedPrompt",
+            "Recovery.LocalDraftCancelPreviewRestoreProtectsOriginal",
+            "Recovery.DiscardFailureRetainsCandidateAndRetryClearsError"
+          ],
+          "passed": 19,
+          "scope": "Recovery"
+        },
+        {
+          "cases": [
+            "Editor.DocumentPositionIndexAndNewlineFacts",
+            "Editor.HardlinkSaveWorkerRetainsAliasesAndLaterEdits",
+            "Editor.OpenErrorsExplainEncodingAndCapacity",
+            "Editor.SaveAsSameTargetStillChecksSavedBaseline",
+            "Editor.SaveConflictChoicesAreSingleAndSourceBound",
+            "Editor.StaleConflictChoicePreservesLaterEdits",
+            "Editor.SavePickerCannotRetargetNewerSource",
+            "Editor.ConflictReloadPreservesEditsMadeDuringRead",
+            "Editor.ConflictReloadFailureRetainsSourceAndHistory",
+            "Editor.Api5CheckedAdmissionPreservesWorkspaceAndHistory",
+            "Editor.RecoverableCommandsAndMenusRetainSourceAndDraftFocus",
+            "Editor.FileCompletionFailureRetainsPendingWriteAndCancelsClose",
+            "Editor.CloseCancellationNeverFallsThroughToDefaultDestroy",
+            "Editor.OpenCompletionWaitsForLocalDraft",
+            "Editor.SplitMirrorFallbackRecoversAfterHiddenEdits",
+            "Editor.SplitMirrorNestedEditKeepsNewestPublication",
+            "Editor.SplitMirrorCallbackCanRetireRoot",
+            "Editor.SplitViewTransitionCompletesAfterNestedEdit",
+            "Editor.NestedViewRequestSupersedesOuterSplit",
+            "Editor.HiddenCurrentBlockPublishesLatestOnReveal",
+            "Editor.DocumentAnalysisReusesBoundedLineIndexStorage",
+            "Editor.ExplicitLinksConfirmAndDispatchWithoutEditing",
+            "Editor.LinkConfirmationRejectsSupersededAndClosedOwners",
+            "Editor.PendingLinkDispatchRetiresAfterApplicationClose",
+            "Editor.TextScaleShortcutsAndWheelPreserveHistory",
+            "Editor.FindCaseAndClosedRepeatPreserveSource",
+            "Editor.SingleReplaceSelectsFollowingMatch",
+            "Editor.MarkdownSyntaxOptionsReanalyzeLive",
+            "Editor.CapturesSettleIndependentSourceCosmetics",
+            "Editor.SourceEnterPreservesLineEndings",
+            "Editor.NativeTextStoreCapacityAdmission",
+            "Editor.TextServiceCapacityPreservesPreviewAndMirror",
+            "Editor.FilePasteAdmissionRejectsHostileNames",
+            "Editor.ViewSwitchKeepsSourceSelectionHistory",
+            "Editor.HiddenMirrorSynchronizesWithoutEditingSource",
+            "Editor.OutlineTracksShiftedOffsetsAndChangedLabels",
+            "Editor.DirtyCacheTracksDirectResetAndSameLengthUndo",
+            "Editor.SemanticFormattingUndoAndTheme",
+            "Editor.SelectedBlockInsertionsRetainSourceAndHistory",
+            "Editor.LocalOrdinarySourceCommitCancelAndStale",
+            "Editor.LocalizedResourceViewsRetainStorageAndFormatting"
+          ],
+          "passed": 41,
+          "scope": "EditorContent"
+        },
+        {
+          "cases": [
+            "Editor.WorkspaceSwitchRetainsEveryHistoryAndRecovery",
+            "Editor.WorkspaceCapacityRefusesWithoutEvictingEdits",
+            "Window.DesignRefreshMergedFrameHitTests",
+            "Window.DesignRefreshCaptionButtonPointerLifecycle",
+            "Window.DesignRefreshResponsiveLayoutAndDpi",
+            "Editor.DesignRefreshFocusViewsAndToggleStates",
+            "Outline.DesignRefreshHierarchyCurrentAndFindCounts",
+            "Editor.StartupLastDocumentAndRecoveryPrecedence",
+            "Editor.StartupRestoreNeverReplacesNewerIntent",
+            "Window.PlacementAndLaunchPolicyPreserveHiddenSource",
+            "Editor.DesignRefreshFindReplaceUndoAndCapacity",
+            "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
+            "Editor.PersistentFolderNavigationAndRestart",
+            "Editor.DesignRefreshFilesRerootFilterAndDirtyOpen",
+            "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
+            "Editor.DesignRefreshFilesAdmissionErrorsAndRootActions",
+            "Editor.DesignRefreshTransientSurfacesAndClose",
+            "Editor.DesignRefreshLiveSettingsAndEscape",
+            "Editor.DesignRefreshDeferredSelectionToolsFocus",
+            "Window.DesignRefreshPersistentStatusFacts",
+            "Outline.FencesAndUnicode",
+            "Window.CaptionSkipsIdenticalWritesAndPreservesImmediateIdentity",
+            "Window.CaptionRetriesFailedAndSupersededNativeWrites"
+          ],
+          "passed": 23,
+          "scope": "EditorWorkspace"
+        },
+        {
+          "cases": [
+            "Editor.LocalImageChangesReloadWithoutEditing",
+            "Editor.ClipboardBitmapAssetHandler",
+            "Editor.ClipboardBitmapPasteCommitUndoAndBusy",
+            "Editor.ClipboardBitmapPasteDeclinesSupersededSource",
+            "Editor.ClipboardBitmapPasteFailureAndReadOnly",
+            "Editor.ClipboardBitmapPasteCloseDrainsOwnedWorker",
+            "Editor.ClipboardBitmapPasteSessionEndRetiresInsertion",
+            "Window.Image2QuietChromeAndCompactInspector",
+            "Editor.DesignRefreshEquationContextAndDraftGuards",
+            "Editor.NativeCodeHighlightingPreservesSource",
+            "Editor.NativeMermaidProfilesAndDisplayRegressions",
+            "Editor.ImageFileReadAndSharePolicy",
+            "Editor.ImageFileNotificationsAreBoundedAndRetire",
+            "Editor.RemoteImagePublicAddressPolicy",
+            "Editor.RemoteImagesDefaultBlocksOwnedLoopback",
+            "Editor.HttpAnonymousFetchAndNativeDecode",
+            "Editor.HttpRedirectAuthBoundsAndFailures",
+            "Editor.HttpCancellationDeadlineAndOwnerClose",
+            "Editor.DocumentImageConsentAndReload",
+            "Editor.RemoteImagePrivacyOptInRevocationAndShutdown",
+            "Editor.WikiImageEmbedsStayUnresolved",
+            "Math.NativeSubsetAndRejection",
+            "Editor.LocalDiagramSourceAndLiteralFallback",
+            "Editor.DeviceLossAndLocalImagePixels",
+            "Editor.InDocumentMathLocalSourceAndBroaderMermaid"
+          ],
+          "passed": 25,
+          "scope": "EditorMedia"
+        },
+        {
+          "cases": [
+            "Performance.OwnedHeapDiagnosticDistinguishesBusyFreeAndPartialCoverage",
+            "Performance.SelectionDiagnosticRejectsReentryAndUnwinding",
+            "Performance.NativeCompletedFramesPreserveSourceAndHistory"
+          ],
+          "passed": 3,
+          "scope": "EditorPerformance"
+        },
+        {
+          "cases": [
+            "Rendering.DocumentThemedScrollbars",
+            "Rendering.DesignRefreshTypographyAndThemeRoles",
+            "Rendering.NativeDefaultAndWarpResourceLifecycle"
+          ],
+          "passed": 3,
+          "scope": "EditorRendering"
+        }
+      ],
+      "storageArchiveSha256": "5D44158FAAABD5EE55EB2754D94DACAFB511A36291F276F989257C41DAF3EACA",
+      "processScopes": [
+        "AddressSanitizer",
+        "Capture",
+        "Crash",
+        "Editor",
+        "LinkedSaveCrashRestart",
+        "PerformanceBaseline",
+        "PreferencesProcessExit",
+        "Recovery",
+        "RecoveryCrashRestart",
+        "Settings"
+      ],
+      "allOriginalMembersVerified": true,
+      "captureCount": 40,
+      "storage": "failed: actual symlink privilege 1314; 29 passed; no waiver",
+      "binarySha256": "982C4A754D8F359CCCFE1464CA2D8C69B54A59CEAEEA11A885B38137CC56A2AC",
+      "realAsanDetection": true,
+      "nonstoragePassed": 125
+    }
+  ],
+  "nativeArtifacts": [
+    {
+      "platform": "x64",
+      "sdkArchiveSha256": "31365EF302E1372170ABCBC42C490AFECB624F1D8DCDDB470B3D9E3F7898462A",
+      "appArchiveSha256": "1978ECD18B304F10CF46CA0547A91AB518D39D62F9947C9EADFC091AA1C0D2F2",
+      "configuration": "Debug",
+      "allOriginalMembersVerified": true,
+      "originalSdkMembers": 3,
+      "originalAppMembers": 3
+    },
+    {
+      "platform": "x64",
+      "sdkArchiveSha256": "75A738CC8FE866FA7154A1C26C549A33F6A1BDAF8F58B59D22A9055EDA0DC35A",
+      "appArchiveSha256": "4E2EADA9D31D4737BEB0D4F142120440852157AF15F2D28173E3C77B7B1071FD",
+      "configuration": "Release",
+      "allOriginalMembersVerified": true,
+      "originalSdkMembers": 2,
+      "originalAppMembers": 3
+    },
+    {
+      "platform": "x64",
+      "sdkArchiveSha256": "167447E1F75AEC46D04CAA33CA436A7140DBF5794FA281E20A8828E38FD98640",
+      "appArchiveSha256": "6B4E0FE944B5AD712BCFC9EC5F03D5C76C0E2AB96E2784291B3DB77C1B1EBF68",
+      "configuration": "ASan Debug",
+      "allOriginalMembersVerified": true,
+      "originalSdkMembers": 3,
+      "originalAppMembers": 4
+    },
+    {
+      "platform": "ARM64",
+      "sdkArchiveSha256": "088785CB7C5DFEBBB5324DC8D231195CA2B41FF6B5BB2C870082D948D79AC296",
+      "appArchiveSha256": "35F132FAAA34AA477FC13E807FF27BB1389DE9A64CA9D6BFA006C23E9A3A2896",
+      "configuration": "Debug",
+      "allOriginalMembersVerified": true,
+      "originalSdkMembers": 3,
+      "originalAppMembers": 3
+    },
+    {
+      "platform": "ARM64",
+      "sdkArchiveSha256": "9D5AD8918CA88C936E2F8A76187CBD9AA9AA805EA84E98D9D2A9902971C96AC3",
+      "appArchiveSha256": "4E8224E50F0A7808B08EF5596847485F14551CBF1E1FC4DE2278014256D24898",
+      "configuration": "Release",
+      "allOriginalMembersVerified": true,
+      "originalSdkMembers": 2,
+      "originalAppMembers": 3
+    },
+    {
+      "platform": "ARM64",
+      "sdkArchiveSha256": "90054BA7422A32464E0C579A756F5828226DFB9427A6C2251D2FA3CB3371D0DD",
+      "appArchiveSha256": "DAABB24D3FFE5E8482172EC152E2D33C7D85A78D6333E6211EC2F92D4EF8F4F3",
+      "configuration": "ASan Debug",
+      "allOriginalMembersVerified": true,
+      "originalSdkMembers": 3,
+      "originalAppMembers": 4
+    }
+  ],
+  "staticValidation": {
+    "stdoutSha256": "A57F225ACA86049BC7D38F3F116BAFDF3D69A1DFBA09602F5A9E913C6DC28C48",
+    "passed": true,
+    "formatCheckPassed": true,
+    "stderrSha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+  },
+  "deliveryScope": {
+    "x64": "Debug, Release and ASan Debug runtime",
+    "normalTwoArchitectureProductionGateUnchanged": true,
+    "ARM64": "Debug, Release and ASan Debug compilation only"
+  },
+  "limits": [
+    "All three local x64 profiles retain the actual Win32 1314 symbolic-link privilege failure; it is not waived",
+    "ARM64 is compilation only",
+    "Functional performance smoke is not paired performance acceptance",
+    "Physical input, real provider locations and release publication retain separate owners"
+  ]
+}

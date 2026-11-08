@@ -9,6 +9,10 @@ This is the **only active RedTilde plan**. It replaces the ten overlapping plann
 source identities, failed runs and proposal assets; they are references, not additional execution queues.
 Domain contracts under `Specs/Core`, `Specs/Editor`, `Specs/UI`, `Specs/Build` and `Specs/Testing` remain authoritative.
 
+The owner's **7 November 2026** delivery scope requires x64 Debug, Release and ASan Debug runtime tests and
+ARM64 compilation in all three profiles. ARM64 runtime is explicitly set aside for this delivery. Compilation
+does not establish runtime acceptance or change the normal two-architecture production release gate.
+
 ## Verified starting point
 
 Reviewed main: `1cd59c08528cc1e20720a45ef833bb9e69c315e4` ([PR44](https://github.com/RedSalamanders/RedTilde/pull/44)).
@@ -202,9 +206,14 @@ Details and original counterexamples remain in the
 <a id="t-i1"></a>
 ### T-I1 — images and supported locations
 
-- [ ] Complete Q13: per-document consent, explicit local-network override, address validation at connection
-  time, same-share image policy, useful failure reasons, Reload images and bounded event-driven refresh.
-- [ ] Resolve proxy policy Q19 before changing direct-only remote fetching; preserve all original drops/refutations.
+- [x] Complete Q13 implementation and local qualification: per-document/local-network consent,
+  connection-time address checks, same-share policy, useful refusals, Reload and bounded event-driven refresh.
+  The [scoped closeout](../Done/DocumentImageConsent_2026-11-08.md) binds `9feb787e`/SDK `21fae0dc`, six
+  zero-warning builds, all three x64 nonstorage/capture profiles, actual ASan and fifteen actual x64
+  production refusals. The real Storage privilege failure is retained; named-location acceptance remains below.
+- [x] Resolve Q19 as direct-only fetching with an explicit visible failure on networks requiring a proxy, no
+  PAC/discovery, credentials or silent fallback. The editor and architecture contracts own this delivery choice;
+  source-bound native transport/adoption qualification remains part of Q13 and T-Q2.
 - [ ] Apply Q8/Q13 real-location acceptance, and make any managed-image-assets/drag-drop adoption an explicit
   app-owned scope (C10), with native resource, cancellation and teardown evidence.
 - [x] Implement app-owned bitmap paste assets and persisted text-first/image-first preference (C10 local scope).
@@ -355,10 +364,16 @@ follow-up is removed. Completion correctly reported failed native qualification.
   pass with every original payload/wrapper byte verified. Each native profile passes 128 cases/36 captures;
   both `0.1.355` packages record all thirteen actual refusals with exit 2 and absent data directories, bound to
   the original ZIP/executable and actual architecture. Both production roles follow the combined native gate.
-- [ ] Coordinate future checked-failure/API changes with the
-  [single DxUi plan](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Plans/WIP/RemainingWork_2026-11-04.md) and active
-  [implemented API-5 failure contract](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Core/Core_FailureHandling.md). Keep this consumer's explicit API-4 lock until a separate
-  reviewed consumer migration has matching headers, library, adapters and fresh qualification.
+- [ ] Close the API-5 adoption gate with exact-source hosted x64 execution. Candidate `9feb787e` explicitly
+  pins SDK `21fae0dc` and implements the reporter/COM, callback retirement, checked source/codecs and typed
+  native-refusal contracts. The [current packet](../../../Measurements/Api5ConsumerAdoption_2026-11-08/README.md)
+  verifies six zero-warning builds, all 375 x64 nonstorage case executions, 120 captures, actual ASan and
+  fifteen actual x64 test-disabled production refusals. All original source/native/SDK/run members verify.
+  The three local Storage runs retain their real Win32 1314 privilege failure; require actual hosted
+  symbolic-link execution before closing adoption. ARM64 remains compilation-only for this delivery.
+  The packet retains the separate DirectWrite/watch, extra-fetch, ARM64 padding, aggregate-timeout,
+  cross-child fixture and stale-restore histories. No current pass is assigned as a retrospective cause
+  for an unexplained older failure, and API-4/baseline `0dbe0441` evidence keeps its own source identity.
 - [ ] Complete C11/C12/S6 release decisions: packaging, any installer/file associations, exact release handoff,
   truthful capability limits and publication evidence. Source merge is not product release acceptance.
 
@@ -372,13 +387,23 @@ is included here, without rebuilding or packaging the separate viewer.
   retain private originals; inventory and scan all refs; prepare a reviewed rewritten copy and commit map;
   preserve the original repository privately; reconcile source citations, worktrees and consumer pins before
   the owner's repository/visibility operations. This cleanup does not rewrite history or change visibility.
+- [x] Complete a read-only [history snapshot audit](../../../Measurements/HistorySnapshotAudit_2026-11-08/README.md):
+  255 private refs/524 commits, remote/local refs and worktree heads, verified object closure and official
+  Gitleaks bytes. Both literal candidates resolve to SDK commit references. The raw finding result and
+  reviewed dispositions remain separate; coordinated Q17 execution and privacy clearance remain open.
 - [x] Verify current protection/access and reconcile current CI/capability claims. The
   [dated read-only audit](../../../Measurements/RepositoryGovernance_2026-11-07/README.md) confirms effective
   PR/status/deletion/non-fast-forward rules, consistent engine pins, compiler-free PRs, the five-minute main
   admission and global test-before-production gate. API-4/native-editing evidence and pending physical,
   performance, release and language scope remain explicit; no setting or visibility was changed.
-- [ ] Audit Q15's legacy header validators and shared-module migration by actual callers before retiring tools;
-  keep paired-study tooling supported and follow tooling governance for any later change.
+- [x] Audit Q15's legacy header validators by actual callers. The
+  [source-bound audit](../Done/ToolingRetirementAudit_2026-11-08.md) finds reachable V1/V2 dispatcher,
+  paired-command and historical replay/fixture paths; the sealed current profile is V4. Complete static
+  validation passes with 4,772 performance reference/audit assertions. No validator or fixture is dead by
+  inspection of the current profile alone, and no tool or separately owned branch was removed.
+- [ ] Migrate Q15's historical replay callers/profile inputs before legacy validator retirement, and complete
+  shared-module migration through an exact shared owner/pin and verified consumer coverage. Keep the
+  paired-study kit supported and follow tooling governance for each change.
 - [ ] Diagnose the hosted-MSVC fixture launch refusal at observed 272-character paths in the isolated
   checkout. Canonical short-path full validation passes; retain the failed long-root run separately and
   coordinate the analogous SDK tooling boundary with D-T1.
@@ -395,7 +420,7 @@ RT-10/11's old drops did not cancel them. Current unified CI supersedes obsolete
 
 | Open owner item | Current disposition |
 | --- | --- |
-| Q19: system proxy, direct-only failure or a setting | Decide before T-I1's proxy work. |
+| Q19: system proxy, direct-only failure or a setting | Resolved: direct-only with a visible failure, specified under T-I1. |
 | Q20: size-limit command behavior | Decide unchanged-document error versus preemptive disable before changing the capacity UX. |
 | Q21: release cut | Settle the application release command and exact validator transition; the library's support does not migrate this app implicitly. |
 

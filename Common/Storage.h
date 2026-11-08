@@ -1,10 +1,12 @@
 #pragma once
 #include <DxUi/RichDocument.h>
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
 #include <string>
 #include <string_view>
+#include <wil/resource.h>
 #include <windows.h>
 
 namespace RedTilde
@@ -57,6 +59,14 @@ struct SaveRecoveryContext
     std::uint64_t generation{};
 };
 [[nodiscard]] HRESULT ReadBytes(const std::filesystem::path &path, std::string &bytes, FileStamp *stamp = nullptr) noexcept;
+// Worker-only image I/O. Pin checked parents while opening each component, refuse
+// name-surrogate reparse points and read at most 16 MiB through the retained file.
+// Network permission and same-share admission are the transport caller's policy.
+[[nodiscard]] bool SharesImageNetworkRoot(std::wstring_view document, std::wstring_view image) noexcept;
+[[nodiscard]] HRESULT ReadImageFileBytes(std::wstring_view path, std::string &bytes, const std::atomic_bool *cancel = nullptr) noexcept;
+// The returned directory handle is overlapped and permits ordinary rename/write
+// notifications. Setup uses the same parent/reparse checks as the image reader.
+[[nodiscard]] HRESULT OpenImageDirectoryForNotifications(std::wstring_view path, wil::unique_handle &directory) noexcept;
 // App-created binary assets only: never replace a pre-existing entry. The
 // bounded caller allowance does not change the document read/write limit.
 [[nodiscard]] HRESULT WriteNewBytesDurable(const std::filesystem::path &path, std::string_view bytes, FileStamp &saved,

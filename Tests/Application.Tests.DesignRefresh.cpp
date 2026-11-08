@@ -2,6 +2,7 @@
 #include "RedTilde/Application.h"
 #include "Support/Support.Tests.BitmapAssets.h"
 #include "Support/Support.Tests.Foreground.h"
+#include "Support/Support.Tests.Images.h"
 #include "Support/Support.Tests.TextServices.h"
 #include "res/Resource.h"
 #include <UIAutomation.h>
@@ -211,7 +212,8 @@ void WriteFixture(const std::filesystem::path &path, std::string_view contents =
     std::filesystem::create_directories(path.parent_path());
     Success(WriteBytesAtomic(path, contents), "seed design integration fixture");
 }
-void Await(Application &app, const std::function<bool()> &complete, std::chrono::milliseconds timeout = std::chrono::seconds(10))
+void Await(Application &app, const std::function<bool()> &complete, std::chrono::milliseconds timeout = std::chrono::seconds(10),
+           const std::function<std::string()> &diagnostic = {})
 {
     const auto end = std::chrono::steady_clock::now() + timeout;
     while (!complete() && std::chrono::steady_clock::now() < end)
@@ -231,7 +233,7 @@ void Await(Application &app, const std::function<bool()> &complete, std::chrono:
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(5));
     }
-    Require(complete(), "hidden application did not settle the expected bounded worker result");
+    Require(complete(), diagnostic ? diagnostic() : "hidden application did not settle the expected bounded worker result");
 }
 } // namespace
 
@@ -345,6 +347,141 @@ class DesignRefreshProbe final
   public:
     static void Register(const std::filesystem::path &root, const std::function<void(std::string_view, const std::function<void()> &)> &test)
     {
+        test("Editor.LocalImageChangesReloadWithoutEditing",
+             [&]
+             {
+                 Testing::ForegroundOwnershipObserver foreground;
+                 const auto fixture = root / L"image-auto-refresh";
+                 const auto image = fixture / L"Illustrations/cover.bmp";
+                 std::filesystem::create_directories(image.parent_path());
+                 const auto write = [&](bool singlePixel)
+                 {
+                     const auto encoded = Testing::ImageBitmapFixture(singlePixel);
+                     Require(SUCCEEDED(WriteBytesAtomic(image, std::string_view(reinterpret_cast<const char *>(encoded.data()), encoded.size()))),
+                             "write the owned image with independently known decoded dimensions");
+                 };
+                 write(false);
+                 Application app(Options(root, L"image-auto-refresh/settings"));
+                 Require(SUCCEEDED(app.Initialize()) &&
+                             app.SetDocument(L"# Illustration notebook\n\n![Invented cover](Illustrations/cover.bmp)\n", fixture / L"Notebook.md"),
+                         "bind an invented notebook and local image in the hidden production application");
+                 Await(app,
+                       [&]
+                       {
+                           const auto stats = app.Document().GetImageResourceStatistics();
+                           return app.imageFileRefreshes >= 1u && stats.readySources == 1u && stats.decodedBytes == 8u;
+                       });
+                 const auto source = app.Document().Snapshot();
+                 const auto selection = app.Document().GetSelection();
+                 const auto saved = app.savedText;
+                 const auto refreshes = app.imageFileRefreshes;
+                 write(true);
+                 Await(
+                     app,
+                     [&]
+                     {
+                         const auto stats = app.Document().GetImageResourceStatistics();
+                         return app.imageFileRefreshes > refreshes && stats.readySources == 1u && stats.decodedBytes == 4u;
+                     },
+                     std::chrono::seconds(10),
+                     [&]
+                     {
+                         const auto stats = app.Document().GetImageResourceStatistics();
+                         std::size_t jobs{}, results{};
+                         bool active{};
+                         if (const auto state = app.images.state_)
+                         {
+                             const std::lock_guard lock(state->mutex);
+                             jobs = state->jobCount;
+                             results = state->resultCount;
+                             active = state->active;
+                         }
+                         return std::format("changed image did not settle: refreshes={}/{} watches={} pathBuilds={} "
+                                            "ready={} pending={} failed={} bytes={} status={:08X} jobs={} results={} active={}",
+                                            app.imageFileRefreshes, refreshes, app.watchedImagePaths.size(), app.imageWatchPathBuilds,
+                                            stats.readySources, stats.pendingSources, stats.failedSources, stats.decodedBytes,
+                                            static_cast<unsigned>(app.imageFailureStatus), jobs, results, active);
+                     });
+                 Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selection && app.savedText == saved &&
+                             !app.Dirty() && !app.Document().CanUndo() && !app.Document().CanRedo() && foreground.NeverAcquiredForeground(),
+                         "a real image file change replaces decoded pixels without source, history, saved-state or foreground changes");
+                 Require(app.watchedImagePaths.size() == 1u, "a refreshed ready image retains one canonical watch path after decode job completion");
+                 Require(app.Capture(fixture / L"refreshed-local-image.png"), "capture actual refreshed pixels with invented fixture content");
+                 const auto pathBuilds = app.imageWatchPathBuilds;
+                 const auto editRefreshes = app.imageFileRefreshes;
+                 const auto end = app.Document().GetText().size();
+                 app.Document().SetSelection({end, end});
+                 Require(app.Document().ReplaceSelection(L"\nAnother invented observation.\n"), "type ordinary prose after the image");
+                 app.Prepare(128);
+                 Require(app.imageWatchPathBuilds == pathBuilds && app.imageFileRefreshes == editRefreshes,
+                         "ordinary source edits reuse unchanged image watch paths rather than rebuilding paths or rearming I/O");
+                 const auto sourceWithRemote = app.Document().GetText() + L"\n![Blocked illustration](HtTpS://images.example.test/invented.bmp)\n";
+                 Require(app.SetDocument(sourceWithRemote, fixture / L"Notebook.md"),
+                         "add a blocked remote destination beside the retained local image");
+                 Await(app,
+                       [&]
+                       {
+                           const auto semantic = app.Document().GetSemanticDocument();
+                           const auto stats = app.Document().GetImageResourceStatistics();
+                           return semantic && semantic->Syntax()->Source() == sourceWithRemote &&
+                                  std::ranges::count_if(semantic->Elements(), [](const auto &element)
+                                                        { return element.role == DxUi::RichText::SemanticRole::Image; }) == 2 &&
+                                  stats.requestedSources == 1u && stats.readySources == 1u && stats.pendingSources == 0u;
+                       });
+                 Require(app.imageWatchPathBuilds == pathBuilds && app.imageFileRefreshes == editRefreshes && app.watchedImagePaths.size() == 1u &&
+                             app.watchedImagePaths.front() == image,
+                         "a remote-only semantic change preserves the admitted local watch without rearming I/O or reloading images");
+                 Require(SUCCEEDED(WriteBytesAtomic(fixture / L"image-refresh-metrics.json",
+                                                    std::format("{{\"automaticRefreshes\":{},\"observedFiles\":1,\"decodedBytesBefore\":8,"
+                                                                "\"decodedBytesAfter\":4,\"sourceUnchanged\":true}}\n",
+                                                                app.imageFileRefreshes))),
+                         "retain deterministic refresh-work counters with the native run");
+                 const auto replacement = fixture / L"Illustrations/replacement.bmp";
+                 const auto replacementBytes = Testing::ImageBitmapFixture(false);
+                 Success(WriteBytesAtomic(replacement,
+                                          std::string_view(reinterpret_cast<const char *>(replacementBytes.data()), replacementBytes.size())),
+                         "seed the independently sized replacement image");
+                 Require(app.SetDocument(L"![Replacement cover](Illustrations/replacement.bmp)\n", fixture / L"Notebook.md"),
+                         "retarget the image without changing the document base");
+                 Await(app,
+                       [&]
+                       {
+                           const auto stats = app.Document().GetImageResourceStatistics();
+                           return stats.readySources == 1u && stats.decodedBytes == 8u && app.watchedImagePaths.size() == 1u &&
+                                  app.watchedImagePaths.front() == replacement;
+                       });
+                 const auto movedFixture = fixture / L"Moved";
+                 const auto movedImage = movedFixture / L"Illustrations/replacement.bmp";
+                 std::filesystem::create_directories(movedImage.parent_path());
+                 const auto movedBytes = Testing::ImageBitmapFixture(true);
+                 Success(WriteBytesAtomic(movedImage, std::string_view(reinterpret_cast<const char *>(movedBytes.data()), movedBytes.size())),
+                         "seed a different image at the same relative destination under a new document base");
+                 Require(app.SetDocument(L"![Replacement cover](Illustrations/replacement.bmp)\n", movedFixture / L"Notebook.md"),
+                         "move the document base while retaining the same literal image destination");
+                 Await(app,
+                       [&]
+                       {
+                           const auto stats = app.Document().GetImageResourceStatistics();
+                           return stats.readySources == 1u && stats.decodedBytes == 4u && app.watchedImagePaths.size() == 1u &&
+                                  app.watchedImagePaths.front() == movedImage;
+                       });
+                 Require(app.SetDocument(L"# Text-only notebook\n\nAnother invented observation.\n", movedFixture / L"Notebook.md"),
+                         "replace the image document with an image-free source");
+                 Await(app, [&] { return app.Document().GetImageResourceStatistics().imageElements == 0u; });
+                 Require(app.watchedImagePaths.empty(), "an image-free replacement retires every old ready image watch path");
+                 const auto retiredRefreshes = app.imageFileRefreshes;
+                 write(false);
+                 Success(
+                     WriteBytesAtomic(movedImage, std::string_view(reinterpret_cast<const char *>(replacementBytes.data()), replacementBytes.size())),
+                     "change the retired file under the current document base");
+                 const auto quietUntil = GetTickCount64() + 400u;
+                 while (GetTickCount64() < quietUntil)
+                 {
+                     app.Prepare(4);
+                     std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                 }
+                 Require(app.imageFileRefreshes == retiredRefreshes, "the retired file binding cannot request another editor reload");
+             });
         test("Editor.ClipboardBitmapAssetHandler",
              [&]
              {
@@ -511,17 +648,58 @@ class DesignRefreshProbe final
                              foreground.NeverAcquiredForeground(),
                          "late bitmap work cannot alter checkpointed source or acquire the desktop");
              });
+        test("Editor.Api5CheckedAdmissionPreservesWorkspaceAndHistory",
+             [&]
+             {
+                 Testing::ForegroundOwnershipObserver foreground;
+                 Application app(Options(root, L"api5-checked-admission"));
+                 Success(app.Initialize(), "initialize hidden API-5 admission app");
+                 Require(app.SetDocument(L"Saved observation\n"), "admit baseline document");
+                 Require(app.Document().ReplaceSelection(L"Unsaved "), "retain an unsaved source/history before refusal");
+                 const auto source = app.Document().Snapshot();
+                 const auto selection = app.Document().GetSelection();
+                 const auto saved = app.savedText;
+                 const auto path = app.documentPath;
+                 const auto key = app.activeDocumentKey;
+                 for (const auto &candidate : {std::wstring(DxUi::RichText::Document::MaximumUnits + 1u, L'x'), std::wstring(1u, L'\xD800')})
+                 {
+                     Require(!app.SetDocument(candidate), "invalid or oversized source returns an explicit refusal");
+                     Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selection &&
+                                 app.savedText == saved && app.documentPath == path && app.activeDocumentKey == key && app.Dirty() &&
+                                 app.Document().CanUndo(),
+                             "checked source refusal preserves source, selection, saved baseline, dirty workspace and undo history");
+                     Require(app.feedback->GetText() ==
+                                 Resource(candidate.size() > DxUi::RichText::Document::MaximumUnits ? IDS_REPLACEFAILED : IDS_ACTIONFAILED),
+                             "source capacity and invalid-source refusals use the intended status");
+                 }
+                 Require(!app.SetDocument(L"Replacement", L"relative.md") && app.Document().Snapshot().IsSameRevision(source) &&
+                             app.savedText == saved && app.documentPath == path && app.Dirty(),
+                         "invalid document metadata refuses before resetting editable source or its saved baseline");
+                 Require(app.SetDocument(std::wstring(DxUi::RichText::Document::MaximumUnits - 2u, L'x')), "admit near-capacity source");
+                 const auto end = app.Document().Snapshot().Length();
+                 Require(app.Document().TrySetSelection({end, end}) == DxUi::RichText::SourceResult::Success &&
+                             app.Document().ReplaceSelection(L"y") && app.Document().ReplaceSelection(L"z") && app.Document().Undo(),
+                         "seed independent dirty undo and redo history near capacity");
+                 Require(app.Document().TrySetSelection({0u, app.Document().Snapshot().Length()}) == DxUi::RichText::SourceResult::Success,
+                         "select exact near-capacity source");
+                 const auto nearCapacity = app.Document().Snapshot();
+                 const auto selected = app.Document().GetSelection();
+                 for (const auto command : {Command::Quote, Command::Fence})
+                 {
+                     app.Execute(command);
+                     Require(app.Document().Snapshot().IsSameRevision(nearCapacity) && app.Document().GetSelection() == selected &&
+                                 app.Document().CanUndo() && app.Document().CanRedo() && app.Dirty(),
+                             "quote/code capacity refusal preserves the selected source and both history directions");
+                 }
+                 Require(foreground.NeverAcquiredForeground(), "API-5 admission coverage keeps the desktop untouched");
+             });
         test("Editor.RecoverableCommandsAndMenusRetainSourceAndDraftFocus",
              [&]
              {
                  Testing::ForegroundOwnershipObserver foreground;
                  auto options = Options(root, L"guarded-command-menu");
                  bool failCommand{};
-                 options.commandAdmissionForTest = [&](Command command)
-                 {
-                     if (failCommand && command == Command::Fence)
-                         throw std::length_error("DIRECTED_COMMAND_FAILURE");
-                 };
+                 options.commandAdmissionForTest = [&](Command command) { return failCommand && command == Command::Fence ? E_BOUNDS : S_OK; };
                  Application app(std::move(options));
                  Success(app.Initialize(), "initialize hidden guarded-command app");
                  app.SetDocument(L"Notebook\nA useful observation.\n");
@@ -560,11 +738,7 @@ class DesignRefreshProbe final
                      const auto directory = options.dataDirectory;
                      const auto gate = options.fileGateForTest = std::make_shared<AsyncFiles::TestGate>();
                      bool failCompletion{};
-                     options.fileCompletionAdmissionForTest = [&]
-                     {
-                         if (std::exchange(failCompletion, false))
-                             throw std::format_error("DIRECTED_COMPLETION_FAILURE");
-                     };
+                     options.fileCompletionAdmissionForTest = [&] { return std::exchange(failCompletion, false) ? E_FAIL : S_OK; };
                      Application app(std::move(options));
                      Success(app.Initialize(), "initialize hidden completion-boundary app");
                      const auto release = wil::scope_exit(
@@ -605,12 +779,12 @@ class DesignRefreshProbe final
                              "the successful saved baseline remains exact and hidden after a recoverable completion failure");
                  }
              });
-        test("Editor.CloseExceptionNeverFallsThroughToDefaultDestroy",
+        test("Editor.CloseCancellationNeverFallsThroughToDefaultDestroy",
              [&]
              {
                  Testing::ForegroundOwnershipObserver foreground;
                  auto options = Options(root, L"close-exception-boundary");
-                 options.unsavedPromptForTest = []() -> int { throw std::runtime_error("DIRECTED_CLOSE_QUESTION_FAILURE"); };
+                 options.unsavedPromptForTest = [] { return IDCANCEL; };
                  Application app(std::move(options));
                  Success(app.Initialize(), "initialize hidden Close-boundary app");
                  app.SetDocument(L"Notebook\n");
@@ -620,8 +794,8 @@ class DesignRefreshProbe final
                  const auto window = app.Window();
                  Require(SendMessageW(window, WM_CLOSE, 0, 0) == 0 && IsWindow(window) && app.Window() == window && !app.closing && app.Dirty() &&
                              app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selection &&
-                             app.Document().CanUndo() && app.feedback->GetText() == Resource(IDS_ACTIONFAILED),
-                         "a recoverable Close failure stays handled and never invokes DefWindowProc destruction");
+                             app.Document().CanUndo(),
+                         "a cancelled Close stays handled and never invokes DefWindowProc destruction");
                  app.options.unsavedPromptForTest = [] { return IDNO; };
                  (void)SendMessageW(window, WM_CLOSE, 0, 0);
                  Require(app.closing && app.Host().GetRoot() == nullptr && foreground.NeverAcquiredForeground(),
@@ -651,6 +825,9 @@ class DesignRefreshProbe final
                      StoredDocument loaded;
                      Success(LoadDocument(first, loaded), "read Alpha's original source and encoding");
                      app.SetDocument(loaded.text, first, loaded.bom, loaded.stamp);
+                     app.Execute(Command::DocumentImages);
+                     Require(app.Document().RemoteImagesEnabled() && !app.Preferences().allowRemoteImages,
+                             "Alpha owns an explicit document-only image grant");
                      app.SetView(view);
                      app.Execute(Command::Files);
                      Await(app, [&] { return app.folderSnapshot && app.folderSnapshot->markdownCount == 2; });
@@ -668,6 +845,7 @@ class DesignRefreshProbe final
                      Require(questions == 0 && app.inactiveDocuments.size() == 1 && app.Document().GetText() == L"# Beta\nA second notebook.\n" &&
                                  !app.Document().CanUndo() && app.folderRoot == directory,
                              "a Files-pane switch keeps the dirty document without asking or changing the root");
+                     Require(!app.Document().RemoteImagesEnabled(), "Beta cannot inherit Alpha's image grant");
                      app.Document().SetSelection({6, 2});
                      Require(app.Document().ReplaceSelection(L"Beta revised"), "edit Beta independently");
                      app.Document().SetSelection({6, 2});
@@ -679,6 +857,7 @@ class DesignRefreshProbe final
                      Require(!app.files.Busy() && questions == 0 && app.documentPath == first && app.bom && app.stamp == loaded.stamp &&
                                  app.Document().Snapshot().IsSameRevision(alphaSource) && app.Document().GetSelection() == alphaSelection,
                              "cached activation retains exact source, BOM, saved identity and oriented selection despite an external file change");
+                     Require(app.Document().RemoteImagesEnabled(), "cached Alpha activation restores its own image grant");
                      Require(app.Document().Undo() && app.Document().GetText() == loaded.text && !app.Dirty() && app.Document().Redo() &&
                                  app.Document().GetText() == alpha && app.Dirty() && app.Document().Redo() &&
                                  app.Document().GetText() == L"# Beta edited\r\nA useful notebook.\r\n" && app.Document().Undo() &&
@@ -690,6 +869,7 @@ class DesignRefreshProbe final
                                  app.Document().GetText() == L"# Beta\nA second notebook.\n" && !app.Dirty() && app.Document().Redo() &&
                                  app.Document().GetText() == beta && app.Dirty(),
                              "Beta's history never contains an Alpha edit");
+                     Require(!app.Document().RemoteImagesEnabled(), "cached Beta activation retains its independent blocked policy");
                      Require(app.SourceMirror().Snapshot().Text() == beta || view != EditorView::Split,
                              "the visible Split mirror derives from the newly active source");
                      app.CheckpointWorkspaceRecovery();
@@ -2710,21 +2890,13 @@ class DesignRefreshProbe final
                          "a current match beyond the bounded highlight prefix stays selected and renderable with cached exact source ranges");
                  app.SetDocument(L"cat cat");
                  app.findText->SetTextAndNotify(L"cat");
-                 app.replaceText->SetText(std::wstring(1, static_cast<wchar_t>(0xd800)));
+                 app.replaceText->SetText(L"dog");
+                 app.Document().SetReadOnly(true);
                  const auto failedSource = app.Document().Snapshot();
-                 bool rejected{};
-                 try
-                 {
-                     app.ReplaceFind(true);
-                 }
-                 catch (const std::invalid_argument &)
-                 {
-                     // A deliberately invalid precommit source edit exercises
-                     // the Find guard without injecting a callback failure.
-                     rejected = true;
-                 }
-                 Require(rejected && !app.updatingFind && app.Document().Snapshot().IsSameRevision(failedSource) && !app.Document().CanUndo(),
+                 app.ReplaceFind(true);
+                 Require(!app.updatingFind && app.Document().Snapshot().IsSameRevision(failedSource) && !app.Document().CanUndo(),
                          "failed source-edit admission releases Find suppression without changing source or history");
+                 app.Document().SetReadOnly(false);
                  app.replaceText->SetTextAndNotify(L"dog");
                  app.ReplaceFind(true);
                  Require(app.Document().GetText() == L"dog dog" && !app.updatingFind && app.findMatches.empty() && app.Document().Undo(),
@@ -4339,11 +4511,7 @@ class DesignRefreshProbe final
                      Require(app.Document().ReplaceSelection(L"Retained writing"), "seed dirty shortcut-boundary source");
                      const auto protectedSource = app.Document().Snapshot();
                      const auto protectedSelection = app.Document().GetSelection();
-                     app.options.commandAdmissionForTest = [](Command command)
-                     {
-                         if (command == Command::LocalSource)
-                             throw std::length_error("DIRECTED_SHORTCUT_FAILURE");
-                     };
+                     app.options.commandAdmissionForTest = [](Command command) { return command == Command::LocalSource ? E_BOUNDS : S_OK; };
                      routed.wParam = VK_F2;
                      app.DispatchUiMessage(routed);
                      Require(app.Document().Snapshot().IsSameRevision(protectedSource) && app.Document().GetSelection() == protectedSelection &&

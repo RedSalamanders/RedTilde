@@ -1,5 +1,12 @@
+// Winsock must precede windows.h and WIL's conditional socket declarations.
+// clang-format off
+#include <winsock2.h>
+#include <ws2tcpip.h>
+// clang-format on
 #include "RemoteImage.h"
+#include "ProcessWork.h"
 #include "RemoteImageImports.h"
+#include <DxUi/Failure.h>
 #include <algorithm>
 #include <array>
 #include <limits>
@@ -18,13 +25,20 @@ namespace
 using Internet = wil::unique_any<HINTERNET, decltype(&WinHttpCloseHandle), WinHttpCloseHandle>;
 constexpr auto Cancelled = HRESULT_FROM_WIN32(ERROR_CANCELLED);
 constexpr auto TimedOut = HRESULT_FROM_WIN32(ERROR_TIMEOUT);
+bool PublicV4(const unsigned char *bytes) noexcept
+{
+    const auto a = bytes[0], b = bytes[1], c = bytes[2];
+    return a != 0u && a != 10u && a != 127u && a < 224u && !(a == 100u && b >= 64u && b <= 127u) && !(a == 169u && b == 254u) &&
+           !(a == 172u && b >= 16u && b <= 31u) && !(a == 192u && (b == 168u || (b == 0u && (c == 0u || c == 2u)))) &&
+           !(a == 198u && (b == 18u || b == 19u || (b == 51u && c == 100u))) && !(a == 203u && b == 0u && c == 113u);
+}
 HRESULT LastError() noexcept
 {
     const auto value = GetLastError();
     return HRESULT_FROM_WIN32(value ? value : ERROR_GEN_FAILURE);
 }
 
-HRESULT EnsureWinHttpImports() noexcept
+HRESULT EnsureNetworkImports() noexcept
 {
     HRESULT result = E_UNEXPECTED;
     // A delayed Windows API import can fail with SEH, outside the transport's
@@ -33,7 +47,8 @@ HRESULT EnsureWinHttpImports() noexcept
     // delayimp retains imports for process lifetime, including late callbacks.
     __try
     {
-        return __HrLoadAllImportsForDll("WINHTTP.dll");
+        const HRESULT transport = __HrLoadAllImportsForDll("WINHTTP.dll");
+        return FAILED(transport) ? transport : __HrLoadAllImportsForDll("WS2_32.dll");
     }
     __except (RemoteImageDetail::WinHttpImportFailure(GetExceptionInformation(), result))
     {
@@ -46,6 +61,8 @@ HRESULT EnsureWinHttpImports() noexcept
 #pragma warning(disable : 4625 4626 5026 5027)
 struct Transfer final
 {
+    // Declared first so final native callback retirement releases all transfer state before the process lease.
+    ProcessWorkLease lease;
     wil::unique_handle ready;
     std::array<std::byte, 65536> buffer{};
     std::atomic<DWORD> notification{}, error{}, received{};
@@ -115,6 +132,137 @@ struct Transfer final
     }
 };
 #pragma warning(pop)
+// DNS completion owns a process lease independently of the requesting worker. Cancellation
+// never frees an OVERLAPPED/results buffer that Windows may still be using.
+struct AddressResolution final : OVERLAPPED
+{
+    ProcessWorkLease lease;
+    wil::unique_call<decltype(&WSACleanup), WSACleanup, false> winsock;
+    wil::unique_handle ready;
+    wil::unique_any<PADDRINFOEXW, decltype(&FreeAddrInfoExW), FreeAddrInfoExW> addresses;
+    std::shared_ptr<AddressResolution> callbackLifetime;
+    std::atomic<DWORD> error{WSA_IO_PENDING};
+    HANDLE cancelHandle{};
+    std::wstring hostname;
+    ADDRINFOEXW hints{};
+    timeval timeout{};
+    AddressResolution() noexcept : OVERLAPPED{} {}
+    AddressResolution(const AddressResolution &) = delete;
+    AddressResolution &operator=(const AddressResolution &) = delete;
+    AddressResolution(AddressResolution &&) = delete;
+    AddressResolution &operator=(AddressResolution &&) = delete;
+    static void CALLBACK Completed(DWORD status, DWORD, OVERLAPPED *overlap) noexcept
+    {
+        auto &state = *static_cast<AddressResolution *>(overlap);
+        const auto lifetime = std::move(state.callbackLifetime);
+        const DxUi::Failure::Scope failureScope;
+        state.error.store(status, std::memory_order_release);
+        static_cast<void>(SetEvent(state.ready.get()));
+    }
+};
+
+HRESULT ResolveImageAddress(const std::wstring &host, bool allowLocalNetwork, ULONGLONG deadline, const std::atomic_bool *cancellation,
+                            HANDLE abortEvent, std::wstring &output)
+{
+    auto name = std::wstring_view(host);
+    if (name.ends_with(L'.'))
+        name.remove_suffix(1u);
+    const bool numeric =
+        name.find(L':') != name.npos ||
+        (!name.empty() && std::ranges::all_of(name, [](wchar_t value) { return (value >= L'0' && value <= L'9') || value == L'.'; }));
+    if (!allowLocalNetwork && ((numeric && !IsRemoteImageAddressAllowed(name)) || (!numeric && name.find(L'.') == name.npos)))
+        return E_ACCESSDENIED;
+    auto state = std::make_shared<AddressResolution>();
+    RETURN_IF_FAILED(ProcessWork::Acquire(state->lease));
+    WSADATA data{};
+    const auto startup = WSAStartup(MAKEWORD(2, 2), &data);
+    if (startup != 0)
+        return HRESULT_FROM_WIN32(static_cast<DWORD>(startup));
+    state->winsock.activate();
+    state->ready.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+    if (!state->ready)
+        return LastError();
+    const auto now = GetTickCount64();
+    if (now >= deadline)
+        return TimedOut;
+    const auto remaining = deadline - now;
+    state->timeout = {static_cast<long>(remaining / 1000u), static_cast<long>((remaining % 1000u) * 1000u)};
+    state->hints.ai_family = AF_UNSPEC;
+    state->hints.ai_socktype = SOCK_STREAM;
+    state->hints.ai_protocol = IPPROTO_TCP;
+    state->hostname = host;
+    if (state->hostname.starts_with(L'[') && state->hostname.ends_with(L']'))
+        state->hostname = state->hostname.substr(1u, state->hostname.size() - 2u);
+    state->callbackLifetime = state;
+    const auto status = GetAddrInfoExW(state->hostname.c_str(), nullptr, NS_DNS, nullptr, &state->hints, state->addresses.put(), &state->timeout,
+                                       state.get(), &AddressResolution::Completed, &state->cancelHandle);
+    if (status != WSA_IO_PENDING)
+    {
+        state->callbackLifetime.reset();
+        state->error.store(static_cast<DWORD>(status), std::memory_order_release);
+        static_cast<void>(SetEvent(state->ready.get()));
+    }
+    const std::array<HANDLE, 2> handles{state->ready.get(), abortEvent};
+    while (true)
+    {
+        const auto current = GetTickCount64();
+        if ((cancellation && cancellation->load(std::memory_order_relaxed)) || current >= deadline ||
+            (abortEvent && WaitForSingleObject(abortEvent, 0u) == WAIT_OBJECT_0))
+        {
+            if (status == WSA_IO_PENDING)
+                static_cast<void>(GetAddrInfoExCancel(&state->cancelHandle));
+            return current >= deadline ? TimedOut : Cancelled;
+        }
+        const auto wait = WaitForMultipleObjects(abortEvent ? 2u : 1u, handles.data(), FALSE,
+                                                 static_cast<DWORD>(std::min<ULONGLONG>(deadline - current, cancellation ? 50u : MAXDWORD - 1u)));
+        if (wait == WAIT_TIMEOUT)
+            continue;
+        if (wait != WAIT_OBJECT_0)
+        {
+            if (status == WSA_IO_PENDING)
+                static_cast<void>(GetAddrInfoExCancel(&state->cancelHandle));
+            return wait == WAIT_OBJECT_0 + 1u ? Cancelled : LastError();
+        }
+        break;
+    }
+    const auto error = state->error.load(std::memory_order_acquire);
+    if (error == WSAETIMEDOUT)
+        return TimedOut;
+    if (error == WSA_E_CANCELLED || error == WSA_OPERATION_ABORTED)
+        return Cancelled;
+    if (error != ERROR_SUCCESS)
+        return HRESULT_FROM_WIN32(error);
+    std::size_t inspected{};
+    std::wstring ipv6Fallback;
+    for (const auto *address = state->addresses.get(); address && inspected < 64u; address = address->ai_next, ++inspected)
+    {
+        if (!address->ai_addr || (address->ai_family != AF_INET && address->ai_family != AF_INET6) ||
+            address->ai_addrlen < (address->ai_family == AF_INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6)))
+            continue;
+        std::array<wchar_t, 64> numericAddress{};
+        const void *bytes = address->ai_family == AF_INET
+                                ? static_cast<const void *>(&reinterpret_cast<const sockaddr_in *>(address->ai_addr)->sin_addr)
+                                : static_cast<const void *>(&reinterpret_cast<const sockaddr_in6 *>(address->ai_addr)->sin6_addr);
+        if (InetNtopW(address->ai_family, bytes, numericAddress.data(), numericAddress.size()) &&
+            IsRemoteImageAddressAllowed(numericAddress.data(), allowLocalNetwork))
+        {
+            if (address->ai_family == AF_INET)
+            {
+                output = numericAddress.data();
+                return S_OK;
+            }
+            if (ipv6Fallback.empty())
+                ipv6Fallback = numericAddress.data();
+        }
+    }
+    if (!ipv6Fallback.empty())
+    {
+        output = std::move(ipv6Fallback);
+        return S_OK;
+    }
+    return E_ACCESSDENIED;
+}
+
 HRESULT ContentLength(HINTERNET request, std::size_t maximum, std::optional<std::size_t> &output) noexcept
 {
     std::array<wchar_t, 32> text{};
@@ -169,6 +317,34 @@ bool HttpSource(std::wstring_view source) noexcept
 }
 } // namespace
 
+bool IsRemoteImageAddressAllowed(std::wstring_view address, bool allowLocalNetwork) noexcept
+{
+    // InetPton consumes a terminated string; the bounded stack copy never allocates.
+    if (address.size() >= 64u || address.empty() || address.find(L'\0') != address.npos)
+        return false;
+    if (address.front() == L'[' && address.back() == L']')
+        address = address.substr(1u, address.size() - 2u);
+    std::array<wchar_t, 64> text{};
+    std::copy(address.begin(), address.end(), text.begin());
+    IN_ADDR v4{};
+    if (InetPtonW(AF_INET, text.data(), &v4) == 1)
+    {
+        const auto *bytes = reinterpret_cast<const unsigned char *>(&v4);
+        return bytes[0] != 0u && bytes[0] < 224u && (allowLocalNetwork || PublicV4(bytes));
+    }
+    IN6_ADDR v6{};
+    if (InetPtonW(AF_INET6, text.data(), &v6) != 1 || IN6_IS_ADDR_UNSPECIFIED(&v6) || IN6_IS_ADDR_MULTICAST(&v6))
+        return false;
+    const auto *bytes = v6.u.Byte;
+    if (IN6_IS_ADDR_V4MAPPED(&v6))
+        return bytes[12] != 0u && bytes[12] < 224u && (allowLocalNetwork || PublicV4(bytes + 12u));
+    if (allowLocalNetwork)
+        return true;
+    // Public global unicast only. Transition and documentation prefixes are not direct image destinations.
+    return (bytes[0] & 0xe0u) == 0x20u && !(bytes[0] == 0x20u && bytes[1] == 0x02u) &&
+           !(bytes[0] == 0x20u && bytes[1] == 0x01u && ((bytes[2] == 0u && bytes[3] == 0u) || (bytes[2] == 0x0du && bytes[3] == 0xb8u)));
+}
+
 HRESULT FetchRemoteImage(std::wstring_view source, std::vector<std::byte> &output, const std::atomic_bool *cancellation, HANDLE abortEvent,
                          RemoteImageLimits limits) noexcept
 try
@@ -179,7 +355,7 @@ try
     if ((cancellation && cancellation->load(std::memory_order_relaxed)) || (abortEvent && WaitForSingleObject(abortEvent, 0) == WAIT_OBJECT_0))
         return Cancelled;
     const auto deadline = GetTickCount64() + limits.timeoutMilliseconds;
-    const auto imports = EnsureWinHttpImports();
+    const auto imports = EnsureNetworkImports();
     if (FAILED(imports))
         return imports;
     if ((cancellation && cancellation->load(std::memory_order_relaxed)) || (abortEvent && WaitForSingleObject(abortEvent, 0) == WAIT_OBJECT_0))
@@ -202,6 +378,8 @@ try
         target = L"/";
     if (parts.dwExtraInfoLength)
         target.append(parts.lpszExtraInfo, parts.dwExtraInfoLength);
+    std::wstring address;
+    RETURN_IF_FAILED(ResolveImageAddress(host, limits.allowLocalNetwork, deadline, cancellation, abortEvent, address));
     Internet session(WinHttpOpen(L"RedTilde/1", WINHTTP_ACCESS_TYPE_NO_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, WINHTTP_FLAG_ASYNC));
     if (!session)
         return LastError();
@@ -220,6 +398,11 @@ try
                                         parts.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0));
     if (!request)
         return LastError();
+    // Only the DNS endpoint is replaced. Host, HTTP authority and ordinary TLS name validation
+    // still use the original URL. Never perform a second unpinned lookup after admission.
+    if (!WinHttpSetOption(request.get(), WINHTTP_OPTION_RESOLUTION_HOSTNAME, address.data(),
+                          static_cast<DWORD>((address.size() + 1u) * sizeof(wchar_t))))
+        return LastError();
     DWORD disabled = WINHTTP_DISABLE_AUTHENTICATION | WINHTTP_DISABLE_COOKIES | WINHTTP_DISABLE_REDIRECTS | WINHTTP_DISABLE_KEEP_ALIVE;
     DWORD noRedirect = WINHTTP_OPTION_REDIRECT_POLICY_NEVER, headerBytes = 32768, logon = WINHTTP_AUTOLOGON_SECURITY_LEVEL_HIGH;
     if (!WinHttpSetOption(request.get(), WINHTTP_OPTION_DISABLE_FEATURE, &disabled, sizeof(disabled)) ||
@@ -230,6 +413,9 @@ try
     // WinHTTP requires the application to supply a client certificate after
     // CLIENT_AUTH_CERT_NEEDED. We never supply one or retry that challenge.
     auto transfer = std::make_shared<Transfer>();
+    const HRESULT admitted = ProcessWork::Acquire(transfer->lease);
+    if (FAILED(admitted))
+        return admitted;
     transfer->ready.reset(CreateEventW(nullptr, FALSE, FALSE, nullptr));
     if (!transfer->ready)
         return LastError();
@@ -311,7 +497,7 @@ catch (const std::bad_alloc &)
 {
     // Allocation failure at a worker/service boundary is fatal, never a silent
     // failed-image preference or a partially published encoded buffer.
-    std::terminate();
+    DxUi::Failure::FailAllocation();
 }
 catch (const std::length_error &)
 {

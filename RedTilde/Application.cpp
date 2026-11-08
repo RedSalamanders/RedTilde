@@ -1,6 +1,7 @@
 #include "Application.h"
 #include "Common/CrashHandler.h"
 #include "Common/MonitorDiagnostics.h"
+#include "Common/NativeCalls.h"
 #include "res/Resource.h"
 #include <DxUi/RichMath.h>
 #include <DxUi/RichSemanticDocument.h>
@@ -12,6 +13,7 @@
 #include <dwmapi.h>
 #include <format>
 #include <fstream>
+#include <iterator>
 #include <mutex>
 #include <new>
 #include <psapi.h>
@@ -22,12 +24,37 @@
 #include <wil/result.h>
 #include <wincodec.h>
 #include <windowsx.h>
+#include <winhttp.h>
 
 namespace RedTilde
 {
 static_assert(std::is_nothrow_swappable_v<DocumentInfo>, "analysis facts must publish without throwing");
 namespace
 {
+enum class ImageReferenceCategory
+{
+    PossibleFile,
+    Network,
+    Other
+};
+// Shared explanatory-chrome/watch-invalidation policy over semantic values.
+// This performs no URI admission, path resolution, permission grant or I/O;
+// only SDK-admitted LocalFile requests can supply actual watched paths.
+ImageReferenceCategory ImageReferenceCategoryFor(const DxUi::RichText::SemanticElement &element) noexcept
+{
+    if (element.wiki)
+        return ImageReferenceCategory::Other;
+    const auto &value = element.destination;
+    const auto prefix = [&](std::wstring_view text)
+    {
+        return value.size() >= text.size() &&
+               CompareStringOrdinal(value.data(), static_cast<int>(text.size()), text.data(), static_cast<int>(text.size()), TRUE) == CSTR_EQUAL;
+    };
+    if (prefix(L"http://") || prefix(L"https://") || (prefix(L"file://") && value.size() > 7u && value[7u] != L'/') || value.starts_with(L"//") ||
+        value.starts_with(L"\\\\"))
+        return ImageReferenceCategory::Network;
+    return prefix(L"data:") ? ImageReferenceCategory::Other : ImageReferenceCategory::PossibleFile;
+}
 // App-local display categories over the canonical immutable tree, not a parser.
 unsigned CurrentBlockResourceAt(const DxUi::RichText::MarkdownSyntax &syntax, std::size_t caret,
                                 std::optional<std::pair<unsigned, std::size_t>> *listSummary = nullptr) noexcept
@@ -191,6 +218,12 @@ struct Application::ExternalLinkState
 };
 struct Application::ExternalLinkJob
 {
+    ExternalLinkJob() = default;
+    ExternalLinkJob(const ExternalLinkJob &) = delete;
+    ExternalLinkJob &operator=(const ExternalLinkJob &) = delete;
+    ExternalLinkJob(ExternalLinkJob &&) = delete;
+    ExternalLinkJob &operator=(ExternalLinkJob &&) = delete;
+    ProcessWorkLease lease;
     std::shared_ptr<ExternalLinkState> state;
     std::wstring destination;
 #if defined(REDTILDE_ENABLE_TESTS)
@@ -231,7 +264,8 @@ std::wstring SampleDocument()
            L"Images use ordinary Markdown: `![description](images/photo.png)`. Insert a local image from the toolbar or paste a file path.\n";
 }
 
-Application::Application(LaunchOptions value) : options(std::move(value))
+Application::Application(LaunchOptions value) : Application(std::move(value), DxUi::Failure::Scope{}) {}
+Application::Application(LaunchOptions value, const DxUi::Failure::Scope &) : options(std::move(value))
 {
     startupPolicy = !options.headless;
 #if defined(REDTILDE_ENABLE_TESTS)
@@ -249,6 +283,7 @@ Application::~Application()
     files.Close();
     folderFiles.Close();
     images.Shutdown();
+    imageFiles.Close();
     host.Detach();
     window.reset();
 }
@@ -324,6 +359,8 @@ HRESULT Application::Initialize()
     preferenceWriter.Initialize(options.dataDirectory, window.get(), PreferencesReady);
     RETURN_IF_FAILED(recovery.Initialize(options.dataDirectory, window.get(), RecoveryReadyMessage));
     RETURN_IF_FAILED(images.Initialize(window.get(), ImageReady, 0x5254));
+    RETURN_IF_FAILED(imageFiles.Initialize(window.get(), ImageFileChanged, 0x5254));
+    images.SetAllowLocalNetwork(settings.allowLocalNetworkImages);
     RETURN_IF_FAILED(bitmapWriter.Initialize(options.dataDirectory, window.get(), BitmapReady));
     host.SetClipboardPreference(settings.imageFirstPaste ? DxUi::TextClipboardPreference::ImageFirst : DxUi::TextClipboardPreference::TextFirst);
     initialized = true;
@@ -331,7 +368,7 @@ HRESULT Application::Initialize()
     // BuildUi is the sole creation site for the label whose localized facts we cache.
     currentBlockLatestFacts.reset();
     currentBlockPublishedFacts.reset();
-    BuildUi();
+    RETURN_IF_FAILED(BuildUi());
     ApplyTheme();
     SetDocument(startupPolicy ? std::wstring{} : SampleDocument());
     if (startupPolicy && options.document.empty())
@@ -547,7 +584,8 @@ void Application::RequestOpenLink(const DxUi::RichTextLinkActivation &activation
     else
     {
         const auto message = std::vformat(Resource(IDS_OPENLINKCONFIRM), std::make_wformat_args(destination));
-        approved = MessageBoxW(window.get(), message.c_str(), Resource(IDS_OPENLINK).c_str(), MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2) == IDYES;
+        approved = DxUi::Failure::InvokeNative(&MessageBoxW, window.get(), message.c_str(), Resource(IDS_OPENLINK).c_str(),
+                                               static_cast<UINT>(MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2)) == IDYES;
     }
     if (!approved)
         return;
@@ -571,6 +609,12 @@ void Application::RequestOpenLink(const DxUi::RichTextLinkActivation &activation
     }
 #endif
     HRESULT admitted = S_OK;
+    admitted = ProcessWork::Acquire(job->lease);
+    if (FAILED(admitted))
+    {
+        Status(IDS_LINKFAILED);
+        return;
+    }
     {
         std::lock_guard lock(externalLink->mutex);
         if (externalLink->busy || !externalLink->window)
@@ -599,6 +643,7 @@ void Application::RequestOpenLink(const DxUi::RichTextLinkActivation &activation
 
 DWORD WINAPI Application::ExternalLinkWorker(void *context) noexcept
 {
+    ProcessWorkLease lease = std::move(static_cast<ExternalLinkJob *>(context)->lease);
     const std::unique_ptr<ExternalLinkJob> job(static_cast<ExternalLinkJob *>(context));
 #if defined(REDTILDE_ENABLE_TESTS)
     const auto settled = wil::scope_exit(
@@ -627,6 +672,7 @@ DWORD WINAPI Application::ExternalLinkWorker(void *context) noexcept
             if (SUCCEEDED(result))
             {
                 const wil::unique_couninitialize_call apartment;
+                const DxUi::Failure::Scope failureScope;
 #if defined(REDTILDE_ENABLE_TESTS)
                 if (job->launchForTest)
                     result = job->launchForTest(job->destination);
@@ -639,7 +685,7 @@ DWORD WINAPI Application::ExternalLinkWorker(void *context) noexcept
                     launch.lpFile = job->destination.c_str();
                     launch.nShow = SW_SHOWNORMAL;
                     // No process handle is requested or retained.
-                    if (ShellExecuteExW(&launch))
+                    if (DxUi::Failure::InvokeNative(&ShellExecuteExW, &launch))
                         result = S_OK;
                     else
                     {
@@ -652,14 +698,12 @@ DWORD WINAPI Application::ExternalLinkWorker(void *context) noexcept
     }
     catch (const std::bad_alloc &)
     {
-        std::terminate();
+        DxUi::Failure::FailAllocation();
     }
-    catch (const std::exception &error)
+    catch (const std::exception &)
     {
-        // No C++ exception crosses the Windows thread ABI. Retain the cause
-        // once and publish the ordinary failed-launch status on the UI owner.
-        MonitorDiagnostics::WriteUtf8(RedMonitor::Severity::Error, error.what());
-        result = E_FAIL;
+        // Unexpected failures cannot unwind through the native thread entry or resume a partial callback.
+        DxUi::Failure::FailUnexpected();
     }
     std::lock_guard lock(job->state->mutex);
     job->state->busy = false;
@@ -716,9 +760,11 @@ void Application::ApplyMarkdownSyntax()
 {
     // Matching masks keep the read-only mirror eligible for parsed-syntax adoption.
     const auto extensions = MarkdownExtensionsFor(settings);
-    editor->SetMarkdownAnalysisExtensions(extensions);
-    mirror->SetMarkdownAnalysisExtensions(extensions);
-    equation->SetMarkdownAnalysisExtensions(extensions);
+    if (!AcceptSourceResult(editor->TrySetMarkdownAnalysisExtensions(extensions)))
+        return;
+    if (!AcceptSourceResult(mirror->TrySetMarkdownAnalysisExtensions(extensions)))
+        return;
+    (void)AcceptSourceResult(equation->TrySetMarkdownAnalysisExtensions(extensions));
 }
 
 void Application::ApplyTheme()
@@ -770,7 +816,8 @@ void Application::ApplyTheme()
     host.SetTheme(theme);
     const auto underline = highContrast ? DxUi::RichTextLinkUnderlinePolicy::Always : DxUi::RichTextLinkUnderlinePolicy::HoverOrCaret;
     for (auto *target : {static_cast<DxUi::RichTextEditor *>(editor), mirror, equation})
-        target->SetLinkUnderlinePolicy(underline);
+        if (!AcceptSourceResult(target->TrySetLinkUnderlinePolicy(underline)))
+            return;
     const BOOL nativeDark = dark;
     (void)DwmSetWindowAttribute(window.get(), DWMWA_USE_IMMERSIVE_DARK_MODE, &nativeDark, sizeof(nativeDark));
     Layout();
@@ -931,7 +978,8 @@ bool Application::SynchronizeMirror()
         // Retain exact SetText fallback for an incompatible mirror profile.
         // Own this spelling across callbacks instead of borrowing a mutable app cache.
         const auto text = source.Text();
-        target->SetText(text);
+        if (!AcceptSourceResult(target->TrySetText(text)))
+            return false;
         if (!current() || target->GetText() != text)
             return false;
     }
@@ -948,25 +996,62 @@ void Application::Status(unsigned id)
     if (feedback)
         feedback->SetText(Resource(id));
 }
-void Application::SetDocument(std::wstring text, std::filesystem::path path, bool hasBom, FileStamp identity, bool rememberForStartup)
+bool Application::AcceptSourceResult(DxUi::RichText::SourceResult result)
 {
+    if (result == DxUi::RichText::SourceResult::Success)
+        return true;
+    Status(result == DxUi::RichText::SourceResult::CapacityExceeded ? IDS_REPLACEFAILED : IDS_ACTIONFAILED);
+    return false;
+}
+bool Application::SetDocument(std::wstring text, std::filesystem::path path, bool hasBom, FileStamp identity, bool rememberForStartup)
+{
+    const bool previousImageTransition = imageBindingTransition;
+    imageBindingTransition = true;
+    const auto restoreImageTransition = wil::scope_exit([&] { imageBindingTransition = previousImageTransition; });
+    // A checked refusal preserves the entire current document, saved baseline, recovery and pending insertion.
+    if (!DxUi::RichText::IsValidSourceUtf16(text))
+        return AcceptSourceResult(DxUi::RichText::SourceResult::InvalidSource);
+    if (text.size() > DxUi::RichText::Document::MaximumUnits)
+        return AcceptSourceResult(DxUi::RichText::SourceResult::CapacityExceeded);
+    const auto lifetime = GetControlLifetimeToken(*editor);
+    // A replacement document cannot inherit a one-document grant through synchronous text callbacks.
+    const bool previousDocumentPermission = documentRemoteImagesAllowed;
+    const auto previousPermissionSource = editor->Snapshot();
+    bool permissionCommitted = false;
+    const auto restorePermission = wil::scope_exit(
+        [&]() noexcept
+        {
+            if (!permissionCommitted && !lifetime.expired() && !closing && documentRemoteImagesAllowed == previousDocumentPermission &&
+                editor->Snapshot().IsSameRevision(previousPermissionSource))
+                editor->SetRemoteImagesEnabled(settings.allowRemoteImages || previousDocumentPermission);
+        });
+    editor->SetRemoteImagesEnabled(settings.allowRemoteImages);
+    if (lifetime.expired() || closing)
+        return false;
+    if (!AcceptSourceResult(editor->TrySetDocumentFilePath(path.native())) || lifetime.expired() || closing)
+        return false;
+    if (!AcceptSourceResult(editor->TrySetText(text)))
+        return false;
+    if (lifetime.expired() || closing)
+        return false;
+    documentRemoteImagesAllowed = false;
+    permissionCommitted = true;
     pendingBitmapPaste.reset();
     if (!initializing)
         AbandonStartupRestore();
     recovered = false;
-    editor->SetText(std::move(text));
     documentPath = std::move(path);
     EnsureFilesRoot();
     bom = hasBom;
     stamp = identity;
     savedText = editor->GetText();
     dirtyFact.reset();
-    editor->SetDocumentFilePath(documentPath.native());
     SetView(settings.view);
     Changed();
     RefreshFiles(true);
     if (rememberForStartup)
         RememberActiveDocument();
+    return true;
 }
 void Application::Changed()
 {
@@ -1088,7 +1173,9 @@ void Application::UpdateCaption(std::wstring caption)
     ++activity.captionCalls;
     // This is our own HWND. Use WM_SETTEXT's explicit acceptance result: the
     // SetWindowText wrapper may report success for a receiver's zero result.
-    if (SendMessageW(window.get(), WM_SETTEXT, 0, reinterpret_cast<LPARAM>(caption.c_str())) == TRUE && request == activity.captionRequests)
+    if (DxUi::Failure::InvokeNative(&SendMessageW, window.get(), static_cast<UINT>(WM_SETTEXT), WPARAM{},
+                                    reinterpret_cast<LPARAM>(caption.c_str())) == TRUE &&
+        request == activity.captionRequests)
         appliedCaption = std::move(caption);
     else
         appliedCaption.reset();
@@ -1224,7 +1311,8 @@ void Application::SetView(EditorView view)
     selectionToolsFocus.reset();
     // The same editor/document/history survives all global presentation changes.
     settings.view = view;
-    primary->SetViewMode(view == EditorView::Source ? DxUi::RichText::ViewMode::Source : DxUi::RichText::ViewMode::Rich);
+    if (!AcceptSourceResult(primary->TrySetViewMode(view == EditorView::Source ? DxUi::RichText::ViewMode::Source : DxUi::RichText::ViewMode::Rich)))
+        return;
     if (!current())
         return;
     // Source supersession aborts source-bound work, but this view transition
@@ -1333,7 +1421,10 @@ void Application::SelectionChanged(bool refreshTools)
             // reset this exact selection; retain the canonical setter for a
             // real selection change or an incompatible-profile fallback.
             if (target->GetSelection() != selection || !target->IsReadOnly() || target->GetViewMode() != DxUi::RichText::ViewMode::Source)
-                target->SetSelection(selection);
+            {
+                if (!AcceptSourceResult(target->TrySetSelection(selection)))
+                    return;
+            }
             if (!current())
                 return;
             (void)target->ScrollSourceRangeIntoView(host, selection.Start(), selection.End(), false);
@@ -1385,7 +1476,8 @@ void Application::SelectionChanged(bool refreshTools)
             // The pinned grammar recognizes display delimiters only on their own lines.
             const auto preview = expression.empty() ? std::wstring{} : L"\\[\n" + expression + L"\n\\]";
             if (equation->GetText() != preview)
-                equation->SetText(preview);
+                if (!AcceptSourceResult(equation->TrySetText(preview)))
+                    return;
             const bool nextEquationContext = !expression.empty();
             layoutChanged = equationContext != nextEquationContext;
             equationContext = nextEquationContext;
@@ -1571,7 +1663,7 @@ void Application::CloseDrawers()
     recoveryPanel->SetVisible(false);
     editor->SetReadOnly(false);
     if (hadBlockDraft)
-        editor->SetSourceHighlights({});
+        (void)AcceptSourceResult(editor->TrySetSourceHighlights({}));
     RefreshFind();
     Layout();
     host.SetFocusControl(editor, MayRequestNativeFocus());
@@ -1598,13 +1690,11 @@ void Application::ReportUiFailure(std::string_view cause) noexcept
     }
     catch (const std::bad_alloc &)
     {
-        std::terminate();
+        DxUi::Failure::FailAllocation();
     }
-    catch (const std::exception &error)
+    catch (const std::exception &)
     {
-        // Status publication itself can fail. Keep the app/source alive and
-        // retain the second actual cause locally instead of recursing into UI.
-        MonitorDiagnostics::WriteUtf8(RedMonitor::Severity::Error, error.what());
+        DxUi::Failure::FailUnexpected();
     }
 }
 void Application::Execute(Command command) noexcept
@@ -1620,7 +1710,14 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         return;
 #if defined(REDTILDE_ENABLE_TESTS)
     if (options.commandAdmissionForTest)
-        options.commandAdmissionForTest(command);
+    {
+        const HRESULT admitted = options.commandAdmissionForTest(command);
+        if (FAILED(admitted))
+        {
+            ReportUiFailure("checked command admission refusal");
+            return;
+        }
+    }
 #endif
     using namespace DxUi::RichText;
     // Presentation/structural changes cannot interrupt native IME composition.
@@ -1699,11 +1796,37 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         return;
     case Command::RemoteImages:
         settings.allowRemoteImages = !settings.allowRemoteImages;
-        editor->SetRemoteImagesEnabled(settings.allowRemoteImages);
+        editor->SetRemoteImagesEnabled(settings.allowRemoteImages || documentRemoteImagesAllowed);
         images.DiscardCancelled();
         remoteImagesToggle->SetToggleState(settings.allowRemoteImages);
         ServiceImages();
         SavePreferences();
+        return;
+    case Command::LocalNetworkImages:
+        settings.allowLocalNetworkImages = !settings.allowLocalNetworkImages;
+        images.SetAllowLocalNetwork(settings.allowLocalNetworkImages);
+        // Retire existing request identities before applying the new transport policy.
+        editor->SetRemoteImagesEnabled(false);
+        editor->SetRemoteImagesEnabled(settings.allowRemoteImages || documentRemoteImagesAllowed);
+        images.DiscardCancelled();
+        localNetworkImagesToggle->SetToggleState(settings.allowLocalNetworkImages);
+        ServiceImages();
+        SavePreferences();
+        return;
+    case Command::DocumentImages:
+        if (settings.allowRemoteImages)
+            return;
+        documentRemoteImagesAllowed = !documentRemoteImagesAllowed;
+        editor->SetRemoteImagesEnabled(documentRemoteImagesAllowed);
+        images.DiscardCancelled();
+        imageFailureStatus = S_OK;
+        ServiceImages();
+        return;
+    case Command::ReloadImages:
+        imageFailureStatus = S_OK;
+        editor->ReloadImages();
+        images.DiscardCancelled();
+        ServiceImages();
         return;
     case Command::ImageFirstPaste:
         settings.imageFirstPaste = !settings.imageFirstPaste;
@@ -1772,7 +1895,7 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
                         return;
                     SetDocument(candidate.snapshot.text, candidate.snapshot.originalPath, candidate.snapshot.bom, {}, false);
                     recovered = true;
-                    editor->SetSelection(candidate.snapshot.selection);
+                    (void)AcceptSourceResult(editor->TrySetSelection(candidate.snapshot.selection));
                     Changed();
                     const auto snapshot = RecoverySnapshot{editor->GetText(), documentPath, bom, editor->GetSelection(), ++recoveryGeneration};
                     if (FAILED(recovery.SubmitDocument(activeDocumentKey, snapshot, true, candidate.id)))
@@ -1809,7 +1932,7 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
             if (closing || host.GetRoot() != root)
                 return;
             recovered = true;
-            editor->SetSelection(candidate.snapshot.selection);
+            (void)AcceptSourceResult(editor->TrySetSelection(candidate.snapshot.selection));
             Changed();
             if (closing || host.GetRoot() != root)
                 return;
@@ -2129,7 +2252,7 @@ void Application::LocalSource()
     if (last > first)
     {
         const DxUi::RichTextSourceHighlight block{first, last - first, true};
-        editor->SetSourceHighlights(std::span(&block, 1));
+        (void)AcceptSourceResult(editor->TrySetSourceHighlights(std::span(&block, 1)));
     }
     Layout();
     host.SetFocusControl(blockDraftText, MayRequestNativeFocus());
@@ -2252,8 +2375,9 @@ std::filesystem::path Application::PickFile(bool saving, bool image, bool folder
     if (options.headless)
         return {};
     wil::com_ptr<IFileDialog> dialog;
-    HRESULT hr = saving ? CoCreateInstance(CLSID_FileSaveDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(dialog.put()))
-                        : CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(dialog.put()));
+    const CLSID classId = saving ? CLSID_FileSaveDialog : CLSID_FileOpenDialog;
+    HRESULT hr = DxUi::Failure::InvokeNative(&CoCreateInstance, classId, nullptr, static_cast<DWORD>(CLSCTX_INPROC_SERVER), __uuidof(IFileDialog),
+                                             reinterpret_cast<void **>(dialog.put()));
     if (FAILED(hr))
         return {};
     const auto markdownLabel = Resource(IDS_FILTERMARKDOWN), utf8Label = Resource(IDS_FILTERUTF8), allLabel = Resource(IDS_FILTERALL),
@@ -2261,36 +2385,39 @@ std::filesystem::path Application::PickFile(bool saving, bool image, bool folder
     const COMDLG_FILTERSPEC markdown[]{{markdownLabel.c_str(), L"*.md;*.markdown"}, {utf8Label.c_str(), L"*.txt"}, {allLabel.c_str(), L"*.*"}};
     const COMDLG_FILTERSPEC pictures[]{{imageLabel.c_str(), L"*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff"}};
     if (!folder)
-        (void)dialog->SetFileTypes(image ? 1u : 3u, image ? pictures : markdown);
+        (void)InvokeNativeMethod(dialog.get(), &IFileDialog::SetFileTypes, image ? 1u : 3u, image ? pictures : markdown);
     else
-        (void)dialog->SetTitle(Resource(IDS_OPENFOLDER).c_str());
+        (void)InvokeNativeMethod(dialog.get(), &IFileDialog::SetTitle, Resource(IDS_OPENFOLDER).c_str());
     DWORD flags{};
-    (void)dialog->GetOptions(&flags);
-    (void)dialog->SetOptions(flags | FOS_FORCEFILESYSTEM | FOS_NOCHANGEDIR |
-                             (folder   ? FOS_PICKFOLDERS | FOS_PATHMUSTEXIST
-                              : saving ? FOS_OVERWRITEPROMPT
-                                       : FOS_FILEMUSTEXIST));
+    (void)InvokeNativeMethod(dialog.get(), &IFileDialog::GetOptions, &flags);
+    (void)InvokeNativeMethod(dialog.get(), &IFileDialog::SetOptions,
+                             flags | FOS_FORCEFILESYSTEM | FOS_NOCHANGEDIR |
+                                 (folder   ? FOS_PICKFOLDERS | FOS_PATHMUSTEXIST
+                                  : saving ? FOS_OVERWRITEPROMPT
+                                           : FOS_FILEMUSTEXIST));
     if (!settings.filesRoot.empty())
     {
         wil::com_ptr<IShellItem> initial;
-        if (SUCCEEDED(SHCreateItemFromParsingName(settings.filesRoot.c_str(), nullptr, IID_PPV_ARGS(initial.put()))))
-            (void)dialog->SetDefaultFolder(initial.get());
+        if (SUCCEEDED(DxUi::Failure::InvokeNative(&SHCreateItemFromParsingName, settings.filesRoot.c_str(), nullptr, __uuidof(IShellItem),
+                                                  reinterpret_cast<void **>(initial.put()))))
+            (void)InvokeNativeMethod(dialog.get(), &IFileDialog::SetDefaultFolder, initial.get());
     }
     if (saving)
     {
-        (void)dialog->SetDefaultExtension(L"md");
+        (void)InvokeNativeMethod(dialog.get(), &IFileDialog::SetDefaultExtension, L"md");
         const auto baseName =
             documentPath.filename().empty() ? std::filesystem::path(Resource(IDS_UNTITLED)).stem().native() : documentPath.stem().native();
         const auto name = recovered              ? std::vformat(Resource(IDS_RECOVEREDNAME), std::make_wformat_args(baseName))
                           : documentPath.empty() ? Resource(IDS_UNTITLED)
                                                  : documentPath.filename().native();
-        (void)dialog->SetFileName(name.c_str());
+        (void)InvokeNativeMethod(dialog.get(), &IFileDialog::SetFileName, name.c_str());
     }
-    if (FAILED(dialog->Show(window.get())))
+    if (FAILED(InvokeNativeMethod(dialog.get(), &IFileDialog::Show, window.get())))
         return {};
     wil::com_ptr<IShellItem> item;
     wil::unique_cotaskmem_string path;
-    if (FAILED(dialog->GetResult(item.put())) || FAILED(item->GetDisplayName(SIGDN_FILESYSPATH, path.put())))
+    if (FAILED(InvokeNativeMethod(dialog.get(), &IFileDialog::GetResult, item.put())) ||
+        FAILED(InvokeNativeMethod(item.get(), &IShellItem::GetDisplayName, SIGDN_FILESYSPATH, path.put())))
         return {};
     return std::filesystem::path(path.get());
 }
@@ -2331,8 +2458,8 @@ void Application::AskThen(std::function<void()> continuation)
             choice = options.unsavedPromptForTest();
         else
 #endif
-            choice = MessageBoxW(window.get(), Resource(IDS_SAVEQUESTION).c_str(), Resource(IDS_APP).c_str(),
-                                 MB_ICONQUESTION | MB_YESNOCANCEL | MB_DEFBUTTON3);
+            choice = DxUi::Failure::InvokeNative(&MessageBoxW, window.get(), Resource(IDS_SAVEQUESTION).c_str(), Resource(IDS_APP).c_str(),
+                                                 static_cast<UINT>(MB_ICONQUESTION | MB_YESNOCANCEL | MB_DEFBUTTON3));
     }
     if (choice == IDNO)
         continuation();
@@ -2480,7 +2607,7 @@ void Application::ResolveSaveConflict(const AsyncFiles::Result &result)
             config.pButtons = buttons;
             config.nDefaultButton = IDCANCEL;
             int pressed = IDCANCEL;
-            if (SUCCEEDED(TaskDialogIndirect(&config, &pressed, nullptr, nullptr)))
+            if (SUCCEEDED(DxUi::Failure::InvokeNative(&TaskDialogIndirect, &config, &pressed, nullptr, nullptr)))
             {
                 if (pressed == IDS_RELOAD)
                     choice = SaveConflictChoice::Reload;
@@ -2546,7 +2673,14 @@ void Application::CompleteFileOperation()
 {
 #if defined(REDTILDE_ENABLE_TESTS)
     if (options.fileCompletionAdmissionForTest)
-        options.fileCompletionAdmissionForTest();
+    {
+        const HRESULT admitted = options.fileCompletionAdmissionForTest();
+        if (FAILED(admitted))
+        {
+            ReportUiFailure("checked file-completion admission refusal");
+            return;
+        }
+    }
 #endif
     auto completed = heldOpen && !HasBlockDraft() ? std::exchange(heldOpen, std::nullopt) : files.Take();
     if (!completed)
@@ -2599,7 +2733,8 @@ void Application::CompleteFileOperation()
             message = std::vformat(Resource(result.saving ? IDS_SAVEFAILED : IDS_OPENFAILED), std::make_wformat_args(error));
         }
         if (!options.headless && !failedClose && !automaticStartup)
-            MessageBoxW(window.get(), message.c_str(), Resource(IDS_ERROR).c_str(), MB_OK | MB_ICONERROR);
+            (void)DxUi::Failure::InvokeNative(&MessageBoxW, window.get(), message.c_str(), Resource(IDS_ERROR).c_str(),
+                                              static_cast<UINT>(MB_OK | MB_ICONERROR));
         feedback->SetText(message);
         if (!result.saving)
         {
@@ -2620,8 +2755,8 @@ void Application::CompleteFileOperation()
             Status(IDS_FILECONTEXTCHANGED);
             return;
         }
-        SetDocument(std::move(result.document.text), std::move(result.path), result.document.bom, result.document.stamp);
-        Status(IDS_SAVED);
+        if (SetDocument(std::move(result.document.text), std::move(result.path), result.document.bom, result.document.stamp))
+            Status(IDS_SAVED);
         return;
     }
     if (result.saving)
@@ -2633,7 +2768,8 @@ void Application::CompleteFileOperation()
         stamp = result.document.stamp;
         EnsureFilesRoot();
         RefreshFiles(true);
-        editor->SetDocumentFilePath(documentPath.native());
+        if (!AcceptSourceResult(editor->TrySetDocumentFilePath(documentPath.native())))
+            return;
         RememberActiveDocument();
         Changed();
         Status(IDS_SAVED);
@@ -2679,16 +2815,22 @@ void Application::CompleteFileOperation()
         auto approvals = std::exchange(openingApprovals, {});
         auto apply = [this, staged]
         {
-            ResetWorkspace();
-            SetDocument(std::move(staged->document.text), std::move(staged->path), staged->document.bom, staged->document.stamp);
-            Status(IDS_SAVED);
+            if (SetDocument(std::move(staged->document.text), std::move(staged->path), staged->document.bom, staged->document.stamp))
+            {
+                ResetWorkspace();
+                RefreshFiles();
+                Status(IDS_SAVED);
+            }
         };
         if (fromFiles)
         {
+            const auto previousCount = inactiveDocuments.size();
             if (StartWorkspaceDocument() && !closing && host.GetRoot() == root)
             {
-                SetDocument(std::move(staged->document.text), std::move(staged->path), staged->document.bom, staged->document.stamp);
-                Status(IDS_SAVED);
+                if (SetDocument(std::move(staged->document.text), std::move(staged->path), staged->document.bom, staged->document.stamp))
+                    Status(IDS_SAVED);
+                else if (inactiveDocuments.size() > previousCount && SwitchWorkspaceDocument(previousCount))
+                    inactiveDocuments.pop_back(); // Retire only the new empty slot; the prior file/history is active again.
             }
         }
         else if (entrySource && editor->Snapshot().IsSameRevision(entrySource.value()))
@@ -2764,11 +2906,153 @@ void Application::ServiceBitmapPaste()
     if (!closing && !lifetime.expired())
         Status(keep ? IDS_IMAGEPASTED : IDS_IMAGEPASTEFAILED);
 }
+void Application::RefreshImageConsent()
+{
+    if (!editor || !imageConsent || closing)
+        return;
+    auto *const owner = root;
+    if (!owner || host.GetRoot() != owner)
+        return;
+    const auto lifetime = GetControlLifetimeToken(*owner);
+    const auto semantic = editor->GetSemanticDocument();
+    const auto current = [&]() noexcept
+    {
+        return !lifetime.expired() && !closing && root == owner && host.GetRoot() == owner && editor && editor->GetSemanticDocument() == semantic &&
+               imageConsentSource == semantic;
+    };
+    if (semantic != imageConsentSource || imageConsentPath != documentPath)
+    {
+        imageConsentSource = semantic;
+        imageConsentPath = documentPath;
+        imageConsentHasNetwork = false;
+        imageFailureStatus = S_OK;
+        if (semantic)
+            for (const auto &element : semantic->Elements())
+                if (element.role == DxUi::RichText::SemanticRole::Image)
+                {
+                    if (ImageReferenceCategoryFor(element) == ImageReferenceCategory::Network || documentPath.native().starts_with(L"\\\\"))
+                    {
+                        imageConsentHasNetwork = true;
+                        break;
+                    }
+                }
+    }
+    const bool enabled = settings.allowRemoteImages || documentRemoteImagesAllowed;
+    unsigned text = static_cast<unsigned>(!enabled                     ? IDS_IMAGECONSENTBLOCKED
+                                          : settings.allowRemoteImages ? IDS_IMAGECONSENTSETTINGS
+                                                                       : IDS_IMAGECONSENTDOCUMENT);
+    if (FAILED(imageFailureStatus))
+        text = static_cast<unsigned>(imageFailureStatus == E_ACCESSDENIED                             ? IDS_IMAGEPOLICYFAILED
+                                     : imageFailureStatus == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE) ? IDS_IMAGETOOLARGE
+                                     : imageFailureStatus == HRESULT_FROM_WIN32(ERROR_TIMEOUT) ||
+                                             imageFailureStatus == HRESULT_FROM_WIN32(ERROR_WINHTTP_TIMEOUT)
+                                         ? IDS_IMAGETIMEOUT
+                                         : IDS_IMAGELOADFAILED);
+    if (imageConsentText->GetText() != ResourceView(text))
+        imageConsentText->SetText(Resource(text));
+    if (!current())
+        return;
+    const unsigned action = documentRemoteImagesAllowed ? IDS_IMAGEBLOCKHERE : IDS_IMAGEALLOWHERE;
+    if (imageConsentAction->GetText() != ResourceView(action))
+        imageConsentAction->SetText(Resource(action));
+    if (!current())
+        return;
+    imageConsentAction->SetVisible(imageConsentHasNetwork && !settings.allowRemoteImages);
+    if (!current())
+        return;
+    imageReload->SetEnabled(true);
+    if (!current())
+        return;
+    const bool visible = imageConsentHasNetwork || FAILED(imageFailureStatus);
+    if (imageConsent->IsVisible() != visible)
+    {
+        imageConsent->SetVisible(visible);
+        if (current())
+            Layout();
+    }
+}
+
 void Application::ServiceImages()
 {
-    if (!editor || closing)
+    if (!editor || closing || imageBindingTransition || switchingDocument)
+        return;
+    auto *const primary = editor;
+    const auto lifetime = GetControlLifetimeToken(*primary);
+    const auto current = [&]() noexcept { return !lifetime.expired() && !closing && editor == primary; };
+    const auto semantic = primary->GetSemanticDocument();
+    bool watchBindingChanged = imageWatchDocumentPath != documentPath;
+    if (semantic && semantic != imageWatchSemantic)
+    {
+        // Decode cancellation ends a job, including successful completion. It
+        // does not end the document's ownership of the displayed file. Compare
+        // exact possible-file destinations only on immutable publication;
+        // non-file image edits must not rearm local I/O and refetch HTTP images.
+        const auto before = imageWatchSemantic ? imageWatchSemantic->Elements() : std::span<const DxUi::RichText::SemanticElement>{};
+        const auto after = semantic->Elements();
+        const auto image = [](const auto &element)
+        { return element.role == DxUi::RichText::SemanticRole::Image && ImageReferenceCategoryFor(element) == ImageReferenceCategory::PossibleFile; };
+        auto previous = std::ranges::find_if(before, image);
+        auto next = std::ranges::find_if(after, image);
+        while (previous != before.end() && next != after.end() && previous->destination == next->destination && previous->wiki == next->wiki)
+        {
+            previous = std::find_if(std::next(previous), before.end(), image);
+            next = std::find_if(std::next(next), after.end(), image);
+        }
+        watchBindingChanged = watchBindingChanged || previous != before.end() || next != after.end();
+        imageWatchSemantic = semantic;
+    }
+    if (watchBindingChanged)
+    {
+        imageWatchDocumentPath = documentPath;
+        const bool hadPaths = !watchedImagePaths.empty();
+        watchedImagePaths.clear();
+        (void)imageFiles.SetFiles({});
+        if (hadPaths)
+        {
+            // A removed/retargeted image or new document base retires the old
+            // binding. Obtain fresh canonical paths through SDK admission.
+            primary->ReloadImages();
+            if (!current())
+                return;
+        }
+    }
+    if (const auto notice = imageFiles.TakeResult())
+    {
+        if (FAILED(notice.value().status))
+            imageFailureStatus = notice.value().status;
+        else
+        {
+            ++imageFileRefreshes;
+            primary->ReloadImages();
+            if (!current())
+                return;
+        }
+    }
+    RefreshImageConsent();
+    if (!current())
         return;
     editor->TakePendingImageRequests(imageRequests);
+    images.SetDocumentContext(documentPath.native());
+    bool watchChanged{};
+    for (const auto &request : imageRequests)
+        if (request.SourceKind() == DxUi::RichText::RichImageSourceKind::LocalFile && !request.Cancelled() &&
+            std::ranges::find(watchedImagePaths, request.FilePath(), [](const auto &path) -> const std::wstring & { return path.native(); }) ==
+                watchedImagePaths.end() &&
+            watchedImagePaths.size() < 32u)
+        {
+            watchedImagePaths.emplace_back(request.FilePath());
+            watchChanged = true;
+        }
+    if (watchChanged)
+    {
+        ++imageWatchPathBuilds;
+        const auto status = imageFiles.SetFiles(watchedImagePaths);
+        if (FAILED(status))
+        {
+            (void)imageFiles.SetFiles({}); // Retire the old binding when automatic watching cannot be admitted.
+            imageFailureStatus = status;
+        }
+    }
     images.DiscardCancelled();
     if (!imageRequests.empty())
         (void)images.Submit(imageRequests);
@@ -2777,7 +3061,14 @@ void Application::ServiceImages()
         std::array<RichImageLoader::Result, RichImageLoader::MaximumResults> results;
         const auto count = images.Drain(results);
         for (std::size_t index = 0; index < count; ++index)
-            (void)editor->CompleteImageRequest(results[index].request, std::move(results[index].image));
+        {
+            const bool accepted = primary->CompleteImageRequest(results[index].request, std::move(results[index].image));
+            if (!current())
+                return;
+            if (accepted && FAILED(results[index].status) && results[index].status != HRESULT_FROM_WIN32(ERROR_CANCELLED))
+                imageFailureStatus = results[index].status;
+        }
+        RefreshImageConsent();
     }
 }
 
@@ -2825,6 +3116,7 @@ void Application::BeginClose()
     files.Close();
     folderFiles.Close();
     images.Shutdown();
+    imageFiles.Close();
     host.Detach();
     waitingForPreferences = preferenceWriter.Busy() || !recovery.Finished() || bitmapWriter.Busy();
     if (waitingForPreferences)
@@ -2995,6 +3287,7 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         bitmapWriter.Stop();
         bitmapWriter.Detach();
         folderFiles.Close();
+        imageFiles.Close();
         folderFilesActive = false;
         host.Detach();
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
@@ -3047,7 +3340,7 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         if (!nativeLifecycle)
             return DefWindowProcW(hwnd, message, wParam, lParam);
     }
-    if (message == ImageReady)
+    if (message == ImageReady || message == ImageFileChanged)
     {
         if (wParam == 0x5254)
             ServiceImages();
@@ -3187,22 +3480,28 @@ bool Application::Capture(const std::filesystem::path &path, bool prepareContent
     wil::com_ptr<IWICBitmapEncoder> encoder;
     wil::com_ptr<IWICBitmapFrameEncode> frame;
     wil::com_ptr<IPropertyBag2> properties;
-    if (FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(factory.put()))))
+    if (FAILED(DxUi::Failure::InvokeNative(&CoCreateInstance, CLSID_WICImagingFactory, nullptr, static_cast<DWORD>(CLSCTX_INPROC_SERVER),
+                                           __uuidof(IWICImagingFactory), reinterpret_cast<void **>(factory.put()))))
         return false;
-    if (FAILED(factory->CreateStream(stream.put())) || FAILED(stream->InitializeFromFilename(path.c_str(), GENERIC_WRITE)))
+    if (FAILED(InvokeNativeMethod(factory.get(), &IWICImagingFactory::CreateStream, stream.put())) ||
+        FAILED(InvokeNativeMethod(stream.get(), &IWICStream::InitializeFromFilename, path.c_str(), static_cast<DWORD>(GENERIC_WRITE))))
         return false;
-    if (FAILED(factory->CreateEncoder(GUID_ContainerFormatPng, nullptr, encoder.put())) ||
-        FAILED(encoder->Initialize(stream.get(), WICBitmapEncoderNoCache)))
+    if (FAILED(InvokeNativeMethod(factory.get(), &IWICImagingFactory::CreateEncoder, GUID_ContainerFormatPng, nullptr, encoder.put())) ||
+        FAILED(InvokeNativeMethod(encoder.get(), &IWICBitmapEncoder::Initialize, stream.get(), WICBitmapEncoderNoCache)))
         return false;
-    if (FAILED(encoder->CreateNewFrame(frame.put(), properties.put())) || FAILED(frame->Initialize(properties.get())) ||
-        FAILED(frame->SetSize(bitmap.widthPx, bitmap.heightPx)))
+    if (FAILED(InvokeNativeMethod(encoder.get(), &IWICBitmapEncoder::CreateNewFrame, frame.put(), properties.put())) ||
+        FAILED(InvokeNativeMethod(frame.get(), &IWICBitmapFrameEncode::Initialize, properties.get())) ||
+        FAILED(InvokeNativeMethod(frame.get(), &IWICBitmapFrameEncode::SetSize, bitmap.widthPx, bitmap.heightPx)))
         return false;
     WICPixelFormatGUID format = GUID_WICPixelFormat32bppBGRA;
-    if (FAILED(frame->SetPixelFormat(&format)) || !IsEqualGUID(format, GUID_WICPixelFormat32bppBGRA))
+    if (FAILED(InvokeNativeMethod(frame.get(), &IWICBitmapFrameEncode::SetPixelFormat, &format)) ||
+        !IsEqualGUID(format, GUID_WICPixelFormat32bppBGRA))
         return false;
-    if (FAILED(frame->WritePixels(bitmap.heightPx, bitmap.widthPx * 4, static_cast<UINT>(bitmap.bgraPixels.size()), bitmap.bgraPixels.data())))
+    if (FAILED(InvokeNativeMethod(frame.get(), &IWICBitmapFrameEncode::WritePixels, bitmap.heightPx, bitmap.widthPx * 4u,
+                                  static_cast<UINT>(bitmap.bgraPixels.size()), bitmap.bgraPixels.data())))
         return false;
-    return SUCCEEDED(frame->Commit()) && SUCCEEDED(encoder->Commit());
+    return SUCCEEDED(InvokeNativeMethod(frame.get(), &IWICBitmapFrameEncode::Commit)) &&
+           SUCCEEDED(InvokeNativeMethod(encoder.get(), &IWICBitmapEncoder::Commit));
 }
 
 bool Application::RouteShortcut(const MSG &message)
@@ -3494,11 +3793,11 @@ void Application::DispatchUiMessage(const MSG &message) noexcept
         [&]
         {
             if (closingAfterSave)
-                DispatchMessageW(&message);
+                (void)DxUi::Failure::InvokeNative(&DispatchMessageW, &message);
             else if (!RouteShortcut(message) && !host.DispatchKeyboardMessage(message))
             {
-                TranslateMessage(&message);
-                DispatchMessageW(&message);
+                (void)DxUi::Failure::InvokeNative(&TranslateMessage, &message);
+                (void)DxUi::Failure::InvokeNative(&DispatchMessageW, &message);
             }
             if (waitingForPreferences && !preferenceWriter.Busy() && recovery.Finished())
                 (void)SendMessageW(window.get(), PreferencesReady, 0, 0);

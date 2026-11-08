@@ -6,8 +6,8 @@ Import-Module (Join-Path $PSScriptRoot 'Build/DxUiPaths.psm1') -Scope Local -Err
 $pinPath = Join-Path $PSScriptRoot 'Dependencies/DxUi.lock.json'
 $pin = Get-Content -LiteralPath $pinPath -Raw | ConvertFrom-Json
 if ($pin.repository -cne 'https://github.com/RedSalamanders/DxUi' -or
-    $pin.commit -cnotmatch '^[0-9a-f]{40}$' -or $pin.apiRevision -ne 4 -or
-    @($pin.targets).Count -ne 1 -or $pin.targets[0] -cne 'DxUi') { throw 'Invalid exact DxUi API-4 lock.' }
+    $pin.commit -cnotmatch '^[0-9a-f]{40}$' -or $pin.apiRevision -ne 5 -or
+    @($pin.targets).Count -ne 1 -or $pin.targets[0] -cne 'DxUi') { throw 'Invalid exact DxUi API-5 lock.' }
 $dependencyRoot = Join-Path $PSScriptRoot '.build/dependencies/DxUi'
 $source = Get-DxUiSourcePath -DependencyRoot $dependencyRoot -Commit $pin.commit
 if (-not (Test-Path -LiteralPath $source)) {
@@ -62,4 +62,4 @@ $identityJson=$identity | ConvertTo-Json -Depth 7
 if (-not (Test-Path -LiteralPath $identityPath) -or [IO.File]::ReadAllText($identityPath).TrimEnd() -cne $identityJson) {
     [IO.File]::WriteAllText($identityPath,$identityJson)
 }
-Write-Host "DxUi $($pin.commit), API 4, $Platform restored."
+Write-Host "DxUi $($pin.commit), API 5, $Platform restored."

@@ -13,6 +13,7 @@ repository and executable. It must launch and test without RedXe, RedPrism or Re
 | RichTextEditor | Authoritative UTF-16 Markdown source, immutable snapshots, selection and undo history |
 | Storage | Strict Unicode codecs, bounded reads, same-directory atomic replacement and file identity |
 | Image service | Bounded application-owned decode jobs, COM/WIC, cancellation and owner completion |
+| Image file notifications | Shared directory-notification machinery in `Common/Files.*`, one process-counted worker, at most 32 files/eight local directories, coalesced owner notification |
 | Mathematics | DxUi source-backed inline/display objects and read-only inspector, native cached glyphs/lines, explicit diagnostics |
 | Files navigation | Application-owned bounded directory enumeration/watch worker, cancellation and stale-result identity; the UI opens files through the normal file-safety path |
 | Harness | Hidden window, direct control commands, render capture and immutable scenario/build receipts |
@@ -20,14 +21,29 @@ repository and executable. It must launch and test without RedXe, RedPrism or Re
 Library objects remain inside the executable. No plugin ABI is introduced. The native host is used directly;
 RedTilde must not allocate a competing swap chain or render over an uncoordinated chrome HWND.
 
-Application command admission, menu completion, Win32 dispatch and message-loop/worker completion share one
-named-exception boundary. Recoverable `std::exception` failures log the actual cause locally, show a localized
-source-retained status and keep the process/document alive; `std::bad_alloc` remains fatal. A failed Close stays
-handled and never falls through to default window destruction. Cancel stale deferred file actions after a UI
-failure. Status publication has its own bounded fallback and never recursively retries UI after another failure.
+Application command admission, menu completion, Win32 dispatch and message-loop completion share an explicit
+API-5 failure boundary. Expected refusal uses checked HRESULT, source or command results, logs its cause locally
+and retains the document/history. Unexpected C++ exceptions, including allocation failure, require fatal local
+diagnostics and termination; they cannot resume a partially executed UI action. A declined Close stays handled
+and never falls through to default window destruction. Checked completion refusal cancels stale deferred file
+actions, keeps the pending result and permits an explicit later retry. Status publication never recursively
+retries UI after another failure. Native message dispatch and synchronous COM/Win32 calls use audited native
+boundaries so native internally handled exceptions stay native and reentrant application/SDK callbacks regain
+their own scopes. Direct construction is scoped; the outer message loop and final process drain stay outside.
 Menu completion revalidates root lifetime after the command and keeps focus in a newly opened local/Link draft,
 drawer or Find/Recovery surface. Hidden supplied-message/callback tests exercise these same entry points without
 opening a desktop menu or injecting input.
+
+The process owner starts local crash storage and a dedicated report writer, installs SDK protocol-2 hooks, then
+opens worker admission before constructing the application. One counted lease covers each admitted callback
+through its owned data, SDK objects and scopes. Files, recovery, preferences, bitmap creation/cleanup, image
+decoding, link dispatch, optional monitor launch and final WinHTTP notification retirement participate.
+Closing a view does not uninstall the failure host. Ordinary process shutdown closes producers, destroys app
+owners, closes admission and drains work on the COM-initialized owner before process-wide UIA cleanup and the
+failure-host BUSY drain. Each cooperative drain has a five-second deadline; a blocked callback cannot be
+interrupted by it. Timeout is a failed shutdown with fatal diagnostics, never permission to unload live owners.
+The final OS session-end path retains its existing recovery allowance and transfers the process owner to OS
+teardown instead of adding these ordinary shutdown waits. See [crash/shutdown ownership](Core_SettingsAndCrashes.md).
 
 RedTilde owns its Win32 non-client frame policy and caption behavior. The merged document bar is app-owned client
 content coordinated with that frame; the native window title remains the filename plus dirty marker for taskbar
@@ -75,6 +91,37 @@ binding before workers can post. Image decoding must not join a blocked codec on
 Pruning cancelled image work signals the network-abort event only for a cancelled current remote transfer.
 An empty current request must not wake that event. Pruning still releases completion reservations and schedules
 valid queued work; a cancelled transfer must not prevent a later admitted request from completing.
+
+Network images have two application-owned admission layers: a live workspace-document grant or the persisted
+always-allow preference, followed by a separate local-network preference. Only the authoritative editor issues
+requests; neither permission nor reload changes its source/history. DNS lookup and WinHTTP callbacks retain
+process-work leases and their native buffers through their own completion, including after owner cancellation.
+The selected numeric endpoint is pinned per request while HTTP authority and TLS use the original hostname.
+The direct-only transport does not discover proxies or run PAC scripts, and never silently falls back to a
+different transport. A network requiring a proxy receives a visible load failure with preserved alt/source.
+This delivery choice resolves Q19; adding proxy configuration is a separately specified feature.
+
+Local image refresh reuses the shared directory-notification implementation, rather than adding a polling
+timer or a second directory enumerator. Admit at most 32 canonical current image paths in eight directories.
+Watch setup and native cancellation/drain stay on the retained worker; source-tagged completion and all editor
+calls stay on the owner. Match bounded notification names and coalesce an active burst for at most 250 ms.
+Overflow refreshes only the existing bounded image set. A first refresh after arming closes the initial decode/
+notification gap. Changes and explicit Reload use the existing bounded SDK reload; network images are retried
+only under their current independent permissions. This does not change source, selection, history or saved state.
+Successful decode marks its request cancelled to retire work; this must not remove the displayed file's watch.
+Watch ownership follows exact image destinations/wiki classification and the current document base, separately
+from decode request identities. Compare destinations only on immutable semantic publication changes. Unchanged
+image references retain their paths across prose edits and reloads without rearming I/O. Removed/retargeted
+references or a changed document base retire the old paths and notification generation before obtaining fresh
+SDK-admitted canonical paths. Never use a hash alone as authority for that equality.
+The shared image-chrome classification excludes HTTP(S), network-file, data and wiki references from local-watch
+invalidation. A remote-only edit must preserve unchanged local watches; otherwise their initial refresh can
+duplicate an opted-in HTTP request. This lexical classification grants no permission, resolves no path and
+performs no I/O: only SDK-admitted LocalFile requests can supply actual watched paths. Keep diagnostic wait
+stages and actual request/resource counters so a completed image cannot be mistaken for a slow worker.
+Over-capacity/failed automatic watching retains editing and explicit Reload rather than admitting extra watchers.
+Closing invalidates publication and wakes the worker; UI teardown never waits for directory I/O. The process-work
+owner still counts that worker until its buffers and overlapped operations have actually drained.
 
 Native window captions cache only successfully applied identity text. Skip identical writes during an already-dirty
 typing sequence, but apply filename and dirty-state transitions synchronously. Invalidate the cache before entering

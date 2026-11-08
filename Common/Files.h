@@ -4,6 +4,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <span>
 #include <stop_token>
 #include <string>
 #include <string_view>
@@ -93,6 +94,30 @@ class FilesService final
     [[nodiscard]] bool Busy() const noexcept;
     [[nodiscard]] HRESULT Status() const noexcept;
     [[nodiscard]] std::uint64_t Generation() const noexcept;
+    void Close() noexcept;
+
+  private:
+    struct State;
+    std::shared_ptr<State> state;
+};
+
+struct FileChangeNotice
+{
+    std::uint64_t generation{}, revision{};
+    HRESULT status = S_OK;
+};
+// One event-driven worker, at most 32 local image files in eight directories.
+// Notifications are coalesced and source-tagged; Close never waits on UI.
+class FileChangeService final
+{
+  public:
+    FileChangeService() = default;
+    ~FileChangeService();
+    FileChangeService(const FileChangeService &) = delete;
+    FileChangeService &operator=(const FileChangeService &) = delete;
+    [[nodiscard]] HRESULT Initialize(HWND window, UINT message, WPARAM cookie) noexcept;
+    [[nodiscard]] HRESULT SetFiles(std::span<const std::filesystem::path> files) noexcept;
+    [[nodiscard]] std::optional<FileChangeNotice> TakeResult();
     void Close() noexcept;
 
   private:

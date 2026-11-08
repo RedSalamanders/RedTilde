@@ -7,7 +7,11 @@ Run `test.ps1 -Configuration Debug -Suite Core`; use `-SkipBuild` for the exact 
 Native cases are compiled from `Application.Tests.Core.cpp` into the same executable and run with `--self-test`.
 Core also runs a hidden child-process probe that changes preferences, closes immediately and verifies the final state after process exit.
 They exercise public controls and app commands without desktop input, clipboard access or foreground activation.
-The native catalog contains 144 cases: Storage (30), Settings (7), Recovery (19) and Editor (88).
+The native catalog contains 155 cases: Storage (30), Settings (11), Recovery (19) and Editor (95).
+Editor executes as content, workspace/chrome, media, performance and rendering children, each retaining
+the 90-second guard. Their exact disjoint union must match the reviewed catalog. The legacy whole-Editor
+and EditorBehavior scopes remain available. Partial reports flush the active case before execution and
+retain each completed case's diagnostic elapsed time, so a timeout cannot hide which case was running.
 The editing boundary cases route Enter/Shift+Enter messages through the hidden Source window for LF,
 CRLF and CR, exercise the actual native ACP store on the consumer Editor in a headless ControlHost,
 check its overflow/exact-capacity write locks and owner disconnection, and reject hostile file-paste names

@@ -75,14 +75,25 @@ version so an unrelated inherited-version mismatch cannot make those negative co
 Fixture tests never change the application's real build-admission or version policy.
 
 The reviewed Core catalog keeps Storage, Settings, Recovery and Editor ownership. The complete Editor list
-is checked before execution. The public runner executes its behavior, Performance-prefix and Rendering-prefix
-cases in three separate hidden child processes (`EditorBehavior`, `EditorPerformance`, `EditorRendering`),
+is checked before execution. The public runner executes content editing, workspace/chrome, media,
+Performance-prefix and Rendering-prefix cases in five separate hidden child processes
+(`EditorContent`, `EditorWorkspace`, `EditorMedia`, `EditorPerformance`, `EditorRendering`),
 each with the unchanged 90-second watchdog. Every child must execute exactly its declared cases, and their
-unique union must equal the full Editor catalog before recording a successful Editor result. Direct `Editor`
-and `All` selection retain their complete case sets. Empty/duplicate groups, omissions, duplicates, catalog-only
+unique union must equal the full Editor catalog before recording a successful Editor result.
+Each case MUST create its own input files in its assigned data root. A case MUST NOT rely on another case's
+capture, execution order or a shared child process; resource tests must create their image fixture before
+admitting its relative reference, including when the full catalog is partitioned.
+Direct `Editor` and `All` selection retain their complete case sets; legacy `EditorBehavior` retains all non-Performance/non-Rendering
+Editor cases. Media ownership is selected first by the case-sensitive tokens `Image`, `Bitmap`, `Mermaid`,
+`Diagram`, `Math`, `Equation`, `CodeHighlighting` and `Http`. Remaining Window/Outline cases and the
+Editor DesignRefresh/Files/PersistentFolder/Workspace/Startup prefixes belong to Workspace; other behavior
+belongs to Content. Native listing/execution must match these independently reviewed case unions.
+Empty/duplicate groups, omissions, duplicates, catalog-only
 execution and failed/timeout children cannot qualify a group. This separates expensive independent scenarios
 from the behavioral batch; it changes no case assertion or performance acceptance band. Preserve earlier
-whole-Editor timeouts with their original source, binary and raw reports.
+whole-Editor and whole-behavior timeouts with their original source, binary and raw reports. Before each
+executed case, flush its name to the partial report; flush the result and diagnostic `elapsedMs` afterward.
+Elapsed case times are diagnostic observations, not performance-policy acceptance or new assertion limits.
 When original working input bytes differ from governed checkout text conversion, retain originals and
 their per-file map/archive hash. A Git commit alone does not recreate those working bytes. Label later
 Git-derived checkouts as reconstructed and verify actual identity before reuse; never rewrite historical
@@ -177,6 +188,8 @@ Custom invented documents use `--document <path> --scenario sample-document` for
 `sample-document-dark` for Dark. These scenarios preserve the loaded document rather than substituting a
 built-in fixture. Saved preferences do not choose a hidden capture's theme. Sidecars record the rendered
 appearance separately from the ambient System preference and bind the document's fixture basename.
+Image-paste and image-consent captures each verify their explicit Light/Dark appearance independently of the
+clipboard priority preference. A light consent scenario must not inherit the dark expectation from a paste-only guard.
 `Tests/Fixtures/reference-dark.md` is a runtime input to the reference-dark DPI captures;
 its edits select `Captures` in addition to normal Tooling/Format validation, rather than prose-only coverage.
 
@@ -195,7 +208,15 @@ Only exact successful reusable scope results may be reused: source/dependency/bu
 
 `test.ps1 -Full -SkipTooling` runs the complete native obligation for its profile; `validate.ps1` runs independent tooling and scope regressions once. `format.ps1 -Check` is an independently reusable Format scope. `-Mode Full` selects the complete applicable local obligation. `-Mode PrePush` accounts for matching local work and forthcoming enabled CI. Deferral requires clean committed bytes, a matching reviewed workflow digest, matching profile/scenarios and stable HEAD/worktree through the API lookup. Disabled/missing/unreadable CI, changed runner contracts and direct default-branch pushes keep obligations local. Deferral is always `CI_PENDING`, never a pass or merge approval.
 
-The PR workflow runs independent tooling once and full native tests in x64/ARM64 Debug, Release and ASan Debug. ARM64 execution is native on its hosted ARM64 runner; cross-builds alone never qualify runtime behavior. Every named PR check must succeed on the candidate before merge. The current private-repository account cannot enforce protected-branch checks; the merge procedure must verify the checks explicitly. Visibility is unchanged. There is no automatic main-push rerun of an identical validated merge tree. A changed integration tree, source, runner, profile, environment investigation or unresolved failure requires its corresponding new qualification. Manual dispatch remains available.
+The [unified CI contract](../Build/Build_UnifiedCI.md) owns hosted qualification. PR checks are compiler-free
+tooling, formatting and security checks; they do not establish native acceptance. Main Release qualification
+starts after five continuous quiet minutes and requires both native x64 and ARM64 test branches before either
+production branch. Extended Debug, Release and ASan qualification uses the explicit manual workflow and its
+selected architecture. The owner's x64-runtime/ARM64-compilation delivery scope does not change the normal
+two-architecture production gate. Cross-compilation alone never establishes native ARM64 behavior.
+Verify every required check on the exact PR head before merging, including where protection cannot enforce it.
+Changed source, pin, runner, profile, an environment investigation or an unresolved failure requires its own
+applicable qualification; an earlier source's green result cannot close that obligation.
 
 The first HTTP case directly supplies synthetic Windows/MSVC ABI records to the internal remote-image import
 filter, without raising exceptions or changing DLLs. Independent encoded expectations cover module/procedure
@@ -206,9 +227,9 @@ These record oracles establish error mapping, not recovery from an actually miss
 
 Physical focus/IME/AT, release/package acceptance, hardware-specific qualification and paired resource/performance studies retain their owning gates. Hidden/scoped/native CI passes never close those gates. Native test basenames use contextual `Scope.Tests.Something.h/.cpp`; inventories cover active files only. Immutable historical receipts, archived source and legacy references are not renamed or rewritten.
 
-RedTilde partitions its 128 registered native cases into Storage (25), Settings (6), Recovery (19) and Editor (78). Registration scanning includes reviewed Core `.cpp` and `.h` files from the native inventory. Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
+RedTilde partitions its 155 registered native cases into Storage (30), Settings (11), Recovery (19) and Editor (95). Registration scanning includes reviewed Core `.cpp` and `.h` files from the native inventory. Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
 
-Production packaging separately executes thirteen refusal cases against the actual clean-extracted executable:
+Production packaging separately executes fifteen refusal cases against the actual clean-extracted executable:
 self-test, scope, listing, interactive test, crash, recovery crash/restart, preferences, sanitizer, linked-save
 crash/restart, and missing operands for scope/interactive test. Each owned hidden child must return 2 and leave
 its initially absent private data directory absent. Retain every observed result in `testOnlyEntryPointRefusals`
@@ -346,3 +367,24 @@ CreateWindow with default placement can be constrained by a small hosted desktop
 proof of the actual viewport. Contextual-equation coverage starts at 1024 DIP, verifies deferred hidden preview,
 then reveals and validates native math at 1440 DIP. Persistent sidebar-label checks use a declared 1440-DIP viewport.
 No fixture changes the desktop mode, foreground window or production responsive policy.
+
+## API-5 failure owner and checked refusal
+
+The Settings suite launches isolated `--failure-host-probe` children with explicit absolute data roots. Direct
+and tracked-worker C++ throws and an escaping audited native throw must terminate with exactly one dump,
+protocol-2 sidecar and pending marker. Verify the original thread, exception/address, instruction/stack pointers
+and matching running EXE CodeView GUID/age against the actual minidump streams. A native internally handled
+exception must return normally without a report. Debug/Release also exercise actual CRT allocation refusal;
+ASan retains its separate actual detector rather than treating an allocator abort as the SDK allocation route.
+The worker-drain case holds an SDK owner behind a real native-thread barrier: premature settlement times out,
+explicit release permits full retirement and closed admission refuses another callback. The session-end child
+holds a real bitmap callback, delivers WM_ENDSESSION(TRUE), and measures the terminal allowance from the final
+session message rather than process startup. Its process owner remains alive until OS teardown; the held
+callback must not add an ordinary five-second drain. All children remain hidden and never use desktop input.
+Only the held process created by a case may be terminated on its explicit test deadline.
+
+Editor cases cover malformed/oversized source, invalid metadata, near-capacity Quote/Code Block and read-only
+Find replacement. Assert unchanged source identity, selection, dirty/saved facts and both history directions on
+refusal, then a successful retry. Recovery serialization must reject malformed envelopes before mutation and
+preserve its output buffer. Production packages exclude the new test entry point and refuse both complete and
+missing-value invocations before creating the profile; the package and CI smoke require all fifteen cases.

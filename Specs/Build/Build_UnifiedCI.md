@@ -57,6 +57,12 @@ remains enabled; CodeQL uses explicit C/C++ build mode none, which does not invo
 Compiler-free CodeQL does not analyze generated code as completely as a build-based scan:
 [GitHub build-mode contract](https://docs.github.com/en/code-security/how-tos/find-and-fix-code-vulnerabilities/manage-your-configuration/codeql-for-compiled-languages).
 
+Manual diagnostic qualification selects `platform=All` (the compatibility default), `x64` or `ARM64`.
+A compiler-free selector rejects other values before native setup. Single-architecture evidence establishes only
+that recorded scope and does not advance the normal two-architecture Release/production gate. Explicit owner
+approval may scope delivery to all three x64 runtime profiles and all three ARM64 compilation profiles while
+setting ARM64 runtime aside; record that decision and retain older runtime failures in the delivery ledger.
+
 Publication is an explicit trusted-main action, defaulting to prepare-only. Select an original successful
 qualify.yml run with complete matching receipts and retained ZIPs for both native architectures. Publication
 promotes those exact bytes without building, restamping, signing afterwards or substituting an older green
@@ -80,7 +86,7 @@ an otherwise valid receipt whose `testsEnabled` is the Boolean `false`; a test-e
 before creating package staging. Ordinary test-enabled Release remains required for regression execution.
 The production artifact MUST include the original package receipt as `portable-smoke.json`, preserving its
 exact bytes, positive-capture result and individual test-only refusal records. Admit its platform, ZIP SHA-256,
-Boolean production/test mode, the complete thirteen-case refusal union and each observed successful outcome
+Boolean production/test mode, the complete fifteen-case refusal union and each observed successful outcome
 before writing a successful outer CI receipt. Missing, duplicate or unsuccessful cases fail admission.
 A missing or mismatched original receipt fails the production role. An outer `smokePassed` Boolean alone
 does not establish independently reviewable clean-extraction evidence.

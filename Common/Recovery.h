@@ -21,6 +21,7 @@ struct RecoveryCandidate
     RecoverySnapshot snapshot;
 };
 [[nodiscard]] std::string SerializeRecovery(const RecoverySnapshot &snapshot);
+[[nodiscard]] HRESULT TrySerializeRecovery(const RecoverySnapshot &snapshot, std::string &output) noexcept;
 [[nodiscard]] HRESULT ParseRecovery(std::string_view bytes, RecoverySnapshot &snapshot) noexcept;
 
 // Worker-owned, exclusively leased immutable save copy. Destruction preserves

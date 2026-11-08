@@ -303,6 +303,14 @@ only the sealed dependency commit/fingerprint pair may differ. The portable self
 dependency path, including rehashed header/package mutations, rather than validating only the isolated probe.
 Earlier V1/V2 profile behavior remains unchanged.
 
+Retiring a reviewed-header profile requires an actual caller inventory covering
+the exported loader, paired command, independent evidence auditor and fixtures.
+The currently selected profile alone does not establish that an older validator
+is unreachable. Migrate immutable historical replay inputs and their callers
+before removing a supported validation path. A shared-module migration must bind
+an exact shared source owner/pin and retain consumer positive/negative coverage;
+it must not widen a reviewed header exception or change measurement policy.
+
 `performance-observed.ps1` records `observer-status.json` before it requests observer shutdown. Its `state` is
 therefore a pre-stop snapshot: `Running` does not describe the terminal collection result. Read collection pass,
 observer errors, sampling coverage and quiet-window fields separately, retaining all literal observations.

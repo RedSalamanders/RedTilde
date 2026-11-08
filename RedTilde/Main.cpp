@@ -1,7 +1,11 @@
 #include "Application.h"
 #include "Common/CrashHandler.h"
+#include "Common/DxUiFailureHost.h"
 #include "Common/MonitorDiagnostics.h"
 #include "res/Resource.h"
+#if defined(REDTILDE_ENABLE_TESTS)
+#include "Tests/Application.Tests.FailureHost.h"
+#endif
 #include <format>
 #include <shellapi.h>
 #include <stdexcept>
@@ -46,11 +50,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
     using namespace RedTilde;
     try
     {
-        MonitorDiagnostics::Initialize();
-        const int monitorCommand = MonitorDiagnostics::HandleCommand(command ? command : L"");
-        if (monitorCommand >= 0)
-            return monitorCommand;
-        MonitorDiagnostics::Write(RedMonitor::Severity::Info, L"application starting");
+        const std::wstring_view commandLine = command ? command : L"";
+        if (commandLine == L"--redmonitor-probe" || RedMonitor::IsViewerCommand(commandLine))
+        {
+            // These standalone helper commands construct no SDK/application state.
+            MonitorDiagnostics::Initialize();
+            return MonitorDiagnostics::HandleCommand(commandLine);
+        }
         LaunchOptions options;
         STARTUPINFOW startup{sizeof(startup)};
         GetStartupInfoW(&startup);
@@ -60,6 +66,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
 #if defined(REDTILDE_ENABLE_TESTS)
         bool sanitizerProbe{};
         bool linkedSaveCrash{}, linkedSaveRestart{};
+        std::wstring failureHostProbe;
 #endif
         CoreTestScope testScope = CoreTestScope::All;
         bool testScopeSpecified{}, listTests{};
@@ -77,7 +84,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
             if (argument == L"--self-test" || argument == L"--test-scope" || argument == L"--list-tests" ||
                 argument == L"--design-interactive-probe" || argument == L"--crash-probe" || argument == L"--recovery-crash-probe" ||
                 argument == L"--recovery-restart-probe" || argument == L"--preferences-probe" || argument == L"--asan-probe" ||
-                argument == L"--linked-save-crash-probe" || argument == L"--linked-save-restart-probe")
+                argument == L"--linked-save-crash-probe" || argument == L"--linked-save-restart-probe" || argument == L"--failure-host-probe")
                 return 2;
 #endif
             auto value = [&]() -> std::wstring
@@ -167,12 +174,23 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
                     testScope = CoreTestScope::EditorPerformance;
                 else if (scope == L"EditorRendering")
                     testScope = CoreTestScope::EditorRendering;
+                else if (scope == L"EditorContent")
+                    testScope = CoreTestScope::EditorContent;
+                else if (scope == L"EditorWorkspace")
+                    testScope = CoreTestScope::EditorWorkspace;
+                else if (scope == L"EditorMedia")
+                    testScope = CoreTestScope::EditorMedia;
                 else
                     throw std::invalid_argument("Unknown test scope");
             }
             else if (argument == L"--list-tests")
                 listTests = true;
 #if defined(REDTILDE_ENABLE_TESTS)
+            else if (argument == L"--failure-host-probe")
+            {
+                failureHostProbe = value();
+                options.headless = true;
+            }
             else if (argument == L"--crash-probe")
                 options.crashProbe = true;
             else if (argument == L"--linked-save-crash-probe" || argument == L"--linked-save-restart-probe")
@@ -210,6 +228,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
         if ((testScopeSpecified || listTests) && !options.selfTest)
             throw std::invalid_argument("Test scope/list options require --self-test");
 #if defined(REDTILDE_ENABLE_TESTS)
+        if (!failureHostProbe.empty() && (options.dataDirectory.empty() || !options.dataDirectory.is_absolute()))
+            throw std::invalid_argument("Failure-host probe requires an explicit absolute test data directory");
         if ((linkedSaveCrash || linkedSaveRestart) && (options.dataDirectory.empty() || !options.dataDirectory.is_absolute()))
             throw std::invalid_argument("Linked save probe requires an explicit absolute test data directory");
 #endif
@@ -230,7 +250,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
 #endif
         const auto crashes = options.dataDirectory / L"Crashes";
         if (FAILED(InstallCrashHandler(crashes)))
-            OutputDebugStringW(L"RedTilde crash handler unavailable\n");
+            OutputDebugStringW(L"RedTilde crash storage unavailable; the configured native failure remains checked\n");
+        if (!CrashReportingPrepared())
+            return 2;
 #if defined(REDTILDE_ENABLE_TESTS)
         if (options.crashProbe)
             CrashProbe();
@@ -239,7 +261,25 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
         if (FAILED(com))
             return 1;
         const auto uninitialize = wil::scope_exit([] { CoUninitialize(); });
+        // This owner has fixed/noexcept member construction; genuine outer storage refusal is checked.
+        auto runtime = wil::make_unique_nothrow<ApplicationRuntime>();
+        if (!runtime || FAILED(runtime->Start()))
+            return 2;
+        MonitorDiagnostics::Initialize();
+        (void)MonitorDiagnostics::HandleCommand(commandLine);
+        MonitorDiagnostics::Write(RedMonitor::Severity::Info, L"application starting");
 #if defined(REDTILDE_ENABLE_TESTS)
+        if (!failureHostProbe.empty())
+        {
+            const int result = RunFailureHostProbe(failureHostProbe, options.dataDirectory, *runtime);
+            if (result == RetainRuntimeForSessionEnd)
+            {
+                runtime->KeepForProcessTeardown();
+                (void)runtime.release();
+                return 0;
+            }
+            return result;
+        }
         if (linkedSaveCrash || linkedSaveRestart)
             return RunLinkedSaveInterruptionProbe(options.dataDirectory, linkedSaveRestart);
 #endif
@@ -259,14 +299,28 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
             std::error_code error;
             std::filesystem::remove(crashes / L"pending.txt", error);
         }
-        Application app(std::move(options));
-        const HRESULT result = app.Initialize();
+        std::unique_ptr<Application> app;
+        {
+            // Scope only direct construction. Initialization owns narrower construction scopes, while native
+            // COM/window setup, the message pump and final drain keep their independent checked boundaries.
+            const DxUi::Failure::Scope startupScope;
+            app = std::make_unique<Application>(std::move(options));
+        }
+        const HRESULT result = app->Initialize();
         if (FAILED(result))
         {
             MonitorDiagnostics::Write(RedMonitor::Severity::Error, L"application initialization failed; document state retained");
             return 2;
         }
-        return app.Run();
+        const int exitCode = app->Run();
+        if (app->IsSessionEnding())
+        {
+            runtime->KeepForProcessTeardown();
+            // Explicit terminal ownership transfer: OS process teardown releases this owner and its handles.
+            // It keeps callbacks' borrowed registry and SDK reporter alive without extending session-end waits.
+            (void)runtime.release();
+        }
+        return exitCode;
     }
     catch (const std::bad_alloc &)
     {

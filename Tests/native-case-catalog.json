@@ -1,6 +1,13 @@
 {
   "version": 1,
   "cases": [
+    { "name": "Editor.ImageFileReadAndSharePolicy", "scope": "Editor" },
+    { "name": "Editor.ImageFileNotificationsAreBoundedAndRetire", "scope": "Editor" },
+    { "name": "Editor.LocalImageChangesReloadWithoutEditing", "scope": "Editor" },
+    { "name": "Settings.Api5OriginalContextAndNativeIsolation", "scope": "Settings" },
+    { "name": "Settings.Api5ProcessWorkRetiresBeforeReporter", "scope": "Settings" },
+    { "name": "Settings.Api5SessionEndKeepsBoundedAllowance", "scope": "Settings" },
+    { "name": "Editor.Api5CheckedAdmissionPreservesWorkspaceAndHistory", "scope": "Editor" },
     { "name": "Editor.SourceEnterPreservesLineEndings", "scope": "Editor" },
     { "name": "Editor.NativeTextStoreCapacityAdmission", "scope": "Editor" },
     { "name": "Editor.TextServiceCapacityPreservesPreviewAndMirror", "scope": "Editor" },
@@ -40,7 +47,7 @@
     { "name": "Storage.StampMatchesFullNativeFileIdentity", "scope": "Storage" },
     { "name": "Editor.RecoverableCommandsAndMenusRetainSourceAndDraftFocus", "scope": "Editor" },
     { "name": "Editor.FileCompletionFailureRetainsPendingWriteAndCancelsClose", "scope": "Editor" },
-    { "name": "Editor.CloseExceptionNeverFallsThroughToDefaultDestroy", "scope": "Editor" },
+    { "name": "Editor.CloseCancellationNeverFallsThroughToDefaultDestroy", "scope": "Editor" },
     { "name": "Storage.UnsupportedFilesReportKnownUnitCount", "scope": "Storage" },
     { "name": "Editor.OpenErrorsExplainEncodingAndCapacity", "scope": "Editor" },
     { "name": "Storage.TimestampOnlyTouchDoesNotConflict", "scope": "Storage" },
@@ -54,369 +61,100 @@
     { "name": "Storage.RechecksIdentityAfterStaging", "scope": "Storage" },
     { "name": "Storage.PublishedSaveDoesNotDependOnContentReadback", "scope": "Storage" },
     { "name": "Storage.ReplacementIdentityDetectsEqualBytesAndTimestamp", "scope": "Storage" },
-    {
-      "name": "Editor.SelectedBlockInsertionsRetainSourceAndHistory",
-      "scope": "Editor"
-    },
-    {
-      "name": "Recovery.OversizedValidEnvelopeRejectsAndPreservesQuarantine",
-      "scope": "Recovery"
-    },
-    {
-      "name": "Recovery.CloseDuringSaveWaitsForDurableSuccess",
-      "scope": "Recovery"
-    },
-    {
-      "name": "Recovery.CloseDuringSaveFailurePreservesSourceAndRecovery",
-      "scope": "Recovery"
-    },
-    {
-      "name": "Recovery.CloseDuringSaveRechecksLaterEdits",
-      "scope": "Recovery"
-    },
-    {
-      "name": "Recovery.CloseAbandonsPlainOpenWithoutPrompt",
-      "scope": "Recovery"
-    },
-    {
-      "name": "Recovery.CloseAbandonsOpenAndProtectsLaterEdits",
-      "scope": "Recovery"
-    },
-    {
-      "name": "Utf8.CI_ASSERTION_PROBE",
-      "scope": "Storage"
-    },
-    {
-      "name": "Editor.LocalizedResourceViewsRetainStorageAndFormatting",
-      "scope": "Editor"
-    },
-    {
-      "name": "Performance.OwnedHeapDiagnosticDistinguishesBusyFreeAndPartialCoverage",
-      "scope": "Editor"
-    },
-    {
-      "name": "Performance.SelectionDiagnosticRejectsReentryAndUnwinding",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.SplitMirrorFallbackRecoversAfterHiddenEdits",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.SplitMirrorNestedEditKeepsNewestPublication",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.SplitMirrorCallbackCanRetireRoot",
-      "scope": "Editor"
-    },
-    {
-      "name": "Window.Image2QuietChromeAndCompactInspector",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.HiddenCurrentBlockPublishesLatestOnReveal",
-      "scope": "Editor"
-    },
-    {
-      "name": "Utf8.BomUnicodeMixedEolRoundTrip",
-      "scope": "Storage"
-    },
-    {
-      "name": "Utf8.InvalidInputDoesNotReplaceOutput",
-      "scope": "Storage"
-    },
-    {
-      "name": "Storage.AtomicConflictAndFailedSave",
-      "scope": "Storage"
-    },
-    {
-      "name": "Storage.AtomicSaveKeepsLongLeafWithinPathBudget",
-      "scope": "Storage"
-    },
-    {
-      "name": "Storage.CapacityRejectedWithoutTruncation",
-      "scope": "Storage"
-    },
-    {
-      "name": "Settings.VersionAndFieldFallback",
-      "scope": "Settings"
-    },
-    {
-      "name": "Outline.FencesAndUnicode",
-      "scope": "Editor"
-    },
-    {
-      "name": "Settings.AsyncLatestValueSurvivesWriterClose",
-      "scope": "Settings"
-    },
-    {
-      "name": "Math.NativeSubsetAndRejection",
-      "scope": "Editor"
-    },
-    {
-      "name": "Recovery.StrictEnvelopeAndUnicode",
-      "scope": "Recovery"
-    },
-    {
-      "name": "Recovery.DebounceLeaseCoalescingAndRetirement",
-      "scope": "Recovery"
-    },
-    {
-      "name": "Recovery.CorruptAndFutureDataQuarantined",
-      "scope": "Recovery"
-    },
-    {
-      "name": "Editor.ViewSwitchKeepsSourceSelectionHistory",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.HiddenMirrorSynchronizesWithoutEditingSource",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.OutlineTracksShiftedOffsetsAndChangedLabels",
-      "scope": "Editor"
-    },
-    {
-      "name": "Window.CaptionSkipsIdenticalWritesAndPreservesImmediateIdentity",
-      "scope": "Editor"
-    },
-    {
-      "name": "Window.CaptionRetriesFailedAndSupersededNativeWrites",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.DirtyCacheTracksDirectResetAndSameLengthUndo",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.SemanticFormattingUndoAndTheme",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.LocalDiagramSourceAndLiteralFallback",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.LocalOrdinarySourceCommitCancelAndStale",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.DeviceLossAndLocalImagePixels",
-      "scope": "Editor"
-    },
-    {
-      "name": "Files.AsyncSaveRetainsEditsMadeDuringWrite",
-      "scope": "Storage"
-    },
-    {
-      "name": "Editor.InDocumentMathLocalSourceAndBroaderMermaid",
-      "scope": "Editor"
-    },
-    {
-      "name": "Recovery.LocalDraftCancelPreviewRestoreProtectsOriginal",
-      "scope": "Recovery"
-    },
-    {
-      "name": "Recovery.DiscardFailureRetainsCandidateAndRetryClearsError",
-      "scope": "Recovery"
-    },
-    {
-      "name": "Performance.NativeCompletedFramesPreserveSourceAndHistory",
-      "scope": "Editor"
-    },
-    {
-      "name": "Rendering.NativeDefaultAndWarpResourceLifecycle",
-      "scope": "Editor"
-    },
-    {
-      "name": "Files.MarkdownTreeNaturalOrderAndFilter",
-      "scope": "Storage"
-    },
-    {
-      "name": "Files.BoundedTraversalCancellationAndErrors",
-      "scope": "Storage"
-    },
-    {
-      "name": "Files.ReparseLeavesNeverTraverse",
-      "scope": "Storage"
-    },
-    {
-      "name": "Files.AsyncRerootChangeNotificationsAndClose",
-      "scope": "Storage"
-    },
-    {
-      "name": "Files.CoalescedNotificationAndStaleResult",
-      "scope": "Storage"
-    },
-    {
-      "name": "Settings.DesignRefreshPreferencesRoundTrip",
-      "scope": "Settings"
-    },
-    {
-      "name": "Settings.DesignRefreshFieldFallback",
-      "scope": "Settings"
-    },
-    {
-      "name": "Window.DesignRefreshMergedFrameHitTests",
-      "scope": "Editor"
-    },
-    {
-      "name": "Window.DesignRefreshCaptionButtonPointerLifecycle",
-      "scope": "Editor"
-    },
-    {
-      "name": "Window.DesignRefreshResponsiveLayoutAndDpi",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.DesignRefreshFocusViewsAndToggleStates",
-      "scope": "Editor"
-    },
-    {
-      "name": "Outline.DesignRefreshHierarchyCurrentAndFindCounts",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.DocumentAnalysisReusesBoundedLineIndexStorage",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.DesignRefreshFindReplaceUndoAndCapacity",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.DesignRefreshEquationContextAndDraftGuards",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.PersistentFolderNavigationAndRestart",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.NativeCodeHighlightingPreservesSource",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.NativeMermaidProfilesAndDisplayRegressions",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.DesignRefreshFilesRerootFilterAndDirtyOpen",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.FilesDirtyBadgeUpdatesOneVisibleRow",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.DesignRefreshFilesAdmissionErrorsAndRootActions",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.DesignRefreshLiveSettingsAndEscape",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.MarkdownSyntaxOptionsReanalyzeLive",
-      "scope": "Editor"
-    },
-    {
-      "name": "Rendering.DocumentThemedScrollbars",
-      "scope": "Editor"
-    },
-    {
-      "name": "Rendering.DesignRefreshTypographyAndThemeRoles",
-      "scope": "Editor"
-    },
-    {
-      "name": "Window.DesignRefreshPersistentStatusFacts",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.DesignRefreshTransientSurfacesAndClose",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.HttpAnonymousFetchAndNativeDecode",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.HttpRedirectAuthBoundsAndFailures",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.HttpCancellationDeadlineAndOwnerClose",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.RemoteImagePrivacyOptInRevocationAndShutdown",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.WikiImageEmbedsStayUnresolved",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.DocumentPositionIndexAndNewlineFacts",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.DesignRefreshDeferredSelectionToolsFocus",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.SplitViewTransitionCompletesAfterNestedEdit",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.NestedViewRequestSupersedesOuterSplit",
-      "scope": "Editor"
-    },
-    {
-      "name": "Recovery.DuplicateCloseKeepsUnsavedPrompt",
-      "scope": "Recovery"
-    },
-    {
-      "name": "Recovery.RestoreKeepsClickedIdentityAcrossUnsavedPrompt",
-      "scope": "Recovery"
-    },
-    {
-      "name": "Editor.WorkspaceSwitchRetainsEveryHistoryAndRecovery",
-      "scope": "Editor"
-    },
-    {
-      "name": "Recovery.WorkspaceExplicitActionsProtectEveryDirtyDocument",
-      "scope": "Recovery"
-    },
-    {
-      "name": "Recovery.RestoreAllKeepsIndependentCopiesAndNavigation",
-      "scope": "Recovery"
-    },
-    {
-      "name": "Recovery.SessionEndCheckpointsEveryDocumentAndCancellationKeepsEditing",
-      "scope": "Recovery"
-    },
-    {
-      "name": "Editor.WorkspaceCapacityRefusesWithoutEvictingEdits",
-      "scope": "Editor"
-    },
-    {
-      "name": "Editor.OpenCompletionWaitsForLocalDraft",
-      "scope": "Editor"
-    },
-    {
-      "name": "Recovery.IndependentDocumentCheckpointsAndLeases",
-      "scope": "Recovery"
-    },
-    {
-      "name": "Recovery.ContinuousTypingCannotStarveCheckpoint",
-      "scope": "Recovery"
-    }
+    { "name": "Editor.SelectedBlockInsertionsRetainSourceAndHistory", "scope": "Editor" },
+    { "name": "Recovery.OversizedValidEnvelopeRejectsAndPreservesQuarantine", "scope": "Recovery" },
+    { "name": "Recovery.CloseDuringSaveWaitsForDurableSuccess", "scope": "Recovery" },
+    { "name": "Recovery.CloseDuringSaveFailurePreservesSourceAndRecovery", "scope": "Recovery" },
+    { "name": "Recovery.CloseDuringSaveRechecksLaterEdits", "scope": "Recovery" },
+    { "name": "Recovery.CloseAbandonsPlainOpenWithoutPrompt", "scope": "Recovery" },
+    { "name": "Recovery.CloseAbandonsOpenAndProtectsLaterEdits", "scope": "Recovery" },
+    { "name": "Utf8.CI_ASSERTION_PROBE", "scope": "Storage" },
+    { "name": "Editor.LocalizedResourceViewsRetainStorageAndFormatting", "scope": "Editor" },
+    { "name": "Performance.OwnedHeapDiagnosticDistinguishesBusyFreeAndPartialCoverage", "scope": "Editor" },
+    { "name": "Performance.SelectionDiagnosticRejectsReentryAndUnwinding", "scope": "Editor" },
+    { "name": "Editor.SplitMirrorFallbackRecoversAfterHiddenEdits", "scope": "Editor" },
+    { "name": "Editor.SplitMirrorNestedEditKeepsNewestPublication", "scope": "Editor" },
+    { "name": "Editor.SplitMirrorCallbackCanRetireRoot", "scope": "Editor" },
+    { "name": "Window.Image2QuietChromeAndCompactInspector", "scope": "Editor" },
+    { "name": "Editor.HiddenCurrentBlockPublishesLatestOnReveal", "scope": "Editor" },
+    { "name": "Utf8.BomUnicodeMixedEolRoundTrip", "scope": "Storage" },
+    { "name": "Utf8.InvalidInputDoesNotReplaceOutput", "scope": "Storage" },
+    { "name": "Storage.AtomicConflictAndFailedSave", "scope": "Storage" },
+    { "name": "Storage.AtomicSaveKeepsLongLeafWithinPathBudget", "scope": "Storage" },
+    { "name": "Storage.CapacityRejectedWithoutTruncation", "scope": "Storage" },
+    { "name": "Settings.VersionAndFieldFallback", "scope": "Settings" },
+    { "name": "Outline.FencesAndUnicode", "scope": "Editor" },
+    { "name": "Settings.AsyncLatestValueSurvivesWriterClose", "scope": "Settings" },
+    { "name": "Math.NativeSubsetAndRejection", "scope": "Editor" },
+    { "name": "Recovery.StrictEnvelopeAndUnicode", "scope": "Recovery" },
+    { "name": "Recovery.DebounceLeaseCoalescingAndRetirement", "scope": "Recovery" },
+    { "name": "Recovery.CorruptAndFutureDataQuarantined", "scope": "Recovery" },
+    { "name": "Editor.ViewSwitchKeepsSourceSelectionHistory", "scope": "Editor" },
+    { "name": "Editor.HiddenMirrorSynchronizesWithoutEditingSource", "scope": "Editor" },
+    { "name": "Editor.OutlineTracksShiftedOffsetsAndChangedLabels", "scope": "Editor" },
+    { "name": "Window.CaptionSkipsIdenticalWritesAndPreservesImmediateIdentity", "scope": "Editor" },
+    { "name": "Window.CaptionRetriesFailedAndSupersededNativeWrites", "scope": "Editor" },
+    { "name": "Editor.DirtyCacheTracksDirectResetAndSameLengthUndo", "scope": "Editor" },
+    { "name": "Editor.SemanticFormattingUndoAndTheme", "scope": "Editor" },
+    { "name": "Editor.LocalDiagramSourceAndLiteralFallback", "scope": "Editor" },
+    { "name": "Editor.LocalOrdinarySourceCommitCancelAndStale", "scope": "Editor" },
+    { "name": "Editor.DeviceLossAndLocalImagePixels", "scope": "Editor" },
+    { "name": "Files.AsyncSaveRetainsEditsMadeDuringWrite", "scope": "Storage" },
+    { "name": "Editor.InDocumentMathLocalSourceAndBroaderMermaid", "scope": "Editor" },
+    { "name": "Recovery.LocalDraftCancelPreviewRestoreProtectsOriginal", "scope": "Recovery" },
+    { "name": "Recovery.DiscardFailureRetainsCandidateAndRetryClearsError", "scope": "Recovery" },
+    { "name": "Performance.NativeCompletedFramesPreserveSourceAndHistory", "scope": "Editor" },
+    { "name": "Rendering.NativeDefaultAndWarpResourceLifecycle", "scope": "Editor" },
+    { "name": "Files.MarkdownTreeNaturalOrderAndFilter", "scope": "Storage" },
+    { "name": "Files.BoundedTraversalCancellationAndErrors", "scope": "Storage" },
+    { "name": "Files.ReparseLeavesNeverTraverse", "scope": "Storage" },
+    { "name": "Files.AsyncRerootChangeNotificationsAndClose", "scope": "Storage" },
+    { "name": "Files.CoalescedNotificationAndStaleResult", "scope": "Storage" },
+    { "name": "Settings.DesignRefreshPreferencesRoundTrip", "scope": "Settings" },
+    { "name": "Settings.DesignRefreshFieldFallback", "scope": "Settings" },
+    { "name": "Window.DesignRefreshMergedFrameHitTests", "scope": "Editor" },
+    { "name": "Window.DesignRefreshCaptionButtonPointerLifecycle", "scope": "Editor" },
+    { "name": "Window.DesignRefreshResponsiveLayoutAndDpi", "scope": "Editor" },
+    { "name": "Editor.DesignRefreshFocusViewsAndToggleStates", "scope": "Editor" },
+    { "name": "Outline.DesignRefreshHierarchyCurrentAndFindCounts", "scope": "Editor" },
+    { "name": "Editor.DocumentAnalysisReusesBoundedLineIndexStorage", "scope": "Editor" },
+    { "name": "Editor.DesignRefreshFindReplaceUndoAndCapacity", "scope": "Editor" },
+    { "name": "Editor.DesignRefreshEquationContextAndDraftGuards", "scope": "Editor" },
+    { "name": "Editor.DesignRefreshBrandMarkDeviceLossRetainsRaster", "scope": "Editor" },
+    { "name": "Editor.PersistentFolderNavigationAndRestart", "scope": "Editor" },
+    { "name": "Editor.NativeCodeHighlightingPreservesSource", "scope": "Editor" },
+    { "name": "Editor.NativeMermaidProfilesAndDisplayRegressions", "scope": "Editor" },
+    { "name": "Editor.DesignRefreshFilesRerootFilterAndDirtyOpen", "scope": "Editor" },
+    { "name": "Editor.FilesDirtyBadgeUpdatesOneVisibleRow", "scope": "Editor" },
+    { "name": "Editor.DesignRefreshFilesAdmissionErrorsAndRootActions", "scope": "Editor" },
+    { "name": "Editor.DesignRefreshLiveSettingsAndEscape", "scope": "Editor" },
+    { "name": "Editor.MarkdownSyntaxOptionsReanalyzeLive", "scope": "Editor" },
+    { "name": "Rendering.DocumentThemedScrollbars", "scope": "Editor" },
+    { "name": "Rendering.DesignRefreshTypographyAndThemeRoles", "scope": "Editor" },
+    { "name": "Window.DesignRefreshPersistentStatusFacts", "scope": "Editor" },
+    { "name": "Editor.DesignRefreshTransientSurfacesAndClose", "scope": "Editor" },
+    { "name": "Editor.HttpAnonymousFetchAndNativeDecode", "scope": "Editor" },
+    { "name": "Editor.HttpRedirectAuthBoundsAndFailures", "scope": "Editor" },
+    { "name": "Editor.HttpCancellationDeadlineAndOwnerClose", "scope": "Editor" },
+    { "name": "Editor.RemoteImagePrivacyOptInRevocationAndShutdown", "scope": "Editor" },
+    { "name": "Editor.WikiImageEmbedsStayUnresolved", "scope": "Editor" },
+    { "name": "Editor.DocumentPositionIndexAndNewlineFacts", "scope": "Editor" },
+    { "name": "Editor.DesignRefreshDeferredSelectionToolsFocus", "scope": "Editor" },
+    { "name": "Editor.SplitViewTransitionCompletesAfterNestedEdit", "scope": "Editor" },
+    { "name": "Editor.NestedViewRequestSupersedesOuterSplit", "scope": "Editor" },
+    { "name": "Recovery.DuplicateCloseKeepsUnsavedPrompt", "scope": "Recovery" },
+    { "name": "Recovery.RestoreKeepsClickedIdentityAcrossUnsavedPrompt", "scope": "Recovery" },
+    { "name": "Editor.WorkspaceSwitchRetainsEveryHistoryAndRecovery", "scope": "Editor" },
+    { "name": "Recovery.WorkspaceExplicitActionsProtectEveryDirtyDocument", "scope": "Recovery" },
+    { "name": "Recovery.RestoreAllKeepsIndependentCopiesAndNavigation", "scope": "Recovery" },
+    { "name": "Recovery.SessionEndCheckpointsEveryDocumentAndCancellationKeepsEditing", "scope": "Recovery" },
+    { "name": "Editor.WorkspaceCapacityRefusesWithoutEvictingEdits", "scope": "Editor" },
+    { "name": "Editor.OpenCompletionWaitsForLocalDraft", "scope": "Editor" },
+    { "name": "Recovery.IndependentDocumentCheckpointsAndLeases", "scope": "Recovery" },
+    { "name": "Recovery.ContinuousTypingCannotStarveCheckpoint", "scope": "Recovery" },
+    { "name": "Settings.LocalNetworkImagePermission", "scope": "Settings" },
+    { "name": "Editor.RemoteImagePublicAddressPolicy", "scope": "Editor" },
+    { "name": "Editor.RemoteImagesDefaultBlocksOwnedLoopback", "scope": "Editor" },
+    { "name": "Editor.DocumentImageConsentAndReload", "scope": "Editor" }
   ]
 }

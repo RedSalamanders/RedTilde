@@ -97,14 +97,15 @@ Hosted setup waits for the hidden, owned GUI bootstrapper with both its --wait s
 
 The [native policy, console and dependency-path contract](Build_ConsoleAndPaths.md) owns /Wall without /WX, zero-warning acceptance, Debug/ASan symbols, Release-only ICF, common terminal results and verified short dependency folders.
 
-The current consumer locks DxUi API4 at `a1915ffdd94b18fd1817371f1dc074f6a0b547f1`. This adds the selected
-Unicode-first clipboard policy to the independent optional cosmetic preparation checkpoint at `ba94f4eb`;
-the earlier diagram, math, selection-insertion, parser and input repairs remain included. Publishing the exact pin
-makes it available to other machines without supplying additional native or product qualification.
+The API-5 migration locks DxUi at `5907e4f5e001b1003ba8ba2f1ec7f9725c1ddb5c`, with protocol-2 process ownership,
+checked source/codec/configuration adapters and input-state continuity. The earlier diagram, math,
+selection-insertion, parser and Unicode-first clipboard repairs remain included. This migration requires fresh
+consumer qualification; the API-4 evidence at `a1915ffdd94b18fd1817371f1dc074f6a0b547f1` cannot qualify it.
 The local cache is a clean independent detached Git checkout,
 validated and built through the ordinary public consumer interface. No sibling archive or copied source is linked.
-API revision 4 is unchanged. Restore and rebuild each consumer profile from its matching headers and archive;
-profile qualification remains explicit. `ba94f4eb0cd8bbdeecb0b96d5e21fb325fe2d9c9` is the clipboard-policy rollback;
+API revision 5 changes source contracts and object layouts. Restore and rebuild every profile from its matching
+headers and archive; profile qualification remains explicit. Rolling back to API 4 also restores its adapters and
+host ownership, rather than changing only the lock. `ba94f4eb0cd8bbdeecb0b96d5e21fb325fe2d9c9` is the historical clipboard-policy rollback;
 `703a96c788a79c1e7b28097226a2ca0a735f11bc` is the historical quote-margin rollback;
 `2e775e8d81ff415587a4d885366566ed89df655f` is the earlier spacing/task rollback;
 `9ed15504fd481421388ab2dd1380374ff70c112a` is the earlier stroke rollback;

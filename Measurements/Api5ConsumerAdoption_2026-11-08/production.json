@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-api5-production-only-package",
+  "inputHash": "ed1202e13777d4fe64518fb5829ed45842ba8de26855df0a69f4ef4e51354e17",
+  "benchmarkInputs": {
+    "Dependencies/DxUi.lock.json": "8CD445BC98C8A388184BFBF7CC00440E61FBF9CCAAC0C41E8473FAC8563729BA",
+    "Common/DxUiFailureHost.cpp": "4E198A12099002129B643F4E3DFB6B4D6102E4961D7C11FB4FCD5B71DE5B3E8F",
+    "Common/ProcessWork.cpp": "313F4CD2BCA5E8EA312455B0D3FA25879532163C24A37175E2092862C8FF4D42",
+    "Common/Storage.cpp": "D42C795A8C1A25D2987FF9463C5430878433A1578A353E449FBF130DB2855760",
+    "RedTilde/Application.cpp": "EB08DBE4D75B8440202547C80A38152FF52045554AF82183A13597E368A97022",
+    "RedTilde/ImageLoader.h": "2BB0410960447152A8F039555500617A79A23328CFFF4D01C703BE77124CEB7C",
+    "Tests/Application.Tests.Core.cpp": "BCB30C13636E6F33847E799AC7424F07B0E249616D9448A34BD3F7418D587CBE",
+    "Tests/native-case-catalog.json": "6A61DF727737D912ED6843301315826894285D948AA50E45B314A26D7ED00F0C"
+  },
+  "implementationCommit": "9feb787e3e789db2f9cfc045e75a6b03f3737ccb",
+  "sourceIdentity": "9107fb1fb8f6b831e0887729655dc6a1f3ede7e96496d417ad75309793175059",
+  "compiledSourceIdentity": "ed1202e13777d4fe64518fb5829ed45842ba8de26855df0a69f4ef4e51354e17",
+  "sdkCommit": "21fae0dc66000b04504ba7862169533ac2943be8",
+  "platform": "x64",
+  "testsEnabled": false,
+  "smokePassed": true,
+  "actualTestEntryRefusals": 15,
+  "allRefusalsExit2WithoutDataDirectory": true,
+  "productionReceiptSha256": "8719FE33DBE6EA10028FC048E9ADA3BC4E11EDE1BDF98987DA782673A164DB68",
+  "archiveSha256": "13E019D99D7B79FEA8838AD6DCDEC7FB166B4D57770A7DF85E4F84140C91003B",
+  "binarySha256": "C23E74FC5DB5435BDB478C4FCE3A0C4C87E92EE36E3A5592AA12977D22391830",
+  "originalNativeArchiveSha256": "585D48ACE02AE36B9B9BC972EF2489C8AF542E17BF157B087DA3FC356FD224C3",
+  "originalPackageAndSmokeArchiveSha256": "4991FCD1E05367F02A561C5D829D188364423960C334493419AE813A01138748",
+  "allOriginalMembersVerified": true,
+  "ARM64RuntimeExecuted": false,
+  "limits": [
+    "Local experimental x64 portable package, not a published release or installer decision",
+    "The ordinary two-architecture production gate remains unchanged",
+    "Local Storage privilege failure remains unwaived pending actual hosted x64 execution"
+  ],
+  "originalSdkProductionNativeArchiveSha256": "76D8F57AF779ADB6354044BA794F225954ED91FCB3AABFD31CE40DB32D1F3A3B"
+}

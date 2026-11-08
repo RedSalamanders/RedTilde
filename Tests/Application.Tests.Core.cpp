@@ -1,6 +1,7 @@
 #include "RedTilde/Application.h"
 #include "Application.Tests.Close.h"
 #include "Application.Tests.DesignRefresh.h"
+#include "Application.Tests.FailureHost.h"
 #include "Application.Tests.Files.h"
 #include "Application.Tests.HeapDiagnostic.h"
 #include "Application.Tests.RemoteImages.h"
@@ -242,14 +243,29 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
             owner = CoreTestScope::Editor;
         else
             throw std::invalid_argument("Unmapped native test prefix");
-        const bool editorPartition =
-            scope == CoreTestScope::EditorBehavior || scope == CoreTestScope::EditorPerformance || scope == CoreTestScope::EditorRendering;
+        const bool editorPartition = scope == CoreTestScope::EditorBehavior || scope == CoreTestScope::EditorPerformance ||
+                                     scope == CoreTestScope::EditorRendering || scope == CoreTestScope::EditorContent ||
+                                     scope == CoreTestScope::EditorWorkspace || scope == CoreTestScope::EditorMedia;
         if (editorPartition)
         {
             if (owner != CoreTestScope::Editor || (scope == CoreTestScope::EditorPerformance && prefix != "Performance") ||
                 (scope == CoreTestScope::EditorRendering && prefix != "Rendering") ||
                 (scope == CoreTestScope::EditorBehavior && (prefix == "Performance" || prefix == "Rendering")))
                 return;
+            if (scope == CoreTestScope::EditorContent || scope == CoreTestScope::EditorWorkspace || scope == CoreTestScope::EditorMedia)
+            {
+                if (prefix == "Performance" || prefix == "Rendering")
+                    return;
+                const bool media = std::ranges::any_of(
+                    std::array<std::string_view, 8>{"Image", "Bitmap", "Mermaid", "Diagram", "Math", "Equation", "CodeHighlighting", "Http"},
+                    [&](auto token) { return name.find(token) != name.npos; });
+                const bool workspace = !media && (prefix == "Window" || prefix == "Outline" || name.starts_with("Editor.DesignRefresh") ||
+                                                  name.starts_with("Editor.Files") || name.starts_with("Editor.PersistentFolder") ||
+                                                  name.starts_with("Editor.Workspace") || name.starts_with("Editor.Startup"));
+                const auto partition = media ? CoreTestScope::EditorMedia : workspace ? CoreTestScope::EditorWorkspace : CoreTestScope::EditorContent;
+                if (scope != partition)
+                    return;
+            }
         }
         else if (scope != CoreTestScope::All && owner != scope)
             return;
@@ -261,11 +277,14 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
             return;
         }
         report << "    {\"name\":\"" << name << "\",\"passed\":";
+        // Preserve the active case even if the enclosing owned child times out.
+        report.flush();
+        const auto started = std::chrono::steady_clock::now();
         try
         {
             run();
             ++passed;
-            report << "true}";
+            report << "true";
         }
         catch (const std::bad_alloc &)
         {
@@ -277,14 +296,17 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
             report << "false,\"error\":\"";
             for (const char c : std::string_view(error.what()))
                 report << (c == '"' ? '\'' : c == '\\' ? '/' : c == '\n' ? ' ' : c);
-            report << "\"}";
+            report << "\"";
         }
+        report << ",\"elapsedMs\":" << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count()
+               << "}";
         report.flush();
     };
     RegisterFilesTests(root, test);
     RegisterCloseTests(root, test);
     RegisterDesignRefreshTests(root, test);
     RegisterRemoteImageTests(root, test);
+    RegisterFailureHostTests(root, test);
     Testing::RegisterStorageSafetyTests(root, test);
     test("Utf8.CI_ASSERTION_PROBE",
          []
@@ -449,6 +471,23 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              BitmapAsset refused;
              Require(FAILED(CreateBitmapAsset(directory, std::vector<std::byte>(40u), false, refused)) && refused.path.empty(),
                      "malformed bitmap input publishes no asset");
+         });
+    test("Settings.LocalNetworkImagePermission",
+         [&]
+         {
+             for (const auto *text :
+                  {"RedTilde.Settings/1\n", "RedTilde.Settings/1\nlocalNetworkImages=2\n", "RedTilde.Settings/1\nlocalNetworkImages=invalid\n"})
+                 Require(!ParseSettings(text).allowLocalNetworkImages, "missing and invalid local-network permission stays off");
+             Settings settings;
+             settings.allowLocalNetworkImages = true;
+             const auto round = ParseSettings(SerializeSettings(settings));
+             Require(round.allowLocalNetworkImages && !round.allowRemoteImages, "LAN permission round trips independently of image consent");
+             const auto directory = root / L"local-network-image-settings";
+             Success(SaveSettings(directory, settings), "persist explicit local-network image preference");
+             Settings loaded;
+             Success(LoadSettings(directory, loaded), "restore explicit local-network image preference");
+             Require(loaded.allowLocalNetworkImages && !loaded.allowRemoteImages,
+                     "the opt-in survives restart without granting internet image consent");
          });
     test("Settings.ImageFirstPasteRoundTripAndFallback",
          [&]
@@ -710,6 +749,15 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              const RecoverySnapshot maximum{std::wstring(65536, L'界'), {}, false, {65536, 65536}, 100};
              Success(ParseRecovery(SerializeRecovery(maximum), parsed), "maximum Unicode document fits the recovery envelope");
              Require(parsed.text == maximum.text, "full-capacity recovery does not truncate source");
+             for (const auto &invalid :
+                  {RecoverySnapshot{std::wstring(DxUi::RichText::Document::MaximumUnits + 1u, L'x'), {}, false, {}, 1u},
+                   RecoverySnapshot{std::wstring(1u, static_cast<wchar_t>(0xd800)), {}, false, {}, 1u},
+                   RecoverySnapshot{L"\U0001F642", {}, false, {1u, 1u}, 1u}, RecoverySnapshot{L"Retained writing", L"relative.md", false, {}, 1u}})
+             {
+                 std::string retained = "unchanged serialization output";
+                 Require(TrySerializeRecovery(invalid, retained) == E_INVALIDARG && retained == "unchanged serialization output",
+                         "checked recovery serialization rejects invalid source/path/selection before changing its output");
+             }
          });
     test("Recovery.OversizedValidEnvelopeRejectsAndPreservesQuarantine",
          [&]
@@ -1167,15 +1215,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                      DxUi::TextClipboardContent content;
                      content.filePaths.push_back(path);
                      std::wstring replacement = L"unchanged";
-                     bool rejected{};
-                     try
-                     {
-                         rejected = !app.Document().TryPrepareClipboardPaste(content, replacement);
-                     }
-                     catch (const std::invalid_argument &)
-                     {
-                         rejected = true;
-                     }
+                     const bool rejected = !app.Document().TryPrepareClipboardPaste(content, replacement);
                      Require(rejected && replacement == L"unchanged", "hostile file paste declines before producing any Markdown replacement");
                      Require(app.Document().Snapshot().IsSameRevision(snapshot) && app.Document().GetSelection() == selection &&
                                  !app.Document().CanUndo() && !app.Document().CanRedo() && app.Activity().changes == before.changes &&
@@ -2146,7 +2186,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              app.Prepare();
              Require(app.Capture(root / L"after-device-loss.png") && app.Document().GetText() == source,
                      "device loss recreates pixels and retains source");
-             app.SetDocument(L"# Image\n\n![Actual app capture](test-compose.png)\n", root / L"image-document.md");
+             app.SetDocument(L"# Image\n\n![Actual app capture](after-device-loss.png)\n", root / L"image-document.md");
              app.Prepare(512);
              const auto stats = app.Document().GetImageResourceStatistics();
              Require(stats.readySources == 1 && stats.decodedBytes > 0, "relative local image decoded through worker and admitted");
@@ -2359,6 +2399,43 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                          diagramAlternatives[1].find(L"Done") != std::wstring_view::npos && diagramLink != semantic->Elements().end() &&
                          diagramLink->title == L"Parent title" && app.Document().GetText() == diagramNeighbors,
                      "typed class inheritance and stadium flowchart nodes retain their native alternatives and parent link title");
+             const auto originalAppearance = app.Document().GetAppearance();
+             auto largeAppearance = originalAppearance;
+             largeAppearance.bodyFontSizeDip = 96.f;
+             const auto capacityBody = L"\\text{" + std::wstring(1400u, L'm') + L"}";
+             const std::wstring unsupportedBody = L"\\unknown{x}";
+             const auto refused = L"**Kept** $x^2$.\n\n$" + capacityBody + L"$.\n\n$" + unsupportedBody + L"$.\n";
+             app.SetDocument(refused);
+             app.Document().SetAppearance(largeAppearance);
+             const auto refusedSnapshot = app.Document().Snapshot();
+             const auto refusedSelection = app.Document().GetSelection();
+             app.Prepare(1024);
+             semantic = app.Document().GetAcknowledgedSemanticDocument(app.Host());
+             Require(static_cast<bool>(semantic), "native refusal publishes the actual consumer document");
+             const auto capacityFirst = refused.find(capacityBody) - 1u;
+             const auto unsupportedFirst = refused.find(unsupportedBody) - 1u;
+             Require(std::ranges::any_of(semantic->Diagnostics(),
+                                         [&](const auto &diagnostic)
+                                         {
+                                             return diagnostic.kind == SemanticDiagnosticKind::MathCapacity &&
+                                                    diagnostic.source == MarkdownRange{capacityFirst, capacityFirst + capacityBody.size() + 2u};
+                                         }) &&
+                         std::ranges::any_of(semantic->Diagnostics(),
+                                             [&](const auto &diagnostic)
+                                             {
+                                                 return diagnostic.kind == SemanticDiagnosticKind::UnsupportedMath &&
+                                                        diagnostic.source ==
+                                                            MarkdownRange{unsupportedFirst, unsupportedFirst + unsupportedBody.size() + 2u};
+                                             }),
+                     "the actual app preserves capacity and unsupported math causes on their independent exact source owners");
+             const auto kept = semantic->Map().Display().find(L"Kept");
+             Require(kept != std::wstring::npos &&
+                         std::ranges::any_of(semantic->Runs(), [kept](const auto &run)
+                                             { return (run.flags & Bold) != 0 && run.start <= kept && kept + 4u <= run.start + run.length; }) &&
+                         app.Document().Snapshot().IsSameRevision(refusedSnapshot) && app.Document().GetSelection() == refusedSelection &&
+                         !app.Document().CanUndo(),
+                     "expected native object refusals retain a healthy rich neighbor, exact source, selection and history");
+             app.Document().SetAppearance(originalAppearance);
              const auto oversized = L"$" + std::wstring(65534u, L'x') + L"$";
              app.SetDocument(oversized);
              app.Prepare(1024);

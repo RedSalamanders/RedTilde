@@ -1,5 +1,7 @@
 #include "Recovery.h"
 #include "MonitorDiagnostics.h"
+#include "ProcessWork.h"
+#include <DxUi/Failure.h>
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -35,16 +37,15 @@ bool ValidId(std::wstring_view id) noexcept
 {
     return id.size() == 32 && std::ranges::all_of(id, [](wchar_t c) { return (c >= L'0' && c <= L'9') || (c >= L'a' && c <= L'f'); });
 }
-void Validate(const RecoverySnapshot &value)
+bool ValidSnapshot(const RecoverySnapshot &value) noexcept
 {
     if (value.text.size() > DxUi::RichText::Document::MaximumUnits || value.originalPath.native().size() > 1024 ||
         !DxUi::RichText::IsValidUtf16(value.text) || !DxUi::RichText::IsValidUtf16(value.originalPath.native()) ||
         (!value.originalPath.empty() && !value.originalPath.is_absolute()) || value.selection.anchor > value.text.size() ||
         value.selection.caret > value.text.size())
-        throw std::invalid_argument("Invalid recovery snapshot");
+        return false;
     const auto boundary = [&](std::size_t at) { return at == 0 || at == value.text.size() || value.text[at] < 0xDC00 || value.text[at] > 0xDFFF; };
-    if (!boundary(value.selection.anchor) || !boundary(value.selection.caret))
-        throw std::invalid_argument("Invalid recovery selection");
+    return boundary(value.selection.anchor) && boundary(value.selection.caret);
 }
 std::filesystem::path SnapshotPath(const std::filesystem::path &root, std::wstring_view id)
 {
@@ -87,7 +88,10 @@ try
 {
     if (dataDirectory.empty() || !dataDirectory.is_absolute())
         return E_INVALIDARG;
-    const auto bytes = SerializeRecovery(snapshot); // Validate before any filesystem mutation.
+    std::string bytes;
+    const HRESULT serialized = TrySerializeRecovery(snapshot, bytes); // Validate before any filesystem mutation.
+    if (FAILED(serialized))
+        return serialized;
     const auto root = dataDirectory / L"Recovery";
     std::error_code error;
     std::filesystem::create_directories(root, error);
@@ -124,7 +128,7 @@ try
 }
 catch (const std::bad_alloc &)
 {
-    return E_OUTOFMEMORY;
+    DxUi::Failure::FailAllocation();
 }
 catch (const std::length_error &)
 {
@@ -151,13 +155,36 @@ HRESULT SaveRecoveryProtection::Retire() noexcept
 
 std::string SerializeRecovery(const RecoverySnapshot &snapshot)
 {
-    Validate(snapshot);
-    const auto path = DxUi::RichText::EncodeUtf8(snapshot.originalPath.native());
-    const auto text = DxUi::RichText::EncodeUtf8(snapshot.text);
+    std::string output;
+    const HRESULT result = TrySerializeRecovery(snapshot, output);
+    if (FAILED(result))
+        DxUi::Failure::FailContract(result);
+    return output;
+}
+HRESULT TrySerializeRecovery(const RecoverySnapshot &snapshot, std::string &output) noexcept
+try
+{
+    if (!ValidSnapshot(snapshot))
+        return E_INVALIDARG;
+    std::string path, text;
+    if (DxUi::RichText::TryEncodeUtf8(snapshot.originalPath.native(), path) != DxUi::RichText::SourceResult::Success ||
+        DxUi::RichText::TryEncodeUtf8(snapshot.text, text) != DxUi::RichText::SourceResult::Success)
+        return HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION);
     const auto payload = path + text;
     const auto metadata = std::format("{} {} {} {} {} {}", path.size(), text.size(), snapshot.bom ? 1 : 0, snapshot.selection.anchor,
                                       snapshot.selection.caret, snapshot.generation);
-    return std::string(Magic) + metadata + std::format(" {}\n", ContentHash(metadata + "\n" + payload)) + payload;
+    auto staged = std::string(Magic) + metadata + std::format(" {}\n", ContentHash(metadata + "\n" + payload)) + payload;
+    output.swap(staged);
+    return S_OK;
+}
+catch (const std::bad_alloc &)
+{
+    DxUi::Failure::FailAllocation();
+}
+catch (const std::exception &)
+{
+    // This noexcept serialization boundary has no expected throwing operation; refusal is checked above.
+    DxUi::Failure::FailUnexpected();
 }
 HRESULT ParseRecovery(std::string_view bytes, RecoverySnapshot &snapshot) noexcept
 try
@@ -189,18 +216,22 @@ try
         values[4] > 65536 || ContentHash(std::string(metadata) + "\n" + std::string(payload)) != values[6])
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
     RecoverySnapshot staged;
-    staged.originalPath = DxUi::RichText::DecodeUtf8(payload.substr(0, static_cast<std::size_t>(values[0])));
-    staged.text = DxUi::RichText::DecodeUtf8(payload.substr(static_cast<std::size_t>(values[0])));
+    std::wstring path;
+    if (DxUi::RichText::TryDecodeUtf8(payload.substr(0, static_cast<std::size_t>(values[0])), path) != DxUi::RichText::SourceResult::Success ||
+        DxUi::RichText::TryDecodeUtf8(payload.substr(static_cast<std::size_t>(values[0])), staged.text) != DxUi::RichText::SourceResult::Success)
+        return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+    staged.originalPath = std::move(path);
     staged.bom = values[2] != 0;
     staged.selection = {static_cast<std::size_t>(values[3]), static_cast<std::size_t>(values[4])};
     staged.generation = values[5];
-    Validate(staged);
+    if (!ValidSnapshot(staged))
+        return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
     snapshot = std::move(staged);
     return S_OK;
 }
 catch (const std::bad_alloc &)
 {
-    return E_OUTOFMEMORY;
+    DxUi::Failure::FailAllocation();
 }
 catch (const std::length_error &)
 {
@@ -291,8 +322,9 @@ struct RecoveryService::State
     static void CALLBACK Worker(PTP_CALLBACK_INSTANCE instance, void *context) noexcept
     {
         (void)CallbackMayRunLong(instance);
-        const std::unique_ptr<std::shared_ptr<State>> ownership(static_cast<std::shared_ptr<State> *>(context));
-        const auto &self = *ownership;
+        ProcessWorkLease processLease = std::move(static_cast<ProcessWorkItem<State> *>(context)->lease);
+        const std::unique_ptr<ProcessWorkItem<State>> ownership(static_cast<ProcessWorkItem<State> *>(context));
+        const auto &self = ownership->state;
         HRESULT result = S_OK;
         try
         {
@@ -350,9 +382,19 @@ struct RecoveryService::State
                     auto &lease = leases[document];
                     if (!lease)
                         lease = Lease(self->root, id);
-                    const HRESULT outcome = !lease            ? HRESULT_FROM_WIN32(GetLastError())
-                                            : update.snapshot ? WriteBytesAtomic(SnapshotPath(self->root, id), SerializeRecovery(*update.snapshot))
-                                                              : Remove(SnapshotPath(self->root, id));
+                    HRESULT outcome = lease ? S_OK : HRESULT_FROM_WIN32(GetLastError());
+                    if (SUCCEEDED(outcome))
+                    {
+                        if (update.snapshot)
+                        {
+                            std::string bytes;
+                            outcome = TrySerializeRecovery(*update.snapshot, bytes);
+                            if (SUCCEEDED(outcome))
+                                outcome = WriteBytesAtomic(SnapshotPath(self->root, id), bytes);
+                        }
+                        else
+                            outcome = Remove(SnapshotPath(self->root, id));
+                    }
                     {
                         std::lock_guard lock(self->mutex);
                         self->snapshotStatuses[document] = outcome;
@@ -396,7 +438,7 @@ struct RecoveryService::State
         }
         catch (const std::bad_alloc &)
         {
-            result = E_OUTOFMEMORY;
+            DxUi::Failure::FailAllocation();
         }
         catch (const std::system_error &error)
         {
@@ -437,7 +479,10 @@ try
         return HRESULT_FROM_WIN32(GetLastError());
     staged->window = window;
     staged->message = message;
-    auto ownership = std::make_unique<std::shared_ptr<State>>(staged);
+    auto ownership = std::make_unique<ProcessWorkItem<State>>(staged);
+    const HRESULT admission = ProcessWork::Acquire(ownership->lease);
+    if (FAILED(admission))
+        return admission;
     if (!TrySubmitThreadpoolCallback(State::Worker, ownership.get(), nullptr))
         return HRESULT_FROM_WIN32(GetLastError());
     (void)ownership.release();
@@ -446,7 +491,7 @@ try
 }
 catch (const std::bad_alloc &)
 {
-    return E_OUTOFMEMORY;
+    DxUi::Failure::FailAllocation();
 }
 HRESULT RecoveryService::Submit(std::optional<RecoverySnapshot> snapshot, bool immediate, std::wstring retire) noexcept
 {
@@ -457,8 +502,8 @@ try
 {
     if (!state || document >= MaximumDocuments || (!retire.empty() && !ValidId(retire)))
         return E_INVALIDARG;
-    if (snapshot)
-        Validate(*snapshot);
+    if (snapshot && !ValidSnapshot(*snapshot))
+        return E_INVALIDARG;
     std::lock_guard lock(state->mutex);
     if (state->stopping || state->finished)
         return E_ABORT;
@@ -479,7 +524,7 @@ try
 }
 catch (const std::bad_alloc &)
 {
-    return E_OUTOFMEMORY;
+    DxUi::Failure::FailAllocation();
 }
 catch (const std::invalid_argument &)
 {
@@ -501,7 +546,7 @@ try
 }
 catch (const std::bad_alloc &)
 {
-    return E_OUTOFMEMORY;
+    DxUi::Failure::FailAllocation();
 }
 std::vector<RecoveryCandidate> RecoveryService::TakeCandidates()
 {

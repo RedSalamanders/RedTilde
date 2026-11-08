@@ -301,10 +301,16 @@ blocks are dimmed when `dimInactiveBlocks` is enabled. A Markdown syntax section
 GFM syntax always works and turned-off syntax stays as typed, then seven full-width toggle buttons (highlight,
 superscript, subscript, inserted, wiki links, definition lists, abbreviations) each name the family with its marker.
 Each toggle exposes pressed state and is followed by a two-line explanation that is also its tooltip and UIA help
-text. All are on by default and apply immediately. Privacy offers “Load images from the internet”, off
-by default, with an explanation that local images always show and enabling remote images contacts servers named
-in the document. The preference applies immediately, persists per user and cancels/evicts remote work and pixels
-when switched off. App workers fetch bounded anonymous HTTP(S); the shared editor never performs network I/O.
+text. All are on by default and apply immediately. Privacy offers “Always allow remote images” and the
+independent “Allow images from local networks”, both off by default. Help explains that local-network permission
+still requires image consent. A document containing network image sources shows a themed nonmodal bar with its
+scope, “Allow here”/“Block here” and “Reload images”; global permission hides the document-only action. Below
+600 DIP of page width the caption and actions use separate rows. The bar reserves document/mirror space and
+never takes keyboard focus. Permission and reload preserve source/selection/history. Failure messages identify
+privacy, size, timeout or generic load refusal while the image retains its alt/source. App workers fetch bounded
+anonymous HTTP(S) through admitted numeric endpoints; the shared editor never performs network I/O.
+The hidden `image-consent-light` and `image-consent-dark` harness scenes use an invented illustration notebook
+with image access disabled. The document-consent regression also captures an actual local-network refusal.
 
 ## Capture scenarios
 

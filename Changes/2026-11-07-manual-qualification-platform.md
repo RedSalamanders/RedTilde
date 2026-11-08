@@ -1,0 +1,1 @@
+- Allow x64-only manual diagnostic qualification through the reviewed shared CI engine, while retaining the normal two-architecture production gate and recording the delivery's explicit ARM64 compilation-only scope.

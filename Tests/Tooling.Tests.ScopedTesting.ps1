@@ -39,7 +39,8 @@ try{
             Put $package 'original synthetic package bytes'
             if($mode -ceq 'Missing'){return}
             $names=@('self-test','test-scope','list-tests','interactive','crash','recovery-crash','recovery-restart',
-                'preferences','asan','linked-save-crash','linked-save-restart','test-scope-missing-value','interactive-missing-value')
+                'preferences','asan','linked-save-crash','linked-save-restart','failure-host','failure-host-missing-value',
+                'test-scope-missing-value','interactive-missing-value')
             $refusals=@($names|ForEach-Object {@{name=$_;exitCode=2;dataDirectoryAbsent=$true}})
             if($mode -ceq 'Incomplete'){$refusals=$refusals[0..11]}
             if($mode -ceq 'Duplicate'){$refusals[12].name=$refusals[0].name}
@@ -74,14 +75,17 @@ try{
         Import-Module (Join-Path $root 'Build/Harness.psm1') -Force
         $cases=@(
             @{name='Editor.Typed';scope='Editor'},@{name='Window.Close';scope='Editor'},
+            @{name='Editor.DesignRefreshSettings';scope='Editor'},@{name='Editor.LocalImage';scope='Editor'},
+            @{name='Math.Formula';scope='Editor'},@{name='Editor.HttpBounds';scope='Editor'},
             @{name='Performance.Frames';scope='Editor'},@{name='Rendering.Resources';scope='Editor'},
             @{name='Storage.Bytes';scope='Storage'}
         )
         $parts=@(Get-RedTildeCoreTestPartitions -Group Editor -Cases $cases)
-        Assert ($parts.Count -eq 3 -and $parts[0].scope -ceq 'EditorBehavior' -and $parts[1].scope -ceq 'EditorPerformance' -and
-                $parts[2].scope -ceq 'EditorRendering') 'Stable bounded child scopes'
-        Assert ((@($parts[0].cases) -join ',') -ceq 'Editor.Typed,Window.Close') 'Behavior excludes only separately executed diagnostic/render cases'
-        Assert ((@($parts[1].cases) -join ',') -ceq 'Performance.Frames' -and (@($parts[2].cases) -join ',') -ceq 'Rendering.Resources') 'Independent exact partition expectations'
+        Assert (($parts.scope -join ',') -ceq 'EditorContent,EditorWorkspace,EditorMedia,EditorPerformance,EditorRendering') 'Stable bounded child scopes'
+        Assert ((@($parts[0].cases) -join ',') -ceq 'Editor.Typed') 'Content retains independently authored editing cases'
+        Assert ((@($parts[1].cases) -join ',') -ceq 'Window.Close,Editor.DesignRefreshSettings') 'Workspace retains independently authored shell cases'
+        Assert ((@($parts[2].cases) -join ',') -ceq 'Editor.LocalImage,Math.Formula,Editor.HttpBounds') 'Media retains independently authored image, math and transport cases'
+        Assert ((@($parts[3].cases) -join ',') -ceq 'Performance.Frames' -and (@($parts[4].cases) -join ',') -ceq 'Rendering.Resources') 'Independent diagnostic/render partition expectations'
         $storage=@(Get-RedTildeCoreTestPartitions -Group Storage -Cases $cases)
         Assert ($storage.Count -eq 1 -and $storage[0].scope -ceq 'Storage' -and $storage[0].cases[0] -ceq 'Storage.Bytes') 'Ordinary groups remain intact'
         $refused=$false

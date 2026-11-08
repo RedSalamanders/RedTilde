@@ -120,6 +120,25 @@ void Application::PrepareDesignScenario()
         settings.showOutline = false;
         fixtureName = L"Notebook observations";
     }
+    if (scenario == L"image-consent-light" || scenario == L"image-consent-dark")
+    {
+        settings.allowRemoteImages = false;
+        settings.allowLocalNetworkImages = false;
+        documentRemoteImagesAllowed = false;
+        editor->SetRemoteImagesEnabled(false);
+        SetDocument(L"# Illustration notebook\n\n"
+                    L"Remote illustrations load only after a choice for this document.\n\n"
+                    L"![Invented landscape](https://images.example.invalid/landscape.png)\n\n"
+                    L"The source, selection and undo history remain yours.\n");
+        Execute(scenario == L"image-consent-dark" ? Command::ThemeDark : Command::ThemeLight);
+        const auto background = host.GetTheme().windowBackground;
+        RequireCapture(!host.GetTheme().highContrast && (background.r + background.g + background.b < 1.5f) == (scenario == L"image-consent-dark"),
+                       "The image consent capture must apply its declared native Light or Dark palette");
+        settings.view = EditorView::Compose;
+        settings.showFiles = false;
+        settings.showOutline = false;
+        fixtureName = L"Illustration notebook";
+    }
     if (scenario == L"task-presentation-light" || scenario == L"task-presentation-dark")
         settings.strikeCompletedTasks = true;
     const bool reference = scenario == L"reference-dark";

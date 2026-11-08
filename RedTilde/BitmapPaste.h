@@ -1,5 +1,6 @@
 #pragma once
 #include "Common/BitmapAssets.h"
+#include "Common/ProcessWork.h"
 #include <atomic>
 #include <memory>
 #include <mutex>
@@ -63,6 +64,12 @@ class BitmapPasteWriter final
     };
     struct Job
     {
+        Job() = default;
+        Job(const Job &) = delete;
+        Job &operator=(const Job &) = delete;
+        Job(Job &&) = delete;
+        Job &operator=(Job &&) = delete;
+        ProcessWorkLease lease;
         std::shared_ptr<State> state;
         std::vector<std::byte> dib;
         bool v5{}, discard{};
@@ -74,6 +81,7 @@ class BitmapPasteWriter final
     std::shared_ptr<State> state;
     static void CALLBACK Worker(PTP_CALLBACK_INSTANCE instance, void *context) noexcept
     {
+        ProcessWorkLease lease = std::move(static_cast<Job *>(context)->lease);
         (void)CallbackMayRunLong(instance);
         std::unique_ptr<Job> job(static_cast<Job *>(context));
         const auto owner = job->state;
@@ -130,12 +138,14 @@ class BitmapPasteWriter final
     }
     static HRESULT Launch(std::unique_ptr<Job> job) noexcept
     {
-        if (TrySubmitThreadpoolCallback(Worker, job.get(), nullptr))
+        HRESULT status = ProcessWork::Acquire(job->lease);
+        if (SUCCEEDED(status) && TrySubmitThreadpoolCallback(Worker, job.get(), nullptr))
         {
             (void)job.release();
             return S_OK;
         }
-        const auto status = HRESULT_FROM_WIN32(GetLastError());
+        if (SUCCEEDED(status))
+            status = HRESULT_FROM_WIN32(GetLastError());
         const std::scoped_lock lock(job->state->mutex);
         job->state->busy = false;
         job->state->Notify();
@@ -184,6 +194,9 @@ class BitmapPasteWriter final
 #endif
         job->result.request = ++state->serial;
         const auto number = job->result.request;
+        const HRESULT admission = ProcessWork::Acquire(job->lease);
+        if (FAILED(admission))
+            return admission;
         state->busy = true;
         // Submission failure resets busy here, avoiding recursive mutex entry.
         if (!TrySubmitThreadpoolCallback(Worker, job.get(), nullptr))

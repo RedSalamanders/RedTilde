@@ -22,6 +22,13 @@ binary/dependency/profile/scenario attestation, qualify omitted tests, or turn a
 cross-build, synthetic probe or failing comparison into native/product qualification. Sandbox markers, path containment,
 process ownership, watchdog, desktop consent and ReFS capability checks remain required by their owning contracts.
 
+History-scan evidence records the literal scanner exit and candidate count
+separately from reviewed dispositions. Bind the exact ref snapshot, scanner bytes
+and original redacted report hashes. A reviewed metadata match does not justify
+rewriting the raw result to zero or changing rules to force success. A snapshot
+audit does not establish a frozen rewrite, full dirty-worktree backup or complete
+identity/workstation privacy clearance.
+
 Generated evidence stays ignored by Git. Normal builds do not sweep it. CI collects the new evidence path, including
 hidden files, where the branch has an enabled native artifact workflow. Transport retention and stream support are
 separate from lossless local evidence. Historical cleanup requires a separate inventory, liveness check and verified

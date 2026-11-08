@@ -1,0 +1,1 @@
+- Adopt the API-5 SDK's source-owned capacity and unsupported diagnostics, preserving their distinct accessibility explanations, neighboring rich content and editing history. Exercise both causes in the real hidden consumer and align the validation spec with current compiler-free PR and main/manual native CI policy.

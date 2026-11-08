@@ -74,7 +74,8 @@ if ($Phase -eq 'Production') {
     if (-not (Test-Path -LiteralPath $smokePath -PathType Leaf)) { throw 'Original production package smoke receipt is missing.' }
     $smoke = Get-Content -LiteralPath $smokePath -Raw | ConvertFrom-Json
     $expectedRefusals = @('self-test','test-scope','list-tests','interactive','crash','recovery-crash','recovery-restart',
-        'preferences','asan','linked-save-crash','linked-save-restart','test-scope-missing-value','interactive-missing-value')
+        'preferences','asan','linked-save-crash','linked-save-restart','failure-host','failure-host-missing-value',
+        'test-scope-missing-value','interactive-missing-value')
     if ($smoke.platform -cne $Platform -or $smoke.testsEnabled -isnot [bool] -or $smoke.testsEnabled -or
         $smoke.smokePassed -isnot [bool] -or -not $smoke.smokePassed -or
         $smoke.archiveSha256 -ine (Get-FileHash -LiteralPath $archives[0] -Algorithm SHA256).Hash -or

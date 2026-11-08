@@ -411,11 +411,17 @@ bool Application::SwitchWorkspaceDocument(std::size_t index)
     if (!current())
         return false;
     auto &document = inactiveDocuments[index];
+    const bool previousImageTransition = imageBindingTransition;
+    imageBindingTransition = true;
+    const auto restoreImageTransition = wil::scope_exit([&] { imageBindingTransition = previousImageTransition; });
+    if (!AcceptSourceResult(primary->TrySetDocumentFilePath(document.path.native())) || !current())
+        return false;
     {
         switchingDocument = true;
         const auto restore = wil::scope_exit([&] { switchingDocument = false; });
         if (!primary->ExchangeDocumentState(document.state))
         {
+            (void)AcceptSourceResult(primary->TrySetDocumentFilePath(documentPath.native()));
             Status(IDS_BUSY);
             return false;
         }
@@ -430,9 +436,10 @@ bool Application::SwitchWorkspaceDocument(std::size_t index)
         std::swap(recovered, document.recovered);
         std::swap(stamp, document.stamp);
         std::swap(activeDocumentKey, document.recoveryKey);
+        std::swap(documentRemoteImagesAllowed, document.remoteImagesAllowed);
+        primary->SetRemoteImagesEnabled(settings.allowRemoteImages || documentRemoteImagesAllowed);
         document.dirty = previousDirty;
         dirtyFact.reset();
-        primary->SetDocumentFilePath(documentPath.native());
     }
     if (!current())
         return true;
@@ -556,7 +563,7 @@ void Application::RefreshFind()
 
         if (findHasHighlights)
         {
-            editor->SetSourceHighlights({});
+            (void)AcceptSourceResult(editor->TrySetSourceHighlights({}));
             ++activity.findHighlightUpdates;
             findHasHighlights = false;
         }
@@ -649,7 +656,8 @@ void Application::RefreshFind()
         }
         if (current > count)
             highlights.back() = {active->first, active->last - active->first, true};
-        editor->SetSourceHighlights(highlights);
+        if (!AcceptSourceResult(editor->TrySetSourceHighlights(highlights)))
+            return;
         ++activity.findHighlightUpdates;
         findHasHighlights = !highlights.empty();
         findHighlightedCurrent = current;
@@ -728,7 +736,8 @@ void Application::FindNext(bool previous)
             index = static_cast<std::size_t>(next - matches.begin());
     }
     const auto range = matches[index];
-    editor->SetSelection({range.first, range.last});
+    if (!AcceptSourceResult(editor->TrySetSelection({range.first, range.last})))
+        return;
     (void)editor->ScrollSourceRangeIntoView(host, range.first, range.last, false);
     SelectionChanged();
 }
@@ -794,6 +803,7 @@ void Application::FileMenu(bool overflow)
         add(IDS_OPEN, Command::Open, L"Ctrl+O");
         add(IDS_OPENFOLDER, Command::OpenFolder, L"Ctrl+Shift+O");
         add(IDS_SAVEAS, Command::SaveAs, L"Ctrl+Shift+S");
+        add(IDS_IMAGERELOAD, Command::ReloadImages);
     }
     else
         for (const auto &[label, command] : std::array<std::pair<unsigned, Command>, 11>{{{IDS_HEADING, Command::Heading},

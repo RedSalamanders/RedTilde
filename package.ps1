@@ -81,6 +81,8 @@ $refusalCases=@(
     @{name='asan';arguments=@('--asan-probe')},
     @{name='linked-save-crash';arguments=@('--linked-save-crash-probe')},
     @{name='linked-save-restart';arguments=@('--linked-save-restart-probe')},
+    @{name='failure-host';arguments=@('--failure-host-probe','throw')},
+    @{name='failure-host-missing-value';arguments=@('--failure-host-probe')},
     @{name='test-scope-missing-value';arguments=@('--test-scope')},
     @{name='interactive-missing-value';arguments=@('--design-interactive-probe')}
 )

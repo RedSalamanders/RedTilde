@@ -7,7 +7,9 @@
 #include "Common/RemoteImage.h"
 #include "Common/RemoteImageImports.h"
 #include "RedTilde/Application.h"
+#include "Support/Support.Tests.FilesFixtures.h"
 #include "Support/Support.Tests.Foreground.h"
+#include "Support/Support.Tests.Images.h"
 #include <DxUi/RichImage.h>
 #include <algorithm>
 #include <array>
@@ -209,133 +211,260 @@ class LoopbackImages final
     }
 };
 #pragma warning(pop)
+// This fixture explicitly authorizes its own ephemeral loopback listener. Production
+// defaults are exercised separately below and must never inherit this test opt-in.
+HRESULT FetchOwnedLoopbackImage(std::wstring_view source, std::vector<std::byte> &output, const std::atomic_bool *cancellation = nullptr,
+                                HANDLE abortEvent = nullptr, RemoteImageLimits limits = {})
+{
+    limits.allowLocalNetwork = true;
+    return FetchRemoteImage(source, output, cancellation, abortEvent, limits);
+}
+
 std::vector<std::byte> Bitmap()
 {
-    constexpr std::array<unsigned char, 62> bytes{0x42, 0x4d, 62, 0, 0, 0, 0, 0,  0, 0, 54, 0, 0, 0, 40,  0,   0, 0, 2, 0, 0,
-                                                  0,    1,    0,  0, 0, 1, 0, 24, 0, 0, 0,  0, 0, 8, 0,   0,   0, 0, 0, 0, 0,
-                                                  0,    0,    0,  0, 0, 0, 0, 0,  0, 0, 0,  0, 0, 0, 255, 255, 0, 0, 0, 0};
-    std::vector<std::byte> result(bytes.size());
-    std::memcpy(result.data(), bytes.data(), bytes.size());
-    return result;
+    return Testing::ImageBitmapFixture();
 }
 } // namespace
 
 void RegisterRemoteImageTests(const std::filesystem::path &root, const std::function<void(std::string_view, const std::function<void()> &)> &test)
 {
-    test("Editor.HttpAnonymousFetchAndNativeDecode",
+    test("Editor.ImageFileReadAndSharePolicy",
+         [&]
+         {
+             Require(SharesImageNetworkRoot(L"\\\\files.example.test\\notes\\draft.md", L"\\\\FILES.example.test\\notes\\images\\cover.bmp") &&
+                         SharesImageNetworkRoot(L"\\\\?\\UNC\\files.example.test\\notes\\draft.md", L"\\\\files.example.test\\notes\\cover.bmp"),
+                     "canonical paths admit the same exact share with an insensitive server name, including an extended document path");
+             for (const auto *path : {L"\\\\other.example.test\\notes\\cover.bmp", L"\\\\files.example.test\\other\\cover.bmp",
+                                      L"\\\\files.example.test\\NOTES\\cover.bmp", L"C:\\notes\\cover.bmp",
+                                      L"file://files.example.test/notes/cover.bmp", L"\\\\.\\notes\\cover.bmp"})
+                 Require(!SharesImageNetworkRoot(L"\\\\files.example.test\\notes\\draft.md", path), "different/ambiguous shares decline without I/O");
+             const auto fixture = root / L"image-file-policy";
+             const auto target = fixture / L"Actual images";
+             std::filesystem::create_directories(target);
+             const auto pixels = Bitmap();
+             const std::string encoded(reinterpret_cast<const char *>(pixels.data()), pixels.size());
+             const auto image = target / L"Invented cover.bmp";
+             Require(SUCCEEDED(WriteBytesAtomic(image, encoded)), "write the isolated invented image fixture");
+             std::string output = "unchanged";
+             Require(SUCCEEDED(ReadImageFileBytes(image.native(), output)) && output == encoded, "read exact bounded bytes through pinned parents");
+             output = "unchanged";
+             std::atomic_bool cancelled{true};
+             Require(ReadImageFileBytes(image.native(), output, &cancelled) == HRESULT_FROM_WIN32(ERROR_CANCELLED) && output == "unchanged",
+                     "pre-cancellation preserves the caller's output");
+             for (const auto &path : {std::wstring(L"relative.bmp"), image.native() + L":hidden", (target / L".." / L"missing.bmp").native()})
+                 Require(FAILED(ReadImageFileBytes(path, output)) && output == "unchanged",
+                         "relative, stream and unnormalized components decline atomically");
+             const auto link = fixture / L"Redirected images";
+             Require(SUCCEEDED(Testing::CreateFixtureJunction(fixture, link, target)), "create a junction only within this test's owned fixture");
+             const auto removeLink = wil::scope_exit(
+                 [&]
+                 {
+                     std::error_code error;
+                     (void)std::filesystem::remove(link, error);
+                 });
+             Require(ReadImageFileBytes((link / image.filename()).native(), output) == E_ACCESSDENIED && output == "unchanged",
+                     "a redirected ancestor cannot supply image bytes");
+             wil::unique_handle directory;
+             Require(OpenImageDirectoryForNotifications(link.native(), directory) == E_ACCESSDENIED && !directory,
+                     "image notification setup also refuses a redirected directory");
+             const auto large = target / L"Oversized image.bmp";
+             {
+                 wil::unique_handle file(CreateFileW(large.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr));
+                 LARGE_INTEGER end{};
+                 end.QuadPart = 16u * 1024u * 1024u + 1u;
+                 Require(file && SetFilePointerEx(file.get(), end, nullptr, FILE_BEGIN) && SetEndOfFile(file.get()),
+                         "create one bounded over-limit fixture");
+             }
+             Require(ReadImageFileBytes(large.native(), output) == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE) && output == "unchanged",
+                     "image capacity does not widen ordinary document admission or mutate output");
+         });
+    test("Editor.ImageFileNotificationsAreBoundedAndRetire",
+         [&]
+         {
+             Testing::ForegroundOwnershipObserver foreground;
+             LaunchOptions options;
+             options.headless = true;
+             options.dataDirectory = root / L"image-file-notifications/settings";
+             Application app(options);
+             Require(SUCCEEDED(app.Initialize()), "initialize an owned hidden window for image notifications");
+             const auto directory = root / L"image-file-notifications/Illustrations";
+             std::filesystem::create_directories(directory);
+             const auto first = directory / L"First.bmp", second = directory / L"Second.bmp";
+             Require(SUCCEEDED(WriteBytesAtomic(first, "first")) && SUCCEEDED(WriteBytesAtomic(second, "second")), "write isolated watched files");
+             FileChangeService service;
+             Require(SUCCEEDED(service.Initialize(app.Window(), WM_APP + 0x318, 0x696d67)), "admit one bounded event-driven worker");
+             const std::array files{first};
+             Require(service.SetFiles(files) == S_OK, "admit the first watched file");
+             const auto await = [&]()
+             {
+                 std::optional<FileChangeNotice> result;
+                 const auto deadline = GetTickCount64() + 5000u;
+                 while (!(result = service.TakeResult()) && GetTickCount64() < deadline)
+                 {
+                     app.Prepare(4);
+                     std::this_thread::sleep_for(std::chrono::milliseconds(2));
+                 }
+                 Require(result.has_value() && SUCCEEDED(result.value().status), "an owned image notification settles successfully");
+                 return result.value();
+             };
+             const auto armed = await();
+             std::array<std::filesystem::path, 33u> tooMany;
+             tooMany.fill(first);
+             Require(FAILED(service.SetFiles(tooMany)), "over-capacity requests preserve the existing watch binding");
+             Require(SUCCEEDED(WriteBytesAtomic(first, "changed first")), "replace the watched file externally");
+             const auto changed = await();
+             Require(changed.generation == armed.generation && changed.revision > armed.revision,
+                     "real filesystem notifications preserve request identity");
+             const std::array next{second};
+             Require(service.SetFiles(next) == S_OK, "replace the watched binding");
+             const auto rerooted = await();
+             Require(rerooted.generation > changed.generation, "a newer file binding rejects stale notifications");
+             service.Close();
+             Require(!service.TakeResult() && foreground.NeverAcquiredForeground(),
+                     "Close invalidates publication without moving focus or waiting on UI");
+         });
+    test("Editor.RemoteImagePublicAddressPolicy",
          []
          {
-             // Independent ABI encodings: severity C0000000, Visual C++ facility
-             // 006D, Win32 module/procedure errors 007E/007F. These expectations
-             // do not reuse the production VcppException/HRESULT conversion.
-             struct ImportCategory
+             for (const auto *address : {L"1.1.1.1", L"8.8.8.8", L"2606:4700:4700::1111", L"::ffff:8.8.8.8"})
+                 Require(IsRemoteImageAddressAllowed(address), "public numeric destinations pass without a local-network override");
+             for (const auto *address : {L"127.0.0.1", L"10.10.10.10", L"172.16.0.1", L"192.168.1.1", L"169.254.1.1", L"100.64.0.1", L"::1", L"[::1]",
+                                         L"fc00::1", L"fe80::1", L"::ffff:127.0.0.1"})
              {
-                 DWORD code;
-                 HRESULT fallback;
-             };
-             constexpr HRESULT mappingSentinel = static_cast<HRESULT>(0x8000000AUL);
-             constexpr HRESULT accessDenied = static_cast<HRESULT>(0x80070005UL);
-             for (const auto category : {ImportCategory{0xC06D007EUL, static_cast<HRESULT>(0x8007007EUL)},
-                                         ImportCategory{0xC06D007FUL, static_cast<HRESULT>(0x8007007FUL)}})
-             {
-                 DelayLoadInfo information{};
-                 information.cb = static_cast<DWORD>(sizeof(information));
-                 information.szDll = "WINHTTP.dll";
-                 EXCEPTION_RECORD record{};
-                 record.ExceptionCode = category.code;
-                 EXCEPTION_POINTERS failure{&record, nullptr};
-                 const auto expectMapping = [&](DWORD parameters, const DelayLoadInfo *detail, HRESULT expected)
-                 {
-                     record.NumberParameters = parameters;
-                     record.ExceptionInformation[0] = reinterpret_cast<ULONG_PTR>(detail);
-                     HRESULT result = mappingSentinel;
-                     Require(RemoteImageDetail::WinHttpImportFailure(&failure, result) == EXCEPTION_EXECUTE_HANDLER && result == expected &&
-                                 FAILED(result),
-                             "documented delay-loader categories map ABI records to exact failing HRESULTs");
-                 };
-                 expectMapping(1, &information, category.fallback);
-                 information.dwLastError = ERROR_ACCESS_DENIED;
-                 expectMapping(1, &information, accessDenied);
-                 expectMapping(0, &information, category.fallback);
-                 expectMapping(2, &information, category.fallback);
-                 expectMapping(1, nullptr, category.fallback);
-                 information.cb = static_cast<DWORD>(sizeof(information)) - 1;
-                 expectMapping(1, &information, category.fallback);
-                 information.cb = 0;
-                 expectMapping(1, &information, category.fallback);
-                 information.cb = static_cast<DWORD>(sizeof(information));
-                 information.dwLastError = 0;
-                 expectMapping(1, &information, category.fallback);
-                 for (const DWORD unrelated : {0xC0000005UL, 0xE06D7363UL})
-                 {
-                     record.ExceptionCode = unrelated;
-                     record.NumberParameters = 1;
-                     record.ExceptionInformation[0] = reinterpret_cast<ULONG_PTR>(&information);
-                     information.dwLastError = ERROR_ACCESS_DENIED;
-                     HRESULT result = mappingSentinel;
-                     Require(RemoteImageDetail::WinHttpImportFailure(&failure, result) == EXCEPTION_CONTINUE_SEARCH && result == mappingSentinel,
-                             "access violations and C++ exceptions continue search without changing the caller's HRESULT");
-                 }
+                 Require(!IsRemoteImageAddressAllowed(address), "local destinations fail the independent numeric policy by default");
+                 Require(IsRemoteImageAddressAllowed(address, true), "the explicit override authorizes local unicast destinations");
              }
-             // Borrowed module identities may already exist through another
-             // dependency. Early rejection must leave either state unchanged;
-             // this does not assume either system DLL is globally absent.
-             const auto winHttpBefore = GetModuleHandleW(L"WINHTTP.dll");
-             const auto winsockBefore = GetModuleHandleW(L"WS2_32.dll");
-             const std::vector<std::byte> untouched{std::byte{0x51}};
-             auto rejected = untouched;
-             constexpr std::wstring_view unused = L"http://127.0.0.1:1/unused.bmp";
-             for (const auto *url : {L"file:///unused.bmp", L"http://user:secret@127.0.0.1/a", L"http://127.0.0.1/a#part", L"http://127.0.0.1/a%Q0"})
-                 Require(FetchRemoteImage(url, rejected) == E_INVALIDARG && rejected == untouched,
-                         "invalid URI admission preserves exact output before resolving optional HTTP imports");
-             for (const auto limits :
-                  {RemoteImageLimits{0, 1024}, RemoteImageLimits{8001, 1024}, RemoteImageLimits{1000, 0}, RemoteImageLimits{1000, 16777217}})
-                 Require(FetchRemoteImage(unused, rejected, nullptr, nullptr, limits) == E_INVALIDARG && rejected == untouched,
-                         "invalid timeout/byte bounds preserve exact output before resolving optional HTTP imports");
-             std::atomic_bool cancelled{true};
-             Require(FetchRemoteImage(unused, rejected, &cancelled) == HRESULT_FROM_WIN32(ERROR_CANCELLED) && rejected == untouched,
-                     "pre-cancelled requests preserve exact output before resolving optional HTTP imports");
-             wil::unique_handle aborted(CreateEventW(nullptr, TRUE, TRUE, nullptr));
-             Require(static_cast<bool>(aborted), "create an already-signalled owned image abort event");
-             Require(FetchRemoteImage(unused, rejected, nullptr, aborted.get()) == HRESULT_FROM_WIN32(ERROR_CANCELLED) && rejected == untouched,
-                     "pre-aborted requests preserve exact output before resolving optional HTTP imports");
-             Require(GetModuleHandleW(L"WINHTTP.dll") == winHttpBefore && GetModuleHandleW(L"WS2_32.dll") == winsockBefore,
-                     "early URI/bounds/cancel/abort admission leaves optional network module identities unchanged");
-             const auto bitmap = Bitmap();
-             LoopbackImages server(
-                 [&](std::string_view)
-                 {
-                     Response response;
-                     response.headers = "Content-Type: image/bmp\r\nSet-Cookie: private=never-return\r\n";
-                     response.body = bitmap;
-                     return response;
-                 });
-             std::vector<std::byte> encoded;
-             for (unsigned index = 0; index < 2; ++index)
-             {
-                 const auto result = FetchRemoteImage(server.Url(), encoded);
-                 if (FAILED(result))
-                     throw std::runtime_error(std::format("anonymous loopback fetch failed: 0x{:08X}; received {} requests",
-                                                          static_cast<unsigned>(result), server.Count()));
-                 Require(encoded == bitmap, "anonymous HTTP body is exact bounded image bytes");
-                 const auto request = server.Request();
-                 Require(request.starts_with("GET /image.bmp HTTP/1.1\r\n") && !request.contains("Cookie:") && !request.contains("Authorization:") &&
-                             !request.contains("Referer:"),
-                         "no cookie, credentials or document referrer is sent even after a Set-Cookie response");
-             }
-             Require(server.Count() == 2, "one request per explicit image fetch, without retries or hidden requests");
-             const auto initialized = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-             Require(SUCCEEDED(initialized) || initialized == RPC_E_CHANGED_MODE, "use the caller's existing COM apartment or initialize one");
-             const wil::unique_call<decltype(&CoUninitialize), CoUninitialize> apartment(SUCCEEDED(initialized));
-             wil::com_ptr<IWICImagingFactory> factory;
-             Require(SUCCEEDED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(factory.put()))),
-                     "create caller-owned native image decoder");
-             std::shared_ptr<const DxUi::RichText::RichImage> image;
-             Require(DxUi::RichText::RichImage::Decode(factory.get(), encoded, image) == S_OK && image && image->Width() == 2 &&
-                         image->Height() == 1 && image->Pixels().size() == 8 && image->Pixels()[2] == std::byte{255} &&
-                         image->Pixels()[4] == std::byte{255},
-                     "remote bytes reuse canonical bounded native image decoding and exact red/blue pixels");
+             for (const auto *address : {L"0.0.0.0", L"224.0.0.1", L"255.255.255.255", L"::", L"ff02::1", L"invalid", L"127.1", L"0x7f000001"})
+                 Require(!IsRemoteImageAddressAllowed(address, true), "an override does not admit invalid, unspecified or multicast addresses");
          });
+    test("Editor.RemoteImagesDefaultBlocksOwnedLoopback",
+         []
+         {
+             LoopbackImages server([](std::string_view) { return Response{}; });
+             const std::vector<std::byte> untouched{std::byte{0x71}};
+             auto output = untouched;
+             Require(FetchRemoteImage(server.Url(), output) == E_ACCESSDENIED && output == untouched && server.Count() == 0u,
+                     "the production default refuses loopback before any HTTP request and preserves output");
+             for (const auto *url :
+                  {L"http://localhost:9/a", L"http://localhost.:9/a", L"http://127.1:9/a", L"http://2130706433:9/a", L"http://[::1]:9/a"})
+                 Require(FetchRemoteImage(url, output) == E_ACCESSDENIED && output == untouched,
+                         "single-label, alternate numeric and IPv6 loopback spellings cannot bypass default permission");
+         });
+    test(
+        "Editor.HttpAnonymousFetchAndNativeDecode",
+        []
+        {
+            // Independent ABI encodings: severity C0000000, Visual C++ facility
+            // 006D, Win32 module/procedure errors 007E/007F. These expectations
+            // do not reuse the production VcppException/HRESULT conversion.
+            struct ImportCategory
+            {
+                DWORD code;
+                HRESULT fallback;
+            };
+            constexpr HRESULT mappingSentinel = static_cast<HRESULT>(0x8000000AUL);
+            constexpr HRESULT accessDenied = static_cast<HRESULT>(0x80070005UL);
+            for (const auto category :
+                 {ImportCategory{0xC06D007EUL, static_cast<HRESULT>(0x8007007EUL)}, ImportCategory{0xC06D007FUL, static_cast<HRESULT>(0x8007007FUL)}})
+            {
+                DelayLoadInfo information{};
+                information.cb = static_cast<DWORD>(sizeof(information));
+                information.szDll = "WINHTTP.dll";
+                EXCEPTION_RECORD record{};
+                record.ExceptionCode = category.code;
+                EXCEPTION_POINTERS failure{&record, nullptr};
+                const auto expectMapping = [&](DWORD parameters, const DelayLoadInfo *detail, HRESULT expected)
+                {
+                    record.NumberParameters = parameters;
+                    record.ExceptionInformation[0] = reinterpret_cast<ULONG_PTR>(detail);
+                    HRESULT result = mappingSentinel;
+                    Require(RemoteImageDetail::WinHttpImportFailure(&failure, result) == EXCEPTION_EXECUTE_HANDLER && result == expected &&
+                                FAILED(result),
+                            "documented delay-loader categories map ABI records to exact failing HRESULTs");
+                };
+                expectMapping(1, &information, category.fallback);
+                information.dwLastError = ERROR_ACCESS_DENIED;
+                expectMapping(1, &information, accessDenied);
+                expectMapping(0, &information, category.fallback);
+                expectMapping(2, &information, category.fallback);
+                expectMapping(1, nullptr, category.fallback);
+                information.cb = static_cast<DWORD>(sizeof(information)) - 1;
+                expectMapping(1, &information, category.fallback);
+                information.cb = 0;
+                expectMapping(1, &information, category.fallback);
+                information.cb = static_cast<DWORD>(sizeof(information));
+                information.dwLastError = 0;
+                expectMapping(1, &information, category.fallback);
+                for (const DWORD unrelated : {0xC0000005UL, 0xE06D7363UL})
+                {
+                    record.ExceptionCode = unrelated;
+                    record.NumberParameters = 1;
+                    record.ExceptionInformation[0] = reinterpret_cast<ULONG_PTR>(&information);
+                    information.dwLastError = ERROR_ACCESS_DENIED;
+                    HRESULT result = mappingSentinel;
+                    Require(RemoteImageDetail::WinHttpImportFailure(&failure, result) == EXCEPTION_CONTINUE_SEARCH && result == mappingSentinel,
+                            "access violations and C++ exceptions continue search without changing the caller's HRESULT");
+                }
+            }
+            // Borrowed module identities may already exist through another
+            // dependency. Early rejection must leave either state unchanged;
+            // this does not assume either system DLL is globally absent.
+            const auto winHttpBefore = GetModuleHandleW(L"WINHTTP.dll");
+            const auto winsockBefore = GetModuleHandleW(L"WS2_32.dll");
+            const std::vector<std::byte> untouched{std::byte{0x51}};
+            auto rejected = untouched;
+            constexpr std::wstring_view unused = L"http://127.0.0.1:1/unused.bmp";
+            for (const auto *url : {L"file:///unused.bmp", L"http://user:secret@127.0.0.1/a", L"http://127.0.0.1/a#part", L"http://127.0.0.1/a%Q0"})
+                Require(FetchOwnedLoopbackImage(url, rejected) == E_INVALIDARG && rejected == untouched,
+                        "invalid URI admission preserves exact output before resolving optional HTTP imports");
+            for (const auto limits :
+                 {RemoteImageLimits{0, 1024}, RemoteImageLimits{8001, 1024}, RemoteImageLimits{1000, 0}, RemoteImageLimits{1000, 16777217}})
+                Require(FetchOwnedLoopbackImage(unused, rejected, nullptr, nullptr, limits) == E_INVALIDARG && rejected == untouched,
+                        "invalid timeout/byte bounds preserve exact output before resolving optional HTTP imports");
+            std::atomic_bool cancelled{true};
+            Require(FetchOwnedLoopbackImage(unused, rejected, &cancelled) == HRESULT_FROM_WIN32(ERROR_CANCELLED) && rejected == untouched,
+                    "pre-cancelled requests preserve exact output before resolving optional HTTP imports");
+            wil::unique_handle aborted(CreateEventW(nullptr, TRUE, TRUE, nullptr));
+            Require(static_cast<bool>(aborted), "create an already-signalled owned image abort event");
+            Require(FetchOwnedLoopbackImage(unused, rejected, nullptr, aborted.get()) == HRESULT_FROM_WIN32(ERROR_CANCELLED) && rejected == untouched,
+                    "pre-aborted requests preserve exact output before resolving optional HTTP imports");
+            Require(GetModuleHandleW(L"WINHTTP.dll") == winHttpBefore && GetModuleHandleW(L"WS2_32.dll") == winsockBefore,
+                    "early URI/bounds/cancel/abort admission leaves optional network module identities unchanged");
+            const auto bitmap = Bitmap();
+            LoopbackImages server(
+                [&](std::string_view)
+                {
+                    Response response;
+                    response.headers = "Content-Type: image/bmp\r\nSet-Cookie: private=never-return\r\n";
+                    response.body = bitmap;
+                    return response;
+                });
+            std::vector<std::byte> encoded;
+            for (unsigned index = 0; index < 2; ++index)
+            {
+                const auto result = FetchOwnedLoopbackImage(server.Url(), encoded);
+                if (FAILED(result))
+                    throw std::runtime_error(std::format("anonymous loopback fetch failed: 0x{:08X}; received {} requests",
+                                                         static_cast<unsigned>(result), server.Count()));
+                Require(encoded == bitmap, "anonymous HTTP body is exact bounded image bytes");
+                const auto request = server.Request();
+                Require(request.starts_with("GET /image.bmp HTTP/1.1\r\n") && !request.contains("Cookie:") && !request.contains("Authorization:") &&
+                            !request.contains("Referer:"),
+                        "no cookie, credentials or document referrer is sent even after a Set-Cookie response");
+            }
+            Require(server.Count() == 2, "one request per explicit image fetch, without retries or hidden requests");
+            const auto initialized = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+            Require(SUCCEEDED(initialized) || initialized == RPC_E_CHANGED_MODE, "use the caller's existing COM apartment or initialize one");
+            const wil::unique_call<decltype(&CoUninitialize), CoUninitialize> apartment(SUCCEEDED(initialized));
+            wil::com_ptr<IWICImagingFactory> factory;
+            Require(SUCCEEDED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(factory.put()))),
+                    "create caller-owned native image decoder");
+            std::shared_ptr<const DxUi::RichText::RichImage> image;
+            Require(DxUi::RichText::RichImage::Decode(factory.get(), encoded, image) == S_OK && image && image->Width() == 2 &&
+                        image->Height() == 1 && image->Pixels().size() == 8 && image->Pixels()[2] == std::byte{255} &&
+                        image->Pixels()[4] == std::byte{255},
+                    "remote bytes reuse canonical bounded native image decoding and exact red/blue pixels");
+        });
     test("Editor.HttpRedirectAuthBoundsAndFailures",
          []
          {
@@ -375,9 +504,10 @@ void RegisterRemoteImageTests(const std::filesystem::path &root, const std::func
              const std::vector<std::byte> untouched{std::byte{0x73}};
              auto output = untouched;
              for (const auto *path : {L"/redirect", L"/auth", L"/large", L"/gzip", L"/truncated"})
-                 Require(FAILED(FetchRemoteImage(server.Url(path), output)) && output == untouched,
+                 Require(FAILED(FetchOwnedLoopbackImage(server.Url(path), output)) && output == untouched,
                          "redirect/auth/oversize/compressed/truncated responses fail without replacing the caller's bytes");
-             Require(FetchRemoteImage(server.Url(L"/chunked"), output, nullptr, nullptr, {1000, 64}) == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE) &&
+             Require(FetchOwnedLoopbackImage(server.Url(L"/chunked"), output, nullptr, nullptr, {1000, 64}) ==
+                             HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE) &&
                          output == untouched,
                      "chunked bodies obey the exact byte bound without trusting Content-Length");
              Require(server.Count() == 6 && !server.Request().contains("Authorization:"),
@@ -385,7 +515,7 @@ void RegisterRemoteImageTests(const std::filesystem::path &root, const std::func
              const auto origin = server.Url();
              for (const auto &url : {L"file:///image.bmp", L"data:image/png;base64,a", L"http://user:secret@127.0.0.1/a", L"http://127.0.0.1/a#part",
                                      L"http://127.0.0.1/a\r\nCookie: secret", L"http://127.0.0.1\\a"})
-                 Require(FetchRemoteImage(url, output) == E_INVALIDARG && output == untouched,
+                 Require(FetchOwnedLoopbackImage(url, output) == E_INVALIDARG && output == untouched,
                          "unsafe/non-HTTP URL spellings are rejected before transport access");
              Require(server.Count() == 6, "rejected addresses cannot contact the owned listener");
          });
@@ -407,7 +537,8 @@ void RegisterRemoteImageTests(const std::filesystem::path &root, const std::func
                  Require(static_cast<bool>(abort), "create an owned image-service close event");
                  const std::vector<std::byte> untouched{std::byte{0x27}};
                  auto encoded = untouched;
-                 auto transfer = std::async(std::launch::async, [&] { return FetchRemoteImage(server.Url(), encoded, &cancelled, abort.get()); });
+                 auto transfer =
+                     std::async(std::launch::async, [&] { return FetchOwnedLoopbackImage(server.Url(), encoded, &cancelled, abort.get()); });
                  server.AwaitRequest();
                  if (ownerClose)
                      (void)SetEvent(abort.get());
@@ -427,10 +558,67 @@ void RegisterRemoteImageTests(const std::filesystem::path &root, const std::func
                  });
              std::vector<std::byte> encoded{std::byte{0x39}};
              const auto before = GetTickCount64();
-             Require(FAILED(FetchRemoteImage(stalled.Url(), encoded, nullptr, nullptr, {120, 1024})) && GetTickCount64() - before < 1500 &&
+             Require(FAILED(FetchOwnedLoopbackImage(stalled.Url(), encoded, nullptr, nullptr, {120, 1024})) && GetTickCount64() - before < 1500 &&
                          encoded == std::vector<std::byte>{std::byte{0x39}},
                      "the total transfer deadline bounds a server that never returns headers and preserves output");
              stalled.Release();
+         });
+    test("Editor.DocumentImageConsentAndReload",
+         [&]
+         {
+             Testing::ForegroundOwnershipObserver foreground;
+             LoopbackImages server(
+                 [](std::string_view)
+                 {
+                     Response response;
+                     response.body = Bitmap();
+                     return response;
+                 });
+             LaunchOptions options;
+             options.headless = true;
+             options.dataDirectory = root / L"document-image-consent/settings";
+             Application app(options);
+             Require(SUCCEEDED(app.Initialize()), "initialize the hidden document-consent controls");
+             Require(app.SetDocument(std::format(L"![Invented cover]({})\n", server.Url())), "install the synthetic image document");
+             const auto await = [&](const std::function<bool()> &done)
+             {
+                 const auto deadline = GetTickCount64() + 5000u;
+                 while (!done() && GetTickCount64() < deadline)
+                     app.Prepare(16);
+                 Require(done(), "document image permission settles within the owned test deadline");
+             };
+             app.Prepare(128);
+             const auto source = app.Document().Snapshot();
+             const auto selection = app.Document().GetSelection();
+             Require(!app.Document().RemoteImagesEnabled() && server.Count() == 0u, "a new document has no inherited image permission");
+             app.Execute(Command::DocumentImages);
+             await([&] { return app.Document().GetImageResourceStatistics().failedSources == 1u; });
+             Require(app.Document().RemoteImagesEnabled() && !app.Preferences().allowRemoteImages && server.Count() == 0u,
+                     "document consent alone cannot bypass the separate local-network restriction");
+             Require(app.Capture(options.dataDirectory / L"blocked-local-network.png"),
+                     "capture the actual hidden privacy failure bar with the owned invented document");
+             app.Execute(Command::LocalNetworkImages);
+             await([&] { return app.Document().GetImageResourceStatistics().readySources == 1u; });
+             Require(server.Count() == 1u, "explicit document and LAN permission authorizes one owned request");
+             app.Execute(Command::ReloadImages);
+             await([&] { return server.Count() == 2u && app.Document().GetImageResourceStatistics().readySources == 1u; });
+             Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selection && !app.Dirty() &&
+                         !app.Document().CanUndo() && !app.Document().CanRedo(),
+                     "permission, refusal and reload preserve the saved source, selection and history");
+             app.Execute(Command::DocumentImages);
+             Require(!app.Document().RemoteImagesEnabled() && app.Document().GetImageResourceStatistics().readySources == 0u,
+                     "blocking this document immediately retires its remote pixels");
+             app.Execute(Command::DocumentImages);
+             Require(app.SetDocument(std::format(L"![Another cover]({})\n", server.Url())), "replace the document while a grant exists");
+             app.Prepare(128);
+             Require(!app.Document().RemoteImagesEnabled() && !app.Preferences().allowRemoteImages,
+                     "a replacement document does not inherit the old document's grant");
+             app.Execute(Command::RemoteImages);
+             Require(app.SetDocument(std::format(L"![Always allowed cover]({})\n", server.Url())) && app.Document().RemoteImagesEnabled(),
+                     "the independently persisted always-allow setting applies to future documents");
+             app.Execute(Command::RemoteImages);
+             Require(!app.Document().RemoteImagesEnabled() && foreground.NeverAcquiredForeground(),
+                     "removing the global grant preserves foreground and keyboard focus");
          });
     test("Editor.RemoteImagePrivacyOptInRevocationAndShutdown",
          [&]
@@ -466,24 +654,33 @@ void RegisterRemoteImageTests(const std::filesystem::path &root, const std::func
              { return std::format(L"# Invented writing\n\n![Local cover](cover.bmp)\n\n![Remote cover]({})\n", server.Url()); };
              app.SetDocument(document(ready));
              app.Document().SetDocumentFilePath((fixture / L"Writing/Ideas.md").native());
-             const auto await = [&](const std::function<bool()> &done, ULONGLONG budget = 5000)
+             const auto await = [&](const char *stage, const std::function<bool()> &done, ULONGLONG budget = 5000)
              {
                  const auto deadline = GetTickCount64() + budget;
                  while (!done() && GetTickCount64() < deadline)
                      app.Prepare(16);
-                 Require(done(), "the hidden image-policy worker settles before its test deadline");
+                 const auto statistics = app.Document().GetImageResourceStatistics();
+                 Require(done(), std::format("image-policy stage {} did not settle in {} ms: ready HTTP={}, blocked HTTP={}, ready sources={}, "
+                                             "pending={}, failed={}, requested={}",
+                                             stage, budget, ready.Count(), pending.Count(), statistics.readySources, statistics.pendingSources,
+                                             statistics.failedSources, statistics.requestedSources)
+                                     .c_str());
              };
-             await([&] { return app.Document().GetImageResourceStatistics().readySources == 1; });
+             await("local-only", [&] { return app.Document().GetImageResourceStatistics().readySources == 1; });
              Require(!app.Preferences().allowRemoteImages && !app.Document().RemoteImagesEnabled() && ready.Count() == 0 &&
                          app.Document().GetImageResourceStatistics().requestedSources == 1,
                      "the default privacy preference emits no HTTP request while a local image renders");
              const auto source = app.Document().Snapshot();
              const auto selection = app.Document().GetSelection();
+             Require(!app.Preferences().allowLocalNetworkImages, "local-network image permission starts independently disabled");
+             app.Execute(Command::LocalNetworkImages);
+             Require(app.Preferences().allowLocalNetworkImages && !app.Preferences().allowRemoteImages,
+                     "the fixture's explicit LAN opt-in does not enable image access by itself");
              app.Execute(Command::RemoteImages);
              Require(app.Preferences().allowRemoteImages && app.Document().RemoteImagesEnabled() &&
                          app.Document().GetImageResourceStatistics().readySources == 1,
                      "the real privacy command enables remote loading immediately while retaining local pixels");
-             await([&] { return app.Document().GetImageResourceStatistics().readySources == 2; });
+             await("first-opt-in", [&] { return app.Document().GetImageResourceStatistics().readySources == 2; });
              Require(ready.Count() == 1 && app.Document().GetImageResourceStatistics().decodedBytes == 16,
                      "one opted-in anonymous request reaches the canonical native decoder through the application worker");
              app.Execute(Command::RemoteImages);
@@ -495,7 +692,7 @@ void RegisterRemoteImageTests(const std::filesystem::path &root, const std::func
              app.SetDocument(document(pending));
              app.Document().SetDocumentFilePath((fixture / L"Writing/Ideas.md").native());
              app.Execute(Command::RemoteImages);
-             await([&] { return pending.Count() == 1 && app.Document().GetImageResourceStatistics().readySources == 1; });
+             await("blocked-opt-in", [&] { return pending.Count() == 1 && app.Document().GetImageResourceStatistics().readySources == 1; });
              app.Execute(Command::RemoteImages);
              Require(!app.Document().RemoteImagesEnabled() && app.Document().GetImageResourceStatistics().pendingSources == 0 &&
                          app.Document().GetImageResourceStatistics().decodedBytes == 8,
@@ -503,7 +700,9 @@ void RegisterRemoteImageTests(const std::filesystem::path &root, const std::func
              app.SetDocument(document(ready));
              app.Document().SetDocumentFilePath((fixture / L"Writing/Ideas.md").native());
              app.Execute(Command::RemoteImages);
-             await([&] { return ready.Count() == 2 && app.Document().GetImageResourceStatistics().readySources == 2; }, 2000);
+             await(
+                 "replacement-before-release", [&] { return ready.Count() == 2 && app.Document().GetImageResourceStatistics().readySources == 2; },
+                 2000);
              Require(app.Document().GetText() == document(ready) && !app.Dirty() && app.Document().GetImageResourceStatistics().decodedBytes == 16,
                      "the same worker admits a later real request before the cancelled server is released");
              app.Execute(Command::RemoteImages);
@@ -521,7 +720,7 @@ void RegisterRemoteImageTests(const std::filesystem::path &root, const std::func
              app.SetDocument(document(closing));
              app.Document().SetDocumentFilePath((fixture / L"Writing/Ideas.md").native());
              app.Execute(Command::RemoteImages);
-             await([&] { return closing.Count() == 1; });
+             await("close-with-active-request", [&] { return closing.Count() == 1; });
              const bool foregroundBeforeClose = foreground.NeverAcquiredForeground();
              const auto before = GetTickCount64();
              (void)SendMessageW(app.Window(), WM_CLOSE, 0, 0);
