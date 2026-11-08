@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-all-ref-history-snapshot-audit",
+  "inputHash": "03699E25B31400B916398C4F73197D8AA1C5B0E9DAC700026663D404BAC79264",
+  "benchmarkInputs": {
+    "scannerExecutable": "17157E2EE8B76FC8B1D8BEE607A250E34B8A8023C8BC81822D4B5EE4D78FCB7C",
+    "redactedScannerReport": "8771085CF9018F8725F6053484D2DC15DB1F1F2367CFCD07BD373D00718D38A9",
+    "refInventory": "03699E25B31400B916398C4F73197D8AA1C5B0E9DAC700026663D404BAC79264",
+    "candidateDisposition": "0605363ABE1085A23F1B460327D017280B14BCFD3E3902192B43EC97BA73DC09"
+  },
+  "snapshotMainCommit": "0ff9694c1da4a9b9970ad7b89715279eb3f6e944",
+  "scannerVersion": "v8.30.1",
+  "releaseChecksumVerified": true,
+  "privateSnapshotRefs": 255,
+  "localSourceRefs": 110,
+  "uniqueWorktreeHeads": 41,
+  "reachableCommits": 524,
+  "gitObjectClosureVerified": true,
+  "rawScannerExitCode": 1,
+  "rawCandidateCount": 2,
+  "reviewedNonCredentialCandidates": 2,
+  "unresolvedCandidates": 0,
+  "categories": [
+    {
+      "count": 2,
+      "category": "Git source identity"
+    }
+  ],
+  "originalScannerLogSha256": "86F011FE2F2DA540FC21477304F695E5A1B7AA19FB021C36BE69913C25B437CF",
+  "rawRedactedReportRetainedPrivately": true,
+  "scannerRulesOrAllowlistChanged": false,
+  "scope": "Private immutable remote/local-ref and worktree-head snapshot",
+  "remoteWritesPerformed": false,
+  "historyRewritten": false,
+  "visibilityChanged": false,
+  "dirtyWorktreeContentsBackedUp": false,
+  "limits": [
+    "The scanner returned findings; its result is not rewritten to zero. Context review identified source identities, source/artifact digests and descriptive metric names",
+    "This does not certify absence of all secrets or complete identity/workstation privacy review",
+    "The source repository is not frozen; coordinated rewrite, full private backups, commit-map validation, consumer repins and worktree repair remain pending"
+  ]
+}

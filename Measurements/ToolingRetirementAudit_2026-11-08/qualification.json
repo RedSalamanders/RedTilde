@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-reviewed-header-retirement-callers",
+  "inputHash": "9107fb1fb8f6b831e0887729655dc6a1f3ede7e96496d417ad75309793175059",
+  "benchmarkInputs": {
+    "Build/Performance.psm1": "DBFC54E65A6D755850E803C0DFBBD729B8313A528679CD89B8A6BCD9D8F2E0AD",
+    "Build/ReviewedHeaderDeltaProfile.json": "94435355531812AE70BE124E185A5D685C16A94C8052A6C1E4BAC4DD5D381997",
+    "performance-paired.ps1": "A7487DA58293B9A8D6FED98AC37D7FC38CD7E75C12C65D9AD0E6250D513C8877",
+    "Tests/Scope.Tests.Performance.Evidence.ps1": "A8C57B12711640BD4A2A40B713E8D6B2AE17C2E66D78714BBEBD325F539ED563",
+    "Tests/Scope.Tests.Performance.Tooling.ps1": "4769A2856C86FA3B19AC243B95838B4A63D155961A2CBD3C70DF8CCCECC32940",
+    "Tests/ReviewedHeaderDeltaV4.Tests.ps1": "40A572406CA78B2B62E13E8C96EADF2BD32A89D48893DF63C20DE6A1517119A9",
+    "Tests/Fixtures/ReviewedHeaderDeltaProfile.v1.json": "B8003310580F17A58327FA28482595C699F6D8BC1CA712AEC90677C5C726E751",
+    "Tests/Fixtures/ReviewedHeaderDeltaProfile.v2.json": "488860317B002DA60EBFC45EF38DB206E42273D8AD86016A996E023DD37BAD5D",
+    "Tests/Fixtures/ReviewedHeaderDeltaProfile.v4.json": "94435355531812AE70BE124E185A5D685C16A94C8052A6C1E4BAC4DD5D381997"
+  },
+  "auditedCommit": "9feb787e3e789db2f9cfc045e75a6b03f3737ccb",
+  "legacyValidators": [
+    "Assert-RedTildeReviewedHeaderDeltaProfileV1",
+    "Assert-RedTildeReviewedHeaderDeltaProfileV2"
+  ],
+  "legacyValidatorsReachable": true,
+  "dispatcher": "Get-RedTildeReviewedHeaderDeltaProfile",
+  "supportedCaller": "performance-paired.ps1",
+  "historicalReplayAndFixtureCallers": [
+    "Tests/Scope.Tests.Performance.Evidence.ps1",
+    "Tests/Scope.Tests.Performance.Tooling.ps1"
+  ],
+  "currentProfile": {
+    "baselineCommit": "98c795b765a10d1805ae0a7c35a8ade535fb7fd6",
+    "candidateCommit": "086ad82a5872768db23ea83862ab4af13dff0c5b",
+    "id": "redtilde-dxui-markdown-caption-api4-v4",
+    "sha256": "94435355531812AE70BE124E185A5D685C16A94C8052A6C1E4BAC4DD5D381997"
+  },
+  "completeStaticValidation": {
+    "passed": true,
+    "performanceReferenceAuditAssertions": 4772,
+    "stdoutSha256": "A57F225ACA86049BC7D38F3F116BAFDF3D69A1DFBA09602F5A9E913C6DC28C48",
+    "stderrSha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+  },
+  "disposition": "The validators are reachable, so deletion alone would break supported historical evidence replay and its tests. Q15 retirement requires migrating those exact callers and sealed replay inputs before removal.",
+  "retiredFiles": 0,
+  "sharedToolingMigrationCompleted": false,
+  "pairedStudyPolicyChanged": false,
+  "limits": [
+    "Read-only caller and source-bound tooling audit, not a new performance study or acceptance",
+    "Q15 shared-module migration and legacy replay retirement remain active; no copied module or separately owned branch was deleted"
+  ]
+}

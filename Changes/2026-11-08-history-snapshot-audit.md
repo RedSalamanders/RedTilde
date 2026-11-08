@@ -1,0 +1,1 @@
+- Record a private all-ref/worktree-head history scan and source-reference candidate review, preserving the raw result and the remaining coordinated privacy operation.

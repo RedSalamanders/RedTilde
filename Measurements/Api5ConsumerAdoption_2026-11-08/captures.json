@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-document-image-consent-captures",
+  "inputHash": "ed1202e13777d4fe64518fb5829ed45842ba8de26855df0a69f4ef4e51354e17",
+  "benchmarkInputs": {
+    "Dependencies/DxUi.lock.json": "8CD445BC98C8A388184BFBF7CC00440E61FBF9CCAAC0C41E8473FAC8563729BA",
+    "Common/DxUiFailureHost.cpp": "4E198A12099002129B643F4E3DFB6B4D6102E4961D7C11FB4FCD5B71DE5B3E8F",
+    "Common/ProcessWork.cpp": "313F4CD2BCA5E8EA312455B0D3FA25879532163C24A37175E2092862C8FF4D42",
+    "Common/Storage.cpp": "D42C795A8C1A25D2987FF9463C5430878433A1578A353E449FBF130DB2855760",
+    "RedTilde/Application.cpp": "EB08DBE4D75B8440202547C80A38152FF52045554AF82183A13597E368A97022",
+    "RedTilde/ImageLoader.h": "2BB0410960447152A8F039555500617A79A23328CFFF4D01C703BE77124CEB7C",
+    "Tests/Application.Tests.Core.cpp": "BCB30C13636E6F33847E799AC7424F07B0E249616D9448A34BD3F7418D587CBE",
+    "Tests/native-case-catalog.json": "6A61DF727737D912ED6843301315826894285D948AA50E45B314A26D7ED00F0C"
+  },
+  "implementationCommit": "9feb787e3e789db2f9cfc045e75a6b03f3737ccb",
+  "sourceIdentity": "9107fb1fb8f6b831e0887729655dc6a1f3ede7e96496d417ad75309793175059",
+  "sdkCommit": "21fae0dc66000b04504ba7862169533ac2943be8",
+  "configuration": "x64 Debug",
+  "originalNativeRunArchiveSha256": "790E2551CB2B5B18E863922348BE2C68380076B4BA5C6C3BAAA412817CBC085E",
+  "captures": [
+    {
+      "actualHeightPx": 1350,
+      "hidden": true,
+      "binarySha256": "0A91CE6FC6DCECCB9ACC7C36481A9968253E124887D220D110D908A90B2DFB62",
+      "visualReview": "Expected theme, readable permission controls, no clipping/overlap, synthetic Untitled/Illustration notebook content",
+      "actualWidthPx": 2160,
+      "syntheticVisibleContentReviewed": true,
+      "requestedDpi": 0,
+      "sha256": "850E340336718003519D450347F1C1615EBC221B33B42D1EE254E81895830439",
+      "file": "image-consent-light.png",
+      "scenario": "image-consent-light",
+      "actualHostDpi": 144,
+      "originalScenarioMetadataSha256": "4596E777072BAF621B578F6FEAEBB620129E17307EA39DA06C0A024D909F6E1E"
+    },
+    {
+      "actualHeightPx": 1350,
+      "hidden": true,
+      "binarySha256": "0A91CE6FC6DCECCB9ACC7C36481A9968253E124887D220D110D908A90B2DFB62",
+      "visualReview": "Expected theme, readable permission controls, no clipping/overlap, synthetic Untitled/Illustration notebook content",
+      "actualWidthPx": 2160,
+      "syntheticVisibleContentReviewed": true,
+      "requestedDpi": 0,
+      "sha256": "E4A0718B7549D2AB44CDEEA6D5454613566F955A5BAE02995A43062C410F6AE9",
+      "file": "image-consent-dark.png",
+      "scenario": "image-consent-dark",
+      "actualHostDpi": 144,
+      "originalScenarioMetadataSha256": "100C8738AA1DD29FD021D57AA4BE5A4CC13C9833109A862607314D526C1FBFB1"
+    }
+  ],
+  "captureMethod": "Application hidden non-activating deterministic harness",
+  "originalScenarioMetadataRetainedPrivately": true,
+  "limits": [
+    "Current application captures, not proposal mockups",
+    "No desktop takeover or physical input/AT qualification"
+  ]
+}

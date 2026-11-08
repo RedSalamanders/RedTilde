@@ -1,0 +1,1 @@
+- Audit the actual legacy reviewed-header callers and sealed current profile before Q15 retirement; retain supported historical replay and document the remaining shared-module migration.

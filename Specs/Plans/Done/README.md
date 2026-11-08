@@ -1,5 +1,9 @@
 # Completed and archived plans
 
+- [Document image consent and bounded refresh](DocumentImageConsent_2026-11-08.md) — Q13 implementation, six clean builds, all three x64 nonstorage profiles, reviewed captures and production refusals; real-location and broader adoption gates remain active.
+
+- [Tooling retirement caller audit](ToolingRetirementAudit_2026-11-08.md) — actual V1/V2 callers, sealed V4 identity and passing tooling evidence; retirement/shared-module migration remain active.
+
 ## Completed scopes — 7 November 2026
 
 - [Native editing qualification](NativeEditingQualification_2026-11-07.md) — Source Enter/EOLs, native ACP capacity, preview/mirror admission and hostile file-paste names; six local builds, six hosted native profiles with 864 passing cases and 228 captures, and both version 0.1.389 production ZIPs; original local privilege failures remain explicit.

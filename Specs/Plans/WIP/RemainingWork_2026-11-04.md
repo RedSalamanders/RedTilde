@@ -206,8 +206,11 @@ Details and original counterexamples remain in the
 <a id="t-i1"></a>
 ### T-I1 — images and supported locations
 
-- [ ] Complete Q13: per-document consent, explicit local-network override, address validation at connection
-  time, same-share image policy, useful failure reasons, Reload images and bounded event-driven refresh.
+- [x] Complete Q13 implementation and local qualification: per-document/local-network consent,
+  connection-time address checks, same-share policy, useful refusals, Reload and bounded event-driven refresh.
+  The [scoped closeout](../Done/DocumentImageConsent_2026-11-08.md) binds `9feb787e`/SDK `21fae0dc`, six
+  zero-warning builds, all three x64 nonstorage/capture profiles, actual ASan and fifteen actual x64
+  production refusals. The real Storage privilege failure is retained; named-location acceptance remains below.
 - [x] Resolve Q19 as direct-only fetching with an explicit visible failure on networks requiring a proxy, no
   PAC/discovery, credentials or silent fallback. The editor and architecture contracts own this delivery choice;
   source-bound native transport/adoption qualification remains part of Q13 and T-Q2.
@@ -361,46 +364,16 @@ follow-up is removed. Completion correctly reported failed native qualification.
   pass with every original payload/wrapper byte verified. Each native profile passes 128 cases/36 captures;
   both `0.1.355` packages record all thirteen actual refusals with exit 2 and absent data directories, bound to
   the original ZIP/executable and actual architecture. Both production roles follow the combined native gate.
-- [ ] Finish the active checked-failure/API-5 migration with the
-  [single DxUi plan](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Plans/WIP/RemainingWork_2026-11-04.md) and active
-  [implemented API-5 failure contract](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Core/Core_FailureHandling.md).
-  Candidate pin `21fae0dc66000b04504ba7862169533ac2943be8` adds typed native-refusal causes to the API-5
-  reporter/COM ownership and counted callback
-  retirement, checked document/configuration/codecs and isolated failure/native/session-end regressions. Preliminary
-  compiler checks are diagnostic only; finish fresh consumer builds, native tests, captures, actual ASan and
-  production refusal evidence before closing adoption. API-4 measurements retain their original source identity.
-  Original API-5 `1d843628` passes Settings/Recovery but fails local-image refresh and terminates during
-  DirectWrite lazy formatting of the 65,536-unit math source. Original images/PDBs/compiler objects, both
-  dumps and the run remain retained. Replacing only the SDK layout object removes the fatal and passes
-  88/89 Editor behavior cases; the remaining failure proves that decode completion incorrectly removed its
-  file watch. Current code retains canonical paths independently of decode-job cancellation and covers
-  retargeting, document-base changes, image removal and unchanged prose. Fresh qualification remains required.
-  At `0daf9924`, Debug/Release pass 125 nonstorage cases and all 40 captures; Storage retains its actual
-  29-pass/one-failure Win32 1314 result. ASan exposes an extra HTTP fetch: a remote-only semantic change rearms
-  an unchanged local-file watch and its initial refresh reloads the remote image. Named wait-stage diagnostics
-  retain three observed requests instead of two with two ready sources and no pending/failed work. The narrow
-  image-reference classification repair passes all 95 ASan editor cases, including unchanged local-watch work.
-  Frozen `2776053` additionally passes all three local x64 nonstorage/capture profiles, retaining the actual
-  symbolic-link privilege refusal. Its first ARM64 Debug compile exposes C4324 padding in the failure host;
-  original source/native/compiler archives are retained. The record-first, explicitly sized owner layout
-  corrects that warning without a suppression; fresh candidate qualification remains pending.
-  At `5ce4a000`, corrected ARM64 Debug compilation and complete static checks pass, but the x64 Debug
-  whole-behavior child exceeds its unchanged 90-second guard after 55 passing cases. The next preferences
-  fixture starts about 0.1 seconds before termination. Preserve the original native/compiler/run archive;
-  split content/workspace/media into independently verified child unions without raising a deadline or
-  dropping a case, and flush active-case/timing diagnostics before fresh qualification.
-  At `93d730a5`, Content (41), Workspace (23), Settings (11) and Recovery (19) pass; Media passes 24/25.
-  Its image case references `test-compose.png`, created only by a Content case in another child data root.
-  The preserved Media root contains its own `after-device-loss.png` and no `test-compose.png`. Use that
-  case-owned capture as the image input, retain the admission assertion, and require fresh qualification.
-  Baseline `0dbe0441` at SDK `4ce9b6a9` passes all six zero-warning builds, all 125 nonstorage cases and
-  40 captures in every x64 profile, actual ASan and original-member verification. The final ARM64 compile
-  follows an audited capacity-only continuation; local Storage retains its real Win32 1314 failure.
-  The updated SDK pin and consumer regression additionally require distinct capacity/unsupported diagnostics,
-  exact source owners, a healthy rich neighbor and unchanged source/selection/history. Fresh consumer
-  qualification at that pin remains pending; the previous baseline is not relabeled as the new candidate.
-  Original failed/diagnostic candidates and the rejected resolved-source map remain retained. This focused
-  pass does not replace the final complete candidate matrix or hosted x64 symbolic-link execution.
+- [ ] Close the API-5 adoption gate with exact-source hosted x64 execution. Candidate `9feb787e` explicitly
+  pins SDK `21fae0dc` and implements the reporter/COM, callback retirement, checked source/codecs and typed
+  native-refusal contracts. The [current packet](../../../Measurements/Api5ConsumerAdoption_2026-11-08/README.md)
+  verifies six zero-warning builds, all 375 x64 nonstorage case executions, 120 captures, actual ASan and
+  fifteen actual x64 test-disabled production refusals. All original source/native/SDK/run members verify.
+  The three local Storage runs retain their real Win32 1314 privilege failure; require actual hosted
+  symbolic-link execution before closing adoption. ARM64 remains compilation-only for this delivery.
+  The packet retains the separate DirectWrite/watch, extra-fetch, ARM64 padding, aggregate-timeout,
+  cross-child fixture and stale-restore histories. No current pass is assigned as a retrospective cause
+  for an unexplained older failure, and API-4/baseline `0dbe0441` evidence keeps its own source identity.
 - [ ] Complete C11/C12/S6 release decisions: packaging, any installer/file associations, exact release handoff,
   truthful capability limits and publication evidence. Source merge is not product release acceptance.
 
@@ -414,13 +387,23 @@ is included here, without rebuilding or packaging the separate viewer.
   retain private originals; inventory and scan all refs; prepare a reviewed rewritten copy and commit map;
   preserve the original repository privately; reconcile source citations, worktrees and consumer pins before
   the owner's repository/visibility operations. This cleanup does not rewrite history or change visibility.
+- [x] Complete a read-only [history snapshot audit](../../../Measurements/HistorySnapshotAudit_2026-11-08/README.md):
+  255 private refs/524 commits, remote/local refs and worktree heads, verified object closure and official
+  Gitleaks bytes. Both literal candidates resolve to SDK commit references. The raw finding result and
+  reviewed dispositions remain separate; coordinated Q17 execution and privacy clearance remain open.
 - [x] Verify current protection/access and reconcile current CI/capability claims. The
   [dated read-only audit](../../../Measurements/RepositoryGovernance_2026-11-07/README.md) confirms effective
   PR/status/deletion/non-fast-forward rules, consistent engine pins, compiler-free PRs, the five-minute main
   admission and global test-before-production gate. API-4/native-editing evidence and pending physical,
   performance, release and language scope remain explicit; no setting or visibility was changed.
-- [ ] Audit Q15's legacy header validators and shared-module migration by actual callers before retiring tools;
-  keep paired-study tooling supported and follow tooling governance for any later change.
+- [x] Audit Q15's legacy header validators by actual callers. The
+  [source-bound audit](../Done/ToolingRetirementAudit_2026-11-08.md) finds reachable V1/V2 dispatcher,
+  paired-command and historical replay/fixture paths; the sealed current profile is V4. Complete static
+  validation passes with 4,772 performance reference/audit assertions. No validator or fixture is dead by
+  inspection of the current profile alone, and no tool or separately owned branch was removed.
+- [ ] Migrate Q15's historical replay callers/profile inputs before legacy validator retirement, and complete
+  shared-module migration through an exact shared owner/pin and verified consumer coverage. Keep the
+  paired-study kit supported and follow tooling governance for each change.
 - [ ] Diagnose the hosted-MSVC fixture launch refusal at observed 272-character paths in the isolated
   checkout. Canonical short-path full validation passes; retain the failed long-root run separately and
   coordinate the analogous SDK tooling boundary with D-T1.
