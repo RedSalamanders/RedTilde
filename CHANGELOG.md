@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Close API-5 software adoption with verified original hosted x64 Debug, Release and ASan results: 155 cases and 40 captures per profile, actual symbolic-link saves and ASan detection. Update the pin/qualification contract while retaining ARM64 compilation-only and separate physical, provider, performance and release gates.
 - Adopt the API-5 SDK's source-owned capacity and unsupported diagnostics, preserving their distinct accessibility explanations, neighboring rich content and editing history. Exercise both causes in the real hidden consumer and align the validation spec with current compiler-free PR and main/manual native CI policy.
 - Audit the actual legacy reviewed-header callers and sealed current profile before Q15 retirement; retain supported historical replay and document the remaining shared-module migration.
 - Record a private all-ref/worktree-head history scan and source-reference candidate review, preserving the raw result and the remaining coordinated privacy operation.

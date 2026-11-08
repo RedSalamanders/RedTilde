@@ -1,1 +1,0 @@
-- Close API-5 software adoption with verified original hosted x64 Debug, Release and ASan results: 155 cases and 40 captures per profile, actual symbolic-link saves and ASan detection. Update the pin/qualification contract while retaining ARM64 compilation-only and separate physical, provider, performance and release gates.
