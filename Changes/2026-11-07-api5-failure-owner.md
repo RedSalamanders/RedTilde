@@ -1,1 +1,0 @@
-- Port the exact DxUi API-5 dependency with a prestarted original-context failure reporter, explicit warning-free owner alignment, checked document/codec/configuration admission and counted callback retirement; preserve the bounded OS session-end path, add isolated fatal/native/shutdown and source-retention regressions, and keep fresh consumer/platform qualification explicit.
