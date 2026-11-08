@@ -2186,7 +2186,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              app.Prepare();
              Require(app.Capture(root / L"after-device-loss.png") && app.Document().GetText() == source,
                      "device loss recreates pixels and retains source");
-             app.SetDocument(L"# Image\n\n![Actual app capture](test-compose.png)\n", root / L"image-document.md");
+             app.SetDocument(L"# Image\n\n![Actual app capture](after-device-loss.png)\n", root / L"image-document.md");
              app.Prepare(512);
              const auto stats = app.Document().GetImageResourceStatistics();
              Require(stats.readySources == 1 && stats.decodedBytes > 0, "relative local image decoded through worker and admitted");

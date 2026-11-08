@@ -79,8 +79,11 @@ is checked before execution. The public runner executes content editing, workspa
 Performance-prefix and Rendering-prefix cases in five separate hidden child processes
 (`EditorContent`, `EditorWorkspace`, `EditorMedia`, `EditorPerformance`, `EditorRendering`),
 each with the unchanged 90-second watchdog. Every child must execute exactly its declared cases, and their
-unique union must equal the full Editor catalog before recording a successful Editor result. Direct `Editor`
-and `All` selection retain their complete case sets; legacy `EditorBehavior` retains all non-Performance/non-Rendering
+unique union must equal the full Editor catalog before recording a successful Editor result.
+Each case MUST create its own input files in its assigned data root. A case MUST NOT rely on another case's
+capture, execution order or a shared child process; resource tests must create their image fixture before
+admitting its relative reference, including when the full catalog is partitioned.
+Direct `Editor` and `All` selection retain their complete case sets; legacy `EditorBehavior` retains all non-Performance/non-Rendering
 Editor cases. Media ownership is selected first by the case-sensitive tokens `Image`, `Bitmap`, `Mermaid`,
 `Diagram`, `Math`, `Equation`, `CodeHighlighting` and `Http`. Remaining Window/Outline cases and the
 Editor DesignRefresh/Files/PersistentFolder/Workspace/Startup prefixes belong to Workspace; other behavior
