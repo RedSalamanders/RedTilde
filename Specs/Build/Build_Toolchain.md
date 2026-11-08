@@ -97,10 +97,13 @@ Hosted setup waits for the hidden, owned GUI bootstrapper with both its --wait s
 
 The [native policy, console and dependency-path contract](Build_ConsoleAndPaths.md) owns /Wall without /WX, zero-warning acceptance, Debug/ASan symbols, Release-only ICF, common terminal results and verified short dependency folders.
 
-The API-5 migration locks DxUi at `5907e4f5e001b1003ba8ba2f1ec7f9725c1ddb5c`, with protocol-2 process ownership,
+The API-5 migration uses the exact commit in `Dependencies/DxUi.lock.json`, with protocol-2 process ownership,
 checked source/codec/configuration adapters and input-state continuity. The earlier diagram, math,
-selection-insertion, parser and Unicode-first clipboard repairs remain included. This migration requires fresh
-consumer qualification; the API-4 evidence at `a1915ffdd94b18fd1817371f1dc074f6a0b547f1` cannot qualify it.
+selection-insertion, parser and Unicode-first clipboard repairs remain included. Each changed pin requires fresh
+source-bound consumer qualification; API-4 evidence cannot qualify an API-5 migration.
+The [API-5 adoption closeout](../Plans/Done/Api5ConsumerAdoption_2026-11-08.md) records the current exact pin,
+six local builds and all three hosted x64 runtime profiles. ARM64 remains compilation-only for this delivery;
+physical input, provider locations, performance and product publication retain their separate gates.
 The local cache is a clean independent detached Git checkout,
 validated and built through the ordinary public consumer interface. No sibling archive or copied source is linked.
 API revision 5 changes source contracts and object layouts. Restore and rebuild every profile from its matching
@@ -113,5 +116,6 @@ host ownership, rather than changing only the lock. `ba94f4eb0cd8bbdeecb0b96d5e2
 `5fc4d4c383bfa4891ee57a138924107bbbf11a2e` precedes the display fix. The older
 `6ed0512c68743c57ac209e22010679d211c4a42b` predates the 2 November adapters and is restored only with those adapters. Packaging
 carries the pin's third-party notices and their `docs/licenses` texts. The indexed
-[DxUi delivery adoption plan](../Plans/Done/DxUiDeliveryAdoption_2026-11-02.md) records adapter changes and
-outstanding qualification; this pin selection alone is not a green product receipt.
+[historical DxUi delivery adoption plan](../Plans/Done/DxUiDeliveryAdoption_2026-11-02.md) records earlier adapters.
+The [current parent](../Plans/WIP/RemainingWork_2026-11-04.md) owns outstanding acceptance; a pin selection alone
+is not a green product receipt.

@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "workloadOwner": "RedTilde",
+  "fixture": "api5-current-hosted-x64",
+  "sourceCommit": "c80a86596aee8dc9c8a049c79fbb46f8d72e260b",
+  "implementationCommit": "9feb787e3e789db2f9cfc045e75a6b03f3737ccb",
+  "sdkCommit": "21fae0dc66000b04504ba7862169533ac2943be8",
+  "runs": [
+    {
+      "captures": 40,
+      "receiptSha256": "C6378A0534F266D26BB3E0C13FCDA08F8F50860134CD971F53F2519449664C1C",
+      "configuration": "Debug",
+      "binarySha256": "EBDAEB1565ECD8D823086472F6866DA51BBD854102C36EC1E7A268E288B41F19",
+      "warnings": 0,
+      "originalPayloadMembers": {
+        "allFileBytesMatchedOriginalManifest": true,
+        "files": 1551,
+        "bytes": 35989915,
+        "fileIdentitySha256": "1606C48CDD25BD7E3EFA3D69E5ECBC40B9DFB3C78AED305DCB61DE1C4AF3C2CE",
+        "limit": "Byte verification does not recreate original file IDs, security descriptors or timestamps"
+      },
+      "asan": null,
+      "casesFailed": 0,
+      "storageSummarySha256": "A7B39FC09FFFADE0445A0435A8AAAE68A9434C3996606AF1DDEB83E3C83A9015",
+      "canonicalSourceIdentity": "73096b175fd6eaaa7d9ef64a5c70115af065efd579f3fa974c0c42006c538df1",
+      "buildLogSha256": "9B5AE1A5C5AE102142D684F1B77F22B774B34F42B2BD7E8E5E3FAE49F888DE99",
+      "actualInterruptedWriteRestart": true,
+      "sourceCommit": "c80a86596aee8dc9c8a049c79fbb46f8d72e260b",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42445194643",
+      "completionSha256": "5148F9AB4447835B640B236E0FB4CC0369A710478BF3D1A3978633F852D4E9F4",
+      "originalArtifactWrappers": [
+        {
+          "name": "qualification-x64-Debug",
+          "bytes": 15976209,
+          "id": 13604025218,
+          "sha256": "B0C1787F1C71DED69CD83510BA48F7C18D5BF7DCEF6C64E9CC5F0D38A33E5285",
+          "reportedDigestVerified": true
+        },
+        {
+          "name": "qualification-workspace-x64-Debug",
+          "bytes": 16039640,
+          "id": 13602864205,
+          "sha256": "C2BEE8EB09F57C53046608398FCE1E67F626E3A90189E9611FF5F462CF5EFECE",
+          "reportedDigestVerified": true
+        },
+        {
+          "name": "msvc-14.52-f403a3fcc5844b0aa82d85f039cbb9b2",
+          "bytes": 1333227,
+          "id": 13602309856,
+          "sha256": "4218BB3FB5EFB0291D72209B0DA0AE47E42EBA8915ADF2A6E050694367CE512B",
+          "reportedDigestVerified": true
+        }
+      ],
+      "sdkCommit": "21fae0dc66000b04504ba7862169533ac2943be8",
+      "namedApi5PolicyCases": [
+        "Settings.Api5OriginalContextAndNativeIsolation",
+        "Settings.Api5ProcessWorkRetiresBeforeReporter",
+        "Settings.Api5SessionEndKeepsBoundedAllowance",
+        "Settings.LocalNetworkImagePermission"
+      ],
+      "actualStorageCasesPassed": 30,
+      "errors": 0,
+      "platform": "x64",
+      "nativeArchitecture": "x64",
+      "actualSymbolicLinkCasePassed": true,
+      "casesPassed": 155,
+      "settingsSummarySha256": "41EE37B4DBCFFD474B82031F88990B53DE1352391616BB115213D4AB4B3CCD4C",
+      "runId": 42445194643,
+      "outcome": "success"
+    },
+    {
+      "captures": 40,
+      "receiptSha256": "648A965AE87CCF3C2E997D5572F59201BF4420720224FC2B5CBCB32999D7969E",
+      "configuration": "Release",
+      "binarySha256": "C0D57AAD346BF7B3753BD5BBCF54ACF143BA9B3D61B86513750404D62A724951",
+      "warnings": 0,
+      "originalPayloadMembers": {
+        "allFileBytesMatchedOriginalManifest": true,
+        "files": 1551,
+        "bytes": 35746908,
+        "fileIdentitySha256": "716766538D31FB6CA83204B224BD1393567F608AE0D71231457BE629E6D361B1",
+        "limit": "Byte verification does not recreate original file IDs, security descriptors or timestamps"
+      },
+      "asan": null,
+      "casesFailed": 0,
+      "storageSummarySha256": "90633B11AFD6F9062301DE58CF73AD6AD77890925D1B65DBF2D7864B5041D07A",
+      "canonicalSourceIdentity": "73096b175fd6eaaa7d9ef64a5c70115af065efd579f3fa974c0c42006c538df1",
+      "buildLogSha256": "05976C50328C23FA36DC459FC8D3E5A0A81571178C70C695530671B662E64427",
+      "actualInterruptedWriteRestart": true,
+      "sourceCommit": "c80a86596aee8dc9c8a049c79fbb46f8d72e260b",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42445197492",
+      "completionSha256": "DA17E66523F8D249DEE1D1493E3B9D98A5D056B07F8C118D7FE3E2FE645CAC98",
+      "originalArtifactWrappers": [
+        {
+          "name": "qualification-workspace-x64-Release",
+          "bytes": 16036154,
+          "id": 13604011461,
+          "sha256": "AC8DDBDCD9B698538A1A59369FA40BCD3EF658F719B73952316F1FC803761ACA",
+          "reportedDigestVerified": true
+        },
+        {
+          "name": "qualification-x64-Release",
+          "bytes": 15972711,
+          "id": 13603189690,
+          "sha256": "BDA7B8EF8E1756B256FDFB2A7D46DB29026E5EDD774A6AC79668EEC606A9CA4F",
+          "reportedDigestVerified": true
+        },
+        {
+          "name": "msvc-14.52-8b08c4f154f44fb2b3def9471b3d2678",
+          "bytes": 1335443,
+          "id": 13603049521,
+          "sha256": "605DC1D69B4916A97902DA9C560F14928885E0EB48C92939BBF9D97284F3B37E",
+          "reportedDigestVerified": true
+        }
+      ],
+      "sdkCommit": "21fae0dc66000b04504ba7862169533ac2943be8",
+      "namedApi5PolicyCases": [
+        "Settings.Api5OriginalContextAndNativeIsolation",
+        "Settings.Api5ProcessWorkRetiresBeforeReporter",
+        "Settings.Api5SessionEndKeepsBoundedAllowance",
+        "Settings.LocalNetworkImagePermission"
+      ],
+      "actualStorageCasesPassed": 30,
+      "errors": 0,
+      "platform": "x64",
+      "nativeArchitecture": "x64",
+      "actualSymbolicLinkCasePassed": true,
+      "casesPassed": 155,
+      "settingsSummarySha256": "4A36364DC4B092D60AD3AA7DD75CF6AFF957C7EF0DBC27BE1E3501F3AD65567B",
+      "runId": 42445197492,
+      "outcome": "success"
+    },
+    {
+      "captures": 40,
+      "receiptSha256": "C1D4C74228F04377F366470ADA7570EEB52A204065D5A80ACA54AE641E4AF6E3",
+      "configuration": "ASan Debug",
+      "binarySha256": "D5F16D1FAF05A3F97745E1C3745AE6FAE4F34B59A3AF10D1734492B1317567BF",
+      "warnings": 0,
+      "originalPayloadMembers": {
+        "allFileBytesMatchedOriginalManifest": true,
+        "files": 1549,
+        "bytes": 35769558,
+        "fileIdentitySha256": "B9AE6128DB8FA7CB408060CCE423BB6C414EB21B0FD9553D6B679E9783339C57",
+        "limit": "Byte verification does not recreate original file IDs, security descriptors or timestamps"
+      },
+      "asan": {
+        "heapUseAfterFreeDetected": true,
+        "exitCode": 1
+      },
+      "casesFailed": 0,
+      "storageSummarySha256": "6C23BCEB713748C103D374837E2075D03C3016F357CA6706E60587B2BCD660C2",
+      "canonicalSourceIdentity": "73096b175fd6eaaa7d9ef64a5c70115af065efd579f3fa974c0c42006c538df1",
+      "buildLogSha256": "3595B2781158DF6D5D43A953FC9A9A2A8965081F4E83843323E69E3824939179",
+      "actualInterruptedWriteRestart": true,
+      "sourceCommit": "c80a86596aee8dc9c8a049c79fbb46f8d72e260b",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/42445200796",
+      "completionSha256": "CB3E7E9F1C878739522A3857717B48CB0AB38B3B7C07BF018E7A032CA0E7988D",
+      "originalArtifactWrappers": [
+        {
+          "name": "msvc-14.52-8e7fd6bdedc944d8bac4f3866c7457a9",
+          "bytes": 1339710,
+          "id": 13603466872,
+          "sha256": "82B299B964095782236F142B84916630B542FD6FF38C6DE2035063F6C6EEAB37",
+          "reportedDigestVerified": true
+        },
+        {
+          "name": "qualification-workspace-x64-ASan Debug",
+          "bytes": 16050727,
+          "id": 13603323781,
+          "sha256": "4BB4F49BB6ACA538C5AC50100F83E57C9C9872D854238643AF1E88A6F10E4819",
+          "reportedDigestVerified": true
+        },
+        {
+          "name": "qualification-x64-ASan Debug",
+          "bytes": 15987282,
+          "id": 13603264136,
+          "sha256": "6A68D9ECAA9A585A27927443DD30490C6A9284FBEDB9800FD07CEE0149EE216D",
+          "reportedDigestVerified": true
+        }
+      ],
+      "sdkCommit": "21fae0dc66000b04504ba7862169533ac2943be8",
+      "namedApi5PolicyCases": [
+        "Settings.Api5OriginalContextAndNativeIsolation",
+        "Settings.Api5ProcessWorkRetiresBeforeReporter",
+        "Settings.Api5SessionEndKeepsBoundedAllowance",
+        "Settings.LocalNetworkImagePermission"
+      ],
+      "actualStorageCasesPassed": 30,
+      "errors": 0,
+      "platform": "x64",
+      "nativeArchitecture": "x64",
+      "actualSymbolicLinkCasePassed": true,
+      "casesPassed": 155,
+      "settingsSummarySha256": "C4D9AC8725CACAD8541A010DC93E0D0F8D0AF02B2209251F9AF6D46344377D6B",
+      "runId": 42445200796,
+      "outcome": "success"
+    }
+  ],
+  "limits": [
+    "ARM64 compilation only for this delivery; normal automatic production gates are unchanged",
+    "Local Win32 1314 failures retain their original failed results; hosted actual execution is separate",
+    "No physical IME/AT/touch, real provider-location, release-publication or paired-performance acceptance"
+  ]
+}
