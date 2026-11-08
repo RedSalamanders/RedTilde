@@ -141,7 +141,8 @@ indexed roots, simultaneous scripts, Greek/operators, named functions, text, alp
 delimiters, matrices, cases and aligned/gathered rows render natively in the document. Matrix cells use `&`
 and rows use `\\`. F2 shows the exact equation source, delimiters included, in place; type to edit it and
 press F2, Esc or Ctrl+Enter to see it rendered again. Each edit is undoable, and the inspector renders the TeX as
-you type. Unsupported notation stays literal with diagnostics. The optional
+you type. Unsupported notation stays literal with diagnostics. Rendering capacity and unsupported notation
+retain distinct diagnostic and accessibility explanations. The optional
 inspector uses the same native engine. This bounded notation is not full LaTeX/package compatibility.
 
 **Mermaid:** bounded flowchart, state, class, sequence, pie, ER, Gantt and mind-map profiles use native C++

@@ -208,7 +208,15 @@ Only exact successful reusable scope results may be reused: source/dependency/bu
 
 `test.ps1 -Full -SkipTooling` runs the complete native obligation for its profile; `validate.ps1` runs independent tooling and scope regressions once. `format.ps1 -Check` is an independently reusable Format scope. `-Mode Full` selects the complete applicable local obligation. `-Mode PrePush` accounts for matching local work and forthcoming enabled CI. Deferral requires clean committed bytes, a matching reviewed workflow digest, matching profile/scenarios and stable HEAD/worktree through the API lookup. Disabled/missing/unreadable CI, changed runner contracts and direct default-branch pushes keep obligations local. Deferral is always `CI_PENDING`, never a pass or merge approval.
 
-The PR workflow runs independent tooling once and full native tests in x64/ARM64 Debug, Release and ASan Debug. ARM64 execution is native on its hosted ARM64 runner; cross-builds alone never qualify runtime behavior. Every named PR check must succeed on the candidate before merge. The current private-repository account cannot enforce protected-branch checks; the merge procedure must verify the checks explicitly. Visibility is unchanged. There is no automatic main-push rerun of an identical validated merge tree. A changed integration tree, source, runner, profile, environment investigation or unresolved failure requires its corresponding new qualification. Manual dispatch remains available.
+The [unified CI contract](../Build/Build_UnifiedCI.md) owns hosted qualification. PR checks are compiler-free
+tooling, formatting and security checks; they do not establish native acceptance. Main Release qualification
+starts after five continuous quiet minutes and requires both native x64 and ARM64 test branches before either
+production branch. Extended Debug, Release and ASan qualification uses the explicit manual workflow and its
+selected architecture. The owner's x64-runtime/ARM64-compilation delivery scope does not change the normal
+two-architecture production gate. Cross-compilation alone never establishes native ARM64 behavior.
+Verify every required check on the exact PR head before merging, including where protection cannot enforce it.
+Changed source, pin, runner, profile, an environment investigation or an unresolved failure requires its own
+applicable qualification; an earlier source's green result cannot close that obligation.
 
 The first HTTP case directly supplies synthetic Windows/MSVC ABI records to the internal remote-image import
 filter, without raising exceptions or changing DLLs. Independent encoded expectations cover module/procedure

@@ -313,6 +313,12 @@ publication), F2 falls back to the guarded local draft of the same envelope: App
 Cancel preserves source/history. Unsupported/malformed/oversized notation remains exact literal source with a
 diagnostic. Full LaTeX/MathML and arbitrary Mermaid conformance remain separate compatibility goals.
 
+Native fallback MUST retain the adopted SDK's exact source owner and typed reason. Math/diagram geometry
+or storage limits remain capacity diagnostics; unsupported notation or native targets retain their unsupported
+diagnostic. Accessibility HelpText MUST describe that same cause. The application MUST NOT replace either
+reason with a generic refusal or infer it from display wording. Neighboring supported content, source,
+selection and history remain intact under an expected element refusal.
+
 Inspector selection changes use only the shared immutable Markdown syntax for the current source revision.
 While analysis is pending or unavailable, clear the inspector temporarily instead of rescanning the whole source
 with a delimiter fallback. Current syntax excludes code/escaped notation and covers both dollar and slash delimiters,

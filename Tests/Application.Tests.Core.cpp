@@ -2399,6 +2399,43 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                          diagramAlternatives[1].find(L"Done") != std::wstring_view::npos && diagramLink != semantic->Elements().end() &&
                          diagramLink->title == L"Parent title" && app.Document().GetText() == diagramNeighbors,
                      "typed class inheritance and stadium flowchart nodes retain their native alternatives and parent link title");
+             const auto originalAppearance = app.Document().GetAppearance();
+             auto largeAppearance = originalAppearance;
+             largeAppearance.bodyFontSizeDip = 96.f;
+             const auto capacityBody = L"\\text{" + std::wstring(1400u, L'm') + L"}";
+             const std::wstring unsupportedBody = L"\\unknown{x}";
+             const auto refused = L"**Kept** $x^2$.\n\n$" + capacityBody + L"$.\n\n$" + unsupportedBody + L"$.\n";
+             app.SetDocument(refused);
+             app.Document().SetAppearance(largeAppearance);
+             const auto refusedSnapshot = app.Document().Snapshot();
+             const auto refusedSelection = app.Document().GetSelection();
+             app.Prepare(1024);
+             semantic = app.Document().GetAcknowledgedSemanticDocument(app.Host());
+             Require(static_cast<bool>(semantic), "native refusal publishes the actual consumer document");
+             const auto capacityFirst = refused.find(capacityBody) - 1u;
+             const auto unsupportedFirst = refused.find(unsupportedBody) - 1u;
+             Require(std::ranges::any_of(semantic->Diagnostics(),
+                                         [&](const auto &diagnostic)
+                                         {
+                                             return diagnostic.kind == SemanticDiagnosticKind::MathCapacity &&
+                                                    diagnostic.source == MarkdownRange{capacityFirst, capacityFirst + capacityBody.size() + 2u};
+                                         }) &&
+                         std::ranges::any_of(semantic->Diagnostics(),
+                                             [&](const auto &diagnostic)
+                                             {
+                                                 return diagnostic.kind == SemanticDiagnosticKind::UnsupportedMath &&
+                                                        diagnostic.source ==
+                                                            MarkdownRange{unsupportedFirst, unsupportedFirst + unsupportedBody.size() + 2u};
+                                             }),
+                     "the actual app preserves capacity and unsupported math causes on their independent exact source owners");
+             const auto kept = semantic->Map().Display().find(L"Kept");
+             Require(kept != std::wstring::npos &&
+                         std::ranges::any_of(semantic->Runs(), [kept](const auto &run)
+                                             { return (run.flags & Bold) != 0 && run.start <= kept && kept + 4u <= run.start + run.length; }) &&
+                         app.Document().Snapshot().IsSameRevision(refusedSnapshot) && app.Document().GetSelection() == refusedSelection &&
+                         !app.Document().CanUndo(),
+                     "expected native object refusals retain a healthy rich neighbor, exact source, selection and history");
+             app.Document().SetAppearance(originalAppearance);
              const auto oversized = L"$" + std::wstring(65534u, L'x') + L"$";
              app.SetDocument(oversized);
              app.Prepare(1024);

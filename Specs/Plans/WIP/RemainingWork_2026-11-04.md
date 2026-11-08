@@ -364,7 +364,8 @@ follow-up is removed. Completion correctly reported failed native qualification.
 - [ ] Finish the active checked-failure/API-5 migration with the
   [single DxUi plan](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Plans/WIP/RemainingWork_2026-11-04.md) and active
   [implemented API-5 failure contract](https://github.com/RedSalamanders/DxUi/blob/main/Specs/Core/Core_FailureHandling.md).
-  Candidate pin `4ce9b6a9534d869c4f670eced10e773e2cae5ea8` has explicit reporter/COM ownership, counted callback
+  Candidate pin `21fae0dc66000b04504ba7862169533ac2943be8` adds typed native-refusal causes to the API-5
+  reporter/COM ownership and counted callback
   retirement, checked document/configuration/codecs and isolated failure/native/session-end regressions. Preliminary
   compiler checks are diagnostic only; finish fresh consumer builds, native tests, captures, actual ASan and
   production refusal evidence before closing adoption. API-4 measurements retain their original source identity.
@@ -392,6 +393,12 @@ follow-up is removed. Completion correctly reported failed native qualification.
   Its image case references `test-compose.png`, created only by a Content case in another child data root.
   The preserved Media root contains its own `after-device-loss.png` and no `test-compose.png`. Use that
   case-owned capture as the image input, retain the admission assertion, and require fresh qualification.
+  Baseline `0dbe0441` at SDK `4ce9b6a9` passes all six zero-warning builds, all 125 nonstorage cases and
+  40 captures in every x64 profile, actual ASan and original-member verification. The final ARM64 compile
+  follows an audited capacity-only continuation; local Storage retains its real Win32 1314 failure.
+  The updated SDK pin and consumer regression additionally require distinct capacity/unsupported diagnostics,
+  exact source owners, a healthy rich neighbor and unchanged source/selection/history. Fresh consumer
+  qualification at that pin remains pending; the previous baseline is not relabeled as the new candidate.
   Original failed/diagnostic candidates and the rejected resolved-source map remain retained. This focused
   pass does not replace the final complete candidate matrix or hosted x64 symbolic-link execution.
 - [ ] Complete C11/C12/S6 release decisions: packaging, any installer/file associations, exact release handoff,
