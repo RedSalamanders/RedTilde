@@ -174,6 +174,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
                     testScope = CoreTestScope::EditorPerformance;
                 else if (scope == L"EditorRendering")
                     testScope = CoreTestScope::EditorRendering;
+                else if (scope == L"EditorContent")
+                    testScope = CoreTestScope::EditorContent;
+                else if (scope == L"EditorWorkspace")
+                    testScope = CoreTestScope::EditorWorkspace;
+                else if (scope == L"EditorMedia")
+                    testScope = CoreTestScope::EditorMedia;
                 else
                     throw std::invalid_argument("Unknown test scope");
             }

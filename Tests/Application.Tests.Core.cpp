@@ -243,14 +243,29 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
             owner = CoreTestScope::Editor;
         else
             throw std::invalid_argument("Unmapped native test prefix");
-        const bool editorPartition =
-            scope == CoreTestScope::EditorBehavior || scope == CoreTestScope::EditorPerformance || scope == CoreTestScope::EditorRendering;
+        const bool editorPartition = scope == CoreTestScope::EditorBehavior || scope == CoreTestScope::EditorPerformance ||
+                                     scope == CoreTestScope::EditorRendering || scope == CoreTestScope::EditorContent ||
+                                     scope == CoreTestScope::EditorWorkspace || scope == CoreTestScope::EditorMedia;
         if (editorPartition)
         {
             if (owner != CoreTestScope::Editor || (scope == CoreTestScope::EditorPerformance && prefix != "Performance") ||
                 (scope == CoreTestScope::EditorRendering && prefix != "Rendering") ||
                 (scope == CoreTestScope::EditorBehavior && (prefix == "Performance" || prefix == "Rendering")))
                 return;
+            if (scope == CoreTestScope::EditorContent || scope == CoreTestScope::EditorWorkspace || scope == CoreTestScope::EditorMedia)
+            {
+                if (prefix == "Performance" || prefix == "Rendering")
+                    return;
+                const bool media = std::ranges::any_of(
+                    std::array<std::string_view, 8>{"Image", "Bitmap", "Mermaid", "Diagram", "Math", "Equation", "CodeHighlighting", "Http"},
+                    [&](auto token) { return name.find(token) != name.npos; });
+                const bool workspace = !media && (prefix == "Window" || prefix == "Outline" || name.starts_with("Editor.DesignRefresh") ||
+                                                  name.starts_with("Editor.Files") || name.starts_with("Editor.PersistentFolder") ||
+                                                  name.starts_with("Editor.Workspace") || name.starts_with("Editor.Startup"));
+                const auto partition = media ? CoreTestScope::EditorMedia : workspace ? CoreTestScope::EditorWorkspace : CoreTestScope::EditorContent;
+                if (scope != partition)
+                    return;
+            }
         }
         else if (scope != CoreTestScope::All && owner != scope)
             return;
@@ -262,11 +277,14 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
             return;
         }
         report << "    {\"name\":\"" << name << "\",\"passed\":";
+        // Preserve the active case even if the enclosing owned child times out.
+        report.flush();
+        const auto started = std::chrono::steady_clock::now();
         try
         {
             run();
             ++passed;
-            report << "true}";
+            report << "true";
         }
         catch (const std::bad_alloc &)
         {
@@ -278,8 +296,10 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
             report << "false,\"error\":\"";
             for (const char c : std::string_view(error.what()))
                 report << (c == '"' ? '\'' : c == '\\' ? '/' : c == '\n' ? ' ' : c);
-            report << "\"}";
+            report << "\"";
         }
+        report << ",\"elapsedMs\":" << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count()
+               << "}";
         report.flush();
     };
     RegisterFilesTests(root, test);

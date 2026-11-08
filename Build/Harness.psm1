@@ -387,8 +387,13 @@ function Get-RedTildeCoreTestPartitions {
     $owned=@($Cases|Where-Object scope -ceq $Group|ForEach-Object name)
     if(-not $owned.Count -or @($owned|Sort-Object -Unique).Count -ne $owned.Count){throw 'Missing or duplicate native group cases.'}
     if($Group -cne 'Editor'){return [pscustomobject]@{scope=$Group;cases=$owned}}
+    $behavior=@($owned|Where-Object {$_ -cnotmatch '^(Performance|Rendering)\.'})
+    $media=@($behavior|Where-Object {$_ -cmatch 'Image|Bitmap|Mermaid|Diagram|Math|Equation|CodeHighlighting|Http'})
+    $workspace=@($behavior|Where-Object {$_ -cnotin $media -and $_ -cmatch '^(Window\.|Outline\.|Editor\.(DesignRefresh|Files|PersistentFolder|Workspace|Startup))'})
     $partitions=@(
-        [pscustomobject]@{scope='EditorBehavior';cases=@($owned|Where-Object {$_ -cnotmatch '^(Performance|Rendering)\.'})},
+        [pscustomobject]@{scope='EditorContent';cases=@($behavior|Where-Object {$_ -cnotin $media -and $_ -cnotin $workspace})},
+        [pscustomobject]@{scope='EditorWorkspace';cases=$workspace},
+        [pscustomobject]@{scope='EditorMedia';cases=$media},
         [pscustomobject]@{scope='EditorPerformance';cases=@($owned|Where-Object {$_ -cmatch '^Performance\.'})},
         [pscustomobject]@{scope='EditorRendering';cases=@($owned|Where-Object {$_ -cmatch '^Rendering\.'})}
     )|Where-Object {$_.cases.Count}

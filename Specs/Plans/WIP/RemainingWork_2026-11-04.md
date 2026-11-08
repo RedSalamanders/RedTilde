@@ -383,6 +383,11 @@ follow-up is removed. Completion correctly reported failed native qualification.
   symbolic-link privilege refusal. Its first ARM64 Debug compile exposes C4324 padding in the failure host;
   original source/native/compiler archives are retained. The record-first, explicitly sized owner layout
   corrects that warning without a suppression; fresh candidate qualification remains pending.
+  At `5ce4a000`, corrected ARM64 Debug compilation and complete static checks pass, but the x64 Debug
+  whole-behavior child exceeds its unchanged 90-second guard after 55 passing cases. The next preferences
+  fixture starts about 0.1 seconds before termination. Preserve the original native/compiler/run archive;
+  split content/workspace/media into independently verified child unions without raising a deadline or
+  dropping a case, and flush active-case/timing diagnostics before fresh qualification.
   Original failed/diagnostic candidates and the rejected resolved-source map remain retained. This focused
   pass does not replace the final complete candidate matrix or hosted x64 symbolic-link execution.
 - [ ] Complete C11/C12/S6 release decisions: packaging, any installer/file associations, exact release handoff,

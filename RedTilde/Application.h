@@ -554,7 +554,10 @@ enum class CoreTestScope
     Editor,
     EditorBehavior,
     EditorPerformance,
-    EditorRendering
+    EditorRendering,
+    EditorContent,
+    EditorWorkspace,
+    EditorMedia
 };
 int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope = CoreTestScope::All, bool listOnly = false);
 #if defined(REDTILDE_ENABLE_TESTS)

@@ -75,14 +75,22 @@ version so an unrelated inherited-version mismatch cannot make those negative co
 Fixture tests never change the application's real build-admission or version policy.
 
 The reviewed Core catalog keeps Storage, Settings, Recovery and Editor ownership. The complete Editor list
-is checked before execution. The public runner executes its behavior, Performance-prefix and Rendering-prefix
-cases in three separate hidden child processes (`EditorBehavior`, `EditorPerformance`, `EditorRendering`),
+is checked before execution. The public runner executes content editing, workspace/chrome, media,
+Performance-prefix and Rendering-prefix cases in five separate hidden child processes
+(`EditorContent`, `EditorWorkspace`, `EditorMedia`, `EditorPerformance`, `EditorRendering`),
 each with the unchanged 90-second watchdog. Every child must execute exactly its declared cases, and their
 unique union must equal the full Editor catalog before recording a successful Editor result. Direct `Editor`
-and `All` selection retain their complete case sets. Empty/duplicate groups, omissions, duplicates, catalog-only
+and `All` selection retain their complete case sets; legacy `EditorBehavior` retains all non-Performance/non-Rendering
+Editor cases. Media ownership is selected first by the case-sensitive tokens `Image`, `Bitmap`, `Mermaid`,
+`Diagram`, `Math`, `Equation`, `CodeHighlighting` and `Http`. Remaining Window/Outline cases and the
+Editor DesignRefresh/Files/PersistentFolder/Workspace/Startup prefixes belong to Workspace; other behavior
+belongs to Content. Native listing/execution must match these independently reviewed case unions.
+Empty/duplicate groups, omissions, duplicates, catalog-only
 execution and failed/timeout children cannot qualify a group. This separates expensive independent scenarios
 from the behavioral batch; it changes no case assertion or performance acceptance band. Preserve earlier
-whole-Editor timeouts with their original source, binary and raw reports.
+whole-Editor and whole-behavior timeouts with their original source, binary and raw reports. Before each
+executed case, flush its name to the partial report; flush the result and diagnostic `elapsedMs` afterward.
+Elapsed case times are diagnostic observations, not performance-policy acceptance or new assertion limits.
 When original working input bytes differ from governed checkout text conversion, retain originals and
 their per-file map/archive hash. A Git commit alone does not recreate those working bytes. Label later
 Git-derived checkouts as reconstructed and verify actual identity before reuse; never rewrite historical
@@ -208,7 +216,7 @@ These record oracles establish error mapping, not recovery from an actually miss
 
 Physical focus/IME/AT, release/package acceptance, hardware-specific qualification and paired resource/performance studies retain their owning gates. Hidden/scoped/native CI passes never close those gates. Native test basenames use contextual `Scope.Tests.Something.h/.cpp`; inventories cover active files only. Immutable historical receipts, archived source and legacy references are not renamed or rewritten.
 
-RedTilde partitions its 128 registered native cases into Storage (25), Settings (6), Recovery (19) and Editor (78). Registration scanning includes reviewed Core `.cpp` and `.h` files from the native inventory. Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
+RedTilde partitions its 155 registered native cases into Storage (30), Settings (11), Recovery (19) and Editor (95). Registration scanning includes reviewed Core `.cpp` and `.h` files from the native inventory. Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
 
 Production packaging separately executes fifteen refusal cases against the actual clean-extracted executable:
 self-test, scope, listing, interactive test, crash, recovery crash/restart, preferences, sanitizer, linked-save
