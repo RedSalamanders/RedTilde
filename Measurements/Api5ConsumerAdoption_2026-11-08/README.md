@@ -12,6 +12,15 @@ The actual ASan probe detects its intended error. Each separate Storage run
 passes 29 cases and retains the actual symbolic-link privilege failure
 `Win32 1314`; it is unwaived. All three ARM64 profiles are compilation-only.
 
+The [current hosted x64 record](hosted-x64.json) closes this candidate's native
+adoption gate at merged source `c80a86596aee8dc9c8a049c79fbb46f8d72e260b`:
+Debug, Release and ASan Debug each pass all 155 cases and 40 captures. Each
+actually executes all 30 Storage cases, including symbolic-link save, with no
+substitution for the original local failure. Original wrapper digests and every
+native payload member verify; all three builds have zero warnings/errors. The
+ASan profile also records actual heap-use-after-free detection. Hosted canonical
+source identities remain separate from the local checkout identity above.
+
 The [x64 production record](production.json) binds the test-disabled Release
 image, original portable ZIP and clean-extraction hidden smoke. All fifteen
 test-only command forms actually exit 2 before creating a data directory. This
@@ -63,7 +72,7 @@ active-case/timing diagnostics flush before execution. Complete static checks
 and formatting pass for the frozen source. The source-bound prior baseline at
 `0dbe0441` stays separate and is not relabeled as this candidate.
 
-Hosted x64 Storage/foreground, physical input/AT, named provider locations,
+Current foreground/physical input/AT, named provider locations,
 paired-performance policy, long-lived physical GPU resources, coordinated privacy
 history and release publication retain their separate gates in the
 [single parent plan](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md).

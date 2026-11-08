@@ -364,13 +364,15 @@ follow-up is removed. Completion correctly reported failed native qualification.
   pass with every original payload/wrapper byte verified. Each native profile passes 128 cases/36 captures;
   both `0.1.355` packages record all thirteen actual refusals with exit 2 and absent data directories, bound to
   the original ZIP/executable and actual architecture. Both production roles follow the combined native gate.
-- [ ] Close the API-5 adoption gate with exact-source hosted x64 execution. Candidate `9feb787e` explicitly
+- [x] Close the API-5 adoption gate with exact-source hosted x64 execution. Candidate `9feb787e` explicitly
   pins SDK `21fae0dc` and implements the reporter/COM, callback retirement, checked source/codecs and typed
   native-refusal contracts. The [current packet](../../../Measurements/Api5ConsumerAdoption_2026-11-08/README.md)
   verifies six zero-warning builds, all 375 x64 nonstorage case executions, 120 captures, actual ASan and
   fifteen actual x64 test-disabled production refusals. All original source/native/SDK/run members verify.
-  The three local Storage runs retain their real Win32 1314 privilege failure; require actual hosted
-  symbolic-link execution before closing adoption. ARM64 remains compilation-only for this delivery.
+  The three local Storage runs retain their real Win32 1314 privilege failure. The
+  [hosted closeout](../Done/Api5ConsumerAdoption_2026-11-08.md) verifies Debug, Release and ASan Debug at
+  `c80a8659`: all 155 cases, 40 captures and all 30 actual Storage cases per profile, including symbolic-link
+  saves, with every original payload member verified. ARM64 remains compilation-only for this delivery.
   The packet retains the separate DirectWrite/watch, extra-fetch, ARM64 padding, aggregate-timeout,
   cross-child fixture and stale-restore histories. No current pass is assigned as a retrospective cause
   for an unexplained older failure, and API-4/baseline `0dbe0441` evidence keeps its own source identity.

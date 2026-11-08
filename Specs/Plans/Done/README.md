@@ -1,5 +1,7 @@
 # Completed and archived plans
 
+- [API-5 consumer adoption](Api5ConsumerAdoption_2026-11-08.md) — six zero-warning local builds, all three hosted x64 profiles with 465 passing cases and 120 captures, actual symbolic-link saves and ASan detection, plus fifteen local production refusals. ARM64 compilation and broader physical/provider/performance/release gates remain distinct.
+
 - [Document image consent and bounded refresh](DocumentImageConsent_2026-11-08.md) — Q13 implementation, six clean builds, all three x64 nonstorage profiles, reviewed captures and production refusals; real-location and broader adoption gates remain active.
 
 - [Tooling retirement caller audit](ToolingRetirementAudit_2026-11-08.md) — actual V1/V2 callers, sealed V4 identity and passing tooling evidence; retirement/shared-module migration remain active.
