@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-recovery-entry-budget-counterexample",
+  "inputHash": "c39ae20dc9f27c69ace6f09ee3e23cc5a9207d2139984820f78890599b101a15",
+  "benchmarkInputs": {
+    "Common/Recovery.cpp": "0D12E7E5261B735FA6DF3F2665A8255EFFB1AC600D5435BDB4260557AF8F1636",
+    "Common/Recovery.h": "B621E2E8AEC5F672D9976D64E2E3FECCCB6E30886BC35E10A40B6DC983546FAD",
+    "Tests/Application.Tests.Core.cpp": "3DC9E818A665096046A23C7475770D72A56ADAFA6661789299A20255EBD4EB2B",
+    "Tests/native-case-catalog.json": "0726CA27C2A4EF4DDE2B2D7D999D0CF129A3FC7A80BD9BA0D4D80CC21F56ED55",
+    "Dependencies/DxUi.lock.json": "8CD445BC98C8A388184BFBF7CC00440E61FBF9CCAAC0C41E8473FAC8563729BA"
+  },
+  "instrumentedBaselineBaseCommit": "a35a9c82814e079f9e1f69610bd69dedcc2aab92",
+  "correctedImplementationCommit": "ace3417f73bc5de2259d83a34de65c0c0f989a97",
+  "sdkCommit": "21fae0dc66000b04504ba7862169533ac2943be8",
+  "baseline": {
+    "binarySha256": "24B8958E9BA62D2D7E0F899593A2C981146B3754DB3E0C1C0300E2251334EC89",
+    "entryLimitReached": false,
+    "recoverySourceSha256": "8E65CA770279930748B6E791A1266416EE44BD4F2D9A07D7157C646890A98A5A",
+    "expectedFailedAssertionObserved": true,
+    "nativeExitCode": 11,
+    "examinedEntries": 577
+  },
+  "corrected": {
+    "nativeExitCode": 0,
+    "recoverySourceSha256": "0D12E7E5261B735FA6DF3F2665A8255EFFB1AC600D5435BDB4260557AF8F1636",
+    "binarySha256": "B51ED2B133CCF7BD0E31C91E69D773729A8F24F71BF1C4C66E0A5EEECF3D8D76",
+    "entryLimitReached": true,
+    "examinedEntries": 512
+  },
+  "originalArchiveSha256": "F6303F3AF95D294E9B6BE02E0BF36068270B435253024305C18F2A0CD23E70DA",
+  "allOriginalMembersVerified": true,
+  "scope": "Focused actual recovery worker. Independent application qualification executes Recovery.StartupScanCountsUnrelatedEntries in each native x64 profile.",
+  "limits": [
+    "This diagnostic does not claim a pre-compilation freeze of every transitive input",
+    "An entry count is not filesystem-latency, provider or paired-performance acceptance"
+  ]
+}
