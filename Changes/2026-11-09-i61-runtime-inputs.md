@@ -1,0 +1,1 @@
+- Preserve shipped example Markdown, README and asset bytes in native selection and evidence; keep ordinary prose on independent validation and retain paired-performance and production acceptance as separate obligations.

@@ -436,13 +436,21 @@ Export-ModuleMember -Function Enter-ScopedIterationLease,Suspend-ScopedIteration
 function Get-ScopedSourceMap {
     param([string]$Root,[switch]$CompiledOnly)
     $map=@{};$deleted=$null
+    $nativeRules=@()
+    if($CompiledOnly -and (Test-Path -LiteralPath (Join-Path $Root 'Tests/test-scopes.json'))){
+        # Reviewed runtime rules override prose/folder exclusions in native evidence too.
+        $policy=Get-Content -LiteralPath (Join-Path $Root 'Tests/test-scopes.json') -Raw|ConvertFrom-Json
+        $nativeNames=@($policy.scopes|Where-Object native|ForEach-Object name)
+        $nativeRules=@($policy.rules|Where-Object {'*' -in $_.scopes -or @($_.scopes|Where-Object {$_ -in $nativeNames}).Count})
+    }
     foreach($path in @(Get-ScopedTrackedPaths $Root)){
         if($path -match '^\.build/'){continue}
         # Historical native payloads and third-party oracles are not build inputs. Keep their
         # Markdown in validator identities because link validators read it.
         if($path -match '^(Measurements|legacy|Specs/(TestRuns|Plans/Done))/' -and $path -notmatch '\.md$'){continue}
         if($CompiledOnly -and ($path -match '^(Measurements|legacy|docs|Specs/(Plans|TestRuns))/' -or
-            $path -match '(^(README|CHANGELOG)\.md$|(^|/)AGENTS\.md$|^(Specs|\.agents|Changes)/.*\.md$)')){continue}
+            $path -match '(^(README|CHANGELOG)\.md$|(^|/)AGENTS\.md$|^(Specs|\.agents|Changes)/.*\.md$)') -and
+            -not @($nativeRules|Where-Object {Test-ScopedPattern $path $_.pattern}).Count){continue}
         $full=Join-Path $Root $path
         if(-not(Test-Path -LiteralPath $full -PathType Leaf)){
             if(Test-Path -LiteralPath $full -PathType Container){continue}
