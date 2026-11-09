@@ -112,7 +112,7 @@ try{
         }
     }
     Case 'prose omits native tests, declared runtime Markdown selects its consumer, and empty changes select nothing' {
-        $plan=Get-ScopedTestPlan $manifest @('README.md','CHANGELOG.md','docs/examples/ordinary-notes.md')
+        $plan=Get-ScopedTestPlan $manifest @('README.md','CHANGELOG.md','docs/ordinary-notes.md')
         Assert (@($manifest.scopes|Where-Object{$_.native -and $_.name -in $plan.scopes}).Count -eq 0) 'Prose selected native tests'
         foreach($scope in @('Tooling','Format')){Assert ($scope -in $plan.scopes) "Prose validation omitted: $scope"}
         if($manifest.project -ceq 'RedTilde'){
@@ -122,6 +122,9 @@ try{
             Assert (-not $plan.full -and $native.Count -eq 1 -and $native[0].name -ceq 'Captures') 'Runtime fixture widened unrelated native coverage'
         }
         Assert ((Get-ScopedTestPlan $manifest @('res/Welcome.md')).full) 'Embedded content mistaken for prose'
+        foreach($path in @('docs/examples/s5-performance.md','docs/examples/README.md','docs/examples/new-example.md')){
+            Assert ((Get-ScopedTestPlan $manifest @($path)).full) "Shipped example was treated as prose: $path"
+        }
         Assert ((Get-ScopedTestPlan $manifest @()).scopes.Count -eq 0) 'Empty changes selected tests'
     }
     Case 'actual consumers and standalone test owners are selected' {
@@ -239,6 +242,20 @@ try{
         Assert ((Get-ScopedSourceIdentity $gitRoot -CompiledOnly) -cne $native) 'Embedded Markdown omitted'
         $native=Get-ScopedSourceIdentity $gitRoot -CompiledOnly;Put (Join-Path $gitRoot 'generator.inl') 'new generator'
         Assert ((Get-ScopedSourceIdentity $gitRoot -CompiledOnly) -cne $native) 'New executable input extension omitted'
+    }
+    Case 'declared shipped examples retain native byte identity despite the documentation folder' {
+        $manifestPath=Join-Path $gitRoot 'Tests/test-scopes.json';$saved=[IO.File]::ReadAllBytes($manifestPath)
+        try{
+            $policy=Get-Content $manifestPath -Raw|ConvertFrom-Json
+            $policy.rules=@([pscustomobject]@{pattern='docs/examples/**';scopes=@('*');reason='shipped examples'})
+            Put $manifestPath ($policy|ConvertTo-Json -Depth 8)
+            foreach($path in @('docs/examples/s5-performance.md','docs/examples/README.md','docs/examples/image.bin')){
+                Put (Join-Path $gitRoot $path) 'original shipped bytes'
+                $before=Get-ScopedSourceIdentity $gitRoot -CompiledOnly
+                Put (Join-Path $gitRoot $path) 'changed shipped bytes'
+                Assert ((Get-ScopedSourceIdentity $gitRoot -CompiledOnly) -cne $before) "Shipped input missing from native identity: $path"
+            }
+        }finally{[IO.File]::WriteAllBytes($manifestPath,$saved)}
     }
     Case 'iteration state is source/index/profile/environment bound and rejects corruption' {
         $path=Join-Path $gitRoot '.build/iteration.json';$source=Get-ScopedSourceMap $gitRoot;$index=Get-ScopedIndexMap $gitRoot
@@ -524,7 +541,7 @@ param([string]$Platform,[string]$Configuration,[switch]$ProductionOnly)
         Put (Join-Path $buildRoot '.gitignore') ".build/`n"
         Put (Join-Path $buildRoot 'RedTilde/RedTilde.vcxproj') '<Project />'
         Put (Join-Path $buildRoot 'Build/RedTilde.DxUi.props') '<Project />'
-        Put (Join-Path $buildRoot 'Tests/test-scopes.json') '{"runtimeFiles":[]}'
+        Put (Join-Path $buildRoot 'Tests/test-scopes.json') ([IO.File]::ReadAllText((Join-Path $PSScriptRoot 'test-scopes.json')))
         Put (Join-Path $buildRoot 'Tests/GuardFixture.cpp') 'first source bytes'
         foreach($name in @('Harness.psm1','ScopedTesting.psm1','BuildConsole.psm1','DxUiPaths.psm1')){Copy-Item -LiteralPath (Join-Path $root "Build/$name") -Destination (Join-Path $buildRoot "Build/$name")}
         Copy-Item -LiteralPath (Join-Path $root 'build.ps1') -Destination (Join-Path $buildRoot 'build.ps1')

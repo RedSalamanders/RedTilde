@@ -193,6 +193,12 @@ clipboard priority preference. A light consent scenario must not inherit the dar
 `Tests/Fixtures/reference-dark.md` is a runtime input to the reference-dark DPI captures;
 its edits select `Captures` in addition to normal Tooling/Format validation, rather than prose-only coverage.
 
+`docs/examples/` is copied into production packages and contains the paired-performance input. It is a native
+runtime/package input even for Markdown and README files; edits select conservative full coverage. Explicit
+native manifest rules override documentation exclusions in both selection and native source identities,
+including non-Markdown assets. Ordinary non-shipped documentation retains independent validation. A native
+scope pass does not substitute for paired performance or production package acceptance.
+
 Final gates: validator/format, x64 Debug/Release/ASan tests, real sanitizer detection, all ARM64 builds, native
 ARM64 execution for runtime claims, paired Release resource/latency evidence, WARP/device-loss/hidden/dirty
 render checks, physical IME/AT, and time-authorized interactive keyboard/focus restoration. Separate application

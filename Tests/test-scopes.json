@@ -86,6 +86,11 @@
   ],
   "rules": [
     {
+      "pattern": "docs/examples/**",
+      "scopes": ["*"],
+      "reason": "shipped package examples and paired-performance runtime fixtures"
+    },
+    {
       "pattern": "Tests/Fixtures/reference-dark.md",
       "scopes": [
         "Captures",
