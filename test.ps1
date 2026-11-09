@@ -4,6 +4,10 @@ param([ValidateSet('x64','ARM64')][string] $Platform='x64',
       [ValidateSet('Core','Captures','Crash','All')][string] $Suite='Core',[switch] $SkipBuild,[string[]]$Suites=@(),[switch]$Full,[switch]$SkipTooling)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
+Import-Module (Join-Path $PSScriptRoot 'Build/ScopedTesting.psm1') -Force
+$iterationLease=Enter-ScopedIterationLease $PSScriptRoot $Platform $Configuration
+try {
+[void](Suspend-ScopedIteration (Join-Path $PSScriptRoot ".build/reports/scoped-tests/$Platform-$($Configuration -replace ' ','')/iteration.json") $PSScriptRoot)
 $available=@('Storage','Settings','Recovery','Editor','Preferences','RecoveryRestart','Performance','Captures','Crash','Sanitizer','Tooling')
 if($Full -or (-not $Suites.Count -and $Suite -eq 'All')){$Suites=$available}
 elseif(-not $Suites.Count){$Suites=if($Suite -eq 'Core'){@('Storage','Settings','Recovery','Editor','Preferences','RecoveryRestart','Performance','Sanitizer')}else{@($Suite)}}
@@ -186,3 +190,4 @@ try {
 }
 
 } finally { Complete-TestRunEvidence -Run $evidence -Passed ([bool]($receipt -and $receipt.passed)) }
+}finally{try{$iterationLease.ReleaseMutex()}finally{$iterationLease.Dispose()}}
