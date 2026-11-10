@@ -420,6 +420,9 @@ exit 0
 param()
 [void](New-Item -ItemType Directory -Path (Join-Path $PSScriptRoot '.build') -Force)
 [IO.File]::WriteAllText((Join-Path $PSScriptRoot '.build/no-arguments.txt'),'ran')
+[IO.File]::AppendAllText((Join-Path $PSScriptRoot '.build/tooling-calls.txt'),"ran`n")
+if(Test-Path (Join-Path $PSScriptRoot '.build/tooling-fail')){exit 21}
+if(Test-Path (Join-Path $PSScriptRoot '.build/tooling-mutate')){[IO.File]::AppendAllText((Join-Path $PSScriptRoot 'Tests/Other.Tests.Case.cpp'),'changed during tooling')}
 '@
     Put (Join-Path $public 'switch.ps1') @'
 [CmdletBinding()]
@@ -535,6 +538,44 @@ param([string]$Platform,[string]$Configuration,[switch]$ProductionOnly)
         Remove-Item -LiteralPath (Join-Path $public '.build/mutate')
         $r=Run @('-SkipBuild');Assert ($r.Exit -ne 0 -and $r.Text.Contains('SkipBuild refused')) 'Stale compiled source accepted'
         $r=Run;Assert ($r.Exit -eq 0) "Mutated sources did not recover: $($r.Text)"
+    }
+    Case 'independent tooling survives a later native failure and is reused without advancing the batch baseline' {
+        $receipt=Join-Path $public '.build/reports/scoped-tests/independent/Tooling.json'
+        Put (Join-Path $public '.build/fail') 'later native failure'
+        $run=Run @('-Mode','Full','-Force')
+        Assert ($run.Exit -ne 0 -and $run.Text.Contains('Selected runtime tests failed') -and (Test-Path $receipt)) "Completed tooling was lost or failed native work passed: $($run.Text)"
+        Assert (-not(Test-Path $state)) 'A failed batch advanced its iteration baseline'
+        $original=[IO.File]::ReadAllText($receipt)
+        $calls=@(Get-Content (Join-Path $public '.build/tooling-calls.txt')).Count
+        Remove-Item -LiteralPath (Join-Path $public '.build/fail')
+        $run=Run @('-Mode','Full')
+        Assert ($run.Exit -eq 0 -and $run.Text.Contains('REUSED Tooling') -and
+            @(Get-Content (Join-Path $public '.build/tooling-calls.txt')).Count -eq $calls -and
+            [IO.File]::ReadAllText($receipt) -ceq $original) "Retry duplicated or rewrote exact independent evidence: $($run.Text)"
+    }
+    Case 'failed or input-mutating tooling cannot publish reusable success or enter native execution' {
+        $receipt=Join-Path $public '.build/reports/scoped-tests/independent/Tooling.json'
+        foreach($marker in @('tooling-fail','tooling-mutate')){
+            $nativeCalls=@(Get-Content (Join-Path $public '.build/calls.txt')).Count
+            Put (Join-Path $public ('.build/'+$marker)) 'independent refusal control'
+            $run=Run @('-Mode','Full','-Force')
+            Assert ($run.Exit -ne 0 -and -not(Test-Path $receipt) -and
+                @(Get-Content (Join-Path $public '.build/calls.txt')).Count -eq $nativeCalls) "Failed or mutated tooling published success or entered native work: $($run.Text)"
+            Remove-Item -LiteralPath (Join-Path $public ('.build/'+$marker))
+        }
+    }
+    Case 'later native mutation retains original tooling proof but changed inputs cannot reuse it' {
+        $receipt=Join-Path $public '.build/reports/scoped-tests/independent/Tooling.json'
+        Put (Join-Path $public '.build/mutate') 'native changes source after completed tooling'
+        $run=Run @('-Mode','Full','-Force')
+        Assert ($run.Exit -ne 0 -and (Test-Path $receipt)) "Native mutation passed or discarded independently completed tooling: $($run.Text)"
+        $original=[IO.File]::ReadAllText($receipt)
+        $calls=@(Get-Content (Join-Path $public '.build/tooling-calls.txt')).Count
+        Remove-Item -LiteralPath (Join-Path $public '.build/mutate')
+        $run=Run @('-Mode','Full')
+        Assert ($run.Exit -eq 0 -and -not $run.Text.Contains('REUSED Tooling') -and
+            @(Get-Content (Join-Path $public '.build/tooling-calls.txt')).Count -eq ($calls+1) -and
+            [IO.File]::ReadAllText($receipt) -cne $original) "Changed native/source inputs reused earlier tooling: $($run.Text)"
     }
     Case 'public build receipt invalidates content changes despite restored timestamps and preserves docs-only outputs' {
         $buildRoot=Join-Path $fixture 'build-input-guard';New-Repository $buildRoot

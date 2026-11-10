@@ -1,0 +1,1 @@
+- Preserve each completed, byte-verified independent tooling or formatting result before later native work, so a native failure does not force identical successful tooling to repeat. Failed or mutated independent work remains non-reusable; native and whole-run qualification remain separate.
