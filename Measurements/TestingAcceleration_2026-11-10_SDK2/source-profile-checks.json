@@ -1,0 +1,104 @@
+{
+  "workloadOwner": "RedTilde",
+  "nativeX64ProfilesPassed": 3,
+  "productionAndExtractionPassed": true,
+  "execution": "working-tree bytes before compact-fixture commit",
+  "schemaVersion": 1,
+  "sdkAcceptance": "pending",
+  "role": "LocalSourceProfileQualification",
+  "engineRef": "a0db31a5d4a57ed7275333d1f47b1b1c0efb9bee",
+  "overallAccelerationAcceptance": false,
+  "fixture": "redtilde-sdk2-source-profile-20261110",
+  "benchmarkInputs": {
+    "Build/Harness.psm1": "e5e27deb49a81f7d65f1d65ca709baae42a1f403bc245abfd905b38bd776c5a0",
+    "build.ps1": "a8ac6534c8b7ac3ae14f33584ff5b318d01e7cfd06841feef4cc9fa277f7b977",
+    "RedTilde/Application.CaptureScenarios.cpp": "6e5e87028b58fdb0405d4f09c78b496124fed99dd83812a72dacf9d8ca9cb8c7",
+    "package.ps1": "ba70eff95accf7c42c25d198bc672aaf24b05c0575d545183cd04ca2153e67e4",
+    ".ci/project.json": "181c1ea4e28c67e58524512c3a02b9d0afe6d89542bd2e2a673a1eb9351350b2",
+    "Build/Toolchain.psm1": "cf24dd285437169392ee813619608a6336a79a7d7c4e666930d35c8c18e4d94b"
+  },
+  "arm64Runtime": "not executed locally",
+  "sourceBuildsPassed": 6,
+  "sourceCommit": "44d716dea98948225f9f9fbedbd5c82fb1c39318",
+  "sourcePin": "21fae0dc66000b04504ba7862169533ac2943be8",
+  "logs": [
+    {
+      "role": "SourceBuild",
+      "configuration": "Debug",
+      "sha256": "37afa560b649c679d619328c5b9476cf9720285f145bc7e621704c807d18f605",
+      "platform": "x64",
+      "path": ".build/i61-source-build-x64-Debug.log"
+    },
+    {
+      "role": "SourceBuild",
+      "configuration": "Release",
+      "sha256": "18c8ee94df76e74b0e89c8b894ba342d4a9ecee530f632ae5b11fdea3f5366ca",
+      "platform": "x64",
+      "path": ".build/i61-source-build-x64-Release.log"
+    },
+    {
+      "role": "SourceBuild",
+      "configuration": "ASan-Debug",
+      "sha256": "d8715ed40e3d6d4f1545bda8f4e1f1402cb27a7072dfae4f1c4b18e5b9df243e",
+      "platform": "x64",
+      "path": ".build/i61-source-build-x64-ASan-Debug.log"
+    },
+    {
+      "role": "SourceBuild",
+      "configuration": "Debug",
+      "sha256": "20a3396e3325220ee1b827f5c6bdae3cae75c5d1474e8abfca08fe14dd195c97",
+      "platform": "ARM64",
+      "path": ".build/i61-source-build-ARM64-Debug.log"
+    },
+    {
+      "role": "SourceBuild",
+      "configuration": "Release",
+      "sha256": "eb04079a8a31d44ed7a2bd9c90bc07eca3ddf8aa4f64ecd2506ef2f11c84dc69",
+      "platform": "ARM64",
+      "path": ".build/i61-source-build-ARM64-Release.log"
+    },
+    {
+      "role": "SourceBuild",
+      "configuration": "ASan-Debug",
+      "sha256": "3fb1335fd9383d6067d433d49abaddadc876a24a1715115dca84afc49dabd95b",
+      "platform": "ARM64",
+      "path": ".build/i61-source-build-ARM64-ASan-Debug.log"
+    },
+    {
+      "role": "SourceNativeRuntime",
+      "configuration": "Debug",
+      "sha256": "4a5be7a4d11d78f4f67acd43a90216faf3fbb1eb75cea915cb20357c00d4b7da",
+      "platform": "x64",
+      "path": ".build/i61-source-native-x64-Debug.log"
+    },
+    {
+      "role": "SourceNativeRuntime",
+      "configuration": "Release",
+      "sha256": "61eaabdb9a671231895149b5fa79901c892208016edef96e5b346aec6bda7d69",
+      "platform": "x64",
+      "path": ".build/i61-source-native-x64-Release.log"
+    },
+    {
+      "role": "SourceNativeRuntime",
+      "configuration": "ASan-Debug",
+      "sha256": "f97cde0c4675ff4f27e665bf6c7d616a956bd530472ffc9b2fdc4b2f725ae2c2",
+      "platform": "x64",
+      "path": ".build/i61-source-native-x64-ASan-Debug.log"
+    },
+    {
+      "role": "SourceProductionOrMatrix",
+      "sha256": "68a8d79bbae1402e3c2a7a1d50db181c7f56670d17a47f648848db56a146644e",
+      "path": ".build/i61-source-production.log"
+    },
+    {
+      "role": "SourceProductionOrMatrix",
+      "sha256": "fa6900778e449c86f6d78017246b98f7fe796ea14c3553df5c560cfc581da0f6",
+      "path": ".build/i61-source-package.log"
+    },
+    {
+      "role": "SourceProductionOrMatrix",
+      "sha256": "1518bb666bd183eb27ef67edfacfe51f7f66b7ad524ed9140325ace123903a29",
+      "path": ".build/i61-source-profile-matrix-compact-fixtures.log"
+    }
+  ]
+}

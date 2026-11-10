@@ -1,5 +1,10 @@
 # Validation and evidence
 
+Owned design-capture fixture directory names retain the complete 128-bit GUID in compact `cf-` plus
+32-hex form. Leave space for the real atomic-write staging filename below nested evidence roots on
+machines with legacy path limits. This changes neither fixture content nor its file/junction ownership,
+rendering, keyboard, focus or theme assertions; it does not establish arbitrary long-path product support.
+
 Storage failure regressions direct write and flush refusal through a thread-local fault under
 `REDTILDE_ENABLE_TESTS`; production builds contain neither the setter nor the injection branches. Assert
 the actual owned staging handle closes before deletion, original bytes/stamp survive, and no `.tmp` remains.

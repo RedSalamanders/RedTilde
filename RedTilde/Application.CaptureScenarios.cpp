@@ -165,10 +165,11 @@ void Application::PrepareDesignScenario()
     {
         GUID id{};
         RequireCapture(SUCCEEDED(CoCreateGuid(&id)), "Cannot identify the unique owned capture fixture");
-        const auto fixture =
-            std::filesystem::absolute(options.dataDirectory) /
-            std::format(L"CaptureFixture-{:08x}-{:04x}-{:04x}-{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}", id.Data1, id.Data2, id.Data3,
-                        id.Data4[0], id.Data4[1], id.Data4[2], id.Data4[3], id.Data4[4], id.Data4[5], id.Data4[6], id.Data4[7]);
+        const auto fixture = std::filesystem::absolute(options.dataDirectory) /
+                             // Preserve all 128 GUID bits while leaving room for atomic-write staging
+                             // filenames below the evidence root on machines with legacy path limits.
+                             std::format(L"cf-{:08x}{:04x}{:04x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}", id.Data1, id.Data2, id.Data3,
+                                         id.Data4[0], id.Data4[1], id.Data4[2], id.Data4[3], id.Data4[4], id.Data4[5], id.Data4[6], id.Data4[7]);
         const auto writing = fixture / (reference ? L"Reports" : L"Writing");
         if (reference)
         {

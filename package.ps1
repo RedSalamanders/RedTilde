@@ -48,7 +48,7 @@ Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Dependencies') -Destination $st
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'ThirdParty/RedMonitor/LICENSE.txt') -Destination (Join-Path $stage 'Dependencies/RedMonitor-LICENSE.txt')
 $pin=Get-Content (Join-Path $PSScriptRoot 'Dependencies/DxUi.lock.json') -Raw | ConvertFrom-Json
 if($null -ne $sdk){
-    Copy-Item -LiteralPath (Join-Path $sdk.SdkRoot 'ThirdPartyNotices') -Destination (Join-Path $stage 'Dependencies/DxUiSdk') -Recurse
+    Copy-Item -LiteralPath (Join-Path $sdk.SdkRoot 'licenses') -Destination (Join-Path $stage 'Dependencies/DxUiSdk') -Recurse
 }else{
 $source=Join-Path $PSScriptRoot ".build/dependencies/DxUi/source/$($pin.commit.Substring(0,16))"
 Copy-Item -LiteralPath (Join-Path $source 'LICENSE.txt') -Destination (Join-Path $stage 'Dependencies/DxUi-LICENSE.txt')
