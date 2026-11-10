@@ -5,6 +5,15 @@ This specification owns the project's CI routing. The versioned implementation a
 in .ci/project.json and every reusable workflow caller. Update those pins together through a reviewed PR.
 Older references to automatic native PR matrices or nightly native runs are superseded by this contract.
 
+Admitted matching-native main Release test and production builds can prepare the
+explicitly distributed SDK at the unchanged application lock. Build/package pass
+the same independent descriptor; runtime admission reopens its accepted binding.
+Only qualified v2 inputs support Tilde's evaluated before/after snapshots; legacy
+inputs and exact compatibility misses retain source. Corrupt data refuses.
+Static, Debug/ASan, local default and manual qualification keep source. Both native
+regression and production/package branches, failure detectors and domain gates
+remain required.
+
 PRs run changed-source clang-format feedback and the reviewed compiler-free static subset. Formatting drift
 fails and retains a patch. The explicit Commit PR formatting action accepts an open same-repository PR,
 checks its current head, commits only selected formatted source paths by ordinary fast-forward push and

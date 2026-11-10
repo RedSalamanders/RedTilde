@@ -32,7 +32,7 @@ try{
         $body=$clauses[0].Item2.Extent.Text
         $production=[scriptblock]::Create($body.Substring(1,$body.Length-2))
         $root=Join-Path $fixture ('production-proof-'+$mode)
-        $Platform='x64';$context=[pscustomobject]@{root=$root}
+        $Platform='x64';$context=[pscustomobject]@{root=$root};$sdkDescriptor=$null
         function Run([string]$Script,[string[]]$CommandArguments){
             Assert ($Script -ceq 'package.ps1' -and ($CommandArguments -join '|') -ceq '-Platform|x64|-SkipBuild') 'Production did not use the public package command'
             $package=Join-Path $root '.build/package/synthetic-x64-0.zip'

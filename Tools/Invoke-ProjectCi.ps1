@@ -19,6 +19,8 @@ Normal regression or explicit Full qualification; never advances automatic Relea
 Allows a local engine under development for compiler-free checks only.
 .OUTPUTS
 Canonical test evidence, source-bound receipts and qualified ZIPs; original portable-smoke.json production proof and GitHub job output paths.
+Eligible admitted Release test/production builds can prepare distributed pinned SDK inputs;
+the same independent descriptor and original receipt binding continue into packaging and runtime validation.
 .NOTES
 Requires PowerShell 7.4 and Git. Native work is hosted-only and uses the matching architecture.
 Static never invokes compiler fixtures. No publication or source/pin updates.
@@ -61,13 +63,22 @@ if ($env:GITHUB_OUTPUT) { Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value ('e
 $env:RedTildeBuildNumber = $number
 $env:RedTildeEnableTests = if ($Phase -eq 'Production') { 'false' } else { 'true' }
 if ($Phase -in @('ReleaseTestBuild','Qualification','Production')) {
+    $sdkDescriptor=$null
     $buildArguments = $profile + @('-BuildNumber',$number)
     if ($Phase -eq 'Production') { $buildArguments += '-ProductionOnly' }
+    if($Configuration -ceq 'Release' -and $Phase -cin @('ReleaseTestBuild','Production')){
+        Import-Module (Join-Path $EngineRoot 'Tools/Modules/Ci.SdkPreparation.psm1')
+        $lock=Get-Content (Join-Path $root 'Dependencies/DxUi.lock.json') -Raw|ConvertFrom-Json
+        $sdkDescriptor=Initialize-CiPinnedSdkInput -Context $context -SourceCommit $lock.commit -ApiRevision $lock.apiRevision
+        if($sdkDescriptor){$buildArguments+=@('-DxUiSdkInputDescriptor',$sdkDescriptor)}
+    }
     Run 'build.ps1' $buildArguments
     if ($Phase -eq 'ReleaseTestBuild') { return }
 }
 if ($Phase -eq 'Production') {
-    Run 'package.ps1' @('-Platform',$Platform,'-SkipBuild')
+    $packageArguments=@('-Platform',$Platform,'-SkipBuild')
+    if($sdkDescriptor){$packageArguments+=@('-DxUiSdkInputDescriptor',$sdkDescriptor)}
+    Run 'package.ps1' $packageArguments
     $archives = @(Get-ChildItem (Join-Path $root '.build/package') -Filter "*-$Platform-*.zip" -File | ForEach-Object FullName)
     if ($archives.Count -ne 1) { throw 'Expected one original production package and smoke receipt.' }
     $smokePath = $archives[0]+'.receipt.json'

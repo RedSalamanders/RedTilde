@@ -119,3 +119,34 @@ carries the pin's third-party notices and their `docs/licenses` texts. The index
 [historical DxUi delivery adoption plan](../Plans/Done/DxUiDeliveryAdoption_2026-11-02.md) records earlier adapters.
 The [current parent](../Plans/WIP/RemainingWork_2026-11-04.md) owns outstanding acceptance; a pin selection alone
 is not a green product receipt.
+
+## Qualified pinned SDK inputs
+
+An explicit Release SDK descriptor may replace source compilation of the exact
+unchanged DxUi pin. Tilde supports the qualified v2 recipe because its transactional
+build snapshots require portable actual tool/header/library proof. An older v1
+reader is closed and retains source fallback. Debug/ASan and default local builds
+retain source. The native MSBuild host is explicit: amd64 on x64, arm64 on ARM64.
+
+The exact clean pinned shared controller authenticates the original producer,
+archive, input key/manifest and every payload byte. Actual application imports
+and per-file ABI guards remain mandatory; source and SDK imports cannot mix.
+SDK snapshots preserve compiled-source, selected compiler/environment and owned
+output/intermediate checks before and after the build. The authenticated whole
+payload manifest conservatively binds the packaged header closure. The actual
+linker tlog must name the verified SDK archive. Close rechecks inputs and must
+succeed before publishing a passed schema-2 receipt; source and output bytes are
+checked again after finalization.
+
+The accepted receipt retains the independent descriptor path/hash, original
+recipe and archive/link-command hashes. Test/package admission reopens it through
+the trusted reader, compares the original key/manifest and recomputes actual SDK
+inputs. Missing descriptors, unsupported recipes, moved inputs, changed tools or
+failed close cannot accept an existing artifact. Full-source, binary, runtime
+closure, build-number and test-mode checks remain.
+
+Production packaging reopens and leases the original SDK to stage its complete
+verified notices, then closes successfully before publishing package acceptance.
+Hidden extraction smoke and all production test-entry refusals remain required.
+Dependency inputs supply no native product verdict. Controlled-origin local
+qualification and live hosted-origin acceptance remain separate.
