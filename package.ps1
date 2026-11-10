@@ -9,19 +9,30 @@ creating its private data directory. Never activates a window or launches a diag
 Native package architecture, x64 or ARM64.
 .PARAMETER SkipBuild
 Uses the exact receipt-verified Release artifact already present. Test-enabled artifacts are refused.
+.PARAMETER DxUiSdkInputDescriptor Independent descriptor for the original production SDK; omitted uses the accepted build binding.
 .OUTPUTS
 Portable ZIP and source/binary-bound JSON receipt beneath .build/package; retained staging and smoke evidence.
 #>
 [CmdletBinding()]
-param([ValidateSet('x64','ARM64')][string] $Platform='x64',[switch] $SkipBuild)
+param([ValidateSet('x64','ARM64')][string] $Platform='x64',[switch] $SkipBuild,[string]$DxUiSdkInputDescriptor='')
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-if (-not $SkipBuild) { & (Join-Path $PSScriptRoot 'build.ps1') -Platform $Platform -Configuration Release -ProductionOnly }
+if (-not $SkipBuild) { & (Join-Path $PSScriptRoot 'build.ps1') -Platform $Platform -Configuration Release -ProductionOnly -DxUiSdkInputDescriptor $DxUiSdkInputDescriptor }
 Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
 $artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform $Platform -Configuration Release
 $exe=$artifact.Executable
 $built=$artifact.Build
 if($built.testsEnabled -isnot [bool] -or $built.testsEnabled){throw 'Portable packaging requires a receipt-verified production-only Release build.'}
+$sdk=$null;$packageFailure=$null
+try{
+if($built.PSObject.Properties['dependencyRecipe'] -and $built.dependencyRecipe.recipe -cne 'PinnedSource'){
+    if($built.dependencyRecipe.recipe -cne 'PinnedQualifiedReleaseSdkV2'){throw 'Unsupported Tilde production SDK recipe.'}
+    if(-not $DxUiSdkInputDescriptor){$DxUiSdkInputDescriptor=$built.sdkInputDescriptor}
+    Import-Module (Join-Path $PSScriptRoot 'Build/Toolchain.psm1') -Force
+    Import-Module (Join-Path $PSScriptRoot '.ci-engine/Tools/Modules/Ci.SdkConsumer.psm1')
+    $sdk=Open-CiApplicationSdkInput -ProjectRoot $PSScriptRoot -Descriptor $DxUiSdkInputDescriptor -Platform $Platform -Configuration Release -MSBuildPath (Get-RedTildeMSBuild)
+    if($null -eq $sdk -or $sdk.Descriptor.Hash -cne $built.sdkInputDescriptorSha256 -or $sdk.Evidence.inputKey -cne $built.dependencyRecipe.inputKey -or $sdk.Evidence.manifestSha256 -cne $built.dependencyRecipe.manifestSha256){throw 'Package SDK inputs differ from the original production build.'}
+}
 $output=Join-Path $PSScriptRoot '.build/package'
 $version='0.1.'+[string]$built.buildNumber
 $stage=Join-Path $output ('RedTilde-'+$version+'-'+$Platform+'-'+(Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
@@ -36,6 +47,9 @@ Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'LICENSE.txt') -Destination $sta
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Dependencies') -Destination $stage -Recurse
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'ThirdParty/RedMonitor/LICENSE.txt') -Destination (Join-Path $stage 'Dependencies/RedMonitor-LICENSE.txt')
 $pin=Get-Content (Join-Path $PSScriptRoot 'Dependencies/DxUi.lock.json') -Raw | ConvertFrom-Json
+if($null -ne $sdk){
+    Copy-Item -LiteralPath (Join-Path $sdk.SdkRoot 'ThirdPartyNotices') -Destination (Join-Path $stage 'Dependencies/DxUiSdk') -Recurse
+}else{
 $source=Join-Path $PSScriptRoot ".build/dependencies/DxUi/source/$($pin.commit.Substring(0,16))"
 Copy-Item -LiteralPath (Join-Path $source 'LICENSE.txt') -Destination (Join-Path $stage 'Dependencies/DxUi-LICENSE.txt')
 Copy-Item -LiteralPath (Join-Path $source 'THIRD-PARTY-NOTICES.md') -Destination (Join-Path $stage 'Dependencies/DxUi-THIRD-PARTY-NOTICES.md')
@@ -46,6 +60,7 @@ Copy-Item -LiteralPath (Join-Path $source 'docs/licenses') -Destination (Join-Pa
 $triplet=if ($Platform -eq 'ARM64') { 'arm64-windows' } else { 'x64-windows' }
 $wilCopyright=Join-Path ([string]$resolved.Project.PropertyGroup.DxUiConsumerOutputRoot) "vcpkg_installed/$Platform/$triplet/share/wil/copyright"
 Copy-Item -LiteralPath $wilCopyright -Destination (Join-Path $stage 'Dependencies/WIL-LICENSE.txt')
+}
 # This standalone product owns its runtime closure; it cannot import a sibling producer's packager.
 Import-Module (Join-Path $PSScriptRoot 'Build/Toolchain.psm1') -Force
 $installation=(Get-RedTildeMSBuild) -replace '(?i)[\\/]MSBuild[\\/].*$',''
@@ -95,8 +110,11 @@ foreach($case in $refusalCases){
     if($exit -ne 2 -or (Test-Path -LiteralPath $data)){throw ('Production test entry point did not refuse before data access: '+$case.name)}
     $refusals+=[ordered]@{name=$case.name;arguments=$case.arguments;exitCode=$exit;dataDirectoryAbsent=$true}
 }
+if($null -ne $sdk){Close-CiPinnedSdkInput $sdk}
 Write-Host "Experimental portable package: $archive"
 [ordered]@{schemaVersion=1;sourceIdentity=$built.sourceIdentity;binarySha256=$built.binarySha256;platform=$Platform;
     archiveSha256=(Get-FileHash $archive).Hash;status='experimental';version=$version;smokePassed=$true;
     testsEnabled=$built.testsEnabled;runtimeRedistributableBundled=$true;testOnlyEntryPointRefusals=$refusals} |
     ConvertTo-Json -Depth 5 | Set-Content -LiteralPath ($archive+'.receipt.json') -Encoding utf8
+}catch{$packageFailure=$_;throw}
+finally{if($null -ne $sdk -and -not $sdk.Closed){try{Close-CiPinnedSdkInput $sdk}catch{if($null -eq $packageFailure){throw}else{Write-Warning ('Package SDK close also failed: '+$_.Exception.Message)}}}}

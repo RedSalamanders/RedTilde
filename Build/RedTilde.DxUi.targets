@@ -1,6 +1,6 @@
 <Project>
-  <Import Project="$(DxUiRoot)\Build\DxUi.Consumer.targets" Condition="'$(DxUiRoot)'!=''"></Import>
-  <ItemGroup Condition="'$(DxUiRoot)'!=''">
+  <Import Project="$(DxUiRoot)\Build\DxUi.Consumer.targets" Condition="'$(RedTildeDxUiSdkRoot)'=='' and '$(DxUiRoot)'!=''"></Import>
+  <ItemGroup Condition="'$(RedTildeDxUiSdkRoot)'=='' and '$(DxUiRoot)'!=''">
     <ProjectReference Update="$(DxUiResolvedRoot)src\DxUi.vcxproj">
       <AdditionalProperties>%(ProjectReference.AdditionalProperties);WholeProgramOptimization=$(WholeProgramOptimization);VCToolsVersion=$(VCToolsVersion);ForceImportAfterCppTargets=$(MSBuildThisFileDirectory)PinnedDxUiPolicy.targets</AdditionalProperties>
     </ProjectReference>

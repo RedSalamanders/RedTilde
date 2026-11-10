@@ -5,7 +5,8 @@ function Get-RedTildeMSBuild {
     if (-not (Test-Path -LiteralPath $vswhere)) { throw 'Install Visual Studio 2026 Desktop development with C++.' }
     $installation = & $vswhere -latest -prerelease -products '*' -version '[18.0,19.0)' -requires Microsoft.Component.MSBuild -property installationPath
     if (-not $installation) { throw 'Visual Studio 2026 with MSBuild was not found.' }
-    $path = Join-Path $installation 'MSBuild/Current/Bin/MSBuild.exe'
+    $nativeHost=if([Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq 'Arm64'){'arm64'}else{'amd64'}
+    $path = Join-Path $installation ("MSBuild/Current/Bin/$nativeHost/MSBuild.exe")
     if (-not (Test-Path -LiteralPath $path)) { throw "MSBuild is missing: $path" }
     return $path
 }
@@ -21,6 +22,22 @@ function Assert-RedTildeOutputNotRunning {
 }
 
 Export-ModuleMember -Function Get-RedTildeMSBuild, Assert-RedTildeOutputNotRunning
+
+function Get-RedTildeSdkBuildArguments {
+    # Product-specific property names and the same evaluated/native invocation
+    # are owned here; the shared engine owns SDK authenticity and ABI admission.
+    param([Parameter(Mandatory)][string]$Root,[Parameter(Mandatory)]$SdkInput)
+    if($SdkInput.Closed -or $SdkInput.Evidence.recipe -cne 'PinnedQualifiedReleaseSdkV2'){throw 'Tilde SDK snapshots require an active qualified v2 reader.'}
+    $engine=Join-Path $Root '.ci-engine'
+    foreach($path in @($Root,$engine,$SdkInput.SdkRoot,$SdkInput.LeasePath)){if($path -match '[%;"\r\n]'){throw 'SDK paths contain unsupported MSBuild delimiters.'}}
+    $hostTool=[Environment]::GetEnvironmentVariable('PreferredToolArchitecture','Process')
+    if(-not $hostTool){$hostTool=[Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant()}
+    if($hostTool -cnotin @('x86','x64','arm64')){throw 'Unsupported SDK compiler host.'}
+    $arguments=@("/p:RedTildeDxUiSdkRoot=$($SdkInput.SdkRoot)","/p:CiSdkRoot=$($SdkInput.SdkRoot)","/p:CiSdkProjectRoot=$Root","/p:CiSdkLeasePath=$($SdkInput.LeasePath)","/p:RedTildeCiEngineRoot=$engine","/p:PreferredToolArchitecture=$hostTool")
+    if($SdkInput.Evidence.recipe -ceq 'PinnedQualifiedReleaseSdkV2'){$arguments+=@('/p:CiSdkContract=QualifiedAbiV2')}
+    return $arguments
+}
+Export-ModuleMember -Function Get-RedTildeSdkBuildArguments
 
 function Get-RedTildePinnedBuildArguments {
     param([Parameter(Mandatory)][ValidateSet('Debug','Release','ASan Debug')][string]$Configuration,
@@ -46,7 +63,9 @@ function Get-RedTildeClangFormat {
     $command=Get-Command clang-format.exe -CommandType Application -ErrorAction SilentlyContinue|Select-Object -First 1
     if($command){return $command.Source}
     $msbuild=Get-RedTildeMSBuild
-    $installation=([IO.FileInfo]$msbuild).Directory.Parent.Parent.Parent.FullName
+    # Native MSBuild has an extra host directory; derive the installation by its
+    # MSBuild boundary rather than a fixed number of parents.
+    $installation=$msbuild -replace '(?i)[\\/]MSBuild[\\/].*$',''
     foreach($relative in @('VC/Tools/Llvm/x64/bin/clang-format.exe','VC/Tools/Llvm/ARM64/bin/clang-format.exe','VC/Tools/Llvm/bin/clang-format.exe')){
         $candidate=Join-Path $installation $relative
         if(Test-Path -LiteralPath $candidate -PathType Leaf){return $candidate}
