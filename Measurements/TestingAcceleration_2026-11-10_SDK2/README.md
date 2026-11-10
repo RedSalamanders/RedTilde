@@ -15,3 +15,18 @@ API-5 qualified SDK consumption and live hosted authentication remain pending. T
 failed campaign 42824746357 is a digest-verified diagnostic fixture only; the whole campaign is inadmissible.
 A separate actual local native SDK5 producer experiment is running. Local fixture run 6111103 is not GitHub.
 No overall speedup, candidate native gate, local delegation or main-adoption acceptance is claimed here.
+## Actual local API-5 SDK continuation
+
+The separate local native SDK5 producer passed all SDK gates and preserved its original immutable input
+key/manifest. Its first sidecar output path was refused by tooling containment; the corrected create-only
+sidecar was then produced inside the tooling checkout without weakening containment or rerunning SDK gates.
+
+Actual v2 application preflight, test-enabled Release build, full native x64 runtime (including 40 hidden
+captures/crash coverage), production-only build and clean-extraction package passed. The local SDK fixture
+is `6111103`, not a GitHub run. Only the origin resolver was controlled; SDK receipt, source/tooling/storage,
+byte closure, compiler/ABI, before/after snapshots, linker archive, runtime and package checks executed.
+
+Actual package refusals covered an unknown recipe, unsupported v1 recipe and absent independent descriptor.
+The original successful build receipt was restored byte-for-byte. The companion SDK record retains exact
+source, recipe, receipt/image/package identities and local limits. This supersedes the earlier local-SDK
+pending status; live hosted origin, native ARM64 product acceptance and organization speed targets remain open.
