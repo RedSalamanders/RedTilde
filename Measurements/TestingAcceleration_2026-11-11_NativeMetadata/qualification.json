@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "implementationCommit": "71ecdfb107986059c96af52c1d902970e4de2fe2",
+  "engineCommit": "5233b5271f268cbe7aa420c18250347c297da63a",
+  "profiles": [
+    {
+      "platform": "x64",
+      "configuration": "Debug",
+      "scope": "CanonicalFullScopedNative",
+      "passed": true
+    },
+    {
+      "platform": "x64",
+      "configuration": "Debug",
+      "scope": "CanonicalDesignInteractive",
+      "passed": true
+    },
+    {
+      "platform": "x64",
+      "configuration": "Release",
+      "scope": "CanonicalFullScopedNative",
+      "passed": true
+    },
+    {
+      "platform": "x64",
+      "configuration": "Release",
+      "scope": "CanonicalDesignInteractive",
+      "passed": true
+    },
+    {
+      "platform": "x64",
+      "configuration": "ASan Debug",
+      "scope": "CanonicalFullScopedNative",
+      "passed": true
+    },
+    {
+      "platform": "x64",
+      "configuration": "ASan Debug",
+      "scope": "CanonicalDesignInteractive",
+      "passed": true
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Debug",
+      "scope": "CrossBuildOnly",
+      "nativeRuntimeExecuted": false,
+      "passed": true
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Release",
+      "scope": "CrossBuildOnly",
+      "nativeRuntimeExecuted": false,
+      "passed": true
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "ASan Debug",
+      "scope": "CrossBuildOnly",
+      "nativeRuntimeExecuted": false,
+      "passed": true
+    }
+  ],
+  "originalEvidence": ".build/i61-native-metadata/cb8414b5911a4175a16b79336341ee6b",
+  "logHashes": [
+    {
+      "file": "ARM64-ASanDebug-build.log",
+      "sha256": "597ee9307984e93acd2a76080b4b3a54bb3a556d1fe8b19ed841dfdcf43b7ea5"
+    },
+    {
+      "file": "ARM64-Debug-build.log",
+      "sha256": "ab6ad179b86f25ae3b7df581f721267808706edb19a5e19e6948031ede090166"
+    },
+    {
+      "file": "ARM64-Release-build.log",
+      "sha256": "7c0c57895571d9e28855a44f2ffd584d4ae29b4580d72cc31b86356d2256ee52"
+    },
+    {
+      "file": "x64-ASanDebug-interactive.log",
+      "sha256": "4d802c474086519fdd2650205c4c74c5b1b5e8c1f411754280d307cfeca240fe"
+    },
+    {
+      "file": "x64-ASanDebug.log",
+      "sha256": "18713a919d2c4c00519bae0f57fe9a47bf60359556b338aa39fe0095fdec1683"
+    },
+    {
+      "file": "x64-Debug-interactive.log",
+      "sha256": "63fb9eb569c11d29b779d57fec23ed594710220bc00aba1fff403d8d69e1968c"
+    },
+    {
+      "file": "x64-Debug.log",
+      "sha256": "43829bfad574b82f9bdd2de74e3ae84c4169cfc3e7b47fb45b071e43550c98f2"
+    },
+    {
+      "file": "x64-Release-interactive.log",
+      "sha256": "c9068c0a9820a51797f8f579da78c16e68be480cdd363f09bd1fdf9715d47288"
+    },
+    {
+      "file": "x64-Release.log",
+      "sha256": "39105ec2503cc755c5ce940abb3405f838d0f2558c627304c27ea87f02993bf7"
+    }
+  ],
+  "arm64RuntimeQualified": false,
+  "controlledPerformanceQualified": false
+}

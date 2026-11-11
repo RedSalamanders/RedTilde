@@ -4,6 +4,16 @@ Visual Studio 2026 C++ v145, SDK 10.0.26100, Unicode, `/std:c++latest`, `/Wall /
 Discover VS through vswhere including installed prerelease instances. Match the pinned library's compiler,
 architecture, runtime (/MDd Debug/ASan, /MD Release) and SDK. Outputs are private to this repository under `.build`.
 
+Owned-profile clean and native build calls use the exact pinned shared engine's
+`Invoke-CiNativeCommand`. Each child host selects a fresh private MSVC metadata-service
+endpoint without changing the caller's environment or directory. Live output, literal
+argument boundaries and native exit codes are preserved, including failed clean/build
+refusal before receipt publication. Compiler flags, source/SDK checks, incremental
+reuse and output ownership remain governed by the contracts below. Restore `.ci-engine`
+at the exact `.ci/project.json` commit before native builds, matching hosted CI.
+The pinned interactive-lease helper build uses the same launcher; its warning,
+desktop ownership, native child identity and restoration checks are unchanged.
+
 A build transaction freezes all non-ignored source files except `Measurements/`, including WIP and prose.
 Editing those during compilation causes the full-source guard to refuse the result even when native bytes
 are unchanged. Update checklists between operations. Between builds, unchanged compiled inputs may support

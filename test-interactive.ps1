@@ -27,10 +27,14 @@ if($LASTEXITCODE){throw 'The canonical interactive lease source does not match t
 $resolved=[xml](Get-Content -LiteralPath (Join-Path $PSScriptRoot ".build/dependencies/DxUi/DxUi.resolved.$Platform.props") -Raw)
 $output=[string]$resolved.Project.PropertyGroup.DxUiConsumerOutputRoot
 Import-Module (Join-Path $PSScriptRoot 'Build/Toolchain.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot '.ci-engine/Tools/Modules/Ci.Policy.psm1') -ErrorAction Stop
 $msbuild=Get-RedTildeMSBuild
 $leaseLog=Join-Path $PSScriptRoot ('.build/logs/interactive-lease-'+[guid]::NewGuid().ToString('N')+'.log')
 $pinnedBuildArguments=@(Get-RedTildePinnedBuildArguments -Configuration $Configuration -Identity $artifact.Build.dependency.Identity)
-& $msbuild (Join-Path $source 'Tests/InteractiveLease/DxUi.InteractiveLease.vcxproj') /nologo /m /v:minimal "/p:Platform=$Platform" "/p:Configuration=$Configuration" "/p:DxUiOutputRoot=$output" @pinnedBuildArguments "/flp:LogFile=$leaseLog;Verbosity=normal"
+Invoke-CiNativeCommand -FilePath $msbuild -WorkingDirectory $PSScriptRoot -Arguments (@(
+    (Join-Path $source 'Tests/InteractiveLease/DxUi.InteractiveLease.vcxproj'),'/nologo','/m','/v:minimal',
+    "/p:Platform=$Platform","/p:Configuration=$Configuration","/p:DxUiOutputRoot=$output")+
+    $pinnedBuildArguments+@("/flp:LogFile=$leaseLog;Verbosity=normal"))
 if($LASTEXITCODE){throw "The exact pinned desktop lease did not build. See '$leaseLog'."}
 $leaseExe=Join-Path $output "$Platform/$Configuration/DxUi.InteractiveLease.exe"
 $leaseSha256=(Get-FileHash -LiteralPath $leaseExe).Hash
