@@ -49,7 +49,10 @@ try {
     $result=Join-Path $run 'design-interactive.json'
     $arguments=@('--design-interactive-probe',$result,'--data-dir',(Join-Path $run 'app-data'))
     $child=[pscustomobject]@{Name='RedTildeDesignInteractive';Log=(Join-Path $run 'child.log');CommandLine=(ConvertTo-DxUiCommandLine -Program $artifact.Executable -Arguments $arguments)}
-    $lease=Invoke-DxUiInteractiveLease -Executable $leaseExe -Runs @($child) -Label 'RedTilde keyboard and focus checks' -EstimateSeconds 70 -WorkDirectory $run -ChildTimeoutSeconds 120 -AutoStart:$InteractiveAutoStart
+    Import-Module (Join-Path $PSScriptRoot '.ci-engine/Tools/Modules/Ci.DesktopLease.psm1') -ErrorAction Stop
+    $lease=Invoke-CiInteractiveDesktopOperation -RequiresInteractiveDesktop $true -Operation {
+        Invoke-DxUiInteractiveLease -Executable $leaseExe -Runs @($child) -Label 'RedTilde keyboard and focus checks' -EstimateSeconds 70 -WorkDirectory $run -ChildTimeoutSeconds 120 -AutoStart:$InteractiveAutoStart
+    }
     $problems=@(Get-DxUiLeaseProblems -Result $lease.Result -ExitCode $lease.ExitCode -ExpectedChildren @($child.Name))+@($lease.PolicyProblems)
     if($lease.ExitCode -or $problems.Count){throw "The interactive lease failed: $($problems -join '; ') (exit $($lease.ExitCode))."}
     $checks=Get-Content -LiteralPath $result -Raw|ConvertFrom-Json
