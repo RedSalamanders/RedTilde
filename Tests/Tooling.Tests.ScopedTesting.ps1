@@ -586,6 +586,18 @@ param([string]$Platform,[string]$Configuration,[switch]$ProductionOnly)
         Put (Join-Path $buildRoot 'Tests/GuardFixture.cpp') 'first source bytes'
         foreach($name in @('Harness.psm1','ScopedTesting.psm1','BuildConsole.psm1','DxUiPaths.psm1')){Copy-Item -LiteralPath (Join-Path $root "Build/$name") -Destination (Join-Path $buildRoot "Build/$name")}
         Copy-Item -LiteralPath (Join-Path $root 'build.ps1') -Destination (Join-Path $buildRoot 'build.ps1')
+        # Keep this input/receipt fixture compiler-free. The real shared bridge
+        # has its own process/argv/service controls; this adapter records the
+        # actual build entrypoint's clean/build calls through the same boundary.
+        Put (Join-Path $buildRoot '.ci-engine/Tools/Modules/Ci.Policy.psm1') @'
+function Invoke-CiNativeCommand {
+    param([string]$FilePath,[string]$WorkingDirectory,[string[]]$Arguments)
+    if($FilePath -cne (Join-Path $WorkingDirectory '.build/mock-msbuild.ps1')){throw 'Unexpected fixture native target.'}
+    Push-Location -LiteralPath $WorkingDirectory
+    try { & $FilePath @Arguments } finally { Pop-Location }
+}
+Export-ModuleMember -Function Invoke-CiNativeCommand
+'@
         Put (Join-Path $buildRoot 'Build/Toolchain.psm1') @'
 Set-StrictMode -Version Latest
 function Get-RedTildeMSBuild { Join-Path (Split-Path $PSScriptRoot -Parent) '.build/mock-msbuild.ps1' }

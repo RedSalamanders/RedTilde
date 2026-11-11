@@ -18,6 +18,7 @@ $nativeEntryElapsed = [Diagnostics.Stopwatch]::StartNew()
 Import-Module (Join-Path $PSScriptRoot 'Build/BuildConsole.psm1') -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'Build/Toolchain.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot '.ci-engine/Tools/Modules/Ci.Policy.psm1') -ErrorAction Stop
 $canonicalDirectories=Assert-RedTildeCanonicalBuildDirectories -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
 $output=$canonicalDirectories.output
 Assert-RedTildeOutputNotRunning -OutputDirectory $output
@@ -87,10 +88,14 @@ if($priorReceipt -and $priorReceipt.schemaVersion -eq 2 -and $priorReceipt.passe
 }
 $project=Join-Path $PSScriptRoot 'RedTilde/RedTilde.vcxproj'
 if(-not $allowIncremental){
-    & $msbuild $project /nologo /m /v:minimal "/p:Platform=$Platform" "/p:Configuration=$Configuration" /t:Clean /p:BuildProjectReferences=false "/flp:LogFile=$log;Verbosity=normal" @sdkProperties
+    Invoke-CiNativeCommand -FilePath $msbuild -WorkingDirectory $PSScriptRoot -Arguments (@(
+        $project,'/nologo','/m','/v:minimal',"/p:Platform=$Platform","/p:Configuration=$Configuration",
+        '/t:Clean','/p:BuildProjectReferences=false',"/flp:LogFile=$log;Verbosity=normal")+$sdkProperties)
     if ($LASTEXITCODE -ne 0) { throw "RedTilde $Platform $Configuration owned-profile clean failed. See '$log'." }
 }
-& $msbuild $project /nologo /m /v:minimal "/p:Platform=$Platform" "/p:Configuration=$Configuration" "/flp:LogFile=$log;Verbosity=normal;Append=true" @sdkProperties
+Invoke-CiNativeCommand -FilePath $msbuild -WorkingDirectory $PSScriptRoot -Arguments (@(
+    $project,'/nologo','/m','/v:minimal',"/p:Platform=$Platform","/p:Configuration=$Configuration",
+    "/flp:LogFile=$log;Verbosity=normal;Append=true")+$sdkProperties)
 if ($LASTEXITCODE -ne 0) { throw "RedTilde $Platform $Configuration build failed. See '$log'." }
 Assert-NativeBuildDiagnostics -LogPath $log
 if ($sourceIdentity -cne (Get-RedTildeSourceIdentity -Root $PSScriptRoot)) { throw 'Source changed during the build. Rebuild before accepting this artifact.' }

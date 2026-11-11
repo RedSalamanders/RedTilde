@@ -26,6 +26,13 @@ Requires Windows, PowerShell 7, Git, Visual Studio 2026/v145 C++ and Windows SDK
 Visual Studio and restore pinned DxUi/WIL into this repository's private `.build` tree. Other Red checkouts are
 not build inputs.
 
+Native launchers also require a clean `.ci-engine` checkout at the exact
+`.ci/project.json` engine commit. On first setup, clone
+`https://github.com/RedSalamanders/.github.git` into `.ci-engine`, read the
+manifest's `engine.ref`, and check out that commit detached. Fetch before updating
+an existing clean checkout; preserve another owner's local changes. Hosted CI
+restores this exact dependency automatically.
+
 ```powershell
 .\build.ps1 -Configuration Debug
 .\.build\x64\Debug\RedTilde.exe
