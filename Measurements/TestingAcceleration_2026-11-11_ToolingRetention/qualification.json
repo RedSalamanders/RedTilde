@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "role": "LocalRunnerRetentionQualification",
+  "sourceCommit": "a513b3cd5a28fb7413aff7b08cef1fc90ca7c6ed",
+  "sourceIdentity": "4e7edc6a961de32abf44279bcf4c324e908473357d7a67f6863f4962f36fc094",
+  "steps": [
+    {
+      "logSha256": "91acc00c382b746837219c7c403b65ae2a8fb524076e7da8d9bc3142477eaac7",
+      "platform": "x64",
+      "passed": true,
+      "role": "Actual affected noninteractive native",
+      "configuration": "Debug"
+    },
+    {
+      "logSha256": "650023c87b5cc2fe9d2f4bd977db011ba8c736b48ed2e13cdc912b5e53b4ba59",
+      "platform": "x64",
+      "passed": true,
+      "role": "Actual Full noninteractive native",
+      "configuration": "Release"
+    },
+    {
+      "logSha256": "7345bd55f08b5b2439c354124351cfe8e5cc1f38ba52a4dbe91877ac16c0bb5e",
+      "platform": "x64",
+      "passed": true,
+      "role": "Actual Full noninteractive native",
+      "configuration": "ASan Debug"
+    },
+    {
+      "platform": "ARM64",
+      "passed": true,
+      "role": "Cross-build only, canonical artifact admission reverified",
+      "configuration": "Debug",
+      "logSha256": "3a7f924db4579b000f901de8a70e1f70ca0368b5fb8e334b7a782ace650e9ead"
+    },
+    {
+      "platform": "ARM64",
+      "passed": true,
+      "role": "Cross-build only",
+      "configuration": "Release",
+      "logSha256": "0ea02c6cc8186a45860ecd46ffc64865ec305599549e1cabfc7e26cf0cf7fbaf"
+    },
+    {
+      "platform": "ARM64",
+      "passed": true,
+      "role": "Cross-build only",
+      "configuration": "ASan Debug",
+      "logSha256": "7d40c1b04dd52c7e4383316764f2fecb7810def3f824f45bd969f15a66850a76"
+    }
+  ],
+  "arm64RuntimeQualified": false,
+  "interactiveQualified": false,
+  "controlledAccelerationTargetsProved": false,
+  "preservedOriginalFailure": "Long worktree fixture path budget",
+  "driverContinuation": "Canonical module reimport after build removed caller helper export; successful artifacts reverified, no passed native test rerun",
+  "originalFailureEvidence": {
+    "runId": "20261110T233234251Z-85600-db1fea67548341ac98e618f6fe43894c",
+    "outcome": "FAILED",
+    "case": "Rendering.DesignRefreshTypographyAndThemeRoles",
+    "reason": "Fixture seed HRESULT 0x80070003 at 259 target path units in the original long worktree",
+    "sha256": "4c4c58a0b00f2a8d33bcc31bc611de602918906b39a278a4bf3a0a1b5a582e74",
+    "preserved": true
+  },
+  "actualIndependentReuse": {
+    "profiles": [
+      "Release",
+      "ASan Debug"
+    ],
+    "toolingReused": true,
+    "formatReused": true,
+    "receiptsNotRewritten": true,
+    "sourceAndAssertionsUnchanged": true
+  }
+}

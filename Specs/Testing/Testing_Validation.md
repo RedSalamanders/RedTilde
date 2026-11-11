@@ -1,5 +1,19 @@
 # Validation and evidence
 
+## Independently completed tooling evidence
+
+The scoped runner verifies each independent Tooling/Format obligation immediately
+after all of that scope's commands succeed, then records its original input/tool
+identity before native execution. A later native failure, interruption or mutation
+does not erase that earlier successful proof. A retry reuses it only while the
+complete existing source/environment/tool closure still matches byte for byte.
+
+Failed or input-mutating independent commands publish no reusable success and must
+stop before native execution. A later source change invalidates reuse of an earlier
+tooling record even when that original record remains preserved. Native receipts
+retain their own post-execution verification; a failed or mutated batch never advances
+the affected iteration baseline or grants repository/native/platform qualification.
+
 Owned design-capture fixture directory names retain the complete 128-bit GUID in compact `cf-` plus
 32-hex form. Leave space for the real atomic-write staging filename below nested evidence roots on
 machines with legacy path limits. This changes neither fixture content nor its file/junction ownership,
