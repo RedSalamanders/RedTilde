@@ -33,11 +33,14 @@ try{
         $mapBefore=Get-ScopedMapIdentity (Get-ScopedSourceMap $product)
         $toolingBefore=Get-ScopedSourceIdentity $product
         $buildBefore=Get-ScopedSourceIdentity $product -CompiledOnly
+        Import-Module (Join-Path $root 'Build/Harness.psm1') -ErrorAction Stop
+        $directBuildBefore=Get-RedTildeSourceIdentity -Root $product
         Assert ((Get-ScopedSourceIdentity $product.ToUpperInvariant()) -ceq $toolingBefore) 'Windows path casing invalidated tooling evidence'
         Assert ((Get-ScopedSourceIdentity $product.ToUpperInvariant() -CompiledOnly) -ceq $buildBefore) 'Windows path casing invalidated build evidence'
         Put (Join-Path $engine '.build/fixture-output.json') '{"generated":true}'
         Assert ((Get-ScopedSourceIdentity $product) -ceq $toolingBefore) 'Generated engine output invalidated tooling'
         Assert ((Get-ScopedSourceIdentity $product -CompiledOnly) -ceq $buildBefore) 'Generated engine output invalidated build evidence'
+        Assert ((Get-RedTildeSourceIdentity -Root $product) -ceq $directBuildBefore) 'Generated engine output invalidated direct build identity'
         $policy=Join-Path $engine 'Tools/Modules/Ci.Policy.psm1'
         $original=[IO.File]::ReadAllBytes($policy)
         try{
@@ -48,6 +51,9 @@ try{
                 Assert ($refusal.Contains('Local engine checkout must be clean')) 'Modified ignored engine retained reusable build/tooling evidence'
             }
             Assert ((Get-ScopedMapIdentity (Get-ScopedSourceMap $product)) -ceq $mapBefore) 'Engine identity polluted product iteration maps'
+            $directRefusal=''
+            try{$null=Get-RedTildeSourceIdentity -Root $product}catch [System.Management.Automation.RuntimeException]{$directRefusal=$_.Exception.Message}
+            Assert ($directRefusal.Contains('Local engine checkout must be clean')) 'Direct source/SDK build identity ignored modified engine implementation'
         }finally{[IO.File]::WriteAllBytes($policy,$original)}
         Assert ((Get-ScopedSourceIdentity $product) -ceq $toolingBefore) 'Restored exact engine did not recover its tooling identity'
         Assert ((Get-ScopedSourceIdentity $product -CompiledOnly) -ceq $buildBefore) 'Restored exact engine did not recover its build identity'
