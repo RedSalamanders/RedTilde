@@ -47,6 +47,11 @@ Do not require an unrelated user window to remain foreground: the person may swi
 windows during a hidden run. Keep window-visibility checks and all logical-focus assertions. Observer
 negative controls replay its callback privately; they never activate a window or emit a false desktop event.
 
+Hidden shortcut fixtures stage their calling thread's requested keyboard state immediately before each
+direct key or wheel dispatch, after any preparation or earlier command that can pump messages. Retain and
+restore the original thread state at fixture exit; never inject physical input. A modifier setting before a
+sequence of commands does not establish the modifier state of every later command in that sequence.
+
 Editing-boundary consumer tests MUST use the exact adopted SDK's public APIs:
 route Source Enter/Shift+Enter through the hidden application's normal window,
 verify LF/CRLF/CR source, caret, one-step history and recovery, and exercise native
