@@ -3,8 +3,9 @@
     <RequiredMsvcToolsVersion>14.52</RequiredMsvcToolsVersion>
     <RedTildeBuildNumber Condition="'$(RedTildeBuildNumber)'==''">0</RedTildeBuildNumber>
     <RedTildeEnableTests Condition="'$(RedTildeEnableTests)'==''">true</RedTildeEnableTests>
-    <OutDir>$(MSBuildThisFileDirectory).build\$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(MSBuildThisFileDirectory).build\obj\$(Platform)\$(Configuration)\$(MSBuildProjectName)\</IntDir>
+    <RedTildeOutputRoot Condition="'$(RedTildeOutputRoot)'==''">$(MSBuildThisFileDirectory).build\</RedTildeOutputRoot>
+    <OutDir>$(RedTildeOutputRoot)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(RedTildeOutputRoot)obj\$(Platform)\$(Configuration)\$(MSBuildProjectName)\</IntDir>
     <VcpkgEnabled>false</VcpkgEnabled>
     <LinkIncremental Condition="'$(Configuration)'=='Debug'">true</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)'!='Debug'">false</LinkIncremental>
