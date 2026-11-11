@@ -1,4 +1,12 @@
 <Project>
+  <Target Name="ValidateRedTildeOutputRoot" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <_RedTildeCanonicalOutputRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory).build\'))</_RedTildeCanonicalOutputRoot>
+      <_RedTildeEvaluatedOutputRoot>$([System.IO.Path]::GetFullPath('$(RedTildeOutputRoot)'))</_RedTildeEvaluatedOutputRoot>
+    </PropertyGroup>
+    <Error Condition="'$(_RedTildeEvaluatedOutputRoot)'!='$(_RedTildeCanonicalOutputRoot)' and ('$(CiSdkContract)'!='LocalUnpinnedAbiV1' or '$(RedTildeDxUiSdkRoot)'=='' or '$(RedTildeCiEngineRoot)'=='')" Text="Separate RedTilde output roots require the explicit local SDK build broker and its active compiler lease." />
+    <CallTarget Targets="CiRequireSdkConsumerLease" Condition="'$(_RedTildeEvaluatedOutputRoot)'!='$(_RedTildeCanonicalOutputRoot)'" />
+  </Target>
   <PropertyGroup Condition="'$(MSBuildProjectExtension)'=='.vcxproj' and '$(Configuration)'=='Release'">
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>

@@ -1,5 +1,24 @@
 # Build and dependency contract
 
+## Explicit local SDK development builds
+
+`Tools/Build-LocalSdkCandidate.ps1` accepts an absolute producer snapshot descriptor
+and its independently frozen SHA-256. The shared local build broker verifies the
+unchanged application API, original producer/library/PDB provenance and actual ABI,
+then builds Release into a fresh `.build/local-unpinned/` operation. The explicit
+`RedTildeOutputRoot` redirects outputs and intermediates together for this route;
+ordinary build wrappers retain their fixed canonical directories and receipts.
+The live compiler lease checks actual evaluated directories before writes and
+every existing per-file ABI rule. Actual linker tracking must name only the held
+SDK archive. Source, engine, descriptor and producer inputs must remain unchanged
+through close before any local build record is published.
+
+The command never edits/restores the managed DxUi pin, replaces normal outputs,
+launches the application, runs tests or qualifies a product. Its distinct local
+role is refused by normal build-reuse, PrePush, qualification and package readers.
+Hosted/compiler-free use refuses before discovery. Native linking and application
+behavior acceptance remain explicit; command-routing tests provide no such pass.
+
 Visual Studio 2026 C++ v145, SDK 10.0.26100, Unicode, `/std:c++latest`, `/Wall /WX- /sdl /permissive- /utf-8`.
 Discover VS through vswhere including installed prerelease instances. Match the pinned library's compiler,
 architecture, runtime (/MDd Debug/ASan, /MD Release) and SDK. Outputs are private to this repository under `.build`.
