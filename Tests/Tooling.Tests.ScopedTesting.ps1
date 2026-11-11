@@ -35,8 +35,10 @@ try{
         $buildBefore=Get-ScopedSourceIdentity $product -CompiledOnly
         Import-Module (Join-Path $root 'Build/Harness.psm1') -ErrorAction Stop
         $directBuildBefore=Get-RedTildeSourceIdentity -Root $product
-        Assert ((Get-ScopedSourceIdentity $product.ToUpperInvariant()) -ceq $toolingBefore) 'Windows path casing invalidated tooling evidence'
-        Assert ((Get-ScopedSourceIdentity $product.ToUpperInvariant() -CompiledOnly) -ceq $buildBefore) 'Windows path casing invalidated build evidence'
+        if([OperatingSystem]::IsWindows()){
+            Assert ((Get-ScopedSourceIdentity $product.ToUpperInvariant()) -ceq $toolingBefore) 'Windows path casing invalidated tooling evidence'
+            Assert ((Get-ScopedSourceIdentity $product.ToUpperInvariant() -CompiledOnly) -ceq $buildBefore) 'Windows path casing invalidated build evidence'
+        }
         Put (Join-Path $engine '.build/fixture-output.json') '{"generated":true}'
         Assert ((Get-ScopedSourceIdentity $product) -ceq $toolingBefore) 'Generated engine output invalidated tooling'
         Assert ((Get-ScopedSourceIdentity $product -CompiledOnly) -ceq $buildBefore) 'Generated engine output invalidated build evidence'
