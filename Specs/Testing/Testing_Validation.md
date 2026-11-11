@@ -1,5 +1,12 @@
 # Validation and evidence
 
+Local build, native and tooling identities also bind the actual ignored `.ci-engine`
+through the shared `Get-CiPinnedEngineInputsIdentity`. The generated checkout must be
+ordinary, independent, clean and at `.ci/project.json`'s exact pin before evidence
+reuse. Fresh raw engine bytes participate; generated engine `.build` output does not.
+This input is separate from product iteration maps, grants no qualification or CI
+delegation, and preserves the current local and main gates.
+
 ## Independently completed tooling evidence
 
 The scoped runner verifies each independent Tooling/Format obligation immediately
@@ -379,6 +386,17 @@ input sequence also checks process-owned foreground. `-InteractiveAutoStart` req
 and records the visible 30-second countdown. The nine real keyboard stages exercise the same shortcut routing
 as the ordinary message loop, preserve exact source/history and check native focus, including close. Failed
 children, absent stages or unverified restoration cannot pass. This does not qualify physical IME/touch/AT.
+
+Before invoking that unchanged pinned native lease, the wrapper enters the shared
+engine's `Invoke-CiInteractiveDesktopOperation` admission with
+`RequiresInteractiveDesktop=true`. It takes Root's existing session mutex before
+the native DxUi mutex, so canonical Root and consumer foreground work serialize.
+Hold it only around the interactive entry; build and metadata evaluation remain
+outside. Managed DxUi source and its protocol are not edited. Consent, warning,
+child watchdog, all nine stages and original restoration checks remain required.
+`Tooling.Tests.DesktopAdmission.ps1` executes the actual call branch at recording
+boundaries and checks its literal arguments, result, failure and release flow.
+Those compiler-free controls perform no foreground input and grant no native pass.
 
 An observed helper-induced archive-policy mismatch requires retention of the actual archive/command evidence and
 a controlled stop before primary performance collection. An unchanged, already linked static app executable

@@ -8,6 +8,11 @@ function Get-RedTildeSourceIdentity {
         $path=Join-Path $Root $file
         if (Test-Path -LiteralPath $path -PathType Leaf) { $file + ':' + (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash }
     }
+    if(Test-Path -LiteralPath (Join-Path $Root '.ci/project.json') -PathType Leaf){
+        Import-Module (Join-Path $Root '.ci-engine/Tools/Modules/Ci.SourceInputs.psm1') -ErrorAction Stop
+        $engineInputs=Get-CiPinnedEngineInputsIdentity -Root $Root
+        $entries=@($entries)+@("engine_inputs`0$engineInputs")
+    }
     $bytes=[Text.Encoding]::UTF8.GetBytes(($entries -join "`n"))
     [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant()
 }
@@ -229,7 +234,7 @@ function Get-RedTildeSdkBuildInputSnapshot {
     $toolchain.sha256=& $hash ($toolchain|ConvertTo-Json -Depth 10 -Compress)
     Assert-RedTildeOwnedCleanDirectories -Root $Root -Platform $Platform -Configuration $Configuration -Toolchain $toolchain
     $snapshot=[ordered]@{
-        compiledSourceIdentity=(Get-ScopedMapIdentity (Get-ScopedSourceMap $Root -CompiledOnly))
+        compiledSourceIdentity=(Get-ScopedSourceIdentity $Root -CompiledOnly)
         dependencyIdentitySha256=(& $hash (($SdkInput.Evidence|ConvertTo-Json -Depth 10 -Compress)+$SdkInput.Descriptor.Hash))
         # The authenticated original manifest covers the complete payload, including
         # its packaged public headers. A changed byte is refused by open/close.
@@ -259,7 +264,7 @@ function Get-RedTildeBuildInputSnapshot {
     $toolchain=Get-RedTildeBuildToolchainSnapshot -Root $Root -MSBuildPath $MSBuildPath -Platform $Platform -Configuration $Configuration -DependencyResolution $dependencyResolution
     Assert-RedTildeOwnedCleanDirectories -Root $Root -Platform $Platform -Configuration $Configuration -Toolchain $toolchain
     $snapshot=[ordered]@{
-        compiledSourceIdentity=(Get-ScopedMapIdentity (Get-ScopedSourceMap $Root -CompiledOnly))
+        compiledSourceIdentity=(Get-ScopedSourceIdentity $Root -CompiledOnly)
         dependencyIdentitySha256=(Get-FileHash -LiteralPath $dependencyPath -Algorithm SHA256).Hash
         dependencyHeadersSha256=$headerInventory.sha256
         dependencyResolvedPropsSha256=$dependencyResolution.resolvedPropsSha256
