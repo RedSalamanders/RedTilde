@@ -1,13 +1,34 @@
+<#
+.SYNOPSIS Runs selected RedTilde application tests with retained, source-bound evidence.
+.PARAMETER LocalSdkBuildReceipt
+Original local SDK candidate build record. Requires Release, SkipBuild and explicit application Suites.
+.PARAMETER LocalSdkBuildSha256
+Independently retained SHA-256 of that original record. Current source, engine, SDK ABI and complete runtime bytes must match.
+.NOTES Local SDK checks retain separate local-only evidence and never qualify normal pinned, main or package gates. Full, Tooling, Sanitizer and unsupported scopes refuse in this mode.
+#>
 [CmdletBinding()]
 param([ValidateSet('x64','ARM64')][string] $Platform='x64',
       [ValidateSet('Debug','Release','ASan Debug')][string] $Configuration='Debug',
-      [ValidateSet('Core','Captures','Crash','All')][string] $Suite='Core',[switch] $SkipBuild,[string[]]$Suites=@(),[switch]$Full,[switch]$SkipTooling)
+      [ValidateSet('Core','Captures','Crash','All')][string] $Suite='Core',[switch] $SkipBuild,[string[]]$Suites=@(),[switch]$Full,[switch]$SkipTooling,
+      [string]$LocalSdkBuildReceipt='', [string]$LocalSdkBuildSha256='')
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
+$localSdkMode=[bool]($LocalSdkBuildReceipt -or $LocalSdkBuildSha256)
+if($localSdkMode -and (-not $IsWindows -or $env:GITHUB_ACTIONS -ceq 'true' -or $env:CI_NATIVE_BUILDS_DISABLED -ceq 'true')){
+    throw 'Local SDK runtime requires local Windows native execution.'
+}
+$localSdkSuites=@('Storage','Settings','Recovery','Editor','Preferences','RecoveryRestart','Performance','Captures','Crash')
+if($localSdkMode -and (-not $LocalSdkBuildReceipt -or $LocalSdkBuildSha256 -cnotmatch '^[a-f0-9]{64}$' -or
+    $Configuration -cne 'Release' -or -not $SkipBuild -or $Full -or -not $Suites.Count -or @($Suites|Where-Object{$_ -cnotin $localSdkSuites}).Count)){
+    throw 'Local SDK runtime requires the original build record/digest, Release, SkipBuild and explicit supported application Suites.'
+}
 Import-Module (Join-Path $PSScriptRoot 'Build/ScopedTesting.psm1') -Force
-$iterationLease=Enter-ScopedIterationLease $PSScriptRoot $Platform $Configuration
+$iterationLease=$null;$runtimeInput=$null;$runtimeFailure=$null
 try {
-[void](Suspend-ScopedIteration (Join-Path $PSScriptRoot ".build/reports/scoped-tests/$Platform-$($Configuration -replace ' ','')/iteration.json") $PSScriptRoot)
+if(-not $localSdkMode){
+    $iterationLease=Enter-ScopedIterationLease $PSScriptRoot $Platform $Configuration
+    [void](Suspend-ScopedIteration (Join-Path $PSScriptRoot ".build/reports/scoped-tests/$Platform-$($Configuration -replace ' ','')/iteration.json") $PSScriptRoot)
+}
 $available=@('Storage','Settings','Recovery','Editor','Preferences','RecoveryRestart','Performance','Captures','Crash','Sanitizer','Tooling')
 if($Full -or (-not $Suites.Count -and $Suite -eq 'All')){$Suites=$available}
 elseif(-not $Suites.Count){$Suites=if($Suite -eq 'Core'){@('Storage','Settings','Recovery','Editor','Preferences','RecoveryRestart','Performance','Sanitizer')}else{@($Suite)}}
@@ -21,22 +42,43 @@ if (-not $SkipBuild) { & (Join-Path $PSScriptRoot 'build.ps1') -Platform $Platfo
 $architecture=[Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
 if ($Platform -eq 'ARM64' -and $architecture -ne 'Arm64') { throw 'ARM64 runtime tests require a native ARM64 host.' }
 Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
-$artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
-$exe=$artifact.Executable
-$built=$artifact.Build
-$sourceIdentity=$artifact.SourceIdentity
+if($localSdkMode){
+    Import-Module (Join-Path $PSScriptRoot 'Build/Toolchain.psm1')
+    Import-Module (Join-Path $PSScriptRoot '.ci-engine/Tools/Modules/Ci.LocalSdkRuntime.psm1')
+    $runtimeInput=Open-CiLocalSdkApplicationRuntimeInput -ProjectRoot $PSScriptRoot -BuildReceipt $LocalSdkBuildReceipt `
+        -ExpectedBuildSha256 $LocalSdkBuildSha256 -MSBuildPath (Get-RedTildeMSBuild)
+    if($runtimeInput.Build.platform -cne $Platform){throw 'Local SDK runtime platform differs from its held native build.'}
+    $exe=$runtimeInput.Build.executable
+    $sourceIdentity=Get-RedTildeSourceIdentity -Root $PSScriptRoot
+    $binarySha256=$runtimeInput.Build.executableSha256
+}else{
+    $artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
+    $exe=$artifact.Executable
+    $built=$artifact.Build
+    $sourceIdentity=$artifact.SourceIdentity
+    $binarySha256=$built.binarySha256
+}
 Import-Module (Join-Path $PSScriptRoot 'Build/TestRunEvidence.psm1') -Force
-$evidence=Start-TestRunEvidence -Repository $PSScriptRoot -Context @{project='RedTilde';platform=$Platform;configuration=$Configuration;suites=$Suites;sourceIdentity=$sourceIdentity;binarySha256=$built.binarySha256}
+$evidence=Start-TestRunEvidence -Repository $PSScriptRoot -LocalSdkCandidate:$localSdkMode -Context @{project='RedTilde';platform=$Platform;configuration=$Configuration;suites=$Suites;sourceIdentity=$sourceIdentity;binarySha256=$binarySha256;localSdkCandidate=$localSdkMode}
 $run=$evidence.Path
 $receipt=$null
 try {
 $pin=Get-Content (Join-Path $PSScriptRoot 'Dependencies/DxUi.lock.json') -Raw | ConvertFrom-Json
-$receipt=[ordered]@{schemaVersion=1; sourceIdentity=$sourceIdentity; dependency=$pin.commit;
-    binarySha256=(Get-FileHash $exe).Hash; buildReceiptSha256=$artifact.ReceiptSha256;toolchain=$built.dependency.Identity;
+$receipt=[ordered]@{schemaVersion=1; sourceIdentity=$sourceIdentity;
+    binarySha256=(Get-FileHash $exe).Hash;
     platform=$Platform; configuration=$Configuration; hostArchitecture=$architecture;
     suite=($Suites -join ','); interactive=$false; environment=@{osVersion=[Environment]::OSVersion.VersionString;processor=$env:PROCESSOR_IDENTIFIER;
     logicalProcessors=[Environment]::ProcessorCount;renderMode='hidden native ControlHost, default device'};
     startedUtc=[DateTime]::UtcNow.ToString('o'); passed=$false; results=@()}
+if($localSdkMode){
+    $receipt.role='LocalUnpinnedApplicationRuntimeResult';$receipt.recipe='LocalUnpinnedReleaseSdk'
+    $receipt.buildReceipt=$LocalSdkBuildReceipt;$receipt.buildReceiptSha256=$LocalSdkBuildSha256
+    $receipt.sourceBytes=$runtimeInput.Build.sourceBytes;$receipt.engineInputs=$runtimeInput.Build.engineInputs
+    $receipt.dependency=$runtimeInput.Build.dependency;$receipt.runtimeBytesDigest=$runtimeInput.Build.runtimeBytes.digest
+    $receipt.testsExecuted=$false;$receipt.repositoryQualified=$false;$receipt.productionQualified=$false
+}else{
+    $receipt.dependency=$pin.commit;$receipt.buildReceiptSha256=$artifact.ReceiptSha256;$receipt.toolchain=$built.dependency.Identity
+}
 $receiptPath=Join-Path $run 'receipt.json'
 try {
     $nativeGroups=@('Storage','Settings','Recovery','Editor'|Where-Object{$_ -in $Suites})
@@ -182,12 +224,26 @@ try {
         Write-Host 'Real AddressSanitizer heap-use-after-free detection verified.'
     }
     if ($sourceIdentity -cne (Get-RedTildeSourceIdentity -Root $PSScriptRoot)) { throw 'Source changed during testing; this receipt cannot qualify the new source.' }
+    if($localSdkMode){$receipt.testsExecuted=$receipt.results.Count -gt 0;Close-CiLocalSdkApplicationRuntimeInput $runtimeInput}
     $receipt.passed=$true
+} catch {
+    if($localSdkMode){$receipt.error=$_.Exception.Message}
+    throw
 } finally {
+    if($localSdkMode){$receipt.testsExecuted=$receipt.results.Count -gt 0}
     $receipt.finishedUtc=[DateTime]::UtcNow.ToString('o')
     $receipt | ConvertTo-Json -Depth 9 | Set-Content -LiteralPath $receiptPath -Encoding utf8
     Write-Host "Receipt: $receiptPath"
 }
 
 } finally { Complete-TestRunEvidence -Run $evidence -Passed ([bool]($receipt -and $receipt.passed)) }
-}finally{try{$iterationLease.ReleaseMutex()}finally{$iterationLease.Dispose()}}
+}catch{$runtimeFailure=$_;throw}
+finally{
+    try{
+        if($null -ne $runtimeInput -and -not $runtimeInput.Closed){
+            try{Close-CiLocalSdkApplicationRuntimeInput $runtimeInput}
+            catch{if($null -eq $runtimeFailure){throw};Write-Warning ('Local SDK runtime close also failed: '+$_.Exception.Message)}
+        }
+    }finally{if($null -ne $iterationLease){try{$iterationLease.ReleaseMutex()}finally{$iterationLease.Dispose()}}}
+}
+if($localSdkMode){Write-Host 'LOCAL_UNPINNED_RUNTIME: ordinary local/main, repository and production gates remain NOT_EVALUATED.';$global:LASTEXITCODE=0}

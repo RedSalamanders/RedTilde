@@ -31,6 +31,16 @@ function New-Fixture([string] $Name) {
     return $path
 }
 
+$localRoot = New-Fixture 'local-sdk-runtime'
+$localRun = Start-TestRunEvidence -Repository $localRoot -Context @{scenario='local-sdk'} -LocalSdkCandidate
+try {
+    Assert-Evidence ($localRun.Directory -ceq (Join-Path $localRoot ".build/evidence/local-sdk-test-runs/$($localRun.Id)")) 'Local SDK result entered normal qualification evidence.'
+    Assert-Evidence (-not (Test-Path (Join-Path $localRoot '.build/evidence/test-runs'))) 'Local SDK execution created normal qualification output.'
+    [IO.File]::WriteAllText((Join-Path $localRun.Path 'scenario.log'), 'original local SDK witness')
+    Complete-TestRunEvidence $localRun $true
+    Assert-Evidence ((Get-Content (Join-Path $localRun.Directory 'completed.json') -Raw|ConvertFrom-Json).outcome -ceq 'passed') 'Local SDK evidence did not verify and close.'
+} finally {if(-not $localRun.Closed){Complete-TestRunEvidence $localRun $false}}
+
 $root = New-Fixture 'ordinary'
 $a = Start-TestRunEvidence $root @{scenario='first'}
 $b = Start-TestRunEvidence $root @{scenario='concurrent'}

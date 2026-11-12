@@ -22,8 +22,9 @@ retain their own post-execution verification; a failed or mutated batch never ad
 the affected iteration baseline or grants repository/native/platform qualification.
 
 Owned design-capture fixture directory names retain the complete 128-bit GUID in compact `cf-` plus
-32-hex form. Leave space for the real atomic-write staging filename below nested evidence roots on
-machines with legacy path limits. This changes neither fixture content nor its file/junction ownership,
+32-hex form. Fixture writes use absolute extended Windows path spelling for the
+target and its atomic staging sibling below nested evidence roots, independently
+of the host's legacy long-path setting. This changes neither fixture content nor its file/junction ownership,
 rendering, keyboard, focus or theme assertions; it does not establish arbitrary long-path product support.
 
 Storage failure regressions direct write and flush refusal through a thread-local fault under
