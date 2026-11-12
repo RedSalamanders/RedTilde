@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "source": "419c4f23fda787989cc91d58f9847d6a9f0bf732",
+  "engine": "07bc6f1e56804390bd5b2ecfdd4027fac2493049",
+  "dxui": "21fae0dc66000b04504ba7862169533ac2943be8",
+  "apiRevision": 5,
+  "results": [
+    {
+      "scope": "CanonicalPrePush",
+      "platform": "x64",
+      "configuration": "Release",
+      "passed": true
+    },
+    {
+      "scope": "CanonicalPrePush",
+      "platform": "x64",
+      "configuration": "Debug",
+      "passed": true
+    },
+    {
+      "scope": "CanonicalPrePush",
+      "platform": "x64",
+      "configuration": "ASan Debug",
+      "passed": true
+    },
+    {
+      "scope": "CrossBuildOnly",
+      "platform": "ARM64",
+      "passed": true,
+      "configuration": "Release",
+      "runtimeExecuted": false
+    },
+    {
+      "scope": "CrossBuildOnly",
+      "platform": "ARM64",
+      "passed": true,
+      "configuration": "Debug",
+      "runtimeExecuted": false
+    },
+    {
+      "scope": "CrossBuildOnly",
+      "platform": "ARM64",
+      "passed": true,
+      "configuration": "ASan Debug",
+      "runtimeExecuted": false
+    }
+  ],
+  "nativeCasesPerX64Profile": 156,
+  "hiddenCapturesPerX64Profile": 40,
+  "realAsanDetection": true,
+  "buildWarnings": 0,
+  "buildErrors": 0,
+  "logs": [
+    {
+      "sha256": "a5c3c1dddd8d52c6273cf95406ae4178f663c50d5a9101bdc0582c2be7497775",
+      "log": "ARM64-ASanDebug-build.log"
+    },
+    {
+      "sha256": "6211232a09ab6e90e88249b21cb70834228502fa75988155ee403a35893dac0d",
+      "log": "ARM64-Debug-build.log"
+    },
+    {
+      "sha256": "9ac98ca1948527fe59b5426af201b977a48b5a6d6aabb501794aa98fcc533f49",
+      "log": "ARM64-Release-build.log"
+    },
+    {
+      "sha256": "267ddb430179b5c86c0323a94f8643f1930eb91d8112cc7147a71b5c5c4cec14",
+      "log": "ASanDebug-prepush.log"
+    },
+    {
+      "sha256": "155bb4521131bf0f290a3866c8e9c3ed93df81b4686f59afdfc65156db643b84",
+      "log": "Debug-prepush.log"
+    },
+    {
+      "sha256": "57fd5d1244f7ae8519defe81607c51be616f3a48c5b3cbc800ea1c1100454db9",
+      "log": "Release-prepush.log"
+    }
+  ],
+  "originalFailureEvidencePreserved": true,
+  "nativeArm64RuntimeQualified": false,
+  "foregroundQualificationClaimed": false,
+  "pairedPerformanceQualified": false,
+  "mainGatesUnchanged": true
+}

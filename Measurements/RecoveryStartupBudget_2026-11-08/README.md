@@ -1,5 +1,21 @@
 # Recovery startup entry budget
 
+## Current-main reconciliation, 12 November
+
+[The current local matrix](qualification-2026-11-12.json) binds source
+`419c4f23fda787989cc91d58f9847d6a9f0bf732` after merging current main, retaining
+the exact API-5 dependency and current engine. Canonical PrePush passes in all
+three x64 configurations: all 156 native cases, 40 hidden captures, restart/crash
+checks and the real ASan detection probe pass. All six builds report zero warnings
+and errors. The symbolic-link case now passes locally; its original privilege
+failure below remains preserved. Test-count documentation now agrees with the catalog.
+
+ARM64 results remain compilation only. No foreground or paired performance
+qualification is claimed. Main native and production gates remain unchanged;
+the historical evidence below retains its original source and qualification limits.
+
+## Original source qualification
+
 This packet binds the startup correction to implementation
 `ace3417f73bc5de2259d83a34de65c0c0f989a97`, with API-5 SDK
 `21fae0dc66000b04504ba7862169533ac2943be8`.
