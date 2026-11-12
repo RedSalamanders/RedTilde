@@ -15,7 +15,7 @@ void RequireCapture(bool condition, const char *message)
     if (!condition)
         throw std::runtime_error(message);
 }
-void CaptureWrite(const std::filesystem::path &path, std::string_view text = "# Invented reference notes\n")
+std::filesystem::path CaptureNativePath(const std::filesystem::path &path)
 {
     // The owned evidence namespace can leave room for the target but not its
     // atomic staging sibling. Use extended spelling for both without shortening
@@ -26,6 +26,11 @@ void CaptureWrite(const std::filesystem::path &path, std::string_view text = "# 
     const auto &name = native.native();
     if (!name.starts_with(L"\\\\?\\"))
         native = name.starts_with(L"\\\\") ? L"\\\\?\\UNC\\" + name.substr(2u) : L"\\\\?\\" + name;
+    return native;
+}
+void CaptureWrite(const std::filesystem::path &path, std::string_view text = "# Invented reference notes\n")
+{
+    const auto native = CaptureNativePath(path);
     std::filesystem::create_directories(native.parent_path());
     const HRESULT result = WriteBytesAtomic(native, text);
     if (FAILED(result))
@@ -174,11 +179,12 @@ void Application::PrepareDesignScenario()
     {
         GUID id{};
         RequireCapture(SUCCEEDED(CoCreateGuid(&id)), "Cannot identify the unique owned capture fixture");
-        const auto fixture = std::filesystem::absolute(options.dataDirectory) /
-                             // Preserve all 128 GUID bits while leaving room for atomic-write staging
-                             // filenames below the evidence root on machines with legacy path limits.
-                             std::format(L"cf-{:08x}{:04x}{:04x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}", id.Data1, id.Data2, id.Data3,
-                                         id.Data4[0], id.Data4[1], id.Data4[2], id.Data4[3], id.Data4[4], id.Data4[5], id.Data4[6], id.Data4[7]);
+        const auto fixture =
+            CaptureNativePath(std::filesystem::absolute(options.dataDirectory) /
+                              // Preserve all 128 GUID bits while leaving room for atomic-write staging
+                              // filenames below the evidence root on machines with legacy path limits.
+                              std::format(L"cf-{:08x}{:04x}{:04x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}{:02x}", id.Data1, id.Data2, id.Data3,
+                                          id.Data4[0], id.Data4[1], id.Data4[2], id.Data4[3], id.Data4[4], id.Data4[5], id.Data4[6], id.Data4[7]));
         const auto writing = fixture / (reference ? L"Reports" : L"Writing");
         if (reference)
         {
