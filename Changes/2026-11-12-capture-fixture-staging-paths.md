@@ -1,0 +1,1 @@
+- Seed owned design-capture files and their atomic staging siblings with extended Windows paths so nested local SDK evidence works without shortening fixture identities or changing rendering assertions.

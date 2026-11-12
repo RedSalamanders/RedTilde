@@ -17,8 +17,17 @@ void RequireCapture(bool condition, const char *message)
 }
 void CaptureWrite(const std::filesystem::path &path, std::string_view text = "# Invented reference notes\n")
 {
-    std::filesystem::create_directories(path.parent_path());
-    const HRESULT result = WriteBytesAtomic(path, text);
+    // The owned evidence namespace can leave room for the target but not its
+    // atomic staging sibling. Use extended spelling for both without shortening
+    // the fixture, changing the storage writer or relying on host long-path policy.
+    auto native = path.lexically_normal();
+    native.make_preferred();
+    RequireCapture(native.is_absolute(), "A design-capture fixture must have an absolute owned path");
+    const auto &name = native.native();
+    if (!name.starts_with(L"\\\\?\\"))
+        native = name.starts_with(L"\\\\") ? L"\\\\?\\UNC\\" + name.substr(2u) : L"\\\\?\\" + name;
+    std::filesystem::create_directories(native.parent_path());
+    const HRESULT result = WriteBytesAtomic(native, text);
     if (FAILED(result))
         throw std::runtime_error(std::format("Cannot seed the owned design-capture fixture (0x{:08x}, {} path units)", static_cast<unsigned>(result),
                                              path.native().size()));
