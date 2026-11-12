@@ -2,6 +2,18 @@
 
 ## Explicit local SDK development builds
 
+After retaining the original local build record and its independent SHA-256, use
+`test.ps1 -Configuration Release -SkipBuild -Suites <scopes> -LocalSdkBuildReceipt
+<record> -LocalSdkBuildSha256 <digest>`. Supported scopes are Storage, Settings,
+Recovery, Editor, Preferences, RecoveryRestart, Performance, Captures and Crash.
+The existing application cases, catalog/partition checks, captures, restart and
+crash assertions are reused. Full, independent Tooling, Sanitizer, unsupported
+scopes, hosted execution and mismatched profiles refuse. The complete shared SDK
+runtime reader holds the original build operation, descriptor and payload through
+execution and must close successfully before a pass. Local candidate execution
+does not suspend or publish the ordinary pinned iteration baseline. Its separate
+evidence grants no normal local, main, package or production qualification.
+
 `Tools/Build-LocalSdkCandidate.ps1` accepts an absolute producer snapshot descriptor
 and its independently frozen SHA-256. The shared local build broker verifies the
 unchanged application API, original producer/library/PDB provenance and actual ABI,
