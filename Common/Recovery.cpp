@@ -269,6 +269,7 @@ struct RecoveryService::State
     std::vector<std::wstring> discards;
     std::vector<std::wstring> retired;
     std::vector<RecoveryCandidate> candidates;
+    RecoveryScanStatistics scanStatistics;
     bool stopping{}, ready{}, settled{}, finished{};
     HRESULT status = S_OK;
     std::array<HRESULT, RecoveryService::MaximumDocuments> snapshotStatuses{};
@@ -288,14 +289,24 @@ struct RecoveryService::State
     }
     void Scan()
     {
-        std::size_t scanned{};
+        RecoveryScanStatistics observed;
+        const auto publishStatistics = wil::scope_exit(
+            [&]() noexcept
+            {
+                std::lock_guard lock(mutex);
+                scanStatistics = observed;
+            });
         for (const auto &entry : std::filesystem::directory_iterator(root))
         {
+            if (observed.examinedEntries == MaximumScannedEntries)
+            {
+                observed.entryLimitReached = true;
+                break;
+            }
+            ++observed.examinedEntries;
             const auto name = entry.path().filename().native();
             if (!name.starts_with(L"session-") || !name.ends_with(L".rtd"))
                 continue;
-            if (++scanned > MaximumScannedEntries)
-                break;
             const auto candidate = std::wstring_view(name).substr(8, name.size() - 12);
             if (!ValidId(candidate) || candidate == id || candidates.size() >= MaximumCandidates)
                 continue;
@@ -589,6 +600,13 @@ HRESULT RecoveryService::Status() const noexcept
         return S_OK;
     std::lock_guard lock(state->mutex);
     return state->status;
+}
+RecoveryScanStatistics RecoveryService::ScanStatistics() const noexcept
+{
+    if (!state)
+        return {};
+    std::lock_guard lock(state->mutex);
+    return state->scanStatistics;
 }
 HRESULT RecoveryService::WaitForSettlement(DWORD milliseconds) const noexcept
 {
