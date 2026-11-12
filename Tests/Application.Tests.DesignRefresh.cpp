@@ -2705,24 +2705,31 @@ class DesignRefreshProbe final
                          if (!SetKeyboardState(savedKeyboard.data()))
                              std::terminate();
                      });
+                 std::array<BYTE, 256> requestedKeyboard{};
                  const auto modifiers = [&](bool ctrl, bool alt = false, bool shift = false)
                  {
-                     std::array<BYTE, 256> keys{};
-                     keys[VK_CONTROL] = keys[VK_LCONTROL] = ctrl ? 0x80 : 0;
-                     keys[VK_MENU] = keys[VK_RMENU] = alt ? 0x80 : 0;
-                     keys[VK_SHIFT] = keys[VK_LSHIFT] = shift ? 0x80 : 0;
-                     Require(SetKeyboardState(keys.data()) != FALSE, "set only the test thread's zoom modifiers without injecting input");
+                     requestedKeyboard.fill(0);
+                     requestedKeyboard[VK_CONTROL] = requestedKeyboard[VK_LCONTROL] = ctrl ? 0x80 : 0;
+                     requestedKeyboard[VK_MENU] = requestedKeyboard[VK_RMENU] = alt ? 0x80 : 0;
+                     requestedKeyboard[VK_SHIFT] = requestedKeyboard[VK_LSHIFT] = shift ? 0x80 : 0;
                  };
                  MSG routed{};
                  routed.hwnd = app.Window();
                  routed.message = WM_KEYDOWN;
                  const auto key = [&](UINT value)
                  {
+                     // Earlier commands can pump messages and replace the thread's keyboard snapshot.
+                     Require(SetKeyboardState(requestedKeyboard.data()) != FALSE,
+                             "stage the test thread's zoom modifiers immediately before each shortcut without injecting input");
                      routed.wParam = value;
                      return app.RouteShortcut(routed);
                  };
                  const auto wheel = [&](short delta)
-                 { (void)SendMessageW(app.Window(), WM_MOUSEWHEEL, MAKEWPARAM(MK_CONTROL, static_cast<WORD>(delta)), 0); };
+                 {
+                     Require(SetKeyboardState(requestedKeyboard.data()) != FALSE,
+                             "stage the test thread's zoom modifiers immediately before each wheel message without injecting input");
+                     (void)SendMessageW(app.Window(), WM_MOUSEWHEEL, MAKEWPARAM(MK_CONTROL, static_cast<WORD>(delta)), 0);
+                 };
                  for (const auto view : {EditorView::Compose, EditorView::Source, EditorView::Split})
                  {
                      app.SetView(view);

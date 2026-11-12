@@ -1,0 +1,1 @@
+- Exercise explicit local DxUi SDK candidates through the existing application tests, captures, restart and crash checks with complete runtime-byte leases and close-time verification. Keep candidate evidence and iteration state separate from ordinary qualification, and adopt the reviewed shared SDK admission engine without removing local or main gates.

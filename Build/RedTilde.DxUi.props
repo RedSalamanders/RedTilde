@@ -1,7 +1,11 @@
 <Project>
-  <Import Project="$(MSBuildThisFileDirectory)..\.build\dependencies\DxUi\DxUi.resolved.$(Platform).props" Condition="Exists('$(MSBuildThisFileDirectory)..\.build\dependencies\DxUi\DxUi.resolved.$(Platform).props')" />
-  <Import Project="$(DxUiRoot)\Build\DxUi.Consumer.props" Condition="'$(DxUiRoot)'!=''" />
+  <Import Project="$(MSBuildThisFileDirectory)..\.build\dependencies\DxUi\DxUi.resolved.$(Platform).props" Condition="'$(RedTildeDxUiSdkRoot)'=='' and Exists('$(MSBuildThisFileDirectory)..\.build\dependencies\DxUi\DxUi.resolved.$(Platform).props')" />
+  <Import Project="$(DxUiRoot)\Build\DxUi.Consumer.props" Condition="'$(RedTildeDxUiSdkRoot)'=='' and '$(DxUiRoot)'!=''" />
+  <Import Project="$(RedTildeDxUiSdkRoot)\DxUi.Sdk.props" Condition="'$(RedTildeDxUiSdkRoot)'!=''" />
   <Target Name="RequireRestoredDxUi" BeforeTargets="PrepareForBuild">
-    <Error Condition="'$(DxUiRoot)'==''" Text="Run restore-dxui.ps1 for this platform before building RedTilde." />
+    <Error Condition="'$(DxUiRoot)'=='' and '$(RedTildeDxUiSdkRoot)'==''" Text="Run restore-dxui.ps1 for this platform before building RedTilde." />
+    <Error Condition="'$(DxUiRoot)'!='' and '$(RedTildeDxUiSdkRoot)'!=''" Text="Select exactly one DxUi source or SDK recipe." />
+    <Error Condition="'$(RedTildeDxUiSdkRoot)'!='' and ('$(CiSdkLeasePath)'=='' or '$(RedTildeCiEngineRoot)'=='')" Text="Use build.ps1 with an active pinned SDK reader." />
   </Target>
+  <Import Project="$(RedTildeCiEngineRoot)\Tools\MSBuild\Ci.SdkConsumer.targets" Condition="'$(RedTildeDxUiSdkRoot)'!=''" />
 </Project>

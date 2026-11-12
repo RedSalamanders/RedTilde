@@ -1,8 +1,49 @@
 # Build and dependency contract
 
+## Explicit local SDK development builds
+
+After retaining the original local build record and its independent SHA-256, use
+`test.ps1 -Configuration Release -SkipBuild -Suites <scopes> -LocalSdkBuildReceipt
+<record> -LocalSdkBuildSha256 <digest>`. Supported scopes are Storage, Settings,
+Recovery, Editor, Preferences, RecoveryRestart, Performance, Captures and Crash.
+The existing application cases, catalog/partition checks, captures, restart and
+crash assertions are reused. Full, independent Tooling, Sanitizer, unsupported
+scopes, hosted execution and mismatched profiles refuse. The complete shared SDK
+runtime reader holds the original build operation, descriptor and payload through
+execution and must close successfully before a pass. Local candidate execution
+does not suspend or publish the ordinary pinned iteration baseline. Its separate
+evidence grants no normal local, main, package or production qualification.
+
+`Tools/Build-LocalSdkCandidate.ps1` accepts an absolute producer snapshot descriptor
+and its independently frozen SHA-256. The shared local build broker verifies the
+unchanged application API, original producer/library/PDB provenance and actual ABI,
+then builds Release into a fresh `.build/local-unpinned/` operation. The explicit
+`RedTildeOutputRoot` redirects outputs and intermediates together for this route;
+ordinary build wrappers retain their fixed canonical directories and receipts.
+The live compiler lease checks actual evaluated directories before writes and
+every existing per-file ABI rule. Actual linker tracking must name only the held
+SDK archive. Source, engine, descriptor and producer inputs must remain unchanged
+through close before any local build record is published.
+
+The command never edits/restores the managed DxUi pin, replaces normal outputs,
+launches the application, runs tests or qualifies a product. Its distinct local
+role is refused by normal build-reuse, PrePush, qualification and package readers.
+Hosted/compiler-free use refuses before discovery. Native linking and application
+behavior acceptance remain explicit; command-routing tests provide no such pass.
+
 Visual Studio 2026 C++ v145, SDK 10.0.26100, Unicode, `/std:c++latest`, `/Wall /WX- /sdl /permissive- /utf-8`.
 Discover VS through vswhere including installed prerelease instances. Match the pinned library's compiler,
 architecture, runtime (/MDd Debug/ASan, /MD Release) and SDK. Outputs are private to this repository under `.build`.
+
+Owned-profile clean and native build calls use the exact pinned shared engine's
+`Invoke-CiNativeCommand`. Each child host selects a fresh private MSVC metadata-service
+endpoint without changing the caller's environment or directory. Live output, literal
+argument boundaries and native exit codes are preserved, including failed clean/build
+refusal before receipt publication. Compiler flags, source/SDK checks, incremental
+reuse and output ownership remain governed by the contracts below. Restore `.ci-engine`
+at the exact `.ci/project.json` commit before native builds, matching hosted CI.
+The pinned interactive-lease helper build uses the same launcher; its warning,
+desktop ownership, native child identity and restoration checks are unchanged.
 
 A build transaction freezes all non-ignored source files except `Measurements/`, including WIP and prose.
 Editing those during compilation causes the full-source guard to refuse the result even when native bytes
@@ -119,3 +160,34 @@ carries the pin's third-party notices and their `docs/licenses` texts. The index
 [historical DxUi delivery adoption plan](../Plans/Done/DxUiDeliveryAdoption_2026-11-02.md) records earlier adapters.
 The [current parent](../Plans/WIP/RemainingWork_2026-11-04.md) owns outstanding acceptance; a pin selection alone
 is not a green product receipt.
+
+## Qualified pinned SDK inputs
+
+An explicit Release SDK descriptor may replace source compilation of the exact
+unchanged DxUi pin. Tilde supports the qualified v2 recipe because its transactional
+build snapshots require portable actual tool/header/library proof. An older v1
+reader is closed and retains source fallback. Debug/ASan and default local builds
+retain source. The native MSBuild host is explicit: amd64 on x64, arm64 on ARM64.
+
+The exact clean pinned shared controller authenticates the original producer,
+archive, input key/manifest and every payload byte. Actual application imports
+and per-file ABI guards remain mandatory; source and SDK imports cannot mix.
+SDK snapshots preserve compiled-source, selected compiler/environment and owned
+output/intermediate checks before and after the build. The authenticated whole
+payload manifest conservatively binds the packaged header closure. The actual
+linker tlog must name the verified SDK archive. Close rechecks inputs and must
+succeed before publishing a passed schema-2 receipt; source and output bytes are
+checked again after finalization.
+
+The accepted receipt retains the independent descriptor path/hash, original
+recipe and archive/link-command hashes. Test/package admission reopens it through
+the trusted reader, compares the original key/manifest and recomputes actual SDK
+inputs. Missing descriptors, unsupported recipes, moved inputs, changed tools or
+failed close cannot accept an existing artifact. Full-source, binary, runtime
+closure, build-number and test-mode checks remain.
+
+Production packaging reopens and leases the original SDK to stage its complete
+verified notices, then closes successfully before publishing package acceptance.
+Hidden extraction smoke and all production test-entry refusals remain required.
+Dependency inputs supply no native product verdict. Controlled-origin local
+qualification and live hosted-origin acceptance remain separate.

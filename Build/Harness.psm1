@@ -8,6 +8,11 @@ function Get-RedTildeSourceIdentity {
         $path=Join-Path $Root $file
         if (Test-Path -LiteralPath $path -PathType Leaf) { $file + ':' + (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash }
     }
+    if(Test-Path -LiteralPath (Join-Path $Root '.ci/project.json') -PathType Leaf){
+        Import-Module (Join-Path $Root '.ci-engine/Tools/Modules/Ci.SourceInputs.psm1') -ErrorAction Stop
+        $engineInputs=Get-CiPinnedEngineInputsIdentity -Root $Root
+        $entries=@($entries)+@("engine_inputs`0$engineInputs")
+    }
     $bytes=[Text.Encoding]::UTF8.GetBytes(($entries -join "`n"))
     [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant()
 }
@@ -197,10 +202,59 @@ function Assert-RedTildeOwnedCleanDirectories {
         [string]$Toolchain.properties.IntDir.TrimEnd('\') -cne $expectedIntermediate){throw 'MSBuild output/intermediate directories are not the owned profile paths; refusing to clean.'}
 }
 
+function Get-RedTildeSdkBuildInputSnapshot {
+    # SDK snapshots retain Tilde's before/after compiler and owned-directory
+    # transaction. The active shared reader supplies authenticated dependency bytes.
+    param([string]$Root,[string]$Platform,[string]$Configuration,[string]$MSBuildPath,$SdkInput)
+    if($Configuration -cne 'Release' -or $SdkInput.Closed){throw 'SDK input snapshots require an active Release reader.'}
+    Import-Module (Join-Path $Root 'Build/Toolchain.psm1') -Force
+    $sdkArguments=@(Get-RedTildeSdkBuildArguments -Root $Root -SdkInput $SdkInput)
+    $names=@('OutDir','IntDir','PlatformToolset','VCToolsInstallDir','VCToolsVersion','WindowsSdkDir',
+        'WindowsTargetPlatformVersion','PreferredToolArchitecture','VCToolArchitecture','WindowsSDKToolArchitecture',
+        'CLToolPath','CLToolExe','LinkToolPath','LinkToolExe','ResourceCompileToolPath','ResourceCompileToolExe',
+        'DxUiRoot','DxUiSdkRoot','CiSdkContract')
+    $query=@((Join-Path $Root 'RedTilde/RedTilde.vcxproj'),'/nologo','/v:quiet',('-getProperty:'+($names -join ',')),"/p:Platform=$Platform","/p:Configuration=$Configuration")+$sdkArguments
+    $output=@(& $MSBuildPath @query)
+    if($LASTEXITCODE){throw 'SDK actual-project metadata evaluation failed.'}
+    $values=($output -join "`n")|ConvertFrom-Json -AsHashtable -ErrorAction Stop
+    if(-not $values.Contains('Properties')){throw 'SDK actual-project metadata has no properties.'}
+    $properties=[ordered]@{}
+    foreach($name in $names){if(-not $values.Properties.Contains($name)){throw "Missing SDK compiler property: $name"};$properties[$name]=[string]$values.Properties[$name]}
+    foreach($name in @('OutDir','IntDir','PlatformToolset','VCToolsInstallDir','VCToolsVersion','WindowsSdkDir','WindowsTargetPlatformVersion','PreferredToolArchitecture','DxUiSdkRoot')){
+        if([string]::IsNullOrWhiteSpace($properties[$name])){throw "Empty SDK compiler property: $name"}
+    }
+    if($properties.DxUiRoot -or -not [IO.Path]::GetFullPath($properties.DxUiSdkRoot).TrimEnd('\','/').Equals([IO.Path]::GetFullPath($SdkInput.SdkRoot).TrimEnd('\','/'),[StringComparison]::OrdinalIgnoreCase)){
+        throw 'SDK metadata redirects the verified payload or mixes source inputs.'
+    }
+    if($SdkInput.Evidence.recipe -ceq 'PinnedQualifiedReleaseSdkV2' -and $properties.CiSdkContract -cne 'QualifiedAbiV2'){throw 'SDK metadata downgraded its verified contract.'}
+    $environment=[ordered]@{}
+    foreach($name in @('CL','_CL_','LINK','_LINK_','RC','INCLUDE','LIB','LIBPATH','VCToolsVersion','WindowsSDKVersion','WindowsSdkDir')){$environment[$name]=[string][Environment]::GetEnvironmentVariable($name)}
+    $hash={param([string]$Text) [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($Text)))}
+    $toolchain=[ordered]@{properties=$properties;msbuildSha256=(Get-FileHash -LiteralPath $MSBuildPath).Hash;environment=$environment;dependencyRecipe=$SdkInput.Evidence}
+    $toolchain.sha256=& $hash ($toolchain|ConvertTo-Json -Depth 10 -Compress)
+    Assert-RedTildeOwnedCleanDirectories -Root $Root -Platform $Platform -Configuration $Configuration -Toolchain $toolchain
+    $snapshot=[ordered]@{
+        compiledSourceIdentity=(Get-ScopedSourceIdentity $Root -CompiledOnly)
+        dependencyIdentitySha256=(& $hash (($SdkInput.Evidence|ConvertTo-Json -Depth 10 -Compress)+$SdkInput.Descriptor.Hash))
+        # The authenticated original manifest covers the complete payload, including
+        # its packaged public headers. A changed byte is refused by open/close.
+        dependencyHeadersSha256=$SdkInput.Evidence.manifestSha256
+        dependencyResolvedPropsSha256=(Get-FileHash -LiteralPath (Join-Path $SdkInput.SdkRoot 'DxUi.Sdk.props')).Hash
+        compilerContextSha256=$toolchain.sha256
+        buildNumber=$(if($env:RedTildeBuildNumber){[int]$env:RedTildeBuildNumber}else{0})
+        testsEnabled=($env:RedTildeEnableTests -ne 'false')
+        toolchain=$toolchain
+    }
+    $snapshot.identity=& $hash (@($snapshot.compiledSourceIdentity,$snapshot.dependencyIdentitySha256,$snapshot.dependencyHeadersSha256,
+        $snapshot.dependencyResolvedPropsSha256,$snapshot.compilerContextSha256,$Platform,$Configuration,$snapshot.buildNumber,$snapshot.testsEnabled) -join "`n")
+    return $snapshot
+}
+
 function Get-RedTildeBuildInputSnapshot {
     param([Parameter(Mandatory)][string]$Root,[Parameter(Mandatory)][string]$Platform,
-          [Parameter(Mandatory)][string]$Configuration,[Parameter(Mandatory)][string]$MSBuildPath)
+          [Parameter(Mandatory)][string]$Configuration,[Parameter(Mandatory)][string]$MSBuildPath,$SdkInput=$null)
     Import-Module (Join-Path $Root 'Build/ScopedTesting.psm1') -Force
+    if($null -ne $SdkInput){return Get-RedTildeSdkBuildInputSnapshot -Root $Root -Platform $Platform -Configuration $Configuration -MSBuildPath $MSBuildPath -SdkInput $SdkInput}
     $dependencyPath=Join-Path $Root ".build/dependencies/DxUi/DxUi.identity.$Platform.json"
     if(-not(Test-Path -LiteralPath $dependencyPath -PathType Leaf)){throw 'Restored DxUi build identity is missing.'}
     $dependency=Get-Content -LiteralPath $dependencyPath -Raw -ErrorAction Stop|ConvertFrom-Json -AsHashtable -ErrorAction Stop
@@ -210,7 +264,7 @@ function Get-RedTildeBuildInputSnapshot {
     $toolchain=Get-RedTildeBuildToolchainSnapshot -Root $Root -MSBuildPath $MSBuildPath -Platform $Platform -Configuration $Configuration -DependencyResolution $dependencyResolution
     Assert-RedTildeOwnedCleanDirectories -Root $Root -Platform $Platform -Configuration $Configuration -Toolchain $toolchain
     $snapshot=[ordered]@{
-        compiledSourceIdentity=(Get-ScopedMapIdentity (Get-ScopedSourceMap $Root -CompiledOnly))
+        compiledSourceIdentity=(Get-ScopedSourceIdentity $Root -CompiledOnly)
         dependencyIdentitySha256=(Get-FileHash -LiteralPath $dependencyPath -Algorithm SHA256).Hash
         dependencyHeadersSha256=$headerInventory.sha256
         dependencyResolvedPropsSha256=$dependencyResolution.resolvedPropsSha256
@@ -281,7 +335,17 @@ function Assert-RedTildeTestArtifact {
     }
     Import-Module (Join-Path $Root 'Build/Toolchain.psm1') -Force
     $msbuild=Get-RedTildeMSBuild
-    $inputs=Get-RedTildeBuildInputSnapshot -Root $Root -Platform $Platform -Configuration $Configuration -MSBuildPath $msbuild
+    $sdk=$null;$sdkFailure=$null
+    try{
+    if($built.PSObject.Properties['dependencyRecipe'] -and $built.dependencyRecipe.recipe -cne 'PinnedSource'){
+        if($built.dependencyRecipe.recipe -cne 'PinnedQualifiedReleaseSdkV2'){throw 'Unsupported Tilde build SDK recipe.'}
+        if(-not $built.PSObject.Properties['sdkInputDescriptor'] -or -not $built.PSObject.Properties['sdkInputDescriptorSha256']){throw 'SDK build receipt has no independent descriptor binding.'}
+        Import-Module (Join-Path $Root '.ci-engine/Tools/Modules/Ci.SdkConsumer.psm1')
+        $sdk=Open-CiApplicationSdkInput -ProjectRoot $Root -Descriptor $built.sdkInputDescriptor -Platform $Platform -Configuration $Configuration -MSBuildPath $msbuild
+        if($null -eq $sdk -or $sdk.Descriptor.Hash -cne $built.sdkInputDescriptorSha256 -or
+            $sdk.Evidence.inputKey -cne $built.dependencyRecipe.inputKey -or $sdk.Evidence.manifestSha256 -cne $built.dependencyRecipe.manifestSha256){throw 'Existing artifact SDK inputs do not match their original accepted build.'}
+    }
+    $inputs=Get-RedTildeBuildInputSnapshot -Root $Root -Platform $Platform -Configuration $Configuration -MSBuildPath $msbuild -SdkInput $sdk
     if(-not $built.buildInputs -or $built.buildInputs.identity -cne $inputs.identity -or
         $built.compiledSourceIdentity -cne $inputs.compiledSourceIdentity -or
         $built.dependencyHeadersSha256 -cne $inputs.dependencyHeadersSha256 -or
@@ -289,6 +353,9 @@ function Assert-RedTildeTestArtifact {
         $built.compilerContextSha256 -cne $inputs.compilerContextSha256){
         throw 'The build receipt does not attest the current compiled sources, dependency headers and compiler context. Rebuild before testing.'
     }
+    if($null -ne $sdk){Close-CiPinnedSdkInput $sdk}
+    }catch{$sdkFailure=$_;throw}
+    finally{if($null -ne $sdk -and -not $sdk.Closed){try{Close-CiPinnedSdkInput $sdk}catch{if($null -eq $sdkFailure){throw}else{Write-Warning ('Artifact SDK close also failed: '+$_.Exception.Message)}}}}
     [pscustomobject]@{Executable=$executable;Build=$built;SourceIdentity=$source;ReceiptSha256=(Get-FileHash -LiteralPath $receipt).Hash}
 }
 function Get-RedTildeDependencyPublicHeaders {

@@ -1,5 +1,32 @@
 # Validation and evidence
 
+Local build, native and tooling identities also bind the actual ignored `.ci-engine`
+through the shared `Get-CiPinnedEngineInputsIdentity`. The generated checkout must be
+ordinary, independent, clean and at `.ci/project.json`'s exact pin before evidence
+reuse. Fresh raw engine bytes participate; generated engine `.build` output does not.
+This input is separate from product iteration maps, grants no qualification or CI
+delegation, and preserves the current local and main gates.
+
+## Independently completed tooling evidence
+
+The scoped runner verifies each independent Tooling/Format obligation immediately
+after all of that scope's commands succeed, then records its original input/tool
+identity before native execution. A later native failure, interruption or mutation
+does not erase that earlier successful proof. A retry reuses it only while the
+complete existing source/environment/tool closure still matches byte for byte.
+
+Failed or input-mutating independent commands publish no reusable success and must
+stop before native execution. A later source change invalidates reuse of an earlier
+tooling record even when that original record remains preserved. Native receipts
+retain their own post-execution verification; a failed or mutated batch never advances
+the affected iteration baseline or grants repository/native/platform qualification.
+
+Owned design-capture fixture directory names retain the complete 128-bit GUID in compact `cf-` plus
+32-hex form. Fixture writes use absolute extended Windows path spelling for the
+target and its atomic staging sibling below nested evidence roots, independently
+of the host's legacy long-path setting. This changes neither fixture content nor its file/junction ownership,
+rendering, keyboard, focus or theme assertions; it does not establish arbitrary long-path product support.
+
 Storage failure regressions direct write and flush refusal through a thread-local fault under
 `REDTILDE_ENABLE_TESTS`; production builds contain neither the setter nor the injection branches. Assert
 the actual owned staging handle closes before deletion, original bytes/stamp survive, and no `.tmp` remains.
@@ -20,6 +47,11 @@ Teardown-specific coverage checks again after destruction of the owned applicati
 Do not require an unrelated user window to remain foreground: the person may switch or close their own
 windows during a hidden run. Keep window-visibility checks and all logical-focus assertions. Observer
 negative controls replay its callback privately; they never activate a window or emit a false desktop event.
+
+Hidden shortcut fixtures stage their calling thread's requested keyboard state immediately before each
+direct key or wheel dispatch, after any preparation or earlier command that can pump messages. Retain and
+restore the original thread state at fixture exit; never inject physical input. A modifier setting before a
+sequence of commands does not establish the modifier state of every later command in that sequence.
 
 Editing-boundary consumer tests MUST use the exact adopted SDK's public APIs:
 route Source Enter/Shift+Enter through the hidden application's normal window,
@@ -193,6 +225,12 @@ clipboard priority preference. A light consent scenario must not inherit the dar
 `Tests/Fixtures/reference-dark.md` is a runtime input to the reference-dark DPI captures;
 its edits select `Captures` in addition to normal Tooling/Format validation, rather than prose-only coverage.
 
+`docs/examples/` is copied into production packages and contains the paired-performance input. It is a native
+runtime/package input even for Markdown and README files; edits select conservative full coverage. Explicit
+native manifest rules override documentation exclusions in both selection and native source identities,
+including non-Markdown assets. Ordinary non-shipped documentation retains independent validation. A native
+scope pass does not substitute for paired performance or production package acceptance.
+
 Final gates: validator/format, x64 Debug/Release/ASan tests, real sanitizer detection, all ARM64 builds, native
 ARM64 execution for runtime claims, paired Release resource/latency evidence, WARP/device-loss/hidden/dirty
 render checks, physical IME/AT, and time-authorized interactive keyboard/focus restoration. Separate application
@@ -202,7 +240,15 @@ results from upstream library evidence. Keep failed receipts; a focused pass doe
 
 `Test-Changes.ps1 -Explain` is the read-only planning entrypoint; `Test-Changes.ps1` runs affected scopes. The first run compares committed work since the local merge base with `origin/main` plus independent staged, working, rename-side, deletion and untracked paths. No ref is fetched. Unknown executable/build/shared inputs widen coverage. `-Scopes A,B` selects explicit scopes; unknown or incompatible selectors fail before execution.
 
-A successful default affected run retains a source-byte and Git-index baseline for that checkout, platform, configuration and environment. The next edit selects only changes since that baseline. Staging or committing identical tested working bytes does not rerun tests. A genuinely different staged blob is retained. Failed, interrupted, corrupt, mismatched, explicit partial or CI-pending runs never advance this baseline. An explicit `-BaseRef` bypasses the incremental baseline. Unexplained artifact changes widen coverage. No selection is `NOT_EVALUATED`, never a new repository pass.
+A successful default affected run retains a source-byte and Git-index baseline for that checkout, platform, configuration and environment. The next edit selects only changes since that baseline. Staging or committing identical tested working bytes does not rerun tests. A genuinely different staged blob is retained. Failed, interrupted, corrupt, mismatched, explicit partial or CI-pending runs never advance this baseline. Explicit `-BaseRef` and `-Force` bypass the incremental baseline. Unexplained artifact changes widen coverage. No selection is `NOT_EVALUATED`, never a new repository pass.
+
+Selected affected work suspends the old baseline before build/test execution, so failure or interruption cannot
+leave older success able to suppress the next run. An unchanged successful explicit/Full attempt may restore
+the exact old baseline bytes; it does not advance that baseline. A default success publishes its new completed
+state. Direct test.ps1 attempts revoke old affected state before validation or native work. State paths are
+bounded to the checkout's report root and refuse reparse points. A reentrant checkout/profile test lease
+refuses competing processes while keeping other profiles/workspaces independent. These controls preserve
+the existing local evidence boundary and do not grant hosted, foreground or release acceptance.
 
 Only exact successful reusable scope results may be reused: source/dependency/build policy, binary/DLL/PDB and required deployed inputs, physical checkout, toolchain/environment, profile and normalized scenario arguments must match. Missing runtime inputs, JSON-only profiles, failures and mutation invalidate evidence. Receipts publish atomically only after successful unchanged execution. `-Force` bypasses result reuse; explicit Full/PrePush do not narrow obligations through the incremental baseline. IO/clipboard, stress, resource/benchmark observations, captures and process-fault workflows remain fresh when selected. Omission by an affected plan is not reusable qualification for omitted scopes.
 
@@ -352,6 +398,17 @@ input sequence also checks process-owned foreground. `-InteractiveAutoStart` req
 and records the visible 30-second countdown. The nine real keyboard stages exercise the same shortcut routing
 as the ordinary message loop, preserve exact source/history and check native focus, including close. Failed
 children, absent stages or unverified restoration cannot pass. This does not qualify physical IME/touch/AT.
+
+Before invoking that unchanged pinned native lease, the wrapper enters the shared
+engine's `Invoke-CiInteractiveDesktopOperation` admission with
+`RequiresInteractiveDesktop=true`. It takes Root's existing session mutex before
+the native DxUi mutex, so canonical Root and consumer foreground work serialize.
+Hold it only around the interactive entry; build and metadata evaluation remain
+outside. Managed DxUi source and its protocol are not edited. Consent, warning,
+child watchdog, all nine stages and original restoration checks remain required.
+`Tooling.Tests.DesktopAdmission.ps1` executes the actual call branch at recording
+boundaries and checks its literal arguments, result, failure and release flow.
+Those compiler-free controls perform no foreground input and grant no native pass.
 
 An observed helper-induced archive-policy mismatch requires retention of the actual archive/command evidence and
 a controlled stop before primary performance collection. An unchanged, already linked static app executable

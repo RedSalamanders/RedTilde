@@ -21,6 +21,8 @@ $ErrorActionPreference='Stop'
 if (-not $Explain -and $Mode -eq 'PrePush') { & (Join-Path $PSScriptRoot 'Tools/Test-Changelog.ps1') -Base $(if ($BaseRef) { $BaseRef } else { 'origin/main' }) }
 $root=$PSScriptRoot;$module=Join-Path $root 'Build/ScopedTesting.psm1'
 Import-Module $module -Force
+$iterationLease=if(-not $Explain){Enter-ScopedIterationLease $root $Platform $Configuration}else{$null}
+try {
 $manifest=Read-ScopedTestManifest $root
 $Scopes=@($Scopes|ForEach-Object{$_ -split ','}|ForEach-Object{$_.Trim()}|Where-Object{$_})
 if($Scopes.Count -and $Mode -ne 'Affected'){throw '-Scopes is only valid for explicit Affected iteration.'}
@@ -40,7 +42,7 @@ if($Mode -eq 'Affected' -and -not $Scopes.Count){
     # base override must not silently use an unrelated saved baseline.
     $branchPaths=@(Get-ScopedChangedPaths $root $BaseRef)
     $baseline=Read-ScopedIteration $iterationPath $root $Platform $Configuration $environment
-    if($baseline -and -not $PSBoundParameters.ContainsKey('BaseRef')){
+    if($baseline -and -not $Force -and -not $PSBoundParameters.ContainsKey('BaseRef')){
         $changed=@(@(Get-ScopedMapDelta $baseline.source $source)+@(Get-ScopedPendingIndexDelta $root $baseline.index $index)|Sort-Object -Unique)
         $basis='last successful default affected run (working bytes and index)'
         if(-not $changed.Count -and $artifact -cne $baseline.artifact){$forceFull=$true;$basis='unexplained artifact change since the last successful iteration'}
@@ -63,6 +65,7 @@ if(-not $selected.Count){
     exit 0
 }
 $native=@($selected|Where-Object native)
+$previousIteration=Suspend-ScopedIteration $iterationPath $root
 $buildOptions=''
 if($native.Count){
     Assert-ScopedRuntimePlatform $Platform
@@ -110,6 +113,16 @@ if($pending.Count){
                 $global:LASTEXITCODE=0;& $engine @invocationArguments
                 if(-not $? -or $LASTEXITCODE -ne 0){throw "Independent scope failed: $($scope.name) ($LASTEXITCODE)"}
             }
+            # Retain this completed obligation before a later native failure or
+            # interruption. Its original full input/tool closure still applies.
+            Import-Module $module -Force
+            $afterIndependent=Get-ScopedDigest ($(if($scope.name -ceq 'Format'){
+                Get-ScopedSourceIdentity $root -CompiledOnly
+            }else{Get-ScopedSourceIdentity $root})+"`n"+(Get-ScopedEnvironmentIdentity -Tooling))
+            $after=Get-ScopedDigest ($afterIndependent+"`n"+$scope.name)
+            if($after -cne $identities[$scope.name]){throw "Inputs changed during $($scope.name); no reusable success was published."}
+            if($scope.reuse){Write-ScopedReceipt (Get-ReceiptPath $scope) $identities[$scope.name]}
+            Write-Host "PASSED $($scope.name) (independent obligation; native coverage remains separate)"
         }
     }
     $runtime=@($pending|Where-Object native|ForEach-Object name)
@@ -120,21 +133,22 @@ if($pending.Count){
     }
     Import-Module $module -Force
     $afterNative=if($runtime.Count){Get-ScopedRunIdentity $root $Platform $Configuration '(common)' $buildOptions}else{$nativeKey}
-    $afterFormat=Get-ScopedDigest ((Get-ScopedSourceIdentity $root -CompiledOnly)+"`n"+(Get-ScopedEnvironmentIdentity -Tooling))
-    $afterTooling=Get-ScopedDigest ((Get-ScopedSourceIdentity $root)+"`n"+(Get-ScopedEnvironmentIdentity -Tooling))
-    foreach($scope in $pending){
-        $after=Get-ScopedDigest ($(if($scope.native){$afterNative}elseif($scope.name -ceq 'Format'){$afterFormat}else{$afterTooling})+"`n"+$scope.name)
+    foreach($scope in @($pending|Where-Object native)){
+        $after=Get-ScopedDigest ($afterNative+"`n"+$scope.name)
         if($after -cne $identities[$scope.name]){throw "Inputs changed during $($scope.name); no reusable success was published."}
     }
-    foreach($scope in $pending){if($scope.reuse){Write-ScopedReceipt (Get-ReceiptPath $scope) $identities[$scope.name]}}
+    foreach($scope in @($pending|Where-Object native)){if($scope.reuse){Write-ScopedReceipt (Get-ReceiptPath $scope) $identities[$scope.name]}}
 }
 if((Get-ScopedMapIdentity (Get-ScopedSourceMap $root)) -cne (Get-ScopedMapIdentity $source) -or
     (Get-ScopedMapIdentity (Get-ScopedIndexMap $root)) -cne (Get-ScopedMapIdentity $index) -or
     (Get-ScopedEnvironmentIdentity) -cne $environment){throw 'Inputs/index/environment changed during the run; the iteration baseline was not advanced.'}
 if($Mode -eq 'Affected' -and -not $Scopes.Count -and -not $deferred.Count){
     Write-ScopedIteration $iterationPath $root $Platform $Configuration $environment $source $index $artifact
+}elseif(-not $deferred.Count){
+    Restore-ScopedIteration $iterationPath $root $previousIteration
 }
 if($deferred.Count){Write-Host 'LOCAL_OBLIGATIONS_PASSED; CI_PENDING'}
 elseif($names.Count -eq $applicable.Count){Write-Host 'FULL_NONINTERACTIVE_PASSED; manual/platform/resource qualification remains separate'}
 else{Write-Host 'SELECTED_PASSED; repository NOT_EVALUATED'}
 exit 0
+}finally{if($iterationLease){try{$iterationLease.ReleaseMutex()}finally{$iterationLease.Dispose()}}}

@@ -5,6 +5,15 @@ This specification owns the project's CI routing. The versioned implementation a
 in .ci/project.json and every reusable workflow caller. Update those pins together through a reviewed PR.
 Older references to automatic native PR matrices or nightly native runs are superseded by this contract.
 
+Admitted matching-native main Release test and production builds can prepare the
+explicitly distributed SDK at the unchanged application lock. Build/package pass
+the same independent descriptor; runtime admission reopens its accepted binding.
+Only qualified v2 inputs support Tilde's evaluated before/after snapshots; legacy
+inputs and exact compatibility misses retain source. Corrupt data refuses.
+Static, Debug/ASan, local default and manual qualification keep source. Both native
+regression and production/package branches, failure detectors and domain gates
+remain required.
+
 PRs run changed-source clang-format feedback and the reviewed compiler-free static subset. Formatting drift
 fails and retains a patch. The explicit Commit PR formatting action accepts an open same-repository PR,
 checks its current head, commits only selected formatted source paths by ordinary fast-forward push and
@@ -109,3 +118,28 @@ Follow the common [emergency merge runbook](https://github.com/RedSalamanders/.g
 The organization's shared engine runs a weekly and explicit manual metadata observer across all six default branches. It inventories the coordinated engine SHA, vcpkg baseline/tool/floors/overrides and custom dependency locks, and reports available producer updates as advisories. It never restores or compiles native dependencies, edits pins or treats an upstream main commit as qualified. Missing/private or undeployed repositories remain explicit incomplete coverage. Built-in dependency review and security alerts retain their supported scopes; custom lock inventory is not a native/transitive vulnerability scan. See the common [dependency status contract](https://github.com/RedSalamanders/.github/blob/main/Specs/CI.md).
 
 Application publication uses WINGET_TOKEN, selected at organization level for the five applications and excluded from DxUi. Existing repository overrides remain effective. The explicitly dispatched trusted-main RedSalamander promote-publication-credential.yml action may encrypt the existing repository token into that organization secret after checking its organization-secret administration permission; it retains metadata only and never publishes a product. Missing permissions or failed native eligibility remain open acceptance gates.
+## Dependency cache reuse
+
+The pinned shared engine restores vcpkg's ABI-indexed package cache for normal and manual native qualification. Exact engine/input keys are preferred; fallback lookup stays within the same runner OS, host architecture and target platform, and the pinned vcpkg restore still selects each package by its computed ABI. A miss rebuilds the package. This supplies dependency inputs only: product objects, DxUi SDK outputs and build/test receipts are not restored by this cache. Dependency pins, native execution, failure detectors and production/publication gates remain required. The owning behavior is the shared engine's Specs/CI.md.
+
+The pinned shared conformance rejects extension-wide Markdown exclusions. Pin maintenance migrates only the original global default to owned prose locations and known guides. Runtime/test include exceptions retain precedence; historical artifacts keep their original source identity.
+
+The deployed engine admits only the three reviewed QualifiedAbiV2 producer attempts with
+successful x64 and ARM64 qualification. Eligible Release roles authenticate the original
+run/attempt, caller/controller, archive digest and independent ABI reference before reuse.
+An SDK hit supplies dependency inputs; all product regression, detector, production and
+extraction gates still run. Record actual recipe selection on each architecture: Source
+fallback does not establish live SDK-hit acceptance. Local Debug/ASan remain Source.
+
+## Optional isolated native shadow execution
+
+The generated manual `integration-execution.yml` caller runs one frozen candidate
+under a unique branch pointing at trusted current main. Trusted operator admission
+checks exact candidate/controller/caller identity before requesting read-only native
+x64/ARM64 test execution. It retains original attempt-bound inputs, receipts, profile
+bytes and diagnostics. Shadow execution supplies no required merge check, local
+coverage delegation, production/package authorization or main-result adoption.
+Those gates remain with the current contracts until their separate implementation
+and hosted enforcement are qualified. Use the exact pinned shared engine's
+`Specs/Integration_Candidates.md` and `Tools/Start-CandidateShadow.ps1`; no caller
+may run candidate code in a main cache/writer context or cancel another execution.

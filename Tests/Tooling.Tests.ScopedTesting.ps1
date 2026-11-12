@@ -20,6 +20,47 @@ function New-Repository([string]$Directory){
     Invoke-FixtureGit $Directory @('config','user.name','Scope fixture');Invoke-FixtureGit $Directory @('config','user.email','fixture@example.invalid')
 }
 try{
+    Case 'actual ignored engine bytes bind build and tooling evidence without changing iteration maps' {
+        $product=Join-Path $fixture 'engine-input-project'
+        [void][IO.Directory]::CreateDirectory($product)
+        New-Repository $product
+        Put (Join-Path $product '.gitignore') ".build/`n.ci-engine/`n"
+        Put (Join-Path $product '.ci/project.json') ([IO.File]::ReadAllText((Join-Path $root '.ci/project.json')))
+        Put (Join-Path $product 'runtime.cpp') 'synthetic source'
+        $engine=Join-Path $product '.ci-engine'
+        $cloneOutput=& git clone --quiet --no-hardlinks (Join-Path $root '.ci-engine') $engine 2>&1
+        if($LASTEXITCODE){throw "Owned engine fixture clone failed: $cloneOutput"}
+        $mapBefore=Get-ScopedMapIdentity (Get-ScopedSourceMap $product)
+        $toolingBefore=Get-ScopedSourceIdentity $product
+        $buildBefore=Get-ScopedSourceIdentity $product -CompiledOnly
+        Import-Module (Join-Path $root 'Build/Harness.psm1') -ErrorAction Stop
+        $directBuildBefore=Get-RedTildeSourceIdentity -Root $product
+        if([OperatingSystem]::IsWindows()){
+            Assert ((Get-ScopedSourceIdentity $product.ToUpperInvariant()) -ceq $toolingBefore) 'Windows path casing invalidated tooling evidence'
+            Assert ((Get-ScopedSourceIdentity $product.ToUpperInvariant() -CompiledOnly) -ceq $buildBefore) 'Windows path casing invalidated build evidence'
+        }
+        Put (Join-Path $engine '.build/fixture-output.json') '{"generated":true}'
+        Assert ((Get-ScopedSourceIdentity $product) -ceq $toolingBefore) 'Generated engine output invalidated tooling'
+        Assert ((Get-ScopedSourceIdentity $product -CompiledOnly) -ceq $buildBefore) 'Generated engine output invalidated build evidence'
+        Assert ((Get-RedTildeSourceIdentity -Root $product) -ceq $directBuildBefore) 'Generated engine output invalidated direct build identity'
+        $policy=Join-Path $engine 'Tools/Modules/Ci.Policy.psm1'
+        $original=[IO.File]::ReadAllBytes($policy)
+        try{
+            [IO.File]::AppendAllText($policy,"`n# Synthetic changed engine implementation.`n")
+            foreach($compiled in @($false,$true)){
+                $refusal=''
+                try{$null=Get-ScopedSourceIdentity $product -CompiledOnly:$compiled}catch [System.Management.Automation.RuntimeException]{$refusal=$_.Exception.Message}
+                Assert ($refusal.Contains('Local engine checkout must be clean')) 'Modified ignored engine retained reusable build/tooling evidence'
+            }
+            Assert ((Get-ScopedMapIdentity (Get-ScopedSourceMap $product)) -ceq $mapBefore) 'Engine identity polluted product iteration maps'
+            $directRefusal=''
+            try{$null=Get-RedTildeSourceIdentity -Root $product}catch [System.Management.Automation.RuntimeException]{$directRefusal=$_.Exception.Message}
+            Assert ($directRefusal.Contains('Local engine checkout must be clean')) 'Direct source/SDK build identity ignored modified engine implementation'
+        }finally{[IO.File]::WriteAllBytes($policy,$original)}
+        Assert ((Get-ScopedSourceIdentity $product) -ceq $toolingBefore) 'Restored exact engine did not recover its tooling identity'
+        Assert ((Get-ScopedSourceIdentity $product -CompiledOnly) -ceq $buildBefore) 'Restored exact engine did not recover its build identity'
+
+    }
     foreach($mode in @('Complete','Missing','Mismatch','Incomplete','Duplicate','Failed','Created','WrongPlatform','TestEnabled','SmokeFailed')){
     Case ('production CI retains original smoke proof before reporting success ('+$mode+')') {
         $adapter=Join-Path $root 'Tools/Invoke-ProjectCi.ps1'
@@ -32,7 +73,7 @@ try{
         $body=$clauses[0].Item2.Extent.Text
         $production=[scriptblock]::Create($body.Substring(1,$body.Length-2))
         $root=Join-Path $fixture ('production-proof-'+$mode)
-        $Platform='x64';$context=[pscustomobject]@{root=$root}
+        $Platform='x64';$context=[pscustomobject]@{root=$root};$sdkDescriptor=$null
         function Run([string]$Script,[string[]]$CommandArguments){
             Assert ($Script -ceq 'package.ps1' -and ($CommandArguments -join '|') -ceq '-Platform|x64|-SkipBuild') 'Production did not use the public package command'
             $package=Join-Path $root '.build/package/synthetic-x64-0.zip'
@@ -112,7 +153,7 @@ try{
         }
     }
     Case 'prose omits native tests, declared runtime Markdown selects its consumer, and empty changes select nothing' {
-        $plan=Get-ScopedTestPlan $manifest @('README.md','CHANGELOG.md','docs/examples/ordinary-notes.md')
+        $plan=Get-ScopedTestPlan $manifest @('README.md','CHANGELOG.md','docs/ordinary-notes.md')
         Assert (@($manifest.scopes|Where-Object{$_.native -and $_.name -in $plan.scopes}).Count -eq 0) 'Prose selected native tests'
         foreach($scope in @('Tooling','Format')){Assert ($scope -in $plan.scopes) "Prose validation omitted: $scope"}
         if($manifest.project -ceq 'RedTilde'){
@@ -122,6 +163,9 @@ try{
             Assert (-not $plan.full -and $native.Count -eq 1 -and $native[0].name -ceq 'Captures') 'Runtime fixture widened unrelated native coverage'
         }
         Assert ((Get-ScopedTestPlan $manifest @('res/Welcome.md')).full) 'Embedded content mistaken for prose'
+        foreach($path in @('docs/examples/s5-performance.md','docs/examples/README.md','docs/examples/new-example.md')){
+            Assert ((Get-ScopedTestPlan $manifest @($path)).full) "Shipped example was treated as prose: $path"
+        }
         Assert ((Get-ScopedTestPlan $manifest @()).scopes.Count -eq 0) 'Empty changes selected tests'
     }
     Case 'actual consumers and standalone test owners are selected' {
@@ -239,6 +283,20 @@ try{
         Assert ((Get-ScopedSourceIdentity $gitRoot -CompiledOnly) -cne $native) 'Embedded Markdown omitted'
         $native=Get-ScopedSourceIdentity $gitRoot -CompiledOnly;Put (Join-Path $gitRoot 'generator.inl') 'new generator'
         Assert ((Get-ScopedSourceIdentity $gitRoot -CompiledOnly) -cne $native) 'New executable input extension omitted'
+    }
+    Case 'declared shipped examples retain native byte identity despite the documentation folder' {
+        $manifestPath=Join-Path $gitRoot 'Tests/test-scopes.json';$saved=[IO.File]::ReadAllBytes($manifestPath)
+        try{
+            $policy=Get-Content $manifestPath -Raw|ConvertFrom-Json
+            $policy.rules=@([pscustomobject]@{pattern='docs/examples/**';scopes=@('*');reason='shipped examples'})
+            Put $manifestPath ($policy|ConvertTo-Json -Depth 8)
+            foreach($path in @('docs/examples/s5-performance.md','docs/examples/README.md','docs/examples/image.bin')){
+                Put (Join-Path $gitRoot $path) 'original shipped bytes'
+                $before=Get-ScopedSourceIdentity $gitRoot -CompiledOnly
+                Put (Join-Path $gitRoot $path) 'changed shipped bytes'
+                Assert ((Get-ScopedSourceIdentity $gitRoot -CompiledOnly) -cne $before) "Shipped input missing from native identity: $path"
+            }
+        }finally{[IO.File]::WriteAllBytes($manifestPath,$saved)}
     }
     Case 'iteration state is source/index/profile/environment bound and rejects corruption' {
         $path=Join-Path $gitRoot '.build/iteration.json';$source=Get-ScopedSourceMap $gitRoot;$index=Get-ScopedIndexMap $gitRoot
@@ -403,6 +461,9 @@ exit 0
 param()
 [void](New-Item -ItemType Directory -Path (Join-Path $PSScriptRoot '.build') -Force)
 [IO.File]::WriteAllText((Join-Path $PSScriptRoot '.build/no-arguments.txt'),'ran')
+[IO.File]::AppendAllText((Join-Path $PSScriptRoot '.build/tooling-calls.txt'),"ran`n")
+if(Test-Path (Join-Path $PSScriptRoot '.build/tooling-fail')){exit 21}
+if(Test-Path (Join-Path $PSScriptRoot '.build/tooling-mutate')){[IO.File]::AppendAllText((Join-Path $PSScriptRoot 'Tests/Other.Tests.Case.cpp'),'changed during tooling')}
 '@
     Put (Join-Path $public 'switch.ps1') @'
 [CmdletBinding()]
@@ -479,27 +540,105 @@ param([string]$Platform,[string]$Configuration,[switch]$ProductionOnly)
         Assert ((Get-FileHash $state).Hash -ceq $before) 'Partial selection advanced the aggregate baseline'
         $r=Run;Assert ($r.Exit -eq 0 -and $r.Text.Contains('scopes: Example, Other')) "Partial selection concealed the other edit: $($r.Text)"
     }
+    Case 'same-source forced failure revokes the old no-work baseline' {
+        $r=Run;Assert ($r.Exit -eq 0 -and $r.Text.Contains('NOTHING_SELECTED')) 'Expected the earlier successful default baseline'
+        Put (Join-Path $public '.build/fail') 'fail'
+        $r=Run @('-Force');Assert ($r.Exit -ne 0 -and -not(Test-Path $state)) 'Force reused the default baseline or retained older success'
+        Remove-Item -LiteralPath (Join-Path $public '.build/fail')
+        $r=Run;Assert ($r.Exit -eq 0 -and -not $r.Text.Contains('NOTHING_SELECTED')) "Old baseline concealed the latest failure: $($r.Text)"
+    }
+    Case 'iteration lease is nested, process-exclusive and profile-specific' {
+        $lease=Enter-ScopedIterationLease $public $platform Debug
+        try {
+            $nested=Enter-ScopedIterationLease $public $platform Debug
+            try{$nested.ReleaseMutex()}finally{$nested.Dispose()}
+            $before=(Get-FileHash $state).Hash
+            $r=Run;Assert ($r.Exit -ne 0 -and $r.Text.Contains('Another test operation')) 'Competing process entered the same profile'
+            Assert ((Get-FileHash $state).Hash -ceq $before) 'Refused process changed the existing baseline'
+            $r=Run @('-Configuration','Release');Assert ($r.Exit -eq 0) "Disjoint profile was blocked: $($r.Text)"
+        }finally{try{$lease.ReleaseMutex()}finally{$lease.Dispose()}}
+    }
+    Case 'direct test refusal revokes an earlier affected baseline before native work' {
+        $direct=Join-Path $fixture 'direct-refusal'
+        Put (Join-Path $direct 'test.ps1') ([IO.File]::ReadAllText((Join-Path $root 'test.ps1')))
+        Put (Join-Path $direct 'Build/ScopedTesting.psm1') ([IO.File]::ReadAllText((Join-Path $root 'Build/ScopedTesting.psm1')))
+        $old=Join-Path $direct ".build/reports/scoped-tests/$platform-Debug/iteration.json"
+        Put $old '{"prior":"fixture baseline"}'
+        & (Join-Path $PSHOME $(if($IsWindows){'pwsh.exe'}else{'pwsh'})) -NoProfile -File (Join-Path $direct 'test.ps1') -Platform $platform -Suites NotARealSuite *> (Join-Path $direct 'refusal.log')
+        Assert ($LASTEXITCODE -ne 0 -and -not(Test-Path $old)) 'Direct refusal retained the previous no-work baseline'
+        Assert ((Get-Content (Join-Path $direct 'refusal.log') -Raw) -match 'Unknown suite') 'Direct fixture failed before reaching the intended refusal'
+    }
     Case 'failures and post-run mutations never advance the affected baseline or retain reusable success' {
         $before=(Get-FileHash $state).Hash;Put (Join-Path $public 'Tests/Example.Tests.Case.cpp') 'failure candidate';Put (Join-Path $public '.build/fail') 'fail'
-        $r=Run;Assert ($r.Exit -ne 0) 'Failure qualified';Assert ((Get-FileHash $state).Hash -ceq $before) 'Failure advanced baseline'
+        $r=Run;Assert ($r.Exit -ne 0) 'Failure qualified';Assert (-not(Test-Path $state)) 'Failure retained an older baseline'
         $receipt=Join-Path $public ".build/reports/scoped-tests/$platform-Debug/Example.json"
         Assert (-not(Test-Path $receipt)) 'Failure retained earlier success'
         Remove-Item -LiteralPath (Join-Path $public '.build/fail');$r=Run;Assert ($r.Exit -eq 0) "Failed candidate was not rerun: $($r.Text)"
         $before=(Get-FileHash $state).Hash;Put (Join-Path $public 'Tests/Example.Tests.Case.cpp') 'mutation candidate';Put (Join-Path $public '.build/mutate') 'mutate'
-        $r=Run;Assert ($r.Exit -ne 0) 'Mutation qualified';Assert ((Get-FileHash $state).Hash -ceq $before) 'Mutation advanced baseline'
+        $r=Run;Assert ($r.Exit -ne 0) 'Mutation qualified';Assert (-not(Test-Path $state)) 'Mutation retained an older baseline'
         Remove-Item -LiteralPath (Join-Path $public '.build/mutate')
         $r=Run @('-SkipBuild');Assert ($r.Exit -ne 0 -and $r.Text.Contains('SkipBuild refused')) 'Stale compiled source accepted'
         $r=Run;Assert ($r.Exit -eq 0) "Mutated sources did not recover: $($r.Text)"
+    }
+    Case 'independent tooling survives a later native failure and is reused without advancing the batch baseline' {
+        $receipt=Join-Path $public '.build/reports/scoped-tests/independent/Tooling.json'
+        Put (Join-Path $public '.build/fail') 'later native failure'
+        $run=Run @('-Mode','Full','-Force')
+        Assert ($run.Exit -ne 0 -and $run.Text.Contains('Selected runtime tests failed') -and (Test-Path $receipt)) "Completed tooling was lost or failed native work passed: $($run.Text)"
+        Assert (-not(Test-Path $state)) 'A failed batch advanced its iteration baseline'
+        $original=[IO.File]::ReadAllText($receipt)
+        $calls=@(Get-Content (Join-Path $public '.build/tooling-calls.txt')).Count
+        Remove-Item -LiteralPath (Join-Path $public '.build/fail')
+        $run=Run @('-Mode','Full')
+        Assert ($run.Exit -eq 0 -and $run.Text.Contains('REUSED Tooling') -and
+            @(Get-Content (Join-Path $public '.build/tooling-calls.txt')).Count -eq $calls -and
+            [IO.File]::ReadAllText($receipt) -ceq $original) "Retry duplicated or rewrote exact independent evidence: $($run.Text)"
+    }
+    Case 'failed or input-mutating tooling cannot publish reusable success or enter native execution' {
+        $receipt=Join-Path $public '.build/reports/scoped-tests/independent/Tooling.json'
+        foreach($marker in @('tooling-fail','tooling-mutate')){
+            $nativeCalls=@(Get-Content (Join-Path $public '.build/calls.txt')).Count
+            Put (Join-Path $public ('.build/'+$marker)) 'independent refusal control'
+            $run=Run @('-Mode','Full','-Force')
+            Assert ($run.Exit -ne 0 -and -not(Test-Path $receipt) -and
+                @(Get-Content (Join-Path $public '.build/calls.txt')).Count -eq $nativeCalls) "Failed or mutated tooling published success or entered native work: $($run.Text)"
+            Remove-Item -LiteralPath (Join-Path $public ('.build/'+$marker))
+        }
+    }
+    Case 'later native mutation retains original tooling proof but changed inputs cannot reuse it' {
+        $receipt=Join-Path $public '.build/reports/scoped-tests/independent/Tooling.json'
+        Put (Join-Path $public '.build/mutate') 'native changes source after completed tooling'
+        $run=Run @('-Mode','Full','-Force')
+        Assert ($run.Exit -ne 0 -and (Test-Path $receipt)) "Native mutation passed or discarded independently completed tooling: $($run.Text)"
+        $original=[IO.File]::ReadAllText($receipt)
+        $calls=@(Get-Content (Join-Path $public '.build/tooling-calls.txt')).Count
+        Remove-Item -LiteralPath (Join-Path $public '.build/mutate')
+        $run=Run @('-Mode','Full')
+        Assert ($run.Exit -eq 0 -and -not $run.Text.Contains('REUSED Tooling') -and
+            @(Get-Content (Join-Path $public '.build/tooling-calls.txt')).Count -eq ($calls+1) -and
+            [IO.File]::ReadAllText($receipt) -cne $original) "Changed native/source inputs reused earlier tooling: $($run.Text)"
     }
     Case 'public build receipt invalidates content changes despite restored timestamps and preserves docs-only outputs' {
         $buildRoot=Join-Path $fixture 'build-input-guard';New-Repository $buildRoot
         Put (Join-Path $buildRoot '.gitignore') ".build/`n"
         Put (Join-Path $buildRoot 'RedTilde/RedTilde.vcxproj') '<Project />'
         Put (Join-Path $buildRoot 'Build/RedTilde.DxUi.props') '<Project />'
-        Put (Join-Path $buildRoot 'Tests/test-scopes.json') '{"runtimeFiles":[]}'
+        Put (Join-Path $buildRoot 'Tests/test-scopes.json') ([IO.File]::ReadAllText((Join-Path $PSScriptRoot 'test-scopes.json')))
         Put (Join-Path $buildRoot 'Tests/GuardFixture.cpp') 'first source bytes'
         foreach($name in @('Harness.psm1','ScopedTesting.psm1','BuildConsole.psm1','DxUiPaths.psm1')){Copy-Item -LiteralPath (Join-Path $root "Build/$name") -Destination (Join-Path $buildRoot "Build/$name")}
         Copy-Item -LiteralPath (Join-Path $root 'build.ps1') -Destination (Join-Path $buildRoot 'build.ps1')
+        # Keep this input/receipt fixture compiler-free. The real shared bridge
+        # has its own process/argv/service controls; this adapter records the
+        # actual build entrypoint's clean/build calls through the same boundary.
+        Put (Join-Path $buildRoot '.ci-engine/Tools/Modules/Ci.Policy.psm1') @'
+function Invoke-CiNativeCommand {
+    param([string]$FilePath,[string]$WorkingDirectory,[string[]]$Arguments)
+    if($FilePath -cne (Join-Path $WorkingDirectory '.build/mock-msbuild.ps1')){throw 'Unexpected fixture native target.'}
+    Push-Location -LiteralPath $WorkingDirectory
+    try { & $FilePath @Arguments } finally { Pop-Location }
+}
+Export-ModuleMember -Function Invoke-CiNativeCommand
+'@
         Put (Join-Path $buildRoot 'Build/Toolchain.psm1') @'
 Set-StrictMode -Version Latest
 function Get-RedTildeMSBuild { Join-Path (Split-Path $PSScriptRoot -Parent) '.build/mock-msbuild.ps1' }

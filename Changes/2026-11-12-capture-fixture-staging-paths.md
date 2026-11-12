@@ -1,0 +1,1 @@
+- Seed the complete owned design-capture workspace, including the saved synthetic document and atomic staging siblings, with extended Windows paths so nested local SDK evidence works without shortening fixture identities or changing rendering assertions.

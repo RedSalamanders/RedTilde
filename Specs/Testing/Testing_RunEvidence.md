@@ -3,6 +3,14 @@
 Status: normative current tooling contract
 Last reviewed: 2026-10-23
 
+Explicit local SDK execution uses `.build/evidence/local-sdk-test-runs/` with a
+`LocalUnpinnedApplicationRuntimeResult` receipt. Normal `test-runs` and hosted
+discovery remain separate. Local records bind the independently retained original
+build digest, source, actual engine, SDK dependency and complete runtime catalog;
+`repositoryQualified` and `productionQualified` stay false. Source and close-time
+runtime verification precede a pass. Failure evidence retains its original error
+and cannot advance the ordinary pinned iteration baseline.
+
 After argument, desktop and build preflight, native test execution writes each invocation under `.build/evidence/test-runs/<UTC-pid-guid>/payload`.
 It creates a new directory and exclusive owner lease; it never reuses an old run directory or sweeps older runs.
 A flushed, create-only `started.json` records the owner process and start time plus the requested profile/scopes.

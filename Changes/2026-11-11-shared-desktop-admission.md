@@ -1,0 +1,1 @@
+- Coordinate the real keyboard/focus wrapper with Root's existing session admission before the unchanged pinned DxUi lease. Preserve every child, consent, watchdog and restoration check; a vanished original focus target remains a failure. Recording-boundary routing tests perform no input, and fresh native/foreground qualification remains required.

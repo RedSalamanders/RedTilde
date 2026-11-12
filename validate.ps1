@@ -44,7 +44,12 @@ Check 'Evaluated Release compiler and linker policy' {
     & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.ReleaseBuildPolicy.ps1')
 }
 Check 'Build console and short dependency paths' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.BuildConsole.ps1') }
+Check 'Qualified SDK transaction snapshots' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.SdkInputs.ps1') }
+Check 'Local SDK candidate command' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.LocalSdkCandidate.ps1') }
+Check 'Local SDK runtime admission' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.LocalSdkRuntime.ps1') }
+Check 'Hosted SDK role routing' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.HostedSdk.ps1') }
 Check 'Hosted MSVC setup' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.MsvcSetup.ps1') }
+Check 'Shared desktop admission' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.DesktopAdmission.ps1') }
 Check 'Six build configurations and native inventory' {
     [xml]$project=Get-Content (Join-Path $PSScriptRoot 'RedTilde/RedTilde.vcxproj')
     foreach ($platform in @('x64','ARM64')) { foreach ($configuration in @('Debug','Release','ASan Debug')) {
