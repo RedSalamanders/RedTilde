@@ -80,7 +80,8 @@ Read the appropriate skill under `.agents/skills/`:
 | [file-safety](.agents/skills/file-safety/SKILL.md) | Open/save, conflict detection and recovery |
 | [settings-crashes](.agents/skills/settings-crashes/SKILL.md) | Live settings, minidumps and restart recovery |
 | [test-harness](.agents/skills/test-harness/SKILL.md) | Deterministic scenarios, captures and evidence |
-| [spec-workflow](.agents/skills/spec-workflow/SKILL.md) | Contracts, WIP/Done and truthful capabilities |
+
+Cross-repository C++/WIL, localization, and `spec-workflow` skills live in the sibling `RedHome` repository.
 
 ## Scoped testing policy (2026-10-21)
 
