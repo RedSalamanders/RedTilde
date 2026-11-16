@@ -83,6 +83,8 @@ Read the appropriate skill under `.agents/skills/`:
 
 Cross-repository C++/WIL, localization, and `spec-workflow` skills live in the sibling `RedHome` repository.
 
+Shared skill index: `../RedHome/AGENTS.md`; packages: `../RedHome/.agents/skills/`. If `../RedHome` is missing, clone https://github.com/RedSalamanders/RedHome.git to that path. This repository's guidance and domain specs own product behavior and validation.
+
 ## Scoped testing policy (2026-10-21)
 
 Use `Test-Changes.ps1 -Explain` and the affected default while editing. Use explicit Full/PrePush for qualification; this accepted workflow replaces unconditional full-test iteration. Successful default affected runs advance their source/index baseline; explicit partial, failed, mutated or CI-pending runs do not. Reuse only exact successful evidence. CI_PENDING requires all named candidate checks to pass before merge, including when this private account cannot enforce protected checks. Preserve native/manual/platform/performance gates in Specs/Testing/Testing_Validation.md and contextual Scope.Tests.Something.h/.cpp names.
