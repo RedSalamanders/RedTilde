@@ -1,4 +1,0 @@
-interface:
-  display_name: "Spec Workflow"
-  short_description: "Develop and validate RedTilde spec workflow"
-  default_prompt: "Use $spec-workflow to complete this RedTilde change and validate the affected behavior."
