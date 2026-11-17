@@ -4,6 +4,40 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Consolidated the shared `spec-workflow` agent skill into the organization `RedHome` repository, retaining the eight
+  RedTilde-specific skills under `.agents/skills/` and validating with `validate.ps1` and `Tools/Test-Changelog.ps1`
+  (documentation/tooling only; native qualification unchanged).
+  Shared-skill discovery names `../RedHome/AGENTS.md`, the package directory, and the clone URL while preserving
+  local product authority.
+- Exercise explicit local DxUi SDK candidates through the existing application tests, captures, restart and crash checks with complete runtime-byte leases and close-time verification. Keep candidate evidence and iteration state separate from ordinary qualification, and adopt the reviewed shared SDK admission engine without removing local or main gates.
+- Seed the complete owned design-capture workspace, including the saved synthetic document and atomic staging siblings, with extended Windows paths so nested local SDK evidence works without shortening fixture identities or changing rendering assertions.
+- Stage the hidden document-scale fixture's calling-thread modifiers immediately before each direct shortcut
+  and wheel dispatch, preserving the scale, AltGr, source, selection, history and focus assertions and restoring
+  the original keyboard snapshot without physical input or activation. All 95 ASan Editor cases pass;
+  complete default-profile and native platform qualification remain separate gates.
+- Coordinate the real keyboard/focus wrapper with Root's existing session admission before the unchanged pinned DxUi lease. Preserve every child, consent, watchdog and restoration check; a vanished original focus target remains a failure. Recording-boundary routing tests perform no input, and fresh native/foreground qualification remains required.
+- Isolate owned-profile clean and native build compiler metadata services through the pinned shared launcher, preserving live output and all existing build receipt and failure checks.
+- Add an explicit local SDK candidate build command with separate unpinned output,
+  unchanged dependency pins and actual linker-input evidence. Normal tests,
+  qualification and packaging continue to require their governed pinned inputs.
+- Preserve each completed, byte-verified independent tooling or formatting result before later native work, so a native failure does not force identical successful tooling to repeat. Failed or mutated independent work remains non-reusable; native and whole-run qualification remain separate.
+- Bind local build and test reuse to the actual pinned CI engine inputs, refusing missing, modified or mismatched engine checkouts while preserving the existing local and main gates.
+- Reuse qualified pinned Release SDK inputs with authenticated before/after build
+  snapshots, actual native compiler and ABI checks, original descriptor reopening
+  for artifact admission and complete package notices. Preserve source fallback,
+  exact dependency pins, native regression and production extraction gates.
+  Keep complete capture-fixture GUIDs compact so atomic-write staging fits nested
+  evidence roots without changing fixture content or rendering assertions.
+- Add the optional isolated native shadow caller and exact shared-engine admission tooling while retaining current required checks, local coverage and production qualification.
+- Enable authenticated qualified DxUi SDK reuse for eligible hosted Release builds, preserving the existing dependency pin and all native regression, detector and package checks.
+- Add the active `Specs/Plans/WIP/ExplicitStateMachines_2026-11-10.md` execution plan cataloging RedTilde's 13 implicit state machines and 9 verified transition defects (`RT-SM-01`..`RT-SM-09`) across `Application`, `AsyncFiles`, `BitmapPasteWriter`, `RecoveryService`, `FilesService`, overlays, Find & Replace, workspace switching, and build/evidence tooling, with six non-breaking implementation slices.
+  Validation: `validate.ps1`, `Tools/Test-Changelog.ps1 -Base origin/main`, and `Tools/Invoke-ProjectCi.ps1 -Phase Static` passed; production code and `DxUi` pin are unchanged while implementation slices and native runtime gates remain pending.
+- Preserve shipped example Markdown, README and asset bytes in native selection and evidence; keep ordinary prose on independent validation and retain paired-performance and production acceptance as separate obligations.
+- Preserve the latest local failure during affected iteration: suspend old no-work state before execution, revoke it on failure/interruption and direct test attempts, and restore only unchanged successful explicit work. Force bypasses the iteration baseline, with a reentrant per-profile test lease and real process/failure refusal controls.
+- Adopt the shared engine's ABI-indexed vcpkg fallback cache and manual native dependency caching; keep compiler-free PRs, exact dependency pins and every native qualification gate.
+- Bound recovery startup work before filtering filenames so unrelated entries also consume the 512-entry limit.
+  Publish synchronized scan statistics and add a real-worker regression that preserves every unrelated file.
+  Retain the instrumented old-guard counterexample separately from the corrected source and its qualification.
 - Close API-5 software adoption with verified original hosted x64 Debug, Release and ASan results: 155 cases and 40 captures per profile, actual symbolic-link saves and ASan detection. Update the pin/qualification contract while retaining ARM64 compilation-only and separate physical, provider, performance and release gates.
 - Adopt the API-5 SDK's source-owned capacity and unsupported diagnostics, preserving their distinct accessibility explanations, neighboring rich content and editing history. Exercise both causes in the real hidden consumer and align the validation spec with current compiler-free PR and main/manual native CI policy.
 - Audit the actual legacy reviewed-header callers and sealed current profile before Q15 retirement; retain supported historical replay and document the remaining shared-module migration.
