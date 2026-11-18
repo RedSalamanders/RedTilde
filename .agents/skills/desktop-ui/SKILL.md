@@ -1,6 +1,6 @@
 ---
 name: desktop-ui
-description: Revise RedTilde native layout, contextual commands, live appearance and keyboard or UIA behavior.
+description: Revise RedTilde native layout, contextual commands, live appearance and keyboard or UIA behavior. Use when changing the window layout, toolbars, menus or context tools, focus and keyboard routing, high-contrast, DPI or motion handling, or validating UI with app-harness captures.
 ---
 
 Read [the design system](../../../Specs/UI/UI_DesignSystem.md) and editor contract. Keep writing dominant;

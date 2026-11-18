@@ -1,6 +1,6 @@
 ---
 name: media-math
-description: Add or verify local images, native in-document math and supported Mermaid diagrams in RedTilde.
+description: Add or verify local images, native in-document math and supported Mermaid diagrams in RedTilde. Use when changing image loading or authorization, network image access, equation parsing or rendering, Mermaid previews, or what the app claims about LaTeX or Mermaid support.
 ---
 
 Read [the editor contract](../../../Specs/Editor/Editor_Markdown.md) and the exact pin's rich-text guide.

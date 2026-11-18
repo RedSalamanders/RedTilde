@@ -1,6 +1,6 @@
 ---
 name: test-harness
-description: Write RedTilde behavioral tests, deterministic hidden app captures and source-bound validation receipts.
+description: Write RedTilde behavioral tests, deterministic hidden app captures and source-bound validation receipts. Use when adding or changing tests, harness scenarios or captures, validation receipts, or paired performance measurements, including S5 performance work.
 ---
 
 Read [the validation contract](../../../Specs/Testing/Testing_Validation.md). Use contextual

@@ -1,6 +1,6 @@
 ---
 name: markdown-editing
-description: Implement RedTilde rich, source, split and local Markdown editing with shared history and selection.
+description: Implement RedTilde rich, source, split and local Markdown editing with shared history and selection. Use when changing view switches, source ACP or selection mapping, semantic or contextual editing commands, IME-sensitive mode changes, or undo in the editor.
 ---
 
 Read [the editor contract](../../../Specs/Editor/Editor_Markdown.md). The main RichTextEditor is authoritative;

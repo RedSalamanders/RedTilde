@@ -1,7 +1,7 @@
 # Skill packages and scoped guidance
 
 Status: normative repository validation contract
-Last reviewed: 2026-10-28
+Last reviewed: 2026-11-18
 
 `validate.ps1` checks skill structure, required package files, local references and scoped-guidance inventory through
 `Build/SkillPackageIntegrity.psm1`, then runs its focused negative/positive fixtures. This is tooling evidence;
@@ -16,13 +16,10 @@ The bounded local YAML grammar supports scalar values and one two-space-indented
 single quotes with doubled apostrophes or JSON-compatible double quotes. Block scalars, aliases, tags, sequences
 and deeper mappings are explicitly unsupported. Extend and test the grammar before adopting another form.
 
-RedTilde's existing package convention requires `agents/openai.yaml`, with nonempty string `interface.display_name`,
-`short_description` and `default_prompt`; the prompt must invoke that package's skill. These are UI metadata, not
-independent specialist agent definitions. Optional metadata fields remain available in the supported mapping form.
-The optional header `metadata` field must be a mapping; `license` and `allowed-tools` are strings in this subset.
-Optional UI `policy` and `dependencies` sections must be mappings. Policy supports a boolean
-`allow_implicit_invocation`; quoted booleans are not booleans. Dependency sequences remain outside the bounded
-local grammar and fail explicitly. This validation does not change any skill's invocation policy.
+A package carries no Codex UI metadata: an `agents/openai.yaml` file fails validation, because no RedSalamanders
+repository uses one (decided as "none" on `RedHome` convergence register row A-11). Optional metadata fields remain
+available in the supported mapping form. The optional header `metadata` field must be a mapping; `license` and
+`allowed-tools` are strings in this subset. This validation does not change any skill's invocation policy.
 
 All package Markdown and inventoried guidance files have inline and reference-style Markdown destinations checked. Encoded
 filenames, balanced/escaped parentheses and angle-delimited paths are supported. External/protocol-relative URLs
@@ -47,7 +44,7 @@ reparse directories; a dependency or test fixture must not become repository gui
 ## Regression coverage and outputs
 
 `Tests/Tooling.Tests.SkillPackages.ps1` exercises missing fences, empty bodies, duplicate names, wrong names/types,
-invalid UI metadata, missing procedure files, scope deletion/addition/empty content and ownership exclusions.
+a refused UI metadata file, missing procedure files, scope deletion/addition/empty content and ownership exclusions.
 The parser controls include balanced filenames, inline-code pseudo-links and protocol-relative URLs. Reparse
 entrypoints are refused before opening them. The supplied root is admitted before directory discovery or metadata reads, and hidden skill
 directories receive the same structural validation as visible packages. Quoted ISO timestamps remain strings on

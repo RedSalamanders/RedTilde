@@ -1,6 +1,6 @@
 ---
 name: consumer-dxui
-description: Adopt or update the exact DxUi rich-text pin and its public native APIs in RedTilde.
+description: Adopt or update the exact DxUi rich-text pin and its public native APIs in RedTilde. Use when changing Dependencies/DxUi.lock.json, adopting a new DxUi API or capability, or making a product claim that depends on what the pinned rich-text library supports.
 ---
 
 Read [the build contract](../../../Specs/Build/Build_Toolchain.md), `Dependencies/DxUi.lock.json` and the pinned
