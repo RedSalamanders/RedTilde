@@ -73,6 +73,12 @@ using the same discovered installation, default toolset, triplet and manifest. T
 through its canonical output and exact-pin checks. Verify the package ABI matches; do not copy installed packages,
 edit generated consumer props or substitute a drive alias/junction to make the failed restore appear successful.
 
+`restore-dxui.ps1` prepares `<output root>/vcpkg-tool` as a complete, clean vcpkg checkout at the pinned DxUi's
+`vcpkg-tool.json` commit (`Build/VcpkgToolCheckout.psm1`) before it runs that DxUi's `vcpkg-install.ps1`, which then
+reuses it. vcpkg reads versioned ports with Git commands whose environment holds only `GIT_INDEX_FILE` and so cannot
+reach the network: a partial clone fails the restore with "Could not resolve host". An earlier partial checkout is
+completed in place; nothing is deleted, and a checkout of another repository is refused.
+
 Support x64/ARM64 Debug, Release and ASan Debug. ASan Debug must have compiler instrumentation and the matching
 staged runtime. Native tests must execute on the target architecture. `build.ps1` rejects a running executable
 from its selected output directory and does not terminate it. Packaging produces a portable app with examples,

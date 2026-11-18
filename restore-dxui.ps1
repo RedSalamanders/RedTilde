@@ -42,6 +42,9 @@ try { $policyFingerprint = ([BitConverter]::ToString($policyHasher.ComputeHash([
 finally { $policyHasher.Dispose() }
 $identity = [pscustomobject]@{ Fingerprint=$policyFingerprint; Identity=$policyIdentity }
 $output = Initialize-DxUiOutputRoot -DependencyRoot $dependencyRoot -BuildIdentity $identity
+# The pinned installer reuses a clean complete checkout here instead of its partial clone, which vcpkg cannot read.
+Import-Module (Join-Path $PSScriptRoot 'Build/VcpkgToolCheckout.psm1') -Scope Local -ErrorAction Stop
+Initialize-VcpkgToolCheckout -ToolIdentityPath (Join-Path $source 'vcpkg-tool.json') -ToolRoot (Join-Path $output 'vcpkg-tool')
 & (Join-Path $source 'vcpkg-install.ps1') -Platform $Platform -OutputRoot $output
 if ($LASTEXITCODE -ne 0) { throw 'DxUi dependency restore failed.' }
 $properties = [ordered]@{
