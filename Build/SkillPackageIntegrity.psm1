@@ -286,32 +286,8 @@ function Get-SkillPackageIntegrity {
             $text = if (-not $reparse -and [IO.File]::Exists($path)) { [IO.File]::ReadAllText($path, [Text.UTF8Encoding]::new($false, $true)) } else { $null }
             $problem = Get-SkillStructureProblem $folder.Name $text
             if ($problem) { $problems.Add("$($folder.Name): $problem") }
-            $uiPath = Join-Path $folder.FullName 'agents/openai.yaml'
-            if (-not [IO.File]::Exists($uiPath)) { $problems.Add("$($folder.Name): missing agents/openai.yaml") }
-            else {
-                try {
-                    $reparse = Get-PackageReparseProblem $uiPath $rootPath
-                    if ($reparse) { throw $reparse }
-                    $ui = ConvertFrom-PackageMapping ([IO.File]::ReadAllText($uiPath, [Text.UTF8Encoding]::new($false, $true)))
-                    foreach ($section in $ui.Keys) {
-                        if ($section -cnotin @('interface', 'policy', 'dependencies') -or $ui[$section] -isnot [Collections.IDictionary]) { throw "Unsupported or non-mapping UI section: $section" }
-                    }
-                    if (-not $ui.Contains('interface') -or $ui['interface'] -isnot [Collections.IDictionary]) { throw 'Missing interface mapping' }
-                    foreach ($key in @('display_name', 'short_description', 'default_prompt')) {
-                        if (-not $ui['interface'].Contains($key) -or $ui['interface'][$key] -isnot [string] -or -not $ui['interface'][$key].Trim()) { throw "Missing or invalid interface.$key" }
-                    }
-                    foreach ($key in $ui['interface'].Keys) {
-                        if ($ui['interface'][$key] -isnot [string] -or -not $ui['interface'][$key].Trim()) { throw "Invalid interface.$key string" }
-                    }
-                    if ($ui.Contains('policy')) {
-                        foreach ($key in $ui['policy'].Keys) {
-                            if ($key -cne 'allow_implicit_invocation' -or $ui['policy'][$key] -isnot [bool]) { throw 'UI policy supports boolean allow_implicit_invocation only' }
-                        }
-                    }
-                    if ($ui.Contains('dependencies') -and $ui['dependencies'].Count) { throw 'Dependency sequences are outside the supported local UI metadata grammar' }
-                    if ($ui['interface']['default_prompt'] -cnotmatch ('\$' + [regex]::Escape($folder.Name) + '(?![a-z0-9-])')) { throw 'Default prompt does not invoke this skill' }
-                } catch { $problems.Add("$($folder.Name): invalid UI metadata: $($_.Exception.Message)") }
-            }
+            # Skill packages carry no Codex UI metadata in any RedSalamanders repository (RedHome register A-11).
+            if ([IO.File]::Exists((Join-Path $folder.FullName 'agents/openai.yaml'))) { $problems.Add("$($folder.Name): agents/openai.yaml is not used; skill packages carry no Codex UI metadata") }
         }
     }
     if (-not $skills) { $problems.Add('No skill packages found') }
