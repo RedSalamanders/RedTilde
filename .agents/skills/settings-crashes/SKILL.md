@@ -1,6 +1,6 @@
 ---
 name: settings-crashes
-description: Implement RedTilde live settings, local crash reports and restart diagnostics without telemetry.
+description: Implement RedTilde live settings, local crash reports and restart diagnostics without telemetry. Use when changing settings fields, fallback or persistence, the crash handler, dump retention or pending markers, crash probes, or what happens on the next start after a crash.
 ---
 
 Read [the settings/crash contract](../../../Specs/Core/Core_SettingsAndCrashes.md). Settings have field-level
