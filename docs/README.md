@@ -54,6 +54,14 @@ Diagram arrow labels blend into the graph background when contrast is sufficient
 or dark backing improves readability. Notes and filled groups keep their own surface; Mermaid source and
 undo history stay unchanged.
 
+**Printing.** Choose **File → Print…** or press **Ctrl+P**. RedTilde prints the formatted document from Compose,
+Source or Split, including unsaved edits. In the Windows Print dialog, choose a printer, paper settings and
+**All** or a page range. Choose **Microsoft Print to PDF** if it is installed, then name the PDF in the Windows
+save dialog. Other installed destinations use their printer settings and output format.
+
+Pages wrap to the selected paper with a light print layout. If a page range exceeds the document on that paper,
+RedTilde displays the total page count. Open Print again and enter a range within it.
+
 **Closing files:** Close hides the window while an already admitted Save finishes. A failed write restores
 the window with an error and keeps your source and recovery copy. Edits made after Save still need a
 Save/Discard/Cancel choice. Close abandons an Open that is still loading; any edits typed meanwhile remain

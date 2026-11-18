@@ -418,6 +418,19 @@ qualification before a newly declared continuation. Never retag prior runs or is
 
 Tooling and Format receipt identity includes PowerShell, the selected formatter and the actual toolchain/runtime inputs. It does not discover or launch Python or inspect PyYAML: neither is a dependency of these scopes. Unrelated Python installation changes must not add a dependency to their receipt contract.
 
+## Printing
+
+The hidden Editor suite substitutes the Windows dialog result and print destination while running the actual
+application command, snapshot capture, pagination and Direct2D page recording. Assert zero submission for a
+cancelled dialog or invalid range. Check dirty and untitled documents in all three views, page order across
+overlapping and disjoint ranges, immutable admission across a later document switch, an empty page, page and
+finalization failures, successful retry and cancellation at close.
+
+For real-destination qualification, record the OS, driver, paper dimensions, exact source and fixture. Inspect
+physical sheets and reopen the output from Microsoft Print to PDF and another installed virtual destination.
+Check page count, size, orientation, content and filename cancellation. Manual native-dialog checks require
+an agreed desktop time and retain distinct evidence from hidden fixtures.
+
 ## Mocked build version isolation
 
 Build-input guard fixtures that write a text stand-in for the executable explicitly select build number zero.

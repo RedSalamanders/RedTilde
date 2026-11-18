@@ -8,6 +8,7 @@
 #include "EditDiagnostics.h"
 #include "ImageLoader.h"
 #include "NavigationModel.h"
+#include "Printing.h"
 #include "UiControls.h"
 #include <array>
 #include <exception>
@@ -104,7 +105,8 @@ enum class Command
     ZoomOut,
     ZoomReset,
     OpenLink,
-    ImageFirstPaste
+    ImageFirstPaste,
+    Print
 };
 enum class SaveConflictChoice
 {
@@ -136,6 +138,9 @@ struct LaunchOptions
     std::function<bool(std::wstring_view)> confirmLinkForTest;
     std::function<HRESULT(std::wstring_view)> launchLinkForTest;
     std::shared_ptr<AsyncFiles::TestGate> linkGateForTest;
+    std::function<HRESULT(Printing::Selection &)> printDialogForTest;
+    std::function<HRESULT(unsigned, ID2D1CommandList &)> printPageForTest;
+    std::function<HRESULT()> printFinishForTest;
 #endif
 };
 struct ApplicationActivity
@@ -240,6 +245,7 @@ class Application
     friend class DesignInteractiveProbe;
 #if defined(REDTILDE_ENABLE_TESTS)
     friend int RunFailureHostProbe(std::wstring_view, const std::filesystem::path &, ApplicationRuntime &);
+    friend class PrintingProbe;
 #endif
     template <class Action> void RunUiAction(Action &&action) noexcept
     {
@@ -339,6 +345,15 @@ class Application
     bool updatingFind{}, equationContext{}, pendingSelectionTools{}, pendingBlockPlacement{}, systemDark{};
     AsyncFiles files;
     RichImageLoader images;
+    Printing::Dialog printDialog;
+    std::shared_ptr<Printing::Operation> printOperation;
+    std::wstring printTitle;
+    bool printDialogOpen{};
+    std::vector<Printing::Image> printNetworkImages;
+    void Print();
+    void PrintCompleted();
+    void ReportPrintFailure(HRESULT result);
+    void RememberPrintImage(const DxUi::RichText::RichImageRequest &request, std::shared_ptr<const DxUi::RichText::RichImage> pixels);
     FileChangeService imageFiles;
     std::vector<std::filesystem::path> watchedImagePaths;
     std::shared_ptr<const DxUi::RichText::SemanticDocument> imageWatchSemantic;
@@ -465,7 +480,8 @@ class Application
     };
     std::optional<ConflictReload> conflictReload;
     static constexpr UINT ImageReady = WM_APP + 401, FileReady = WM_APP + 402, PreferencesReady = WM_APP + 403, RecoveryReadyMessage = WM_APP + 404,
-                          FolderReady = WM_APP + 405, ExternalLinkReady = WM_APP + 406, BitmapReady = WM_APP + 407, ImageFileChanged = WM_APP + 408;
+                          FolderReady = WM_APP + 405, ExternalLinkReady = WM_APP + 406, BitmapReady = WM_APP + 407, ImageFileChanged = WM_APP + 408,
+                          PrintReady = WM_APP + 409;
     static LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM) noexcept;
     LRESULT HandleMessage(HWND, UINT, WPARAM, LPARAM);
     bool RouteShortcut(const MSG &message);

@@ -53,8 +53,8 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>d3d11.lib;dxgi.lib;d2d1.lib;dwrite.lib;ole32.lib;shell32.lib;shlwapi.lib;uuid.lib;advapi32.lib;user32.lib;gdi32.lib;comctl32.lib;windowscodecs.lib;dwmapi.lib;winhttp.lib;ws2_32.lib;delayimp.lib;shcore.lib;dbghelp.lib;bcrypt.lib;imm32.lib;uiautomationcore.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <DelayLoadDLLs>WINHTTP.dll;WS2_32.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
+      <AdditionalDependencies>d3d11.lib;dxgi.lib;d2d1.lib;dwrite.lib;ole32.lib;shell32.lib;shlwapi.lib;uuid.lib;advapi32.lib;user32.lib;gdi32.lib;comctl32.lib;comdlg32.lib;winspool.lib;prntvpt.lib;windowscodecs.lib;dwmapi.lib;winhttp.lib;ws2_32.lib;delayimp.lib;shcore.lib;dbghelp.lib;bcrypt.lib;imm32.lib;uiautomationcore.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <DelayLoadDLLs>WINHTTP.dll;WS2_32.dll;COMDLG32.dll;WINSPOOL.DRV;prntvpt.dll;%(DelayLoadDLLs)</DelayLoadDLLs>
     </Link>
     <Manifest>
       <AdditionalManifestFiles>..\res\RedTilde.manifest;%(AdditionalManifestFiles)</AdditionalManifestFiles>
@@ -67,12 +67,15 @@
     <ClCompile Include="Application.Chrome.cpp" />
     <ClCompile Include="Application.CaptureScenarios.cpp" />
     <ClCompile Include="Application.Navigation.cpp" />
+    <ClCompile Include="Application.Printing.cpp" />
+    <ClCompile Include="Printing.cpp" />
     <ClCompile Include="..\Common\Files.cpp" />
     <ClCompile Include="..\Common\RemoteImage.cpp" />
     <ClInclude Include="..\Common\RemoteImageImports.h" />
     <ClCompile Include="..\Tests\Application.Tests.Files.cpp" Condition="'$(RedTildeEnableTests)'=='true'" />
     <ClCompile Include="..\Tests\Application.Tests.FailureHost.cpp" Condition="'$(RedTildeEnableTests)'=='true'" />
     <ClCompile Include="..\Tests\Application.Tests.Close.cpp" Condition="'$(RedTildeEnableTests)'=='true'" />
+    <ClCompile Include="..\Tests\Application.Tests.Printing.cpp" Condition="'$(RedTildeEnableTests)'=='true'" />
     <ClCompile Include="..\Tests\Application.Tests.DesignRefresh.cpp" Condition="'$(RedTildeEnableTests)'=='true'" />
     <ClCompile Include="..\Tests\Application.Tests.DesignInteractive.cpp" Condition="'$(RedTildeEnableTests)'=='true'" />
     <ClCompile Include="..\Tests\Application.Tests.RemoteImages.cpp" Condition="'$(RedTildeEnableTests)'=='true'" />

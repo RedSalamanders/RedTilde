@@ -275,6 +275,7 @@ Application::Application(LaunchOptions value, const DxUi::Failure::Scope &) : op
 Application::~Application()
 {
     closing = true;
+    Printing::Stop(printOperation);
     bitmapWriter.Stop();
     bitmapWriter.Detach();
     CloseExternalLinks();
@@ -1035,6 +1036,7 @@ bool Application::SetDocument(std::wstring text, std::filesystem::path path, boo
     if (lifetime.expired() || closing)
         return false;
     documentRemoteImagesAllowed = false;
+    printNetworkImages.clear();
     permissionCommitted = true;
     pendingBitmapPaste.reset();
     if (!initializing)
@@ -1795,6 +1797,7 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         ReplaceFind(true);
         return;
     case Command::RemoteImages:
+        printNetworkImages.clear();
         settings.allowRemoteImages = !settings.allowRemoteImages;
         editor->SetRemoteImagesEnabled(settings.allowRemoteImages || documentRemoteImagesAllowed);
         images.DiscardCancelled();
@@ -1803,6 +1806,7 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         SavePreferences();
         return;
     case Command::LocalNetworkImages:
+        printNetworkImages.clear();
         settings.allowLocalNetworkImages = !settings.allowLocalNetworkImages;
         images.SetAllowLocalNetwork(settings.allowLocalNetworkImages);
         // Retire existing request identities before applying the new transport policy.
@@ -1816,6 +1820,7 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
     case Command::DocumentImages:
         if (settings.allowRemoteImages)
             return;
+        printNetworkImages.clear();
         documentRemoteImagesAllowed = !documentRemoteImagesAllowed;
         editor->SetRemoteImagesEnabled(documentRemoteImagesAllowed);
         images.DiscardCancelled();
@@ -1823,6 +1828,7 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         ServiceImages();
         return;
     case Command::ReloadImages:
+        printNetworkImages.clear();
         imageFailureStatus = S_OK;
         editor->ReloadImages();
         images.DiscardCancelled();
@@ -1966,6 +1972,9 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         return;
     case Command::SaveAs:
         Save(true);
+        return;
+    case Command::Print:
+        Print();
         return;
     case Command::Compose:
         SetView(EditorView::Compose);
@@ -2764,6 +2773,8 @@ void Application::CompleteFileOperation()
         recovered = false;
         savedText = std::move(result.document.text);
         dirtyFact.reset();
+        if (documentPath != result.path)
+            printNetworkImages.clear();
         documentPath = std::move(result.path);
         stamp = result.document.stamp;
         EnsureFilesRoot();
@@ -3062,11 +3073,14 @@ void Application::ServiceImages()
         const auto count = images.Drain(results);
         for (std::size_t index = 0; index < count; ++index)
         {
-            const bool accepted = primary->CompleteImageRequest(results[index].request, std::move(results[index].image));
+            const auto &result = results[index];
+            const bool accepted = primary->CompleteImageRequest(result.request, result.image);
             if (!current())
                 return;
-            if (accepted && FAILED(results[index].status) && results[index].status != HRESULT_FROM_WIN32(ERROR_CANCELLED))
-                imageFailureStatus = results[index].status;
+            if (accepted)
+                RememberPrintImage(result.request, result.image);
+            if (accepted && FAILED(result.status) && result.status != HRESULT_FROM_WIN32(ERROR_CANCELLED))
+                imageFailureStatus = result.status;
         }
         RefreshImageConsent();
     }
@@ -3101,6 +3115,7 @@ LRESULT CALLBACK Application::WindowProc(HWND hwnd, UINT message, WPARAM wParam,
 }
 void Application::BeginClose()
 {
+    Printing::Stop(printOperation);
     // Reaching this point means the user saved or explicitly discarded source.
     // Retire only this session's snapshot and wait asynchronously for its result.
     AbandonStartupRestore();
@@ -3183,6 +3198,7 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         sessionEnding = wParam != FALSE;
         if (sessionEnding)
         {
+            Printing::Stop(printOperation);
             pendingBitmapPaste.reset();
             bitmapWriter.Stop();
             if (!closing)
@@ -3284,6 +3300,7 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
     }
     if (message == WM_NCDESTROY)
     {
+        Printing::Stop(printOperation);
         bitmapWriter.Stop();
         bitmapWriter.Detach();
         folderFiles.Close();
@@ -3323,6 +3340,11 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
     }
     if (closing)
         return DefWindowProcW(hwnd, message, wParam, lParam);
+    if (message == PrintReady)
+    {
+        PrintCompleted();
+        return 0;
+    }
     if (message == FolderReady)
     {
         FolderCompleted();
@@ -3524,6 +3546,15 @@ bool Application::RouteShortcut(const MSG &message)
                 break;
             case 'S':
                 command = shift ? Command::SaveAs : Command::Save;
+                break;
+            case 'P':
+                if (!shift)
+                {
+                    // Consume repeat keydowns even after the native dialog is dismissed.
+                    if ((message.lParam & (static_cast<LPARAM>(1) << 30)) != 0)
+                        return true;
+                    command = Command::Print;
+                }
                 break;
             case 'E':
                 command = shift ? Command::Files : Command::Code;
