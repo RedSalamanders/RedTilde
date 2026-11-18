@@ -4,6 +4,7 @@
 #include "Application.Tests.FailureHost.h"
 #include "Application.Tests.Files.h"
 #include "Application.Tests.HeapDiagnostic.h"
+#include "Application.Tests.Printing.h"
 #include "Application.Tests.RemoteImages.h"
 #include "Support/Support.Tests.BitmapAssets.h"
 #include "Support/Support.Tests.Foreground.h"
@@ -304,6 +305,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
     };
     RegisterFilesTests(root, test);
     RegisterCloseTests(root, test);
+    RegisterPrintingTests(root, test);
     RegisterDesignRefreshTests(root, test);
     RegisterRemoteImageTests(root, test);
     RegisterFailureHostTests(root, test);

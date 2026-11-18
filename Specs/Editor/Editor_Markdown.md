@@ -74,6 +74,22 @@ that dispatch contract. After application/TSF shortcut pretranslation, each live
 host dispatches Return/Space once and permits translation only when the original text-input owner still owns
 the character. RedTilde must not filter ordinary editor characters locally to compensate.
 
+## Printing
+
+File → Print and Ctrl+P print the active document's formatted Markdown from Compose, Source and Split. The
+job captures the admitted source revision, document identity, syntax options and completed-task preference.
+Unsaved source is eligible. Local-source drafts and active native IME composition use the existing command
+guards. Opening the dialog or completing a job preserves source, selection, scroll, undo, the saved baseline
+and recovery. The printed document contains the rich content and its readable literal and image alternatives.
+
+Paper width and hardware offsets come from the accepted printer configuration in 96-DPI units. The print
+layout uses dark ink on the paper, up to ¾-inch insets and fixed paper typography. Prepare it at the printable
+width independently of the editor's theme, view, zoom or viewport. Page breaks follow prepared lines, with
+headings kept with following text and rows and objects kept together where they fit. Scale an oversized
+indivisible band to fit the page. Empty source yields one blank sheet. Resolve allowed local image files
+through the application image reader. Use retained, approved pixels for remote and network-file images
+that are already available. An unavailable source uses the image's alternative without a new network fetch.
+
 ## Formatting and navigation
 
 Insert Quote and Insert Code Block transform a nonempty selection through

@@ -437,6 +437,7 @@ bool Application::SwitchWorkspaceDocument(std::size_t index)
         std::swap(stamp, document.stamp);
         std::swap(activeDocumentKey, document.recoveryKey);
         std::swap(documentRemoteImagesAllowed, document.remoteImagesAllowed);
+        printNetworkImages.clear();
         primary->SetRemoteImagesEnabled(settings.allowRemoteImages || documentRemoteImagesAllowed);
         document.dirty = previousDirty;
         dirtyFact.reset();
@@ -803,6 +804,7 @@ void Application::FileMenu(bool overflow)
         add(IDS_OPEN, Command::Open, L"Ctrl+O");
         add(IDS_OPENFOLDER, Command::OpenFolder, L"Ctrl+Shift+O");
         add(IDS_SAVEAS, Command::SaveAs, L"Ctrl+Shift+S");
+        add(IDS_PRINT, Command::Print, L"Ctrl+P");
         add(IDS_IMAGERELOAD, Command::ReloadImages);
     }
     else

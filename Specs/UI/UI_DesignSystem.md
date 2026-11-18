@@ -25,6 +25,14 @@ or invalid/oversized file keeps the current document and uses the localized exis
 tests supply choices without opening a desktop dialog or acquiring focus; they do not claim native dialog pixels.
 The application manifest declares Common Controls v6 for the task-dialog import; every native catalog/startup
 run must reach the application dispatcher, including test-enabled and production builds.
+
+File → Print… exposes Ctrl+P and opens the Windows Print dialog owned by the app window. The dialog lists
+installed printers and virtual destinations and exposes the chosen driver's settings. RedTilde offers All and
+Pages and validates ranges after paginating on the selected paper. Print admits one job, while Apply updates the
+session's dialog settings. A destination that supplies file output uses the owned Windows Save dialog. Returning
+from either dialog restores logical focus to the surviving control. Report progress, range correction, failure
+and submission in the existing localized status area. Paper submission means Windows accepted the spool job.
+
 Cold header layout reserves bounded identity space without initializing host typography. Once the host prepares
 typography, measure the filename canonically and reuse it until text, available width, typography revision or DPI changes.
 

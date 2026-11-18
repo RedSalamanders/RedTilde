@@ -54,6 +54,7 @@ identical CI tests, or `-Mode Full` for an explicit full profile. Pending CI is 
 | Action | Shortcut |
 | --- | --- |
 | New / Open / Save / Save As | Ctrl+N / Ctrl+O / Ctrl+S / Ctrl+Shift+S |
+| Print | Ctrl+P |
 | Open Folder | Ctrl+Shift+O |
 | Compose / Source / Split | Ctrl+1 / Ctrl+2 / Ctrl+3 |
 | Bold / Italic / Undo / Redo | Ctrl+B / Ctrl+I / Ctrl+Z / Ctrl+Y |

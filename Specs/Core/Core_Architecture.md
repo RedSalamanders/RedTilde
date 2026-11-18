@@ -13,6 +13,7 @@ repository and executable. It must launch and test without RedXe, RedPrism or Re
 | RichTextEditor | Authoritative UTF-16 Markdown source, immutable snapshots, selection and undo history |
 | Storage | Strict Unicode codecs, bounded reads, same-directory atomic replacement and file identity |
 | Image service | Bounded application-owned decode jobs, COM/WIC, cancellation and owner completion |
+| Printing | Owned Windows dialogs, an immutable document snapshot, paper-width page recording and driver submission |
 | Image file notifications | Shared directory-notification machinery in `Common/Files.*`, one process-counted worker, at most 32 files/eight local directories, coalesced owner notification |
 | Mathematics | DxUi source-backed inline/display objects and read-only inspector, native cached glyphs/lines, explicit diagnostics |
 | Files navigation | Application-owned bounded directory enumeration/watch worker, cancellation and stale-result identity; the UI opens files through the normal file-safety path |
@@ -37,7 +38,7 @@ opening a desktop menu or injecting input.
 The process owner starts local crash storage and a dedicated report writer, installs SDK protocol-2 hooks, then
 opens worker admission before constructing the application. One counted lease covers each admitted callback
 through its owned data, SDK objects and scopes. Files, recovery, preferences, bitmap creation/cleanup, image
-decoding, link dispatch, optional monitor launch and final WinHTTP notification retirement participate.
+decoding, printing, link dispatch, optional monitor launch and final WinHTTP notification retirement participate.
 Closing a view does not uninstall the failure host. Ordinary process shutdown closes producers, destroys app
 owners, closes admission and drains work on the COM-initialized owner before process-wide UIA cleanup and the
 failure-host BUSY drain. Each cooperative drain has a five-second deadline; a blocked callback cannot be
@@ -181,3 +182,18 @@ command enablement or preview/cancellation synchronization. Reset it when creati
 Performance qualification uses paired Release measurements on the same machine and fixture, recording source,
 dependency, binaries, WARP/hardware mode, dimensions, dirty/idle/hidden memory and CPU. Initial app measurements
 establish a baseline; library receipts do not establish application non-regression.
+
+## Printing
+
+The app owns the Windows dialogs and one outstanding print request. The worker owns its COM apartment,
+an independent DxUi embedded host, paper-width layout, Direct2D page lists and Windows print package target.
+Resolve the print-specific Windows imports on first use and report missing imports as ordinary print failures.
+The selected printer's complete DEVMODE is converted to the job PrintTicket. The driver owns its supported
+copy, collation and finishing settings. Draw and submit each selected page in document order, releasing
+the command list after submission. Closing shuts notification admission, requests cancellation and releases
+any wait for a destination filename. Job state contains an immutable document snapshot and owned inputs.
+
+For a file port, collect the chosen filename through the UI owner, spool into an owned sibling staging stream,
+and publish that file after successful submission. A cancelled choice, failed job or changed destination
+leaves an earlier file in place. Publication rechecks the destination entry and metadata immediately before its
+atomic replacement. Driver-managed destinations follow their own spool and delivery rules.

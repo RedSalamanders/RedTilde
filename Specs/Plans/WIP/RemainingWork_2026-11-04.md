@@ -1,13 +1,15 @@
 # RedTilde remaining delivery and qualification
 
 Status: ACTIVE
-Updated: 7 November 2026
+Updated: 18 November 2026
 Owner: RedTilde maintainers; shared controls stay with DxUi.
 
 This is the **only active RedTilde plan**. It replaces the ten overlapping planning queues listed in the
 [consolidation record](../Done/WipConsolidation_2026-11-04.md). Superseded records preserve findings, decisions,
 source identities, failed runs and proposal assets; they are references, not additional execution queues.
 Domain contracts under `Specs/Core`, `Specs/Editor`, `Specs/UI`, `Specs/Build` and `Specs/Testing` remain authoritative.
+
+The [Windows printing workstream](#t-u2) covers File → Print for paper, PDF and other installed destinations.
 
 The owner's **7 November 2026** delivery scope requires x64 Debug, Release and ASan Debug runtime tests and
 ARM64 compilation in all three profiles. ARM64 runtime is explicitly set aside for this delivery. Compilation
@@ -202,6 +204,117 @@ The approved Files root policy Q11 is completed by the folder-navigation slice; 
 Details and original counterexamples remain in the
 [delivery review](../Done/DeliveryReview_2026-10-31.md) and
 [review inventory](../Done/RedesignCompletionAndRendering_2026-10-24/review-inventory.md).
+
+<a id="t-u2"></a>
+### T-U2 — Print the active Markdown document through Windows
+
+**Implemented on 18 November 2026.** RedTilde uses the Windows Print dialog for the active document.
+Physical sheets, another virtual driver and live dialog/focus are still open qualification cases.
+
+#### What the writer will do
+
+1. Open a Markdown document or type in an untitled one. Choose **File → Print…** or press **Ctrl+P**.
+   Both open the standard Windows Print dialog owned by the RedTilde window. Compose, Source and Split all
+   print the formatted document, including unsaved edits. The Split mirror, caret and editor controls stay off the page.
+2. Choose an installed destination, all pages or a page range, and the paper size, orientation, copies,
+   collation and duplex options the driver offers. Confirm with **Print**.
+3. For a physical printer, collect the pages from that printer. For **Microsoft Print to PDF**, choose a
+   filename in the Windows save prompt and open the resulting PDF. Another installed destination, such as
+   **Microsoft XPS Document Writer**, follows its own normal workflow. Cancelling either dialog returns to the
+   same editing session. Printing never requires saving the Markdown file first. [Microsoft XPS Document Writer](https://learn.microsoft.com/en-us/windows/win32/printdocs/microsoft-xps-document-writer)
+
+#### Implementation order
+
+- [x] **1. Prove the page-to-driver path.** Start with a two-page fixture with distinct text on each page.
+  The pinned DxUi `RichTextEditor::TryDrawPreparedPage` draws a vertical slice on its prepared host and
+  requires an exact text-viewport width. Its existing test draws into a bitmap. Prepare a separate read-only
+  export editor at paper width, record a Direct2D command list on its host context for each page, and send
+  those lists through `ID2D1PrintControl` to a Windows print document package target. Demonstrate a real
+  two-page PDF with searchable fixture text and a single filename prompt. Verify the public geometry can
+  locate safe line and object breaks. If a required measurement is missing, qualify that specific addition in
+  DxUi first, then adopt its exact pin in RedTilde. [Pinned SDK](../../../Dependencies/DxUi.lock.json) ·
+  [DxUi page-drawing contract](https://github.com/RedSalamanders/DxUi/blob/21fae0dc66000b04504ba7862169533ac2943be8/include/DxUi/DxUi.h#L3699-L3707) ·
+  [Microsoft desktop printing sample](https://github.com/microsoft/Windows-classic-samples/blob/main/Samples/D2DPrintingFromDesktopApps/cpp/D2DPrintingFromDesktopApps.cpp)
+- [x] **2. Wire the command and freeze its input.** Add one `Command::Print` to `Application::FileMenu`,
+  `RouteShortcut` and `ExecuteCommand`. Localize the menu label, status and errors. On admission, capture
+  the active document key, `editor->Snapshot()`, display name, syntax options and approved image inputs.
+  A job keeps that revision if the writer later edits or switches files. Preserve the source selection,
+  scroll position, undo/redo, dirty flag, path and recovery state. Apply the existing IME and local-draft
+  guards so the writer can finish composing or apply/cancel a draft before printing. Restore focus to the
+  invoking control when it still exists. [Command routing](../../../RedTilde/Application.cpp) ·
+  [File menu](../../../RedTilde/Application.Navigation.cpp) · [Resources](../../../res/RedTilde.rc)
+- [x] **3. Collect and honor the Windows settings.** Use `PrintDlgExW` with RedTilde as owner.
+  Only `PD_RESULT_PRINT` admits a job. Apply retains the selected settings for the session and Cancel
+  dismisses the dialog. Carry the selected queue and complete `DEVMODE`, including driver-private data,
+  into its job PrintTicket. Delegate copies and collation to the driver once. Enable **All** and **Pages**,
+  keeping **Selection** and **Current page** disabled for this first release. Validate ranges against the
+  final pagination after a printer, paper or orientation change. Return an invalid range for correction
+  before submitting anything. Use the destination's normal filename prompt. If the transport requires an
+  application-supplied output stream, use one owned Windows Save dialog and verify the selected driver's
+  resulting file format. [Windows Print dialog settings and results](https://learn.microsoft.com/en-us/windows/win32/api/commdlg/ns-commdlg-printdlgexw)
+- [x] **4. Lay out the paper document.** Read physical page size, printable extent, offsets and X/Y
+  resolution from the selected printer configuration. Convert to 96-DPI logical units once. Intersect the
+  printable area with proposed ¾-inch document margins. Reflow to that width with paper typography, dark
+  ink and a white background, independent of monitor DPI, editor zoom, scroll or theme. Use the export
+  layout's line and block bounds to keep headings with following text and split paragraphs, code and tables
+  on complete lines or rows. Move a fitting image, equation or diagram to the next page if needed. Scale an
+  oversized graphic proportionally and wrap or continue an oversized text row with forward progress.
+  Preserve readable alt text or literal Markdown for unavailable images and unsupported notation. Reuse
+  admitted image content and the existing consent policy without initiating a network fetch. An empty
+  document yields one blank page. A trailing newline at a page boundary adds no extra sheet.
+  [Printer device metrics](https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-getdevicecaps)
+- [x] **5. Submit, cancel and recover.** Keep the modal choices on the owning UI thread. Give the export
+  host, graphics resources and spool submission a job owner with its own COM apartment. Prepare in bounded
+  steps and release each page's command list after submission. Serialize duplicate Print requests, cancel
+  outstanding work on shutdown and reject stale callbacks by job and window identity. Check page drawing,
+  `AddPage` and `Close`. On failure, cancel the package target and report the affected job without an
+  automatic retry that could duplicate sheets. Distinguish cancellation, failure and **sent to printer**.
+  A driver may already have emitted earlier pages. Leave the editor usable after a missing printer, an
+  unavailable spooler, a refused filename or a mid-job failure. [Direct2D printing](https://learn.microsoft.com/en-us/windows/win32/direct2d/printing-and-command-lists) ·
+  [Package cancellation](https://learn.microsoft.com/en-us/windows/win32/api/documenttarget/nf-documenttarget-iprintdocumentpackagetarget-cancel)
+
+#### Qualification
+
+| Check | Evidence required |
+| --- | --- |
+| Editing and cancellation | Hidden harness drives the real command with injected dialog and print-target results. Cover dirty and untitled documents, all three views, pending draft/IME, Apply, Cancel, repeat invocation, switching files during a job and closing during submission. Compare the original snapshot, history, selection and saved state. Cancel before confirmation submits zero jobs. |
+| Page contents | Use the [Markdown showcase](../../../docs/examples/markdown-showcase.md) and [fallback cases](../../../docs/examples/rendering-fallback-cases.md), plus a numbered boundary fixture. Check every text marker appears once in order, including across wrapping and page breaks. Check Unicode, task lists, tables, code, math, diagrams and allowed/blocked images. Verify matching pages in light/dark and all editor views, with no clipped lines or wholly missing objects. |
+| Paper and options | Exercise Letter and A4, portrait and landscape, asymmetric hardware margins, a single page, disjoint ranges and a range invalidated by changing paper. Check actual dimensions, requested page order, first/last content and copy count. |
+| Real Windows destinations | At an agreed desktop time, invoke both the menu and Ctrl+P. Print a marked multipage job to a physical printer and inspect the sheets. Save through Microsoft Print to PDF, reopen it and check page count, size, visible content and searchable text. Exercise a second installed virtual destination such as XPS and inspect its result. Cancel the filename prompt and decline an overwrite of a pre-existing fixture file. Verify its bytes survive. Record unavailable destinations as open cases. |
+| Failure and responsiveness | Inject failure at ticket creation, page N and final submission. Check one terminal result, safe cleanup and a successful later job. For a document near the supported size limit, record pagination time, time to first page, peak memory and resource release after repeat/cancel. Compare idle editor cost and typing responsiveness to the same-fixture Release baseline. |
+
+The six x64 and ARM64 builds completed with zero warnings. The hidden printing cases pass in all three x64
+profiles. Across those profiles, 157 of 158 behavioral cases pass, with 40 hidden captures per profile and real
+AddressSanitizer detection in ASan Debug. Windows denies the existing symbolic-save fixture's link creation
+with error 1314 in each profile. The directed failures are retained in
+`.build/printing-20261118/storage-final-48e21afc3eb340c0b87aa1771b2d4b0b`. The passing selected runs are
+`20261118T093134214Z-59528-b09d283e820b48b9a4d8b903d3ba3bed` (Release),
+`20261118T092941141Z-55844-bba70dfbcdec47cd979bbe4cbacfe0cd` (Debug) and
+`20261118T092932324Z-53052-4f19bd7996904615885d4bc2b7837e8b` (ASan Debug).
+
+The Windows driver probe passes a synthetic filename to the same renderer, ticket and stream used by
+RedTilde. Microsoft Print to PDF produces five Letter portrait pages with all 76 searchable markers once in
+order, and one A4 landscape page with the requested range. The longer probe produced 13 pages with all
+250 markers from 61,497 UTF-16 units. The image fixture preserves both ends of a tall local illustration
+and the blocked remote image's alternative. Cancelling the filename preserves an existing fixture file.
+Raw output is under `.build/printing-20261118`, including `deferred-pdf-aba527dda3b6401294cddee8a6c179f5`.
+Live dialog/focus, physical sheets, another virtual driver and ARM64 runtime remain open.
+
+An initial two-block Release comparison showed an idle private-memory increase with eager print imports.
+The final binary delays those imports until first use. In the repeated WARP comparison, Compose private memory
+was 30.07 MiB before printing support and 30.27 MiB after it, and Split was 31.57 MiB and 30.53 MiB.
+Completed-edit medians were 16.70 ms and 16.63 ms for Compose and 16.79 ms and 16.47 ms for Split.
+The raw samples are under `.build/printing-20261118/paired-screen-27b483e9f023473a93902193b4ff0d8c`.
+The two-block comparison leaves the full paired performance gate open.
+
+- [ ] **6. Publish the qualified behavior.** Register the deterministic cases in the [native inventory](../../../Tests/NativeInventory.json)
+  and [case catalog](../../../Tests/native-case-catalog.json). Keep regular tests headless and retain real
+  dialog, PDF, other-driver and physical evidence separately. Bind receipts to the app source, exact DxUi pin,
+  build, OS, driver, paper settings and fixture. Follow [validation](../../Testing/Testing_Validation.md) and
+  [performance](../../Testing/Testing_Performance.md) for the applicable build and runtime gates. Update
+  [editor behavior](../../Editor/Editor_Markdown.md), [UI](../../UI/UI_DesignSystem.md),
+  [architecture](../../Core/Core_Architecture.md) and the [usage guide](../../../docs/README.md) alongside
+  implementation. Record only verified destinations and remaining gates in [capabilities](../../../capabilities.json).
 
 <a id="t-i1"></a>
 ### T-I1 — images and supported locations
@@ -430,7 +543,8 @@ RT-10/11's old drops did not cancel them. Current unified CI supersedes obsolete
 ## Explicitly deferred scope
 
 Full LaTeX/Mermaid parity, wiki navigation/embed resolution, documents above 65,536 UTF-16 units, broad font-family
-choices (C8), export and optional new product surfaces remain separately selected work. The 5 November
+choices (C8), standalone format exporters and optional new product surfaces remain separately selected work.
+Printing to physical and virtual Windows destinations is selected under [T-U2](#t-u2). The 5 November
 multi-document switching/recovery request is now selected under T-U1 above and is no longer part of that deferral.
 Current syntax options and text-size support are implemented; they do not imply those larger capabilities.
 Do not reopen dropped findings without new evidence.
