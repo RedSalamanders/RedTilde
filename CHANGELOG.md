@@ -4,6 +4,38 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Gave `Specs/Build/Build_UnifiedCI.md` the skeleton every RedSalamanders repository now shares (convergence
+  CV-6-03, B-08): the same headings in the same order, one common text above `## Project adapter` built from the
+  paragraphs the six files already shared, five stale statements corrected to the engine's `Specs/CI.md`, and every
+  repository-specific sentence moved unchanged into the fixed adapter subsections. Prose only; no CI
+  behavior changed. Validated with the repository's specification validators and `Tools/Test-Changelog.ps1`.
+- Agent guidance now matches the other RedSalamanders repositories (`RedHome` convergence step CV-6-02). There is
+  one identical `.github/copilot-instructions.md` pointer to `AGENTS.md`, and `## Skills` (formerly "Focused
+  skills") carries the shared-skill pointer directly under it. The drive-root, scoped-testing, Changes, native build
+  and Unified CI sections use the text every repository shares. A new shared "Interactive desktop tests" section
+  states the focus rule, and RedTilde's own scoped-testing facts move into Workflow. The five nested `AGENTS.md` files
+  and `.agents/guidance.json` are gone: their rules are in a new "Folder guidance" section, and
+  `Build/SkillPackageIntegrity.psm1` now refuses nested guidance or an inventory, with its fixtures and
+  `Testing_SkillPackages.md` updated. The common `.gitignore` block ignores `.claude/settings.local.json` and
+  `.claude/scheduled_tasks.lock`, and `capabilities.json` says `supported` instead of `implemented`. Nothing compiles
+  differently.
+- Converged the root files with every RedSalamanders repository (convergence CV-6-03, owner decision D18 and the
+  B-12 default): the third-party notices move from `Dependencies/Notices.md` to a root `THIRD-PARTY-NOTICES.md`,
+  corrected for what pin `21fae0dc` compiles in (libfyaml with xxHash instead of rapidyaml, the Unicode and WHATWG
+  tables) and for the bundled Visual C++ runtime, and `package.ps1` stages it beside `LICENSE.txt`. The common
+  `CONTRIBUTING.md`, pull request template and `.vsconfig` are added. Validated with `validate.ps1` and
+  `Tools/Test-Changelog.ps1`; native packaging runs in main qualification.
+- Give print preview left and right page navigation and page selection for a single page, the current page or page
+  ranges. Use the Windows Print dialog for installed destinations and report the failed printing step with Windows
+  details. Pin DxUi API 5 to qualified commit `0c371a6197eb8c6b876b4b2843d75078bc21035c` so diagrams draw directly
+  on the editor canvas and paper.
+- Named the workflows and the Dependabot configuration on their own lines in the common CODEOWNERS file, which
+  every RedSalamanders repository shares (convergence CV-6-03, B-12); `/.github/` already owned both, so no owner
+  changes. Prose only. Validated with `Tools/Test-Changelog.ps1`.
+- Planned the code-convention rows of the RedHome convergence register (CV-6-08) that move RedTilde as section
+  T-CV1 of the remaining-work plan: JSON settings (H-10), reload (H-15), settings names (H-26), the crash contract
+  (H-24), test failure reports (H-22), keyboard state (H-23) and resource strings (H-06, H-08), after the 155-line
+  reformat. Plan only; no code changes.
 - The winget block of `.ci/project.json` now declares `minimumOSVersion` `10.0.22000.2600` (Windows 11 22000.2600),
   the field every other application declares and the value the owner took as the default minimum Windows version on
   2026-11-18 (RedHome CV-6-07, register G-05; register C-09). Generated winget manifests carry it from the next
