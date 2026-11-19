@@ -19,12 +19,14 @@ class PrintPreview final
     [[nodiscard]] HWND Window() const noexcept;
     [[nodiscard]] DxUi::ControlHost &Host() noexcept;
     [[nodiscard]] const Printing::PreviewPage &Page() const noexcept;
+    [[nodiscard]] std::optional<std::vector<Printing::PageRange>> SelectedRanges() const;
     [[nodiscard]] bool CanPrint() const noexcept;
     [[nodiscard]] bool DispatchKeyboardMessage(const MSG &message);
     void SetTheme(const DxUi::ThemePalette &theme) noexcept;
     void BeginRendering();
     void Present(Printing::PreviewPage page, std::wstring status);
     void SetStatus(std::wstring status);
+    void ReportInvalidRange(bool focus);
 
   private:
     class Sheet;
@@ -46,9 +48,9 @@ class PrintPreview final
     Surface *root_{};
     DxUi::ScrollPanel *scroll_{};
     Sheet *sheet_{};
-    DxUi::Label *title_{}, *document_{}, *total_{}, *status_{};
-    DxUi::NumericStepper *page_{};
-    DxUi::Button *zoom_{}, *close_{}, *print_{};
+    DxUi::Label *title_{}, *document_{}, *pageLabel_{}, *total_{}, *rangeLabel_{}, *status_{};
+    DxUi::TextField *page_{}, *ranges_{};
+    DxUi::Button *previous_{}, *next_{}, *zoom_{}, *current_{}, *close_{}, *print_{};
     bool ownerDisabled_{}, fitWidth_{}, actionPending_{};
 };
 } // namespace RedTilde

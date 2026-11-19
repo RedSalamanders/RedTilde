@@ -55,17 +55,19 @@ or dark backing improves readability. Notes and filled groups keep their own sur
 undo history stay unchanged.
 
 **Printing.** Choose **File → Print…** or press **Ctrl+P** to preview the formatted pages, including unsaved
-edits from Compose, Source or Split. Change the **Page** number to inspect any sheet. **Fit width** enlarges
-the page so you can scroll through it, and **Fit page** shows the whole sheet.
+edits from Compose, Source or Split. Use the left arrow for the previous page and the right arrow for the next.
+Enter a **Page** number and press Enter to jump to it. **Fit width** enlarges the sheet for scrolling, and
+**Fit page** shows the whole sheet.
 
-Select **Print…** in the preview to open the Windows Print dialog. Choose an installed printer or virtual
-destination, then choose **All**, **Current Page** for the displayed sheet, or **Pages** to enter a page number
-or ranges. To generate a PDF, select **Microsoft Print to PDF** and choose a filename in the Windows save
-dialog after confirming. Other installed destinations follow their driver's workflow.
+Leave **Pages to print** blank for the whole document. Enter a page such as `3`, a range such as `4-6`, or a
+list such as `1, 4-6`. **Current page** fills in the number of the sheet you are viewing. Select **Print…** to
+choose an installed destination and its settings in the Windows Print dialog. For a PDF, select **Microsoft
+Print to PDF** and choose a filename in the Windows save dialog. Other destinations use their driver's workflow.
 
-If changing the driver or paper settings changes the layout, RedTilde displays the updated pages before
-submitting anything. Review them and select **Print…** again. Re-enter any page range that exceeds the new
-count. Cancel in Windows to return to the preview, or choose **Close** to return to the document.
+When the destination changes the paper layout, review the updated preview and select **Print…** again. Correct
+any range that exceeds the new page count. Cancel in Windows to return to the preview, or choose **Close** to
+return to the document. If printing fails, RedTilde identifies the failed step and displays the Windows error.
+Native Mermaid diagrams use the document canvas or the printed sheet as their background.
 
 **Closing files:** Close hides the window while an already admitted Save finishes. A failed write restores
 the window with an error and keeps your source and recovery copy. Edits made after Save still need a

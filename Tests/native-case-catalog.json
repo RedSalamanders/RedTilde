@@ -3,6 +3,7 @@
   "cases": [
     { "name": "Editor.PrintingPreservesRevisionAndHonorsPageRanges", "scope": "Editor" },
     { "name": "Editor.PrintingFailureAndShutdownRetireJobs", "scope": "Editor" },
+    { "name": "Editor.PrintingDiagramFollowsCanvasAndPaper", "scope": "Editor" },
     { "name": "Editor.ImageFileReadAndSharePolicy", "scope": "Editor" },
     { "name": "Editor.ImageFileNotificationsAreBoundedAndRetire", "scope": "Editor" },
     { "name": "Editor.LocalImageChangesReloadWithoutEditing", "scope": "Editor" },

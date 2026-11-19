@@ -140,7 +140,7 @@ struct LaunchOptions
     std::function<HRESULT(std::wstring_view)> launchLinkForTest;
     std::shared_ptr<AsyncFiles::TestGate> linkGateForTest;
     std::optional<Printing::Paper> printPaperForTest;
-    std::function<HRESULT(const Printing::DialogOptions &, Printing::DialogResult &)> printDialogForTest;
+    std::function<HRESULT(bool printToFile, Printing::DialogResult &)> printDialogForTest;
     std::function<HRESULT(unsigned, ID2D1CommandList &)> printPageForTest;
     std::function<HRESULT()> printFinishForTest;
 #endif
@@ -352,12 +352,11 @@ class Application
     std::shared_ptr<Printing::Operation> printOperation;
     std::unique_ptr<PrintPreview> printPreview;
     std::optional<Printing::Paper> printPaper;
-    std::vector<Printing::PageRange> printRanges;
     std::wstring printPreviewPrinter;
     DxUi::Control *printInvoker{};
     std::weak_ptr<int> printInvokerLifetime;
     std::wstring printTitle;
-    bool printDialogOpen{}, printCurrentPage{}, printToFile{}, printPaperChanged{}, printRangeNeedsCorrection{};
+    bool printDialogOpen{}, printToFile{}, printPaperChanged{};
     std::vector<Printing::Image> printNetworkImages;
     void Print();
     void PreviewPrintPage(unsigned number);
@@ -365,7 +364,7 @@ class Application
     void ClosePrintPreview() noexcept;
     void DismissPrintPreview() noexcept;
     void PrintCompleted();
-    void ReportPrintFailure(HRESULT result, bool previewFailed = false);
+    void ReportPrintFailure(HRESULT result, Printing::Stage stage, std::wstring_view printer = {}, unsigned pageNumber = 0u);
     void RememberPrintImage(const DxUi::RichText::RichImageRequest &request, std::shared_ptr<const DxUi::RichText::RichImage> pixels);
     FileChangeService imageFiles;
     std::vector<std::filesystem::path> watchedImagePaths;

@@ -27,19 +27,25 @@ The application manifest declares Common Controls v6 for the task-dialog import;
 run must reach the application dispatcher, including test-enabled and production builds.
 
 File → Print… and Ctrl+P open an owned Print preview. Show the formatted sheet, its editable page number
-and the total page count. Offer whole-sheet and width fitting, with scrolling when the sheet is enlarged.
+and the total page count. The left arrow selects the previous page and the right arrow selects the next page.
+Disable each arrow at its boundary. Enter commits a typed page number. Offer whole-sheet and width fitting,
+with scrolling when the sheet is enlarged.
 Expose keyboard navigation and accessible names through the native controls. Use the app theme for the
 preview controls and the paper's print colors for the sheet. Close or Escape returns focus to the invoking
 control if it survives.
 
-Print… in the preview opens the standard Windows Print dialog. It lists installed printers and virtual
-destinations and exposes the selected driver's settings. Enable All, Current Page and Pages. Current Page
-refers to the sheet displayed when the dialog opens. Cancel returns to the preview. Apply retains settings
-without submission. If the accepted settings change paper geometry, show the updated pagination and ask
-the writer to confirm again in the Windows dialog. Seed its valid selected ranges and limit input to the
-displayed page count. Ask for a new range when a paper change invalidates the old one. Use the owned
-Windows Save dialog for file output. Report progress, range correction, failure and submission using localized
-status text. Paper submission means Windows accepted the spool job.
+The Pages to print field is visible before destination selection. Blank means all pages. Accept one page,
+inclusive ranges and comma-separated combinations, bounded by the displayed page count. Current page fills the
+field with the displayed page number. Invalid input leaves the entered text available for correction and prevents
+opening the destination dialog.
+
+Print… opens the standard Windows Print dialog for installed physical and virtual destinations and driver
+settings. The preview owns which pages to submit. Cancel returns to the preview. Apply retains settings
+without submission. If the accepted settings change paper geometry, show the updated pagination and require a
+new confirmation. Preserve the entered ranges and prompt for correction when a range exceeds the new page
+count. Use the owned Windows Save dialog for file output. Show progress and range correction above the sheet.
+Report a failure in an owned error dialog with the failed step, the known destination and Windows error details.
+Paper submission means Windows accepted the spool job.
 
 Cold header layout reserves bounded identity space without initializing host typography. Once the host prepares
 typography, measure the filename canonically and reuse it until text, available width, typography revision or DPI changes.

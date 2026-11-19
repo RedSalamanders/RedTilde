@@ -148,9 +148,9 @@ The API-5 migration uses the exact commit in `Dependencies/DxUi.lock.json`, with
 checked source/codec/configuration adapters and input-state continuity. The earlier diagram, math,
 selection-insertion, parser and Unicode-first clipboard repairs remain included. Each changed pin requires fresh
 source-bound consumer qualification; API-4 evidence cannot qualify an API-5 migration.
-The [API-5 adoption closeout](../Plans/Done/Api5ConsumerAdoption_2026-11-08.md) records the current exact pin,
-six local builds and all three hosted x64 runtime profiles. ARM64 remains compilation-only for this delivery;
-physical input, provider locations, performance and product publication retain their separate gates.
+The [API-5 adoption closeout](../Plans/Done/Api5ConsumerAdoption_2026-11-08.md) records its original pin,
+six local builds and all three hosted x64 runtime profiles. The closeout covered ARM64 compilation.
+Physical input, provider locations, performance and product publication retain their separate gates.
 The local cache is a clean independent detached Git checkout,
 validated and built through the ordinary public consumer interface. No sibling archive or copied source is linked.
 API revision 5 changes source contracts and object layouts. Restore and rebuild every profile from its matching

@@ -208,18 +208,20 @@ Details and original counterexamples remain in the
 <a id="t-u2"></a>
 ### T-U2 — Print the active Markdown document through Windows
 
-**Implemented on 18 November 2026.** RedTilde previews formatted pages and uses the Windows Print dialog
-for destination and page selection.
+**Implemented on 18 November 2026.** RedTilde previews formatted pages. The preview owns page selection
+and the Windows Print dialog owns destination and driver settings.
 Physical sheets, another virtual driver and live dialog/focus are still open qualification cases.
+The source pin adopts the qualified DxUi fix that draws native graphs directly on the editor canvas or paper.
+[DxUi graph fix](https://github.com/RedSalamanders/DxUi/pull/284) · [native qualification](https://github.com/RedSalamanders/DxUi/actions/runs/44567181848)
 
 #### What the writer will do
 
 1. Open a Markdown document or type in an untitled one. Choose **File → Print…** or press **Ctrl+P**.
    Inspect any page and fit it to the window or its width. Compose, Source and Split all preview and print
    the formatted document, including unsaved edits.
-2. Open the standard Windows Print dialog from the preview. Choose an installed destination, all pages,
-   the current page or explicit page ranges. Choose the paper size, orientation, copies, collation and duplex
-   options the driver offers. Review any updated pagination before confirming again.
+2. Choose all pages, the current page or explicit page ranges in the preview. Open the standard Windows Print
+   dialog to choose an installed destination and its paper size, orientation, copies, collation and duplex options.
+   Review any updated pagination before confirming again.
 3. For a physical printer, collect the pages from that printer. For **Microsoft Print to PDF**, choose a
    filename in the Windows save prompt and open the resulting PDF. Another installed destination, such as
    **Microsoft XPS Document Writer**, follows its own normal workflow. Cancelling either dialog returns to the
@@ -248,12 +250,11 @@ Physical sheets, another virtual driver and live dialog/focus are still open qua
 - [x] **3. Collect and honor the Windows settings.** Use `PrintDlgExW` with RedTilde as owner.
   Only `PD_RESULT_PRINT` admits a job. Apply retains the selected settings for the session and Cancel
   dismisses the dialog. Carry the selected queue and complete `DEVMODE`, including driver-private data,
-  into its job PrintTicket. Delegate copies and collation to the driver once. Enable **All**, **Current Page**
-  and **Pages**. Validate ranges against the
-  final pagination after a printer, paper or orientation change. Return an invalid range for correction
-  before submitting anything. Use the destination's normal filename prompt. If the transport requires an
-  application-supplied output stream, use one owned Windows Save dialog and verify the selected driver's
-  resulting file format. [Windows Print dialog settings and results](https://learn.microsoft.com/en-us/windows/win32/api/commdlg/ns-commdlg-printdlgexw)
+  into its job PrintTicket. Delegate copies and collation to the driver once. Use the preview's page selection
+  and validate it against the final pagination after a printer, paper or orientation change.
+  Return an invalid range for correction before submitting anything. Use the destination's normal filename prompt.
+  If the transport requires an application-supplied output stream, use one owned Windows Save dialog and verify the
+  selected driver's resulting file format. [Windows Print dialog settings and results](https://learn.microsoft.com/en-us/windows/win32/api/commdlg/ns-commdlg-printdlgexw)
 - [x] **4. Lay out the paper document.** Read physical page size, printable extent, offsets and X/Y
   resolution from the selected printer configuration. Convert to 96-DPI logical units once. Intersect the
   printable area with proposed ¾-inch document margins. Reflow to that width with paper typography, dark
