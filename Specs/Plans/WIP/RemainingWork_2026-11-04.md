@@ -540,6 +540,37 @@ is included here, without rebuilding or packaging the separate viewer.
 - [ ] Apply normal Changes fragments and a separate post-merge fold when authorized. No cleanup changes the
   shared fold cadence, manually edits CHANGELOG, or consolidates existing fragments outside its governing workflow.
 
+<a id="t-cv1"></a>
+### T-CV1 — shared code conventions (RedHome CV-6-08)
+
+Step CV-6-08 of the cross-repository
+[convergence plan](https://github.com/RedSalamanders/RedHome/blob/main/Specs/Plans/WIP/Convergence_2026-11-17.md)
+gives each code convention one target in every repository (register section H). These rows move RedTilde. No C or
+C++ source changes until RedTilde's 155-line reformat (CV-6-05) is merged; each row then lands in its own pull request
+with its `Changes/` fragment. Merge gate (RedHome decision D21): pull request checks pass and the six profiles build
+with zero warnings; tests are recorded as "tests deferred (D21)".
+
+- [ ] **H-10 Settings format.** `Common/Settings.cpp` stores line-based `key=value` text with a `RedTilde.Settings/1`
+  header. Target (owner default): JSON through `yyjson`, read with `YYJSON_READ_JSON5 | YYJSON_READ_ALLOW_BOM`. An
+  existing text file is read once and rewritten as JSON, so no user loses settings.
+- [ ] **H-15 Settings reload (RedHome decision D19).** No settings watcher today. Target, after H-10: a worker that
+  waits on the change and a stop event, coalesces and posts one notification; field-level fallback; unknown members
+  kept across a save.
+- [ ] **H-26 Settings file and contract names.** Target: `RedTilde.settings.json`, `RedTilde-debug.settings.json` and
+  `Specs/Core/Core_Settings.md`, with H-10.
+- [ ] **H-24 Crash contract.** The handler already covers all five paths (`Common/CrashHandler.cpp`). Target: the
+  crash half of [settings and crashes](../../Core/Core_SettingsAndCrashes.md) becomes `Specs/Core/Core_CrashHandling.md`.
+- [ ] **H-22 Test-process failure reports.** The test sources set no report routing. Target: every native test entry
+  point routes failure reports away from dialogs first and answers `--failure-report-self-test`, which tooling tests
+  run for every suite.
+- [ ] **H-23 Keyboard state under hidden self-tests.** `RedTilde/Application.cpp` and `RedTilde/PrintPreview.cpp` read
+  `GetKeyState`. Target: an application-owned keyboard state wherever a hidden self-test drives keys.
+- [ ] **H-06 and H-08 Resource strings.** A local `ResourceView` / `Resource` over `LoadStringW`. Target: the shared
+  helper set, then the resource-string gate over `res/RedTilde.rc`.
+
+H-01, H-02, H-05 and H-14 wait for API 6 (RedHome decision D20); H-16 waits for an owner choice of one crash artifact
+shape.
+
 ## Decisions preserved
 
 Q1–Q17 remain recorded in the [owner decisions](../Done/ProductionReview_2026-10-28.md#owner-decisions--29-october-2026).
