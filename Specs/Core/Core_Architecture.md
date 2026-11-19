@@ -185,25 +185,25 @@ establish a baseline; library receipts do not establish application non-regressi
 
 ## Printing
 
-The app owns the preview window, Windows dialogs and one outstanding print session. The worker owns its
+The app owns the preview window, the output filename dialog and one outstanding print session. The worker owns its
 COM apartment, an independent DxUi embedded host, paper-width layout, Direct2D page lists and Windows print
 package target. Keep the prepared document and approved image pixels through preview and submission.
 Rasterize a single bounded preview sheet from the same command list sent to the printer when selected.
 Transfer its pixel bytes and geometry to the UI. The worker also enumerates installed queues and queries paper
 geometry when the preview destination changes. Paper changes rebuild the prepared layout on the worker.
 Resolve the print-specific Windows imports on first use and report missing imports as ordinary print failures.
-The preview supplies the validated page selection and seeds the Windows dialog with the exact selected queue
-name. Reuse accepted driver settings only for the matching printer. The Windows dialog supplies the selected
-printer's complete DEVMODE for the job PrintTicket. Keep dialog flags and driver exclusion flags in their
-respective fields. The driver owns its supported copy, collation and finishing settings.
-Draw and submit each selected page in document order, releasing
+The worker obtains the selected printer's complete DEVMODE, including private data. It asks the driver to
+validate per-job choices without updating printer defaults and reads back the accepted configuration. Reuse
+settings only for the matching queue. Prepare and submit against the same paper geometry. The preview supplies
+validated ranges and final copy and collation choices. The job PrintTicket carries the accepted driver settings,
+including its defaults for options the preview does not expose. Draw and submit each selected page in document order, releasing
 the command list after submission. Sleep on an event between preview requests. Closing shuts notification
 admission, requests cancellation and releases waits for preview commands or a destination filename.
 Job state contains an immutable document snapshot and owned inputs. Failure completion carries the failed
 stage, relevant page and selected destination back to the UI owner. A failed submission is never retried
 automatically.
 
-For a file port, collect the chosen filename through the UI owner, spool into an owned sibling staging stream,
+For a file port or Print to file, collect the chosen filename through the UI owner, spool into an owned sibling staging stream,
 and publish that file after successful submission. A cancelled choice, failed job or changed destination
 leaves an earlier file in place. Publication rechecks the destination entry and metadata immediately before its
 atomic replacement. Driver-managed destinations follow their own spool and delivery rules.

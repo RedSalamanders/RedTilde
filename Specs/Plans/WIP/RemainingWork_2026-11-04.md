@@ -208,10 +208,9 @@ Details and original counterexamples remain in the
 <a id="t-u2"></a>
 ### T-U2 — Print the active Markdown document through Windows
 
-**Implemented on 18 November 2026.** RedTilde previews formatted pages. The preview owns page selection
-and offers an installed printer dropdown beside the sheet. The Windows Print dialog takes that initial
-destination and confirms the driver settings. Physical sheets, another virtual driver and interactive desktop
-focus remain open qualification cases.
+RedTilde previews formatted pages. The preview owns destination, page selection and driver-supported job
+options. Its Print action submits the reviewed pages. Physical sheets, another virtual driver and interactive
+desktop focus remain open qualification cases.
 The source pin adopts the qualified DxUi fix that draws native graphs directly on the editor canvas or paper.
 [DxUi graph fix](https://github.com/RedSalamanders/DxUi/pull/284) · [native qualification](https://github.com/RedSalamanders/DxUi/actions/runs/44567181848)
 
@@ -220,12 +219,12 @@ The source pin adopts the qualified DxUi fix that draws native graphs directly o
 1. Open a Markdown document or type in an untitled one. Choose **File → Print…** or press **Ctrl+P**.
    Inspect any page and fit it to the window or its width. Compose, Source and Split all preview and print
    the formatted document, including unsaved edits.
-2. Choose an installed destination and all pages, the current page or explicit page ranges in the preview. Open
-   the standard Windows Print dialog to review the destination and its paper, orientation, copies, collation and duplex options.
-   Review any updated pagination before confirming again.
+2. Choose an installed destination and all pages, the current page or explicit page ranges in the preview.
+   Adjust available paper, orientation, copies, collation and duplex options in the sidebar. Review any updated
+   pagination before selecting Print.
 3. For a physical printer, collect the pages from that printer. For **Microsoft Print to PDF**, choose a
    filename in the Windows save prompt and open the resulting PDF. Another installed destination, such as
-   **Microsoft XPS Document Writer**, follows its own normal workflow. Cancelling either dialog returns to the
+   **Microsoft XPS Document Writer**, follows its own normal workflow. Cancelling the preview or filename choice returns to the
    same editing session. Printing never requires saving the Markdown file first. [Microsoft XPS Document Writer](https://learn.microsoft.com/en-us/windows/win32/printdocs/microsoft-xps-document-writer)
 
 #### Implementation order
@@ -248,14 +247,13 @@ The source pin adopts the qualified DxUi fix that draws native graphs directly o
   guards so the writer can finish composing or apply/cancel a draft before printing. Restore focus to the
   invoking control when it still exists. [Command routing](../../../RedTilde/Application.cpp) ·
   [File menu](../../../RedTilde/Application.Navigation.cpp) · [Resources](../../../res/RedTilde.rc)
-- [x] **3. Collect and honor the Windows settings.** Use `PrintDlgExW` with RedTilde as owner.
-  Only `PD_RESULT_PRINT` admits a job. Apply retains the selected settings for the session and Cancel
-  dismisses the dialog. Carry the selected queue and complete `DEVMODE`, including driver-private data,
-  into its job PrintTicket. Delegate copies and collation to the driver once. Use the preview's page selection
+- [x] **3. Collect and honor the Windows settings.** Prepare the selected queue and validate requested changes
+  through its driver. Carry the full `DEVMODE`, including driver-private data, into its job PrintTicket.
+  Delegate copies and collation to the driver once. Use the preview's page selection
   and validate it against the final pagination after a printer, paper or orientation change.
   Return an invalid range for correction before submitting anything. Use the destination's normal filename prompt.
   If the transport requires an application-supplied output stream, use one owned Windows Save dialog and verify the
-  selected driver's resulting file format. [Windows Print dialog settings and results](https://learn.microsoft.com/en-us/windows/win32/api/commdlg/ns-commdlg-printdlgexw)
+  selected driver's resulting file format. [Driver settings API](https://learn.microsoft.com/en-us/windows/win32/printdocs/documentproperties)
 - [x] **4. Lay out the paper document.** Read physical page size, printable extent, offsets and X/Y
   resolution from the selected printer configuration. Convert to 96-DPI logical units once. Intersect the
   printable area with proposed ¾-inch document margins. Reflow to that width with paper typography, dark
@@ -267,7 +265,7 @@ The source pin adopts the qualified DxUi fix that draws native graphs directly o
   admitted image content and the existing consent policy without initiating a network fetch. An empty
   document yields one blank page. A trailing newline at a page boundary adds no extra sheet.
   [Printer device metrics](https://learn.microsoft.com/en-us/windows/win32/api/wingdi/nf-wingdi-getdevicecaps)
-- [x] **5. Submit, cancel and recover.** Keep the modal choices on the owning UI thread. Give the export
+- [x] **5. Submit, cancel and recover.** Keep preview and filename choices on the owning UI thread. Give the export
   host, graphics resources and spool submission a job owner with its own COM apartment. Prepare in bounded
   steps and release each page's command list after submission. Serialize duplicate Print requests, cancel
   outstanding work on shutdown and reject stale callbacks by job and window identity. Check page drawing,
@@ -277,7 +275,8 @@ The source pin adopts the qualified DxUi fix that draws native graphs directly o
   unavailable spooler, a refused filename or a mid-job failure. [Direct2D printing](https://learn.microsoft.com/en-us/windows/win32/direct2d/printing-and-command-lists) ·
   [Package cancellation](https://learn.microsoft.com/en-us/windows/win32/api/documenttarget/nf-documenttarget-iprintdocumentpackagetarget-cancel)
 - [x] **Preview the prepared pages.** Keep the renderer alive through preview, range selection and submission.
-  Present one bounded sheet at a time, support selecting any page, and confirm again after repagination.
+  Present one bounded sheet at a time and support selecting any page. Enable Print once a destination is
+  prepared and the current pagination is ready for review.
   Use the hidden app harness for the preview, page selection, cancellation and changed paper fixtures. The
   [design system](../../UI/UI_DesignSystem.md) and [editor contract](../../Editor/Editor_Markdown.md) own the
   durable workflow.
@@ -286,8 +285,8 @@ The source pin adopts the qualified DxUi fix that draws native graphs directly o
 
 | Check | Evidence required |
 | --- | --- |
-| Editing and cancellation | Hidden harness drives the real command with injected dialog and print-target results. Cover dirty and untitled documents, all three views, pending draft/IME, Apply, Cancel, repeat invocation, switching files during a job and closing during submission. Compare the original snapshot, history, selection and saved state. Cancel before confirmation submits zero jobs. |
-| Page contents | Use the [Markdown showcase](../../../docs/examples/markdown-showcase.md) and [fallback cases](../../../docs/examples/rendering-fallback-cases.md), plus a numbered boundary fixture. Check every text marker appears once in order, including across wrapping and page breaks. Check Unicode, task lists, tables, code, math, diagrams and allowed/blocked images. Verify matching pages in light/dark and all editor views, with no clipped lines or wholly missing objects. |
+| Editing and cancellation | Hidden harness drives the real command with injected driver and print-target results. Cover dirty and untitled documents, all three views, pending draft/IME, cancellation, repeat invocation, switching files during a job and closing during submission. Compare the original snapshot, history, selection and saved state. Cancel before confirmation submits zero jobs. |
+| Page contents | Use the [Markdown showcase](../../../docs/examples/markdown-showcase.md), [fallback cases](../../../docs/examples/rendering-fallback-cases.md) and [local images](../../../docs/examples/local-images.md), plus a numbered boundary fixture. Check text markers across wrapping and page breaks. Check Unicode, task lists, tables, code, math, diagrams, images and link labels without an automatic underline. Verify matching pages in light/dark and all editor views, with no clipped lines or wholly missing objects. |
 | Paper and options | Exercise Letter and A4, portrait and landscape, asymmetric hardware margins, a single page, disjoint ranges and a range invalidated by changing paper. Check actual dimensions, requested page order, first/last content and copy count. |
 | Real Windows destinations | At an agreed desktop time, invoke both the menu and Ctrl+P. Print a marked multipage job to a physical printer and inspect the sheets. Save through Microsoft Print to PDF, reopen it and check page count, size, visible content and searchable text. Exercise a second installed virtual destination such as XPS and inspect its result. Cancel the filename prompt and decline an overwrite of a pre-existing fixture file. Verify its bytes survive. Record unavailable destinations as open cases. |
 | Failure and responsiveness | Inject failure at ticket creation, page N and final submission. Check one terminal result, safe cleanup and a successful later job. For a document near the supported size limit, record pagination time, time to first page, peak memory and resource release after repeat/cancel. Compare idle editor cost and typing responsiveness to the same-fixture Release baseline. |

@@ -96,6 +96,10 @@ number selects one sheet. A list accepts up to 32 page numbers or inclusive rang
 Ignore surrounding whitespace at each number. Reject zero, reversed ranges and endpoints beyond the
 displayed page count. Submit each selected page of the reviewed layout once in document order.
 
+Draw hyperlink labels without automatic link underlines in preview and print output. Explicit document
+formatting still applies. The Windows print path sends drawing primitives and a PrintTicket. Files produced
+by Microsoft Print to PDF through this path contain the link label without a clickable link annotation.
+
 Native Mermaid diagrams use the underlying document canvas in the editor and the paper in preview and
 output. Paint diagram elements and their local fills on that surface without a separate graph backdrop.
 

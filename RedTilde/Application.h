@@ -139,12 +139,12 @@ struct LaunchOptions
     std::function<bool(std::wstring_view)> confirmLinkForTest;
     std::function<HRESULT(std::wstring_view)> launchLinkForTest;
     std::shared_ptr<AsyncFiles::TestGate> linkGateForTest;
-    std::optional<Printing::Paper> printPaperForTest;
     std::optional<Printing::Destinations> printDestinationsForTest;
-    std::function<std::optional<Printing::Paper>(std::wstring_view)> printDestinationPaperForTest;
-    std::function<HRESULT(std::wstring_view, bool, Printing::DialogResult &)> printDialogForTest;
+    std::function<HRESULT(const std::wstring &, const std::optional<Printing::PrinterSettings> &, Printing::PrinterConfiguration &)>
+        printPrinterForTest;
     std::function<HRESULT(unsigned, ID2D1CommandList &)> printPageForTest;
     std::function<HRESULT()> printFinishForTest;
+    std::function<void(const Printing::Selection &)> printSubmissionForTest;
 #endif
 };
 struct ApplicationActivity
@@ -350,20 +350,19 @@ class Application
     bool updatingFind{}, equationContext{}, pendingSelectionTools{}, pendingBlockPlacement{}, systemDark{};
     AsyncFiles files;
     RichImageLoader images;
-    Printing::Dialog printDialog;
     std::shared_ptr<Printing::Operation> printOperation;
     std::unique_ptr<PrintPreview> printPreview;
-    std::optional<Printing::Paper> printPaper;
+    std::optional<Printing::PrinterConfiguration> printConfiguration;
+    std::optional<Printing::PrinterSettings> printSettings;
     std::wstring printPrinter;
     DxUi::Control *printInvoker{};
     std::weak_ptr<int> printInvokerLifetime;
     std::wstring printTitle;
-    bool printDialogOpen{}, printToFile{}, printPaperChanged{};
     std::vector<Printing::Image> printNetworkImages;
     void Print();
     void PreviewPrintPage(unsigned number);
-    void PreviewPrintDestination();
-    void ChoosePrintDestination();
+    void PreviewPrintDestination(std::optional<Printing::PrinterSettings> requested = std::nullopt);
+    void SubmitPrintPreview();
     void ClosePrintPreview() noexcept;
     void DismissPrintPreview() noexcept;
     void PrintCompleted();

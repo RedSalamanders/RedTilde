@@ -8,6 +8,7 @@ compatibility. All content is invented and needs no network resources.
 | --- | --- |
 | [Starter](example.md) | Ordinary writing and mixed Markdown |
 | [Markdown showcase](markdown-showcase.md) | Typography, Unicode, nested/task lists, aligned tables, colored code, equations and a flowchart |
+| [Local images](local-images.md) | Offline PNG with transparency, JPEG, BMP, animated GIF, and TIFF in the editor and print preview |
 | [Syntax options](syntax-options.md) | Every independently configurable RichMarkdown extension |
 | [Native Mermaid family gallery](mermaid-supported-families.md) | Small positive examples of all eight bounded native profiles |
 | [Sequence actors, notes and numbers](mermaid-sequence.md) | Actor figures, chronological notes, automatic message numbers and plain arrows |
@@ -43,6 +44,9 @@ readable layout.
 5. Open the fallback sample. Its unsupported formulas and complete Mermaid fences
    must remain available for source editing; neighboring supported content should
    still work. No directive, package, file access or link should execute.
+6. Open the local images sample in Compose or Split. Check that all five images
+   load, the fern has a transparent background, and the GIF shows its first
+   frame. Open Print preview and inspect the images across the sheets.
 
 These are manual review steps, not recorded pass results. Use the governed
 hidden harness for screenshots and reproducible application validation.

@@ -50,10 +50,10 @@ HRESULT PickPrintOutput(HWND owner, Printing::FileFormat format, std::wstring_vi
 
 void Application::Print()
 {
-    if (printPreview || printOperation || printDialogOpen)
+    if (printPreview || printOperation)
         return;
 #if defined(REDTILDE_ENABLE_TESTS)
-    if (options.headless && !options.printDialogForTest)
+    if (options.headless && !options.printDestinationsForTest)
         return;
 #else
     if (options.headless)
@@ -68,17 +68,16 @@ void Application::Print()
     job.document.strikeCompletedTasks = settings.strikeCompletedTasks;
     if (job.document.allowRemoteImages)
         job.document.networkImages = printNetworkImages;
-    job.initialPaper = printPaper;
     job.initialPrinter = printPrinter;
+    job.initialSettings = printSettings;
 #if defined(REDTILDE_ENABLE_TESTS)
     if (options.headless)
     {
-        if (!job.initialPaper)
-            job.initialPaper = options.printPaperForTest;
         job.destinationsForTest = options.printDestinationsForTest.value_or(Printing::Destinations{});
-        job.printerPaperForTest = options.printDestinationPaperForTest;
+        job.printerForTest = options.printPrinterForTest;
         job.pageForTest = options.printPageForTest;
         job.finishForTest = options.printFinishForTest;
+        job.submissionForTest = options.printSubmissionForTest;
     }
 #endif
     auto preview = std::make_unique<PrintPreview>(*this);
@@ -102,27 +101,27 @@ void Application::Print()
 
 void Application::PreviewPrintPage(unsigned number)
 {
-    if (!printOperation || !printPreview || !printPreview->CanPrint() || printDialogOpen || number == printPreview->Page().number)
+    if (!printOperation || !printPreview || !printPreview->IsReady() || number == printPreview->Page().number)
         return;
     printPreview->BeginRendering();
     Printing::RequestPreview(*printOperation, number);
 }
 
-void Application::PreviewPrintDestination()
+void Application::PreviewPrintDestination(std::optional<Printing::PrinterSettings> requested)
 {
-    if (!printOperation || !printPreview || !printPreview->CanPrint() || printDialogOpen)
+    if (!printOperation || !printPreview || !printPreview->IsReady())
         return;
     auto printer = std::wstring(printPreview->Printer());
-    const auto paper = Printing::SamePrintName(printer, printPrinter) ? printPaper : std::nullopt;
+    if (!requested && Printing::SamePrintName(printer, printPrinter))
+        requested = printSettings;
     const auto pageNumber = printPreview->Page().number;
-    printPaperChanged = false;
     printPreview->BeginRendering();
-    Printing::RequestPreview(*printOperation, pageNumber, paper, std::move(printer));
+    Printing::RequestPrinter(*printOperation, pageNumber, std::move(printer), std::move(requested));
 }
 
-void Application::ChoosePrintDestination()
+void Application::SubmitPrintPreview()
 {
-    if (!printOperation || !printPreview || !printPreview->CanPrint() || printDialogOpen || closing || closingAfterSave || sessionEnding)
+    if (!printOperation || !printPreview || !printConfiguration || !printPreview->CanPrint() || closing || closingAfterSave || sessionEnding)
         return;
     auto ranges = printPreview->SelectedRanges();
     if (!ranges)
@@ -130,64 +129,28 @@ void Application::ChoosePrintDestination()
         printPreview->ReportInvalidRange(true);
         return;
     }
-    printPreview->SetStatus(Resource(IDS_PRINTDESTINATIONHINT));
-    const auto operation = printOperation;
-    const auto owner = printPreview->Window();
-    auto &previewHost = printPreview->Host();
-    auto *const focus = previewHost.GetFocusControl();
-    const auto focusLifetime = focus ? GetControlLifetimeToken(*focus) : std::weak_ptr<int>{};
-    const auto number = printPreview->Page().number;
-    const auto printer = std::wstring(printPreview->Printer());
-    const bool existingOutputToFile = printToFile && Printing::SamePrintName(printer, printPrinter);
-    Printing::DialogResult choice;
-    printDialogOpen = true;
-    const auto restore = wil::scope_exit(
-        [&]
-        {
-            printDialogOpen = false;
-            if (focus && !focusLifetime.expired() && printOperation == operation && printPreview && printPreview->Window() == owner && !closing &&
-                !sessionEnding && printPreview->CanPrint())
-                printPreview->Host().SetFocusControl(focus, !options.headless && GetForegroundWindow() == owner);
-        });
-#if defined(REDTILDE_ENABLE_TESTS)
-    const auto chosen = options.headless ? options.printDialogForTest(printer, existingOutputToFile, choice)
-                                         : printDialog.Choose(owner, printer, existingOutputToFile, choice);
-#else
-    const auto chosen = printDialog.Choose(owner, printer, existingOutputToFile, choice);
-#endif
-    if (printOperation != operation || !printPreview || printPreview->Window() != owner || closing || closingAfterSave || sessionEnding)
+    const auto copies = printPreview->SelectedCopies(printConfiguration->maximumCopies);
+    if (!copies)
         return;
-    if (chosen == S_FALSE || chosen == Cancelled)
-    {
-        printPreview->SetStatus(printPreview->Page().fallbackPaper ? Resource(IDS_PRINTPREVIEWDEFAULT) : std::wstring{});
-        return;
-    }
-    if (FAILED(chosen))
-    {
-        ReportPrintFailure(chosen, Printing::Stage::ChooseDestination, printer);
-        return;
-    }
-    auto &selection = choice.selection;
-    printPaper = selection.paper;
-    printToFile = choice.printToFile;
+    auto selection = std::move(printConfiguration->selection);
     printPrinter = selection.printer;
-    printPreview->SetPrinter(printPrinter);
-    if (selection.paper != printPreview->Page().paper || (!choice.confirmed && printPreview->Page().fallbackPaper))
+    printSettings = std::move(printConfiguration->settings);
+    printSettings->copies = copies.value();
+    if (printConfiguration->maximumCopies > 1u)
     {
-        printPaperChanged = true;
-        printPreview->BeginRendering();
-        Printing::RequestPreview(*operation, number, selection.paper);
-        return;
+        selection.copies = printSettings->copies;
+        if (printSettings->collate)
+        {
+            printSettings->collate = printPreview->Collate();
+            selection.collate = printSettings->collate;
+        }
     }
-    if (!choice.confirmed)
-    {
-        printPreview->SetStatus({});
-        return;
-    }
+    if (printPreview->PrintToFile())
+        selection.port = L"FILE:";
     selection.ranges = std::move(ranges.value());
     ClosePrintPreview();
     Status(IDS_PRINTING);
-    Printing::RequestPrint(*operation, std::move(selection));
+    Printing::RequestPrint(*printOperation, std::move(selection));
 }
 
 void Application::ClosePrintPreview() noexcept
@@ -202,12 +165,12 @@ void Application::ClosePrintPreview() noexcept
     }
     printInvoker = nullptr;
     printInvokerLifetime.reset();
-    printToFile = printPaperChanged = false;
+    printConfiguration.reset();
 }
 
 void Application::DismissPrintPreview() noexcept
 {
-    if (!printPreview || printDialogOpen)
+    if (!printPreview)
         return;
     Printing::Stop(printOperation);
     ClosePrintPreview();
@@ -227,10 +190,23 @@ void Application::PrintCompleted()
         if (notice->destinations)
             printPreview->SetDestinations(std::move(notice->destinations.value()));
         std::wstring status;
-        if (rendered.fallbackPaper)
+        if (notice->stage == Printing::Stage::ConfigurePrinter)
+        {
+            const bool samePrinter = printConfiguration && Printing::SamePrintName(printConfiguration->selection.printer, notice->printer);
+            if (notice->configuration)
+                printConfiguration = std::move(notice->configuration);
+            else if (!samePrinter)
+                printConfiguration.reset();
+            printPreview->SetConfiguration(printConfiguration ? &printConfiguration.value() : nullptr, samePrinter);
+            if (FAILED(notice->result) && !notice->printer.empty())
+            {
+                const auto summary = Resource(rendered.fallbackPaper ? IDS_PRINTPREVIEWDEFAULT : IDS_PRINTSETTINGSFAILED);
+                const auto error = ErrorText(notice->result);
+                status = std::vformat(Resource(IDS_PRINTERRORDETAIL), std::make_wformat_args(summary, error));
+            }
+        }
+        if (status.empty() && rendered.fallbackPaper)
             status = Resource(IDS_PRINTPREVIEWDEFAULT);
-        else if (std::exchange(printPaperChanged, false))
-            status = std::vformat(Resource(IDS_PRINTPREVIEWCHANGED), std::make_wformat_args(printPrinter));
         printPreview->Present(std::move(rendered), std::move(status));
         return;
     }
@@ -277,8 +253,8 @@ void Application::ReportPrintFailure(HRESULT result, Printing::Stage stage, std:
     case Stage::Preview:
         summary = Resource(IDS_PRINTPREVIEWFAILED);
         break;
-    case Stage::ChooseDestination:
-        summary = Resource(unavailable ? IDS_PRINTNOPRINTER : IDS_PRINTDIALOGFAILED);
+    case Stage::ConfigurePrinter:
+        summary = Resource(unavailable ? IDS_PRINTNOPRINTER : IDS_PRINTSETTINGSFAILED);
         break;
     case Stage::ChooseFile:
         summary = Resource(IDS_PRINTFILEDIALOGFAILED);
