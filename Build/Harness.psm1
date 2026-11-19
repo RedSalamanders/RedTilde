@@ -289,12 +289,13 @@ function Get-RedTildeArtifactIdentity {
 
 function Invoke-RedTildeHarness {
     param([Parameter(Mandatory)][string] $Executable,[Parameter(Mandatory)][string[]] $Arguments,
-          [Parameter(Mandatory)][string] $LogPrefix,[int] $TimeoutSeconds=90)
+          [Parameter(Mandatory)][string] $LogPrefix,[int] $TimeoutSeconds=90,[switch] $SystemOnlyPath)
     $start=[Diagnostics.ProcessStartInfo]::new($Executable)
     $start.UseShellExecute=$false
     $start.CreateNoWindow=$true
     $start.RedirectStandardOutput=$true
     $start.RedirectStandardError=$true
+    if ($SystemOnlyPath) { $start.Environment['Path']=[Environment]::SystemDirectory+';'+$env:SystemRoot }
     foreach ($argument in $Arguments) { $start.ArgumentList.Add($argument) }
     $process=[Diagnostics.Process]::new()
     $process.StartInfo=$start

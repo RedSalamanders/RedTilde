@@ -83,7 +83,11 @@ $smokeExe=Join-Path $smoke 'RedTilde.exe'
 $smokeVersion=[Diagnostics.FileVersionInfo]::GetVersionInfo($smokeExe)
 if($smokeVersion.FileBuildPart -ne $built.buildNumber -or
     (Get-FileHash -LiteralPath $smokeExe).Hash -cne $built.binarySha256){throw 'Extracted package identity differs from the production build.'}
-$exit=Invoke-RedTildeHarness -Executable $smokeExe -Arguments @('--capture',(Join-Path $smoke 'smoke.png'),'--scenario','compose-light','--data-dir',(Join-Path $smoke 'smoke-data')) -LogPrefix (Join-Path $smoke 'smoke') -TimeoutSeconds 120
+$helpLog=Join-Path $smoke 'help'
+$exit=Invoke-RedTildeHarness -Executable $smokeExe -Arguments @('--help') -LogPrefix $helpLog -TimeoutSeconds 30 -SystemOnlyPath
+$helpText=Get-Content -LiteralPath ($helpLog+'.stdout.log') -Raw
+if($exit -ne 0 -or -not ($helpText -clike '*--document*' -and $helpText -clike '*--help*')){throw 'Clean-extraction command help failed.'}
+$exit=Invoke-RedTildeHarness -Executable $smokeExe -Arguments @('--capture',(Join-Path $smoke 'smoke.png'),'--scenario','compose-light','--data-dir',(Join-Path $smoke 'smoke-data')) -LogPrefix (Join-Path $smoke 'smoke') -TimeoutSeconds 120 -SystemOnlyPath
 if($exit -ne 0 -or -not(Test-Path -LiteralPath (Join-Path $smoke 'smoke.png'))){throw 'Clean-extraction hidden application smoke failed.'}
 $refusalCases=@(
     @{name='self-test';arguments=@('--self-test')},
@@ -107,7 +111,7 @@ foreach($case in $refusalCases){
     $data=Join-Path $smoke ('refused-'+$case.name+'-data')
     if(Test-Path -LiteralPath $data){throw 'Production refusal fixture already exists.'}
     $arguments=@('--headless','--data-dir',$data)+$case.arguments
-    $exit=Invoke-RedTildeHarness -Executable $smokeExe -Arguments $arguments -LogPrefix (Join-Path $smoke ('refused-'+$case.name)) -TimeoutSeconds 30
+    $exit=Invoke-RedTildeHarness -Executable $smokeExe -Arguments $arguments -LogPrefix (Join-Path $smoke ('refused-'+$case.name)) -TimeoutSeconds 30 -SystemOnlyPath
     if($exit -ne 2 -or (Test-Path -LiteralPath $data)){throw ('Production test entry point did not refuse before data access: '+$case.name)}
     $refusals+=[ordered]@{name=$case.name;arguments=$case.arguments;exitCode=$exit;dataDirectoryAbsent=$true}
 }

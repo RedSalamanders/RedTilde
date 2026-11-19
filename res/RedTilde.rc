@@ -337,4 +337,5 @@ IDS_PRINTTOFILE "Print to file"
 IDS_PRINTSUBMIT "Print"
 IDS_PRINTSETTINGSFAILED "Couldn’t apply the printer settings."
 IDS_PRINTSETTINGS "Print settings"
+IDS_COMMANDLINEHELP "RedTilde opens and previews Markdown documents.\r\n\r\nOpen a document\r\n  redtilde [<document>]\r\n  redtilde --document <document>\r\n\r\nCapture a document\r\n  redtilde --capture <image.png> --scenario <name> [--document <document>]\r\n\r\nShow help\r\n  redtilde --help\r\n"
 END
