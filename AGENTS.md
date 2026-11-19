@@ -72,16 +72,19 @@ Read the appropriate skill under `.agents/skills/`:
 
 | Skill | Work |
 | --- | --- |
-| [build-redtilde](.agents/skills/build-redtilde/SKILL.md) | Build, restore, package and toolchain failures |
 | [consumer-dxui](.agents/skills/consumer-dxui/SKILL.md) | Exact dependency pin and API adoption |
 | [markdown-editing](.agents/skills/markdown-editing/SKILL.md) | Source/history, rich/source/split and local source |
 | [desktop-ui](.agents/skills/desktop-ui/SKILL.md) | Layout, contextual commands, focus, theming and accessibility |
 | [media-math](.agents/skills/media-math/SKILL.md) | Images, Mermaid and equation previews |
-| [file-safety](.agents/skills/file-safety/SKILL.md) | Open/save, conflict detection and recovery |
-| [settings-crashes](.agents/skills/settings-crashes/SKILL.md) | Live settings, minidumps and restart recovery |
-| [test-harness](.agents/skills/test-harness/SKILL.md) | Deterministic scenarios, captures and evidence |
 
-Cross-repository C++/WIL, localization, and `spec-workflow` skills live in the sibling `RedHome` repository.
+Cross-repository C++/WIL, localization, and `spec-workflow` skills live in the sibling `RedHome` repository. So do the shared skills that replaced four local ones, each with RedTilde's facts in its `references/repository-facts.md`:
+
+| Shared skill | Work |
+| --- | --- |
+| `native-build` | Build, restore, package and toolchain failures (was `build-redtilde`) |
+| `file-io-safety` | Open/save, conflict detection and recovery (was `file-safety`) |
+| `app-settings` and `crash-dumps` | Live settings, minidumps and restart recovery (was `settings-crashes`) |
+| `test-evidence` | Deterministic scenarios, captures and evidence (was `test-harness`) |
 
 Shared skill index: `../RedHome/AGENTS.md`; packages: `../RedHome/.agents/skills/`. If `../RedHome` is missing, clone https://github.com/RedSalamanders/RedHome.git to that path. This repository's guidance and domain specs own product behavior and validation.
 
