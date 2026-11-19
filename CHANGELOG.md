@@ -4,6 +4,9 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Place the printer dropdown and print settings alongside the preview, and let the mouse wheel move between sheets.
+  Open the standard Windows Print dialog with the selected destination and set its copies and collation exclusions
+  in the driver exclusion field.
 - Gave `Specs/Build/Build_UnifiedCI.md` the skeleton every RedSalamanders repository now shares (convergence
   CV-6-03, B-08): the same headings in the same order, one common text above `## Project adapter` built from the
   paragraphs the six files already shared, five stale statements corrected to the engine's `Specs/CI.md`, and every
