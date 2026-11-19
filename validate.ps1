@@ -27,7 +27,7 @@ Check 'Specifications and links' {
     $index=Get-Content (Join-Path $PSScriptRoot 'Specs/Plans/WIP/README.md') -Raw
     foreach ($plan in $plans) { if ([regex]::Matches($index,[regex]::Escape($plan.Name)).Count -ne 1) { throw "WIP index must name $($plan.Name) once." } }
 }
-Check 'Skill structure, package references and scoped guidance' {
+Check 'Skill structure, package references and root guidance' {
     Import-Module (Join-Path $PSScriptRoot 'Build/SkillPackageIntegrity.psm1') -Force
     $result = Get-SkillPackageIntegrity -Root $PSScriptRoot
     if ($result.Problems.Count) { throw ($result.Problems -join "`n") }

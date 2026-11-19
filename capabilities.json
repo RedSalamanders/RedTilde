@@ -5,7 +5,7 @@
   "status": "experimental",
   "platform": "Windows",
   "sourceCapacityUtf16": 65536,
-  "implemented": [
+  "supported": [
     "native-dxui-window-and-text-services",
     "single-authoritative-markdown-history",
     "bounded-independent-document-workspaces",

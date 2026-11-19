@@ -40,17 +40,43 @@ DxUi controls, DirectWrite and Direct2D. Read [Specs/README.md](Specs/README.md)
   hidden, non-activating harness, with scenario/build provenance. Never substitute desktop capture.
 - No generated products are committed under `.build`. Do not kill independently launched applications.
 
+## Folder guidance
+
+These rules were the five nested `AGENTS.md` files; the root file is now the only guidance file (RedHome convergence A-12).
+
+- `Common/`: read the owning Core or Editor contract. Keep services independent of UI controls except public
+  immutable DxUi value types. Storage validates all input before changing a live session. Return errors explicitly;
+  tests use unique directories under the harness output. Workers own snapshots, never mutable controls or HWND
+  lifetime. Crash-path code has separately documented allocation restrictions; ordinary code uses WIL.
+- `RedTilde/` (application and native UI): read the Editor contract and UI design system. The authoritative
+  RichTextEditor remains stable for the session; changing views must not call SetText on it. Return focus and
+  preserve source selection after formatting and menu actions. High contrast overrides custom themes. Use resource
+  strings for chrome and the app harness for actual captures. Do not add desktop automation, a web editor or a
+  second presentation engine.
+- `Specs/`: start with README.md. Domain contracts own lasting requirements, capabilities.json owns current status,
+  and one indexed WIP plan owns sequence and unresolved gates. A passing build or focused test is not product
+  qualification. Move a plan to Done only after all of its implementation, test and documentation gates close.
+- `Tests/`: follow the validation contract. Native filenames are Scope.Tests.Behavior.cpp/.h. Use behavioral oracles
+  and independent expected values. Hidden tests must not activate windows, take the clipboard, move the pointer or
+  inject OS input. Interactive focus/IME tests require agreement to the time and verified restoration. Store
+  generated results in .build and only reviewed, provenance-bearing evidence in Measurements.
+- `res/` (resources and brand): keep the generated red-tilde master PNG and multi-resolution Windows ICO together.
+  Preserve alpha and verify 16/24/32/48/64/128/256 entries. Resource IDs remain stable. Chrome strings use
+  STRINGTABLE entries; positional format placeholders permit translation. Document samples are separate under
+  docs/examples.
+
 ## Drive-root output policy
 
 Do not create scratch, caches, evidence, copied checkouts, or other output directories directly at a drive root.
 Use repository-local generated outputs or an existing approved workspace. The only permitted new drive-root
-output name is `<Project>.Perf` (for example `RedTilde.Perf`, `RedSalamander.Perf`, or `RedPrism.Perf`), and the
-user must explicitly authorize the exact path before its first creation or initialization. A matching name,
-environment variable, low disk space, or authorization for another drive/project is not authorization.
-Keep outputs beneath the approved root; do not invent sibling root folders. Preserve runner-specific ownership
-markers and authorization. Historical cleanup inventories and preserves useful evidence/recovery data, checks
-process use, repairs live junction/worktree references, and verifies preservation before removal. Never follow
-junctions during cleanup or leave compatibility junctions at forbidden old roots.
+output name is `<Project>.Perf`, named after the owning project (for example `RedSalamander.Perf` or
+`RedPrism.Perf`), and the user must explicitly authorize the exact path before its first creation or
+initialization. A matching name, environment variable, low disk space, or authorization for another drive or
+project is not authorization. Keep outputs beneath the approved root; do not invent sibling root folders. Preserve
+runner-specific ownership markers and authorization. Historical cleanup inventories and preserves useful evidence
+and recovery data, checks process use, repairs live junction and worktree references, and verifies preservation
+before removal. Never follow junctions during cleanup or leave compatibility junctions at forbidden old drive-root
+paths.
 
 ## Workflow
 
@@ -65,8 +91,14 @@ identity. Run `validate.ps1`, `format.ps1 -Check` and the affected suites. Quali
 x64 tests in all three configurations, a real ASan detection probe and native platform execution for claims.
 Real-focus/clipboard desktop tests require the person's agreement to the time. Headless harness tests do not
 take foreground focus. Capture paired performance on the same fixture before claiming non-regression.
+Successful default affected runs advance their source and index baseline; explicit partial, failed, mutated or
+CI-pending runs do not. `CI_PENDING` requires every named candidate check to pass before merge, including when this
+private account cannot enforce protected checks. Native, manual, platform and performance gates stay in
+[Specs/Testing/Testing_Validation.md](Specs/Testing/Testing_Validation.md).
 
-## Focused skills
+## Skills
+
+Shared skill index: `../RedHome/AGENTS.md`; packages: `../RedHome/.agents/skills/`. If `../RedHome` is missing, clone https://github.com/RedSalamanders/RedHome.git to that path. This repository's guidance and domain specs own product behavior and validation.
 
 Read the appropriate skill under `.agents/skills/`:
 
@@ -86,11 +118,24 @@ Cross-repository C++/WIL, localization, and `spec-workflow` skills live in the s
 | `app-settings` and `crash-dumps` | Live settings, minidumps and restart recovery (was `settings-crashes`) |
 | `test-evidence` | Deterministic scenarios, captures and evidence (was `test-harness`) |
 
-Shared skill index: `../RedHome/AGENTS.md`; packages: `../RedHome/.agents/skills/`. If `../RedHome` is missing, clone https://github.com/RedSalamanders/RedHome.git to that path. This repository's guidance and domain specs own product behavior and validation.
+## Interactive desktop tests
 
-## Scoped testing policy (2026-10-21)
+A test that takes real foreground focus, the cursor or the clipboard runs only after the person at the desktop has
+agreed to the time; silence never authorizes one. It warns before and while it runs, targets only windows the test
+owns, and restores the foreground window, keyboard focus and pointer however it ends. Use the repository's
+interactive entry point and desktop lease where it has one. Every other test and every harness capture stays hidden
+and non-activating, and no scoped, CI or partial pass closes a focus-taking gate.
 
-Use `Test-Changes.ps1 -Explain` and the affected default while editing. Use explicit Full/PrePush for qualification; this accepted workflow replaces unconditional full-test iteration. Successful default affected runs advance their source/index baseline; explicit partial, failed, mutated or CI-pending runs do not. Reuse only exact successful evidence. CI_PENDING requires all named candidate checks to pass before merge, including when this private account cannot enforce protected checks. Preserve native/manual/platform/performance gates in Specs/Testing/Testing_Validation.md and contextual Scope.Tests.Something.h/.cpp names.
+## Scoped testing policy
+
+The user's accepted workflow replaces unconditional full-test iteration. While editing, run `Test-Changes.ps1 -Explain`
+and then the affected default; use `-Mode PrePush` to account for the remaining local and pull-request obligations
+without repeating identical ones, and explicit Full where qualification requires it. A pending CI check is never a
+passed result. Reuse only exact successful evidence for the same source, pin, toolchain, binary and scenario. Native
+test files use contextual `<Component>.Tests.<Subject>.h/.cpp` names, listed in the native file inventory where the
+repository keeps one. Focus-taking work requires agreement to the time, and no scoped pass closes that gate. Build,
+runtime and platform qualification still applies to changed behavior. [Specs/Testing/Testing_Validation.md](Specs/Testing/Testing_Validation.md) and [the test guide](Tests/README.md) own the details.
+
 ## Changes workflow
 
 Record each change as one dated Markdown fragment under `Changes/`; follow [Changes/README.md](Changes/README.md)
@@ -98,7 +143,8 @@ and [Specs/Core/Core_Changes.md](Specs/Core/Core_Changes.md). Do not hand-edit g
 Keep the fragment in the change: never fold it in a feature change and never edit `CHANGELOG.md`. Fragments are
 folded on `main` after merge by `Tools/Submit-ChangelogFold.ps1`, which opens a fold pull request of its own. Run
 `Tools/Test-Changelog.ps1` while editing; PrePush and CI run it with `-Base`, which refuses any `CHANGELOG.md` change
-that is not an exact fold of fragments already on `main`. Validation is read-only.
+that is not an exact fold of fragments already on `main` or, where the repository releases through
+`Tools/Release-Changelog.ps1`, the exact generated release transition. Validation is read-only.
 
 ## Shared native build policy (2026-10-28)
 
@@ -111,4 +157,4 @@ terminal launch links and short dependency folders with full identity checking.
 
 ## Unified CI policy
 
-Use [Specs/Build/Build_UnifiedCI.md](Specs/Build/Build_UnifiedCI.md) for hosted CI. PRs run compiler-free checks and formatting feedback. Main native qualification starts after five continuous quiet minutes; both native Release test branches must pass before either production Release/ZIP branch starts. Scheduled dependency/security/status checks remain compiler-free. Formatting commits, extended qualification and ZIP/winget publication are explicit manual actions. PR checks do not satisfy native acceptance or waive applicable local scoped tests. Shared-engine pins in .ci/project.json and workflow callers must agree. Preserve dependency pins, native toolchain, evidence and desktop ownership contracts.
+Use [Specs/Build/Build_UnifiedCI.md](Specs/Build/Build_UnifiedCI.md) for hosted CI. PRs run compiler-free checks and formatting feedback. Main native qualification starts after five continuous quiet minutes; both native Release test branches must pass before either production Release/ZIP branch starts. Scheduled dependency/security/status checks remain compiler-free. Formatting commits, extended qualification and any ZIP or winget publication are explicit manual actions. PR checks do not satisfy native acceptance or waive applicable local scoped tests. Shared-engine pins in .ci/project.json and workflow callers must agree. Preserve dependency pins, native toolchain, evidence and desktop ownership contracts.

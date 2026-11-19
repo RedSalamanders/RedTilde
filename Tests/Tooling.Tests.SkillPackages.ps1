@@ -50,14 +50,11 @@ function Expect-Integrity([string] $Name, [string] $ExpectedProblem = '') {
 }
 try {
     Write-Fixture 'AGENTS.md' '# Canonical fixture guidance'
-    Write-Fixture 'Tests/AGENTS.md' '# Scoped fixture guidance'
-    $inventory = '{"schemaVersion":1,"files":["AGENTS.md","Tests/AGENTS.md"]}'
-    Write-Fixture '.agents/guidance.json' $inventory
     Write-Fixture 'Specs/contract with spaces.md' '# Owning contract'
     $body = '[Contract](../../../Specs/contract%20with%20spaces.md#scope) [Web](https://example.invalid/) [Local](#local)'
     Write-Fixture '.agents/skills/example-skill/SKILL.md' ($prefix + $body)
-    $result = Expect-Integrity 'valid package and scope inventory'
-    if ($result.Skills -ne 1 -or $result.Guidance -ne 2) { throw 'Package/guidance accounting was incorrect' }
+    $result = Expect-Integrity 'valid package and root guidance'
+    if ($result.Skills -ne 1 -or $result.Guidance -ne 1) { throw 'Package/guidance accounting was incorrect' }
     Write-Fixture 'Specs/contract(v1).md' '# Versioned contract'
     Write-Fixture '.agents/skills/example-skill/SKILL.md' ($prefix + '[Balanced](../../../Specs/contract(v1).md)')
     $null = Expect-Integrity 'balanced parentheses in a destination'
@@ -153,28 +150,25 @@ try {
     $null = Expect-Integrity 'unused UI metadata file' 'agents/openai.yaml is not used'
     [IO.File]::Delete((Join-Path $fixture '.agents/skills/example-skill/agents/openai.yaml'))
     $null = Expect-Integrity 'package without UI metadata'
-    [IO.File]::Delete((Join-Path $fixture 'Tests/AGENTS.md'))
-    $null = Expect-Integrity 'missing scoped guidance' 'Scoped-guidance inventory mismatch'
-    Write-Fixture 'Tests/AGENTS.md' ''
-    $null = Expect-Integrity 'empty scoped guidance' 'Empty guidance'
-    Write-Fixture 'Tests/AGENTS.md' '[Missing](missing.md)'
-    $null = Expect-Integrity 'broken scoped-guidance route' 'Missing local reference'
-    Write-Fixture 'Tests/AGENTS.md' '# Scoped fixture guidance'
-    Write-Fixture 'Common/AGENTS.md' '# Uninventoried scope'
-    $null = Expect-Integrity 'new scoped guidance must enter inventory' 'Scoped-guidance inventory mismatch'
-    [IO.File]::Delete((Join-Path $fixture 'Common/AGENTS.md'))
-    Write-Fixture 'Module Space/AGENTS.md' '# Valid scope path with spaces'
-    Write-Fixture '.agents/guidance.json' '{"schemaVersion":1,"files":["AGENTS.md","Tests/AGENTS.md","Module Space/AGENTS.md"]}'
-    $null = Expect-Integrity 'inventoried scope path may contain spaces'
+    Write-Fixture 'AGENTS.md' ''
+    $null = Expect-Integrity 'empty root guidance' 'Empty guidance'
+    Write-Fixture 'AGENTS.md' '[Missing](missing.md)'
+    $null = Expect-Integrity 'broken root guidance route' 'Missing local reference'
+    Write-Fixture 'AGENTS.md' '# Canonical fixture guidance'
+    Write-Fixture 'Module Space/AGENTS.md' '# Nested guidance'
+    $null = Expect-Integrity 'nested guidance is refused' 'Nested AGENTS.md is not used'
     [IO.File]::Delete((Join-Path $fixture 'Module Space/AGENTS.md'))
-    Write-Fixture '.agents/guidance.json' '{"schemaVersion":1,"files":["AGENTS.md","../AGENTS.md"]}'
-    $null = Expect-Integrity 'scope inventory cannot escape' 'Guidance paths must be unique repository-relative'
-    Write-Fixture '.agents/guidance.json' $inventory
+    Write-Fixture '.agents/guidance.json' '{"schemaVersion":1,"files":["AGENTS.md"]}'
+    $null = Expect-Integrity 'guidance inventory is refused' '.agents/guidance.json is not used'
+    [IO.File]::Delete((Join-Path $fixture '.agents/guidance.json'))
+    [IO.File]::Delete((Join-Path $fixture 'AGENTS.md'))
+    $null = Expect-Integrity 'missing root guidance' 'Missing canonical AGENTS.md'
+    Write-Fixture 'AGENTS.md' '# Canonical fixture guidance'
     Write-Fixture '.agents/skills/example-skill/references/flow.md' '[Missing](missing-contract.md)'
     $null = Expect-Integrity 'supporting procedure closure' 'missing-contract.md'
     Write-Fixture '.agents/skills/example-skill/references/flow.md' '[Contract](../../../../Specs/contract%20with%20spaces.md)'
     $null = Expect-Integrity 'repaired package'
-    # Excluded generated trees and nested checkouts must not manufacture extra scopes.
+    # Excluded generated trees and nested checkouts must not count as nested guidance.
     Write-Fixture '.build/fixture/AGENTS.md' '# Generated, not owned guidance'
     Write-Fixture 'nested/.git' 'gitdir: synthetic-fixture'
     Write-Fixture 'nested/AGENTS.md' '# Another checkout'

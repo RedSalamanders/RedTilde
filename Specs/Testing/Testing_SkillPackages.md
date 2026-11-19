@@ -1,9 +1,9 @@
-# Skill packages and scoped guidance
+# Skill packages and root guidance
 
 Status: normative repository validation contract
 Last reviewed: 2026-11-18
 
-`validate.ps1` checks skill structure, required package files, local references and scoped-guidance inventory through
+`validate.ps1` checks skill structure, required package files, local references and the single root guidance file through
 `Build/SkillPackageIntegrity.psm1`, then runs its focused negative/positive fixtures. This is tooling evidence;
 it does not establish that a model makes good decisions or that native product behavior is qualified.
 
@@ -33,18 +33,18 @@ hide later prose. Tilde-fence info strings may contain backticks.
 Fence markers use zero to three leading spaces (optionally followed by the supported list marker); four-space
 or tab-indented code cannot open or close a fence over surrounding prose. This remains a bounded package parser.
 
-## Scoped guidance ownership
+## Root guidance
 
-`.agents/guidance.json` lists the root and scoped `AGENTS.md` files exactly once, using repository-relative paths.
-The discovered owned files must equal the inventory and each file must be nonempty. New or removed scopes update
-the inventory with the owning guidance change. Path segments may contain spaces and Unicode; rooted, traversing,
-duplicate or invalid filename segments fail. Discovery excludes `.git`, generated `.build`, nested checkouts and
-reparse directories; a dependency or test fixture must not become repository guidance by accident.
+The root `AGENTS.md` is the only guidance file, as in every RedSalamanders repository (`RedHome` convergence register
+row A-12). It must exist and be nonempty, and its local links are checked like package Markdown. A nested `AGENTS.md`
+fails validation and names its path; fold its rules into the root file instead. `.agents/guidance.json`, the former
+scoped-guidance inventory, also fails. Discovery excludes `.git`, generated `.build`, nested checkouts and reparse
+directories, so a dependency or test fixture never counts as repository guidance.
 
 ## Regression coverage and outputs
 
 `Tests/Tooling.Tests.SkillPackages.ps1` exercises missing fences, empty bodies, duplicate names, wrong names/types,
-a refused UI metadata file, missing procedure files, scope deletion/addition/empty content and ownership exclusions.
+a refused UI metadata file, missing procedure files, missing, empty or nested guidance, a refused inventory and ownership exclusions.
 The parser controls include balanced filenames, inline-code pseudo-links and protocol-relative URLs. Reparse
 entrypoints are refused before opening them. The supplied root is admitted before directory discovery or metadata reads, and hidden skill
 directories receive the same structural validation as visible packages. Quoted ISO timestamps remain strings on

@@ -1,5 +1,5 @@
-# RedTilde's package contract uses a bounded YAML mapping subset and a scoped-guidance
-# inventory. Validation is local/read-only and does not load code from another repository.
+# RedTilde's package contract uses a bounded YAML mapping subset and one root AGENTS.md
+# guidance file. Validation is local/read-only and does not load code from another repository.
 #Requires -Version 7.0
 Set-StrictMode -Version Latest
 
@@ -252,27 +252,11 @@ function Get-SkillPackageIntegrity {
             }
         }
     }
-    $inventoryPath = Join-Path $rootPath '.agents/guidance.json'
-    if (-not [IO.File]::Exists($inventoryPath)) { $problems.Add('Missing scoped-guidance inventory .agents/guidance.json') }
-    else {
-        try {
-            $reparse = Get-PackageReparseProblem $inventoryPath $rootPath
-            if ($reparse) { throw $reparse }
-            $inventory = [IO.File]::ReadAllText($inventoryPath) | ConvertFrom-Json -AsHashtable
-            if ($inventory.schemaVersion -ne 1 -or $inventory.files -isnot [array] -or -not $inventory.files.Count -or 'AGENTS.md' -cnotin $inventory.files) { throw 'Expected schema 1 and a nonempty files array including AGENTS.md' }
-            $expected = [Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
-            foreach ($path in $inventory.files) {
-                if ($path -isnot [string] -or [IO.Path]::IsPathRooted($path) -or $path.Contains('\')) { throw 'Guidance paths must be unique repository-relative AGENTS.md paths' }
-                $segments = $path.Split('/')
-                if ($segments[-1] -cne 'AGENTS.md') { throw 'Guidance paths must name AGENTS.md' }
-                foreach ($segment in $segments) {
-                    if (-not $segment -or $segment -in @('.', '..') -or $segment.IndexOfAny([IO.Path]::GetInvalidFileNameChars()) -ge 0 -or $segment -match '[<>:"|?*]') { throw 'Guidance paths must be unique repository-relative AGENTS.md paths' }
-                }
-                if (-not $expected.Add($path)) { throw 'Guidance paths must be unique repository-relative AGENTS.md paths' }
-            }
-            if (-not $expected.SetEquals($actualGuidance)) { $problems.Add("Scoped-guidance inventory mismatch. Expected: $($inventory.files -join ', '); found: $($actualGuidance -join ', ')") }
-        } catch { $problems.Add("Invalid scoped-guidance inventory: $($_.Exception.Message)") }
-    }
+    # One guidance file per repository, the root AGENTS.md (RedHome convergence A-12): nested files and an inventory are refused.
+    $nested = @($actualGuidance | Where-Object { $_ -cne 'AGENTS.md' })
+    if ('AGENTS.md' -cnotin $actualGuidance) { $problems.Add('Missing canonical AGENTS.md') }
+    if ($nested.Count) { $problems.Add("Nested AGENTS.md is not used; fold its guidance into the root AGENTS.md: $($nested -join ', ')") }
+    if ([IO.File]::Exists((Join-Path $rootPath '.agents/guidance.json'))) { $problems.Add('.agents/guidance.json is not used; the root AGENTS.md is the only guidance file') }
     $skillRoot = Join-Path $rootPath '.agents/skills'
     if (-not [IO.Directory]::Exists($skillRoot)) { $problems.Add('Missing .agents/skills directory') }
     elseif (@((Join-Path $rootPath '.agents'), $skillRoot) | Where-Object { [IO.File]::GetAttributes($_) -band [IO.FileAttributes]::ReparsePoint }) { $problems.Add('Skill package ancestry contains a reparse point') }
