@@ -21,11 +21,15 @@ class PrintPreview final
     [[nodiscard]] const Printing::PreviewPage &Page() const noexcept;
     [[nodiscard]] std::wstring_view Printer() const noexcept;
     [[nodiscard]] std::optional<std::vector<Printing::PageRange>> SelectedRanges() const;
+    [[nodiscard]] std::optional<unsigned> SelectedCopies(unsigned maximum);
+    [[nodiscard]] bool Collate() const noexcept;
+    [[nodiscard]] bool PrintToFile() const noexcept;
+    [[nodiscard]] bool IsReady() const noexcept;
     [[nodiscard]] bool CanPrint() const noexcept;
     [[nodiscard]] bool DispatchKeyboardMessage(const MSG &message);
     void SetTheme(const DxUi::ThemePalette &theme) noexcept;
     void SetDestinations(Printing::Destinations destinations);
-    void SetPrinter(std::wstring_view name);
+    void SetConfiguration(const Printing::PrinterConfiguration *configuration, bool keepJobValues);
     void BeginRendering();
     void Present(Printing::PreviewPage page, std::wstring status);
     void SetStatus(std::wstring status);
@@ -45,18 +49,22 @@ class PrintPreview final
     void PostAction(Action action) noexcept;
     void Layout();
     void MoveThroughPages(int steps);
+    void UpdatePaperSettings();
 
     Application &app_;
     HWND owner_{};
     wil::unique_hwnd window_;
     DxUi::ControlHost host_;
     Surface *root_{}, *header_{}, *sidebar_{};
+    DxUi::ScrollPanel *settings_{};
     Viewport *scroll_{};
     Sheet *sheet_{};
     DxUi::Label *title_{}, *document_{}, *pageLabel_{}, *total_{}, *printerLabel_{}, *rangeLabel_{}, *status_{};
-    DxUi::ComboBox *printers_{};
-    DxUi::TextField *page_{}, *ranges_{};
+    DxUi::Label *paperLabel_{}, *orientationLabel_{}, *duplexLabel_{}, *copiesLabel_{};
+    DxUi::ComboBox *printers_{}, *papers_{}, *orientation_{}, *duplex_{};
+    DxUi::TextField *page_{}, *ranges_{}, *copies_{};
+    DxUi::Checkbox *collate_{}, *file_{};
     DxUi::Button *previous_{}, *next_{}, *zoom_{}, *current_{}, *close_{}, *print_{};
-    bool ownerDisabled_{}, fitWidth_{}, actionPending_{}, scrollToPageEnd_{};
+    bool ownerDisabled_{}, fitWidth_{}, actionPending_{}, scrollToPageEnd_{}, rendering_{};
 };
 } // namespace RedTilde

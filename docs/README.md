@@ -61,14 +61,16 @@ Use the arrows, mouse wheel, or Page Up and Page Down to move between sheets, or
 press Enter. **Fit width** scrolls within a sheet and moves to the adjacent page when you scroll past its edge.
 
 Leave **Pages to print** blank for the whole document. Enter a page such as `3`, a range such as `4-6`, or a
-list such as `1, 4-6`. **Current page** fills in the number of the sheet you are viewing. **Print…** opens the
-standard Windows Print dialog with the chosen printer selected. Review the destination and driver settings there.
-For PDF output, choose a filename in the Windows save dialog. Other destinations use their driver's workflow.
+list such as `1, 4-6`. **Current page** fills in the number of the sheet you are viewing.
 
-When settings chosen in the Windows dialog change the paper layout, review the updated preview and select **Print…** again. Correct
-any range that exceeds the new page count. Cancel in Windows to return to the preview, or choose **Close** to
-return to the document. If printing fails, RedTilde identifies the failed step and displays the Windows error.
-Native Mermaid diagrams use the document canvas or the printed sheet as their background.
+Set paper size, orientation, print sides, copies or collation when the selected driver offers them.
+Review the updated sheets after changing paper and correct any range that exceeds the new page count.
+Click **Print** to send the reviewed pages to the chosen destination. For PDF or **Print to file**, choose
+a filename in the Windows save dialog. Choose **Close** before sending to return to the document.
+If printing fails, RedTilde identifies the failed step and displays the Windows error.
+
+Links print without automatic underlines. Microsoft Print to PDF saves the label as text without the clickable
+target. Native Mermaid diagrams use the document canvas or the printed sheet as their background.
 
 **Closing files:** Close hides the window while an already admitted Save finishes. A failed write restores
 the window with an error and keeps your source and recovery copy. Edits made after Save still need a
@@ -196,7 +198,7 @@ Crash reports remain local, with a notification on the next launch. A dump may c
 one is your choice. Settings use `RedTilde.settings` in LocalAppData; System/Light/Dark/Paper and outline changes
 apply immediately. High contrast takes precedence.
 
-See [example.md](examples/example.md), [technical notes](examples/technical-notes.md), [the design system](../Specs/UI/UI_DesignSystem.md),
+See [example.md](examples/example.md), [local images](examples/local-images.md), [technical notes](examples/technical-notes.md), [the design system](../Specs/UI/UI_DesignSystem.md),
 [actual captures](../Measurements/README.md) and [current capability status](../capabilities.json).
 The [sample document guide](examples/README.md) also links complex math, flowchart,
 state/class and intentional-fallback documents, with an edit/undo and presentation checklist.

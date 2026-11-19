@@ -29,6 +29,27 @@ Printing::Paper WidePaper()
     return {{980.f, 640.f}, {90.f, 36.f, 965.f, 613.f}};
 }
 
+constexpr std::wstring_view OfficePrinter = L"Redfern office printer", PdfPrinter = L"Redfern PDF writer";
+
+HRESULT ConfigureFixture(const std::wstring &name, const std::optional<Printing::PrinterSettings> &requested,
+                         Printing::PrinterConfiguration &configuration)
+{
+    using namespace Printing;
+    const bool pdf = name == PdfPrinter;
+    configuration.selection.printer = name;
+    configuration.selection.port = pdf ? L"PORTPROMPT:" : L"LPT1:";
+    const PrinterSettings defaults{.form = L"Letter",
+                                   .orientation = Orientation::Portrait,
+                                   .duplex = pdf ? std::nullopt : std::optional{Duplex::OneSided},
+                                   .collate = pdf ? std::nullopt : std::optional{false}};
+    configuration.settings = requested.value_or(defaults);
+    configuration.forms = {L"Letter", L"A4"};
+    configuration.maximumCopies = pdf ? 1u : 12u;
+    configuration.selection.paper =
+        pdf || configuration.settings.form == L"A4" || configuration.settings.orientation == Orientation::Landscape ? WidePaper() : SmallPaper();
+    return S_OK;
+}
+
 std::wstring MultipageSource()
 {
     std::wstring result = L"# Redfern notebook\n\n- [x] Check type\n- [ ] Review output\n\n| Sample | Value |\n|---|---|\n| Tokyo | 東京 |\n\n";
@@ -45,7 +66,7 @@ class PrintingProbe
     static void Wait(Application &app, bool preview = false)
     {
         const auto start = GetTickCount64();
-        while (app.printOperation && (!preview || !app.printPreview->CanPrint()) && GetTickCount64() - start < 15000u)
+        while (app.printOperation && (!preview || !app.printPreview->IsReady()) && GetTickCount64() - start < 15000u)
         {
             MSG message{};
             if (PeekMessageW(&message, app.Window(), Application::PrintReady, Application::PrintReady, PM_REMOVE))
@@ -53,13 +74,13 @@ class PrintingProbe
             else
                 (void)MsgWaitForMultipleObjectsEx(0, nullptr, 5, QS_POSTMESSAGE, 0);
         }
-        Require(preview ? app.printOperation && app.printPreview->CanPrint() : !app.printOperation,
+        Require(preview ? app.printOperation && app.printPreview->IsReady() : !app.printOperation,
                 "print worker publishes the requested preview or terminal result");
     }
 
-    static void Choose(Application &app)
+    static void Submit(Application &app)
     {
-        Require(app.printPreview && app.printPreview->CanPrint(), "a completed preview offers the native print command");
+        Require(app.printPreview && app.printPreview->CanPrint(), "a configured destination offers the print command");
         const auto window = app.printPreview->Window();
         auto &host = app.printPreview->Host();
         Require(host.GetDefaultButton()->Invoke(host, false), "invoke the preview Print button without physical input");
@@ -77,11 +98,18 @@ class PrintingProbe
 
     template <typename Control> static Control &Find(Application &app, unsigned label)
     {
-        auto &host = app.printPreview->Host();
-        auto *const parent = host.GetRoot();
-        for (std::size_t index = 0; index < parent->GetLogicalChildCount(); ++index)
-            if (auto *control = dynamic_cast<Control *>(parent->GetLogicalChild(index)); control && control->GetAccessibleName() == Resource(label))
-                return *control;
+        const auto name = Resource(label);
+        const auto search = [&](this const auto &self, DxUi::Control *parent) -> Control *
+        {
+            if (auto *control = dynamic_cast<Control *>(parent); control && control->GetAccessibleName() == name)
+                return control;
+            for (std::size_t index = 0; index < parent->GetLogicalChildCount(); ++index)
+                if (auto *const found = self(parent->GetLogicalChild(index)))
+                    return found;
+            return nullptr;
+        };
+        if (auto *const found = search(app.printPreview->Host().GetRoot()))
+            return *found;
         throw std::runtime_error("the preview exposes the named control");
     }
 
@@ -116,29 +144,16 @@ class PrintingProbe
     static void StateAndRanges(const std::filesystem::path &directory)
     {
         Testing::ForegroundOwnershipObserver foreground;
-        HRESULT dialogResult = S_FALSE;
-        bool confirmed = true;
-        auto paper = SmallPaper();
-        constexpr std::wstring_view office = L"Redfern office printer", pdf = L"Redfern PDF writer";
-        std::wstring openedPrinter;
-        unsigned openings{};
+        std::optional<Printing::Selection> submitted;
         std::vector<unsigned> pages;
         LaunchOptions options;
         options.headless = true;
         options.forceWarp = true;
         options.dataDirectory = directory;
-        options.printPaperForTest = SmallPaper();
-        options.printDestinationsForTest = Printing::Destinations{{std::wstring(office), std::wstring(pdf)}, std::wstring(office)};
-        options.printDestinationPaperForTest = [=](std::wstring_view selected) { return selected == pdf ? WidePaper() : SmallPaper(); };
-        options.printDialogForTest = [&](std::wstring_view printer, bool, Printing::DialogResult &selected)
-        {
-            ++openings;
-            openedPrinter = printer;
-            selected.confirmed = confirmed;
-            selected.selection.paper = paper;
-            selected.selection.printer = office;
-            return dialogResult;
-        };
+        options.printDestinationsForTest =
+            Printing::Destinations{{std::wstring(OfficePrinter), std::wstring(PdfPrinter)}, std::wstring(OfficePrinter)};
+        options.printPrinterForTest = ConfigureFixture;
+        options.printSubmissionForTest = [&](const Printing::Selection &selection) { submitted = selection; };
         options.printPageForTest = [&](unsigned page, ID2D1CommandList &)
         {
             pages.push_back(page);
@@ -155,7 +170,7 @@ class PrintingProbe
         const auto menuCommand = static_cast<int>(Command::Print) + 1;
         app.Host().SetFocusControl(&app.Document(), false);
         app.OnMenuClosed(menuCommand);
-        Require(app.printPreview && !openings && !app.printPreview->CanPrint(), "File Print opens a preview before asking for a destination");
+        Require(app.printPreview && !app.printPreview->CanPrint(), "File Print opens a preview before configuring the destination");
         const auto firstPreview = app.printPreview->Window();
         Require(GetWindow(firstPreview, GW_OWNER) == app.Window() && !IsWindowVisible(firstPreview), "the hidden preview has the editor as owner");
         Wait(app, true);
@@ -168,7 +183,7 @@ class PrintingProbe
         auto &printer = Find<DxUi::ComboBox>(app, IDS_PRINTDESTINATION);
         auto &viewport = Find<DxUi::ScrollPanel>(app, IDS_PRINTPREVIEW);
         const auto printBounds = app.printPreview->Host().GetDefaultButton()->GetBounds();
-        Require(printer.IsEnabled() && printer.GetItems().size() == 2u && printer.GetSelectedValue() == office &&
+        Require(printer.IsEnabled() && printer.GetItems().size() == 2u && printer.GetSelectedValue() == OfficePrinter &&
                     printer.GetBounds().right < viewport.GetBounds().left && printBounds.right < viewport.GetBounds().left,
                 "the installed destination picker and Print action sit alongside the page");
         auto &previous = Find<DxUi::Button>(app, IDS_PRINTPREVIOUS);
@@ -218,26 +233,19 @@ class PrintingProbe
         std::filesystem::create_directories(directory);
         Require(app.Capture(directory / L"print-preview-page-2.png"), "the real preview frame captures through the hidden application host");
         Require(Find<DxUi::Button>(app, IDS_PRINTCURRENTPAGE).Invoke(app.printPreview->Host(), false), "select the displayed page for printing");
-        Choose(app);
-        Require(openings == 1u && openedPrinter == office && pages.empty() && app.printPreview->Page().number == 2u && app.printPreview->CanPrint() &&
-                    Find<DxUi::TextField>(app, IDS_PRINTPAGES).GetText() == L"2",
-                "cancelling the destination dialog preserves the visible sheet and selected page");
         Require(printer.OnKeyDown(app.printPreview->Host(), VK_DOWN, 0), "select the second installed destination from the combo");
         Wait(app, true);
-        Require(printer.GetSelectedValue() == pdf && app.printPreview->Page().paper == WidePaper() && app.printPreview->Page().count < count &&
-                    Find<DxUi::TextField>(app, IDS_PRINTPAGES).GetText() == L"2",
+        Require(printer.GetSelectedValue() == PdfPrinter && app.printPreview->Page().paper == WidePaper() && app.printPreview->Page().count < count &&
+                    Find<DxUi::TextField>(app, IDS_PRINTPAGES).GetText() == L"2" && !Find<DxUi::TextField>(app, IDS_PRINTCOPIES).IsVisible() &&
+                    !Find<DxUi::Checkbox>(app, IDS_PRINTTOFILE).IsVisible(),
                 "the PDF choice reflows the preview and preserves the typed page selection");
-        Choose(app);
-        Require(openings == 2u && openedPrinter == pdf && pages.empty() && printer.GetSelectedValue() == pdf,
-                "the Print action seeds Windows with the selected PDF destination and cancellation preserves it");
         Require(app.printPreview->Host().GetCancelButton()->Invoke(app.printPreview->Host(), false), "cancel through the preview's Close button");
         MSG message{};
         while (IsWindow(firstPreview) && PeekMessageW(&message, firstPreview, 0, 0, PM_REMOVE))
             DispatchMessageW(&message);
-        Require(!app.printOperation && !app.printPreview && app.Host().GetFocusControl() == &app.Document() && pages.empty(),
+        Require(!app.printOperation && !app.printPreview && app.Host().GetFocusControl() == &app.Document() && pages.empty() && !submitted,
                 "closing the preview cancels work and returns the editor focus without submission");
 
-        dialogResult = S_OK;
         for (const auto view : {Command::Compose, Command::Source, Command::Split})
         {
             app.Execute(view);
@@ -246,13 +254,12 @@ class PrintingProbe
             Wait(app, true);
             Require(app.printPreview->Page().bgra == firstPixels, "every editor view previews the same formatted page");
             const auto active = app.printPreview->Window();
-            const auto admitted = openings;
             app.Execute(Command::Print);
-            Require(openings == admitted && app.printPreview->Window() == active, "a duplicate command cannot supersede the admitted preview");
-            Choose(app);
+            Require(app.printPreview->Window() == active, "a duplicate command cannot supersede the admitted preview");
+            Submit(app);
             Wait(app);
-            Require(app.feedback->GetText() == Resource(IDS_PRINTSUBMITTED) && pages.size() >= 4u && pages.front() == 1u &&
-                        pages.back() == pages.size(),
+            Require(submitted && submitted->printer == OfficePrinter && app.feedback->GetText() == Resource(IDS_PRINTSUBMITTED) &&
+                        pages.size() >= 4u && pages.front() == 1u && pages.back() == pages.size(),
                     "the print command records every page in order");
             Require(count == pages.size(), "every editor view uses the same pagination");
             Require(app.Document().Snapshot().IsSameRevision(snapshot) && app.Document().GetSelection() == selection && app.Document().CanUndo() &&
@@ -262,40 +269,41 @@ class PrintingProbe
         pages.clear();
         Open(app);
         Find<DxUi::TextField>(app, IDS_PRINTPAGES).SetTextAndNotify(std::format(L" {}, 1–2, 2 ", count));
-        Choose(app);
+        Submit(app);
         Wait(app);
         Require(std::ranges::equal(pages, std::array{1u, 2u, count}), "disjoint and overlapping requests print once in document order");
         pages.clear();
+        submitted.reset();
         Open(app);
         auto &rangeField = Find<DxUi::TextField>(app, IDS_PRINTPAGES);
         for (const auto &invalid : {L"0", L"2-1", L"1,", L"999999999999999999999999", L"1-2-3"})
         {
-            const auto before = openings;
             rangeField.SetTextAndNotify(invalid);
-            Choose(app);
-            Require(openings == before && pages.empty() && app.printPreview->CanPrint() && rangeField.GetText() == invalid &&
+            Submit(app);
+            Require(!submitted && pages.empty() && app.printPreview->CanPrint() && rangeField.GetText() == invalid &&
                         app.printPreview->Host().GetFocusControl() == &rangeField,
-                    "invalid page selection focuses the field without opening the Windows dialog or sending pages");
+                    "invalid page selection focuses the field without sending pages");
         }
 
-        paper = WidePaper();
         rangeField.SetTextAndNotify(std::to_wstring(count));
-        Choose(app);
+        Require(Find<DxUi::ComboBox>(app, IDS_PRINTORIENTATION).OnKeyDown(app.printPreview->Host(), VK_DOWN, 0), "choose Landscape in the sidebar");
         Require(app.printPreview && !app.printPreview->CanPrint() && pages.empty(), "changing paper defers submission before showing the new pages");
         Wait(app, true);
         const auto &landscape = app.printPreview->Page();
-        Require(landscape.paper == paper && landscape.width > landscape.height && landscape.count < count && HasInk(landscape),
+        Require(landscape.paper == WidePaper() && landscape.width > landscape.height && landscape.count < count && HasInk(landscape),
                 "landscape uses its own page geometry and recomputes the page count");
         const auto landscapeCount = landscape.count;
-        const auto beforeCorrection = openings;
-        Choose(app);
-        Require(rangeField.GetText() == std::to_wstring(count) && openings == beforeCorrection && pages.empty(),
-                "paper changes preserve the written range and require correction before the next dialog");
-        confirmed = false;
+        Submit(app);
+        Require(rangeField.GetText() == std::to_wstring(count) && !submitted && pages.empty(),
+                "paper changes preserve the written range and require correction before printing");
         rangeField.SetTextAndNotify(std::to_wstring(landscapeCount));
-        Choose(app);
-        Require(rangeField.GetText() == std::to_wstring(landscapeCount) && pages.empty(), "Apply preserves an explicit range without printing");
-        confirmed = true;
+        auto &copies = Find<DxUi::TextField>(app, IDS_PRINTCOPIES);
+        copies.SetTextAndNotify(L"13");
+        Submit(app);
+        Require(!submitted && app.printPreview->Host().GetFocusControl() == &copies, "an invalid copy count focuses Copies without submitting");
+        copies.SetTextAndNotify(L"3");
+        Find<DxUi::Checkbox>(app, IDS_PRINTCOLLATE).SetChecked(true);
+        Find<DxUi::Checkbox>(app, IDS_PRINTTOFILE).SetChecked(true);
         Require(landscapeCount >= 2u, "the landscape fixture still has more than one page");
         Require(app.SetDocument(L"Second document."), "switch the editor while the preview retains the original revision");
         Navigate(app, landscapeCount);
@@ -303,18 +311,28 @@ class PrintingProbe
         Require(HasInk(app.printPreview->Page()), "the preview still renders the last page of the admitted document after an editor change");
         Require(Find<DxUi::Button>(app, IDS_PRINTCURRENTPAGE).Invoke(app.printPreview->Host(), false), "select the displayed last page for printing");
         Navigate(app, 1u);
-        Choose(app);
+        Submit(app);
         Wait(app);
-        Require(std::ranges::equal(pages, std::array{landscapeCount}) && app.Document().GetText() == L"Second document.",
+        Require(submitted && submitted->paper == WidePaper() && submitted->copies == 3u && submitted->collate == true &&
+                    submitted->port == L"FILE:" && std::ranges::equal(pages, std::array{landscapeCount}) &&
+                    app.Document().GetText() == L"Second document.",
                 "Current page selects exactly the displayed sheet at the time of selection, from the admitted revision");
 
         pages.clear();
         Require(app.SetDocument(L""), "seed an empty document");
         Open(app);
         Require(app.printPreview->Page().count == 1u && !HasInk(app.printPreview->Page()), "an empty document previews one blank sheet");
-        Choose(app);
+        Submit(app);
         Wait(app);
         Require(std::ranges::equal(pages, std::array{1u}), "an empty document records one blank sheet");
+        Open(app);
+        Require(Find<DxUi::ComboBox>(app, IDS_PRINTDESTINATION).OnKeyDown(app.printPreview->Host(), VK_DOWN, 0), "select the PDF queue");
+        Wait(app, true);
+        pages.clear();
+        Submit(app);
+        Wait(app);
+        Require(submitted && submitted->printer == PdfPrinter && submitted->port == L"PORTPROMPT:" && std::ranges::equal(pages, std::array{1u}),
+                "one Print action submits the selected PDF queue and its prepared page");
         Require(foreground.NeverAcquiredForeground() && !IsWindowVisible(app.Window()), "directed printing keeps the editor hidden");
     }
 
@@ -325,20 +343,22 @@ class PrintingProbe
         auto returnedPage = wil::unique_event(wil::EventOptions::ManualReset);
         std::atomic_uint calls{};
         std::atomic_bool pause{};
-        bool failPage = true, failFinish = false, failDialog = true;
+        bool failPage = true, failFinish = false, invalidPaper = true;
         LaunchOptions options;
         options.headless = true;
         options.dataDirectory = directory;
         options.unsavedPromptForTest = [] { return IDNO; };
-        options.printPaperForTest = Printing::Paper{};
-        options.printDialogForTest = [&](std::wstring_view, bool, Printing::DialogResult &selected)
+        constexpr std::wstring_view missing = L"Redfern offline printer";
+        options.printDestinationsForTest = Printing::Destinations{{std::wstring(missing), std::wstring(OfficePrinter)}, std::wstring(OfficePrinter)};
+        options.printPrinterForTest =
+            [&](const std::wstring &name, const std::optional<Printing::PrinterSettings> &settings, Printing::PrinterConfiguration &selection)
         {
-            if (failDialog)
-                return E_FAIL;
-            selected.selection.paper = SmallPaper();
-            selected.selection.printer = L"Redfern document printer";
-            selected.confirmed = true;
-            return S_OK;
+            if (name == missing)
+                return HRESULT_FROM_WIN32(ERROR_PRINTER_NOT_FOUND);
+            const auto result = ConfigureFixture(name, settings, selection);
+            if (invalidPaper)
+                selection.selection.paper = {};
+            return result;
         };
         options.printPageForTest = [&](unsigned page, ID2D1CommandList &)
         {
@@ -369,36 +389,39 @@ class PrintingProbe
         Wait(app);
         Require(!app.printPreview && !calls && app.feedback->GetText() == Resource(IDS_PRINTPREVIEWFAILED),
                 "preview failure clears the session before reporting the error");
-        app.options.printPaperForTest = SmallPaper();
+        invalidPaper = false;
         app.Execute(Command::Print);
         app.DismissPrintPreview();
         Require(!app.printOperation && !app.printPreview && !calls, "cancelling during initial pagination detaches without printing");
         Open(app);
-        Choose(app);
-        Require(!calls && app.printPreview->CanPrint() && app.feedback->GetText() == Resource(IDS_PRINTDIALOGFAILED),
-                "a failed Windows chooser leaves the preview open and names the failing step");
-        failDialog = false;
-        Choose(app);
+        auto &printers = Find<DxUi::ComboBox>(app, IDS_PRINTDESTINATION);
+        Require(printers.OnKeyDown(app.printPreview->Host(), VK_UP, 0), "select an unavailable printer");
+        Wait(app, true);
+        Require(!calls && !app.printPreview->CanPrint() && app.printPreview->Page().fallbackPaper && printers.IsEnabled(),
+                "an unavailable destination leaves a navigable fallback preview with a disabled Print button");
+        Require(printers.OnKeyDown(app.printPreview->Host(), VK_DOWN, 0), "return to an available printer");
+        Wait(app, true);
+        Submit(app);
         Wait(app);
-        Require(calls == 2u && app.feedback->GetText() == L"Couldn’t print page 2. Destination Redfern document printer.",
+        Require(calls == 2u && app.feedback->GetText() == L"Couldn’t print page 2. Destination Redfern office printer.",
                 "a failed page names the page and printer and stops submission without a retry");
         failPage = false;
         failFinish = true;
         Open(app);
-        Choose(app);
+        Submit(app);
         Wait(app);
-        Require(calls > 2u && app.feedback->GetText() == L"Couldn’t finish the print job. Destination Redfern document printer.",
+        Require(calls > 2u && app.feedback->GetText() == L"Couldn’t finish the print job. Destination Redfern office printer.",
                 "finalization failure names the printer and the separate completion step");
         failFinish = false;
         Open(app);
-        Choose(app);
+        Submit(app);
         Wait(app);
         Require(app.feedback->GetText() == Resource(IDS_PRINTSUBMITTED), "a new job succeeds after recoverable failures");
 
         const auto previous = calls.load();
         pause.store(true);
         Open(app);
-        Choose(app);
+        Submit(app);
         Require(enteredPage.wait(10000u), "worker reaches a controlled blocked printer page");
         app.Execute(Command::Close);
         Require(!app.printOperation && app.closing, "closing detaches the owned print job while the worker is blocked");
@@ -413,8 +436,8 @@ class PrintingProbe
         options.headless = true;
         options.forceWarp = true;
         options.dataDirectory = directory;
-        options.printPaperForTest = WidePaper();
-        options.printDialogForTest = [](std::wstring_view, bool, Printing::DialogResult &) { return S_FALSE; };
+        options.printDestinationsForTest = Printing::Destinations{{std::wstring(PdfPrinter)}, std::wstring(PdfPrinter)};
+        options.printPrinterForTest = ConfigureFixture;
         Application app(std::move(options));
         Require(SUCCEEDED(app.Initialize()), "initialize the hidden diagram document");
         app.Execute(Command::ThemeDark);
@@ -460,6 +483,16 @@ class PrintingProbe
         Require(page.bgra[paperSample] == 255u && page.bgra[paperSample + 1u] == 255u && page.bgra[paperSample + 2u] == 255u,
                 "the paper stays white in the margin immediately outside the diagram");
         Require(app.Capture(directory / L"graph-on-print-paper.png"), "capture the real preview of the graph on paper");
+        app.DismissPrintPreview();
+
+        Require(app.SetDocument(L"[Redfern reference](https://example.org/)"), "seed a named hyperlink");
+        Open(app);
+        Require(HasInk(app.printPreview->Page()), "the hyperlink label is visible on paper");
+        const auto linkPixels = app.printPreview->Page().bgra;
+        app.DismissPrintPreview();
+        Require(app.SetDocument(L"Redfern reference"), "seed the same label as plain text");
+        Open(app);
+        Require(app.printPreview->Page().bgra == linkPixels, "a Markdown hyperlink prints like the same plain text without an underline");
         app.DismissPrintPreview();
     }
 };

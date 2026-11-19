@@ -10,6 +10,16 @@
 
 namespace RedTilde
 {
+namespace
+{
+void SelectNamedItem(DxUi::ComboBox &combo, std::wstring_view name)
+{
+    const auto items = combo.GetItems();
+    const auto selected = std::ranges::find_if(items, [name](const auto &item) { return Printing::SamePrintName(item.value, name); });
+    combo.SetSelectedIndex(selected != items.end() ? std::optional{static_cast<std::size_t>(selected - items.begin())} : std::nullopt);
+}
+} // namespace
+
 // A single bounded page raster. The UI recreates its own bitmap after device loss.
 class PrintPreview::Sheet final : public DxUi::Control
 {
@@ -77,7 +87,7 @@ class PrintPreview::Viewport final : public DxUi::ScrollPanel
     {
         if (delta == 0.f || (modifiers & (MK_SHIFT | MK_CONTROL)))
             return false;
-        if (!preview_.CanPrint())
+        if (!preview_.IsReady())
             return true;
         const auto before = GetScrollOffset();
         if (preview_.fitWidth_ && ScrollPanel::OnMouseWheel(host, point, delta, modifiers) && before != GetScrollOffset())
@@ -210,25 +220,47 @@ HRESULT PrintPreview::Initialize(std::wstring_view title)
                     Layout();
                 });
         });
-    printerLabel_ = root_->AddChild<DxUi::Label>(Resource(IDS_PRINTDESTINATION));
-    printers_ = root_->AddChild<DxUi::ComboBox>();
-    printers_->SetAccessibleName(Resource(IDS_PRINTDESTINATION));
+    settings_ = root_->AddChild<DxUi::ScrollPanel>();
+    settings_->SetAccessibleName(Resource(IDS_PRINTSETTINGS));
+    const auto addChoice = [&](unsigned id, DxUi::Label *&label, DxUi::ComboBox *&choice)
+    {
+        label = settings_->AddChild<DxUi::Label>(Resource(id));
+        choice = settings_->AddChild<DxUi::ComboBox>();
+        choice->SetAccessibleName(Resource(id));
+    };
+    addChoice(IDS_PRINTDESTINATION, printerLabel_, printers_);
     printers_->SetPlaceholder(Resource(IDS_PRINTPREVIEWPREPARING));
     printers_->SetOnSelectionChanged([this](std::size_t) { app_.RunUiAction([&] { app_.PreviewPrintDestination(); }); });
-    rangeLabel_ = root_->AddChild<DxUi::Label>(Resource(IDS_PRINTPAGES));
-    ranges_ = root_->AddChild<DxUi::TextField>();
+    rangeLabel_ = settings_->AddChild<DxUi::Label>(Resource(IDS_PRINTPAGES));
+    ranges_ = settings_->AddChild<DxUi::TextField>();
     ranges_->SetAccessibleName(Resource(IDS_PRINTPAGES));
     ranges_->SetPlaceholder(Resource(IDS_PRINTPAGESHINT));
     ranges_->SetClearButtonEnabled(true);
     ranges_->SetOnSubmitted([this] { PostAction(Action::Print); });
-    current_ = root_->AddChild<DxUi::Button>(Resource(IDS_PRINTCURRENTPAGE));
+    current_ = settings_->AddChild<DxUi::Button>(Resource(IDS_PRINTCURRENTPAGE));
     current_->SetAccessibleName(Resource(IDS_PRINTCURRENTPAGE));
     current_->SetOnClick([this] { app_.RunUiAction([&] { ranges_->SetText(std::to_wstring(Page().number)); }); });
+    addChoice(IDS_PRINTPAPER, paperLabel_, papers_);
+    addChoice(IDS_PRINTORIENTATION, orientationLabel_, orientation_);
+    orientation_->SetItems({{{}, Resource(IDS_PRINTPORTRAIT)}, {{}, Resource(IDS_PRINTLANDSCAPE)}});
+    addChoice(IDS_PRINTDUPLEX, duplexLabel_, duplex_);
+    duplex_->SetItems({{{}, Resource(IDS_PRINTONESIDED)}, {{}, Resource(IDS_PRINTDUPLEXLONG)}, {{}, Resource(IDS_PRINTDUPLEXSHORT)}});
+    for (auto *choice : {papers_, orientation_, duplex_})
+        choice->SetOnSelectionChanged([this](std::size_t) { app_.RunUiAction([&] { UpdatePaperSettings(); }); });
+    copiesLabel_ = settings_->AddChild<DxUi::Label>(Resource(IDS_PRINTCOPIES));
+    copies_ = settings_->AddChild<DxUi::TextField>();
+    copies_->SetAccessibleName(Resource(IDS_PRINTCOPIES));
+    copies_->SetOnSubmitted([this] { PostAction(Action::Print); });
+    collate_ = settings_->AddChild<DxUi::Checkbox>(Resource(IDS_PRINTCOLLATE));
+    collate_->SetAccessibleName(Resource(IDS_PRINTCOLLATE));
+    file_ = settings_->AddChild<DxUi::Checkbox>(Resource(IDS_PRINTTOFILE));
+    file_->SetAccessibleName(Resource(IDS_PRINTTOFILE));
+    SetConfiguration(nullptr, false);
     close_ = root_->AddChild<DxUi::Button>(Resource(IDS_CLOSE));
     close_->SetAccessibleName(Resource(IDS_CLOSE));
     close_->SetOnClick([this] { PostAction(Action::Close); });
-    print_ = root_->AddChild<DxUi::Button>(Resource(IDS_PRINT));
-    print_->SetAccessibleName(Resource(IDS_PRINT));
+    print_ = root_->AddChild<DxUi::Button>(Resource(IDS_PRINTSUBMIT));
+    print_->SetAccessibleName(Resource(IDS_PRINTSUBMIT));
     print_->SetOnClick([this] { PostAction(Action::Print); });
     print_->SetPrimary(true);
     status_ = root_->AddChild<DxUi::Label>();
@@ -282,6 +314,33 @@ std::optional<std::vector<Printing::PageRange>> PrintPreview::SelectedRanges() c
     return Printing::ParsePageRanges(ranges_->GetText(), Page().count);
 }
 
+std::optional<unsigned> PrintPreview::SelectedCopies(unsigned maximum)
+{
+    const auto count = copies_->IsVisible() ? Printing::ParsePageNumber(copies_->GetText(), maximum) : std::optional{1u};
+    if (!count)
+    {
+        SetStatus(std::vformat(Resource(IDS_PRINTCOPIESRANGE), std::make_wformat_args(maximum)));
+        host_.SetFocusControl(copies_, !app_.options.headless && GetForegroundWindow() == window_.get());
+        copies_->SetSelectionRange(0, copies_->GetText().size());
+    }
+    return count;
+}
+
+bool PrintPreview::Collate() const noexcept
+{
+    return collate_->IsVisible() && collate_->IsChecked();
+}
+
+bool PrintPreview::PrintToFile() const noexcept
+{
+    return file_->IsVisible() && file_->IsChecked();
+}
+
+bool PrintPreview::IsReady() const noexcept
+{
+    return window_ && !rendering_ && Page().count != 0u;
+}
+
 bool PrintPreview::CanPrint() const noexcept
 {
     return window_ && print_->IsEnabled();
@@ -302,35 +361,79 @@ void PrintPreview::SetDestinations(Printing::Destinations destinations)
         items.push_back({name, std::move(name)});
     printers_->SetItems(std::move(items));
     printers_->SetPlaceholder(Resource(IDS_PRINTNOPRINTERSFOUND));
-    SetPrinter(destinations.selected);
+    SelectNamedItem(*printers_, destinations.selected);
 }
 
-void PrintPreview::SetPrinter(std::wstring_view name)
+void PrintPreview::SetConfiguration(const Printing::PrinterConfiguration *configuration, bool keepJobValues)
 {
-    if (name.empty())
-        return;
-    const auto items = printers_->GetItems();
-    const auto match = std::ranges::find_if(items, [&](const auto &item) { return Printing::SamePrintName(item.value, name); });
-    const auto index = match != items.end() ? static_cast<std::size_t>(match - items.begin()) : items.size();
-    if (match == items.end())
+    const auto setRow = [](DxUi::Control *label, DxUi::Control *input, bool visible)
     {
-        // Windows can return a destination added while the print dialog was open.
-        std::vector<DxUi::ComboBox::Item> extended(items.begin(), items.end());
-        extended.push_back({std::wstring(name), std::wstring(name)});
-        printers_->SetItems(std::move(extended));
+        label->SetVisible(visible);
+        input->SetVisible(visible);
+    };
+    const bool showPaper = configuration && !configuration->forms.empty();
+    const bool showOrientation = configuration && configuration->settings.orientation.has_value();
+    const bool showDuplex = configuration && configuration->settings.duplex.has_value();
+    const bool showCopies = configuration && configuration->maximumCopies > 1u;
+    const bool showCollate = showCopies && configuration->settings.collate.has_value();
+    const bool showFile = configuration && !Printing::IsFilePort(configuration->selection.port);
+    if (showPaper)
+    {
+        std::vector<DxUi::ComboBox::Item> items;
+        items.reserve(configuration->forms.size());
+        for (const auto &form : configuration->forms)
+            items.push_back({form, form});
+        papers_->SetItems(std::move(items));
+        SelectNamedItem(*papers_, configuration->settings.form);
     }
-    printers_->SetSelectedIndex(index);
-    printers_->SetEnabled(true);
+    if (showOrientation)
+        orientation_->SetSelectedIndex(static_cast<std::size_t>(configuration->settings.orientation.value()));
+    if (showDuplex)
+        duplex_->SetSelectedIndex(static_cast<std::size_t>(configuration->settings.duplex.value()));
+    if (!keepJobValues)
+    {
+        copies_->SetText(std::to_wstring(configuration ? configuration->settings.copies : 1u));
+        collate_->SetChecked(showCollate && configuration->settings.collate.value());
+        file_->SetChecked(false);
+        settings_->ScrollToTop();
+    }
+    setRow(paperLabel_, papers_, showPaper);
+    setRow(orientationLabel_, orientation_, showOrientation);
+    setRow(duplexLabel_, duplex_, showDuplex);
+    setRow(copiesLabel_, copies_, showCopies);
+    collate_->SetVisible(showCollate);
+    file_->SetVisible(showFile);
+}
+
+void PrintPreview::UpdatePaperSettings()
+{
+    if (!app_.printConfiguration || !IsReady())
+        return;
+    auto selected = app_.printConfiguration->settings;
+    if (papers_->IsVisible())
+        selected.form = papers_->GetSelectedValue();
+    if (orientation_->IsVisible())
+        selected.orientation = static_cast<Printing::Orientation>(orientation_->GetSelectedIndex().value());
+    if (duplex_->IsVisible())
+        selected.duplex = static_cast<Printing::Duplex>(duplex_->GetSelectedIndex().value());
+    app_.PreviewPrintDestination(std::move(selected));
 }
 
 void PrintPreview::BeginRendering()
 {
+    rendering_ = true;
     print_->SetEnabled(false);
     page_->SetEnabled(false);
     previous_->SetEnabled(false);
     next_->SetEnabled(false);
     ranges_->SetEnabled(false);
     printers_->SetEnabled(false);
+    papers_->SetEnabled(false);
+    orientation_->SetEnabled(false);
+    duplex_->SetEnabled(false);
+    copies_->SetEnabled(false);
+    collate_->SetEnabled(false);
+    file_->SetEnabled(false);
     current_->SetEnabled(false);
     sheet_->SetVisible(false);
     zoom_->SetEnabled(false);
@@ -340,6 +443,7 @@ void PrintPreview::BeginRendering()
 void PrintPreview::Present(Printing::PreviewPage page, std::wstring status)
 {
     const bool first = Page().count == 0u;
+    rendering_ = false;
     const auto count = page.count;
     const auto number = page.number;
     total_->SetText(std::vformat(Resource(IDS_PRINTPREVIEWTOTAL), std::make_wformat_args(count)));
@@ -352,23 +456,29 @@ void PrintPreview::Present(Printing::PreviewPage page, std::wstring status)
     next_->SetEnabled(number < count);
     ranges_->SetEnabled(true);
     printers_->SetEnabled(!printers_->GetItems().empty());
+    papers_->SetEnabled(papers_->IsVisible());
+    orientation_->SetEnabled(orientation_->IsVisible());
+    duplex_->SetEnabled(duplex_->IsVisible());
+    copies_->SetEnabled(copies_->IsVisible());
+    collate_->SetEnabled(collate_->IsVisible());
+    file_->SetEnabled(file_->IsVisible());
     current_->SetEnabled(true);
-    print_->SetEnabled(true);
+    print_->SetEnabled(app_.printConfiguration.has_value());
     scroll_->ScrollToTop();
     scroll_->ResetWheel();
     SetStatus(std::move(status));
-    if (!SelectedRanges())
+    if (status_->GetText().empty() && !SelectedRanges())
         ReportInvalidRange(false);
     Layout();
     if (std::exchange(scrollToPageEnd_, false))
         scroll_->SetScrollOffset(scroll_->GetContentHeight());
-    if (first && host_.GetFocusControl() == close_)
+    if (first && CanPrint() && host_.GetFocusControl() == close_)
         host_.SetFocusControl(print_, false);
 }
 
 void PrintPreview::MoveThroughPages(int steps)
 {
-    if (!CanPrint() || steps == 0)
+    if (!IsReady() || steps == 0)
         return;
     const auto number = static_cast<int>(Page().number);
     const auto next = std::clamp(number + steps, 1, static_cast<int>(Page().count));
@@ -411,14 +521,37 @@ void PrintPreview::Layout()
     document_->SetBounds({width * .53f, 10.f, width - padding, 44.f});
 
     const float panelRight = panelWidth - padding;
-    printerLabel_->SetBounds({padding, 70.f, panelRight, 94.f});
-    printers_->SetBounds({padding, 99.f, panelRight, 137.f});
-    rangeLabel_->SetBounds({padding, 155.f, panelRight, 179.f});
-    ranges_->SetBounds({padding, 184.f, panelRight, 222.f});
-    current_->SetBounds({padding, 234.f, panelRight, 270.f});
     const float footer = std::max(294.f, height - 60.f);
+    const float settingsBottom = footer - 72.f;
+    settings_->SetBounds({0.f, headerBottom, panelWidth, settingsBottom});
+    const float inputRight = panelRight - settings_->GetScrollbarThickness();
+    float y = headerBottom + 12.f;
+    const auto field = [&](DxUi::Label *label, DxUi::Control *input)
+    {
+        if (!input->IsVisible())
+            return;
+        label->SetBounds({padding, y, inputRight, y + 22.f});
+        input->SetBounds({padding, y + 24.f, inputRight, y + 60.f});
+        y += 69.f;
+    };
+    field(printerLabel_, printers_);
+    field(rangeLabel_, ranges_);
+    current_->SetBounds({padding, y - 3.f, inputRight, y + 29.f});
+    y += 40.f;
+    field(paperLabel_, papers_);
+    field(orientationLabel_, orientation_);
+    field(duplexLabel_, duplex_);
+    field(copiesLabel_, copies_);
+    for (auto *check : {collate_, file_})
+    {
+        if (!check->IsVisible())
+            continue;
+        check->SetBounds({padding, y, inputRight, y + 32.f});
+        y += 36.f;
+    }
+    settings_->SetContentHeight(y - headerBottom);
     const float mid = panelWidth * .5f;
-    status_->SetBounds({padding, 284.f, panelRight, footer - 10.f});
+    status_->SetBounds({padding, settingsBottom + 4.f, panelRight, footer - 4.f});
     close_->SetBounds({padding, footer, mid - 4.f, footer + 42.f});
     print_->SetBounds({mid + 4.f, footer, panelRight, footer + 42.f});
 
@@ -472,8 +605,9 @@ bool PrintPreview::DispatchKeyboardMessage(const MSG &message)
             return true;
         }
         const auto *focus = host_.GetFocusControl();
+        const auto *choice = dynamic_cast<const DxUi::ComboBox *>(focus);
         if (!control && !shift && !alt && (message.wParam == VK_PRIOR || message.wParam == VK_NEXT) && focus != page_ && focus != ranges_ &&
-            (focus != printers_ || !printers_->IsPopupOpen()))
+            focus != copies_ && (!choice || !choice->IsPopupOpen()))
         {
             const bool forward = message.wParam == VK_NEXT;
             if (fitWidth_)
@@ -514,7 +648,7 @@ LRESULT PrintPreview::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPAR
     {
         actionPending_ = false;
         if (wParam == static_cast<WPARAM>(Action::Print))
-            app_.ChoosePrintDestination();
+            app_.SubmitPrintPreview();
         else if (wParam == static_cast<WPARAM>(Action::Close))
             app_.DismissPrintPreview();
         return 0;
