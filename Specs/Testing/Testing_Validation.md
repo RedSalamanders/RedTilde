@@ -93,7 +93,7 @@ receipt records `sdkDefaultProfiles`; the historical v1 omitted-argument regress
 remains historical evidence rather than a requirement to reproduce a repaired SDK bug.
 
 Use `validate.ps1` for links/spec indexes, skill metadata, dependencies and build inventory; aggregate all failures.
-The [skill package contract](Testing_SkillPackages.md) defines structural, package-reference and scoped-guidance
+The [skill package contract](Testing_SkillPackages.md) defines structural, package-reference and root-guidance
 checks separately from model decisions. Its negative fixtures run without native builds or desktop access.
 Use `format.ps1 -Check` for C++. Scoped iteration uses `Test-Changes.ps1 -Explain` then the affected default.
 PrePush accounts for existing enabled CI; pending CI is never recorded as a pass. Do not rerun an identical full

@@ -40,6 +40,31 @@ DxUi controls, DirectWrite and Direct2D. Read [Specs/README.md](Specs/README.md)
   hidden, non-activating harness, with scenario/build provenance. Never substitute desktop capture.
 - No generated products are committed under `.build`. Do not kill independently launched applications.
 
+## Folder guidance
+
+These rules were the five nested `AGENTS.md` files; the root file is now the only guidance file (RedHome convergence A-12).
+
+- `Common/`: read the owning Core or Editor contract. Keep services independent of UI controls except public
+  immutable DxUi value types. Storage validates all input before changing a live session. Return errors explicitly;
+  tests use unique directories under the harness output. Workers own snapshots, never mutable controls or HWND
+  lifetime. Crash-path code has separately documented allocation restrictions; ordinary code uses WIL.
+- `RedTilde/` (application and native UI): read the Editor contract and UI design system. The authoritative
+  RichTextEditor remains stable for the session; changing views must not call SetText on it. Return focus and
+  preserve source selection after formatting and menu actions. High contrast overrides custom themes. Use resource
+  strings for chrome and the app harness for actual captures. Do not add desktop automation, a web editor or a
+  second presentation engine.
+- `Specs/`: start with README.md. Domain contracts own lasting requirements, capabilities.json owns current status,
+  and one indexed WIP plan owns sequence and unresolved gates. A passing build or focused test is not product
+  qualification. Move a plan to Done only after all of its implementation, test and documentation gates close.
+- `Tests/`: follow the validation contract. Native filenames are Scope.Tests.Behavior.cpp/.h. Use behavioral oracles
+  and independent expected values. Hidden tests must not activate windows, take the clipboard, move the pointer or
+  inject OS input. Interactive focus/IME tests require agreement to the time and verified restoration. Store
+  generated results in .build and only reviewed, provenance-bearing evidence in Measurements.
+- `res/` (resources and brand): keep the generated red-tilde master PNG and multi-resolution Windows ICO together.
+  Preserve alpha and verify 16/24/32/48/64/128/256 entries. Resource IDs remain stable. Chrome strings use
+  STRINGTABLE entries; positional format placeholders permit translation. Document samples are separate under
+  docs/examples.
+
 ## Drive-root output policy
 
 Do not create scratch, caches, evidence, copied checkouts, or other output directories directly at a drive root.

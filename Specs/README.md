@@ -76,7 +76,7 @@ If a behavior has no owning domain spec yet, create that spec in the first chang
 | Writing experience, responsive layout, and accessibility | [UI/UI_DesignSystem.md](UI/UI_DesignSystem.md) |
 | Pinned library and the six build configurations | [Build/Build_Toolchain.md](Build/Build_Toolchain.md) |
 | Scenario coverage, captures, and qualification evidence | [Testing/Testing_Validation.md](Testing/Testing_Validation.md) |
-| Skill structure, package references, and the scoped-guidance inventory | [Testing/Testing_SkillPackages.md](Testing/Testing_SkillPackages.md) |
+| Skill structure, package references, and the root guidance file | [Testing/Testing_SkillPackages.md](Testing/Testing_SkillPackages.md) |
 | Completed-frame pairs, provenance, and the native resource lifecycle | [Testing/Testing_Performance.md](Testing/Testing_Performance.md) |
 | Run receipts and the evidence archive | [Testing/Testing_RunEvidence.md](Testing/Testing_RunEvidence.md) |
 | End-user guide | [../docs/README.md](../docs/README.md) |
