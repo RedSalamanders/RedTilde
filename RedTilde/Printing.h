@@ -10,6 +10,7 @@
 #include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 #include <wil/resource.h>
 #if defined(REDTILDE_ENABLE_TESTS)
@@ -41,18 +42,10 @@ struct Selection
     std::vector<PageRange> ranges;
 };
 
-struct DialogOptions
-{
-    unsigned pageCount{};
-    std::span<const PageRange> ranges;
-    bool rangeNeedsCorrection{};
-    bool currentPage{}, printToFile{};
-};
-
 struct DialogResult
 {
     Selection selection;
-    bool confirmed{}, currentPage{}, printToFile{};
+    bool confirmed{}, printToFile{};
 };
 
 struct Dialog
@@ -62,10 +55,13 @@ struct Dialog
     Dialog &operator=(const Dialog &) = delete;
     wil::unique_hglobal deviceMode, deviceNames;
     // S_FALSE dismisses the dialog. Apply returns settings with confirmed=false.
-    HRESULT Choose(HWND owner, const DialogOptions &options, DialogResult &result);
+    HRESULT Choose(HWND owner, bool printToFile, DialogResult &result);
 };
 
 [[nodiscard]] HRESULT ReadPaper(HDC dc, Paper &paper) noexcept;
+[[nodiscard]] std::optional<unsigned> ParsePageNumber(std::wstring_view text, unsigned pageCount) noexcept;
+// An empty set selects all pages. A missing result is invalid input.
+[[nodiscard]] std::optional<std::vector<PageRange>> ParsePageRanges(std::wstring_view text, unsigned pageCount);
 [[nodiscard]] bool PageRangesFit(std::span<const PageRange> ranges, unsigned pageCount) noexcept;
 
 struct Image
@@ -91,6 +87,17 @@ enum class FileFormat
     OpenXps
 };
 
+enum class Stage
+{
+    Preview,
+    ChooseDestination,
+    ChooseFile,
+    PrepareJob,
+    Page,
+    FinishJob,
+    SaveFile
+};
+
 struct PreviewPage
 {
     Paper paper;
@@ -111,8 +118,11 @@ struct Notice
     Kind kind{};
     FileFormat format{};
     HRESULT result{};
+    Stage stage{};
+    unsigned failedPage{};
     unsigned invalidRangePageCount{};
     bool savedFile{};
+    std::wstring printer;
     std::optional<PreviewPage> preview;
 };
 

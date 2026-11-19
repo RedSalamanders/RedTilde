@@ -191,11 +191,14 @@ package target. Keep the prepared document and approved image pixels through pre
 Rasterize a single bounded preview sheet from the same command list sent to the printer when selected.
 Transfer only its pixel bytes and geometry to the UI. Paper changes rebuild the prepared layout on the worker.
 Resolve the print-specific Windows imports on first use and report missing imports as ordinary print failures.
-The selected printer's complete DEVMODE is converted to the job PrintTicket. The driver owns its supported
-copy, collation and finishing settings. Draw and submit each selected page in document order, releasing
+The preview supplies the validated page selection. The Windows dialog supplies the selected printer's complete
+DEVMODE for the job PrintTicket. The driver owns its supported copy, collation and finishing settings.
+Draw and submit each selected page in document order, releasing
 the command list after submission. Sleep on an event between preview requests. Closing shuts notification
 admission, requests cancellation and releases waits for preview commands or a destination filename.
-Job state contains an immutable document snapshot and owned inputs.
+Job state contains an immutable document snapshot and owned inputs. Failure completion carries the failed
+stage, relevant page and selected destination back to the UI owner. A failed submission is never retried
+automatically.
 
 For a file port, collect the chosen filename through the UI owner, spool into an owned sibling staging stream,
 and publish that file after successful submission. A cancelled choice, failed job or changed destination

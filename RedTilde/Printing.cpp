@@ -11,7 +11,6 @@
 #include <DxUi/RichSemanticDocument.h>
 #include <DxUi/RichTextExport.h>
 #include <algorithm>
-#include <array>
 #include <atomic>
 #include <cmath>
 #include <commdlg.h>
@@ -35,6 +34,7 @@ namespace RedTilde::Printing
 namespace
 {
 constexpr unsigned MaximumPages = static_cast<unsigned>(DxUi::RichText::Document::MaximumUnits) + 1u;
+constexpr std::size_t MaximumPageRanges = 32u;
 constexpr float MaximumPreviewEdge = 1600.f;
 constexpr std::size_t MaximumImageBytes = 64u * 1024u * 1024u;
 constexpr HRESULT Cancelled = HRESULT_FROM_WIN32(ERROR_CANCELLED);
@@ -336,9 +336,10 @@ HRESULT Pages::Record(unsigned number, ID2D1CommandList **output)
     auto &context = Context();
     wil::com_ptr<ID2D1CommandList> commands;
     RETURN_IF_FAILED(context.CreateCommandList(commands.put()));
-    wil::com_ptr<ID2D1SolidColorBrush> ink, rule, shade;
+    wil::com_ptr<ID2D1SolidColorBrush> ink, rule, paperFill, shade;
     RETURN_IF_FAILED(context.CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), ink.put()));
     RETURN_IF_FAILED(context.CreateSolidColorBrush(D2D1::ColorF(0.33f, 0.33f, 0.33f), rule.put()));
+    RETURN_IF_FAILED(context.CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), paperFill.put()));
     RETURN_IF_FAILED(context.CreateSolidColorBrush(D2D1::ColorF(0.95f, 0.95f, 0.95f), shade.put()));
     wil::com_ptr<ID2D1Image> previous;
     context.GetTarget(previous.put());
@@ -352,7 +353,9 @@ HRESULT Pages::Record(unsigned number, ID2D1CommandList **output)
     context.SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
     context.SetTransform(D2D1::Matrix3x2F::Scale(page.scale, page.scale) * D2D1::Matrix3x2F::Translation(content_.left, content_.top));
     context.BeginDraw();
-    const DxUi::RichText::ExportDrawing drawing{.text = ink.get(), .decoration = rule.get(), .fill = shade.get(), .quoteFill = shade.get()};
+    // Diagram shapes can cover a large area, such as a subgraph around the entire graph.
+    // Their backing follows the paper instead of the shaded code and quote surface.
+    const DxUi::RichText::ExportDrawing drawing{.text = ink.get(), .decoration = rule.get(), .fill = paperFill.get(), .quoteFill = shade.get()};
     const bool drawn = editor_->TryDrawPreparedPage(host_.Controls(), {0.f, 0.f, static_cast<float>(width_), page.height}, page.top, drawing);
     RETURN_IF_FAILED(context.EndDraw());
     if (!drawn)
@@ -575,6 +578,56 @@ bool Paper::operator==(const Paper &other) const noexcept
            printable.top == other.printable.top && printable.right == other.printable.right && printable.bottom == other.printable.bottom;
 }
 
+namespace
+{
+std::wstring_view TrimPageInput(std::wstring_view text) noexcept
+{
+    constexpr std::wstring_view space = L" \t\r\n";
+    const auto first = text.find_first_not_of(space);
+    return first == text.npos ? std::wstring_view{} : text.substr(first, text.find_last_not_of(space) - first + 1u);
+}
+} // namespace
+
+std::optional<unsigned> ParsePageNumber(std::wstring_view text, unsigned pageCount) noexcept
+{
+    if (text.size() > 512u)
+        return std::nullopt;
+    unsigned page{};
+    for (const auto character : TrimPageInput(text))
+    {
+        if (character < L'0' || character > L'9')
+            return std::nullopt;
+        const auto digit = static_cast<unsigned>(character - L'0');
+        if (page > pageCount / 10u || (page == pageCount / 10u && digit > pageCount % 10u))
+            return std::nullopt;
+        page = page * 10u + digit;
+    }
+    return page ? std::optional{page} : std::nullopt;
+}
+
+std::optional<std::vector<PageRange>> ParsePageRanges(std::wstring_view text, unsigned pageCount)
+{
+    if (text.size() > 512u)
+        return std::nullopt;
+    std::vector<PageRange> ranges;
+    if (TrimPageInput(text).empty())
+        return ranges;
+    for (;;)
+    {
+        const auto separator = text.find(L',');
+        const auto span = text.substr(0, separator);
+        const auto dash = span.find_first_of(L"-–");
+        const auto first = ParsePageNumber(span.substr(0, dash), pageCount);
+        const auto last = dash == span.npos ? first : ParsePageNumber(span.substr(dash + 1u), pageCount);
+        if (!first || !last || first.value() > last.value() || ranges.size() == MaximumPageRanges)
+            return std::nullopt;
+        ranges.push_back({first.value(), last.value()});
+        if (separator == text.npos)
+            return ranges;
+        text.remove_prefix(separator + 1u);
+    }
+}
+
 bool PageRangesFit(std::span<const PageRange> ranges, unsigned pageCount) noexcept
 {
     return std::ranges::all_of(ranges,
@@ -601,52 +654,40 @@ HRESULT ReadPaper(HDC dc, Paper &paper) noexcept
     return S_OK;
 }
 
-HRESULT Dialog::Choose(HWND owner, const DialogOptions &options, DialogResult &result)
+HRESULT Dialog::Choose(HWND owner, bool printToFile, DialogResult &result)
 {
     // The native property sheet and its printer extensions run in an OLE STA.
     RETURN_IF_FAILED(DxUi::Failure::InvokeNative(&OleInitialize, nullptr));
     const auto uninitialize = wil::scope_exit([]() noexcept { OleUninitialize(); });
     RETURN_IF_FAILED(LoadPrintImports("COMDLG32.dll"));
-    std::array<PRINTPAGERANGE, 32> ranges{};
     PRINTDLGEXW dialog{};
     dialog.lStructSize = sizeof(dialog);
     dialog.hwndOwner = owner;
     dialog.hDevMode = deviceMode.release();
     dialog.hDevNames = deviceNames.release();
-    dialog.Flags = PD_RETURNDC | PD_USEDEVMODECOPIESANDCOLLATE | PD_EXCL_COPIESANDCOLLATE | PD_NOSELECTION | PD_NOWARNING;
-    if (options.printToFile)
+    // Keep the preview's explicit pages authoritative across Windows dialog variants.
+    dialog.Flags =
+        PD_RETURNDC | PD_USEDEVMODECOPIESANDCOLLATE | PD_EXCL_COPIESANDCOLLATE | PD_NOSELECTION | PD_NOPAGENUMS | PD_NOCURRENTPAGE | PD_NOWARNING;
+    if (printToFile)
         dialog.Flags |= PD_PRINTTOFILE;
-    if (options.currentPage)
-        dialog.Flags |= PD_CURRENTPAGE;
-    else if (options.rangeNeedsCorrection)
-    {
-        // Ask for a replacement range without displaying the old, invalid one.
-        dialog.Flags |= PD_PAGENUMS;
-    }
-    else if (!options.ranges.empty() && options.ranges.size() <= ranges.size() && PageRangesFit(options.ranges, options.pageCount))
-    {
-        dialog.Flags |= PD_PAGENUMS;
-        dialog.nPageRanges = static_cast<DWORD>(options.ranges.size());
-        for (std::size_t index = 0; index < options.ranges.size(); ++index)
-            ranges[index] = {options.ranges[index].first, options.ranges[index].last};
-    }
-    dialog.nMinPage = 1u;
-    dialog.nMaxPage = options.pageCount;
-    dialog.nMaxPageRanges = static_cast<DWORD>(ranges.size());
-    dialog.lpPageRanges = ranges.data();
     dialog.nCopies = 1u;
     dialog.nStartPage = START_PAGE_GENERAL;
     const HRESULT shown = DxUi::Failure::InvokeNative(&PrintDlgExW, &dialog);
     deviceMode.reset(dialog.hDevMode);
     deviceNames.reset(dialog.hDevNames);
     const wil::unique_hdc dc(dialog.hDC);
-    RETURN_IF_FAILED(shown);
+    if (FAILED(shown))
+    {
+        deviceMode.reset();
+        deviceNames.reset();
+        return shown;
+    }
     if (dialog.dwResultAction != PD_RESULT_PRINT && dialog.dwResultAction != PD_RESULT_APPLY)
         return S_FALSE;
     const auto modeBytes = GlobalSize(deviceMode.get());
     const auto namesBytes = GlobalSize(deviceNames.get());
     const wil::unique_hglobal_locked mode(deviceMode.get()), names(deviceNames.get());
-    if (!mode || !names || modeBytes < sizeof(DEVMODEW) || namesBytes < sizeof(DEVNAMES) || dialog.nPageRanges > ranges.size())
+    if (!mode || !names || modeBytes < sizeof(DEVMODEW) || namesBytes < sizeof(DEVNAMES))
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
     const auto *devMode = static_cast<const DEVMODEW *>(mode.get());
     const auto total = static_cast<std::size_t>(devMode->dmSize) + devMode->dmDriverExtra;
@@ -670,19 +711,11 @@ HRESULT Dialog::Choose(HWND owner, const DialogOptions &options, DialogResult &r
         RETURN_IF_FAILED(ReadPaper(info.get(), selected.paper));
     }
     selected.printer = std::move(printer.value());
-    const bool printToFile = (dialog.Flags & PD_PRINTTOFILE) != 0u;
-    selected.port = printToFile ? L"FILE:" : std::move(port.value());
+    const bool outputToFile = (dialog.Flags & PD_PRINTTOFILE) != 0u;
+    selected.port = outputToFile ? L"FILE:" : std::move(port.value());
     selected.deviceMode.resize(total);
     std::memcpy(selected.deviceMode.data(), mode.get(), total);
-    const bool currentPage = (dialog.Flags & PD_CURRENTPAGE) != 0u;
-    if (!currentPage && (dialog.Flags & PD_PAGENUMS) != 0u)
-    {
-        if (!dialog.nPageRanges)
-            return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
-        for (const auto &range : std::span(ranges).first(dialog.nPageRanges))
-            selected.ranges.push_back({range.nFromPage, range.nToPage});
-    }
-    result = {std::move(selected), dialog.dwResultAction == PD_RESULT_PRINT, currentPage, printToFile};
+    result = {std::move(selected), dialog.dwResultAction == PD_RESULT_PRINT, outputToFile};
     return S_OK;
 }
 
@@ -754,6 +787,8 @@ HRESULT Submit(Work &work, Selection &selection, Pages &pages, IWICImagingFactor
                 return Cancelled;
             if (!ranges.empty() && std::ranges::none_of(ranges, [page](const auto &range) { return page >= range.first && page <= range.last; }))
                 continue;
+            finished.stage = Stage::Page;
+            finished.failedPage = page;
             wil::com_ptr<ID2D1CommandList> commands;
             RETURN_IF_FAILED(pages.Record(page, commands.put()));
             RETURN_IF_FAILED(submitPage(page, *commands));
@@ -764,12 +799,14 @@ HRESULT Submit(Work &work, Selection &selection, Pages &pages, IWICImagingFactor
     if (job.pageForTest)
     {
         RETURN_IF_FAILED(forPages(job.pageForTest));
+        finished.stage = Stage::FinishJob;
         return job.finishForTest ? job.finishForTest() : S_OK;
     }
 #endif
     std::filesystem::path destination;
     if (Equal(selection.port, L"PORTPROMPT:") || Equal(selection.port, L"FILE:"))
     {
+        finished.stage = Stage::ChooseFile;
         FileFormat format{};
         RETURN_IF_FAILED(DestinationFormat(selection, format));
         if (!operation.Post({.kind = Notice::Kind::ChooseFile, .format = format}))
@@ -788,11 +825,16 @@ HRESULT Submit(Work &work, Selection &selection, Pages &pages, IWICImagingFactor
     }
     if (operation.cancel.load())
         return Cancelled;
+    finished.stage = Stage::PrepareJob;
     wil::com_ptr<IStream> ticket;
     RETURN_IF_FAILED(Ticket(selection, ticket.put()));
     FileOutput output;
     if (!destination.empty())
+    {
+        finished.stage = Stage::SaveFile;
         RETURN_IF_FAILED(output.Open(destination, job.document.path));
+        finished.stage = Stage::PrepareJob;
+    }
     wil::com_ptr<IPrintDocumentPackageTargetFactory> factory;
     RETURN_IF_FAILED(CoCreateInstance(__uuidof(PrintDocumentPackageTargetFactory), nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(factory.put())));
     wil::com_ptr<IPrintDocumentPackageTarget> target;
@@ -806,12 +848,14 @@ HRESULT Submit(Work &work, Selection &selection, Pages &pages, IWICImagingFactor
     RETURN_IF_FAILED(forPages([&](unsigned, ID2D1CommandList &commands) { return print->AddPage(&commands, selection.paper.size, nullptr); }));
     if (operation.cancel.load())
         return Cancelled;
+    finished.stage = Stage::FinishJob;
     RETURN_IF_FAILED(print->Close());
     cancelOnFailure.release();
     print.reset();
     target.reset();
     if (!destination.empty())
     {
+        finished.stage = Stage::SaveFile;
         RETURN_IF_FAILED(output.Publish(destination, operation.cancel));
         finished.savedFile = true;
     }
@@ -838,6 +882,8 @@ HRESULT RunSession(Work &work, Notice &finished)
             return Cancelled;
         if (request.selection)
         {
+            finished.stage = Stage::PrepareJob;
+            finished.printer = request.selection.value().printer;
             if (request.selection->paper != paper)
                 return E_INVALIDARG;
             return Submit(work, request.selection.value(), *pages, wic.get(), finished);

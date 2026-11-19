@@ -422,11 +422,13 @@ Tooling and Format receipt identity includes PowerShell, the selected formatter 
 
 The hidden Editor suite substitutes the Windows dialog result and print destination while running the actual
 application command, snapshot capture, preview controls, pagination and Direct2D page recording. Check distinct
-rendered sheets, page navigation and a preview window that preserves foreground ownership. Assert zero
-submission for cancellation, Apply, invalid ranges and paper changes awaiting confirmation. Verify the dialog
-receives the actual page count and Current Page refers to the displayed sheet. Check dirty and untitled documents in all three views,
-current-page and overlapping or disjoint ranges, immutable admission across a later document switch, an empty
-page, page and finalization failures, successful retry and cancellation at close.
+rendered sheets, left and right navigation with boundary controls, and a preview window that preserves foreground
+ownership. Assert zero submission for cancellation, Apply, invalid ranges and paper changes awaiting confirmation.
+Verify Current page inserts the displayed number and that a retained range needs correction when paper changes
+make it invalid. Check dirty and untitled documents in all three views, single-page and overlapping or disjoint
+ranges, immutable admission across a later document switch, an empty page, stage-specific dialog, page and
+finalization failures, successful retry and cancellation at close. Compare the margin of a native graph with
+the adjacent editor canvas and the white sheet in actual raster captures. Require visible printed diagram ink.
 
 For real-destination qualification, record the OS, driver, paper dimensions, exact source and fixture. Inspect
 physical sheets and reopen the output from Microsoft Print to PDF and another installed virtual destination.

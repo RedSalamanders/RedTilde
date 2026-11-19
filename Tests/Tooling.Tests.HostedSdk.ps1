@@ -12,7 +12,9 @@ if($build.Count -ne 1 -or $package.Count -ne 1){throw 'Expected one actual build
 $fixture=Join-Path $repo ('.build/hosted-sdk-controls/'+[guid]::NewGuid().ToString('N'))
 [void][IO.Directory]::CreateDirectory((Join-Path $fixture 'Dependencies'))
 [void][IO.Directory]::CreateDirectory((Join-Path $fixture '.build/package'))
-Copy-Item (Join-Path $repo 'Dependencies/DxUi.lock.json') (Join-Path $fixture 'Dependencies/DxUi.lock.json')
+$lockPath=Join-Path $repo 'Dependencies/DxUi.lock.json'
+$lockedSource=(Get-Content -LiteralPath $lockPath -Raw | ConvertFrom-Json).commit
+Copy-Item -LiteralPath $lockPath -Destination (Join-Path $fixture 'Dependencies/DxUi.lock.json')
 $stage=[scriptblock]::Create(@'
 param($Phase,$Configuration,$Platform,$Available,$root,$Probe)
 $profile=@('-Platform',$Platform,'-Configuration',$Configuration);$number='123';$EngineRoot='controlled-engine';$context=@{root=$root}
@@ -48,7 +50,7 @@ foreach($phase in @('Static','ReleaseTestBuild','ReleaseTest','Production','Qual
         & $stage $phase $configuration $platform $available $fixture $probe
         $eligible=$configuration -ceq 'Release' -and $phase -cin @('ReleaseTestBuild','Production')
         if($probe.prepares -ne [int]$eligible -or $probe.imports -ne [int]$eligible){throw "Wrong SDK preparation: $phase/$configuration/$platform"}
-        if($eligible -and ($probe.source -cne '21fae0dc66000b04504ba7862169533ac2943be8' -or $probe.api -ne 5)){throw 'Adapter changed the actual API-5 pin.'}
+        if($eligible -and ($probe.source -cne $lockedSource -or $probe.api -ne 5)){throw 'Adapter changed the actual API-5 pin.'}
         $expected=if($phase -ceq 'Production'){2}elseif($phase -cin @('ReleaseTestBuild','Qualification')){1}else{0}
         if($probe.commands.Count -ne $expected){throw 'Build/package command count changed.'}
         foreach($command in $probe.commands){
