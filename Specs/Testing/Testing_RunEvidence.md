@@ -61,3 +61,10 @@ The NTFS shared-file regression uses extended Win32 paths for both arguments to 
 provider. A long checkout prefix must not prevent creation of its owned fixture before the retention assertions
 run. The alias and target remain inside the same fixture root; the test does not shorten, relocate or omit the
 long-path evidence cases, and the production evidence module keeps its existing native path and stream checks.
+
+## Archive
+
+Generated evidence stays under the repository `.build/`, ignored by Git, and normal builds never sweep it.
+Reviewed evidence that a plan, contract or Done record cites is kept under `Measurements/`, one folder per topic
+and date with a `README.md` that names the source commit, profile and scenario, and says what the packet does
+and does not establish. Archived packets are history: they are never rewritten to match later code.

@@ -1,4 +1,7 @@
-# Completed and archived plans
+# Completed work
+
+Completed plans are history: they record sequencing, rationale, and evidence, never current behavior. A plan is
+added here, newest first, as `- [Title](File.md) — outcome` in the change that moves it to Done.
 
 - [API-5 consumer adoption](Api5ConsumerAdoption_2026-11-08.md) — six zero-warning local builds, all three hosted x64 profiles with 465 passing cases and 120 captures, actual symbolic-link saves and ASan detection, plus fifteen local production refusals. ARM64 compilation and broader physical/provider/performance/release gates remain distinct.
 
