@@ -49,6 +49,7 @@
     "identifier": "RedSalamanders.RedTilde",
     "executable": "RedTilde.exe",
     "alias": "redtilde",
-    "license": "MIT"
+    "license": "MIT",
+    "minimumOSVersion": "10.0.22000.2600"
   }
 }
