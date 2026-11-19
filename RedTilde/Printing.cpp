@@ -18,6 +18,7 @@
 #include <d3d11.h>
 #include <documenttarget.h>
 #include <format>
+#include <limits>
 #include <mutex>
 #include <objbase.h>
 #include <ole2.h>
@@ -31,6 +32,12 @@
 
 namespace RedTilde::Printing
 {
+bool SamePrintName(std::wstring_view left, std::wstring_view right) noexcept
+{
+    return left.size() == right.size() && (left.empty() || CompareStringOrdinal(left.data(), static_cast<int>(left.size()), right.data(),
+                                                                                static_cast<int>(right.size()), TRUE) == CSTR_EQUAL);
+}
+
 namespace
 {
 constexpr unsigned MaximumPages = static_cast<unsigned>(DxUi::RichText::Document::MaximumUnits) + 1u;
@@ -56,12 +63,6 @@ HRESULT LoadPrintImports(const char *library) noexcept
     }
 }
 
-bool Equal(std::wstring_view left, std::wstring_view right) noexcept
-{
-    return left.size() == right.size() && (left.empty() || CompareStringOrdinal(left.data(), static_cast<int>(left.size()), right.data(),
-                                                                                static_cast<int>(right.size()), TRUE) == CSTR_EQUAL);
-}
-
 bool ValidPaper(const Paper &paper) noexcept
 {
     const auto &size = paper.size;
@@ -81,6 +82,29 @@ std::optional<std::wstring> DeviceName(std::span<const wchar_t> storage, WORD of
     if (end == tail.end())
         return std::nullopt;
     return std::wstring(tail.begin(), end);
+}
+
+HRESULT MakeDeviceNames(std::wstring_view printer, wil::unique_hglobal &names)
+{
+    constexpr std::wstring_view driver = L"WINSPOOL";
+    constexpr auto driverOffset = sizeof(DEVNAMES) / sizeof(wchar_t);
+    constexpr auto deviceOffset = driverOffset + driver.size() + 1u;
+    if (printer.size() >= (std::numeric_limits<WORD>::max)() - deviceOffset)
+        return E_INVALIDARG;
+    const auto portOffset = deviceOffset + printer.size() + 1u;
+    wil::unique_hglobal memory(GlobalAlloc(GMEM_MOVEABLE | GMEM_ZEROINIT, (portOffset + 1u) * sizeof(wchar_t)));
+    RETURN_LAST_ERROR_IF_NULL(memory.get());
+    const wil::unique_hglobal_locked storage(memory.get());
+    RETURN_LAST_ERROR_IF_NULL(storage.get());
+    auto &header = *static_cast<DEVNAMES *>(storage.get());
+    header.wDriverOffset = static_cast<WORD>(driverOffset);
+    header.wDeviceOffset = static_cast<WORD>(deviceOffset);
+    header.wOutputOffset = static_cast<WORD>(portOffset);
+    auto *strings = static_cast<wchar_t *>(storage.get());
+    std::ranges::copy(driver, strings + driverOffset);
+    std::ranges::copy(printer, strings + deviceOffset);
+    names = std::move(memory);
+    return S_OK;
 }
 
 struct Band
@@ -415,18 +439,67 @@ HRESULT Pages::Preview(unsigned number, PreviewPage &output)
     return S_OK;
 }
 
-std::optional<Paper> DefaultPaper()
+std::wstring DefaultPrinterName()
 {
-    if (FAILED(LoadPrintImports("WINSPOOL.DRV")))
-        return std::nullopt;
     DWORD length{};
     (void)GetDefaultPrinterW(nullptr, &length);
     if (!length || length > 32768u)
-        return std::nullopt;
+        return {};
     std::wstring name(length, L'\0');
     if (!GetDefaultPrinterW(name.data(), &length))
+        return {};
+    name.resize(length - 1u);
+    return name;
+}
+
+Destinations ListDestinations(std::wstring_view preferred)
+{
+    Destinations result;
+    if (FAILED(LoadPrintImports("WINSPOOL.DRV")))
+        return result;
+    constexpr DWORD flags = PRINTER_ENUM_LOCAL | PRINTER_ENUM_CONNECTIONS;
+    DWORD bytes{}, count{};
+    (void)EnumPrintersW(flags, nullptr, 4u, nullptr, 0u, &bytes, &count);
+    for (unsigned attempt = 0; attempt < 2u && bytes >= sizeof(PRINTER_INFO_4W) && bytes <= 4u * 1024u * 1024u; ++attempt)
+    {
+        std::vector<BYTE> buffer(bytes);
+        if (!EnumPrintersW(flags, nullptr, 4u, buffer.data(), static_cast<DWORD>(buffer.size()), &bytes, &count))
+        {
+            if (GetLastError() == ERROR_INSUFFICIENT_BUFFER)
+                continue;
+            break;
+        }
+        if (count > buffer.size() / sizeof(PRINTER_INFO_4W))
+            break;
+        const auto printers = std::span(reinterpret_cast<const PRINTER_INFO_4W *>(buffer.data()), count);
+        for (const auto &printer : printers)
+            if (printer.pPrinterName && printer.pPrinterName[0] != L'\0')
+                result.names.emplace_back(printer.pPrinterName);
+        break;
+    }
+    const auto defaultPrinter = DefaultPrinterName();
+    if (!defaultPrinter.empty() && std::ranges::none_of(result.names, [&](const auto &name) { return SamePrintName(name, defaultPrinter); }))
+        result.names.push_back(defaultPrinter);
+    std::ranges::sort(result.names, [](const std::wstring &left, const std::wstring &right)
+                      { return CompareStringOrdinal(left.c_str(), -1, right.c_str(), -1, TRUE) == CSTR_LESS_THAN; });
+    result.names.erase(std::unique(result.names.begin(), result.names.end(), SamePrintName), result.names.end());
+    const auto select = [&](std::wstring_view name)
+    { return std::ranges::find_if(result.names, [&](const auto &candidate) { return SamePrintName(candidate, name); }); };
+    auto chosen = select(preferred);
+    if (chosen == result.names.end())
+        chosen = select(defaultPrinter);
+    if (chosen != result.names.end())
+        result.selected = *chosen;
+    else if (!result.names.empty())
+        result.selected = result.names.front();
+    return result;
+}
+
+std::optional<Paper> PrinterPaper(const std::wstring &printer)
+{
+    if (printer.empty() || FAILED(LoadPrintImports("WINSPOOL.DRV")))
         return std::nullopt;
-    const wil::unique_hdc dc(CreateICW(L"WINSPOOL", name.c_str(), nullptr, nullptr));
+    const wil::unique_hdc dc(CreateICW(L"WINSPOOL", printer.c_str(), nullptr, nullptr));
     Paper paper;
     return SUCCEEDED(ReadPaper(dc.get(), paper)) ? std::optional{paper} : std::nullopt;
 }
@@ -459,9 +532,9 @@ HRESULT DestinationFormat(Selection &selection, FileFormat &format)
     std::vector<BYTE> bytes(needed);
     RETURN_IF_WIN32_BOOL_FALSE(GetPrinterW(printer.get(), 2, bytes.data(), needed, &needed));
     const auto name = reinterpret_cast<const PRINTER_INFO_2W *>(bytes.data())->pDriverName;
-    if (name && Equal(name, L"Microsoft Print To PDF"))
+    if (name && SamePrintName(name, L"Microsoft Print To PDF"))
         format = FileFormat::Pdf;
-    else if (name && (Equal(name, L"Microsoft XPS Document Writer v4") || Equal(name, L"Microsoft XPS Document Writer")))
+    else if (name && (SamePrintName(name, L"Microsoft XPS Document Writer v4") || SamePrintName(name, L"Microsoft XPS Document Writer")))
         format = FileFormat::OpenXps;
     else
         format = FileFormat::DriverDefined;
@@ -526,7 +599,7 @@ class FileOutput
             return E_INVALIDARG;
         RETURN_IF_FAILED(IdentifyOutput(path, expected_));
         std::error_code error;
-        if (!source.empty() && (Equal(path.native(), source.native()) || (expected_ && std::filesystem::equivalent(path, source, error))))
+        if (!source.empty() && (SamePrintName(path.native(), source.native()) || (expected_ && std::filesystem::equivalent(path, source, error))))
             return E_ACCESSDENIED;
         GUID id{};
         RETURN_IF_FAILED(CoCreateGuid(&id));
@@ -654,39 +727,49 @@ HRESULT ReadPaper(HDC dc, Paper &paper) noexcept
     return S_OK;
 }
 
-HRESULT Dialog::Choose(HWND owner, bool printToFile, DialogResult &result)
+HRESULT Dialog::Choose(HWND owner, std::wstring_view printer, bool printToFile, DialogResult &result)
 {
     // The native property sheet and its printer extensions run in an OLE STA.
     RETURN_IF_FAILED(DxUi::Failure::InvokeNative(&OleInitialize, nullptr));
     const auto uninitialize = wil::scope_exit([]() noexcept { OleUninitialize(); });
     RETURN_IF_FAILED(LoadPrintImports("COMDLG32.dll"));
+    const bool reuse = !printer.empty() && deviceMode && deviceNames && SamePrintName(printer, lastPrinter);
+    wil::unique_hglobal seed;
+    if (!printer.empty() && !reuse)
+        RETURN_IF_FAILED(MakeDeviceNames(printer, seed));
     PRINTDLGEXW dialog{};
     dialog.lStructSize = sizeof(dialog);
     dialog.hwndOwner = owner;
-    dialog.hDevMode = deviceMode.release();
-    dialog.hDevNames = deviceNames.release();
+    dialog.hDevMode = reuse ? deviceMode.release() : nullptr;
+    dialog.hDevNames = reuse ? deviceNames.release() : seed.release();
     // Keep the preview's explicit pages authoritative across Windows dialog variants.
-    dialog.Flags =
-        PD_RETURNDC | PD_USEDEVMODECOPIESANDCOLLATE | PD_EXCL_COPIESANDCOLLATE | PD_NOSELECTION | PD_NOPAGENUMS | PD_NOCURRENTPAGE | PD_NOWARNING;
+    constexpr DWORD flags =
+        PD_RETURNDC | PD_USEDEVMODECOPIESANDCOLLATE | PD_EXCLUSIONFLAGS | PD_NOSELECTION | PD_NOPAGENUMS | PD_NOCURRENTPAGE | PD_NOWARNING;
+    static_assert((flags & PD_ENABLESETUPTEMPLATE) == 0u);
+    dialog.Flags = flags;
+    // DM_COLLATE overlaps PD_ENABLESETUPTEMPLATE in Flags.
+    dialog.ExclusionFlags = PD_EXCL_COPIESANDCOLLATE;
     if (printToFile)
         dialog.Flags |= PD_PRINTTOFILE;
     dialog.nCopies = 1u;
     dialog.nStartPage = START_PAGE_GENERAL;
     const HRESULT shown = DxUi::Failure::InvokeNative(&PrintDlgExW, &dialog);
-    deviceMode.reset(dialog.hDevMode);
-    deviceNames.reset(dialog.hDevNames);
+    wil::unique_hglobal chosenMode(dialog.hDevMode), chosenNames(dialog.hDevNames);
     const wil::unique_hdc dc(dialog.hDC);
     if (FAILED(shown))
-    {
-        deviceMode.reset();
-        deviceNames.reset();
         return shown;
-    }
     if (dialog.dwResultAction != PD_RESULT_PRINT && dialog.dwResultAction != PD_RESULT_APPLY)
+    {
+        if (reuse)
+        {
+            deviceMode = std::move(chosenMode);
+            deviceNames = std::move(chosenNames);
+        }
         return S_FALSE;
-    const auto modeBytes = GlobalSize(deviceMode.get());
-    const auto namesBytes = GlobalSize(deviceNames.get());
-    const wil::unique_hglobal_locked mode(deviceMode.get()), names(deviceNames.get());
+    }
+    const auto modeBytes = GlobalSize(chosenMode.get());
+    const auto namesBytes = GlobalSize(chosenNames.get());
+    const wil::unique_hglobal_locked mode(chosenMode.get()), names(chosenNames.get());
     if (!mode || !names || modeBytes < sizeof(DEVMODEW) || namesBytes < sizeof(DEVNAMES))
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
     const auto *devMode = static_cast<const DEVMODEW *>(mode.get());
@@ -695,9 +778,9 @@ HRESULT Dialog::Choose(HWND owner, bool printToFile, DialogResult &result)
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
     const auto *devNames = static_cast<const DEVNAMES *>(names.get());
     const auto storage = std::span(static_cast<const wchar_t *>(names.get()), namesBytes / sizeof(wchar_t));
-    auto printer = DeviceName(storage, devNames->wDeviceOffset);
+    auto chosenPrinter = DeviceName(storage, devNames->wDeviceOffset);
     auto port = DeviceName(storage, devNames->wOutputOffset);
-    if (!printer || printer->empty() || !port)
+    if (!chosenPrinter || chosenPrinter->empty() || !port)
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
     Selection selected;
     if (dc)
@@ -707,14 +790,17 @@ HRESULT Dialog::Choose(HWND owner, bool printToFile, DialogResult &result)
     else
     {
         // Some drivers return updated settings on Apply without a context.
-        const wil::unique_hdc info(CreateICW(L"WINSPOOL", printer->c_str(), nullptr, devMode));
+        const wil::unique_hdc info(CreateICW(L"WINSPOOL", chosenPrinter->c_str(), nullptr, devMode));
         RETURN_IF_FAILED(ReadPaper(info.get(), selected.paper));
     }
-    selected.printer = std::move(printer.value());
+    selected.printer = std::move(chosenPrinter.value());
     const bool outputToFile = (dialog.Flags & PD_PRINTTOFILE) != 0u;
     selected.port = outputToFile ? L"FILE:" : std::move(port.value());
     selected.deviceMode.resize(total);
     std::memcpy(selected.deviceMode.data(), mode.get(), total);
+    lastPrinter = selected.printer;
+    deviceMode = std::move(chosenMode);
+    deviceNames = std::move(chosenNames);
     result = {std::move(selected), dialog.dwResultAction == PD_RESULT_PRINT, outputToFile};
     return S_OK;
 }
@@ -725,6 +811,7 @@ struct Request
 {
     unsigned page = 1u;
     std::optional<Paper> paper;
+    std::optional<std::wstring> printer;
     std::optional<Selection> selection;
 };
 } // namespace
@@ -804,7 +891,7 @@ HRESULT Submit(Work &work, Selection &selection, Pages &pages, IWICImagingFactor
     }
 #endif
     std::filesystem::path destination;
-    if (Equal(selection.port, L"PORTPROMPT:") || Equal(selection.port, L"FILE:"))
+    if (SamePrintName(selection.port, L"PORTPROMPT:") || SamePrintName(selection.port, L"FILE:"))
     {
         finished.stage = Stage::ChooseFile;
         FileFormat format{};
@@ -869,12 +956,28 @@ HRESULT RunSession(Work &work, Notice &finished)
         return Cancelled;
     wil::com_ptr<IWICImagingFactory> wic;
     RETURN_IF_FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(wic.put())));
-    const auto initial = work.job.initialPaper ? work.job.initialPaper : DefaultPaper();
+    auto &job = work.job;
+    const auto destinationPaper = [&](const std::wstring &printer) -> std::optional<Paper>
+    {
+#if defined(REDTILDE_ENABLE_TESTS)
+        if (job.destinationsForTest)
+            return job.printerPaperForTest ? job.printerPaperForTest(printer) : job.initialPaper;
+#endif
+        return PrinterPaper(printer);
+    };
+    auto destinations =
+#if defined(REDTILDE_ENABLE_TESTS)
+        job.destinationsForTest ? std::move(job.destinationsForTest.value()) :
+#endif
+                                ListDestinations(job.initialPrinter);
+    const bool reusePaper = job.initialPaper && (job.initialPrinter.empty() || SamePrintName(job.initialPrinter, destinations.selected));
+    const auto initial = reusePaper ? job.initialPaper : destinationPaper(destinations.selected);
     constexpr Paper letter{{816.f, 1056.f}, {0.f, 0.f, 816.f, 1056.f}};
     auto paper = initial.value_or(letter);
     bool fallback = !initial;
     auto pages = std::make_unique<Pages>();
-    RETURN_IF_FAILED(pages->Prepare(work.job.document, paper, wic.get(), operation.cancel));
+    RETURN_IF_FAILED(pages->Prepare(job.document, paper, wic.get(), operation.cancel));
+    auto discovered = std::optional{std::move(destinations)};
     Request request;
     for (;;)
     {
@@ -888,18 +991,22 @@ HRESULT RunSession(Work &work, Notice &finished)
                 return E_INVALIDARG;
             return Submit(work, request.selection.value(), *pages, wic.get(), finished);
         }
-        if (request.paper)
+        if (request.paper || request.printer)
         {
-            if (request.paper.value() != paper)
+            const auto selected = request.paper ? request.paper : destinationPaper(request.printer.value());
+            const auto desired = selected.value_or(letter);
+            if (desired != paper)
             {
                 pages.reset();
                 pages = std::make_unique<Pages>();
-                paper = request.paper.value();
-                RETURN_IF_FAILED(pages->Prepare(work.job.document, paper, wic.get(), operation.cancel));
+                paper = desired;
+                RETURN_IF_FAILED(pages->Prepare(job.document, paper, wic.get(), operation.cancel));
             }
-            fallback = false;
+            fallback = !selected;
         }
-        Notice notice{.kind = Notice::Kind::Preview, .preview = PreviewPage{.fallbackPaper = fallback}};
+        Notice notice{.kind = Notice::Kind::Preview,
+                      .destinations = std::exchange(discovered, std::nullopt),
+                      .preview = PreviewPage{.fallbackPaper = fallback}};
         RETURN_IF_FAILED(pages->Preview(std::clamp(request.page, 1u, pages->Count()), notice.preview.value()));
         if (!operation.Post(std::move(notice)))
             return Cancelled;
@@ -973,10 +1080,10 @@ std::optional<Notice> TakeNotice(const std::shared_ptr<Operation> &operation)
     return std::exchange(operation->notice, std::nullopt);
 }
 
-void RequestPreview(Operation &operation, unsigned page, std::optional<Paper> paper) noexcept
+void RequestPreview(Operation &operation, unsigned page, std::optional<Paper> paper, std::optional<std::wstring> printer) noexcept
 {
     const std::lock_guard lock(operation.mutex);
-    operation.request = {.page = page, .paper = paper};
+    operation.request = {.page = page, .paper = paper, .printer = std::move(printer)};
     operation.requested.SetEvent();
 }
 

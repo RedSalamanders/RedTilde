@@ -55,16 +55,17 @@ or dark backing improves readability. Notes and filled groups keep their own sur
 undo history stay unchanged.
 
 **Printing.** Choose **File → Print…** or press **Ctrl+P** to preview the formatted pages, including unsaved
-edits from Compose, Source or Split. Use the left arrow for the previous page and the right arrow for the next.
-Enter a **Page** number and press Enter to jump to it. **Fit width** enlarges the sheet for scrolling, and
-**Fit page** shows the whole sheet.
+edits from Compose, Source or Split. Choose an installed printer or **Microsoft Print to PDF** in the
+**Printer** dropdown beside the preview. The preview updates for the selected printer's paper.
+Use the arrows, mouse wheel, or Page Up and Page Down to move between sheets, or type a **Page** number and
+press Enter. **Fit width** scrolls within a sheet and moves to the adjacent page when you scroll past its edge.
 
 Leave **Pages to print** blank for the whole document. Enter a page such as `3`, a range such as `4-6`, or a
-list such as `1, 4-6`. **Current page** fills in the number of the sheet you are viewing. Select **Print…** to
-choose an installed destination and its settings in the Windows Print dialog. For a PDF, select **Microsoft
-Print to PDF** and choose a filename in the Windows save dialog. Other destinations use their driver's workflow.
+list such as `1, 4-6`. **Current page** fills in the number of the sheet you are viewing. **Print…** opens the
+standard Windows Print dialog with the chosen printer selected. Review the destination and driver settings there.
+For PDF output, choose a filename in the Windows save dialog. Other destinations use their driver's workflow.
 
-When the destination changes the paper layout, review the updated preview and select **Print…** again. Correct
+When settings chosen in the Windows dialog change the paper layout, review the updated preview and select **Print…** again. Correct
 any range that exceeds the new page count. Cancel in Windows to return to the preview, or choose **Close** to
 return to the document. If printing fails, RedTilde identifies the failed step and displays the Windows error.
 Native Mermaid diagrams use the document canvas or the printed sheet as their background.

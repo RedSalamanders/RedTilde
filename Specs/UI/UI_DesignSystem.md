@@ -28,8 +28,10 @@ run must reach the application dispatcher, including test-enabled and production
 
 File → Print… and Ctrl+P open an owned Print preview. Show the formatted sheet, its editable page number
 and the total page count. The left arrow selects the previous page and the right arrow selects the next page.
-Disable each arrow at its boundary. Enter commits a typed page number. Offer whole-sheet and width fitting,
-with scrolling when the sheet is enlarged.
+Disable each arrow at its boundary. Enter commits a typed page number. Place the printer dropdown, page
+selection, status, Close and Print controls beside the sheet. Give the preview the remaining width and height.
+With Fit page, the mouse wheel and Page Up or Page Down move between sheets. With Fit width they scroll
+the sheet first and continue to the adjacent page at its edge. Wheel deltas smaller than one detent accumulate.
 Expose keyboard navigation and accessible names through the native controls. Use the app theme for the
 preview controls and the paper's print colors for the sheet. Close or Escape returns focus to the invoking
 control if it survives.
@@ -39,11 +41,13 @@ inclusive ranges and comma-separated combinations, bounded by the displayed page
 field with the displayed page number. Invalid input leaves the entered text available for correction and prevents
 opening the destination dialog.
 
-Print… opens the standard Windows Print dialog for installed physical and virtual destinations and driver
-settings. The preview owns which pages to submit. Cancel returns to the preview. Apply retains settings
+The Printer dropdown lists local queues and installed connections, including virtual print drivers. Selecting
+a destination requests fresh paper geometry. If no queue is listed, keep access to the standard Windows Print
+dialog. Print… opens that dialog with the preview’s destination selected. The preview owns which pages to
+submit. Cancel preserves the preview's chosen destination and page selection. Apply retains settings
 without submission. If the accepted settings change paper geometry, show the updated pagination and require a
 new confirmation. Preserve the entered ranges and prompt for correction when a range exceeds the new page
-count. Use the owned Windows Save dialog for file output. Show progress and range correction above the sheet.
+count. Use the owned Windows Save dialog for file output. Show progress and range correction beside the sheet.
 Report a failure in an owned error dialog with the failed step, the known destination and Windows error details.
 Paper submission means Windows accepted the spool job.
 
