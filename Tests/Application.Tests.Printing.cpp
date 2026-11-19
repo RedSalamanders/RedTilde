@@ -94,6 +94,17 @@ class PrintingProbe
         Require(app.printPreview->Page().number == page, "the preview displays the requested page");
     }
 
+    static void Wheel(Application &app, short delta)
+    {
+        const auto window = app.printPreview->Window();
+        const auto area = Find<DxUi::ScrollPanel>(app, IDS_PRINTPREVIEW).GetViewportRect();
+        const auto dpi = static_cast<int>(GetDpiForWindow(window));
+        POINT point{MulDiv(static_cast<int>((area.left + area.right) * .5f), dpi, 96),
+                    MulDiv(static_cast<int>((area.top + area.bottom) * .5f), dpi, 96)};
+        Require(ClientToScreen(window, &point) != FALSE, "position the synthetic wheel message on the sheet");
+        (void)SendMessageW(window, WM_MOUSEWHEEL, MAKEWPARAM(0, static_cast<WORD>(delta)), MAKELPARAM(point.x, point.y));
+    }
+
     static bool HasInk(const Printing::PreviewPage &page)
     {
         for (std::size_t index = 0; index + 4u <= page.bgra.size(); index += 4u)
@@ -108,6 +119,8 @@ class PrintingProbe
         HRESULT dialogResult = S_FALSE;
         bool confirmed = true;
         auto paper = SmallPaper();
+        constexpr std::wstring_view office = L"Redfern office printer", pdf = L"Redfern PDF writer";
+        std::wstring openedPrinter;
         unsigned openings{};
         std::vector<unsigned> pages;
         LaunchOptions options;
@@ -115,12 +128,15 @@ class PrintingProbe
         options.forceWarp = true;
         options.dataDirectory = directory;
         options.printPaperForTest = SmallPaper();
-        options.printDialogForTest = [&](bool, Printing::DialogResult &selected)
+        options.printDestinationsForTest = Printing::Destinations{{std::wstring(office), std::wstring(pdf)}, std::wstring(office)};
+        options.printDestinationPaperForTest = [=](std::wstring_view selected) { return selected == pdf ? WidePaper() : SmallPaper(); };
+        options.printDialogForTest = [&](std::wstring_view printer, bool, Printing::DialogResult &selected)
         {
             ++openings;
+            openedPrinter = printer;
             selected.confirmed = confirmed;
             selected.selection.paper = paper;
-            selected.selection.printer = L"Redfern document printer";
+            selected.selection.printer = office;
             return dialogResult;
         };
         options.printPageForTest = [&](unsigned page, ID2D1CommandList &)
@@ -149,6 +165,12 @@ class PrintingProbe
                 "the first preview is the paper-sized rendered page with ink and a white margin");
         const auto firstPixels = first.bgra;
         const auto count = first.count;
+        auto &printer = Find<DxUi::ComboBox>(app, IDS_PRINTDESTINATION);
+        auto &viewport = Find<DxUi::ScrollPanel>(app, IDS_PRINTPREVIEW);
+        const auto printBounds = app.printPreview->Host().GetDefaultButton()->GetBounds();
+        Require(printer.IsEnabled() && printer.GetItems().size() == 2u && printer.GetSelectedValue() == office &&
+                    printer.GetBounds().right < viewport.GetBounds().left && printBounds.right < viewport.GetBounds().left,
+                "the installed destination picker and Print action sit alongside the page");
         auto &previous = Find<DxUi::Button>(app, IDS_PRINTPREVIOUS);
         auto &next = Find<DxUi::Button>(app, IDS_PRINTNEXT);
         Require(previous.GetText() == L"←" && next.GetText() == L"→" && previous.GetBounds().right < next.GetBounds().left && !previous.IsEnabled() &&
@@ -160,6 +182,36 @@ class PrintingProbe
         Require(previous.Invoke(app.printPreview->Host(), false), "choose the left arrow");
         Wait(app, true);
         Require(app.printPreview->Page().number == 1u, "the left arrow goes back one page");
+        Wheel(app, -WHEEL_DELTA / 2);
+        Require(app.printPreview->CanPrint() && app.printPreview->Page().number == 1u, "fractional wheel deltas do not skip a page");
+        Wheel(app, -WHEEL_DELTA / 2);
+        Wait(app, true);
+        Require(app.printPreview->Page().number == 2u, "wheel down advances to the next fitted page");
+        Wheel(app, WHEEL_DELTA);
+        Wait(app, true);
+        Require(app.printPreview->Page().number == 1u, "wheel up goes back to the previous fitted page");
+        RECT previewFrame{};
+        Require(GetWindowRect(firstPreview, &previewFrame) != FALSE, "read the preview frame");
+        const auto dpi = static_cast<int>(GetDpiForWindow(firstPreview));
+        constexpr UINT resizeFlags = SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOZORDER;
+        Require(SetWindowPos(firstPreview, nullptr, 0, 0, MulDiv(1040, dpi, 96), MulDiv(480, dpi, 96), resizeFlags) != FALSE,
+                "resize the hidden preview to test Fit width scrolling");
+        Require(Find<DxUi::Button>(app, IDS_PRINTFITWIDTH).Invoke(app.printPreview->Host(), false), "enter Fit width");
+        Wheel(app, -WHEEL_DELTA);
+        Require(app.printPreview->Page().number == 1u && viewport.GetScrollOffset() > 0.f, "Fit width pans a tall sheet before changing pages");
+        viewport.SetScrollOffset(viewport.GetContentHeight());
+        Wheel(app, -WHEEL_DELTA);
+        Wait(app, true);
+        Require(app.printPreview->Page().number == 2u && viewport.GetScrollOffset() == 0.f,
+                "wheel down at the bottom enters the next page at the top");
+        Wheel(app, WHEEL_DELTA);
+        Wait(app, true);
+        Require(app.printPreview->Page().number == 1u && viewport.GetScrollOffset() > 0.f,
+                "wheel up at the top enters the previous page at the bottom");
+        Require(Find<DxUi::Button>(app, IDS_PRINTFITPAGE).Invoke(app.printPreview->Host(), false), "return to Fit page");
+        Require(SetWindowPos(firstPreview, nullptr, 0, 0, previewFrame.right - previewFrame.left, previewFrame.bottom - previewFrame.top,
+                             resizeFlags) != FALSE,
+                "restore the typical preview size for the synthetic capture");
         Navigate(app, 2u);
         Require(HasInk(app.printPreview->Page()) && app.printPreview->Page().bgra != firstPixels, "navigation presents distinct rendered sheets");
         app.Execute(Command::ThemeDark);
@@ -167,9 +219,17 @@ class PrintingProbe
         Require(app.Capture(directory / L"print-preview-page-2.png"), "the real preview frame captures through the hidden application host");
         Require(Find<DxUi::Button>(app, IDS_PRINTCURRENTPAGE).Invoke(app.printPreview->Host(), false), "select the displayed page for printing");
         Choose(app);
-        Require(openings == 1u && pages.empty() && app.printPreview->Page().number == 2u && app.printPreview->CanPrint() &&
+        Require(openings == 1u && openedPrinter == office && pages.empty() && app.printPreview->Page().number == 2u && app.printPreview->CanPrint() &&
                     Find<DxUi::TextField>(app, IDS_PRINTPAGES).GetText() == L"2",
                 "cancelling the destination dialog preserves the visible sheet and selected page");
+        Require(printer.OnKeyDown(app.printPreview->Host(), VK_DOWN, 0), "select the second installed destination from the combo");
+        Wait(app, true);
+        Require(printer.GetSelectedValue() == pdf && app.printPreview->Page().paper == WidePaper() && app.printPreview->Page().count < count &&
+                    Find<DxUi::TextField>(app, IDS_PRINTPAGES).GetText() == L"2",
+                "the PDF choice reflows the preview and preserves the typed page selection");
+        Choose(app);
+        Require(openings == 2u && openedPrinter == pdf && pages.empty() && printer.GetSelectedValue() == pdf,
+                "the Print action seeds Windows with the selected PDF destination and cancellation preserves it");
         Require(app.printPreview->Host().GetCancelButton()->Invoke(app.printPreview->Host(), false), "cancel through the preview's Close button");
         MSG message{};
         while (IsWindow(firstPreview) && PeekMessageW(&message, firstPreview, 0, 0, PM_REMOVE))
@@ -271,7 +331,7 @@ class PrintingProbe
         options.dataDirectory = directory;
         options.unsavedPromptForTest = [] { return IDNO; };
         options.printPaperForTest = Printing::Paper{};
-        options.printDialogForTest = [&](bool, Printing::DialogResult &selected)
+        options.printDialogForTest = [&](std::wstring_view, bool, Printing::DialogResult &selected)
         {
             if (failDialog)
                 return E_FAIL;
@@ -354,7 +414,7 @@ class PrintingProbe
         options.forceWarp = true;
         options.dataDirectory = directory;
         options.printPaperForTest = WidePaper();
-        options.printDialogForTest = [](bool, Printing::DialogResult &) { return S_FALSE; };
+        options.printDialogForTest = [](std::wstring_view, bool, Printing::DialogResult &) { return S_FALSE; };
         Application app(std::move(options));
         Require(SUCCEEDED(app.Initialize()), "initialize the hidden diagram document");
         app.Execute(Command::ThemeDark);

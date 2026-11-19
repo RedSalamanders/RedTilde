@@ -2,8 +2,10 @@
 #include "Application.h"
 #include "res/Resource.h"
 #include <algorithm>
+#include <cmath>
 #include <dwmapi.h>
 #include <format>
+#include <utility>
 #include <wil/result.h>
 
 namespace RedTilde
@@ -64,6 +66,44 @@ class PrintPreview::Sheet final : public DxUi::Control
     std::uint64_t generation_{};
 };
 
+class PrintPreview::Viewport final : public DxUi::ScrollPanel
+{
+  public:
+    explicit Viewport(PrintPreview &preview) : preview_(preview) {}
+    Viewport(const Viewport &) = delete;
+    Viewport &operator=(const Viewport &) = delete;
+
+    bool OnMouseWheel(DxUi::ControlHost &host, D2D1_POINT_2F point, float delta, UINT modifiers) override
+    {
+        if (delta == 0.f || (modifiers & (MK_SHIFT | MK_CONTROL)))
+            return false;
+        if (!preview_.CanPrint())
+            return true;
+        const auto before = GetScrollOffset();
+        if (preview_.fitWidth_ && ScrollPanel::OnMouseWheel(host, point, delta, modifiers) && before != GetScrollOffset())
+        {
+            wheelRemainder_ = 0.f;
+            return true;
+        }
+        if (wheelRemainder_ * delta < 0.f)
+            wheelRemainder_ = 0.f;
+        wheelRemainder_ += delta;
+        const auto steps = static_cast<int>(wheelRemainder_ / static_cast<float>(WHEEL_DELTA));
+        wheelRemainder_ = std::fmod(wheelRemainder_, static_cast<float>(WHEEL_DELTA));
+        preview_.MoveThroughPages(-steps);
+        return true;
+    }
+
+    void ResetWheel() noexcept
+    {
+        wheelRemainder_ = 0.f;
+    }
+
+  private:
+    PrintPreview &preview_;
+    float wheelRemainder_{};
+};
+
 PrintPreview::PrintPreview(Application &app) : app_(app) {}
 
 PrintPreview::~PrintPreview()
@@ -100,7 +140,7 @@ HRESULT PrintPreview::Initialize(std::wstring_view title)
     const auto monitor = MonitorFromWindow(owner_, MONITOR_DEFAULTTONEAREST);
     MONITORINFO work{sizeof(work)};
     RETURN_IF_WIN32_BOOL_FALSE(GetMonitorInfoW(monitor, &work));
-    const int width = scaled(880), height = scaled(840);
+    const int width = scaled(1040), height = scaled(840);
     const LONG left = parent.left + (parent.right - parent.left - width) / 2, top = parent.top + (parent.bottom - parent.top - height) / 2;
     const auto frame = Application::ClampWindowBounds({left, top, left + width, top + height}, work.rcWork, dpi, dpi);
     const DWORD exStyle = app_.options.headless ? WS_EX_NOACTIVATE : 0;
@@ -114,6 +154,10 @@ HRESULT PrintPreview::Initialize(std::wstring_view title)
 
     auto tree = std::make_unique<Surface>();
     root_ = tree.get();
+    sidebar_ = root_->AddChild<Surface>(Surface::Kind::Sidebar);
+    sidebar_->borderRight = true;
+    header_ = root_->AddChild<Surface>();
+    header_->borderBottom = true;
     title_ = root_->AddChild<DxUi::Label>(Resource(IDS_PRINTPREVIEW));
     title_->SetFontRole(DxUi::FontRole::Title);
     document_ = root_->AddChild<DxUi::Label>(std::wstring(title));
@@ -162,9 +206,15 @@ HRESULT PrintPreview::Initialize(std::wstring_view title)
                     zoom_->SetText(label);
                     zoom_->SetAccessibleName(std::move(label));
                     scroll_->ScrollToTop();
+                    scroll_->ResetWheel();
                     Layout();
                 });
         });
+    printerLabel_ = root_->AddChild<DxUi::Label>(Resource(IDS_PRINTDESTINATION));
+    printers_ = root_->AddChild<DxUi::ComboBox>();
+    printers_->SetAccessibleName(Resource(IDS_PRINTDESTINATION));
+    printers_->SetPlaceholder(Resource(IDS_PRINTPREVIEWPREPARING));
+    printers_->SetOnSelectionChanged([this](std::size_t) { app_.RunUiAction([&] { app_.PreviewPrintDestination(); }); });
     rangeLabel_ = root_->AddChild<DxUi::Label>(Resource(IDS_PRINTPAGES));
     ranges_ = root_->AddChild<DxUi::TextField>();
     ranges_->SetAccessibleName(Resource(IDS_PRINTPAGES));
@@ -184,7 +234,8 @@ HRESULT PrintPreview::Initialize(std::wstring_view title)
     status_ = root_->AddChild<DxUi::Label>();
     status_->SetMultiline(true);
     status_->SetFontRole(DxUi::FontRole::Small);
-    scroll_ = root_->AddChild<DxUi::ScrollPanel>();
+    scroll_ = root_->AddChild<Viewport>(*this);
+    scroll_->SetAccessibleName(Resource(IDS_PRINTPREVIEW));
     sheet_ = scroll_->AddChild<Sheet>();
     host_.SetRoot(std::move(tree));
     host_.SetCancelButton(close_);
@@ -221,6 +272,11 @@ const Printing::PreviewPage &PrintPreview::Page() const noexcept
     return sheet_->Page();
 }
 
+std::wstring_view PrintPreview::Printer() const noexcept
+{
+    return printers_->GetSelectedValue();
+}
+
 std::optional<std::vector<Printing::PageRange>> PrintPreview::SelectedRanges() const
 {
     return Printing::ParsePageRanges(ranges_->GetText(), Page().count);
@@ -238,6 +294,35 @@ void PrintPreview::SetTheme(const DxUi::ThemePalette &theme) noexcept
     (void)DwmSetWindowAttribute(window_.get(), DWMWA_USE_IMMERSIVE_DARK_MODE, &dark, sizeof(dark));
 }
 
+void PrintPreview::SetDestinations(Printing::Destinations destinations)
+{
+    std::vector<DxUi::ComboBox::Item> items;
+    items.reserve(destinations.names.size());
+    for (auto &name : destinations.names)
+        items.push_back({name, std::move(name)});
+    printers_->SetItems(std::move(items));
+    printers_->SetPlaceholder(Resource(IDS_PRINTNOPRINTERSFOUND));
+    SetPrinter(destinations.selected);
+}
+
+void PrintPreview::SetPrinter(std::wstring_view name)
+{
+    if (name.empty())
+        return;
+    const auto items = printers_->GetItems();
+    const auto match = std::ranges::find_if(items, [&](const auto &item) { return Printing::SamePrintName(item.value, name); });
+    const auto index = match != items.end() ? static_cast<std::size_t>(match - items.begin()) : items.size();
+    if (match == items.end())
+    {
+        // Windows can return a destination added while the print dialog was open.
+        std::vector<DxUi::ComboBox::Item> extended(items.begin(), items.end());
+        extended.push_back({std::wstring(name), std::wstring(name)});
+        printers_->SetItems(std::move(extended));
+    }
+    printers_->SetSelectedIndex(index);
+    printers_->SetEnabled(true);
+}
+
 void PrintPreview::BeginRendering()
 {
     print_->SetEnabled(false);
@@ -245,6 +330,7 @@ void PrintPreview::BeginRendering()
     previous_->SetEnabled(false);
     next_->SetEnabled(false);
     ranges_->SetEnabled(false);
+    printers_->SetEnabled(false);
     current_->SetEnabled(false);
     sheet_->SetVisible(false);
     zoom_->SetEnabled(false);
@@ -265,15 +351,32 @@ void PrintPreview::Present(Printing::PreviewPage page, std::wstring status)
     previous_->SetEnabled(number > 1u);
     next_->SetEnabled(number < count);
     ranges_->SetEnabled(true);
+    printers_->SetEnabled(!printers_->GetItems().empty());
     current_->SetEnabled(true);
     print_->SetEnabled(true);
     scroll_->ScrollToTop();
+    scroll_->ResetWheel();
     SetStatus(std::move(status));
     if (!SelectedRanges())
         ReportInvalidRange(false);
     Layout();
+    if (std::exchange(scrollToPageEnd_, false))
+        scroll_->SetScrollOffset(scroll_->GetContentHeight());
     if (first && host_.GetFocusControl() == close_)
         host_.SetFocusControl(print_, false);
+}
+
+void PrintPreview::MoveThroughPages(int steps)
+{
+    if (!CanPrint() || steps == 0)
+        return;
+    const auto number = static_cast<int>(Page().number);
+    const auto next = std::clamp(number + steps, 1, static_cast<int>(Page().count));
+    if (next != number)
+    {
+        scrollToPageEnd_ = fitWidth_ && steps < 0;
+        app_.PreviewPrintPage(static_cast<unsigned>(next));
+    }
 }
 
 void PrintPreview::SetStatus(std::wstring status)
@@ -297,37 +400,53 @@ void PrintPreview::Layout()
     const auto client = host_.GetClientBoundsDip();
     const auto width = client.right, height = client.bottom;
     root_->SetBounds(client);
-    const bool compact = width < 626.f;
-    const float padding = compact ? 12.f : 24.f;
-    constexpr float canvasTop = 184.f;
+    if (width <= 0.f || height <= 0.f)
+        return;
+    constexpr float headerBottom = 56.f;
+    const float panelWidth = std::min(width * .45f, std::clamp(width * .30f, 214.f, 308.f));
+    const float padding = width < 720.f ? 14.f : 22.f;
+    header_->SetBounds({0.f, 0.f, width, headerBottom});
+    sidebar_->SetBounds({0.f, headerBottom, panelWidth, height});
+    title_->SetBounds({padding, 10.f, width * .52f, 44.f});
+    document_->SetBounds({width * .53f, 10.f, width - padding, 44.f});
+
+    const float panelRight = panelWidth - padding;
+    printerLabel_->SetBounds({padding, 70.f, panelRight, 94.f});
+    printers_->SetBounds({padding, 99.f, panelRight, 137.f});
+    rangeLabel_->SetBounds({padding, 155.f, panelRight, 179.f});
+    ranges_->SetBounds({padding, 184.f, panelRight, 222.f});
+    current_->SetBounds({padding, 234.f, panelRight, 270.f});
+    const float footer = std::max(294.f, height - 60.f);
+    const float mid = panelWidth * .5f;
+    status_->SetBounds({padding, 284.f, panelRight, footer - 10.f});
+    close_->SetBounds({padding, footer, mid - 4.f, footer + 42.f});
+    print_->SetBounds({mid + 4.f, footer, panelRight, footer + 42.f});
+
+    const float nav = panelWidth + padding;
     const float right = width - padding;
-    title_->SetBounds({padding, 12.f, compact ? right : width * .54f, 44.f});
-    document_->SetVisible(!compact);
-    document_->SetBounds({width * .55f, 12.f, right, 44.f});
-    previous_->SetBounds({padding, 54.f, padding + 36.f, 88.f});
-    pageLabel_->SetBounds({padding + 46.f, 54.f, padding + 86.f, 88.f});
-    page_->SetBounds({padding + 92.f, 54.f, padding + 150.f, 88.f});
-    total_->SetBounds({padding + 158.f, 54.f, padding + 220.f, 88.f});
-    next_->SetBounds({padding + 226.f, 54.f, padding + 262.f, 88.f});
-    zoom_->SetBounds({right - 108.f, 54.f, right, 88.f});
-    rangeLabel_->SetBounds({padding, 100.f, padding + 110.f, 134.f});
-    ranges_->SetBounds({padding + 116.f, 100.f, right - 122.f, 134.f});
-    current_->SetBounds({right - 112.f, 100.f, right, 134.f});
-    status_->SetBounds({padding, 142.f, right, canvasTop - 4.f});
-    const float bottom = std::max(canvasTop + 1.f, height - 62.f);
-    close_->SetBounds({right - 186.f, bottom + 8.f, right - 104.f, bottom + 48.f});
-    print_->SetBounds({right - 96.f, bottom + 8.f, right, bottom + 48.f});
-    scroll_->SetBounds({0.f, canvasTop, width, bottom});
+    const bool narrowToolbar = right - nav < 332.f;
+    constexpr float toolbarTop = 66.f, toolbarBottom = 100.f;
+    previous_->SetBounds({nav, toolbarTop, nav + 34.f, toolbarBottom});
+    pageLabel_->SetBounds({nav + 42.f, toolbarTop, nav + 78.f, toolbarBottom});
+    page_->SetBounds({nav + 81.f, toolbarTop, nav + 129.f, toolbarBottom});
+    total_->SetBounds({nav + 136.f, toolbarTop, nav + 194.f, toolbarBottom});
+    next_->SetBounds({nav + 198.f, toolbarTop, nav + 232.f, toolbarBottom});
+    const float zoomTop = narrowToolbar ? toolbarBottom + 8.f : toolbarTop;
+    zoom_->SetBounds({right - 96.f, zoomTop, right, zoomTop + 34.f});
+    const float canvasTop = zoomTop + 42.f;
+    const float bottom = std::max(canvasTop + 1.f, height);
+    scroll_->SetBounds({panelWidth, canvasTop, width, bottom});
     const auto paper = Page().paper.size;
-    constexpr float gutter = 20.f;
-    const float roomWidth = width - 2.f * gutter - scroll_->GetScrollbarThickness();
+    constexpr float gutter = 16.f;
+    const float scrollbar = fitWidth_ ? scroll_->GetScrollbarThickness() : 0.f;
+    const float roomWidth = width - panelWidth - 2.f * gutter - scrollbar;
     const float viewportHeight = bottom - canvasTop;
     if (!Page().count || roomWidth <= 0.f || viewportHeight <= 2.f * gutter)
         return;
     const float scaleWidth = roomWidth / paper.width;
     const float scale = fitWidth_ ? scaleWidth : std::min(scaleWidth, (viewportHeight - 2.f * gutter) / paper.height);
     const float sheetWidth = paper.width * scale, sheetHeight = paper.height * scale;
-    const float left = (width - sheetWidth) * .5f;
+    const float left = (panelWidth + width - sheetWidth - scrollbar) * .5f;
     const float top = canvasTop + std::max(gutter, (viewportHeight - sheetHeight) * .5f);
     sheet_->SetBounds({left, top, left + sheetWidth, top + sheetHeight});
     scroll_->SetContentHeight(top - canvasTop + sheetHeight + gutter);
@@ -353,16 +472,19 @@ bool PrintPreview::DispatchKeyboardMessage(const MSG &message)
             return true;
         }
         const auto *focus = host_.GetFocusControl();
-        if (!control && !shift && !alt && (message.wParam == VK_PRIOR || message.wParam == VK_NEXT) && focus != page_ && focus != ranges_)
+        if (!control && !shift && !alt && (message.wParam == VK_PRIOR || message.wParam == VK_NEXT) && focus != page_ && focus != ranges_ &&
+            (focus != printers_ || !printers_->IsPopupOpen()))
         {
             const bool forward = message.wParam == VK_NEXT;
             if (fitWidth_)
             {
                 const auto viewport = scroll_->GetViewportRect();
-                scroll_->SetScrollOffset(scroll_->GetScrollOffset() + (forward ? 1.f : -1.f) * (viewport.bottom - viewport.top));
+                const auto before = scroll_->GetScrollOffset();
+                scroll_->SetScrollOffset(before + (forward ? 1.f : -1.f) * (viewport.bottom - viewport.top));
+                if (before != scroll_->GetScrollOffset())
+                    return true;
             }
-            else if (CanPrint())
-                app_.PreviewPrintPage(forward ? std::min(Page().number + 1u, Page().count) : std::max(Page().number, 2u) - 1u);
+            MoveThroughPages(forward ? 1 : -1);
             return true;
         }
     }

@@ -90,7 +90,7 @@ indivisible band to fit the page. Empty source yields one blank sheet. Resolve a
 through the application image reader. Use retained, approved pixels for remote and network-file images
 that are already available. An unavailable source uses the image's alternative without a new network fetch.
 Use the latest accepted or Windows default printer geometry for initial pagination. Use and identify Letter
-paper when default geometry is unavailable. Reflow when the accepted paper geometry changes and show
+paper when the selected printer's geometry is unavailable. Reflow on destination or paper changes and show
 the revised pages before submission. Preserve and revalidate the page selection in the preview. A single
 number selects one sheet. A list accepts up to 32 page numbers or inclusive ranges separated by commas.
 Ignore surrounding whitespace at each number. Reject zero, reversed ranges and endpoints beyond the

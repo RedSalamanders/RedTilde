@@ -140,7 +140,9 @@ struct LaunchOptions
     std::function<HRESULT(std::wstring_view)> launchLinkForTest;
     std::shared_ptr<AsyncFiles::TestGate> linkGateForTest;
     std::optional<Printing::Paper> printPaperForTest;
-    std::function<HRESULT(bool printToFile, Printing::DialogResult &)> printDialogForTest;
+    std::optional<Printing::Destinations> printDestinationsForTest;
+    std::function<std::optional<Printing::Paper>(std::wstring_view)> printDestinationPaperForTest;
+    std::function<HRESULT(std::wstring_view, bool, Printing::DialogResult &)> printDialogForTest;
     std::function<HRESULT(unsigned, ID2D1CommandList &)> printPageForTest;
     std::function<HRESULT()> printFinishForTest;
 #endif
@@ -352,7 +354,7 @@ class Application
     std::shared_ptr<Printing::Operation> printOperation;
     std::unique_ptr<PrintPreview> printPreview;
     std::optional<Printing::Paper> printPaper;
-    std::wstring printPreviewPrinter;
+    std::wstring printPrinter;
     DxUi::Control *printInvoker{};
     std::weak_ptr<int> printInvokerLifetime;
     std::wstring printTitle;
@@ -360,6 +362,7 @@ class Application
     std::vector<Printing::Image> printNetworkImages;
     void Print();
     void PreviewPrintPage(unsigned number);
+    void PreviewPrintDestination();
     void ChoosePrintDestination();
     void ClosePrintPreview() noexcept;
     void DismissPrintPreview() noexcept;

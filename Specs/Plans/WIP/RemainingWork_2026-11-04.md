@@ -209,8 +209,9 @@ Details and original counterexamples remain in the
 ### T-U2 — Print the active Markdown document through Windows
 
 **Implemented on 18 November 2026.** RedTilde previews formatted pages. The preview owns page selection
-and the Windows Print dialog owns destination and driver settings.
-Physical sheets, another virtual driver and live dialog/focus are still open qualification cases.
+and offers an installed printer dropdown beside the sheet. The Windows Print dialog takes that initial
+destination and confirms the driver settings. Physical sheets, another virtual driver and interactive desktop
+focus remain open qualification cases.
 The source pin adopts the qualified DxUi fix that draws native graphs directly on the editor canvas or paper.
 [DxUi graph fix](https://github.com/RedSalamanders/DxUi/pull/284) · [native qualification](https://github.com/RedSalamanders/DxUi/actions/runs/44567181848)
 
@@ -219,8 +220,8 @@ The source pin adopts the qualified DxUi fix that draws native graphs directly o
 1. Open a Markdown document or type in an untitled one. Choose **File → Print…** or press **Ctrl+P**.
    Inspect any page and fit it to the window or its width. Compose, Source and Split all preview and print
    the formatted document, including unsaved edits.
-2. Choose all pages, the current page or explicit page ranges in the preview. Open the standard Windows Print
-   dialog to choose an installed destination and its paper size, orientation, copies, collation and duplex options.
+2. Choose an installed destination and all pages, the current page or explicit page ranges in the preview. Open
+   the standard Windows Print dialog to review the destination and its paper, orientation, copies, collation and duplex options.
    Review any updated pagination before confirming again.
 3. For a physical printer, collect the pages from that printer. For **Microsoft Print to PDF**, choose a
    filename in the Windows save prompt and open the resulting PDF. Another installed destination, such as
