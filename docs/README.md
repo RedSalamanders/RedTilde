@@ -1,5 +1,7 @@
 # RedTilde guide
 
+Run `redtilde --help` for command-line usage. Use `redtilde --document <path>` to open a Markdown file.
+
 Source-view Enter and Shift+Enter keep your document's LF, CRLF or CR line endings.
 Each Enter is one Undo step. Documents are limited to 65,536 UTF-16 units; text
 input that would exceed the limit leaves your last accepted text intact.

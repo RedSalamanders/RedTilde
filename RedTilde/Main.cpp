@@ -9,12 +9,43 @@
 #include <format>
 #include <shellapi.h>
 #include <stdexcept>
+#include <string>
 #include <utility>
 #include <vector>
 #include <wil/resource.h>
 
 namespace
 {
+int WriteCommandHelp()
+{
+    const auto usage = RedTilde::ResourceView(IDS_COMMANDLINEHELP);
+    if (usage.empty())
+        return 1;
+
+    auto output = GetStdHandle(STD_OUTPUT_HANDLE);
+    if ((!output || output == INVALID_HANDLE_VALUE) && AttachConsole(ATTACH_PARENT_PROCESS))
+        output = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (!output || output == INVALID_HANDLE_VALUE)
+        return 0;
+
+    DWORD mode{}, written{};
+    if (GetConsoleMode(output, &mode))
+    {
+        const auto characters = static_cast<DWORD>(usage.size());
+        return WriteConsoleW(output, usage.data(), characters, &written, nullptr) && written == characters ? 0 : 1;
+    }
+
+    const auto characters = static_cast<int>(usage.size());
+    const int bytes = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, usage.data(), characters, nullptr, 0, nullptr, nullptr);
+    if (bytes <= 0)
+        return 1;
+    std::string encoded(static_cast<std::size_t>(bytes), '\0');
+    if (WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, usage.data(), characters, encoded.data(), bytes, nullptr, nullptr) != bytes)
+        return 1;
+    const auto length = static_cast<DWORD>(bytes);
+    return WriteFile(output, encoded.data(), length, &written, nullptr) && written == length ? 0 : 1;
+}
+
 #if defined(REDTILDE_ENABLE_TESTS)
 #if defined(__SANITIZE_ADDRESS__)
 // The isolated use-after-free probe deliberately reads volatile storage for ASan detection.
@@ -57,6 +88,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
             MonitorDiagnostics::Initialize();
             return MonitorDiagnostics::HandleCommand(commandLine);
         }
+        int count{};
+        wil::unique_hlocal_ptr<wchar_t *[]> arguments(CommandLineToArgvW(GetCommandLineW(), &count));
+        if (!arguments)
+            return 1;
+        if (count == 2 && std::wstring_view(arguments[1]) == L"--help")
+            return WriteCommandHelp();
+
         LaunchOptions options;
         STARTUPINFOW startup{sizeof(startup)};
         GetStartupInfoW(&startup);
@@ -70,10 +108,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
 #endif
         CoreTestScope testScope = CoreTestScope::All;
         bool testScopeSpecified{}, listTests{};
-        int count{};
-        wil::unique_hlocal_ptr<wchar_t *[]> arguments(CommandLineToArgvW(GetCommandLineW(), &count));
-        if (!arguments)
-            return 1;
         for (int index = 1; index < count; ++index)
         {
             const std::wstring_view argument(arguments[static_cast<size_t>(index)]);

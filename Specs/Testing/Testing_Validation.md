@@ -281,6 +281,10 @@ It verifies that no unrelated file becomes a candidate and all fixture bytes rem
 old-guard counterexample and corrected worker results are separate evidence; a catalog listing does not prove
 that the scan ran, and an entry-count bound does not establish filesystem latency or physical-provider support.
 
+The shipped `redtilde --help` command prints usage to stdout and exits successfully before initializing the editor,
+settings, or recovery. The clean-extraction package smoke verifies this output and exit status with a system-only
+`Path`, then verifies the hidden capture and production refusals. WinGet runs the same command through its installed alias.
+
 Production packaging separately executes fifteen refusal cases against the actual clean-extracted executable:
 self-test, scope, listing, interactive test, crash, recovery crash/restart, preferences, sanitizer, linked-save
 crash/restart, and missing operands for scope/interactive test. Each owned hidden child must return 2 and leave

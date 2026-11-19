@@ -1,0 +1,1 @@
+- Show command-line usage with `redtilde --help` and verify it from the production ZIP before WinGet publication.
