@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Show command-line usage with `redtilde --help` and verify it from the production ZIP before WinGet publication.
 - Print directly from the paginated RedTilde preview with the selected destination, page ranges and supported driver settings.
   Remove automatic link underlines from printed pages and add an offline Markdown example with PNG, JPEG, BMP, GIF and TIFF images.
 - Place the printer dropdown and print settings alongside the preview, and let the mouse wheel move between sheets.
