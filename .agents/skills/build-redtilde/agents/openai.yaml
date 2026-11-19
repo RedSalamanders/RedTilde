@@ -1,4 +1,0 @@
-interface:
-  display_name: "Build Redtilde"
-  short_description: "Develop and validate RedTilde build redtilde"
-  default_prompt: "Use $build-redtilde to complete this RedTilde change and validate the affected behavior."

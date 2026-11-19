@@ -1,6 +1,6 @@
 ---
 name: file-safety
-description: Implement RedTilde Unicode open/save, dirty prompts, external-conflict handling and recovery.
+description: Implement RedTilde Unicode open/save, dirty prompts, external-conflict handling and recovery. Use when changing how documents are opened, decoded, saved or replaced, how unsaved or externally changed files are handled, or how per-session recovery copies are kept.
 ---
 
 Read [the file-safety contract](../../../Specs/Core/Core_FileSafety.md). Stage/validate before replacing the

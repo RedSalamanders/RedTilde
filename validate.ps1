@@ -44,6 +44,7 @@ Check 'Evaluated Release compiler and linker policy' {
     & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.ReleaseBuildPolicy.ps1')
 }
 Check 'Build console and short dependency paths' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.BuildConsole.ps1') }
+Check 'Complete vcpkg checkout for the pinned DxUi restore' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.VcpkgToolCheckout.ps1') }
 Check 'Qualified SDK transaction snapshots' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.SdkInputs.ps1') }
 Check 'Local SDK candidate command' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.LocalSdkCandidate.ps1') }
 Check 'Local SDK runtime admission' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.LocalSdkRuntime.ps1') }

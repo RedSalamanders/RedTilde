@@ -1,6 +1,6 @@
 ---
 name: build-redtilde
-description: Build, restore or package RedTilde and diagnose its Windows compiler and dependency outputs.
+description: Build, restore or package RedTilde and diagnose its Windows compiler and dependency outputs. Use when running build.ps1 or restore-dxui.ps1, investigating a compiler, toolchain or DxUi pin mismatch, checking output process locks, or packaging a validated build.
 ---
 
 Read [the build contract](../../../Specs/Build/Build_Toolchain.md) and root AGENTS.md.

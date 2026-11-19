@@ -56,8 +56,6 @@ try {
     Write-Fixture 'Specs/contract with spaces.md' '# Owning contract'
     $body = '[Contract](../../../Specs/contract%20with%20spaces.md#scope) [Web](https://example.invalid/) [Local](#local)'
     Write-Fixture '.agents/skills/example-skill/SKILL.md' ($prefix + $body)
-    $ui = 'interface:' + "`n  display_name: Example`n  short_description: Exercise packages`n  default_prompt: " + '"Use $example-skill for this task."'
-    Write-Fixture '.agents/skills/example-skill/agents/openai.yaml' $ui
     $result = Expect-Integrity 'valid package and scope inventory'
     if ($result.Skills -ne 1 -or $result.Guidance -ne 2) { throw 'Package/guidance accounting was incorrect' }
     Write-Fixture 'Specs/contract(v1).md' '# Versioned contract'
@@ -151,21 +149,10 @@ try {
     $null = Expect-Integrity 'local file URI outside fixture root' 'Reference escapes repository'
     Write-Fixture '.agents/skills/example-skill/SKILL.md' ($prefix + '```text' + "`n[Example](missing.md)`n" + '```' + "`n" + $body)
     $null = Expect-Integrity 'fenced examples ignored'
-    Write-Fixture '.agents/skills/example-skill/agents/openai.yaml' ($ui + "`n  display_name: Duplicate")
-    $null = Expect-Integrity 'duplicate UI key' 'Duplicate YAML key'
-    Write-Fixture '.agents/skills/example-skill/agents/openai.yaml' ($ui.Replace('$example-skill', '$other-skill'))
-    $null = Expect-Integrity 'foreign default invocation' 'Default prompt does not invoke this skill'
-    Write-Fixture '.agents/skills/example-skill/agents/openai.yaml' ($ui + "`npolicy:`n  allow_implicit_invocation: false")
-    $null = Expect-Integrity 'optional boolean UI policy'
-    Write-Fixture '.agents/skills/example-skill/agents/openai.yaml' ($ui + "`npolicy: invalid-scalar")
-    $null = Expect-Integrity 'optional UI policy must be a mapping' 'non-mapping UI section'
-    Write-Fixture '.agents/skills/example-skill/agents/openai.yaml' ($ui + "`npolicy:`n  allow_implicit_invocation: 'false'")
-    $null = Expect-Integrity 'optional UI policy value must be boolean' 'boolean allow_implicit_invocation'
-    Write-Fixture '.agents/skills/example-skill/agents/openai.yaml' ($ui + "`ndependencies: invalid-scalar")
-    $null = Expect-Integrity 'optional UI dependencies must be a mapping' 'non-mapping UI section'
+    Write-Fixture '.agents/skills/example-skill/agents/openai.yaml' ('interface:' + "`n  display_name: Example")
+    $null = Expect-Integrity 'unused UI metadata file' 'agents/openai.yaml is not used'
     [IO.File]::Delete((Join-Path $fixture '.agents/skills/example-skill/agents/openai.yaml'))
-    $null = Expect-Integrity 'missing required UI package file' 'missing agents/openai.yaml'
-    Write-Fixture '.agents/skills/example-skill/agents/openai.yaml' $ui
+    $null = Expect-Integrity 'package without UI metadata'
     [IO.File]::Delete((Join-Path $fixture 'Tests/AGENTS.md'))
     $null = Expect-Integrity 'missing scoped guidance' 'Scoped-guidance inventory mismatch'
     Write-Fixture 'Tests/AGENTS.md' ''
