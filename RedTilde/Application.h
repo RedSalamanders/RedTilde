@@ -24,6 +24,7 @@
 namespace RedTilde
 {
 class ApplicationRuntime;
+class PrintPreview;
 enum class Command
 {
     New,
@@ -138,7 +139,8 @@ struct LaunchOptions
     std::function<bool(std::wstring_view)> confirmLinkForTest;
     std::function<HRESULT(std::wstring_view)> launchLinkForTest;
     std::shared_ptr<AsyncFiles::TestGate> linkGateForTest;
-    std::function<HRESULT(Printing::Selection &)> printDialogForTest;
+    std::optional<Printing::Paper> printPaperForTest;
+    std::function<HRESULT(const Printing::DialogOptions &, Printing::DialogResult &)> printDialogForTest;
     std::function<HRESULT(unsigned, ID2D1CommandList &)> printPageForTest;
     std::function<HRESULT()> printFinishForTest;
 #endif
@@ -243,6 +245,7 @@ class Application
     friend class PerformanceProbe;
     friend class DesignRefreshProbe;
     friend class DesignInteractiveProbe;
+    friend class PrintPreview;
 #if defined(REDTILDE_ENABLE_TESTS)
     friend int RunFailureHostProbe(std::wstring_view, const std::filesystem::path &, ApplicationRuntime &);
     friend class PrintingProbe;
@@ -347,12 +350,22 @@ class Application
     RichImageLoader images;
     Printing::Dialog printDialog;
     std::shared_ptr<Printing::Operation> printOperation;
+    std::unique_ptr<PrintPreview> printPreview;
+    std::optional<Printing::Paper> printPaper;
+    std::vector<Printing::PageRange> printRanges;
+    std::wstring printPreviewPrinter;
+    DxUi::Control *printInvoker{};
+    std::weak_ptr<int> printInvokerLifetime;
     std::wstring printTitle;
-    bool printDialogOpen{};
+    bool printDialogOpen{}, printCurrentPage{}, printToFile{}, printPaperChanged{}, printRangeNeedsCorrection{};
     std::vector<Printing::Image> printNetworkImages;
     void Print();
+    void PreviewPrintPage(unsigned number);
+    void ChoosePrintDestination();
+    void ClosePrintPreview() noexcept;
+    void DismissPrintPreview() noexcept;
     void PrintCompleted();
-    void ReportPrintFailure(HRESULT result);
+    void ReportPrintFailure(HRESULT result, bool previewFailed = false);
     void RememberPrintImage(const DxUi::RichText::RichImageRequest &request, std::shared_ptr<const DxUi::RichText::RichImage> pixels);
     FileChangeService imageFiles;
     std::vector<std::filesystem::path> watchedImagePaths;

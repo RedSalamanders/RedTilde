@@ -59,6 +59,7 @@
     <ClCompile Include="Application.CaptureScenarios.cpp" />
     <ClCompile Include="Application.Navigation.cpp" />
     <ClCompile Include="Application.Printing.cpp" />
+    <ClCompile Include="PrintPreview.cpp" />
     <ClCompile Include="Printing.cpp" />
     <ClCompile Include="..\Common\Files.cpp" />
     <ClCompile Include="..\Common\RemoteImage.cpp" />

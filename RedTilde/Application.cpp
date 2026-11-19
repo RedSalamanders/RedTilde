@@ -2,6 +2,7 @@
 #include "Common/CrashHandler.h"
 #include "Common/MonitorDiagnostics.h"
 #include "Common/NativeCalls.h"
+#include "PrintPreview.h"
 #include "res/Resource.h"
 #include <DxUi/RichMath.h>
 #include <DxUi/RichSemanticDocument.h>
@@ -276,6 +277,7 @@ Application::~Application()
 {
     closing = true;
     Printing::Stop(printOperation);
+    ClosePrintPreview();
     bitmapWriter.Stop();
     bitmapWriter.Detach();
     CloseExternalLinks();
@@ -815,6 +817,8 @@ void Application::ApplyTheme()
     theme.primaryButtonFill = D2D1::ColorF(0xC83C46);
     theme.primaryButtonText = D2D1::ColorF(D2D1::ColorF::White);
     host.SetTheme(theme);
+    if (printPreview)
+        printPreview->SetTheme(theme);
     const auto underline = highContrast ? DxUi::RichTextLinkUnderlinePolicy::Always : DxUi::RichTextLinkUnderlinePolicy::HoverOrCaret;
     for (auto *target : {static_cast<DxUi::RichTextEditor *>(editor), mirror, equation})
         if (!AcceptSourceResult(target->TrySetLinkUnderlinePolicy(underline)))
@@ -2669,7 +2673,7 @@ void Application::OnMenuClosed(std::optional<int> selected) noexcept
             if (selected)
                 Execute(static_cast<Command>(selected.value() - 1));
             // Commands may retire the root or open a draft/drawer that owns focus.
-            if (!closing && root && host.GetRoot() == root && !HasBlockDraft() && !drawer->IsVisible() && !findBar->IsVisible() &&
+            if (!closing && !printPreview && root && host.GetRoot() == root && !HasBlockDraft() && !drawer->IsVisible() && !findBar->IsVisible() &&
                 !recoveryPanel->IsVisible())
                 host.SetFocusControl(editor, MayRequestNativeFocus());
         });
@@ -3116,6 +3120,7 @@ LRESULT CALLBACK Application::WindowProc(HWND hwnd, UINT message, WPARAM wParam,
 void Application::BeginClose()
 {
     Printing::Stop(printOperation);
+    ClosePrintPreview();
     // Reaching this point means the user saved or explicitly discarded source.
     // Retire only this session's snapshot and wait asynchronously for its result.
     AbandonStartupRestore();
@@ -3199,6 +3204,7 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         if (sessionEnding)
         {
             Printing::Stop(printOperation);
+            ClosePrintPreview();
             pendingBitmapPaste.reset();
             bitmapWriter.Stop();
             if (!closing)
@@ -3220,6 +3226,11 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
     {
         if (closing || closingAfterSave || unsavedPromptOpen || switchingDocument)
             return 0;
+        if (printPreview)
+        {
+            DismissPrintPreview();
+            return 0;
+        }
         if (blockDraft->IsVisible())
         {
             Status(IDS_BLOCKPENDING);
@@ -3301,6 +3312,7 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
     if (message == WM_NCDESTROY)
     {
         Printing::Stop(printOperation);
+        ClosePrintPreview();
         bitmapWriter.Stop();
         bitmapWriter.Detach();
         folderFiles.Close();
@@ -3472,7 +3484,7 @@ void Application::Prepare(unsigned turns)
 }
 bool Application::Capture(const std::filesystem::path &path, bool prepareContent)
 {
-    if (prepareContent)
+    if (prepareContent && !printPreview)
         Prepare();
     DxUi::Button *captureHover{};
     if (options.headless && path == options.capture && (options.scenario == L"caption-close-hover" || options.scenario == L"caption-maximize-hover"))
@@ -3493,7 +3505,8 @@ bool Application::Capture(const std::filesystem::path &path, bool prepareContent
     DxUi::WindowHostBitmapCapture bitmap;
     // Stage the completed frame before Present rotates the swap-chain buffers.
     // The canonical hidden capture path never shows or activates this HWND.
-    if (!host.DebugCaptureBitmap(bitmap, true))
+    auto &captureHost = printPreview ? printPreview->Host() : host;
+    if (!captureHost.DebugCaptureBitmap(bitmap, true))
         return false;
     if (captureHover && !captureHover->IsHovered())
         return false;
@@ -3550,7 +3563,7 @@ bool Application::RouteShortcut(const MSG &message)
             case 'P':
                 if (!shift)
                 {
-                    // Consume repeat keydowns even after the native dialog is dismissed.
+                    // A held shortcut must not open another preview or advance into printing.
                     if ((message.lParam & (static_cast<LPARAM>(1) << 30)) != 0)
                         return true;
                     command = Command::Print;
@@ -3825,7 +3838,8 @@ void Application::DispatchUiMessage(const MSG &message) noexcept
         {
             if (closingAfterSave)
                 (void)DxUi::Failure::InvokeNative(&DispatchMessageW, &message);
-            else if (!RouteShortcut(message) && !host.DispatchKeyboardMessage(message))
+            else if (!(printPreview && printPreview->DispatchKeyboardMessage(message)) && !RouteShortcut(message) &&
+                     !host.DispatchKeyboardMessage(message))
             {
                 (void)DxUi::Failure::InvokeNative(&TranslateMessage, &message);
                 (void)DxUi::Failure::InvokeNative(&DispatchMessageW, &message);

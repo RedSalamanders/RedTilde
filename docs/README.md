@@ -54,13 +54,18 @@ Diagram arrow labels blend into the graph background when contrast is sufficient
 or dark backing improves readability. Notes and filled groups keep their own surface; Mermaid source and
 undo history stay unchanged.
 
-**Printing.** Choose **File → Print…** or press **Ctrl+P**. RedTilde prints the formatted document from Compose,
-Source or Split, including unsaved edits. In the Windows Print dialog, choose a printer, paper settings and
-**All** or a page range. Choose **Microsoft Print to PDF** if it is installed, then name the PDF in the Windows
-save dialog. Other installed destinations use their printer settings and output format.
+**Printing.** Choose **File → Print…** or press **Ctrl+P** to preview the formatted pages, including unsaved
+edits from Compose, Source or Split. Change the **Page** number to inspect any sheet. **Fit width** enlarges
+the page so you can scroll through it, and **Fit page** shows the whole sheet.
 
-Pages wrap to the selected paper with a light print layout. If a page range exceeds the document on that paper,
-RedTilde displays the total page count. Open Print again and enter a range within it.
+Select **Print…** in the preview to open the Windows Print dialog. Choose an installed printer or virtual
+destination, then choose **All**, **Current Page** for the displayed sheet, or **Pages** to enter a page number
+or ranges. To generate a PDF, select **Microsoft Print to PDF** and choose a filename in the Windows save
+dialog after confirming. Other installed destinations follow their driver's workflow.
+
+If changing the driver or paper settings changes the layout, RedTilde displays the updated pages before
+submitting anything. Review them and select **Print…** again. Re-enter any page range that exceeds the new
+count. Cancel in Windows to return to the preview, or choose **Close** to return to the document.
 
 **Closing files:** Close hides the window while an already admitted Save finishes. A failed write restores
 the window with an error and keeps your source and recovery copy. Edits made after Save still need a

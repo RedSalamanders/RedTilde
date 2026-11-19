@@ -1,0 +1,1 @@
+- File → Print and Ctrl+P now preview the formatted pages. The Windows Print dialog lets you choose an installed destination and print all pages, the displayed page, or selected ranges. RedTilde refreshes the preview if the paper settings change its layout.

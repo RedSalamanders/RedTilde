@@ -76,11 +76,11 @@ the character. RedTilde must not filter ordinary editor characters locally to co
 
 ## Printing
 
-File → Print and Ctrl+P print the active document's formatted Markdown from Compose, Source and Split. The
-job captures the admitted source revision, document identity, syntax options and completed-task preference.
-Unsaved source is eligible. Local-source drafts and active native IME composition use the existing command
-guards. Opening the dialog or completing a job preserves source, selection, scroll, undo, the saved baseline
-and recovery. The printed document contains the rich content and its readable literal and image alternatives.
+File → Print and Ctrl+P preview the active document's formatted Markdown from Compose, Source and Split.
+The print session captures the admitted source revision, document identity, syntax options and completed-task
+preference. Unsaved source is eligible. Local-source drafts and active native IME composition use the existing
+command guards. Previewing or completing a job preserves source, selection, scroll, undo, the saved baseline
+and recovery. The preview and printed document share the formatted content and its readable literal and image alternatives.
 
 Paper width and hardware offsets come from the accepted printer configuration in 96-DPI units. The print
 layout uses dark ink on the paper, up to ¾-inch insets and fixed paper typography. Prepare it at the printable
@@ -89,6 +89,9 @@ headings kept with following text and rows and objects kept together where they 
 indivisible band to fit the page. Empty source yields one blank sheet. Resolve allowed local image files
 through the application image reader. Use retained, approved pixels for remote and network-file images
 that are already available. An unavailable source uses the image's alternative without a new network fetch.
+Use the latest accepted or Windows default printer geometry for initial pagination. Use and identify Letter
+paper when default geometry is unavailable. Reflow when the accepted paper geometry changes and show
+the revised pages before submission. Submit the requested pages of the reviewed layout in document order.
 
 ## Formatting and navigation
 
