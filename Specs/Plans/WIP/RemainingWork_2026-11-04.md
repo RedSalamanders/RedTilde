@@ -9,7 +9,7 @@ This is the **only active RedTilde plan**. It replaces the ten overlapping plann
 source identities, failed runs and proposal assets; they are references, not additional execution queues.
 Domain contracts under `Specs/Core`, `Specs/Editor`, `Specs/UI`, `Specs/Build` and `Specs/Testing` remain authoritative.
 
-The [Windows printing workstream](#t-u2) covers File → Print for paper, PDF and other installed destinations.
+The [Windows printing workstream](#t-u2) covers print preview, page selection and installed destinations.
 
 The owner's **7 November 2026** delivery scope requires x64 Debug, Release and ASan Debug runtime tests and
 ARM64 compilation in all three profiles. ARM64 runtime is explicitly set aside for this delivery. Compilation
@@ -208,16 +208,18 @@ Details and original counterexamples remain in the
 <a id="t-u2"></a>
 ### T-U2 — Print the active Markdown document through Windows
 
-**Implemented on 18 November 2026.** RedTilde uses the Windows Print dialog for the active document.
+**Implemented on 18 November 2026.** RedTilde previews formatted pages and uses the Windows Print dialog
+for destination and page selection.
 Physical sheets, another virtual driver and live dialog/focus are still open qualification cases.
 
 #### What the writer will do
 
 1. Open a Markdown document or type in an untitled one. Choose **File → Print…** or press **Ctrl+P**.
-   Both open the standard Windows Print dialog owned by the RedTilde window. Compose, Source and Split all
-   print the formatted document, including unsaved edits. The Split mirror, caret and editor controls stay off the page.
-2. Choose an installed destination, all pages or a page range, and the paper size, orientation, copies,
-   collation and duplex options the driver offers. Confirm with **Print**.
+   Inspect any page and fit it to the window or its width. Compose, Source and Split all preview and print
+   the formatted document, including unsaved edits.
+2. Open the standard Windows Print dialog from the preview. Choose an installed destination, all pages,
+   the current page or explicit page ranges. Choose the paper size, orientation, copies, collation and duplex
+   options the driver offers. Review any updated pagination before confirming again.
 3. For a physical printer, collect the pages from that printer. For **Microsoft Print to PDF**, choose a
    filename in the Windows save prompt and open the resulting PDF. Another installed destination, such as
    **Microsoft XPS Document Writer**, follows its own normal workflow. Cancelling either dialog returns to the
@@ -246,8 +248,8 @@ Physical sheets, another virtual driver and live dialog/focus are still open qua
 - [x] **3. Collect and honor the Windows settings.** Use `PrintDlgExW` with RedTilde as owner.
   Only `PD_RESULT_PRINT` admits a job. Apply retains the selected settings for the session and Cancel
   dismisses the dialog. Carry the selected queue and complete `DEVMODE`, including driver-private data,
-  into its job PrintTicket. Delegate copies and collation to the driver once. Enable **All** and **Pages**,
-  keeping **Selection** and **Current page** disabled for this first release. Validate ranges against the
+  into its job PrintTicket. Delegate copies and collation to the driver once. Enable **All**, **Current Page**
+  and **Pages**. Validate ranges against the
   final pagination after a printer, paper or orientation change. Return an invalid range for correction
   before submitting anything. Use the destination's normal filename prompt. If the transport requires an
   application-supplied output stream, use one owned Windows Save dialog and verify the selected driver's
@@ -272,6 +274,11 @@ Physical sheets, another virtual driver and live dialog/focus are still open qua
   A driver may already have emitted earlier pages. Leave the editor usable after a missing printer, an
   unavailable spooler, a refused filename or a mid-job failure. [Direct2D printing](https://learn.microsoft.com/en-us/windows/win32/direct2d/printing-and-command-lists) ·
   [Package cancellation](https://learn.microsoft.com/en-us/windows/win32/api/documenttarget/nf-documenttarget-iprintdocumentpackagetarget-cancel)
+- [x] **Preview the prepared pages.** Keep the renderer alive through preview, range selection and submission.
+  Present one bounded sheet at a time, support selecting any page, and confirm again after repagination.
+  Use the hidden app harness for the preview, page selection, cancellation and changed paper fixtures. The
+  [design system](../../UI/UI_DesignSystem.md) and [editor contract](../../Editor/Editor_Markdown.md) own the
+  durable workflow.
 
 #### Qualification
 
@@ -283,9 +290,9 @@ Physical sheets, another virtual driver and live dialog/focus are still open qua
 | Real Windows destinations | At an agreed desktop time, invoke both the menu and Ctrl+P. Print a marked multipage job to a physical printer and inspect the sheets. Save through Microsoft Print to PDF, reopen it and check page count, size, visible content and searchable text. Exercise a second installed virtual destination such as XPS and inspect its result. Cancel the filename prompt and decline an overwrite of a pre-existing fixture file. Verify its bytes survive. Record unavailable destinations as open cases. |
 | Failure and responsiveness | Inject failure at ticket creation, page N and final submission. Check one terminal result, safe cleanup and a successful later job. For a document near the supported size limit, record pagination time, time to first page, peak memory and resource release after repeat/cancel. Compare idle editor cost and typing responsiveness to the same-fixture Release baseline. |
 
-The six x64 and ARM64 builds completed with zero warnings. The hidden printing cases pass in all three x64
-profiles. Across those profiles, 157 of 158 behavioral cases pass, with 40 hidden captures per profile and real
-AddressSanitizer detection in ASan Debug. Windows denies the existing symbolic-save fixture's link creation
+Before preview was added, the six x64 and ARM64 builds completed with zero warnings. The hidden printing cases
+passed in all three x64 profiles. Across those profiles, 157 of 158 behavioral cases passed, with 40 hidden
+captures per profile and real AddressSanitizer detection in ASan Debug. Windows denied the symbolic-save fixture's link creation
 with error 1314 in each profile. The directed failures are retained in
 `.build/printing-20261118/storage-final-48e21afc3eb340c0b87aa1771b2d4b0b`. The passing selected runs are
 `20261118T093134214Z-59528-b09d283e820b48b9a4d8b903d3ba3bed` (Release),
@@ -299,6 +306,12 @@ order, and one A4 landscape page with the requested range. The longer probe prod
 and the blocked remote image's alternative. Cancelling the filename preserves an existing fixture file.
 Raw output is under `.build/printing-20261118`, including `deferred-pdf-aba527dda3b6401294cddee8a6c179f5`.
 Live dialog/focus, physical sheets, another virtual driver and ARM64 runtime remain open.
+
+The preview driver probe rendered the same prepared pages it sent to Microsoft Print to PDF. The nine-page
+Letter PDF preserved all 142 searchable markers in order. Selecting page 2 on A4 landscape produced a
+one-page PDF with that sheet's 12 markers. The preview and PDF had the same measured ink bounds at matched
+raster dimensions in both cases. The original files, headless driver log and comparison are retained under
+`.build/print-preview-qualification-3f88ce9c7a87453da36a82fba48d628e`. Live dialog interaction remains an independent case.
 
 An initial two-block Release comparison showed an idle private-memory increase with eager print imports.
 The final binary delays those imports until first use. In the repeated WARP comparison, Compose private memory

@@ -21,6 +21,7 @@
 #include <format>
 #include <mutex>
 #include <objbase.h>
+#include <ole2.h>
 #include <prntvpt.h>
 #include <shlwapi.h>
 #include <span>
@@ -34,6 +35,7 @@ namespace RedTilde::Printing
 namespace
 {
 constexpr unsigned MaximumPages = static_cast<unsigned>(DxUi::RichText::Document::MaximumUnits) + 1u;
+constexpr float MaximumPreviewEdge = 1600.f;
 constexpr std::size_t MaximumImageBytes = 64u * 1024u * 1024u;
 constexpr HRESULT Cancelled = HRESULT_FROM_WIN32(ERROR_CANCELLED);
 
@@ -58,6 +60,16 @@ bool Equal(std::wstring_view left, std::wstring_view right) noexcept
 {
     return left.size() == right.size() && (left.empty() || CompareStringOrdinal(left.data(), static_cast<int>(left.size()), right.data(),
                                                                                 static_cast<int>(right.size()), TRUE) == CSTR_EQUAL);
+}
+
+bool ValidPaper(const Paper &paper) noexcept
+{
+    const auto &size = paper.size;
+    const auto &area = paper.printable;
+    return std::isfinite(size.width) && std::isfinite(size.height) && size.width > 0.f && size.height > 0.f && size.width <= 16384.f &&
+           size.height <= 16384.f && std::isfinite(area.left) && std::isfinite(area.top) && std::isfinite(area.right) && std::isfinite(area.bottom) &&
+           area.left >= 0.f && area.top >= 0.f && area.right <= size.width && area.bottom <= size.height && area.right - area.left >= 1.f &&
+           area.bottom - area.top >= 1.f;
 }
 
 std::optional<std::wstring> DeviceName(std::span<const wchar_t> storage, WORD offset)
@@ -102,14 +114,15 @@ class Pages
     Pages(const Pages &) = delete;
     Pages &operator=(const Pages &) = delete;
     HRESULT Prepare(const Document &document, const Paper &paper, IWICImagingFactory *wic, const std::atomic_bool &cancel);
-    HRESULT Record(const Page &page, ID2D1CommandList **output);
+    HRESULT Preview(unsigned number, PreviewPage &output);
+    HRESULT Record(unsigned number, ID2D1CommandList **output);
     ID2D1DeviceContext &Context() const noexcept
     {
         return *host_.Controls().GetDeviceContext();
     }
-    [[nodiscard]] std::span<const Page> Layout() const noexcept
+    [[nodiscard]] unsigned Count() const noexcept
     {
-        return pages_;
+        return static_cast<unsigned>(pages_.size());
     }
 
   private:
@@ -121,8 +134,11 @@ class Pages
     DxUi::EmbeddedHost host_;
     DxUi::RichTextEditor *editor_{};
     UINT width_{}, height_{};
+    Paper paper_{};
     D2D1_RECT_F content_{};
     std::vector<Page> pages_;
+    unsigned previewed_{};
+    wil::com_ptr<ID2D1CommandList> previewCommands_;
 };
 
 HRESULT Pages::FinishPreparation(const std::atomic_bool &cancel)
@@ -175,14 +191,10 @@ HRESULT Pages::ResolveImages(const Document &document, IWICImagingFactory *wic, 
 HRESULT Pages::Prepare(const Document &document, const Paper &paper, IWICImagingFactory *wic, const std::atomic_bool &cancel)
 {
     constexpr float margin = 72.f;
-    if (!std::isfinite(paper.size.width) || !std::isfinite(paper.size.height) || paper.size.width <= 0 || paper.size.height <= 0 ||
-        paper.size.width > 16384.f || paper.size.height > 16384.f)
+    if (!ValidPaper(paper))
         return E_INVALIDARG;
+    paper_ = paper;
     const auto &area = paper.printable;
-    if (!std::isfinite(area.left) || !std::isfinite(area.top) || !std::isfinite(area.right) || !std::isfinite(area.bottom) || area.left < 0 ||
-        area.top < 0 || area.right > paper.size.width || area.bottom > paper.size.height || area.right - area.left < 1.f ||
-        area.bottom - area.top < 1.f)
-        return E_INVALIDARG;
     const float insetX = std::min(margin, paper.size.width / 4.f), insetY = std::min(margin, paper.size.height / 4.f);
     content_ = {std::max(area.left, insetX), std::max(area.top, insetY), std::min(area.right, paper.size.width - insetX),
                 std::min(area.bottom, paper.size.height - insetY)};
@@ -313,8 +325,14 @@ HRESULT Pages::Paginate(const std::atomic_bool &cancel)
     return S_OK;
 }
 
-HRESULT Pages::Record(const Page &page, ID2D1CommandList **output)
+HRESULT Pages::Record(unsigned number, ID2D1CommandList **output)
 {
+    if (number == previewed_)
+    {
+        previewCommands_.copy_to(output);
+        return S_OK;
+    }
+    const auto &page = pages_[number - 1u];
     auto &context = Context();
     wil::com_ptr<ID2D1CommandList> commands;
     RETURN_IF_FAILED(context.CreateCommandList(commands.put()));
@@ -343,6 +361,71 @@ HRESULT Pages::Record(const Page &page, ID2D1CommandList **output)
     RETURN_IF_FAILED(commands->Close());
     *output = commands.detach();
     return S_OK;
+}
+
+HRESULT Pages::Preview(unsigned number, PreviewPage &output)
+{
+    wil::com_ptr<ID2D1CommandList> commands;
+    RETURN_IF_FAILED(Record(number, commands.put()));
+    auto &context = Context();
+    const float scale = std::min(1.5f, MaximumPreviewEdge / std::max(paper_.size.width, paper_.size.height));
+    const auto extent = [scale](float size) { return static_cast<UINT>(std::clamp(std::ceil(size * scale), 1.f, MaximumPreviewEdge)); };
+    const auto width = extent(paper_.size.width);
+    const auto height = extent(paper_.size.height);
+    const auto format = D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED);
+    const auto props = D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_TARGET, format, 96.f, 96.f);
+    wil::com_ptr<ID2D1Bitmap1> target, readback;
+    RETURN_IF_FAILED(context.CreateBitmap({width, height}, nullptr, 0, props, target.put()));
+    {
+        wil::com_ptr<ID2D1Image> previous;
+        context.GetTarget(previous.put());
+        const auto restore = wil::scope_exit(
+            [&] noexcept
+            {
+                context.SetTarget(previous.get());
+                context.SetTransform(D2D1::Matrix3x2F::Identity());
+            });
+        context.SetTarget(target.get());
+        context.SetTransform(D2D1::Matrix3x2F::Scale(scale, scale));
+        context.BeginDraw();
+        context.Clear(D2D1::ColorF(D2D1::ColorF::White));
+        context.DrawImage(commands.get());
+        RETURN_IF_FAILED(context.EndDraw());
+    }
+    const auto cpuProps = D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_CPU_READ | D2D1_BITMAP_OPTIONS_CANNOT_DRAW, format, 96.f, 96.f);
+    RETURN_IF_FAILED(context.CreateBitmap({width, height}, nullptr, 0, cpuProps, readback.put()));
+    RETURN_IF_FAILED(readback->CopyFromBitmap(nullptr, target.get(), nullptr));
+    const auto rowBytes = width * 4u;
+    output.bgra.resize(static_cast<std::size_t>(rowBytes) * height);
+    D2D1_MAPPED_RECT mapped{};
+    RETURN_IF_FAILED(readback->Map(D2D1_MAP_OPTIONS_READ, &mapped));
+    const auto unmap = wil::scope_exit([&] noexcept { (void)readback->Unmap(); });
+    for (std::size_t y = 0; y < height; ++y)
+        std::memcpy(output.bgra.data() + y * rowBytes, mapped.bits + y * mapped.pitch, rowBytes);
+    output.paper = paper_;
+    output.count = Count();
+    output.number = number;
+    output.width = width;
+    output.height = height;
+    previewCommands_ = std::move(commands);
+    previewed_ = number;
+    return S_OK;
+}
+
+std::optional<Paper> DefaultPaper()
+{
+    if (FAILED(LoadPrintImports("WINSPOOL.DRV")))
+        return std::nullopt;
+    DWORD length{};
+    (void)GetDefaultPrinterW(nullptr, &length);
+    if (!length || length > 32768u)
+        return std::nullopt;
+    std::wstring name(length, L'\0');
+    if (!GetDefaultPrinterW(name.data(), &length))
+        return std::nullopt;
+    const wil::unique_hdc dc(CreateICW(L"WINSPOOL", name.c_str(), nullptr, nullptr));
+    Paper paper;
+    return SUCCEEDED(ReadPaper(dc.get(), paper)) ? std::optional{paper} : std::nullopt;
 }
 
 HRESULT Ticket(Selection &selection, IStream **ticket)
@@ -486,6 +569,18 @@ class FileOutput
 };
 } // namespace
 
+bool Paper::operator==(const Paper &other) const noexcept
+{
+    return size.width == other.size.width && size.height == other.size.height && printable.left == other.printable.left &&
+           printable.top == other.printable.top && printable.right == other.printable.right && printable.bottom == other.printable.bottom;
+}
+
+bool PageRangesFit(std::span<const PageRange> ranges, unsigned pageCount) noexcept
+{
+    return std::ranges::all_of(ranges,
+                               [pageCount](const auto &range) { return range.first && range.last >= range.first && range.last <= pageCount; });
+}
+
 HRESULT ReadPaper(HDC dc, Paper &paper) noexcept
 {
     if (!dc)
@@ -500,14 +595,17 @@ HRESULT ReadPaper(HDC dc, Paper &paper) noexcept
     selected.printable = {std::max(0.f, left), std::max(0.f, top),
                           std::min(selected.size.width, left + static_cast<float>(GetDeviceCaps(dc, HORZRES)) * x),
                           std::min(selected.size.height, top + static_cast<float>(GetDeviceCaps(dc, VERTRES)) * y)};
-    if (selected.printable.right <= selected.printable.left || selected.printable.bottom <= selected.printable.top)
+    if (!ValidPaper(selected))
         return E_INVALIDARG;
     paper = selected;
     return S_OK;
 }
 
-HRESULT Dialog::Choose(HWND owner, Selection &selection)
+HRESULT Dialog::Choose(HWND owner, const DialogOptions &options, DialogResult &result)
 {
+    // The native property sheet and its printer extensions run in an OLE STA.
+    RETURN_IF_FAILED(DxUi::Failure::InvokeNative(&OleInitialize, nullptr));
+    const auto uninitialize = wil::scope_exit([]() noexcept { OleUninitialize(); });
     RETURN_IF_FAILED(LoadPrintImports("COMDLG32.dll"));
     std::array<PRINTPAGERANGE, 32> ranges{};
     PRINTDLGEXW dialog{};
@@ -515,9 +613,25 @@ HRESULT Dialog::Choose(HWND owner, Selection &selection)
     dialog.hwndOwner = owner;
     dialog.hDevMode = deviceMode.release();
     dialog.hDevNames = deviceNames.release();
-    dialog.Flags = PD_RETURNDC | PD_USEDEVMODECOPIESANDCOLLATE | PD_EXCL_COPIESANDCOLLATE | PD_NOSELECTION | PD_NOCURRENTPAGE | PD_NOWARNING;
+    dialog.Flags = PD_RETURNDC | PD_USEDEVMODECOPIESANDCOLLATE | PD_EXCL_COPIESANDCOLLATE | PD_NOSELECTION | PD_NOWARNING;
+    if (options.printToFile)
+        dialog.Flags |= PD_PRINTTOFILE;
+    if (options.currentPage)
+        dialog.Flags |= PD_CURRENTPAGE;
+    else if (options.rangeNeedsCorrection)
+    {
+        // Ask for a replacement range without displaying the old, invalid one.
+        dialog.Flags |= PD_PAGENUMS;
+    }
+    else if (!options.ranges.empty() && options.ranges.size() <= ranges.size() && PageRangesFit(options.ranges, options.pageCount))
+    {
+        dialog.Flags |= PD_PAGENUMS;
+        dialog.nPageRanges = static_cast<DWORD>(options.ranges.size());
+        for (std::size_t index = 0; index < options.ranges.size(); ++index)
+            ranges[index] = {options.ranges[index].first, options.ranges[index].last};
+    }
     dialog.nMinPage = 1u;
-    dialog.nMaxPage = MaximumPages;
+    dialog.nMaxPage = options.pageCount;
     dialog.nMaxPageRanges = static_cast<DWORD>(ranges.size());
     dialog.lpPageRanges = ranges.data();
     dialog.nCopies = 1u;
@@ -527,7 +641,7 @@ HRESULT Dialog::Choose(HWND owner, Selection &selection)
     deviceNames.reset(dialog.hDevNames);
     const wil::unique_hdc dc(dialog.hDC);
     RETURN_IF_FAILED(shown);
-    if (dialog.dwResultAction != PD_RESULT_PRINT)
+    if (dialog.dwResultAction != PD_RESULT_PRINT && dialog.dwResultAction != PD_RESULT_APPLY)
         return S_FALSE;
     const auto modeBytes = GlobalSize(deviceMode.get());
     const auto namesBytes = GlobalSize(deviceNames.get());
@@ -545,21 +659,42 @@ HRESULT Dialog::Choose(HWND owner, Selection &selection)
     if (!printer || printer->empty() || !port)
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
     Selection selected;
-    RETURN_IF_FAILED(ReadPaper(dc.get(), selected.paper));
+    if (dc)
+    {
+        RETURN_IF_FAILED(ReadPaper(dc.get(), selected.paper));
+    }
+    else
+    {
+        // Some drivers return updated settings on Apply without a context.
+        const wil::unique_hdc info(CreateICW(L"WINSPOOL", printer->c_str(), nullptr, devMode));
+        RETURN_IF_FAILED(ReadPaper(info.get(), selected.paper));
+    }
     selected.printer = std::move(printer.value());
-    selected.port = (dialog.Flags & PD_PRINTTOFILE) != 0u ? L"FILE:" : std::move(port.value());
+    const bool printToFile = (dialog.Flags & PD_PRINTTOFILE) != 0u;
+    selected.port = printToFile ? L"FILE:" : std::move(port.value());
     selected.deviceMode.resize(total);
     std::memcpy(selected.deviceMode.data(), mode.get(), total);
-    if ((dialog.Flags & PD_PAGENUMS) != 0u)
+    const bool currentPage = (dialog.Flags & PD_CURRENTPAGE) != 0u;
+    if (!currentPage && (dialog.Flags & PD_PAGENUMS) != 0u)
     {
         if (!dialog.nPageRanges)
             return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
         for (const auto &range : std::span(ranges).first(dialog.nPageRanges))
             selected.ranges.push_back({range.nFromPage, range.nToPage});
     }
-    selection = std::move(selected);
+    result = {std::move(selected), dialog.dwResultAction == PD_RESULT_PRINT, currentPage, printToFile};
     return S_OK;
 }
+
+namespace
+{
+struct Request
+{
+    unsigned page = 1u;
+    std::optional<Paper> paper;
+    std::optional<Selection> selection;
+};
+} // namespace
 
 struct Operation
 {
@@ -569,9 +704,10 @@ struct Operation
     std::mutex mutex;
     HWND window{};
     UINT message{};
-    wil::unique_event_nothrow fileChosen;
+    wil::unique_event_nothrow requested, fileChosen;
     std::atomic_bool cancel{};
     std::optional<Notice> notice;
+    Request request;
     HRESULT fileStatus = Cancelled;
     std::filesystem::path destination;
 
@@ -580,7 +716,7 @@ struct Operation
         const std::lock_guard lock(mutex);
         if (!window || cancel.load())
             return false;
-        notice = next;
+        notice = std::move(next);
         return PostMessageW(window, message, 0, 0) != FALSE;
     }
 };
@@ -597,33 +733,29 @@ struct Work
     Job job;
 };
 
-HRESULT Submit(Work &work, Notice &finished)
+HRESULT Submit(Work &work, Selection &selection, Pages &pages, IWICImagingFactory *wic, Notice &finished)
 {
     auto &operation = *work.operation;
     auto &job = work.job;
     if (operation.cancel.load())
         return Cancelled;
-    wil::com_ptr<IWICImagingFactory> wic;
-    RETURN_IF_FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(wic.put())));
-    Pages pages;
-    RETURN_IF_FAILED(pages.Prepare(job.document, job.selection.paper, wic.get(), operation.cancel));
-    const auto layout = pages.Layout();
-    const auto &ranges = job.selection.ranges;
-    if (std::ranges::any_of(ranges, [&](const auto &range) { return !range.first || range.last < range.first || range.last > layout.size(); }))
+    const auto count = pages.Count();
+    const auto &ranges = selection.ranges;
+    if (!PageRangesFit(ranges, count))
     {
-        finished.invalidRangePageCount = static_cast<unsigned>(layout.size());
+        finished.invalidRangePageCount = count;
         return E_INVALIDARG;
     }
     const auto forPages = [&](auto &&submitPage) -> HRESULT
     {
-        for (unsigned page = 1u; page <= layout.size(); ++page)
+        for (unsigned page = 1u; page <= count; ++page)
         {
             if (operation.cancel.load())
                 return Cancelled;
             if (!ranges.empty() && std::ranges::none_of(ranges, [page](const auto &range) { return page >= range.first && page <= range.last; }))
                 continue;
             wil::com_ptr<ID2D1CommandList> commands;
-            RETURN_IF_FAILED(pages.Record(layout[page - 1], commands.put()));
+            RETURN_IF_FAILED(pages.Record(page, commands.put()));
             RETURN_IF_FAILED(submitPage(page, *commands));
         }
         return S_OK;
@@ -636,10 +768,10 @@ HRESULT Submit(Work &work, Notice &finished)
     }
 #endif
     std::filesystem::path destination;
-    if (Equal(job.selection.port, L"PORTPROMPT:") || Equal(job.selection.port, L"FILE:"))
+    if (Equal(selection.port, L"PORTPROMPT:") || Equal(selection.port, L"FILE:"))
     {
         FileFormat format{};
-        RETURN_IF_FAILED(DestinationFormat(job.selection, format));
+        RETURN_IF_FAILED(DestinationFormat(selection, format));
         if (!operation.Post({.kind = Notice::Kind::ChooseFile, .format = format}))
             return Cancelled;
         // Close always signals this event. The worker retains only immutable
@@ -657,21 +789,21 @@ HRESULT Submit(Work &work, Notice &finished)
     if (operation.cancel.load())
         return Cancelled;
     wil::com_ptr<IStream> ticket;
-    RETURN_IF_FAILED(Ticket(job.selection, ticket.put()));
+    RETURN_IF_FAILED(Ticket(selection, ticket.put()));
     FileOutput output;
     if (!destination.empty())
         RETURN_IF_FAILED(output.Open(destination, job.document.path));
     wil::com_ptr<IPrintDocumentPackageTargetFactory> factory;
     RETURN_IF_FAILED(CoCreateInstance(__uuidof(PrintDocumentPackageTargetFactory), nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(factory.put())));
     wil::com_ptr<IPrintDocumentPackageTarget> target;
-    RETURN_IF_FAILED(factory->CreateDocumentPackageTargetForPrintJob(job.selection.printer.c_str(), job.document.title.c_str(), output.stream.get(),
+    RETURN_IF_FAILED(factory->CreateDocumentPackageTargetForPrintJob(selection.printer.c_str(), job.document.title.c_str(), output.stream.get(),
                                                                      ticket.get(), target.put()));
     auto cancelOnFailure = wil::scope_exit([&] noexcept { (void)target->Cancel(); });
     wil::com_ptr<ID2D1Device> device;
     pages.Context().GetDevice(device.put());
     wil::com_ptr<ID2D1PrintControl> print;
-    RETURN_IF_FAILED(device->CreatePrintControl(wic.get(), target.get(), nullptr, print.put()));
-    RETURN_IF_FAILED(forPages([&](unsigned, ID2D1CommandList &commands) { return print->AddPage(&commands, job.selection.paper.size, nullptr); }));
+    RETURN_IF_FAILED(device->CreatePrintControl(wic, target.get(), nullptr, print.put()));
+    RETURN_IF_FAILED(forPages([&](unsigned, ID2D1CommandList &commands) { return print->AddPage(&commands, selection.paper.size, nullptr); }));
     if (operation.cancel.load())
         return Cancelled;
     RETURN_IF_FAILED(print->Close());
@@ -686,6 +818,52 @@ HRESULT Submit(Work &work, Notice &finished)
     return S_OK;
 }
 
+HRESULT RunSession(Work &work, Notice &finished)
+{
+    auto &operation = *work.operation;
+    if (operation.cancel.load())
+        return Cancelled;
+    wil::com_ptr<IWICImagingFactory> wic;
+    RETURN_IF_FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(wic.put())));
+    const auto initial = work.job.initialPaper ? work.job.initialPaper : DefaultPaper();
+    constexpr Paper letter{{816.f, 1056.f}, {0.f, 0.f, 816.f, 1056.f}};
+    auto paper = initial.value_or(letter);
+    bool fallback = !initial;
+    auto pages = std::make_unique<Pages>();
+    RETURN_IF_FAILED(pages->Prepare(work.job.document, paper, wic.get(), operation.cancel));
+    Request request;
+    for (;;)
+    {
+        if (operation.cancel.load())
+            return Cancelled;
+        if (request.selection)
+        {
+            if (request.selection->paper != paper)
+                return E_INVALIDARG;
+            return Submit(work, request.selection.value(), *pages, wic.get(), finished);
+        }
+        if (request.paper)
+        {
+            if (request.paper.value() != paper)
+            {
+                pages.reset();
+                pages = std::make_unique<Pages>();
+                paper = request.paper.value();
+                RETURN_IF_FAILED(pages->Prepare(work.job.document, paper, wic.get(), operation.cancel));
+            }
+            fallback = false;
+        }
+        Notice notice{.kind = Notice::Kind::Preview, .preview = PreviewPage{.fallbackPaper = fallback}};
+        RETURN_IF_FAILED(pages->Preview(std::clamp(request.page, 1u, pages->Count()), notice.preview.value()));
+        if (!operation.Post(std::move(notice)))
+            return Cancelled;
+        if (!operation.requested.wait())
+            return E_FAIL;
+        const std::lock_guard lock(operation.mutex);
+        request = std::exchange(operation.request, {});
+    }
+}
+
 void CALLBACK RunPrint(PTP_CALLBACK_INSTANCE, void *context) noexcept
 {
     ProcessWorkLease lease = std::move(static_cast<Work *>(context)->lease);
@@ -698,7 +876,7 @@ void CALLBACK RunPrint(PTP_CALLBACK_INSTANCE, void *context) noexcept
         {
             const wil::unique_couninitialize_call apartment;
             const DxUi::Failure::Scope failureScope;
-            finished.result = Submit(*work, finished);
+            finished.result = RunSession(*work, finished);
         }
     }
     catch (const std::bad_alloc &)
@@ -714,13 +892,15 @@ void CALLBACK RunPrint(PTP_CALLBACK_INSTANCE, void *context) noexcept
     {
         DxUi::Failure::FailUnexpected();
     }
-    (void)work->operation->Post(finished);
+    work->job = Job{};
+    (void)work->operation->Post(std::move(finished));
 }
 } // namespace
 
 HRESULT Start(HWND owner, UINT message, Job job, std::shared_ptr<Operation> &operation)
 {
     auto staged = std::make_shared<Operation>();
+    RETURN_IF_FAILED(staged->requested.create(wil::EventOptions::None));
     RETURN_IF_FAILED(staged->fileChosen.create(wil::EventOptions::ManualReset));
     staged->window = owner;
     staged->message = message;
@@ -747,6 +927,20 @@ std::optional<Notice> TakeNotice(const std::shared_ptr<Operation> &operation)
     return std::exchange(operation->notice, std::nullopt);
 }
 
+void RequestPreview(Operation &operation, unsigned page, std::optional<Paper> paper) noexcept
+{
+    const std::lock_guard lock(operation.mutex);
+    operation.request = {.page = page, .paper = paper};
+    operation.requested.SetEvent();
+}
+
+void RequestPrint(Operation &operation, Selection selection) noexcept
+{
+    const std::lock_guard lock(operation.mutex);
+    operation.request = {.selection = std::move(selection)};
+    operation.requested.SetEvent();
+}
+
 void ChooseFile(const std::shared_ptr<Operation> &operation, HRESULT result, std::filesystem::path destination) noexcept
 {
     const std::lock_guard lock(operation->mutex);
@@ -762,6 +956,7 @@ void Stop(std::shared_ptr<Operation> &operation) noexcept
         const std::lock_guard lock(job->mutex);
         job->window = nullptr;
         job->cancel.store(true);
+        job->requested.SetEvent();
         job->fileChosen.SetEvent();
     }
 }

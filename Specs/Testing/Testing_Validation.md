@@ -421,15 +421,18 @@ Tooling and Format receipt identity includes PowerShell, the selected formatter 
 ## Printing
 
 The hidden Editor suite substitutes the Windows dialog result and print destination while running the actual
-application command, snapshot capture, pagination and Direct2D page recording. Assert zero submission for a
-cancelled dialog or invalid range. Check dirty and untitled documents in all three views, page order across
-overlapping and disjoint ranges, immutable admission across a later document switch, an empty page, page and
-finalization failures, successful retry and cancellation at close.
+application command, snapshot capture, preview controls, pagination and Direct2D page recording. Check distinct
+rendered sheets, page navigation and a preview window that preserves foreground ownership. Assert zero
+submission for cancellation, Apply, invalid ranges and paper changes awaiting confirmation. Verify the dialog
+receives the actual page count and Current Page refers to the displayed sheet. Check dirty and untitled documents in all three views,
+current-page and overlapping or disjoint ranges, immutable admission across a later document switch, an empty
+page, page and finalization failures, successful retry and cancellation at close.
 
 For real-destination qualification, record the OS, driver, paper dimensions, exact source and fixture. Inspect
 physical sheets and reopen the output from Microsoft Print to PDF and another installed virtual destination.
-Check page count, size, orientation, content and filename cancellation. Manual native-dialog checks require
-an agreed desktop time and retain distinct evidence from hidden fixtures.
+Check the preview against the output, including the page count, size, orientation and content. Exercise a
+single page and a range, changed paper settings, focus restoration and filename cancellation. Manual
+native-dialog checks require an agreed desktop time and retain distinct evidence from hidden fixtures.
 
 ## Mocked build version isolation
 

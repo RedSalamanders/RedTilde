@@ -26,12 +26,20 @@ tests supply choices without opening a desktop dialog or acquiring focus; they d
 The application manifest declares Common Controls v6 for the task-dialog import; every native catalog/startup
 run must reach the application dispatcher, including test-enabled and production builds.
 
-File → Print… exposes Ctrl+P and opens the Windows Print dialog owned by the app window. The dialog lists
-installed printers and virtual destinations and exposes the chosen driver's settings. RedTilde offers All and
-Pages and validates ranges after paginating on the selected paper. Print admits one job, while Apply updates the
-session's dialog settings. A destination that supplies file output uses the owned Windows Save dialog. Returning
-from either dialog restores logical focus to the surviving control. Report progress, range correction, failure
-and submission in the existing localized status area. Paper submission means Windows accepted the spool job.
+File → Print… and Ctrl+P open an owned Print preview. Show the formatted sheet, its editable page number
+and the total page count. Offer whole-sheet and width fitting, with scrolling when the sheet is enlarged.
+Expose keyboard navigation and accessible names through the native controls. Use the app theme for the
+preview controls and the paper's print colors for the sheet. Close or Escape returns focus to the invoking
+control if it survives.
+
+Print… in the preview opens the standard Windows Print dialog. It lists installed printers and virtual
+destinations and exposes the selected driver's settings. Enable All, Current Page and Pages. Current Page
+refers to the sheet displayed when the dialog opens. Cancel returns to the preview. Apply retains settings
+without submission. If the accepted settings change paper geometry, show the updated pagination and ask
+the writer to confirm again in the Windows dialog. Seed its valid selected ranges and limit input to the
+displayed page count. Ask for a new range when a paper change invalidates the old one. Use the owned
+Windows Save dialog for file output. Report progress, range correction, failure and submission using localized
+status text. Paper submission means Windows accepted the spool job.
 
 Cold header layout reserves bounded identity space without initializing host typography. Once the host prepares
 typography, measure the filename canonically and reuse it until text, available width, typography revision or DPI changes.

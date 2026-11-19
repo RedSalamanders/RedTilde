@@ -13,6 +13,7 @@
     "session-ending-workspace-checkpoints",
     "compose-source-split-views",
     "windows-print-dialog-with-paginated-formatted-markdown",
+    "paginated-print-preview-with-current-page-and-ranges",
     "source-exact-local-block-drafts",
     "native-code-diagram-source-regions",
     "semantic-formatting-and-table-commands",
