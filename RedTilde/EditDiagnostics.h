@@ -40,8 +40,8 @@ enum class SelectionComponent : unsigned
 };
 struct EditDiagnostics
 {
-    using Clock = std::chrono::steady_clock;
-    static constexpr unsigned Count = static_cast<unsigned>(EditPhase::Count);
+    using Clock                              = std::chrono::steady_clock;
+    static constexpr unsigned Count          = static_cast<unsigned>(EditPhase::Count);
     static constexpr unsigned SelectionCount = static_cast<unsigned>(SelectionComponent::Count);
     struct SelectionRecord
     {
@@ -74,128 +74,128 @@ struct EditDiagnostics
 
     class SelectionArm
     {
-        EditDiagnostics *owner{};
-        int uncaughtAtStart{};
+        EditDiagnostics* _owner{};
+        int _uncaughtAtStart{};
 
-      public:
-        explicit SelectionArm(EditDiagnostics *value) noexcept : owner(value), uncaughtAtStart(std::uncaught_exceptions())
+    public:
+        explicit SelectionArm(EditDiagnostics* value) noexcept : _owner(value), _uncaughtAtStart(std::uncaught_exceptions())
         {
-            if (!owner || owner->selectionPhase != SelectionPhase::Disarmed)
+            if (! _owner || _owner->selectionPhase != SelectionPhase::Disarmed)
             {
-                if (owner)
-                    owner->selectionPhase = SelectionPhase::Invalid;
-                owner = nullptr;
+                if (_owner)
+                    _owner->selectionPhase = SelectionPhase::Invalid;
+                _owner = nullptr;
                 return;
             }
-            owner->selectionPhase = SelectionPhase::Armed;
-            owner->selection = {};
-            owner->selectionStart = Clock::now();
+            _owner->selectionPhase = SelectionPhase::Armed;
+            _owner->selection      = {};
+            _owner->selectionStart = Clock::now();
             ULONG64 cycles{};
-            owner->selectionStartCyclesValid = QueryThreadCycleTime(GetCurrentThread(), &cycles) != FALSE;
-            if (!owner->selectionStartCyclesValid)
-                owner->selectionPhase = SelectionPhase::Invalid;
-            owner->selectionStartCycles = cycles;
+            _owner->selectionStartCyclesValid = QueryThreadCycleTime(GetCurrentThread(), &cycles) != FALSE;
+            if (! _owner->selectionStartCyclesValid)
+                _owner->selectionPhase = SelectionPhase::Invalid;
+            _owner->selectionStartCycles = cycles;
         }
-        SelectionArm(const SelectionArm &) = delete;
-        SelectionArm &operator=(const SelectionArm &) = delete;
+        SelectionArm(const SelectionArm&)            = delete;
+        SelectionArm& operator=(const SelectionArm&) = delete;
         ~SelectionArm() noexcept
         {
-            if (!owner)
+            if (! _owner)
                 return;
             const auto now = Clock::now();
             ULONG64 cycles{};
             const bool endCyclesValid = QueryThreadCycleTime(GetCurrentThread(), &cycles) != FALSE;
-            if (!owner->selectionStartCyclesValid || !endCyclesValid || cycles < owner->selectionStartCycles ||
-                owner->selectionPhase != SelectionPhase::Armed || std::uncaught_exceptions() > uncaughtAtStart)
-                owner->selectionPhase = SelectionPhase::Invalid;
+            if (! _owner->selectionStartCyclesValid || ! endCyclesValid || cycles < _owner->selectionStartCycles ||
+                _owner->selectionPhase != SelectionPhase::Armed || std::uncaught_exceptions() > _uncaughtAtStart)
+                _owner->selectionPhase = SelectionPhase::Invalid;
             else
             {
-                owner->selection.wallTotalUs = std::chrono::duration<double, std::micro>(now - owner->selectionStart).count();
-                owner->selection.cpuTotalCycles = cycles - owner->selectionStartCycles;
+                _owner->selection.wallTotalUs    = std::chrono::duration<double, std::micro>(now - _owner->selectionStart).count();
+                _owner->selection.cpuTotalCycles = cycles - _owner->selectionStartCycles;
             }
-            owner->selection.complete = owner->selectionPhase == SelectionPhase::Armed && owner->selection.invocations == 1;
-            owner->selectionPhase = SelectionPhase::Disarmed;
+            _owner->selection.complete = _owner->selectionPhase == SelectionPhase::Armed && _owner->selection.invocations == 1;
+            _owner->selectionPhase     = SelectionPhase::Disarmed;
         }
     };
 
     class SelectionInvocation
     {
-        EditDiagnostics *owner{};
-        int uncaughtAtStart{};
+        EditDiagnostics* _owner{};
+        int _uncaughtAtStart{};
 
-      public:
-        explicit SelectionInvocation(EditDiagnostics *value) noexcept
+    public:
+        explicit SelectionInvocation(EditDiagnostics* value) noexcept
         {
-            if (!value || value->selectionPhase == SelectionPhase::Disarmed)
+            if (! value || value->selectionPhase == SelectionPhase::Disarmed)
                 return;
-            owner = value;
-            uncaughtAtStart = std::uncaught_exceptions();
-            if (owner->selectionPhase != SelectionPhase::Armed)
-                owner->selectionPhase = SelectionPhase::Invalid;
+            _owner           = value;
+            _uncaughtAtStart = std::uncaught_exceptions();
+            if (_owner->selectionPhase != SelectionPhase::Armed)
+                _owner->selectionPhase = SelectionPhase::Invalid;
             else
-                owner->selectionPhase = SelectionPhase::InInvocation;
-            ++owner->selection.invocations;
+                _owner->selectionPhase = SelectionPhase::InInvocation;
+            ++_owner->selection.invocations;
         }
-        SelectionInvocation(const SelectionInvocation &) = delete;
-        SelectionInvocation &operator=(const SelectionInvocation &) = delete;
+        SelectionInvocation(const SelectionInvocation&)            = delete;
+        SelectionInvocation& operator=(const SelectionInvocation&) = delete;
         ~SelectionInvocation() noexcept
         {
-            if (owner)
+            if (_owner)
             {
-                if (std::uncaught_exceptions() > uncaughtAtStart || owner->selectionPhase != SelectionPhase::InInvocation)
-                    owner->selectionPhase = SelectionPhase::Invalid;
+                if (std::uncaught_exceptions() > _uncaughtAtStart || _owner->selectionPhase != SelectionPhase::InInvocation)
+                    _owner->selectionPhase = SelectionPhase::Invalid;
                 else
-                    owner->selectionPhase = SelectionPhase::Armed;
+                    _owner->selectionPhase = SelectionPhase::Armed;
             }
         }
     };
 
     class SelectionMeasure
     {
-        EditDiagnostics *owner{};
-        SelectionComponent component{};
-        Clock::time_point start;
-        std::uint64_t startCycles{};
-        bool startCyclesValid{};
+        EditDiagnostics* _owner{};
+        SelectionComponent _component{};
+        Clock::time_point _start;
+        std::uint64_t _startCycles{};
+        bool _startCyclesValid{};
 
-      public:
-        SelectionMeasure(EditDiagnostics *value, SelectionComponent selected) noexcept : component(selected)
+    public:
+        SelectionMeasure(EditDiagnostics* value, SelectionComponent selected) noexcept : _component(selected)
         {
-            if (!value || value->selectionPhase == SelectionPhase::Disarmed || value->selectionPhase == SelectionPhase::Armed ||
+            if (! value || value->selectionPhase == SelectionPhase::Disarmed || value->selectionPhase == SelectionPhase::Armed ||
                 value->selectionPhase == SelectionPhase::Invalid)
                 return;
-            if (value->selectionPhase != SelectionPhase::InInvocation || static_cast<unsigned>(component) >= SelectionCount)
+            if (value->selectionPhase != SelectionPhase::InInvocation || static_cast<unsigned>(_component) >= SelectionCount)
             {
                 value->selectionPhase = SelectionPhase::Invalid;
                 return;
             }
-            owner = value;
-            owner->selectionPhase = SelectionPhase::InComponent;
-            start = Clock::now();
+            _owner                 = value;
+            _owner->selectionPhase = SelectionPhase::InComponent;
+            _start                 = Clock::now();
             ULONG64 cycles{};
-            startCyclesValid = QueryThreadCycleTime(GetCurrentThread(), &cycles) != FALSE;
-            if (!startCyclesValid)
-                owner->selectionPhase = SelectionPhase::Invalid;
-            startCycles = cycles;
+            _startCyclesValid = QueryThreadCycleTime(GetCurrentThread(), &cycles) != FALSE;
+            if (! _startCyclesValid)
+                _owner->selectionPhase = SelectionPhase::Invalid;
+            _startCycles = cycles;
         }
-        SelectionMeasure(const SelectionMeasure &) = delete;
-        SelectionMeasure &operator=(const SelectionMeasure &) = delete;
+        SelectionMeasure(const SelectionMeasure&)            = delete;
+        SelectionMeasure& operator=(const SelectionMeasure&) = delete;
         ~SelectionMeasure() noexcept
         {
-            if (!owner)
+            if (! _owner)
                 return;
             const auto now = Clock::now();
             ULONG64 cycles{};
-            const auto index = static_cast<unsigned>(component);
+            const auto index          = static_cast<unsigned>(_component);
             const bool endCyclesValid = QueryThreadCycleTime(GetCurrentThread(), &cycles) != FALSE;
-            if (!startCyclesValid || !endCyclesValid || cycles < startCycles)
-                owner->selectionPhase = SelectionPhase::Invalid;
-            else if (owner->selectionPhase == SelectionPhase::InComponent)
+            if (! _startCyclesValid || ! endCyclesValid || cycles < _startCycles)
+                _owner->selectionPhase = SelectionPhase::Invalid;
+            else if (_owner->selectionPhase == SelectionPhase::InComponent)
             {
-                owner->selection.wallUs[index] += std::chrono::duration<double, std::micro>(now - start).count();
-                owner->selection.cpuCycles[index] += cycles - startCycles;
-                ++owner->selection.calls[index];
-                owner->selectionPhase = SelectionPhase::InInvocation;
+                _owner->selection.wallUs[index] += std::chrono::duration<double, std::micro>(now - _start).count();
+                _owner->selection.cpuCycles[index] += cycles - _startCycles;
+                ++_owner->selection.calls[index];
+                _owner->selectionPhase = SelectionPhase::InInvocation;
             }
         }
     };
@@ -217,24 +217,24 @@ struct EditDiagnostics
     {
         previous = Clock::now();
         ULONG64 cycles{};
-        valid = QueryThreadCycleTime(GetCurrentThread(), &cycles) != FALSE;
+        valid          = QueryThreadCycleTime(GetCurrentThread(), &cycles) != FALSE;
         previousCycles = cycles;
     }
     void Mark(EditPhase phase) noexcept
     {
         const auto now = Clock::now();
         ULONG64 cycles{};
-        const bool read = QueryThreadCycleTime(GetCurrentThread(), &cycles) != FALSE;
+        const bool read  = QueryThreadCycleTime(GetCurrentThread(), &cycles) != FALSE;
         const auto index = static_cast<unsigned>(phase);
-        if (index != nextPhase || index >= Count || !read || cycles < previousCycles)
+        if (index != nextPhase || index >= Count || ! read || cycles < previousCycles)
         {
             valid = false;
             return;
         }
-        wallUs[index] = std::chrono::duration<double, std::micro>(now - previous).count();
+        wallUs[index]    = std::chrono::duration<double, std::micro>(now - previous).count();
         cpuCycles[index] = cycles - previousCycles;
-        previous = now;
-        previousCycles = cycles;
+        previous         = now;
+        previousCycles   = cycles;
         ++nextPhase;
     }
     [[nodiscard]] bool Complete() const noexcept

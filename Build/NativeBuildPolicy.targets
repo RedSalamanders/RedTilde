@@ -15,6 +15,7 @@
     <ExternalIncludePath Condition="'$(VcpkgInstalledDir)'!='' and '$(RedXeVcpkgTriplet)'!=''">$(ExternalIncludePath);$(VcpkgInstalledDir)$(RedXeVcpkgTriplet)\include</ExternalIncludePath>
     <ExternalIncludePath Condition="'$(VcpkgInstalledDir)'!='' and '$(RedPrismVcpkgTriplet)'!=''">$(ExternalIncludePath);$(VcpkgInstalledDir)$(RedPrismVcpkgTriplet)\include</ExternalIncludePath>
     <ExternalIncludePath Condition="'$(VcpkgInstalledDir)'!='' and '$(RSVcpkgTriplet)'!=''">$(ExternalIncludePath);$(VcpkgInstalledDir)$(RSVcpkgTriplet)\include</ExternalIncludePath>
+    <ExternalIncludePath Condition="'$(VcpkgInstalledDir)'!='' and '$(RedTildeVcpkgTriplet)'!=''">$(ExternalIncludePath);$(VcpkgInstalledDir)$(RedTildeVcpkgTriplet)\include</ExternalIncludePath>
     <ExternalIncludePath Condition="Exists('$(MSBuildThisFileDirectory)..\ThirdParty\RedMonitor\include')">$(ExternalIncludePath);$(MSBuildThisFileDirectory)..\ThirdParty\RedMonitor\include</ExternalIncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(MSBuildProjectExtension)'=='.vcxproj'">

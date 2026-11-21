@@ -24,9 +24,9 @@ namespace Detail
 [[nodiscard]] inline std::wstring_view LoadEmbeddedStringResourceView(HMODULE module, UINT id) noexcept
 {
     const HMODULE instance = module ? module : GetModuleHandleW(nullptr);
-    if (!instance)
+    if (! instance)
         return {};
-    const wchar_t *value{};
+    const wchar_t* value{};
     const int length = LoadStringW(instance, id, reinterpret_cast<LPWSTR>(&value), 0);
     // The module owns this immutable resource storage while loaded.
     // Resolve each request so the calling thread's resource language still applies.
@@ -47,7 +47,7 @@ namespace Detail
     {
         return std::wstring(view);
     }
-    catch (const std::bad_alloc &)
+    catch (const std::bad_alloc&)
     {
         Detail::FailResourceAllocation();
     }
@@ -58,7 +58,7 @@ namespace Detail
     return LoadEmbeddedStringResource(module, id);
 }
 
-template <class... Args> [[nodiscard]] inline std::wstring FormatEmbeddedStringResource(HMODULE module, UINT id, Args &&...args) noexcept
+template <class... Args> [[nodiscard]] inline std::wstring FormatEmbeddedStringResource(HMODULE module, UINT id, Args&&... args) noexcept
 {
     std::wstring pattern = LoadEmbeddedStringResource(module, id);
     if (pattern.empty())
@@ -69,17 +69,17 @@ template <class... Args> [[nodiscard]] inline std::wstring FormatEmbeddedStringR
     {
         return std::vformat(std::wstring_view{pattern}, std::make_wformat_args(args...));
     }
-    catch (const std::bad_alloc &)
+    catch (const std::bad_alloc&)
     {
         Detail::FailResourceAllocation();
     }
-    catch (const std::format_error &)
+    catch (const std::format_error&)
     {
         return pattern;
     }
 }
 
-template <class... Args> [[nodiscard]] inline std::wstring FormatStringResource(HMODULE module, UINT id, Args &&...args) noexcept
+template <class... Args> [[nodiscard]] inline std::wstring FormatStringResource(HMODULE module, UINT id, Args&&... args) noexcept
 {
     return FormatEmbeddedStringResource(module, id, std::forward<Args>(args)...);
 }

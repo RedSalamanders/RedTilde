@@ -11,9 +11,8 @@ namespace RedTilde::Testing
 // eight BGRA bytes, making file-cache refresh independently observable.
 inline std::vector<std::byte> ImageBitmapFixture(bool singlePixel = false)
 {
-    constexpr std::array<unsigned char, 62> bytes{0x42, 0x4d, 62, 0, 0, 0, 0, 0,  0, 0, 54, 0, 0, 0, 40,  0,   0, 0, 2, 0, 0,
-                                                  0,    1,    0,  0, 0, 1, 0, 24, 0, 0, 0,  0, 0, 8, 0,   0,   0, 0, 0, 0, 0,
-                                                  0,    0,    0,  0, 0, 0, 0, 0,  0, 0, 0,  0, 0, 0, 255, 255, 0, 0, 0, 0};
+    constexpr std::array<unsigned char, 62> bytes{0x42, 0x4d, 62, 0, 0, 0, 0, 0, 0, 0, 54, 0, 0, 0, 40, 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0,   1,   0, 24, 0, 0,
+                                                  0,    0,    0,  8, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 0, 0,  0, 0};
     std::vector<std::byte> result(bytes.size());
     std::memcpy(result.data(), bytes.data(), bytes.size());
     if (singlePixel)

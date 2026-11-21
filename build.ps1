@@ -73,6 +73,9 @@ if($DxUiSdkInputDescriptor){
     }else{Write-Host 'Exact pinned SDK input unavailable; retaining the governed source recipe.'}
 }
 if (-not $SkipRestore -and $null -eq $sdkInput) { & (Join-Path $PSScriptRoot 'restore-dxui.ps1') -Platform $Platform }
+if (-not $SkipRestore) {
+    & (Join-Path $PSScriptRoot 'vcpkg-install.ps1') -Platform $Platform -Asan:($Configuration -eq 'ASan Debug') -MSBuildPath $msbuild
+}
 $canonicalDirectories=Assert-RedTildeCanonicalBuildDirectories -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
 $msbuild=Get-RedTildeMSBuild
 $logDirectory=Join-Path $PSScriptRoot '.build/logs'

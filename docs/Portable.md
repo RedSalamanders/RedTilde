@@ -36,7 +36,7 @@ Portable ZIPs packaged with `package.ps1` use the **production-only Release** ro
 
 ## User Data, Privacy & Recovery
 
-- **Data Location:** Preferences (`RedTilde.settings`), recovery snapshots (`Recovery/`), pasted clipboard assets (`Assets/`), and local crash reports (`Crashes/`) live under `%LOCALAPPDATA%\RedTilde`. Nothing is uploaded automatically.
+- **Data Location:** Preferences (`RedTilde.settings.json`, or `RedTilde-debug.settings.json` in debug builds), recovery snapshots (`Recovery/`), pasted clipboard assets (`Assets/`), and local crash reports (`Crashes/`) live under `%LOCALAPPDATA%\RedTilde`. Nothing is uploaded automatically.
 - **Encoding & Safe Saves:** Accepts valid UTF-8 Markdown up to `65,536` UTF-16 units, preserving UTF-8 BOM and `LF`/`CRLF`/`CR`/mixed line endings. Rejects invalid UTF-8, NUL bytes, or oversized files without truncation, saves atomically with external-change conflict prompts, and preserves hardlink aliases via independent recovery protection.
 - **Auto-Recovery:** Checkpoints unsaved edits after `750 ms` of quiet (at most `5 s` under continuous typing) and offers a source preview on restart (`Restore a copy`, `Discard snapshot`, `Keep for later`, `Restore all copies`). Restored copies require **Save as…**.
 - **Privacy Defaults:** Remote `http(s)://` images, local-network/UNC images, `data:` URIs, and `![[wiki]]` embeds are blocked by default. Markdown HTML, scripts, and Mermaid interaction directives never execute. External `http:`, `https:`, and `mailto:` links open only on explicit `Ctrl+Click` or **Open link** confirmation.

@@ -60,6 +60,28 @@ function Get-RedTildePinnedBuildArguments {
 Export-ModuleMember -Function Get-RedTildePinnedBuildArguments
 
 function Get-RedTildeClangFormat {
+    param([string] $Root = (Split-Path $PSScriptRoot -Parent))
+    $repoRoot = [IO.Path]::GetFullPath($Root)
+    $engine = Join-Path $repoRoot '.ci-engine'
+    if (Test-Path -LiteralPath $engine -PathType Container) {
+        $modules = Join-Path $engine 'Tools/Modules'
+        $formatModule = Join-Path $modules 'Ci.Format.psm1'
+        $policyModule = Join-Path $modules 'Ci.Policy.psm1'
+        $projectManifest = Join-Path $repoRoot '.ci/project.json'
+        if (-not (Test-Path -LiteralPath $formatModule -PathType Leaf) -or
+            -not (Test-Path -LiteralPath $policyModule -PathType Leaf) -or
+            -not (Test-Path -LiteralPath $projectManifest -PathType Leaf)) {
+            throw 'The shared CI engine in .ci-engine is incomplete or .ci/project.json is missing; restore .ci-engine at the pinned engine.ref.'
+        }
+        Import-Module $policyModule -ErrorAction Stop
+        Import-Module $formatModule -ErrorAction Stop
+        $project = Read-CiProject $repoRoot
+        $engineHead = (Invoke-CiGit $engine @('rev-parse', 'HEAD')).stdout.Trim()
+        if ($engineHead -cne $project.engine.ref) {
+            throw ".ci-engine is at $engineHead, but .ci/project.json pins $($project.engine.ref). Run: git -C .ci-engine fetch origin; git -C .ci-engine checkout --detach $($project.engine.ref)"
+        }
+        return Install-CiFormatter $repoRoot
+    }
     $command=Get-Command clang-format.exe -CommandType Application -ErrorAction SilentlyContinue|Select-Object -First 1
     if($command){return $command.Source}
     $msbuild=Get-RedTildeMSBuild

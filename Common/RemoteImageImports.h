@@ -10,10 +10,10 @@ namespace RedTilde::RemoteImageDetail
 // INTERNAL remote-image import policy, not a general DLL loader utility. The
 // header exposes this pure ABI-record mapping to behavioral tests without
 // raising exceptions, changing system DLLs or adding a public transport API.
-inline int WinHttpImportFailure(EXCEPTION_POINTERS *failure, HRESULT &result) noexcept
+inline int WinHttpImportFailure(EXCEPTION_POINTERS* failure, HRESULT& result) noexcept
 {
-    const auto *record = failure->ExceptionRecord;
-    const auto code = record->ExceptionCode;
+    const auto* record = failure->ExceptionRecord;
+    const auto code    = record->ExceptionCode;
     DWORD error{};
     if (code == VcppException(ERROR_SEVERITY_ERROR, ERROR_MOD_NOT_FOUND))
         error = ERROR_MOD_NOT_FOUND;
@@ -26,7 +26,7 @@ inline int WinHttpImportFailure(EXCEPTION_POINTERS *failure, HRESULT &result) no
     // with the coarser exception-category error.
     if (record->NumberParameters == 1)
     {
-        const auto *information = reinterpret_cast<const DelayLoadInfo *>(record->ExceptionInformation[0]);
+        const auto* information = reinterpret_cast<const DelayLoadInfo*>(record->ExceptionInformation[0]);
         if (information && information->cb == sizeof(DelayLoadInfo) && information->dwLastError)
             error = information->dwLastError;
     }

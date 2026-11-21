@@ -149,8 +149,9 @@ try {
         $preferences=Join-Path $run 'preferences-exit'
         $exit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--preferences-probe','--data-dir',$preferences) -LogPrefix (Join-Path $run 'preferences')
         if ($exit -ne 0) { throw 'Preference shutdown probe failed.' }
-        $savedPreferences=Get-Content (Join-Path $preferences 'RedTilde.settings') -Raw
-        if ($savedPreferences -notmatch '(?m)^theme=3\r?$') { throw 'Latest preferences were not durable after process exit.' }
+        $settingsFile=if($Configuration -eq 'Release'){'RedTilde.settings.json'}else{'RedTilde-debug.settings.json'}
+        $savedPreferences=Get-Content (Join-Path $preferences $settingsFile) -Raw | ConvertFrom-Json
+        if ([int]$savedPreferences.schema -ne 1 -or $savedPreferences.appearance -ne 'paper') { throw 'Latest preferences were not durable after process exit.' }
         $receipt.results+=@{scope='PreferencesProcessExit';latestStateDurable=$true}
     }
     if('RecoveryRestart' -in $Suites){

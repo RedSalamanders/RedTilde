@@ -75,9 +75,10 @@ Support x64/ARM64 Debug, Release and ASan Debug. ASan Debug must have compiler i
 staged runtime. Native tests must execute on the target architecture. `build.ps1` validates `Common/Version.h`
 (`REDTILDE_VERSION_MAJOR` and `REDTILDE_VERSION_MINOR`), checks that the compiled `RedTilde.exe` `FileVersionInfo`
 matches `$versionMajor.$versionMinor.$BuildNumber`, rejects a running executable from its selected output directory,
-and does not terminate it. Packaging (`package.ps1`) verifies `RedTilde.exe` `FileVersionInfo` against both the build
-receipt and `Common/Version.h`, stages `README.md` (`docs/Portable.md`), `capabilities.json`, `examples/`, `res/`,
-licenses (`LICENSE.txt`, `THIRD-PARTY-NOTICES.md`, `Dependencies/RedMonitor-LICENSE.txt`, `Dependencies/WIL-LICENSE.txt`,
+and does not terminate it. `RedTilde/RedTilde.vcxproj` (`CopySettingsSchema`) stages `SettingsStore.schema.json`
+beside `RedTilde.exe` in `$(OutDir)`. Packaging (`package.ps1`) verifies `RedTilde.exe` `FileVersionInfo` against both the build
+receipt and `Common/Version.h`, stages `SettingsStore.schema.json`, `README.md` (`docs/Portable.md`), `capabilities.json`, `examples/`, `res/`,
+licenses (`LICENSE.txt`, `THIRD-PARTY-NOTICES.md`, `Dependencies/RedMonitor-LICENSE.txt`, `Dependencies/yyjson-LICENSE.txt`, `Dependencies/WIL-LICENSE.txt`,
 `Dependencies/DxUi-LICENSE.txt`, `Dependencies/DxUi-THIRD-PARTY-NOTICES.md`, `Dependencies/docs/licenses/`,
 `Dependencies/libfyaml-LICENSE.txt`, `Dependencies/libfyaml-xxHash-LICENSE.txt`, or `Dependencies/DxUiSdk` in SDK-input
 packages), writes a `.sha256` sidecar beside the ZIP, and runs clean-extraction smoke (`--help`, `--version`, hidden
@@ -151,9 +152,22 @@ with spaces stay one argument; installer stdout, stderr and fresh `dd_*` logs re
 Delayed-GUI, stale-exit, wrong-family, missing-tool, signature and local/read-only refusal controls exercise the
 actual setup script without running an installer. `Tests/Tooling.Tests.ResourceStrings.ps1` checks `res/RedTilde.rc`
 (`#pragma code_page(65001)`), `res/Resource.h` parity, positional placeholders without printf specifiers, and C++
-`IDS_*` definitions during `validate.ps1`. `Build/ScopedTesting.psm1` exposes `Resolve-ScopedIterationDisposition`
+`IDS_*` definitions during `validate.ps1`. `Tests/Tooling.Tests.NamingStyle.ps1` validates root `.clang-tidy`
+(`bugprone-reserved-identifier`, `readability-identifier-naming` requiring `_camelCase` private/protected non-static
+members) and scans `Common/`, `RedTilde/`, and `Tests/` compiler-free during `validate.ps1`.
+`Tests/Tooling.Tests.RealLocations.ps1` verifies compiler-free in `validate.ps1` that the opt-in
+`Tools/Test-RealLocations.ps1` harness fails closed before touching disk on drive roots, `%USERPROFILE%`, Desktop,
+Documents, undeclared OneDrive, non-selftest UNC shares, relative/`. `/`..`/shallow UNC paths, and surrogate
+symlink/junction paths. `Build/ScopedTesting.psm1` exposes `Resolve-ScopedIterationDisposition`
 (`BaselineAdvanced`, `PartialRunRetained`, `FailedRetained`, `MutatedWorktreeRetained`, `CiPending`, `NothingSelected`)
 to enforce explicit iteration-baseline dispositions.
+
+### Pinned vcpkg dependencies and formatting (`yyjson`, `CV-6-05`)
+
+- **Manifest & tool pin**: `vcpkg.json` declares `yyjson` (`>= 0.13.0`) at `builtin-baseline` `aeb162b71d47950344248a4ebcac733e12f8a992`, matching `vcpkg-tool.json` (`aeb162b7`).
+- **Triplets & isolated `.build/` restore**: `Build/vcpkg-triplets/` defines `x64-windows-static-md.cmake`, `arm64-windows-static-md.cmake`, `x64-windows-static-md-asan.cmake`, `arm64-windows-static-md-asan.cmake`, and `asan-toolchain.cmake` (stripping `/RTC1` for `/fsanitize=address`). `vcpkg-install.ps1` discovers Visual Studio, checks `RequiredMsvcToolsVersion` (`14.52`), pins `VCPKG_VISUAL_STUDIO_PATH` and `VCPKG_PLATFORM_TOOLSET_VERSION` into `.build/vcpkg-triplets/` via `Build/VcpkgToolset.psm1`, and runs `vcpkg install` strictly inside `.build/` (`.build/vcpkg-tool`, `.build/vcpkg_installed`, `.build/vcpkg_buildtrees`, `.build/vcpkg_packages`) with `--binarysource=clear`, `VCPKG_DISABLE_METRICS=1`, and `VCPKG_DOWNLOADS` set to `.build/vcpkg-downloads`.
+- **Build identity binding**: `Get-RedTildeBuildInputSnapshot` hashes the restored `yyjson.h` and `yyjson.lib` into `vcpkgSha256` inside schema-2 build receipts alongside `VcpkgInstalledDir` and `RedTildeVcpkgTriplet`.
+- **Formatting (`CV-6-05`)**: Root `.clang-format` uses RedHome's shared 155-line C++23 style; `format.ps1 -Check` invokes the pinned CI formatter (`Install-CiFormatter`) under `.build/shared-format`.
 
 The [native policy, console and dependency-path contract](Build_ConsoleAndPaths.md) owns /Wall without /WX, zero-warning acceptance, Debug/ASan symbols, Release-only ICF, common terminal results and verified short dependency folders.
 

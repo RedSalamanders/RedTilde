@@ -26,19 +26,19 @@ namespace
 {
 void Require(bool condition, std::string_view message)
 {
-    if (!condition)
+    if (! condition)
         throw std::runtime_error(std::string(message));
 }
 void Success(HRESULT result, std::string_view message)
 {
     Require(SUCCEEDED(result), message);
 }
-void WriteFixture(const std::filesystem::path &path)
+void WriteFixture(const std::filesystem::path& path)
 {
     std::filesystem::create_directories(path.parent_path());
     Success(WriteBytesAtomic(path, "# Invented fixture\n"), "seed Files fixture");
 }
-FilesSnapshot AwaitSnapshot(FilesService &service, const std::function<bool(const FilesSnapshot &)> &expected)
+FilesSnapshot AwaitSnapshot(FilesService& service, const std::function<bool(const FilesSnapshot&)>& expected)
 {
     const auto end = std::chrono::steady_clock::now() + std::chrono::seconds(10);
     while (std::chrono::steady_clock::now() < end)
@@ -54,720 +54,711 @@ FilesSnapshot AwaitSnapshot(FilesService &service, const std::function<bool(cons
 
 class FilesProbe
 {
-  public:
-    static void SelectRoot(Application &app, const std::filesystem::path &path)
+public:
+    static void SelectRoot(Application& app, const std::filesystem::path& path)
     {
         app.SelectFilesRoot(path);
     }
-    static FilesService &Service(Application &app) noexcept
+    static FilesService& Service(Application& app) noexcept
     {
-        return app.folderFiles;
+        return app._folderFiles;
     }
-    static const std::optional<FilesSnapshot> &Snapshot(const Application &app) noexcept
+    static const std::optional<FilesSnapshot>& Snapshot(const Application& app) noexcept
     {
-        return app.folderSnapshot;
+        return app._folderSnapshot;
     }
-    static const NavigationModel &Model(const Application &app) noexcept
+    static const NavigationModel& Model(const Application& app) noexcept
     {
-        return app.filesModel;
+        return app._filesModel;
     }
 };
 
-void RegisterFilesTests(const std::filesystem::path &root, const std::function<void(std::string_view, const std::function<void()> &)> &test)
+void RegisterFilesTests(const std::filesystem::path& root, const std::function<void(std::string_view, const std::function<void()>&)>& test)
 {
-    test(
-        "Editor.DocumentPositionIndexAndNewlineFacts",
-        []
+    test("Editor.DocumentPositionIndexAndNewlineFacts",
+         []
+    {
+        const auto referenceWordCount = [](std::wstring_view text)
         {
-            const auto referenceWordCount = [](std::wstring_view text)
+            std::size_t words{};
+            bool inWord{};
+            for (wchar_t value : text)
             {
-                std::size_t words{};
-                bool inWord{};
-                for (wchar_t value : text)
-                {
-                    const bool current = iswalnum(value) != 0 || value >= 0x2E80;
-                    if (current && !inWord)
-                        ++words;
-                    inWord = current;
-                }
-                return words;
-            };
-            for (unsigned value = 0; value < 128; ++value)
-            {
-                const wchar_t unit = static_cast<wchar_t>(value);
-                const std::wstring_view sample(&unit, 1);
-                Require(AnalyzeDocument(sample).words == referenceWordCount(sample), "each ASCII code unit preserves the legacy word classification");
+                const bool current = iswalnum(value) != 0 || value >= 0x2E80;
+                if (current && ! inWord)
+                    ++words;
+                inWord = current;
             }
-            for (unsigned first = 0; first < 128; ++first)
-                for (unsigned second = 0; second < 128; ++second)
-                {
-                    const std::array<wchar_t, 2> pair{{static_cast<wchar_t>(first), static_cast<wchar_t>(second)}};
-                    const std::wstring_view sample(pair.data(), pair.size());
-                    Require(AnalyzeDocument(sample).words == referenceWordCount(sample),
-                            "every ordered ASCII pair preserves legacy word-run boundaries");
-                }
-            Require(AnalyzeDocument(L"\u2E80\u2E81").words == 1, "the existing U+2E80-and-above rule keeps adjacent units in one word run");
-            const std::wstring crossScript = L"A\u00E9B \u03B1\u03B2 \u6771\u6772 A\U0001F600B\r\nC";
-            const auto crossScriptInfo = AnalyzeDocument(crossScript);
-            Require(crossScriptInfo.words == referenceWordCount(crossScript) &&
-                        crossScriptInfo.lineIndex == std::vector<DocumentLine>{{0, 14}, {16, 1}},
-                    "non-ASCII classification, supplementary UTF-16 units and CRLF retain legacy word and line facts");
-            const auto empty = AnalyzeDocument(L"");
-            Require(empty.lines == 1 && empty.lineIndex == std::vector<DocumentLine>{{0, 0}} && empty.newlineKind == DocumentNewlineKind::None &&
-                        DocumentPositionAt(empty, 0) == DocumentPosition{1, 1, 0, 0} &&
-                        DocumentPositionAt(empty, std::numeric_limits<std::size_t>::max()) == DocumentPosition{1, 1, 0, 0},
-                    "an empty revision retains one empty line and clamps oversized source ACPs");
-            const auto mixed = AnalyzeDocument(L"A😀\r\nB\n\rC\r\n");
-            const std::vector<DocumentLine> lines{{0, 3}, {5, 1}, {7, 0}, {8, 1}, {11, 0}};
-            const std::array<DocumentPosition, 12> positions{{{1, 1, 0, 3},
-                                                              {1, 2, 0, 3},
-                                                              {1, 3, 0, 3},
-                                                              {1, 4, 0, 3},
-                                                              {1, 4, 0, 3},
-                                                              {2, 1, 5, 1},
-                                                              {2, 2, 5, 1},
-                                                              {3, 1, 7, 0},
-                                                              {4, 1, 8, 1},
-                                                              {4, 2, 8, 1},
-                                                              {4, 2, 8, 1},
-                                                              {5, 1, 11, 0}}};
-            Require(mixed.characters == 11 && mixed.lines == lines.size() && mixed.lineIndex == lines &&
-                        mixed.newlineKind == DocumentNewlineKind::Mixed,
-                    "the revision-bound index preserves UTF-16 lengths, all three newline kinds, blank and final lines");
-            for (std::size_t caret = 0; caret < positions.size(); ++caret)
-                Require(DocumentPositionAt(mixed, caret) == positions[caret], "every mixed-EOL ACP matches independent line/column/count oracles");
-            Require(DocumentPositionAt(mixed, std::numeric_limits<std::size_t>::max()) == positions.back(),
-                    "an oversized ACP cannot overflow the terminal physical-line query");
-            for (const auto &[text, kind] : std::array<std::pair<std::wstring_view, DocumentNewlineKind>, 4>{{{L"word", DocumentNewlineKind::None},
-                                                                                                              {L"\n", DocumentNewlineKind::Lf},
-                                                                                                              {L"\r", DocumentNewlineKind::Cr},
-                                                                                                              {L"\r\n", DocumentNewlineKind::CrLf}}})
+            return words;
+        };
+        for (unsigned value = 0; value < 128; ++value)
+        {
+            const wchar_t unit = static_cast<wchar_t>(value);
+            const std::wstring_view sample(&unit, 1);
+            Require(AnalyzeDocument(sample).words == referenceWordCount(sample), "each ASCII code unit preserves the legacy word classification");
+        }
+        for (unsigned first = 0; first < 128; ++first)
+            for (unsigned second = 0; second < 128; ++second)
             {
-                const auto info = AnalyzeDocument(text);
-                Require(info.newlineKind == kind && info.lines == info.lineIndex.size(), "pure newline kinds remain distinct and line facts agree");
-                Require(DocumentPositionAt(info, text.size()).line == (kind == DocumentNewlineKind::None ? 1u : 2u),
-                        "each complete final terminator exposes an empty final physical line");
+                const std::array<wchar_t, 2> pair{{static_cast<wchar_t>(first), static_cast<wchar_t>(second)}};
+                const std::wstring_view sample(pair.data(), pair.size());
+                Require(AnalyzeDocument(sample).words == referenceWordCount(sample), "every ordered ASCII pair preserves legacy word-run boundaries");
             }
-            const auto crlf = AnalyzeDocument(L"a\r\nb\r\n");
-            Require(crlf.lineIndex == std::vector<DocumentLine>{{0, 1}, {3, 1}, {6, 0}} &&
-                        DocumentPositionAt(crlf, 1) == DocumentPosition{1, 2, 0, 1} && DocumentPositionAt(crlf, 2) == DocumentPosition{1, 2, 0, 1} &&
-                        DocumentPositionAt(crlf, 3) == DocumentPosition{2, 1, 3, 1},
-                    "CRLF is one indivisible terminator, never a third visible column or an early next-line start");
-            std::wstring maximumLines(65536, L'\n');
-            const auto large = AnalyzeDocument(maximumLines);
-            Require(large.lines == 65537 && large.lineIndex.size() == 65537 && large.newlineKind == DocumentNewlineKind::Lf &&
-                        DocumentPositionAt(large, 32768) == DocumentPosition{32769, 1, 32768, 0} &&
-                        DocumentPositionAt(large, 65536) == DocumentPosition{65537, 1, 65536, 0},
-                    "the admitted worst-case line count has exact bounded index/position facts");
-            std::wstring headings;
-            for (unsigned index = 0; index < 140; ++index)
-                headings += L"# Heading\n";
-            const auto capped = AnalyzeDocument(headings);
-            Require(capped.headings.size() == 128 && capped.lines == 141 && capped.lineIndex.size() == 141 &&
-                        DocumentPositionAt(capped, headings.size()) == DocumentPosition{141, 1, headings.size(), 0} &&
-                        DocumentPositionAt(mixed, 5) == positions[5],
-                    "new revision facts retain the 128-heading bound and never mutate an older analyzed revision");
-            const auto sameMetadata = [](const DocumentInfo &left, const DocumentInfo &right)
+        Require(AnalyzeDocument(L"\u2E80\u2E81").words == 1, "the existing U+2E80-and-above rule keeps adjacent units in one word run");
+        const std::wstring crossScript = L"A\u00E9B \u03B1\u03B2 \u6771\u6772 A\U0001F600B\r\nC";
+        const auto crossScriptInfo     = AnalyzeDocument(crossScript);
+        Require(crossScriptInfo.words == referenceWordCount(crossScript) && crossScriptInfo.lineIndex == std::vector<DocumentLine>{{0, 14}, {16, 1}},
+                "non-ASCII classification, supplementary UTF-16 units and CRLF retain legacy word and line facts");
+        const auto empty = AnalyzeDocument(L"");
+        Require(empty.lines == 1 && empty.lineIndex == std::vector<DocumentLine>{{0, 0}} && empty.newlineKind == DocumentNewlineKind::None &&
+                    DocumentPositionAt(empty, 0) == DocumentPosition{1, 1, 0, 0} &&
+                    DocumentPositionAt(empty, std::numeric_limits<std::size_t>::max()) == DocumentPosition{1, 1, 0, 0},
+                "an empty revision retains one empty line and clamps oversized source ACPs");
+        const auto mixed = AnalyzeDocument(L"A😀\r\nB\n\rC\r\n");
+        const std::vector<DocumentLine> lines{{0, 3}, {5, 1}, {7, 0}, {8, 1}, {11, 0}};
+        const std::array<DocumentPosition, 12> positions{{{1, 1, 0, 3},
+                                                          {1, 2, 0, 3},
+                                                          {1, 3, 0, 3},
+                                                          {1, 4, 0, 3},
+                                                          {1, 4, 0, 3},
+                                                          {2, 1, 5, 1},
+                                                          {2, 2, 5, 1},
+                                                          {3, 1, 7, 0},
+                                                          {4, 1, 8, 1},
+                                                          {4, 2, 8, 1},
+                                                          {4, 2, 8, 1},
+                                                          {5, 1, 11, 0}}};
+        Require(mixed.characters == 11 && mixed.lines == lines.size() && mixed.lineIndex == lines && mixed.newlineKind == DocumentNewlineKind::Mixed,
+                "the revision-bound index preserves UTF-16 lengths, all three newline kinds, blank and final lines");
+        for (std::size_t caret = 0; caret < positions.size(); ++caret)
+            Require(DocumentPositionAt(mixed, caret) == positions[caret], "every mixed-EOL ACP matches independent line/column/count oracles");
+        Require(DocumentPositionAt(mixed, std::numeric_limits<std::size_t>::max()) == positions.back(),
+                "an oversized ACP cannot overflow the terminal physical-line query");
+        for (const auto& [text, kind] : std::array<std::pair<std::wstring_view, DocumentNewlineKind>, 4>{{{L"word", DocumentNewlineKind::None},
+                                                                                                          {L"\n", DocumentNewlineKind::Lf},
+                                                                                                          {L"\r", DocumentNewlineKind::Cr},
+                                                                                                          {L"\r\n", DocumentNewlineKind::CrLf}}})
+        {
+            const auto info = AnalyzeDocument(text);
+            Require(info.newlineKind == kind && info.lines == info.lineIndex.size(), "pure newline kinds remain distinct and line facts agree");
+            Require(DocumentPositionAt(info, text.size()).line == (kind == DocumentNewlineKind::None ? 1u : 2u),
+                    "each complete final terminator exposes an empty final physical line");
+        }
+        const auto crlf = AnalyzeDocument(L"a\r\nb\r\n");
+        Require(crlf.lineIndex == std::vector<DocumentLine>{{0, 1}, {3, 1}, {6, 0}} && DocumentPositionAt(crlf, 1) == DocumentPosition{1, 2, 0, 1} &&
+                    DocumentPositionAt(crlf, 2) == DocumentPosition{1, 2, 0, 1} && DocumentPositionAt(crlf, 3) == DocumentPosition{2, 1, 3, 1},
+                "CRLF is one indivisible terminator, never a third visible column or an early next-line start");
+        std::wstring maximumLines(65536, L'\n');
+        const auto large = AnalyzeDocument(maximumLines);
+        Require(large.lines == 65537 && large.lineIndex.size() == 65537 && large.newlineKind == DocumentNewlineKind::Lf &&
+                    DocumentPositionAt(large, 32768) == DocumentPosition{32769, 1, 32768, 0} &&
+                    DocumentPositionAt(large, 65536) == DocumentPosition{65537, 1, 65536, 0},
+                "the admitted worst-case line count has exact bounded index/position facts");
+        std::wstring headings;
+        for (unsigned index = 0; index < 140; ++index)
+            headings += L"# Heading\n";
+        const auto capped = AnalyzeDocument(headings);
+        Require(capped.headings.size() == 128 && capped.lines == 141 && capped.lineIndex.size() == 141 &&
+                    DocumentPositionAt(capped, headings.size()) == DocumentPosition{141, 1, headings.size(), 0} && DocumentPositionAt(mixed, 5) == positions[5],
+                "new revision facts retain the 128-heading bound and never mutate an older analyzed revision");
+        const auto sameMetadata = [](const DocumentInfo& left, const DocumentInfo& right)
+        {
+            return left.words == right.words && left.characters == right.characters && left.lines == right.lines && left.newlineKind == right.newlineKind &&
+                   left.lineIndex == right.lineIndex && left.headings.size() == right.headings.size() &&
+                   std::equal(left.headings.begin(), left.headings.end(), right.headings.begin(), [](const Heading& a, const Heading& b) {
+                return a.level == b.level && a.offset == b.offset && a.text == b.text;
+            });
+        };
+        for (const std::wstring_view sample : {std::wstring_view{},
+                                               std::wstring_view{L"\n"},
+                                               std::wstring_view{L"\r"},
+                                               std::wstring_view{L"\r\n"},
+                                               std::wstring_view{L"A😀\r\nB\n\rC\r\n"},
+                                               std::wstring_view{crossScript},
+                                               std::wstring_view{headings},
+                                               std::wstring_view{maximumLines},
+                                               std::wstring_view{L"# 東京\r\n```md\n# hidden\n```\n## Tail ##\r"}})
+        {
+            const auto reference = AnalyzeDocument(sample);
+            DocumentLineIndexStorage storagePath;
+            const auto stored = storagePath.Analyze(sample);
+            Require(sameMetadata(stored, reference), "reusable analysis preserves every literal metadata field");
+            for (std::size_t caret = 0; caret <= sample.size(); ++caret)
+                Require(DocumentPositionAt(stored, caret) == DocumentPositionAt(reference, caret),
+                        "reusable analysis preserves every literal source ACP including CRLF and terminal empty lines");
+            for (const auto hint : {std::size_t{}, std::size_t{1}, reference.lines, std::numeric_limits<std::size_t>::max()})
             {
-                return left.words == right.words && left.characters == right.characters && left.lines == right.lines &&
-                       left.newlineKind == right.newlineKind && left.lineIndex == right.lineIndex && left.headings.size() == right.headings.size() &&
-                       std::equal(left.headings.begin(), left.headings.end(), right.headings.begin(),
-                                  [](const Heading &a, const Heading &b) { return a.level == b.level && a.offset == b.offset && a.text == b.text; });
-            };
-            for (const std::wstring_view sample :
-                 {std::wstring_view{}, std::wstring_view{L"\n"}, std::wstring_view{L"\r"}, std::wstring_view{L"\r\n"},
-                  std::wstring_view{L"A😀\r\nB\n\rC\r\n"}, std::wstring_view{crossScript}, std::wstring_view{headings},
-                  std::wstring_view{maximumLines}, std::wstring_view{L"# 東京\r\n```md\n# hidden\n```\n## Tail ##\r"}})
-            {
-                const auto reference = AnalyzeDocument(sample);
-                DocumentLineIndexStorage storagePath;
-                const auto stored = storagePath.Analyze(sample);
-                Require(sameMetadata(stored, reference), "reusable analysis preserves every literal metadata field");
+                const auto hinted = AnalyzeDocument(sample, hint);
+                Require(sameMetadata(hinted, reference), "zero, stale, exact and oversized capacity hints preserve every derived metadata field");
                 for (std::size_t caret = 0; caret <= sample.size(); ++caret)
-                    Require(DocumentPositionAt(stored, caret) == DocumentPositionAt(reference, caret),
-                            "reusable analysis preserves every literal source ACP including CRLF and terminal empty lines");
-                for (const auto hint : {std::size_t{}, std::size_t{1}, reference.lines, std::numeric_limits<std::size_t>::max()})
-                {
-                    const auto hinted = AnalyzeDocument(sample, hint);
-                    Require(sameMetadata(hinted, reference), "zero, stale, exact and oversized capacity hints preserve every derived metadata field");
-                    for (std::size_t caret = 0; caret <= sample.size(); ++caret)
-                        Require(DocumentPositionAt(hinted, caret) == DocumentPositionAt(reference, caret),
-                                "a capacity hint never changes any source ACP's physical-line facts");
-                }
+                    Require(DocumentPositionAt(hinted, caret) == DocumentPositionAt(reference, caret),
+                            "a capacity hint never changes any source ACP's physical-line facts");
             }
-            const auto smaller = AnalyzeDocument(L"A😀\r\nB", large.lines);
-            Require(smaller.lineIndex == std::vector<DocumentLine>{{0, 3}, {5, 1}} && smaller.lineIndex.capacity() <= 7 &&
-                        smaller.lineIndex.capacity() < large.lineIndex.size() && large.lineIndex.size() == 65537,
-                    "a many-line predecessor cannot retain its large line storage in a small replacement or mutate the older result");
-            DocumentLineIndexStorage storage;
-            auto active = storage.Analyze(L"A\r\nB\n", 0);
-            auto warmup = storage.Analyze(L"A\r\nB\n", active.lines);
-            using std::swap;
-            swap(active, warmup);
-            storage.Retire(std::move(warmup.lineIndex), active.lines);
-            const auto coldGrowths = storage.Stats().capacityGrowthCount;
-            const auto coldNormalizations = storage.Stats().capacityNormalizationCount;
-            for (std::size_t edit = 0; edit < 32; ++edit)
-            {
-                const std::wstring_view text = edit % 2 ? L"A\r\nB\n" : L"A\nB\r";
-                auto next = storage.Analyze(text, active.lines);
-                const auto reference = AnalyzeDocument(text);
-                Require(sameMetadata(next, reference), "reused line storage preserves literal metadata and heading facts");
-                for (std::size_t caret = 0; caret <= text.size(); ++caret)
-                    Require(DocumentPositionAt(next, caret) == DocumentPositionAt(reference, caret),
-                            "reused physical line storage preserves every ACP query after edit/undo-shaped revisions");
-                swap(active, next);
-                storage.Retire(std::move(next.lineIndex), active.lines);
-            }
-            Require(storage.Stats().reuseCount >= 31 && storage.Stats().capacityGrowthCount == coldGrowths &&
-                        storage.Stats().capacityNormalizationCount == coldNormalizations && storage.Stats().spareCapacity <= 64 &&
-                        storage.Stats().activeCapacity <= 64,
-                    "steady small edit/undo-shaped revisions reuse bounded line storage without repeated capacity growth");
+        }
+        const auto smaller = AnalyzeDocument(L"A😀\r\nB", large.lines);
+        Require(smaller.lineIndex == std::vector<DocumentLine>{{0, 3}, {5, 1}} && smaller.lineIndex.capacity() <= 7 &&
+                    smaller.lineIndex.capacity() < large.lineIndex.size() && large.lineIndex.size() == 65537,
+                "a many-line predecessor cannot retain its large line storage in a small replacement or mutate the older result");
+        DocumentLineIndexStorage storage;
+        auto active = storage.Analyze(L"A\r\nB\n", 0);
+        auto warmup = storage.Analyze(L"A\r\nB\n", active.lines);
+        using std::swap;
+        swap(active, warmup);
+        storage.Retire(std::move(warmup.lineIndex), active.lines);
+        const auto coldGrowths        = storage.Stats().capacityGrowthCount;
+        const auto coldNormalizations = storage.Stats().capacityNormalizationCount;
+        for (std::size_t edit = 0; edit < 32; ++edit)
+        {
+            const std::wstring_view text = edit % 2 ? L"A\r\nB\n" : L"A\nB\r";
+            auto next                    = storage.Analyze(text, active.lines);
+            const auto reference         = AnalyzeDocument(text);
+            Require(sameMetadata(next, reference), "reused line storage preserves literal metadata and heading facts");
+            for (std::size_t caret = 0; caret <= text.size(); ++caret)
+                Require(DocumentPositionAt(next, caret) == DocumentPositionAt(reference, caret),
+                        "reused physical line storage preserves every ACP query after edit/undo-shaped revisions");
+            swap(active, next);
+            storage.Retire(std::move(next.lineIndex), active.lines);
+        }
+        Require(storage.Stats().reuseCount >= 31 && storage.Stats().capacityGrowthCount == coldGrowths &&
+                    storage.Stats().capacityNormalizationCount == coldNormalizations && storage.Stats().spareCapacity <= 64 &&
+                    storage.Stats().activeCapacity <= 64,
+                "steady small edit/undo-shaped revisions reuse bounded line storage without repeated capacity growth");
 
-            DocumentLineIndexStorage largeToTinyStorage;
-            auto manyLines = largeToTinyStorage.Analyze(maximumLines);
-            auto longLine = largeToTinyStorage.Analyze(std::wstring(65536, L'x'), manyLines.lines);
-            swap(manyLines, longLine);
-            largeToTinyStorage.Retire(std::move(longLine.lineIndex), manyLines.lines);
-            Require(manyLines.lines == 1 && manyLines.characters == 65536 && manyLines.lineIndex.size() == 1 &&
-                        manyLines.lineIndex.front() == DocumentLine{0, 65536} && manyLines.lineIndex.capacity() <= 64 &&
-                        largeToTinyStorage.Stats().spareCapacity <= 64 && largeToTinyStorage.Stats().droppedSpareCount != 0,
-                    "many-lines to one maximum-length line drops the oversized retired index and keeps exact source facts");
-            std::wstring beyondSpareCap(20000, L'\n');
-            DocumentLineIndexStorage largeSteadyStorage;
-            auto largeActive = largeSteadyStorage.Analyze(beyondSpareCap);
-            auto largeNext = largeSteadyStorage.Analyze(beyondSpareCap, largeActive.lines);
-            swap(largeActive, largeNext);
-            largeSteadyStorage.Retire(std::move(largeNext.lineIndex), largeActive.lines);
-            const auto firstLargeGrowths = largeSteadyStorage.Stats().capacityGrowthCount;
-            auto largeThird = largeSteadyStorage.Analyze(beyondSpareCap, largeActive.lines);
-            Require(sameMetadata(largeThird, AnalyzeDocument(beyondSpareCap)) && largeThird.lineIndex.capacity() <= 2 * largeThird.lines &&
-                        largeSteadyStorage.Stats().spareCapacity <= 16384 && largeSteadyStorage.Stats().reuseCount == 0,
-                    "documents beyond the hard spare cap use the prior line-count hint and bound active capacity without false reuse");
-            swap(largeActive, largeThird);
-            largeSteadyStorage.Retire(std::move(largeThird.lineIndex), largeActive.lines);
-            const auto largeThirdGrowths = largeSteadyStorage.Stats().capacityGrowthCount - firstLargeGrowths;
-            auto largeFourth = largeSteadyStorage.Analyze(beyondSpareCap, largeActive.lines);
-            Require(largeThirdGrowths == 1 && sameMetadata(largeFourth, AnalyzeDocument(beyondSpareCap)) &&
-                        largeFourth.lineIndex.capacity() <= 2 * largeFourth.lines,
-                    "steady revisions above the spare cap perform one hinted growth rather than repeated geometric growth");
-        });
+        DocumentLineIndexStorage largeToTinyStorage;
+        auto manyLines = largeToTinyStorage.Analyze(maximumLines);
+        auto longLine  = largeToTinyStorage.Analyze(std::wstring(65536, L'x'), manyLines.lines);
+        swap(manyLines, longLine);
+        largeToTinyStorage.Retire(std::move(longLine.lineIndex), manyLines.lines);
+        Require(manyLines.lines == 1 && manyLines.characters == 65536 && manyLines.lineIndex.size() == 1 &&
+                    manyLines.lineIndex.front() == DocumentLine{0, 65536} && manyLines.lineIndex.capacity() <= 64 &&
+                    largeToTinyStorage.Stats().spareCapacity <= 64 && largeToTinyStorage.Stats().droppedSpareCount != 0,
+                "many-lines to one maximum-length line drops the oversized retired index and keeps exact source facts");
+        std::wstring beyondSpareCap(20000, L'\n');
+        DocumentLineIndexStorage largeSteadyStorage;
+        auto largeActive = largeSteadyStorage.Analyze(beyondSpareCap);
+        auto largeNext   = largeSteadyStorage.Analyze(beyondSpareCap, largeActive.lines);
+        swap(largeActive, largeNext);
+        largeSteadyStorage.Retire(std::move(largeNext.lineIndex), largeActive.lines);
+        const auto firstLargeGrowths = largeSteadyStorage.Stats().capacityGrowthCount;
+        auto largeThird              = largeSteadyStorage.Analyze(beyondSpareCap, largeActive.lines);
+        Require(sameMetadata(largeThird, AnalyzeDocument(beyondSpareCap)) && largeThird.lineIndex.capacity() <= 2 * largeThird.lines &&
+                    largeSteadyStorage.Stats().spareCapacity <= 16384 && largeSteadyStorage.Stats().reuseCount == 0,
+                "documents beyond the hard spare cap use the prior line-count hint and bound active capacity without false reuse");
+        swap(largeActive, largeThird);
+        largeSteadyStorage.Retire(std::move(largeThird.lineIndex), largeActive.lines);
+        const auto largeThirdGrowths = largeSteadyStorage.Stats().capacityGrowthCount - firstLargeGrowths;
+        auto largeFourth             = largeSteadyStorage.Analyze(beyondSpareCap, largeActive.lines);
+        Require(largeThirdGrowths == 1 && sameMetadata(largeFourth, AnalyzeDocument(beyondSpareCap)) &&
+                    largeFourth.lineIndex.capacity() <= 2 * largeFourth.lines,
+                "steady revisions above the spare cap perform one hinted growth rather than repeated geometric growth");
+    });
     test("Files.MarkdownTreeNaturalOrderAndFilter",
          [&]
-         {
-             const auto directory = root / L"files-tree";
-             for (const auto name : {L"Archive2/draft10.MarkDown", L"Archive2/draft2.md", L"Archive10/nested/one.md", L"Empty/readme.txt",
-                                     L"report10.md", L"report2.MD", L"ordinary.txt", L"hidden.md", L"system.markdown", L"Secret/omitted.md"})
-                 WriteFixture(directory / name);
-             Require(SetFileAttributesW((directory / L"hidden.md").c_str(), FILE_ATTRIBUTE_HIDDEN) != FALSE, "hide fixture file");
-             Require(SetFileAttributesW((directory / L"system.markdown").c_str(), FILE_ATTRIBUTE_SYSTEM) != FALSE, "mark fixture system file");
-             Require(SetFileAttributesW((directory / L"Secret").c_str(), FILE_ATTRIBUTE_HIDDEN) != FALSE, "hide fixture folder");
-             const auto snapshot = EnumerateMarkdownFiles(directory);
-             Success(snapshot.status, "enumerate fixture");
-             const std::array<std::wstring_view, 8> names{L"Archive2", L"draft2.md", L"draft10.MarkDown", L"Archive10",
-                                                          L"nested",   L"one.md",    L"report2.MD",       L"report10.md"};
-             Require(snapshot.entries.size() == names.size() && snapshot.markdownCount == 5, "only visible Markdown and populated ancestors remain");
-             for (std::size_t index = 0; index < names.size(); ++index)
-                 Require(snapshot.entries[index].name == names[index], "directory-first natural preorder matches independent names");
-             Require(snapshot.entries[0].markdownCount == 2 && snapshot.entries[3].markdownCount == 1 && snapshot.entries[5].parent == 4 &&
-                         snapshot.entries[4].parent == 3 && snapshot.entries[0].parent == NoFilesParent,
-                     "counts and hierarchical parent indexes retained");
-             Require(FilterMarkdownFiles(snapshot, L"DRAFT2") == std::vector<std::size_t>{0, 1}, "case-insensitive name filter retains ancestors");
-             Require(FilterMarkdownFiles(snapshot, L"one") == std::vector<std::size_t>{3, 4, 5}, "deep filter keeps the complete ancestor chain");
-             Require(FilterMarkdownFiles(snapshot, L"ordinary").empty() && FilterMarkdownFiles(snapshot, L"").size() == names.size(),
-                     "non-Markdown absent and empty filter restores tree");
-             Require(IsMarkdownFile(L"note.MD") && IsMarkdownFile(L"note.MARKDOWN") && !IsMarkdownFile(L"note.md.bak"), "extensions are exact");
-             Require(FilesNaturalLess(L"note2.md", L"note10.md") && FilesNaturalLess(L"note2.md", L"note02.md") &&
-                         FilesNaturalLess(L"note99999999999999999999.md", L"note100000000000000000000.md"),
-                     "natural comparison handles numeric order, leading zeroes and values beyond integer capacity");
-             wil::unique_handle rootHandle(CreateFileW(directory.c_str(), FILE_READ_ATTRIBUTES,
-                                                       FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
-                                                       FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
-             Require(static_cast<bool>(rootHandle), "read the fixture's actual per-directory case policy independently");
-             FILE_CASE_SENSITIVE_INFO policy{};
-             if (GetFileInformationByHandleEx(rootHandle.get(), FileCaseSensitiveInfo, &policy, sizeof(policy)))
-                 Require(snapshot.rootCaseSensitivity ==
-                             ((policy.Flags & FILE_CS_FLAG_CASE_SENSITIVE_DIR) ? FilesCaseSensitivity::Sensitive : FilesCaseSensitivity::Insensitive),
-                         "the worker records the observed root lookup semantics rather than assuming ordinary NTFS case behavior");
-             FilesSnapshot model;
-             model.root = directory;
-             model.rootCaseSensitivity = FilesCaseSensitivity::Insensitive;
-             Require(MatchesFilesPath(model, directory / L"report2.MD", directory / L"REPORT2.md") &&
-                         !MatchesFilesPath(model, directory / L"report2.MD", directory / L"report10.md") &&
-                         !MatchesFilesPath(model, directory / L"Archive2/draft2.md", directory / L"archive2/DRAFT2.md"),
-                     "only a confirmed insensitive direct-child filename may match a differently cased current-document alias");
-             model.rootCaseSensitivity = FilesCaseSensitivity::Sensitive;
-             Require(!MatchesFilesPath(model, directory / L"A.md", directory / L"a.md") &&
-                         MatchesFilesPath(model, directory / L"A.md", directory / L"A.md"),
-                     "distinct A.md/a.md files in a sensitive root never alias each other");
-             model.rootCaseSensitivity = FilesCaseSensitivity::Unknown;
-             Require(!MatchesFilesPath(model, directory / L"A.md", directory / L"a.md"),
-                     "unavailable case metadata preserves exact names rather than guessing a destructive alias");
-         });
+    {
+        const auto directory = root / L"files-tree";
+        for (const auto name : {L"Archive2/draft10.MarkDown",
+                                L"Archive2/draft2.md",
+                                L"Archive10/nested/one.md",
+                                L"Empty/readme.txt",
+                                L"report10.md",
+                                L"report2.MD",
+                                L"ordinary.txt",
+                                L"hidden.md",
+                                L"system.markdown",
+                                L"Secret/omitted.md"})
+            WriteFixture(directory / name);
+        Require(SetFileAttributesW((directory / L"hidden.md").c_str(), FILE_ATTRIBUTE_HIDDEN) != FALSE, "hide fixture file");
+        Require(SetFileAttributesW((directory / L"system.markdown").c_str(), FILE_ATTRIBUTE_SYSTEM) != FALSE, "mark fixture system file");
+        Require(SetFileAttributesW((directory / L"Secret").c_str(), FILE_ATTRIBUTE_HIDDEN) != FALSE, "hide fixture folder");
+        const auto snapshot = EnumerateMarkdownFiles(directory);
+        Success(snapshot.status, "enumerate fixture");
+        const std::array<std::wstring_view, 8> names{
+            L"Archive2", L"draft2.md", L"draft10.MarkDown", L"Archive10", L"nested", L"one.md", L"report2.MD", L"report10.md"};
+        Require(snapshot.entries.size() == names.size() && snapshot.markdownCount == 5, "only visible Markdown and populated ancestors remain");
+        for (std::size_t index = 0; index < names.size(); ++index)
+            Require(snapshot.entries[index].name == names[index], "directory-first natural preorder matches independent names");
+        Require(snapshot.entries[0].markdownCount == 2 && snapshot.entries[3].markdownCount == 1 && snapshot.entries[5].parent == 4 &&
+                    snapshot.entries[4].parent == 3 && snapshot.entries[0].parent == NoFilesParent,
+                "counts and hierarchical parent indexes retained");
+        Require(FilterMarkdownFiles(snapshot, L"DRAFT2") == std::vector<std::size_t>{0, 1}, "case-insensitive name filter retains ancestors");
+        Require(FilterMarkdownFiles(snapshot, L"one") == std::vector<std::size_t>{3, 4, 5}, "deep filter keeps the complete ancestor chain");
+        Require(FilterMarkdownFiles(snapshot, L"ordinary").empty() && FilterMarkdownFiles(snapshot, L"").size() == names.size(),
+                "non-Markdown absent and empty filter restores tree");
+        Require(IsMarkdownFile(L"note.MD") && IsMarkdownFile(L"note.MARKDOWN") && ! IsMarkdownFile(L"note.md.bak"), "extensions are exact");
+        Require(FilesNaturalLess(L"note2.md", L"note10.md") && FilesNaturalLess(L"note2.md", L"note02.md") &&
+                    FilesNaturalLess(L"note99999999999999999999.md", L"note100000000000000000000.md"),
+                "natural comparison handles numeric order, leading zeroes and values beyond integer capacity");
+        wil::unique_handle rootHandle(CreateFileW(directory.c_str(),
+                                                  FILE_READ_ATTRIBUTES,
+                                                  FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                                  nullptr,
+                                                  OPEN_EXISTING,
+                                                  FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT,
+                                                  nullptr));
+        Require(static_cast<bool>(rootHandle), "read the fixture's actual per-directory case policy independently");
+        FILE_CASE_SENSITIVE_INFO policy{};
+        if (GetFileInformationByHandleEx(rootHandle.get(), FileCaseSensitiveInfo, &policy, sizeof(policy)))
+            Require(snapshot.rootCaseSensitivity ==
+                        ((policy.Flags & FILE_CS_FLAG_CASE_SENSITIVE_DIR) ? FilesCaseSensitivity::Sensitive : FilesCaseSensitivity::Insensitive),
+                    "the worker records the observed root lookup semantics rather than assuming ordinary NTFS case behavior");
+        FilesSnapshot model;
+        model.root                = directory;
+        model.rootCaseSensitivity = FilesCaseSensitivity::Insensitive;
+        Require(MatchesFilesPath(model, directory / L"report2.MD", directory / L"REPORT2.md") &&
+                    ! MatchesFilesPath(model, directory / L"report2.MD", directory / L"report10.md") &&
+                    ! MatchesFilesPath(model, directory / L"Archive2/draft2.md", directory / L"archive2/DRAFT2.md"),
+                "only a confirmed insensitive direct-child filename may match a differently cased current-document alias");
+        model.rootCaseSensitivity = FilesCaseSensitivity::Sensitive;
+        Require(! MatchesFilesPath(model, directory / L"A.md", directory / L"a.md") && MatchesFilesPath(model, directory / L"A.md", directory / L"A.md"),
+                "distinct A.md/a.md files in a sensitive root never alias each other");
+        model.rootCaseSensitivity = FilesCaseSensitivity::Unknown;
+        Require(! MatchesFilesPath(model, directory / L"A.md", directory / L"a.md"),
+                "unavailable case metadata preserves exact names rather than guessing a destructive alias");
+    });
     test("Files.BoundedTraversalCancellationAndErrors",
          [&]
-         {
-             const auto directory = root / L"files-limits";
-             for (unsigned index = 0; index < 6; ++index)
-                 WriteFixture(directory / std::format(L"note{}.md", index));
-             const auto limited = EnumerateMarkdownFiles(directory, {8, 3});
-             Require(limited.entryLimitReached && limited.examinedEntries == 3 && limited.markdownCount == 3 && limited.entries.size() == 3,
-                     "entry ceiling reports exactly the examined/returned subset");
-             Require(limited.appliedLimits.maximumDepth == 8 && limited.appliedLimits.maximumEntries == 3,
-                     "entry-limited snapshots retain their actual admitted limits for truthful presentation");
-             const auto deep = root / L"files-depth";
-             WriteFixture(deep / L"Level1/Level2/beyond.md");
-             WriteFixture(deep / L"visible.md");
-             const auto depth = EnumerateMarkdownFiles(deep, {0, 5000});
-             Require(depth.depthLimitReached && depth.markdownCount == 1 && depth.entries.size() == 1 && depth.entries[0].name == L"visible.md",
-                     "depth ceiling preserves root files and reports unvisited branches");
-             Require(depth.appliedLimits.maximumDepth == 0 && depth.appliedLimits.maximumEntries == 5000,
-                     "depth-limited snapshots retain the caller's actual depth ceiling");
-             std::stop_source stop;
-             stop.request_stop();
-             const auto cancelled = EnumerateMarkdownFiles(directory, {}, stop.get_token());
-             Require(cancelled.cancelled && cancelled.status == HRESULT_FROM_WIN32(ERROR_CANCELLED) && cancelled.examinedEntries == 0,
-                     "pre-cancelled work does no enumeration");
-             const auto missing = EnumerateMarkdownFiles(root / L"does-not-exist", {2, 7});
-             Require(FAILED(missing.status) && missing.errorCount == 1 && missing.errors.size() == 1 && missing.entries.empty(),
-                     "missing/offline roots retain a visible failure instead of a successful empty tree");
-             const auto empty = EnumerateMarkdownFiles({}, {1, 4});
-             Require(missing.appliedLimits.maximumDepth == 2 && missing.appliedLimits.maximumEntries == 7 && SUCCEEDED(empty.status) &&
-                         empty.entries.empty() && empty.appliedLimits.maximumDepth == 1 && empty.appliedLimits.maximumEntries == 4,
-                     "failed and empty enumeration results still retain their own actual request limits");
-             Require(EnumerateMarkdownFiles(directory, {8, 0}).status == E_INVALIDARG &&
-                         EnumerateMarkdownFiles(directory, {9, 5000}).status == E_INVALIDARG &&
-                         EnumerateMarkdownFiles(L"relative").status == E_INVALIDARG,
-                     "invalid resource limits and relative roots fail closed");
-             const auto binaries = root / L"files-non-markdown-limit";
-             for (unsigned index = 0; index < 5; ++index)
-                 WriteFixture(binaries / std::format(L"binary{}.bin", index));
-             const auto noMatches = EnumerateMarkdownFiles(binaries, {8, 2});
-             Require(noMatches.entryLimitReached && noMatches.examinedEntries == 2 && noMatches.markdownCount == 0 && noMatches.entries.empty(),
-                     "non-Markdown entries consume the bounded work budget and never claim 5000 returned files");
-         });
+    {
+        const auto directory = root / L"files-limits";
+        for (unsigned index = 0; index < 6; ++index)
+            WriteFixture(directory / std::format(L"note{}.md", index));
+        const auto limited = EnumerateMarkdownFiles(directory, {8, 3});
+        Require(limited.entryLimitReached && limited.examinedEntries == 3 && limited.markdownCount == 3 && limited.entries.size() == 3,
+                "entry ceiling reports exactly the examined/returned subset");
+        Require(limited.appliedLimits.maximumDepth == 8 && limited.appliedLimits.maximumEntries == 3,
+                "entry-limited snapshots retain their actual admitted limits for truthful presentation");
+        const auto deep = root / L"files-depth";
+        WriteFixture(deep / L"Level1/Level2/beyond.md");
+        WriteFixture(deep / L"visible.md");
+        const auto depth = EnumerateMarkdownFiles(deep, {0, 5000});
+        Require(depth.depthLimitReached && depth.markdownCount == 1 && depth.entries.size() == 1 && depth.entries[0].name == L"visible.md",
+                "depth ceiling preserves root files and reports unvisited branches");
+        Require(depth.appliedLimits.maximumDepth == 0 && depth.appliedLimits.maximumEntries == 5000,
+                "depth-limited snapshots retain the caller's actual depth ceiling");
+        std::stop_source stop;
+        stop.request_stop();
+        const auto cancelled = EnumerateMarkdownFiles(directory, {}, stop.get_token());
+        Require(cancelled.cancelled && cancelled.status == HRESULT_FROM_WIN32(ERROR_CANCELLED) && cancelled.examinedEntries == 0,
+                "pre-cancelled work does no enumeration");
+        const auto missing = EnumerateMarkdownFiles(root / L"does-not-exist", {2, 7});
+        Require(FAILED(missing.status) && missing.errorCount == 1 && missing.errors.size() == 1 && missing.entries.empty(),
+                "missing/offline roots retain a visible failure instead of a successful empty tree");
+        const auto empty = EnumerateMarkdownFiles({}, {1, 4});
+        Require(missing.appliedLimits.maximumDepth == 2 && missing.appliedLimits.maximumEntries == 7 && SUCCEEDED(empty.status) && empty.entries.empty() &&
+                    empty.appliedLimits.maximumDepth == 1 && empty.appliedLimits.maximumEntries == 4,
+                "failed and empty enumeration results still retain their own actual request limits");
+        Require(EnumerateMarkdownFiles(directory, {8, 0}).status == E_INVALIDARG && EnumerateMarkdownFiles(directory, {9, 5000}).status == E_INVALIDARG &&
+                    EnumerateMarkdownFiles(L"relative").status == E_INVALIDARG,
+                "invalid resource limits and relative roots fail closed");
+        const auto binaries = root / L"files-non-markdown-limit";
+        for (unsigned index = 0; index < 5; ++index)
+            WriteFixture(binaries / std::format(L"binary{}.bin", index));
+        const auto noMatches = EnumerateMarkdownFiles(binaries, {8, 2});
+        Require(noMatches.entryLimitReached && noMatches.examinedEntries == 2 && noMatches.markdownCount == 0 && noMatches.entries.empty(),
+                "non-Markdown entries consume the bounded work budget and never claim 5000 returned files");
+    });
     test("Files.ReparseLeavesNeverTraverse",
          [&]
-         {
-             const auto directory = root / L"files-reparse";
-             const auto source = directory / L"source", target = directory / L"target", link = source / L"Linked notes";
-             WriteFixture(source / L"local.md");
-             WriteFixture(target / L"never-traverse.md");
-             Success(Testing::CreateFixtureJunction(directory, link, target), "create owned fixture junction");
-             const auto removeLink = wil::scope_exit(
-                 [&]
-                 {
-                     std::error_code error;
-                     (void)std::filesystem::remove(link, error); // Remove only this leaf; never walk the target.
-                 });
-             Require(Testing::CreateFixtureJunction(directory, source / L"outside", root / L"unrelated-target") == E_INVALIDARG,
-                     "shared fixture creator rejects a target outside this case's owned fixture");
-             const auto snapshot = EnumerateMarkdownFiles(source);
-             Require(SUCCEEDED(snapshot.status) && snapshot.entries.size() == 2 && snapshot.markdownCount == 1 && snapshot.entries[0].directory &&
-                         snapshot.entries[0].reparsePoint && snapshot.entries[0].markdownCount == 0 && snapshot.entries[1].name == L"local.md" &&
-                         FilterMarkdownFiles(snapshot, L"never-traverse").empty(),
-                     "a reparse directory is a visible unexpanded leaf, not a route to target Markdown");
-             const auto reparseRoot = EnumerateMarkdownFiles(link);
-             Require(FAILED(reparseRoot.status) && reparseRoot.entries.empty(), "an explicitly selected reparse root is rejected without traversal");
-             const auto trailingRoot = EnumerateMarkdownFiles(link / L"");
-             Require(FAILED(trailingRoot.status) && trailingRoot.entries.empty(), "a trailing separator cannot bypass reparse-root rejection");
-         });
+    {
+        const auto directory = root / L"files-reparse";
+        const auto source = directory / L"source", target = directory / L"target", link = source / L"Linked notes";
+        WriteFixture(source / L"local.md");
+        WriteFixture(target / L"never-traverse.md");
+        Success(Testing::CreateFixtureJunction(directory, link, target), "create owned fixture junction");
+        const auto removeLink = wil::scope_exit([&]
+        {
+            std::error_code error;
+            (void)std::filesystem::remove(link, error); // Remove only this leaf; never walk the target.
+        });
+        Require(Testing::CreateFixtureJunction(directory, source / L"outside", root / L"unrelated-target") == E_INVALIDARG,
+                "shared fixture creator rejects a target outside this case's owned fixture");
+        const auto snapshot = EnumerateMarkdownFiles(source);
+        Require(SUCCEEDED(snapshot.status) && snapshot.entries.size() == 2 && snapshot.markdownCount == 1 && snapshot.entries[0].directory &&
+                    snapshot.entries[0].reparsePoint && snapshot.entries[0].markdownCount == 0 && snapshot.entries[1].name == L"local.md" &&
+                    FilterMarkdownFiles(snapshot, L"never-traverse").empty(),
+                "a reparse directory is a visible unexpanded leaf, not a route to target Markdown");
+        const auto reparseRoot = EnumerateMarkdownFiles(link);
+        Require(FAILED(reparseRoot.status) && reparseRoot.entries.empty(), "an explicitly selected reparse root is rejected without traversal");
+        const auto trailingRoot = EnumerateMarkdownFiles(link / L"");
+        Require(FAILED(trailingRoot.status) && trailingRoot.entries.empty(), "a trailing separator cannot bypass reparse-root rejection");
+    });
     test("Files.AsyncRerootChangeNotificationsAndClose",
          [&]
-         {
-             const auto oldRoot = root / L"files-old", latestRoot = root / L"files-latest";
-             for (unsigned index = 0; index < 50; ++index)
-                 WriteFixture(oldRoot / std::format(L"old{}.md", index));
-             WriteFixture(latestRoot / L"latest.md");
-             FilesService service;
-             Success(service.Initialize(), "initialize one event-driven Files worker");
-             Success(service.SetRoot(oldRoot), "admit old root");
-             Success(service.SetRoot(latestRoot), "supersede old root");
-             const auto generation = service.Generation();
-             const auto first = AwaitSnapshot(service, [&](const auto &value) { return value.generation == generation; });
-             Require(first.root == latestRoot && first.markdownCount == 1 && first.entries[0].name == L"latest.md" && SUCCEEDED(first.watchStatus) &&
-                         SUCCEEDED(first.status),
-                     "only the latest root publishes and its recursive notification is armed");
-             WriteFixture(latestRoot / L"nested/new.MARKDOWN");
-             const auto changed =
-                 AwaitSnapshot(service, [&](const auto &value) { return value.revision > first.revision && value.markdownCount == 2; });
-             Require(changed.generation == generation && changed.root == latestRoot && changed.entries[0].directory,
-                     "a nested change refreshes from directory notifications without an explicit refresh or polling timer");
-             Require(std::filesystem::remove(latestRoot / L"nested/new.MARKDOWN"), "remove notification fixture");
-             const auto removed =
-                 AwaitSnapshot(service, [&](const auto &value) { return value.revision > changed.revision && value.markdownCount == 1; });
-             Require(removed.entries.size() == 1 && removed.entries[0].name == L"latest.md", "notification refresh prunes a newly empty folder");
-             for (unsigned index = 0; index < 50; ++index)
-                 Success(service.Refresh(), "coalesce latest refresh request");
-             Success(service.SetRoot({}), "clear root for an untitled document");
-             const auto untitledGeneration = service.Generation();
-             const auto untitled = AwaitSnapshot(service, [&](const auto &value) { return value.generation == untitledGeneration; });
-             Require(untitled.root.empty() && untitled.entries.empty() && SUCCEEDED(untitled.status),
-                     "untitled root cancels scans and clears the model");
-             service.Close();
-             Require(!service.Busy() && !service.TakeResult() && service.SetRoot(latestRoot) == E_UNEXPECTED,
-                     "Close detaches immediately and rejects future admission without joining directory I/O");
-         });
+    {
+        const auto oldRoot = root / L"files-old", latestRoot = root / L"files-latest";
+        for (unsigned index = 0; index < 50; ++index)
+            WriteFixture(oldRoot / std::format(L"old{}.md", index));
+        WriteFixture(latestRoot / L"latest.md");
+        FilesService service;
+        Success(service.Initialize(), "initialize one event-driven Files worker");
+        Success(service.SetRoot(oldRoot), "admit old root");
+        Success(service.SetRoot(latestRoot), "supersede old root");
+        const auto generation = service.Generation();
+        const auto first      = AwaitSnapshot(service, [&](const auto& value) { return value.generation == generation; });
+        Require(first.root == latestRoot && first.markdownCount == 1 && first.entries[0].name == L"latest.md" && SUCCEEDED(first.watchStatus) &&
+                    SUCCEEDED(first.status),
+                "only the latest root publishes and its recursive notification is armed");
+        WriteFixture(latestRoot / L"nested/new.MARKDOWN");
+        const auto changed = AwaitSnapshot(service, [&](const auto& value) { return value.revision > first.revision && value.markdownCount == 2; });
+        Require(changed.generation == generation && changed.root == latestRoot && changed.entries[0].directory,
+                "a nested change refreshes from directory notifications without an explicit refresh or polling timer");
+        Require(std::filesystem::remove(latestRoot / L"nested/new.MARKDOWN"), "remove notification fixture");
+        const auto removed = AwaitSnapshot(service, [&](const auto& value) { return value.revision > changed.revision && value.markdownCount == 1; });
+        Require(removed.entries.size() == 1 && removed.entries[0].name == L"latest.md", "notification refresh prunes a newly empty folder");
+        for (unsigned index = 0; index < 50; ++index)
+            Success(service.Refresh(), "coalesce latest refresh request");
+        Success(service.SetRoot({}), "clear root for an untitled document");
+        const auto untitledGeneration = service.Generation();
+        const auto untitled           = AwaitSnapshot(service, [&](const auto& value) { return value.generation == untitledGeneration; });
+        Require(untitled.root.empty() && untitled.entries.empty() && SUCCEEDED(untitled.status), "untitled root cancels scans and clears the model");
+        service.Close();
+        Require(! service.Busy() && ! service.TakeResult() && service.SetRoot(latestRoot) == E_UNEXPECTED,
+                "Close detaches immediately and rejects future admission without joining directory I/O");
+    });
     test("Files.CoalescedNotificationAndStaleResult",
          [&]
-         {
-             constexpr UINT message = WM_APP + 315;
-             wil::unique_hwnd window(CreateWindowExW(0, L"STATIC", L"Files test notification sink", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr,
-                                                     GetModuleHandleW(nullptr), nullptr));
-             Require(static_cast<bool>(window), "create hidden message-only notification sink");
-             const auto firstRoot = root / L"files-notify-first", secondRoot = root / L"files-notify-second";
-             WriteFixture(firstRoot / L"first.md");
-             WriteFixture(secondRoot / L"second.md");
-             FilesService service;
-             Success(service.Initialize(window.get(), message), "bind Files notifications to an owned hidden window");
-             Success(service.SetRoot(firstRoot), "admit first notification root");
-             const auto waitIdle = [&]
-             {
-                 const auto end = std::chrono::steady_clock::now() + std::chrono::seconds(10);
-                 while (service.Busy() && std::chrono::steady_clock::now() < end)
-                     std::this_thread::sleep_for(std::chrono::milliseconds(5));
-                 Require(!service.Busy(), "Files worker completes its bounded pending request");
-             };
-             waitIdle();
-             // Leave the first message and result unconsumed while replacing the
-             // root and coalescing a burst. One posted wakeup must cover the latest
-             // state, rather than one message per request or an old path result.
-             Success(service.SetRoot(secondRoot), "replace a completed but unconsumed root");
-             for (unsigned index = 0; index < 50; ++index)
-                 Success(service.Refresh(), "coalesce notification refresh burst");
-             waitIdle();
-             MSG posted{};
-             unsigned messages{};
-             while (PeekMessageW(&posted, window.get(), message, message, PM_REMOVE))
-                 ++messages;
-             Require(messages == 1, "only one pending notification exists across roots and refresh requests");
-             const auto latest = service.TakeResult();
-             Require(latest && latest->root == secondRoot && latest->generation == service.Generation() && latest->entries.size() == 1 &&
-                         latest->entries[0].name == L"second.md",
-                     "the queued wakeup drains only the latest matching result");
-             service.Close(); // Invalidate the HWND binding before its owner resets it.
-             window.reset();
-             Require(!service.TakeResult(), "a detached service never exposes a late result after the UI dies");
-         });
+    {
+        constexpr UINT message = WM_APP + 315;
+        wil::unique_hwnd window(
+            CreateWindowExW(0, L"STATIC", L"Files test notification sink", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, GetModuleHandleW(nullptr), nullptr));
+        Require(static_cast<bool>(window), "create hidden message-only notification sink");
+        const auto firstRoot = root / L"files-notify-first", secondRoot = root / L"files-notify-second";
+        WriteFixture(firstRoot / L"first.md");
+        WriteFixture(secondRoot / L"second.md");
+        FilesService service;
+        Success(service.Initialize(window.get(), message), "bind Files notifications to an owned hidden window");
+        Success(service.SetRoot(firstRoot), "admit first notification root");
+        const auto waitIdle = [&]
+        {
+            const auto end = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+            while (service.Busy() && std::chrono::steady_clock::now() < end)
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            Require(! service.Busy(), "Files worker completes its bounded pending request");
+        };
+        waitIdle();
+        // Leave the first message and result unconsumed while replacing the
+        // root and coalescing a burst. One posted wakeup must cover the latest
+        // state, rather than one message per request or an old path result.
+        Success(service.SetRoot(secondRoot), "replace a completed but unconsumed root");
+        for (unsigned index = 0; index < 50; ++index)
+            Success(service.Refresh(), "coalesce notification refresh burst");
+        waitIdle();
+        MSG posted{};
+        unsigned messages{};
+        while (PeekMessageW(&posted, window.get(), message, message, PM_REMOVE))
+            ++messages;
+        Require(messages == 1, "only one pending notification exists across roots and refresh requests");
+        const auto latest = service.TakeResult();
+        Require(latest && latest->root == secondRoot && latest->generation == service.Generation() && latest->entries.size() == 1 &&
+                    latest->entries[0].name == L"second.md",
+                "the queued wakeup drains only the latest matching result");
+        service.Close(); // Invalidate the HWND binding before its owner resets it.
+        window.reset();
+        Require(! service.TakeResult(), "a detached service never exposes a late result after the UI dies");
+    });
     test("Settings.DesignRefreshPreferencesRoundTrip",
          [&]
-         {
-             Settings value;
-             value.showFiles = true;
-             value.filesRoot = LR"(C:\Invented notes\東京 = café\Drafts)";
-             value.filesWidth = 340;
-             value.readingWidth = 920;
-             value.textScale = 125;
-             value.dimInactiveBlocks = false;
-             value.allowRemoteImages = true;
-             value.focusMode = true;
-             value.markdownSyntax = {false, true, false, true, false, true, false};
-             const auto parsed = ParseSettings(SerializeSettings(value));
-             Require(parsed.filesRoot == value.filesRoot, "an absolute Unicode folder with spaces and equals signs round trips exactly");
-             Require(parsed.showFiles && parsed.filesWidth == 340 && parsed.readingWidth == 920 && parsed.textScale == 125 &&
-                         !parsed.dimInactiveBlocks && parsed.allowRemoteImages && !parsed.focusMode,
-                     "design preferences round trip while focus mode remains session-local");
-             Require(parsed.markdownSyntax == value.markdownSyntax && !parsed.SyntaxEnabled(MarkdownSyntax::Highlight) &&
-                         parsed.SyntaxEnabled(MarkdownSyntax::Superscript) && !parsed.SyntaxEnabled(MarkdownSyntax::Abbreviations),
-                     "each optional Markdown syntax preference round trips independently");
-             const auto serialized = SerializeSettings(value);
-             Require(serialized.find("syntaxHighlight=0\n") != serialized.npos && serialized.find("syntaxWikiLinks=0\n") != serialized.npos &&
-                         serialized.find("syntaxDefinitionLists=1\n") != serialized.npos,
-                     "syntax preferences persist under application-owned names rather than library flag values");
-             const auto directory = root / L"design-preferences";
-             Success(SaveSettings(directory, value), "persist design preferences atomically");
-             Settings loaded;
-             Success(LoadSettings(directory, loaded), "reload design preferences");
-             Require(loaded.showFiles && loaded.filesWidth == 340 && loaded.readingWidth == 920 && loaded.textScale == 125 &&
-                         !loaded.dimInactiveBlocks && loaded.allowRemoteImages && loaded.markdownSyntax == value.markdownSyntax,
-                     "atomic settings storage retains every design preference");
-         });
+    {
+        Settings value;
+        value.showFiles         = true;
+        value.filesRoot         = LR"(C:\Invented notes\東京 = café\Drafts)";
+        value.filesWidth        = 340;
+        value.readingWidth      = 920;
+        value.textScale         = 125;
+        value.dimInactiveBlocks = false;
+        value.allowRemoteImages = true;
+        value.focusMode         = true;
+        value.markdownSyntax    = {false, true, false, true, false, true, false};
+        const auto parsed       = ParseSettings(SerializeSettings(value));
+        Require(parsed.filesRoot == value.filesRoot, "an absolute Unicode folder with spaces and equals signs round trips exactly");
+        Require(parsed.showFiles && parsed.filesWidth == 340 && parsed.readingWidth == 920 && parsed.textScale == 125 && ! parsed.dimInactiveBlocks &&
+                    parsed.allowRemoteImages && ! parsed.focusMode,
+                "design preferences round trip while focus mode remains session-local");
+        Require(parsed.markdownSyntax == value.markdownSyntax && ! parsed.SyntaxEnabled(MarkdownSyntax::Highlight) &&
+                    parsed.SyntaxEnabled(MarkdownSyntax::Superscript) && ! parsed.SyntaxEnabled(MarkdownSyntax::Abbreviations),
+                "each optional Markdown syntax preference round trips independently");
+        const auto serialized = SerializeSettings(value);
+        Require(serialized.find("\"highlight\": false") != serialized.npos && serialized.find("\"wikiLinks\": false") != serialized.npos &&
+                    serialized.find("\"definitionLists\": true") != serialized.npos,
+                "syntax preferences persist under application-owned names rather than library flag values");
+        const auto directory = root / L"design-preferences";
+        Success(SaveSettings(directory, value), "persist design preferences atomically");
+        Settings loaded;
+        Success(LoadSettings(directory, loaded), "reload design preferences");
+        Require(loaded.showFiles && loaded.filesWidth == 340 && loaded.readingWidth == 920 && loaded.textScale == 125 && ! loaded.dimInactiveBlocks &&
+                    loaded.allowRemoteImages && loaded.markdownSyntax == value.markdownSyntax,
+                "atomic settings storage retains every design preference");
+    });
     test("Settings.DesignRefreshFieldFallback",
          []
-         {
-             const auto invalid = ParseSettings(
-                 "RedTilde.Settings/1\nfiles=2\nfilesWidth=199\nreadingWidth=1041\nscale=201\nfocusDimming=9\nremoteImages=2\noutline=0\n");
-             Require(!invalid.showFiles && invalid.filesWidth == 280 && invalid.readingWidth == 760 && invalid.textScale == 100 &&
-                         invalid.dimInactiveBlocks && !invalid.allowRemoteImages && !invalid.showOutline,
-                     "invalid fields fall back individually without discarding valid older fields");
-             const auto lower = ParseSettings("RedTilde.Settings/1\nfiles=1\nfilesWidth=200\nreadingWidth=480\nscale=75\nfocusDimming=0\n");
-             const auto upper = ParseSettings("RedTilde.Settings/1\nfilesWidth=400\nreadingWidth=1040\nscale=200\n");
-             Require(lower.showFiles && lower.filesWidth == 200 && lower.readingWidth == 480 && lower.textScale == 75 && !lower.dimInactiveBlocks &&
-                         upper.filesWidth == 400 && upper.readingWidth == 1040 && upper.textScale == 200,
-                     "all documented inclusive preference boundaries are accepted");
-             const auto malformed = ParseSettings("RedTilde.Settings/1\nfilesWidth=-1\nreadingWidth= 700\nscale=4294967296\nfocusDimming=1x\n");
-             Require(malformed.filesWidth == 280 && malformed.readingWidth == 760 && malformed.textScale == 100 && malformed.dimInactiveBlocks,
-                     "negative, whitespace, overflow and trailing-junk numbers cannot enter live preferences");
-             const auto old = ParseSettings("RedTilde.Settings/1\ntheme=3\nview=2\noutline=0\n");
-             Require(old.filesRoot.empty(), "older preferences have no browser root and can seed it from the first opened file");
-             for (const auto invalidRoot :
-                  {std::string("relative/notes"), std::string("C:relative"), std::string("\\root-relative"), std::string("C:\\bad\0folder", 13),
-                   std::string("C:\\bad\rfolder"), std::string("C:\\bad\xff"), std::string(100000, 'x')})
-             {
-                 const auto fallback = ParseSettings("RedTilde.Settings/1\nfilesRoot=" + invalidRoot + "\ntheme=2\n");
-                 Require(fallback.filesRoot.empty() && fallback.appearance == Appearance::Dark,
-                         "invalid, relative, control-bearing and oversized roots fall back independently");
-             }
-             Settings unsafe;
-             unsafe.filesRoot = L"C:\\notes\nremoteImages=1";
-             Require(!ParseSettings(SerializeSettings(unsafe)).allowRemoteImages && SerializeSettings(unsafe).find("filesRoot=") == std::string::npos,
-                     "an invalid folder cannot inject a second preference during serialization");
-             Require(old.appearance == Appearance::Paper && old.view == EditorView::Split && !old.showOutline && !old.showFiles &&
-                         old.filesWidth == 280 && old.readingWidth == 760 && old.textScale == 100 && old.dimInactiveBlocks && !old.allowRemoteImages,
-                     "existing v1 preference files retain compatible defaults for new fields");
-             constexpr std::array<bool, MarkdownSyntaxCount> allSyntax{true, true, true, true, true, true, true};
-             Require(old.markdownSyntax == allSyntax, "files written before the syntax options enable every optional syntax");
-             const auto syntax = ParseSettings("RedTilde.Settings/1\nsyntaxHighlight=2\nsyntaxSuperscript=0x\nsyntaxSubscript=0\nsyntaxInserted=-1\n"
-                                               "syntaxWikiLinks=0\nsyntaxDefinitions=0\nsyntaxAbbreviations=1\n");
-             Require(syntax.SyntaxEnabled(MarkdownSyntax::Highlight) && syntax.SyntaxEnabled(MarkdownSyntax::Superscript) &&
-                         !syntax.SyntaxEnabled(MarkdownSyntax::Subscript) && syntax.SyntaxEnabled(MarkdownSyntax::Inserted) &&
-                         !syntax.SyntaxEnabled(MarkdownSyntax::WikiLinks) && syntax.SyntaxEnabled(MarkdownSyntax::DefinitionLists) &&
-                         syntax.SyntaxEnabled(MarkdownSyntax::Abbreviations),
-                     "invalid or unknown syntax keys keep the enabled default while valid neighbors apply");
-         });
+    {
+        const auto invalid = ParseSettings(
+            R"({schema: 1, showFiles: 2, filesWidth: 199, readingWidth: 1041, textScale: 201, dimInactiveBlocks: 9, allowRemoteImages: 2, showOutline: false})");
+        Require(! invalid.showFiles && invalid.filesWidth == 280 && invalid.readingWidth == 760 && invalid.textScale == 100 && invalid.dimInactiveBlocks &&
+                    ! invalid.allowRemoteImages && ! invalid.showOutline,
+                "invalid fields fall back individually without discarding valid older fields");
+        const auto lower = ParseSettings(R"({schema: 1, showFiles: true, filesWidth: 200, readingWidth: 480, textScale: 75, dimInactiveBlocks: false})");
+        const auto upper = ParseSettings(R"({schema: 1, filesWidth: 400, readingWidth: 1040, textScale: 200})");
+        Require(lower.showFiles && lower.filesWidth == 200 && lower.readingWidth == 480 && lower.textScale == 75 && ! lower.dimInactiveBlocks &&
+                    upper.filesWidth == 400 && upper.readingWidth == 1040 && upper.textScale == 200,
+                "all documented inclusive preference boundaries are accepted");
+        const auto malformed = ParseSettings(R"({schema: 1, filesWidth: -1, readingWidth: "700", textScale: 4294967296, dimInactiveBlocks: "1x"})");
+        Require(malformed.filesWidth == 280 && malformed.readingWidth == 760 && malformed.textScale == 100 && malformed.dimInactiveBlocks,
+                "negative, string-typed, and overflow numbers cannot enter live preferences");
+        const auto old = ParseSettings(R"({schema: 1, appearance: "paper", view: "split", showOutline: false})");
+        Require(old.filesRoot.empty(), "older preferences have no browser root and can seed it from the first opened file");
+        for (const auto& invalidRoot : {std::string(R"("relative/notes")"),
+                                        std::string(R"("C:relative")"),
+                                        std::string(R"("\\root-relative")"),
+                                        std::string(R"("C:\\bad\u0000folder")"),
+                                        std::string(R"("C:\\bad\rfolder")"),
+                                        std::string("\"") + std::string(100000, 'x') + "\""})
+        {
+            const auto fallback = ParseSettings("{\"schema\": 1, \"filesRoot\": " + invalidRoot + ", \"appearance\": \"dark\"}");
+            Require(fallback.filesRoot.empty() && fallback.appearance == Appearance::Dark,
+                    "invalid, relative, control-bearing and oversized roots fall back independently");
+        }
+        Settings unsafe;
+        unsafe.filesRoot = L"C:\\notes\n\"allowRemoteImages\": true";
+        Require(! ParseSettings(SerializeSettings(unsafe)).allowRemoteImages && SerializeSettings(unsafe).find("\"filesRoot\"") == std::string::npos,
+                "an invalid folder cannot inject a second preference during serialization");
+        Require(old.appearance == Appearance::Paper && old.view == EditorView::Split && ! old.showOutline && ! old.showFiles && old.filesWidth == 280 &&
+                    old.readingWidth == 760 && old.textScale == 100 && old.dimInactiveBlocks && ! old.allowRemoteImages,
+                "existing v1 preference files retain compatible defaults for new fields");
+        constexpr std::array<bool, MarkdownSyntaxCount> allSyntax{true, true, true, true, true, true, true};
+        Require(old.markdownSyntax == allSyntax, "files written before the syntax options enable every optional syntax");
+        const auto syntax = ParseSettings(R"({schema: 1, markdownSyntax: {highlight: 2, superscript: "0", subscript: false, inserted: -1, )"
+                                          R"(wikiLinks: false, unknownSyntax: false, abbreviations: true}})");
+        Require(syntax.SyntaxEnabled(MarkdownSyntax::Highlight) && syntax.SyntaxEnabled(MarkdownSyntax::Superscript) &&
+                    ! syntax.SyntaxEnabled(MarkdownSyntax::Subscript) && syntax.SyntaxEnabled(MarkdownSyntax::Inserted) &&
+                    ! syntax.SyntaxEnabled(MarkdownSyntax::WikiLinks) && syntax.SyntaxEnabled(MarkdownSyntax::DefinitionLists) &&
+                    syntax.SyntaxEnabled(MarkdownSyntax::Abbreviations),
+                "invalid or unknown syntax keys keep the enabled default while valid neighbors apply");
+    });
     test("Files.AsyncFilesPhaseTransitionsAndCancelLoad",
          [&]
-         {
-             constexpr UINT message = WM_APP + 316;
-             wil::unique_hwnd window(
-                 CreateWindowExW(0, L"STATIC", L"AsyncFiles phase sink", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, GetModuleHandleW(nullptr), nullptr));
-             Require(static_cast<bool>(window), "create hidden message-only AsyncFiles sink");
-             const auto base = root / L"async-files-phase";
-             std::filesystem::create_directories(base);
-             const auto first = base / L"first.md", second = base / L"second.md", savedPath = base / L"saved.md";
-             Success(WriteBytesAtomic(first, "# First\n"), "seed first AsyncFiles fixture");
-             Success(WriteBytesAtomic(second, "# Second\n"), "seed second AsyncFiles fixture");
-             AsyncFiles files;
-             files.Initialize(window.get(), message);
-             Require(files.CurrentPhase() == AsyncFiles::Phase::Idle && !files.Busy() && !files.Saving() && !files.HasPendingSave(),
-                     "initialized AsyncFiles starts in Idle");
-             auto gate1 = std::make_shared<AsyncFiles::TestGate>();
-             const auto release1 = wil::scope_exit(
-                 [&]
-                 {
-                     (void)SetEvent(gate1->proceed.get());
-                     if (WaitForSingleObject(gate1->entered.get(), 0) == WAIT_OBJECT_0)
-                         (void)WaitForSingleObject(gate1->finished.get(), 10000);
-                 });
-             files.SetTestGate(gate1);
-             Success(files.Submit(false, first), "admit first load");
-             Require(files.CurrentPhase() == AsyncFiles::Phase::Loading && files.Busy() && !files.Saving() && !files.HasPendingSave(),
-                     "Submit load enters Loading");
-             Require(WaitForSingleObject(gate1->entered.get(), 10000) == WAIT_OBJECT_0, "first load reaches test gate");
-             Require(files.Submit(false, second) == HRESULT_FROM_WIN32(ERROR_BUSY), "Loading refuses concurrent Submit");
-             Require(SetEvent(gate1->proceed.get()) != FALSE && WaitForSingleObject(gate1->finished.get(), 10000) == WAIT_OBJECT_0,
-                     "first load finishes");
-             Require(files.CurrentPhase() == AsyncFiles::Phase::Completed && files.Busy() && !files.Saving() && !files.HasPendingSave(),
-                     "finished load enters Completed and remains Busy until Take");
-             const auto firstResult = files.Take();
-             Require(firstResult && SUCCEEDED(firstResult.value().status) && !firstResult.value().saving &&
-                         firstResult.value().document.text == L"# First\n",
-                     "Take returns completed load result");
-             Require(files.CurrentPhase() == AsyncFiles::Phase::Idle && !files.Busy() && !files.Saving() && !files.HasPendingSave(),
-                     "Take returns AsyncFiles to Idle");
+    {
+        constexpr UINT message = WM_APP + 316;
+        wil::unique_hwnd window(
+            CreateWindowExW(0, L"STATIC", L"AsyncFiles phase sink", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, GetModuleHandleW(nullptr), nullptr));
+        Require(static_cast<bool>(window), "create hidden message-only AsyncFiles sink");
+        const auto base = root / L"async-files-phase";
+        std::filesystem::create_directories(base);
+        const auto first = base / L"first.md", second = base / L"second.md", savedPath = base / L"saved.md";
+        Success(WriteBytesAtomic(first, "# First\n"), "seed first AsyncFiles fixture");
+        Success(WriteBytesAtomic(second, "# Second\n"), "seed second AsyncFiles fixture");
+        AsyncFiles files;
+        files.Initialize(window.get(), message);
+        Require(files.CurrentPhase() == AsyncFiles::Phase::Idle && ! files.Busy() && ! files.Saving() && ! files.HasPendingSave(),
+                "initialized AsyncFiles starts in Idle");
+        auto gate1          = std::make_shared<AsyncFiles::TestGate>();
+        const auto release1 = wil::scope_exit([&]
+        {
+            (void)SetEvent(gate1->proceed.get());
+            if (WaitForSingleObject(gate1->entered.get(), 0) == WAIT_OBJECT_0)
+                (void)WaitForSingleObject(gate1->finished.get(), 10000);
+        });
+        files.SetTestGate(gate1);
+        Success(files.Submit(false, first), "admit first load");
+        Require(files.CurrentPhase() == AsyncFiles::Phase::Loading && files.Busy() && ! files.Saving() && ! files.HasPendingSave(),
+                "Submit load enters Loading");
+        Require(WaitForSingleObject(gate1->entered.get(), 10000) == WAIT_OBJECT_0, "first load reaches test gate");
+        Require(files.Submit(false, second) == HRESULT_FROM_WIN32(ERROR_BUSY), "Loading refuses concurrent Submit");
+        Require(SetEvent(gate1->proceed.get()) != FALSE && WaitForSingleObject(gate1->finished.get(), 10000) == WAIT_OBJECT_0, "first load finishes");
+        Require(files.CurrentPhase() == AsyncFiles::Phase::Completed && files.Busy() && ! files.Saving() && ! files.HasPendingSave(),
+                "finished load enters Completed and remains Busy until Take");
+        const auto firstResult = files.Take();
+        Require(firstResult && SUCCEEDED(firstResult.value().status) && ! firstResult.value().saving && firstResult.value().document.text == L"# First\n",
+                "Take returns completed load result");
+        Require(files.CurrentPhase() == AsyncFiles::Phase::Idle && ! files.Busy() && ! files.Saving() && ! files.HasPendingSave(),
+                "Take returns AsyncFiles to Idle");
 
-             auto gate2 = std::make_shared<AsyncFiles::TestGate>();
-             const auto release2 = wil::scope_exit(
-                 [&]
-                 {
-                     (void)SetEvent(gate2->proceed.get());
-                     if (WaitForSingleObject(gate2->entered.get(), 0) == WAIT_OBJECT_0)
-                         (void)WaitForSingleObject(gate2->finished.get(), 10000);
-                 });
-             files.SetTestGate(gate2);
-             Success(files.Submit(true, savedPath, L"# Saved\n", false), "admit save");
-             Require(files.CurrentPhase() == AsyncFiles::Phase::Saving && files.Busy() && files.Saving() && files.HasPendingSave(),
-                     "Submit save enters Saving");
-             Require(WaitForSingleObject(gate2->entered.get(), 10000) == WAIT_OBJECT_0, "save reaches test gate");
-             Require(SetEvent(gate2->proceed.get()) != FALSE && WaitForSingleObject(gate2->finished.get(), 10000) == WAIT_OBJECT_0, "save finishes");
-             Require(files.CurrentPhase() == AsyncFiles::Phase::Completed && files.Busy() && !files.Saving() && files.HasPendingSave(),
-                     "completed save clears Saving() while preserving HasPendingSave() and Busy() until Take()");
-             files.CancelInFlightLoad();
-             Require(files.CurrentPhase() == AsyncFiles::Phase::Completed && files.HasPendingSave(),
-                     "CancelInFlightLoad never discards a completed pending save");
-             const auto saveResult = files.Take();
-             Require(saveResult && SUCCEEDED(saveResult.value().status) && saveResult.value().saving &&
-                         files.CurrentPhase() == AsyncFiles::Phase::Idle,
-                     "Take consumes completed save and transitions to Idle");
+        auto gate2          = std::make_shared<AsyncFiles::TestGate>();
+        const auto release2 = wil::scope_exit([&]
+        {
+            (void)SetEvent(gate2->proceed.get());
+            if (WaitForSingleObject(gate2->entered.get(), 0) == WAIT_OBJECT_0)
+                (void)WaitForSingleObject(gate2->finished.get(), 10000);
+        });
+        files.SetTestGate(gate2);
+        Success(files.Submit(true, savedPath, L"# Saved\n", false), "admit save");
+        Require(files.CurrentPhase() == AsyncFiles::Phase::Saving && files.Busy() && files.Saving() && files.HasPendingSave(), "Submit save enters Saving");
+        Require(WaitForSingleObject(gate2->entered.get(), 10000) == WAIT_OBJECT_0, "save reaches test gate");
+        Require(SetEvent(gate2->proceed.get()) != FALSE && WaitForSingleObject(gate2->finished.get(), 10000) == WAIT_OBJECT_0, "save finishes");
+        Require(files.CurrentPhase() == AsyncFiles::Phase::Completed && files.Busy() && ! files.Saving() && files.HasPendingSave(),
+                "completed save clears Saving() while preserving HasPendingSave() and Busy() until Take()");
+        files.CancelInFlightLoad();
+        Require(files.CurrentPhase() == AsyncFiles::Phase::Completed && files.HasPendingSave(), "CancelInFlightLoad never discards a completed pending save");
+        const auto saveResult = files.Take();
+        Require(saveResult && SUCCEEDED(saveResult.value().status) && saveResult.value().saving && files.CurrentPhase() == AsyncFiles::Phase::Idle,
+                "Take consumes completed save and transitions to Idle");
 
-             auto gate3 = std::make_shared<AsyncFiles::TestGate>();
-             const auto release3 = wil::scope_exit(
-                 [&]
-                 {
-                     (void)SetEvent(gate3->proceed.get());
-                     if (WaitForSingleObject(gate3->entered.get(), 0) == WAIT_OBJECT_0)
-                         (void)WaitForSingleObject(gate3->finished.get(), 10000);
-                 });
-             files.SetTestGate(gate3);
-             Success(files.Submit(false, first), "admit blocked load to cancel");
-             Require(WaitForSingleObject(gate3->entered.get(), 10000) == WAIT_OBJECT_0, "blocked load reaches test gate");
-             files.CancelInFlightLoad();
-             Require(files.CurrentPhase() == AsyncFiles::Phase::Idle && !files.Busy() && !files.HasPendingSave(),
-                     "CancelInFlightLoad detaches blocked reader and returns immediately to Idle");
-             auto gate4 = std::make_shared<AsyncFiles::TestGate>();
-             Require(SetEvent(gate4->proceed.get()) != FALSE, "allow replacement load to finish immediately");
-             files.SetTestGate(gate4);
-             Success(files.Submit(false, second), "admit replacement load immediately after CancelInFlightLoad");
-             Require(WaitForSingleObject(gate4->finished.get(), 10000) == WAIT_OBJECT_0, "replacement load completes");
-             Require(SetEvent(gate3->proceed.get()) != FALSE && WaitForSingleObject(gate3->finished.get(), 10000) == WAIT_OBJECT_0,
-                     "old cancelled load worker finishes harmlessly after replacement");
-             Require(files.CurrentPhase() == AsyncFiles::Phase::Completed, "replacement load result remains in Completed");
-             const auto secondResult = files.Take();
-             Require(secondResult && SUCCEEDED(secondResult.value().status) && secondResult.value().path == second &&
-                         secondResult.value().document.text == L"# Second\n",
-                     "cancelled worker cannot overwrite replacement load result");
+        auto gate3          = std::make_shared<AsyncFiles::TestGate>();
+        const auto release3 = wil::scope_exit([&]
+        {
+            (void)SetEvent(gate3->proceed.get());
+            if (WaitForSingleObject(gate3->entered.get(), 0) == WAIT_OBJECT_0)
+                (void)WaitForSingleObject(gate3->finished.get(), 10000);
+        });
+        files.SetTestGate(gate3);
+        Success(files.Submit(false, first), "admit blocked load to cancel");
+        Require(WaitForSingleObject(gate3->entered.get(), 10000) == WAIT_OBJECT_0, "blocked load reaches test gate");
+        files.CancelInFlightLoad();
+        Require(files.CurrentPhase() == AsyncFiles::Phase::Idle && ! files.Busy() && ! files.HasPendingSave(),
+                "CancelInFlightLoad detaches blocked reader and returns immediately to Idle");
+        auto gate4 = std::make_shared<AsyncFiles::TestGate>();
+        Require(SetEvent(gate4->proceed.get()) != FALSE, "allow replacement load to finish immediately");
+        files.SetTestGate(gate4);
+        Success(files.Submit(false, second), "admit replacement load immediately after CancelInFlightLoad");
+        Require(WaitForSingleObject(gate4->finished.get(), 10000) == WAIT_OBJECT_0, "replacement load completes");
+        Require(SetEvent(gate3->proceed.get()) != FALSE && WaitForSingleObject(gate3->finished.get(), 10000) == WAIT_OBJECT_0,
+                "old cancelled load worker finishes harmlessly after replacement");
+        Require(files.CurrentPhase() == AsyncFiles::Phase::Completed, "replacement load result remains in Completed");
+        const auto secondResult = files.Take();
+        Require(secondResult && SUCCEEDED(secondResult.value().status) && secondResult.value().path == second &&
+                    secondResult.value().document.text == L"# Second\n",
+                "cancelled worker cannot overwrite replacement load result");
 
-             auto gate5 = std::make_shared<AsyncFiles::TestGate>();
-             Require(SetEvent(gate5->proceed.get()) != FALSE, "allow unconsumed load to finish immediately");
-             files.SetTestGate(gate5);
-             Success(files.Submit(false, first), "admit completed load to cancel before Take");
-             Require(WaitForSingleObject(gate5->finished.get(), 10000) == WAIT_OBJECT_0, "completed load settles");
-             Require(files.CurrentPhase() == AsyncFiles::Phase::Completed, "unconsumed load enters Completed");
-             files.CancelInFlightLoad();
-             Require(files.CurrentPhase() == AsyncFiles::Phase::Idle && !files.Busy() && !files.Take(),
-                     "CancelInFlightLoad also clears an unconsumed Completed load");
+        auto gate5 = std::make_shared<AsyncFiles::TestGate>();
+        Require(SetEvent(gate5->proceed.get()) != FALSE, "allow unconsumed load to finish immediately");
+        files.SetTestGate(gate5);
+        Success(files.Submit(false, first), "admit completed load to cancel before Take");
+        Require(WaitForSingleObject(gate5->finished.get(), 10000) == WAIT_OBJECT_0, "completed load settles");
+        Require(files.CurrentPhase() == AsyncFiles::Phase::Completed, "unconsumed load enters Completed");
+        files.CancelInFlightLoad();
+        Require(files.CurrentPhase() == AsyncFiles::Phase::Idle && ! files.Busy() && ! files.Take(),
+                "CancelInFlightLoad also clears an unconsumed Completed load");
 
-             files.Close();
-             Require(files.CurrentPhase() == AsyncFiles::Phase::Closed && !files.Busy() && !files.HasPendingSave() &&
-                         files.Submit(false, first) == HRESULT_FROM_WIN32(ERROR_BUSY),
-                     "Close transitions to Closed and rejects further submissions");
-         });
+        files.Close();
+        Require(files.CurrentPhase() == AsyncFiles::Phase::Closed && ! files.Busy() && ! files.HasPendingSave() &&
+                    files.Submit(false, first) == HRESULT_FROM_WIN32(ERROR_BUSY),
+                "Close transitions to Closed and rejects further submissions");
+    });
     test("Recovery.DiscardQueuedDuringScanDelaysSettlement",
          [&]
-         {
-             const auto directory = root / L"recovery-discard-during-scan";
-             std::filesystem::create_directories(directory / L"Recovery");
-             const std::wstring candidateId = L"fedcba9876543210fedcba9876543210";
-             const auto rtdPath = directory / L"Recovery" / (L"session-" + candidateId + L".rtd");
-             Success(WriteBytesAtomic(rtdPath, SerializeRecovery({L"Queued during scan 東京\r\n", {}, false, {0, 0}, 1})), "seed recovery candidate");
-             auto scanGate = std::make_shared<RecoveryService::TestGate>();
-             auto postScanGate = std::make_shared<RecoveryService::TestGate>();
-             const auto releaseGates = wil::scope_exit(
-                 [&]
-                 {
-                     (void)SetEvent(scanGate->proceed.get());
-                     (void)SetEvent(postScanGate->proceed.get());
-                 });
-             RecoveryService service;
-             service.SetScanTestGate(scanGate);
-             service.SetPostScanTestGate(postScanGate);
-             Success(service.Initialize(directory), "initialize RecoveryService with scan gates");
-             Require(WaitForSingleObject(scanGate->entered.get(), 10000) == WAIT_OBJECT_0, "worker reaches Scan gate");
-             Require(!service.Ready() && !service.Settled() && !service.Finished() &&
-                         service.WaitForSettlement(0) == HRESULT_FROM_WIN32(ERROR_TIMEOUT),
-                     "RecoveryService is neither Ready nor Settled during Scan");
-             Success(service.Discard(candidateId), "queue Discard while initial Scan is in progress");
-             Require(!service.Ready() && !service.Settled() && service.WaitForSettlement(0) == HRESULT_FROM_WIN32(ERROR_TIMEOUT),
-                     "queuing Discard during Scan keeps service unsettled");
-             Require(SetEvent(scanGate->proceed.get()) != FALSE && WaitForSingleObject(postScanGate->entered.get(), 10000) == WAIT_OBJECT_0,
-                     "Scan completes and pauses before first worker batch");
-             Require(service.Ready() && !service.Settled() && service.WaitForSettlement(0) == HRESULT_FROM_WIN32(ERROR_TIMEOUT) &&
-                         std::filesystem::exists(rtdPath),
-                     "Settled() stays false after Scan completes until the queued Discard executes");
-             Require(SetEvent(postScanGate->proceed.get()) != FALSE && WaitForSingleObject(postScanGate->finished.get(), 10000) == WAIT_OBJECT_0,
-                     "release post-scan gate to execute queued Discard");
-             Success(service.WaitForSettlement(5000), "queued Discard settles cleanly");
-             Require(service.Ready() && service.Settled() && SUCCEEDED(service.Status()) && !std::filesystem::exists(rtdPath),
-                     "queued Discard removes candidate before settling");
-             const auto retired = service.TakeRetired();
-             Require(retired.size() == 1u && retired.front() == candidateId && service.TakeFailedDiscards().empty(),
-                     "retired candidate is reported once with no failed discards");
-             service.Close();
-         });
+    {
+        const auto directory = root / L"recovery-discard-during-scan";
+        std::filesystem::create_directories(directory / L"Recovery");
+        const std::wstring candidateId = L"fedcba9876543210fedcba9876543210";
+        const auto rtdPath             = directory / L"Recovery" / (L"session-" + candidateId + L".rtd");
+        Success(WriteBytesAtomic(rtdPath, SerializeRecovery({L"Queued during scan 東京\r\n", {}, false, {0, 0}, 1})), "seed recovery candidate");
+        auto scanGate           = std::make_shared<RecoveryService::TestGate>();
+        auto postScanGate       = std::make_shared<RecoveryService::TestGate>();
+        const auto releaseGates = wil::scope_exit([&]
+        {
+            (void)SetEvent(scanGate->proceed.get());
+            (void)SetEvent(postScanGate->proceed.get());
+        });
+        RecoveryService service;
+        service.SetScanTestGate(scanGate);
+        service.SetPostScanTestGate(postScanGate);
+        Success(service.Initialize(directory), "initialize RecoveryService with scan gates");
+        Require(WaitForSingleObject(scanGate->entered.get(), 10000) == WAIT_OBJECT_0, "worker reaches Scan gate");
+        Require(! service.Ready() && ! service.Settled() && ! service.Finished() && service.WaitForSettlement(0) == HRESULT_FROM_WIN32(ERROR_TIMEOUT),
+                "RecoveryService is neither Ready nor Settled during Scan");
+        Success(service.Discard(candidateId), "queue Discard while initial Scan is in progress");
+        Require(! service.Ready() && ! service.Settled() && service.WaitForSettlement(0) == HRESULT_FROM_WIN32(ERROR_TIMEOUT),
+                "queuing Discard during Scan keeps service unsettled");
+        Require(SetEvent(scanGate->proceed.get()) != FALSE && WaitForSingleObject(postScanGate->entered.get(), 10000) == WAIT_OBJECT_0,
+                "Scan completes and pauses before first worker batch");
+        Require(service.Ready() && ! service.Settled() && service.WaitForSettlement(0) == HRESULT_FROM_WIN32(ERROR_TIMEOUT) && std::filesystem::exists(rtdPath),
+                "Settled() stays false after Scan completes until the queued Discard executes");
+        Require(SetEvent(postScanGate->proceed.get()) != FALSE && WaitForSingleObject(postScanGate->finished.get(), 10000) == WAIT_OBJECT_0,
+                "release post-scan gate to execute queued Discard");
+        Success(service.WaitForSettlement(5000), "queued Discard settles cleanly");
+        Require(service.Ready() && service.Settled() && SUCCEEDED(service.Status()) && ! std::filesystem::exists(rtdPath),
+                "queued Discard removes candidate before settling");
+        const auto retired = service.TakeRetired();
+        Require(retired.size() == 1u && retired.front() == candidateId && service.TakeFailedDiscards().empty(),
+                "retired candidate is reported once with no failed discards");
+        service.Close();
+    });
     test("Files.FailedWorkerRecoversOnNewValidRoot",
          [&]
-         {
-             const auto dir1 = root / L"files-failed-worker-1", dir2 = root / L"files-failed-worker-2";
-             WriteFixture(dir1 / L"one.md");
-             WriteFixture(dir2 / L"two.md");
+    {
+        const auto dir1 = root / L"files-failed-worker-1", dir2 = root / L"files-failed-worker-2";
+        WriteFixture(dir1 / L"one.md");
+        WriteFixture(dir2 / L"two.md");
 
-             FilesService service;
-             Require(service.CurrentPhase() == FilesPhase::Closed && !service.IsActive() && !service.IsFailed() && !service.Busy(),
-                     "uninitialized FilesService starts Closed");
-             Success(service.Initialize(), "initialize standalone FilesService");
-             Require(service.CurrentPhase() == FilesPhase::Idle && service.IsActive() && !service.IsFailed() && !service.Busy(),
-                     "initialized FilesService enters Idle");
-             Success(service.SetRoot(dir1), "admit first directory");
-             const auto first = AwaitSnapshot(service, [&](const auto &snap) { return snap.root == dir1 && snap.markdownCount == 1; });
-             Require(SUCCEEDED(first.status) && SUCCEEDED(first.watchStatus), "first root scan and watch succeed");
-             {
-                 const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
-                 while (service.Busy() && std::chrono::steady_clock::now() < deadline)
-                     std::this_thread::sleep_for(std::chrono::milliseconds(5));
-             }
-             Require(service.CurrentPhase() == FilesPhase::Watching && service.IsActive() && !service.Busy(), "settled watched root enters Watching");
-             WriteFixture(dir1 / L"added.md");
-             const auto updated = AwaitSnapshot(service, [&](const auto &snap) { return snap.revision > first.revision && snap.markdownCount == 2; });
-             Require(SUCCEEDED(updated.status) && updated.generation == first.generation,
-                     "watch coalescing transitions atomically to Scanning and publishes the updated tree");
-             {
-                 const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
-                 while (service.Busy() && std::chrono::steady_clock::now() < deadline)
-                     std::this_thread::sleep_for(std::chrono::milliseconds(5));
-             }
-             Require(service.CurrentPhase() == FilesPhase::Watching && !service.Busy(), "watch-triggered rescan returns cleanly to Watching");
-             service.SimulateWorkerFailureForTest(E_FAIL);
-             Require(service.CurrentPhase() == FilesPhase::Failed && service.IsFailed() && !service.IsActive() && !service.Busy() &&
-                         service.Status() == E_FAIL,
-                     "worker failure enters Failed state");
-             Require(service.SetRoot(dir2) == E_FAIL && service.Refresh() == E_FAIL,
-                     "Failed FilesService rejects SetRoot and Refresh with failure status");
-             const auto failedSnap = service.TakeResult();
-             Require(failedSnap && failedSnap->status == E_FAIL, "Failed state publishes diagnostic snapshot");
-             service.Close();
-             Require(service.CurrentPhase() == FilesPhase::Closed && !service.IsActive() && !service.IsFailed(),
-                     "Close transitions Failed service to Closed");
+        FilesService service;
+        Require(service.CurrentPhase() == FilesPhase::Closed && ! service.IsActive() && ! service.IsFailed() && ! service.Busy(),
+                "uninitialized FilesService starts Closed");
+        Success(service.Initialize(), "initialize standalone FilesService");
+        Require(service.CurrentPhase() == FilesPhase::Idle && service.IsActive() && ! service.IsFailed() && ! service.Busy(),
+                "initialized FilesService enters Idle");
+        Success(service.SetRoot(dir1), "admit first directory");
+        const auto first = AwaitSnapshot(service, [&](const auto& snap) { return snap.root == dir1 && snap.markdownCount == 1; });
+        Require(SUCCEEDED(first.status) && SUCCEEDED(first.watchStatus), "first root scan and watch succeed");
+        {
+            const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+            while (service.Busy() && std::chrono::steady_clock::now() < deadline)
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+        Require(service.CurrentPhase() == FilesPhase::Watching && service.IsActive() && ! service.Busy(), "settled watched root enters Watching");
+        WriteFixture(dir1 / L"added.md");
+        const auto updated = AwaitSnapshot(service, [&](const auto& snap) { return snap.revision > first.revision && snap.markdownCount == 2; });
+        Require(SUCCEEDED(updated.status) && updated.generation == first.generation,
+                "watch coalescing transitions atomically to Scanning and publishes the updated tree");
+        {
+            const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+            while (service.Busy() && std::chrono::steady_clock::now() < deadline)
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+        Require(service.CurrentPhase() == FilesPhase::Watching && ! service.Busy(), "watch-triggered rescan returns cleanly to Watching");
+        service.SimulateWorkerFailureForTest(E_FAIL);
+        Require(service.CurrentPhase() == FilesPhase::Failed && service.IsFailed() && ! service.IsActive() && ! service.Busy() && service.Status() == E_FAIL,
+                "worker failure enters Failed state");
+        Require(service.SetRoot(dir2) == E_FAIL && service.Refresh() == E_FAIL, "Failed FilesService rejects SetRoot and Refresh with failure status");
+        const auto failedSnap = service.TakeResult();
+        Require(failedSnap && failedSnap->status == E_FAIL, "Failed state publishes diagnostic snapshot");
+        service.Close();
+        Require(service.CurrentPhase() == FilesPhase::Closed && ! service.IsActive() && ! service.IsFailed(), "Close transitions Failed service to Closed");
 
-             LaunchOptions launch;
-             launch.headless = true;
-             launch.dataDirectory = root / L"files-app-recovery";
-             Application app(launch);
-             Success(app.Initialize(), "initialize hidden app for Files failure recovery");
-             const auto waitAppFolder = [&](const auto &predicate)
-             {
-                 const auto end = std::chrono::steady_clock::now() + std::chrono::seconds(10);
-                 while (std::chrono::steady_clock::now() < end)
-                 {
-                     app.Prepare();
-                     if (predicate())
-                         return;
-                     std::this_thread::sleep_for(std::chrono::milliseconds(5));
-                 }
-                 throw std::runtime_error("Application Files pane did not reach expected state");
-             };
-             FilesProbe::SelectRoot(app, dir1);
-             waitAppFolder([&] { return FilesProbe::Snapshot(app) && FilesProbe::Snapshot(app)->root == dir1 && !FilesProbe::Service(app).Busy(); });
-             Require(FilesProbe::Service(app).CurrentPhase() == FilesPhase::Watching && FilesProbe::Service(app).IsActive(),
-                     "application Files worker reaches Watching");
+        LaunchOptions launch;
+        launch.headless      = true;
+        launch.dataDirectory = root / L"files-app-recovery";
+        Application app(launch);
+        Success(app.Initialize(), "initialize hidden app for Files failure recovery");
+        const auto waitAppFolder = [&](const auto& predicate)
+        {
+            const auto end = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+            while (std::chrono::steady_clock::now() < end)
+            {
+                app.Prepare();
+                if (predicate())
+                    return;
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            }
+            throw std::runtime_error("Application Files pane did not reach expected state");
+        };
+        FilesProbe::SelectRoot(app, dir1);
+        waitAppFolder([&] { return FilesProbe::Snapshot(app) && FilesProbe::Snapshot(app)->root == dir1 && ! FilesProbe::Service(app).Busy(); });
+        Require(FilesProbe::Service(app).CurrentPhase() == FilesPhase::Watching && FilesProbe::Service(app).IsActive(),
+                "application Files worker reaches Watching");
 
-             FilesProbe::Service(app).SimulateWorkerFailureForTest(E_FAIL);
-             waitAppFolder([&]
-                           { return FilesProbe::Service(app).IsFailed() && FilesProbe::Snapshot(app) && FAILED(FilesProbe::Snapshot(app)->status); });
-             Require(FilesProbe::Service(app).CurrentPhase() == FilesPhase::Failed && !FilesProbe::Service(app).IsActive() &&
-                         FilesProbe::Service(app).SetRoot(dir2) == E_FAIL,
-                     "application Files worker enters Failed and rejects direct SetRoot");
+        FilesProbe::Service(app).SimulateWorkerFailureForTest(E_FAIL);
+        waitAppFolder([&] { return FilesProbe::Service(app).IsFailed() && FilesProbe::Snapshot(app) && FAILED(FilesProbe::Snapshot(app)->status); });
+        Require(FilesProbe::Service(app).CurrentPhase() == FilesPhase::Failed && ! FilesProbe::Service(app).IsActive() &&
+                    FilesProbe::Service(app).SetRoot(dir2) == E_FAIL,
+                "application Files worker enters Failed and rejects direct SetRoot");
 
-             FilesProbe::SelectRoot(app, dir2);
-             waitAppFolder([&] { return FilesProbe::Snapshot(app) && FilesProbe::Snapshot(app)->root == dir2 && !FilesProbe::Service(app).Busy(); });
-             Require(FilesProbe::Service(app).IsActive() &&
-                         (FilesProbe::Service(app).CurrentPhase() == FilesPhase::Watching ||
-                          FilesProbe::Service(app).CurrentPhase() == FilesPhase::Idle) &&
-                         SUCCEEDED(FilesProbe::Snapshot(app)->status) && FilesProbe::Snapshot(app)->markdownCount == 1 &&
-                         std::ranges::any_of(FilesProbe::Model(app).rows, [](const auto &row) { return row.text == L"two.md"; }),
-                     "SelectFilesRoot re-initializes a Failed Files worker and recovers cleanly on a new valid root");
+        FilesProbe::SelectRoot(app, dir2);
+        waitAppFolder([&] { return FilesProbe::Snapshot(app) && FilesProbe::Snapshot(app)->root == dir2 && ! FilesProbe::Service(app).Busy(); });
+        Require(FilesProbe::Service(app).IsActive() &&
+                    (FilesProbe::Service(app).CurrentPhase() == FilesPhase::Watching || FilesProbe::Service(app).CurrentPhase() == FilesPhase::Idle) &&
+                    SUCCEEDED(FilesProbe::Snapshot(app)->status) && FilesProbe::Snapshot(app)->markdownCount == 1 &&
+                    std::ranges::any_of(FilesProbe::Model(app).rows, [](const auto& row) { return row.text == L"two.md"; }),
+                "SelectFilesRoot re-initializes a Failed Files worker and recovers cleanly on a new valid root");
 
-             FilesProbe::Service(app).SimulateWorkerFailureForTest(E_FAIL);
-             waitAppFolder([&]
-                           { return FilesProbe::Service(app).IsFailed() && FilesProbe::Snapshot(app) && FAILED(FilesProbe::Snapshot(app)->status); });
-             FilesProbe::SelectRoot(app, dir2);
-             waitAppFolder(
-                 [&]
-                 {
-                     return FilesProbe::Snapshot(app) && FilesProbe::Snapshot(app)->root == dir2 && !FilesProbe::Service(app).Busy() &&
-                            SUCCEEDED(FilesProbe::Snapshot(app)->status);
-                 });
-             Require(FilesProbe::Service(app).IsActive() && FilesProbe::Snapshot(app)->markdownCount == 1,
-                     "SelectFilesRoot also recovers when re-selecting the same root after worker failure");
-         });
+        FilesProbe::Service(app).SimulateWorkerFailureForTest(E_FAIL);
+        waitAppFolder([&] { return FilesProbe::Service(app).IsFailed() && FilesProbe::Snapshot(app) && FAILED(FilesProbe::Snapshot(app)->status); });
+        FilesProbe::SelectRoot(app, dir2);
+        waitAppFolder([&]
+        {
+            return FilesProbe::Snapshot(app) && FilesProbe::Snapshot(app)->root == dir2 && ! FilesProbe::Service(app).Busy() &&
+                   SUCCEEDED(FilesProbe::Snapshot(app)->status);
+        });
+        Require(FilesProbe::Service(app).IsActive() && FilesProbe::Snapshot(app)->markdownCount == 1,
+                "SelectFilesRoot also recovers when re-selecting the same root after worker failure");
+    });
 }
 } // namespace RedTilde

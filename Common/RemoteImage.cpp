@@ -22,15 +22,15 @@ namespace RedTilde
 {
 namespace
 {
-using Internet = wil::unique_any<HINTERNET, decltype(&WinHttpCloseHandle), WinHttpCloseHandle>;
+using Internet           = wil::unique_any<HINTERNET, decltype(&WinHttpCloseHandle), WinHttpCloseHandle>;
 constexpr auto Cancelled = HRESULT_FROM_WIN32(ERROR_CANCELLED);
-constexpr auto TimedOut = HRESULT_FROM_WIN32(ERROR_TIMEOUT);
-bool PublicV4(const unsigned char *bytes) noexcept
+constexpr auto TimedOut  = HRESULT_FROM_WIN32(ERROR_TIMEOUT);
+bool PublicV4(const unsigned char* bytes) noexcept
 {
     const auto a = bytes[0], b = bytes[1], c = bytes[2];
-    return a != 0u && a != 10u && a != 127u && a < 224u && !(a == 100u && b >= 64u && b <= 127u) && !(a == 169u && b == 254u) &&
-           !(a == 172u && b >= 16u && b <= 31u) && !(a == 192u && (b == 168u || (b == 0u && (c == 0u || c == 2u)))) &&
-           !(a == 198u && (b == 18u || b == 19u || (b == 51u && c == 100u))) && !(a == 203u && b == 0u && c == 113u);
+    return a != 0u && a != 10u && a != 127u && a < 224u && ! (a == 100u && b >= 64u && b <= 127u) && ! (a == 169u && b == 254u) &&
+           ! (a == 172u && b >= 16u && b <= 31u) && ! (a == 192u && (b == 168u || (b == 0u && (c == 0u || c == 2u)))) &&
+           ! (a == 198u && (b == 18u || b == 19u || (b == 51u && c == 100u))) && ! (a == 203u && b == 0u && c == 113u);
 }
 HRESULT LastError() noexcept
 {
@@ -71,11 +71,11 @@ struct Transfer final
     // neither the UI nor the image worker waits for callback retirement.
     // Ownership: learn.microsoft.com/windows/win32/api/winhttp/nf-winhttp-winhttpclosehandle
     std::shared_ptr<Transfer> callbackLifetime;
-    static void CALLBACK Notify(HINTERNET, DWORD_PTR context, DWORD status, void *information, DWORD length) noexcept
+    static void CALLBACK Notify(HINTERNET, DWORD_PTR context, DWORD status, void* information, DWORD length) noexcept
     {
-        if (!context)
+        if (! context)
             return;
-        auto &transfer = *reinterpret_cast<Transfer *>(context);
+        auto& transfer = *reinterpret_cast<Transfer*>(context);
         if (status == WINHTTP_CALLBACK_STATUS_HANDLE_CLOSING)
         {
             const auto lifetime = std::move(transfer.callbackLifetime);
@@ -83,7 +83,7 @@ struct Transfer final
         }
         if (status == WINHTTP_CALLBACK_STATUS_REQUEST_ERROR)
         {
-            const auto *failure = static_cast<const WINHTTP_ASYNC_RESULT *>(information);
+            const auto* failure = static_cast<const WINHTTP_ASYNC_RESULT*>(information);
             transfer.error.store(failure && length == sizeof(*failure) ? failure->dwError : ERROR_GEN_FAILURE, std::memory_order_relaxed);
         }
         else if (status == WINHTTP_CALLBACK_STATUS_READ_COMPLETE)
@@ -100,7 +100,7 @@ struct Transfer final
         error.store(0, std::memory_order_relaxed);
         received.store(0, std::memory_order_relaxed);
     }
-    HRESULT Await(DWORD expected, ULONGLONG deadline, const std::atomic_bool *cancellation, HANDLE abortEvent) noexcept
+    HRESULT Await(DWORD expected, ULONGLONG deadline, const std::atomic_bool* cancellation, HANDLE abortEvent) noexcept
     {
         const std::array<HANDLE, 2> handles{ready.get(), abortEvent};
         for (;;)
@@ -114,7 +114,7 @@ struct Transfer final
             // WinHTTP and the owner-close event. Atomic request cancellation is
             // borrowed from DxUi, so recheck it within 50 ms while I/O is live.
             const auto interval = static_cast<DWORD>(std::min<ULONGLONG>(50, deadline - now));
-            const auto wait = WaitForMultipleObjects(abortEvent ? 2 : 1, handles.data(), FALSE, interval);
+            const auto wait     = WaitForMultipleObjects(abortEvent ? 2 : 1, handles.data(), FALSE, interval);
             if (abortEvent && wait == WAIT_OBJECT_0 + 1)
                 return Cancelled;
             if (wait == WAIT_FAILED)
@@ -146,14 +146,16 @@ struct AddressResolution final : OVERLAPPED
     std::wstring hostname;
     ADDRINFOEXW hints{};
     timeval timeout{};
-    AddressResolution() noexcept : OVERLAPPED{} {}
-    AddressResolution(const AddressResolution &) = delete;
-    AddressResolution &operator=(const AddressResolution &) = delete;
-    AddressResolution(AddressResolution &&) = delete;
-    AddressResolution &operator=(AddressResolution &&) = delete;
-    static void CALLBACK Completed(DWORD status, DWORD, OVERLAPPED *overlap) noexcept
+    AddressResolution() noexcept : OVERLAPPED{}
     {
-        auto &state = *static_cast<AddressResolution *>(overlap);
+    }
+    AddressResolution(const AddressResolution&)            = delete;
+    AddressResolution& operator=(const AddressResolution&) = delete;
+    AddressResolution(AddressResolution&&)                 = delete;
+    AddressResolution& operator=(AddressResolution&&)      = delete;
+    static void CALLBACK Completed(DWORD status, DWORD, OVERLAPPED* overlap) noexcept
+    {
+        auto& state         = *static_cast<AddressResolution*>(overlap);
         const auto lifetime = std::move(state.callbackLifetime);
         const DxUi::Failure::Scope failureScope;
         state.error.store(status, std::memory_order_release);
@@ -161,16 +163,15 @@ struct AddressResolution final : OVERLAPPED
     }
 };
 
-HRESULT ResolveImageAddress(const std::wstring &host, bool allowLocalNetwork, ULONGLONG deadline, const std::atomic_bool *cancellation,
-                            HANDLE abortEvent, std::wstring &output)
+HRESULT ResolveImageAddress(
+    const std::wstring& host, bool allowLocalNetwork, ULONGLONG deadline, const std::atomic_bool* cancellation, HANDLE abortEvent, std::wstring& output)
 {
     auto name = std::wstring_view(host);
     if (name.ends_with(L'.'))
         name.remove_suffix(1u);
-    const bool numeric =
-        name.find(L':') != name.npos ||
-        (!name.empty() && std::ranges::all_of(name, [](wchar_t value) { return (value >= L'0' && value <= L'9') || value == L'.'; }));
-    if (!allowLocalNetwork && ((numeric && !IsRemoteImageAddressAllowed(name)) || (!numeric && name.find(L'.') == name.npos)))
+    const bool numeric = name.find(L':') != name.npos ||
+                         (! name.empty() && std::ranges::all_of(name, [](wchar_t value) { return (value >= L'0' && value <= L'9') || value == L'.'; }));
+    if (! allowLocalNetwork && ((numeric && ! IsRemoteImageAddressAllowed(name)) || (! numeric && name.find(L'.') == name.npos)))
         return E_ACCESSDENIED;
     auto state = std::make_shared<AddressResolution>();
     RETURN_IF_FAILED(ProcessWork::Acquire(state->lease));
@@ -180,22 +181,30 @@ HRESULT ResolveImageAddress(const std::wstring &host, bool allowLocalNetwork, UL
         return HRESULT_FROM_WIN32(static_cast<DWORD>(startup));
     state->winsock.activate();
     state->ready.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
-    if (!state->ready)
+    if (! state->ready)
         return LastError();
     const auto now = GetTickCount64();
     if (now >= deadline)
         return TimedOut;
-    const auto remaining = deadline - now;
-    state->timeout = {static_cast<long>(remaining / 1000u), static_cast<long>((remaining % 1000u) * 1000u)};
-    state->hints.ai_family = AF_UNSPEC;
+    const auto remaining     = deadline - now;
+    state->timeout           = {static_cast<long>(remaining / 1000u), static_cast<long>((remaining % 1000u) * 1000u)};
+    state->hints.ai_family   = AF_UNSPEC;
     state->hints.ai_socktype = SOCK_STREAM;
     state->hints.ai_protocol = IPPROTO_TCP;
-    state->hostname = host;
+    state->hostname          = host;
     if (state->hostname.starts_with(L'[') && state->hostname.ends_with(L']'))
         state->hostname = state->hostname.substr(1u, state->hostname.size() - 2u);
     state->callbackLifetime = state;
-    const auto status = GetAddrInfoExW(state->hostname.c_str(), nullptr, NS_DNS, nullptr, &state->hints, state->addresses.put(), &state->timeout,
-                                       state.get(), &AddressResolution::Completed, &state->cancelHandle);
+    const auto status       = GetAddrInfoExW(state->hostname.c_str(),
+                                             nullptr,
+                                             NS_DNS,
+                                             nullptr,
+                                             &state->hints,
+                                             state->addresses.put(),
+                                             &state->timeout,
+                                             state.get(),
+                                             &AddressResolution::Completed,
+                                             &state->cancelHandle);
     if (status != WSA_IO_PENDING)
     {
         state->callbackLifetime.reset();
@@ -213,8 +222,8 @@ HRESULT ResolveImageAddress(const std::wstring &host, bool allowLocalNetwork, UL
                 static_cast<void>(GetAddrInfoExCancel(&state->cancelHandle));
             return current >= deadline ? TimedOut : Cancelled;
         }
-        const auto wait = WaitForMultipleObjects(abortEvent ? 2u : 1u, handles.data(), FALSE,
-                                                 static_cast<DWORD>(std::min<ULONGLONG>(deadline - current, cancellation ? 50u : MAXDWORD - 1u)));
+        const auto wait = WaitForMultipleObjects(
+            abortEvent ? 2u : 1u, handles.data(), FALSE, static_cast<DWORD>(std::min<ULONGLONG>(deadline - current, cancellation ? 50u : MAXDWORD - 1u)));
         if (wait == WAIT_TIMEOUT)
             continue;
         if (wait != WAIT_OBJECT_0)
@@ -234,15 +243,14 @@ HRESULT ResolveImageAddress(const std::wstring &host, bool allowLocalNetwork, UL
         return HRESULT_FROM_WIN32(error);
     std::size_t inspected{};
     std::wstring ipv6Fallback;
-    for (const auto *address = state->addresses.get(); address && inspected < 64u; address = address->ai_next, ++inspected)
+    for (const auto* address = state->addresses.get(); address && inspected < 64u; address = address->ai_next, ++inspected)
     {
-        if (!address->ai_addr || (address->ai_family != AF_INET && address->ai_family != AF_INET6) ||
+        if (! address->ai_addr || (address->ai_family != AF_INET && address->ai_family != AF_INET6) ||
             address->ai_addrlen < (address->ai_family == AF_INET ? sizeof(sockaddr_in) : sizeof(sockaddr_in6)))
             continue;
         std::array<wchar_t, 64> numericAddress{};
-        const void *bytes = address->ai_family == AF_INET
-                                ? static_cast<const void *>(&reinterpret_cast<const sockaddr_in *>(address->ai_addr)->sin_addr)
-                                : static_cast<const void *>(&reinterpret_cast<const sockaddr_in6 *>(address->ai_addr)->sin6_addr);
+        const void* bytes = address->ai_family == AF_INET ? static_cast<const void*>(&reinterpret_cast<const sockaddr_in*>(address->ai_addr)->sin_addr)
+                                                          : static_cast<const void*>(&reinterpret_cast<const sockaddr_in6*>(address->ai_addr)->sin6_addr);
         if (InetNtopW(address->ai_family, bytes, numericAddress.data(), numericAddress.size()) &&
             IsRemoteImageAddressAllowed(numericAddress.data(), allowLocalNetwork))
         {
@@ -255,7 +263,7 @@ HRESULT ResolveImageAddress(const std::wstring &host, bool allowLocalNetwork, UL
                 ipv6Fallback = numericAddress.data();
         }
     }
-    if (!ipv6Fallback.empty())
+    if (! ipv6Fallback.empty())
     {
         output = std::move(ipv6Fallback);
         return S_OK;
@@ -263,11 +271,11 @@ HRESULT ResolveImageAddress(const std::wstring &host, bool allowLocalNetwork, UL
     return E_ACCESSDENIED;
 }
 
-HRESULT ContentLength(HINTERNET request, std::size_t maximum, std::optional<std::size_t> &output) noexcept
+HRESULT ContentLength(HINTERNET request, std::size_t maximum, std::optional<std::size_t>& output) noexcept
 {
     std::array<wchar_t, 32> text{};
     DWORD size = static_cast<DWORD>(sizeof(text));
-    if (!WinHttpQueryHeaders(request, WINHTTP_QUERY_CONTENT_LENGTH, WINHTTP_HEADER_NAME_BY_INDEX, text.data(), &size, WINHTTP_NO_HEADER_INDEX))
+    if (! WinHttpQueryHeaders(request, WINHTTP_QUERY_CONTENT_LENGTH, WINHTTP_HEADER_NAME_BY_INDEX, text.data(), &size, WINHTTP_NO_HEADER_INDEX))
         return GetLastError() == ERROR_WINHTTP_HEADER_NOT_FOUND ? S_OK : LastError();
     std::size_t value{};
     const std::wstring_view digits(text.data(), size / sizeof(wchar_t));
@@ -297,10 +305,10 @@ bool HttpSource(std::wstring_view source) noexcept
     if (scheme == source.npos)
         return false;
     const auto name = source.substr(0, scheme);
-    if (!((name.size() == 4 && CompareStringOrdinal(name.data(), 4, L"http", 4, TRUE) == CSTR_EQUAL) ||
-          (name.size() == 5 && CompareStringOrdinal(name.data(), 5, L"https", 5, TRUE) == CSTR_EQUAL)))
+    if (! ((name.size() == 4 && CompareStringOrdinal(name.data(), 4, L"http", 4, TRUE) == CSTR_EQUAL) ||
+           (name.size() == 5 && CompareStringOrdinal(name.data(), 5, L"https", 5, TRUE) == CSTR_EQUAL)))
         return false;
-    const auto end = source.find_first_of(L"/?", scheme + 3);
+    const auto end       = source.find_first_of(L"/?", scheme + 3);
     const auto authority = source.substr(scheme + 3, end == source.npos ? source.size() - scheme - 3 : end - scheme - 3);
     if (authority.empty() || authority.find_first_of(L"@%") != authority.npos ||
         std::any_of(authority.begin(), authority.end(), [](wchar_t c) { return c >= 128; }))
@@ -309,7 +317,7 @@ bool HttpSource(std::wstring_view source) noexcept
     for (std::size_t index = scheme + 3; index < source.size(); ++index)
         if (source[index] == L'%')
         {
-            if (index + 2 >= source.size() || !hex(source[index + 1]) || !hex(source[index + 2]))
+            if (index + 2 >= source.size() || ! hex(source[index + 1]) || ! hex(source[index + 2]))
                 return false;
             index += 2;
         }
@@ -329,33 +337,33 @@ bool IsRemoteImageAddressAllowed(std::wstring_view address, bool allowLocalNetwo
     IN_ADDR v4{};
     if (InetPtonW(AF_INET, text.data(), &v4) == 1)
     {
-        const auto *bytes = reinterpret_cast<const unsigned char *>(&v4);
+        const auto* bytes = reinterpret_cast<const unsigned char*>(&v4);
         return bytes[0] != 0u && bytes[0] < 224u && (allowLocalNetwork || PublicV4(bytes));
     }
     IN6_ADDR v6{};
     if (InetPtonW(AF_INET6, text.data(), &v6) != 1 || IN6_IS_ADDR_UNSPECIFIED(&v6) || IN6_IS_ADDR_MULTICAST(&v6))
         return false;
-    const auto *bytes = v6.u.Byte;
+    const auto* bytes = v6.u.Byte;
     if (IN6_IS_ADDR_V4MAPPED(&v6))
         return bytes[12] != 0u && bytes[12] < 224u && (allowLocalNetwork || PublicV4(bytes + 12u));
     if (allowLocalNetwork)
         return true;
     // Public global unicast only. Transition and documentation prefixes are not direct image destinations.
-    return (bytes[0] & 0xe0u) == 0x20u && !(bytes[0] == 0x20u && bytes[1] == 0x02u) &&
-           !(bytes[0] == 0x20u && bytes[1] == 0x01u && ((bytes[2] == 0u && bytes[3] == 0u) || (bytes[2] == 0x0du && bytes[3] == 0xb8u)));
+    return (bytes[0] & 0xe0u) == 0x20u && ! (bytes[0] == 0x20u && bytes[1] == 0x02u) &&
+           ! (bytes[0] == 0x20u && bytes[1] == 0x01u && ((bytes[2] == 0u && bytes[3] == 0u) || (bytes[2] == 0x0du && bytes[3] == 0xb8u)));
 }
 
-HRESULT FetchRemoteImage(std::wstring_view source, std::vector<std::byte> &output, const std::atomic_bool *cancellation, HANDLE abortEvent,
-                         RemoteImageLimits limits) noexcept
+HRESULT FetchRemoteImage(
+    std::wstring_view source, std::vector<std::byte>& output, const std::atomic_bool* cancellation, HANDLE abortEvent, RemoteImageLimits limits) noexcept
 try
 {
-    if (!HttpSource(source) || !limits.timeoutMilliseconds || limits.timeoutMilliseconds > 8000 || !limits.maximumEncodedBytes ||
+    if (! HttpSource(source) || ! limits.timeoutMilliseconds || limits.timeoutMilliseconds > 8000 || ! limits.maximumEncodedBytes ||
         limits.maximumEncodedBytes > 16777216)
         return E_INVALIDARG;
     if ((cancellation && cancellation->load(std::memory_order_relaxed)) || (abortEvent && WaitForSingleObject(abortEvent, 0) == WAIT_OBJECT_0))
         return Cancelled;
     const auto deadline = GetTickCount64() + limits.timeoutMilliseconds;
-    const auto imports = EnsureNetworkImports();
+    const auto imports  = EnsureNetworkImports();
     if (FAILED(imports))
         return imports;
     if ((cancellation && cancellation->load(std::memory_order_relaxed)) || (abortEvent && WaitForSingleObject(abortEvent, 0) == WAIT_OBJECT_0))
@@ -364,12 +372,11 @@ try
         return TimedOut;
     std::wstring url(source);
     URL_COMPONENTS parts{sizeof(parts)};
-    parts.dwHostNameLength = parts.dwUrlPathLength = parts.dwExtraInfoLength = parts.dwUserNameLength = parts.dwPasswordLength =
-        static_cast<DWORD>(-1);
-    if (!WinHttpCrackUrl(url.c_str(), static_cast<DWORD>(url.size()), 0, &parts))
+    parts.dwHostNameLength = parts.dwUrlPathLength = parts.dwExtraInfoLength = parts.dwUserNameLength = parts.dwPasswordLength = static_cast<DWORD>(-1);
+    if (! WinHttpCrackUrl(url.c_str(), static_cast<DWORD>(url.size()), 0, &parts))
         return LastError();
-    if ((parts.nScheme != INTERNET_SCHEME_HTTP && parts.nScheme != INTERNET_SCHEME_HTTPS) || !parts.dwHostNameLength || parts.dwUserNameLength ||
-        parts.dwPasswordLength || !parts.nPort)
+    if ((parts.nScheme != INTERNET_SCHEME_HTTP && parts.nScheme != INTERNET_SCHEME_HTTPS) || ! parts.dwHostNameLength || parts.dwUserNameLength ||
+        parts.dwPasswordLength || ! parts.nPort)
         return E_INVALIDARG;
     std::wstring host(parts.lpszHostName, parts.dwHostNameLength), target;
     if (parts.dwUrlPathLength)
@@ -381,83 +388,82 @@ try
     std::wstring address;
     RETURN_IF_FAILED(ResolveImageAddress(host, limits.allowLocalNetwork, deadline, cancellation, abortEvent, address));
     Internet session(WinHttpOpen(L"RedTilde/1", WINHTTP_ACCESS_TYPE_NO_PROXY, WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, WINHTTP_FLAG_ASYNC));
-    if (!session)
+    if (! session)
         return LastError();
     const auto phaseTimeout = static_cast<int>(std::min(2000u, limits.timeoutMilliseconds));
-    if (!WinHttpSetTimeouts(session.get(), phaseTimeout, phaseTimeout, phaseTimeout, phaseTimeout))
+    if (! WinHttpSetTimeouts(session.get(), phaseTimeout, phaseTimeout, phaseTimeout, phaseTimeout))
         return LastError();
     DWORD attempts = 1, protocols = WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2 | WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_3;
-    if (!WinHttpSetOption(session.get(), WINHTTP_OPTION_CONNECT_RETRIES, &attempts, sizeof(attempts)) ||
-        !WinHttpSetOption(session.get(), WINHTTP_OPTION_SECURE_PROTOCOLS, &protocols, sizeof(protocols)))
+    if (! WinHttpSetOption(session.get(), WINHTTP_OPTION_CONNECT_RETRIES, &attempts, sizeof(attempts)) ||
+        ! WinHttpSetOption(session.get(), WINHTTP_OPTION_SECURE_PROTOCOLS, &protocols, sizeof(protocols)))
         return LastError();
     Internet connection(WinHttpConnect(session.get(), host.c_str(), parts.nPort, 0));
-    if (!connection)
+    if (! connection)
         return LastError();
-    const wchar_t *accept[] = {L"image/png", L"image/jpeg", L"image/gif", L"image/bmp", L"image/tiff", nullptr};
-    Internet request(WinHttpOpenRequest(connection.get(), L"GET", target.c_str(), nullptr, WINHTTP_NO_REFERER, accept,
-                                        parts.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0));
-    if (!request)
+    const wchar_t* accept[] = {L"image/png", L"image/jpeg", L"image/gif", L"image/bmp", L"image/tiff", nullptr};
+    Internet request(WinHttpOpenRequest(
+        connection.get(), L"GET", target.c_str(), nullptr, WINHTTP_NO_REFERER, accept, parts.nScheme == INTERNET_SCHEME_HTTPS ? WINHTTP_FLAG_SECURE : 0));
+    if (! request)
         return LastError();
     // Only the DNS endpoint is replaced. Host, HTTP authority and ordinary TLS name validation
     // still use the original URL. Never perform a second unpinned lookup after admission.
-    if (!WinHttpSetOption(request.get(), WINHTTP_OPTION_RESOLUTION_HOSTNAME, address.data(),
-                          static_cast<DWORD>((address.size() + 1u) * sizeof(wchar_t))))
+    if (! WinHttpSetOption(request.get(), WINHTTP_OPTION_RESOLUTION_HOSTNAME, address.data(), static_cast<DWORD>((address.size() + 1u) * sizeof(wchar_t))))
         return LastError();
-    DWORD disabled = WINHTTP_DISABLE_AUTHENTICATION | WINHTTP_DISABLE_COOKIES | WINHTTP_DISABLE_REDIRECTS | WINHTTP_DISABLE_KEEP_ALIVE;
+    DWORD disabled   = WINHTTP_DISABLE_AUTHENTICATION | WINHTTP_DISABLE_COOKIES | WINHTTP_DISABLE_REDIRECTS | WINHTTP_DISABLE_KEEP_ALIVE;
     DWORD noRedirect = WINHTTP_OPTION_REDIRECT_POLICY_NEVER, headerBytes = 32768, logon = WINHTTP_AUTOLOGON_SECURITY_LEVEL_HIGH;
-    if (!WinHttpSetOption(request.get(), WINHTTP_OPTION_DISABLE_FEATURE, &disabled, sizeof(disabled)) ||
-        !WinHttpSetOption(request.get(), WINHTTP_OPTION_REDIRECT_POLICY, &noRedirect, sizeof(noRedirect)) ||
-        !WinHttpSetOption(request.get(), WINHTTP_OPTION_MAX_RESPONSE_HEADER_SIZE, &headerBytes, sizeof(headerBytes)) ||
-        !WinHttpSetOption(request.get(), WINHTTP_OPTION_AUTOLOGON_POLICY, &logon, sizeof(logon)))
+    if (! WinHttpSetOption(request.get(), WINHTTP_OPTION_DISABLE_FEATURE, &disabled, sizeof(disabled)) ||
+        ! WinHttpSetOption(request.get(), WINHTTP_OPTION_REDIRECT_POLICY, &noRedirect, sizeof(noRedirect)) ||
+        ! WinHttpSetOption(request.get(), WINHTTP_OPTION_MAX_RESPONSE_HEADER_SIZE, &headerBytes, sizeof(headerBytes)) ||
+        ! WinHttpSetOption(request.get(), WINHTTP_OPTION_AUTOLOGON_POLICY, &logon, sizeof(logon)))
         return LastError();
     // WinHTTP requires the application to supply a client certificate after
     // CLIENT_AUTH_CERT_NEEDED. We never supply one or retry that challenge.
-    auto transfer = std::make_shared<Transfer>();
+    auto transfer          = std::make_shared<Transfer>();
     const HRESULT admitted = ProcessWork::Acquire(transfer->lease);
     if (FAILED(admitted))
         return admitted;
     transfer->ready.reset(CreateEventW(nullptr, FALSE, FALSE, nullptr));
-    if (!transfer->ready)
+    if (! transfer->ready)
         return LastError();
     DWORD_PTR context = reinterpret_cast<DWORD_PTR>(transfer.get());
-    if (!WinHttpSetOption(request.get(), WINHTTP_OPTION_CONTEXT_VALUE, &context, sizeof(context)))
+    if (! WinHttpSetOption(request.get(), WINHTTP_OPTION_CONTEXT_VALUE, &context, sizeof(context)))
         return LastError();
     transfer->callbackLifetime = transfer;
-    if (WinHttpSetStatusCallback(request.get(), &Transfer::Notify,
-                                 WINHTTP_CALLBACK_FLAG_SENDREQUEST_COMPLETE | WINHTTP_CALLBACK_FLAG_HEADERS_AVAILABLE |
-                                     WINHTTP_CALLBACK_FLAG_READ_COMPLETE | WINHTTP_CALLBACK_FLAG_REQUEST_ERROR | WINHTTP_CALLBACK_FLAG_HANDLES,
+    if (WinHttpSetStatusCallback(request.get(),
+                                 &Transfer::Notify,
+                                 WINHTTP_CALLBACK_FLAG_SENDREQUEST_COMPLETE | WINHTTP_CALLBACK_FLAG_HEADERS_AVAILABLE | WINHTTP_CALLBACK_FLAG_READ_COMPLETE |
+                                     WINHTTP_CALLBACK_FLAG_REQUEST_ERROR | WINHTTP_CALLBACK_FLAG_HANDLES,
                                  0) == WINHTTP_INVALID_STATUS_CALLBACK)
     {
         transfer->callbackLifetime.reset();
         return LastError();
     }
     transfer->Begin();
-    if (!WinHttpSendRequest(request.get(), WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, context))
+    if (! WinHttpSendRequest(request.get(), WINHTTP_NO_ADDITIONAL_HEADERS, 0, WINHTTP_NO_REQUEST_DATA, 0, 0, context))
         return LastError();
     auto result = transfer->Await(WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE, deadline, cancellation, abortEvent);
     if (FAILED(result))
         return result;
     transfer->Begin();
-    if (!WinHttpReceiveResponse(request.get(), nullptr))
+    if (! WinHttpReceiveResponse(request.get(), nullptr))
         return LastError();
     result = transfer->Await(WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE, deadline, cancellation, abortEvent);
     if (FAILED(result))
         return result;
     DWORD status{}, statusBytes = sizeof(status);
-    if (!WinHttpQueryHeaders(request.get(), WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_HEADER_NAME_BY_INDEX, &status,
-                             &statusBytes, WINHTTP_NO_HEADER_INDEX))
+    if (! WinHttpQueryHeaders(
+            request.get(), WINHTTP_QUERY_STATUS_CODE | WINHTTP_QUERY_FLAG_NUMBER, WINHTTP_HEADER_NAME_BY_INDEX, &status, &statusBytes, WINHTTP_NO_HEADER_INDEX))
         return LastError();
     if (status != HTTP_STATUS_OK)
         return HRESULT_FROM_WIN32(ERROR_WINHTTP_INVALID_SERVER_RESPONSE);
     std::array<wchar_t, 32> encoding{};
     DWORD encodingBytes = static_cast<DWORD>(sizeof(encoding));
-    if (WinHttpQueryHeaders(request.get(), WINHTTP_QUERY_CONTENT_ENCODING, WINHTTP_HEADER_NAME_BY_INDEX, encoding.data(), &encodingBytes,
-                            WINHTTP_NO_HEADER_INDEX))
+    if (WinHttpQueryHeaders(
+            request.get(), WINHTTP_QUERY_CONTENT_ENCODING, WINHTTP_HEADER_NAME_BY_INDEX, encoding.data(), &encodingBytes, WINHTTP_NO_HEADER_INDEX))
     {
         constexpr std::wstring_view identity = L"identity";
         if (encodingBytes != identity.size() * sizeof(wchar_t) ||
-            CompareStringOrdinal(encoding.data(), static_cast<int>(identity.size()), identity.data(), static_cast<int>(identity.size()), TRUE) !=
-                CSTR_EQUAL)
+            CompareStringOrdinal(encoding.data(), static_cast<int>(identity.size()), identity.data(), static_cast<int>(identity.size()), TRUE) != CSTR_EQUAL)
             return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
     }
     else if (GetLastError() != ERROR_WINHTTP_HEADER_NOT_FOUND)
@@ -472,13 +478,13 @@ try
     for (;;)
     {
         transfer->Begin();
-        if (!WinHttpReadData(request.get(), transfer->buffer.data(), static_cast<DWORD>(transfer->buffer.size()), nullptr))
+        if (! WinHttpReadData(request.get(), transfer->buffer.data(), static_cast<DWORD>(transfer->buffer.size()), nullptr))
             return LastError();
         result = transfer->Await(WINHTTP_CALLBACK_STATUS_READ_COMPLETE, deadline, cancellation, abortEvent);
         if (FAILED(result))
             return result;
         const auto count = transfer->received.load(std::memory_order_relaxed);
-        if (!count)
+        if (! count)
             break;
         if (count > transfer->buffer.size())
             return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
@@ -493,13 +499,13 @@ try
     output.swap(encoded);
     return S_OK;
 }
-catch (const std::bad_alloc &)
+catch (const std::bad_alloc&)
 {
     // Allocation failure at a worker/service boundary is fatal, never a silent
     // failed-image preference or a partially published encoded buffer.
     DxUi::Failure::FailAllocation();
 }
-catch (const std::length_error &)
+catch (const std::length_error&)
 {
     return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
 }

@@ -136,6 +136,24 @@
         "--self-test"
       ],
       "interactive": false
+    },
+    {
+      "path": "Tests/Application.Tests.Settings.cpp",
+      "suite": "Core",
+      "executable": "RedTilde.exe",
+      "arguments": [
+        "--self-test"
+      ],
+      "interactive": false
+    },
+    {
+      "path": "Tests/Application.Tests.Settings.h",
+      "suite": "Core",
+      "executable": "RedTilde.exe",
+      "arguments": [
+        "--self-test"
+      ],
+      "interactive": false
     }
   ]
 }

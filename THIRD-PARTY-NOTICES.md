@@ -21,6 +21,8 @@ this list, with its full notice, before it is distributed.
 - **WIL** (Windows Implementation Libraries) 1.0.260126.7 or later, Microsoft Corporation, MIT, header-only, restored
   by DxUi's manifest. Its vcpkg copyright file ships as `Dependencies/WIL-LICENSE.txt` (or
   `Dependencies/DxUiSdk/WIL-LICENSE.txt` in SDK packages).
+- **yyjson** 0.13.0 or later, YaoYuan, MIT, statically linked and restored by RedTilde's vcpkg manifest. Its
+  vcpkg copyright file ships as `Dependencies/yyjson-LICENSE.txt`.
 - The **RedMonitor** client header, at the commit in [Dependencies/RedMonitor.lock.json](Dependencies/RedMonitor.lock.json),
   copyright (c) 2026 RedSalamander, MIT. Its [notice](ThirdParty/RedMonitor/LICENSE.txt) ships as
   `Dependencies/RedMonitor-LICENSE.txt`.

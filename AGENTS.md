@@ -39,6 +39,7 @@ DxUi controls, DirectWrite and Direct2D. Read [Specs/README.md](Specs/README.md)
 - Review the design system and usage docs on every UI change. Screenshots come from the app's deterministic,
   hidden, non-activating harness, with scenario/build provenance. Never substitute desktop capture.
 - No generated products are committed under `.build`. Do not kill independently launched applications.
+- Private/protected non-static class/struct members MUST use `_camelCase` (`_[a-z][A-Za-z0-9]*`, member-scope only; no `name_`, bare private fields, `_Uppercase`, `__`, or global `_name`; public `struct`/DTO fields stay `camelCase`), enforced via root `.clang-tidy` (coming in Phase 3 / `H-27`).
 
 ## Folder guidance
 
@@ -65,18 +66,14 @@ These rules were the five nested `AGENTS.md` files; the root file is now the onl
   STRINGTABLE entries; positional format placeholders permit translation. Document samples are separate under
   docs/examples.
 
-## Drive-root output policy
+## Allowed Write Locations Only (Fail Closed)
 
-Do not create scratch, caches, evidence, copied checkouts, or other output directories directly at a drive root.
-Use repository-local generated outputs or an existing approved workspace. The only permitted new drive-root
-output name is `<Project>.Perf`, named after the owning project (for example `RedSalamander.Perf` or
-`RedPrism.Perf`), and the user must explicitly authorize the exact path before its first creation or
-initialization. A matching name, environment variable, low disk space, or authorization for another drive or
-project is not authorization. Keep outputs beneath the approved root; do not invent sibling root folders. Preserve
-runner-specific ownership markers and authorization. Historical cleanup inventories and preserves useful evidence
-and recovery data, checks process use, repairs live junction and worktree references, and verifies preservation
-before removal. Never follow junctions during cleanup or leave compatibility junctions at forbidden old drive-root
-paths.
+Code, tools, tests, scripts, and AI agents **DO NOT HAVE THE RIGHT** to create, modify, or delete files outside:
+(1) this repository working tree and repository-local `.build/` (never committed),
+(2) an explicitly owner-authorized `RedTilde.Perf` drive-root root with its verified ownership marker, or
+(3) an explicitly manifest-declared dedicated `selftest` root strictly inside a unique per-run subfolder (`redtilde-run-<guid>`) with cleanup on exit and no junction traversal.
+
+Never write to arbitrary drive roots, `%USERPROFILE%`, Desktop, Documents, undeclared personal/work OneDrive folders, network media shares (such as `\\rubygloom\Multimedia`), or out-of-scope siblings; matching names, environment variables, or low disk space never grant authorization — fail closed before writing. Keep outputs beneath approved roots, never invent sibling drive-root folders, and never follow junctions during cleanup or leave compatibility junctions at forbidden old drive-root paths.
 
 ## Workflow
 

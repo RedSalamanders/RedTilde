@@ -42,11 +42,11 @@ enum class ImageReferenceCategory
 // Shared explanatory-chrome/watch-invalidation policy over semantic values.
 // This performs no URI admission, path resolution, permission grant or I/O;
 // only SDK-admitted LocalFile requests can supply actual watched paths.
-ImageReferenceCategory ImageReferenceCategoryFor(const DxUi::RichText::SemanticElement &element) noexcept
+ImageReferenceCategory ImageReferenceCategoryFor(const DxUi::RichText::SemanticElement& element) noexcept
 {
     if (element.wiki)
         return ImageReferenceCategory::Other;
-    const auto &value = element.destination;
+    const auto& value = element.destination;
     const auto prefix = [&](std::wstring_view text)
     {
         return value.size() >= text.size() &&
@@ -58,12 +58,13 @@ ImageReferenceCategory ImageReferenceCategoryFor(const DxUi::RichText::SemanticE
     return prefix(L"data:") ? ImageReferenceCategory::Other : ImageReferenceCategory::PossibleFile;
 }
 // App-local display categories over the canonical immutable tree, not a parser.
-unsigned CurrentBlockResourceAt(const DxUi::RichText::MarkdownSyntax &syntax, std::size_t caret,
-                                std::optional<std::pair<unsigned, std::size_t>> *listSummary = nullptr) noexcept
+unsigned CurrentBlockResourceAt(const DxUi::RichText::MarkdownSyntax& syntax,
+                                std::size_t caret,
+                                std::optional<std::pair<unsigned, std::size_t>>* listSummary = nullptr) noexcept
 {
     using namespace DxUi::RichText;
     const auto source = syntax.Source();
-    const auto &nodes = syntax.Nodes();
+    const auto& nodes = syntax.Nodes();
     unsigned resource = IDS_BLOCKPARAGRAPH;
     if (nodes.empty() || source.empty())
         return resource;
@@ -81,7 +82,7 @@ unsigned CurrentBlockResourceAt(const DxUi::RichText::MarkdownSyntax &syntax, st
     auto index = nodes[0].firstChild;
     while (index != MarkdownNoNode)
     {
-        const auto &node = nodes[index];
+        const auto& node = nodes[index];
         if (position < node.block.source.first)
             break;
         if (position >= node.block.source.last)
@@ -91,65 +92,43 @@ unsigned CurrentBlockResourceAt(const DxUi::RichText::MarkdownSyntax &syntax, st
         }
         switch (node.block.kind)
         {
-        case MarkdownBlockKind::AtxHeading:
-        case MarkdownBlockKind::SetextHeading:
-            resource = IDS_BLOCKHEADING;
-            break;
-        case MarkdownBlockKind::FencedCode:
-        case MarkdownBlockKind::IndentedCode:
-            resource = IDS_BLOCKCODE;
-            break;
-        case MarkdownBlockKind::List:
-            resource = IDS_BLOCKLISTCONTAINER;
-            if (listSummary)
-            {
-                std::size_t count{};
-                unsigned kind = IDS_BLOCKBULLETLIST;
-                for (auto child = node.firstChild; child != MarkdownNoNode; child = nodes[child].nextSibling)
-                    if (nodes[child].block.kind == MarkdownBlockKind::ListItem)
-                    {
-                        const auto marker = nodes[child].block.info.first;
-                        if (marker < source.size() && source[marker] >= L'0' && source[marker] <= L'9')
-                            kind = IDS_BLOCKNUMBEREDLIST;
-                        ++count;
-                    }
-                *listSummary = std::pair{kind, count};
-            }
-            break;
-        case MarkdownBlockKind::ListItem:
-            resource = IDS_BLOCKLIST;
-            break;
-        case MarkdownBlockKind::Table:
-        case MarkdownBlockKind::TableRow:
-        case MarkdownBlockKind::TableCell:
-            resource = IDS_BLOCKTABLE;
-            break;
-        case MarkdownBlockKind::BlockQuote:
-            resource = IDS_BLOCKQUOTE;
-            break;
-        case MarkdownBlockKind::ThematicBreak:
-            resource = IDS_BLOCKDIVIDER;
-            break;
-        case MarkdownBlockKind::HtmlBlock:
-            resource = IDS_BLOCKHTML;
-            break;
-        case MarkdownBlockKind::ReferenceDefinition:
-            resource = IDS_BLOCKLINKDEFINITION;
-            break;
-        case MarkdownBlockKind::FrontMatter:
-            resource = IDS_BLOCKMETADATA;
-            break;
-        case MarkdownBlockKind::FootnoteDefinition:
-            resource = IDS_BLOCKFOOTNOTE;
-            break;
-        case MarkdownBlockKind::SourceEditor:
-            resource = IDS_BLOCKSOURCE;
-            break;
-        case MarkdownBlockKind::Document:
-        case MarkdownBlockKind::Paragraph:
-        case MarkdownBlockKind::BlankLine:
-            // Ordinary leaf prose retains a recognized list/quote ancestor.
-            break;
+            case MarkdownBlockKind::AtxHeading:
+            case MarkdownBlockKind::SetextHeading: resource = IDS_BLOCKHEADING; break;
+            case MarkdownBlockKind::FencedCode:
+            case MarkdownBlockKind::IndentedCode: resource = IDS_BLOCKCODE; break;
+            case MarkdownBlockKind::List:
+                resource = IDS_BLOCKLISTCONTAINER;
+                if (listSummary)
+                {
+                    std::size_t count{};
+                    unsigned kind = IDS_BLOCKBULLETLIST;
+                    for (auto child = node.firstChild; child != MarkdownNoNode; child = nodes[child].nextSibling)
+                        if (nodes[child].block.kind == MarkdownBlockKind::ListItem)
+                        {
+                            const auto marker = nodes[child].block.info.first;
+                            if (marker < source.size() && source[marker] >= L'0' && source[marker] <= L'9')
+                                kind = IDS_BLOCKNUMBEREDLIST;
+                            ++count;
+                        }
+                    *listSummary = std::pair{kind, count};
+                }
+                break;
+            case MarkdownBlockKind::ListItem: resource = IDS_BLOCKLIST; break;
+            case MarkdownBlockKind::Table:
+            case MarkdownBlockKind::TableRow:
+            case MarkdownBlockKind::TableCell: resource = IDS_BLOCKTABLE; break;
+            case MarkdownBlockKind::BlockQuote: resource = IDS_BLOCKQUOTE; break;
+            case MarkdownBlockKind::ThematicBreak: resource = IDS_BLOCKDIVIDER; break;
+            case MarkdownBlockKind::HtmlBlock: resource = IDS_BLOCKHTML; break;
+            case MarkdownBlockKind::ReferenceDefinition: resource = IDS_BLOCKLINKDEFINITION; break;
+            case MarkdownBlockKind::FrontMatter: resource = IDS_BLOCKMETADATA; break;
+            case MarkdownBlockKind::FootnoteDefinition: resource = IDS_BLOCKFOOTNOTE; break;
+            case MarkdownBlockKind::SourceEditor: resource = IDS_BLOCKSOURCE; break;
+            case MarkdownBlockKind::Document:
+            case MarkdownBlockKind::Paragraph:
+            case MarkdownBlockKind::BlankLine:
+                // Ordinary leaf prose retains a recognized list/quote ancestor.
+                break;
         }
         index = node.firstChild;
     }
@@ -166,18 +145,18 @@ std::size_t WithoutLineEnd(std::wstring_view source, DxUi::RichText::MarkdownRan
 }
 // The live TeX inside an in-place math source region, without its delimiters. Other
 // regions, or an envelope whose delimiters are being edited, yield no expression.
-std::wstring MathRegionExpression(const DxUi::RichText::MarkdownSourceRegion &region, std::wstring_view envelope)
+std::wstring MathRegionExpression(const DxUi::RichText::MarkdownSourceRegion& region, std::wstring_view envelope)
 {
     using DxUi::RichText::MarkdownSourceRegionKind;
     const auto trim = [](std::wstring_view text)
     {
-        while (!text.empty() && (text.front() == L'\n' || text.front() == L'\r'))
+        while (! text.empty() && (text.front() == L'\n' || text.front() == L'\r'))
             text.remove_prefix(1);
-        while (!text.empty() && (text.back() == L'\n' || text.back() == L'\r'))
+        while (! text.empty() && (text.back() == L'\n' || text.back() == L'\r'))
             text.remove_suffix(1);
         return text;
     };
-    envelope = trim(envelope);
+    envelope         = trim(envelope);
     const auto inner = [&](std::wstring_view open, std::wstring_view close)
     {
         return envelope.size() > open.size() + close.size() && envelope.starts_with(open) && envelope.ends_with(close)
@@ -192,37 +171,40 @@ std::wstring MathRegionExpression(const DxUi::RichText::MarkdownSourceRegion &re
     return expression.size() <= DxUi::RichText::MathMaximumSourceUnits ? std::wstring(expression) : std::wstring{};
 }
 // GFM stays on; each optional RichMarkdown family follows its own preference.
-DxUi::RichText::MarkdownExtensions MarkdownExtensionsFor(const Settings &settings) noexcept
+DxUi::RichText::MarkdownExtensions MarkdownExtensionsFor(const Settings& settings) noexcept
 {
     using DxUi::RichText::MarkdownExtensions;
-    constexpr std::array<MarkdownExtensions, MarkdownSyntaxCount> flags{
-        MarkdownExtensions::Highlight, MarkdownExtensions::Superscript,     MarkdownExtensions::Subscript,    MarkdownExtensions::Inserted,
-        MarkdownExtensions::WikiLinks, MarkdownExtensions::DefinitionLists, MarkdownExtensions::Abbreviations};
+    constexpr std::array<MarkdownExtensions, MarkdownSyntaxCount> flags{MarkdownExtensions::Highlight,
+                                                                        MarkdownExtensions::Superscript,
+                                                                        MarkdownExtensions::Subscript,
+                                                                        MarkdownExtensions::Inserted,
+                                                                        MarkdownExtensions::WikiLinks,
+                                                                        MarkdownExtensions::DefinitionLists,
+                                                                        MarkdownExtensions::Abbreviations};
     auto extensions = MarkdownExtensions::All;
     for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
         if (settings.markdownSyntax[index])
             extensions = extensions | flags[index];
     return extensions;
 }
-bool IsMarkdownCommandCapacityExceeded(const DxUi::RichTextEditor &editor, const DxUi::RichText::MarkdownCommandRequest &request,
+bool IsMarkdownCommandCapacityExceeded(const DxUi::RichTextEditor& editor,
+                                       const DxUi::RichText::MarkdownCommandRequest& request,
                                        DxUi::RichText::Selection selection)
 {
     using namespace DxUi::RichText;
     std::optional<MarkdownCommandPlan> plan;
-    const auto syntax = editor.GetMarkdownSyntax();
-    const auto snapshot = editor.Snapshot();
-    const auto planResult =
-        syntax ? TryBuildMarkdownCommand(snapshot, editor.Revision(), syntax, selection, request, plan) : SourceResult::InvalidSource;
+    const auto syntax     = editor.GetMarkdownSyntax();
+    const auto snapshot   = editor.Snapshot();
+    const auto planResult = syntax ? TryBuildMarkdownCommand(snapshot, editor.Revision(), syntax, selection, request, plan) : SourceResult::InvalidSource;
     if (planResult == SourceResult::CapacityExceeded)
         return true;
-    if (syntax && request.command == MarkdownCommand::SetHeading && request.headingLevel > 0u &&
-        !CanSetHeading(*syntax, selection, request.headingLevel) && CanSetHeading(*syntax, selection, 0u) &&
-        snapshot.Length() + request.headingLevel + 1u > Document::MaximumUnits)
+    if (syntax && request.command == MarkdownCommand::SetHeading && request.headingLevel > 0u && ! CanSetHeading(*syntax, selection, request.headingLevel) &&
+        CanSetHeading(*syntax, selection, 0u) && snapshot.Length() + request.headingLevel + 1u > Document::MaximumUnits)
         return true;
-    if (!plan || !plan->IsApplicable())
+    if (! plan || ! plan->IsApplicable())
         return false;
     std::size_t nextLength = snapshot.Length();
-    for (const auto &edit : plan->Edits())
+    for (const auto& edit : plan->Edits())
     {
         const auto removed = edit.source.last - edit.source.first;
         if (edit.replacement.size() > Document::MaximumUnits - (nextLength - removed))
@@ -242,11 +224,13 @@ struct Application::ExternalLinkState
         CompletedPendingDrain,
         Closed
     };
-    explicit ExternalLinkState(HWND owner) : window(owner) {}
-    ExternalLinkState(const ExternalLinkState &) = delete;
-    ExternalLinkState &operator=(const ExternalLinkState &) = delete;
-    ExternalLinkState(ExternalLinkState &&) = delete;
-    ExternalLinkState &operator=(ExternalLinkState &&) = delete;
+    explicit ExternalLinkState(HWND owner) : window(owner)
+    {
+    }
+    ExternalLinkState(const ExternalLinkState&)            = delete;
+    ExternalLinkState& operator=(const ExternalLinkState&) = delete;
+    ExternalLinkState(ExternalLinkState&&)                 = delete;
+    ExternalLinkState& operator=(ExternalLinkState&&)      = delete;
     std::mutex mutex;
     HWND window{};
     Phase phase{Phase::Idle};
@@ -254,11 +238,11 @@ struct Application::ExternalLinkState
 };
 struct Application::ExternalLinkJob
 {
-    ExternalLinkJob() = default;
-    ExternalLinkJob(const ExternalLinkJob &) = delete;
-    ExternalLinkJob &operator=(const ExternalLinkJob &) = delete;
-    ExternalLinkJob(ExternalLinkJob &&) = delete;
-    ExternalLinkJob &operator=(ExternalLinkJob &&) = delete;
+    ExternalLinkJob()                                  = default;
+    ExternalLinkJob(const ExternalLinkJob&)            = delete;
+    ExternalLinkJob& operator=(const ExternalLinkJob&) = delete;
+    ExternalLinkJob(ExternalLinkJob&&)                 = delete;
+    ExternalLinkJob& operator=(ExternalLinkJob&&)      = delete;
     ProcessWorkLease lease;
     std::shared_ptr<ExternalLinkState> state;
     std::wstring destination;
@@ -296,143 +280,175 @@ std::wstring SampleDocument()
            L"Images use ordinary Markdown: `![description](images/photo.png)`. Insert a local image from the toolbar or paste a file path.\n";
 }
 
-Application::Application(LaunchOptions value) : Application(std::move(value), DxUi::Failure::Scope{}) {}
-Application::Application(LaunchOptions value, const DxUi::Failure::Scope &) : options(std::move(value))
+Application::Application(LaunchOptions value) : Application(std::move(value), DxUi::Failure::Scope{})
 {
-    startupRestore.enabled = !options.headless;
+}
+Application::Application(LaunchOptions value, const DxUi::Failure::Scope&) : _options(std::move(value))
+{
+    _startupRestore.enabled = ! _options.headless;
 #if defined(REDTILDE_ENABLE_TESTS)
-    startupRestore.enabled = startupRestore.enabled || options.startupRestoreForTest;
+    _startupRestore.enabled = _startupRestore.enabled || _options.startupRestoreForTest;
 #endif
 }
 void Application::TransitionLifecycle(LifecyclePhase next) noexcept
 {
-    lifecyclePhase = next;
+    _lifecyclePhase = next;
 }
 Application::~Application()
 {
     TransitionLifecycle(LifecyclePhase::Destroyed);
-    Printing::Stop(printOperation);
+    Printing::Stop(_printOperation);
     ClosePrintPreview();
-    bitmapWriter.Stop();
-    bitmapWriter.Detach();
+    _bitmapWriter.Stop();
+    _bitmapWriter.Detach();
     CloseExternalLinks();
-    preferenceWriter.Close();
-    recovery.Close();
-    files.Close();
-    folderFiles.Close();
-    images.Shutdown();
-    imageFiles.Close();
-    host.Detach();
-    window.reset();
+    _settingsWatcher.Close();
+    _preferenceWriter.Close();
+    _recovery.Close();
+    _files.Close();
+    _folderFiles.Close();
+    _images.Shutdown();
+    _imageFiles.Close();
+    _host.Detach();
+    _window.reset();
 }
 
 HRESULT Application::Initialize()
 {
-    if (options.dataDirectory.empty())
-        options.dataDirectory = DefaultDataDirectory();
-    if (startupRestore.enabled || options.preferencesProbe)
-        (void)LoadSettings(options.dataDirectory, settings);
+    if (_options.dataDirectory.empty())
+        _options.dataDirectory = DefaultDataDirectory();
+    if (_startupRestore.enabled || _options.preferencesProbe || ! _options.headless)
+    {
+        SettingsLoadResult loaded = LoadSettingsCold(_options.dataDirectory);
+        _settings                 = std::move(loaded.settings);
+        if (loaded.status == SettingsLoadStatus::Loaded || loaded.status == SettingsLoadStatus::Missing || loaded.status == SettingsLoadStatus::Migrated ||
+            loaded.status == SettingsLoadStatus::Invalid)
+        {
+            _settingsFileStamp = loaded.stamp;
+        }
+        if (loaded.status == SettingsLoadStatus::Invalid || loaded.status == SettingsLoadStatus::Unreadable)
+            MonitorDiagnostics::Write(RedMonitor::Severity::Warning, L"Settings file on startup could not be parsed cleanly; defaults applied");
+    }
     WNDCLASSEXW cls{sizeof(cls)};
-    cls.lpfnWndProc = WindowProc;
-    cls.hInstance = GetModuleHandleW(nullptr);
-    cls.hCursor = LoadCursorW(nullptr, IDC_ARROW);
-    cls.hIcon = LoadIconW(cls.hInstance, MAKEINTRESOURCEW(IDI_REDTILDE));
-    cls.hIconSm = cls.hIcon;
+    cls.lpfnWndProc   = WindowProc;
+    cls.hInstance     = GetModuleHandleW(nullptr);
+    cls.hCursor       = LoadCursorW(nullptr, IDC_ARROW);
+    cls.hIcon         = LoadIconW(cls.hInstance, MAKEINTRESOURCEW(IDI_REDTILDE));
+    cls.hIconSm       = cls.hIcon;
     cls.lpszClassName = L"RedTilde.MainWindow";
-    if (!RegisterClassExW(&cls) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
+    if (! RegisterClassExW(&cls) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
         return HRESULT_FROM_WIN32(GetLastError());
     const UINT dpi = GetDpiForSystem();
-    RECT bounds{0, 0, MulDiv(options.scenario == L"narrow" ? 820 : 1360, static_cast<int>(dpi), 96), MulDiv(900, static_cast<int>(dpi), 96)};
+    RECT bounds{0, 0, MulDiv(_options.scenario == L"narrow" ? 820 : 1360, static_cast<int>(dpi), 96), MulDiv(900, static_cast<int>(dpi), 96)};
     (void)AdjustWindowRectExForDpi(&bounds, WS_OVERLAPPEDWINDOW, FALSE, 0, dpi);
-    RECT requested = bounds;
+    RECT requested    = bounds;
     unsigned savedDpi = dpi;
     RECT workArea{0, 0, GetSystemMetrics(SM_CXSCREEN), GetSystemMetrics(SM_CYSCREEN)};
-    if (!options.headless)
+    if (! _options.headless)
     {
-        if (settings.windowPlacement)
+        if (_settings.windowPlacement)
         {
-            requested = settings.windowPlacement.value().normalBounds;
-            savedDpi = settings.windowPlacement.value().dpi;
+            requested = _settings.windowPlacement.value().normalBounds;
+            savedDpi  = _settings.windowPlacement.value().dpi;
         }
         MONITORINFO monitor{sizeof(monitor)};
         const HMONITOR target =
-            settings.windowPlacement ? MonitorFromRect(&requested, MONITOR_DEFAULTTONEAREST) : MonitorFromPoint(POINT{}, MONITOR_DEFAULTTOPRIMARY);
+            _settings.windowPlacement ? MonitorFromRect(&requested, MONITOR_DEFAULTTONEAREST) : MonitorFromPoint(POINT{}, MONITOR_DEFAULTTOPRIMARY);
         if (GetMonitorInfoW(target, &monitor))
             workArea = monitor.rcWork;
-        if (!settings.windowPlacement)
+        if (! _settings.windowPlacement)
         {
             const LONG width = bounds.right - bounds.left, height = bounds.bottom - bounds.top;
-            requested = {workArea.left + (workArea.right - workArea.left - width) / 2, workArea.top + (workArea.bottom - workArea.top - height) / 2,
-                         0, 0};
-            requested.right = requested.left + width;
+            requested = {workArea.left + (workArea.right - workArea.left - width) / 2, workArea.top + (workArea.bottom - workArea.top - height) / 2, 0, 0};
+            requested.right  = requested.left + width;
             requested.bottom = requested.top + height;
         }
         bounds = ClampWindowBounds(requested, workArea, savedDpi, dpi);
     }
-    window.reset(CreateWindowExW(options.headless ? WS_EX_NOACTIVATE : 0, cls.lpszClassName, Resource(IDS_APP).c_str(), WS_OVERLAPPEDWINDOW,
-                                 options.headless ? CW_USEDEFAULT : bounds.left, options.headless ? CW_USEDEFAULT : bounds.top,
-                                 bounds.right - bounds.left, bounds.bottom - bounds.top, nullptr, nullptr, cls.hInstance, this));
-    if (!window)
+    _window.reset(CreateWindowExW(_options.headless ? WS_EX_NOACTIVATE : 0,
+                                  cls.lpszClassName,
+                                  Resource(IDS_APP).c_str(),
+                                  WS_OVERLAPPEDWINDOW,
+                                  _options.headless ? CW_USEDEFAULT : bounds.left,
+                                  _options.headless ? CW_USEDEFAULT : bounds.top,
+                                  bounds.right - bounds.left,
+                                  bounds.bottom - bounds.top,
+                                  nullptr,
+                                  nullptr,
+                                  cls.hInstance,
+                                  this));
+    if (! _window)
         return HRESULT_FROM_WIN32(GetLastError());
-    DragAcceptFiles(window.get(), TRUE);
-    if (!options.headless)
+    DragAcceptFiles(_window.get(), TRUE);
+    if (! _options.headless)
     {
-        const unsigned actualDpi = GetDpiForWindow(window.get());
-        bounds = ClampWindowBounds(requested, workArea, savedDpi, actualDpi);
-        if (!SetWindowPos(window.get(), nullptr, bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top,
-                          SWP_NOZORDER | SWP_NOACTIVATE))
+        const unsigned actualDpi = GetDpiForWindow(_window.get());
+        bounds                   = ClampWindowBounds(requested, workArea, savedDpi, actualDpi);
+        if (! SetWindowPos(
+                _window.get(), nullptr, bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top, SWP_NOZORDER | SWP_NOACTIVATE))
             return HRESULT_FROM_WIN32(GetLastError());
-        const bool maximized = settings.windowPlacement && settings.windowPlacement.value().maximized;
-        settings.windowPlacement = WindowPlacementSettings{bounds, actualDpi, maximized};
-        windowPlacementDirty = true;
+        const bool maximized      = _settings.windowPlacement && _settings.windowPlacement.value().maximized;
+        _settings.windowPlacement = WindowPlacementSettings{bounds, actualDpi, maximized};
+        _windowPlacementDirty     = true;
     }
-    if (!host.Attach(window.get(), {.forceWarp = options.forceWarp, .batchInitialRootChildren = true}))
+    if (! _host.Attach(_window.get(), {.forceWarp = _options.forceWarp, .batchInitialRootChildren = true}))
         return HRESULT_FROM_WIN32(GetLastError());
-    files.Initialize(window.get(), FileReady);
+    _files.Initialize(_window.get(), FileReady);
 #if defined(REDTILDE_ENABLE_TESTS)
-    files.SetTestGate(options.fileGateForTest);
+    _files.SetTestGate(_options.fileGateForTest);
 #endif
     const MARGINS frame{1, 1, 1, 1};
-    (void)DwmExtendFrameIntoClientArea(window.get(), &frame);
-    SetWindowPos(window.get(), nullptr, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
-    preferenceWriter.Initialize(options.dataDirectory, window.get(), PreferencesReady);
-    RETURN_IF_FAILED(recovery.Initialize(options.dataDirectory, window.get(), RecoveryReadyMessage));
-    RETURN_IF_FAILED(images.Initialize(window.get(), ImageReady, 0x5254));
-    RETURN_IF_FAILED(imageFiles.Initialize(window.get(), ImageFileChanged, 0x5254));
-    images.SetAllowLocalNetwork(settings.allowLocalNetworkImages);
-    RETURN_IF_FAILED(bitmapWriter.Initialize(options.dataDirectory, window.get(), BitmapReady));
-    host.SetClipboardPreference(settings.imageFirstPaste ? DxUi::TextClipboardPreference::ImageFirst : DxUi::TextClipboardPreference::TextFirst);
+    (void)DwmExtendFrameIntoClientArea(_window.get(), &frame);
+    SetWindowPos(_window.get(), nullptr, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
+    _preferenceWriter.Initialize(_options.dataDirectory, _window.get(), PreferencesReady);
+    RETURN_IF_FAILED(_recovery.Initialize(_options.dataDirectory, _window.get(), RecoveryReadyMessage));
+    RETURN_IF_FAILED(_images.Initialize(_window.get(), ImageReady, 0x5254));
+    RETURN_IF_FAILED(_imageFiles.Initialize(_window.get(), ImageFileChanged, 0x5254));
+    _images.SetAllowLocalNetwork(_settings.allowLocalNetworkImages);
+    RETURN_IF_FAILED(_bitmapWriter.Initialize(_options.dataDirectory, _window.get(), BitmapReady));
+    _host.SetClipboardPreference(_settings.imageFirstPaste ? DxUi::TextClipboardPreference::ImageFirst : DxUi::TextClipboardPreference::TextFirst);
     TransitionLifecycle(LifecyclePhase::Initializing);
     // BuildUi is the sole creation site for the label whose localized facts we cache.
-    currentBlockLatestFacts.reset();
-    currentBlockPublishedFacts.Invalidate();
+    _currentBlockLatestFacts.reset();
+    _currentBlockPublishedFacts.Invalidate();
     RETURN_IF_FAILED(BuildUi());
     ApplyTheme();
-    SetDocument(startupRestore.enabled ? std::wstring{} : SampleDocument());
-    if (startupRestore.enabled && options.document.empty())
+    SetDocument(_startupRestore.enabled ? std::wstring{} : SampleDocument());
+    if (_startupRestore.enabled && _options.document.empty())
     {
-        startupRestore.source = editor->Snapshot();
-        startupRestore.phase = StartupRestoreState::Phase::WaitingForRecovery;
+        _startupRestore.source = _editor->Snapshot();
+        _startupRestore.phase  = StartupRestoreState::Phase::WaitingForRecovery;
     }
-    if (!options.document.empty())
+    if (! _options.document.empty())
     {
-        if (options.headless && !startupRestore.enabled)
+        if (_options.headless && ! _startupRestore.enabled)
         {
             StoredDocument loaded;
-            RETURN_IF_FAILED(LoadDocument(options.document, loaded));
-            SetDocument(std::move(loaded.text), options.document, loaded.bom, loaded.stamp);
+            RETURN_IF_FAILED(LoadDocument(_options.document, loaded));
+            SetDocument(std::move(loaded.text), _options.document, loaded.bom, loaded.stamp);
         }
         else
         {
-            auto entrySource = editor->Snapshot();
-            RETURN_IF_FAILED(files.Submit(false, options.document));
-            activeFileTx = StartupOpenTx{std::move(entrySource)};
+            auto entrySource = _editor->Snapshot();
+            RETURN_IF_FAILED(_files.Submit(false, _options.document));
+            _activeFileTx = StartupOpenTx{std::move(entrySource)};
             Status(IDS_LOADING);
         }
     }
     TransitionLifecycle(LifecyclePhase::Active);
     Layout();
-    if (!options.headless && FAILED(RegisterApplicationRestart(L"", RESTART_NO_CRASH | RESTART_NO_HANG)))
+    const bool shouldWatchSettings = (! _options.headless && ! _options.preferencesProbe)
+#if defined(REDTILDE_ENABLE_TESTS)
+                                     || _options.watchSettingsForTest
+#endif
+        ;
+    if (shouldWatchSettings)
+    {
+        const HRESULT watchResult = _settingsWatcher.Start(_options.dataDirectory, std::wstring(SettingsFileName()), _window.get(), SettingsChanged);
+        if (FAILED(watchResult))
+            MonitorDiagnostics::Write(RedMonitor::Severity::Warning, L"Settings watcher could not start; live settings reload disabled");
+    }
+    if (! _options.headless && FAILED(RegisterApplicationRestart(L"", RESTART_NO_CRASH | RESTART_NO_HANG)))
         MonitorDiagnostics::Write(RedMonitor::Severity::Warning, L"Windows restart registration unavailable; ordinary recovery remains enabled");
     return S_OK;
 }
@@ -447,80 +463,78 @@ RECT Application::ClampWindowBounds(RECT requested, RECT workArea, unsigned save
         savedDpi = 96;
     if (currentDpi < 48u || currentDpi > 768u)
         currentDpi = 96;
-    const auto workWidth = static_cast<long long>(workArea.right) - workArea.left;
-    const auto workHeight = static_cast<long long>(workArea.bottom) - workArea.top;
-    const auto scaled = [&](long long size) { return (std::clamp(size, 1ll, 32768ll) * currentDpi + savedDpi / 2u) / savedDpi; };
-    const auto minimumWidth = std::min(workWidth, static_cast<long long>(800u) * currentDpi / 96u);
+    const auto workWidth     = static_cast<long long>(workArea.right) - workArea.left;
+    const auto workHeight    = static_cast<long long>(workArea.bottom) - workArea.top;
+    const auto scaled        = [&](long long size) { return (std::clamp(size, 1ll, 32768ll) * currentDpi + savedDpi / 2u) / savedDpi; };
+    const auto minimumWidth  = std::min(workWidth, static_cast<long long>(800u) * currentDpi / 96u);
     const auto minimumHeight = std::min(workHeight, static_cast<long long>(560u) * currentDpi / 96u);
-    const auto width = std::clamp(scaled(static_cast<long long>(requested.right) - requested.left), minimumWidth, workWidth);
-    const auto height = std::clamp(scaled(static_cast<long long>(requested.bottom) - requested.top), minimumHeight, workHeight);
-    const auto left =
-        std::clamp(static_cast<long long>(requested.left), static_cast<long long>(workArea.left), static_cast<long long>(workArea.right) - width);
-    const auto top =
-        std::clamp(static_cast<long long>(requested.top), static_cast<long long>(workArea.top), static_cast<long long>(workArea.bottom) - height);
+    const auto width         = std::clamp(scaled(static_cast<long long>(requested.right) - requested.left), minimumWidth, workWidth);
+    const auto height        = std::clamp(scaled(static_cast<long long>(requested.bottom) - requested.top), minimumHeight, workHeight);
+    const auto left = std::clamp(static_cast<long long>(requested.left), static_cast<long long>(workArea.left), static_cast<long long>(workArea.right) - width);
+    const auto top  = std::clamp(static_cast<long long>(requested.top), static_cast<long long>(workArea.top), static_cast<long long>(workArea.bottom) - height);
     return {static_cast<LONG>(left), static_cast<LONG>(top), static_cast<LONG>(left + width), static_cast<LONG>(top + height)};
 }
 
 int Application::InitialShowCommand() const noexcept
 {
-    if (options.explicitShowCommand)
-        return options.showCommand;
-    return settings.windowPlacement && settings.windowPlacement.value().maximized ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL;
+    if (_options.explicitShowCommand)
+        return _options.showCommand;
+    return _settings.windowPlacement && _settings.windowPlacement.value().maximized ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL;
 }
 
 bool Application::MayRequestNativeFocus() const noexcept
 {
-    return !options.headless && window && IsWindowVisible(window.get()) && !IsIconic(window.get()) && GetForegroundWindow() == window.get();
+    return ! _options.headless && _window && IsWindowVisible(_window.get()) && ! IsIconic(_window.get()) && GetForegroundWindow() == _window.get();
 }
 
 void Application::RecordWindowPlacement(bool persist)
 {
-    if (lifecyclePhase != LifecyclePhase::Active || options.headless || !window || IsIconic(window.get()))
+    if (_lifecyclePhase != LifecyclePhase::Active || _options.headless || ! _window || IsIconic(_window.get()))
         return;
-    auto placement = settings.windowPlacement.value_or(WindowPlacementSettings{});
-    placement.maximized = IsZoomed(window.get()) != FALSE;
-    if (!placement.maximized)
+    auto placement      = _settings.windowPlacement.value_or(WindowPlacementSettings{});
+    placement.maximized = IsZoomed(_window.get()) != FALSE;
+    if (! placement.maximized)
     {
-        if (!GetWindowRect(window.get(), &placement.normalBounds))
+        if (! GetWindowRect(_window.get(), &placement.normalBounds))
             return;
-        placement.dpi = GetDpiForWindow(window.get());
+        placement.dpi = GetDpiForWindow(_window.get());
     }
-    if (!ValidWindowPlacement(placement))
+    if (! ValidWindowPlacement(placement))
         return;
-    const auto previous = settings.windowPlacement;
-    if (!previous || !EqualRect(&previous.value().normalBounds, &placement.normalBounds) || previous.value().dpi != placement.dpi ||
+    const auto previous = _settings.windowPlacement;
+    if (! previous || ! EqualRect(&previous.value().normalBounds, &placement.normalBounds) || previous.value().dpi != placement.dpi ||
         previous.value().maximized != placement.maximized)
     {
-        settings.windowPlacement = placement;
-        windowPlacementDirty = true;
+        _settings.windowPlacement = placement;
+        _windowPlacementDirty     = true;
     }
-    if (persist && windowPlacementDirty)
+    if (persist && _windowPlacementDirty)
         SavePreferences();
 }
 
 void Application::AbandonStartupRestore()
 {
-    const bool wasOpening = startupRestore.IsOpeningLastDocument();
-    if (startupRestore.phase != StartupRestoreState::Phase::Disabled)
-        startupRestore.phase = StartupRestoreState::Phase::Completed;
-    startupRestore.source.reset();
-    if (!wasOpening)
+    const bool wasOpening = _startupRestore.IsOpeningLastDocument();
+    if (_startupRestore.phase != StartupRestoreState::Phase::Disabled)
+        _startupRestore.phase = StartupRestoreState::Phase::Completed;
+    _startupRestore.source.reset();
+    if (! wasOpening)
         return;
     // Only this one automatic read is abandoned. Its worker retains its old
     // invalidated generation; no filesystem wait or desktop interaction occurs.
-    files.CancelInFlightLoad();
-    if (std::holds_alternative<StartupOpenTx>(activeFileTx) || std::holds_alternative<HeldOpenTx>(activeFileTx))
-        activeFileTx = std::monostate{};
+    _files.CancelInFlightLoad();
+    if (std::holds_alternative<StartupOpenTx>(_activeFileTx) || std::holds_alternative<HeldOpenTx>(_activeFileTx))
+        _activeFileTx = std::monostate{};
 }
 
 void Application::RememberActiveDocument()
 {
-    if (lifecyclePhase != LifecyclePhase::Active && lifecyclePhase != LifecyclePhase::ClosingAfterSave)
+    if (_lifecyclePhase != LifecyclePhase::Active && _lifecyclePhase != LifecyclePhase::ClosingAfterSave)
         return;
-    const auto path = session.recovered ? std::filesystem::path{} : session.path;
-    if (settings.lastDocument != path)
+    const auto path = _session.recovered ? std::filesystem::path{} : _session.path;
+    if (_settings.lastDocument != path)
     {
-        settings.lastDocument = path;
+        _settings.lastDocument = path;
         SavePreferences();
     }
 }
@@ -534,10 +548,8 @@ bool Application::SupportedExternalLink(std::wstring_view destination) noexcept
         return false;
     const auto starts = [&](std::wstring_view prefix)
     {
-        return destination.size() >= prefix.size() &&
-               std::ranges::all_of(destination.substr(0, prefix.size()), [](wchar_t unit) { return unit < 0x80; }) &&
-               CompareStringOrdinal(destination.data(), static_cast<int>(prefix.size()), prefix.data(), static_cast<int>(prefix.size()), TRUE) ==
-                   CSTR_EQUAL;
+        return destination.size() >= prefix.size() && std::ranges::all_of(destination.substr(0, prefix.size()), [](wchar_t unit) { return unit < 0x80; }) &&
+               CompareStringOrdinal(destination.data(), static_cast<int>(prefix.size()), prefix.data(), static_cast<int>(prefix.size()), TRUE) == CSTR_EQUAL;
     };
     if (starts(L"mailto:"))
         return destination.size() > 7u;
@@ -545,71 +557,71 @@ bool Application::SupportedExternalLink(std::wstring_view destination) noexcept
     return authority != 0u && destination.size() > authority && destination.find_first_of(L"/?#", authority) != authority;
 }
 
-std::optional<std::size_t> Application::CurrentLinkElement(const std::shared_ptr<const DxUi::RichText::SemanticDocument> &document) const
+std::optional<std::size_t> Application::CurrentLinkElement(const std::shared_ptr<const DxUi::RichText::SemanticDocument>& document) const
 {
-    if (!document || !editor->Snapshot().MatchesText(document->Syntax()->Source()))
+    if (! document || ! _editor->Snapshot().MatchesText(document->Syntax()->Source()))
         return std::nullopt;
-    const auto selection = editor->GetSelection();
-    const auto elements = document->Elements();
+    const auto selection = _editor->GetSelection();
+    const auto elements  = document->Elements();
     for (std::size_t index = 0; index < elements.size(); ++index)
     {
-        const auto &element = elements[index];
-        if (element.role == DxUi::RichText::SemanticRole::Link && !element.wiki && selection.Start() >= element.source.first &&
+        const auto& element = elements[index];
+        if (element.role == DxUi::RichText::SemanticRole::Link && ! element.wiki && selection.Start() >= element.source.first &&
             selection.Start() < element.source.last && selection.End() <= element.source.last)
             return index;
     }
     return std::nullopt;
 }
 
-void Application::RequestOpenLink(const DxUi::RichTextLinkActivation &activation)
+void Application::RequestOpenLink(const DxUi::RichTextLinkActivation& activation)
 {
-    if (!IsUiAttached())
+    if (! IsUiAttached())
         return;
-    if (!CanAcceptCommand() || IsSessionEnding() || HasActiveModalPrompt() || HasBlockDraft() || activation.wiki ||
-        !SupportedExternalLink(activation.destination))
+    if (! CanAcceptCommand() || IsSessionEnding() || HasActiveModalPrompt() || HasBlockDraft() || activation.wiki ||
+        ! SupportedExternalLink(activation.destination))
     {
         Status(IDS_LINKUNAVAILABLE);
         return;
     }
-    const auto semantic = editor->GetSemanticDocument();
-    const auto source = editor->Snapshot();
-    if (!semantic || !source.MatchesText(semantic->Syntax()->Source()) ||
+    const auto semantic = _editor->GetSemanticDocument();
+    const auto source   = _editor->Snapshot();
+    if (! semantic || ! source.MatchesText(semantic->Syntax()->Source()) ||
         std::ranges::none_of(semantic->Elements(),
-                             [&](const auto &element)
-                             {
-                                 return element.role == DxUi::RichText::SemanticRole::Link && element.source == activation.source &&
-                                        element.destination == activation.destination && !element.wiki;
-                             }))
+                             [&](const auto& element)
+    {
+        return element.role == DxUi::RichText::SemanticRole::Link && element.source == activation.source && element.destination == activation.destination &&
+               ! element.wiki;
+    }))
     {
         Status(IDS_LINKCHANGED);
         return;
     }
-    if (externalLink)
+    if (_externalLink)
     {
-        std::lock_guard lock(externalLink->mutex);
-        if (externalLink->phase == ExternalLinkState::Phase::LaunchingSta)
+        std::lock_guard lock(_externalLink->mutex);
+        if (_externalLink->phase == ExternalLinkState::Phase::LaunchingSta)
         {
             // No UI callback or status publication while holding a worker lock.
             return;
         }
     }
     std::wstring destination(activation.destination); // Own every byte before the modal/reentrant boundary.
-    const auto selection = editor->GetSelection();
-    const auto key = session.key;
-    auto *const owner = root;
-    auto *const primary = editor;
-    const auto lifetime = GetControlLifetimeToken(*primary);
+    const auto selection = _editor->GetSelection();
+    const auto key       = _session.key;
+    auto* const owner    = _root;
+    auto* const primary  = _editor;
+    const auto lifetime  = GetControlLifetimeToken(*primary);
     bool approved{};
-    modalPrompt = ModalPromptKind::ExternalLink;
-    const auto unwind = wil::scope_exit([&] { modalPrompt = ModalPromptKind::None; });
+    _modalPrompt      = ModalPromptKind::ExternalLink;
+    const auto unwind = wil::scope_exit([&] { _modalPrompt = ModalPromptKind::None; });
 #if defined(REDTILDE_ENABLE_TESTS)
-    const auto testLaunch = options.launchLinkForTest;
+    const auto testLaunch = _options.launchLinkForTest;
 #endif
-    if (options.headless)
+    if (_options.headless)
     {
 #if defined(REDTILDE_ENABLE_TESTS)
-        const auto confirm = options.confirmLinkForTest;
-        if (!confirm || !testLaunch)
+        const auto confirm = _options.confirmLinkForTest;
+        if (! confirm || ! testLaunch)
             return;
         approved = confirm(destination);
 #else
@@ -619,56 +631,58 @@ void Application::RequestOpenLink(const DxUi::RichTextLinkActivation &activation
     else
     {
         const auto message = FormatStringResource(nullptr, IDS_OPENLINKCONFIRM, destination);
-        approved = DxUi::Failure::InvokeNative(&MessageBoxW, window.get(), message.c_str(), Resource(IDS_OPENLINK).c_str(),
-                                               static_cast<UINT>(MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2)) == IDYES;
+        approved =
+            DxUi::Failure::InvokeNative(
+                &MessageBoxW, _window.get(), message.c_str(), Resource(IDS_OPENLINK).c_str(), static_cast<UINT>(MB_YESNO | MB_ICONQUESTION | MB_DEFBUTTON2)) ==
+            IDYES;
     }
-    if (!approved)
+    if (! approved)
         return;
-    if (IsClosing() || lifetime.expired() || host.GetRoot() != owner || editor != primary)
+    if (IsClosing() || lifetime.expired() || _host.GetRoot() != owner || _editor != primary)
         return;
-    if (IsSessionEnding() || session.key != key || !primary->Snapshot().IsSameRevision(source) || primary->GetSelection() != selection)
+    if (IsSessionEnding() || _session.key != key || ! primary->Snapshot().IsSameRevision(source) || primary->GetSelection() != selection)
     {
         Status(IDS_LINKCHANGED);
         return;
     }
-    if (!externalLink)
-        externalLink = std::make_shared<ExternalLinkState>(window.get());
-    auto job = std::make_unique<ExternalLinkJob>();
-    job->state = externalLink;
+    if (! _externalLink)
+        _externalLink = std::make_shared<ExternalLinkState>(_window.get());
+    auto job         = std::make_unique<ExternalLinkJob>();
+    job->state       = _externalLink;
     job->destination = std::move(destination);
 #if defined(REDTILDE_ENABLE_TESTS)
-    if (options.headless)
+    if (_options.headless)
     {
         job->launchForTest = testLaunch;
-        job->gate = options.linkGateForTest;
+        job->gate          = _options.linkGateForTest;
     }
 #endif
     HRESULT admitted = S_OK;
-    admitted = ProcessWork::Acquire(job->lease);
+    admitted         = ProcessWork::Acquire(job->lease);
     if (FAILED(admitted))
     {
         Status(IDS_LINKFAILED);
         return;
     }
     {
-        std::lock_guard lock(externalLink->mutex);
-        if (externalLink->phase == ExternalLinkState::Phase::LaunchingSta || externalLink->phase == ExternalLinkState::Phase::Closed ||
-            !externalLink->window)
+        std::lock_guard lock(_externalLink->mutex);
+        if (_externalLink->phase == ExternalLinkState::Phase::LaunchingSta || _externalLink->phase == ExternalLinkState::Phase::Closed ||
+            ! _externalLink->window)
             admitted = HRESULT_FROM_WIN32(ERROR_BUSY);
         else
         {
-            externalLink->phase = ExternalLinkState::Phase::LaunchingSta;
-            externalLink->completedResult = S_OK;
+            _externalLink->phase           = ExternalLinkState::Phase::LaunchingSta;
+            _externalLink->completedResult = S_OK;
             // A fresh short-lived STA is required by shell extensions. Unlike
             // the MTA codec/file workers it cannot borrow an arbitrary pool apartment.
             // The EXE owns only value/shared-state data; Close invalidates posting
             // without waiting for another application's shell handler.
             wil::unique_handle thread(CreateThread(nullptr, 0, ExternalLinkWorker, job.get(), 0, nullptr));
-            if (!thread)
+            if (! thread)
             {
-                const DWORD error = GetLastError();
-                admitted = HRESULT_FROM_WIN32(error ? error : ERROR_NOT_ENOUGH_MEMORY);
-                externalLink->phase = ExternalLinkState::Phase::Idle;
+                const DWORD error    = GetLastError();
+                admitted             = HRESULT_FROM_WIN32(error ? error : ERROR_NOT_ENOUGH_MEMORY);
+                _externalLink->phase = ExternalLinkState::Phase::Idle;
             }
             else
                 (void)job.release();
@@ -677,17 +691,16 @@ void Application::RequestOpenLink(const DxUi::RichTextLinkActivation &activation
     Status(FAILED(admitted) ? IDS_LINKFAILED : IDS_LINKOPENING);
 }
 
-DWORD WINAPI Application::ExternalLinkWorker(void *context) noexcept
+DWORD WINAPI Application::ExternalLinkWorker(void* context) noexcept
 {
-    ProcessWorkLease lease = std::move(static_cast<ExternalLinkJob *>(context)->lease);
-    const std::unique_ptr<ExternalLinkJob> job(static_cast<ExternalLinkJob *>(context));
+    ProcessWorkLease lease = std::move(static_cast<ExternalLinkJob*>(context)->lease);
+    const std::unique_ptr<ExternalLinkJob> job(static_cast<ExternalLinkJob*>(context));
 #if defined(REDTILDE_ENABLE_TESTS)
-    const auto settled = wil::scope_exit(
-        [&]
-        {
-            if (job->gate)
-                (void)SetEvent(job->gate->finished.get());
-        });
+    const auto settled = wil::scope_exit([&]
+    {
+        if (job->gate)
+            (void)SetEvent(job->gate->finished.get());
+    });
 #endif
     HRESULT result = E_FAIL;
     try
@@ -699,7 +712,7 @@ DWORD WINAPI Application::ExternalLinkWorker(void *context) noexcept
             (void)SetEvent(job->gate->entered.get());
             admitted = WaitForSingleObject(job->gate->proceed.get(), 30000) == WAIT_OBJECT_0;
         }
-        if (!admitted)
+        if (! admitted)
             result = HRESULT_FROM_WIN32(ERROR_TIMEOUT);
         else
 #endif
@@ -716,27 +729,27 @@ DWORD WINAPI Application::ExternalLinkWorker(void *context) noexcept
 #endif
                 {
                     SHELLEXECUTEINFOW launch{sizeof(launch)};
-                    launch.fMask = SEE_MASK_FLAG_NO_UI | SEE_MASK_NOASYNC;
+                    launch.fMask  = SEE_MASK_FLAG_NO_UI | SEE_MASK_NOASYNC;
                     launch.lpVerb = L"open";
                     launch.lpFile = job->destination.c_str();
-                    launch.nShow = SW_SHOWNORMAL;
+                    launch.nShow  = SW_SHOWNORMAL;
                     // No process handle is requested or retained.
                     if (DxUi::Failure::InvokeNative(&ShellExecuteExW, &launch))
                         result = S_OK;
                     else
                     {
                         const DWORD error = GetLastError();
-                        result = HRESULT_FROM_WIN32(error ? error : ERROR_OPEN_FAILED);
+                        result            = HRESULT_FROM_WIN32(error ? error : ERROR_OPEN_FAILED);
                     }
                 }
             }
         }
     }
-    catch (const std::bad_alloc &)
+    catch (const std::bad_alloc&)
     {
         DxUi::Failure::FailAllocation();
     }
-    catch (const std::exception &)
+    catch (const std::exception&)
     {
         // Unexpected failures cannot unwind through the native thread entry or resume a partial callback.
         DxUi::Failure::FailUnexpected();
@@ -744,7 +757,7 @@ DWORD WINAPI Application::ExternalLinkWorker(void *context) noexcept
     std::lock_guard lock(job->state->mutex);
     if (job->state->phase != ExternalLinkState::Phase::Closed && job->state->window)
     {
-        job->state->phase = ExternalLinkState::Phase::CompletedPendingDrain;
+        job->state->phase           = ExternalLinkState::Phase::CompletedPendingDrain;
         job->state->completedResult = result;
         (void)PostMessageW(job->state->window, ExternalLinkReady, 0, 0);
     }
@@ -753,15 +766,15 @@ DWORD WINAPI Application::ExternalLinkWorker(void *context) noexcept
 
 void Application::ExternalLinkCompleted()
 {
-    if (!externalLink)
+    if (! _externalLink)
         return;
     std::optional<HRESULT> completed;
     {
-        std::lock_guard lock(externalLink->mutex);
-        if (externalLink->phase == ExternalLinkState::Phase::CompletedPendingDrain)
+        std::lock_guard lock(_externalLink->mutex);
+        if (_externalLink->phase == ExternalLinkState::Phase::CompletedPendingDrain)
         {
-            completed = externalLink->completedResult;
-            externalLink->phase = ExternalLinkState::Phase::Idle;
+            completed            = _externalLink->completedResult;
+            _externalLink->phase = ExternalLinkState::Phase::Idle;
         }
     }
     if (completed && IsUiAttached())
@@ -770,17 +783,17 @@ void Application::ExternalLinkCompleted()
 
 void Application::CloseExternalLinks() noexcept
 {
-    if (externalLink)
+    if (_externalLink)
     {
-        std::lock_guard lock(externalLink->mutex);
-        externalLink->window = nullptr;
-        externalLink->phase = ExternalLinkState::Phase::Closed;
+        std::lock_guard lock(_externalLink->mutex);
+        _externalLink->window = nullptr;
+        _externalLink->phase  = ExternalLinkState::Phase::Closed;
     }
 }
 
-DxUi::Label *Application::Label(DxUi::Panel &parent, unsigned label, DxUi::FontRole role)
+DxUi::Label* Application::Label(DxUi::Panel& parent, unsigned label, DxUi::FontRole role)
 {
-    auto *result = parent.AddChild<DxUi::Label>(Resource(label));
+    auto* result = parent.AddChild<DxUi::Label>(Resource(label));
     result->SetFontRole(role);
     if (role == DxUi::FontRole::Small)
         THROW_IF_FAILED(result->SetTypographyOverride(DxUi::LabelTypography{13.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
@@ -788,9 +801,9 @@ DxUi::Label *Application::Label(DxUi::Panel &parent, unsigned label, DxUi::FontR
         THROW_IF_FAILED(result->SetTypographyOverride(DxUi::LabelTypography{14.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
     return result;
 }
-DxUi::Button *Application::Action(DxUi::Panel &parent, unsigned label, Command command, std::wstring tooltip)
+DxUi::Button* Application::Action(DxUi::Panel& parent, unsigned label, Command command, std::wstring tooltip)
 {
-    auto *button = parent.AddChild<DxUi::Button>(Resource(label));
+    auto* button = parent.AddChild<DxUi::Button>(Resource(label));
     THROW_IF_FAILED(button->SetContentFontSizeDip(14.f));
     button->SetAccessibleName(Resource(label));
     button->SetTooltipText(tooltip.empty() ? Resource(label) : std::move(tooltip));
@@ -801,12 +814,12 @@ DxUi::Button *Application::Action(DxUi::Panel &parent, unsigned label, Command c
 void Application::ApplyMarkdownSyntax()
 {
     // Matching masks keep the read-only mirror eligible for parsed-syntax adoption.
-    const auto extensions = MarkdownExtensionsFor(settings);
-    if (!AcceptSourceResult(editor->TrySetMarkdownAnalysisExtensions(extensions)))
+    const auto extensions = MarkdownExtensionsFor(_settings);
+    if (! AcceptSourceResult(_editor->TrySetMarkdownAnalysisExtensions(extensions)))
         return;
-    if (!AcceptSourceResult(mirror->TrySetMarkdownAnalysisExtensions(extensions)))
+    if (! AcceptSourceResult(_mirror->TrySetMarkdownAnalysisExtensions(extensions)))
         return;
-    (void)AcceptSourceResult(equation->TrySetMarkdownAnalysisExtensions(extensions));
+    (void)AcceptSourceResult(_equation->TrySetMarkdownAnalysisExtensions(extensions));
 }
 
 void Application::ApplyTheme()
@@ -814,14 +827,19 @@ void Application::ApplyTheme()
     // Cache the system preference independently of the selected appearance so the
     // System preview remains truthful without registry reads during layout.
     DWORD value = 1, size = sizeof(value);
-    const auto preference = RegGetValueW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
-                                         L"AppsUseLightTheme", RRF_RT_REG_DWORD, nullptr, &value, &size);
-    systemDark = preference == ERROR_SUCCESS && value == 0;
-    const bool dark = settings.appearance == Appearance::Dark || (settings.appearance == Appearance::System && systemDark);
-    auto theme = DxUi::MakeDefaultThemePalette(dark);
+    const auto preference = RegGetValueW(HKEY_CURRENT_USER,
+                                         L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                                         L"AppsUseLightTheme",
+                                         RRF_RT_REG_DWORD,
+                                         nullptr,
+                                         &value,
+                                         &size);
+    _systemDark           = preference == ERROR_SUCCESS && value == 0;
+    const bool dark       = _settings.appearance == Appearance::Dark || (_settings.appearance == Appearance::System && _systemDark);
+    auto theme            = DxUi::MakeDefaultThemePalette(dark);
     HIGHCONTRASTW contrast{sizeof(contrast)};
     (void)SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(contrast), &contrast, 0);
-    const bool highContrast = (contrast.dwFlags & HCF_HIGHCONTRASTON) != 0 || (options.headless && options.scenario == L"high-contrast");
+    const bool highContrast = (contrast.dwFlags & HCF_HIGHCONTRASTON) != 0 || (_options.headless && _options.scenario == L"high-contrast");
     if (highContrast)
     {
         const auto systemColor = [](int index)
@@ -829,153 +847,153 @@ void Application::ApplyTheme()
             const auto value = GetSysColor(index);
             return D2D1::ColorF(GetRValue(value) / 255.f, GetGValue(value) / 255.f, GetBValue(value) / 255.f);
         };
-        theme.highContrast = true;
+        theme.highContrast     = true;
         theme.windowBackground = theme.surfaceBackground = theme.cardBackground = systemColor(COLOR_WINDOW);
-        theme.text = systemColor(COLOR_WINDOWTEXT);
+        theme.text                                                              = systemColor(COLOR_WINDOWTEXT);
         theme.selectionFill = theme.selectionInactiveFill = systemColor(COLOR_HIGHLIGHT);
-        theme.accent = systemColor(COLOR_HOTLIGHT);
-        theme.selectionText = systemColor(COLOR_HIGHLIGHTTEXT);
-        theme.focusStroke = systemColor(COLOR_HOTLIGHT);
+        theme.accent                                      = systemColor(COLOR_HOTLIGHT);
+        theme.selectionText                               = systemColor(COLOR_HIGHLIGHTTEXT);
+        theme.focusStroke                                 = systemColor(COLOR_HOTLIGHT);
     }
     else
     {
-        theme.accent = D2D1::ColorF(dark ? 0xFF7778 : 0xC83C46);
-        theme.accentHover = D2D1::ColorF(dark ? 0xFF999A : 0xB6303C);
+        theme.accent        = D2D1::ColorF(dark ? 0xFF7778 : 0xC83C46);
+        theme.accentHover   = D2D1::ColorF(dark ? 0xFF999A : 0xB6303C);
         theme.accentPressed = D2D1::ColorF(dark ? 0xFFABAC : 0xA12A34);
         theme.selectionFill = theme.selectionInactiveFill = D2D1::ColorF(dark ? 0xA63B46 : 0xF2CFD3);
-        theme.selectionText = D2D1::ColorF(dark ? 0xFFFFFFu : 0xA12A34);
-        theme.focusStroke = theme.accent;
-        theme.windowBackground = D2D1::ColorF(dark ? 0x17191Eu : settings.appearance == Appearance::Paper ? 0xEDE6D8u : 0xF0F1F4u);
-        theme.surfaceBackground = D2D1::ColorF(dark ? 0x1C1F25u : settings.appearance == Appearance::Paper ? 0xF3EDDFu : 0xF8F8FAu);
-        theme.cardBackground = theme.inputFill = D2D1::ColorF(dark ? 0x22252Bu : settings.appearance == Appearance::Paper ? 0xFFFAEFu : 0xFFFFFFu);
-        theme.buttonBorder = theme.borderDefault;
+        theme.selectionText                               = D2D1::ColorF(dark ? 0xFFFFFFu : 0xA12A34);
+        theme.focusStroke                                 = theme.accent;
+        theme.windowBackground                            = D2D1::ColorF(dark ? 0x17191Eu : _settings.appearance == Appearance::Paper ? 0xEDE6D8u : 0xF0F1F4u);
+        theme.surfaceBackground                           = D2D1::ColorF(dark ? 0x1C1F25u : _settings.appearance == Appearance::Paper ? 0xF3EDDFu : 0xF8F8FAu);
+        theme.cardBackground = theme.inputFill = D2D1::ColorF(dark ? 0x22252Bu : _settings.appearance == Appearance::Paper ? 0xFFFAEFu : 0xFFFFFFu);
+        theme.buttonBorder                     = theme.borderDefault;
     }
     BOOL animation = TRUE;
     (void)SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &animation, 0);
-    theme.reducedMotion = !animation || options.headless;
+    theme.reducedMotion     = ! animation || _options.headless;
     theme.primaryButtonFill = D2D1::ColorF(0xC83C46);
     theme.primaryButtonText = D2D1::ColorF(D2D1::ColorF::White);
-    host.SetTheme(theme);
-    if (printPreview)
-        printPreview->SetTheme(theme);
+    _host.SetTheme(theme);
+    if (_printPreview)
+        _printPreview->SetTheme(theme);
     const auto underline = highContrast ? DxUi::RichTextLinkUnderlinePolicy::Always : DxUi::RichTextLinkUnderlinePolicy::HoverOrCaret;
-    for (auto *target : {static_cast<DxUi::RichTextEditor *>(editor), mirror, equation})
-        if (!AcceptSourceResult(target->TrySetLinkUnderlinePolicy(underline)))
+    for (auto* target : {static_cast<DxUi::RichTextEditor*>(_editor), _mirror, _equation})
+        if (! AcceptSourceResult(target->TrySetLinkUnderlinePolicy(underline)))
             return;
     const BOOL nativeDark = dark;
-    (void)DwmSetWindowAttribute(window.get(), DWMWA_USE_IMMERSIVE_DARK_MODE, &nativeDark, sizeof(nativeDark));
+    (void)DwmSetWindowAttribute(_window.get(), DWMWA_USE_IMMERSIVE_DARK_MODE, &nativeDark, sizeof(nativeDark));
     Layout();
 }
 
-const std::wstring &Application::CurrentText() const
+const std::wstring& Application::CurrentText() const
 {
-    const auto source = editor->Snapshot();
-    if (!derivedCaches.cachedSource || !derivedCaches.cachedSource->IsSameRevision(source))
+    const auto source = _editor->Snapshot();
+    if (! _derivedCaches.cachedSource || ! _derivedCaches.cachedSource->IsSameRevision(source))
     {
-        derivedCaches.cachedText = source.Text();
-        derivedCaches.cachedSource = source;
+        _derivedCaches.cachedText   = source.Text();
+        _derivedCaches.cachedSource = source;
     }
-    return derivedCaches.cachedText;
+    return _derivedCaches.cachedText;
 }
 bool Application::Dirty() const
 {
-    if (!editor)
+    if (! _editor)
         return false;
-    const auto source = editor->Snapshot();
-    if (derivedCaches.dirtyFact && derivedCaches.dirtyFact->recovered == session.recovered && derivedCaches.dirtyFact->source.IsSameRevision(source))
-        return derivedCaches.dirtyFact->dirty;
-    bool dirty = session.recovered || source.Length() != session.savedText.size();
-    if (!dirty)
+    const auto source = _editor->Snapshot();
+    if (_derivedCaches.dirtyFact && _derivedCaches.dirtyFact->recovered == _session.recovered && _derivedCaches.dirtyFact->source.IsSameRevision(source))
+        return _derivedCaches.dirtyFact->dirty;
+    bool dirty = _session.recovered || source.Length() != _session.savedText.size();
+    if (! dirty)
     {
-        ++activity.dirtyTextComparisons;
-        dirty = CurrentText() != session.savedText;
+        ++_activity.dirtyTextComparisons;
+        dirty = CurrentText() != _session.savedText;
     }
-    derivedCaches.dirtyFact = DerivedDocumentCaches::DirtyFact{source, session.recovered, dirty};
+    _derivedCaches.dirtyFact = DerivedDocumentCaches::DirtyFact{source, _session.recovered, dirty};
     return dirty;
 }
-void Application::RefreshDocumentAnalysis(const DxUi::RichText::SourceSnapshot &source, bool committed)
+void Application::RefreshDocumentAnalysis(const DxUi::RichText::SourceSnapshot& source, bool committed)
 {
-    const auto sameOutline = [](const std::vector<Heading> &left, const std::vector<Heading> &right)
+    const auto sameOutline = [](const std::vector<Heading>& left, const std::vector<Heading>& right)
     {
-        return left.size() == right.size() && std::equal(left.begin(), left.end(), right.begin(),
-                                                         [](const Heading &a, const Heading &b) { return a.level == b.level && a.text == b.text; });
+        return left.size() == right.size() &&
+               std::equal(left.begin(), left.end(), right.begin(), [](const Heading& a, const Heading& b) { return a.level == b.level && a.text == b.text; });
     };
-    const auto matchesCommittedOutline = [](const std::vector<Heading> &headings, const std::vector<std::pair<unsigned, std::wstring>> &identity)
+    const auto matchesCommittedOutline = [](const std::vector<Heading>& headings, const std::vector<std::pair<unsigned, std::wstring>>& identity)
     {
         return headings.size() == identity.size() &&
-               std::equal(headings.begin(), headings.end(), identity.begin(),
-                          [](const Heading &heading, const auto &item) { return heading.level == item.first && heading.text == item.second; });
+               std::equal(headings.begin(), headings.end(), identity.begin(), [](const Heading& heading, const auto& item) {
+            return heading.level == item.first && heading.text == item.second;
+        });
     };
 
-    const bool newSourceRevision = !derivedCaches.documentAnalysisSource || !derivedCaches.documentAnalysisSource->IsSameRevision(source);
-    if (!newSourceRevision && !committed)
+    const bool newSourceRevision = ! _derivedCaches.documentAnalysisSource || ! _derivedCaches.documentAnalysisSource->IsSameRevision(source);
+    if (! newSourceRevision && ! committed)
         return;
 
-    const std::wstring *text{};
+    const std::wstring* text{};
     if (newSourceRevision)
         text = &CurrentText();
     const bool sourceMatchesCommitted =
-        !committed && newSourceRevision && derivedCaches.committedAnalysisSource && *text == derivedCaches.committedAnalysisSource->Text();
-    const bool returningToCommitted = !committed && newSourceRevision && sourceMatchesCommitted;
-    const bool transientSource = !committed && newSourceRevision && derivedCaches.committedAnalysisSource && !sourceMatchesCommitted;
-    if (transientSource && !outlinePreviewBaseline)
+        ! committed && newSourceRevision && _derivedCaches.committedAnalysisSource && *text == _derivedCaches.committedAnalysisSource->Text();
+    const bool returningToCommitted = ! committed && newSourceRevision && sourceMatchesCommitted;
+    const bool transientSource      = ! committed && newSourceRevision && _derivedCaches.committedAnalysisSource && ! sourceMatchesCommitted;
+    if (transientSource && ! _outlinePreviewBaseline)
     {
-        auto &baseline = outlinePreviewBaseline.emplace();
-        baseline.collapsedHeadings = session.collapsedHeadings;
-        baseline.committedOutline.reserve(documentInfo.headings.size());
-        for (const auto &heading : documentInfo.headings)
+        auto& baseline             = _outlinePreviewBaseline.emplace();
+        baseline.collapsedHeadings = _session.collapsedHeadings;
+        baseline.committedOutline.reserve(_documentInfo.headings.size());
+        for (const auto& heading : _documentInfo.headings)
             baseline.committedOutline.emplace_back(heading.level, heading.text);
     }
 
     std::optional<DocumentInfo> nextInfo;
-    const DocumentInfo *analysis = &documentInfo;
+    const DocumentInfo* analysis = &_documentInfo;
     bool outlineRowsChanged{};
     if (newSourceRevision)
     {
-        nextInfo.emplace(documentLineIndexStorage.Analyze(*text, documentInfo.lines));
-        outlineRowsChanged = !sameOutline(nextInfo->headings, documentInfo.headings);
-        analysis = &*nextInfo;
+        nextInfo.emplace(_documentLineIndexStorage.Analyze(*text, _documentInfo.lines));
+        outlineRowsChanged = ! sameOutline(nextInfo->headings, _documentInfo.headings);
+        analysis           = &*nextInfo;
     }
 
     bool collapseStateChanged{};
-    if ((committed || returningToCommitted) && outlinePreviewBaseline && session.collapsedHeadings != outlinePreviewBaseline->collapsedHeadings)
+    if ((committed || returningToCommitted) && _outlinePreviewBaseline && _session.collapsedHeadings != _outlinePreviewBaseline->collapsedHeadings)
     {
-        session.collapsedHeadings = outlinePreviewBaseline->collapsedHeadings;
-        collapseStateChanged = true;
+        _session.collapsedHeadings = _outlinePreviewBaseline->collapsedHeadings;
+        collapseStateChanged       = true;
     }
-    if (transientSource && outlinePreviewBaseline && outlineRowsChanged)
+    if (transientSource && _outlinePreviewBaseline && outlineRowsChanged)
     {
-        const auto desired = matchesCommittedOutline(analysis->headings, outlinePreviewBaseline->committedOutline)
-                                 ? outlinePreviewBaseline->collapsedHeadings
-                                 : std::set<std::uint64_t>{};
-        if (session.collapsedHeadings != desired)
+        const auto desired = matchesCommittedOutline(analysis->headings, _outlinePreviewBaseline->committedOutline) ? _outlinePreviewBaseline->collapsedHeadings
+                                                                                                                    : std::set<std::uint64_t>{};
+        if (_session.collapsedHeadings != desired)
         {
-            session.collapsedHeadings = desired;
-            collapseStateChanged = true;
+            _session.collapsedHeadings = desired;
+            collapseStateChanged       = true;
         }
     }
     if (committed)
     {
         const bool sameAsPrior =
-            outlinePreviewBaseline ? matchesCommittedOutline(analysis->headings, outlinePreviewBaseline->committedOutline) : !outlineRowsChanged;
-        if (!sameAsPrior && !session.collapsedHeadings.empty())
+            _outlinePreviewBaseline ? matchesCommittedOutline(analysis->headings, _outlinePreviewBaseline->committedOutline) : ! outlineRowsChanged;
+        if (! sameAsPrior && ! _session.collapsedHeadings.empty())
         {
-            session.collapsedHeadings.clear();
+            _session.collapsedHeadings.clear();
             collapseStateChanged = true;
         }
-        derivedCaches.committedAnalysisSource = source;
-        outlinePreviewBaseline.reset();
+        _derivedCaches.committedAnalysisSource = source;
+        _outlinePreviewBaseline.reset();
     }
     else if (returningToCommitted)
-        outlinePreviewBaseline.reset();
+        _outlinePreviewBaseline.reset();
 
     if (newSourceRevision)
     {
         using std::swap;
-        swap(documentInfo, *nextInfo);
-        documentLineIndexStorage.Retire(std::move(nextInfo->lineIndex), documentInfo.lines);
-        derivedCaches.documentAnalysisSource = source;
-        ++activity.documentAnalysisUpdates;
+        swap(_documentInfo, *nextInfo);
+        _documentLineIndexStorage.Retire(std::move(nextInfo->lineIndex), _documentInfo.lines);
+        _derivedCaches.documentAnalysisSource = source;
+        ++_activity.documentAnalysisUpdates;
     }
     if (outlineRowsChanged || collapseStateChanged)
         RefreshOutline();
@@ -984,25 +1002,25 @@ bool Application::SynchronizeMirror()
 {
     if (IsClosing())
         return false;
-    if (settings.view != EditorView::Split)
+    if (_settings.view != EditorView::Split)
         return true;
-    if (!root || host.GetRoot() != root)
+    if (! _root || _host.GetRoot() != _root)
         return false;
-    auto *const primary = editor;
-    auto *const target = mirror;
-    auto *const owner = root;
-    const auto source = primary->Snapshot();
-    if (derivedCaches.mirroredSource && derivedCaches.mirroredSource->IsSameRevision(source))
+    auto* const primary = _editor;
+    auto* const target  = _mirror;
+    auto* const owner   = _root;
+    const auto source   = primary->Snapshot();
+    if (_derivedCaches.mirroredSource && _derivedCaches.mirroredSource->IsSameRevision(source))
         return true;
-    const auto selection = primary->GetSelection();
-    const auto revision = primary->Revision();
+    const auto selection       = primary->GetSelection();
+    const auto revision        = primary->Revision();
     const auto primaryLifetime = GetControlLifetimeToken(*primary);
-    const auto targetLifetime = GetControlLifetimeToken(*target);
-    const auto ownerLifetime = GetControlLifetimeToken(*owner);
-    const auto current = [&]
+    const auto targetLifetime  = GetControlLifetimeToken(*target);
+    const auto ownerLifetime   = GetControlLifetimeToken(*owner);
+    const auto current         = [&]
     {
-        if (IsClosing() || primaryLifetime.expired() || targetLifetime.expired() || ownerLifetime.expired() || editor != primary ||
-            mirror != target || root != owner || host.GetRoot() != owner || settings.view != EditorView::Split)
+        if (IsClosing() || primaryLifetime.expired() || targetLifetime.expired() || ownerLifetime.expired() || _editor != primary || _mirror != target ||
+            _root != owner || _host.GetRoot() != owner || _settings.view != EditorView::Split)
             return false;
         // These app-owned controls are never reparented independently of the
         // root; its host ownership and all three weak identities were checked.
@@ -1010,38 +1028,38 @@ bool Application::SynchronizeMirror()
     };
     if (target->SynchronizeReadOnlySourceSnapshot(source, selection))
     {
-        if (!current() || !target->Snapshot().IsSameRevision(source) || target->GetSelection() != selection)
+        if (! current() || ! target->Snapshot().IsSameRevision(source) || target->GetSelection() != selection)
             return false;
     }
     else
     {
-        if (!current())
+        if (! current())
             return false;
         // Retain exact SetText fallback for an incompatible mirror profile.
         // Own this spelling across callbacks instead of borrowing a mutable app cache.
         const auto text = source.Text();
-        if (!AcceptSourceResult(target->TrySetText(text)))
+        if (! AcceptSourceResult(target->TrySetText(text)))
             return false;
-        if (!current() || target->GetText() != text)
+        if (! current() || target->GetText() != text)
             return false;
     }
     // A nested synchronization may already have published this same source.
-    if (!derivedCaches.mirroredSource || !derivedCaches.mirroredSource->IsSameRevision(source))
+    if (! _derivedCaches.mirroredSource || ! _derivedCaches.mirroredSource->IsSameRevision(source))
     {
-        derivedCaches.mirroredSource = source;
-        ++activity.mirrorResets;
+        _derivedCaches.mirroredSource = source;
+        ++_activity.mirrorResets;
     }
     return true;
 }
 void Application::Status(unsigned id)
 {
-    if (feedback)
-        feedback->SetText(Resource(id));
+    if (_feedback)
+        _feedback->SetText(Resource(id));
 }
 void Application::ReportCapacityLimit()
 {
-    if (feedback)
-        feedback->SetText(FormatStringResource(nullptr, IDS_FILETOOLARGELIMIT, DxUi::RichText::Document::MaximumUnits));
+    if (_feedback)
+        _feedback->SetText(FormatStringResource(nullptr, IDS_FILETOOLARGELIMIT, DxUi::RichText::Document::MaximumUnits));
 }
 bool Application::AcceptSourceResult(DxUi::RichText::SourceResult result)
 {
@@ -1052,49 +1070,48 @@ bool Application::AcceptSourceResult(DxUi::RichText::SourceResult result)
 }
 bool Application::SetDocument(std::wstring text, std::filesystem::path path, bool hasBom, FileStamp identity, bool rememberForStartup)
 {
-    const bool previousImageTransition = imageBindingTransition;
-    imageBindingTransition = true;
-    const auto restoreImageTransition = wil::scope_exit([&] { imageBindingTransition = previousImageTransition; });
+    const bool previousImageTransition = _imageBindingTransition;
+    _imageBindingTransition            = true;
+    const auto restoreImageTransition  = wil::scope_exit([&] { _imageBindingTransition = previousImageTransition; });
     // A checked refusal preserves the entire current document, saved baseline, recovery and pending insertion.
-    if (!DxUi::RichText::IsValidSourceUtf16(text))
+    if (! DxUi::RichText::IsValidSourceUtf16(text))
         return AcceptSourceResult(DxUi::RichText::SourceResult::InvalidSource);
     if (text.size() > DxUi::RichText::Document::MaximumUnits)
         return AcceptSourceResult(DxUi::RichText::SourceResult::CapacityExceeded);
-    const auto lifetime = GetControlLifetimeToken(*editor);
+    const auto lifetime = GetControlLifetimeToken(*_editor);
     // A replacement document cannot inherit a one-document grant through synchronous text callbacks.
-    const bool previousDocumentPermission = session.remoteImagesAllowed;
-    const auto previousPermissionSource = editor->Snapshot();
-    bool permissionCommitted = false;
-    const auto restorePermission = wil::scope_exit(
-        [&]() noexcept
-        {
-            if (!permissionCommitted && !lifetime.expired() && !IsClosing() && session.remoteImagesAllowed == previousDocumentPermission &&
-                editor->Snapshot().IsSameRevision(previousPermissionSource))
-                editor->SetRemoteImagesEnabled(settings.allowRemoteImages || previousDocumentPermission);
-        });
-    editor->SetRemoteImagesEnabled(settings.allowRemoteImages);
+    const bool previousDocumentPermission = _session.remoteImagesAllowed;
+    const auto previousPermissionSource   = _editor->Snapshot();
+    bool permissionCommitted              = false;
+    const auto restorePermission          = wil::scope_exit([&]() noexcept
+    {
+        if (! permissionCommitted && ! lifetime.expired() && ! IsClosing() && _session.remoteImagesAllowed == previousDocumentPermission &&
+            _editor->Snapshot().IsSameRevision(previousPermissionSource))
+            _editor->SetRemoteImagesEnabled(_settings.allowRemoteImages || previousDocumentPermission);
+    });
+    _editor->SetRemoteImagesEnabled(_settings.allowRemoteImages);
     if (lifetime.expired() || IsClosing())
         return false;
-    if (!AcceptSourceResult(editor->TrySetDocumentFilePath(path.native())) || lifetime.expired() || IsClosing())
+    if (! AcceptSourceResult(_editor->TrySetDocumentFilePath(path.native())) || lifetime.expired() || IsClosing())
         return false;
-    if (!AcceptSourceResult(editor->TrySetText(text)))
+    if (! AcceptSourceResult(_editor->TrySetText(text)))
         return false;
     if (lifetime.expired() || IsClosing())
         return false;
-    session.remoteImagesAllowed = false;
-    printNetworkImages.clear();
+    _session.remoteImagesAllowed = false;
+    _printNetworkImages.clear();
     permissionCommitted = true;
-    pendingBitmapPaste.reset();
-    if (!IsInitializing())
+    _pendingBitmapPaste.reset();
+    if (! IsInitializing())
         AbandonStartupRestore();
-    session.recovered = false;
-    session.path = std::move(path);
+    _session.recovered = false;
+    _session.path      = std::move(path);
     EnsureFilesRoot();
-    session.bom = hasBom;
-    session.stamp = identity;
-    session.savedText = editor->GetText();
-    derivedCaches.dirtyFact.reset();
-    SetView(settings.view);
+    _session.bom       = hasBom;
+    _session.stamp     = identity;
+    _session.savedText = _editor->GetText();
+    _derivedCaches.dirtyFact.reset();
+    SetView(_settings.view);
     Changed();
     RefreshFiles(true);
     if (rememberForStartup)
@@ -1103,77 +1120,77 @@ bool Application::SetDocument(std::wstring text, std::filesystem::path path, boo
 }
 void Application::Changed()
 {
-    pendingBitmapPaste.reset();
-    if (switchingDocument)
+    _pendingBitmapPaste.reset();
+    if (_switchingDocument)
         return;
-    if (editDiagnostics)
-        editDiagnostics->Mark(EditPhase::Enter);
-    ++activity.changes;
-    const auto source = editor->Snapshot();
+    if (_editDiagnostics)
+        _editDiagnostics->Mark(EditPhase::Enter);
+    ++_activity.changes;
+    const auto source = _editor->Snapshot();
     RefreshDocumentAnalysis(source, true);
-    if (editDiagnostics)
-        editDiagnostics->Mark(EditPhase::Analysis);
-    if (!SynchronizeMirror())
+    if (_editDiagnostics)
+        _editDiagnostics->Mark(EditPhase::Analysis);
+    if (! SynchronizeMirror())
         return;
-    if (editDiagnostics)
-        editDiagnostics->Mark(EditPhase::Mirror);
-    const auto name = session.path.empty() ? Resource(IDS_UNTITLED) : session.path.filename().native();
-    const bool dirty = Dirty();
-    const auto displayedName = settings.focusMode && dirty ? name + L" · " + Resource(IDS_CHANGED) : name;
-    const bool identityLayoutChanged = title->GetText() != displayedName;
-    title->SetText(displayedName);
-    saveState->SetText(Resource(dirty ? IDS_CHANGED : IDS_SAVED));
+    if (_editDiagnostics)
+        _editDiagnostics->Mark(EditPhase::Mirror);
+    const auto name                  = _session.path.empty() ? Resource(IDS_UNTITLED) : _session.path.filename().native();
+    const bool dirty                 = Dirty();
+    const auto displayedName         = _settings.focusMode && dirty ? name + L" · " + Resource(IDS_CHANGED) : name;
+    const bool identityLayoutChanged = _title->GetText() != displayedName;
+    _title->SetText(displayedName);
+    _saveState->SetText(Resource(dirty ? IDS_CHANGED : IDS_SAVED));
     if (identityLayoutChanged)
         Layout();
-    if (editDiagnostics)
-        editDiagnostics->Mark(EditPhase::Identity);
+    if (_editDiagnostics)
+        _editDiagnostics->Mark(EditPhase::Identity);
     UpdateCaption(FormatStringResource(nullptr, IDS_WINDOWTITLE, dirty ? L"• " : L"", name));
     // Sending WM_SETTEXT to our own HWND is synchronous and can re-enter Close.
     // BeginClose detaches the host, so do not touch cached controls after it returns.
     if (IsClosing())
         return;
-    if (editDiagnostics)
-        editDiagnostics->Mark(EditPhase::Caption);
+    if (_editDiagnostics)
+        _editDiagnostics->Mark(EditPhase::Caption);
     UpdateCounts();
-    tools[0]->SetEnabled(editor->CanUndo());
-    tools[1]->SetEnabled(editor->CanRedo());
-    if (activeOverlay == OverlayKind::FloatingSelectionTools)
+    _tools[0]->SetEnabled(_editor->CanUndo());
+    _tools[1]->SetEnabled(_editor->CanRedo());
+    if (_activeOverlay == OverlayKind::FloatingSelectionTools)
         SetActiveOverlay(OverlayKind::None);
-    if (settings.showFiles && dirty != lastFilesDirty)
+    if (_settings.showFiles && dirty != _lastFilesDirty)
     {
         UpdateCurrentFileDirtyBadge(dirty);
         // A synchronous accessibility publication can dispatch Close and detach the host.
         if (IsClosing())
             return;
     }
-    if (editDiagnostics)
-        editDiagnostics->Mark(EditPhase::Chrome);
-    if (editDiagnostics)
+    if (_editDiagnostics)
+        _editDiagnostics->Mark(EditPhase::Chrome);
+    if (_editDiagnostics)
     {
-        auto selectionArm = editDiagnostics->ArmSelection();
+        auto selectionArm = _editDiagnostics->ArmSelection();
         SelectionChanged();
     }
     else
         SelectionChanged();
-    if (editDiagnostics)
-        editDiagnostics->Mark(EditPhase::Selection);
-    if (!IsInitializing())
+    if (_editDiagnostics)
+        _editDiagnostics->Mark(EditPhase::Selection);
+    if (! IsInitializing())
         CheckpointRecovery();
-    if (editDiagnostics)
-        editDiagnostics->Mark(EditPhase::Recovery);
+    if (_editDiagnostics)
+        _editDiagnostics->Mark(EditPhase::Recovery);
 }
 
 void Application::UpdateCounts()
 {
-    if (settings.focusMode)
+    if (_settings.focusMode)
     {
         const auto state = ResourceView(Dirty() ? IDS_CHANGED : IDS_SAVED);
-        stats->SetText(FormatStringResource(nullptr, IDS_FOCUSCOUNTS, documentInfo.words, state));
+        _stats->SetText(FormatStringResource(nullptr, IDS_FOCUSCOUNTS, _documentInfo.words, state));
     }
     else
     {
-        const auto readingMinutes = std::max(std::size_t{1}, (documentInfo.words + 199) / 200);
-        stats->SetText(FormatStringResource(nullptr, IDS_STATUSCOUNTS, documentInfo.words, documentInfo.characters, readingMinutes));
+        const auto readingMinutes = std::max(std::size_t{1}, (_documentInfo.words + 199) / 200);
+        _stats->SetText(FormatStringResource(nullptr, IDS_STATUSCOUNTS, _documentInfo.words, _documentInfo.characters, readingMinutes));
     }
 }
 
@@ -1181,95 +1198,93 @@ bool Application::PublishCurrentBlockLabelIfVisible(bool sidebarWillBeVisible)
 {
     if (IsClosing())
         return false;
-    if (!root || !sidebar || !currentBlock)
+    if (! _root || ! _sidebar || ! _currentBlock)
         return false;
-    if ((!sidebar->IsVisible() && !sidebarWillBeVisible) || !currentBlock->IsVisible() || !currentBlockLatestFacts ||
-        currentBlockPublishedFacts.Matches(currentBlockLatestFacts.value()))
+    if ((! _sidebar->IsVisible() && ! sidebarWillBeVisible) || ! _currentBlock->IsVisible() || ! _currentBlockLatestFacts ||
+        _currentBlockPublishedFacts.Matches(_currentBlockLatestFacts.value()))
         return true;
 
-    const auto facts = currentBlockLatestFacts.value();
+    const auto facts     = _currentBlockLatestFacts.value();
     const auto blockType = ResourceView(facts.resourceId);
-    auto text = FormatStringResource(nullptr, IDS_BLOCKINFO, blockType, facts.lineCharacterCount);
-    ++activity.currentBlockLabelConstructions;
-    const auto token = currentBlockPublishedFacts.BeginPublish();
-    auto *const publishedLabel = currentBlock;
-    auto *const publishedRoot = root;
-    const auto labelLifetime = GetControlLifetimeToken(*publishedLabel);
-    const auto rootLifetime = GetControlLifetimeToken(*publishedRoot);
+    auto text            = FormatStringResource(nullptr, IDS_BLOCKINFO, blockType, facts.lineCharacterCount);
+    ++_activity.currentBlockLabelConstructions;
+    const auto token           = _currentBlockPublishedFacts.BeginPublish();
+    auto* const publishedLabel = _currentBlock;
+    auto* const publishedRoot  = _root;
+    const auto labelLifetime   = GetControlLifetimeToken(*publishedLabel);
+    const auto rootLifetime    = GetControlLifetimeToken(*publishedRoot);
     publishedLabel->SetText(std::move(text));
     // SetText can reenter and retire either control or install newer requested facts.
-    if (IsClosing() || labelLifetime.expired() || rootLifetime.expired() || currentBlock != publishedLabel || root != publishedRoot ||
-        host.GetRoot() != publishedRoot)
+    if (IsClosing() || labelLifetime.expired() || rootLifetime.expired() || _currentBlock != publishedLabel || _root != publishedRoot ||
+        _host.GetRoot() != publishedRoot)
         return false;
     // A nested callback can update the requested facts without publishing while hidden.
-    if (currentBlockLatestFacts == facts)
-        currentBlockPublishedFacts.CommitPublish(token, facts);
+    if (_currentBlockLatestFacts == facts)
+        _currentBlockPublishedFacts.CommitPublish(token, facts);
     return true;
 }
 
 void Application::UpdateCaption(std::wstring caption)
 {
-    ++activity.captionRequests;
-    if (appliedCaption.Matches(caption))
+    ++_activity.captionRequests;
+    if (_appliedCaption.Matches(caption))
         return;
     // A native write remains synchronous and part of this command's measured
     // work. Repeated edits while already dirty need no identical Win32 write.
     // Invalidate before entering Win32 so reentrant requests cannot see stale
     // cached state; failed or superseded writes must remain retryable.
-    const auto token = appliedCaption.BeginPublish();
-    ++activity.captionCalls;
+    const auto token = _appliedCaption.BeginPublish();
+    ++_activity.captionCalls;
     // This is our own HWND. Use WM_SETTEXT's explicit acceptance result: the
     // SetWindowText wrapper may report success for a receiver's zero result.
-    if (DxUi::Failure::InvokeNative(&SendMessageW, window.get(), static_cast<UINT>(WM_SETTEXT), WPARAM{},
-                                    reinterpret_cast<LPARAM>(caption.c_str())) == TRUE)
-        appliedCaption.CommitPublish(token, std::move(caption));
+    if (DxUi::Failure::InvokeNative(&SendMessageW, _window.get(), static_cast<UINT>(WM_SETTEXT), WPARAM{}, reinterpret_cast<LPARAM>(caption.c_str())) == TRUE)
+        _appliedCaption.CommitPublish(token, std::move(caption));
 }
 
 void Application::CheckpointRecovery(bool immediate)
 {
     std::optional<RecoverySnapshot> snapshot;
-    auto selection = editor->GetSelection();
+    auto selection     = _editor->GetSelection();
     bool needsRecovery = Dirty();
     std::wstring_view draft;
     std::wstring normalizedDraft;
     bool changedDraft{};
-    if (HasBlockDraft() && editor->Snapshot().IsSameRevision(blockDraftSession.value().snapshot) &&
-        editor->Revision() == blockDraftSession.value().revision)
+    if (HasBlockDraft() && _editor->Snapshot().IsSameRevision(_blockDraftSession.value().snapshot) &&
+        _editor->Revision() == _blockDraftSession.value().revision)
     {
-        const auto &range = blockDraftSession.value().range;
-        draft = blockDraftText->GetText();
+        const auto& range              = _blockDraftSession.value().range;
+        draft                          = _blockDraftText->GetText();
         const std::wstring_view source = CurrentText();
         if (draft != source.substr(range.first, range.last - range.first))
         {
             normalizedDraft = NormalizeInsertedLineEndings(draft, source);
-            draft = normalizedDraft;
-            if (!DxUi::RichText::IsValidUtf16(draft) ||
-                source.size() - (range.last - range.first) + draft.size() > DxUi::RichText::Document::MaximumUnits)
+            draft           = normalizedDraft;
+            if (! DxUi::RichText::IsValidUtf16(draft) || source.size() - (range.last - range.first) + draft.size() > DxUi::RichText::Document::MaximumUnits)
             {
                 Status(IDS_RECOVERYFAILED);
                 return;
             }
-            changedDraft = draft != source.substr(range.first, range.last - range.first);
+            changedDraft  = draft != source.substr(range.first, range.last - range.first);
             needsRecovery = needsRecovery || changedDraft;
         }
     }
     if (needsRecovery)
     {
         auto text = CurrentText();
-        ++activity.recoveryTextCopies;
+        ++_activity.recoveryTextCopies;
         if (changedDraft)
         {
-            const auto &range = blockDraftSession.value().range;
+            const auto& range = _blockDraftSession.value().range;
             // Recovery is a previewable copy of the proposed edit. The live
             // authoritative source/history remain untouched until Apply.
             text.replace(range.first, range.last - range.first, draft);
             selection = {range.first, range.first + draft.size()};
         }
-        snapshot = RecoverySnapshot{std::move(text), session.path, session.bom, selection, ++recoveryGeneration};
+        snapshot = RecoverySnapshot{std::move(text), _session.path, _session.bom, selection, ++_recoveryGeneration};
     }
-    const bool flush = immediate || !snapshot.has_value();
-    ++activity.recoverySubmissions;
-    if (FAILED(recovery.SubmitDocument(session.key, std::move(snapshot), flush)))
+    const bool flush = immediate || ! snapshot.has_value();
+    ++_activity.recoverySubmissions;
+    if (FAILED(_recovery.SubmitDocument(_session.key, std::move(snapshot), flush)))
         Status(IDS_RECOVERYFAILED);
 }
 void Application::RecoveryCompleted()
@@ -1279,240 +1294,238 @@ void Application::RecoveryCompleted()
         FinishClose();
         return;
     }
-    if (!feedback)
+    if (! _feedback)
         return;
-    auto candidates = recovery.TakeCandidates();
-    for (auto &candidate : candidates)
-        recoveryCandidates.push_back({std::move(candidate.id), std::move(candidate.snapshot), RecoveryDisposition::Available});
+    auto candidates = _recovery.TakeCandidates();
+    for (auto& candidate : candidates)
+        _recoveryCandidates.push_back({std::move(candidate.id), std::move(candidate.snapshot), RecoveryDisposition::Available});
     bool retiredCandidate{};
-    for (const auto &id : recovery.TakeRetired())
-        retiredCandidate = std::erase_if(recoveryCandidates, [&](const auto &candidate) { return candidate.id == id; }) != 0 || retiredCandidate;
-    for (const auto &id : recovery.TakeFailedDiscards())
-        for (auto &candidate : recoveryCandidates)
+    for (const auto& id : _recovery.TakeRetired())
+        retiredCandidate = std::erase_if(_recoveryCandidates, [&](const auto& candidate) { return candidate.id == id; }) != 0 || retiredCandidate;
+    for (const auto& id : _recovery.TakeFailedDiscards())
+        for (auto& candidate : _recoveryCandidates)
             if (candidate.id == id && candidate.disposition == RecoveryDisposition::Discarding)
                 candidate.disposition = RecoveryDisposition::Available;
-    if (recovery.Settled() && FAILED(recovery.Status()))
-        for (auto &candidate : recoveryCandidates)
+    if (_recovery.Settled() && FAILED(_recovery.Status()))
+        for (auto& candidate : _recoveryCandidates)
             if (candidate.disposition == RecoveryDisposition::Discarding)
                 candidate.disposition = RecoveryDisposition::Available;
-    if (retiredCandidate && activeOverlay == OverlayKind::RecoveryModal)
+    if (retiredCandidate && _activeOverlay == OverlayKind::RecoveryModal)
         ShowRecovery();
-    if (FAILED(recovery.Status()))
+    if (FAILED(_recovery.Status()))
         Status(IDS_RECOVERYFAILED);
-    if (!recoveryOffered && recovery.Ready())
+    if (! _recoveryOffered && _recovery.Ready())
     {
-        recoveryOffered = true;
-        if (!recoveryCandidates.empty() && (startupRestore.enabled || options.recoveryRestartProbe || options.scenario == L"recovery"))
+        _recoveryOffered = true;
+        if (! _recoveryCandidates.empty() && (_startupRestore.enabled || _options.recoveryRestartProbe || _options.scenario == L"recovery"))
             ShowRecovery();
     }
-    if (startupRestore.IsWaitingForRecovery() && recovery.Ready())
+    if (_startupRestore.IsWaitingForRecovery() && _recovery.Ready())
     {
-        if (SUCCEEDED(recovery.Status()) && recoveryCandidates.empty() && startupRestore.source &&
-            editor->Snapshot().IsSameRevision(startupRestore.source.value()) && !settings.lastDocument.empty() && session.path.empty() &&
-            !files.Busy() && !HasBlockDraft() && !IsSessionEnding())
+        if (SUCCEEDED(_recovery.Status()) && _recoveryCandidates.empty() && _startupRestore.source &&
+            _editor->Snapshot().IsSameRevision(_startupRestore.source.value()) && ! _settings.lastDocument.empty() && _session.path.empty() &&
+            ! _files.Busy() && ! HasBlockDraft() && ! IsSessionEnding())
         {
-            auto entrySource = editor->Snapshot();
-            const HRESULT result = files.Submit(false, settings.lastDocument);
+            auto entrySource     = _editor->Snapshot();
+            const HRESULT result = _files.Submit(false, _settings.lastDocument);
             if (SUCCEEDED(result))
             {
-                startupRestore.phase = StartupRestoreState::Phase::OpeningLastDocument;
-                activeFileTx = StartupOpenTx{std::move(entrySource)};
+                _startupRestore.phase = StartupRestoreState::Phase::OpeningLastDocument;
+                _activeFileTx         = StartupOpenTx{std::move(entrySource)};
                 Status(IDS_LOADING);
             }
             else
             {
-                startupRestore.phase = StartupRestoreState::Phase::Completed;
-                startupRestore.source.reset();
+                _startupRestore.phase = StartupRestoreState::Phase::Completed;
+                _startupRestore.source.reset();
                 Status(IDS_BUSY);
             }
         }
         else
         {
-            startupRestore.phase = StartupRestoreState::Phase::Completed;
-            startupRestore.source.reset();
+            _startupRestore.phase = StartupRestoreState::Phase::Completed;
+            _startupRestore.source.reset();
         }
     }
 }
 void Application::ShowRecovery()
 {
-    if (recoveryCandidates.empty())
+    if (_recoveryCandidates.empty())
     {
-        if (activeOverlay == OverlayKind::RecoveryModal)
+        if (_activeOverlay == OverlayKind::RecoveryModal)
         {
             SetActiveOverlay(OverlayKind::None);
             Layout();
         }
         Status(IDS_NORECOVERY);
-        host.SetFocusControl(editor, MayRequestNativeFocus());
+        _host.SetFocusControl(_editor, MayRequestNativeFocus());
         return;
     }
-    const auto &snapshot = recoveryCandidates.front().snapshot;
-    const auto path = snapshot.originalPath.empty() ? Resource(IDS_UNTITLED) : snapshot.originalPath.native();
-    const auto count = recoveryCandidates.size();
-    restoreAllRecovery->SetVisible(count > 1);
-    recoveryDescription->SetText(count > 1 ? FormatStringResource(nullptr, IDS_RECOVERYMULTIPLEHELP, count, path)
-                                           : FormatStringResource(nullptr, IDS_RECOVERYHELP, path));
-    recoveryPreview->SetText(snapshot.text);
+    const auto& snapshot = _recoveryCandidates.front().snapshot;
+    const auto path      = snapshot.originalPath.empty() ? Resource(IDS_UNTITLED) : snapshot.originalPath.native();
+    const auto count     = _recoveryCandidates.size();
+    _restoreAllRecovery->SetVisible(count > 1);
+    _recoveryDescription->SetText(count > 1 ? FormatStringResource(nullptr, IDS_RECOVERYMULTIPLEHELP, count, path)
+                                            : FormatStringResource(nullptr, IDS_RECOVERYHELP, path));
+    _recoveryPreview->SetText(snapshot.text);
     SetActiveOverlay(OverlayKind::RecoveryModal);
-    host.SetFocusControl(recoveryPanel->GetLogicalChild(3), MayRequestNativeFocus());
+    _host.SetFocusControl(_recoveryPanel->GetLogicalChild(3), MayRequestNativeFocus());
     Layout();
-    if (!IsInitializing() && !IsClosing())
+    if (! IsInitializing() && ! IsClosing())
         CheckpointRecovery();
 }
 void Application::SetView(EditorView view)
 {
-    if (!IsUiAttached())
+    if (! IsUiAttached())
         return;
-    auto *const primary = editor;
-    auto *const target = mirror;
-    auto *const owner = root;
+    auto* const primary        = _editor;
+    auto* const target         = _mirror;
+    auto* const owner          = _root;
     const auto primaryLifetime = GetControlLifetimeToken(*primary);
-    const auto targetLifetime = GetControlLifetimeToken(*target);
-    const auto ownerLifetime = GetControlLifetimeToken(*owner);
-    const auto current = [&]
+    const auto targetLifetime  = GetControlLifetimeToken(*target);
+    const auto ownerLifetime   = GetControlLifetimeToken(*owner);
+    const auto current         = [&]
     {
-        return !IsClosing() && !primaryLifetime.expired() && !targetLifetime.expired() && !ownerLifetime.expired() && editor == primary &&
-               mirror == target && root == owner && host.GetRoot() == owner && settings.view == view;
+        return ! IsClosing() && ! primaryLifetime.expired() && ! targetLifetime.expired() && ! ownerLifetime.expired() && _editor == primary &&
+               _mirror == target && _root == owner && _host.GetRoot() == owner && _settings.view == view;
     };
-    selectionToolsFocus.reset();
+    _selectionToolsFocus.reset();
     // The same editor/document/history survives all global presentation changes.
-    settings.view = view;
-    if (!AcceptSourceResult(primary->TrySetViewMode(view == EditorView::Source ? DxUi::RichText::ViewMode::Source : DxUi::RichText::ViewMode::Rich)))
+    _settings.view = view;
+    if (! AcceptSourceResult(primary->TrySetViewMode(view == EditorView::Source ? DxUi::RichText::ViewMode::Source : DxUi::RichText::ViewMode::Rich)))
         return;
-    if (!current())
+    if (! current())
         return;
     // Source supersession aborts source-bound work, but this view transition
     // uses the latest source. Retired owners and a newer view request still win.
     (void)SynchronizeMirror();
-    if (!current())
+    if (! current())
         return;
-    modeHint->SetText(Resource(static_cast<unsigned>(view == EditorView::Source  ? IDS_SOURCEHINT
-                                                     : view == EditorView::Split ? IDS_SPLITHINT
-                                                                                 : IDS_BANNER)));
-    if (!current())
+    _modeHint->SetText(Resource(static_cast<unsigned>(view == EditorView::Source ? IDS_SOURCEHINT : view == EditorView::Split ? IDS_SPLITHINT : IDS_BANNER)));
+    if (! current())
         return;
-    if (activeOverlay == OverlayKind::FloatingSelectionTools)
+    if (_activeOverlay == OverlayKind::FloatingSelectionTools)
         SetActiveOverlay(OverlayKind::None);
-    if (!current())
+    if (! current())
         return;
     Layout();
-    if (!current())
+    if (! current())
         return;
     SelectionChanged();
-    if (!current())
+    if (! current())
         return;
-    host.SetFocusControl(primary, false);
-    if (!current())
+    _host.SetFocusControl(primary, false);
+    if (! current())
         return;
-    if (!IsInitializing())
+    if (! IsInitializing())
         SavePreferences();
 }
 void Application::SelectionChanged(bool refreshTools)
 {
-    EditDiagnostics::SelectionInvocation selectionInvocation(editDiagnostics);
-    if (IsClosing() || switchingDocument || !floating)
+    EditDiagnostics::SelectionInvocation selectionInvocation(_editDiagnostics);
+    if (IsClosing() || _switchingDocument || ! _floating)
         return;
-    if (pendingBitmapPaste && (pendingBitmapPaste->lifetime.expired() || pendingBitmapPaste->documentKey != session.key ||
-                               pendingBitmapPaste->view != settings.view || pendingBitmapPaste->documentPath != session.path ||
-                               pendingBitmapPaste->selection != editor->GetSelection() || editor->IsSelectionGestureActive() ||
-                               editor->Snapshot().ChangedRangeFrom(pendingBitmapPaste->source).kind != DxUi::RichText::SourceChangeKind::Unchanged))
-        pendingBitmapPaste.reset();
-    if (editor->IsSelectionGestureActive())
+    if (_pendingBitmapPaste && (_pendingBitmapPaste->lifetime.expired() || _pendingBitmapPaste->documentKey != _session.key ||
+                                _pendingBitmapPaste->view != _settings.view || _pendingBitmapPaste->documentPath != _session.path ||
+                                _pendingBitmapPaste->selection != _editor->GetSelection() || _editor->IsSelectionGestureActive() ||
+                                _editor->Snapshot().ChangedRangeFrom(_pendingBitmapPaste->source).kind != DxUi::RichText::SourceChangeKind::Unchanged))
+        _pendingBitmapPaste.reset();
+    if (_editor->IsSelectionGestureActive())
     {
         // Shared editor owns every selection route and the final release event.
         // Keep pointer movement O(1); derived facts and placement update on release.
-        if (activeOverlay == OverlayKind::FloatingSelectionTools)
+        if (_activeOverlay == OverlayKind::FloatingSelectionTools)
             SetActiveOverlay(OverlayKind::None);
         else
         {
-            pendingSelectionTools = false;
-            selectionToolsFocus.reset();
+            _pendingSelectionTools = false;
+            _selectionToolsFocus.reset();
         }
         return;
     }
     const auto selection = [&]
     {
-        EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::SelectionSnapshot);
-        return editor->GetSelection();
+        EditDiagnostics::SelectionMeasure measure(_editDiagnostics, SelectionComponent::SelectionSnapshot);
+        return _editor->GetSelection();
     }();
     const auto source = [&]
     {
-        EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::SelectionSnapshot);
-        return editor->Snapshot();
+        EditDiagnostics::SelectionMeasure measure(_editDiagnostics, SelectionComponent::SelectionSnapshot);
+        return _editor->Snapshot();
     }();
-    const auto sourceRevision = editor->Revision();
+    const auto sourceRevision = _editor->Revision();
     {
-        EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::DocumentAnalysisRefresh);
+        EditDiagnostics::SelectionMeasure measure(_editDiagnostics, SelectionComponent::DocumentAnalysisRefresh);
         RefreshDocumentAnalysis(source, false);
     }
     const auto syntax = [&]
     {
-        EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::SelectionSnapshot);
-        return editor->GetMarkdownSyntax();
+        EditDiagnostics::SelectionMeasure measure(_editDiagnostics, SelectionComponent::SelectionSnapshot);
+        return _editor->GetMarkdownSyntax();
     }();
     bool selectionChanged{};
     {
-        EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::SelectionFactsCache);
-        if (selectionToolsFocus && (!selectionToolsFocus->source.IsSameRevision(source) || selectionToolsFocus->selection != selection ||
-                                    selectionToolsFocus->view != settings.view))
-            selectionToolsFocus.reset();
-        selectionChanged = !derivedCaches.selectionFactsSource || !derivedCaches.selectionFactsSource->IsSameRevision(source) ||
-                           derivedCaches.selectionFactsSelection != selection || derivedCaches.selectionFactsView != settings.view ||
-                           derivedCaches.selectionFactsAnalysis != activity.changes;
+        EditDiagnostics::SelectionMeasure measure(_editDiagnostics, SelectionComponent::SelectionFactsCache);
+        if (_selectionToolsFocus && (! _selectionToolsFocus->source.IsSameRevision(source) || _selectionToolsFocus->selection != selection ||
+                                     _selectionToolsFocus->view != _settings.view))
+            _selectionToolsFocus.reset();
+        selectionChanged = ! _derivedCaches.selectionFactsSource || ! _derivedCaches.selectionFactsSource->IsSameRevision(source) ||
+                           _derivedCaches.selectionFactsSelection != selection || _derivedCaches.selectionFactsView != _settings.view ||
+                           _derivedCaches.selectionFactsAnalysis != _activity.changes;
     }
-    if (selectionChanged || derivedCaches.selectionFactsSyntax != syntax)
+    if (selectionChanged || _derivedCaches.selectionFactsSyntax != syntax)
     {
         if (selectionChanged)
-            ++activity.selectionPresentationUpdates;
+            ++_activity.selectionPresentationUpdates;
         else
-            ++activity.syntaxPresentationUpdates;
-        if (selectionChanged && settings.view == EditorView::Split)
+            ++_activity.syntaxPresentationUpdates;
+        if (selectionChanged && _settings.view == EditorView::Split)
         {
             // Text-service previews and cancellation notify selection without
             // a committed edit. Match source identity before using their ACPs;
             // equal-length previews can also change Unicode/CRLF boundaries.
-            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::Mirror);
-            if (!IsUiAttached())
+            EditDiagnostics::SelectionMeasure measure(_editDiagnostics, SelectionComponent::Mirror);
+            if (! IsUiAttached())
                 return;
-            auto *const primary = editor;
-            auto *const target = mirror;
-            auto *const owner = root;
+            auto* const primary        = _editor;
+            auto* const target         = _mirror;
+            auto* const owner          = _root;
             const auto primaryLifetime = GetControlLifetimeToken(*primary);
-            const auto targetLifetime = GetControlLifetimeToken(*target);
-            const auto ownerLifetime = GetControlLifetimeToken(*owner);
-            const auto current = [&]
+            const auto targetLifetime  = GetControlLifetimeToken(*target);
+            const auto ownerLifetime   = GetControlLifetimeToken(*owner);
+            const auto current         = [&]
             {
-                if (IsClosing() || primaryLifetime.expired() || targetLifetime.expired() || ownerLifetime.expired() || editor != primary ||
-                    mirror != target || root != owner || host.GetRoot() != owner || settings.view != EditorView::Split)
+                if (IsClosing() || primaryLifetime.expired() || targetLifetime.expired() || ownerLifetime.expired() || _editor != primary ||
+                    _mirror != target || _root != owner || _host.GetRoot() != owner || _settings.view != EditorView::Split)
                     return false;
                 return primary->Snapshot().IsSameRevision(source) && primary->Revision() == sourceRevision && primary->GetSelection() == selection;
             };
-            if (!SynchronizeMirror() || !current())
+            if (! SynchronizeMirror() || ! current())
                 return;
             // Read-only Source has no rich visual affinity. Adoption already
             // reset this exact selection; retain the canonical setter for a
             // real selection change or an incompatible-profile fallback.
-            if (target->GetSelection() != selection || !target->IsReadOnly() || target->GetViewMode() != DxUi::RichText::ViewMode::Source)
+            if (target->GetSelection() != selection || ! target->IsReadOnly() || target->GetViewMode() != DxUi::RichText::ViewMode::Source)
             {
-                if (!AcceptSourceResult(target->TrySetSelection(selection)))
+                if (! AcceptSourceResult(target->TrySetSelection(selection)))
                     return;
             }
-            if (!current())
+            if (! current())
                 return;
-            (void)target->ScrollSourceRangeIntoView(host, selection.Start(), selection.End(), false);
-            ++activity.mirrorSelectionUpdates;
+            (void)target->ScrollSourceRangeIntoView(_host, selection.Start(), selection.End(), false);
+            ++_activity.mirrorSelectionUpdates;
         }
         std::wstring expression;
         std::array<bool, 4> formats{};
         {
-            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::InlineSemantics);
+            EditDiagnostics::SelectionMeasure measure(_editDiagnostics, SelectionComponent::InlineSemantics);
             // In-place math source previews what is being typed; only the region itself is read.
-            if (const auto region = editor->GetSemanticSourceRegion();
-                region && region->source.first <= region->source.last && region->source.last <= source.Length() &&
-                selection.caret >= region->source.first && selection.caret <= region->source.last)
+            if (const auto region = _editor->GetSemanticSourceRegion(); region && region->source.first <= region->source.last &&
+                                                                        region->source.last <= source.Length() && selection.caret >= region->source.first &&
+                                                                        selection.caret <= region->source.last)
                 expression = MathRegionExpression(*region, source.Slice(region->source.first, region->source.last));
             if (syntax)
-                for (const auto &node : syntax->Inlines())
+                for (const auto& node : syntax->Inlines())
                     if (selection.caret >= node.source.first && selection.caret <= node.source.last)
                     {
                         using Kind = DxUi::RichText::MarkdownInlineKind;
@@ -1529,13 +1542,13 @@ void Application::SelectionChanged(bool refreshTools)
                     }
             // Own-line $$ and \[ \] display math is a source-owned block, not an inline node.
             if (syntax && expression.empty())
-                for (const auto &node : syntax->Nodes())
+                for (const auto& node : syntax->Nodes())
                     if (node.block.kind == DxUi::RichText::MarkdownBlockKind::FencedCode &&
-                        (node.block.fenceMarker == L'$' || node.block.fenceMarker == L'[') && node.block.closed &&
-                        selection.caret >= node.block.source.first && selection.caret <= WithoutLineEnd(syntax->Source(), node.block.source))
+                        (node.block.fenceMarker == L'$' || node.block.fenceMarker == L'[') && node.block.closed && selection.caret >= node.block.source.first &&
+                        selection.caret <= WithoutLineEnd(syntax->Source(), node.block.source))
                     {
                         auto body = syntax->Slice(node.block.content);
-                        while (!body.empty() && (body.back() == L'\n' || body.back() == L'\r'))
+                        while (! body.empty() && (body.back() == L'\n' || body.back() == L'\r'))
                             body.remove_suffix(1);
                         if (body.size() <= DxUi::RichText::MathMaximumSourceUnits)
                             expression = body;
@@ -1544,43 +1557,43 @@ void Application::SelectionChanged(bool refreshTools)
         }
         bool layoutChanged{};
         {
-            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::ToolCaptionPublication);
+            EditDiagnostics::SelectionMeasure measure(_editDiagnostics, SelectionComponent::ToolCaptionPublication);
             // The pinned grammar recognizes display delimiters only on their own lines.
             const auto preview = expression.empty() ? std::wstring{} : L"\\[\n" + expression + L"\n\\]";
-            if (equation->GetText() != preview)
-                if (!AcceptSourceResult(equation->TrySetText(preview)))
+            if (_equation->GetText() != preview)
+                if (! AcceptSourceResult(_equation->TrySetText(preview)))
                     return;
-            const bool nextEquationContext = !expression.empty();
-            layoutChanged = equationContext != nextEquationContext;
-            equationContext = nextEquationContext;
+            const bool nextEquationContext = ! expression.empty();
+            layoutChanged                  = _equationContext != nextEquationContext;
+            _equationContext               = nextEquationContext;
             for (unsigned i = 0; i < 4; ++i)
             {
-                auto *button = tools[i == 3 ? 13 : i + 3];
-                button->SetEnabled(!equationContext);
+                auto* button = _tools[i == 3 ? 13 : i + 3];
+                button->SetEnabled(! _equationContext);
                 button->SetToggleState(formats[i]);
             }
-            if (!selectionCaptionPublishedEquationContext.Matches(nextEquationContext))
+            if (! _selectionCaptionPublishedEquationContext.Matches(nextEquationContext))
             {
-                ++activity.selectionCaptionConstructions;
-                const auto token = selectionCaptionPublishedEquationContext.BeginPublish();
-                tools[2]->SetText(Resource(nextEquationContext ? IDS_MATH : IDS_PARAGRAPH));
-                selectionCaptionPublishedEquationContext.CommitPublish(token, nextEquationContext);
+                ++_activity.selectionCaptionConstructions;
+                const auto token = _selectionCaptionPublishedEquationContext.BeginPublish();
+                _tools[2]->SetText(Resource(nextEquationContext ? IDS_MATH : IDS_PARAGRAPH));
+                _selectionCaptionPublishedEquationContext.CommitPublish(token, nextEquationContext);
             }
         }
         if (selectionChanged)
         {
-            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::Outline);
-            currentHeading.reset();
-            for (std::size_t i = 0; i < documentInfo.headings.size(); ++i)
-                if (documentInfo.headings[i].offset <= selection.caret)
-                    currentHeading = i;
-            const auto headingId = currentHeading ? std::optional<std::uint64_t>(currentHeading.value() + 1) : std::nullopt;
+            EditDiagnostics::SelectionMeasure measure(_editDiagnostics, SelectionComponent::Outline);
+            _currentHeading.reset();
+            for (std::size_t i = 0; i < _documentInfo.headings.size(); ++i)
+                if (_documentInfo.headings[i].offset <= selection.caret)
+                    _currentHeading = i;
+            const auto headingId = _currentHeading ? std::optional<std::uint64_t>(_currentHeading.value() + 1) : std::nullopt;
             // Model refresh already reconciles surviving focused rows and keeps the viewport.
             // Republish only an actual selection or focus transition, which reveals it.
-            if (outlineTree->GetSelectedItemId() != headingId || outlineTree->GetFocusedItemId() != headingId)
+            if (_outlineTree->GetSelectedItemId() != headingId || _outlineTree->GetFocusedItemId() != headingId)
             {
-                ++activity.outlineSelectionUpdates;
-                outlineTree->SetSelectedItemId(headingId);
+                ++_activity.outlineSelectionUpdates;
+                _outlineTree->SetSelectedItemId(headingId);
             }
         }
         DocumentPosition position;
@@ -1588,93 +1601,84 @@ void Application::SelectionChanged(bool refreshTools)
         unsigned blockResourceId{};
         std::size_t count{};
         {
-            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::BlockLookup);
-            position = DocumentPositionAt(documentInfo, selection.caret);
-            count = position.lineCharacters;
+            EditDiagnostics::SelectionMeasure measure(_editDiagnostics, SelectionComponent::BlockLookup);
+            position        = DocumentPositionAt(_documentInfo, selection.caret);
+            count           = position.lineCharacters;
             blockResourceId = syntax ? CurrentBlockResourceAt(*syntax, selection.caret, &listFacts) : IDS_BLOCKPARAGRAPH;
-            if (equationContext)
+            if (_equationContext)
                 blockResourceId = IDS_MATH;
         }
         {
-            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::BlockLabels);
-            currentBlockLatestFacts = CurrentBlockLabelFacts{blockResourceId, count};
+            EditDiagnostics::SelectionMeasure measure(_editDiagnostics, SelectionComponent::BlockLabels);
+            _currentBlockLatestFacts   = CurrentBlockLabelFacts{blockResourceId, count};
             const bool showListSummary = listFacts && (blockResourceId == IDS_BLOCKLIST || blockResourceId == IDS_BLOCKLISTCONTAINER);
-            listSummary->SetVisible(showListSummary);
-            listSummaryIcon->SetVisible(showListSummary);
-            currentBlock->SetVisible(!showListSummary);
-            if (showListSummary && !listSummaryFacts.Matches(listFacts.value()))
+            _listSummary->SetVisible(showListSummary);
+            _listSummaryIcon->SetVisible(showListSummary);
+            _currentBlock->SetVisible(! showListSummary);
+            if (showListSummary && ! _listSummaryFacts.Matches(listFacts.value()))
             {
-                const auto kind = ResourceView(listFacts.value().first);
+                const auto kind  = ResourceView(listFacts.value().first);
                 const auto items = listFacts.value().second;
-                const auto token = listSummaryFacts.BeginPublish();
-                listSummary->SetText(FormatStringResource(nullptr, IDS_BLOCKITEMINFO, kind, items));
-                listSummaryFacts.CommitPublish(token, listFacts.value());
+                const auto token = _listSummaryFacts.BeginPublish();
+                _listSummary->SetText(FormatStringResource(nullptr, IDS_BLOCKITEMINFO, kind, items));
+                _listSummaryFacts.CommitPublish(token, listFacts.value());
             }
-            if (!PublishCurrentBlockLabelIfVisible())
+            if (! PublishCurrentBlockLabelIfVisible())
                 return;
         }
         if (selectionChanged)
         {
-            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::PositionStatus);
+            EditDiagnostics::SelectionMeasure measure(_editDiagnostics, SelectionComponent::PositionStatus);
             const auto selected = selection.End() - selection.Start();
-            const auto encoding = session.bom ? L" BOM" : L"";
-            unsigned eolId = IDS_EOLNONE;
-            switch (documentInfo.newlineKind)
+            const auto encoding = _session.bom ? L" BOM" : L"";
+            unsigned eolId      = IDS_EOLNONE;
+            switch (_documentInfo.newlineKind)
             {
-            case DocumentNewlineKind::CrLf:
-                eolId = IDS_EOLCRLF;
-                break;
-            case DocumentNewlineKind::Lf:
-                eolId = IDS_EOLLF;
-                break;
-            case DocumentNewlineKind::Cr:
-                eolId = IDS_EOLCR;
-                break;
-            case DocumentNewlineKind::Mixed:
-                eolId = IDS_EOLMIXED;
-                break;
-            case DocumentNewlineKind::None:
-                break;
+                case DocumentNewlineKind::CrLf: eolId = IDS_EOLCRLF; break;
+                case DocumentNewlineKind::Lf: eolId = IDS_EOLLF; break;
+                case DocumentNewlineKind::Cr: eolId = IDS_EOLCR; break;
+                case DocumentNewlineKind::Mixed: eolId = IDS_EOLMIXED; break;
+                case DocumentNewlineKind::None: break;
             }
             const auto eol = ResourceView(eolId);
-            positionStatus->SetText(FormatStringResource(nullptr, IDS_STATUSPOSITION, selected, position.line, position.column, encoding, eol));
+            _positionStatus->SetText(FormatStringResource(nullptr, IDS_STATUSPOSITION, selected, position.line, position.column, encoding, eol));
         }
         {
-            EditDiagnostics::SelectionMeasure measure(editDiagnostics, SelectionComponent::Find);
+            EditDiagnostics::SelectionMeasure measure(_editDiagnostics, SelectionComponent::Find);
             RefreshFind();
         }
-        EditDiagnostics::SelectionMeasure routingMeasure(editDiagnostics, SelectionComponent::Routing);
-        derivedCaches.selectionFactsSyntax = syntax;
-        derivedCaches.selectionFactsSource = source;
-        derivedCaches.selectionFactsSelection = selection;
-        derivedCaches.selectionFactsView = settings.view;
-        derivedCaches.selectionFactsAnalysis = activity.changes;
+        EditDiagnostics::SelectionMeasure routingMeasure(_editDiagnostics, SelectionComponent::Routing);
+        _derivedCaches.selectionFactsSyntax    = syntax;
+        _derivedCaches.selectionFactsSource    = source;
+        _derivedCaches.selectionFactsSelection = selection;
+        _derivedCaches.selectionFactsView      = _settings.view;
+        _derivedCaches.selectionFactsAnalysis  = _activity.changes;
         if (layoutChanged)
             Layout();
     }
     // Syntax publication refreshes facts, but must not reopen tools dismissed
     // by Escape or an explicit navigation command.
-    if (!refreshTools)
+    if (! refreshTools)
         return;
-    if (selection.Start() == selection.End() || settings.view == EditorView::Source ||
-        (activeOverlay != OverlayKind::None && activeOverlay != OverlayKind::FloatingSelectionTools) || settings.focusMode || equationContext)
+    if (selection.Start() == selection.End() || _settings.view == EditorView::Source ||
+        (_activeOverlay != OverlayKind::None && _activeOverlay != OverlayKind::FloatingSelectionTools) || _settings.focusMode || _equationContext)
     {
-        if (activeOverlay == OverlayKind::FloatingSelectionTools)
+        if (_activeOverlay == OverlayKind::FloatingSelectionTools)
             SetActiveOverlay(OverlayKind::None);
         else
         {
-            pendingSelectionTools = false;
-            selectionToolsFocus.reset();
+            _pendingSelectionTools = false;
+            _selectionToolsFocus.reset();
         }
         return;
     }
-    const auto rectangles = editor->TryGetTextInputRangeRects(host, selection.Start(), selection.End());
-    if (!rectangles)
+    const auto rectangles = _editor->TryGetTextInputRangeRects(_host, selection.Start(), selection.End());
+    if (! rectangles)
     {
-        pendingSelectionTools = true;
+        _pendingSelectionTools = true;
         return;
     }
-    pendingSelectionTools = false;
+    _pendingSelectionTools = false;
     if (rectangles->empty())
     {
         // A prepared hidden-only source range has no painted anchor. It is not
@@ -1682,66 +1686,143 @@ void Application::SelectionChanged(bool refreshTools)
         SetActiveOverlay(OverlayKind::None);
         return;
     }
-    const auto first = rectangles->front();
-    const float viewport = host.GetClientBoundsDip().right;
-    const float left = std::clamp(first.left, 16.f, std::max(16.f, viewport - 452));
-    const float minimumTop = editor->GetBounds().top + 4;
-    const float top = std::clamp(first.top - 52, minimumTop, std::max(minimumTop, page->GetBounds().bottom - 52));
-    floating->SetBounds(D2D1::RectF(left, top, left + 436, top + 44));
+    const auto first       = rectangles->front();
+    const float viewport   = _host.GetClientBoundsDip().right;
+    const float left       = std::clamp(first.left, 16.f, std::max(16.f, viewport - 452));
+    const float minimumTop = _editor->GetBounds().top + 4;
+    const float top        = std::clamp(first.top - 52, minimumTop, std::max(minimumTop, _page->GetBounds().bottom - 52));
+    _floating->SetBounds(D2D1::RectF(left, top, left + 436, top + 44));
     const std::array<float, 5> widths{112, 56, 56, 56, 56};
     float x = left + 8;
-    for (std::size_t i = 0; i < floatingActions.size(); ++i)
+    for (std::size_t i = 0; i < _floatingActions.size(); ++i)
     {
-        floatingActions[i]->SetBounds(D2D1::RectF(x, top + 6, x + widths[i], top + 38));
+        _floatingActions[i]->SetBounds(D2D1::RectF(x, top + 6, x + widths[i], top + 38));
         x += widths[i] + 4;
     }
-    selectionHintChip->SetBounds(D2D1::RectF(left + 372, top + 10, left + 428, top + 34));
-    selectionHint->SetBounds(D2D1::RectF(left + 376, top + 12, left + 424, top + 32));
+    _selectionHintChip->SetBounds(D2D1::RectF(left + 372, top + 10, left + 428, top + 34));
+    _selectionHint->SetBounds(D2D1::RectF(left + 376, top + 12, left + 424, top + 32));
     SetActiveOverlay(OverlayKind::FloatingSelectionTools);
-    if (selectionToolsFocus)
+    if (_selectionToolsFocus)
     {
-        selectionToolsFocus.reset();
-        host.SetFocusControl(floatingActions.front(), MayRequestNativeFocus());
+        _selectionToolsFocus.reset();
+        _host.SetFocusControl(_floatingActions.front(), MayRequestNativeFocus());
     }
 }
 
 void Application::FocusSelectionTools()
 {
-    selectionToolsFocus = SelectionToolsFocusRequest{editor->Snapshot(), editor->GetSelection(), settings.view};
+    _selectionToolsFocus = SelectionToolsFocusRequest{_editor->Snapshot(), _editor->GetSelection(), _settings.view};
     SelectionChanged();
 }
 
 void Application::SavePreferences()
 {
-    if ((options.headless && !options.preferencesProbe) || IsInitializing())
+    const bool allowSave = ! _options.headless || _options.preferencesProbe
+#if defined(REDTILDE_ENABLE_TESTS)
+                           || _options.watchSettingsForTest
+#endif
+        ;
+    if (! allowSave || IsInitializing())
         return;
-    const HRESULT result = preferenceWriter.Submit(settings);
+    const HRESULT result = _preferenceWriter.Submit(_settings);
     if (FAILED(result))
         Status(IDS_SETTINGSFAILED);
     else
-        windowPlacementDirty = false;
+        _windowPlacementDirty = false;
+}
+
+void Application::ReloadSettingsFromDisk()
+{
+    Settings reloaded;
+    FileStamp stamp{};
+    const HRESULT loadResult = LoadSettingsLive(_options.dataDirectory, reloaded, &stamp);
+    if (FAILED(loadResult))
+    {
+        if (loadResult == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND) || loadResult == HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION))
+            return;
+        OutputDebugStringW(L"RedTilde: ignoring malformed live settings edit on disk\n");
+        MonitorDiagnostics::Write(RedMonitor::Severity::Warning, L"Ignoring malformed live settings edit on disk");
+        return;
+    }
+
+    if (stamp == _settingsFileStamp)
+        return;
+    if (const auto writtenStamp = _preferenceWriter.LastWrittenStamp(); writtenStamp && *writtenStamp == stamp)
+    {
+        _settingsFileStamp = stamp;
+        return;
+    }
+    _settingsFileStamp = stamp;
+
+    const bool appearanceChanged = _settings.appearance != reloaded.appearance;
+    const bool clipboardChanged  = _settings.imageFirstPaste != reloaded.imageFirstPaste;
+    const bool localNetChanged   = _settings.allowLocalNetworkImages != reloaded.allowLocalNetworkImages;
+    const bool remoteChanged     = _settings.allowRemoteImages != reloaded.allowRemoteImages;
+    const bool syntaxChanged     = _settings.markdownSyntax != reloaded.markdownSyntax;
+    const bool layoutNeeded      = appearanceChanged || _settings.readingWidth != reloaded.readingWidth || _settings.textScale != reloaded.textScale ||
+                                   _settings.showOutline != reloaded.showOutline || _settings.dimInactiveBlocks != reloaded.dimInactiveBlocks ||
+                                   _settings.strikeCompletedTasks != reloaded.strikeCompletedTasks || syntaxChanged || remoteChanged || localNetChanged;
+
+    _settings.appearance              = reloaded.appearance;
+    _settings.readingWidth            = reloaded.readingWidth;
+    _settings.textScale               = reloaded.textScale;
+    _settings.showOutline             = reloaded.showOutline;
+    _settings.dimInactiveBlocks       = reloaded.dimInactiveBlocks;
+    _settings.allowRemoteImages       = reloaded.allowRemoteImages;
+    _settings.allowLocalNetworkImages = reloaded.allowLocalNetworkImages;
+    _settings.imageFirstPaste         = reloaded.imageFirstPaste;
+    _settings.strikeCompletedTasks    = reloaded.strikeCompletedTasks;
+    _settings.markdownSyntax          = reloaded.markdownSyntax;
+
+    if (clipboardChanged)
+    {
+        _host.SetClipboardPreference(_settings.imageFirstPaste ? DxUi::TextClipboardPreference::ImageFirst : DxUi::TextClipboardPreference::TextFirst);
+        if (_imageFirstPasteToggle)
+            _imageFirstPasteToggle->SetToggleState(_settings.imageFirstPaste);
+    }
+    if (localNetChanged || remoteChanged)
+    {
+        _printNetworkImages.clear();
+        _images.SetAllowLocalNetwork(_settings.allowLocalNetworkImages);
+        if (localNetChanged && _editor)
+            _editor->SetRemoteImagesEnabled(false);
+        if (_editor)
+            _editor->SetRemoteImagesEnabled(_settings.allowRemoteImages || _session.remoteImagesAllowed);
+        _images.DiscardCancelled();
+        if (_remoteImagesToggle)
+            _remoteImagesToggle->SetToggleState(_settings.allowRemoteImages);
+        if (_localNetworkImagesToggle)
+            _localNetworkImagesToggle->SetToggleState(_settings.allowLocalNetworkImages);
+        ServiceImages();
+    }
+    if (syntaxChanged && _editor && _mirror && _equation)
+        ApplyMarkdownSyntax();
+    if (appearanceChanged)
+        ApplyTheme();
+    else if (layoutNeeded)
+        Layout();
 }
 void Application::SetActiveOverlay(OverlayKind next)
 {
-    const bool wasFindBar = activeOverlay == OverlayKind::FindBar;
-    const bool wasBlockDraft = activeOverlay == OverlayKind::BlockDraftModal;
+    const bool wasFindBar    = _activeOverlay == OverlayKind::FindBar;
+    const bool wasBlockDraft = _activeOverlay == OverlayKind::BlockDraftModal;
     if (next != OverlayKind::FloatingSelectionTools)
     {
-        pendingSelectionTools = false;
-        selectionToolsFocus.reset();
+        _pendingSelectionTools = false;
+        _selectionToolsFocus.reset();
     }
     if (wasBlockDraft && next != OverlayKind::BlockDraftModal)
     {
-        blockDraftSession.reset();
-        editor->SetReadOnly(false);
-        (void)AcceptSourceResult(editor->TrySetSourceHighlights({}));
+        _blockDraftSession.reset();
+        _editor->SetReadOnly(false);
+        (void)AcceptSourceResult(_editor->TrySetSourceHighlights({}));
     }
-    floating->SetVisible(next == OverlayKind::FloatingSelectionTools);
-    findBar->SetVisible(next == OverlayKind::FindBar);
-    drawer->SetVisible(next == OverlayKind::SettingsDrawer);
-    blockDraft->SetVisible(next == OverlayKind::BlockDraftModal);
-    recoveryPanel->SetVisible(next == OverlayKind::RecoveryModal);
-    activeOverlay = next;
+    _floating->SetVisible(next == OverlayKind::FloatingSelectionTools);
+    _findBar->SetVisible(next == OverlayKind::FindBar);
+    _drawer->SetVisible(next == OverlayKind::SettingsDrawer);
+    _blockDraft->SetVisible(next == OverlayKind::BlockDraftModal);
+    _recoveryPanel->SetVisible(next == OverlayKind::RecoveryModal);
+    _activeOverlay = next;
     if (wasFindBar && next != OverlayKind::FindBar)
         RefreshFind();
 }
@@ -1751,22 +1832,22 @@ void Application::CloseDrawers()
     const bool hadBlockDraft = HasBlockDraft();
     SetActiveOverlay(OverlayKind::None);
     Layout();
-    host.SetFocusControl(editor, MayRequestNativeFocus());
-    if (!IsInitializing() && !IsClosing())
+    _host.SetFocusControl(_editor, MayRequestNativeFocus());
+    if (! IsInitializing() && ! IsClosing())
         CheckpointRecovery();
-    if (hadBlockDraft && std::holds_alternative<HeldOpenTx>(activeFileTx))
-        (void)PostMessageW(window.get(), FileReady, 0, 0);
+    if (hadBlockDraft && std::holds_alternative<HeldOpenTx>(_activeFileTx))
+        (void)PostMessageW(_window.get(), FileReady, 0, 0);
 }
 
 void Application::ReportUiFailure(std::string_view cause) noexcept
 {
     MonitorDiagnostics::WriteUtf8(RedMonitor::Severity::Error, cause);
-    if (reportingUiFailure)
+    if (_reportingUiFailure)
         return;
-    reportingUiFailure = true;
-    const auto restore = wil::scope_exit([&] { reportingUiFailure = false; });
-    if (std::holds_alternative<SaveTx>(activeFileTx))
-        activeFileTx = std::monostate{};
+    _reportingUiFailure = true;
+    const auto restore  = wil::scope_exit([&] { _reportingUiFailure = false; });
+    if (std::holds_alternative<SaveTx>(_activeFileTx))
+        _activeFileTx = std::monostate{};
     try
     {
         if (IsClosingAfterSave())
@@ -1774,11 +1855,11 @@ void Application::ReportUiFailure(std::string_view cause) noexcept
         if (IsUiAttached())
             Status(IDS_ACTIONFAILED);
     }
-    catch (const std::bad_alloc &)
+    catch (const std::bad_alloc&)
     {
         DxUi::Failure::FailAllocation();
     }
-    catch (const std::exception &)
+    catch (const std::exception&)
     {
         DxUi::Failure::FailUnexpected();
     }
@@ -1789,16 +1870,15 @@ void Application::Execute(Command command) noexcept
 }
 void Application::ExecuteCommand(Command command, unsigned zoomSteps)
 {
-    if (!CanAcceptCommand())
+    if (! CanAcceptCommand())
         return;
     if (command == Command::New || command == Command::Open || command == Command::OpenFolder || command == Command::Close ||
-        command == Command::CloseDocument || command == Command::LocalSource || command == Command::RestoreRecovery ||
-        command == Command::RestoreAllRecovery)
-        pendingBitmapPaste.reset();
+        command == Command::CloseDocument || command == Command::LocalSource || command == Command::RestoreRecovery || command == Command::RestoreAllRecovery)
+        _pendingBitmapPaste.reset();
 #if defined(REDTILDE_ENABLE_TESTS)
-    if (options.commandAdmissionForTest)
+    if (_options.commandAdmissionForTest)
     {
-        const HRESULT admitted = options.commandAdmissionForTest(command);
+        const HRESULT admitted = _options.commandAdmissionForTest(command);
         if (FAILED(admitted))
         {
             ReportUiFailure("checked command admission refusal");
@@ -1809,9 +1889,9 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
     using namespace DxUi::RichText;
     // Presentation/structural changes cannot interrupt native IME composition.
     DxUi::NativeTextInputState native;
-    if (host.TryReadNativeTextInputState(host.GetFocusControl(), native) && native.compositionStartIndex)
+    if (_host.TryReadNativeTextInputState(_host.GetFocusControl(), native) && native.compositionStartIndex)
         return;
-    selectionToolsFocus.reset();
+    _selectionToolsFocus.reset();
     if (HasBlockDraft() && command != Command::ApplyBlock && command != Command::CloseDrawer)
     {
         Status(IDS_BLOCKPENDING);
@@ -1824,181 +1904,163 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
     bool semantic = true;
     switch (command)
     {
-    case Command::FileMenu:
-        FileMenu();
-        return;
-    case Command::OpenFolder:
-        OpenFolder();
-        return;
-    case Command::Overflow:
-        FileMenu(true);
-        return;
-    case Command::Files:
-        if (activeOverlay == OverlayKind::FloatingSelectionTools)
+        case Command::FileMenu: FileMenu(); return;
+        case Command::OpenFolder: OpenFolder(); return;
+        case Command::Overflow: FileMenu(true); return;
+        case Command::Files:
+            if (_activeOverlay == OverlayKind::FloatingSelectionTools)
+                SetActiveOverlay(OverlayKind::None);
+            else
+            {
+                _pendingSelectionTools = false;
+                _selectionToolsFocus.reset();
+            }
+            _settings.showFiles = ! _settings.showFiles;
+            RefreshFiles(true);
+            Layout();
+            SavePreferences();
+            _host.SetFocusControl(_settings.showFiles ? static_cast<DxUi::Control*>(_filesTree) : _editor, MayRequestNativeFocus());
+            return;
+        case Command::Minimize:
+            if (! _options.headless)
+                ShowWindow(_window.get(), SW_MINIMIZE);
+            return;
+        case Command::Maximize:
+            if (! _options.headless)
+                ShowWindow(_window.get(), IsZoomed(_window.get()) ? SW_RESTORE : SW_MAXIMIZE);
+            return;
+        case Command::Close: SendMessageW(_window.get(), WM_CLOSE, 0, 0); return;
+        case Command::OpenLink:
+        {
+            const auto document = _editor->GetSemanticDocument();
+            const auto index    = CurrentLinkElement(document);
+            if (! index)
+            {
+                Status(IDS_LINKUNAVAILABLE);
+                return;
+            }
+            const auto& link = document->Elements()[index.value()];
+            if (link.destination.starts_with(L'#'))
+            {
+                if (! _editor->NavigateSemanticElement(_host, document, index.value()))
+                    Status(IDS_NOTAVAILABLE);
+            }
+            else
+                RequestOpenLink({link.source, link.destination, link.title, link.name, link.wiki});
+            return;
+        }
+        case Command::FindPrevious: FindNext(true); return;
+        case Command::Replace: ReplaceFind(false); return;
+        case Command::ReplaceAll: ReplaceFind(true); return;
+        case Command::RemoteImages:
+            _printNetworkImages.clear();
+            _settings.allowRemoteImages = ! _settings.allowRemoteImages;
+            _editor->SetRemoteImagesEnabled(_settings.allowRemoteImages || _session.remoteImagesAllowed);
+            _images.DiscardCancelled();
+            _remoteImagesToggle->SetToggleState(_settings.allowRemoteImages);
+            ServiceImages();
+            SavePreferences();
+            return;
+        case Command::LocalNetworkImages:
+            _printNetworkImages.clear();
+            _settings.allowLocalNetworkImages = ! _settings.allowLocalNetworkImages;
+            _images.SetAllowLocalNetwork(_settings.allowLocalNetworkImages);
+            // Retire existing request identities before applying the new transport policy.
+            _editor->SetRemoteImagesEnabled(false);
+            _editor->SetRemoteImagesEnabled(_settings.allowRemoteImages || _session.remoteImagesAllowed);
+            _images.DiscardCancelled();
+            _localNetworkImagesToggle->SetToggleState(_settings.allowLocalNetworkImages);
+            ServiceImages();
+            SavePreferences();
+            return;
+        case Command::DocumentImages:
+            if (_settings.allowRemoteImages)
+                return;
+            _printNetworkImages.clear();
+            _session.remoteImagesAllowed = ! _session.remoteImagesAllowed;
+            _editor->SetRemoteImagesEnabled(_session.remoteImagesAllowed);
+            _images.DiscardCancelled();
+            _imageFailureStatus = S_OK;
+            ServiceImages();
+            return;
+        case Command::ReloadImages:
+            _printNetworkImages.clear();
+            _imageFailureStatus = S_OK;
+            _editor->ReloadImages();
+            _images.DiscardCancelled();
+            ServiceImages();
+            return;
+        case Command::ImageFirstPaste:
+            _settings.imageFirstPaste = ! _settings.imageFirstPaste;
+            _host.SetClipboardPreference(_settings.imageFirstPaste ? DxUi::TextClipboardPreference::ImageFirst : DxUi::TextClipboardPreference::TextFirst);
+            _imageFirstPasteToggle->SetToggleState(_settings.imageFirstPaste);
+            SavePreferences();
+            return;
+        case Command::DimBlocks:
+            _settings.dimInactiveBlocks = ! _settings.dimInactiveBlocks;
+            Layout();
+            SavePreferences();
+            return;
+        case Command::StrikeCompletedTasks:
+            _settings.strikeCompletedTasks = ! _settings.strikeCompletedTasks;
+            Layout();
+            SavePreferences();
+            return;
+        case Command::SyntaxHighlight:
+        case Command::SyntaxSuperscript:
+        case Command::SyntaxSubscript:
+        case Command::SyntaxInserted:
+        case Command::SyntaxWikiLinks:
+        case Command::SyntaxDefinitionLists:
+        case Command::SyntaxAbbreviations:
+        {
+            // Reanalysis keeps source, selection and history; only presentation changes.
+            auto& enabled = _settings.markdownSyntax[static_cast<std::size_t>(command) - static_cast<std::size_t>(Command::SyntaxHighlight)];
+            enabled       = ! enabled;
+            ApplyMarkdownSyntax();
+            Layout();
+            SavePreferences();
+            return;
+        }
+        case Command::Recovery: ShowRecovery(); return;
+        case Command::LaterRecovery:
             SetActiveOverlay(OverlayKind::None);
-        else
-        {
-            pendingSelectionTools = false;
-            selectionToolsFocus.reset();
-        }
-        settings.showFiles = !settings.showFiles;
-        RefreshFiles(true);
-        Layout();
-        SavePreferences();
-        host.SetFocusControl(settings.showFiles ? static_cast<DxUi::Control *>(filesTree) : editor, MayRequestNativeFocus());
-        return;
-    case Command::Minimize:
-        if (!options.headless)
-            ShowWindow(window.get(), SW_MINIMIZE);
-        return;
-    case Command::Maximize:
-        if (!options.headless)
-            ShowWindow(window.get(), IsZoomed(window.get()) ? SW_RESTORE : SW_MAXIMIZE);
-        return;
-    case Command::Close:
-        SendMessageW(window.get(), WM_CLOSE, 0, 0);
-        return;
-    case Command::OpenLink:
-    {
-        const auto document = editor->GetSemanticDocument();
-        const auto index = CurrentLinkElement(document);
-        if (!index)
-        {
-            Status(IDS_LINKUNAVAILABLE);
+            Layout();
+            _host.SetFocusControl(_editor, MayRequestNativeFocus());
             return;
-        }
-        const auto &link = document->Elements()[index.value()];
-        if (link.destination.starts_with(L'#'))
-        {
-            if (!editor->NavigateSemanticElement(host, document, index.value()))
-                Status(IDS_NOTAVAILABLE);
-        }
-        else
-            RequestOpenLink({link.source, link.destination, link.title, link.name, link.wiki});
-        return;
-    }
-    case Command::FindPrevious:
-        FindNext(true);
-        return;
-    case Command::Replace:
-        ReplaceFind(false);
-        return;
-    case Command::ReplaceAll:
-        ReplaceFind(true);
-        return;
-    case Command::RemoteImages:
-        printNetworkImages.clear();
-        settings.allowRemoteImages = !settings.allowRemoteImages;
-        editor->SetRemoteImagesEnabled(settings.allowRemoteImages || session.remoteImagesAllowed);
-        images.DiscardCancelled();
-        remoteImagesToggle->SetToggleState(settings.allowRemoteImages);
-        ServiceImages();
-        SavePreferences();
-        return;
-    case Command::LocalNetworkImages:
-        printNetworkImages.clear();
-        settings.allowLocalNetworkImages = !settings.allowLocalNetworkImages;
-        images.SetAllowLocalNetwork(settings.allowLocalNetworkImages);
-        // Retire existing request identities before applying the new transport policy.
-        editor->SetRemoteImagesEnabled(false);
-        editor->SetRemoteImagesEnabled(settings.allowRemoteImages || session.remoteImagesAllowed);
-        images.DiscardCancelled();
-        localNetworkImagesToggle->SetToggleState(settings.allowLocalNetworkImages);
-        ServiceImages();
-        SavePreferences();
-        return;
-    case Command::DocumentImages:
-        if (settings.allowRemoteImages)
+        case Command::DiscardRecovery:
+            if (! _recoveryCandidates.empty())
+            {
+                auto& front = _recoveryCandidates.front();
+                if (front.disposition == RecoveryDisposition::Discarding)
+                {
+                    Status(IDS_RECOVERYBUSY);
+                    return;
+                }
+                front.disposition = RecoveryDisposition::Discarding;
+                if (FAILED(_recovery.Discard(front.id)))
+                {
+                    front.disposition = RecoveryDisposition::Available;
+                    Status(IDS_RECOVERYFAILED);
+                    return;
+                }
+                Status(IDS_RECOVERYBUSY);
+            }
             return;
-        printNetworkImages.clear();
-        session.remoteImagesAllowed = !session.remoteImagesAllowed;
-        editor->SetRemoteImagesEnabled(session.remoteImagesAllowed);
-        images.DiscardCancelled();
-        imageFailureStatus = S_OK;
-        ServiceImages();
-        return;
-    case Command::ReloadImages:
-        printNetworkImages.clear();
-        imageFailureStatus = S_OK;
-        editor->ReloadImages();
-        images.DiscardCancelled();
-        ServiceImages();
-        return;
-    case Command::ImageFirstPaste:
-        settings.imageFirstPaste = !settings.imageFirstPaste;
-        host.SetClipboardPreference(settings.imageFirstPaste ? DxUi::TextClipboardPreference::ImageFirst : DxUi::TextClipboardPreference::TextFirst);
-        imageFirstPasteToggle->SetToggleState(settings.imageFirstPaste);
-        SavePreferences();
-        return;
-    case Command::DimBlocks:
-        settings.dimInactiveBlocks = !settings.dimInactiveBlocks;
-        Layout();
-        SavePreferences();
-        return;
-    case Command::StrikeCompletedTasks:
-        settings.strikeCompletedTasks = !settings.strikeCompletedTasks;
-        Layout();
-        SavePreferences();
-        return;
-    case Command::SyntaxHighlight:
-    case Command::SyntaxSuperscript:
-    case Command::SyntaxSubscript:
-    case Command::SyntaxInserted:
-    case Command::SyntaxWikiLinks:
-    case Command::SyntaxDefinitionLists:
-    case Command::SyntaxAbbreviations:
-    {
-        // Reanalysis keeps source, selection and history; only presentation changes.
-        auto &enabled = settings.markdownSyntax[static_cast<std::size_t>(command) - static_cast<std::size_t>(Command::SyntaxHighlight)];
-        enabled = !enabled;
-        ApplyMarkdownSyntax();
-        Layout();
-        SavePreferences();
-        return;
-    }
-    case Command::Recovery:
-        ShowRecovery();
-        return;
-    case Command::LaterRecovery:
-        SetActiveOverlay(OverlayKind::None);
-        Layout();
-        host.SetFocusControl(editor, MayRequestNativeFocus());
-        return;
-    case Command::DiscardRecovery:
-        if (!recoveryCandidates.empty())
-        {
-            auto &front = recoveryCandidates.front();
-            if (front.disposition == RecoveryDisposition::Discarding)
+        case Command::RestoreRecovery:
+            if (! _recoveryCandidates.empty())
             {
-                Status(IDS_RECOVERYBUSY);
-                return;
-            }
-            front.disposition = RecoveryDisposition::Discarding;
-            if (FAILED(recovery.Discard(front.id)))
-            {
-                front.disposition = RecoveryDisposition::Available;
-                Status(IDS_RECOVERYFAILED);
-                return;
-            }
-            Status(IDS_RECOVERYBUSY);
-        }
-        return;
-    case Command::RestoreRecovery:
-        if (!recoveryCandidates.empty())
-        {
-            if (recoveryCandidates.front().disposition == RecoveryDisposition::Discarding)
-            {
-                Status(IDS_RECOVERYBUSY);
-                return;
-            }
-            AskThen(
-                [this, candidate = recoveryCandidates.front()]
+                if (_recoveryCandidates.front().disposition == RecoveryDisposition::Discarding)
+                {
+                    Status(IDS_RECOVERYBUSY);
+                    return;
+                }
+                AskThen([this, candidate = _recoveryCandidates.front()]
                 {
                     // A prompt or admitted save can pump recovery completions.
                     // Only the exact copy clicked before that boundary may restore.
-                    const auto found =
-                        std::ranges::find_if(recoveryCandidates, [&candidate](const auto &current) { return current.id == candidate.id; });
-                    if (found == recoveryCandidates.end())
+                    const auto found = std::ranges::find_if(_recoveryCandidates, [&candidate](const auto& current) { return current.id == candidate.id; });
+                    if (found == _recoveryCandidates.end())
                     {
                         Status(IDS_RECOVERYUNAVAILABLE);
                         return;
@@ -2008,213 +2070,210 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
                         Status(IDS_RECOVERYBUSY);
                         return;
                     }
-                    if (!StartWorkspaceDocument() || !IsUiAttached())
+                    if (! StartWorkspaceDocument() || ! IsUiAttached())
                         return;
-                    if (!inactiveDocuments.empty())
-                        workspaceSelectionPreferred = true;
+                    if (! _inactiveDocuments.empty())
+                        _workspaceSelectionPreferred = true;
                     SetDocument(candidate.snapshot.text, candidate.snapshot.originalPath, candidate.snapshot.bom, {}, false);
-                    session.recovered = true;
-                    (void)AcceptSourceResult(editor->TrySetSelection(candidate.snapshot.selection));
+                    _session.recovered = true;
+                    (void)AcceptSourceResult(_editor->TrySetSelection(candidate.snapshot.selection));
                     Changed();
-                    const auto snapshot =
-                        RecoverySnapshot{editor->GetText(), session.path, session.bom, editor->GetSelection(), ++recoveryGeneration};
-                    if (FAILED(recovery.SubmitDocument(session.key, snapshot, true, candidate.id)))
+                    const auto snapshot = RecoverySnapshot{_editor->GetText(), _session.path, _session.bom, _editor->GetSelection(), ++_recoveryGeneration};
+                    if (FAILED(_recovery.SubmitDocument(_session.key, snapshot, true, candidate.id)))
                     {
                         Status(IDS_RECOVERYFAILED);
                         return;
                     }
-                    std::erase_if(recoveryCandidates, [&candidate](const auto &current) { return current.id == candidate.id; });
+                    std::erase_if(_recoveryCandidates, [&candidate](const auto& current) { return current.id == candidate.id; });
                     CloseDrawers();
                     Status(IDS_RECOVERED);
                 });
-        }
-        return;
-    case Command::RestoreAllRecovery:
-    {
-        if (files.Busy() || HasBlockDraft() || HasActiveModalPrompt() || recoveryCandidates.empty())
-        {
-            Status(IDS_BUSY);
-            return;
-        }
-        if (std::ranges::any_of(recoveryCandidates, [](const auto &candidate) { return candidate.disposition == RecoveryDisposition::Discarding; }))
-        {
-            Status(IDS_RECOVERYBUSY);
-            return;
-        }
-        const auto candidates = recoveryCandidates;
-        const std::size_t reuse = session.path.empty() && !Dirty() && !editor->CanUndo() && !editor->CanRedo() ? 1u : 0u;
-        if (inactiveDocuments.size() + 1 + candidates.size() - reuse > RecoveryService::MaximumDocuments)
-        {
-            Status(IDS_WORKSPACEFULL);
-            return;
-        }
-        for (const auto &candidate : candidates)
-        {
-            const auto found = std::ranges::find_if(recoveryCandidates, [&](const auto &current) { return current.id == candidate.id; });
-            if (found == recoveryCandidates.end() || found->disposition != RecoveryDisposition::Available)
-                continue; // A completion retired or started discarding this exact copy; never substitute another.
-            if (!StartWorkspaceDocument() || !IsUiAttached())
-                return;
-            SetDocument(candidate.snapshot.text, candidate.snapshot.originalPath, candidate.snapshot.bom, {}, false);
-            if (!IsUiAttached())
-                return;
-            session.recovered = true;
-            (void)AcceptSourceResult(editor->TrySetSelection(candidate.snapshot.selection));
-            Changed();
-            if (!IsUiAttached())
-                return;
-            const auto snapshot = RecoverySnapshot{editor->GetText(), session.path, session.bom, editor->GetSelection(), ++recoveryGeneration};
-            if (FAILED(recovery.SubmitDocument(session.key, snapshot, true, candidate.id)))
-            {
-                Status(IDS_RECOVERYFAILED);
-                return; // Keep the original candidate until its replacement can be admitted.
             }
-            std::erase_if(recoveryCandidates, [&](const auto &current) { return current.id == candidate.id; });
+            return;
+        case Command::RestoreAllRecovery:
+        {
+            if (_files.Busy() || HasBlockDraft() || HasActiveModalPrompt() || _recoveryCandidates.empty())
+            {
+                Status(IDS_BUSY);
+                return;
+            }
+            if (std::ranges::any_of(_recoveryCandidates, [](const auto& candidate) { return candidate.disposition == RecoveryDisposition::Discarding; }))
+            {
+                Status(IDS_RECOVERYBUSY);
+                return;
+            }
+            const auto candidates   = _recoveryCandidates;
+            const std::size_t reuse = _session.path.empty() && ! Dirty() && ! _editor->CanUndo() && ! _editor->CanRedo() ? 1u : 0u;
+            if (_inactiveDocuments.size() + 1 + candidates.size() - reuse > RecoveryService::MaximumDocuments)
+            {
+                Status(IDS_WORKSPACEFULL);
+                return;
+            }
+            for (const auto& candidate : candidates)
+            {
+                const auto found = std::ranges::find_if(_recoveryCandidates, [&](const auto& current) { return current.id == candidate.id; });
+                if (found == _recoveryCandidates.end() || found->disposition != RecoveryDisposition::Available)
+                    continue; // A completion retired or started discarding this exact copy; never substitute another.
+                if (! StartWorkspaceDocument() || ! IsUiAttached())
+                    return;
+                SetDocument(candidate.snapshot.text, candidate.snapshot.originalPath, candidate.snapshot.bom, {}, false);
+                if (! IsUiAttached())
+                    return;
+                _session.recovered = true;
+                (void)AcceptSourceResult(_editor->TrySetSelection(candidate.snapshot.selection));
+                Changed();
+                if (! IsUiAttached())
+                    return;
+                const auto snapshot = RecoverySnapshot{_editor->GetText(), _session.path, _session.bom, _editor->GetSelection(), ++_recoveryGeneration};
+                if (FAILED(_recovery.SubmitDocument(_session.key, snapshot, true, candidate.id)))
+                {
+                    Status(IDS_RECOVERYFAILED);
+                    return; // Keep the original candidate until its replacement can be admitted.
+                }
+                std::erase_if(_recoveryCandidates, [&](const auto& current) { return current.id == candidate.id; });
+            }
+            if (! _inactiveDocuments.empty())
+                _workspaceSelectionPreferred = true;
+            RefreshFiles();
+            CloseDrawers();
+            Status(IDS_RECOVERED);
+            return;
         }
-        if (!inactiveDocuments.empty())
-            workspaceSelectionPreferred = true;
-        RefreshFiles();
-        CloseDrawers();
-        Status(IDS_RECOVERED);
-        return;
-    }
-    case Command::New:
-        AskWorkspaceThen(
-            [this]
+        case Command::New:
+            AskWorkspaceThen([this]
             {
                 ResetWorkspace();
                 SetDocument({});
-                host.SetFocusControl(editor, MayRequestNativeFocus());
+                _host.SetFocusControl(_editor, MayRequestNativeFocus());
             });
-        return;
-    case Command::Open:
-        Open();
-        return;
-    case Command::Save:
-        Save();
-        return;
-    case Command::SaveAs:
-        Save(true);
-        return;
-    case Command::CloseDocument:
-        CloseActiveDocument();
-        return;
-    case Command::Print:
-        Print();
-        return;
-    case Command::Compose:
-        SetView(EditorView::Compose);
-        return;
-    case Command::Source:
-        SetView(EditorView::Source);
-        return;
-    case Command::Split:
-        SetView(EditorView::Split);
-        return;
-    case Command::Undo:
-        (void)editor->Undo();
-        semantic = false;
-        break;
-    case Command::Redo:
-        (void)editor->Redo();
-        semantic = false;
-        break;
-    case Command::Heading:
-    case Command::Insert:
-    {
-        const auto bounds = tools[command == Command::Heading ? 2 : 8]->GetBounds();
-        Menu(host.DipPointToScreenPoint({bounds.left, bounds.bottom}), command == Command::Insert, command == Command::Heading);
-    }
-        return;
-    case Command::Bold:
-    case Command::Italic:
-    case Command::Strike:
-    case Command::Code:
-        if (settings.view == EditorView::Source)
-        {
-            const std::wstring_view marker = command == Command::Bold     ? L"**"
-                                             : command == Command::Italic ? L"*"
-                                             : command == Command::Strike ? L"~~"
-                                                                          : L"`";
-            if (!editor->ToggleFormatting(marker))
-            {
-                if (editor->Snapshot().Length() + marker.size() * 2u > Document::MaximumUnits)
-                    ReportCapacityLimit();
-                else
-                    Status(IDS_NOTAVAILABLE);
-            }
-            semantic = false;
-        }
-        else
-        {
-            request.command = MarkdownCommand::ToggleStyle;
-            request.style = command == Command::Bold     ? MarkdownTextStyle::Strong
-                            : command == Command::Italic ? MarkdownTextStyle::Emphasis
-                            : command == Command::Strike ? MarkdownTextStyle::Strikethrough
-                                                         : MarkdownTextStyle::Code;
-        }
-        break;
-    case Command::Bullets:
-        request.command = MarkdownCommand::SetList;
-        break;
-    case Command::Numbered:
-        request.command = MarkdownCommand::SetList;
-        request.listKind = MarkdownListKind::Ordered;
-        break;
-    case Command::Task:
-        request.command = MarkdownCommand::SetList;
-        request.listKind = MarkdownListKind::Task;
-        break;
-    case Command::Paragraph:
-    case Command::H1:
-    case Command::H2:
-    case Command::H3:
-        request.command = MarkdownCommand::SetHeading;
-        request.headingLevel = static_cast<unsigned>(command) - static_cast<unsigned>(Command::Paragraph);
-        break;
-    case Command::Table:
-        request.command = MarkdownCommand::InsertTable;
-        break;
-    case Command::RowAdd:
-        request.command = MarkdownCommand::InsertTableRow;
-        break;
-    case Command::RowRemove:
-        request.command = MarkdownCommand::DeleteTableRow;
-        break;
-    case Command::ColumnAdd:
-        request.command = MarkdownCommand::InsertTableColumn;
-        break;
-    case Command::ColumnRemove:
-        request.command = MarkdownCommand::DeleteTableColumn;
-        break;
-    case Command::Link:
-    {
-        const auto selection = editor->GetSelection();
-        LocalSource();
-        if (HasBlockDraft())
-        {
-            auto &draft = blockDraftSession.value();
-            draft.range = {selection.Start(), selection.End()};
-            const auto label = draft.snapshot.Slice(selection.Start(), selection.End());
-            blockDraftText->SetText(L"[" + (label.empty() ? Resource(IDS_DEFAULTLINKTEXT) : std::wstring(label)) + L"](https://)");
-        }
-        return;
-    }
-    case Command::Image:
-    {
-        const auto path = PickFile(false, true);
-        if (path.empty())
             return;
-        DxUi::TextClipboardContent content;
-        content.filePaths.push_back(path.native());
-        std::wstring insertion;
-        if (editor->TryPrepareClipboardPaste(content, insertion))
+        case Command::Open: Open(); return;
+        case Command::Save: Save(); return;
+        case Command::SaveAs: Save(true); return;
+        case Command::CloseDocument: CloseActiveDocument(); return;
+        case Command::Print: Print(); return;
+        case Command::Compose: SetView(EditorView::Compose); return;
+        case Command::Source: SetView(EditorView::Source); return;
+        case Command::Split: SetView(EditorView::Split); return;
+        case Command::Undo:
+            (void)_editor->Undo();
+            semantic = false;
+            break;
+        case Command::Redo:
+            (void)_editor->Redo();
+            semantic = false;
+            break;
+        case Command::Heading:
+        case Command::Insert:
         {
-            const auto selection = editor->GetSelection();
-            const auto currentLength = editor->Snapshot().Length();
-            const auto replaced = selection.End() - selection.Start();
-            const auto insertedUnits = insertion.size();
-            if (!editor->ReplaceSelection(std::move(insertion)))
+            const auto bounds = _tools[command == Command::Heading ? 2 : 8]->GetBounds();
+            Menu(_host.DipPointToScreenPoint({bounds.left, bounds.bottom}), command == Command::Insert, command == Command::Heading);
+        }
+            return;
+        case Command::Bold:
+        case Command::Italic:
+        case Command::Strike:
+        case Command::Code:
+            if (_settings.view == EditorView::Source)
+            {
+                const std::wstring_view marker = command == Command::Bold     ? L"**"
+                                                 : command == Command::Italic ? L"*"
+                                                 : command == Command::Strike ? L"~~"
+                                                                              : L"`";
+                if (! _editor->ToggleFormatting(marker))
+                {
+                    if (_editor->Snapshot().Length() + marker.size() * 2u > Document::MaximumUnits)
+                        ReportCapacityLimit();
+                    else
+                        Status(IDS_NOTAVAILABLE);
+                }
+                semantic = false;
+            }
+            else
+            {
+                request.command = MarkdownCommand::ToggleStyle;
+                request.style   = command == Command::Bold     ? MarkdownTextStyle::Strong
+                                  : command == Command::Italic ? MarkdownTextStyle::Emphasis
+                                  : command == Command::Strike ? MarkdownTextStyle::Strikethrough
+                                                               : MarkdownTextStyle::Code;
+            }
+            break;
+        case Command::Bullets: request.command = MarkdownCommand::SetList; break;
+        case Command::Numbered:
+            request.command  = MarkdownCommand::SetList;
+            request.listKind = MarkdownListKind::Ordered;
+            break;
+        case Command::Task:
+            request.command  = MarkdownCommand::SetList;
+            request.listKind = MarkdownListKind::Task;
+            break;
+        case Command::Paragraph:
+        case Command::H1:
+        case Command::H2:
+        case Command::H3:
+            request.command      = MarkdownCommand::SetHeading;
+            request.headingLevel = static_cast<unsigned>(command) - static_cast<unsigned>(Command::Paragraph);
+            break;
+        case Command::Table: request.command = MarkdownCommand::InsertTable; break;
+        case Command::RowAdd: request.command = MarkdownCommand::InsertTableRow; break;
+        case Command::RowRemove: request.command = MarkdownCommand::DeleteTableRow; break;
+        case Command::ColumnAdd: request.command = MarkdownCommand::InsertTableColumn; break;
+        case Command::ColumnRemove: request.command = MarkdownCommand::DeleteTableColumn; break;
+        case Command::Link:
+        {
+            const auto selection = _editor->GetSelection();
+            LocalSource();
+            if (HasBlockDraft())
+            {
+                auto& draft      = _blockDraftSession.value();
+                draft.range      = {selection.Start(), selection.End()};
+                const auto label = draft.snapshot.Slice(selection.Start(), selection.End());
+                _blockDraftText->SetText(L"[" + (label.empty() ? Resource(IDS_DEFAULTLINKTEXT) : std::wstring(label)) + L"](https://)");
+            }
+            return;
+        }
+        case Command::Image:
+        {
+            const auto path = PickFile(false, true);
+            if (path.empty())
+                return;
+            DxUi::TextClipboardContent content;
+            content.filePaths.push_back(path.native());
+            std::wstring insertion;
+            if (_editor->TryPrepareClipboardPaste(content, insertion))
+            {
+                const auto selection     = _editor->GetSelection();
+                const auto currentLength = _editor->Snapshot().Length();
+                const auto replaced      = selection.End() - selection.Start();
+                const auto insertedUnits = insertion.size();
+                if (! _editor->ReplaceSelection(std::move(insertion)))
+                {
+                    if (currentLength - replaced + insertedUnits > Document::MaximumUnits)
+                        ReportCapacityLimit();
+                    else
+                        Status(IDS_NOTAVAILABLE);
+                }
+                else
+                    Status(IDS_FORMATTED);
+            }
+            else
+                Status(IDS_NOTAVAILABLE);
+            semantic = false;
+            break;
+        }
+        case Command::Mermaid:
+        case Command::Math:
+        {
+            // Display delimiters must own their lines; a one-line $$...$$ stays literal at this pin.
+            const auto snippet =
+                NormalizeInsertedLineEndings(command == Command::Mermaid ? L"\n\n```mermaid\ngraph LR\nA[Idea] --> B[Write]\nB --> C[Share]\n```\n\n"
+                                                                         : L"\n\n$$\nx = \\frac{-b + \\sqrt{b^2 - 4ac}}{2a}\n$$\n\n",
+                                             CurrentText());
+            const auto selection     = _editor->GetSelection();
+            const auto currentLength = _editor->Snapshot().Length();
+            const auto replaced      = selection.End() - selection.Start();
+            const auto insertedUnits = snippet.size();
+            if (! _editor->ReplaceSelection(snippet))
             {
                 if (currentLength - replaced + insertedUnits > Document::MaximumUnits)
                     ReportCapacityLimit();
@@ -2223,137 +2282,101 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
             }
             else
                 Status(IDS_FORMATTED);
+            semantic = false;
+            break;
         }
-        else
-            Status(IDS_NOTAVAILABLE);
-        semantic = false;
-        break;
-    }
-    case Command::Mermaid:
-    case Command::Math:
-    {
-        // Display delimiters must own their lines; a one-line $$...$$ stays literal at this pin.
-        const auto snippet =
-            NormalizeInsertedLineEndings(command == Command::Mermaid ? L"\n\n```mermaid\ngraph LR\nA[Idea] --> B[Write]\nB --> C[Share]\n```\n\n"
-                                                                     : L"\n\n$$\nx = \\frac{-b + \\sqrt{b^2 - 4ac}}{2a}\n$$\n\n",
-                                         CurrentText());
-        const auto selection = editor->GetSelection();
-        const auto currentLength = editor->Snapshot().Length();
-        const auto replaced = selection.End() - selection.Start();
-        const auto insertedUnits = snippet.size();
-        if (!editor->ReplaceSelection(snippet))
+        case Command::Quote:
+        case Command::Fence:
         {
-            if (currentLength - replaced + insertedUnits > Document::MaximumUnits)
-                ReportCapacityLimit();
+            const auto selection = _editor->GetSelection();
+            const bool quote     = command == Command::Quote;
+            const auto snippet =
+                NormalizeInsertedLineEndings(quote ? L"\n> A thought worth keeping.\n" : L"\n\n```text\nYour code here\n```\n\n", CurrentText());
+            const bool changed = selection.Start() != selection.End()
+                                     ? _editor->WrapSelectionInMarkdownBlock(quote ? MarkdownBlockKind::BlockQuote : MarkdownBlockKind::FencedCode,
+                                                                             quote ? std::wstring_view{} : std::wstring_view(L"text"))
+                                     : _editor->ReplaceSelection(snippet);
+            if (changed)
+                Status(IDS_FORMATTED);
             else
-                Status(IDS_NOTAVAILABLE);
+            {
+                const auto currentLength    = _editor->Snapshot().Length();
+                const auto replaced         = selection.End() - selection.Start();
+                const bool capacityExceeded = selection.Start() != selection.End() ? currentLength + (quote ? 2u : 12u) > Document::MaximumUnits
+                                                                                   : currentLength - replaced + snippet.size() > Document::MaximumUnits;
+                if (capacityExceeded)
+                    ReportCapacityLimit();
+                else
+                    Status(IDS_NOTAVAILABLE);
+            }
+            semantic = false;
+            break;
         }
-        else
-            Status(IDS_FORMATTED);
-        semantic = false;
-        break;
-    }
-    case Command::Quote:
-    case Command::Fence:
-    {
-        const auto selection = editor->GetSelection();
-        const bool quote = command == Command::Quote;
-        const auto snippet =
-            NormalizeInsertedLineEndings(quote ? L"\n> A thought worth keeping.\n" : L"\n\n```text\nYour code here\n```\n\n", CurrentText());
-        const bool changed = selection.Start() != selection.End()
-                                 ? editor->WrapSelectionInMarkdownBlock(quote ? MarkdownBlockKind::BlockQuote : MarkdownBlockKind::FencedCode,
-                                                                        quote ? std::wstring_view{} : std::wstring_view(L"text"))
-                                 : editor->ReplaceSelection(snippet);
-        if (changed)
-            Status(IDS_FORMATTED);
-        else
+        case Command::LocalSource: LocalSource(); return;
+        case Command::Find:
+            SetActiveOverlay(OverlayKind::FindBar);
+            Layout();
+            RefreshFind();
+            _host.SetFocusControl(_findText, MayRequestNativeFocus());
+            return;
+        case Command::FindNext: FindNext(); return;
+        case Command::FindMatchCase:
+            _find.matchCase = ! _find.matchCase;
+            _find.InvalidateMatches();
+            _findCaseToggle->SetToggleState(_find.matchCase);
+            RefreshFind();
+            if (_activeOverlay == OverlayKind::FindBar)
+                _host.SetFocusControl(_findText, MayRequestNativeFocus());
+            return;
+        case Command::ZoomIn:
+        case Command::ZoomOut:
+        case Command::ZoomReset:
         {
-            const auto currentLength = editor->Snapshot().Length();
-            const auto replaced = selection.End() - selection.Start();
-            const bool capacityExceeded = selection.Start() != selection.End() ? currentLength + (quote ? 2u : 12u) > Document::MaximumUnits
-                                                                               : currentLength - replaced + snippet.size() > Document::MaximumUnits;
-            if (capacityExceeded)
-                ReportCapacityLimit();
-            else
-                Status(IDS_NOTAVAILABLE);
+            const int delta  = static_cast<int>(std::min(zoomSteps, 25u)) * (command == Command::ZoomIn ? 5 : -5);
+            const auto scale = command == Command::ZoomReset ? 100u : static_cast<unsigned>(std::clamp(static_cast<int>(_settings.textScale) + delta, 75, 200));
+            if (_settings.textScale != scale)
+            {
+                _settings.textScale = scale;
+                Layout();
+                SavePreferences();
+            }
+            return;
         }
-        semantic = false;
-        break;
-    }
-    case Command::LocalSource:
-        LocalSource();
-        return;
-    case Command::Find:
-        SetActiveOverlay(OverlayKind::FindBar);
-        Layout();
-        RefreshFind();
-        host.SetFocusControl(findText, MayRequestNativeFocus());
-        return;
-    case Command::FindNext:
-        FindNext();
-        return;
-    case Command::FindMatchCase:
-        find.matchCase = !find.matchCase;
-        find.InvalidateMatches();
-        findCaseToggle->SetToggleState(find.matchCase);
-        RefreshFind();
-        if (activeOverlay == OverlayKind::FindBar)
-            host.SetFocusControl(findText, MayRequestNativeFocus());
-        return;
-    case Command::ZoomIn:
-    case Command::ZoomOut:
-    case Command::ZoomReset:
-    {
-        const int delta = static_cast<int>(std::min(zoomSteps, 25u)) * (command == Command::ZoomIn ? 5 : -5);
-        const auto scale =
-            command == Command::ZoomReset ? 100u : static_cast<unsigned>(std::clamp(static_cast<int>(settings.textScale) + delta, 75, 200));
-        if (settings.textScale != scale)
+        case Command::Settings:
         {
-            settings.textScale = scale;
+            const bool opening = _activeOverlay != OverlayKind::SettingsDrawer;
+            SetActiveOverlay(opening ? OverlayKind::SettingsDrawer : OverlayKind::None);
+            Layout();
+            _host.SetFocusControl(opening ? static_cast<DxUi::Control*>(_themeButtons[0]) : _editor, MayRequestNativeFocus());
+            return;
+        }
+        case Command::Focus:
+            _settings.focusMode = ! _settings.focusMode;
+            CloseDrawers();
+            Layout();
+            return;
+        case Command::Outline:
+            _settings.showOutline = ! _settings.showOutline;
             Layout();
             SavePreferences();
-        }
-        return;
-    }
-    case Command::Settings:
-    {
-        const bool opening = activeOverlay != OverlayKind::SettingsDrawer;
-        SetActiveOverlay(opening ? OverlayKind::SettingsDrawer : OverlayKind::None);
-        Layout();
-        host.SetFocusControl(opening ? static_cast<DxUi::Control *>(themeButtons[0]) : editor, MayRequestNativeFocus());
-        return;
-    }
-    case Command::Focus:
-        settings.focusMode = !settings.focusMode;
-        CloseDrawers();
-        Layout();
-        return;
-    case Command::Outline:
-        settings.showOutline = !settings.showOutline;
-        Layout();
-        SavePreferences();
-        return;
-    case Command::ThemeSystem:
-    case Command::ThemeLight:
-    case Command::ThemeDark:
-    case Command::ThemePaper:
-        settings.appearance = static_cast<Appearance>(static_cast<unsigned>(command) - static_cast<unsigned>(Command::ThemeSystem));
-        ApplyTheme();
-        SavePreferences();
-        return;
-    case Command::CloseDrawer:
-        CloseDrawers();
-        return;
-    case Command::ApplyBlock:
-        ApplyBlockSource();
-        return;
+            return;
+        case Command::ThemeSystem:
+        case Command::ThemeLight:
+        case Command::ThemeDark:
+        case Command::ThemePaper:
+            _settings.appearance = static_cast<Appearance>(static_cast<unsigned>(command) - static_cast<unsigned>(Command::ThemeSystem));
+            ApplyTheme();
+            SavePreferences();
+            return;
+        case Command::CloseDrawer: CloseDrawers(); return;
+        case Command::ApplyBlock: ApplyBlockSource(); return;
     }
     if (semantic)
     {
-        const auto result = editor->ExecuteMarkdownCommand(request);
+        const auto result = _editor->ExecuteMarkdownCommand(request);
         if (result == MarkdownCommandStatus::Unavailable)
         {
-            if (IsMarkdownCommandCapacityExceeded(*editor, request, editor->GetSelection()))
+            if (IsMarkdownCommandCapacityExceeded(*_editor, request, _editor->GetSelection()))
                 ReportCapacityLimit();
             else
                 Status(IDS_NOTAVAILABLE);
@@ -2361,34 +2384,32 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         else
             Status(IDS_FORMATTED);
     }
-    if (activeOverlay == OverlayKind::FloatingSelectionTools)
+    if (_activeOverlay == OverlayKind::FloatingSelectionTools)
         SetActiveOverlay(OverlayKind::None);
-    host.SetFocusControl(editor, MayRequestNativeFocus());
+    _host.SetFocusControl(_editor, MayRequestNativeFocus());
 }
 
 void Application::LocalSource()
 {
-    if (editor->GetSemanticSourceRegion())
+    if (_editor->GetSemanticSourceRegion())
     {
-        if (editor->EndSemanticSourceEdit(host))
+        if (_editor->EndSemanticSourceEdit(_host))
             SelectionChanged();
         return;
     }
-    const auto semantic = editor->GetAcknowledgedSemanticDocument(host);
-    const auto selection = editor->GetSelection();
-    const auto source = editor->GetText();
+    const auto semantic  = _editor->GetAcknowledgedSemanticDocument(_host);
+    const auto selection = _editor->GetSelection();
+    const auto source    = _editor->GetText();
     if (semantic)
     {
         const auto elements = semantic->Elements();
         for (std::size_t index = elements.size(); index > 0; --index)
         {
-            const auto &element = elements[index - 1];
+            const auto& element = elements[index - 1];
             // Code, diagrams and math edit their exact source in place. A display equation
             // ends at its closing delimiter, so the following line is not inside it.
-            const auto elementLast =
-                element.role == DxUi::RichText::SemanticRole::Math ? WithoutLineEnd(source, element.source) : element.source.last;
-            if (selection.caret >= element.source.first && selection.caret <= elementLast &&
-                editor->BeginSemanticSourceEdit(host, semantic, index - 1))
+            const auto elementLast = element.role == DxUi::RichText::SemanticRole::Math ? WithoutLineEnd(source, element.source) : element.source.last;
+            if (selection.caret >= element.source.first && selection.caret <= elementLast && _editor->BeginSemanticSourceEdit(_host, semantic, index - 1))
             {
                 CloseDrawers();
                 // The block caption and live equation preview follow the region.
@@ -2401,62 +2422,61 @@ void Application::LocalSource()
     // When the native region refuses (pending preparation), math falls back to a guarded
     // draft of its exact envelope. Exact math source is a syntax fact; an unrelated preview
     // may still be preparing. Raster acknowledgment is required only for in-document editors.
-    if (const auto document = editor->GetSemanticDocument())
-        for (const auto &element : document->Elements())
+    if (const auto document = _editor->GetSemanticDocument())
+        for (const auto& element : document->Elements())
             if (element.role == DxUi::RichText::SemanticRole::Math && selection.caret >= element.source.first &&
                 selection.caret <= WithoutLineEnd(source, element.source))
             {
                 first = element.source.first;
-                last = WithoutLineEnd(source, element.source);
+                last  = WithoutLineEnd(source, element.source);
                 break;
             }
     if (first == last)
-        if (const auto syntax = editor->GetMarkdownSyntax())
-            for (const auto &node : syntax->Inlines())
-                if (node.kind == DxUi::RichText::MarkdownInlineKind::Math && selection.caret >= node.source.first &&
-                    selection.caret <= node.source.last)
+        if (const auto syntax = _editor->GetMarkdownSyntax())
+            for (const auto& node : syntax->Inlines())
+                if (node.kind == DxUi::RichText::MarkdownInlineKind::Math && selection.caret >= node.source.first && selection.caret <= node.source.last)
                 {
                     first = node.source.first;
-                    last = node.source.last;
+                    last  = node.source.last;
                     break;
                 }
     if (first == last)
     {
         first = first ? source.find_last_of(L"\r\n", first - 1) : source.npos;
         first = first == source.npos ? 0 : first + 1;
-        last = source.find_first_of(L"\r\n", selection.caret);
-        last = last == source.npos ? source.size() : last;
+        last  = source.find_first_of(L"\r\n", selection.caret);
+        last  = last == source.npos ? source.size() : last;
     }
-    blockDraftSession = BlockDraftSession{editor->Snapshot(), editor->Revision(), {first, last}, false};
-    blockDraftText->SetText(source.substr(first, last - first));
-    blockDraft->GetLogicalChild(0)->SetAccessibleName(Resource(equationContext ? IDS_BLOCKEQUATION : IDS_LOCAL));
-    static_cast<DxUi::Label *>(blockDraft->GetLogicalChild(0))->SetText(Resource(equationContext ? IDS_BLOCKEQUATION : IDS_LOCAL));
+    _blockDraftSession = BlockDraftSession{_editor->Snapshot(), _editor->Revision(), {first, last}, false};
+    _blockDraftText->SetText(source.substr(first, last - first));
+    _blockDraft->GetLogicalChild(0)->SetAccessibleName(Resource(_equationContext ? IDS_BLOCKEQUATION : IDS_LOCAL));
+    static_cast<DxUi::Label*>(_blockDraft->GetLogicalChild(0))->SetText(Resource(_equationContext ? IDS_BLOCKEQUATION : IDS_LOCAL));
     SetActiveOverlay(OverlayKind::BlockDraftModal);
-    editor->SetReadOnly(true);
+    _editor->SetReadOnly(true);
     if (last > first)
     {
         const DxUi::RichTextSourceHighlight block{first, last - first, true};
-        (void)AcceptSourceResult(editor->TrySetSourceHighlights(std::span(&block, 1)));
+        (void)AcceptSourceResult(_editor->TrySetSourceHighlights(std::span(&block, 1)));
     }
     Layout();
-    host.SetFocusControl(blockDraftText, MayRequestNativeFocus());
+    _host.SetFocusControl(_blockDraftText, MayRequestNativeFocus());
     CheckpointRecovery();
 }
 
 void Application::ApplyBlockSource()
 {
-    if (!HasBlockDraft())
+    if (! HasBlockDraft())
         return;
-    const auto &draftSession = blockDraftSession.value();
-    if (!editor->Snapshot().IsSameRevision(draftSession.snapshot) || editor->Revision() != draftSession.revision)
+    const auto& draftSession = _blockDraftSession.value();
+    if (! _editor->Snapshot().IsSameRevision(draftSession.snapshot) || _editor->Revision() != draftSession.revision)
     {
         Status(IDS_NOTAVAILABLE);
         return;
     }
-    const auto draft = blockDraftText->GetText();
-    const auto original = draftSession.snapshot.Slice(draftSession.range.first, draftSession.range.last);
+    const auto draft         = _blockDraftText->GetText();
+    const auto original      = draftSession.snapshot.Slice(draftSession.range.first, draftSession.range.last);
     const std::wstring value = draft == original ? std::wstring(draft) : NormalizeInsertedLineEndings(draft, CurrentText());
-    if (!DxUi::RichText::IsValidUtf16(value))
+    if (! DxUi::RichText::IsValidUtf16(value))
     {
         Status(IDS_NOTAVAILABLE);
         return;
@@ -2468,8 +2488,8 @@ void Application::ApplyBlockSource()
     }
     const DxUi::RichText::SourceEdit edit{draftSession.range, value};
     const auto end = draftSession.range.first + value.size();
-    editor->SetReadOnly(false);
-    if (!editor->ApplySourceEdits(draftSession.snapshot, draftSession.revision, std::span(&edit, 1), {end, end}))
+    _editor->SetReadOnly(false);
+    if (! _editor->ApplySourceEdits(draftSession.snapshot, draftSession.revision, std::span(&edit, 1), {end, end}))
     {
         CloseDrawers();
         Status(IDS_NOTAVAILABLE);
@@ -2485,18 +2505,18 @@ std::vector<DxUi::MenuFlyoutItem> Application::ContextMenuItems(bool insertOnly,
     auto add = [&](unsigned label, Command command, std::wstring accelerator = {})
     {
         DxUi::MenuFlyoutItem item;
-        item.text = Resource(label);
-        item.commandId = static_cast<int>(command) + 1;
+        item.text            = Resource(label);
+        item.commandId       = static_cast<int>(command) + 1;
         item.acceleratorText = std::move(accelerator);
         items.push_back(std::move(item));
     };
-    if (!insertOnly)
+    if (! insertOnly)
     {
         add(IDS_PARAGRAPH, Command::Paragraph);
         add(IDS_H1, Command::H1);
         add(IDS_H2, Command::H2);
         add(IDS_H3, Command::H3);
-        if (!headingOnly)
+        if (! headingOnly)
         {
             add(IDS_BOLD, Command::Bold, L"Ctrl+B");
             add(IDS_ITALIC, Command::Italic, L"Ctrl+I");
@@ -2504,7 +2524,7 @@ std::vector<DxUi::MenuFlyoutItem> Application::ContextMenuItems(bool insertOnly,
             add(IDS_CODE, Command::Code);
             add(IDS_NUMBERED, Command::Numbered);
             add(IDS_LOCAL, Command::LocalSource, L"F2");
-            if (CurrentLinkElement(editor->GetSemanticDocument()))
+            if (CurrentLinkElement(_editor->GetSemanticDocument()))
                 add(IDS_OPENLINK, Command::OpenLink);
             add(IDS_ROWADD, Command::RowAdd);
             add(IDS_ROWREMOVE, Command::RowRemove);
@@ -2512,7 +2532,7 @@ std::vector<DxUi::MenuFlyoutItem> Application::ContextMenuItems(bool insertOnly,
             add(IDS_COLREMOVE, Command::ColumnRemove);
         }
     }
-    if (!headingOnly)
+    if (! headingOnly)
     {
         add(IDS_LINK, Command::Link);
         add(IDS_IMAGE, Command::Image);
@@ -2527,87 +2547,88 @@ std::vector<DxUi::MenuFlyoutItem> Application::ContextMenuItems(bool insertOnly,
 
 void Application::Menu(POINT point, bool insertOnly, bool headingOnly)
 {
-    if (options.headless)
+    if (_options.headless)
         return; // Focus-taking menus are an explicitly interactive gate.
-    auto items = ContextMenuItems(insertOnly, headingOnly);
-    const auto source = editor->Snapshot();
-    const auto selection = editor->GetSelection();
-    const auto key = session.key;
-    const auto lifetime = GetControlLifetimeToken(*editor);
-    if (activeOverlay == OverlayKind::FloatingSelectionTools)
+    auto items           = ContextMenuItems(insertOnly, headingOnly);
+    const auto source    = _editor->Snapshot();
+    const auto selection = _editor->GetSelection();
+    const auto key       = _session.key;
+    const auto lifetime  = GetControlLifetimeToken(*_editor);
+    if (_activeOverlay == OverlayKind::FloatingSelectionTools)
         SetActiveOverlay(OverlayKind::None);
     DxUi::ContextMenuSessionCallbacks callbacks;
     callbacks.focusFirstNavigableItem = true;
-    (void)DxUi::ContextMenu::ShowAsync(
-        window.get(), point, items, host.GetTheme(),
-        [this, source, selection, key, lifetime](std::optional<int> selected) noexcept
+    (void)DxUi::ContextMenu::ShowAsync(_window.get(),
+                                       point,
+                                       items,
+                                       _host.GetTheme(),
+                                       [this, source, selection, key, lifetime](std::optional<int> selected) noexcept
+    {
+        RunUiAction([&]
         {
-            RunUiAction(
-                [&]
+            if (selected == static_cast<int>(Command::OpenLink) + 1)
+            {
+                if (! IsUiAttached() || lifetime.expired())
+                    return;
+                if (_session.key != key || ! _editor->Snapshot().IsSameRevision(source) || _editor->GetSelection() != selection)
                 {
-                    if (selected == static_cast<int>(Command::OpenLink) + 1)
-                    {
-                        if (!IsUiAttached() || lifetime.expired())
-                            return;
-                        if (session.key != key || !editor->Snapshot().IsSameRevision(source) || editor->GetSelection() != selection)
-                        {
-                            Status(IDS_LINKCHANGED);
-                            return;
-                        }
-                    }
-                    OnMenuClosed(selected);
-                });
-        },
-        callbacks);
+                    Status(IDS_LINKCHANGED);
+                    return;
+                }
+            }
+            OnMenuClosed(selected);
+        });
+    },
+                                       callbacks);
 }
 
 std::filesystem::path Application::PickFile(bool saving, bool image, bool folder)
 {
 #if defined(REDTILDE_ENABLE_TESTS)
-    if (options.headless && options.filePickerForTest && !image && !folder)
-        return options.filePickerForTest(saving);
+    if (_options.headless && _options.filePickerForTest && ! image && ! folder)
+        return _options.filePickerForTest(saving);
 #endif
-    if (options.headless)
+    if (_options.headless)
         return {};
     wil::com_ptr<IFileDialog> dialog;
     const CLSID classId = saving ? CLSID_FileSaveDialog : CLSID_FileOpenDialog;
-    HRESULT hr = DxUi::Failure::InvokeNative(&CoCreateInstance, classId, nullptr, static_cast<DWORD>(CLSCTX_INPROC_SERVER), __uuidof(IFileDialog),
-                                             reinterpret_cast<void **>(dialog.put()));
+    HRESULT hr          = DxUi::Failure::InvokeNative(
+        &CoCreateInstance, classId, nullptr, static_cast<DWORD>(CLSCTX_INPROC_SERVER), __uuidof(IFileDialog), reinterpret_cast<void**>(dialog.put()));
     if (FAILED(hr))
         return {};
     const auto markdownLabel = Resource(IDS_FILTERMARKDOWN), utf8Label = Resource(IDS_FILTERUTF8), allLabel = Resource(IDS_FILTERALL),
                imageLabel = Resource(IDS_FILTERIMAGES);
     const COMDLG_FILTERSPEC markdown[]{{markdownLabel.c_str(), L"*.md;*.markdown"}, {utf8Label.c_str(), L"*.txt"}, {allLabel.c_str(), L"*.*"}};
     const COMDLG_FILTERSPEC pictures[]{{imageLabel.c_str(), L"*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff"}};
-    if (!folder)
+    if (! folder)
         (void)InvokeNativeMethod(dialog.get(), &IFileDialog::SetFileTypes, image ? 1u : 3u, image ? pictures : markdown);
     else
         (void)InvokeNativeMethod(dialog.get(), &IFileDialog::SetTitle, Resource(IDS_OPENFOLDER).c_str());
     DWORD flags{};
     (void)InvokeNativeMethod(dialog.get(), &IFileDialog::GetOptions, &flags);
-    (void)InvokeNativeMethod(dialog.get(), &IFileDialog::SetOptions,
+    (void)InvokeNativeMethod(dialog.get(),
+                             &IFileDialog::SetOptions,
                              flags | FOS_FORCEFILESYSTEM | FOS_NOCHANGEDIR |
                                  (folder   ? FOS_PICKFOLDERS | FOS_PATHMUSTEXIST
                                   : saving ? FOS_OVERWRITEPROMPT
                                            : FOS_FILEMUSTEXIST));
-    if (!settings.filesRoot.empty())
+    if (! _settings.filesRoot.empty())
     {
         wil::com_ptr<IShellItem> initial;
-        if (SUCCEEDED(DxUi::Failure::InvokeNative(&SHCreateItemFromParsingName, settings.filesRoot.c_str(), nullptr, __uuidof(IShellItem),
-                                                  reinterpret_cast<void **>(initial.put()))))
+        if (SUCCEEDED(DxUi::Failure::InvokeNative(
+                &SHCreateItemFromParsingName, _settings.filesRoot.c_str(), nullptr, __uuidof(IShellItem), reinterpret_cast<void**>(initial.put()))))
             (void)InvokeNativeMethod(dialog.get(), &IFileDialog::SetDefaultFolder, initial.get());
     }
     if (saving)
     {
         (void)InvokeNativeMethod(dialog.get(), &IFileDialog::SetDefaultExtension, L"md");
-        const auto baseName =
-            session.path.filename().empty() ? std::filesystem::path(Resource(IDS_UNTITLED)).stem().native() : session.path.stem().native();
-        const auto name = session.recovered      ? FormatStringResource(nullptr, IDS_RECOVEREDNAME, baseName)
-                          : session.path.empty() ? Resource(IDS_UNTITLED)
-                                                 : session.path.filename().native();
+        const auto baseName = _session.path.filename().empty() ? std::filesystem::path(Resource(IDS_UNTITLED)).stem().native() : _session.path.stem().native();
+        const auto name     = _session.recovered      ? FormatStringResource(nullptr, IDS_RECOVEREDNAME, baseName)
+                              : _session.path.empty() ? Resource(IDS_UNTITLED)
+                                                      : _session.path.filename().native();
         (void)InvokeNativeMethod(dialog.get(), &IFileDialog::SetFileName, name.c_str());
     }
-    if (FAILED(InvokeNativeMethod(dialog.get(), &IFileDialog::Show, window.get())))
+    if (FAILED(InvokeNativeMethod(dialog.get(), &IFileDialog::Show, _window.get())))
         return {};
     wil::com_ptr<IShellItem> item;
     wil::unique_cotaskmem_string path;
@@ -2619,26 +2640,26 @@ std::filesystem::path Application::PickFile(bool saving, bool image, bool folder
 
 void Application::AskThen(std::function<void()> continuation)
 {
-    if (!CanAcceptCommand() || HasActiveModalPrompt())
+    if (! CanAcceptCommand() || HasActiveModalPrompt())
         return;
     if (HasBlockDraft())
     {
         Status(IDS_BLOCKPENDING);
         return;
     }
-    if (files.Busy())
+    if (_files.Busy())
     {
         Status(IDS_BUSY);
         return;
     }
-    if (!Dirty())
+    if (! Dirty())
     {
         continuation();
         return;
     }
-    if (options.headless
+    if (_options.headless
 #if defined(REDTILDE_ENABLE_TESTS)
-        && !options.unsavedPromptForTest
+        && ! _options.unsavedPromptForTest
 #endif
     )
         return;
@@ -2646,174 +2667,175 @@ void Application::AskThen(std::function<void()> continuation)
     {
         // A modal loop can dispatch another Close. The original question alone
         // owns this continuation until its answer has been collected.
-        modalPrompt = ModalPromptKind::UnsavedChanges;
-        const auto restore = wil::scope_exit([&] { modalPrompt = ModalPromptKind::None; });
+        _modalPrompt       = ModalPromptKind::UnsavedChanges;
+        const auto restore = wil::scope_exit([&] { _modalPrompt = ModalPromptKind::None; });
 #if defined(REDTILDE_ENABLE_TESTS)
-        if (options.headless)
-            choice = options.unsavedPromptForTest();
+        if (_options.headless)
+            choice = _options.unsavedPromptForTest();
         else
 #endif
-            choice = DxUi::Failure::InvokeNative(&MessageBoxW, window.get(), Resource(IDS_SAVEQUESTION).c_str(), Resource(IDS_APP).c_str(),
+            choice = DxUi::Failure::InvokeNative(&MessageBoxW,
+                                                 _window.get(),
+                                                 Resource(IDS_SAVEQUESTION).c_str(),
+                                                 Resource(IDS_APP).c_str(),
                                                  static_cast<UINT>(MB_ICONQUESTION | MB_YESNOCANCEL | MB_DEFBUTTON3));
     }
     if (choice == IDNO)
         continuation();
     else if (choice == IDYES)
     {
-        activeFileTx = SaveTx{std::move(continuation)};
+        _activeFileTx = SaveTx{std::move(continuation)};
         Save();
     }
 }
 void Application::AskWorkspaceThen(std::function<void()> continuation, std::vector<WorkspaceApproval> approved)
 {
-    if (!CanAcceptCommand() || HasActiveModalPrompt())
+    if (! CanAcceptCommand() || HasActiveModalPrompt())
         return;
-    const auto accepted = [&](unsigned key, const DxUi::RichText::SourceSnapshot &source)
-    { return std::ranges::any_of(approved, [&](const auto &value) { return value.key == key && value.source.IsSameRevision(source); }); };
-    if (!Dirty() || accepted(session.key, editor->Snapshot()))
+    const auto accepted = [&](unsigned key, const DxUi::RichText::SourceSnapshot& source)
+    { return std::ranges::any_of(approved, [&](const auto& value) { return value.key == key && value.source.IsSameRevision(source); }); };
+    if (! Dirty() || accepted(_session.key, _editor->Snapshot()))
     {
-        const auto pending = std::find_if(inactiveDocuments.begin(), inactiveDocuments.end(), [&](const auto &document)
-                                          { return document.dirty && !accepted(document.metadata.key, document.state.Snapshot()); });
-        if (pending == inactiveDocuments.end())
+        const auto pending = std::find_if(_inactiveDocuments.begin(), _inactiveDocuments.end(), [&](const auto& document) {
+            return document.dirty && ! accepted(document.metadata.key, document.state.Snapshot());
+        });
+        if (pending == _inactiveDocuments.end())
         {
-            workspaceApprovals = std::move(approved);
+            _workspaceApprovals = std::move(approved);
             continuation();
             return;
         }
-        if (!SwitchWorkspaceDocument(static_cast<std::size_t>(pending - inactiveDocuments.begin())))
+        if (! SwitchWorkspaceDocument(static_cast<std::size_t>(pending - _inactiveDocuments.begin())))
             return;
-        if (!IsUiAttached())
+        if (! IsUiAttached())
             return;
     }
-    const auto promptingSource = editor->Snapshot();
-    const auto promptingKey = session.key;
-    AskThen(
-        [this, promptingSource, promptingKey, continuation = std::move(continuation), approved = std::move(approved)]() mutable
-        {
-            approved.push_back({promptingKey, promptingSource});
-            AskWorkspaceThen(std::move(continuation), std::move(approved));
-        });
+    const auto promptingSource = _editor->Snapshot();
+    const auto promptingKey    = _session.key;
+    AskThen([this, promptingSource, promptingKey, continuation = std::move(continuation), approved = std::move(approved)]() mutable
+    {
+        approved.push_back({promptingKey, promptingSource});
+        AskWorkspaceThen(std::move(continuation), std::move(approved));
+    });
 }
 void Application::Open()
 {
-    AskWorkspaceThen(
-        [this]
+    AskWorkspaceThen([this]
+    {
+        const auto path = PickFile(false);
+        if (path.empty())
+            return;
+        auto entrySource = _editor->Snapshot();
+        const HRESULT hr = _files.Submit(false, path);
+        if (FAILED(hr))
         {
-            const auto path = PickFile(false);
-            if (path.empty())
-                return;
-            auto entrySource = editor->Snapshot();
-            const HRESULT hr = files.Submit(false, path);
-            if (FAILED(hr))
-            {
-                activeFileTx = std::monostate{};
-                Status(IDS_BUSY);
-            }
-            else
-            {
-                activeFileTx = PickerOpenTx{std::move(entrySource), workspaceApprovals};
-                Status(IDS_LOADING);
-            }
-        });
+            _activeFileTx = std::monostate{};
+            Status(IDS_BUSY);
+        }
+        else
+        {
+            _activeFileTx = PickerOpenTx{std::move(entrySource), _workspaceApprovals};
+            Status(IDS_LOADING);
+        }
+    });
 }
 void Application::Save(bool saveAs, bool force, std::optional<std::filesystem::path> selectedPath)
 {
-    if (!CanAcceptCommand() || HasActiveModalPrompt())
+    if (! CanAcceptCommand() || HasActiveModalPrompt())
     {
-        if (std::holds_alternative<SaveTx>(activeFileTx))
-            activeFileTx = std::monostate{};
+        if (std::holds_alternative<SaveTx>(_activeFileTx))
+            _activeFileTx = std::monostate{};
         return;
     }
-    saveAs = saveAs || session.recovered;
-    if (files.Busy())
+    saveAs = saveAs || _session.recovered;
+    if (_files.Busy())
     {
-        if (std::holds_alternative<SaveTx>(activeFileTx))
-            activeFileTx = std::monostate{};
+        if (std::holds_alternative<SaveTx>(_activeFileTx))
+            _activeFileTx = std::monostate{};
         Status(IDS_BUSY);
         return;
     }
-    const auto source = editor->Snapshot();
-    const auto key = session.key;
-    const auto originalPath = session.path;
-    const auto originalStamp = session.stamp;
-    const bool originalBom = session.bom, originalRecovered = session.recovered;
-    auto path = selectedPath ? selectedPath.value() : session.path;
-    if (!selectedPath && (saveAs || path.empty()))
+    const auto source        = _editor->Snapshot();
+    const auto key           = _session.key;
+    const auto originalPath  = _session.path;
+    const auto originalStamp = _session.stamp;
+    const bool originalBom = _session.bom, originalRecovered = _session.recovered;
+    auto path = selectedPath ? selectedPath.value() : _session.path;
+    if (! selectedPath && (saveAs || path.empty()))
         path = PickFile(true);
     if (path.empty())
     {
-        activeFileTx = std::monostate{};
+        _activeFileTx = std::monostate{};
         return;
     }
-    if (!CanAcceptCommand())
+    if (! CanAcceptCommand())
     {
-        activeFileTx = std::monostate{};
+        _activeFileTx = std::monostate{};
         return;
     }
-    if (key != session.key || session.path != originalPath || session.stamp != originalStamp || session.bom != originalBom ||
-        session.recovered != originalRecovered || !editor->Snapshot().IsSameRevision(source))
+    if (key != _session.key || _session.path != originalPath || _session.stamp != originalStamp || _session.bom != originalBom ||
+        _session.recovered != originalRecovered || ! _editor->Snapshot().IsSameRevision(source))
     {
-        activeFileTx = std::monostate{};
+        _activeFileTx = std::monostate{};
         Status(IDS_FILECONTEXTCHANGED);
         return;
     }
-    const auto expected = (!force && !session.path.empty()) ? std::optional<FileStamp>(session.stamp) : std::nullopt;
-    const bool sameIdentityOnly = saveAs && path.lexically_normal() != session.path.lexically_normal();
-    const SaveRecoveryContext protection{options.dataDirectory, editor->GetSelection(), ++recoveryGeneration};
-    const HRESULT hr = files.Submit(true, path, editor->GetText(), session.bom, expected, sameIdentityOnly, false, session.path, protection);
+    const auto expected         = (! force && ! _session.path.empty()) ? std::optional<FileStamp>(_session.stamp) : std::nullopt;
+    const bool sameIdentityOnly = saveAs && path.lexically_normal() != _session.path.lexically_normal();
+    const SaveRecoveryContext protection{_options.dataDirectory, _editor->GetSelection(), ++_recoveryGeneration};
+    const HRESULT hr = _files.Submit(true, path, _editor->GetText(), _session.bom, expected, sameIdentityOnly, false, _session.path, protection);
     if (FAILED(hr))
     {
-        activeFileTx = std::monostate{};
+        _activeFileTx = std::monostate{};
         Status(IDS_SAVEFAILED);
     }
     else
     {
-        if (!std::holds_alternative<SaveTx>(activeFileTx))
-            activeFileTx = SaveTx{};
+        if (! std::holds_alternative<SaveTx>(_activeFileTx))
+            _activeFileTx = SaveTx{};
         Status(IDS_SAVING);
     }
 }
-void Application::ResolveSaveConflict(const AsyncFiles::Result &result)
+void Application::ResolveSaveConflict(const AsyncFiles::Result& result)
 {
-    if (!IsUiAttached())
+    if (! IsUiAttached())
     {
-        activeFileTx = std::monostate{};
+        _activeFileTx = std::monostate{};
         return;
     }
-    const auto source = editor->Snapshot();
-    const auto key = session.key;
-    const auto path = session.path;
-    const auto identity = session.stamp;
-    const bool originalBom = session.bom, originalRecovered = session.recovered;
+    const auto source      = _editor->Snapshot();
+    const auto key         = _session.key;
+    const auto path        = _session.path;
+    const auto identity    = _session.stamp;
+    const bool originalBom = _session.bom, originalRecovered = _session.recovered;
     Status(IDS_CONFLICT);
     SaveConflictChoice choice = SaveConflictChoice::Cancel;
     {
-        const auto previousPrompt = std::exchange(modalPrompt, ModalPromptKind::SaveConflict);
-        const auto restore = wil::scope_exit([&] { modalPrompt = previousPrompt; });
+        const auto previousPrompt = std::exchange(_modalPrompt, ModalPromptKind::SaveConflict);
+        const auto restore        = wil::scope_exit([&] { _modalPrompt = previousPrompt; });
 #if defined(REDTILDE_ENABLE_TESTS)
-        if (options.headless && options.saveConflictForTest)
-            choice = options.saveConflictForTest();
+        if (_options.headless && _options.saveConflictForTest)
+            choice = _options.saveConflictForTest();
         else
 #endif
-            if (!options.headless)
+            if (! _options.headless)
         {
             const auto dialogTitle = Resource(IDS_APP), instruction = Resource(IDS_CONFLICT), content = Resource(IDS_CONFLICTHELP);
-            const auto reload = Resource(IDS_RELOAD), saveAs = Resource(IDS_SAVEAS), overwrite = Resource(IDS_OVERWRITE),
-                       cancel = Resource(IDS_CANCEL);
+            const auto reload = Resource(IDS_RELOAD), saveAs = Resource(IDS_SAVEAS), overwrite = Resource(IDS_OVERWRITE), cancel = Resource(IDS_CANCEL);
             const TASKDIALOG_BUTTON buttons[]{
                 {IDS_RELOAD, reload.c_str()}, {IDS_SAVEAS, saveAs.c_str()}, {IDS_OVERWRITE, overwrite.c_str()}, {IDCANCEL, cancel.c_str()}};
             TASKDIALOGCONFIG config{};
-            config.cbSize = sizeof(config);
-            config.hwndParent = window.get();
-            config.dwFlags = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SIZE_TO_CONTENT;
-            config.pszWindowTitle = dialogTitle.c_str();
-            config.pszMainIcon = TD_WARNING_ICON;
+            config.cbSize             = sizeof(config);
+            config.hwndParent         = _window.get();
+            config.dwFlags            = TDF_ALLOW_DIALOG_CANCELLATION | TDF_POSITION_RELATIVE_TO_WINDOW | TDF_SIZE_TO_CONTENT;
+            config.pszWindowTitle     = dialogTitle.c_str();
+            config.pszMainIcon        = TD_WARNING_ICON;
             config.pszMainInstruction = instruction.c_str();
-            config.pszContent = content.c_str();
-            config.cButtons = static_cast<UINT>(std::size(buttons));
-            config.pButtons = buttons;
-            config.nDefaultButton = IDCANCEL;
-            int pressed = IDCANCEL;
+            config.pszContent         = content.c_str();
+            config.cButtons           = static_cast<UINT>(std::size(buttons));
+            config.pButtons           = buttons;
+            config.nDefaultButton     = IDCANCEL;
+            int pressed               = IDCANCEL;
             if (SUCCEEDED(DxUi::Failure::InvokeNative(&TaskDialogIndirect, &config, &pressed, nullptr, nullptr)))
             {
                 if (pressed == IDS_RELOAD)
@@ -2825,15 +2847,15 @@ void Application::ResolveSaveConflict(const AsyncFiles::Result &result)
             }
         }
     }
-    if (!IsUiAttached())
+    if (! IsUiAttached())
     {
-        activeFileTx = std::monostate{};
+        _activeFileTx = std::monostate{};
         return;
     }
-    if (key != session.key || path != session.path || session.stamp != identity || originalBom != session.bom ||
-        originalRecovered != session.recovered || !editor->Snapshot().IsSameRevision(source))
+    if (key != _session.key || path != _session.path || _session.stamp != identity || originalBom != _session.bom || originalRecovered != _session.recovered ||
+        ! _editor->Snapshot().IsSameRevision(source))
     {
-        activeFileTx = std::monostate{};
+        _activeFileTx = std::monostate{};
         Status(IDS_FILECONTEXTCHANGED);
         return;
     }
@@ -2843,12 +2865,12 @@ void Application::ResolveSaveConflict(const AsyncFiles::Result &result)
         Save(true);
     else
     {
-        activeFileTx = std::monostate{};
+        _activeFileTx = std::monostate{};
         if (choice == SaveConflictChoice::Reload)
         {
-            if (SUCCEEDED(files.Submit(false, result.path, {}, false, {}, false, true)))
+            if (SUCCEEDED(_files.Submit(false, result.path, {}, false, {}, false, true)))
             {
-                activeFileTx = ConflictReloadTx{key, source, path};
+                _activeFileTx = ConflictReloadTx{key, source, path};
                 Status(IDS_LOADING);
             }
             else
@@ -2858,17 +2880,16 @@ void Application::ResolveSaveConflict(const AsyncFiles::Result &result)
 }
 void Application::OnMenuClosed(std::optional<int> selected) noexcept
 {
-    RunUiAction(
-        [&]
-        {
-            if (IsClosing() || IsSessionEnding() || !root || host.GetRoot() != root)
-                return;
-            if (selected)
-                Execute(static_cast<Command>(selected.value() - 1));
-            // Commands may retire the root or open a draft/drawer that owns focus.
-            if (CanAcceptCommand() && !printPreview && (activeOverlay == OverlayKind::None || activeOverlay == OverlayKind::FloatingSelectionTools))
-                host.SetFocusControl(editor, MayRequestNativeFocus());
-        });
+    RunUiAction([&]
+    {
+        if (IsClosing() || IsSessionEnding() || ! _root || _host.GetRoot() != _root)
+            return;
+        if (selected)
+            Execute(static_cast<Command>(selected.value() - 1));
+        // Commands may retire the root or open a draft/drawer that owns focus.
+        if (CanAcceptCommand() && ! _printPreview && (_activeOverlay == OverlayKind::None || _activeOverlay == OverlayKind::FloatingSelectionTools))
+            _host.SetFocusControl(_editor, MayRequestNativeFocus());
+    });
 }
 void Application::FileCompleted() noexcept
 {
@@ -2877,9 +2898,9 @@ void Application::FileCompleted() noexcept
 void Application::CompleteFileOperation()
 {
 #if defined(REDTILDE_ENABLE_TESTS)
-    if (options.fileCompletionAdmissionForTest)
+    if (_options.fileCompletionAdmissionForTest)
     {
-        const HRESULT admitted = options.fileCompletionAdmissionForTest();
+        const HRESULT admitted = _options.fileCompletionAdmissionForTest();
         if (FAILED(admitted))
         {
             ReportUiFailure("checked file-completion admission refusal");
@@ -2893,81 +2914,81 @@ void Application::CompleteFileOperation()
     std::vector<WorkspaceApproval> approvals;
     bool previousWorkspaceSelectionPreferred{};
     std::optional<ConflictReloadTx> reloadTx;
-    if (auto *held = std::get_if<HeldOpenTx>(&activeFileTx))
+    if (auto* held = std::get_if<HeldOpenTx>(&_activeFileTx))
     {
         if (HasBlockDraft())
         {
             Status(IDS_BLOCKPENDING);
             return;
         }
-        completed = std::move(held->result);
-        fromFiles = held->fromFiles;
-        entrySource = std::move(held->entrySource);
-        approvals = std::move(held->approvals);
+        completed                           = std::move(held->result);
+        fromFiles                           = held->fromFiles;
+        entrySource                         = std::move(held->entrySource);
+        approvals                           = std::move(held->approvals);
         previousWorkspaceSelectionPreferred = held->previousWorkspaceSelectionPreferred;
-        reloadTx = std::move(held->conflictReload);
-        activeFileTx = std::monostate{};
+        reloadTx                            = std::move(held->conflictReload);
+        _activeFileTx                       = std::monostate{};
     }
     else
     {
-        completed = files.Take();
-        if (!completed)
+        completed = _files.Take();
+        if (! completed)
             return;
-        if (!completed.value().saving && HasBlockDraft())
+        if (! completed.value().saving && HasBlockDraft())
         {
             HeldOpenTx stagedHeld;
             stagedHeld.result = std::move(completed.value());
-            if (auto *picker = std::get_if<PickerOpenTx>(&activeFileTx))
+            if (auto* picker = std::get_if<PickerOpenTx>(&_activeFileTx))
             {
                 stagedHeld.entrySource = std::move(picker->entrySource);
-                stagedHeld.approvals = std::move(picker->approvals);
+                stagedHeld.approvals   = std::move(picker->approvals);
             }
-            else if (auto *filesTx = std::get_if<FilesPaneOpenTx>(&activeFileTx))
+            else if (auto* filesTx = std::get_if<FilesPaneOpenTx>(&_activeFileTx))
             {
-                stagedHeld.fromFiles = true;
-                stagedHeld.entrySource = std::move(filesTx->entrySource);
+                stagedHeld.fromFiles                           = true;
+                stagedHeld.entrySource                         = std::move(filesTx->entrySource);
                 stagedHeld.previousWorkspaceSelectionPreferred = filesTx->previousWorkspaceSelectionPreferred;
             }
-            else if (auto *startup = std::get_if<StartupOpenTx>(&activeFileTx))
+            else if (auto* startup = std::get_if<StartupOpenTx>(&_activeFileTx))
             {
                 stagedHeld.entrySource = std::move(startup->entrySource);
             }
-            else if (auto *reload = std::get_if<ConflictReloadTx>(&activeFileTx))
+            else if (auto* reload = std::get_if<ConflictReloadTx>(&_activeFileTx))
             {
                 stagedHeld.conflictReload = std::move(*reload);
             }
-            activeFileTx = std::move(stagedHeld);
+            _activeFileTx = std::move(stagedHeld);
             Status(IDS_BLOCKPENDING);
             return;
         }
-        if (auto *picker = std::get_if<PickerOpenTx>(&activeFileTx))
+        if (auto* picker = std::get_if<PickerOpenTx>(&_activeFileTx))
         {
-            entrySource = std::move(picker->entrySource);
-            approvals = std::move(picker->approvals);
-            activeFileTx = std::monostate{};
+            entrySource   = std::move(picker->entrySource);
+            approvals     = std::move(picker->approvals);
+            _activeFileTx = std::monostate{};
         }
-        else if (auto *filesTx = std::get_if<FilesPaneOpenTx>(&activeFileTx))
+        else if (auto* filesTx = std::get_if<FilesPaneOpenTx>(&_activeFileTx))
         {
-            fromFiles = true;
-            entrySource = std::move(filesTx->entrySource);
+            fromFiles                           = true;
+            entrySource                         = std::move(filesTx->entrySource);
             previousWorkspaceSelectionPreferred = filesTx->previousWorkspaceSelectionPreferred;
-            activeFileTx = std::monostate{};
+            _activeFileTx                       = std::monostate{};
         }
-        else if (auto *startup = std::get_if<StartupOpenTx>(&activeFileTx))
+        else if (auto* startup = std::get_if<StartupOpenTx>(&_activeFileTx))
         {
-            entrySource = std::move(startup->entrySource);
-            activeFileTx = std::monostate{};
+            entrySource   = std::move(startup->entrySource);
+            _activeFileTx = std::monostate{};
         }
     }
-    auto &result = completed.value();
-    const bool automaticStartup = !result.saving && !result.reloading && startupRestore.IsOpeningLastDocument();
+    auto& result                = completed.value();
+    const bool automaticStartup = ! result.saving && ! result.reloading && _startupRestore.IsOpeningLastDocument();
     if (automaticStartup)
     {
-        startupRestore.phase = StartupRestoreState::Phase::Completed;
-        const auto admitted = std::exchange(startupRestore.source, std::nullopt);
-        if (!admitted || !editor->Snapshot().IsSameRevision(admitted.value()) || !recoveryCandidates.empty() || IsSessionEnding())
+        _startupRestore.phase = StartupRestoreState::Phase::Completed;
+        const auto admitted   = std::exchange(_startupRestore.source, std::nullopt);
+        if (! admitted || ! _editor->Snapshot().IsSameRevision(admitted.value()) || ! _recoveryCandidates.empty() || IsSessionEnding())
         {
-            activeFileTx = std::monostate{};
+            _activeFileTx = std::monostate{};
             Status(IDS_FILECONTEXTCHANGED);
             return;
         }
@@ -2975,13 +2996,13 @@ void Application::CompleteFileOperation()
     if (FAILED(result.status))
     {
         if (result.reloading)
-            activeFileTx = std::monostate{};
+            _activeFileTx = std::monostate{};
         const bool failedClose = IsClosingAfterSave();
         if (failedClose)
             ResumeAfterSaveClose();
         MonitorDiagnostics::Write(RedMonitor::Severity::Error,
                                   result.saving ? L"save failed; source and previous target retained" : L"open failed; current document retained");
-        if (result.saving && result.status == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH) && !failedClose)
+        if (result.saving && result.status == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH) && ! failedClose)
         {
             ResolveSaveConflict(result);
             return;
@@ -2992,33 +3013,33 @@ void Application::CompleteFileOperation()
         else if (result.status == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE))
         {
             constexpr auto limit = DxUi::RichText::Document::MaximumUnits;
-            message = result.rejectedUnits ? FormatStringResource(nullptr, IDS_FILETOOLARGECOUNT, result.rejectedUnits, limit)
-                                           : FormatStringResource(nullptr, IDS_FILETOOLARGELIMIT, limit);
+            message              = result.rejectedUnits ? FormatStringResource(nullptr, IDS_FILETOOLARGECOUNT, result.rejectedUnits, limit)
+                                                        : FormatStringResource(nullptr, IDS_FILETOOLARGELIMIT, limit);
         }
         else
         {
             const auto error = ErrorText(result.status);
-            message = FormatStringResource(nullptr, result.saving ? IDS_SAVEFAILED : IDS_OPENFAILED, error);
+            message          = FormatStringResource(nullptr, result.saving ? IDS_SAVEFAILED : IDS_OPENFAILED, error);
         }
-        if (!options.headless && !failedClose && !automaticStartup)
-            (void)DxUi::Failure::InvokeNative(&MessageBoxW, window.get(), message.c_str(), Resource(IDS_ERROR).c_str(),
-                                              static_cast<UINT>(MB_OK | MB_ICONERROR));
-        feedback->SetText(message);
-        activeFileTx = std::monostate{};
+        if (! _options.headless && ! failedClose && ! automaticStartup)
+            (void)DxUi::Failure::InvokeNative(
+                &MessageBoxW, _window.get(), message.c_str(), Resource(IDS_ERROR).c_str(), static_cast<UINT>(MB_OK | MB_ICONERROR));
+        _feedback->SetText(message);
+        _activeFileTx = std::monostate{};
         return;
     }
     if (result.reloading)
     {
         std::optional<ConflictReloadTx> request = std::move(reloadTx);
-        if (!request)
+        if (! request)
         {
-            if (auto *reload = std::get_if<ConflictReloadTx>(&activeFileTx))
+            if (auto* reload = std::get_if<ConflictReloadTx>(&_activeFileTx))
                 request = std::move(*reload);
         }
-        activeFileTx = std::monostate{};
-        if (!IsUiAttached())
+        _activeFileTx = std::monostate{};
+        if (! IsUiAttached())
             return;
-        if (!request || session.key != request->key || session.path != request->path || !editor->Snapshot().IsSameRevision(request->source))
+        if (! request || _session.key != request->key || _session.path != request->path || ! _editor->Snapshot().IsSameRevision(request->source))
         {
             Status(IDS_FILECONTEXTCHANGED);
             return;
@@ -3030,19 +3051,19 @@ void Application::CompleteFileOperation()
     if (result.saving)
     {
         std::function<void()> continuation;
-        if (auto *saveTx = std::get_if<SaveTx>(&activeFileTx))
+        if (auto* saveTx = std::get_if<SaveTx>(&_activeFileTx))
             continuation = std::move(saveTx->afterSave);
-        activeFileTx = std::monostate{};
-        session.recovered = false;
-        session.savedText = std::move(result.document.text);
-        derivedCaches.dirtyFact.reset();
-        if (session.path != result.path)
-            printNetworkImages.clear();
-        session.path = std::move(result.path);
-        session.stamp = result.document.stamp;
+        _activeFileTx      = std::monostate{};
+        _session.recovered = false;
+        _session.savedText = std::move(result.document.text);
+        _derivedCaches.dirtyFact.reset();
+        if (_session.path != result.path)
+            _printNetworkImages.clear();
+        _session.path  = std::move(result.path);
+        _session.stamp = result.document.stamp;
         EnsureFilesRoot();
         RefreshFiles(true);
-        if (!AcceptSourceResult(editor->TrySetDocumentFilePath(session.path.native())))
+        if (! AcceptSourceResult(_editor->TrySetDocumentFilePath(_session.path.native())))
             return;
         RememberActiveDocument();
         Changed();
@@ -3058,7 +3079,7 @@ void Application::CompleteFileOperation()
             }
             else
             {
-                if (std::ranges::any_of(inactiveDocuments, [](const auto &document) { return document.dirty; }))
+                if (std::ranges::any_of(_inactiveDocuments, [](const auto& document) { return document.dirty; }))
                 {
                     ResumeAfterSaveClose();
                     AskWorkspaceThen([this] { BeginClose(); });
@@ -3066,7 +3087,7 @@ void Application::CompleteFileOperation()
                 else
                 {
                     TransitionLifecycle(LifecyclePhase::Active);
-                    visibleBeforeSaveClose = false;
+                    _visibleBeforeSaveClose = false;
                     BeginClose();
                 }
             }
@@ -3080,7 +3101,7 @@ void Application::CompleteFileOperation()
         // User may have typed while a slow open ran. Recheck dirty state before
         // replacing the source; this is a new consent decision, not a stale one.
         auto staged = std::make_shared<AsyncFiles::Result>(std::move(result));
-        auto apply = [this, staged]
+        auto apply  = [this, staged]
         {
             if (SetDocument(std::move(staged->document.text), std::move(staged->path), staged->document.bom, staged->document.stamp))
             {
@@ -3091,18 +3112,18 @@ void Application::CompleteFileOperation()
         };
         if (fromFiles)
         {
-            const auto previousCount = inactiveDocuments.size();
+            const auto previousCount = _inactiveDocuments.size();
             if (StartWorkspaceDocument() && IsUiAttached())
             {
-                workspaceSelectionPreferred = false;
+                _workspaceSelectionPreferred = false;
                 if (SetDocument(std::move(staged->document.text), std::move(staged->path), staged->document.bom, staged->document.stamp))
                     Status(IDS_SAVED);
                 else
                 {
-                    workspaceSelectionPreferred = previousWorkspaceSelectionPreferred;
-                    if (inactiveDocuments.size() > previousCount && SwitchWorkspaceDocument(previousCount))
+                    _workspaceSelectionPreferred = previousWorkspaceSelectionPreferred;
+                    if (_inactiveDocuments.size() > previousCount && SwitchWorkspaceDocument(previousCount))
                     {
-                        inactiveDocuments.pop_back(); // Retire only the new empty slot; the prior file/history is active again.
+                        _inactiveDocuments.pop_back(); // Retire only the new empty slot; the prior file/history is active again.
                         if (IsUiAttached())
                             RefreshFiles();
                     }
@@ -3111,7 +3132,7 @@ void Application::CompleteFileOperation()
             else if (IsUiAttached())
                 RefreshFiles();
         }
-        else if (entrySource && editor->Snapshot().IsSameRevision(entrySource.value()))
+        else if (entrySource && _editor->Snapshot().IsSameRevision(entrySource.value()))
             apply();
         else
             AskWorkspaceThen(std::move(apply), std::move(approvals));
@@ -3119,23 +3140,23 @@ void Application::CompleteFileOperation()
 }
 std::optional<std::wstring> Application::BeginBitmapPaste(std::span<const std::byte> dib, bool v5)
 {
-    if (!CanAcceptCommand() || IsSessionEnding() || HasActiveModalPrompt() || !editor || editor->IsReadOnly() ||
-        settings.view == EditorView::Source || host.GetFocusControl() != editor || editor->IsSelectionGestureActive() || HasBlockDraft())
+    if (! CanAcceptCommand() || IsSessionEnding() || HasActiveModalPrompt() || ! _editor || _editor->IsReadOnly() || _settings.view == EditorView::Source ||
+        _host.GetFocusControl() != _editor || _editor->IsSelectionGestureActive() || HasBlockDraft())
         return std::nullopt;
     PendingBitmapPaste pending;
-    pending.documentKey = session.key;
-    pending.source = editor->Snapshot();
-    pending.selection = editor->GetSelection();
-    pending.view = settings.view;
-    pending.documentPath = session.path;
-    pending.lifetime = GetControlLifetimeToken(*editor);
-    const auto submitted = bitmapWriter.Submit(dib, v5, pending.request);
+    pending.documentKey  = _session.key;
+    pending.source       = _editor->Snapshot();
+    pending.selection    = _editor->GetSelection();
+    pending.view         = _settings.view;
+    pending.documentPath = _session.path;
+    pending.lifetime     = GetControlLifetimeToken(*_editor);
+    const auto submitted = _bitmapWriter.Submit(dib, v5, pending.request);
     if (FAILED(submitted))
     {
         Status(submitted == HRESULT_FROM_WIN32(ERROR_BUSY) ? IDS_IMAGEPASTEBUSY : IDS_IMAGEPASTEFAILED);
         return std::nullopt;
     }
-    pendingBitmapPaste = std::move(pending);
+    _pendingBitmapPaste = std::move(pending);
     Status(IDS_IMAGEPASTING);
     // The synchronous SDK callback owns no I/O. This application completes its
     // separately guarded source transaction after the durable worker result.
@@ -3144,18 +3165,17 @@ std::optional<std::wstring> Application::BeginBitmapPaste(std::span<const std::b
 void Application::ServiceBitmapPaste()
 {
     BitmapPasteWriter::Result result;
-    if (!bitmapWriter.Take(result))
+    if (! _bitmapWriter.Take(result))
         return;
-    auto pending = std::exchange(pendingBitmapPaste, std::nullopt);
+    auto pending = std::exchange(_pendingBitmapPaste, std::nullopt);
     bool keep{};
-    const auto settle = wil::scope_exit(
-        [&]
-        {
-            if (keep)
-                bitmapWriter.Commit(result.request);
-            else if (FAILED(bitmapWriter.Discard(std::move(result))))
-                OutputDebugStringW(L"RedTilde: a declined clipboard asset was retained after a cleanup scheduling error.\n");
-        });
+    const auto settle = wil::scope_exit([&]
+    {
+        if (keep)
+            _bitmapWriter.Commit(result.request);
+        else if (FAILED(_bitmapWriter.Discard(std::move(result))))
+            OutputDebugStringW(L"RedTilde: a declined clipboard asset was retained after a cleanup scheduling error.\n");
+    });
     if (IsClosing() || IsSessionEnding())
         return;
     if (FAILED(result.status))
@@ -3163,27 +3183,26 @@ void Application::ServiceBitmapPaste()
         Status(IDS_IMAGEPASTEFAILED);
         return;
     }
-    if (!pending || HasActiveModalPrompt() || pending->request != result.request || pending->lifetime.expired() ||
-        pending->documentKey != session.key || pending->view != settings.view || pending->documentPath != session.path || !editor ||
-        editor->IsReadOnly() || host.GetFocusControl() != editor || editor->IsSelectionGestureActive() ||
-        editor->GetSelection() != pending->selection ||
-        editor->Snapshot().ChangedRangeFrom(pending->source).kind != DxUi::RichText::SourceChangeKind::Unchanged || HasBlockDraft())
+    if (! pending || HasActiveModalPrompt() || pending->request != result.request || pending->lifetime.expired() || pending->documentKey != _session.key ||
+        pending->view != _settings.view || pending->documentPath != _session.path || ! _editor || _editor->IsReadOnly() || _host.GetFocusControl() != _editor ||
+        _editor->IsSelectionGestureActive() || _editor->GetSelection() != pending->selection ||
+        _editor->Snapshot().ChangedRangeFrom(pending->source).kind != DxUi::RichText::SourceChangeKind::Unchanged || HasBlockDraft())
     {
         Status(IDS_IMAGEPASTECANCELLED);
         return;
     }
     const auto lifetime = pending->lifetime;
-    const auto alt = Resource(IDS_PASTEDIMAGE);
+    const auto alt      = Resource(IDS_PASTEDIMAGE);
     DxUi::RichText::MarkdownCommandRequest request;
-    request.command = DxUi::RichText::MarkdownCommand::InsertImage;
-    request.text = alt;
+    request.command     = DxUi::RichText::MarkdownCommand::InsertImage;
+    request.text        = alt;
     request.destination = result.asset.uri;
-    keep = editor->ExecuteMarkdownCommand(request) == DxUi::RichText::MarkdownCommandStatus::Changed;
-    if (!IsClosing() && !lifetime.expired())
+    keep                = _editor->ExecuteMarkdownCommand(request) == DxUi::RichText::MarkdownCommandStatus::Changed;
+    if (! IsClosing() && ! lifetime.expired())
     {
         if (keep)
             Status(IDS_IMAGEPASTED);
-        else if (IsMarkdownCommandCapacityExceeded(*editor, request, pending->selection))
+        else if (IsMarkdownCommandCapacityExceeded(*_editor, request, pending->selection))
             ReportCapacityLimit();
         else
             Status(IDS_IMAGEPASTEFAILED);
@@ -3191,65 +3210,65 @@ void Application::ServiceBitmapPaste()
 }
 void Application::RefreshImageConsent()
 {
-    if (!editor || !imageConsent || IsClosing())
+    if (! _editor || ! _imageConsent || IsClosing())
         return;
-    auto *const owner = root;
-    if (!owner || host.GetRoot() != owner)
+    auto* const owner = _root;
+    if (! owner || _host.GetRoot() != owner)
         return;
     const auto lifetime = GetControlLifetimeToken(*owner);
-    const auto semantic = editor->GetSemanticDocument();
-    const auto current = [&]() noexcept
+    const auto semantic = _editor->GetSemanticDocument();
+    const auto current  = [&]() noexcept
     {
-        return !lifetime.expired() && !IsClosing() && root == owner && host.GetRoot() == owner && editor &&
-               editor->GetSemanticDocument() == semantic && imageConsentSource == semantic;
+        return ! lifetime.expired() && ! IsClosing() && _root == owner && _host.GetRoot() == owner && _editor && _editor->GetSemanticDocument() == semantic &&
+               _imageConsentSource == semantic;
     };
-    if (semantic != imageConsentSource || imageConsentPath != session.path)
+    if (semantic != _imageConsentSource || _imageConsentPath != _session.path)
     {
-        imageConsentSource = semantic;
-        imageConsentPath = session.path;
-        imageConsentHasNetwork = false;
-        imageFailureStatus = S_OK;
+        _imageConsentSource     = semantic;
+        _imageConsentPath       = _session.path;
+        _imageConsentHasNetwork = false;
+        _imageFailureStatus     = S_OK;
         if (semantic)
-            for (const auto &element : semantic->Elements())
+            for (const auto& element : semantic->Elements())
                 if (element.role == DxUi::RichText::SemanticRole::Image)
                 {
-                    if (ImageReferenceCategoryFor(element) == ImageReferenceCategory::Network || session.path.native().starts_with(L"\\\\"))
+                    if (ImageReferenceCategoryFor(element) == ImageReferenceCategory::Network || _session.path.native().starts_with(L"\\\\"))
                     {
-                        imageConsentHasNetwork = true;
+                        _imageConsentHasNetwork = true;
                         break;
                     }
                 }
     }
-    const bool enabled = settings.allowRemoteImages || session.remoteImagesAllowed;
-    unsigned text = static_cast<unsigned>(!enabled                     ? IDS_IMAGECONSENTBLOCKED
-                                          : settings.allowRemoteImages ? IDS_IMAGECONSENTSETTINGS
-                                                                       : IDS_IMAGECONSENTDOCUMENT);
-    if (FAILED(imageFailureStatus))
-        text = static_cast<unsigned>(imageFailureStatus == E_ACCESSDENIED                             ? IDS_IMAGEPOLICYFAILED
-                                     : imageFailureStatus == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE) ? IDS_IMAGETOOLARGE
-                                     : imageFailureStatus == HRESULT_FROM_WIN32(ERROR_TIMEOUT) ||
-                                             imageFailureStatus == HRESULT_FROM_WIN32(ERROR_WINHTTP_TIMEOUT)
-                                         ? IDS_IMAGETIMEOUT
-                                         : IDS_IMAGELOADFAILED);
-    if (imageConsentText->GetText() != ResourceView(text))
-        imageConsentText->SetText(Resource(text));
-    if (!current())
+    const bool enabled = _settings.allowRemoteImages || _session.remoteImagesAllowed;
+    unsigned text      = static_cast<unsigned>(! enabled                     ? IDS_IMAGECONSENTBLOCKED
+                                               : _settings.allowRemoteImages ? IDS_IMAGECONSENTSETTINGS
+                                                                             : IDS_IMAGECONSENTDOCUMENT);
+    if (FAILED(_imageFailureStatus))
+        text =
+            static_cast<unsigned>(_imageFailureStatus == E_ACCESSDENIED                             ? IDS_IMAGEPOLICYFAILED
+                                  : _imageFailureStatus == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE) ? IDS_IMAGETOOLARGE
+                                  : _imageFailureStatus == HRESULT_FROM_WIN32(ERROR_TIMEOUT) || _imageFailureStatus == HRESULT_FROM_WIN32(ERROR_WINHTTP_TIMEOUT)
+                                      ? IDS_IMAGETIMEOUT
+                                      : IDS_IMAGELOADFAILED);
+    if (_imageConsentText->GetText() != ResourceView(text))
+        _imageConsentText->SetText(Resource(text));
+    if (! current())
         return;
-    const unsigned action = session.remoteImagesAllowed ? IDS_IMAGEBLOCKHERE : IDS_IMAGEALLOWHERE;
-    if (imageConsentAction->GetText() != ResourceView(action))
-        imageConsentAction->SetText(Resource(action));
-    if (!current())
+    const unsigned action = _session.remoteImagesAllowed ? IDS_IMAGEBLOCKHERE : IDS_IMAGEALLOWHERE;
+    if (_imageConsentAction->GetText() != ResourceView(action))
+        _imageConsentAction->SetText(Resource(action));
+    if (! current())
         return;
-    imageConsentAction->SetVisible(imageConsentHasNetwork && !settings.allowRemoteImages);
-    if (!current())
+    _imageConsentAction->SetVisible(_imageConsentHasNetwork && ! _settings.allowRemoteImages);
+    if (! current())
         return;
-    imageReload->SetEnabled(true);
-    if (!current())
+    _imageReload->SetEnabled(true);
+    if (! current())
         return;
-    const bool visible = imageConsentHasNetwork || FAILED(imageFailureStatus);
-    if (imageConsent->IsVisible() != visible)
+    const bool visible = _imageConsentHasNetwork || FAILED(_imageFailureStatus);
+    if (_imageConsent->IsVisible() != visible)
     {
-        imageConsent->SetVisible(visible);
+        _imageConsent->SetVisible(visible);
         if (current())
             Layout();
     }
@@ -3257,102 +3276,102 @@ void Application::RefreshImageConsent()
 
 void Application::ServiceImages()
 {
-    if (!editor || IsClosing() || imageBindingTransition || switchingDocument)
+    if (! _editor || IsClosing() || _imageBindingTransition || _switchingDocument)
         return;
-    auto *const primary = editor;
-    const auto lifetime = GetControlLifetimeToken(*primary);
-    const auto current = [&]() noexcept { return !lifetime.expired() && !IsClosing() && editor == primary; };
-    const auto semantic = primary->GetSemanticDocument();
-    bool watchBindingChanged = imageWatchDocumentPath != session.path;
-    if (semantic && semantic != imageWatchSemantic)
+    auto* const primary      = _editor;
+    const auto lifetime      = GetControlLifetimeToken(*primary);
+    const auto current       = [&]() noexcept { return ! lifetime.expired() && ! IsClosing() && _editor == primary; };
+    const auto semantic      = primary->GetSemanticDocument();
+    bool watchBindingChanged = _imageWatchDocumentPath != _session.path;
+    if (semantic && semantic != _imageWatchSemantic)
     {
         // Decode cancellation ends a job, including successful completion. It
         // does not end the document's ownership of the displayed file. Compare
         // exact possible-file destinations only on immutable publication;
         // non-file image edits must not rearm local I/O and refetch HTTP images.
-        const auto before = imageWatchSemantic ? imageWatchSemantic->Elements() : std::span<const DxUi::RichText::SemanticElement>{};
-        const auto after = semantic->Elements();
-        const auto image = [](const auto &element)
+        const auto before = _imageWatchSemantic ? _imageWatchSemantic->Elements() : std::span<const DxUi::RichText::SemanticElement>{};
+        const auto after  = semantic->Elements();
+        const auto image  = [](const auto& element)
         { return element.role == DxUi::RichText::SemanticRole::Image && ImageReferenceCategoryFor(element) == ImageReferenceCategory::PossibleFile; };
         auto previous = std::ranges::find_if(before, image);
-        auto next = std::ranges::find_if(after, image);
+        auto next     = std::ranges::find_if(after, image);
         while (previous != before.end() && next != after.end() && previous->destination == next->destination && previous->wiki == next->wiki)
         {
             previous = std::find_if(std::next(previous), before.end(), image);
-            next = std::find_if(std::next(next), after.end(), image);
+            next     = std::find_if(std::next(next), after.end(), image);
         }
         watchBindingChanged = watchBindingChanged || previous != before.end() || next != after.end();
-        imageWatchSemantic = semantic;
+        _imageWatchSemantic = semantic;
     }
     if (watchBindingChanged)
     {
-        imageWatchDocumentPath = session.path;
-        const bool hadPaths = !watchedImagePaths.empty();
-        watchedImagePaths.clear();
-        (void)imageFiles.SetFiles({});
+        _imageWatchDocumentPath = _session.path;
+        const bool hadPaths     = ! _watchedImagePaths.empty();
+        _watchedImagePaths.clear();
+        (void)_imageFiles.SetFiles({});
         if (hadPaths)
         {
             // A removed/retargeted image or new document base retires the old
             // binding. Obtain fresh canonical paths through SDK admission.
             primary->ReloadImages();
-            if (!current())
+            if (! current())
                 return;
         }
     }
-    if (const auto notice = imageFiles.TakeResult())
+    if (const auto notice = _imageFiles.TakeResult())
     {
         if (FAILED(notice.value().status))
-            imageFailureStatus = notice.value().status;
+            _imageFailureStatus = notice.value().status;
         else
         {
-            ++imageFileRefreshes;
+            ++_imageFileRefreshes;
             primary->ReloadImages();
-            if (!current())
+            if (! current())
                 return;
         }
     }
     RefreshImageConsent();
-    if (!current())
+    if (! current())
         return;
-    editor->TakePendingImageRequests(imageRequests);
-    images.SetDocumentContext(session.path.native());
+    _editor->TakePendingImageRequests(_imageRequests);
+    _images.SetDocumentContext(_session.path.native());
     bool watchChanged{};
-    for (const auto &request : imageRequests)
-        if (request.SourceKind() == DxUi::RichText::RichImageSourceKind::LocalFile && !request.Cancelled() &&
-            std::ranges::find(watchedImagePaths, request.FilePath(), [](const auto &path) -> const std::wstring & { return path.native(); }) ==
-                watchedImagePaths.end() &&
-            watchedImagePaths.size() < 32u)
+    for (const auto& request : _imageRequests)
+        if (request.SourceKind() == DxUi::RichText::RichImageSourceKind::LocalFile && ! request.Cancelled() &&
+            std::ranges::find(_watchedImagePaths, request.FilePath(), [](const auto& path) -> const std::wstring& { return path.native(); }) ==
+                _watchedImagePaths.end() &&
+            _watchedImagePaths.size() < 32u)
         {
-            watchedImagePaths.emplace_back(request.FilePath());
+            _watchedImagePaths.emplace_back(request.FilePath());
             watchChanged = true;
         }
     if (watchChanged)
     {
-        ++imageWatchPathBuilds;
-        const auto status = imageFiles.SetFiles(watchedImagePaths);
+        ++_imageWatchPathBuilds;
+        const auto status = _imageFiles.SetFiles(_watchedImagePaths);
         if (FAILED(status))
         {
-            (void)imageFiles.SetFiles({}); // Retire the old binding when automatic watching cannot be admitted.
-            imageFailureStatus = status;
+            (void)_imageFiles.SetFiles({}); // Retire the old binding when automatic watching cannot be admitted.
+            _imageFailureStatus = status;
         }
     }
-    images.DiscardCancelled();
-    if (!imageRequests.empty())
-        (void)images.Submit(imageRequests);
-    if (images.HasResults())
+    _images.DiscardCancelled();
+    if (! _imageRequests.empty())
+        (void)_images.Submit(_imageRequests);
+    if (_images.HasResults())
     {
         std::array<RichImageLoader::Result, RichImageLoader::MaximumResults> results;
-        const auto count = images.Drain(results);
+        const auto count = _images.Drain(results);
         for (std::size_t index = 0; index < count; ++index)
         {
-            const auto &result = results[index];
+            const auto& result  = results[index];
             const bool accepted = primary->CompleteImageRequest(result.request, result.image);
-            if (!current())
+            if (! current())
                 return;
             if (accepted)
                 RememberPrintImage(result.request, result.image);
             if (accepted && FAILED(result.status) && result.status != HRESULT_FROM_WIN32(ERROR_CANCELLED))
-                imageFailureStatus = result.status;
+                _imageFailureStatus = result.status;
         }
         RefreshImageConsent();
     }
@@ -3362,13 +3381,13 @@ LRESULT CALLBACK Application::WindowProc(HWND hwnd, UINT message, WPARAM wParam,
 {
     if (message == WM_NCCREATE)
     {
-        auto *app = static_cast<Application *>(reinterpret_cast<CREATESTRUCTW *>(lParam)->lpCreateParams);
+        auto* app = static_cast<Application*>(reinterpret_cast<CREATESTRUCTW*>(lParam)->lpCreateParams);
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(app));
     }
-    auto *app = reinterpret_cast<Application *>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+    auto* app = reinterpret_cast<Application*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
     if (app && message == WM_NCCALCSIZE && wParam)
     {
-        auto *size = reinterpret_cast<NCCALCSIZE_PARAMS *>(lParam);
+        auto* size = reinterpret_cast<NCCALCSIZE_PARAMS*>(lParam);
         if (IsZoomed(hwnd))
         {
             const UINT dpi = GetDpiForWindow(hwnd);
@@ -3377,7 +3396,7 @@ LRESULT CALLBACK Application::WindowProc(HWND hwnd, UINT message, WPARAM wParam,
         }
         return 0;
     }
-    if (app && app->lifecyclePhase != LifecyclePhase::Uninitialized)
+    if (app && app->_lifecyclePhase != LifecyclePhase::Uninitialized)
     {
         LRESULT result{};
         app->RunUiAction([&] { result = app->HandleMessage(hwnd, message, wParam, lParam); });
@@ -3387,7 +3406,7 @@ LRESULT CALLBACK Application::WindowProc(HWND hwnd, UINT message, WPARAM wParam,
 }
 void Application::BeginClose()
 {
-    Printing::Stop(printOperation);
+    Printing::Stop(_printOperation);
     ClosePrintPreview();
     // Reaching this point means the user saved or explicitly discarded source.
     // Retire only this session's snapshot and wait asynchronously for its result.
@@ -3396,30 +3415,31 @@ void Application::BeginClose()
     RecordWindowPlacement(true);
     CloseExternalLinks();
     ResetWorkspace();
-    (void)recovery.SubmitDocument(session.key, std::nullopt, true);
-    recovery.Stop();
+    (void)_recovery.SubmitDocument(_session.key, std::nullopt, true);
+    _recovery.Stop();
     TransitionLifecycle(LifecyclePhase::DrainingForClose);
-    pendingBitmapPaste.reset();
-    bitmapWriter.Stop();
-    files.Close();
-    folderFiles.Close();
-    images.Shutdown();
-    imageFiles.Close();
-    host.Detach();
-    if (!AreShutdownWorkersSettled())
+    _pendingBitmapPaste.reset();
+    _bitmapWriter.Stop();
+    _settingsWatcher.Close();
+    _files.Close();
+    _folderFiles.Close();
+    _images.Shutdown();
+    _imageFiles.Close();
+    _host.Detach();
+    if (! AreShutdownWorkersSettled())
     {
         // Keep only a hidden notification window until admitted preferences are
         // durable. The UI never joins storage, and process exit cannot kill the
         // worker between its final write and atomic replacement.
-        ShowWindow(window.get(), SW_HIDE);
+        ShowWindow(_window.get(), SW_HIDE);
     }
     else
     {
-        recovery.Close();
-        preferenceWriter.Close();
-        bitmapWriter.Detach();
+        _recovery.Close();
+        _preferenceWriter.Close();
+        _bitmapWriter.Detach();
         TransitionLifecycle(LifecyclePhase::Destroyed);
-        window.reset();
+        _window.reset();
     }
 }
 void Application::ResumeAfterSaveClose()
@@ -3428,18 +3448,18 @@ void Application::ResumeAfterSaveClose()
         TransitionLifecycle(LifecyclePhase::Active);
     // Restore the existing placement without interrupting whoever has focus
     // now. Headless harness windows must remain hidden on every failure path.
-    if (std::exchange(visibleBeforeSaveClose, false) && !options.headless)
-        ShowWindow(window.get(), SW_SHOWNA);
+    if (std::exchange(_visibleBeforeSaveClose, false) && ! _options.headless)
+        ShowWindow(_window.get(), SW_SHOWNA);
 }
 void Application::FinishClose()
 {
-    if (lifecyclePhase == LifecyclePhase::DrainingForClose && AreShutdownWorkersSettled())
+    if (_lifecyclePhase == LifecyclePhase::DrainingForClose && AreShutdownWorkersSettled())
     {
-        recovery.Close();
-        preferenceWriter.Close();
-        bitmapWriter.Detach();
+        _recovery.Close();
+        _preferenceWriter.Close();
+        _bitmapWriter.Detach();
         TransitionLifecycle(LifecyclePhase::Destroyed);
-        window.reset();
+        _window.reset();
     }
 }
 LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
@@ -3460,7 +3480,7 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
     }
     if (message == WM_QUERYENDSESSION)
     {
-        if (!IsClosing())
+        if (! IsClosing())
         {
             AbandonStartupRestore();
             RecordWindowPlacement(true);
@@ -3472,40 +3492,41 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
     {
         if (wParam != FALSE)
         {
-            sessionEndCommitted = true;
-            if (lifecyclePhase == LifecyclePhase::Active || lifecyclePhase == LifecyclePhase::Initializing ||
-                lifecyclePhase == LifecyclePhase::ClosingAfterSave)
+            _sessionEndCommitted = true;
+            if (_lifecyclePhase == LifecyclePhase::Active || _lifecyclePhase == LifecyclePhase::Initializing ||
+                _lifecyclePhase == LifecyclePhase::ClosingAfterSave)
                 TransitionLifecycle(LifecyclePhase::SessionEnding);
-            Printing::Stop(printOperation);
+            Printing::Stop(_printOperation);
             ClosePrintPreview();
-            pendingBitmapPaste.reset();
-            bitmapWriter.Stop();
-            if (!IsClosing())
+            _pendingBitmapPaste.reset();
+            _bitmapWriter.Stop();
+            _settingsWatcher.Close();
+            if (! IsClosing())
                 CheckpointWorkspaceRecovery();
             // Windows may terminate us when this message returns. Only this
             // final system boundary waits; recovery never needs a UI callback.
-            sessionEndRecoveryStatus = recovery.WaitForSettlement(2000);
-            if (FAILED(sessionEndRecoveryStatus))
+            _sessionEndRecoveryStatus = _recovery.WaitForSettlement(2000);
+            if (FAILED(_sessionEndRecoveryStatus))
                 MonitorDiagnostics::Write(RedMonitor::Severity::Warning, L"Session-end recovery did not settle within its bounded allowance");
             // End the ordinary process loop without the clean-close path that
             // retires dirty copies. A hidden fixture owns only its test window,
             // never the parent harness's message loop (as for WM_DESTROY).
-            if (!options.headless)
+            if (! _options.headless)
                 PostQuitMessage(0);
         }
         else
         {
-            sessionEndCommitted = false;
-            if (lifecyclePhase == LifecyclePhase::SessionEnding)
+            _sessionEndCommitted = false;
+            if (_lifecyclePhase == LifecyclePhase::SessionEnding)
                 TransitionLifecycle(LifecyclePhase::Active);
         }
         return 0;
     }
     if (message == WM_CLOSE)
     {
-        if (IsClosing() || IsClosingAfterSave() || IsSessionEnding() || HasActiveModalPrompt() || switchingDocument)
+        if (IsClosing() || IsClosingAfterSave() || IsSessionEnding() || HasActiveModalPrompt() || _switchingDocument)
             return 0;
-        if (printPreview)
+        if (_printPreview)
         {
             DismissPrintPreview();
             return 0;
@@ -3513,30 +3534,30 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         if (HasBlockDraft())
         {
             Status(IDS_BLOCKPENDING);
-            host.SetFocusControl(blockDraftText, MayRequestNativeFocus());
+            _host.SetFocusControl(_blockDraftText, MayRequestNativeFocus());
             return 0;
         }
         AbandonStartupRestore();
-        if (files.HasPendingSave())
+        if (_files.HasPendingSave())
         {
             // Keep the host and notification HWND alive until the admitted
             // write/replace reports success. Recovery remains available if
             // storage fails or the process ends while the save is pending.
             CheckpointRecovery(true);
-            activeFileTx = std::monostate{};
+            _activeFileTx = std::monostate{};
             TransitionLifecycle(LifecyclePhase::ClosingAfterSave);
-            visibleBeforeSaveClose = IsWindowVisible(window.get()) != FALSE;
-            ShowWindow(window.get(), SW_HIDE);
+            _visibleBeforeSaveClose = IsWindowVisible(_window.get()) != FALSE;
+            ShowWindow(_window.get(), SW_HIDE);
             return 0;
         }
-        if (files.Busy())
+        if (_files.Busy())
         {
             // An Open or Reload has no write to settle. Invalidate that worker's
             // generation before the ordinary dirty question; Cancel must also
             // refuse its late result, and Save must be free to admit a new operation.
-            files.CancelInFlightLoad();
+            _files.CancelInFlightLoad();
         }
-        activeFileTx = std::monostate{};
+        _activeFileTx = std::monostate{};
         AskWorkspaceThen([this] { BeginClose(); });
         return 0;
     }
@@ -3553,7 +3574,7 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
             const LPARAM clientPoint = MAKELPARAM(static_cast<SHORT>(point.x), static_cast<SHORT>(point.y));
             bool handled{};
             const UINT clientMessage = message == WM_NCLBUTTONDBLCLK ? WM_LBUTTONDBLCLK : WM_LBUTTONDOWN;
-            const auto result = host.HandleMessage(hwnd, clientMessage, MK_LBUTTON, clientPoint, handled);
+            const auto result        = _host.HandleMessage(hwnd, clientMessage, MK_LBUTTON, clientPoint, handled);
             if (handled)
                 return result;
         }
@@ -3566,8 +3587,7 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         if (ScreenToClient(hwnd, &point))
         {
             bool handled{};
-            const auto result =
-                host.HandleMessage(hwnd, WM_LBUTTONUP, 0, MAKELPARAM(static_cast<SHORT>(point.x), static_cast<SHORT>(point.y)), handled);
+            const auto result = _host.HandleMessage(hwnd, WM_LBUTTONUP, 0, MAKELPARAM(static_cast<SHORT>(point.x), static_cast<SHORT>(point.y)), handled);
             if (handled)
                 return result;
         }
@@ -3578,42 +3598,47 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         return DefWindowProcW(hwnd, message, wParam, -1);
     if (message == WM_DESTROY)
     {
-        if (!options.headless)
+        if (! _options.headless)
             PostQuitMessage(0);
         return 0;
     }
     if (message == WM_NCDESTROY)
     {
-        Printing::Stop(printOperation);
+        Printing::Stop(_printOperation);
         ClosePrintPreview();
-        bitmapWriter.Stop();
-        bitmapWriter.Detach();
-        folderFiles.Close();
-        imageFiles.Close();
-        host.Detach();
+        _bitmapWriter.Stop();
+        _bitmapWriter.Detach();
+        _settingsWatcher.Close();
+        _folderFiles.Close();
+        _imageFiles.Close();
+        _host.Detach();
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
         return DefWindowProcW(hwnd, message, wParam, lParam);
     }
     if (message == WM_GETMINMAXINFO)
     {
-        auto *info = reinterpret_cast<MINMAXINFO *>(lParam);
+        auto* info     = reinterpret_cast<MINMAXINFO*>(lParam);
         const UINT dpi = GetDpiForWindow(hwnd);
         MONITORINFO monitor{sizeof(monitor)};
         const bool available = GetMonitorInfoW(MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST), &monitor) != FALSE;
-        info->ptMinTrackSize = {
-            available ? std::min(static_cast<LONG>(MulDiv(800, static_cast<int>(dpi), 96)), monitor.rcWork.right - monitor.rcWork.left)
-                      : MulDiv(800, static_cast<int>(dpi), 96),
-            available ? std::min(static_cast<LONG>(MulDiv(560, static_cast<int>(dpi), 96)), monitor.rcWork.bottom - monitor.rcWork.top)
-                      : MulDiv(560, static_cast<int>(dpi), 96)};
+        info->ptMinTrackSize = {available ? std::min(static_cast<LONG>(MulDiv(800, static_cast<int>(dpi), 96)), monitor.rcWork.right - monitor.rcWork.left)
+                                          : MulDiv(800, static_cast<int>(dpi), 96),
+                                available ? std::min(static_cast<LONG>(MulDiv(560, static_cast<int>(dpi), 96)), monitor.rcWork.bottom - monitor.rcWork.top)
+                                          : MulDiv(560, static_cast<int>(dpi), 96)};
         return 0;
     }
     if (message == PreferencesReady)
     {
-        if (lifecyclePhase == LifecyclePhase::DrainingForClose)
+        if (SUCCEEDED(_preferenceWriter.Status()))
+        {
+            if (const auto writtenStamp = _preferenceWriter.LastWrittenStamp())
+                _settingsFileStamp = *writtenStamp;
+        }
+        if (_lifecyclePhase == LifecyclePhase::DrainingForClose)
         {
             FinishClose();
         }
-        else if (!IsClosing() && !IsSessionEnding() && FAILED(preferenceWriter.Status()))
+        else if (! IsClosing() && ! IsSessionEnding() && FAILED(_preferenceWriter.Status()))
             Status(IDS_SETTINGSFAILED);
         return 0;
     }
@@ -3639,18 +3664,25 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         FileCompleted();
         return 0;
     }
+    if (message == SettingsChanged)
+    {
+        _settingsWatcher.Acknowledge();
+        if (! IsClosing() && ! IsClosingAfterSave() && ! IsSessionEnding())
+            ReloadSettingsFromDisk();
+        return 0;
+    }
     if (IsClosingAfterSave())
     {
         const bool nativeLifecycle = message == WM_SHOWWINDOW || message == WM_KILLFOCUS || message == WM_ACTIVATE || message == WM_ACTIVATEAPP ||
                                      message == WM_CANCELMODE || message == WM_CAPTURECHANGED || message == WM_SIZE || message == WM_DPICHANGED;
-        if (!nativeLifecycle)
+        if (! nativeLifecycle)
             return DefWindowProcW(hwnd, message, wParam, lParam);
     }
     if (message == WM_DROPFILES)
     {
-        const auto drop = reinterpret_cast<HDROP>(wParam);
+        const auto drop   = reinterpret_cast<HDROP>(wParam);
         const auto finish = wil::scope_exit([&] { DragFinish(drop); });
-        if (!CanAcceptCommand() || HasActiveModalPrompt() || HasBlockDraft() || files.Busy())
+        if (! CanAcceptCommand() || HasActiveModalPrompt() || HasBlockDraft() || _files.Busy())
             return 0;
         const UINT count = DragQueryFileW(drop, 0xFFFFFFFFu, nullptr, 0);
         if (count == 0u)
@@ -3685,7 +3717,7 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
     }
     if (message == PostPreparePlacement)
     {
-        postPreparePosted = false;
+        _postPreparePosted = false;
         (void)ReconcilePostPreparePlacement();
         return 0;
     }
@@ -3693,25 +3725,23 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         ApplyTheme();
     if (message == WM_MOUSEWHEEL)
     {
-        if ((GET_KEYSTATE_WPARAM(wParam) & MK_CONTROL) != 0 && !KeyboardState::Held(VK_MENU))
+        if ((GET_KEYSTATE_WPARAM(wParam) & MK_CONTROL) != 0 && ! KeyboardState::Held(VK_MENU))
         {
-            const int accumulated = zoomWheelRemainder + GET_WHEEL_DELTA_WPARAM(wParam);
-            const int steps = accumulated / WHEEL_DELTA;
-            zoomWheelRemainder = accumulated % WHEEL_DELTA;
+            const int accumulated = _zoomWheelRemainder + GET_WHEEL_DELTA_WPARAM(wParam);
+            const int steps       = accumulated / WHEEL_DELTA;
+            _zoomWheelRemainder   = accumulated % WHEEL_DELTA;
             if (steps != 0)
-                RunUiAction([&]
-                            { ExecuteCommand(steps > 0 ? Command::ZoomIn : Command::ZoomOut, static_cast<unsigned>(steps > 0 ? steps : -steps)); });
+                RunUiAction([&] { ExecuteCommand(steps > 0 ? Command::ZoomIn : Command::ZoomOut, static_cast<unsigned>(steps > 0 ? steps : -steps)); });
             return 0;
         }
-        zoomWheelRemainder = 0;
+        _zoomWheelRemainder = 0;
     }
     bool handled{};
-    const auto result = host.HandleMessage(hwnd, message, wParam, lParam, handled);
+    const auto result = _host.HandleMessage(hwnd, message, wParam, lParam, handled);
     if (message == WM_MOVE || message == WM_SIZE || message == WM_EXITSIZEMOVE || message == WM_DPICHANGED)
     {
-        const bool wasMaximized = settings.windowPlacement && settings.windowPlacement.value().maximized;
-        const bool commitPlacement =
-            message == WM_EXITSIZEMOVE || message == WM_DPICHANGED || (!IsIconic(hwnd) && wasMaximized != (IsZoomed(hwnd) != FALSE));
+        const bool wasMaximized    = _settings.windowPlacement && _settings.windowPlacement.value().maximized;
+        const bool commitPlacement = message == WM_EXITSIZEMOVE || message == WM_DPICHANGED || (! IsIconic(hwnd) && wasMaximized != (IsZoomed(hwnd) != FALSE));
         RecordWindowPlacement(commitPlacement);
     }
     if (message == WM_SIZE || message == WM_DPICHANGED || ((message == WM_MOUSEWHEEL || message == WM_MOUSEHWHEEL) && HasBlockDraft()))
@@ -3721,22 +3751,22 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         ServiceImages();
         // Published syntax or deferred placement can arrive after a committed source/selection event.
         // Observe immutable identity and defer overlay/layout reconciliation out of WM_PAINT.
-        const bool placementPending = !IsClosing() && (pendingSelectionTools || (blockDraftSession && blockDraftSession->pendingPlacement) ||
-                                                       editor->GetMarkdownSyntax() != derivedCaches.selectionFactsSyntax);
-        if (placementPending && !postPreparePosted)
-            postPreparePosted = PostMessageW(hwnd, PostPreparePlacement, 0, 0) != FALSE;
+        const bool placementPending = ! IsClosing() && (_pendingSelectionTools || (_blockDraftSession && _blockDraftSession->pendingPlacement) ||
+                                                        _editor->GetMarkdownSyntax() != _derivedCaches.selectionFactsSyntax);
+        if (placementPending && ! _postPreparePosted)
+            _postPreparePosted = PostMessageW(hwnd, PostPreparePlacement, 0, 0) != FALSE;
     }
     return handled ? result : DefWindowProcW(hwnd, message, wParam, lParam);
 }
 
 bool Application::ReconcilePostPreparePlacement()
 {
-    if (IsClosing() || !host.GetRoot())
+    if (IsClosing() || ! _host.GetRoot())
         return false;
-    const bool refreshFacts = pendingSelectionTools || editor->GetMarkdownSyntax() != derivedCaches.selectionFactsSyntax;
-    const bool pendingPlacement = blockDraftSession && blockDraftSession->pendingPlacement;
+    const bool refreshFacts     = _pendingSelectionTools || _editor->GetMarkdownSyntax() != _derivedCaches.selectionFactsSyntax;
+    const bool pendingPlacement = _blockDraftSession && _blockDraftSession->pendingPlacement;
     if (refreshFacts)
-        SelectionChanged(pendingSelectionTools || activeOverlay == OverlayKind::FloatingSelectionTools);
+        SelectionChanged(_pendingSelectionTools || _activeOverlay == OverlayKind::FloatingSelectionTools);
     if (pendingPlacement)
         Layout();
     return refreshFacts || pendingPlacement;
@@ -3744,44 +3774,43 @@ bool Application::ReconcilePostPreparePlacement()
 
 void Application::Prepare(unsigned turns)
 {
-    if (IsClosing() || !host.GetRoot())
+    if (IsClosing() || ! _host.GetRoot())
         return;
-    const auto cosmeticsPending = [](const DxUi::RichTextEditor *target)
+    const auto cosmeticsPending = [](const DxUi::RichTextEditor* target)
     {
-        if (!target || !target->IsVisible())
+        if (! target || ! target->IsVisible())
             return false;
         const auto state = target->DebugGetState();
-        return state.markdownPreparationPending || state.sourceInkPreparationPending || state.codeInkPreparationPending ||
-               state.sourceGuidesPreparationPending;
+        return state.markdownPreparationPending || state.sourceInkPreparationPending || state.codeInkPreparationPending || state.sourceGuidesPreparationPending;
     };
     for (unsigned index = 0; index < turns; ++index)
     {
-        if (bitmapWriter.HasResult())
+        if (_bitmapWriter.HasResult())
             ServiceBitmapPaste();
-        if (IsClosing() || !host.GetRoot())
+        if (IsClosing() || ! _host.GetRoot())
             return;
-        (void)host.RenderInitialFrameForShow();
-        const bool identityRelayout = identityMeasure.typographyRevision != host.GetTypographyRevision();
+        (void)_host.RenderInitialFrameForShow();
+        const bool identityRelayout = _identityMeasure.typographyRevision != _host.GetTypographyRevision();
         if (identityRelayout)
             Layout();
         ServiceImages();
         MSG message{};
         unsigned processed{};
-        while (processed++ < 64 && PeekMessageW(&message, window.get(), 0, 0, PM_REMOVE))
+        while (processed++ < 64 && PeekMessageW(&message, _window.get(), 0, 0, PM_REMOVE))
         {
-            if (!host.DispatchKeyboardMessage(message))
+            if (! _host.DispatchKeyboardMessage(message))
             {
                 TranslateMessage(&message);
                 DispatchMessageW(&message);
             }
         }
-        if (IsClosing() || !host.GetRoot())
+        if (IsClosing() || ! _host.GetRoot())
             return;
-        if (files.Busy())
+        if (_files.Busy())
             FileCompleted(); // also drains a result if its post met a full queue
         RecoveryCompleted();
         FolderCompleted();
-        if (IsClosing() || !host.GetRoot())
+        if (IsClosing() || ! _host.GetRoot())
             return;
         // A render may publish new immutable syntax. Reconcile dependent chrome
         // before declaring quiescence, then paint it on the next turn. Hidden
@@ -3790,49 +3819,53 @@ void Application::Prepare(unsigned turns)
         // This bounded harness drain also settles optional pixels for captures.
         // Production input/frame readiness remains the host's earlier content
         // boundary; its event loop never calls this synchronous convenience loop.
-        if (!refreshed && !host.HasPendingContentPreparation() && !cosmeticsPending(editor) && !cosmeticsPending(mirror) &&
-            editor->GetImageResourceStatistics().pendingSources == 0 && !files.Busy() && recovery.Ready() &&
-            (!folderFiles.IsActive() || folderSnapshot || FAILED(folderFiles.Status()) || FAILED(folderAdmissionStatus)))
+        if (! refreshed && ! _host.HasPendingContentPreparation() && ! cosmeticsPending(_editor) && ! cosmeticsPending(_mirror) &&
+            _editor->GetImageResourceStatistics().pendingSources == 0 && ! _files.Busy() && _recovery.Ready() &&
+            (! _folderFiles.IsActive() || _folderSnapshot || FAILED(_folderFiles.Status()) || FAILED(_folderAdmissionStatus)))
             break;
         // Harness-only bounded event wait; production blocks in GetMessage.
         (void)MsgWaitForMultipleObjectsEx(0, nullptr, 5, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
     }
 }
-bool Application::Capture(const std::filesystem::path &path, bool prepareContent)
+bool Application::Capture(const std::filesystem::path& path, bool prepareContent)
 {
-    if (prepareContent && !printPreview)
+    if (prepareContent && ! _printPreview)
         Prepare();
-    DxUi::Button *captureHover{};
-    if (options.headless && path == options.capture && (options.scenario == L"caption-close-hover" || options.scenario == L"caption-maximize-hover"))
+    DxUi::Button* captureHover{};
+    if (_options.headless && path == _options.capture && (_options.scenario == L"caption-close-hover" || _options.scenario == L"caption-maximize-hover"))
     {
-        const bool close = options.scenario == L"caption-close-hover";
-        captureHover = close ? closeButton : maximizeButton;
+        const bool close  = _options.scenario == L"caption-close-hover";
+        captureHover      = close ? _closeButton : _maximizeButton;
         const auto bounds = captureHover->GetBounds();
-        const auto point = host.DipPointToScreenPoint({(bounds.left + bounds.right) * .5f, (bounds.top + bounds.bottom) * .5f});
+        const auto point  = _host.DipPointToScreenPoint({(bounds.left + bounds.right) * .5f, (bounds.top + bounds.bottom) * .5f});
         bool handled{};
         // Preparation pumps queued leave messages for this hidden window.
         // Apply owned synthetic hover after that pump, immediately before the
         // frame readback, without moving the pointer or taking native input.
-        (void)host.HandleMessage(window.get(), WM_NCMOUSEMOVE, close ? HTCLOSE : HTMAXBUTTON,
-                                 MAKELPARAM(static_cast<SHORT>(point.x), static_cast<SHORT>(point.y)), handled);
-        if (handled || !captureHover->IsHovered())
+        (void)_host.HandleMessage(
+            _window.get(), WM_NCMOUSEMOVE, close ? HTCLOSE : HTMAXBUTTON, MAKELPARAM(static_cast<SHORT>(point.x), static_cast<SHORT>(point.y)), handled);
+        if (handled || ! captureHover->IsHovered())
             return false;
     }
     DxUi::WindowHostBitmapCapture bitmap;
     // Stage the completed frame before Present rotates the swap-chain buffers.
     // The canonical hidden capture path never shows or activates this HWND.
-    auto &captureHost = printPreview ? printPreview->Host() : host;
-    if (!captureHost.DebugCaptureBitmap(bitmap, true))
+    auto& captureHost = _printPreview ? _printPreview->Host() : _host;
+    if (! captureHost.DebugCaptureBitmap(bitmap, true))
         return false;
-    if (captureHover && !captureHover->IsHovered())
+    if (captureHover && ! captureHover->IsHovered())
         return false;
     wil::com_ptr<IWICImagingFactory> factory;
     wil::com_ptr<IWICStream> stream;
     wil::com_ptr<IWICBitmapEncoder> encoder;
     wil::com_ptr<IWICBitmapFrameEncode> frame;
     wil::com_ptr<IPropertyBag2> properties;
-    if (FAILED(DxUi::Failure::InvokeNative(&CoCreateInstance, CLSID_WICImagingFactory, nullptr, static_cast<DWORD>(CLSCTX_INPROC_SERVER),
-                                           __uuidof(IWICImagingFactory), reinterpret_cast<void **>(factory.put()))))
+    if (FAILED(DxUi::Failure::InvokeNative(&CoCreateInstance,
+                                           CLSID_WICImagingFactory,
+                                           nullptr,
+                                           static_cast<DWORD>(CLSCTX_INPROC_SERVER),
+                                           __uuidof(IWICImagingFactory),
+                                           reinterpret_cast<void**>(factory.put()))))
         return false;
     if (FAILED(InvokeNativeMethod(factory.get(), &IWICImagingFactory::CreateStream, stream.put())) ||
         FAILED(InvokeNativeMethod(stream.get(), &IWICStream::InitializeFromFilename, path.c_str(), static_cast<DWORD>(GENERIC_WRITE))))
@@ -3845,91 +3878,68 @@ bool Application::Capture(const std::filesystem::path &path, bool prepareContent
         FAILED(InvokeNativeMethod(frame.get(), &IWICBitmapFrameEncode::SetSize, bitmap.widthPx, bitmap.heightPx)))
         return false;
     WICPixelFormatGUID format = GUID_WICPixelFormat32bppBGRA;
-    if (FAILED(InvokeNativeMethod(frame.get(), &IWICBitmapFrameEncode::SetPixelFormat, &format)) ||
-        !IsEqualGUID(format, GUID_WICPixelFormat32bppBGRA))
+    if (FAILED(InvokeNativeMethod(frame.get(), &IWICBitmapFrameEncode::SetPixelFormat, &format)) || ! IsEqualGUID(format, GUID_WICPixelFormat32bppBGRA))
         return false;
-    if (FAILED(InvokeNativeMethod(frame.get(), &IWICBitmapFrameEncode::WritePixels, bitmap.heightPx, bitmap.widthPx * 4u,
-                                  static_cast<UINT>(bitmap.bgraPixels.size()), bitmap.bgraPixels.data())))
+    if (FAILED(InvokeNativeMethod(frame.get(),
+                                  &IWICBitmapFrameEncode::WritePixels,
+                                  bitmap.heightPx,
+                                  bitmap.widthPx * 4u,
+                                  static_cast<UINT>(bitmap.bgraPixels.size()),
+                                  bitmap.bgraPixels.data())))
         return false;
     return SUCCEEDED(InvokeNativeMethod(frame.get(), &IWICBitmapFrameEncode::Commit)) &&
            SUCCEEDED(InvokeNativeMethod(encoder.get(), &IWICBitmapEncoder::Commit));
 }
 
-bool Application::RouteShortcut(const MSG &message)
+bool Application::RouteShortcut(const MSG& message)
 {
     bool shortcut{};
-    if ((message.message == WM_KEYDOWN || message.message == WM_SYSKEYDOWN) && (message.hwnd == window.get() || IsChild(window.get(), message.hwnd)))
+    if ((message.message == WM_KEYDOWN || message.message == WM_SYSKEYDOWN) && (message.hwnd == _window.get() || IsChild(_window.get(), message.hwnd)))
     {
         const bool ctrl = KeyboardState::Held(VK_CONTROL), shift = KeyboardState::Held(VK_SHIFT), alt = KeyboardState::Held(VK_MENU);
         std::optional<Command> command;
-        if (ctrl && !alt)
+        if (ctrl && ! alt)
         {
             switch (message.wParam)
             {
-            case 'N':
-                command = Command::New;
-                break;
-            case 'O':
-                command = shift ? Command::OpenFolder : Command::Open;
-                break;
-            case 'S':
-                command = shift ? Command::SaveAs : Command::Save;
-                break;
-            case 'W':
-                if (!shift)
-                    command = Command::CloseDocument;
-                break;
-            case 'P':
-                if (!shift)
-                {
-                    // A held shortcut must not open another preview or advance into printing.
-                    if ((message.lParam & (static_cast<LPARAM>(1) << 30)) != 0)
-                        return true;
-                    command = Command::Print;
-                }
-                break;
-            case 'E':
-                command = shift ? Command::Files : Command::Code;
-                break;
-            case 'K':
-                command = Command::Link;
-                break;
-            case 'F':
-                command = Command::Find;
-                break;
-            case '1':
-                command = Command::Compose;
-                break;
-            case '2':
-                command = Command::Source;
-                break;
-            case '3':
-                command = Command::Split;
-                break;
-            case VK_OEM_COMMA:
-                command = Command::Settings;
-                break;
-            case VK_OEM_PLUS:
-            case VK_ADD:
-                command = Command::ZoomIn;
-                break;
-            case VK_OEM_MINUS:
-            case VK_SUBTRACT:
-                command = Command::ZoomOut;
-                break;
-            case '0':
-            case VK_NUMPAD0:
-                command = Command::ZoomReset;
-                break;
+                case 'N': command = Command::New; break;
+                case 'O': command = shift ? Command::OpenFolder : Command::Open; break;
+                case 'S': command = shift ? Command::SaveAs : Command::Save; break;
+                case 'W':
+                    if (! shift)
+                        command = Command::CloseDocument;
+                    break;
+                case 'P':
+                    if (! shift)
+                    {
+                        // A held shortcut must not open another preview or advance into printing.
+                        if ((message.lParam & (static_cast<LPARAM>(1) << 30)) != 0)
+                            return true;
+                        command = Command::Print;
+                    }
+                    break;
+                case 'E': command = shift ? Command::Files : Command::Code; break;
+                case 'K': command = Command::Link; break;
+                case 'F': command = Command::Find; break;
+                case '1': command = Command::Compose; break;
+                case '2': command = Command::Source; break;
+                case '3': command = Command::Split; break;
+                case VK_OEM_COMMA: command = Command::Settings; break;
+                case VK_OEM_PLUS:
+                case VK_ADD: command = Command::ZoomIn; break;
+                case VK_OEM_MINUS:
+                case VK_SUBTRACT: command = Command::ZoomOut; break;
+                case '0':
+                case VK_NUMPAD0: command = Command::ZoomReset; break;
             }
         }
-        if (message.wParam == VK_F3 && !ctrl && !alt)
+        if (message.wParam == VK_F3 && ! ctrl && ! alt)
             command = shift ? Command::FindPrevious : Command::FindNext;
-        if (message.wParam == VK_F2 && !ctrl && !shift && !alt)
+        if (message.wParam == VK_F2 && ! ctrl && ! shift && ! alt)
             command = Command::LocalSource;
-        if (message.wParam == VK_F11 && !ctrl && !shift && !alt)
+        if (message.wParam == VK_F11 && ! ctrl && ! shift && ! alt)
             command = Command::Focus;
-        if (message.wParam == VK_F10 && alt && !ctrl && !shift)
+        if (message.wParam == VK_F10 && alt && ! ctrl && ! shift)
         {
             FocusSelectionTools();
             shortcut = true;
@@ -3945,21 +3955,21 @@ bool Application::RouteShortcut(const MSG &message)
 
 int Application::Run()
 {
-    if (!options.designInteractive.empty())
+    if (! _options.designInteractive.empty())
     {
 #if defined(REDTILDE_ENABLE_TESTS)
-        return RunDesignInteractiveProbe(*this, options);
+        return RunDesignInteractiveProbe(*this, _options);
 #else
         return 2;
 #endif
     }
-    if (!options.performance.empty())
-        return RunPerformanceProbe(*this, options);
-    if (options.recoveryProbe)
+    if (! _options.performance.empty())
+        return RunPerformanceProbe(*this, _options);
+    if (_options.recoveryProbe)
     {
         // Isolated harness fixtures: exercise the real Files worker, independent
         // histories and checkpoint leases before the intentional child crash.
-        const auto directory = options.dataDirectory / L"Workspace";
+        const auto directory = _options.dataDirectory / L"Workspace";
         std::filesystem::create_directories(directory);
         const auto alpha = directory / L"Alpha.md", beta = directory / L"Beta.md";
         if (FAILED(WriteBytesAtomic(alpha, "\xef\xbb\xbf# Alpha\r\n")) || FAILED(WriteBytesAtomic(beta, "# Beta\n")))
@@ -3968,64 +3978,63 @@ int Application::Run()
         if (FAILED(LoadDocument(alpha, loaded)))
             return 6;
         SetDocument(loaded.text, alpha, loaded.bom, loaded.stamp);
-        editor->SetSelection({0, 0});
-        (void)editor->ReplaceSelection(L"Recovered after crash: 東京 😀\r\n");
+        _editor->SetSelection({0, 0});
+        (void)_editor->ReplaceSelection(L"Recovered after crash: 東京 😀\r\n");
         OpenPath(beta);
-        for (unsigned turn = 0; turn < 1000 && session.path != beta; ++turn)
+        for (unsigned turn = 0; turn < 1000 && _session.path != beta; ++turn)
         {
             Prepare(32);
             (void)WaitForSingleObject(GetCurrentProcess(), 5);
         }
-        if (session.path != beta || inactiveDocuments.size() != 1)
+        if (_session.path != beta || _inactiveDocuments.size() != 1)
             return 6;
-        editor->SetSelection({0, 0});
-        (void)editor->ReplaceSelection(L"A second unsaved copy: 世界\n");
+        _editor->SetSelection({0, 0});
+        (void)_editor->ReplaceSelection(L"A second unsaved copy: 世界\n");
         CheckpointWorkspaceRecovery();
-        for (unsigned turn = 0; turn < 1000 && !recovery.Settled(); ++turn)
+        for (unsigned turn = 0; turn < 1000 && ! _recovery.Settled(); ++turn)
             (void)WaitForSingleObject(GetCurrentProcess(), 5);
-        if (!recovery.Settled() || FAILED(recovery.Status()))
+        if (! _recovery.Settled() || FAILED(_recovery.Status()))
             return 6;
         CrashProbe();
     }
-    if (options.recoveryRestartProbe)
+    if (_options.recoveryRestartProbe)
     {
         Prepare();
         RecoveryCompleted();
-        if (recoveryCandidates.size() != 2)
+        if (_recoveryCandidates.size() != 2)
             return 7;
         Execute(Command::RestoreAllRecovery);
-        const auto expected = [&](const std::filesystem::path &path, std::wstring_view text, bool hasBom)
+        const auto expected = [&](const std::filesystem::path& path, std::wstring_view text, bool hasBom)
         {
             return path.filename() == (hasBom ? L"Alpha.md" : L"Beta.md") &&
                    text == (hasBom ? L"Recovered after crash: 東京 😀\r\n# Alpha\r\n" : L"A second unsaved copy: 世界\n# Beta\n");
         };
-        bool correct = Dirty() && session.recovered && inactiveDocuments.size() == 1 && expected(session.path, editor->GetText(), session.bom);
-        for (const auto &document : inactiveDocuments)
-            correct = correct && document.dirty && document.metadata.recovered &&
-                      expected(document.metadata.path, document.state.Text(), document.metadata.bom);
+        bool correct = Dirty() && _session.recovered && _inactiveDocuments.size() == 1 && expected(_session.path, _editor->GetText(), _session.bom);
+        for (const auto& document : _inactiveDocuments)
+            correct =
+                correct && document.dirty && document.metadata.recovered && expected(document.metadata.path, document.state.Text(), document.metadata.bom);
         StoredDocument original;
-        correct = correct && SUCCEEDED(LoadDocument(options.dataDirectory / L"Workspace/Alpha.md", original)) && original.text == L"# Alpha\r\n" &&
-                  original.bom;
-        correct = correct && SUCCEEDED(LoadDocument(options.dataDirectory / L"Workspace/Beta.md", original)) && original.text == L"# Beta\n" &&
-                  !original.bom;
+        correct =
+            correct && SUCCEEDED(LoadDocument(_options.dataDirectory / L"Workspace/Alpha.md", original)) && original.text == L"# Alpha\r\n" && original.bom;
+        correct = correct && SUCCEEDED(LoadDocument(_options.dataDirectory / L"Workspace/Beta.md", original)) && original.text == L"# Beta\n" && ! original.bom;
         CheckpointWorkspaceRecovery();
-        recovery.Stop();
-        for (unsigned turn = 0; turn < 1000 && !recovery.Finished(); ++turn)
+        _recovery.Stop();
+        for (unsigned turn = 0; turn < 1000 && ! _recovery.Finished(); ++turn)
             (void)WaitForSingleObject(GetCurrentProcess(), 5);
-        return correct && recovery.Finished() && SUCCEEDED(recovery.Status()) ? 0 : 8;
+        return correct && _recovery.Finished() && SUCCEEDED(_recovery.Status()) ? 0 : 8;
     }
-    if (options.preferencesProbe)
+    if (_options.preferencesProbe)
     {
         Execute(Command::ThemeLight);
         Execute(Command::ThemeDark);
         Execute(Command::ThemePaper);
-        (void)SendMessageW(window.get(), WM_CLOSE, 0, 0);
-        if (window)
-            (void)SendMessageW(window.get(), WM_CLOSE, 0, 0);
+        (void)SendMessageW(_window.get(), WM_CLOSE, 0, 0);
+        if (_window)
+            (void)SendMessageW(_window.get(), WM_CLOSE, 0, 0);
         MSG message{};
-        while (window && GetMessageW(&message, nullptr, 0, 0) > 0)
+        while (_window && GetMessageW(&message, nullptr, 0, 0) > 0)
         {
-            if (!host.DispatchKeyboardMessage(message))
+            if (! _host.DispatchKeyboardMessage(message))
             {
                 TranslateMessage(&message);
                 DispatchMessageW(&message);
@@ -4033,121 +4042,121 @@ int Application::Run()
         }
         return 0;
     }
-    if (options.headless)
+    if (_options.headless)
     {
-        settings.appearance = options.scenario == L"sample-document-dark" || options.scenario == L"task-presentation-dark" ||
-                                      options.scenario == L"compose-dark" || options.scenario == L"split-dark" || options.scenario == L"math-dark" ||
-                                      options.scenario == L"quote-scroll-dark" || options.scenario == L"diagram-label-dark" ||
-                                      options.scenario == L"reference-dark" || options.scenario == L"markdown-style" ||
-                                      options.scenario == L"caption-close-hover" || options.scenario == L"caption-maximize-hover"
-                                  ? Appearance::Dark
-                              : options.scenario == L"compose-paper" ? Appearance::Paper
-                                                                     : Appearance::Light;
+        _settings.appearance = _options.scenario == L"sample-document-dark" || _options.scenario == L"task-presentation-dark" ||
+                                       _options.scenario == L"compose-dark" || _options.scenario == L"split-dark" || _options.scenario == L"math-dark" ||
+                                       _options.scenario == L"quote-scroll-dark" || _options.scenario == L"diagram-label-dark" ||
+                                       _options.scenario == L"reference-dark" || _options.scenario == L"markdown-style" ||
+                                       _options.scenario == L"caption-close-hover" || _options.scenario == L"caption-maximize-hover"
+                                   ? Appearance::Dark
+                               : _options.scenario == L"compose-paper" ? Appearance::Paper
+                                                                       : Appearance::Light;
         ApplyTheme();
-        if (options.scenario == L"math" || options.scenario == L"math-dark")
+        if (_options.scenario == L"math" || _options.scenario == L"math-dark")
             SetDocument(L"# Mathematics, in the flow\n\nInline $E=mc^2$ shares the text baseline. Exact TeX stays one F2 away.\n\n"
                         L"$$\nx=\\frac{-b+\\sqrt{b^2-4ac}}{2a}\n$$\n\n"
                         L"$$\nA=\\begin{bmatrix}a&b\\\\c&d\\end{bmatrix}\\quad \\vec{v}=\\begin{pmatrix}x\\\\y\\end{pmatrix}\n$$\n\n"
                         L"$$\n\\begin{aligned}f(x)&=x^2+1\\\\f'(x)&=2x\\end{aligned}\n$$\n\n"
                         L"Unsupported commands keep their exact source: $\\input{private}$.\n");
-        if (options.scenario == L"mermaid")
+        if (_options.scenario == L"mermaid")
             SetDocument(L"# Diagrams, in the flow\n\n## Flowchart\n\n```mermaid\nflowchart LR\nDraft[Draft] --> Review[Review]\n"
                         L"Review --> Saved[Saved]\n```\n\n"
                         L"## Sequence diagram\n\n```mermaid\nsequenceDiagram\nparticipant Writer\nparticipant Notebook\n"
                         L"Writer->>Notebook: Save draft\nNotebook-->>Writer: Saved\n```\n\n"
                         L"## State diagram\n\n```mermaid\nstateDiagram-v2\ndirection LR\n[*] --> Draft\nDraft --> Reviewed : review\n"
                         L"Reviewed --> [*]\n```\n");
-        if (options.scenario == L"recovery")
+        if (_options.scenario == L"recovery")
         {
-            recoveryCandidates.push_back({L"0123456789abcdef0123456789abcdef",
-                                          {L"# Your writing is here\r\n\r\nThe unsaved paragraph, including 東京 and 😀, is ready to restore.\r\n",
-                                           L"C:\\Notes\\My next idea.md",
-                                           true,
-                                           {0, 0},
-                                           12}});
+            _recoveryCandidates.push_back({L"0123456789abcdef0123456789abcdef",
+                                           {L"# Your writing is here\r\n\r\nThe unsaved paragraph, including 東京 and 😀, is ready to restore.\r\n",
+                                            L"C:\\Notes\\My next idea.md",
+                                            true,
+                                            {0, 0},
+                                            12}});
             ShowRecovery();
         }
-        if (options.scenario == L"source")
+        if (_options.scenario == L"source")
             SetView(EditorView::Source);
-        if (options.scenario == L"split" || options.scenario == L"split-dark")
+        if (_options.scenario == L"split" || _options.scenario == L"split-dark")
             SetView(EditorView::Split);
-        if (options.scenario == L"settings")
+        if (_options.scenario == L"settings")
             Execute(Command::Settings);
         Prepare();
-        if (!options.benchmark.empty())
+        if (! _options.benchmark.empty())
         {
-            using Clock = std::chrono::steady_clock;
+            using Clock               = std::chrono::steady_clock;
             constexpr unsigned frames = 60;
-            const auto start = Clock::now();
+            const auto start          = Clock::now();
             for (unsigned index = 0; index < frames; ++index)
-                (void)host.RenderInitialFrameForShow();
+                (void)_host.RenderInitialFrameForShow();
             const double cleanSeconds = std::chrono::duration<double>(Clock::now() - start).count();
-            const auto dirtyStart = Clock::now();
+            const auto dirtyStart     = Clock::now();
             for (unsigned index = 0; index < frames; ++index)
             {
-                editor->SetSelection({0, 0});
-                (void)editor->ReplaceSelection(L"x");
-                (void)host.RenderInitialFrameForShow();
-                (void)editor->Undo();
-                (void)host.RenderInitialFrameForShow();
+                _editor->SetSelection({0, 0});
+                (void)_editor->ReplaceSelection(L"x");
+                (void)_host.RenderInitialFrameForShow();
+                (void)_editor->Undo();
+                (void)_host.RenderInitialFrameForShow();
             }
             const double dirtySeconds = std::chrono::duration<double>(Clock::now() - dirtyStart).count();
             PROCESS_MEMORY_COUNTERS_EX memory{};
-            (void)GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS *>(&memory), sizeof(memory));
-            std::ofstream report(options.benchmark, std::ios::binary);
+            (void)GetProcessMemoryInfo(GetCurrentProcess(), reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&memory), sizeof(memory));
+            std::ofstream report(_options.benchmark, std::ios::binary);
             report << "{\n  \"scenario\":\"sample-richtext-native-hidden\",\n  \"cleanFrames\":" << frames
                    << ",\n  \"cleanRenderFps\":" << frames / cleanSeconds << ",\n  \"dirtyFrames\":" << frames * 2
                    << ",\n  \"dirtyEditAndRenderMs\":" << dirtySeconds * 1000 / (frames * 2) << ",\n  \"workingSetBytes\":" << memory.WorkingSetSize
-                   << ",\n  \"privateBytes\":" << memory.PrivateUsage << ",\n  \"dpi\":" << host.GetDpi()
-                   << ",\n  \"widthPx\":" << host.DebugGetWidthPx() << ",\n  \"heightPx\":" << host.DebugGetHeightPx()
+                   << ",\n  \"privateBytes\":" << memory.PrivateUsage << ",\n  \"dpi\":" << _host.GetDpi() << ",\n  \"widthPx\":" << _host.DebugGetWidthPx()
+                   << ",\n  \"heightPx\":" << _host.DebugGetHeightPx()
                    << ",\n  \"qualification\":\"initial application baseline only; forced native renders, not presentation FPS or a paired "
                       "non-regression claim\"\n}\n";
-            if (!report)
+            if (! report)
                 return 4;
         }
-        if (options.scenario == L"context-selection")
+        if (_options.scenario == L"context-selection")
         {
-            const auto text = editor->GetText();
+            const auto text  = _editor->GetText();
             const auto begin = text.find(L"Good writing");
             if (begin != text.npos)
             {
-                editor->SetSelection({begin, begin + 12});
+                _editor->SetSelection({begin, begin + 12});
                 SelectionChanged();
             }
         }
-        if (options.scenario == L"local-source")
+        if (_options.scenario == L"local-source")
         {
-            const auto begin = editor->GetText().find(L"Good writing");
+            const auto begin = _editor->GetText().find(L"Good writing");
             if (begin != std::wstring::npos)
             {
-                editor->SetSelection({begin, begin + 12});
+                _editor->SetSelection({begin, begin + 12});
                 Execute(Command::LocalSource);
             }
         }
-        if (options.scenario == L"math" || options.scenario == L"math-dark")
+        if (_options.scenario == L"math" || _options.scenario == L"math-dark")
         {
-            const auto begin = editor->GetText().find(L"\\frac");
+            const auto begin = _editor->GetText().find(L"\\frac");
             if (begin != std::wstring::npos)
             {
-                editor->SetSelection({begin, begin});
+                _editor->SetSelection({begin, begin});
                 SelectionChanged();
             }
         }
         PrepareDesignScenario();
-        return options.capture.empty() || Capture(options.capture) ? 0 : 3;
+        return _options.capture.empty() || Capture(_options.capture) ? 0 : 3;
     }
-    if (startupRestore.IsWaitingForRecovery())
+    if (_startupRestore.IsWaitingForRecovery())
         RecoveryCompleted(); // Also settle a scan that completed before the ordinary message loop started.
-    (void)host.PrimeForShow();
-    if (identityMeasure.typographyRevision != host.GetTypographyRevision())
+    (void)_host.PrimeForShow();
+    if (_identityMeasure.typographyRevision != _host.GetTypographyRevision())
     {
         Layout();
-        (void)host.PrimeForShow();
+        (void)_host.PrimeForShow();
     }
-    ShowWindow(window.get(), InitialShowCommand());
-    UpdateWindow(window.get());
+    ShowWindow(_window.get(), InitialShowCommand());
+    UpdateWindow(_window.get());
     RecordWindowPlacement(true);
-    host.SetFocusControl(editor, MayRequestNativeFocus());
+    _host.SetFocusControl(_editor, MayRequestNativeFocus());
     MSG message{};
     while (GetMessageW(&message, nullptr, 0, 0) > 0)
     {
@@ -4155,28 +4164,26 @@ int Application::Run()
     }
     return static_cast<int>(message.wParam);
 }
-void Application::DispatchUiMessage(const MSG &message) noexcept
+void Application::DispatchUiMessage(const MSG& message) noexcept
 {
-    RunUiAction(
-        [&]
+    RunUiAction([&]
+    {
+        if (IsClosingAfterSave())
+            (void)DxUi::Failure::InvokeNative(&DispatchMessageW, &message);
+        else if (! (_printPreview && _printPreview->DispatchKeyboardMessage(message)) && ! RouteShortcut(message) && ! _host.DispatchKeyboardMessage(message))
         {
-            if (IsClosingAfterSave())
-                (void)DxUi::Failure::InvokeNative(&DispatchMessageW, &message);
-            else if (!(printPreview && printPreview->DispatchKeyboardMessage(message)) && !RouteShortcut(message) &&
-                     !host.DispatchKeyboardMessage(message))
-            {
-                (void)DxUi::Failure::InvokeNative(&TranslateMessage, &message);
-                (void)DxUi::Failure::InvokeNative(&DispatchMessageW, &message);
-            }
-            if (lifecyclePhase == LifecyclePhase::DrainingForClose && AreShutdownWorkersSettled())
-            {
+            (void)DxUi::Failure::InvokeNative(&TranslateMessage, &message);
+            (void)DxUi::Failure::InvokeNative(&DispatchMessageW, &message);
+        }
+        if (_lifecyclePhase == LifecyclePhase::DrainingForClose && AreShutdownWorkersSettled())
+        {
 #if defined(REDTILDE_ENABLE_TESTS)
-                ++preferencesReadySentDuringClose;
+            ++_preferencesReadySentDuringClose;
 #endif
-                (void)SendMessageW(window.get(), PreferencesReady, 0, 0);
-            }
-            if (!IsClosing() && files.Busy())
-                FileCompleted();
-        });
+            (void)SendMessageW(_window.get(), PreferencesReady, 0, 0);
+        }
+        if (! IsClosing() && _files.Busy())
+            FileCompleted();
+    });
 }
 } // namespace RedTilde

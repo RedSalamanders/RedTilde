@@ -15,7 +15,6 @@ struct BitmapAsset
 };
 // COM-initialized worker only. The caller owns the DIB for this synchronous call.
 // No existing file is replaced. Publish the source reference only after success.
-[[nodiscard]] HRESULT CreateBitmapAsset(const std::filesystem::path &dataDirectory, std::span<const std::byte> dib, bool v5,
-                                        BitmapAsset &asset) noexcept;
-[[nodiscard]] HRESULT RetireBitmapAsset(const BitmapAsset &asset) noexcept;
+[[nodiscard]] HRESULT CreateBitmapAsset(const std::filesystem::path& dataDirectory, std::span<const std::byte> dib, bool v5, BitmapAsset& asset) noexcept;
+[[nodiscard]] HRESULT RetireBitmapAsset(const BitmapAsset& asset) noexcept;
 } // namespace RedTilde

@@ -73,7 +73,8 @@ function Get-RedTildeBuildToolchainSnapshot {
         'WindowsSdkDir','WindowsTargetPlatformVersion','PreferredToolArchitecture','ExecutablePath',
         'CLToolPath','CLToolExe','LinkToolPath','LinkToolExe','ResourceCompileToolPath','ResourceCompileToolExe',
         'DxUiRoot','DxUiResolvedRoot','DxUiConsumerOutputRoot','DxUiConsumerLockFile','DxUiDisableStlAnnotations',
-        'DxUiConsumerToolset','DxUiConsumerVCToolsVersion','DxUiConsumerSdkVersion','DxUiConsumerPreferredToolArchitecture','DxUiConsumerTriplet')
+        'DxUiConsumerToolset','DxUiConsumerVCToolsVersion','DxUiConsumerSdkVersion','DxUiConsumerPreferredToolArchitecture','DxUiConsumerTriplet',
+        'RedTildeVcpkgPlatformScope','RedTildeVcpkgTriplet','VcpkgInstalledDir')
     $arguments=@($project,'/nologo','/v:quiet',('-getProperty:'+($propertyNames -join ',')),"/p:Platform=$Platform","/p:Configuration=$Configuration")
     $output=@(& $MSBuildPath @arguments)
     if($LASTEXITCODE -ne 0){throw 'MSBuild property evaluation failed; build inputs cannot be attested.'}
@@ -156,6 +157,11 @@ function Get-RedTildeBuildToolchainSnapshot {
             DxUiConsumerVCToolsVersion=[string]$properties.DxUiConsumerVCToolsVersion;DxUiConsumerSdkVersion=[string]$properties.DxUiConsumerSdkVersion;
             DxUiConsumerPreferredToolArchitecture=[string]$properties.DxUiConsumerPreferredToolArchitecture;DxUiConsumerTriplet=[string]$properties.DxUiConsumerTriplet}
         tools=$toolFiles;environment=$selectedEnvironment
+    }
+    if($properties.ContainsKey('RedTildeVcpkgTriplet') -and -not [string]::IsNullOrWhiteSpace([string]$properties.RedTildeVcpkgTriplet)){
+        $context.properties['RedTildeVcpkgPlatformScope']=[string]$properties.RedTildeVcpkgPlatformScope
+        $context.properties['RedTildeVcpkgTriplet']=[string]$properties.RedTildeVcpkgTriplet
+        $context.properties['VcpkgInstalledDir']=[IO.Path]::GetFullPath([string]$properties.VcpkgInstalledDir)
     }
     $digestBytes=[Text.Encoding]::UTF8.GetBytes(($context|ConvertTo-Json -Depth 8 -Compress))
     $context['sha256']=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($digestBytes))
@@ -263,18 +269,31 @@ function Get-RedTildeBuildInputSnapshot {
     $dependencyResolution=Get-RedTildeDependencyResolutionSnapshot -Root $Root -Platform $Platform -Dependency $dependency
     $toolchain=Get-RedTildeBuildToolchainSnapshot -Root $Root -MSBuildPath $MSBuildPath -Platform $Platform -Configuration $Configuration -DependencyResolution $dependencyResolution
     Assert-RedTildeOwnedCleanDirectories -Root $Root -Platform $Platform -Configuration $Configuration -Toolchain $toolchain
+    $vcpkgSha256=''
+    if($toolchain.properties.Contains('RedTildeVcpkgTriplet') -and -not [string]::IsNullOrWhiteSpace([string]$toolchain.properties.RedTildeVcpkgTriplet) -and
+        (Test-Path -LiteralPath (Join-Path $Root 'vcpkg.json') -PathType Leaf)){
+        $tripletDir=Join-Path ([string]$toolchain.properties.VcpkgInstalledDir) ([string]$toolchain.properties.RedTildeVcpkgTriplet)
+        $yyjsonHeader=Join-Path $tripletDir 'include/yyjson.h'
+        $libSubdir=if($Configuration -ceq 'Release'){'lib'}else{'debug/lib'}
+        $yyjsonLib=Join-Path $tripletDir "$libSubdir/yyjson.lib"
+        if(-not(Test-Path -LiteralPath $yyjsonHeader -PathType Leaf)){throw "Restored vcpkg yyjson header is missing: $yyjsonHeader"}
+        if(-not(Test-Path -LiteralPath $yyjsonLib -PathType Leaf)){throw "Restored vcpkg yyjson library is missing: $yyjsonLib"}
+        $vcpkgParts=@("yyjson.h:$((Get-FileHash -LiteralPath $yyjsonHeader -Algorithm SHA256).Hash)","yyjson.lib:$((Get-FileHash -LiteralPath $yyjsonLib -Algorithm SHA256).Hash)")
+        $vcpkgSha256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($vcpkgParts -join "`n"))))
+    }
     $snapshot=[ordered]@{
         compiledSourceIdentity=(Get-ScopedSourceIdentity $Root -CompiledOnly)
         dependencyIdentitySha256=(Get-FileHash -LiteralPath $dependencyPath -Algorithm SHA256).Hash
         dependencyHeadersSha256=$headerInventory.sha256
         dependencyResolvedPropsSha256=$dependencyResolution.resolvedPropsSha256
         compilerContextSha256=$toolchain.sha256
+        vcpkgSha256=$vcpkgSha256
         buildNumber=$(if($env:RedTildeBuildNumber){[int]$env:RedTildeBuildNumber}else{0})
         testsEnabled=($env:RedTildeEnableTests -ne 'false')
         toolchain=$toolchain
     }
     $rows=@($snapshot.compiledSourceIdentity,$snapshot.dependencyIdentitySha256,$snapshot.dependencyHeadersSha256,
-        $snapshot.dependencyResolvedPropsSha256,$snapshot.compilerContextSha256,$Platform,$Configuration,
+        $snapshot.dependencyResolvedPropsSha256,$snapshot.compilerContextSha256,$snapshot.vcpkgSha256,$Platform,$Configuration,
         $snapshot.buildNumber,$snapshot.testsEnabled)
     $snapshot['identity']=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($rows -join "`n"))))
     return $snapshot

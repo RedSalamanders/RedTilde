@@ -5,5 +5,5 @@
 
 namespace RedTilde
 {
-void RegisterDesignRefreshTests(const std::filesystem::path &root, const std::function<void(std::string_view, const std::function<void()> &)> &test);
+void RegisterDesignRefreshTests(const std::filesystem::path& root, const std::function<void(std::string_view, const std::function<void()>&)>& test);
 } // namespace RedTilde

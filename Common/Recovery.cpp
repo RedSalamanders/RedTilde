@@ -17,10 +17,10 @@ namespace RedTilde
 {
 namespace
 {
-constexpr std::string_view Magic = "RedTilde.Recovery/1\n";
-constexpr std::size_t MaximumCandidates = 64;
+constexpr std::string_view Magic            = "RedTilde.Recovery/1\n";
+constexpr std::size_t MaximumCandidates     = 64;
 constexpr std::size_t MaximumScannedEntries = 512;
-HRESULT CreateRecoveryId(std::wstring &id)
+HRESULT CreateRecoveryId(std::wstring& id)
 {
     GUID guid{};
     const auto result = CoCreateGuid(&guid);
@@ -37,27 +37,26 @@ bool ValidId(std::wstring_view id) noexcept
 {
     return id.size() == 32 && std::ranges::all_of(id, [](wchar_t c) { return (c >= L'0' && c <= L'9') || (c >= L'a' && c <= L'f'); });
 }
-bool ValidSnapshot(const RecoverySnapshot &value) noexcept
+bool ValidSnapshot(const RecoverySnapshot& value) noexcept
 {
-    if (value.text.size() > DxUi::RichText::Document::MaximumUnits || value.originalPath.native().size() > 1024 ||
-        !DxUi::RichText::IsValidUtf16(value.text) || !DxUi::RichText::IsValidUtf16(value.originalPath.native()) ||
-        (!value.originalPath.empty() && !value.originalPath.is_absolute()) || value.selection.anchor > value.text.size() ||
-        value.selection.caret > value.text.size())
+    if (value.text.size() > DxUi::RichText::Document::MaximumUnits || value.originalPath.native().size() > 1024 || ! DxUi::RichText::IsValidUtf16(value.text) ||
+        ! DxUi::RichText::IsValidUtf16(value.originalPath.native()) || (! value.originalPath.empty() && ! value.originalPath.is_absolute()) ||
+        value.selection.anchor > value.text.size() || value.selection.caret > value.text.size())
         return false;
     const auto boundary = [&](std::size_t at) { return at == 0 || at == value.text.size() || value.text[at] < 0xDC00 || value.text[at] > 0xDFFF; };
     return boundary(value.selection.anchor) && boundary(value.selection.caret);
 }
-std::filesystem::path SnapshotPath(const std::filesystem::path &root, std::wstring_view id)
+std::filesystem::path SnapshotPath(const std::filesystem::path& root, std::wstring_view id)
 {
     return root / (L"session-" + std::wstring(id) + L".rtd");
 }
-wil::unique_handle Lease(const std::filesystem::path &root, std::wstring_view id, bool createNew = false)
+wil::unique_handle Lease(const std::filesystem::path& root, std::wstring_view id, bool createNew = false)
 {
     const auto path = root / (L"session-" + std::wstring(id) + L".lease");
     return wil::unique_handle(
         CreateFileW(path.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, createNew ? CREATE_NEW : OPEN_ALWAYS, FILE_ATTRIBUTE_HIDDEN, nullptr));
 }
-HRESULT Remove(const std::filesystem::path &path) noexcept
+HRESULT Remove(const std::filesystem::path& path) noexcept
 {
     if (DeleteFileW(path.c_str()) || GetLastError() == ERROR_FILE_NOT_FOUND)
         return S_OK;
@@ -67,9 +66,9 @@ HRESULT Remove(const std::filesystem::path &path) noexcept
 
 struct SaveRecoveryProtection::State
 {
-    State() = default;
-    State(const State &) = delete;
-    State &operator=(const State &) = delete;
+    State()                        = default;
+    State(const State&)            = delete;
+    State& operator=(const State&) = delete;
     ~State()
     {
         lease.reset();
@@ -81,12 +80,12 @@ struct SaveRecoveryProtection::State
     wil::unique_handle lease;
     bool ownsLease{};
 };
-SaveRecoveryProtection::SaveRecoveryProtection() = default;
+SaveRecoveryProtection::SaveRecoveryProtection()  = default;
 SaveRecoveryProtection::~SaveRecoveryProtection() = default;
-HRESULT SaveRecoveryProtection::Admit(const std::filesystem::path &dataDirectory, const RecoverySnapshot &snapshot) noexcept
+HRESULT SaveRecoveryProtection::Admit(const std::filesystem::path& dataDirectory, const RecoverySnapshot& snapshot) noexcept
 try
 {
-    if (dataDirectory.empty() || !dataDirectory.is_absolute())
+    if (dataDirectory.empty() || ! dataDirectory.is_absolute())
         return E_INVALIDARG;
     std::string bytes;
     const HRESULT serialized = TrySerializeRecovery(snapshot, bytes); // Validate before any filesystem mutation.
@@ -98,7 +97,7 @@ try
     if (error)
         return HRESULT_FROM_WIN32(static_cast<DWORD>(error.value()));
     std::size_t scanned{};
-    for (std::filesystem::directory_iterator entry(root, error), end; !error && entry != end; entry.increment(error))
+    for (std::filesystem::directory_iterator entry(root, error), end; ! error && entry != end; entry.increment(error))
         if (++scanned >= MaximumScannedEntries)
             return HRESULT_FROM_WIN32(ERROR_TOO_MANY_OPEN_FILES);
     if (error)
@@ -108,12 +107,12 @@ try
     const auto generated = CreateRecoveryId(id);
     if (FAILED(generated))
         return generated;
-    staged->snapshot = SnapshotPath(root, id);
+    staged->snapshot  = SnapshotPath(root, id);
     staged->leasePath = root / (L"session-" + id + L".lease");
-    staged->lease = Lease(root, id, true);
-    if (!staged->lease)
+    staged->lease     = Lease(root, id, true);
+    if (! staged->lease)
         return HRESULT_FROM_WIN32(GetLastError());
-    staged->ownsLease = true;
+    staged->ownsLease     = true;
     const auto attributes = GetFileAttributesW(staged->snapshot.c_str());
     if (attributes != INVALID_FILE_ATTRIBUTES)
         return HRESULT_FROM_WIN32(ERROR_FILE_EXISTS);
@@ -123,37 +122,37 @@ try
     const auto written = WriteBytesAtomic(staged->snapshot, bytes);
     if (FAILED(written))
         return written;
-    state = std::move(staged);
+    _state = std::move(staged);
     return S_OK;
 }
-catch (const std::bad_alloc &)
+catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation();
 }
-catch (const std::length_error &)
+catch (const std::length_error&)
 {
     return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
 }
-catch (const std::invalid_argument &)
+catch (const std::invalid_argument&)
 {
     return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
 }
-catch (const std::filesystem::filesystem_error &error)
+catch (const std::filesystem::filesystem_error& error)
 {
     return HRESULT_FROM_WIN32(static_cast<DWORD>(error.code().value()));
 }
 HRESULT SaveRecoveryProtection::Retire() noexcept
 {
-    if (!state)
+    if (! _state)
         return S_OK;
-    const auto result = Remove(state->snapshot);
+    const auto result = Remove(_state->snapshot);
     if (FAILED(result))
         MonitorDiagnostics::Write(RedMonitor::Severity::Warning, L"Saved linked-file content; its independent recovery copy could not be retired.");
-    state.reset();
+    _state.reset();
     return result;
 }
 
-std::string SerializeRecovery(const RecoverySnapshot &snapshot)
+std::string SerializeRecovery(const RecoverySnapshot& snapshot)
 {
     std::string output;
     const HRESULT result = TrySerializeRecovery(snapshot, output);
@@ -161,41 +160,41 @@ std::string SerializeRecovery(const RecoverySnapshot &snapshot)
         DxUi::Failure::FailContract(result);
     return output;
 }
-HRESULT TrySerializeRecovery(const RecoverySnapshot &snapshot, std::string &output) noexcept
+HRESULT TrySerializeRecovery(const RecoverySnapshot& snapshot, std::string& output) noexcept
 try
 {
-    if (!ValidSnapshot(snapshot))
+    if (! ValidSnapshot(snapshot))
         return E_INVALIDARG;
     std::string path, text;
     if (DxUi::RichText::TryEncodeUtf8(snapshot.originalPath.native(), path) != DxUi::RichText::SourceResult::Success ||
         DxUi::RichText::TryEncodeUtf8(snapshot.text, text) != DxUi::RichText::SourceResult::Success)
         return HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION);
-    const auto payload = path + text;
-    const auto metadata = std::format("{} {} {} {} {} {}", path.size(), text.size(), snapshot.bom ? 1 : 0, snapshot.selection.anchor,
-                                      snapshot.selection.caret, snapshot.generation);
+    const auto payload  = path + text;
+    const auto metadata = std::format(
+        "{} {} {} {} {} {}", path.size(), text.size(), snapshot.bom ? 1 : 0, snapshot.selection.anchor, snapshot.selection.caret, snapshot.generation);
     auto staged = std::string(Magic) + metadata + std::format(" {}\n", ContentHash(metadata + "\n" + payload)) + payload;
     output.swap(staged);
     return S_OK;
 }
-catch (const std::bad_alloc &)
+catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation();
 }
-catch (const std::exception &)
+catch (const std::exception&)
 {
     // This noexcept serialization boundary has no expected throwing operation; refusal is checked above.
     DxUi::Failure::FailUnexpected();
 }
-HRESULT ParseRecovery(std::string_view bytes, RecoverySnapshot &snapshot) noexcept
+HRESULT ParseRecovery(std::string_view bytes, RecoverySnapshot& snapshot) noexcept
 try
 {
-    if (!bytes.starts_with(Magic))
+    if (! bytes.starts_with(Magic))
         return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
     bytes.remove_prefix(Magic.size());
     const auto end = bytes.find('\n');
     if (end == bytes.npos || end > 200)
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
-    auto header = bytes.substr(0, end);
+    auto header           = bytes.substr(0, end);
     const auto checksumAt = header.find_last_of(' ');
     if (checksumAt == header.npos)
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
@@ -212,8 +211,8 @@ try
         header.remove_prefix(last + (index + 1 == values.size() ? 0 : 1));
     }
     const auto payload = bytes.substr(end + 1);
-    if (values[0] > 4096 || values[1] > 4 * 65536 || values[0] + values[1] != payload.size() || values[2] > 1 || values[3] > 65536 ||
-        values[4] > 65536 || ContentHash(std::string(metadata) + "\n" + std::string(payload)) != values[6])
+    if (values[0] > 4096 || values[1] > 4 * 65536 || values[0] + values[1] != payload.size() || values[2] > 1 || values[3] > 65536 || values[4] > 65536 ||
+        ContentHash(std::string(metadata) + "\n" + std::string(payload)) != values[6])
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
     RecoverySnapshot staged;
     std::wstring path;
@@ -221,26 +220,26 @@ try
         DxUi::RichText::TryDecodeUtf8(payload.substr(static_cast<std::size_t>(values[0])), staged.text) != DxUi::RichText::SourceResult::Success)
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
     staged.originalPath = std::move(path);
-    staged.bom = values[2] != 0;
-    staged.selection = {static_cast<std::size_t>(values[3]), static_cast<std::size_t>(values[4])};
-    staged.generation = values[5];
-    if (!ValidSnapshot(staged))
+    staged.bom          = values[2] != 0;
+    staged.selection    = {static_cast<std::size_t>(values[3]), static_cast<std::size_t>(values[4])};
+    staged.generation   = values[5];
+    if (! ValidSnapshot(staged))
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
     snapshot = std::move(staged);
     return S_OK;
 }
-catch (const std::bad_alloc &)
+catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation();
 }
-catch (const std::length_error &)
+catch (const std::length_error&)
 {
     // Encoded byte bounds do not imply decoded editor-unit bounds. Reject this
     // expected input failure at the noexcept boundary without publishing staged
     // output, allowing the scanner to preserve/quarantine the original bytes.
     return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
 }
-catch (const std::invalid_argument &)
+catch (const std::invalid_argument&)
 {
     return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
 }
@@ -291,7 +290,7 @@ struct RecoveryService::State
     [[nodiscard]] bool SettledLocked() const noexcept
     {
         const bool isReady = workerPhase != WorkerPhase::Scanning;
-        return (workerPhase == WorkerPhase::Finished) || (isReady && pending.empty() && discards.empty() && !writingBatch);
+        return (workerPhase == WorkerPhase::Finished) || (isReady && pending.empty() && discards.empty() && ! writingBatch);
     }
     void UpdateSettlementLocked() noexcept
     {
@@ -302,7 +301,7 @@ struct RecoveryService::State
     }
     [[nodiscard]] std::wstring DocumentId(unsigned document) const
     {
-        if (!document)
+        if (! document)
             return id;
         unsigned tail{};
         for (const wchar_t digit : std::wstring_view(id).substr(24))
@@ -317,13 +316,12 @@ struct RecoveryService::State
     void Scan()
     {
         RecoveryScanStatistics observed;
-        const auto publishStatistics = wil::scope_exit(
-            [&]() noexcept
-            {
-                std::lock_guard lock(mutex);
-                scanStatistics = observed;
-            });
-        for (const auto &entry : std::filesystem::directory_iterator(root))
+        const auto publishStatistics = wil::scope_exit([&]() noexcept
+        {
+            std::lock_guard lock(mutex);
+            scanStatistics = observed;
+        });
+        for (const auto& entry : std::filesystem::directory_iterator(root))
         {
             if (observed.examinedEntries == MaximumScannedEntries)
             {
@@ -332,13 +330,13 @@ struct RecoveryService::State
             }
             ++observed.examinedEntries;
             const auto name = entry.path().filename().native();
-            if (!name.starts_with(L"session-") || !name.ends_with(L".rtd"))
+            if (! name.starts_with(L"session-") || ! name.ends_with(L".rtd"))
                 continue;
             const auto candidate = std::wstring_view(name).substr(8, name.size() - 12);
-            if (!ValidId(candidate) || candidate == id || candidates.size() >= MaximumCandidates)
+            if (! ValidId(candidate) || candidate == id || candidates.size() >= MaximumCandidates)
                 continue;
             auto lease = Lease(root, candidate);
-            if (!lease) // Another running session (or access error) retains ownership.
+            if (! lease) // Another running session (or access error) retains ownership.
                 continue;
             std::string bytes;
             RecoverySnapshot snapshot;
@@ -372,19 +370,19 @@ struct RecoveryService::State
         }
 #endif
     }
-    static void CALLBACK Worker(PTP_CALLBACK_INSTANCE instance, void *context) noexcept
+    static void CALLBACK Worker(PTP_CALLBACK_INSTANCE instance, void* context) noexcept
     {
         (void)CallbackMayRunLong(instance);
-        ProcessWorkLease processLease = std::move(static_cast<ProcessWorkItem<State> *>(context)->lease);
-        const std::unique_ptr<ProcessWorkItem<State>> ownership(static_cast<ProcessWorkItem<State> *>(context));
-        const auto &self = ownership->state;
-        HRESULT result = S_OK;
+        ProcessWorkLease processLease = std::move(static_cast<ProcessWorkItem<State>*>(context)->lease);
+        const std::unique_ptr<ProcessWorkItem<State>> ownership(static_cast<ProcessWorkItem<State>*>(context));
+        const auto& self = ownership->state;
+        HRESULT result   = S_OK;
         try
         {
             std::filesystem::create_directories(self->root);
             std::map<unsigned, wil::unique_handle> leases;
             leases.emplace(0u, Lease(self->root, self->id));
-            if (!leases.at(0u))
+            if (! leases.at(0u))
                 throw std::system_error(static_cast<int>(GetLastError()), std::system_category());
             self->Scan();
             {
@@ -420,7 +418,7 @@ struct RecoveryService::State
 #endif
                 {
                     std::lock_guard lock(self->mutex);
-                    stopping = self->workerPhase == WorkerPhase::Stopping;
+                    stopping       = self->workerPhase == WorkerPhase::Stopping;
                     const auto now = GetTickCount64();
                     for (auto item = self->pending.begin(); item != self->pending.end();)
                     {
@@ -437,14 +435,14 @@ struct RecoveryService::State
                         }
                     }
                     discards.swap(self->discards);
-                    self->writingBatch = !due.empty() || !discards.empty();
+                    self->writingBatch = ! due.empty() || ! discards.empty();
                     self->UpdateSettlementLocked();
 #if defined(REDTILDE_ENABLE_TESTS)
                     if (self->writingBatch)
                         batchGate = std::exchange(self->batchTestGate, {});
 #endif
                 }
-                if (due.empty() && discards.empty() && !stopping)
+                if (due.empty() && discards.empty() && ! stopping)
                 {
                     // Wait until an event or the earliest document deadline.
                     // Continuous edits cannot postpone a checkpoint indefinitely.
@@ -452,12 +450,11 @@ struct RecoveryService::State
                     continue;
                 }
 #if defined(REDTILDE_ENABLE_TESTS)
-                const auto finishBatchGate = wil::scope_exit(
-                    [&]() noexcept
-                    {
-                        if (batchGate)
-                            (void)SetEvent(batchGate->finished.get());
-                    });
+                const auto finishBatchGate = wil::scope_exit([&]() noexcept
+                {
+                    if (batchGate)
+                        (void)SetEvent(batchGate->finished.get());
+                });
                 if (batchGate)
                 {
                     (void)SetEvent(batchGate->entered.get());
@@ -465,11 +462,11 @@ struct RecoveryService::State
                 }
 #endif
                 result = S_OK;
-                for (auto &[document, update] : due)
+                for (auto& [document, update] : due)
                 {
                     const auto id = self->DocumentId(document);
-                    auto &lease = leases[document];
-                    if (!lease)
+                    auto& lease   = leases[document];
+                    if (! lease)
                         lease = Lease(self->root, id);
                     HRESULT outcome = lease ? S_OK : HRESULT_FROM_WIN32(GetLastError());
                     if (SUCCEEDED(outcome))
@@ -489,13 +486,13 @@ struct RecoveryService::State
                         self->snapshotStatuses[document] = outcome;
                     }
                     // Retire a restored candidate only after its replacement is durable.
-                    if (SUCCEEDED(outcome) && !update.retire.empty())
+                    if (SUCCEEDED(outcome) && ! update.retire.empty())
                         discards.push_back(std::move(update.retire));
                 }
                 std::vector<std::wstring> batchFailedDiscards;
-                for (const auto &candidate : discards)
+                for (const auto& candidate : discards)
                 {
-                    auto other = Lease(self->root, candidate);
+                    auto other            = Lease(self->root, candidate);
                     const HRESULT removed = other ? Remove(SnapshotPath(self->root, candidate)) : HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION);
                     if (FAILED(removed))
                     {
@@ -514,14 +511,13 @@ struct RecoveryService::State
                 }
                 {
                     std::lock_guard lock(self->mutex);
-                    for (auto &failedId : batchFailedDiscards)
+                    for (auto& failedId : batchFailedDiscards)
                     {
-                        if (std::ranges::find(self->failedDiscards, failedId) == self->failedDiscards.end() &&
-                            self->failedDiscards.size() < MaximumCandidates)
+                        if (std::ranges::find(self->failedDiscards, failedId) == self->failedDiscards.end() && self->failedDiscards.size() < MaximumCandidates)
                             self->failedDiscards.push_back(std::move(failedId));
                     }
-                    const auto failed = std::ranges::find_if(self->snapshotStatuses, [](HRESULT value) { return FAILED(value); });
-                    self->status = failed != self->snapshotStatuses.end() ? *failed : result;
+                    const auto failed  = std::ranges::find_if(self->snapshotStatuses, [](HRESULT value) { return FAILED(value); });
+                    self->status       = failed != self->snapshotStatuses.end() ? *failed : result;
                     self->writingBatch = false;
                     self->UpdateSettlementLocked();
                     self->Notify();
@@ -529,28 +525,28 @@ struct RecoveryService::State
                         break;
                 }
             }
-            for (auto &[document, lease] : leases)
+            for (auto& [document, lease] : leases)
             {
                 lease.reset();
                 (void)Remove(self->root / (L"session-" + self->DocumentId(document) + L".lease"));
             }
         }
-        catch (const std::bad_alloc &)
+        catch (const std::bad_alloc&)
         {
             DxUi::Failure::FailAllocation();
         }
-        catch (const std::system_error &error)
+        catch (const std::system_error& error)
         {
             result = HRESULT_FROM_WIN32(static_cast<DWORD>(error.code().value()));
         }
-        catch (const std::invalid_argument &)
+        catch (const std::invalid_argument&)
         {
             result = HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
         }
         std::lock_guard lock(self->mutex);
         if (FAILED(result))
             self->status = result;
-        self->workerPhase = WorkerPhase::Finished;
+        self->workerPhase  = WorkerPhase::Finished;
         self->writingBatch = false;
         self->UpdateSettlementLocked();
         self->Notify();
@@ -566,35 +562,35 @@ HRESULT RecoveryService::Initialize(std::filesystem::path directory, HWND window
 try
 {
     Close();
-    auto staged = std::make_shared<State>();
-    staged->root = std::move(directory) / L"Recovery";
+    auto staged             = std::make_shared<State>();
+    staged->root            = std::move(directory) / L"Recovery";
     const HRESULT generated = CreateRecoveryId(staged->id);
     if (FAILED(generated))
         return generated;
     staged->wake.reset(CreateEventW(nullptr, FALSE, FALSE, nullptr));
-    if (!staged->wake)
+    if (! staged->wake)
         return HRESULT_FROM_WIN32(GetLastError());
     staged->settlement.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
-    if (!staged->settlement)
+    if (! staged->settlement)
         return HRESULT_FROM_WIN32(GetLastError());
-    staged->window = window;
+    staged->window  = window;
     staged->message = message;
 #if defined(REDTILDE_ENABLE_TESTS)
-    staged->scanTestGate = scanTestGate;
-    staged->postScanTestGate = postScanTestGate;
-    staged->batchTestGate = batchTestGate;
+    staged->scanTestGate     = _scanTestGate;
+    staged->postScanTestGate = _postScanTestGate;
+    staged->batchTestGate    = _batchTestGate;
 #endif
-    auto ownership = std::make_unique<ProcessWorkItem<State>>(staged);
+    auto ownership          = std::make_unique<ProcessWorkItem<State>>(staged);
     const HRESULT admission = ProcessWork::Acquire(ownership->lease);
     if (FAILED(admission))
         return admission;
-    if (!TrySubmitThreadpoolCallback(State::Worker, ownership.get(), nullptr))
+    if (! TrySubmitThreadpoolCallback(State::Worker, ownership.get(), nullptr))
         return HRESULT_FROM_WIN32(GetLastError());
     (void)ownership.release();
-    state = std::move(staged);
+    _state = std::move(staged);
     return S_OK;
 }
-catch (const std::bad_alloc &)
+catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation();
 }
@@ -605,181 +601,181 @@ HRESULT RecoveryService::Submit(std::optional<RecoverySnapshot> snapshot, bool i
 HRESULT RecoveryService::SubmitDocument(unsigned document, std::optional<RecoverySnapshot> snapshot, bool immediate, std::wstring retire) noexcept
 try
 {
-    if (!state || document >= MaximumDocuments || (!retire.empty() && !ValidId(retire)))
+    if (! _state || document >= MaximumDocuments || (! retire.empty() && ! ValidId(retire)))
         return E_INVALIDARG;
-    if (snapshot && !ValidSnapshot(*snapshot))
+    if (snapshot && ! ValidSnapshot(*snapshot))
         return E_INVALIDARG;
-    std::lock_guard lock(state->mutex);
-    if (state->workerPhase == State::WorkerPhase::Stopping || state->workerPhase == State::WorkerPhase::Finished)
+    std::lock_guard lock(_state->mutex);
+    if (_state->workerPhase == State::WorkerPhase::Stopping || _state->workerPhase == State::WorkerPhase::Finished)
         return E_ABORT;
-    const auto now = GetTickCount64();
-    auto [item, inserted] = state->pending.try_emplace(document);
-    auto &pending = item->second;
+    const auto now        = GetTickCount64();
+    auto [item, inserted] = _state->pending.try_emplace(document);
+    auto& pending         = item->second;
     if (inserted)
         pending.first = now;
-    pending.latest = now;
+    pending.latest   = now;
     pending.snapshot = std::move(snapshot);
-    if (!retire.empty())
+    if (! retire.empty())
         pending.retire = std::move(retire);
     pending.immediate = pending.immediate || immediate;
-    state->UpdateSettlementLocked();
-    (void)SetEvent(state->wake.get());
+    _state->UpdateSettlementLocked();
+    (void)SetEvent(_state->wake.get());
     return S_OK;
 }
-catch (const std::bad_alloc &)
+catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation();
 }
-catch (const std::invalid_argument &)
+catch (const std::invalid_argument&)
 {
     return E_INVALIDARG;
 }
 HRESULT RecoveryService::Discard(std::wstring id) noexcept
 try
 {
-    if (!state || !ValidId(id))
+    if (! _state || ! ValidId(id))
         return E_INVALIDARG;
-    std::lock_guard lock(state->mutex);
-    if (state->workerPhase == State::WorkerPhase::Stopping || state->workerPhase == State::WorkerPhase::Finished)
+    std::lock_guard lock(_state->mutex);
+    if (_state->workerPhase == State::WorkerPhase::Stopping || _state->workerPhase == State::WorkerPhase::Finished)
         return HRESULT_FROM_WIN32(ERROR_CANCELLED);
-    if (state->discards.size() + state->retired.size() >= MaximumCandidates)
+    if (_state->discards.size() + _state->retired.size() >= MaximumCandidates)
         return E_ABORT;
-    if (std::ranges::find(state->discards, id) == state->discards.end())
-        state->discards.push_back(std::move(id));
+    if (std::ranges::find(_state->discards, id) == _state->discards.end())
+        _state->discards.push_back(std::move(id));
 #if defined(REDTILDE_ENABLE_TESTS)
-    ++state->discardAdmissions;
+    ++_state->discardAdmissions;
 #endif
-    state->UpdateSettlementLocked();
-    (void)SetEvent(state->wake.get());
+    _state->UpdateSettlementLocked();
+    (void)SetEvent(_state->wake.get());
     return S_OK;
 }
-catch (const std::bad_alloc &)
+catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation();
 }
 std::vector<RecoveryCandidate> RecoveryService::TakeCandidates()
 {
-    if (!state)
+    if (! _state)
         return {};
-    std::lock_guard lock(state->mutex);
-    return std::exchange(state->candidates, {});
+    std::lock_guard lock(_state->mutex);
+    return std::exchange(_state->candidates, {});
 }
 std::vector<std::wstring> RecoveryService::TakeRetired()
 {
-    if (!state)
+    if (! _state)
         return {};
-    std::lock_guard lock(state->mutex);
-    return std::exchange(state->retired, {});
+    std::lock_guard lock(_state->mutex);
+    return std::exchange(_state->retired, {});
 }
 std::vector<std::wstring> RecoveryService::TakeFailedDiscards()
 {
-    if (!state)
+    if (! _state)
         return {};
-    std::lock_guard lock(state->mutex);
-    return std::exchange(state->failedDiscards, {});
+    std::lock_guard lock(_state->mutex);
+    return std::exchange(_state->failedDiscards, {});
 }
 bool RecoveryService::Ready() const noexcept
 {
-    if (!state)
+    if (! _state)
         return true;
-    std::lock_guard lock(state->mutex);
-    return state->workerPhase != State::WorkerPhase::Scanning;
+    std::lock_guard lock(_state->mutex);
+    return _state->workerPhase != State::WorkerPhase::Scanning;
 }
 bool RecoveryService::Settled() const noexcept
 {
-    if (!state)
+    if (! _state)
         return true;
-    std::lock_guard lock(state->mutex);
-    return state->SettledLocked();
+    std::lock_guard lock(_state->mutex);
+    return _state->SettledLocked();
 }
 bool RecoveryService::Finished() const noexcept
 {
-    if (!state)
+    if (! _state)
         return true;
-    std::lock_guard lock(state->mutex);
-    return state->workerPhase == State::WorkerPhase::Finished;
+    std::lock_guard lock(_state->mutex);
+    return _state->workerPhase == State::WorkerPhase::Finished;
 }
 HRESULT RecoveryService::Status() const noexcept
 {
-    if (!state)
+    if (! _state)
         return S_OK;
-    std::lock_guard lock(state->mutex);
-    return state->status;
+    std::lock_guard lock(_state->mutex);
+    return _state->status;
 }
 RecoveryScanStatistics RecoveryService::ScanStatistics() const noexcept
 {
-    if (!state)
+    if (! _state)
         return {};
-    std::lock_guard lock(state->mutex);
-    return state->scanStatistics;
+    std::lock_guard lock(_state->mutex);
+    return _state->scanStatistics;
 }
 HRESULT RecoveryService::WaitForSettlement(DWORD milliseconds) const noexcept
 {
-    if (!state)
+    if (! _state)
         return S_OK;
-    const DWORD result = WaitForSingleObject(state->settlement.get(), milliseconds);
+    const DWORD result = WaitForSingleObject(_state->settlement.get(), milliseconds);
     if (result == WAIT_OBJECT_0)
         return Status();
     return HRESULT_FROM_WIN32(result == WAIT_TIMEOUT ? ERROR_TIMEOUT : GetLastError());
 }
 void RecoveryService::Stop() noexcept
 {
-    if (state)
+    if (_state)
     {
-        std::lock_guard lock(state->mutex);
-        if (state->workerPhase != State::WorkerPhase::Finished)
-            state->workerPhase = State::WorkerPhase::Stopping;
-        state->UpdateSettlementLocked();
-        (void)SetEvent(state->wake.get());
+        std::lock_guard lock(_state->mutex);
+        if (_state->workerPhase != State::WorkerPhase::Finished)
+            _state->workerPhase = State::WorkerPhase::Stopping;
+        _state->UpdateSettlementLocked();
+        (void)SetEvent(_state->wake.get());
     }
 }
 void RecoveryService::Close() noexcept
 {
-    if (state)
+    if (_state)
     {
-        std::lock_guard lock(state->mutex);
-        if (state->workerPhase != State::WorkerPhase::Finished)
-            state->workerPhase = State::WorkerPhase::Stopping;
-        state->window = nullptr;
-        state->UpdateSettlementLocked();
-        (void)SetEvent(state->wake.get());
+        std::lock_guard lock(_state->mutex);
+        if (_state->workerPhase != State::WorkerPhase::Finished)
+            _state->workerPhase = State::WorkerPhase::Stopping;
+        _state->window = nullptr;
+        _state->UpdateSettlementLocked();
+        (void)SetEvent(_state->wake.get());
     }
-    state.reset();
+    _state.reset();
 }
 #if defined(REDTILDE_ENABLE_TESTS)
 void RecoveryService::SetScanTestGate(std::shared_ptr<TestGate> gate) noexcept
 {
-    scanTestGate = std::move(gate);
-    if (state)
+    _scanTestGate = std::move(gate);
+    if (_state)
     {
-        std::lock_guard lock(state->mutex);
-        state->scanTestGate = scanTestGate;
+        std::lock_guard lock(_state->mutex);
+        _state->scanTestGate = _scanTestGate;
     }
 }
 void RecoveryService::SetPostScanTestGate(std::shared_ptr<TestGate> gate) noexcept
 {
-    postScanTestGate = std::move(gate);
-    if (state)
+    _postScanTestGate = std::move(gate);
+    if (_state)
     {
-        std::lock_guard lock(state->mutex);
-        state->postScanTestGate = postScanTestGate;
+        std::lock_guard lock(_state->mutex);
+        _state->postScanTestGate = _postScanTestGate;
     }
 }
 void RecoveryService::SetBatchTestGate(std::shared_ptr<TestGate> gate) noexcept
 {
-    batchTestGate = std::move(gate);
-    if (state)
+    _batchTestGate = std::move(gate);
+    if (_state)
     {
-        std::lock_guard lock(state->mutex);
-        state->batchTestGate = batchTestGate;
+        std::lock_guard lock(_state->mutex);
+        _state->batchTestGate = _batchTestGate;
     }
 }
 std::size_t RecoveryService::DiscardAdmissionCountForTest() const noexcept
 {
-    if (!state)
+    if (! _state)
         return 0;
-    std::lock_guard lock(state->mutex);
-    return state->discardAdmissions;
+    std::lock_guard lock(_state->mutex);
+    return _state->discardAdmissions;
 }
 #endif
 } // namespace RedTilde
