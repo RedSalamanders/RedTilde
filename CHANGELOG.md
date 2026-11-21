@@ -4,6 +4,40 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Formalize RedTilde's 13 implicit UI, transaction, overlay, Find, workspace, worker, and tooling state machines
+  (`RT-SM-01`..`RT-SM-09`) with explicit phases, `ActiveFileTransaction` sum types, `OverlayKind` mutual exclusion,
+  `FindController`, `DocumentSessionMetadata`, `DerivedDocumentCaches`, and `ReentrantPublication<T>`; complete
+  `CloseDocument` (`Ctrl+W`), `WM_DROPFILES` single-file drag-and-drop, localized `IDS_FILETOOLARGELIMIT` command refusal
+  reporting (`Q20`), session-local Focus mode without settings rewrites, `--version`/`--help` CLI handling without
+  creating data/crash directories, `Common/Version.h`, `Installer/Install-RedTilde.ps1`, Settings About & Shortcuts,
+  per-package `.sha256` sidecars and notices, `H-24`/`H-22`/`H-23`/`H-06`/`H-08` convergence, `Setup.ps1` 260-char
+  guard and bounded timeouts, `174` native test cases, updated user documentation with `16` deterministic hidden
+  captures, and reconciled normative `Specs/` while moving `ExplicitStateMachines_2026-11-10.md` to `Specs/Plans/Done/`.
+  Blocked `CV-6-05`/`H-10`/`H-15`/`H-26` settings convergence, physical ARM64 execution, physical printing/IME/AT,
+  owner-authorized interactive focus tests, real cloud/SMB/WSL locations, paired quiet-host performance, and v1.0
+  release cut remain tracked in `Specs/Plans/WIP/RemainingWork_2026-11-04.md`.
+- Keep retained **Open documents** entries in the Files pane in stable opening order across workspace switches, and keep
+  tree selection on the clicked **Open documents** row rather than jumping to the folder listing below; clicking a folder
+  entry selects that folder row, collapsing **Open documents** falls back to the visible folder row, and refused switches
+  restore the active document's selection. Covered by `Editor.WorkspaceOpenDocumentsOrderAndSelection`; physical desktop
+  focus, assistive-technology and native ARM64 runtime gates remain tracked in the active delivery plan.
+- Complete Gate 1 settings and hygiene convergence (`CV-6-05`, `H-10`, `H-15`, `H-26`, `H-27`) and add the
+  fail-closed real-location qualification harness: adopt RedHome's 155-line `.clang-format` and `Install-CiFormatter`
+  in `format.ps1`; enforce `_camelCase` private/protected non-static member naming across `Common/`, `RedTilde/`, and
+  `Tests/` via root `.clang-tidy` and `Tests/Tooling.Tests.NamingStyle.ps1` in `validate.ps1`; vendor `yyjson` via
+  `vcpkg.json`, pinned `vcpkg-tool.json` (`aeb162b7`), `Build/vcpkg-triplets/*`, and `vcpkg-install.ps1` strictly
+  inside `.build/` with `vcpkgSha256` receipt binding and `Dependencies/yyjson-LICENSE.txt` packaging; migrate
+  settings persistence (`Common/Settings.{h,cpp}`) to UTF-8 JSON5 (`RedTilde.settings.json` /
+  `RedTilde-debug.settings.json`), `SettingsStore.schema.json`, `Specs/Core/Core_Settings.md`, lossless one-time
+  legacy migration, `.invalid-*` backup, unknown-field tree merge, and an event-driven coalesced `SettingsWatcher`
+  (`OVERLAPPED` `ReadDirectoryChangesW` + `_stopEvent` + `ProcessWorkLease`) with non-writing live reload (`178`
+  registered native cases including `Tests/Application.Tests.Settings.{h,cpp}`); and add opt-in fail-closed
+  `Tools/Test-RealLocations.ps1` with its compiler-free gate `Tests/Tooling.Tests.RealLocations.ps1` in `validate.ps1`.
+  Verified locally across all six zero-warning builds, full x64 `Debug`/`Release`/`ASan Debug` test suites,
+  `format.ps1 -Check`, `validate.ps1`, and `Tools/Test-Changelog.ps1 -Base origin/main`. Hosted CI qualification,
+  physical ARM64 runtime, physical printing/IME/AT, owner-authorized interactive focus, live OneDrive/SMB/WSL
+  execution (`\\rubygloom` offline / `selftest` manifests pending), paired quiet-host performance, and v1.0 release
+  cut remain open in `Specs/Plans/WIP/V1ReleaseReadiness_2026-11-21.md` and `Specs/Plans/WIP/RemainingWork_2026-11-04.md`.
 - Show command-line usage with `redtilde --help` and verify it from the production ZIP before WinGet publication.
 - Print directly from the paginated RedTilde preview with the selected destination, page ranges and supported driver settings.
   Remove automatic link underlines from printed pages and add an offline Markdown example with PNG, JPEG, BMP, GIF and TIFF images.
