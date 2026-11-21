@@ -152,6 +152,7 @@ Open **Settings** from the gear button or `Ctrl+,`:
 - **Reading Width & Text Size:** Adjust reading width (`480–1040` DIPs, default `760`) and text scale (`75%–200%`, default `100%`) using the steppers or `Ctrl++` / `Ctrl+-` / `Ctrl+0` / `Ctrl+Mouse Wheel`.
 - **Writing & Markdown Syntax:** Toggle **Show outline**, **Focus mode**, **Dim other blocks in focus mode**, **Strike through completed tasks** (visual presentation only; Markdown stays unchanged), and seven optional RichMarkdown syntax switches (`==highlight==`, `^superscript^`, `~subscript~`, `++inserted++`, `[[wiki links]]`, definition lists, and `*[abbr]:` abbreviations).
 - **About & Shortcuts:** The bottom of Settings displays the installed version (`RedTilde 0.1.0 experimental`) and a built-in keyboard shortcuts reference.
+- **Preferences File & Live Reload:** Settings are stored as UTF-8 JSON5 in `%LOCALAPPDATA%\RedTilde\RedTilde.settings.json` (`RedTilde-debug.settings.json` in debug builds, described by `SettingsStore.schema.json`), with lossless one-time migration from legacy text settings and live reload when edited externally.
 - **Outline & Current Block Inspector:** The right sidebar lists ATX headings hierarchically (with collapsible sections), tracks the active section, identifies the **Current block** (e.g., `Heading`, `Bulleted list · 3 items`, `Equation`), and hosts the live read-only **Equation** preview.
 
 ![Settings drawer](screenshots/settings.png)

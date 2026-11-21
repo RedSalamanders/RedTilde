@@ -19,17 +19,18 @@ BrandMarkPixels LoadBrandMarkPixels(HICON icon)
     THROW_HR_IF_NULL(E_UNEXPECTED, color.get());
     BITMAP native{};
     THROW_LAST_ERROR_IF(GetObjectW(color.get(), sizeof(native), &native) != sizeof(native));
-    THROW_HR_IF(E_UNEXPECTED, native.bmWidth <= 0 || native.bmWidth > 256 || native.bmHeight <= 0 || native.bmHeight > 256 || native.bmPlanes != 1 ||
-                                  native.bmBitsPixel != 32);
+    THROW_HR_IF(E_UNEXPECTED,
+                native.bmWidth <= 0 || native.bmWidth > 256 || native.bmHeight <= 0 || native.bmHeight > 256 || native.bmPlanes != 1 ||
+                    native.bmBitsPixel != 32);
 
     BrandMarkPixels result{static_cast<UINT>(native.bmWidth), static_cast<UINT>(native.bmHeight), {}};
     result.bgra.resize(static_cast<std::size_t>(result.width) * result.height * 4);
     BITMAPINFO bitmap{};
-    bitmap.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    bitmap.bmiHeader.biWidth = native.bmWidth;
-    bitmap.bmiHeader.biHeight = -native.bmHeight;
-    bitmap.bmiHeader.biPlanes = 1;
-    bitmap.bmiHeader.biBitCount = 32;
+    bitmap.bmiHeader.biSize        = sizeof(BITMAPINFOHEADER);
+    bitmap.bmiHeader.biWidth       = native.bmWidth;
+    bitmap.bmiHeader.biHeight      = -native.bmHeight;
+    bitmap.bmiHeader.biPlanes      = 1;
+    bitmap.bmiHeader.biBitCount    = 32;
     bitmap.bmiHeader.biCompression = BI_RGB;
     wil::unique_hdc dc(CreateCompatibleDC(nullptr));
     THROW_LAST_ERROR_IF_NULL(dc);
@@ -45,32 +46,32 @@ BrandMarkPixels LoadBrandMarkPixels(HICON icon)
     return result;
 }
 
-HRESULT SourceMirrorEditor::PrepareContent(DxUi::ControlHost &host) noexcept
+HRESULT SourceMirrorEditor::PrepareContent(DxUi::ControlHost& host) noexcept
 {
-    const auto selfLifetime = GetControlLifetimeToken(*this);
-    auto *const primary = primary_;
-    const auto primaryLifetime = primaryLifetime_;
-    auto *const owner = host.GetRoot();
-    if (!primary || primaryLifetime.expired() || !owner || !IsVisible() || !IsReadOnly() || GetViewMode() != DxUi::RichText::ViewMode::Source ||
-        GetHost() != &host || !primary->IsAttachedTo(host, GetParent()))
+    const auto selfLifetime    = GetControlLifetimeToken(*this);
+    auto* const primary        = _primary;
+    const auto primaryLifetime = _primaryLifetime;
+    auto* const owner          = host.GetRoot();
+    if (! primary || primaryLifetime.expired() || ! owner || ! IsVisible() || ! IsReadOnly() || GetViewMode() != DxUi::RichText::ViewMode::Source ||
+        GetHost() != &host || ! primary->IsAttachedTo(host, GetParent()))
         return DxUi::RichTextEditor::PrepareContent(host);
 
     const auto ownerLifetime = GetControlLifetimeToken(*owner);
     if (ownerLifetime.expired())
         return DxUi::RichTextEditor::PrepareContent(host);
 
-    const auto source = primary->Snapshot();
+    const auto source          = primary->Snapshot();
     const auto primaryRevision = primary->Revision();
-    const auto syntax = primary->GetMarkdownSyntax();
+    const auto syntax          = primary->GetMarkdownSyntax();
     if (syntax && syntax->Revision() == primaryRevision && source.IsSameRevision(primary->Snapshot()))
     {
-        const auto currentSyntax = GetMarkdownSyntax();
+        const auto currentSyntax  = GetMarkdownSyntax();
         const bool alreadyAdopted = currentSyntax && Snapshot().IsSameRevision(source) && currentSyntax->Revision() == Revision() &&
                                     currentSyntax->DocumentIdentity() != syntax->DocumentIdentity() && &currentSyntax->Nodes() == &syntax->Nodes();
-        if (!alreadyAdopted)
+        if (! alreadyAdopted)
         {
             const auto targetRevision = Revision();
-            const HRESULT result = TryAdoptReadOnlyMarkdownSyntax(source, syntax);
+            const HRESULT result      = TryAdoptReadOnlyMarkdownSyntax(source, syntax);
             if (FAILED(result))
                 return result;
 
@@ -79,12 +80,11 @@ HRESULT SourceMirrorEditor::PrepareContent(DxUi::ControlHost &host) noexcept
             // still belong to this host before the ordinary preparation call.
             if (selfLifetime.expired() || primaryLifetime.expired() || ownerLifetime.expired())
                 return S_FALSE;
-            if (GetHost() != &host || !primary->IsAttachedTo(host, GetParent()) || host.GetRoot() != owner ||
-                !source.IsSameRevision(primary->Snapshot()) || primary->Revision() != primaryRevision)
+            if (GetHost() != &host || ! primary->IsAttachedTo(host, GetParent()) || host.GetRoot() != owner || ! source.IsSameRevision(primary->Snapshot()) ||
+                primary->Revision() != primaryRevision)
                 return S_FALSE;
-            if (result == S_OK &&
-                (!IsVisible() || !IsReadOnly() || GetViewMode() != DxUi::RichText::ViewMode::Source || Revision() != targetRevision ||
-                 !Snapshot().IsSameRevision(source) || GetMarkdownAnalysisProfile() != syntax->Profile()))
+            if (result == S_OK && (! IsVisible() || ! IsReadOnly() || GetViewMode() != DxUi::RichText::ViewMode::Source || Revision() != targetRevision ||
+                                   ! Snapshot().IsSameRevision(source) || GetMarkdownAnalysisProfile() != syntax->Profile()))
                 return S_FALSE;
         }
     }
@@ -103,11 +103,11 @@ namespace
 #pragma warning(disable : 4625 4626 5026 5027)
 class BrandMark final : public DxUi::Control
 {
-    BrandMarkPixels source;
-    wil::com_ptr<ID2D1Bitmap1> bitmap;
-    std::uint64_t bitmapGeneration{};
+    BrandMarkPixels _source;
+    wil::com_ptr<ID2D1Bitmap1> _bitmap;
+    std::uint64_t _bitmapGeneration{};
 
-  public:
+public:
     BrandMark()
     {
         EnableVisualContentPreparation();
@@ -115,41 +115,40 @@ class BrandMark final : public DxUi::Control
         // ordinary startup needs no WIC factory/converter for this known asset.
         const auto icon = LoadIconW(GetModuleHandleW(nullptr), MAKEINTRESOURCEW(IDI_REDTILDE));
         THROW_LAST_ERROR_IF_NULL(icon);
-        source = LoadBrandMarkPixels(icon);
+        _source = LoadBrandMarkPixels(icon);
     }
-    void PrepareVisualContent(DxUi::ControlHost &host) noexcept override
+    void PrepareVisualContent(DxUi::ControlHost& host) noexcept override
     {
         const auto generation = host.GetResourceGeneration();
-        if (bitmap && bitmapGeneration == generation)
+        if (_bitmap && _bitmapGeneration == generation)
             return;
-        bitmap.reset();
-        bitmapGeneration = 0;
-        auto *target = host.GetDeviceContext();
-        const auto properties =
-            D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_NONE, D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED));
+        _bitmap.reset();
+        _bitmapGeneration     = 0;
+        auto* target          = host.GetDeviceContext();
+        const auto properties = D2D1::BitmapProperties1(D2D1_BITMAP_OPTIONS_NONE, D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED));
         if (target &&
-            SUCCEEDED(target->CreateBitmap(D2D1::SizeU(source.width, source.height), source.bgra.data(), source.width * 4, properties, bitmap.put())))
-            bitmapGeneration = generation;
+            SUCCEEDED(target->CreateBitmap(D2D1::SizeU(_source.width, _source.height), _source.bgra.data(), _source.width * 4, properties, _bitmap.put())))
+            _bitmapGeneration = generation;
     }
     void CancelVisualContentPreparation() noexcept override
     {
-        bitmap.reset();
-        bitmapGeneration = 0;
+        _bitmap.reset();
+        _bitmapGeneration = 0;
     }
-    void Paint(DxUi::ControlHost &host) const override
+    void Paint(DxUi::ControlHost& host) const override
     {
-        auto *target = host.GetDeviceContext();
-        if (!target || !bitmap || bitmapGeneration != host.GetResourceGeneration())
+        auto* target = host.GetDeviceContext();
+        if (! target || ! _bitmap || _bitmapGeneration != host.GetResourceGeneration())
             return;
-        target->DrawBitmap(bitmap.get(), GetBounds());
+        target->DrawBitmap(_bitmap.get(), GetBounds());
     }
 };
 #pragma warning(pop)
-void Section(DxUi::Label *label)
+void Section(DxUi::Label* label)
 {
     THROW_IF_FAILED(label->SetTypographyOverride(DxUi::LabelTypography{11.f, DWRITE_FONT_WEIGHT_SEMI_BOLD, .88f}));
 }
-void Icon(DxUi::Button *button, std::wstring glyph)
+void Icon(DxUi::Button* button, std::wstring glyph)
 {
     button->SetVariant(DxUi::ButtonVariant::IconOnly);
     THROW_IF_FAILED(button->SetContentFontSizeDip(18.f));
@@ -160,46 +159,46 @@ void Icon(DxUi::Button *button, std::wstring glyph)
 HRESULT Application::BuildUi()
 {
     const DxUi::Failure::Scope constructionScope;
-    auto tree = std::make_unique<Surface>();
-    root = tree.get();
-    documentBar = root->AddChild<Surface>();
-    brandMark = documentBar->AddChild<BrandMark>();
-    title = Label(*documentBar, IDS_UNTITLED, DxUi::FontRole::BodyStrong);
-    THROW_IF_FAILED(title->SetTypographyOverride(DxUi::LabelTypography{14.f, DWRITE_FONT_WEIGHT_SEMI_BOLD, 0}));
-    saveStateChip = documentBar->AddChild<DxUi::CardPanel>();
-    saveStateChip->SetCornerRadius(10.f);
-    saveState = Label(*saveStateChip, IDS_SAVED, DxUi::FontRole::Small);
-    THROW_IF_FAILED(saveState->SetTypographyOverride(DxUi::LabelTypography{12.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
-    saveState->SetAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+    auto tree    = std::make_unique<Surface>();
+    _root        = tree.get();
+    _documentBar = _root->AddChild<Surface>();
+    _brandMark   = _documentBar->AddChild<BrandMark>();
+    _title       = Label(*_documentBar, IDS_UNTITLED, DxUi::FontRole::BodyStrong);
+    THROW_IF_FAILED(_title->SetTypographyOverride(DxUi::LabelTypography{14.f, DWRITE_FONT_WEIGHT_SEMI_BOLD, 0}));
+    _saveStateChip = _documentBar->AddChild<DxUi::CardPanel>();
+    _saveStateChip->SetCornerRadius(10.f);
+    _saveState = Label(*_saveStateChip, IDS_SAVED, DxUi::FontRole::Small);
+    THROW_IF_FAILED(_saveState->SetTypographyOverride(DxUi::LabelTypography{12.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
+    _saveState->SetAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
     for (unsigned index = 0; index < 3; ++index)
     {
-        modeButtons[index] = Action(*documentBar, IDS_COMPOSE + index, static_cast<Command>(static_cast<unsigned>(Command::Compose) + index));
-        modeButtons[index]->SetAccessibleAutomationId(std::format(L"RedTilde.View{}", index));
-        modeButtons[index]->SetAppearance(DxUi::ButtonAppearance::Tab);
+        _modeButtons[index] = Action(*_documentBar, IDS_COMPOSE + index, static_cast<Command>(static_cast<unsigned>(Command::Compose) + index));
+        _modeButtons[index]->SetAccessibleAutomationId(std::format(L"RedTilde.View{}", index));
+        _modeButtons[index]->SetAppearance(DxUi::ButtonAppearance::Tab);
     }
-    fileMenu = Action(*documentBar, IDS_FILE, Command::FileMenu);
-    fileMenu->SetVariant(DxUi::ButtonVariant::DropDown);
-    fileMenu->SetAppearance(DxUi::ButtonAppearance::Subtle);
-    saveButton = Action(*documentBar, IDS_SAVE, Command::Save, Resource(IDS_TIP_SAVE));
-    saveButton->SetPrimary(true);
-    exitFocus = Action(*documentBar, IDS_EXITFOCUS, Command::Focus);
-    minimizeButton = Action(*documentBar, IDS_MINIMIZE, Command::Minimize);
-    maximizeButton = Action(*documentBar, IDS_MAXIMIZE, Command::Maximize);
-    closeButton = Action(*documentBar, IDS_CLOSE, Command::Close);
-    Icon(minimizeButton, L"\xE921");
-    Icon(maximizeButton, L"\xE922");
-    Icon(closeButton, L"\xE8BB");
-    for (auto *caption : {minimizeButton, maximizeButton})
+    _fileMenu = Action(*_documentBar, IDS_FILE, Command::FileMenu);
+    _fileMenu->SetVariant(DxUi::ButtonVariant::DropDown);
+    _fileMenu->SetAppearance(DxUi::ButtonAppearance::Subtle);
+    _saveButton = Action(*_documentBar, IDS_SAVE, Command::Save, Resource(IDS_TIP_SAVE));
+    _saveButton->SetPrimary(true);
+    _exitFocus      = Action(*_documentBar, IDS_EXITFOCUS, Command::Focus);
+    _minimizeButton = Action(*_documentBar, IDS_MINIMIZE, Command::Minimize);
+    _maximizeButton = Action(*_documentBar, IDS_MAXIMIZE, Command::Maximize);
+    _closeButton    = Action(*_documentBar, IDS_CLOSE, Command::Close);
+    Icon(_minimizeButton, L"\xE921");
+    Icon(_maximizeButton, L"\xE922");
+    Icon(_closeButton, L"\xE8BB");
+    for (auto* caption : {_minimizeButton, _maximizeButton})
     {
         caption->SetFocusable(false);
         caption->SetAppearance(DxUi::ButtonAppearance::Caption);
         THROW_IF_FAILED(caption->SetContentFontSizeDip(12.f));
     }
-    closeButton->SetFocusable(false);
-    closeButton->SetAppearance(DxUi::ButtonAppearance::CaptionClose);
-    THROW_IF_FAILED(closeButton->SetContentFontSizeDip(12.f));
-    commandBar = root->AddChild<Surface>();
-    commandBar->borderBottom = true;
+    _closeButton->SetFocusable(false);
+    _closeButton->SetAppearance(DxUi::ButtonAppearance::CaptionClose);
+    THROW_IF_FAILED(_closeButton->SetContentFontSizeDip(12.f));
+    _commandBar               = _root->AddChild<Surface>();
+    _commandBar->borderBottom = true;
     const std::array<std::pair<unsigned, Command>, 14> buttons{{{IDS_UNDO, Command::Undo},
                                                                 {IDS_REDO, Command::Redo},
                                                                 {IDS_HEADING, Command::Heading},
@@ -214,194 +213,193 @@ HRESULT Application::BuildUi()
                                                                 {IDS_FOCUS, Command::Focus},
                                                                 {IDS_SETTINGS, Command::Settings},
                                                                 {IDS_LINK, Command::Link}}};
-    for (const auto &[id, command] : buttons)
-        tools.push_back(Action(*commandBar, id, command));
-    for (auto *tool : tools)
+    for (const auto& [id, command] : buttons)
+        _tools.push_back(Action(*_commandBar, id, command));
+    for (auto* tool : _tools)
         tool->SetAppearance(DxUi::ButtonAppearance::Subtle);
-    tools[2]->SetVariant(DxUi::ButtonVariant::DropDown);
-    tools[8]->SetVariant(DxUi::ButtonVariant::DropDown);
-    const std::array<std::pair<unsigned, const wchar_t *>, 10> glyphs{{{0, L"\xE7A7"},
-                                                                       {1, L"\xE7A6"},
-                                                                       {3, L"\xE8DD"},
-                                                                       {4, L"\xE8DB"},
-                                                                       {5, L"\xE943"},
-                                                                       {6, L"\xE8FD"},
-                                                                       {7, L"\xE73A"},
-                                                                       {11, L"\xE740"},
-                                                                       {12, L"\xE713"},
-                                                                       {13, L"\xE71B"}}};
-    for (const auto &[index, glyph] : glyphs)
-        Icon(tools[index], glyph);
-    tools[3]->SetTooltipText(Resource(IDS_TIP_BOLD));
-    tools[4]->SetTooltipText(Resource(IDS_TIP_ITALIC));
-    tools[5]->SetTooltipText(Resource(IDS_TIP_CODE));
-    tools[13]->SetTooltipText(Resource(IDS_TIP_LINK));
-    tools[8]->SetLeadingIcon(L"\xE710");
-    tools[9]->SetText(Resource(IDS_FIND));
-    tools[9]->SetLeadingIcon(L"\xE721");
-    tools[9]->SetShortcutText(Resource(IDS_FIND_SHORTCUT));
-    settingsToggle = tools[12];
-    filesToggle = Action(*commandBar, IDS_FILES, Command::Files, Resource(IDS_TIP_FILES));
-    Icon(filesToggle, L"\xE90C");
-    filesToggle->SetAppearance(DxUi::ButtonAppearance::Subtle);
-    panelToggle = Action(*commandBar, IDS_PANEL, Command::Outline);
-    Icon(panelToggle, L"\xE90D");
-    panelToggle->SetVariant(DxUi::ButtonVariant::Disclosure);
-    panelToggle->SetAppearance(DxUi::ButtonAppearance::Subtle);
-    overflowButton = Action(*commandBar, IDS_MORE, Command::Overflow);
-    Icon(overflowButton, L"\xE712");
-    overflowButton->SetAppearance(DxUi::ButtonAppearance::Subtle);
-    for (auto &divider : commandDividers)
-        divider = commandBar->AddChild<DxUi::Separator>();
-    modeHint = Label(*root, IDS_BANNER, DxUi::FontRole::Small);
-    modeHint->SetVisible(false);
-    page = root->AddChild<Surface>(Surface::Kind::Canvas);
-    editor = page->AddChild<Editor>();
-    editor->SetAccessibleName(Resource(IDS_DOC));
-    editor->SetAccessibleAutomationId(L"RedTilde.Document");
-    if (!AcceptSourceResult(editor->TrySetMarkdownAnalysisProfile(DxUi::RichText::MarkdownProfile::RichMarkdown)) ||
-        !AcceptSourceResult(editor->TrySetMarkdownRenderingEnabled(true)))
+    _tools[2]->SetVariant(DxUi::ButtonVariant::DropDown);
+    _tools[8]->SetVariant(DxUi::ButtonVariant::DropDown);
+    const std::array<std::pair<unsigned, const wchar_t*>, 10> glyphs{{{0, L"\xE7A7"},
+                                                                      {1, L"\xE7A6"},
+                                                                      {3, L"\xE8DD"},
+                                                                      {4, L"\xE8DB"},
+                                                                      {5, L"\xE943"},
+                                                                      {6, L"\xE8FD"},
+                                                                      {7, L"\xE73A"},
+                                                                      {11, L"\xE740"},
+                                                                      {12, L"\xE713"},
+                                                                      {13, L"\xE71B"}}};
+    for (const auto& [index, glyph] : glyphs)
+        Icon(_tools[index], glyph);
+    _tools[3]->SetTooltipText(Resource(IDS_TIP_BOLD));
+    _tools[4]->SetTooltipText(Resource(IDS_TIP_ITALIC));
+    _tools[5]->SetTooltipText(Resource(IDS_TIP_CODE));
+    _tools[13]->SetTooltipText(Resource(IDS_TIP_LINK));
+    _tools[8]->SetLeadingIcon(L"\xE710");
+    _tools[9]->SetText(Resource(IDS_FIND));
+    _tools[9]->SetLeadingIcon(L"\xE721");
+    _tools[9]->SetShortcutText(Resource(IDS_FIND_SHORTCUT));
+    _settingsToggle = _tools[12];
+    _filesToggle    = Action(*_commandBar, IDS_FILES, Command::Files, Resource(IDS_TIP_FILES));
+    Icon(_filesToggle, L"\xE90C");
+    _filesToggle->SetAppearance(DxUi::ButtonAppearance::Subtle);
+    _panelToggle = Action(*_commandBar, IDS_PANEL, Command::Outline);
+    Icon(_panelToggle, L"\xE90D");
+    _panelToggle->SetVariant(DxUi::ButtonVariant::Disclosure);
+    _panelToggle->SetAppearance(DxUi::ButtonAppearance::Subtle);
+    _overflowButton = Action(*_commandBar, IDS_MORE, Command::Overflow);
+    Icon(_overflowButton, L"\xE712");
+    _overflowButton->SetAppearance(DxUi::ButtonAppearance::Subtle);
+    for (auto& divider : _commandDividers)
+        divider = _commandBar->AddChild<DxUi::Separator>();
+    _modeHint = Label(*_root, IDS_BANNER, DxUi::FontRole::Small);
+    _modeHint->SetVisible(false);
+    _page   = _root->AddChild<Surface>(Surface::Kind::Canvas);
+    _editor = _page->AddChild<Editor>();
+    _editor->SetAccessibleName(Resource(IDS_DOC));
+    _editor->SetAccessibleAutomationId(L"RedTilde.Document");
+    if (! AcceptSourceResult(_editor->TrySetMarkdownAnalysisProfile(DxUi::RichText::MarkdownProfile::RichMarkdown)) ||
+        ! AcceptSourceResult(_editor->TrySetMarkdownRenderingEnabled(true)))
         return E_INVALIDARG;
-    editor->SetCodeTokenizer(DxUi::RichText::TokenizeBuiltinCode);
-    editor->SetRemoteImagesEnabled(settings.allowRemoteImages);
-    if (!AcceptSourceResult(editor->TrySetViewMode(DxUi::RichText::ViewMode::Rich)))
+    _editor->SetCodeTokenizer(DxUi::RichText::TokenizeBuiltinCode);
+    _editor->SetRemoteImagesEnabled(_settings.allowRemoteImages);
+    if (! AcceptSourceResult(_editor->TrySetViewMode(DxUi::RichText::ViewMode::Rich)))
         return E_INVALIDARG;
-    editor->SetOnTextChanged([this] { Changed(); });
-    editor->SetOnSelectionChanged([this] { SelectionChanged(); });
-    editor->SetBitmapPasteHandler([this](std::span<const std::byte> dib, bool v5) { return BeginBitmapPaste(dib, v5); });
-    editor->SetOnContextMenu([this](POINT point, bool) { Menu(point); });
-    editor->SetOnLinkActivated([this](const DxUi::RichTextLinkActivation &activation) { RunUiAction([&] { RequestOpenLink(activation); }); });
-    mirror = page->AddChild<SourceMirrorEditor>(*editor);
-    if (!AcceptSourceResult(mirror->TrySetMarkdownAnalysisProfile(DxUi::RichText::MarkdownProfile::RichMarkdown)) ||
-        !AcceptSourceResult(mirror->TrySetMarkdownRenderingEnabled(true)))
+    _editor->SetOnTextChanged([this] { Changed(); });
+    _editor->SetOnSelectionChanged([this] { SelectionChanged(); });
+    _editor->SetBitmapPasteHandler([this](std::span<const std::byte> dib, bool v5) { return BeginBitmapPaste(dib, v5); });
+    _editor->SetOnContextMenu([this](POINT point, bool) { Menu(point); });
+    _editor->SetOnLinkActivated([this](const DxUi::RichTextLinkActivation& activation) { RunUiAction([&] { RequestOpenLink(activation); }); });
+    _mirror = _page->AddChild<SourceMirrorEditor>(*_editor);
+    if (! AcceptSourceResult(_mirror->TrySetMarkdownAnalysisProfile(DxUi::RichText::MarkdownProfile::RichMarkdown)) ||
+        ! AcceptSourceResult(_mirror->TrySetMarkdownRenderingEnabled(true)))
         return E_INVALIDARG;
-    mirror->SetReadOnly(true);
-    imageConsent = page->AddChild<Surface>(Surface::Kind::Floating);
-    imageConsent->SetVisible(false);
-    imageConsent->SetAccessibleAutomationId(L"RedTilde.RemoteImageConsent");
-    imageConsentText = Label(*imageConsent, IDS_IMAGECONSENTBLOCKED, DxUi::FontRole::Small);
-    imageConsentText->SetMultiline(true);
-    imageConsentAction = Action(*imageConsent, IDS_IMAGEALLOWHERE, Command::DocumentImages);
-    imageConsentAction->SetAccessibleAutomationId(L"RedTilde.AllowDocumentImages");
-    imageReload = Action(*imageConsent, IDS_IMAGERELOAD, Command::ReloadImages);
-    imageReload->SetAccessibleAutomationId(L"RedTilde.ReloadImages");
-    if (!AcceptSourceResult(mirror->TrySetViewMode(DxUi::RichText::ViewMode::Source)))
+    _mirror->SetReadOnly(true);
+    _imageConsent = _page->AddChild<Surface>(Surface::Kind::Floating);
+    _imageConsent->SetVisible(false);
+    _imageConsent->SetAccessibleAutomationId(L"RedTilde.RemoteImageConsent");
+    _imageConsentText = Label(*_imageConsent, IDS_IMAGECONSENTBLOCKED, DxUi::FontRole::Small);
+    _imageConsentText->SetMultiline(true);
+    _imageConsentAction = Action(*_imageConsent, IDS_IMAGEALLOWHERE, Command::DocumentImages);
+    _imageConsentAction->SetAccessibleAutomationId(L"RedTilde.AllowDocumentImages");
+    _imageReload = Action(*_imageConsent, IDS_IMAGERELOAD, Command::ReloadImages);
+    _imageReload->SetAccessibleAutomationId(L"RedTilde.ReloadImages");
+    if (! AcceptSourceResult(_mirror->TrySetViewMode(DxUi::RichText::ViewMode::Source)))
         return E_INVALIDARG;
-    mirror->SetAccessibleName(Resource(IDS_MIRROR));
-    sidebar = root->AddChild<Surface>(Surface::Kind::Sidebar);
-    sidebar->borderLeft = true;
-    outlineTitle = Label(*sidebar, IDS_OUTLINESECTION, DxUi::FontRole::Small);
-    Section(outlineTitle);
-    outlineTree = sidebar->AddChild<DxUi::Tree>();
-    outlineTree->SetModel(&outlineModel);
-    outlineTree->SetDelegate(&outlineModel);
-    outlineTree->SetRowHeightDip(42);
-    outlineTree->SetIndentDip(14);
-    outlineTree->SetAppearance({.drawBackground = false, .drawBorder = false, .showExpanders = false});
-    THROW_IF_FAILED(
-        outlineTree->SetTypographyOverride(DxUi::Tree::TypographyOverride{13.f, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_WEIGHT_SEMI_BOLD}));
-    outlineTree->SetInvokeOnSingleClick(true);
-    outlineTree->SetAccessibleName(Resource(IDS_OUTLINE));
-    outlineTree->SetEmptyStateText(Resource(IDS_OUTLINEEMPTY));
-    outlineModel.invoked = [this](std::uint64_t id)
+    _mirror->SetAccessibleName(Resource(IDS_MIRROR));
+    _sidebar             = _root->AddChild<Surface>(Surface::Kind::Sidebar);
+    _sidebar->borderLeft = true;
+    _outlineTitle        = Label(*_sidebar, IDS_OUTLINESECTION, DxUi::FontRole::Small);
+    Section(_outlineTitle);
+    _outlineTree = _sidebar->AddChild<DxUi::Tree>();
+    _outlineTree->SetModel(&_outlineModel);
+    _outlineTree->SetDelegate(&_outlineModel);
+    _outlineTree->SetRowHeightDip(42);
+    _outlineTree->SetIndentDip(14);
+    _outlineTree->SetAppearance({.drawBackground = false, .drawBorder = false, .showExpanders = false});
+    THROW_IF_FAILED(_outlineTree->SetTypographyOverride(DxUi::Tree::TypographyOverride{13.f, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_WEIGHT_SEMI_BOLD}));
+    _outlineTree->SetInvokeOnSingleClick(true);
+    _outlineTree->SetAccessibleName(Resource(IDS_OUTLINE));
+    _outlineTree->SetEmptyStateText(Resource(IDS_OUTLINEEMPTY));
+    _outlineModel.invoked = [this](std::uint64_t id)
     {
-        if (!id || id > documentInfo.headings.size())
+        if (! id || id > _documentInfo.headings.size())
             return;
-        const auto offset = documentInfo.headings[static_cast<std::size_t>(id - 1)].offset;
-        if (!AcceptSourceResult(editor->TrySetSelection({offset, offset})))
+        const auto offset = _documentInfo.headings[static_cast<std::size_t>(id - 1)].offset;
+        if (! AcceptSourceResult(_editor->TrySetSelection({offset, offset})))
             return;
-        (void)editor->ScrollSourceRangeIntoView(host, offset, offset, true);
-        host.SetFocusControl(editor, MayRequestNativeFocus());
+        (void)_editor->ScrollSourceRangeIntoView(_host, offset, offset, true);
+        _host.SetFocusControl(_editor, MayRequestNativeFocus());
         SelectionChanged();
     };
-    outlineModel.expanded = [this](std::uint64_t id, bool value)
+    _outlineModel.expanded = [this](std::uint64_t id, bool value)
     {
         if (value)
-            session.collapsedHeadings.erase(id);
+            _session.collapsedHeadings.erase(id);
         else
-            session.collapsedHeadings.insert(id);
-        if (outlinePreviewBaseline && PreviewOutlineMatchesCommitted())
-            outlinePreviewBaseline->collapsedHeadings = session.collapsedHeadings;
+            _session.collapsedHeadings.insert(id);
+        if (_outlinePreviewBaseline && PreviewOutlineMatchesCommitted())
+            _outlinePreviewBaseline->collapsedHeadings = _session.collapsedHeadings;
         RefreshOutline();
     };
-    currentBlock = Label(*sidebar, IDS_CURRENTBLOCK, DxUi::FontRole::Small);
-    listSummary = Label(*sidebar, IDS_BLOCKBULLETLIST, DxUi::FontRole::Small);
-    THROW_IF_FAILED(listSummary->SetTypographyOverride(DxUi::LabelTypography{13.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
-    listSummaryIcon = sidebar->AddChild<DxUi::Label>(L"\xE8FD");
-    listSummaryIcon->SetFontRole(DxUi::FontRole::Icon);
-    listSummaryIcon->SetAccessibleName(Resource(IDS_BLOCKLIST));
-    THROW_IF_FAILED(currentBlock->SetTypographyOverride(DxUi::LabelTypography{13.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
-    blockSourceAction = Action(*sidebar, IDS_LOCAL, Command::LocalSource);
-    blockSourceAction->SetAppearance(DxUi::ButtonAppearance::Outline);
-    equationHelp = Label(*sidebar, IDS_EQUATIONSECTION, DxUi::FontRole::Small);
-    Section(equationHelp);
-    equation = sidebar->AddChild<DxUi::RichTextEditor>();
-    equation->SetReadOnly(true);
-    if (!AcceptSourceResult(equation->TrySetMarkdownAnalysisProfile(DxUi::RichText::MarkdownProfile::RichMarkdown)) ||
-        !AcceptSourceResult(equation->TrySetMarkdownRenderingEnabled(true)))
+    _currentBlock = Label(*_sidebar, IDS_CURRENTBLOCK, DxUi::FontRole::Small);
+    _listSummary  = Label(*_sidebar, IDS_BLOCKBULLETLIST, DxUi::FontRole::Small);
+    THROW_IF_FAILED(_listSummary->SetTypographyOverride(DxUi::LabelTypography{13.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
+    _listSummaryIcon = _sidebar->AddChild<DxUi::Label>(L"\xE8FD");
+    _listSummaryIcon->SetFontRole(DxUi::FontRole::Icon);
+    _listSummaryIcon->SetAccessibleName(Resource(IDS_BLOCKLIST));
+    THROW_IF_FAILED(_currentBlock->SetTypographyOverride(DxUi::LabelTypography{13.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
+    _blockSourceAction = Action(*_sidebar, IDS_LOCAL, Command::LocalSource);
+    _blockSourceAction->SetAppearance(DxUi::ButtonAppearance::Outline);
+    _equationHelp = Label(*_sidebar, IDS_EQUATIONSECTION, DxUi::FontRole::Small);
+    Section(_equationHelp);
+    _equation = _sidebar->AddChild<DxUi::RichTextEditor>();
+    _equation->SetReadOnly(true);
+    if (! AcceptSourceResult(_equation->TrySetMarkdownAnalysisProfile(DxUi::RichText::MarkdownProfile::RichMarkdown)) ||
+        ! AcceptSourceResult(_equation->TrySetMarkdownRenderingEnabled(true)))
         return E_INVALIDARG;
-    equation->SetAccessibleName(Resource(IDS_READONLY));
+    _equation->SetAccessibleName(Resource(IDS_READONLY));
     ApplyMarkdownSyntax();
 
-    currentBlockTitle = Label(*sidebar, IDS_CURRENTSECTION, DxUi::FontRole::Small);
-    Section(currentBlockTitle);
-    outlineCount = Label(*sidebar, IDS_OUTLINECOUNT, DxUi::FontRole::Small);
-    THROW_IF_FAILED(outlineCount->SetTypographyOverride(DxUi::LabelTypography{11.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
-    outlineCount->SetAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
-    contextDivider = sidebar->AddChild<DxUi::Separator>();
-    equationReadOnly = Label(*sidebar, IDS_READONLYSHORT, DxUi::FontRole::Small);
-    filesPane = root->AddChild<Surface>(Surface::Kind::Sidebar);
-    filesPane->borderRight = true;
-    filesTitle = Label(*filesPane, IDS_FILES, DxUi::FontRole::BodyStrong);
-    THROW_IF_FAILED(filesTitle->SetTypographyOverride(DxUi::LabelTypography{13.f, DWRITE_FONT_WEIGHT_SEMI_BOLD, 0}));
-    filesRootIcon = filesPane->AddChild<DxUi::Label>(L"\xE8B7");
-    filesRootIcon->SetFontRole(DxUi::FontRole::Icon);
-    filesRootIcon->SetAccessibleName(Resource(IDS_FILES));
-    filesSectionTitle = Label(*filesPane, IDS_FILESSECTION, DxUi::FontRole::Small);
-    Section(filesSectionTitle);
-    closeFiles = Action(*filesPane, IDS_CLOSEFILES, Command::Files);
-    Icon(closeFiles, L"\xE8BB");
-    closeFiles->SetAppearance(DxUi::ButtonAppearance::Subtle);
-    THROW_IF_FAILED(closeFiles->SetContentFontSizeDip(12.f));
-    filesFilter = filesPane->AddChild<DxUi::TextField>();
-    filesFilter->SetAccessibleName(Resource(IDS_FILTERFILES));
-    filesFilter->SetPlaceholder(Resource(IDS_FILTERSHORT));
-    filesFilter->SetOnTextChanged([this](std::wstring_view) { RefreshFiles(); });
-    filesTree = filesPane->AddChild<DxUi::Tree>();
-    filesTree->SetModel(&filesModel);
-    filesTree->SetDelegate(&filesModel);
-    filesTree->SetAccessibleName(Resource(IDS_FILES));
-    filesTree->SetRowHeightDip(31);
-    filesTree->SetIndentDip(16);
-    filesTree->SetAppearance({.drawBackground = false, .drawBorder = false, .reserveExpanderSpace = true, .neutralDecorations = true});
-    THROW_IF_FAILED(filesTree->SetTypographyOverride(DxUi::Tree::TypographyOverride{13.f, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_WEIGHT_SEMI_BOLD}));
-    filesTree->SetInvokeOnSingleClick(true);
-    filesTree->SetEmptyStateText(Resource(IDS_FILESUNTITLED));
-    filesCount = Label(*filesPane, IDS_FILESUNTITLED, DxUi::FontRole::Small);
-    THROW_IF_FAILED(filesCount->SetTypographyOverride(DxUi::LabelTypography{12.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
-    filesCount->SetMultiline(true);
-    filesFooterDivider = filesPane->AddChild<DxUi::Separator>();
-    filesFooterDivider->SetOrientation(DxUi::SeparatorOrientation::Horizontal);
-    filesModel.invoked = [this](std::uint64_t id)
+    _currentBlockTitle = Label(*_sidebar, IDS_CURRENTSECTION, DxUi::FontRole::Small);
+    Section(_currentBlockTitle);
+    _outlineCount = Label(*_sidebar, IDS_OUTLINECOUNT, DxUi::FontRole::Small);
+    THROW_IF_FAILED(_outlineCount->SetTypographyOverride(DxUi::LabelTypography{11.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
+    _outlineCount->SetAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
+    _contextDivider         = _sidebar->AddChild<DxUi::Separator>();
+    _equationReadOnly       = Label(*_sidebar, IDS_READONLYSHORT, DxUi::FontRole::Small);
+    _filesPane              = _root->AddChild<Surface>(Surface::Kind::Sidebar);
+    _filesPane->borderRight = true;
+    _filesTitle             = Label(*_filesPane, IDS_FILES, DxUi::FontRole::BodyStrong);
+    THROW_IF_FAILED(_filesTitle->SetTypographyOverride(DxUi::LabelTypography{13.f, DWRITE_FONT_WEIGHT_SEMI_BOLD, 0}));
+    _filesRootIcon = _filesPane->AddChild<DxUi::Label>(L"\xE8B7");
+    _filesRootIcon->SetFontRole(DxUi::FontRole::Icon);
+    _filesRootIcon->SetAccessibleName(Resource(IDS_FILES));
+    _filesSectionTitle = Label(*_filesPane, IDS_FILESSECTION, DxUi::FontRole::Small);
+    Section(_filesSectionTitle);
+    _closeFiles = Action(*_filesPane, IDS_CLOSEFILES, Command::Files);
+    Icon(_closeFiles, L"\xE8BB");
+    _closeFiles->SetAppearance(DxUi::ButtonAppearance::Subtle);
+    THROW_IF_FAILED(_closeFiles->SetContentFontSizeDip(12.f));
+    _filesFilter = _filesPane->AddChild<DxUi::TextField>();
+    _filesFilter->SetAccessibleName(Resource(IDS_FILTERFILES));
+    _filesFilter->SetPlaceholder(Resource(IDS_FILTERSHORT));
+    _filesFilter->SetOnTextChanged([this](std::wstring_view) { RefreshFiles(); });
+    _filesTree = _filesPane->AddChild<DxUi::Tree>();
+    _filesTree->SetModel(&_filesModel);
+    _filesTree->SetDelegate(&_filesModel);
+    _filesTree->SetAccessibleName(Resource(IDS_FILES));
+    _filesTree->SetRowHeightDip(31);
+    _filesTree->SetIndentDip(16);
+    _filesTree->SetAppearance({.drawBackground = false, .drawBorder = false, .reserveExpanderSpace = true, .neutralDecorations = true});
+    THROW_IF_FAILED(_filesTree->SetTypographyOverride(DxUi::Tree::TypographyOverride{13.f, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_WEIGHT_SEMI_BOLD}));
+    _filesTree->SetInvokeOnSingleClick(true);
+    _filesTree->SetEmptyStateText(Resource(IDS_FILESUNTITLED));
+    _filesCount = Label(*_filesPane, IDS_FILESUNTITLED, DxUi::FontRole::Small);
+    THROW_IF_FAILED(_filesCount->SetTypographyOverride(DxUi::LabelTypography{12.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
+    _filesCount->SetMultiline(true);
+    _filesFooterDivider = _filesPane->AddChild<DxUi::Separator>();
+    _filesFooterDivider->SetOrientation(DxUi::SeparatorOrientation::Horizontal);
+    _filesModel.invoked = [this](std::uint64_t id)
     {
         if (id > WorkspaceGroupId && id <= WorkspaceGroupId + RecoveryService::MaximumDocuments)
         {
             const auto key = static_cast<unsigned>(id - WorkspaceGroupId - 1);
-            if (key == session.key)
+            if (key == _session.key)
             {
-                workspaceSelectionPreferred = true;
-                if (filesTree->GetSelectedItemId() != id)
-                    filesTree->SetSelectedItemId(id);
+                _workspaceSelectionPreferred = true;
+                if (_filesTree->GetSelectedItemId() != id)
+                    _filesTree->SetSelectedItemId(id);
                 return;
             }
-            for (std::size_t index = 0; index < inactiveDocuments.size(); ++index)
-                if (inactiveDocuments[index].metadata.key == key)
+            for (std::size_t index = 0; index < _inactiveDocuments.size(); ++index)
+                if (_inactiveDocuments[index].metadata.key == key)
                 {
-                    const bool previous = workspaceSelectionPreferred;
-                    workspaceSelectionPreferred = true;
-                    if (!SwitchWorkspaceDocument(index))
+                    const bool previous          = _workspaceSelectionPreferred;
+                    _workspaceSelectionPreferred = true;
+                    if (! SwitchWorkspaceDocument(index))
                     {
-                        workspaceSelectionPreferred = previous;
+                        _workspaceSelectionPreferred = previous;
                         if (IsUiAttached())
                             RefreshFiles();
                     }
@@ -409,567 +407,561 @@ HRESULT Application::BuildUi()
                 }
             return;
         }
-        if (id && id <= visibleFilePaths.size())
-            OpenPath(visibleFilePaths[static_cast<std::size_t>(id - 1)]);
+        if (id && id <= _visibleFilePaths.size())
+            OpenPath(_visibleFilePaths[static_cast<std::size_t>(id - 1)]);
     };
-    filesModel.expanded = [this](std::uint64_t id, bool expanded)
+    _filesModel.expanded = [this](std::uint64_t id, bool expanded)
     {
         if (id == WorkspaceGroupId)
         {
-            workspaceCollapsed = !expanded;
-            if (workspaceCollapsed)
-                workspaceSelectionPreferred = false;
+            _workspaceCollapsed = ! expanded;
+            if (_workspaceCollapsed)
+                _workspaceSelectionPreferred = false;
             RefreshFiles();
             return;
         }
-        if (!id || id > visibleFilePaths.size())
+        if (! id || id > _visibleFilePaths.size())
             return;
-        const auto path = visibleFilePaths[static_cast<std::size_t>(id - 1)];
+        const auto path = _visibleFilePaths[static_cast<std::size_t>(id - 1)];
         if (expanded)
-            collapsedFolders.erase(path);
+            _collapsedFolders.erase(path);
         else
-            collapsedFolders.insert(path);
+            _collapsedFolders.insert(path);
         RefreshFiles();
     };
-    filesSplitter = root->AddChild<DxUi::Splitter>();
-    filesSplitter->SetSubtle(true);
-    filesSplitter->SetAccessibleName(Resource(IDS_FILESWIDTH));
-    filesSplitter->SetMinimumFirstPane(200);
-    filesSplitter->SetOnChange(
-        [this](DxUi::SplitterChange change)
-        {
-            settings.filesWidth = static_cast<unsigned>(std::clamp(change.position, 200.f, 400.f));
-            Layout();
-            if (change.phase == DxUi::SplitterChangePhase::Commit)
-                SavePreferences();
-        });
+    _filesSplitter = _root->AddChild<DxUi::Splitter>();
+    _filesSplitter->SetSubtle(true);
+    _filesSplitter->SetAccessibleName(Resource(IDS_FILESWIDTH));
+    _filesSplitter->SetMinimumFirstPane(200);
+    _filesSplitter->SetOnChange([this](DxUi::SplitterChange change)
+    {
+        _settings.filesWidth = static_cast<unsigned>(std::clamp(change.position, 200.f, 400.f));
+        Layout();
+        if (change.phase == DxUi::SplitterChangePhase::Commit)
+            SavePreferences();
+    });
 
-    drawer = root->AddChild<Surface>(Surface::Kind::Floating);
-    drawer->SetVisible(false);
-    settingsScroll = drawer->AddChild<DxUi::ScrollPanel>();
-    Label(*settingsScroll, IDS_SETTINGS, DxUi::FontRole::Subtitle);
-    Section(Label(*settingsScroll, IDS_APPEARANCESECTION, DxUi::FontRole::Small));
+    _drawer = _root->AddChild<Surface>(Surface::Kind::Floating);
+    _drawer->SetVisible(false);
+    _settingsScroll = _drawer->AddChild<DxUi::ScrollPanel>();
+    Label(*_settingsScroll, IDS_SETTINGS, DxUi::FontRole::Subtitle);
+    Section(Label(*_settingsScroll, IDS_APPEARANCESECTION, DxUi::FontRole::Small));
     for (unsigned index = 0; index < 4; ++index)
-        themeButtons.push_back(
-            Action(*settingsScroll, IDS_SYSTEM + index, static_cast<Command>(static_cast<unsigned>(Command::ThemeSystem) + index)));
-    readingWidth = settingsScroll->AddChild<DxUi::NumericStepper>();
-    readingWidth->SetLabel(Resource(IDS_READINGWIDTH), 140);
-    readingWidth->SetMinimum(480);
-    readingWidth->SetMaximum(1040);
-    readingWidth->SetStep(40);
-    readingWidth->SetLargeStep(80);
-    readingWidth->SetAccessibleName(Resource(IDS_READINGWIDTH));
-    readingWidth->SetStepButtonNames(Resource(IDS_WIDER), Resource(IDS_NARROWER));
-    readingWidth->SetOnChange(
-        [this](DxUi::NumericStepperChange c)
-        {
-            settings.readingWidth = static_cast<unsigned>(c.value);
-            Layout();
-            if (c.phase == DxUi::NumericStepperChangePhase::Commit)
-                SavePreferences();
-        });
-    textScale = settingsScroll->AddChild<DxUi::NumericStepper>();
-    textScale->SetLabel(Resource(IDS_TEXTSIZE), 140);
-    textScale->SetMinimum(75);
-    textScale->SetMaximum(200);
-    textScale->SetStep(5);
-    textScale->SetAccessibleName(Resource(IDS_TEXTSIZE));
-    textScale->SetStepButtonNames(Resource(IDS_LARGER), Resource(IDS_SMALLER));
-    textScale->SetOnChange(
-        [this](DxUi::NumericStepperChange c)
-        {
-            settings.textScale = static_cast<unsigned>(c.value);
-            Layout();
-            if (c.phase == DxUi::NumericStepperChangePhase::Commit)
-                SavePreferences();
-        });
-    outlineToggle = Action(*settingsScroll, IDS_VIEWTOOLS, Command::Outline);
-    focusToggle = Action(*settingsScroll, IDS_FOCUS, Command::Focus);
-    dimToggle = Action(*settingsScroll, IDS_DIMBLOCKS, Command::DimBlocks);
-    strikeTasksToggle = Action(*settingsScroll, IDS_STRIKECOMPLETEDTASKS, Command::StrikeCompletedTasks, Resource(IDS_STRIKECOMPLETEDTASKSHELP));
-    strikeTasksToggle->SetAccessibleHelpText(Resource(IDS_STRIKECOMPLETEDTASKSHELP));
-    syntaxTitle = Label(*settingsScroll, IDS_SYNTAXSECTION, DxUi::FontRole::Small);
-    Section(syntaxTitle);
-    syntaxIntro = Label(*settingsScroll, IDS_SYNTAXINTRO, DxUi::FontRole::Small);
-    syntaxIntro->SetMultiline(true);
+        _themeButtons.push_back(Action(*_settingsScroll, IDS_SYSTEM + index, static_cast<Command>(static_cast<unsigned>(Command::ThemeSystem) + index)));
+    _readingWidth = _settingsScroll->AddChild<DxUi::NumericStepper>();
+    _readingWidth->SetLabel(Resource(IDS_READINGWIDTH), 140);
+    _readingWidth->SetMinimum(480);
+    _readingWidth->SetMaximum(1040);
+    _readingWidth->SetStep(40);
+    _readingWidth->SetLargeStep(80);
+    _readingWidth->SetAccessibleName(Resource(IDS_READINGWIDTH));
+    _readingWidth->SetStepButtonNames(Resource(IDS_WIDER), Resource(IDS_NARROWER));
+    _readingWidth->SetOnChange([this](DxUi::NumericStepperChange c)
+    {
+        _settings.readingWidth = static_cast<unsigned>(c.value);
+        Layout();
+        if (c.phase == DxUi::NumericStepperChangePhase::Commit)
+            SavePreferences();
+    });
+    _textScale = _settingsScroll->AddChild<DxUi::NumericStepper>();
+    _textScale->SetLabel(Resource(IDS_TEXTSIZE), 140);
+    _textScale->SetMinimum(75);
+    _textScale->SetMaximum(200);
+    _textScale->SetStep(5);
+    _textScale->SetAccessibleName(Resource(IDS_TEXTSIZE));
+    _textScale->SetStepButtonNames(Resource(IDS_LARGER), Resource(IDS_SMALLER));
+    _textScale->SetOnChange([this](DxUi::NumericStepperChange c)
+    {
+        _settings.textScale = static_cast<unsigned>(c.value);
+        Layout();
+        if (c.phase == DxUi::NumericStepperChangePhase::Commit)
+            SavePreferences();
+    });
+    _outlineToggle     = Action(*_settingsScroll, IDS_VIEWTOOLS, Command::Outline);
+    _focusToggle       = Action(*_settingsScroll, IDS_FOCUS, Command::Focus);
+    _dimToggle         = Action(*_settingsScroll, IDS_DIMBLOCKS, Command::DimBlocks);
+    _strikeTasksToggle = Action(*_settingsScroll, IDS_STRIKECOMPLETEDTASKS, Command::StrikeCompletedTasks, Resource(IDS_STRIKECOMPLETEDTASKSHELP));
+    _strikeTasksToggle->SetAccessibleHelpText(Resource(IDS_STRIKECOMPLETEDTASKSHELP));
+    _syntaxTitle = Label(*_settingsScroll, IDS_SYNTAXSECTION, DxUi::FontRole::Small);
+    Section(_syntaxTitle);
+    _syntaxIntro = Label(*_settingsScroll, IDS_SYNTAXINTRO, DxUi::FontRole::Small);
+    _syntaxIntro->SetMultiline(true);
     for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
     {
         const auto offset = static_cast<unsigned>(index);
-        const auto help = Resource(IDS_SYNTAXHIGHLIGHTHELP + offset);
-        syntaxToggles[index] = Action(*settingsScroll, IDS_SYNTAXHIGHLIGHT + offset,
-                                      static_cast<Command>(static_cast<unsigned>(Command::SyntaxHighlight) + offset), help);
-        syntaxToggles[index]->SetAccessibleHelpText(help);
-        syntaxHelp[index] = Label(*settingsScroll, IDS_SYNTAXHIGHLIGHTHELP + offset, DxUi::FontRole::Small);
-        syntaxHelp[index]->SetMultiline(true);
+        const auto help   = Resource(IDS_SYNTAXHIGHLIGHTHELP + offset);
+        _syntaxToggles[index] =
+            Action(*_settingsScroll, IDS_SYNTAXHIGHLIGHT + offset, static_cast<Command>(static_cast<unsigned>(Command::SyntaxHighlight) + offset), help);
+        _syntaxToggles[index]->SetAccessibleHelpText(help);
+        _syntaxHelp[index] = Label(*_settingsScroll, IDS_SYNTAXHIGHLIGHTHELP + offset, DxUi::FontRole::Small);
+        _syntaxHelp[index]->SetMultiline(true);
     }
-    privacyTitle = Label(*settingsScroll, IDS_PRIVACYSECTION, DxUi::FontRole::Small);
-    Section(privacyTitle);
-    drawerHelp = Label(*settingsScroll, IDS_LOCALIMAGES, DxUi::FontRole::Small);
-    drawerHelp->SetMultiline(true);
-    recoveryAction = Action(*settingsScroll, IDS_RECOVERY, Command::Recovery);
-    drawerClose = Action(*settingsScroll, IDS_CLOSE, Command::CloseDrawer);
-    drawerImmediate = Label(*settingsScroll, IDS_IMMEDIATE, DxUi::FontRole::Small);
-    remoteImagesToggle = Action(*settingsScroll, IDS_REMOTEIMAGES, Command::RemoteImages);
-    localNetworkImagesToggle = Action(*settingsScroll, IDS_LOCALNETWORKIMAGES, Command::LocalNetworkImages, Resource(IDS_LOCALNETWORKIMAGESHELP));
-    localNetworkImagesToggle->SetAccessibleHelpText(Resource(IDS_LOCALNETWORKIMAGESHELP));
-    imageFirstPasteToggle = Action(*settingsScroll, IDS_IMAGEFIRSTPASTE, Command::ImageFirstPaste, Resource(IDS_IMAGEFIRSTPASTEHELP));
-    imageFirstPasteToggle->SetAccessibleHelpText(Resource(IDS_IMAGEFIRSTPASTEHELP));
-    writingTitle = Label(*settingsScroll, IDS_WRITINGSECTION, DxUi::FontRole::Small);
-    Section(writingTitle);
-    aboutTitle = Label(*settingsScroll, IDS_ABOUTSECTION, DxUi::FontRole::Small);
-    Section(aboutTitle);
-    aboutVersion = settingsScroll->AddChild<DxUi::Label>(FormatStringResource(nullptr, IDS_ABOUTVERSION, REDTILDE_PRODUCT_VERSION_WIDE));
-    aboutVersion->SetFontRole(DxUi::FontRole::BodyStrong);
-    THROW_IF_FAILED(aboutVersion->SetTypographyOverride(DxUi::LabelTypography{14.f, DWRITE_FONT_WEIGHT_SEMI_BOLD, 0}));
-    aboutSummary = Label(*settingsScroll, IDS_ABOUT, DxUi::FontRole::Small);
-    aboutSummary->SetMultiline(true);
-    shortcutsList = Label(*settingsScroll, IDS_SHORTCUTS, DxUi::FontRole::Small);
-    shortcutsList->SetMultiline(true);
-    findBar = root->AddChild<Surface>(Surface::Kind::Floating);
-    findBar->SetVisible(false);
-    findText = findBar->AddChild<DxUi::TextField>();
-    findText->SetAccessibleName(Resource(IDS_FINDHINT));
-    findText->SetPlaceholder(Resource(IDS_FINDHINT));
-    findText->SetOnSubmitted([this] { FindNext(); });
-    findText->SetOnTextChanged([this](std::wstring_view) { RefreshFind(); });
-    findCount = Label(*findBar, IDS_NOMATCH, DxUi::FontRole::Small);
-    Icon(Action(*findBar, IDS_FINDPREVIOUS, Command::FindPrevious), L"\xE70E");
-    Icon(Action(*findBar, IDS_FINDNEXT, Command::FindNext), L"\xE70D");
-    Icon(Action(*findBar, IDS_CLOSE, Command::CloseDrawer), L"\xE8BB");
-    replaceText = findBar->AddChild<DxUi::TextField>();
-    replaceText->SetAccessibleName(Resource(IDS_REPLACEHINT));
-    replaceText->SetPlaceholder(Resource(IDS_REPLACEHINT));
-    Action(*findBar, IDS_REPLACE, Command::Replace);
-    Action(*findBar, IDS_REPLACEALL, Command::ReplaceAll);
-    findCaseToggle = Action(*findBar, IDS_MATCHCASE, Command::FindMatchCase);
-    blockDraft = root->AddChild<Surface>(Surface::Kind::Floating);
-    blockDraft->SetVisible(false);
-    Label(*blockDraft, IDS_LOCAL, DxUi::FontRole::BodyStrong);
-    Label(*blockDraft, IDS_BLOCKHELP, DxUi::FontRole::Small);
-    blockDraftText = blockDraft->AddChild<DxUi::TextField>();
-    blockDraftText->SetFontRole(DxUi::FontRole::Monospace);
-    blockDraftText->SetMultiline(true);
-    blockDraftText->SetAccessibleName(Resource(IDS_LOCAL));
-    blockDraftText->SetOnTextChanged(
-        [this](std::wstring_view)
+    _privacyTitle = Label(*_settingsScroll, IDS_PRIVACYSECTION, DxUi::FontRole::Small);
+    Section(_privacyTitle);
+    _drawerHelp = Label(*_settingsScroll, IDS_LOCALIMAGES, DxUi::FontRole::Small);
+    _drawerHelp->SetMultiline(true);
+    _recoveryAction           = Action(*_settingsScroll, IDS_RECOVERY, Command::Recovery);
+    _drawerClose              = Action(*_settingsScroll, IDS_CLOSE, Command::CloseDrawer);
+    _drawerImmediate          = Label(*_settingsScroll, IDS_IMMEDIATE, DxUi::FontRole::Small);
+    _remoteImagesToggle       = Action(*_settingsScroll, IDS_REMOTEIMAGES, Command::RemoteImages);
+    _localNetworkImagesToggle = Action(*_settingsScroll, IDS_LOCALNETWORKIMAGES, Command::LocalNetworkImages, Resource(IDS_LOCALNETWORKIMAGESHELP));
+    _localNetworkImagesToggle->SetAccessibleHelpText(Resource(IDS_LOCALNETWORKIMAGESHELP));
+    _imageFirstPasteToggle = Action(*_settingsScroll, IDS_IMAGEFIRSTPASTE, Command::ImageFirstPaste, Resource(IDS_IMAGEFIRSTPASTEHELP));
+    _imageFirstPasteToggle->SetAccessibleHelpText(Resource(IDS_IMAGEFIRSTPASTEHELP));
+    _writingTitle = Label(*_settingsScroll, IDS_WRITINGSECTION, DxUi::FontRole::Small);
+    Section(_writingTitle);
+    _aboutTitle = Label(*_settingsScroll, IDS_ABOUTSECTION, DxUi::FontRole::Small);
+    Section(_aboutTitle);
+    _aboutVersion = _settingsScroll->AddChild<DxUi::Label>(FormatStringResource(nullptr, IDS_ABOUTVERSION, REDTILDE_PRODUCT_VERSION_WIDE));
+    _aboutVersion->SetFontRole(DxUi::FontRole::BodyStrong);
+    THROW_IF_FAILED(_aboutVersion->SetTypographyOverride(DxUi::LabelTypography{14.f, DWRITE_FONT_WEIGHT_SEMI_BOLD, 0}));
+    _aboutSummary = Label(*_settingsScroll, IDS_ABOUT, DxUi::FontRole::Small);
+    _aboutSummary->SetMultiline(true);
+    _shortcutsList = Label(*_settingsScroll, IDS_SHORTCUTS, DxUi::FontRole::Small);
+    _shortcutsList->SetMultiline(true);
+    _findBar = _root->AddChild<Surface>(Surface::Kind::Floating);
+    _findBar->SetVisible(false);
+    _findText = _findBar->AddChild<DxUi::TextField>();
+    _findText->SetAccessibleName(Resource(IDS_FINDHINT));
+    _findText->SetPlaceholder(Resource(IDS_FINDHINT));
+    _findText->SetOnSubmitted([this] { FindNext(); });
+    _findText->SetOnTextChanged([this](std::wstring_view) { RefreshFind(); });
+    _findCount = Label(*_findBar, IDS_NOMATCH, DxUi::FontRole::Small);
+    Icon(Action(*_findBar, IDS_FINDPREVIOUS, Command::FindPrevious), L"\xE70E");
+    Icon(Action(*_findBar, IDS_FINDNEXT, Command::FindNext), L"\xE70D");
+    Icon(Action(*_findBar, IDS_CLOSE, Command::CloseDrawer), L"\xE8BB");
+    _replaceText = _findBar->AddChild<DxUi::TextField>();
+    _replaceText->SetAccessibleName(Resource(IDS_REPLACEHINT));
+    _replaceText->SetPlaceholder(Resource(IDS_REPLACEHINT));
+    Action(*_findBar, IDS_REPLACE, Command::Replace);
+    Action(*_findBar, IDS_REPLACEALL, Command::ReplaceAll);
+    _findCaseToggle = Action(*_findBar, IDS_MATCHCASE, Command::FindMatchCase);
+    _blockDraft     = _root->AddChild<Surface>(Surface::Kind::Floating);
+    _blockDraft->SetVisible(false);
+    Label(*_blockDraft, IDS_LOCAL, DxUi::FontRole::BodyStrong);
+    Label(*_blockDraft, IDS_BLOCKHELP, DxUi::FontRole::Small);
+    _blockDraftText = _blockDraft->AddChild<DxUi::TextField>();
+    _blockDraftText->SetFontRole(DxUi::FontRole::Monospace);
+    _blockDraftText->SetMultiline(true);
+    _blockDraftText->SetAccessibleName(Resource(IDS_LOCAL));
+    _blockDraftText->SetOnTextChanged([this](std::wstring_view)
+    {
+        if (HasBlockDraft())
+            CheckpointRecovery();
+    });
+    _blockDraftText->SetOnPreviewKeyDown([this](DxUi::ControlHost&, UINT key, UINT modifiers)
+    {
+        if (key == VK_RETURN && (modifiers & MK_CONTROL))
         {
-            if (HasBlockDraft())
-                CheckpointRecovery();
-        });
-    blockDraftText->SetOnPreviewKeyDown(
-        [this](DxUi::ControlHost &, UINT key, UINT modifiers)
-        {
-            if (key == VK_RETURN && (modifiers & MK_CONTROL))
-            {
-                Execute(Command::ApplyBlock);
-                return true;
-            }
-            return false;
-        });
-    Action(*blockDraft, IDS_APPLY, Command::ApplyBlock)->SetPrimary(true);
-    Action(*blockDraft, IDS_CANCEL, Command::CloseDrawer);
-    recoveryPanel = root->AddChild<Surface>(Surface::Kind::Floating);
-    recoveryPanel->SetVisible(false);
-    Label(*recoveryPanel, IDS_RECOVERY, DxUi::FontRole::Subtitle);
-    recoveryDescription = Label(*recoveryPanel, IDS_RECOVERYHELP, DxUi::FontRole::Small);
-    recoveryDescription->SetMultiline(true);
-    recoveryPreview = recoveryPanel->AddChild<DxUi::TextField>();
-    recoveryPreview->SetMultiline(true);
-    recoveryPreview->SetReadOnly(true);
-    recoveryPreview->SetAccessibleName(Resource(IDS_RECOVERY));
-    Action(*recoveryPanel, IDS_RESTORE, Command::RestoreRecovery)->SetPrimary(true);
-    Action(*recoveryPanel, IDS_DISCARD, Command::DiscardRecovery);
-    Action(*recoveryPanel, IDS_LATER, Command::LaterRecovery);
-    restoreAllRecovery = Action(*recoveryPanel, IDS_RESTOREALL, Command::RestoreAllRecovery);
-    restoreAllRecovery->SetVisible(false);
-    focusPill = root->AddChild<Surface>(Surface::Kind::Floating);
-    stats = Label(*focusPill, IDS_SAVED, DxUi::FontRole::Small);
-    THROW_IF_FAILED(stats->SetTypographyOverride(DxUi::LabelTypography{12.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
-    positionStatus = Label(*root, IDS_SAVED, DxUi::FontRole::Small);
-    THROW_IF_FAILED(positionStatus->SetTypographyOverride(DxUi::LabelTypography{12.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
-    positionStatus->SetAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
-    feedback = Label(*root, IDS_EMPTY, DxUi::FontRole::Small);
-    for (auto *label : {stats, positionStatus, feedback})
+            Execute(Command::ApplyBlock);
+            return true;
+        }
+        return false;
+    });
+    Action(*_blockDraft, IDS_APPLY, Command::ApplyBlock)->SetPrimary(true);
+    Action(*_blockDraft, IDS_CANCEL, Command::CloseDrawer);
+    _recoveryPanel = _root->AddChild<Surface>(Surface::Kind::Floating);
+    _recoveryPanel->SetVisible(false);
+    Label(*_recoveryPanel, IDS_RECOVERY, DxUi::FontRole::Subtitle);
+    _recoveryDescription = Label(*_recoveryPanel, IDS_RECOVERYHELP, DxUi::FontRole::Small);
+    _recoveryDescription->SetMultiline(true);
+    _recoveryPreview = _recoveryPanel->AddChild<DxUi::TextField>();
+    _recoveryPreview->SetMultiline(true);
+    _recoveryPreview->SetReadOnly(true);
+    _recoveryPreview->SetAccessibleName(Resource(IDS_RECOVERY));
+    Action(*_recoveryPanel, IDS_RESTORE, Command::RestoreRecovery)->SetPrimary(true);
+    Action(*_recoveryPanel, IDS_DISCARD, Command::DiscardRecovery);
+    Action(*_recoveryPanel, IDS_LATER, Command::LaterRecovery);
+    _restoreAllRecovery = Action(*_recoveryPanel, IDS_RESTOREALL, Command::RestoreAllRecovery);
+    _restoreAllRecovery->SetVisible(false);
+    _focusPill = _root->AddChild<Surface>(Surface::Kind::Floating);
+    _stats     = Label(*_focusPill, IDS_SAVED, DxUi::FontRole::Small);
+    THROW_IF_FAILED(_stats->SetTypographyOverride(DxUi::LabelTypography{12.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
+    _positionStatus = Label(*_root, IDS_SAVED, DxUi::FontRole::Small);
+    THROW_IF_FAILED(_positionStatus->SetTypographyOverride(DxUi::LabelTypography{12.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
+    _positionStatus->SetAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
+    _feedback = Label(*_root, IDS_EMPTY, DxUi::FontRole::Small);
+    for (auto* label : {_stats, _positionStatus, _feedback})
         THROW_IF_FAILED(label->SetTypographyOverride(DxUi::LabelTypography{12.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
-    floating = root->AddChild<Surface>(Surface::Kind::Floating);
-    for (const auto &[id, cmd] : std::array<std::pair<unsigned, Command>, 5>{{{IDS_HEADING, Command::Heading},
-                                                                              {IDS_BOLD, Command::Bold},
-                                                                              {IDS_ITALIC, Command::Italic},
-                                                                              {IDS_CODE, Command::Code},
-                                                                              {IDS_LINK, Command::Link}}})
-        floatingActions.push_back(Action(*floating, id, cmd));
-    floatingActions.front()->SetVariant(DxUi::ButtonVariant::DropDown);
-    selectionHintChip = floating->AddChild<DxUi::CardPanel>();
-    selectionHintChip->SetCornerRadius(4);
-    selectionHint = Label(*selectionHintChip, IDS_SELECTIONKEY, DxUi::FontRole::Small);
-    THROW_IF_FAILED(selectionHint->SetTypographyOverride(DxUi::LabelTypography{11.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
-    selectionHint->SetAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
-    floating->SetVisible(false);
-    host.SetRoot(std::move(tree));
-    host.SetOnEscape([this] { return DismissSurface(); });
+    _floating = _root->AddChild<Surface>(Surface::Kind::Floating);
+    for (const auto& [id, cmd] : std::array<std::pair<unsigned, Command>, 5>{
+             {{IDS_HEADING, Command::Heading}, {IDS_BOLD, Command::Bold}, {IDS_ITALIC, Command::Italic}, {IDS_CODE, Command::Code}, {IDS_LINK, Command::Link}}})
+        _floatingActions.push_back(Action(*_floating, id, cmd));
+    _floatingActions.front()->SetVariant(DxUi::ButtonVariant::DropDown);
+    _selectionHintChip = _floating->AddChild<DxUi::CardPanel>();
+    _selectionHintChip->SetCornerRadius(4);
+    _selectionHint = Label(*_selectionHintChip, IDS_SELECTIONKEY, DxUi::FontRole::Small);
+    THROW_IF_FAILED(_selectionHint->SetTypographyOverride(DxUi::LabelTypography{11.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
+    _selectionHint->SetAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+    _floating->SetVisible(false);
+    _host.SetRoot(std::move(tree));
+    _host.SetOnEscape([this] { return DismissSurface(); });
     return S_OK;
 }
 
 void Application::Layout()
 {
-    ++activity.layouts;
-    if (!root)
+    ++_activity.layouts;
+    if (! _root)
         return;
-    const auto bounds = host.GetClientBoundsDip();
+    const auto bounds = _host.GetClientBoundsDip();
     const float width = bounds.right, height = bounds.bottom;
-    root->SetBounds(bounds);
-    const bool focus = settings.focusMode;
+    _root->SetBounds(bounds);
+    const bool focus = _settings.focusMode;
     const float bar = focus ? 40.f : 56.f, top = focus ? 40.f : 104.f, bottom = std::max(top + 120, height - 28);
-    documentBar->SetBounds(D2D1::RectF(0, 0, width, bar));
-    commandBar->SetBounds(D2D1::RectF(0, 56, width, 104));
-    commandBar->SetVisible(!focus);
-    brandMark->SetVisible(!focus);
-    brandMark->SetBounds(D2D1::RectF(16, 14, 44, 42));
-    const bool compactHeader = width < 1040;
-    const float tabsLeft = compactHeader ? width - 520 : width / 2 - 104;
-    const float titleLimit = std::max(56.f, tabsLeft - 120.f);
-    const auto typography = host.GetTypographyRevision();
+    _documentBar->SetBounds(D2D1::RectF(0, 0, width, bar));
+    _commandBar->SetBounds(D2D1::RectF(0, 56, width, 104));
+    _commandBar->SetVisible(! focus);
+    _brandMark->SetVisible(! focus);
+    _brandMark->SetBounds(D2D1::RectF(16, 14, 44, 42));
+    const bool compactHeader  = width < 1040;
+    const float tabsLeft      = compactHeader ? width - 520 : width / 2 - 104;
+    const float titleLimit    = std::max(56.f, tabsLeft - 120.f);
+    const auto typography     = _host.GetTypographyRevision();
     const float identityWidth = titleLimit - 54.f;
-    if (typography && (identityMeasure.textRevision != title->GetMeasureRevision() || identityMeasure.typographyRevision != typography ||
-                       identityMeasure.availableWidth != identityWidth || identityMeasure.dpi != host.GetDpi()))
+    if (typography && (_identityMeasure.textRevision != _title->GetMeasureRevision() || _identityMeasure.typographyRevision != typography ||
+                       _identityMeasure.availableWidth != identityWidth || _identityMeasure.dpi != _host.GetDpi()))
     {
         DxUi::DesiredSize identitySize;
-        THROW_IF_FAILED(DxUi::MeasureControl(*title, {host}, DxUi::LayoutConstraints::AtMost(identityWidth), identitySize));
-        identityMeasure = {title->GetMeasureRevision(), host.GetTypographyRevision(), identityWidth, identitySize.sizeDip.width, host.GetDpi()};
+        THROW_IF_FAILED(DxUi::MeasureControl(*_title, {_host}, DxUi::LayoutConstraints::AtMost(identityWidth), identitySize));
+        _identityMeasure = {_title->GetMeasureRevision(), _host.GetTypographyRevision(), identityWidth, identitySize.sizeDip.width, _host.GetDpi()};
     }
-    const float titleRight = typography ? std::min(titleLimit, 54.f + identityMeasure.width) : titleLimit;
-    title->SetBounds(focus ? D2D1::RectF(20, 6, width - 320, 34) : D2D1::RectF(54, 16, titleRight, 40));
-    saveStateChip->SetVisible(!focus);
-    saveStateChip->SetBounds(D2D1::RectF(titleRight + 10, 18, titleRight + 62, 38));
-    saveState->SetBounds(D2D1::RectF(titleRight + 14, 18, titleRight + 58, 38));
+    const float titleRight = typography ? std::min(titleLimit, 54.f + _identityMeasure.width) : titleLimit;
+    _title->SetBounds(focus ? D2D1::RectF(20, 6, width - 320, 34) : D2D1::RectF(54, 16, titleRight, 40));
+    _saveStateChip->SetVisible(! focus);
+    _saveStateChip->SetBounds(D2D1::RectF(titleRight + 10, 18, titleRight + 62, 38));
+    _saveState->SetBounds(D2D1::RectF(titleRight + 14, 18, titleRight + 58, 38));
     constexpr std::array<float, 3> tabOffsets{0.f, 92.f, 170.f}, tabWidths{88.f, 74.f, 54.f};
     for (unsigned index = 0; index < 3; ++index)
     {
-        modeButtons[index]->SetVisible(!focus);
-        modeButtons[index]->SetBounds(D2D1::RectF(tabsLeft + tabOffsets[index], 8, tabsLeft + tabOffsets[index] + tabWidths[index], 46));
-        modeButtons[index]->SetToggleState(static_cast<unsigned>(settings.view) == index);
+        _modeButtons[index]->SetVisible(! focus);
+        _modeButtons[index]->SetBounds(D2D1::RectF(tabsLeft + tabOffsets[index], 8, tabsLeft + tabOffsets[index] + tabWidths[index], 46));
+        _modeButtons[index]->SetToggleState(static_cast<unsigned>(_settings.view) == index);
     }
-    fileMenu->SetVisible(!focus);
-    fileMenu->SetBounds(D2D1::RectF(width - 294, 8, width - 230, 48));
-    saveButton->SetVisible(!focus);
-    saveButton->SetBounds(D2D1::RectF(width - 217, 8, width - 146, 48));
-    exitFocus->SetVisible(focus);
-    exitFocus->SetBounds(D2D1::RectF(width - 288, 4, width - 144, 36));
-    const std::array<DxUi::Button *, 3> captions{minimizeButton, maximizeButton, closeButton};
+    _fileMenu->SetVisible(! focus);
+    _fileMenu->SetBounds(D2D1::RectF(width - 294, 8, width - 230, 48));
+    _saveButton->SetVisible(! focus);
+    _saveButton->SetBounds(D2D1::RectF(width - 217, 8, width - 146, 48));
+    _exitFocus->SetVisible(focus);
+    _exitFocus->SetBounds(D2D1::RectF(width - 288, 4, width - 144, 36));
+    const std::array<DxUi::Button*, 3> captions{_minimizeButton, _maximizeButton, _closeButton};
     for (unsigned i = 0; i < 3; ++i)
-        captions[i]->SetBounds(
-            D2D1::RectF(width - 138 + static_cast<float>(i) * 46.f, 0, width - 92 + static_cast<float>(i) * 46.f, std::min(36.f, bar)));
-    maximizeButton->SetText(IsZoomed(window.get()) ? L"\xE923" : L"\xE922");
-    float x = 12;
-    auto place = [&](DxUi::Button *button, float w)
+        captions[i]->SetBounds(D2D1::RectF(width - 138 + static_cast<float>(i) * 46.f, 0, width - 92 + static_cast<float>(i) * 46.f, std::min(36.f, bar)));
+    _maximizeButton->SetText(IsZoomed(_window.get()) ? L"\xE923" : L"\xE922");
+    float x    = 12;
+    auto place = [&](DxUi::Button* button, float w)
     {
         button->SetBounds(D2D1::RectF(x, 62, x + w, 98));
         x += w + 2;
     };
-    place(filesToggle, 36);
+    place(_filesToggle, 36);
     auto divide = [&](unsigned index)
     {
-        commandDividers[index]->SetVisible(true);
-        commandDividers[index]->SetBounds(D2D1::RectF(x + 8, 70, x + 9, 90));
+        _commandDividers[index]->SetVisible(true);
+        _commandDividers[index]->SetBounds(D2D1::RectF(x + 8, 70, x + 9, 90));
         x += 19;
     };
     divide(0);
-    place(tools[0], 36);
-    place(tools[1], 36);
+    place(_tools[0], 36);
+    place(_tools[1], 36);
     divide(1);
-    place(tools[2], 128);
+    place(_tools[2], 128);
     divide(2);
     const float commandLimit = width - 248;
-    commandDividers[3]->SetVisible(false);
-    commandDividers[4]->SetVisible(false);
+    _commandDividers[3]->SetVisible(false);
+    _commandDividers[4]->SetVisible(false);
     for (const unsigned i : {3u, 4u, 5u, 13u, 6u, 7u, 8u})
     {
-        const float w = i == 8 ? 100.f : 36.f;
+        const float w   = i == 8 ? 100.f : 36.f;
         const bool fits = x + w + 44 <= commandLimit;
-        tools[i]->SetVisible(fits);
+        _tools[i]->SetVisible(fits);
         if (fits)
-            place(tools[i], w);
+            place(_tools[i], w);
         if ((i == 13 || i == 7) && fits)
             divide(i == 13 ? 3 : 4);
     }
-    tools[10]->SetVisible(false);
-    const bool overflow = std::ranges::any_of(std::array<unsigned, 7>{3, 4, 5, 13, 6, 7, 8}, [this](unsigned i) { return !tools[i]->IsVisible(); });
-    overflowButton->SetVisible(overflow);
+    _tools[10]->SetVisible(false);
+    const bool overflow = std::ranges::any_of(std::array<unsigned, 7>{3, 4, 5, 13, 6, 7, 8}, [this](unsigned i) { return ! _tools[i]->IsVisible(); });
+    _overflowButton->SetVisible(overflow);
     if (overflow)
-        place(overflowButton, 36);
-    commandDividers[5]->SetVisible(false);
+        place(_overflowButton, 36);
+    _commandDividers[5]->SetVisible(false);
     x = width - 248;
-    place(tools[9], 120);
-    place(tools[11], 36);
-    place(panelToggle, 36);
-    place(settingsToggle, 36);
-    filesToggle->SetToggleState(settings.showFiles);
-    panelToggle->SetToggleState(settings.showOutline);
-    settingsToggle->SetToggleState(drawer->IsVisible());
-    tools[11]->SetToggleState(focus);
-    const bool fileOverlay = settings.showFiles && width < static_cast<float>(settings.readingWidth + settings.filesWidth + 96 + 6);
-    const float filesWidth = static_cast<float>(settings.filesWidth);
-    const float left = settings.showFiles && !fileOverlay && !focus ? filesWidth : 0;
-    const bool showSidebar = settings.showOutline && !focus && !fileOverlay && width - left >= static_cast<float>(settings.readingWidth + 336) &&
-                             settings.view != EditorView::Split;
-    const float right = showSidebar ? width - 240 : width;
-    const auto layoutRequest = activity.layouts;
-    const bool sidebarWasVisible = sidebar->IsVisible();
-    if (showSidebar && !sidebarWasVisible && !PublishCurrentBlockLabelIfVisible(true))
+    place(_tools[9], 120);
+    place(_tools[11], 36);
+    place(_panelToggle, 36);
+    place(_settingsToggle, 36);
+    _filesToggle->SetToggleState(_settings.showFiles);
+    _panelToggle->SetToggleState(_settings.showOutline);
+    _settingsToggle->SetToggleState(_drawer->IsVisible());
+    _tools[11]->SetToggleState(focus);
+    const bool fileOverlay       = _settings.showFiles && width < static_cast<float>(_settings.readingWidth + _settings.filesWidth + 96 + 6);
+    const float filesWidth       = static_cast<float>(_settings.filesWidth);
+    const float left             = _settings.showFiles && ! fileOverlay && ! focus ? filesWidth : 0;
+    const bool showSidebar       = _settings.showOutline && ! focus && ! fileOverlay && width - left >= static_cast<float>(_settings.readingWidth + 336) &&
+                                   _settings.view != EditorView::Split;
+    const float right            = showSidebar ? width - 240 : width;
+    const auto layoutRequest     = _activity.layouts;
+    const bool sidebarWasVisible = _sidebar->IsVisible();
+    if (showSidebar && ! sidebarWasVisible && ! PublishCurrentBlockLabelIfVisible(true))
         return;
-    if (activity.layouts != layoutRequest)
+    if (_activity.layouts != layoutRequest)
         return;
-    sidebar->SetVisible(showSidebar);
-    if (activity.layouts != layoutRequest)
+    _sidebar->SetVisible(showSidebar);
+    if (_activity.layouts != layoutRequest)
         return;
-    sidebar->SetBounds(D2D1::RectF(width - 240, top, width, bottom));
+    _sidebar->SetBounds(D2D1::RectF(width - 240, top, width, bottom));
     const float side = width - 224;
-    outlineTitle->SetBounds(D2D1::RectF(side + 4, top + 16, width - 100, top + 40));
-    outlineCount->SetBounds(D2D1::RectF(width - 104, top + 16, width - 16, top + 40));
-    const float contextHeight = equationContext ? 260.f : 128.f;
-    const float outlineHeight = std::max(40.f, static_cast<float>(outlineModel.rows.size()) * 42.f + 4.f);
+    _outlineTitle->SetBounds(D2D1::RectF(side + 4, top + 16, width - 100, top + 40));
+    _outlineCount->SetBounds(D2D1::RectF(width - 104, top + 16, width - 16, top + 40));
+    const float contextHeight = _equationContext ? 260.f : 128.f;
+    const float outlineHeight = std::max(40.f, static_cast<float>(_outlineModel.rows.size()) * 42.f + 4.f);
     const float outlineBottom = std::min(top + 44 + outlineHeight, std::max(top + 92, bottom - contextHeight));
-    outlineTree->SetBounds(D2D1::RectF(side - 4, top + 44, width - 8, outlineBottom));
-    contextDivider->SetBounds(D2D1::RectF(side + 4, outlineBottom + 12, width - 12, outlineBottom + 13));
-    contextDivider->SetOrientation(DxUi::SeparatorOrientation::Horizontal);
-    currentBlockTitle->SetBounds(D2D1::RectF(side + 4, outlineBottom + 28, width - 16, outlineBottom + 48));
-    currentBlock->SetBounds(D2D1::RectF(side + 4, outlineBottom + 52, width - 16, outlineBottom + 76));
-    if (showSidebar && !PublishCurrentBlockLabelIfVisible())
+    _outlineTree->SetBounds(D2D1::RectF(side - 4, top + 44, width - 8, outlineBottom));
+    _contextDivider->SetBounds(D2D1::RectF(side + 4, outlineBottom + 12, width - 12, outlineBottom + 13));
+    _contextDivider->SetOrientation(DxUi::SeparatorOrientation::Horizontal);
+    _currentBlockTitle->SetBounds(D2D1::RectF(side + 4, outlineBottom + 28, width - 16, outlineBottom + 48));
+    _currentBlock->SetBounds(D2D1::RectF(side + 4, outlineBottom + 52, width - 16, outlineBottom + 76));
+    if (showSidebar && ! PublishCurrentBlockLabelIfVisible())
         return;
-    if (activity.layouts != layoutRequest)
+    if (_activity.layouts != layoutRequest)
         return;
-    listSummaryIcon->SetBounds(D2D1::RectF(side + 4, outlineBottom + 52, side + 20, outlineBottom + 76));
-    listSummary->SetBounds(D2D1::RectF(side + 28, outlineBottom + 52, width - 16, outlineBottom + 76));
-    blockSourceAction->SetBounds(D2D1::RectF(side + 4, outlineBottom + 84, width - 20, outlineBottom + 116));
-    equationHelp->SetVisible(equationContext);
-    equation->SetVisible(equationContext);
-    equationReadOnly->SetVisible(equationContext);
-    equationHelp->SetBounds(D2D1::RectF(side, outlineBottom + 132, width - 100, outlineBottom + 156));
-    equationReadOnly->SetBounds(D2D1::RectF(width - 96, outlineBottom + 132, width - 16, outlineBottom + 156));
-    equation->SetBounds(D2D1::RectF(side, outlineBottom + 164, width - 16, bottom - 16));
-    page->SetBounds(D2D1::RectF(left, top, right, bottom));
-    const bool split = settings.view == EditorView::Split;
-    const float mid = (left + right) / 2;
-    const float gutter = focus ? 32.f : split ? 24.f : 48.f;
+    _listSummaryIcon->SetBounds(D2D1::RectF(side + 4, outlineBottom + 52, side + 20, outlineBottom + 76));
+    _listSummary->SetBounds(D2D1::RectF(side + 28, outlineBottom + 52, width - 16, outlineBottom + 76));
+    _blockSourceAction->SetBounds(D2D1::RectF(side + 4, outlineBottom + 84, width - 20, outlineBottom + 116));
+    _equationHelp->SetVisible(_equationContext);
+    _equation->SetVisible(_equationContext);
+    _equationReadOnly->SetVisible(_equationContext);
+    _equationHelp->SetBounds(D2D1::RectF(side, outlineBottom + 132, width - 100, outlineBottom + 156));
+    _equationReadOnly->SetBounds(D2D1::RectF(width - 96, outlineBottom + 132, width - 16, outlineBottom + 156));
+    _equation->SetBounds(D2D1::RectF(side, outlineBottom + 164, width - 16, bottom - 16));
+    _page->SetBounds(D2D1::RectF(left, top, right, bottom));
+    const bool split          = _settings.view == EditorView::Split;
+    const float mid           = (left + right) / 2;
+    const float gutter        = focus ? 32.f : split ? 24.f : 48.f;
     const float consentHeight = right - left < 600.f ? 104.f : 64.f;
-    const float consentTop = top + 12.f;
-    const float contentTop = std::max(top + (focus ? 36.f : 60.f), imageConsent->IsVisible() ? consentTop + consentHeight + 12.f : top);
-    imageConsent->SetBounds(D2D1::RectF(left + 12.f, consentTop, right - 12.f, consentTop + consentHeight));
+    const float consentTop    = top + 12.f;
+    const float contentTop    = std::max(top + (focus ? 36.f : 60.f), _imageConsent->IsVisible() ? consentTop + consentHeight + 12.f : top);
+    _imageConsent->SetBounds(D2D1::RectF(left + 12.f, consentTop, right - 12.f, consentTop + consentHeight));
     const bool narrowConsent = right - left < 600.f;
-    imageConsentText->SetBounds(D2D1::RectF(left + 24.f, consentTop + 8.f, narrowConsent ? right - 24.f : right - 256.f, consentTop + 48.f));
+    _imageConsentText->SetBounds(D2D1::RectF(left + 24.f, consentTop + 8.f, narrowConsent ? right - 24.f : right - 256.f, consentTop + 48.f));
     const float consentButtonsTop = consentTop + (narrowConsent ? 60.f : 14.f);
-    imageConsentAction->SetBounds(D2D1::RectF(narrowConsent ? left + 24.f : right - 244.f, consentButtonsTop,
-                                              narrowConsent ? left + 128.f : right - 140.f, consentButtonsTop + 36.f));
-    imageReload->SetBounds(D2D1::RectF(right - 132.f, consentButtonsTop, right - 24.f, consentButtonsTop + 36.f));
-    editor->SetBounds(D2D1::RectF(left + gutter, contentTop, (split ? mid : right) - gutter, bottom));
-    mirror->SetVisible(split);
-    mirror->SetBounds(D2D1::RectF(mid + 24, imageConsent->IsVisible() ? contentTop : top + 56, right - 24, bottom - 24));
+    _imageConsentAction->SetBounds(
+        D2D1::RectF(narrowConsent ? left + 24.f : right - 244.f, consentButtonsTop, narrowConsent ? left + 128.f : right - 140.f, consentButtonsTop + 36.f));
+    _imageReload->SetBounds(D2D1::RectF(right - 132.f, consentButtonsTop, right - 24.f, consentButtonsTop + 36.f));
+    _editor->SetBounds(D2D1::RectF(left + gutter, contentTop, (split ? mid : right) - gutter, bottom));
+    _mirror->SetVisible(split);
+    _mirror->SetBounds(D2D1::RectF(mid + 24, _imageConsent->IsVisible() ? contentTop : top + 56, right - 24, bottom - 24));
     DxUi::RichTextEditorAppearance appearance;
-    appearance.markdownPresentation = DxUi::RichText::MarkdownPresentationStyle::Subtle;
-    appearance.strikeCompletedTasks = settings.strikeCompletedTasks;
-    appearance.drawBorder = false;
-    appearance.drawFocusIndicator = false;
-    appearance.useAccentLinkColor = true;
-    appearance.showVerticalScrollbar = true;
-    appearance.paddingDip = 0;
-    appearance.maximumTextWidthDip = focus ? 680.f : static_cast<float>(settings.readingWidth);
-    appearance.bodyFontSizeDip = (focus ? 18.f : split ? 15.f : 16.f) * static_cast<float>(settings.textScale) / 100.f;
-    appearance.codeFontSizeDip = 13.5f * static_cast<float>(settings.textScale) / 100.f;
-    appearance.lineHeightMultiplier = settings.view == EditorView::Source ? 1.75f : 1.65f;
-    appearance.headingFontSizeDip = {34.f * static_cast<float>(settings.textScale) / 100.f, 23.f * static_cast<float>(settings.textScale) / 100.f,
-                                     20.f * static_cast<float>(settings.textScale) / 100.f, 18.f * static_cast<float>(settings.textScale) / 100.f,
-                                     16.f * static_cast<float>(settings.textScale) / 100.f, 16.f * static_cast<float>(settings.textScale) / 100.f};
+    appearance.markdownPresentation        = DxUi::RichText::MarkdownPresentationStyle::Subtle;
+    appearance.strikeCompletedTasks        = _settings.strikeCompletedTasks;
+    appearance.drawBorder                  = false;
+    appearance.drawFocusIndicator          = false;
+    appearance.useAccentLinkColor          = true;
+    appearance.showVerticalScrollbar       = true;
+    appearance.paddingDip                  = 0;
+    appearance.maximumTextWidthDip         = focus ? 680.f : static_cast<float>(_settings.readingWidth);
+    appearance.bodyFontSizeDip             = (focus ? 18.f : split ? 15.f : 16.f) * static_cast<float>(_settings.textScale) / 100.f;
+    appearance.codeFontSizeDip             = 13.5f * static_cast<float>(_settings.textScale) / 100.f;
+    appearance.lineHeightMultiplier        = _settings.view == EditorView::Source ? 1.75f : 1.65f;
+    appearance.headingFontSizeDip          = {34.f * static_cast<float>(_settings.textScale) / 100.f,
+                                              23.f * static_cast<float>(_settings.textScale) / 100.f,
+                                              20.f * static_cast<float>(_settings.textScale) / 100.f,
+                                              18.f * static_cast<float>(_settings.textScale) / 100.f,
+                                              16.f * static_cast<float>(_settings.textScale) / 100.f,
+                                              16.f * static_cast<float>(_settings.textScale) / 100.f};
     appearance.headingLineHeightMultiplier = {1.2f, 1.3f, 1.3f, 1.3f, 1.3f, 1.3f};
-    appearance.paragraphSpacingAfterLines = 18.f / 26.4f;
-    appearance.listItemSpacingDip = 10.f;
-    appearance.semanticSpacing = DxUi::RichText::SemanticSpacing{
+    appearance.paragraphSpacingAfterLines  = 18.f / 26.4f;
+    appearance.listItemSpacingDip          = 10.f;
+    appearance.semanticSpacing             = DxUi::RichText::SemanticSpacing{
         .headingBeforeDip = {0.f, 40.f, 32.f, 24.f, 20.f, 20.f}, .headingAfterDip = {0.f, 14.f, 14.f, 14.f, 14.f, 14.f}, .containerIndentDip = 10.f};
-    auto sourceAppearance = appearance;
-    sourceAppearance.bodyFontSizeDip = appearance.codeFontSizeDip;
+    auto sourceAppearance                   = appearance;
+    sourceAppearance.bodyFontSizeDip        = appearance.codeFontSizeDip;
     sourceAppearance.colorizeMarkdownSource = true;
-    sourceAppearance.lineHeightMultiplier = 1.75f;
+    sourceAppearance.lineHeightMultiplier   = 1.75f;
     // The canonical monospace role and its fallback use the same family.
     // Reading that policy needs no host text format or graphics initialization.
     sourceAppearance.bodyFontFamily = DxUi::Typography::GetSpec(DxUi::FontRole::Monospace).familyName;
-    if (!AcceptSourceResult(editor->TrySetAppearance(settings.view == EditorView::Source ? sourceAppearance : appearance)))
+    if (! AcceptSourceResult(_editor->TrySetAppearance(_settings.view == EditorView::Source ? sourceAppearance : appearance)))
         return;
-    editor->SetFocusModeEnabled(focus && settings.dimInactiveBlocks);
-    if (!AcceptSourceResult(mirror->TrySetAppearance(sourceAppearance)))
+    _editor->SetFocusModeEnabled(focus && _settings.dimInactiveBlocks);
+    if (! AcceptSourceResult(_mirror->TrySetAppearance(sourceAppearance)))
         return;
-    if (!AcceptSourceResult(equation->TrySetAppearance(appearance)))
+    if (! AcceptSourceResult(_equation->TrySetAppearance(appearance)))
         return;
-    filesPane->SetVisible(settings.showFiles && !focus);
-    filesPane->borderRight = fileOverlay;
-    filesPane->SetBounds(D2D1::RectF(0, top, filesWidth, bottom));
-    filesSectionTitle->SetBounds(D2D1::RectF(20, top + 16, filesWidth - 52, top + 40));
-    closeFiles->SetBounds(D2D1::RectF(filesWidth - 44, top + 14, filesWidth - 12, top + 46));
-    filesRootIcon->SetBounds(D2D1::RectF(20, top + 52, 36, top + 78));
-    filesTitle->SetBounds(D2D1::RectF(44, top + 52, filesWidth - 16, top + 78));
-    filesFilter->SetBounds(D2D1::RectF(20, top + 84, filesWidth - 12, top + 114));
-    const float footerWidth = filesWidth - 24;
-    const auto footerRevision = filesCount->GetMeasureRevision(), typographyRevision = host.GetTypographyRevision();
-    const auto footerDpi = host.GetDpi();
+    _filesPane->SetVisible(_settings.showFiles && ! focus);
+    _filesPane->borderRight = fileOverlay;
+    _filesPane->SetBounds(D2D1::RectF(0, top, filesWidth, bottom));
+    _filesSectionTitle->SetBounds(D2D1::RectF(20, top + 16, filesWidth - 52, top + 40));
+    _closeFiles->SetBounds(D2D1::RectF(filesWidth - 44, top + 14, filesWidth - 12, top + 46));
+    _filesRootIcon->SetBounds(D2D1::RectF(20, top + 52, 36, top + 78));
+    _filesTitle->SetBounds(D2D1::RectF(44, top + 52, filesWidth - 16, top + 78));
+    _filesFilter->SetBounds(D2D1::RectF(20, top + 84, filesWidth - 12, top + 114));
+    const float footerWidth   = filesWidth - 24;
+    const auto footerRevision = _filesCount->GetMeasureRevision(), typographyRevision = _host.GetTypographyRevision();
+    const auto footerDpi = _host.GetDpi();
     // Keep hidden measurement keys stale; the first visible layout measures
     // current text/width/typography/DPI before reserving the footer's bounds.
-    if (filesPane->IsVisible() && (filesFooterMeasure.widthDip != footerWidth || filesFooterMeasure.textRevision != footerRevision ||
-                                   filesFooterMeasure.typographyRevision != typographyRevision || filesFooterMeasure.dpi != footerDpi))
+    if (_filesPane->IsVisible() && (_filesFooterMeasure.widthDip != footerWidth || _filesFooterMeasure.textRevision != footerRevision ||
+                                    _filesFooterMeasure.typographyRevision != typographyRevision || _filesFooterMeasure.dpi != footerDpi))
     {
         DxUi::DesiredSize desired;
-        const HRESULT measured = DxUi::MeasureControl(*filesCount, {host}, DxUi::LayoutConstraints::AtMost(footerWidth), desired);
+        const HRESULT measured = DxUi::MeasureControl(*_filesCount, {_host}, DxUi::LayoutConstraints::AtMost(footerWidth), desired);
         if (measured == E_OUTOFMEMORY)
             std::terminate();
         THROW_IF_FAILED(measured);
-        filesFooterMeasure.widthDip = footerWidth;
-        filesFooterMeasure.heightDip = std::max(24.f, std::ceil(desired.sizeDip.height));
-        filesFooterMeasure.textRevision = footerRevision;
+        _filesFooterMeasure.widthDip     = footerWidth;
+        _filesFooterMeasure.heightDip    = std::max(24.f, std::ceil(desired.sizeDip.height));
+        _filesFooterMeasure.textRevision = footerRevision;
         // A cold MeasureControl may initialize the host's typography itself.
-        filesFooterMeasure.typographyRevision = host.GetTypographyRevision();
-        filesFooterMeasure.dpi = footerDpi;
-        ++filesFooterMeasure.measurements;
+        _filesFooterMeasure.typographyRevision = _host.GetTypographyRevision();
+        _filesFooterMeasure.dpi                = footerDpi;
+        ++_filesFooterMeasure.measurements;
     }
-    const float footerTop = bottom - 8 - filesFooterMeasure.heightDip;
-    filesFooterDivider->SetBounds(D2D1::RectF(0, footerTop - 8, filesWidth, footerTop - 7));
-    filesTree->SetBounds(D2D1::RectF(4, top + 122, filesWidth - 4, footerTop - 4));
-    filesCount->SetBounds(D2D1::RectF(12, footerTop, filesWidth - 12, bottom - 8));
-    filesSplitter->SetVisible(settings.showFiles && !focus && !fileOverlay);
-    filesSplitter->SetBounds(D2D1::RectF(0, top, width, bottom));
-    filesSplitter->SetMinimumSecondPane(std::max(48.f, width - 406));
-    filesSplitter->SetPosition(filesWidth);
+    const float footerTop = bottom - 8 - _filesFooterMeasure.heightDip;
+    _filesFooterDivider->SetBounds(D2D1::RectF(0, footerTop - 8, filesWidth, footerTop - 7));
+    _filesTree->SetBounds(D2D1::RectF(4, top + 122, filesWidth - 4, footerTop - 4));
+    _filesCount->SetBounds(D2D1::RectF(12, footerTop, filesWidth - 12, bottom - 8));
+    _filesSplitter->SetVisible(_settings.showFiles && ! focus && ! fileOverlay);
+    _filesSplitter->SetBounds(D2D1::RectF(0, top, width, bottom));
+    _filesSplitter->SetMinimumSecondPane(std::max(48.f, width - 406));
+    _filesSplitter->SetPosition(filesWidth);
     const float drawerLeft = width - 380;
-    drawer->SetBounds(D2D1::RectF(drawerLeft, top, width, bottom));
-    settingsScroll->SetBounds(D2D1::RectF(drawerLeft + 16, top + 12, width - 8, bottom - 12));
-    settingsScroll->SetContentHeight(1934);
+    _drawer->SetBounds(D2D1::RectF(drawerLeft, top, width, bottom));
+    _settingsScroll->SetBounds(D2D1::RectF(drawerLeft + 16, top + 12, width - 8, bottom - 12));
+    _settingsScroll->SetContentHeight(1934);
     const float dx = drawerLeft + 24;
-    settingsScroll->GetLogicalChild(0)->SetBounds(D2D1::RectF(dx, top + 20, width - 24, top + 52));
-    settingsScroll->GetLogicalChild(1)->SetBounds(D2D1::RectF(dx, top + 68, width - 24, top + 92));
+    _settingsScroll->GetLogicalChild(0)->SetBounds(D2D1::RectF(dx, top + 20, width - 24, top + 52));
+    _settingsScroll->GetLogicalChild(1)->SetBounds(D2D1::RectF(dx, top + 68, width - 24, top + 92));
     std::array<DxUi::ButtonThemePreview, 4> previews{{{},
                                                       {{D2D1::ColorF(0xF0F1F4), D2D1::ColorF(0xF8F8FA), D2D1::ColorF(0xFFFFFF)}},
                                                       {{D2D1::ColorF(0x17191E), D2D1::ColorF(0x1C1F25), D2D1::ColorF(0x22252B)}},
                                                       {{D2D1::ColorF(0xEDE6D8), D2D1::ColorF(0xF3EDDF), D2D1::ColorF(0xFFFAEF)}}}};
-    previews[0] = previews[systemDark ? 2 : 1];
+    previews[0] = previews[_systemDark ? 2 : 1];
     for (unsigned i = 0; i < 4; ++i)
     {
-        themeButtons[i]->SetBounds(D2D1::RectF(dx + static_cast<float>(i % 2) * 168.f, top + 104 + static_cast<float>(i / 2) * 80.f,
-                                               dx + 156 + static_cast<float>(i % 2) * 168.f, top + 168 + static_cast<float>(i / 2) * 80.f));
-        themeButtons[i]->SetThemePreview(previews[i]);
-        themeButtons[i]->SetToggleState(static_cast<unsigned>(settings.appearance) == i);
+        _themeButtons[i]->SetBounds(D2D1::RectF(dx + static_cast<float>(i % 2) * 168.f,
+                                                top + 104 + static_cast<float>(i / 2) * 80.f,
+                                                dx + 156 + static_cast<float>(i % 2) * 168.f,
+                                                top + 168 + static_cast<float>(i / 2) * 80.f));
+        _themeButtons[i]->SetThemePreview(previews[i]);
+        _themeButtons[i]->SetToggleState(static_cast<unsigned>(_settings.appearance) == i);
     }
-    readingWidth->SetBounds(D2D1::RectF(dx, top + 272, width - 24, top + 308));
-    if (!readingWidth->IsEditing())
-        readingWidth->SetValue(settings.readingWidth);
-    textScale->SetBounds(D2D1::RectF(dx, top + 320, width - 24, top + 356));
-    if (!textScale->IsEditing())
-        textScale->SetValue(settings.textScale);
-    writingTitle->SetBounds(D2D1::RectF(dx, top + 372, width - 24, top + 396));
-    outlineToggle->SetBounds(D2D1::RectF(dx, top + 408, width - 24, top + 444));
-    outlineToggle->SetToggleState(settings.showOutline);
-    focusToggle->SetBounds(D2D1::RectF(dx, top + 456, width - 24, top + 492));
-    focusToggle->SetToggleState(focus);
-    dimToggle->SetBounds(D2D1::RectF(dx, top + 504, width - 24, top + 540));
-    dimToggle->SetToggleState(settings.dimInactiveBlocks);
-    strikeTasksToggle->SetBounds(D2D1::RectF(dx, top + 556, width - 24, top + 592));
-    strikeTasksToggle->SetToggleState(settings.strikeCompletedTasks);
-    syntaxTitle->SetBounds(D2D1::RectF(dx, top + 608, width - 24, top + 632));
-    syntaxIntro->SetBounds(D2D1::RectF(dx, top + 640, width - 24, top + 680));
+    _readingWidth->SetBounds(D2D1::RectF(dx, top + 272, width - 24, top + 308));
+    if (! _readingWidth->IsEditing())
+        _readingWidth->SetValue(_settings.readingWidth);
+    _textScale->SetBounds(D2D1::RectF(dx, top + 320, width - 24, top + 356));
+    if (! _textScale->IsEditing())
+        _textScale->SetValue(_settings.textScale);
+    _writingTitle->SetBounds(D2D1::RectF(dx, top + 372, width - 24, top + 396));
+    _outlineToggle->SetBounds(D2D1::RectF(dx, top + 408, width - 24, top + 444));
+    _outlineToggle->SetToggleState(_settings.showOutline);
+    _focusToggle->SetBounds(D2D1::RectF(dx, top + 456, width - 24, top + 492));
+    _focusToggle->SetToggleState(focus);
+    _dimToggle->SetBounds(D2D1::RectF(dx, top + 504, width - 24, top + 540));
+    _dimToggle->SetToggleState(_settings.dimInactiveBlocks);
+    _strikeTasksToggle->SetBounds(D2D1::RectF(dx, top + 556, width - 24, top + 592));
+    _strikeTasksToggle->SetToggleState(_settings.strikeCompletedTasks);
+    _syntaxTitle->SetBounds(D2D1::RectF(dx, top + 608, width - 24, top + 632));
+    _syntaxIntro->SetBounds(D2D1::RectF(dx, top + 640, width - 24, top + 680));
     // Each option reserves two lines of explanation beneath its toggle.
     for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
     {
         const float row = top + 692 + static_cast<float>(index) * 92.f;
-        syntaxToggles[index]->SetBounds(D2D1::RectF(dx, row, width - 24, row + 36));
-        syntaxToggles[index]->SetToggleState(settings.markdownSyntax[index]);
-        syntaxHelp[index]->SetBounds(D2D1::RectF(dx, row + 40, width - 24, row + 80));
+        _syntaxToggles[index]->SetBounds(D2D1::RectF(dx, row, width - 24, row + 36));
+        _syntaxToggles[index]->SetToggleState(_settings.markdownSyntax[index]);
+        _syntaxHelp[index]->SetBounds(D2D1::RectF(dx, row + 40, width - 24, row + 80));
     }
     const float privacy = top + 1340;
-    privacyTitle->SetBounds(D2D1::RectF(dx, privacy, width - 24, privacy + 24));
-    remoteImagesToggle->SetBounds(D2D1::RectF(dx, privacy + 36, width - 24, privacy + 72));
-    remoteImagesToggle->SetToggleState(settings.allowRemoteImages);
-    localNetworkImagesToggle->SetBounds(D2D1::RectF(dx, privacy + 80, width - 24, privacy + 116));
-    localNetworkImagesToggle->SetToggleState(settings.allowLocalNetworkImages);
-    drawerHelp->SetBounds(D2D1::RectF(dx, privacy + 124, width - 24, privacy + 164));
-    imageFirstPasteToggle->SetBounds(D2D1::RectF(dx, privacy + 176, width - 24, privacy + 212));
-    imageFirstPasteToggle->SetToggleState(settings.imageFirstPaste);
-    recoveryAction->SetBounds(D2D1::RectF(dx, privacy + 228, width - 24, privacy + 264));
-    drawerClose->SetBounds(D2D1::RectF(dx + 224, privacy + 276, width - 24, privacy + 312));
-    drawerImmediate->SetBounds(D2D1::RectF(dx, privacy + 276, width - 160, privacy + 312));
+    _privacyTitle->SetBounds(D2D1::RectF(dx, privacy, width - 24, privacy + 24));
+    _remoteImagesToggle->SetBounds(D2D1::RectF(dx, privacy + 36, width - 24, privacy + 72));
+    _remoteImagesToggle->SetToggleState(_settings.allowRemoteImages);
+    _localNetworkImagesToggle->SetBounds(D2D1::RectF(dx, privacy + 80, width - 24, privacy + 116));
+    _localNetworkImagesToggle->SetToggleState(_settings.allowLocalNetworkImages);
+    _drawerHelp->SetBounds(D2D1::RectF(dx, privacy + 124, width - 24, privacy + 164));
+    _imageFirstPasteToggle->SetBounds(D2D1::RectF(dx, privacy + 176, width - 24, privacy + 212));
+    _imageFirstPasteToggle->SetToggleState(_settings.imageFirstPaste);
+    _recoveryAction->SetBounds(D2D1::RectF(dx, privacy + 228, width - 24, privacy + 264));
+    _drawerClose->SetBounds(D2D1::RectF(dx + 224, privacy + 276, width - 24, privacy + 312));
+    _drawerImmediate->SetBounds(D2D1::RectF(dx, privacy + 276, width - 160, privacy + 312));
     const float about = privacy + 336;
-    aboutTitle->SetBounds(D2D1::RectF(dx, about, width - 24, about + 24));
-    aboutVersion->SetBounds(D2D1::RectF(dx, about + 30, width - 24, about + 54));
-    aboutSummary->SetBounds(D2D1::RectF(dx, about + 58, width - 24, about + 98));
-    shortcutsList->SetBounds(D2D1::RectF(dx, about + 106, width - 24, about + 250));
+    _aboutTitle->SetBounds(D2D1::RectF(dx, about, width - 24, about + 24));
+    _aboutVersion->SetBounds(D2D1::RectF(dx, about + 30, width - 24, about + 54));
+    _aboutSummary->SetBounds(D2D1::RectF(dx, about + 58, width - 24, about + 98));
+    _shortcutsList->SetBounds(D2D1::RectF(dx, about + 106, width - 24, about + 250));
     const bool wideFind = right - left >= 660.f;
     const float fx = std::max(16.f, right - (wideFind ? 644.f : 476.f)), fy = top + 12;
-    findBar->SetBounds(D2D1::RectF(fx, fy, right - 16, fy + (wideFind ? 104.f : 148.f)));
-    findText->SetBounds(D2D1::RectF(fx + 12, fy + 10, fx + 204, fy + 46));
-    findCaseToggle->SetToggleState(find.matchCase);
-    findCaseToggle->SetBounds(wideFind ? D2D1::RectF(fx + 212.f, fy + 10.f, fx + 320.f, fy + 46.f)
-                                       : D2D1::RectF(fx + 12.f, fy + 104.f, fx + 146.f, fy + 140.f));
-    const float findStatus = wideFind ? 328.f : 212.f;
+    _findBar->SetBounds(D2D1::RectF(fx, fy, right - 16, fy + (wideFind ? 104.f : 148.f)));
+    _findText->SetBounds(D2D1::RectF(fx + 12, fy + 10, fx + 204, fy + 46));
+    _findCaseToggle->SetToggleState(_find.matchCase);
+    _findCaseToggle->SetBounds(wideFind ? D2D1::RectF(fx + 212.f, fy + 10.f, fx + 320.f, fy + 46.f)
+                                        : D2D1::RectF(fx + 12.f, fy + 104.f, fx + 146.f, fy + 140.f));
+    const float findStatus  = wideFind ? 328.f : 212.f;
     const float findButtons = wideFind ? 478.f : 314.f;
-    findCount->SetBounds(D2D1::RectF(fx + findStatus, fy + 14, fx + findStatus + 98.f, fy + 42));
+    _findCount->SetBounds(D2D1::RectF(fx + findStatus, fy + 14, fx + findStatus + 98.f, fy + 42));
     for (unsigned i = 0; i < 3; ++i)
-        findBar->GetLogicalChild(i + 2)->SetBounds(
+        _findBar->GetLogicalChild(i + 2)->SetBounds(
             D2D1::RectF(fx + findButtons + static_cast<float>(i) * 44.f, fy + 10, fx + findButtons + 40.f + static_cast<float>(i) * 44.f, fy + 46));
-    replaceText->SetBounds(D2D1::RectF(fx + 12, fy + 58, fx + 236, fy + 94));
-    findBar->GetLogicalChild(6)->SetBounds(D2D1::RectF(fx + 244, fy + 58, fx + 326, fy + 94));
-    findBar->GetLogicalChild(7)->SetBounds(D2D1::RectF(fx + 334, fy + 58, fx + 448, fy + 94));
+    _replaceText->SetBounds(D2D1::RectF(fx + 12, fy + 58, fx + 236, fy + 94));
+    _findBar->GetLogicalChild(6)->SetBounds(D2D1::RectF(fx + 244, fy + 58, fx + 326, fy + 94));
+    _findBar->GetLogicalChild(7)->SetBounds(D2D1::RectF(fx + 334, fy + 58, fx + 448, fy + 94));
     const float draftLeft = std::max(left + 16, (left + right - 680) / 2), draftRight = std::min(right - 16, draftLeft + 680);
     float draftTop = top + 72;
-    if (blockDraftSession)
-        blockDraftSession->pendingPlacement = false;
-    if (activeOverlay == OverlayKind::BlockDraftModal && blockDraftSession)
+    if (_blockDraftSession)
+        _blockDraftSession->pendingPlacement = false;
+    if (_activeOverlay == OverlayKind::BlockDraftModal && _blockDraftSession)
     {
-        const auto &range = blockDraftSession->range;
-        if (const auto rects = editor->TryGetTextInputRangeRects(host, range.first, range.last); rects && !rects->empty())
+        const auto& range = _blockDraftSession->range;
+        if (const auto rects = _editor->TryGetTextInputRangeRects(_host, range.first, range.last); rects && ! rects->empty())
             draftTop = rects->back().bottom + 8;
-        else if (const auto caret = editor->TryGetTextInputCaretRect(host, range.first))
+        else if (const auto caret = _editor->TryGetTextInputCaretRect(_host, range.first))
             draftTop = caret->bottom + 8; // Empty/hidden-only source still has a prepared insertion site.
         else
-            blockDraftSession->pendingPlacement = true;
+            _blockDraftSession->pendingPlacement = true;
     }
     draftTop = std::clamp(draftTop, top + 8, std::max(top + 8, bottom - 244));
-    blockDraft->SetBounds(D2D1::RectF(draftLeft, draftTop, draftRight, draftTop + 232));
-    blockDraft->GetLogicalChild(0)->SetBounds(D2D1::RectF(draftLeft + 16, draftTop + 8, draftRight - 16, draftTop + 36));
-    blockDraft->GetLogicalChild(1)->SetBounds(D2D1::RectF(draftLeft + 16, draftTop + 40, draftRight - 16, draftTop + 64));
-    blockDraftText->SetBounds(D2D1::RectF(draftLeft + 16, draftTop + 72, draftRight - 16, draftTop + 172));
-    blockDraft->GetLogicalChild(3)->SetBounds(D2D1::RectF(draftRight - 244, draftTop + 184, draftRight - 112, draftTop + 220));
-    blockDraft->GetLogicalChild(4)->SetBounds(D2D1::RectF(draftRight - 100, draftTop + 184, draftRight - 16, draftTop + 220));
-    recoveryPanel->SetBounds(D2D1::RectF(draftLeft, top + 8, draftRight, bottom - 8));
-    recoveryPanel->GetLogicalChild(0)->SetBounds(D2D1::RectF(draftLeft + 20, top + 24, draftRight - 20, top + 60));
-    recoveryDescription->SetBounds(D2D1::RectF(draftLeft + 20, top + 68, draftRight - 20, top + 128));
-    const bool multipleRecovery = restoreAllRecovery->IsVisible();
-    recoveryPreview->SetBounds(D2D1::RectF(draftLeft + 20, top + 136, draftRight - 20, bottom - (multipleRecovery ? 124.f : 80.f)));
+    _blockDraft->SetBounds(D2D1::RectF(draftLeft, draftTop, draftRight, draftTop + 232));
+    _blockDraft->GetLogicalChild(0)->SetBounds(D2D1::RectF(draftLeft + 16, draftTop + 8, draftRight - 16, draftTop + 36));
+    _blockDraft->GetLogicalChild(1)->SetBounds(D2D1::RectF(draftLeft + 16, draftTop + 40, draftRight - 16, draftTop + 64));
+    _blockDraftText->SetBounds(D2D1::RectF(draftLeft + 16, draftTop + 72, draftRight - 16, draftTop + 172));
+    _blockDraft->GetLogicalChild(3)->SetBounds(D2D1::RectF(draftRight - 244, draftTop + 184, draftRight - 112, draftTop + 220));
+    _blockDraft->GetLogicalChild(4)->SetBounds(D2D1::RectF(draftRight - 100, draftTop + 184, draftRight - 16, draftTop + 220));
+    _recoveryPanel->SetBounds(D2D1::RectF(draftLeft, top + 8, draftRight, bottom - 8));
+    _recoveryPanel->GetLogicalChild(0)->SetBounds(D2D1::RectF(draftLeft + 20, top + 24, draftRight - 20, top + 60));
+    _recoveryDescription->SetBounds(D2D1::RectF(draftLeft + 20, top + 68, draftRight - 20, top + 128));
+    const bool multipleRecovery = _restoreAllRecovery->IsVisible();
+    _recoveryPreview->SetBounds(D2D1::RectF(draftLeft + 20, top + 136, draftRight - 20, bottom - (multipleRecovery ? 124.f : 80.f)));
     if (multipleRecovery)
     {
         const float buttonWidth = (draftRight - draftLeft - 48.f) / 2.f;
         for (unsigned i = 0; i < 4; ++i)
         {
             const float buttonLeft = draftLeft + 20 + static_cast<float>(i % 2) * (buttonWidth + 8.f);
-            const float buttonTop = bottom - 106 + static_cast<float>(i / 2) * 44.f;
-            recoveryPanel->GetLogicalChild(i + 3)->SetBounds(D2D1::RectF(buttonLeft, buttonTop, buttonLeft + buttonWidth, buttonTop + 34));
+            const float buttonTop  = bottom - 106 + static_cast<float>(i / 2) * 44.f;
+            _recoveryPanel->GetLogicalChild(i + 3)->SetBounds(D2D1::RectF(buttonLeft, buttonTop, buttonLeft + buttonWidth, buttonTop + 34));
         }
     }
     else
         for (unsigned i = 0; i < 3; ++i)
-            recoveryPanel->GetLogicalChild(i + 3)->SetBounds(D2D1::RectF(draftLeft + 20 + static_cast<float>(i) * 208.f, bottom - 62,
-                                                                         draftLeft + 220 + static_cast<float>(i) * 208.f, bottom - 28));
-    stats->SetBounds(D2D1::RectF(16, height - 26, width / 2, height - 2));
-    positionStatus->SetBounds(D2D1::RectF(width / 2, height - 26, width - 16, height - 2));
-    focusPill->SetBounds(focus ? D2D1::RectF(width / 2 - 224, height - 50, width / 2 + 224, height - 10)
-                               : D2D1::RectF(0, height - 28, width / 2, height));
-    focusPill->kind = focus ? Surface::Kind::Floating : Surface::Kind::Chrome;
+            _recoveryPanel->GetLogicalChild(i + 3)->SetBounds(
+                D2D1::RectF(draftLeft + 20 + static_cast<float>(i) * 208.f, bottom - 62, draftLeft + 220 + static_cast<float>(i) * 208.f, bottom - 28));
+    _stats->SetBounds(D2D1::RectF(16, height - 26, width / 2, height - 2));
+    _positionStatus->SetBounds(D2D1::RectF(width / 2, height - 26, width - 16, height - 2));
+    _focusPill->SetBounds(focus ? D2D1::RectF(width / 2 - 224, height - 50, width / 2 + 224, height - 10) : D2D1::RectF(0, height - 28, width / 2, height));
+    _focusPill->kind = focus ? Surface::Kind::Floating : Surface::Kind::Chrome;
     if (focus)
-        stats->SetBounds(D2D1::RectF(width / 2 - 208, height - 44, width / 2 + 208, height - 16));
+        _stats->SetBounds(D2D1::RectF(width / 2 - 208, height - 44, width / 2 + 208, height - 16));
     UpdateCounts();
-    title->SetTextColor(focus ? std::optional(host.GetTheme().subduedText) : std::nullopt);
-    stats->SetVisible(true);
-    positionStatus->SetVisible(!focus);
-    const auto name = session.path.empty() ? Resource(IDS_UNTITLED) : session.path.filename().native();
-    title->SetText(focus && Dirty() ? name + L" · " + Resource(IDS_CHANGED) : name);
-    feedback->SetBounds(D2D1::RectF(left + 16, bottom - 22, right - 16, bottom));
+    _title->SetTextColor(focus ? std::optional(_host.GetTheme().subduedText) : std::nullopt);
+    _stats->SetVisible(true);
+    _positionStatus->SetVisible(! focus);
+    const auto name = _session.path.empty() ? Resource(IDS_UNTITLED) : _session.path.filename().native();
+    _title->SetText(focus && Dirty() ? name + L" · " + Resource(IDS_CHANGED) : name);
+    _feedback->SetBounds(D2D1::RectF(left + 16, bottom - 22, right - 16, bottom));
     // Reposition only an already visible toolbar: resize must not reopen
     // tools that Escape or another contextual surface deliberately dismissed.
-    if (activeOverlay == OverlayKind::FloatingSelectionTools)
+    if (_activeOverlay == OverlayKind::FloatingSelectionTools)
         SelectionChanged();
-    host.Invalidate();
+    _host.Invalidate();
 }
 } // namespace RedTilde

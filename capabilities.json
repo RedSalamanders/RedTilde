@@ -91,7 +91,11 @@
     "per-user-installer-and-hkcu-file-associations",
     "localized-capacity-limit-errors-across-editing-commands",
     "explicit-lifecycle-transaction-overlay-and-worker-state-machines",
-    "package-sha256-sidecars-and-complete-third-party-notices"
+    "package-sha256-sidecars-and-complete-third-party-notices",
+    "json5-yyjson-settings-and-one-time-migration",
+    "coalesced-live-settings-watcher-and-schema",
+    "enforced-underscore-camelcase-and-clang-tidy",
+    "fail-closed-real-location-harness"
   ],
   "pending": [
     "api5-consumer-failure-and-native-qualification",

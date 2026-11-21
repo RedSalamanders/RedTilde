@@ -11,7 +11,7 @@
 namespace RedTildeTestFailureReports
 {
 #if defined(_DEBUG)
-inline int __cdecl ReportAndEnd(int reportType, wchar_t *message, int *returnValue) noexcept
+inline int __cdecl ReportAndEnd(int reportType, wchar_t* message, int* returnValue) noexcept
 {
     if (reportType == _CRT_WARN)
         return FALSE;
@@ -39,7 +39,7 @@ inline void RouteAwayFromDialogs() noexcept
 [[nodiscard]] inline int RunSelfTest() noexcept
 {
 #if defined(_DEBUG)
-    _ASSERTE(!L"the failure-report self-test fails this check on purpose");
+    _ASSERTE(! L"the failure-report self-test fails this check on purpose");
     std::fputs("The failed check returned instead of ending the run.\n", stderr);
     return 1;
 #else

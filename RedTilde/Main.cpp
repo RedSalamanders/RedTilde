@@ -24,9 +24,9 @@ int WriteConsoleText(DWORD standardHandle, std::wstring_view text)
         return 0;
 
     auto output = GetStdHandle(standardHandle);
-    if ((!output || output == INVALID_HANDLE_VALUE) && AttachConsole(ATTACH_PARENT_PROCESS))
+    if ((! output || output == INVALID_HANDLE_VALUE) && AttachConsole(ATTACH_PARENT_PROCESS))
         output = GetStdHandle(standardHandle);
-    if (!output || output == INVALID_HANDLE_VALUE)
+    if (! output || output == INVALID_HANDLE_VALUE)
         return 0;
 
     DWORD mode{}, written{};
@@ -37,7 +37,7 @@ int WriteConsoleText(DWORD standardHandle, std::wstring_view text)
     }
 
     const auto characters = static_cast<int>(text.size());
-    const int bytes = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, text.data(), characters, nullptr, 0, nullptr, nullptr);
+    const int bytes       = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, text.data(), characters, nullptr, 0, nullptr, nullptr);
     if (bytes <= 0)
         return 1;
     std::string encoded(static_cast<std::size_t>(bytes), '\0');
@@ -65,7 +65,7 @@ void WriteConsoleError(std::string_view message) noexcept
     try
     {
         std::wstring text(L"RedTilde: ");
-        if (!message.empty())
+        if (! message.empty())
         {
             const int needed = MultiByteToWideChar(CP_UTF8, 0, message.data(), static_cast<int>(message.size()), nullptr, 0);
             if (needed > 0)
@@ -78,7 +78,7 @@ void WriteConsoleError(std::string_view message) noexcept
         text += L"\r\n";
         (void)WriteConsoleText(STD_ERROR_HANDLE, text);
     }
-    catch (const std::bad_alloc &)
+    catch (const std::bad_alloc&)
     {
         std::terminate();
     }
@@ -102,7 +102,7 @@ bool IsVersionArgument(std::wstring_view argument) noexcept
 #if defined(_M_ARM64)
 #pragma warning(disable : 4746)
 #endif
-__declspec(noinline) int ProbeRead(const volatile int *pointer)
+__declspec(noinline) int ProbeRead(const volatile int* pointer)
 {
     return pointer[1];
 }
@@ -110,7 +110,7 @@ __declspec(noinline) int ProbeRead(const volatile int *pointer)
 int SanitizerProbe()
 {
     std::vector<int> values(4, 42);
-    const volatile int *pointer = values.data();
+    const volatile int* pointer = values.data();
     values.clear();
     values.shrink_to_fit();
     return ProbeRead(pointer); // intentional isolated detection probe, never an editor path
@@ -137,8 +137,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
             return MonitorDiagnostics::HandleCommand(commandLine);
         }
         int count{};
-        wil::unique_hlocal_ptr<wchar_t *[]> arguments(CommandLineToArgvW(GetCommandLineW(), &count));
-        if (!arguments)
+        wil::unique_hlocal_ptr<wchar_t*[]> arguments(CommandLineToArgvW(GetCommandLineW(), &count));
+        if (! arguments)
             return 1;
         if (count == 2)
         {
@@ -152,8 +152,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
         LaunchOptions options;
         STARTUPINFOW startup{sizeof(startup)};
         GetStartupInfoW(&startup);
-        const bool startupShow = (startup.dwFlags & STARTF_USESHOWWINDOW) != 0;
-        options.showCommand = startupShow ? startup.wShowWindow : showCommand;
+        const bool startupShow      = (startup.dwFlags & STARTF_USESHOWWINDOW) != 0;
+        options.showCommand         = startupShow ? startup.wShowWindow : showCommand;
         options.explicitShowCommand = startupShow || (showCommand != SW_SHOWNORMAL && showCommand != SW_SHOWDEFAULT);
 #if defined(REDTILDE_ENABLE_TESTS)
         bool sanitizerProbe{};
@@ -166,15 +166,14 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
         for (int index = 1; index < count; ++index)
         {
             const std::wstring_view argument(arguments[static_cast<size_t>(index)]);
-#if !defined(REDTILDE_ENABLE_TESTS)
+#if ! defined(REDTILDE_ENABLE_TESTS)
             // Refuse test entry points before resolving profile paths, installing
             // the crash handler or dispatching any probe. Capture and performance
             // diagnostics remain supported production capabilities.
-            if (argument == L"--self-test" || argument == L"--test-scope" || argument == L"--list-tests" ||
-                argument == L"--design-interactive-probe" || argument == L"--crash-probe" || argument == L"--recovery-crash-probe" ||
-                argument == L"--recovery-restart-probe" || argument == L"--preferences-probe" || argument == L"--asan-probe" ||
-                argument == L"--linked-save-crash-probe" || argument == L"--linked-save-restart-probe" || argument == L"--failure-host-probe" ||
-                argument == L"--failure-report-self-test")
+            if (argument == L"--self-test" || argument == L"--test-scope" || argument == L"--list-tests" || argument == L"--design-interactive-probe" ||
+                argument == L"--crash-probe" || argument == L"--recovery-crash-probe" || argument == L"--recovery-restart-probe" ||
+                argument == L"--preferences-probe" || argument == L"--asan-probe" || argument == L"--linked-save-crash-probe" ||
+                argument == L"--linked-save-restart-probe" || argument == L"--failure-host-probe" || argument == L"--failure-report-self-test")
                 return 2;
 #endif
             auto value = [&]() -> std::wstring
@@ -185,7 +184,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
             };
             if (argument == L"--capture")
             {
-                options.capture = value();
+                options.capture  = value();
                 options.headless = true;
             }
             else if (argument == L"--design-interactive-probe")
@@ -193,7 +192,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
             else if (argument == L"--benchmark")
             {
                 options.benchmark = value();
-                options.headless = true;
+                options.headless  = true;
             }
             else if (argument == L"--capture-dpi" || argument == L"--viewport-width" || argument == L"--viewport-height")
             {
@@ -217,9 +216,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
                 options.scenario = value();
             else if (argument == L"--performance-probe" || argument == L"--resource-probe")
             {
-                options.performance = value();
+                options.performance   = value();
                 options.resourceProbe = argument == L"--resource-probe";
-                options.headless = true;
+                options.headless      = true;
             }
             else if (argument == L"--cycles")
             {
@@ -285,30 +284,30 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
                 options.crashProbe = true;
             else if (argument == L"--linked-save-crash-probe" || argument == L"--linked-save-restart-probe")
             {
-                linkedSaveCrash = argument == L"--linked-save-crash-probe";
-                linkedSaveRestart = !linkedSaveCrash;
-                options.headless = true;
+                linkedSaveCrash   = argument == L"--linked-save-crash-probe";
+                linkedSaveRestart = ! linkedSaveCrash;
+                options.headless  = true;
             }
             else if (argument == L"--recovery-crash-probe" || argument == L"--recovery-restart-probe")
             {
-                options.recoveryProbe = argument == L"--recovery-crash-probe";
-                options.recoveryRestartProbe = !options.recoveryProbe;
-                options.headless = true;
+                options.recoveryProbe        = argument == L"--recovery-crash-probe";
+                options.recoveryRestartProbe = ! options.recoveryProbe;
+                options.headless             = true;
             }
             else if (argument == L"--preferences-probe")
             {
                 options.preferencesProbe = true;
-                options.headless = true;
+                options.headless         = true;
             }
             else if (argument == L"--asan-probe")
             {
-                sanitizerProbe = true;
+                sanitizerProbe   = true;
                 options.headless = true;
             }
             else if (argument == L"--failure-report-self-test")
             {
                 failureReportSelfTest = true;
-                options.headless = true;
+                options.headless      = true;
             }
 #endif
             else if (argument == L"--headless")
@@ -328,32 +327,31 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
             return WriteCommandHelp();
         if (showVersion)
             return WriteCommandVersion();
-        if ((testScopeSpecified || listTests) && !options.selfTest)
+        if ((testScopeSpecified || listTests) && ! options.selfTest)
             throw std::invalid_argument("Test scope/list options require --self-test");
 #if defined(REDTILDE_ENABLE_TESTS)
-        if (!failureHostProbe.empty() && (options.dataDirectory.empty() || !options.dataDirectory.is_absolute()))
+        if (! failureHostProbe.empty() && (options.dataDirectory.empty() || ! options.dataDirectory.is_absolute()))
             throw std::invalid_argument("Failure-host probe requires an explicit absolute test data directory");
-        if ((linkedSaveCrash || linkedSaveRestart) && (options.dataDirectory.empty() || !options.dataDirectory.is_absolute()))
+        if ((linkedSaveCrash || linkedSaveRestart) && (options.dataDirectory.empty() || ! options.dataDirectory.is_absolute()))
             throw std::invalid_argument("Linked save probe requires an explicit absolute test data directory");
 #endif
-        if (!options.designInteractive.empty() && (options.headless || options.crashProbe || options.preferencesProbe || options.recoveryProbe ||
-                                                   options.recoveryRestartProbe || options.dataDirectory.empty()))
+        if (! options.designInteractive.empty() && (options.headless || options.crashProbe || options.preferencesProbe || options.recoveryProbe ||
+                                                    options.recoveryRestartProbe || options.dataDirectory.empty()))
             throw std::invalid_argument("Interactive probe requires an explicit data directory and an ordinary visible host");
         if (options.headless && options.dataDirectory.empty())
             options.dataDirectory = std::filesystem::temp_directory_path() / std::format(L"RedTilde-Harness-{}", GetCurrentProcessId());
-        if (options.forceWarp && !options.headless)
+        if (options.forceWarp && ! options.headless)
             throw std::invalid_argument("Explicit WARP is a hidden harness option");
-        if ((options.captureDpi || options.viewportWidthPx || options.viewportHeightPx) && (!options.headless || !options.performance.empty()))
+        if ((options.captureDpi || options.viewportWidthPx || options.viewportHeightPx) && (! options.headless || ! options.performance.empty()))
             throw std::invalid_argument("Capture geometry requires a hidden non-performance harness");
         if (options.dataDirectory.empty())
             options.dataDirectory = DefaultDataDirectory();
 #if defined(REDTILDE_ENABLE_TESTS)
-        const bool isCrashOrSanitizerProbe =
-            options.crashProbe || options.recoveryProbe || linkedSaveCrash || sanitizerProbe || !failureHostProbe.empty();
+        const bool isCrashOrSanitizerProbe = options.crashProbe || options.recoveryProbe || linkedSaveCrash || sanitizerProbe || ! failureHostProbe.empty();
         const bool routeFailureReports =
-            !isCrashOrSanitizerProbe &&
-            (failureReportSelfTest || options.selfTest || testScopeSpecified || options.preferencesProbe || options.recoveryRestartProbe ||
-             linkedSaveRestart || !options.capture.empty() || !options.benchmark.empty() || !options.performance.empty());
+            ! isCrashOrSanitizerProbe &&
+            (failureReportSelfTest || options.selfTest || testScopeSpecified || options.preferencesProbe || options.recoveryRestartProbe || linkedSaveRestart ||
+             ! options.capture.empty() || ! options.benchmark.empty() || ! options.performance.empty());
         if (routeFailureReports)
             RedTildeTestFailureReports::RouteAwayFromDialogs();
         if (failureReportSelfTest)
@@ -364,7 +362,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
         const auto crashes = options.dataDirectory / L"Crashes";
         if (FAILED(InstallCrashHandler(crashes)))
             OutputDebugStringW(L"RedTilde crash storage unavailable; the configured native failure remains checked\n");
-        if (!CrashReportingPrepared())
+        if (! CrashReportingPrepared())
             return 2;
 #if defined(REDTILDE_ENABLE_TESTS)
         if (options.crashProbe)
@@ -376,13 +374,13 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
         const auto uninitialize = wil::scope_exit([] { CoUninitialize(); });
         // This owner has fixed/noexcept member construction; genuine outer storage refusal is checked.
         auto runtime = wil::make_unique_nothrow<ApplicationRuntime>();
-        if (!runtime || FAILED(runtime->Start()))
+        if (! runtime || FAILED(runtime->Start()))
             return 2;
         MonitorDiagnostics::Initialize();
         (void)MonitorDiagnostics::HandleCommand(commandLine);
         MonitorDiagnostics::Write(RedMonitor::Severity::Info, L"application starting");
 #if defined(REDTILDE_ENABLE_TESTS)
-        if (!failureHostProbe.empty())
+        if (! failureHostProbe.empty())
         {
             const int result = RunFailureHostProbe(failureHostProbe, options.dataDirectory, *runtime);
             if (result == RetainRuntimeForSessionEnd)
@@ -404,9 +402,9 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
             return 2;
 #endif
         }
-        if (!options.headless && std::filesystem::exists(crashes / L"pending.txt"))
+        if (! options.headless && std::filesystem::exists(crashes / L"pending.txt"))
         {
-            const auto path = crashes.native();
+            const auto path    = crashes.native();
             const auto message = FormatStringResource(nullptr, IDS_CRASHREPORT, path);
             MessageBoxW(nullptr, message.c_str(), Resource(IDS_APP).c_str(), MB_OK | MB_ICONINFORMATION);
             std::error_code error;
@@ -435,11 +433,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
         }
         return exitCode;
     }
-    catch (const std::bad_alloc &)
+    catch (const std::bad_alloc&)
     {
         std::terminate();
     }
-    catch (const std::exception &error)
+    catch (const std::exception& error)
     {
         WriteConsoleError(error.what());
         OutputDebugStringA(error.what());

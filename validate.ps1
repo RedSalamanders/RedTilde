@@ -63,6 +63,8 @@ Check 'Six build configurations and native inventory' {
 }
 Check 'Run evidence retention' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.RunEvidence.ps1') }
 Check 'Resource strings' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.ResourceStrings.ps1') }
+Check 'Naming style' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.NamingStyle.ps1') }
+Check 'Real-location fail-closed contract' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.RealLocations.ps1') }
 Check 'RedMonitor SDK consumption' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.RedMonitor.ps1') }
 Check 'Scope contracts and public runner' {
     Import-Module (Join-Path $PSScriptRoot 'Build/ScopedTesting.psm1') -Force

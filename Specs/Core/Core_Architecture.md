@@ -9,6 +9,7 @@ repository and executable. It must launch and test without RedXe, RedPrism or Re
 | Owner | Responsibility |
 | --- | --- |
 | Application | Window lifetime, command dispatch, prompts, dirty state, settings and session identity |
+| Settings & live reload | JSON5 persistence via `yyjson` (`RedTilde.settings.json` / `RedTilde-debug.settings.json`, `SettingsStore.schema.json`), one-time legacy migration, `SettingsWriter` atomic replacement, and event-driven `SettingsWatcher` ([settings contract](Core_Settings.md)) |
 | DxUi ControlHost | Native text services, UIA, retained controls, rendering, device loss and presentation |
 | RichTextEditor | Authoritative UTF-16 Markdown source, immutable snapshots, selection and undo history |
 | Storage | Strict Unicode codecs, bounded reads, same-directory atomic replacement and file identity |
@@ -56,11 +57,32 @@ Application lifecycle, file transactions, overlays, caches, and background worke
   - `FilesService` (`FilesPhase`): `Idle`, `Scanning`, `Watching`, `CoalescingWatch`, `Failed`, `Closed`, enabling
     clean re-initialization when switching away from a failed root.
   - `SettingsWriter::State::WorkerPhase`: `Idle`, `Active`, `Closed`.
+  - `SettingsWatcher`: single `ProcessWorkLease`-held worker using OVERLAPPED `ReadDirectoryChangesW` paired with a
+    manual-reset `_stopEvent`, `250 ms` burst coalescing, and non-writing live reload on the UI thread ([settings contract](Core_Settings.md)).
   - `RichImageLoader::State::WorkerPhase`: `Idle`, `Active`, `Closing`, `Stopped`.
   - `Application::ExternalLinkState::Phase`: `Idle`, `LaunchingSta`, `CompletedPendingDrain`, `Closed`.
   - `EditDiagnostics::SelectionPhase`: `Disarmed`, `Armed`, `InInvocation`, `InComponent`, `Invalid`.
-  - `PrintPreview` `pendingAction_` (`std::optional<Action>`, where `Action::Close` overrides pending `Action::Print`
+  - `PrintPreview` `_pendingAction` (`std::optional<Action>`, where `Action::Close` overrides pending `Action::Print`
     without queuing a duplicate submission).
+
+### Code conventions and allowed write locations
+
+- **Member naming (`H-27`) & `.clang-tidy`**: Private and protected non-static class/struct members MUST use
+  `_camelCase` (`_[a-z][A-Za-z0-9]*`, member-scope only; no `name_`, bare private fields, `_Uppercase`, `__`, or global
+  `_name`; public `struct`/DTO fields remain `camelCase`), configured in root `.clang-tidy`
+  (`readability-identifier-naming`, `bugprone-reserved-identifier`) and enforced compiler-free in `validate.ps1` by
+  `Tests/Tooling.Tests.NamingStyle.ps1`.
+- **Settings persistence & JSON5 (`H-10`, `H-15`, `H-26`)**: `Common/Settings.cpp` parses UTF-8 JSON5 via `yyjson`
+  (`YYJSON_READ_JSON5 | YYJSON_READ_ALLOW_BOM`, `16 MiB` read budget), performs lossless one-time migration from legacy
+  `RedTilde.Settings/1`, preserves unknown properties and newer integral `schema` versions via tree merge, and backs up
+  malformed cold files to `.invalid-*`. See [the settings contract](Core_Settings.md).
+- **Allowed Write Locations Only (Fail Closed)**: Code, tools, tests, scripts, and agents MUST NOT create, modify, or
+  delete files outside (1) this repository working tree and `.build/`, (2) an explicitly owner-authorized
+  `RedTilde.Perf` drive-root root with its verified ownership marker, or (3) a manifest-declared dedicated `selftest`
+  root strictly inside a unique `redtilde-run-<guid>` subfolder with exit cleanup and no junction traversal. Opt-in
+  real-location testing (`Tools/Test-RealLocations.ps1`) fails closed before disk mutation on drive roots,
+  `%USERPROFILE%`, Desktop, Documents, undeclared OneDrive folders, non-selftest network shares (`\\rubygloom\Multimedia`),
+  relative/`. `/`..`/shallow UNC paths, and surrogate symlinks/junctions.
 
 ### Shared infrastructure headers and command entry points
 

@@ -153,6 +153,30 @@
       "reason": "loopback transport and live remote-image policy regressions"
     },
     {
+      "pattern": "Tests/Application.Tests.Settings.*",
+      "scopes": [
+        "Settings",
+        "Preferences",
+        "Editor"
+      ],
+      "reason": "JSON5 settings store, legacy migration, and live SettingsWatcher regressions"
+    },
+    {
+      "pattern": "SettingsStore.schema.json",
+      "scopes": [
+        "Settings",
+        "Tooling"
+      ],
+      "reason": "shipped settings store schema"
+    },
+    {
+      "pattern": "vcpkg*",
+      "scopes": [
+        "*"
+      ],
+      "reason": "pinned vcpkg manifest, toolchain pin, and restore entry point"
+    },
+    {
       "pattern": "Tests/Support/Support.Tests.FilesFixtures.h",
       "scopes": [
         "Storage",
@@ -308,6 +332,20 @@
       "reason": "independent numerical/evidence/tooling regressions"
     },
     {
+      "pattern": "Tools/Test-RealLocations.ps1",
+      "scopes": [
+        "Tooling"
+      ],
+      "reason": "opt-in fail-closed real-location harness (never auto-run in default/CI suites)"
+    },
+    {
+      "pattern": "Tests/Tooling.Tests.RealLocations.ps1",
+      "scopes": [
+        "Tooling"
+      ],
+      "reason": "compiler-free fail-closed real-location contract gate"
+    },
+    {
       "pattern": "Tests/NativeInventory.json",
       "scopes": [
         "Tooling"
@@ -345,6 +383,13 @@
         "Format"
       ],
       "reason": "formatter policy"
+    },
+    {
+      "pattern": ".clang-tidy",
+      "scopes": [
+        "Tooling"
+      ],
+      "reason": "naming and reserved-identifier linter policy"
     },
     {
       "pattern": ".agents/**",

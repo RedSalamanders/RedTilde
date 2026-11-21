@@ -17,7 +17,7 @@ namespace RedTilde::Test
 // cannot include an SDK-private test header as a product or test dependency.
 // This diagnostic runs outside timed frames and never purges heaps or trims the
 // working set. It records aggregate heap state, not allocation ownership.
-inline constexpr std::size_t MaximumDiagnosticHeaps = 32;
+inline constexpr std::size_t MaximumDiagnosticHeaps            = 32;
 inline constexpr std::uint64_t MaximumDiagnosticEntriesPerHeap = 1'000'000;
 // Each HeapWalk byte field is a DWORD, so 32 heaps * 1,000,000 entries *
 // UINT32_MAX is below 2^57; uint64_t totals cannot saturate under these bounds.
@@ -39,13 +39,13 @@ struct HeapDiagnosticTotals
     std::uint64_t regionCommittedBytes{}, regionUncommittedBytes{};
 };
 
-inline void AddSaturated(std::uint64_t &total, std::uint64_t value) noexcept
+inline void AddSaturated(std::uint64_t& total, std::uint64_t value) noexcept
 {
     constexpr auto maximum = std::numeric_limits<std::uint64_t>::max();
-    total = value > maximum - total ? maximum : total + value;
+    total                  = value > maximum - total ? maximum : total + value;
 }
 
-inline bool ProcessCpu100ns(std::uint64_t &value) noexcept
+inline bool ProcessCpu100ns(std::uint64_t& value) noexcept
 {
     FILETIME created{}, exited{}, kernel{}, user{};
     if (GetProcessTimes(GetCurrentProcess(), &created, &exited, &kernel, &user) == FALSE)
@@ -68,7 +68,7 @@ struct NativeOwnedHeapDiagnosticCalls
     {
         return HeapLock(heap);
     }
-    BOOL Walk(HANDLE heap, PROCESS_HEAP_ENTRY &entry) const noexcept
+    BOOL Walk(HANDLE heap, PROCESS_HEAP_ENTRY& entry) const noexcept
     {
         return HeapWalk(heap, &entry);
     }
@@ -85,25 +85,25 @@ struct NativeOwnedHeapDiagnosticCalls
 // The injected provider is test-only, borrowed synchronously and allocation-free
 // while locked. It makes empty, exact, truncated and failed walks independent of
 // the native allocator's current physical layout, including sanitizer redirection.
-template <typename Calls> inline bool WriteOwnedHeapDiagnostic(std::ostream &out, std::span<const HANDLE> heaps, std::size_t entryLimit, Calls &calls)
+template <typename Calls> inline bool WriteOwnedHeapDiagnostic(std::ostream& out, std::span<const HANDLE> heaps, std::size_t entryLimit, Calls& calls)
 {
     LARGE_INTEGER frequency{}, start{}, finish{};
     const bool frequencyReady = QueryPerformanceFrequency(&frequency) != FALSE && frequency.QuadPart > 0;
-    const bool startReady = frequencyReady && QueryPerformanceCounter(&start) != FALSE;
+    const bool startReady     = frequencyReady && QueryPerformanceCounter(&start) != FALSE;
     std::uint64_t cpuStart{};
     const bool cpuStartReady = ProcessCpu100ns(cpuStart);
 
     std::array<HeapDiagnosticSample, MaximumDiagnosticHeaps> samples{};
     HeapDiagnosticTotals totals{};
-    const auto count = std::min(heaps.size(), samples.size());
+    const auto count           = std::min(heaps.size(), samples.size());
     const bool validEntryLimit = entryLimit > 0 && entryLimit <= MaximumDiagnosticEntriesPerHeap;
-    bool complete = heaps.size() <= samples.size() && validEntryLimit;
+    bool complete              = heaps.size() <= samples.size() && validEntryLimit;
     std::size_t attemptedHeapCount{}, actualWalkedHeapCount{}, completeHeapCount{};
 
     for (std::size_t i = 0; i < count; ++i)
     {
-        auto &sample = samples[i];
-        if (!validEntryLimit)
+        auto& sample = samples[i];
+        if (! validEntryLimit)
         {
             sample.error = ERROR_INVALID_PARAMETER;
             continue;
@@ -114,29 +114,28 @@ template <typename Calls> inline bool WriteOwnedHeapDiagnostic(std::ostream &out
         if (heaps[i] == nullptr || duplicateHandle)
         {
             sample.error = heaps[i] == nullptr ? ERROR_INVALID_HANDLE : ERROR_INVALID_PARAMETER;
-            complete = false;
+            complete     = false;
             continue;
         }
         ++attemptedHeapCount;
         if (calls.Lock(heaps[i]) == FALSE)
         {
             sample.error = calls.Error();
-            complete = false;
+            complete     = false;
             continue;
         }
 
         sample.lockAcquired = true;
         ++actualWalkedHeapCount;
         {
-            const auto unlock = wil::scope_exit(
-                [&]
+            const auto unlock = wil::scope_exit([&]
+            {
+                if (calls.Unlock(heaps[i]) == FALSE)
                 {
-                    if (calls.Unlock(heaps[i]) == FALSE)
-                    {
-                        sample.error = calls.Error();
-                        sample.complete = false;
-                    }
-                });
+                    sample.error    = calls.Error();
+                    sample.complete = false;
+                }
+            });
             PROCESS_HEAP_ENTRY entry{};
             while (sample.walkedEntries < entryLimit && calls.Walk(heaps[i], entry) != FALSE)
             {
@@ -161,9 +160,9 @@ template <typename Calls> inline bool WriteOwnedHeapDiagnostic(std::ostream &out
             if (sample.walkedEntries == entryLimit)
             {
                 sample.budgetExceeded = calls.Walk(heaps[i], entry) != FALSE;
-                sample.error = sample.budgetExceeded ? ERROR_MORE_DATA : calls.Error();
+                sample.error          = sample.budgetExceeded ? ERROR_MORE_DATA : calls.Error();
             }
-            const bool walkComplete = !sample.budgetExceeded && sample.error == ERROR_NO_MORE_ITEMS;
+            const bool walkComplete = ! sample.budgetExceeded && sample.error == ERROR_NO_MORE_ITEMS;
             if (walkComplete)
                 sample.error = ERROR_SUCCESS;
             sample.complete = walkComplete;
@@ -182,7 +181,7 @@ template <typename Calls> inline bool WriteOwnedHeapDiagnostic(std::ostream &out
     const bool cpuFinishReady = ProcessCpu100ns(cpuFinish);
     double wallMicroseconds{};
     const bool finishReady = startReady && QueryPerformanceCounter(&finish) != FALSE;
-    const bool clockReady = finishReady && finish.QuadPart >= start.QuadPart;
+    const bool clockReady  = finishReady && finish.QuadPart >= start.QuadPart;
     if (clockReady)
         wallMicroseconds = static_cast<double>(finish.QuadPart - start.QuadPart) * 1'000'000.0 / static_cast<double>(frequency.QuadPart);
     const bool cpuReady = cpuStartReady && cpuFinishReady && cpuFinish >= cpuStart;
@@ -202,18 +201,17 @@ template <typename Calls> inline bool WriteOwnedHeapDiagnostic(std::ostream &out
     {
         if (i != 0)
             out << ',';
-        const auto &sample = samples[i];
+        const auto& sample = samples[i];
         out << "{\"index\":" << i << ",\"busyPayloadBytes\":" << sample.busyPayloadBytes << ",\"freePayloadBytes\":" << sample.freePayloadBytes
             << ",\"entryOverheadBytes\":" << sample.entryOverheadBytes << ",\"regionCommittedBytes\":" << sample.regionCommittedBytes
             << ",\"regionUncommittedBytes\":" << sample.regionUncommittedBytes << ",\"walkedEntries\":" << sample.walkedEntries
-            << ",\"budgetExceeded\":" << (sample.budgetExceeded ? "true" : "false")
-            << ",\"lockAcquired\":" << (sample.lockAcquired ? "true" : "false") << ",\"complete\":" << (sample.complete ? "true" : "false")
-            << ",\"error\":" << sample.error << '}';
+            << ",\"budgetExceeded\":" << (sample.budgetExceeded ? "true" : "false") << ",\"lockAcquired\":" << (sample.lockAcquired ? "true" : "false")
+            << ",\"complete\":" << (sample.complete ? "true" : "false") << ",\"error\":" << sample.error << '}';
     }
     out << "]}";
     return complete;
 }
-inline bool WriteOwnedHeapDiagnostic(std::ostream &out, std::span<const HANDLE> heaps, std::size_t entryLimit = MaximumDiagnosticEntriesPerHeap)
+inline bool WriteOwnedHeapDiagnostic(std::ostream& out, std::span<const HANDLE> heaps, std::size_t entryLimit = MaximumDiagnosticEntriesPerHeap)
 {
     NativeOwnedHeapDiagnosticCalls calls;
     return WriteOwnedHeapDiagnostic(out, heaps, entryLimit, calls);

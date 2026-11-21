@@ -51,6 +51,7 @@ if(Test-Path -LiteralPath $versionHeaderPath -PathType Leaf){
 $stage=Join-Path $output ('RedTilde-'+$version+'-'+$Platform+'-'+(Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
 Copy-Item -LiteralPath $exe -Destination $stage
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'SettingsStore.schema.json') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/Portable.md') -Destination (Join-Path $stage 'README.md')
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'capabilities.json') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/examples') -Destination (Join-Path $stage 'examples') -Recurse
@@ -60,6 +61,11 @@ Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'LICENSE.txt') -Destination $sta
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'THIRD-PARTY-NOTICES.md') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Dependencies') -Destination $stage -Recurse
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'ThirdParty/RedMonitor/LICENSE.txt') -Destination (Join-Path $stage 'Dependencies/RedMonitor-LICENSE.txt')
+$yyjsonScope = $Platform.ToLowerInvariant()
+$yyjsonTriplet = if ($Platform -eq 'ARM64') { 'arm64-windows-static-md' } else { 'x64-windows-static-md' }
+$yyjsonCopyright = Join-Path $PSScriptRoot ".build/vcpkg_installed/$yyjsonScope/$yyjsonTriplet/share/yyjson/copyright"
+if (-not (Test-Path -LiteralPath $yyjsonCopyright -PathType Leaf)) { throw "Missing yyjson copyright file: $yyjsonCopyright" }
+Copy-Item -LiteralPath $yyjsonCopyright -Destination (Join-Path $stage 'Dependencies/yyjson-LICENSE.txt')
 $pin=Get-Content (Join-Path $PSScriptRoot 'Dependencies/DxUi.lock.json') -Raw | ConvertFrom-Json
 if($null -ne $sdk){
     Copy-Item -LiteralPath (Join-Path $sdk.SdkRoot 'licenses') -Destination (Join-Path $stage 'Dependencies/DxUiSdk') -Recurse

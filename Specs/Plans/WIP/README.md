@@ -9,6 +9,8 @@ owner, and a `git show` recovery command.
 
 - **ACTIVE**: [Remaining work and qualification](RemainingWork_2026-11-04.md) — current qualification and delivery plan for RedTilde. T-U2 covers print preview, page selection, and output to physical printers, PDF and other installed Windows destinations.
 
+- **ACTIVE**: [Version 1.0 release readiness](V1ReleaseReadiness_2026-11-21.md) — sequenced execution plan covering the seven remaining release gates (settings convergence, ARM64 runtime, physical printing, IME/AT/interactive focus, live OneDrive/SMB/WSL storage, quiet-host performance/GPU, and v1.0.0 release cut).
+
 The owner's 7 November delivery scope requires x64 runtime tests and ARM64 compilation in Debug, Release and
 ASan Debug. ARM64 runtime is explicitly set aside; the normal production release gate is unchanged.
 

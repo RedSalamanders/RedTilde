@@ -9,7 +9,7 @@ namespace RedTilde
 // Tree. Input, scrolling, rendering and UI Automation remain DxUi responsibilities.
 class NavigationModel final : public DxUi::ITreeModel, public DxUi::ITreeDelegate
 {
-  public:
+public:
     std::vector<DxUi::TreeItemData> rows;
     std::function<void(std::uint64_t)> invoked;
     std::function<void(std::uint64_t, bool)> expanded;
@@ -17,7 +17,7 @@ class NavigationModel final : public DxUi::ITreeModel, public DxUi::ITreeDelegat
     {
         return rows.size();
     }
-    void GetVisibleItem(std::size_t index, DxUi::TreeItemData &item) const override
+    void GetVisibleItem(std::size_t index, DxUi::TreeItemData& item) const override
     {
         item = rows.at(index);
     }

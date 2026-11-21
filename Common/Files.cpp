@@ -20,8 +20,8 @@ bool ValidLimits(FilesLimits limits) noexcept
 }
 bool EqualOrdinal(std::wstring_view left, std::wstring_view right) noexcept
 {
-    return left.size() == right.size() && (left.empty() || CompareStringOrdinal(left.data(), static_cast<int>(left.size()), right.data(),
-                                                                                static_cast<int>(right.size()), TRUE) == CSTR_EQUAL);
+    return left.size() == right.size() &&
+           (left.empty() || CompareStringOrdinal(left.data(), static_cast<int>(left.size()), right.data(), static_cast<int>(right.size()), TRUE) == CSTR_EQUAL);
 }
 bool Digit(wchar_t value) noexcept
 {
@@ -36,14 +36,18 @@ bool ContainsOrdinal(std::wstring_view text, std::wstring_view part) noexcept
             return true;
     return false;
 }
-wil::unique_handle OpenDirectory(const std::filesystem::path &path, bool watch = false) noexcept
+wil::unique_handle OpenDirectory(const std::filesystem::path& path, bool watch = false) noexcept
 {
     // The scan pins parent names and denies metadata writes until their children
     // are visited. A checked parent cannot be renamed or converted to a reparse
     // point to redirect descent. Watch handles permit ordinary external changes.
-    return wil::unique_handle(CreateFileW(path.c_str(), FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES,
-                                          FILE_SHARE_READ | (watch ? FILE_SHARE_WRITE | FILE_SHARE_DELETE : 0u), nullptr, OPEN_EXISTING,
-                                          FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT | (watch ? FILE_FLAG_OVERLAPPED : 0u), nullptr));
+    return wil::unique_handle(CreateFileW(path.c_str(),
+                                          FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES,
+                                          FILE_SHARE_READ | (watch ? FILE_SHARE_WRITE | FILE_SHARE_DELETE : 0u),
+                                          nullptr,
+                                          OPEN_EXISTING,
+                                          FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT | (watch ? FILE_FLAG_OVERLAPPED : 0u),
+                                          nullptr));
 }
 FilesCaseSensitivity DirectoryCaseSensitivity(HANDLE directory) noexcept
 {
@@ -54,23 +58,23 @@ FilesCaseSensitivity DirectoryCaseSensitivity(HANDLE directory) noexcept
     // Filesystems without case-sensitive names cannot expose per-directory
     // sensitive lookup. A failed/unsupported metadata query otherwise stays
     // Unknown; guessing insensitive could alias two distinct NTFS files.
-    if (GetVolumeInformationByHandleW(directory, nullptr, 0, nullptr, nullptr, &flags, nullptr, 0) && !(flags & FILE_CASE_SENSITIVE_SEARCH))
+    if (GetVolumeInformationByHandleW(directory, nullptr, 0, nullptr, nullptr, &flags, nullptr, 0) && ! (flags & FILE_CASE_SENSITIVE_SEARCH))
         return FilesCaseSensitivity::Insensitive;
     return FilesCaseSensitivity::Unknown;
 }
-std::optional<std::wstring_view> DirectChildName(const std::filesystem::path &root, const std::filesystem::path &path) noexcept
+std::optional<std::wstring_view> DirectChildName(const std::filesystem::path& root, const std::filesystem::path& path) noexcept
 {
     const auto &parent = root.native(), &name = path.native();
     const auto separator = [](wchar_t c) { return c == L'\\' || c == L'/'; };
     if (parent.empty() || name.size() <= parent.size())
         return std::nullopt;
     for (std::size_t index = 0; index < parent.size(); ++index)
-        if (parent[index] != name[index] && !(separator(parent[index]) && separator(name[index])))
+        if (parent[index] != name[index] && ! (separator(parent[index]) && separator(name[index])))
             return std::nullopt;
     auto first = parent.size();
-    if (!separator(parent.back()))
+    if (! separator(parent.back()))
     {
-        if (!separator(name[first]))
+        if (! separator(name[first]))
             return std::nullopt;
         ++first;
     }
@@ -82,7 +86,7 @@ struct Scan
     FilesSnapshot snapshot;
     FilesLimits limits;
     std::stop_token stop;
-    void Error(const std::filesystem::path &path, DWORD error)
+    void Error(const std::filesystem::path& path, DWORD error)
     {
         const HRESULT result = HRESULT_FROM_WIN32(error);
         if (SUCCEEDED(snapshot.status))
@@ -93,24 +97,24 @@ struct Scan
     }
     bool Cancelled() noexcept
     {
-        if (!stop.stop_requested())
+        if (! stop.stop_requested())
             return false;
         snapshot.cancelled = true;
-        snapshot.status = HRESULT_FROM_WIN32(ERROR_CANCELLED);
+        snapshot.status    = HRESULT_FROM_WIN32(ERROR_CANCELLED);
         return true;
     }
-    void Directory(const std::filesystem::path &path, std::size_t parent, unsigned depth)
+    void Directory(const std::filesystem::path& path, std::size_t parent, unsigned depth)
     {
         if (Cancelled())
             return;
         auto directory = OpenDirectory(path);
-        if (!directory)
+        if (! directory)
         {
             Error(path, GetLastError());
             return;
         }
         FILE_ATTRIBUTE_TAG_INFO attributes{};
-        if (!GetFileInformationByHandleEx(directory.get(), FileAttributeTagInfo, &attributes, sizeof(attributes)))
+        if (! GetFileInformationByHandleEx(directory.get(), FileAttributeTagInfo, &attributes, sizeof(attributes)))
         {
             Error(path, GetLastError());
             return;
@@ -124,7 +128,7 @@ struct Scan
                 Error(path, ERROR_CANT_ACCESS_FILE);
             return;
         }
-        if (!(attributes.FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+        if (! (attributes.FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
         {
             Error(path, ERROR_DIRECTORY);
             return;
@@ -133,13 +137,13 @@ struct Scan
             snapshot.rootCaseSensitivity = DirectoryCaseSensitivity(directory.get());
         std::vector<FilesEntry> children;
         std::vector<std::byte> buffer(16u * 1024u);
-        bool first = true;
+        bool first    = true;
         bool complete = false;
-        while (!complete && !Cancelled())
+        while (! complete && ! Cancelled())
         {
             const auto informationClass = first ? FileIdBothDirectoryRestartInfo : FileIdBothDirectoryInfo;
-            first = false;
-            if (!GetFileInformationByHandleEx(directory.get(), informationClass, buffer.data(), static_cast<DWORD>(buffer.size())))
+            first                       = false;
+            if (! GetFileInformationByHandleEx(directory.get(), informationClass, buffer.data(), static_cast<DWORD>(buffer.size())))
             {
                 const DWORD error = GetLastError();
                 if (error != ERROR_NO_MORE_FILES)
@@ -151,44 +155,45 @@ struct Scan
             {
                 if (Cancelled())
                     return;
-                const auto *entry = reinterpret_cast<const FILE_ID_BOTH_DIR_INFO *>(buffer.data() + offset);
+                const auto* entry = reinterpret_cast<const FILE_ID_BOTH_DIR_INFO*>(buffer.data() + offset);
                 const std::wstring_view name(entry->FileName, entry->FileNameLength / sizeof(wchar_t));
                 if (name != L"." && name != L"..")
                 {
                     if (snapshot.examinedEntries == limits.maximumEntries)
                     {
                         snapshot.entryLimitReached = true;
-                        complete = true;
+                        complete                   = true;
                         break;
                     }
                     ++snapshot.examinedEntries;
                     const DWORD flags = entry->FileAttributes;
                     const bool folder = (flags & FILE_ATTRIBUTE_DIRECTORY) != 0;
-                    if (!(flags & (FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM)) && (folder || IsMarkdownFile(std::filesystem::path(name))))
+                    if (! (flags & (FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM)) && (folder || IsMarkdownFile(std::filesystem::path(name))))
                         children.push_back(
                             {path / name, std::wstring(name), parent, folder ? 0u : 1u, depth, folder, (flags & FILE_ATTRIBUTE_REPARSE_POINT) != 0});
                 }
-                if (!entry->NextEntryOffset)
+                if (! entry->NextEntryOffset)
                     break;
                 offset += entry->NextEntryOffset;
             }
         }
-        std::ranges::sort(children, [](const FilesEntry &left, const FilesEntry &right)
-                          { return left.directory != right.directory ? left.directory : FilesNaturalLess(left.name, right.name); });
-        for (auto &entry : children)
+        std::ranges::sort(children, [](const FilesEntry& left, const FilesEntry& right) {
+            return left.directory != right.directory ? left.directory : FilesNaturalLess(left.name, right.name);
+        });
+        for (auto& entry : children)
         {
             if (Cancelled())
                 return;
             const std::size_t index = snapshot.entries.size();
             const bool folder = entry.directory, reparse = entry.reparsePoint;
             snapshot.entries.push_back(std::move(entry));
-            if (!folder)
+            if (! folder)
             {
                 ++snapshot.markdownCount;
                 continue;
             }
             const std::size_t before = snapshot.markdownCount;
-            if (!reparse)
+            if (! reparse)
             {
                 if (depth < limits.maximumDepth)
                 {
@@ -204,7 +209,7 @@ struct Scan
                     snapshot.depthLimitReached = true;
             }
             snapshot.entries[index].markdownCount = snapshot.markdownCount - before;
-            if (snapshot.entries.size() == index + 1 && !snapshot.entries[index].reparsePoint)
+            if (snapshot.entries.size() == index + 1 && ! snapshot.entries[index].reparsePoint)
                 snapshot.entries.pop_back(); // A completely empty/irrelevant folder has no tree row.
         }
     }
@@ -215,7 +220,7 @@ struct Scan
 #pragma warning(disable : 4625 4626)
 class DirectoryWatch final
 {
-  public:
+public:
     wil::unique_handle directory;
     wil::unique_event event;
     HRESULT status = S_OK;
@@ -241,10 +246,10 @@ class DirectoryWatch final
         directory.reset();
         event.reset();
     }
-    void Open(const std::filesystem::path &path, bool images = false) noexcept
+    void Open(const std::filesystem::path& path, bool images = false) noexcept
     {
         Close();
-        status = S_OK;
+        status     = S_OK;
         imageFiles = images;
         if (path.empty())
             return;
@@ -256,16 +261,16 @@ class DirectoryWatch final
         }
         else
             directory = OpenDirectory(path, true);
-        if (!directory)
+        if (! directory)
         {
             status = HRESULT_FROM_WIN32(GetLastError());
             return;
         }
         FILE_ATTRIBUTE_TAG_INFO attributes{};
-        if (!GetFileInformationByHandleEx(directory.get(), FileAttributeTagInfo, &attributes, sizeof(attributes)))
+        if (! GetFileInformationByHandleEx(directory.get(), FileAttributeTagInfo, &attributes, sizeof(attributes)))
             status = HRESULT_FROM_WIN32(GetLastError());
-        else if (((attributes.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && (!imageFiles || IsReparseTagNameSurrogate(attributes.ReparseTag))) ||
-                 !(attributes.FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
+        else if (((attributes.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && (! imageFiles || IsReparseTagNameSurrogate(attributes.ReparseTag))) ||
+                 ! (attributes.FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
             status = HRESULT_FROM_WIN32(ERROR_CANT_ACCESS_FILE);
         if (FAILED(status))
         {
@@ -273,7 +278,7 @@ class DirectoryWatch final
             return;
         }
         event.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
-        if (!event)
+        if (! event)
         {
             status = HRESULT_FROM_WIN32(GetLastError());
             directory.reset();
@@ -283,15 +288,14 @@ class DirectoryWatch final
     }
     void Arm() noexcept
     {
-        if (!directory || !event || pending)
+        if (! directory || ! event || pending)
             return;
         ResetEvent(event.get());
-        overlapped = {};
-        overlapped.hEvent = event.get();
+        overlapped         = {};
+        overlapped.hEvent  = event.get();
         const DWORD filter = imageFiles ? FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_LAST_WRITE
                                         : FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_DIR_NAME | FILE_NOTIFY_CHANGE_ATTRIBUTES;
-        if (ReadDirectoryChangesW(directory.get(), buffer.data(), static_cast<DWORD>(buffer.size()), !imageFiles, filter, nullptr, &overlapped,
-                                  nullptr))
+        if (ReadDirectoryChangesW(directory.get(), buffer.data(), static_cast<DWORD>(buffer.size()), ! imageFiles, filter, nullptr, &overlapped, nullptr))
             pending = true;
         else
         {
@@ -303,7 +307,7 @@ class DirectoryWatch final
     {
         DWORD bytes{};
         bool changed = observed.empty();
-        if (!GetOverlappedResult(directory.get(), &overlapped, &bytes, FALSE))
+        if (! GetOverlappedResult(directory.get(), &overlapped, &bytes, FALSE))
         {
             const DWORD error = GetLastError();
             // A zero/overflow notification means rescan the bounded model; its
@@ -316,9 +320,9 @@ class DirectoryWatch final
             }
             changed = true;
         }
-        if (!bytes)
+        if (! bytes)
             changed = true; // Overflow loses names, so refresh the bounded set.
-        for (std::size_t offset{}; !changed && offset < bytes;)
+        for (std::size_t offset{}; ! changed && offset < bytes;)
         {
             constexpr auto header = offsetof(FILE_NOTIFY_INFORMATION, FileName);
             if (bytes - offset < header)
@@ -326,15 +330,15 @@ class DirectoryWatch final
                 changed = true;
                 break;
             }
-            const auto *entry = reinterpret_cast<const FILE_NOTIFY_INFORMATION *>(buffer.data() + offset);
+            const auto* entry = reinterpret_cast<const FILE_NOTIFY_INFORMATION*>(buffer.data() + offset);
             if (entry->FileNameLength % sizeof(wchar_t) || entry->FileNameLength > bytes - offset - header)
             {
                 changed = true;
                 break;
             }
             const std::wstring_view name(entry->FileName, entry->FileNameLength / sizeof(wchar_t));
-            changed = std::ranges::any_of(observed, [&](const auto &path) { return EqualOrdinal(path.native(), name); });
-            if (!entry->NextEntryOffset)
+            changed = std::ranges::any_of(observed, [&](const auto& path) { return EqualOrdinal(path.native(), name); });
+            if (! entry->NextEntryOffset)
                 break;
             if (entry->NextEntryOffset % alignof(DWORD) || entry->NextEntryOffset < header || entry->NextEntryOffset > bytes - offset)
             {
@@ -351,16 +355,16 @@ class DirectoryWatch final
 #pragma warning(pop)
 } // namespace
 
-bool IsMarkdownFile(const std::filesystem::path &path) noexcept
+bool IsMarkdownFile(const std::filesystem::path& path) noexcept
 {
-    const auto &name = path.native();
-    const auto at = name.find_last_of(L'.');
+    const auto& name = path.native();
+    const auto at    = name.find_last_of(L'.');
     if (at == name.npos)
         return false;
     const auto extension = std::wstring_view(name).substr(at);
     return EqualOrdinal(extension, L".md") || EqualOrdinal(extension, L".markdown");
 }
-bool MatchesFilesPath(const FilesSnapshot &snapshot, const std::filesystem::path &left, const std::filesystem::path &right) noexcept
+bool MatchesFilesPath(const FilesSnapshot& snapshot, const std::filesystem::path& left, const std::filesystem::path& right) noexcept
 {
     if (left == right)
         return true;
@@ -407,24 +411,24 @@ bool FilesNaturalLess(std::wstring_view left, std::wstring_view right) noexcept
         return a == left.size();
     return CompareStringOrdinal(left.data(), static_cast<int>(left.size()), right.data(), static_cast<int>(right.size()), FALSE) == CSTR_LESS_THAN;
 }
-FilesSnapshot EnumerateMarkdownFiles(const std::filesystem::path &root, FilesLimits limits, std::stop_token stop)
+FilesSnapshot EnumerateMarkdownFiles(const std::filesystem::path& root, FilesLimits limits, std::stop_token stop)
 {
     Scan scan{{}, limits, stop};
-    scan.snapshot.root = root;
+    scan.snapshot.root          = root;
     scan.snapshot.appliedLimits = limits;
-    if (!ValidLimits(limits) || (!root.empty() && !root.is_absolute()))
+    if (! ValidLimits(limits) || (! root.empty() && ! root.is_absolute()))
         scan.snapshot.status = E_INVALIDARG;
-    else if (!root.empty())
+    else if (! root.empty())
         scan.Directory(root, NoFilesParent, 0);
     return std::move(scan.snapshot);
 }
-std::vector<std::size_t> FilterMarkdownFiles(const FilesSnapshot &snapshot, std::wstring_view filter)
+std::vector<std::size_t> FilterMarkdownFiles(const FilesSnapshot& snapshot, std::wstring_view filter)
 {
     std::vector<bool> keep(snapshot.entries.size(), filter.empty());
-    for (std::size_t index = 0; index < snapshot.entries.size() && !filter.empty(); ++index)
+    for (std::size_t index = 0; index < snapshot.entries.size() && ! filter.empty(); ++index)
     {
-        const auto &entry = snapshot.entries[index];
-        if (entry.directory || !ContainsOrdinal(entry.name, filter))
+        const auto& entry = snapshot.entries[index];
+        if (entry.directory || ! ContainsOrdinal(entry.name, filter))
             continue;
         keep[index] = true;
         auto parent = entry.parent;
@@ -433,7 +437,7 @@ std::vector<std::size_t> FilterMarkdownFiles(const FilesSnapshot &snapshot, std:
         for (std::size_t remaining = snapshot.entries.size(); remaining && parent < index; --remaining)
         {
             keep[parent] = true;
-            parent = snapshot.entries[parent].parent;
+            parent       = snapshot.entries[parent].parent;
         }
     }
     std::vector<std::size_t> selected;
@@ -474,8 +478,8 @@ struct FilesService::State
             return;
         status = FAILED(snapshot.status) ? snapshot.status : snapshot.watchStatus;
         result = std::move(snapshot);
-        phase = pending ? FilesPhase::Scanning : (watching ? FilesPhase::Watching : FilesPhase::Idle);
-        if (window && !notificationPending)
+        phase  = pending ? FilesPhase::Scanning : (watching ? FilesPhase::Watching : FilesPhase::Idle);
+        if (window && ! notificationPending)
             notificationPending = PostMessageW(window, message, 0, 0) != FALSE;
     }
     void Fail(HRESULT failure)
@@ -484,29 +488,29 @@ struct FilesService::State
             std::lock_guard lock(mutex);
             if (phase == FilesPhase::Closed)
                 return;
-            phase = FilesPhase::Failed;
+            phase  = FilesPhase::Failed;
             status = failure;
             cancellation.request_stop();
             pending.reset();
             FilesSnapshot snapshot;
-            snapshot.root = latest.root;
-            snapshot.generation = latest.generation;
-            snapshot.revision = latest.revision;
+            snapshot.root          = latest.root;
+            snapshot.generation    = latest.generation;
+            snapshot.revision      = latest.revision;
             snapshot.appliedLimits = limits;
-            snapshot.status = failure;
-            result = std::move(snapshot);
-            if (window && !notificationPending)
+            snapshot.status        = failure;
+            result                 = std::move(snapshot);
+            if (window && ! notificationPending)
                 notificationPending = PostMessageW(window, message, 0, 0) != FALSE;
             (void)SetEvent(wake.get());
         }
         OutputDebugStringW(L"RedTilde Files worker stopped after an unexpected service failure.\n");
     }
-    static void CALLBACK Worker(PTP_CALLBACK_INSTANCE instance, void *context) noexcept
+    static void CALLBACK Worker(PTP_CALLBACK_INSTANCE instance, void* context) noexcept
     {
         (void)CallbackMayRunLong(instance);
-        ProcessWorkLease lease = std::move(static_cast<ProcessWorkItem<State> *>(context)->lease);
-        const std::unique_ptr<ProcessWorkItem<State>> ownership(static_cast<ProcessWorkItem<State> *>(context));
-        const auto &self = ownership->state;
+        ProcessWorkLease lease = std::move(static_cast<ProcessWorkItem<State>*>(context)->lease);
+        const std::unique_ptr<ProcessWorkItem<State>> ownership(static_cast<ProcessWorkItem<State>*>(context));
+        const auto& self = ownership->state;
         try
         {
             DirectoryWatch watch;
@@ -529,17 +533,17 @@ struct FilesService::State
                     if (scan)
                     {
                         self->cancellation = std::stop_source{};
-                        stop = self->cancellation.get_token();
-                        self->phase = FilesPhase::Scanning;
+                        stop               = self->cancellation.get_token();
+                        self->phase        = FilesPhase::Scanning;
                     }
                 }
                 if (requested)
                     watch.Open(current.root); // Arm before enumeration so changes cannot fall between scan and watch.
                 if (scan)
                 {
-                    auto snapshot = EnumerateMarkdownFiles(current.root, self->limits, stop);
-                    snapshot.generation = current.generation;
-                    snapshot.revision = current.revision;
+                    auto snapshot        = EnumerateMarkdownFiles(current.root, self->limits, stop);
+                    snapshot.generation  = current.generation;
+                    snapshot.revision    = current.revision;
                     snapshot.watchStatus = watch.status;
                     self->Publish(std::move(snapshot), watch.pending);
                     scan = false;
@@ -561,7 +565,7 @@ struct FilesService::State
                     std::lock_guard lock(self->mutex);
                     if (self->phase == FilesPhase::Closed || self->phase == FilesPhase::Failed)
                         return;
-                    if (!self->pending && current.generation == self->latest.generation)
+                    if (! self->pending && current.generation == self->latest.generation)
                         self->phase = FilesPhase::CoalescingWatch;
                 }
                 const ULONGLONG deadline = GetTickCount64() + 250;
@@ -588,24 +592,24 @@ struct FilesService::State
                     std::lock_guard lock(self->mutex);
                     if (self->phase == FilesPhase::Closed || self->phase == FilesPhase::Failed)
                         return;
-                    if (!self->pending && current.generation == self->latest.generation)
+                    if (! self->pending && current.generation == self->latest.generation)
                     {
                         current.revision = ++self->latest.revision;
-                        scan = true;
-                        self->phase = FilesPhase::Scanning;
+                        scan             = true;
+                        self->phase      = FilesPhase::Scanning;
                     }
-                    else if (!self->pending)
+                    else if (! self->pending)
                         self->phase = watch.pending ? FilesPhase::Watching : FilesPhase::Idle;
                 }
             }
         }
-        catch (const std::bad_alloc &)
+        catch (const std::bad_alloc&)
         {
             // Threadpool ABI boundary: allocation failure is fatal, never a
             // misleading empty tree or a silently swallowed worker failure.
             DxUi::Failure::FailAllocation();
         }
-        catch (const std::filesystem::filesystem_error &error)
+        catch (const std::filesystem::filesystem_error& error)
         {
             // Threadpool ABI boundary: publish a concrete failed result and stop
             // admission; a stopped worker must never accept an unserviceable root.
@@ -622,105 +626,105 @@ HRESULT FilesService::Initialize(HWND window, UINT message, FilesLimits limits) 
 try
 {
 #if defined(REDTILDE_ENABLE_TESTS)
-    if (const auto injected = std::exchange(nextInitializeFailureForTest, std::nullopt))
+    if (const auto injected = std::exchange(_nextInitializeFailureForTest, std::nullopt))
     {
         Close();
         return *injected;
     }
 #endif
-    if (!ValidLimits(limits) || (window && message < WM_APP))
+    if (! ValidLimits(limits) || (window && message < WM_APP))
         return E_INVALIDARG;
     auto staged = std::make_shared<State>();
     staged->wake.reset(CreateEventW(nullptr, FALSE, FALSE, nullptr));
-    if (!staged->wake)
+    if (! staged->wake)
         return HRESULT_FROM_WIN32(GetLastError());
-    staged->window = window;
-    staged->message = message;
-    staged->limits = limits;
-    auto ownership = std::make_unique<ProcessWorkItem<State>>(staged);
+    staged->window          = window;
+    staged->message         = message;
+    staged->limits          = limits;
+    auto ownership          = std::make_unique<ProcessWorkItem<State>>(staged);
     const HRESULT admission = ProcessWork::Acquire(ownership->lease);
     if (FAILED(admission))
         return admission;
-    if (!TrySubmitThreadpoolCallback(State::Worker, ownership.get(), nullptr))
+    if (! TrySubmitThreadpoolCallback(State::Worker, ownership.get(), nullptr))
         return HRESULT_FROM_WIN32(GetLastError());
     (void)ownership.release();
     Close();
-    state = std::move(staged);
+    _state = std::move(staged);
     return S_OK;
 }
-catch (const std::bad_alloc &)
+catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation(); // Application boundary; no partially initialized service survives allocation failure.
 }
 HRESULT FilesService::SetRoot(std::filesystem::path root) noexcept
 try
 {
-    if (!state)
+    if (! _state)
         return E_UNEXPECTED;
-    if (!root.empty() && (!root.is_absolute() || root.native().find(L'\0') != std::wstring::npos))
+    if (! root.empty() && (! root.is_absolute() || root.native().find(L'\0') != std::wstring::npos))
         return E_INVALIDARG;
     root = root.lexically_normal();
-    std::lock_guard lock(state->mutex);
-    if (state->phase == FilesPhase::Closed)
+    std::lock_guard lock(_state->mutex);
+    if (_state->phase == FilesPhase::Closed)
         return HRESULT_FROM_WIN32(ERROR_CANCELLED);
-    if (state->phase == FilesPhase::Failed)
-        return state->status;
-    if (state->latest.generation && root == state->latest.root)
+    if (_state->phase == FilesPhase::Failed)
+        return _state->status;
+    if (_state->latest.generation && root == _state->latest.root)
         return S_FALSE;
-    state->cancellation.request_stop();
-    state->latest.root = std::move(root);
-    ++state->latest.generation;
-    ++state->latest.revision;
-    state->pending = state->latest;
-    state->result.reset();
-    state->phase = FilesPhase::Scanning;
-    (void)SetEvent(state->wake.get());
+    _state->cancellation.request_stop();
+    _state->latest.root = std::move(root);
+    ++_state->latest.generation;
+    ++_state->latest.revision;
+    _state->pending = _state->latest;
+    _state->result.reset();
+    _state->phase = FilesPhase::Scanning;
+    (void)SetEvent(_state->wake.get());
     return S_OK;
 }
-catch (const std::bad_alloc &)
+catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation(); // Application boundary; request admission cannot silently lose allocation failure.
 }
 HRESULT FilesService::Refresh() noexcept
 try
 {
-    if (!state)
+    if (! _state)
         return E_UNEXPECTED;
-    std::lock_guard lock(state->mutex);
-    if (state->phase == FilesPhase::Closed)
+    std::lock_guard lock(_state->mutex);
+    if (_state->phase == FilesPhase::Closed)
         return HRESULT_FROM_WIN32(ERROR_CANCELLED);
-    if (state->phase == FilesPhase::Failed)
-        return state->status;
-    state->cancellation.request_stop();
-    ++state->latest.revision;
-    state->pending = state->latest;
-    state->result.reset();
-    state->phase = FilesPhase::Scanning;
-    (void)SetEvent(state->wake.get());
+    if (_state->phase == FilesPhase::Failed)
+        return _state->status;
+    _state->cancellation.request_stop();
+    ++_state->latest.revision;
+    _state->pending = _state->latest;
+    _state->result.reset();
+    _state->phase = FilesPhase::Scanning;
+    (void)SetEvent(_state->wake.get());
     return S_OK;
 }
-catch (const std::bad_alloc &)
+catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation(); // Application boundary; latest-value admission either succeeds or terminates.
 }
 std::optional<FilesSnapshot> FilesService::TakeResult()
 {
-    if (!state)
+    if (! _state)
         return {};
-    std::lock_guard lock(state->mutex);
-    state->notificationPending = false;
-    auto snapshot = std::move(state->result);
-    state->result.reset();
-    if (snapshot && (snapshot->generation != state->latest.generation || snapshot->revision != state->latest.revision))
+    std::lock_guard lock(_state->mutex);
+    _state->notificationPending = false;
+    auto snapshot               = std::move(_state->result);
+    _state->result.reset();
+    if (snapshot && (snapshot->generation != _state->latest.generation || snapshot->revision != _state->latest.revision))
         return {};
     return snapshot;
 }
 FilesPhase FilesService::CurrentPhase() const noexcept
 {
-    if (!state)
+    if (! _state)
         return FilesPhase::Closed;
-    std::lock_guard lock(state->mutex);
-    return state->phase;
+    std::lock_guard lock(_state->mutex);
+    return _state->phase;
 }
 bool FilesService::IsFailed() const noexcept
 {
@@ -733,48 +737,48 @@ bool FilesService::IsActive() const noexcept
 }
 bool FilesService::Busy() const noexcept
 {
-    if (!state)
+    if (! _state)
         return false;
-    std::lock_guard lock(state->mutex);
-    return state->phase == FilesPhase::Scanning || state->phase == FilesPhase::CoalescingWatch;
+    std::lock_guard lock(_state->mutex);
+    return _state->phase == FilesPhase::Scanning || _state->phase == FilesPhase::CoalescingWatch;
 }
 HRESULT FilesService::Status() const noexcept
 {
-    if (!state)
+    if (! _state)
         return E_UNEXPECTED;
-    std::lock_guard lock(state->mutex);
-    return state->status;
+    std::lock_guard lock(_state->mutex);
+    return _state->status;
 }
 std::uint64_t FilesService::Generation() const noexcept
 {
-    if (!state)
+    if (! _state)
         return 0;
-    std::lock_guard lock(state->mutex);
-    return state->latest.generation;
+    std::lock_guard lock(_state->mutex);
+    return _state->latest.generation;
 }
 void FilesService::Close() noexcept
 {
-    if (!state)
+    if (! _state)
         return;
     {
-        std::lock_guard lock(state->mutex);
-        state->phase = FilesPhase::Closed;
-        state->window = nullptr;
-        state->result.reset();
-        state->cancellation.request_stop();
-        (void)SetEvent(state->wake.get());
+        std::lock_guard lock(_state->mutex);
+        _state->phase  = FilesPhase::Closed;
+        _state->window = nullptr;
+        _state->result.reset();
+        _state->cancellation.request_stop();
+        (void)SetEvent(_state->wake.get());
     }
-    state.reset();
+    _state.reset();
 }
 #if defined(REDTILDE_ENABLE_TESTS)
 void FilesService::FailNextInitializeForTest(HRESULT hr) noexcept
 {
-    nextInitializeFailureForTest = hr;
+    _nextInitializeFailureForTest = hr;
 }
 void FilesService::SimulateWorkerFailureForTest(HRESULT hr) noexcept
 {
-    if (state)
-        state->Fail(hr);
+    if (_state)
+        _state->Fail(hr);
 }
 #endif
 
@@ -798,7 +802,7 @@ struct FileChangeService::State
     {
         {
             const std::lock_guard lock(mutex);
-            stopped = true;
+            stopped    = true;
             stopStatus = failure;
         }
         Publish(current, failure);
@@ -809,15 +813,15 @@ struct FileChangeService::State
         if (closing || current != generation)
             return;
         result = FileChangeNotice{generation, ++revision, status};
-        if (window && !notificationPending)
+        if (window && ! notificationPending)
             notificationPending = PostMessageW(window, message, cookie, 0) != FALSE;
     }
-    static void CALLBACK Worker(PTP_CALLBACK_INSTANCE instance, void *context) noexcept
+    static void CALLBACK Worker(PTP_CALLBACK_INSTANCE instance, void* context) noexcept
     {
         (void)CallbackMayRunLong(instance);
-        ProcessWorkLease lease = std::move(static_cast<ProcessWorkItem<State> *>(context)->lease);
-        const std::unique_ptr<ProcessWorkItem<State>> ownership(static_cast<ProcessWorkItem<State> *>(context));
-        const auto &self = ownership->state;
+        ProcessWorkLease lease = std::move(static_cast<ProcessWorkItem<State>*>(context)->lease);
+        const std::unique_ptr<ProcessWorkItem<State>> ownership(static_cast<ProcessWorkItem<State>*>(context));
+        const auto& self = ownership->state;
         try
         {
             std::array<DirectoryWatch, 8u> watches;
@@ -834,23 +838,23 @@ struct FileChangeService::State
                         return;
                     if (self->requested)
                     {
-                        current = self->generation;
-                        files = self->files;
+                        current         = self->generation;
+                        files           = self->files;
                         self->requested = false;
-                        requested = true;
+                        requested       = true;
                     }
                 }
                 if (requested)
                 {
-                    for (auto &watch : watches)
+                    for (auto& watch : watches)
                         watch.Close();
-                    for (auto &values : names)
+                    for (auto& values : names)
                         values.clear();
                     directories.clear();
-                    for (const auto &file : files)
+                    for (const auto& file : files)
                     {
                         const auto parent = file.parent_path();
-                        auto found = std::ranges::find(directories, parent);
+                        auto found        = std::ranges::find(directories, parent);
                         if (found == directories.end())
                         {
                             directories.push_back(parent);
@@ -867,17 +871,17 @@ struct FileChangeService::State
                     }
                     // Refresh once after arming. This closes the initial
                     // decode/notification setup gap without a polling timer.
-                    if (!files.empty())
+                    if (! files.empty())
                         self->Publish(current, status);
                 }
                 std::array<HANDLE, 9u> waits{};
                 std::array<std::size_t, 9u> indexes{};
                 DWORD count = 1u;
-                waits[0] = self->wake.get();
+                waits[0]    = self->wake.get();
                 for (std::size_t i{}; i < directories.size(); ++i)
                     if (watches[i].pending)
                     {
-                        waits[count] = watches[i].event.get();
+                        waits[count]     = watches[i].event.get();
                         indexes[count++] = i;
                     }
                 const auto ready = WaitForMultipleObjects(count, waits.data(), FALSE, INFINITE);
@@ -890,9 +894,9 @@ struct FileChangeService::State
                 }
                 if (ready < WAIT_OBJECT_0 + 1u || ready >= WAIT_OBJECT_0 + count)
                     continue;
-                const auto index = indexes[ready - WAIT_OBJECT_0];
-                bool changed = watches[index].Complete(names[index]);
-                HRESULT status = watches[index].status;
+                const auto index    = indexes[ready - WAIT_OBJECT_0];
+                bool changed        = watches[index].Complete(names[index]);
+                HRESULT status      = watches[index].status;
                 const auto deadline = GetTickCount64() + 250u;
                 while (watches[index].pending)
                 {
@@ -902,7 +906,7 @@ struct FileChangeService::State
                     if (now >= deadline)
                         break;
                     const auto quiet = static_cast<DWORD>(std::min<ULONGLONG>(75u, deadline - now));
-                    const auto next = WaitForMultipleObjects(count, waits.data(), FALSE, quiet);
+                    const auto next  = WaitForMultipleObjects(count, waits.data(), FALSE, quiet);
                     if (next == WAIT_TIMEOUT || next == WAIT_OBJECT_0)
                         break;
                     if (next == WAIT_FAILED)
@@ -913,21 +917,21 @@ struct FileChangeService::State
                     if (next < WAIT_OBJECT_0 + 1u || next >= WAIT_OBJECT_0 + count)
                         break;
                     const auto more = indexes[next - WAIT_OBJECT_0];
-                    changed = watches[more].Complete(names[more]) || changed;
+                    changed         = watches[more].Complete(names[more]) || changed;
                     if (FAILED(watches[more].status))
                         status = watches[more].status;
-                    if (!watches[more].pending)
+                    if (! watches[more].pending)
                         break;
                 }
                 if (changed || FAILED(status))
                     self->Publish(current, status);
             }
         }
-        catch (const std::bad_alloc &)
+        catch (const std::bad_alloc&)
         {
             DxUi::Failure::FailAllocation(); // Threadpool ABI: allocation failure is fatal.
         }
-        catch (const std::filesystem::filesystem_error &error)
+        catch (const std::filesystem::filesystem_error& error)
         {
             // Threadpool ABI: retain an explicit failed notification; never
             // publish invented paths or a successful refresh after path failure.
@@ -949,41 +953,40 @@ FileChangeService::~FileChangeService()
 HRESULT FileChangeService::Initialize(HWND window, UINT message, WPARAM cookie) noexcept
 try
 {
-    if (!window || message < WM_APP)
+    if (! window || message < WM_APP)
         return E_INVALIDARG;
     auto staged = std::make_shared<State>();
     staged->wake.reset(CreateEventW(nullptr, FALSE, FALSE, nullptr));
-    if (!staged->wake)
+    if (! staged->wake)
         return HRESULT_FROM_WIN32(GetLastError());
-    staged->window = window;
+    staged->window  = window;
     staged->message = message;
-    staged->cookie = cookie;
-    auto ownership = std::make_unique<ProcessWorkItem<State>>(staged);
+    staged->cookie  = cookie;
+    auto ownership  = std::make_unique<ProcessWorkItem<State>>(staged);
     RETURN_IF_FAILED(ProcessWork::Acquire(ownership->lease));
-    if (!TrySubmitThreadpoolCallback(State::Worker, ownership.get(), nullptr))
+    if (! TrySubmitThreadpoolCallback(State::Worker, ownership.get(), nullptr))
         return HRESULT_FROM_WIN32(GetLastError());
     (void)ownership.release();
     Close();
-    state = std::move(staged);
+    _state = std::move(staged);
     return S_OK;
 }
-catch (const std::bad_alloc &)
+catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation();
 }
 HRESULT FileChangeService::SetFiles(std::span<const std::filesystem::path> input) noexcept
 try
 {
-    if (!state)
+    if (! _state)
         return E_UNEXPECTED;
     if (input.size() > 32u)
         return HRESULT_FROM_WIN32(ERROR_TOO_MANY_NAMES);
     std::vector<std::filesystem::path> files, directories;
     files.reserve(input.size());
-    for (const auto &path : input)
+    for (const auto& path : input)
     {
-        if (!path.is_absolute() || path.native().starts_with(L"\\\\") || path.native().size() > 32750u ||
-            path.native().find(L'\0') != path.native().npos)
+        if (! path.is_absolute() || path.native().starts_with(L"\\\\") || path.native().size() > 32750u || path.native().find(L'\0') != path.native().npos)
             return E_INVALIDARG;
         files.push_back(path.lexically_normal());
         const auto parent = files.back().parent_path();
@@ -994,47 +997,47 @@ try
     }
     std::ranges::sort(files);
     files.erase(std::unique(files.begin(), files.end()), files.end());
-    const std::lock_guard lock(state->mutex);
-    if (state->closing)
+    const std::lock_guard lock(_state->mutex);
+    if (_state->closing)
         return HRESULT_FROM_WIN32(ERROR_CANCELLED);
-    if (state->stopped)
-        return state->stopStatus;
-    if (files == state->files)
+    if (_state->stopped)
+        return _state->stopStatus;
+    if (files == _state->files)
         return S_FALSE;
-    state->files = std::move(files);
-    ++state->generation;
-    state->requested = true;
-    state->result.reset();
-    SetEvent(state->wake.get());
+    _state->files = std::move(files);
+    ++_state->generation;
+    _state->requested = true;
+    _state->result.reset();
+    SetEvent(_state->wake.get());
     return S_OK;
 }
-catch (const std::bad_alloc &)
+catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation();
 }
 std::optional<FileChangeNotice> FileChangeService::TakeResult()
 {
-    if (!state)
+    if (! _state)
         return {};
-    const std::lock_guard lock(state->mutex);
-    state->notificationPending = false;
-    auto result = state->result;
-    state->result.reset();
-    if (result && result->generation != state->generation)
+    const std::lock_guard lock(_state->mutex);
+    _state->notificationPending = false;
+    auto result                 = _state->result;
+    _state->result.reset();
+    if (result && result->generation != _state->generation)
         return {};
     return result;
 }
 void FileChangeService::Close() noexcept
 {
-    if (!state)
+    if (! _state)
         return;
     {
-        const std::lock_guard lock(state->mutex);
-        state->closing = true;
-        state->window = nullptr;
-        state->result.reset();
-        SetEvent(state->wake.get());
+        const std::lock_guard lock(_state->mutex);
+        _state->closing = true;
+        _state->window  = nullptr;
+        _state->result.reset();
+        SetEvent(_state->wake.get());
     }
-    state.reset();
+    _state.reset();
 }
 } // namespace RedTilde

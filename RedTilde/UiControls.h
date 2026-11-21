@@ -24,7 +24,7 @@ struct BrandMarkPixels
 #pragma warning(disable : 4625 4626 5026 5027)
 class Surface : public DxUi::Panel
 {
-  public:
+public:
     enum class Kind
     {
         Chrome,
@@ -32,15 +32,17 @@ class Surface : public DxUi::Panel
         Sidebar,
         Floating
     };
-    explicit Surface(Kind value = Kind::Chrome) : kind(value) {}
+    explicit Surface(Kind value = Kind::Chrome) : kind(value)
+    {
+    }
     // Product region boundaries; child control chrome remains library-owned.
     bool borderLeft{}, borderRight{}, borderBottom{};
-    void Paint(DxUi::ControlHost &host) const override
+    void Paint(DxUi::ControlHost& host) const override
     {
-        auto *target = host.GetDeviceContext();
-        if (!target)
+        auto* target = host.GetDeviceContext();
+        if (! target)
             return;
-        const auto &theme = host.GetTheme();
+        const auto& theme = host.GetTheme();
         const auto bounds = GetBounds();
         if (kind == Kind::Floating)
         {
@@ -52,7 +54,7 @@ class Surface : public DxUi::Panel
         {
             const auto color = kind == Kind::Canvas ? theme.cardBackground : kind == Kind::Chrome ? theme.windowBackground : theme.surfaceBackground;
             target->FillRectangle(bounds, host.GetSolidBrush(color));
-            if (auto *line = host.GetSolidBrush(theme.borderDefault))
+            if (auto* line = host.GetSolidBrush(theme.borderDefault))
             {
                 if (borderLeft)
                     target->DrawLine(D2D1::Point2F(bounds.left, bounds.top), D2D1::Point2F(bounds.left, bounds.bottom), line);
@@ -74,11 +76,11 @@ class Surface : public DxUi::Panel
 #pragma warning(disable : 4625 4626 5026 5027)
 class Editor final : public DxUi::RichTextEditor
 {
-  public:
+public:
     using DxUi::RichTextEditor::RichTextEditor;
 
-  private:
-    [[nodiscard]] bool IsAttachedTo(const DxUi::ControlHost &host, const DxUi::Control *parent) const noexcept
+private:
+    [[nodiscard]] bool IsAttachedTo(const DxUi::ControlHost& host, const DxUi::Control* parent) const noexcept
     {
         return GetHost() == &host && GetParent() == parent;
     }
@@ -94,15 +96,17 @@ class Editor final : public DxUi::RichTextEditor
 #pragma warning(disable : 4625 4626 5026 5027)
 class SourceMirrorEditor final : public DxUi::RichTextEditor
 {
-  public:
-    explicit SourceMirrorEditor(Editor &primary) : primary_(&primary), primaryLifetime_(GetControlLifetimeToken(primary)) {}
+public:
+    explicit SourceMirrorEditor(Editor& primary) : _primary(&primary), _primaryLifetime(GetControlLifetimeToken(primary))
+    {
+    }
 
-  protected:
-    [[nodiscard]] HRESULT PrepareContent(DxUi::ControlHost &host) noexcept override;
+protected:
+    [[nodiscard]] HRESULT PrepareContent(DxUi::ControlHost& host) noexcept override;
 
-  private:
-    Editor *primary_{};
-    std::weak_ptr<int> primaryLifetime_;
+private:
+    Editor* _primary{};
+    std::weak_ptr<int> _primaryLifetime;
 };
 #pragma warning(pop)
 

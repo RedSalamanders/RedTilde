@@ -52,7 +52,7 @@ struct CrashRecordText
         Add("\r\n");
     }
 };
-HRESULT WriteRecord(HANDLE output, const DxUi::Failure::Record &record, HRESULT dumpResult) noexcept
+HRESULT WriteRecord(HANDLE output, const DxUi::Failure::Record& record, HRESULT dumpResult) noexcept
 {
     CrashRecordText text;
     text.Number("protocol=", record.version);
@@ -81,47 +81,55 @@ HRESULT WriteRecord(HANDLE output, const DxUi::Failure::Record &record, HRESULT 
 #endif
     for (std::size_t index = 0u; index < std::min<std::size_t>(record.frameCount, DxUi::Failure::MaximumFrames); ++index)
         text.Number("frame=", reinterpret_cast<std::uintptr_t>(record.frames[index]), 16);
-    if (!text.complete)
+    if (! text.complete)
         return HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER);
     LARGE_INTEGER beginning{};
-    if (!SetFilePointerEx(output, beginning, nullptr, FILE_BEGIN) || !SetEndOfFile(output))
+    if (! SetFilePointerEx(output, beginning, nullptr, FILE_BEGIN) || ! SetEndOfFile(output))
         return HRESULT_FROM_WIN32(GetLastError());
     DWORD written{};
-    if (!WriteFile(output, text.bytes.data(), static_cast<DWORD>(text.used), &written, nullptr))
+    if (! WriteFile(output, text.bytes.data(), static_cast<DWORD>(text.used), &written, nullptr))
         return HRESULT_FROM_WIN32(GetLastError());
     if (written != text.used)
         return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
     return FlushFileBuffers(output) ? S_OK : HRESULT_FROM_WIN32(GetLastError());
 }
 
-HRESULT WriteReport(EXCEPTION_POINTERS *exception, DWORD faultThread, const DxUi::Failure::Record *record = nullptr) noexcept
+HRESULT WriteReport(EXCEPTION_POINTERS* exception, DWORD faultThread, const DxUi::Failure::Record* record = nullptr) noexcept
 {
     const auto thread = static_cast<LONG>(faultThread);
-    const auto owner = InterlockedCompareExchange(&ownerThread, thread, 0);
+    const auto owner  = InterlockedCompareExchange(&ownerThread, thread, 0);
     if (owner != 0)
     {
         if (owner != thread && dumpFinished)
             (void)WaitForSingleObject(dumpFinished.get(), 10000);
         return HRESULT_FROM_WIN32(ERROR_BUSY);
     }
-    const auto finished = wil::scope_exit(
-        []
-        {
-            if (dumpFinished)
-                (void)SetEvent(dumpFinished.get());
-        });
+    const auto finished = wil::scope_exit([]
+    {
+        if (dumpFinished)
+            (void)SetEvent(dumpFinished.get());
+    });
     SYSTEMTIME time{};
     GetSystemTime(&time);
     FILETIME created{}, exited{}, kernel{}, user{};
-    if (!GetProcessTimes(GetCurrentProcess(), &created, &exited, &kernel, &user))
+    if (! GetProcessTimes(GetCurrentProcess(), &created, &exited, &kernel, &user))
         return HRESULT_FROM_WIN32(GetLastError());
     ULARGE_INTEGER creation{};
-    creation.LowPart = created.dwLowDateTime;
+    creation.LowPart  = created.dwLowDateTime;
     creation.HighPart = created.dwHighDateTime;
     wchar_t path[1200]{};
-    const HRESULT formatted =
-        StringCchPrintfW(path, std::size(path), L"%s\\RedTilde-%04u%02u%02u-%02u%02u%02u-%lu-%016llx.dmp", crashDirectory.data(), time.wYear,
-                         time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond, GetCurrentProcessId(), creation.QuadPart);
+    const HRESULT formatted = StringCchPrintfW(path,
+                                               std::size(path),
+                                               L"%s\\RedTilde-%04u%02u%02u-%02u%02u%02u-%lu-%016llx.dmp",
+                                               crashDirectory.data(),
+                                               time.wYear,
+                                               time.wMonth,
+                                               time.wDay,
+                                               time.wHour,
+                                               time.wMinute,
+                                               time.wSecond,
+                                               GetCurrentProcessId(),
+                                               creation.QuadPart);
     if (FAILED(formatted))
         return formatted;
     wil::unique_handle recordFile;
@@ -130,8 +138,7 @@ HRESULT WriteReport(EXCEPTION_POINTERS *exception, DWORD faultThread, const DxUi
     {
         wchar_t sidecar[1200]{};
         const auto prefixLength = wcslen(path) - 4u;
-        if (FAILED(StringCchCopyNW(sidecar, std::size(sidecar), path, prefixLength)) ||
-            FAILED(StringCchCatW(sidecar, std::size(sidecar), L".record")))
+        if (FAILED(StringCchCopyNW(sidecar, std::size(sidecar), path, prefixLength)) || FAILED(StringCchCatW(sidecar, std::size(sidecar), L".record")))
             return HRESULT_FROM_WIN32(ERROR_INSUFFICIENT_BUFFER);
         recordFile.reset(CreateFileW(sidecar, GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr));
         recordResult = recordFile ? WriteRecord(recordFile.get(), *record, E_PENDING) : HRESULT_FROM_WIN32(GetLastError());
@@ -141,9 +148,13 @@ HRESULT WriteReport(EXCEPTION_POINTERS *exception, DWORD faultThread, const DxUi
     if (file)
     {
         MINIDUMP_EXCEPTION_INFORMATION info{faultThread, exception, FALSE};
-        if (!MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(), file.get(),
-                               static_cast<MINIDUMP_TYPE>(MiniDumpWithThreadInfo | MiniDumpWithUnloadedModules), exception ? &info : nullptr, nullptr,
-                               nullptr))
+        if (! MiniDumpWriteDump(GetCurrentProcess(),
+                                GetCurrentProcessId(),
+                                file.get(),
+                                static_cast<MINIDUMP_TYPE>(MiniDumpWithThreadInfo | MiniDumpWithUnloadedModules),
+                                exception ? &info : nullptr,
+                                nullptr,
+                                nullptr))
             dumpResult = HRESULT_FROM_WIN32(GetLastError());
     }
     if (recordFile)
@@ -159,22 +170,22 @@ HRESULT WriteReport(EXCEPTION_POINTERS *exception, DWORD faultThread, const DxUi
         if (FAILED(markerPath))
             return markerPath;
         wil::unique_handle pending(CreateFileW(marker, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
-        if (!pending)
+        if (! pending)
             return HRESULT_FROM_WIN32(GetLastError());
         DWORD written{};
         const DWORD bytes = static_cast<DWORD>(wcslen(path) * sizeof(wchar_t));
-        if (!WriteFile(pending.get(), path, bytes, &written, nullptr))
+        if (! WriteFile(pending.get(), path, bytes, &written, nullptr))
             return HRESULT_FROM_WIN32(GetLastError());
         if (written != bytes)
             return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
-        if (!FlushFileBuffers(pending.get()))
+        if (! FlushFileBuffers(pending.get()))
         {
             return HRESULT_FROM_WIN32(GetLastError());
         }
     }
     return FAILED(dumpResult) ? dumpResult : recordResult;
 }
-LONG WINAPI Filter(EXCEPTION_POINTERS *exception) noexcept
+LONG WINAPI Filter(EXCEPTION_POINTERS* exception) noexcept
 {
     (void)WriteReport(exception, GetCurrentThreadId());
     return EXCEPTION_EXECUTE_HANDLER;
@@ -195,7 +206,7 @@ void Terminated() noexcept
 {
     Fatal(0xE0525401);
 }
-void InvalidParameter(const wchar_t *, const wchar_t *, const wchar_t *, unsigned, uintptr_t) noexcept
+void InvalidParameter(const wchar_t*, const wchar_t*, const wchar_t*, unsigned, uintptr_t) noexcept
 {
     Fatal(0xE0525402);
 }
@@ -208,15 +219,15 @@ void Aborted(int) noexcept
     Fatal(0xE0525404);
 }
 } // namespace
-HRESULT WriteDxUiFailureReport(DxUi::Failure::Record &record) noexcept
+HRESULT WriteDxUiFailureReport(DxUi::Failure::Record& record) noexcept
 {
-    if (record.size != sizeof(record) || record.version != DxUi::Failure::ProtocolVersion || !record.threadId)
+    if (record.size != sizeof(record) || record.version != DxUi::Failure::ProtocolVersion || ! record.threadId)
         return E_INVALIDARG;
     // The reporter owns a copied record while the original thread remains held before unwinding.
     EXCEPTION_POINTERS exception{&record.exception, &record.context};
     return WriteReport(&exception, record.threadId, &record);
 }
-HRESULT InstallCrashHandler(const std::filesystem::path &directory) noexcept
+HRESULT InstallCrashHandler(const std::filesystem::path& directory) noexcept
 try
 {
     // Prepare the bounded fault path even when healthy directory creation/retention later reports an error.
@@ -226,7 +237,7 @@ try
     if (FAILED(StringCchCopyW(crashDirectory.data(), crashDirectory.size(), directory.c_str())))
         return E_INVALIDARG;
     dumpFinished.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
-    if (!dumpFinished)
+    if (! dumpFinished)
         return HRESULT_FROM_WIN32(GetLastError());
     SetUnhandledExceptionFilter(Filter);
     std::set_terminate(Terminated);
@@ -238,10 +249,10 @@ try
     if (error)
         return HRESULT_FROM_WIN32(static_cast<DWORD>(error.value()));
     std::vector<std::filesystem::path> dumps;
-    for (std::filesystem::directory_iterator iterator(directory, error), end; !error && iterator != end; iterator.increment(error))
+    for (std::filesystem::directory_iterator iterator(directory, error), end; ! error && iterator != end; iterator.increment(error))
     {
-        const auto &entry = *iterator;
-        const auto name = entry.path().filename().native();
+        const auto& entry = *iterator;
+        const auto name   = entry.path().filename().native();
         if (name.starts_with(L"RedTilde-") && entry.path().extension() == L".dmp" && entry.is_regular_file(error))
             dumps.push_back(entry.path());
     }
@@ -249,7 +260,7 @@ try
     for (std::size_t index = 10; index < dumps.size(); ++index)
     {
         std::filesystem::remove(dumps[index], error);
-        if (!error)
+        if (! error)
         {
             auto sidecar = dumps[index];
             sidecar.replace_extension(L".record");
@@ -258,11 +269,11 @@ try
     }
     return S_OK;
 }
-catch (const std::bad_alloc &)
+catch (const std::bad_alloc&)
 {
     return E_OUTOFMEMORY;
 }
-catch (const std::filesystem::filesystem_error &error)
+catch (const std::filesystem::filesystem_error& error)
 {
     return HRESULT_FROM_WIN32(static_cast<DWORD>(error.code().value()));
 }

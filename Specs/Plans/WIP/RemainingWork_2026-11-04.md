@@ -550,20 +550,14 @@ is included here, without rebuilding or packaging the separate viewer.
 
 Step CV-6-08 of the cross-repository
 [convergence plan](https://github.com/RedSalamanders/RedHome/blob/main/Specs/Plans/WIP/Convergence_2026-11-17.md)
-gives each code convention one target in every repository (register section H). These rows move RedTilde. No C or
-C++ source changes until RedTilde's 155-line reformat (CV-6-05) is merged; each row then lands in its own pull request
-with its `Changes/` fragment. Merge gate (RedHome decision D21): pull request checks pass and the six profiles build
-with zero warnings; tests are recorded as "tests deferred (D21)".
+gives each code convention one target in every repository (register section H). These rows move RedTilde; hosted
+CI qualification and ARM64 runtime remain tracked under Gate 2 and Gate 7.
 
-- [ ] **H-10 Settings format.** *(Blocked on `CV-6-05` shared `.clang-format` reformat and `vcpkg` `yyjson` adoption.)*
-  `Common/Settings.cpp` stores line-based `key=value` text with a `RedTilde.Settings/1` header. Target (owner default):
-  JSON through `yyjson`, read with `YYJSON_READ_JSON5 | YYJSON_READ_ALLOW_BOM`. An existing text file is read once
-  and rewritten as JSON, so no user loses settings.
-- [ ] **H-15 Settings reload (RedHome decision D19).** *(Blocked on `CV-6-05` and `H-10`.)* No settings watcher today.
-  Target, after H-10: a worker that waits on the change and a stop event, coalesces and posts one notification;
-  field-level fallback; unknown members kept across a save.
-- [ ] **H-26 Settings file and contract names.** *(Blocked on `CV-6-05` and `H-10`.)* Target: `RedTilde.settings.json`,
-  `RedTilde-debug.settings.json` and `Specs/Core/Core_Settings.md`, with H-10.
+- [x] **CV-6-05 Shared `.clang-format` reformat.** Adopted RedHome's 155-line [.clang-format](../../../.clang-format) style and `Install-CiFormatter` inside [format.ps1](../../../format.ps1) with zero behavioral changes.
+- [x] **H-27 `_camelCase` member naming and `.clang-tidy`.** Added root [.clang-tidy](../../../.clang-tidy) (`bugprone-reserved-identifier`, `readability-identifier-naming`), converted private/protected non-static fields across `Common/`, `RedTilde/`, and `Tests/` to `_camelCase`, and wired compiler-free [Tests/Tooling.Tests.NamingStyle.ps1](../../../Tests/Tooling.Tests.NamingStyle.ps1) into [validate.ps1](../../../validate.ps1).
+- [x] **H-10 Settings format.** Added `vcpkg.json` (`yyjson`), pinned `vcpkg-tool.json` (`aeb162b7`), `Build/vcpkg-triplets/*`, and `vcpkg-install.ps1` strictly inside `.build/`. `Common/Settings.cpp` reads UTF-8 JSON5 (`YYJSON_READ_JSON5 | YYJSON_READ_ALLOW_BOM`, `16 MiB` cap), performs lossless one-time migration from `RedTilde.Settings/1`, preserves unknown keys and newer integral `schema` versions via tree merge, backs up corrupt cold files to `.invalid-*`, and emits [SettingsStore.schema.json](../../../SettingsStore.schema.json) (`Settings.Json5SyntaxUnknownFieldsAndSchemaMerge`, `Settings.ColdLoadMigrationCorruptBackupAndSizeCap`).
+- [x] **H-15 Settings reload (RedHome decision D19).** Added `SettingsWatcher` (`OVERLAPPED` `ReadDirectoryChangesW` + `_stopEvent` + `ProcessWorkLease`, `250 ms` coalescing, `FileStamp` loop prevention, non-writing live reload in `ReloadSettingsFromDisk`), verified by `Settings.LiveReloadAndMalformedRecovery` and `Settings.WatcherRapidBurstCoalescing`.
+- [x] **H-26 Settings file and contract names.** Active files and contract moved to `RedTilde.settings.json`, `RedTilde-debug.settings.json`, and [Specs/Core/Core_Settings.md](../../Core/Core_Settings.md) (keeping [Core_SettingsAndCrashes.md](../../Core/Core_SettingsAndCrashes.md) as a compatibility index).
 - [x] **H-24 Crash contract.** The handler already covers all five paths (`Common/CrashHandler.cpp`). Target: the
   crash half of [settings and crashes](../../Core/Core_SettingsAndCrashes.md) becomes [Specs/Core/Core_CrashHandling.md](../../Core/Core_CrashHandling.md).
 - [x] **H-22 Test-process failure reports.** `Tests/Application.Tests.FailureReports.h` routes test failure reports away from dialogs first and answers `--failure-report-self-test`, run by `test.ps1` (`FailureReportRouting`) and verified in production refusals.
@@ -587,19 +581,21 @@ RT-10/11's old drops did not cancel them. Current unified CI supersedes obsolete
 
 ## Version 1.0 Release Gate Summary
 
+Execution slices for Gates 1–7 below are sequenced in [Version 1.0 release readiness](V1ReleaseReadiness_2026-11-21.md).
+
 ### Completed locally
 - **Explicit state machines (`RT-SM-01`..`RT-SM-09`)**: All 13 implicit state machines formalized across `Application`, `AsyncFiles`, `BitmapPasteWriter`, `RecoveryService`, `FilesService`, `SettingsWriter`, `RichImageLoader`, `PrintPreview`, `EditDiagnostics`, overlays, `FindController`, `DocumentSessionMetadata`/`DerivedDocumentCaches`, and `Build/` tooling ([archived closeout](../Done/ExplicitStateMachines_2026-11-10.md)).
-- **Product polish & safety**: `Command::CloseDocument` (`Ctrl+W`), `WM_DROPFILES` single-file drag-and-drop, stable `Open documents` ordering and row selection, `Q20` localized capacity-limit reporting, session-local `Command::Focus` without settings disk rewrites, `--version`/`--help` CLI exiting cleanly without data/crash directories, `PrintPreview` icon (`IDI_REDTILDE`) and `pendingAction_` cancellation, and Settings **About & Shortcuts**.
-- **Convergence & packaging/tooling**: `H-24` (`Core_CrashHandling.md`), `H-22` (`Tests/Application.Tests.FailureReports.h`, 16 production refusals), `H-23` (`RedTilde/KeyboardState.h`), `H-06`/`H-08` (`Common/Resources.h` & `Tests/Tooling.Tests.ResourceStrings.ps1`), `Common/Version.h`, `Installer/Install-RedTilde.ps1`, `Setup.ps1` 260-char UTF-16 guard & bounded timeouts, `174` registered native cases, updated `docs/` with `16` deterministic hidden captures, and reconciled `Specs/`.
+- **Product polish & safety**: `Command::CloseDocument` (`Ctrl+W`), `WM_DROPFILES` single-file drag-and-drop, stable `Open documents` ordering and row selection, `Q20` localized capacity-limit reporting, session-local `Command::Focus` without settings disk rewrites, `--version`/`--help` CLI exiting cleanly without data/crash directories, `PrintPreview` icon (`IDI_REDTILDE`) and `_pendingAction` cancellation, and Settings **About & Shortcuts**.
+- **Gate 1 — Settings & hygiene convergence (`CV-6-05`, `H-10`, `H-15`, `H-26`, `H-27`)**: Adopted RedHome's 155-line `.clang-format`, enforced `_camelCase` member naming via `.clang-tidy` + `Tests/Tooling.Tests.NamingStyle.ps1`, added `.build/`-isolated `vcpkg.json` / `vcpkg-tool.json` (`aeb162b7`) / `vcpkg-install.ps1` (`yyjson`), migrated settings to UTF-8 JSON5 (`RedTilde.settings.json` / `RedTilde-debug.settings.json`, `SettingsStore.schema.json`, `Specs/Core/Core_Settings.md`, lossless one-time migration, `.invalid-*` backup, `SettingsWatcher` coalesced non-writing live reload), and implemented opt-in fail-closed real-location harness (`Tools/Test-RealLocations.ps1` + `Tests/Tooling.Tests.RealLocations.ps1`). Verified locally across all six zero-warning builds (`95c5bd10`) and full x64 `Debug` (`20261121T150532426Z-67508-1e25903bd93340169cdc830f2f2282b0`), `Release` (`20261121T150913464Z-74740-e9eca9c010d148159d4283941060c9dc`), and `ASan Debug` (`20261121T151254349Z-67996-a999f12ffea54ab9b67b49024bb697dd`) test runs (`178` catalog cases).
+- **Earlier convergence & packaging/tooling**: `H-24` (`Core_CrashHandling.md`), `H-22` (`Tests/Application.Tests.FailureReports.h`, 16 production refusals), `H-23` (`RedTilde/KeyboardState.h`), `H-06`/`H-08` (`Common/Resources.h` & `Tests/Tooling.Tests.ResourceStrings.ps1`), `Common/Version.h`, `Installer/Install-RedTilde.ps1`, `Setup.ps1` 260-char UTF-16 guard & bounded timeouts, updated `docs/` with `16` deterministic hidden captures, and reconciled `Specs/`.
 
 ### Remaining external, hardware, manual, and release-cut gates
-1. **Blocked settings convergence**: `CV-6-05` shared `.clang-format` reformat, `H-10` `yyjson` adoption via `vcpkg`, `H-15` live settings watcher, and `H-26` `Core_Settings.md` / JSON settings filenames.
-2. **Physical ARM64 runtime**: Cross-compilation on x64 verifies compilation only; runtime qualification requires native ARM64 hardware.
-3. **Physical printer & virtual driver**: Physical printer sheet verification, a secondary virtual destination (e.g., XPS), and live Print/Save dialog focus restoration.
-4. **Physical input & interactive focus**: Physical IME, touch, assistive technology (screen reader), and owner-authorized foreground focus/clipboard (`test-interactive.ps1`).
-5. **Real storage & network locations**: Native OneDrive/cloud provider, SMB/NAS, and WSL locations.
-6. **Paired performance & hardware graphics**: Quiet-host paired Release performance study and real hardware device-removal / visibility / occlusion qualification.
-7. **Release cut & distribution**: Upstream `DxUi` performance/product gates, setting v1.0 in `Common/Version.h` and `capabilities.json`, code signing, hosted CI qualification, and publication handoff.
+1. **Physical ARM64 runtime (Gate 2)**: Cross-compilation on x64 verifies compilation only; runtime qualification requires native ARM64 hardware.
+2. **Physical printer & virtual driver (Gate 3)**: Physical printer sheet verification, a secondary virtual destination (e.g., XPS), and live Print/Save dialog focus restoration.
+3. **Physical input & interactive focus (Gate 4)**: Physical IME, touch, assistive technology (screen reader), and owner-authorized foreground focus/clipboard (`test-interactive.ps1`).
+4. **Real storage & network locations (Gate 5)**: Live execution against OneDrive/cloud provider, `\\rubygloom` SMB/NAS (when online), and WSL `selftest` roots using `Tools/Test-RealLocations.ps1` and the backend safety matrix.
+5. **Paired performance & hardware graphics (Gate 6)**: Quiet-host paired Release performance study and real hardware device-removal / visibility / occlusion qualification.
+6. **Release cut & distribution (Gate 7)**: Hosted CI qualification for the Gate 1 + Phase 5 commits, upstream `DxUi` performance/product gates, setting v1.0 in `Common/Version.h` and `capabilities.json`, code signing, and publication handoff.
 
 <a id="t-deferred"></a>
 ## Explicitly deferred scope

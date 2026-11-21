@@ -19,15 +19,15 @@ namespace
 {
 thread_local AtomicWriteFailure atomicWriteFailure{};
 thread_local AtomicWriteHook atomicWriteHook{};
-thread_local void *atomicWriteContext{};
+thread_local void* atomicWriteContext{};
 } // namespace
 void SetAtomicWriteFailureForTest(AtomicWriteFailure failure) noexcept
 {
     atomicWriteFailure = failure;
 }
-void SetAtomicWriteHookForTest(AtomicWriteHook hook, void *context) noexcept
+void SetAtomicWriteHookForTest(AtomicWriteHook hook, void* context) noexcept
 {
-    atomicWriteHook = hook;
+    atomicWriteHook    = hook;
     atomicWriteContext = context;
 }
 #endif
@@ -43,7 +43,7 @@ HRESULT LastError() noexcept
 {
     return HRESULT_FROM_WIN32(GetLastError());
 }
-FileStamp Stamp(const BY_HANDLE_FILE_INFORMATION &info, std::uint64_t hash) noexcept
+FileStamp Stamp(const BY_HANDLE_FILE_INFORMATION& info, std::uint64_t hash) noexcept
 {
     return {true,
             (static_cast<std::uint64_t>(info.nFileSizeHigh) << 32u) | info.nFileSizeLow,
@@ -52,7 +52,7 @@ FileStamp Stamp(const BY_HANDLE_FILE_INFORMATION &info, std::uint64_t hash) noex
             info.dwVolumeSerialNumber,
             (static_cast<std::uint64_t>(info.nFileIndexHigh) << 32u) | info.nFileIndexLow};
 }
-HRESULT CompleteIdentity(HANDLE file, FileStamp &stamp) noexcept
+HRESULT CompleteIdentity(HANDLE file, FileStamp& stamp) noexcept
 {
     FILE_ID_INFO info{};
     if (GetFileInformationByHandleEx(file, FileIdInfo, &info, sizeof(info)))
@@ -69,32 +69,32 @@ HRESULT CompleteIdentity(HANDLE file, FileStamp &stamp) noexcept
         return S_OK;
     return HRESULT_FROM_WIN32(error);
 }
-bool HasIdentity(const FileStamp &stamp) noexcept
+bool HasIdentity(const FileStamp& stamp) noexcept
 {
     return stamp.volume && (stamp.fileIndex || stamp.fileIndexHigh);
 }
-bool SameObject(const FileStamp &left, const FileStamp &right) noexcept
+bool SameObject(const FileStamp& left, const FileStamp& right) noexcept
 {
     return HasIdentity(left) && HasIdentity(right) && left.volume == right.volume && left.fileIndex == right.fileIndex &&
            left.fileIndexHigh == right.fileIndexHigh;
 }
 // Borrow one already-opened file at position zero. Both stable shared reads and
 // protected in-place saves use this one bounded read/identity implementation.
-HRESULT ReadOpenedBytes(HANDLE file, std::string &bytes, FileStamp *stamp, std::size_t maximumBytes = MaximumBytes)
+HRESULT ReadOpenedBytes(HANDLE file, std::string& bytes, FileStamp* stamp, std::size_t maximumBytes = MaximumBytes)
 {
     BY_HANDLE_FILE_INFORMATION info{};
-    if (!GetFileInformationByHandle(file, &info))
+    if (! GetFileInformationByHandle(file, &info))
         return LastError();
     if ((info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) || info.nFileSizeHigh || info.nFileSizeLow > maximumBytes)
         return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
     std::string staged(info.nFileSizeLow, '\0');
     DWORD count{};
-    if (!staged.empty() && !ReadFile(file, staged.data(), static_cast<DWORD>(staged.size()), &count, nullptr))
+    if (! staged.empty() && ! ReadFile(file, staged.data(), static_cast<DWORD>(staged.size()), &count, nullptr))
         return LastError();
     if (count != staged.size())
         return HRESULT_FROM_WIN32(ERROR_READ_FAULT);
     BY_HANDLE_FILE_INFORMATION after{};
-    if (!GetFileInformationByHandle(file, &after))
+    if (! GetFileInformationByHandle(file, &after))
         return LastError();
     auto identity = Stamp(info, ContentHash(staged));
     if (identity != Stamp(after, identity.hash))
@@ -107,38 +107,38 @@ HRESULT ReadOpenedBytes(HANDLE file, std::string &bytes, FileStamp *stamp, std::
     bytes.swap(staged);
     return S_OK;
 }
-bool MatchesSavedContent(const FileStamp &current, const FileStamp &expected) noexcept
+bool MatchesSavedContent(const FileStamp& current, const FileStamp& expected) noexcept
 {
     // A timestamp-only touch of the same file with identical bytes is harmless.
     return current.exists == expected.exists &&
-           (!current.exists || (SameObject(current, expected) && current.size == expected.size && current.hash == expected.hash));
+           (! current.exists || (SameObject(current, expected) && current.size == expected.size && current.hash == expected.hash));
 }
-HRESULT NeedsExpectedComparison(const FileStamp &identity, const FileStamp *expected, bool sameIdentityOnly,
-                                const std::filesystem::path *baselinePath, bool &compare)
+HRESULT NeedsExpectedComparison(
+    const FileStamp& identity, const FileStamp* expected, bool sameIdentityOnly, const std::filesystem::path* baselinePath, bool& compare)
 {
     compare = expected != nullptr;
-    if (!expected || !sameIdentityOnly || !HasIdentity(*expected))
+    if (! expected || ! sameIdentityOnly || ! HasIdentity(*expected))
         return S_OK;
     // A distinct Save As destination has picker overwrite consent. An alias of
     // either the saved object or its replaced original still needs the baseline.
-    compare = !HasIdentity(identity) || SameObject(identity, *expected);
-    if (compare || !baselinePath || baselinePath->empty())
+    compare = ! HasIdentity(identity) || SameObject(identity, *expected);
+    if (compare || ! baselinePath || baselinePath->empty())
         return S_OK;
-    wil::unique_handle original(CreateFileW(baselinePath->c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
-                                            FILE_ATTRIBUTE_NORMAL, nullptr));
-    if (!original)
+    wil::unique_handle original(
+        CreateFileW(baselinePath->c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+    if (! original)
     {
         const auto error = GetLastError();
         return error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND ? S_OK : HRESULT_FROM_WIN32(error);
     }
     BY_HANDLE_FILE_INFORMATION info{};
-    if (!GetFileInformationByHandle(original.get(), &info))
+    if (! GetFileInformationByHandle(original.get(), &info))
         return LastError();
-    auto baseline = Stamp(info, 0);
+    auto baseline     = Stamp(info, 0);
     const auto result = CompleteIdentity(original.get(), baseline);
     if (FAILED(result))
         return result;
-    compare = !HasIdentity(baseline) || SameObject(identity, baseline);
+    compare = ! HasIdentity(baseline) || SameObject(identity, baseline);
     return S_OK;
 }
 } // namespace
@@ -155,16 +155,16 @@ std::uint64_t ContentHash(std::string_view bytes) noexcept
     return hash;
 }
 
-HRESULT ReadBytes(const std::filesystem::path &path, std::string &bytes, FileStamp *stamp) noexcept
+HRESULT ReadBytes(const std::filesystem::path& path, std::string& bytes, FileStamp* stamp) noexcept
 try
 {
-    wil::unique_handle file(CreateFileW(path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
-                                        FILE_ATTRIBUTE_NORMAL, nullptr));
-    if (!file)
+    wil::unique_handle file(CreateFileW(
+        path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+    if (! file)
         return LastError();
     return ReadOpenedBytes(file.get(), bytes, stamp);
 }
-catch (const std::bad_alloc &)
+catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation();
 }
@@ -173,19 +173,19 @@ namespace
 {
 std::size_t ImageShareEnd(std::wstring_view path) noexcept
 {
-    if (!path.starts_with(L"\\\\") || path.starts_with(L"\\\\?\\") || path.starts_with(L"\\\\.\\"))
+    if (! path.starts_with(L"\\\\") || path.starts_with(L"\\\\?\\") || path.starts_with(L"\\\\.\\"))
         return path.npos;
     const auto server = path.find(L'\\', 2u);
     if (server == path.npos || server == 2u || server + 1u == path.size())
         return path.npos;
     const auto share = path.find(L'\\', server + 1u);
-    const auto end = share == path.npos ? path.size() : share;
+    const auto end   = share == path.npos ? path.size() : share;
     return end == server + 1u ? path.npos : end;
 }
 HRESULT CheckedImageEntry(HANDLE file, bool directory) noexcept
 {
     FILE_ATTRIBUTE_TAG_INFO info{};
-    if (!GetFileInformationByHandleEx(file, FileAttributeTagInfo, &info, sizeof(info)))
+    if (! GetFileInformationByHandleEx(file, FileAttributeTagInfo, &info, sizeof(info)))
         return LastError();
     if (GetFileType(file) != FILE_TYPE_DISK || ((info.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0) != directory)
         return E_INVALIDARG;
@@ -194,7 +194,7 @@ HRESULT CheckedImageEntry(HANDLE file, bool directory) noexcept
         return E_ACCESSDENIED;
     return S_OK;
 }
-HRESULT OpenImageEntry(std::wstring_view path, bool directory, wil::unique_handle &output)
+HRESULT OpenImageEntry(std::wstring_view path, bool directory, wil::unique_handle& output)
 {
     if (path.empty() || path.size() > 32750u || path.find(L'\0') != path.npos || std::ranges::any_of(path, [](wchar_t c) { return c < 32u; }))
         return E_INVALIDARG;
@@ -213,9 +213,9 @@ HRESULT OpenImageEntry(std::wstring_view path, bool directory, wil::unique_handl
         return E_INVALIDARG;
     while (text.size() > rootEnd + 1u && text.back() == L'\\')
         text.pop_back();
-    if (text.size() <= rootEnd + 1u && !directory)
+    if (text.size() <= rootEnd + 1u && ! directory)
         return E_INVALIDARG;
-    const bool unc = text.starts_with(L"\\\\");
+    const bool unc      = text.starts_with(L"\\\\");
     std::wstring prefix = unc ? L"\\\\?\\UNC\\" : L"\\\\?\\";
     prefix.append(text, unc ? 2u : 0u, rootEnd - (unc ? 2u : 0u));
     prefix.push_back(L'\\');
@@ -223,13 +223,13 @@ HRESULT OpenImageEntry(std::wstring_view path, bool directory, wil::unique_handl
     std::size_t count{};
     const auto open = [&](bool final) -> HRESULT
     {
-        const bool isDirectory = !final || directory;
-        const DWORD access = isDirectory ? FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES : GENERIC_READ;
-        const DWORD share = final && directory ? FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE : FILE_SHARE_READ;
-        const DWORD flags = FILE_FLAG_OPEN_REPARSE_POINT | (isDirectory ? FILE_FLAG_BACKUP_SEMANTICS : FILE_FLAG_SEQUENTIAL_SCAN) |
-                            (final && directory ? FILE_FLAG_OVERLAPPED : 0u);
+        const bool isDirectory = ! final || directory;
+        const DWORD access     = isDirectory ? FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES : GENERIC_READ;
+        const DWORD share      = final && directory ? FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE : FILE_SHARE_READ;
+        const DWORD flags      = FILE_FLAG_OPEN_REPARSE_POINT | (isDirectory ? FILE_FLAG_BACKUP_SEMANTICS : FILE_FLAG_SEQUENTIAL_SCAN) |
+                                 (final && directory ? FILE_FLAG_OVERLAPPED : 0u);
         wil::unique_handle file(CreateFileW(prefix.c_str(), access, share, nullptr, OPEN_EXISTING, flags, nullptr));
-        if (!file)
+        if (! file)
             return LastError();
         RETURN_IF_FAILED(CheckedImageEntry(file.get(), isDirectory));
         if (final)
@@ -249,8 +249,8 @@ HRESULT OpenImageEntry(std::wstring_view path, bool directory, wil::unique_handl
     while (at < text.size())
     {
         const auto slash = text.find(L'\\', at);
-        const auto end = slash == text.npos ? text.size() : slash;
-        const auto part = std::wstring_view(text).substr(at, end - at);
+        const auto end   = slash == text.npos ? text.size() : slash;
+        const auto part  = std::wstring_view(text).substr(at, end - at);
         if (part.empty() || part == L"." || part == L".." || part.find_first_of(L":<>\"|?*") != part.npos)
             return E_INVALIDARG;
         if (prefix.back() != L'\\')
@@ -275,20 +275,19 @@ bool SharesImageNetworkRoot(std::wstring_view document, std::wstring_view image)
         return {};
     };
     document = ordinary(document);
-    image = ordinary(image);
+    image    = ordinary(image);
     if (document.empty() || image.empty())
         return false;
     const auto as = document.find(L'\\'), bs = image.find(L'\\');
-    if (as == document.npos || bs == image.npos || !as || !bs)
+    if (as == document.npos || bs == image.npos || ! as || ! bs)
         return false;
     auto a = document.find(L'\\', as + 1u), b = image.find(L'\\', bs + 1u);
     a = a == document.npos ? document.size() : a;
     b = b == image.npos ? image.size() : b;
-    return a > as + 1u && b > bs + 1u &&
-           CompareStringOrdinal(document.data(), static_cast<int>(as), image.data(), static_cast<int>(bs), TRUE) == CSTR_EQUAL &&
+    return a > as + 1u && b > bs + 1u && CompareStringOrdinal(document.data(), static_cast<int>(as), image.data(), static_cast<int>(bs), TRUE) == CSTR_EQUAL &&
            document.substr(as, a - as) == image.substr(bs, b - bs);
 }
-HRESULT ReadImageFileBytes(std::wstring_view path, std::string &bytes, const std::atomic_bool *cancel) noexcept
+HRESULT ReadImageFileBytes(std::wstring_view path, std::string& bytes, const std::atomic_bool* cancel) noexcept
 try
 {
     if (cancel && cancel->load(std::memory_order_relaxed))
@@ -302,11 +301,11 @@ try
     bytes.swap(staged);
     return S_OK;
 }
-catch (const std::bad_alloc &)
+catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation();
 }
-HRESULT OpenImageDirectoryForNotifications(std::wstring_view path, wil::unique_handle &directory) noexcept
+HRESULT OpenImageDirectoryForNotifications(std::wstring_view path, wil::unique_handle& directory) noexcept
 try
 {
     wil::unique_handle staged;
@@ -314,72 +313,71 @@ try
     directory = std::move(staged);
     return S_OK;
 }
-catch (const std::bad_alloc &)
+catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation();
 }
 
-HRESULT WriteNewBytesDurable(const std::filesystem::path &path, std::string_view bytes, FileStamp &saved, std::size_t maximumBytes) noexcept
+HRESULT WriteNewBytesDurable(const std::filesystem::path& path, std::string_view bytes, FileStamp& saved, std::size_t maximumBytes) noexcept
 try
 {
-    if (!path.is_absolute() || !maximumBytes || maximumBytes > 64u * 1024u * 1024u)
+    if (! path.is_absolute() || ! maximumBytes || maximumBytes > 64u * 1024u * 1024u)
         return E_INVALIDARG;
     if (bytes.size() > maximumBytes)
         return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
     wil::unique_handle file(
         CreateFileW(path.c_str(), GENERIC_READ | GENERIC_WRITE | DELETE, FILE_SHARE_READ, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr));
-    if (!file)
+    if (! file)
         return LastError();
-    auto removeFailed = wil::scope_exit(
-        [&]() noexcept
-        {
-            FILE_DISPOSITION_INFO disposition{TRUE};
-            if (!SetFileInformationByHandle(file.get(), FileDispositionInfo, &disposition, sizeof(disposition)))
-                OutputDebugStringW(L"RedTilde: could not retire an incomplete newly-created asset.\n");
-        });
+    auto removeFailed = wil::scope_exit([&]() noexcept
+    {
+        FILE_DISPOSITION_INFO disposition{TRUE};
+        if (! SetFileInformationByHandle(file.get(), FileDispositionInfo, &disposition, sizeof(disposition)))
+            OutputDebugStringW(L"RedTilde: could not retire an incomplete newly-created asset.\n");
+    });
     DWORD written{};
-    if (!bytes.empty() && !WriteFile(file.get(), bytes.data(), static_cast<DWORD>(bytes.size()), &written, nullptr))
+    if (! bytes.empty() && ! WriteFile(file.get(), bytes.data(), static_cast<DWORD>(bytes.size()), &written, nullptr))
         return LastError();
     if (written != bytes.size())
         return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
-    if (!FlushFileBuffers(file.get()))
+    if (! FlushFileBuffers(file.get()))
         return LastError();
     // A known explicit final timestamp avoids a stamp made before close's
     // deferred last-write update. No further data writes follow this point.
     FILETIME now{};
     GetSystemTimeAsFileTime(&now);
-    if (!SetFileTime(file.get(), nullptr, nullptr, &now) || !FlushFileBuffers(file.get()))
+    if (! SetFileTime(file.get(), nullptr, nullptr, &now) || ! FlushFileBuffers(file.get()))
         return LastError();
     BY_HANDLE_FILE_INFORMATION info{};
-    if (!GetFileInformationByHandle(file.get(), &info))
+    if (! GetFileInformationByHandle(file.get(), &info))
         return LastError();
     auto stamp = Stamp(info, ContentHash(bytes));
     RETURN_IF_FAILED(CompleteIdentity(file.get(), stamp));
-    if (stamp.size != bytes.size() || !HasIdentity(stamp) || info.nNumberOfLinks != 1u)
+    if (stamp.size != bytes.size() || ! HasIdentity(stamp) || info.nNumberOfLinks != 1u)
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
     saved = stamp;
     removeFailed.release();
     return S_OK;
 }
-catch (const std::bad_alloc &)
+catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation();
 }
 
-HRESULT RemoveCreatedBytesIfUnchanged(const std::filesystem::path &path, const FileStamp &expected, std::size_t maximumBytes) noexcept
+HRESULT RemoveCreatedBytesIfUnchanged(const std::filesystem::path& path, const FileStamp& expected, std::size_t maximumBytes) noexcept
 try
 {
-    if (!path.is_absolute() || !HasIdentity(expected) || !maximumBytes || maximumBytes > 64u * 1024u * 1024u)
+    if (! path.is_absolute() || ! HasIdentity(expected) || ! maximumBytes || maximumBytes > 64u * 1024u * 1024u)
         return E_INVALIDARG;
-    wil::unique_handle file(CreateFileW(path.c_str(), GENERIC_READ | DELETE, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
-                                        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
-    if (!file)
+    wil::unique_handle file(CreateFileW(
+        path.c_str(), GENERIC_READ | DELETE, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
+    if (! file)
     {
         const auto error = GetLastError();
         return error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND ? S_FALSE : HRESULT_FROM_WIN32(error);
     }
     BY_HANDLE_FILE_INFORMATION info{};
-    if (!GetFileInformationByHandle(file.get(), &info))
+    if (! GetFileInformationByHandle(file.get(), &info))
         return LastError();
     if ((info.dwFileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT)) || info.nNumberOfLinks != 1u)
         return HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
@@ -391,14 +389,19 @@ try
     FILE_DISPOSITION_INFO disposition{TRUE};
     return SetFileInformationByHandle(file.get(), FileDispositionInfo, &disposition, sizeof(disposition)) ? S_OK : LastError();
 }
-catch (const std::bad_alloc &)
+catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation();
 }
 
-HRESULT WriteBytesAtomic(const std::filesystem::path &path, std::string_view bytes, const FileStamp *expected, FileStamp *saved,
-                         bool sameIdentityOnly, const std::filesystem::path *baselinePath, bool rejectHardlinkedTarget,
-                         bool *unsupportedReplacement) noexcept
+HRESULT WriteBytesAtomic(const std::filesystem::path& path,
+                         std::string_view bytes,
+                         const FileStamp* expected,
+                         FileStamp* saved,
+                         bool sameIdentityOnly,
+                         const std::filesystem::path* baselinePath,
+                         bool rejectHardlinkedTarget,
+                         bool* unsupportedReplacement) noexcept
 try
 {
     if (unsupportedReplacement)
@@ -406,35 +409,34 @@ try
     if (bytes.size() > MaximumBytes)
         return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
     const DWORD attributes = GetFileAttributesW(path.c_str());
-    const bool exists = attributes != INVALID_FILE_ATTRIBUTES;
-    if (!exists && GetLastError() != ERROR_FILE_NOT_FOUND && GetLastError() != ERROR_PATH_NOT_FOUND)
+    const bool exists      = attributes != INVALID_FILE_ATTRIBUTES;
+    if (! exists && GetLastError() != ERROR_FILE_NOT_FOUND && GetLastError() != ERROR_PATH_NOT_FOUND)
         return LastError();
     if (exists && (attributes & FILE_ATTRIBUTE_DIRECTORY))
         return HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
     std::filesystem::path temporary;
     wil::unique_handle file;
-    for (unsigned attempt = 0; attempt < 8 && !file; ++attempt)
+    for (unsigned attempt = 0; attempt < 8 && ! file; ++attempt)
     {
         // Keep the staging leaf independent of the target's length, in the same directory for atomic publication.
         temporary = path.parent_path() / std::format(L".redtilde-{}-{}-{}.tmp", GetCurrentProcessId(), GetTickCount64(), sequence.fetch_add(1));
         file.reset(CreateFileW(temporary.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr));
-        if (!file && GetLastError() != ERROR_FILE_EXISTS)
+        if (! file && GetLastError() != ERROR_FILE_EXISTS)
             return LastError();
     }
-    if (!file)
+    if (! file)
         return HRESULT_FROM_WIN32(ERROR_FILE_EXISTS);
-    auto removeTemporary = wil::scope_exit(
-        [&]
-        {
-            file.reset(); // The share-none staging handle must close before deletion on every failure path.
-            DeleteFileW(temporary.c_str());
-        });
+    auto removeTemporary = wil::scope_exit([&]
+    {
+        file.reset(); // The share-none staging handle must close before deletion on every failure path.
+        DeleteFileW(temporary.c_str());
+    });
     DWORD written{};
 #ifdef REDTILDE_ENABLE_TESTS
     if (atomicWriteFailure == AtomicWriteFailure::Write)
         return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
 #endif
-    if (!bytes.empty() && !WriteFile(file.get(), bytes.data(), static_cast<DWORD>(bytes.size()), &written, nullptr))
+    if (! bytes.empty() && ! WriteFile(file.get(), bytes.data(), static_cast<DWORD>(bytes.size()), &written, nullptr))
         return LastError();
     if (written != bytes.size())
         return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
@@ -444,16 +446,16 @@ try
     if (atomicWriteFailure == AtomicWriteFailure::FlushUnsupported)
         return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
 #endif
-    if (!FlushFileBuffers(file.get()))
+    if (! FlushFileBuffers(file.get()))
         return LastError();
     // Metadata-only access is compatible with the exclusive writer. Keep this
     // object available while closing that writer so its final write time is visible.
     wil::unique_handle metadata;
     if (saved)
     {
-        metadata.reset(CreateFileW(temporary.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
-                                   FILE_ATTRIBUTE_NORMAL, nullptr));
-        if (!metadata)
+        metadata.reset(
+            CreateFileW(temporary.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+        if (! metadata)
             return LastError();
     }
     file.reset();
@@ -461,7 +463,7 @@ try
     if (saved)
     {
         BY_HANDLE_FILE_INFORMATION info{};
-        if (!GetFileInformationByHandle(metadata.get(), &info))
+        if (! GetFileInformationByHandle(metadata.get(), &info))
             return LastError();
         writtenStamp = Stamp(info, ContentHash(bytes));
         if (writtenStamp.size != bytes.size())
@@ -478,22 +480,22 @@ try
     // The expected identity is checked after staging, immediately before
     // publication. This narrows, but cannot eliminate, a cross-process race.
     const DWORD finalAttributes = GetFileAttributesW(path.c_str());
-    const bool finalExists = finalAttributes != INVALID_FILE_ATTRIBUTES;
-    if (!finalExists && GetLastError() != ERROR_FILE_NOT_FOUND && GetLastError() != ERROR_PATH_NOT_FOUND)
+    const bool finalExists      = finalAttributes != INVALID_FILE_ATTRIBUTES;
+    if (! finalExists && GetLastError() != ERROR_FILE_NOT_FOUND && GetLastError() != ERROR_PATH_NOT_FOUND)
         return LastError();
     if (finalExists && (finalAttributes & FILE_ATTRIBUTE_DIRECTORY))
         return HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
     bool compareExpected = expected != nullptr;
     if (finalExists && (rejectHardlinkedTarget || (expected && sameIdentityOnly && HasIdentity(*expected))))
     {
-        wil::unique_handle target(CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
-                                              FILE_ATTRIBUTE_NORMAL, nullptr));
+        wil::unique_handle target(
+            CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
         BY_HANDLE_FILE_INFORMATION info{};
-        if (!target || !GetFileInformationByHandle(target.get(), &info))
+        if (! target || ! GetFileInformationByHandle(target.get(), &info))
             return LastError();
         if (rejectHardlinkedTarget && info.nNumberOfLinks > 1u)
             return HRESULT_FROM_WIN32(ERROR_RETRY);
-        auto identity = Stamp(info, 0);
+        auto identity             = Stamp(info, 0);
         const auto identityResult = CompleteIdentity(target.get(), identity);
         if (FAILED(identityResult))
             return identityResult;
@@ -501,7 +503,7 @@ try
         if (FAILED(comparison))
             return comparison;
     }
-    else if (expected && sameIdentityOnly && !finalExists)
+    else if (expected && sameIdentityOnly && ! finalExists)
         compareExpected = false;
     if (expected && compareExpected)
     {
@@ -513,7 +515,7 @@ try
             if (FAILED(result))
                 return result;
         }
-        if (!MatchesSavedContent(current, *expected))
+        if (! MatchesSavedContent(current, *expected))
             return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
     }
     if (finalExists)
@@ -528,9 +530,9 @@ try
             return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
         }
 #endif
-        if (!ReplaceFileW(path.c_str(), temporary.c_str(), nullptr, 0, nullptr, nullptr))
+        if (! ReplaceFileW(path.c_str(), temporary.c_str(), nullptr, 0, nullptr, nullptr))
         {
-            const auto error = GetLastError();
+            const auto error       = GetLastError();
             const bool unsupported = error == ERROR_NOT_SUPPORTED || error == ERROR_INVALID_FUNCTION || error == ERROR_CALL_NOT_IMPLEMENTED;
             if (unsupportedReplacement)
                 *unsupportedReplacement = unsupported;
@@ -541,7 +543,7 @@ try
             return HRESULT_FROM_WIN32(error);
         }
     }
-    else if (!MoveFileExW(temporary.c_str(), path.c_str(), MOVEFILE_WRITE_THROUGH))
+    else if (! MoveFileExW(temporary.c_str(), path.c_str(), MOVEFILE_WRITE_THROUGH))
         return LastError();
     removeTemporary.release();
     if (saved)
@@ -552,16 +554,16 @@ try
 #endif
     return S_OK;
 }
-catch (const std::bad_alloc &)
+catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation();
 }
-catch (const std::filesystem::filesystem_error &error)
+catch (const std::filesystem::filesystem_error& error)
 {
     return HRESULT_FROM_WIN32(static_cast<DWORD>(error.code().value()));
 }
 
-HRESULT LoadDocument(const std::filesystem::path &path, StoredDocument &document, std::size_t *rejectedUnits) noexcept
+HRESULT LoadDocument(const std::filesystem::path& path, StoredDocument& document, std::size_t* rejectedUnits) noexcept
 try
 {
     if (rejectedUnits)
@@ -571,11 +573,11 @@ try
     const HRESULT result = ReadBytes(path, bytes, &staged.stamp);
     if (FAILED(result))
         return result;
-    staged.bom = bytes.starts_with("\xEF\xBB\xBF");
+    staged.bom         = bytes.starts_with("\xEF\xBB\xBF");
     const auto encoded = std::string_view(bytes).substr(staged.bom ? 3u : 0u);
     // The SDK decoder deliberately stops at editor capacity. Count bounded,
     // validated input first so the app can explain the actual rejected length.
-    if (!encoded.empty())
+    if (! encoded.empty())
     {
         const int units = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, encoded.data(), static_cast<int>(encoded.size()), nullptr, 0);
         if (units == 0)
@@ -593,40 +595,46 @@ try
     if (staged.text.size() > DxUi::RichText::Document::MaximumUnits)
         return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
     // The pinned decoder admits U+0000 for counted editor source; documents still reject NUL.
-    if (!DxUi::RichText::IsValidUtf16(staged.text))
+    if (! DxUi::RichText::IsValidUtf16(staged.text))
         return HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION);
     document = std::move(staged);
     return S_OK;
 }
-catch (const std::bad_alloc &)
+catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation();
 }
-catch (const std::invalid_argument &)
+catch (const std::invalid_argument&)
 {
     return HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION);
 }
-catch (const std::length_error &)
+catch (const std::length_error&)
 {
     return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
 }
 
 namespace
 {
-HRESULT SaveProtectedDocument(const std::filesystem::path &target, const std::filesystem::path &originalPath, std::wstring_view text,
-                              std::string_view bytes, bool bom, const FileStamp *expected, FileStamp &saved, bool sameIdentityOnly,
-                              const std::filesystem::path *baselinePath, const SaveRecoveryContext *recovery)
+HRESULT SaveProtectedDocument(const std::filesystem::path& target,
+                              const std::filesystem::path& originalPath,
+                              std::wstring_view text,
+                              std::string_view bytes,
+                              bool bom,
+                              const FileStamp* expected,
+                              FileStamp& saved,
+                              bool sameIdentityOnly,
+                              const std::filesystem::path* baselinePath,
+                              const SaveRecoveryContext* recovery)
 {
     // Deny cooperative writers/deletion across every alias until publication.
     // The existing metadata-only probe shares all access and does not prevent this lock.
-    wil::unique_handle file(
-        CreateFileW(target.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
-    if (!file)
+    wil::unique_handle file(CreateFileW(target.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+    if (! file)
         return LastError();
     BY_HANDLE_FILE_INFORMATION info{};
-    if (!GetFileInformationByHandle(file.get(), &info))
+    if (! GetFileInformationByHandle(file.get(), &info))
         return LastError();
-    auto current = Stamp(info, 0);
+    auto current          = Stamp(info, 0);
     const auto identified = CompleteIdentity(file.get(), current);
     if (FAILED(identified))
         return identified;
@@ -636,16 +644,16 @@ HRESULT SaveProtectedDocument(const std::filesystem::path &target, const std::fi
         return comparison;
     if (compare)
     {
-        if (!SameObject(current, *expected) || current.size != expected->size)
+        if (! SameObject(current, *expected) || current.size != expected->size)
             return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
         std::string previous;
         const auto read = ReadOpenedBytes(file.get(), previous, &current);
         if (FAILED(read))
             return read;
-        if (!MatchesSavedContent(current, *expected))
+        if (! MatchesSavedContent(current, *expected))
             return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
     }
-    if (!recovery)
+    if (! recovery)
         return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
     SaveRecoveryProtection protection;
     const RecoverySnapshot snapshot{std::wstring(text), originalPath, bom, recovery->selection, recovery->generation};
@@ -658,43 +666,43 @@ HRESULT SaveProtectedDocument(const std::filesystem::path &target, const std::fi
     if (atomicWriteFailure == AtomicWriteFailure::InPlaceWrite)
         return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
 #endif
-    wil::unique_handle metadata(CreateFileW(target.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
-                                            FILE_ATTRIBUTE_NORMAL, nullptr));
-    if (!metadata)
+    wil::unique_handle metadata(
+        CreateFileW(target.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+    if (! metadata)
         return LastError();
-    if (!SetFilePointerEx(file.get(), LARGE_INTEGER{}, nullptr, FILE_BEGIN))
+    if (! SetFilePointerEx(file.get(), LARGE_INTEGER{}, nullptr, FILE_BEGIN))
         return LastError();
     DWORD written{};
 #ifdef REDTILDE_ENABLE_TESTS
     if (atomicWriteFailure == AtomicWriteFailure::InPlacePartialWrite)
     {
         const auto partial = static_cast<DWORD>((std::max)(std::size_t{1u}, bytes.size() / 2u));
-        if (!bytes.empty() && !WriteFile(file.get(), bytes.data(), partial, &written, nullptr))
+        if (! bytes.empty() && ! WriteFile(file.get(), bytes.data(), partial, &written, nullptr))
             return LastError();
         if (atomicWriteHook)
             atomicWriteHook(AtomicWriteCheckpoint::InPlacePartialWritten, target, atomicWriteContext);
         return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
     }
 #endif
-    if (!bytes.empty() && !WriteFile(file.get(), bytes.data(), static_cast<DWORD>(bytes.size()), &written, nullptr))
+    if (! bytes.empty() && ! WriteFile(file.get(), bytes.data(), static_cast<DWORD>(bytes.size()), &written, nullptr))
         return LastError();
-    if (written != bytes.size() || !SetEndOfFile(file.get()))
+    if (written != bytes.size() || ! SetEndOfFile(file.get()))
         return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
 #ifdef REDTILDE_ENABLE_TESTS
     if (atomicWriteFailure == AtomicWriteFailure::InPlaceFlush)
         return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
 #endif
-    if (!FlushFileBuffers(file.get()))
+    if (! FlushFileBuffers(file.get()))
         return LastError();
     file.reset(); // Publish final write time before reading metadata, never content readback.
     BY_HANDLE_FILE_INFORMATION after{};
-    if (!GetFileInformationByHandle(metadata.get(), &after))
+    if (! GetFileInformationByHandle(metadata.get(), &after))
         return LastError();
-    auto result = Stamp(after, ContentHash(bytes));
+    auto result         = Stamp(after, ContentHash(bytes));
     const auto identity = CompleteIdentity(metadata.get(), result);
     if (FAILED(identity))
         return identity;
-    if (result.size != bytes.size() || !SameObject(current, result))
+    if (result.size != bytes.size() || ! SameObject(current, result))
         return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
     saved = result;
     (void)protection.Retire(); // Failure is logged; a valid extra recovery copy remains available.
@@ -704,39 +712,37 @@ HRESULT SaveProtectedDocument(const std::filesystem::path &target, const std::fi
 #endif
     return S_OK;
 }
-HRESULT ResolveSymbolicTarget(const std::filesystem::path &path, wil::unique_handle &followed, std::filesystem::path &target,
-                              wil::unique_handle &link)
+HRESULT ResolveSymbolicTarget(const std::filesystem::path& path, wil::unique_handle& followed, std::filesystem::path& target, wil::unique_handle& link)
 {
     const auto attributes = GetFileAttributesW(path.c_str());
-    if (attributes == INVALID_FILE_ATTRIBUTES || !(attributes & FILE_ATTRIBUTE_REPARSE_POINT))
+    if (attributes == INVALID_FILE_ATTRIBUTES || ! (attributes & FILE_ATTRIBUTE_REPARSE_POINT))
         return S_OK;
-    wil::unique_handle probe(CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
-                                         FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
+    wil::unique_handle probe(
+        CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
     FILE_ATTRIBUTE_TAG_INFO tag{};
-    if (!probe || !GetFileInformationByHandleEx(probe.get(), FileAttributeTagInfo, &tag, sizeof(tag)))
+    if (! probe || ! GetFileInformationByHandleEx(probe.get(), FileAttributeTagInfo, &tag, sizeof(tag)))
         return LastError();
-    if (!IsReparseTagNameSurrogate(tag.ReparseTag))
+    if (! IsReparseTagNameSurrogate(tag.ReparseTag))
         return S_OK; // Cloud and other non-name-surrogate tags retain their provider path.
     probe.reset(CreateFileW(path.c_str(), 0, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
-    if (!probe || !GetFileInformationByHandleEx(probe.get(), FileAttributeTagInfo, &tag, sizeof(tag)))
+    if (! probe || ! GetFileInformationByHandleEx(probe.get(), FileAttributeTagInfo, &tag, sizeof(tag)))
         return LastError();
-    if (!IsReparseTagNameSurrogate(tag.ReparseTag))
+    if (! IsReparseTagNameSurrogate(tag.ReparseTag))
         return HRESULT_FROM_WIN32(ERROR_RETRY);
     // Follow again after acquiring the entry lease: its target may have changed
     // between the caller's first metadata probe and this protected resolution.
     wil::unique_handle current(
         CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
-    if (!current)
+    if (! current)
         return LastError();
     const auto count = GetFinalPathNameByHandleW(current.get(), nullptr, 0u, FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
-    if (!count)
+    if (! count)
         return LastError();
     if (count > 32767u)
         return HRESULT_FROM_WIN32(ERROR_FILENAME_EXCED_RANGE);
     std::wstring name(count + 1u, L'\0');
-    const auto length =
-        GetFinalPathNameByHandleW(current.get(), name.data(), static_cast<DWORD>(name.size()), FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
-    if (!length)
+    const auto length = GetFinalPathNameByHandleW(current.get(), name.data(), static_cast<DWORD>(name.size()), FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
+    if (! length)
         return LastError();
     if (length >= name.size())
         return HRESULT_FROM_WIN32(ERROR_RETRY);
@@ -748,8 +754,14 @@ HRESULT ResolveSymbolicTarget(const std::filesystem::path &path, wil::unique_han
 }
 } // namespace
 
-HRESULT SaveDocument(const std::filesystem::path &path, std::wstring_view text, bool bom, const FileStamp *expected, FileStamp &saved,
-                     bool sameIdentityOnly, const std::filesystem::path *baselinePath, const SaveRecoveryContext *recovery) noexcept
+HRESULT SaveDocument(const std::filesystem::path& path,
+                     std::wstring_view text,
+                     bool bom,
+                     const FileStamp* expected,
+                     FileStamp& saved,
+                     bool sameIdentityOnly,
+                     const std::filesystem::path* baselinePath,
+                     const SaveRecoveryContext* recovery) noexcept
 try
 {
     if (text.size() > DxUi::RichText::Document::MaximumUnits)
@@ -760,16 +772,15 @@ try
     std::string encoded;
     const auto encodedResult = DxUi::RichText::TryEncodeUtf8(text, encoded);
     if (encodedResult != DxUi::RichText::SourceResult::Success)
-        return HRESULT_FROM_WIN32(encodedResult == DxUi::RichText::SourceResult::CapacityExceeded ? ERROR_FILE_TOO_LARGE
-                                                                                                  : ERROR_NO_UNICODE_TRANSLATION);
+        return HRESULT_FROM_WIN32(encodedResult == DxUi::RichText::SourceResult::CapacityExceeded ? ERROR_FILE_TOO_LARGE : ERROR_NO_UNICODE_TRANSLATION);
     bytes += encoded;
     for (unsigned attempt = 0u; attempt < 2u; ++attempt)
     {
         std::filesystem::path target = path;
         wil::unique_handle link;
-        wil::unique_handle metadata(CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING,
-                                                FILE_ATTRIBUTE_NORMAL, nullptr));
-        if (!metadata)
+        wil::unique_handle metadata(
+            CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+        if (! metadata)
         {
             const auto error = GetLastError();
             if (error != ERROR_FILE_NOT_FOUND && error != ERROR_PATH_NOT_FOUND)
@@ -780,14 +791,14 @@ try
         else
         {
             BY_HANDLE_FILE_INFORMATION info{};
-            if (!GetFileInformationByHandle(metadata.get(), &info))
+            if (! GetFileInformationByHandle(metadata.get(), &info))
                 return LastError();
             if (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
                 return HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
             const auto resolved = ResolveSymbolicTarget(path, metadata, target, link);
             if (FAILED(resolved))
                 return resolved;
-            if (!GetFileInformationByHandle(metadata.get(), &info))
+            if (! GetFileInformationByHandle(metadata.get(), &info))
                 return LastError();
             if (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
                 return HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
@@ -809,15 +820,15 @@ try
     }
     return HRESULT_FROM_WIN32(ERROR_RETRY);
 }
-catch (const std::bad_alloc &)
+catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation();
 }
-catch (const std::invalid_argument &)
+catch (const std::invalid_argument&)
 {
     return HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION);
 }
-catch (const std::filesystem::filesystem_error &error)
+catch (const std::filesystem::filesystem_error& error)
 {
     return HRESULT_FROM_WIN32(static_cast<DWORD>(error.code().value()));
 }
@@ -825,8 +836,13 @@ catch (const std::filesystem::filesystem_error &error)
 std::wstring ErrorText(HRESULT result)
 {
     wchar_t message[512]{};
-    if (FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, static_cast<DWORD>(result), 0, message,
-                       static_cast<DWORD>(std::size(message)), nullptr))
+    if (FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                       nullptr,
+                       static_cast<DWORD>(result),
+                       0,
+                       message,
+                       static_cast<DWORD>(std::size(message)),
+                       nullptr))
         return message;
     return std::format(L"Error 0x{:08X}", static_cast<unsigned>(result));
 }

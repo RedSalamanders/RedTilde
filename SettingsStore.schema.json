@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:redtilde:settings-store:1",
+  "title": "RedTilde Settings Store (v1)",
+  "type": "object",
+  "required": ["schema"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Optional JSON Schema URI."
+    },
+    "schema": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1,
+      "description": "Settings schema version (>= 1; newer integral versions are preserved on save)."
+    },
+    "appearance": {
+      "type": "string",
+      "enum": ["system", "light", "dark", "paper"],
+      "default": "system",
+      "description": "Application theme preference (Windows High Contrast overrides custom colors)."
+    },
+    "view": {
+      "type": "string",
+      "enum": ["compose", "source", "split"],
+      "default": "compose",
+      "description": "Active editor view mode."
+    },
+    "focusMode": {
+      "type": "boolean",
+      "default": false,
+      "description": "Session-local distraction-free mode; ignored on load and omitted on save so restart never hides commands."
+    },
+    "showOutline": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show the right-hand heading outline and inspector sidebar."
+    },
+    "showFiles": {
+      "type": "boolean",
+      "default": false,
+      "description": "Show the left-hand Markdown files pane."
+    },
+    "filesRoot": {
+      "type": "string",
+      "default": "",
+      "maxLength": 32767,
+      "description": "Absolute Windows path to the pinned notebook folder root."
+    },
+    "lastDocument": {
+      "type": "string",
+      "default": "",
+      "maxLength": 32767,
+      "description": "Absolute Windows path to the last normal active document to reopen on launch."
+    },
+    "filesWidth": {
+      "type": "integer",
+      "minimum": 200,
+      "maximum": 400,
+      "default": 280,
+      "description": "Files pane width in DIPs."
+    },
+    "readingWidth": {
+      "type": "integer",
+      "minimum": 480,
+      "maximum": 1040,
+      "default": 760,
+      "description": "Maximum document reading width in DIPs."
+    },
+    "textScale": {
+      "type": "integer",
+      "minimum": 75,
+      "maximum": 200,
+      "default": 100,
+      "description": "Document text scale percentage."
+    },
+    "dimInactiveBlocks": {
+      "type": "boolean",
+      "default": true,
+      "description": "Dim inactive blocks while focus mode is active."
+    },
+    "allowRemoteImages": {
+      "type": "boolean",
+      "default": false,
+      "description": "Always allow anonymous http(s) remote image loading."
+    },
+    "allowLocalNetworkImages": {
+      "type": "boolean",
+      "default": false,
+      "description": "Allow image fetches from private, loopback, or same-share local network addresses when remote images are permitted."
+    },
+    "imageFirstPaste": {
+      "type": "boolean",
+      "default": false,
+      "description": "Prefer clipboard bitmap images over Unicode text when both are present."
+    },
+    "strikeCompletedTasks": {
+      "type": "boolean",
+      "default": false,
+      "description": "Apply strikethrough presentation to completed Markdown task items."
+    },
+    "windowPlacement": {
+      "type": "object",
+      "description": "Normal screen-coordinate window bounds, source DPI, and maximized state.",
+      "required": ["left", "top", "right", "bottom"],
+      "properties": {
+        "left": { "type": "integer", "minimum": -1048576, "maximum": 1048576 },
+        "top": { "type": "integer", "minimum": -1048576, "maximum": 1048576 },
+        "right": { "type": "integer", "minimum": -1048576, "maximum": 1048576 },
+        "bottom": { "type": "integer", "minimum": -1048576, "maximum": 1048576 },
+        "dpi": { "type": "integer", "minimum": 48, "maximum": 768, "default": 96 },
+        "maximized": { "type": "boolean", "default": false }
+      },
+      "additionalProperties": true
+    },
+    "markdownSyntax": {
+      "type": "object",
+      "description": "Optional RichMarkdown syntax extensions beyond GFM.",
+      "properties": {
+        "highlight": { "type": "boolean", "default": true },
+        "superscript": { "type": "boolean", "default": true },
+        "subscript": { "type": "boolean", "default": true },
+        "inserted": { "type": "boolean", "default": true },
+        "wikiLinks": { "type": "boolean", "default": true },
+        "definitionLists": { "type": "boolean", "default": true },
+        "abbreviations": { "type": "boolean", "default": true }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

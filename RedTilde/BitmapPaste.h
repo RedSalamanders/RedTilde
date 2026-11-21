@@ -17,7 +17,7 @@ namespace RedTilde
 // remains a borrowed notification binding and is cleared before destruction.
 class BitmapPasteWriter final
 {
-  public:
+public:
     enum class Phase : std::uint8_t
     {
         Idle,
@@ -37,24 +37,24 @@ class BitmapPasteWriter final
 #if defined(REDTILDE_ENABLE_TESTS)
     struct TestGate
     {
-        TestGate() = default;
-        TestGate(const TestGate &) = delete;
-        TestGate &operator=(const TestGate &) = delete;
-        TestGate(TestGate &&) = delete;
-        TestGate &operator=(TestGate &&) = delete;
+        TestGate()                           = default;
+        TestGate(const TestGate&)            = delete;
+        TestGate& operator=(const TestGate&) = delete;
+        TestGate(TestGate&&)                 = delete;
+        TestGate& operator=(TestGate&&)      = delete;
         wil::unique_event entered{CreateEventW(nullptr, TRUE, FALSE, nullptr)};
         wil::unique_event proceed{CreateEventW(nullptr, TRUE, FALSE, nullptr)};
     };
 #endif
 
-  private:
+private:
     struct State
     {
-        State() = default;
-        State(const State &) = delete;
-        State &operator=(const State &) = delete;
-        State(State &&) = delete;
-        State &operator=(State &&) = delete;
+        State()                        = default;
+        State(const State&)            = delete;
+        State& operator=(const State&) = delete;
+        State(State&&)                 = delete;
+        State& operator=(State&&)      = delete;
         std::mutex mutex;
         std::filesystem::path directory;
         HWND window{};
@@ -75,11 +75,11 @@ class BitmapPasteWriter final
     };
     struct Job
     {
-        Job() = default;
-        Job(const Job &) = delete;
-        Job &operator=(const Job &) = delete;
-        Job(Job &&) = delete;
-        Job &operator=(Job &&) = delete;
+        Job()                      = default;
+        Job(const Job&)            = delete;
+        Job& operator=(const Job&) = delete;
+        Job(Job&&)                 = delete;
+        Job& operator=(Job&&)      = delete;
         ProcessWorkLease lease;
         std::shared_ptr<State> state;
         std::vector<std::byte> dib;
@@ -89,16 +89,16 @@ class BitmapPasteWriter final
         std::shared_ptr<TestGate> testGate;
 #endif
     };
-    std::shared_ptr<State> state;
-    static void CALLBACK Worker(PTP_CALLBACK_INSTANCE instance, void *context) noexcept
+    std::shared_ptr<State> _state;
+    static void CALLBACK Worker(PTP_CALLBACK_INSTANCE instance, void* context) noexcept
     {
-        ProcessWorkLease lease = std::move(static_cast<Job *>(context)->lease);
+        ProcessWorkLease lease = std::move(static_cast<Job*>(context)->lease);
         (void)CallbackMayRunLong(instance);
-        std::unique_ptr<Job> job(static_cast<Job *>(context));
-        const auto owner = job->state;
-        auto result = std::move(job->result);
+        std::unique_ptr<Job> job(static_cast<Job*>(context));
+        const auto owner   = job->state;
+        auto result        = std::move(job->result);
         const bool discard = job->discard;
-        bool admitted = true;
+        bool admitted      = true;
 #if defined(REDTILDE_ENABLE_TESTS)
         if (job->testGate)
         {
@@ -106,11 +106,11 @@ class BitmapPasteWriter final
             if (WaitForSingleObject(job->testGate->proceed.get(), 30000) != WAIT_OBJECT_0)
             {
                 result.status = HRESULT_FROM_WIN32(ERROR_TIMEOUT);
-                admitted = false;
+                admitted      = false;
             }
         }
 #endif
-        if (!discard && admitted)
+        if (! discard && admitted)
         {
             bool stopRequested{};
             {
@@ -131,7 +131,7 @@ class BitmapPasteWriter final
         job.reset();
         {
             const std::scoped_lock lock(owner->mutex);
-            if (!discard && !owner->stopRequested)
+            if (! discard && ! owner->stopRequested)
             {
                 owner->result = std::move(result);
                 owner->hasResult.store(true, std::memory_order_release);
@@ -165,12 +165,12 @@ class BitmapPasteWriter final
         return status;
     }
 
-  public:
-    BitmapPasteWriter() = default;
-    BitmapPasteWriter(const BitmapPasteWriter &) = delete;
-    BitmapPasteWriter &operator=(const BitmapPasteWriter &) = delete;
-    BitmapPasteWriter(BitmapPasteWriter &&) = delete;
-    BitmapPasteWriter &operator=(BitmapPasteWriter &&) = delete;
+public:
+    BitmapPasteWriter()                                    = default;
+    BitmapPasteWriter(const BitmapPasteWriter&)            = delete;
+    BitmapPasteWriter& operator=(const BitmapPasteWriter&) = delete;
+    BitmapPasteWriter(BitmapPasteWriter&&)                 = delete;
+    BitmapPasteWriter& operator=(BitmapPasteWriter&&)      = delete;
     ~BitmapPasteWriter()
     {
         Stop();
@@ -178,41 +178,41 @@ class BitmapPasteWriter final
     }
     HRESULT Initialize(std::filesystem::path directory, HWND window, UINT message)
     {
-        if (state)
+        if (_state)
             return HRESULT_FROM_WIN32(ERROR_ALREADY_INITIALIZED);
-        if (!window || message < WM_APP || !directory.is_absolute())
+        if (! window || message < WM_APP || ! directory.is_absolute())
             return E_INVALIDARG;
-        auto next = std::make_shared<State>();
+        auto next       = std::make_shared<State>();
         next->directory = std::move(directory);
-        next->window = window;
-        next->message = message;
-        state = std::move(next);
+        next->window    = window;
+        next->message   = message;
+        _state          = std::move(next);
         return S_OK;
     }
-    HRESULT Submit(std::span<const std::byte> dib, bool v5, std::uint64_t &request)
+    HRESULT Submit(std::span<const std::byte> dib, bool v5, std::uint64_t& request)
     {
-        if (!state || dib.empty() || dib.size() > MaximumClipboardDibBytes)
+        if (! _state || dib.empty() || dib.size() > MaximumClipboardDibBytes)
             return E_INVALIDARG;
-        const std::scoped_lock lock(state->mutex);
-        if (state->stopRequested || state->phase != Phase::Idle)
+        const std::scoped_lock lock(_state->mutex);
+        if (_state->stopRequested || _state->phase != Phase::Idle)
             return HRESULT_FROM_WIN32(ERROR_BUSY);
-        auto job = std::make_unique<Job>();
-        job->state = state;
+        auto job   = std::make_unique<Job>();
+        job->state = _state;
         job->dib.assign(dib.begin(), dib.end());
         job->v5 = v5;
 #if defined(REDTILDE_ENABLE_TESTS)
-        job->testGate = state->testGate;
+        job->testGate = _state->testGate;
 #endif
-        job->result.request = ++state->serial;
-        const auto number = job->result.request;
+        job->result.request     = ++_state->serial;
+        const auto number       = job->result.request;
         const HRESULT admission = ProcessWork::Acquire(job->lease);
         if (FAILED(admission))
             return admission;
-        state->phase = Phase::Encoding;
+        _state->phase = Phase::Encoding;
         // Submission failure resets phase to Idle here, avoiding recursive mutex entry.
-        if (!TrySubmitThreadpoolCallback(Worker, job.get(), nullptr))
+        if (! TrySubmitThreadpoolCallback(Worker, job.get(), nullptr))
         {
-            state->phase = Phase::Idle;
+            _state->phase = Phase::Idle;
             return HRESULT_FROM_WIN32(GetLastError());
         }
         (void)job.release();
@@ -221,70 +221,70 @@ class BitmapPasteWriter final
     }
     bool HasResult() const noexcept
     {
-        return state && state->hasResult.load(std::memory_order_acquire);
+        return _state && _state->hasResult.load(std::memory_order_acquire);
     }
     [[nodiscard]] Phase CurrentPhase() const noexcept
     {
-        if (!state)
+        if (! _state)
             return Phase::Idle;
-        const std::scoped_lock lock(state->mutex);
-        return state->phase;
+        const std::scoped_lock lock(_state->mutex);
+        return _state->phase;
     }
 #if defined(REDTILDE_ENABLE_TESTS)
     void SetTestGate(std::shared_ptr<TestGate> gate)
     {
-        const std::scoped_lock lock(state->mutex);
-        state->testGate = std::move(gate);
+        const std::scoped_lock lock(_state->mutex);
+        _state->testGate = std::move(gate);
     }
 #endif
-    bool Take(Result &result) noexcept
+    bool Take(Result& result) noexcept
     {
-        if (!state)
+        if (! _state)
             return false;
-        const std::scoped_lock lock(state->mutex);
-        if (state->phase != Phase::Ready || !state->result)
+        const std::scoped_lock lock(_state->mutex);
+        if (_state->phase != Phase::Ready || ! _state->result)
             return false;
-        result = std::move(state->result.value());
-        state->result.reset();
-        state->hasResult.store(false, std::memory_order_release);
-        state->phase = Phase::Leased;
+        result = std::move(_state->result.value());
+        _state->result.reset();
+        _state->hasResult.store(false, std::memory_order_release);
+        _state->phase = Phase::Leased;
         return true;
     }
     void Commit(std::uint64_t request) noexcept
     {
-        if (!state)
+        if (! _state)
             return;
-        const std::scoped_lock lock(state->mutex);
-        if (state->phase == Phase::Leased && request == state->serial)
+        const std::scoped_lock lock(_state->mutex);
+        if (_state->phase == Phase::Leased && request == _state->serial)
         {
-            state->phase = state->stopRequested ? Phase::Stopped : Phase::Idle;
-            state->Notify();
+            _state->phase = _state->stopRequested ? Phase::Stopped : Phase::Idle;
+            _state->Notify();
         }
     }
     HRESULT Discard(Result result)
     {
-        if (!state)
+        if (! _state)
             return E_UNEXPECTED;
         if (result.asset.path.empty())
         {
             Commit(result.request);
             return S_OK;
         }
-        auto job = std::make_unique<Job>();
-        job->state = state;
+        auto job     = std::make_unique<Job>();
+        job->state   = _state;
         job->discard = true;
-        job->result = std::move(result);
+        job->result  = std::move(result);
         {
-            const std::scoped_lock lock(state->mutex);
-            if (state->phase != Phase::Leased || job->result.request != state->serial)
+            const std::scoped_lock lock(_state->mutex);
+            if (_state->phase != Phase::Leased || job->result.request != _state->serial)
                 return E_UNEXPECTED;
-            state->phase = Phase::Retiring;
+            _state->phase = Phase::Retiring;
         }
         return Launch(std::move(job));
     }
     void Stop()
     {
-        if (!state)
+        if (! _state)
             return;
         std::unique_ptr<Job> retireJob;
         if (HasResult())
@@ -294,29 +294,29 @@ class BitmapPasteWriter final
             bool launchRetire{};
             bool needAllocate{};
             {
-                const std::scoped_lock lock(state->mutex);
-                state->stopRequested = true;
-                if (state->phase == Phase::Idle)
-                    state->phase = Phase::Stopped;
-                else if (state->phase == Phase::Ready && state->result)
+                const std::scoped_lock lock(_state->mutex);
+                _state->stopRequested = true;
+                if (_state->phase == Phase::Idle)
+                    _state->phase = Phase::Stopped;
+                else if (_state->phase == Phase::Ready && _state->result)
                 {
-                    if (state->result.value().asset.path.empty())
+                    if (_state->result.value().asset.path.empty())
                     {
-                        state->result.reset();
-                        state->hasResult.store(false, std::memory_order_release);
-                        state->phase = Phase::Stopped;
+                        _state->result.reset();
+                        _state->hasResult.store(false, std::memory_order_release);
+                        _state->phase = Phase::Stopped;
                     }
-                    else if (!retireJob)
+                    else if (! retireJob)
                         needAllocate = true;
                     else
                     {
-                        retireJob->state = state;
+                        retireJob->state   = _state;
                         retireJob->discard = true;
-                        retireJob->result = std::move(state->result.value());
-                        state->result.reset();
-                        state->hasResult.store(false, std::memory_order_release);
-                        state->phase = Phase::Retiring;
-                        launchRetire = true;
+                        retireJob->result  = std::move(_state->result.value());
+                        _state->result.reset();
+                        _state->hasResult.store(false, std::memory_order_release);
+                        _state->phase = Phase::Retiring;
+                        launchRetire  = true;
                     }
                 }
             }
@@ -332,18 +332,18 @@ class BitmapPasteWriter final
     }
     void Detach() noexcept
     {
-        if (state)
+        if (_state)
         {
-            const std::scoped_lock lock(state->mutex);
-            state->window = nullptr;
+            const std::scoped_lock lock(_state->mutex);
+            _state->window = nullptr;
         }
     }
     bool Busy() const noexcept
     {
-        if (!state)
+        if (! _state)
             return false;
-        const std::scoped_lock lock(state->mutex);
-        return state->phase == Phase::Encoding || state->phase == Phase::Leased || state->phase == Phase::Retiring;
+        const std::scoped_lock lock(_state->mutex);
+        return _state->phase == Phase::Encoding || _state->phase == Phase::Leased || _state->phase == Phase::Retiring;
     }
 };
 } // namespace RedTilde

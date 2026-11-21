@@ -28,26 +28,26 @@ struct RecoveryScanStatistics
     std::size_t examinedEntries{};
     bool entryLimitReached{};
 };
-[[nodiscard]] std::string SerializeRecovery(const RecoverySnapshot &snapshot);
-[[nodiscard]] HRESULT TrySerializeRecovery(const RecoverySnapshot &snapshot, std::string &output) noexcept;
-[[nodiscard]] HRESULT ParseRecovery(std::string_view bytes, RecoverySnapshot &snapshot) noexcept;
+[[nodiscard]] std::string SerializeRecovery(const RecoverySnapshot& snapshot);
+[[nodiscard]] HRESULT TrySerializeRecovery(const RecoverySnapshot& snapshot, std::string& output) noexcept;
+[[nodiscard]] HRESULT ParseRecovery(std::string_view bytes, RecoverySnapshot& snapshot) noexcept;
 
 // Worker-owned, exclusively leased immutable save copy. Destruction preserves
 // its envelope for restart; only a successful write explicitly retires it.
 // Ordinary autosave submissions/retirements cannot coalesce or delete this id.
 class SaveRecoveryProtection final
 {
-  public:
+public:
     SaveRecoveryProtection();
     ~SaveRecoveryProtection();
-    SaveRecoveryProtection(const SaveRecoveryProtection &) = delete;
-    SaveRecoveryProtection &operator=(const SaveRecoveryProtection &) = delete;
-    [[nodiscard]] HRESULT Admit(const std::filesystem::path &dataDirectory, const RecoverySnapshot &snapshot) noexcept;
+    SaveRecoveryProtection(const SaveRecoveryProtection&)            = delete;
+    SaveRecoveryProtection& operator=(const SaveRecoveryProtection&) = delete;
+    [[nodiscard]] HRESULT Admit(const std::filesystem::path& dataDirectory, const RecoverySnapshot& snapshot) noexcept;
     [[nodiscard]] HRESULT Retire() noexcept;
 
-  private:
+private:
     struct State;
-    std::unique_ptr<State> state;
+    std::unique_ptr<State> _state;
 };
 
 // One event-driven worker, up to 64 independently coalesced document snapshots.
@@ -55,15 +55,17 @@ class SaveRecoveryProtection final
 // worker owns all leases and filesystem access. No UI joins.
 class RecoveryService final
 {
-  public:
+public:
     RecoveryService() = default;
     ~RecoveryService();
-    RecoveryService(const RecoveryService &) = delete;
-    RecoveryService &operator=(const RecoveryService &) = delete;
+    RecoveryService(const RecoveryService&)            = delete;
+    RecoveryService& operator=(const RecoveryService&) = delete;
     [[nodiscard]] HRESULT Initialize(std::filesystem::path dataDirectory, HWND window = nullptr, UINT message = 0) noexcept;
     [[nodiscard]] HRESULT Submit(std::optional<RecoverySnapshot> snapshot, bool immediate = false, std::wstring retireAfterWrite = {}) noexcept;
     static constexpr unsigned MaximumDocuments = 64;
-    [[nodiscard]] HRESULT SubmitDocument(unsigned document, std::optional<RecoverySnapshot> snapshot, bool immediate = false,
+    [[nodiscard]] HRESULT SubmitDocument(unsigned document,
+                                         std::optional<RecoverySnapshot> snapshot,
+                                         bool immediate                = false,
                                          std::wstring retireAfterWrite = {}) noexcept;
     [[nodiscard]] HRESULT Discard(std::wstring id) noexcept;
     [[nodiscard]] std::vector<RecoveryCandidate> TakeCandidates();
@@ -82,9 +84,9 @@ class RecoveryService final
 #if defined(REDTILDE_ENABLE_TESTS)
     struct TestGate
     {
-        TestGate() = default;
-        TestGate(const TestGate &) = delete;
-        TestGate &operator=(const TestGate &) = delete;
+        TestGate()                           = default;
+        TestGate(const TestGate&)            = delete;
+        TestGate& operator=(const TestGate&) = delete;
         wil::unique_event entered{CreateEventW(nullptr, TRUE, FALSE, nullptr)};
         wil::unique_event proceed{CreateEventW(nullptr, TRUE, FALSE, nullptr)};
         wil::unique_event finished{CreateEventW(nullptr, TRUE, FALSE, nullptr)};
@@ -95,13 +97,13 @@ class RecoveryService final
     [[nodiscard]] std::size_t DiscardAdmissionCountForTest() const noexcept;
 #endif
 
-  private:
+private:
     struct State;
-    std::shared_ptr<State> state;
+    std::shared_ptr<State> _state;
 #if defined(REDTILDE_ENABLE_TESTS)
-    std::shared_ptr<TestGate> scanTestGate;
-    std::shared_ptr<TestGate> postScanTestGate;
-    std::shared_ptr<TestGate> batchTestGate;
+    std::shared_ptr<TestGate> _scanTestGate;
+    std::shared_ptr<TestGate> _postScanTestGate;
+    std::shared_ptr<TestGate> _batchTestGate;
 #endif
 };
 } // namespace RedTilde

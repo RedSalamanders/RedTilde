@@ -2,7 +2,7 @@
 
 Status: current normative contract
 
-Settings, theming, preferences persistence, and Close worker settlement live in [the settings contract](Core_SettingsAndCrashes.md). Process ownership and application lifecycle boundaries are summarized in [architecture](Core_Architecture.md).
+Settings, theming, live reload, preferences persistence, and Close worker settlement live in [the settings contract](Core_Settings.md). Process ownership and application lifecycle boundaries are summarized in [architecture](Core_Architecture.md).
 
 ## Local crash handler and minidump retention
 
@@ -28,7 +28,7 @@ Keep the reporter (`DxUiFailureHost`), module registration, and COM owner alive 
 
 Ordinary drain pumps owner/COM messages, preserves `WM_QUIT`, then disconnects process-wide UIA providers (`UiaDisconnectAllProviders`) and retries failure-host `BUSY` for a cooperative five seconds. A component must not perform that process-wide operation. Timeout is a failed shutdown with fatal diagnostics (`DxUi::Failure::FailContract`), never permission to unload live owners.
 
-Final `WM_ENDSESSION(TRUE)` keeps the existing 2,000-ms recovery-only allowance (`Core_SettingsAndCrashes.md`); its heap `ApplicationRuntime` process owner stays alive until OS teardown (`KeepForProcessTeardown`) so a held codec callback adds no ordinary drain/join deadline.
+Final `WM_ENDSESSION(TRUE)` keeps the existing 2,000-ms recovery-only allowance ([Core_Settings.md](Core_Settings.md)); its heap `ApplicationRuntime` process owner stays alive until OS teardown (`KeepForProcessTeardown`) so a held codec callback adds no ordinary drain/join deadline.
 
 ## Checked APIs and allocation failures
 

@@ -15,9 +15,8 @@
 #define REDTILDE_WSTRING_IMPL(value) L"" #value
 #define REDTILDE_WSTRING(value) REDTILDE_WSTRING_IMPL(value)
 
-#define REDTILDE_VERSION                                                                                                                             \
-    REDTILDE_STRING(REDTILDE_VERSION_MAJOR) "." REDTILDE_STRING(REDTILDE_VERSION_MINOR) "." REDTILDE_STRING(REDTILDE_BUILD_NUMBER)
-#define REDTILDE_VERSION_WIDE                                                                                                                        \
+#define REDTILDE_VERSION REDTILDE_STRING(REDTILDE_VERSION_MAJOR) "." REDTILDE_STRING(REDTILDE_VERSION_MINOR) "." REDTILDE_STRING(REDTILDE_BUILD_NUMBER)
+#define REDTILDE_VERSION_WIDE                                                                                                                                  \
     REDTILDE_WSTRING(REDTILDE_VERSION_MAJOR) L"." REDTILDE_WSTRING(REDTILDE_VERSION_MINOR) L"." REDTILDE_WSTRING(REDTILDE_BUILD_NUMBER)
 #define REDTILDE_PRODUCT_VERSION REDTILDE_VERSION REDTILDE_VERSION_SUFFIX
 #define REDTILDE_PRODUCT_VERSION_WIDE REDTILDE_VERSION_WIDE REDTILDE_VERSION_SUFFIX_WIDE

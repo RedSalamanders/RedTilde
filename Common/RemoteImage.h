@@ -10,9 +10,9 @@ namespace RedTilde
 {
 struct RemoteImageLimits
 {
-    unsigned timeoutMilliseconds = 8000;
+    unsigned timeoutMilliseconds    = 8000;
     std::size_t maximumEncodedBytes = 16777216;
-    bool allowLocalNetwork = false;
+    bool allowLocalNetwork          = false;
 };
 // Numeric address only; no DNS or network access. Uses the Windows address parser.
 // The explicit override permits local unicast,
@@ -23,6 +23,9 @@ struct RemoteImageLimits
 // no cookies/redirects/referrer/proxy discovery, and ordinary TLS validation.
 // A fixed receive buffer survives asynchronous WinHTTP handle retirement.
 // Failure/cancellation leaves output unchanged; no callback enters a control.
-[[nodiscard]] HRESULT FetchRemoteImage(std::wstring_view source, std::vector<std::byte> &output, const std::atomic_bool *cancellation = nullptr,
-                                       HANDLE abortEvent = nullptr, RemoteImageLimits limits = {}) noexcept;
+[[nodiscard]] HRESULT FetchRemoteImage(std::wstring_view source,
+                                       std::vector<std::byte>& output,
+                                       const std::atomic_bool* cancellation = nullptr,
+                                       HANDLE abortEvent                    = nullptr,
+                                       RemoteImageLimits limits             = {}) noexcept;
 } // namespace RedTilde

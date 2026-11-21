@@ -31,7 +31,7 @@ struct Paper
     D2D1_SIZE_F size{};
     D2D1_RECT_F printable{};
 
-    [[nodiscard]] bool operator==(const Paper &other) const noexcept;
+    [[nodiscard]] bool operator==(const Paper& other) const noexcept;
 };
 
 struct Selection
@@ -81,8 +81,8 @@ struct Destinations
 };
 
 [[nodiscard]] bool SamePrintName(std::wstring_view left, std::wstring_view right) noexcept;
-[[nodiscard]] HRESULT ReadPaper(HDC dc, Paper &paper) noexcept;
-[[nodiscard]] HRESULT ConfigurePrinter(const std::wstring &name, const std::optional<PrinterSettings> &requested, PrinterConfiguration &result);
+[[nodiscard]] HRESULT ReadPaper(HDC dc, Paper& paper) noexcept;
+[[nodiscard]] HRESULT ConfigurePrinter(const std::wstring& name, const std::optional<PrinterSettings>& requested, PrinterConfiguration& result);
 [[nodiscard]] bool IsFilePort(std::wstring_view port) noexcept;
 [[nodiscard]] std::optional<unsigned> ParsePageNumber(std::wstring_view text, unsigned pageCount) noexcept;
 // An empty set selects all pages. A missing result is invalid input.
@@ -161,22 +161,22 @@ struct Job
     std::optional<PrinterSettings> initialSettings;
 #if defined(REDTILDE_ENABLE_TESTS)
     std::optional<Destinations> destinationsForTest;
-    std::function<HRESULT(const std::wstring &, const std::optional<PrinterSettings> &, PrinterConfiguration &)> printerForTest;
+    std::function<HRESULT(const std::wstring&, const std::optional<PrinterSettings>&, PrinterConfiguration&)> printerForTest;
     // Receives the same closed Direct2D command lists used for driver submission.
-    std::function<HRESULT(unsigned, ID2D1CommandList &)> pageForTest;
+    std::function<HRESULT(unsigned, ID2D1CommandList&)> pageForTest;
     std::function<HRESULT()> finishForTest;
-    std::function<void(const Selection &)> submissionForTest;
+    std::function<void(const Selection&)> submissionForTest;
 #endif
 };
 
 struct Operation;
 // One worker owns the prepared pages through preview, navigation and submission.
 // The UI can detach and cancel without waiting in a window procedure.
-[[nodiscard]] HRESULT Start(HWND owner, UINT message, Job job, std::shared_ptr<Operation> &operation);
-[[nodiscard]] std::optional<Notice> TakeNotice(const std::shared_ptr<Operation> &operation);
-void RequestPreview(Operation &operation, unsigned page) noexcept;
-void RequestPrinter(Operation &operation, unsigned page, std::wstring printer, std::optional<PrinterSettings> settings = std::nullopt) noexcept;
-void RequestPrint(Operation &operation, Selection selection) noexcept;
-void ChooseFile(const std::shared_ptr<Operation> &operation, HRESULT result, std::filesystem::path destination) noexcept;
-void Stop(std::shared_ptr<Operation> &operation) noexcept;
+[[nodiscard]] HRESULT Start(HWND owner, UINT message, Job job, std::shared_ptr<Operation>& operation);
+[[nodiscard]] std::optional<Notice> TakeNotice(const std::shared_ptr<Operation>& operation);
+void RequestPreview(Operation& operation, unsigned page) noexcept;
+void RequestPrinter(Operation& operation, unsigned page, std::wstring printer, std::optional<PrinterSettings> settings = std::nullopt) noexcept;
+void RequestPrint(Operation& operation, Selection selection) noexcept;
+void ChooseFile(const std::shared_ptr<Operation>& operation, HRESULT result, std::filesystem::path destination) noexcept;
+void Stop(std::shared_ptr<Operation>& operation) noexcept;
 } // namespace RedTilde::Printing

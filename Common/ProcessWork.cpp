@@ -11,26 +11,28 @@ namespace
 // Trivial destruction keeps the gate valid through process teardown, including the bounded session-end path.
 wil::srwlock admissionGate;
 static_assert(std::is_trivially_destructible_v<wil::srwlock>);
-ProcessWork *currentOwner{};
+ProcessWork* currentOwner{};
 } // namespace
 
 ProcessWorkLease::~ProcessWorkLease()
 {
     Reset();
 }
-ProcessWorkLease::ProcessWorkLease(ProcessWorkLease &&other) noexcept : owner_(std::exchange(other.owner_, nullptr)) {}
-ProcessWorkLease &ProcessWorkLease::operator=(ProcessWorkLease &&other) noexcept
+ProcessWorkLease::ProcessWorkLease(ProcessWorkLease&& other) noexcept : _owner(std::exchange(other._owner, nullptr))
+{
+}
+ProcessWorkLease& ProcessWorkLease::operator=(ProcessWorkLease&& other) noexcept
 {
     if (this != &other)
     {
         Reset();
-        owner_ = std::exchange(other.owner_, nullptr);
+        _owner = std::exchange(other._owner, nullptr);
     }
     return *this;
 }
 void ProcessWorkLease::Reset() noexcept
 {
-    if (auto *owner = std::exchange(owner_, nullptr))
+    if (auto* owner = std::exchange(_owner, nullptr))
         ProcessWork::Release(owner);
 }
 
@@ -47,72 +49,71 @@ HRESULT ProcessWork::Start() noexcept
     auto guard = admissionGate.lock_exclusive();
     if (currentOwner == this)
         return S_FALSE;
-    if (currentOwner || idle_)
+    if (currentOwner || _idle)
         return HRESULT_FROM_WIN32(ERROR_ALREADY_EXISTS);
-    idle_.reset(CreateEventW(nullptr, TRUE, TRUE, nullptr));
-    if (!idle_)
+    _idle.reset(CreateEventW(nullptr, TRUE, TRUE, nullptr));
+    if (! _idle)
         return HRESULT_FROM_WIN32(GetLastError());
-    ownerThread_ = GetCurrentThreadId();
-    closed_ = false;
+    _ownerThread = GetCurrentThreadId();
+    _closed      = false;
     currentOwner = this;
     return S_OK;
 }
-HRESULT ProcessWork::Acquire(ProcessWorkLease &lease) noexcept
+HRESULT ProcessWork::Acquire(ProcessWorkLease& lease) noexcept
 {
     if (lease)
         return E_INVALIDARG;
-    auto guard = admissionGate.lock_exclusive();
-    ProcessWork *const owner = currentOwner;
-    if (!owner || owner->closed_)
+    auto guard               = admissionGate.lock_exclusive();
+    ProcessWork* const owner = currentOwner;
+    if (! owner || owner->_closed)
         return HRESULT_FROM_WIN32(ERROR_OPERATION_ABORTED);
-    if (owner->active_ == MaximumCallbacks)
+    if (owner->_active == MaximumCallbacks)
         return HRESULT_FROM_WIN32(ERROR_TOO_MANY_TCBS);
-    if (owner->active_ == 0u && !ResetEvent(owner->idle_.get()))
+    if (owner->_active == 0u && ! ResetEvent(owner->_idle.get()))
         return HRESULT_FROM_WIN32(GetLastError());
-    ++owner->active_;
-    lease.owner_ = owner;
+    ++owner->_active;
+    lease._owner = owner;
     return S_OK;
 }
-void ProcessWork::Release(ProcessWork *owner) noexcept
+void ProcessWork::Release(ProcessWork* owner) noexcept
 {
     auto guard = admissionGate.lock_exclusive();
-    if (!owner->active_)
+    if (! owner->_active)
         DxUi::Failure::FailContract(E_UNEXPECTED);
-    if (--owner->active_ == 0u && !SetEvent(owner->idle_.get()))
+    if (--owner->_active == 0u && ! SetEvent(owner->_idle.get()))
         DxUi::Failure::FailContract(HRESULT_FROM_WIN32(GetLastError()));
 }
 void ProcessWork::CloseAdmission() noexcept
 {
     auto guard = admissionGate.lock_exclusive();
-    closed_ = true;
+    _closed    = true;
     if (currentOwner == this)
         currentOwner = nullptr;
 }
 std::size_t ProcessWork::ActiveCount() const noexcept
 {
     auto guard = admissionGate.lock_shared();
-    return active_;
+    return _active;
 }
 HRESULT ProcessWork::Wait(DWORD timeoutMs) noexcept
 {
-    if (!idle_)
+    if (! _idle)
         return S_FALSE;
-    if (ownerThread_ != GetCurrentThreadId())
+    if (_ownerThread != GetCurrentThreadId())
         return RPC_E_WRONG_THREAD;
     if (timeoutMs == INFINITE)
         return E_INVALIDARG;
     const ULONGLONG started = GetTickCount64();
     bool sawQuit{};
     WPARAM quitCode{};
-    const auto restoreQuit = wil::scope_exit(
-        [&]() noexcept
-        {
-            if (sawQuit)
-                PostQuitMessage(static_cast<int>(quitCode));
-        });
+    const auto restoreQuit = wil::scope_exit([&]() noexcept
+    {
+        if (sawQuit)
+            PostQuitMessage(static_cast<int>(quitCode));
+    });
     for (;;)
     {
-        const DWORD ready = WaitForSingleObject(idle_.get(), 0u);
+        const DWORD ready = WaitForSingleObject(_idle.get(), 0u);
         if (ready == WAIT_OBJECT_0)
             return S_OK;
         if (ready == WAIT_FAILED)
@@ -120,8 +121,8 @@ HRESULT ProcessWork::Wait(DWORD timeoutMs) noexcept
         const ULONGLONG elapsed = GetTickCount64() - started;
         if (elapsed >= timeoutMs)
             return HRESULT_FROM_WIN32(ERROR_TIMEOUT);
-        const DWORD wait = static_cast<DWORD>(std::min<ULONGLONG>(50u, timeoutMs - elapsed));
-        const HANDLE event = idle_.get();
+        const DWORD wait   = static_cast<DWORD>(std::min<ULONGLONG>(50u, timeoutMs - elapsed));
+        const HANDLE event = _idle.get();
         const DWORD waited = MsgWaitForMultipleObjectsEx(1u, &event, wait, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
         if (waited == WAIT_OBJECT_0)
             return S_OK;
@@ -132,11 +133,11 @@ HRESULT ProcessWork::Wait(DWORD timeoutMs) noexcept
         for (unsigned count = 0u; count < 64u; ++count)
         {
             MSG message{};
-            if (!PeekMessageW(&message, nullptr, 0u, 0u, PM_REMOVE))
+            if (! PeekMessageW(&message, nullptr, 0u, 0u, PM_REMOVE))
                 break;
             if (message.message == WM_QUIT)
             {
-                if (!sawQuit)
+                if (! sawQuit)
                     quitCode = message.wParam;
                 sawQuit = true;
                 continue;

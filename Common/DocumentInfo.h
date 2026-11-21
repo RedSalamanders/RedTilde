@@ -23,7 +23,7 @@ enum class DocumentNewlineKind
 struct DocumentLine
 {
     std::size_t offset{}, length{}; // Source UTF-16 content, excluding CR/LF.
-    bool operator==(const DocumentLine &) const noexcept = default;
+    bool operator==(const DocumentLine&) const noexcept = default;
 };
 struct DocumentInfo
 {
@@ -43,23 +43,23 @@ struct DocumentLineIndexStorageStats
 // This is application-internal storage policy, not a source-analysis cache.
 class DocumentLineIndexStorage final
 {
-  public:
+public:
     [[nodiscard]] DocumentInfo Analyze(std::wstring_view text, std::size_t previousPhysicalLineCount = 0);
-    void Retire(std::vector<DocumentLine> &&previous, std::size_t activeLineCount) noexcept;
-    [[nodiscard]] const DocumentLineIndexStorageStats &Stats() const noexcept
+    void Retire(std::vector<DocumentLine>&& previous, std::size_t activeLineCount) noexcept;
+    [[nodiscard]] const DocumentLineIndexStorageStats& Stats() const noexcept
     {
-        return stats;
+        return _stats;
     }
 
-  private:
-    std::vector<DocumentLine> spare;
-    DocumentLineIndexStorageStats stats;
+private:
+    std::vector<DocumentLine> _spare;
+    DocumentLineIndexStorageStats _stats;
 };
 struct DocumentPosition
 {
     std::size_t line = 1, column = 1; // One-based source UTF-16 positions.
     std::size_t lineOffset{}, lineCharacters{};
-    bool operator==(const DocumentPosition &) const noexcept = default;
+    bool operator==(const DocumentPosition&) const noexcept = default;
 };
 // A previous revision's physical line count is only an allocation hint, bounded
 // by the incoming source. It never supplies or preserves any metadata/storage.
@@ -70,5 +70,5 @@ struct DocumentPosition
 // Logarithmic read of the analyzed revision: no source scan or allocation.
 // Oversized ACPs clamp to source end. An ACP between CR/LF stays at the prior
 // line's content end; the following line begins only after the complete pair.
-[[nodiscard]] DocumentPosition DocumentPositionAt(const DocumentInfo &info, std::size_t caret) noexcept;
+[[nodiscard]] DocumentPosition DocumentPositionAt(const DocumentInfo& info, std::size_t caret) noexcept;
 } // namespace RedTilde

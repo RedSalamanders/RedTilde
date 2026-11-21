@@ -23,27 +23,27 @@ inline Synthetic g_synthetic;
 inline void UseSynthetic(bool active) noexcept
 {
     Detail::g_synthetic.active = active;
-    Detail::g_synthetic.keys = {};
+    Detail::g_synthetic.keys   = {};
 }
 
 class ScopedSynthetic final
 {
-  public:
-    ScopedSynthetic() noexcept : previous_(Detail::g_synthetic)
+public:
+    ScopedSynthetic() noexcept : _previous(Detail::g_synthetic)
     {
         UseSynthetic(true);
     }
     ~ScopedSynthetic()
     {
-        Detail::g_synthetic = previous_;
+        Detail::g_synthetic = _previous;
     }
-    ScopedSynthetic(const ScopedSynthetic &) = delete;
-    ScopedSynthetic &operator=(const ScopedSynthetic &) = delete;
-    ScopedSynthetic(ScopedSynthetic &&) = delete;
-    ScopedSynthetic &operator=(ScopedSynthetic &&) = delete;
+    ScopedSynthetic(const ScopedSynthetic&)            = delete;
+    ScopedSynthetic& operator=(const ScopedSynthetic&) = delete;
+    ScopedSynthetic(ScopedSynthetic&&)                 = delete;
+    ScopedSynthetic& operator=(ScopedSynthetic&&)      = delete;
 
-  private:
-    const Detail::Synthetic previous_;
+private:
+    const Detail::Synthetic _previous;
 };
 
 [[nodiscard]] inline bool Held(int virtualKey) noexcept
@@ -53,7 +53,7 @@ class ScopedSynthetic final
     return GetKeyState(virtualKey) < 0;
 }
 
-[[nodiscard]] inline bool Read(std::array<BYTE, 256> &keys) noexcept
+[[nodiscard]] inline bool Read(std::array<BYTE, 256>& keys) noexcept
 {
     if (Detail::g_synthetic.active)
     {
@@ -63,7 +63,7 @@ class ScopedSynthetic final
     return GetKeyboardState(keys.data()) != FALSE;
 }
 
-inline void Write(const std::array<BYTE, 256> &keys) noexcept
+inline void Write(const std::array<BYTE, 256>& keys) noexcept
 {
     if (Detail::g_synthetic.active)
         Detail::g_synthetic.keys = keys;
