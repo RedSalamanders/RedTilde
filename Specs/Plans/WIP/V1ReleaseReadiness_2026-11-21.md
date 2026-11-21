@@ -42,9 +42,9 @@ Source merge alone is never product release acceptance. Every gate below closes 
 
 ## Gate Breakdown (Points 1–7)
 
-### Gate 1 — Settings & Hygiene Convergence (`CV-6-05`, `H-10`, `H-15`, `H-26`, `H-27`) — **COMPLETED LOCALLY**
+### Gate 1 — Settings & Hygiene Convergence (`CV-6-05`, `H-10`, `H-15`, `H-26`, `H-27`) — **COMPLETED**
 
-- **Status:** **COMPLETED LOCALLY** (hosted PR/main CI qualification and ARM64 runtime remain under Gates 2 & 7).
+- **Status:** **COMPLETED** (merged to `main` in `de873ee`, folded in PR #147 `ea111980`, and qualified across local `x64` profiles plus hosted `Qualify main Release` `#44928555514` and hosted native `ARM64` runs `#44930332182`/`#44930335298`; see [Gate 1 & ARM64 qualification](../../../Measurements/Gate1AndArm64Qualification_2026-11-21/README.md)).
 - **Closes `RemainingWork` rows:** `T-CV1` (`H-10`, `H-15`, `H-26`, `H-27`), `CV-6-05`.
 - **Implemented slices:**
   1. **Slice 1A — Mechanical Formatter Convergence (`CV-6-05`):**
@@ -66,19 +66,14 @@ Source merge alone is never product release acceptance. Every gate below closes 
 
 ---
 
-### Gate 2 — Physical ARM64 Runtime Qualification (**OPEN**)
+### Gate 2 — Physical ARM64 Runtime Qualification (**COMPLETED**)
 
+- **Status:** **COMPLETED** on hosted `windows-11-vs2026-arm` (`Arm64`, `10.0.26200.0`, commit `de873ee`, DxUi `0c371a6197eb8c6b876b4b2843d75078bc21035c`); `v1.0.0` release cut remains under Gate 7.
 - **Closes `RemainingWork` rows:** `T-Q2` (ARM64 runtime parity), hosted ARM64 qualification notes.
-- **Entry criteria:** Gate 1 (or any release-candidate commit being qualified for ARM64 runtime claim).
-- **Execution:**
-  1. Run on physical ARM64 Windows 11 hardware (or hosted `windows-11-arm` main workflow):
-     - `.\test.ps1 -Platform ARM64 -Configuration Debug -Full`
-     - `.\test.ps1 -Platform ARM64 -Configuration Release -Full`
-     - `.\test.ps1 -Platform ARM64 -Configuration "ASan Debug" -Full`
-     - `.\package.ps1 -Platform ARM64`
-  2. Verify all `178+` catalog tests (including `Storage.SymbolicSavePreservesEntryAndResolvesFinalTarget` and `FailureReportRouting`), `40+` hidden captures, real ARM64 ASan heap-use-after-free detection, isolated crash dumps/sidecars, and all `16+` production refusals (exit `2`, absent data dir).
-- **Verification & exit criteria:**
-  - Source-bound ARM64 receipts and ARM64 package smoke receipt archived under [Measurements/](../../../Measurements/README.md) with zero unexpected failures.
+- **Executed & verified evidence ([Gate 1 & ARM64 qualification](../../../Measurements/Gate1AndArm64Qualification_2026-11-21/README.md)):**
+  1. `ARM64 Release` + portable production ZIP smoke (`Qualify main Release` [#44928555514](https://github.com/RedSalamanders/RedTilde/actions/runs/44928555514)): `0 Warning(s)`/`0 Error(s)`, `178/178` catalog cases (including `Storage.SymbolicSavePreservesEntryAndResolvesFinalTarget`), `40` captures, `FailureReportRouting`, 6 dumps (`-531475201`), plus `RedTilde-0.1.519-ARM64-20261121-093426-031.zip` (`smokePassed: true`, `16/16` exit-`2` refusals).
+  2. `ARM64 Debug Full` (`Manual extended qualification` [#44930332182](https://github.com/RedSalamanders/RedTilde/actions/runs/44930332182)): `0 Warning(s)`/`0 Error(s)`, `178/178` catalog cases, `40` captures, `FailureReportRouting` (`exitCode 3`), 6 dumps.
+  3. `ARM64 ASan Debug Full` (`Manual extended qualification` [#44930335298](https://github.com/RedSalamanders/RedTilde/actions/runs/44930335298)): `0 Warning(s)`/`0 Error(s)`, `178/178` catalog cases, `40` captures, `FailureReportRouting`, real ARM64 ASan detection (`heapUseAfterFreeDetected: true`, `exitCode 1`), 5 dumps.
 
 ---
 
@@ -116,38 +111,41 @@ Source merge alone is never product release acceptance. Every gate below closes 
 
 ---
 
-### Gate 5 — Real Storage & Network Share Qualification (`T-S2`, `T-I1`) (**OPEN**)
+### Gate 5 — Real Storage & Network Share Qualification (`T-S2`, `T-I1`) (**OPEN — PARTIAL: LIVE SMB EXECUTED WITH OPEN `Common/Storage.cpp` DEFECTS**)
 
 - **Closes `RemainingWork` rows:** `T-S2` (real OneDrive/cloud, SMB/NAS, WSL qualification), `T-I1` (Q8/Q13 real-location acceptance).
 - **Host storage resources observed on 2026-11-21 (inventory only — never direct write targets):**
-  - **OneDrive Consumer:** `C:\Users\eric\OneDrive` (`$env:OneDriveConsumer`, present locally)
-  - **OneDrive Business:** `C:\Users\eric\OneDrive - QlikTech Inc` (`$env:OneDriveCommercial`, present locally)
-  - **WSL 2:** `Ubuntu` distro installed (Version 2; UNC root `\\wsl.localhost\Ubuntu\...` once started via `wsl.exe`)
-  - **Dedicated SMB / NAS Self-Test Share:** `\\rubygloom\RedSalamander-SelfTest\selftest` declared in `Z:\RedSalamander.Perf\config\machine-resources.json` under id `path.smb.primary` (separate from media share `\\rubygloom\Multimedia`; returned `The network path was not found` when probed on 2026-11-21, so live SMB execution requires `\\rubygloom` to be online and reachable)
+  - **OneDrive Consumer:** `C:\Users\eric\OneDrive` (`$env:OneDriveConsumer`, present locally; awaits owner-declared `selftest` root)
+  - **OneDrive Business:** `C:\Users\eric\OneDrive - QlikTech Inc` (`$env:OneDriveCommercial`, present locally; awaits owner-declared `selftest` root)
+  - **WSL 2:** `Ubuntu` distro installed (Version 2; UNC root `\\wsl.localhost\Ubuntu\...`; awaits owner-declared `selftest` root)
+  - **Dedicated SMB / NAS Self-Test Share:** `\\rubygloom\RedSalamander-SelfTest\selftest` declared in `Z:\RedSalamander.Perf\config\machine-resources.json` under id `path.smb.primary` (separate from media share `\\rubygloom\Multimedia`; **reachable and executed on `ea111980`**)
 - **Safety & isolation design (Allowed Write Locations Only — Fail Closed):**
-  1. **Implemented locally:** [Tools/Test-RealLocations.ps1](../../../Tools/Test-RealLocations.ps1) (opt-in; NEVER invoked automatically by default headless runs or hosted CI) and its compiler-free gate [Tests/Tooling.Tests.RealLocations.ps1](../../../Tests/Tooling.Tests.RealLocations.ps1) (wired into [validate.ps1](../../../validate.ps1)) enforce the fail-closed contract:
+  1. **Implemented & executed locally:** [Tools/Test-RealLocations.ps1](../../../Tools/Test-RealLocations.ps1) (opt-in; NEVER invoked automatically by default headless runs or hosted CI; now extended with `-IncludeNativeSuites`, `-NativeScopes`, `-RetainLogs`, `Start-Process -Wait` timeouts, and read-only-safe per-run cleanup) and its compiler-free gate [Tests/Tooling.Tests.RealLocations.ps1](../../../Tests/Tooling.Tests.RealLocations.ps1) (`41` checks in [validate.ps1](../../../validate.ps1)) enforce the fail-closed contract:
      - Live OneDrive, SMB, and WSL tests ONLY run against explicitly manifest-declared dedicated `selftest` roots (`redtilde.real-locations.v1` or compatible `red-salamander.test-machine-resources.v1` entries, each required to contain a `selftest` path segment and never pointing to drive roots, `%USERPROFILE%`, Desktop, Documents, undeclared `C:\Users\...\OneDrive`, or `\\rubygloom\Multimedia`). Fail closed if a manifest or target root is missing, relative, >1024 chars, contains NUL/newlines or `.`/`..` segments, is a shallow 2-segment UNC root, lacks a `selftest` segment, or is/traverses a surrogate symlink/junction.
-     - Perform explicit reachability preflight per target (failing closed cleanly without falling back to loopback or another volume).
-     - Operate strictly inside a per-run `redtilde-run-<guid>` subfolder beneath the verified `selftest` root (exercising `RedTilde.exe --capture` against a staged UTF-8 BOM `.md` showcase document and verifying capture output + untouched document bytes/BOM) with exit cleanup in `finally` that never follows reparse points (retaining failed-run logs only under repository-local `.build/real-location-runs/`).
-  2. **Remaining open live-backend matrix (`OneDrive Personal/Business`, `SMB \\rubygloom`, `WSL2 Ubuntu` — open until `\\rubygloom` is online and manifest-declared `selftest` roots are verified):**
-     - UTF-8/BOM/EOL round-trip open & atomic save (`WriteBytesAtomic`), external-modification conflict (`ERROR_REVISION_MISMATCH`), and close-during-save recovery.
-     - Provider-unsupported replacement fallback & read-sharing (`T-S2` `Q8`) with durable recovery protection.
-     - Files pane traversal, `ReadDirectoryChangesW` live reload, and symlink / junction vs **non-name-surrogate cloud placeholder reparse tags** (ensuring OneDrive `CfApi` placeholders work as normal files/folders without false symlink rejection while true symlink/junction leaves stay un-traversed).
-     - Same-share local-network image resolution vs default-blocked foreign UNC image refusal (`T-I1` `Q13`), plus image file change refresh.
-- **Verification & exit criteria:**
-  - Source-bound execution receipts recorded under [Measurements/](../../../Measurements/README.md) across all three live backends (with `\\rubygloom` online and manifest-declared `selftest` roots verified), plus updated [capabilities.json](../../../capabilities.json) and [Core_FileSafety.md](../../Core/Core_FileSafety.md).
+     - Perform explicit reachability preflight per target and operate strictly inside a per-run `redtilde-run-<guid>` subfolder with exit cleanup in `finally` that never follows reparse points.
+  2. **Live SMB qualification executed (`ea111980`, [RealLocationSmb_2026-11-21](../../../Measurements/RealLocationSmb_2026-11-21/README.md)):**
+     - **Passed:** UTF-8 BOM `--capture` (`118,136`-byte PNG, unchanged document SHA-256 `1BA77DC7...`), `Settings` (`15/15`), `Recovery` (`22/22`), and per-run directory cleanup (`0` leftover `redtilde-run-*` directories).
+     - **Failed (`Storage` `16/32` passed, `16` failed) — 4 proven Win32/SMB2 root causes diagnosed:**
+       1. *Product SMB bug:* `Common/Storage.cpp` samples `writtenStamp` before `MoveFileExW(..., MOVEFILE_WRITE_THROUGH)` / `ReplaceFileW`, whereas the SMB server updates `ftLastWriteTime` post-rename (`+503,718` 100-ns ticks ≈ `50.37 ms`) while keeping volume serial and file index identical.
+       2. *Product SMB bug:* `ReplaceFileW(..., 0)` and `ReplaceFileW(..., REPLACEFILE_IGNORE_MERGE_ERRORS)` both fail with `ERROR_PATH_NOT_FOUND` (`3`) on an existing SMB target, which `Common/Storage.cpp` does not route to the protected fallback.
+       3. *SMB server capability & fixture limits:* `CreateHardLinkW` returns `TRUE` while `GetFileInformationByHandle` still reports `nNumberOfLinks == 1`; `GetFileInformationByHandleEx(FileIdInfo)` returns error `87` (`Storage.cpp` already falls back, but `Storage.StampMatchesFullNativeFileIdentity` asserts `FileIdInfo`); remote junction/symlink fixture creation (`Win32 5`) is denied by the share.
+       4. *Intentional local-profile boundary:* `Common/BitmapAssets.cpp` intentionally rejects `DRIVE_REMOTE` (`4`) for `--data-dir` clipboard PNG staging (`Assets` belong under `%LOCALAPPDATA%` on `DRIVE_FIXED`).
+  3. **Remaining Wave 2 work to close Gate 5 (`T-S2`, `T-I1`):**
+     - Implement and qualify the Wave 2 `Common/Storage.cpp` SMB fixes (refresh/handle post-rename `ftLastWriteTime` when identity/bytes match; route `ReplaceFileW` `ERROR_PATH_NOT_FOUND` fallback safely; keep local `DRIVE_FIXED` data root in SMB `BitmapAssets` tests and separate SMB server capability probes from core save regressions) and re-qualify `path.smb.primary` to `0` unexpected failures.
+     - Obtain owner-declared dedicated `selftest` roots for OneDrive Personal/Business (`CfApi` non-name-surrogate cloud placeholders) and WSL 2 `Ubuntu` and archive clean live receipts across all three backends, plus update [capabilities.json](../../../capabilities.json) and [Core_FileSafety.md](../../Core/Core_FileSafety.md).
 
 ---
 
-### Gate 6 — Paired Quiet-Host Performance & Real Hardware Graphics (`T-P1`) (**OPEN**)
+### Gate 6 — Paired Quiet-Host Performance & Real Hardware Graphics (`T-P1`) (**OPEN — PARTIAL: HARDWARE GPU PROBE, OBSERVED A/A CONTROL & DESIGN REVIEW RECORDED**)
 
-- **Closes `RemainingWork` rows:** `T-P1` (all four items: attribution, Debug allocation-attribution design review, matched Release studies, long-lived GPU/hardware graphics).
-- **Execution:**
-  1. Complete command and working-set attribution using frozen source-matched inputs and review the private Debug allocation-attribution design (`live IDs`, CRT quiet-point barriers, caller identities, zero silent regressions).
-  2. Execute full paired quiet-host Release performance studies (`compose`, `split`, `source`, large-document typing, find, scrolling, print preview open/close, worker idle CPU/memory) against retained matched baselines.
-  3. Qualify long-lived D3D11/Direct2D GPU resources on real hardware separately from WARP: simulated/actual GPU device removal (`DXGI_ERROR_DEVICE_REMOVED`), monitor DPI switches, window minimization, and physical DWM occlusion (verifying event-blocked zero steady-state frame wakeups).
-- **Verification & exit criteria:**
-  - Paired non-regression measurements archived under [Measurements/](../../../Measurements/README.md) obeying [Testing_Performance.md](../../Testing/Testing_Performance.md).
+- **Closes `RemainingWork` rows:** `T-P1` (attribution, Debug allocation-attribution design review, matched Release studies, long-lived GPU/hardware graphics).
+- **Executed & verified evidence ([PerformanceAndGpuQualification_2026-11-21](../../../Measurements/PerformanceAndGpuQualification_2026-11-21/README.md)):**
+  1. **Hardware GPU vs WARP resource lifecycle (`--resource-probe --control-diagnostics`, `ea111980` `x64 Release`):** `NVIDIA GeForce RTX 5080` (`Compose` and `Split`, `144 DPI`, `2160x1350`, `16` cycles) and `WARP` (`Compose`) both pass `0` unrequested idle renders, `0` idle OS CPU ticks (`idleProcessCpu100ns = 0`), `3x` bit-identical device-loss recovery (`generations: [4, 6, 8]`), `closed.nativeHosts == 0`, and `ownedHeapDiagnostics.complete == true` (`~3.83 MiB` CRT/default busy payload vs `~43 MiB` GPU/WDDM driver delta on hardware).
+  2. **Observed A/A control & command/WS attribution:** `6` `ABBA`/`BAAB` blocks × `16` cycles × `2` views (`12/12` primary metrics `no-resolved-change`, `coverageComplete: true`, `maxGap <= 1.04 s`); recorded `app-edit-phases-v2` and `app-selection-components-v1` medians (`Compose commandUs = 122.0 us`: `caption 39.3 us`, `identity 20.7 us`, `selection 19.1 us`, `analysis 12.5 us`; `Split commandUs = 113.0 us`).
+  3. **Debug allocation-attribution design review ([debug-allocation-review.md](../../../Measurements/PerformanceAndGpuQualification_2026-11-21/debug-allocation-review.md)):** Verified bounded `Application.Tests.HeapDiagnostic.h`, private ETW StackWalk joining/overflow rules, and preservation of the 29 Oct memory disposition.
+- **Remaining open to close Gate 6 (`T-P1`):**
+  1. Quiet-host (`quietCpuWindowVerified == true`) paired A/B candidate studies whenever hot paths or API 6 (`H-01`/`H-02`/`H-05`/`H-14`) change code.
+  2. Physical DWM occlusion and live monitor DPI switch verification (explicitly separate from hidden `WM_SHOWWINDOW`, simulated `--capture-dpi`, and `DebugSimulateDeviceLoss()`).
 
 ---
 
@@ -175,10 +173,10 @@ Source merge alone is never product release acceptance. Every gate below closes 
 
 | Section in `RemainingWork_2026-11-04.md` | Remaining Unchecked Items | Covered Here By |
 | --- | --- | --- |
-| `T-S2` (1 item) | Real OneDrive/cloud, SMB/NAS, and WSL storage qualification | **Gate 5** |
-| `T-U2` (1 item) | Step 6: publish qualified real/PDF/driver printing behavior & receipts | **Gate 3** |
-| `T-I1` (1 item) | Q8/Q13 real-location acceptance | **Gate 5** |
-| `T-P1` (4 items) | Command/WS attribution, Debug alloc design, matched Release studies, hardware GPU/occlusion | **Gate 6** |
-| `T-Q2` (2 items) | Clipboard/IME/AT/touch + `C11`/`C12`/`S6` release cut (plus ARM64 runtime) | **Gate 2**, **Gate 4**, **Gate 7** |
-| `T-CV1` (0 remaining local items; `H-10`, `H-15`, `H-26`, `H-27`, `CV-6-05` completed locally) | JSON5 settings, `SettingsWatcher` live reload, JSON settings filenames/`Core_Settings.md`, `_camelCase` + `.clang-tidy`, 155-line `.clang-format` | **Gate 1** (COMPLETED LOCALLY; hosted PR/main CI in Gate 7) |
-| `T-G1` (4 items) | `Q17` coordinated privacy/history audit, `Q15` historical replay migration, rejected-cleanup dispositions, routine post-merge `Changes/` folds | Tracked in [RemainingWork_2026-11-04.md](RemainingWork_2026-11-04.md) (repo governance/tooling — independent of RedTilde v1.0 runtime unless owner gates Q17 pre-public-release) |
+| `T-S2` (1 item) | Wave 2 SMB `Common/Storage.cpp` fixes & re-run, plus OneDrive/cloud and WSL `selftest` qualification | **Gate 5** (`PARTIAL` — SMB executed) |
+| `T-U2` (1 item) | Step 6: publish qualified physical/PDF/driver printing behavior & receipts | **Gate 3** |
+| `T-I1` (1 item) | Q8/Q13 real-location acceptance | **Gate 5** (`PARTIAL` — SMB executed) |
+| `T-P1` (3 remaining open items; Debug alloc design review checked) | Quiet-host A/B matched Release studies, command/WS optimization follow-ups, physical DWM occlusion/DPI switch | **Gate 6** (`PARTIAL` — GPU probe, A/A & design review done) |
+| `T-Q2` (2 items: physical IME/AT/touch + `C11`/`C12`/`S6` release cut; ARM64 runtime completed) | Clipboard/IME/AT/touch + `C11`/`C12`/`S6` release cut | **Gate 2** (**COMPLETED**), **Gate 4**, **Gate 7** |
+| `T-CV1` (0 remaining items; `H-10`, `H-15`, `H-26`, `H-27`, `CV-6-05` completed locally and qualified in hosted Release & ARM64) | JSON5 settings, `SettingsWatcher` live reload, JSON settings filenames/`Core_Settings.md`, `_camelCase` + `.clang-tidy`, 155-line `.clang-format` (API-6 `H-01`/`H-02`/`H-05`/`H-14` wait for RedHome D20 / Gate 7) | **Gate 1** (**COMPLETED**) |
+| `T-G1` (2 open items: `Q15` shared-module migration, `Q17` coordinated privacy/history audit; dispositions & PR #147 fold completed) | `Q17` coordinated privacy/history audit, `Q15` historical replay migration | Tracked in [RemainingWork_2026-11-04.md](RemainingWork_2026-11-04.md) and [GovernanceDisposition_2026-11-21](../../../Measurements/GovernanceDisposition_2026-11-21/README.md) |

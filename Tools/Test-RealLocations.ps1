@@ -18,6 +18,12 @@ Build configuration for RedTilde.exe (Debug or Release; defaults to Release).
 Validate manifest, path policy, and live reachability without creating or modifying any files.
 .PARAMETER ExecutablePath
 Optional explicit path to RedTilde.exe (defaults to .build/x64/<Configuration>/RedTilde.exe).
+.PARAMETER IncludeNativeSuites
+Also execute the Storage, Settings, and Recovery native self-test suites (--self-test --test-scope <Scope> --data-dir <runRoot>\<Scope>) inside each per-run selftest folder.
+.PARAMETER NativeScopes
+Native self-test scopes to execute when -IncludeNativeSuites is set (defaults to Storage, Settings, Recovery).
+.PARAMETER RetainLogs
+Retain suite stdout/stderr and copied tests.json files under .build/real-location-runs/<runId> even when all checks pass.
 #>
 [CmdletBinding()]
 param(
@@ -27,7 +33,11 @@ param(
     [ValidateSet('Debug', 'Release')]
     [string]$Configuration = 'Release',
     [switch]$DryRun,
-    [string]$ExecutablePath = ''
+    [string]$ExecutablePath = '',
+    [switch]$IncludeNativeSuites,
+    [ValidateSet('Storage', 'Settings', 'Recovery')]
+    [string[]]$NativeScopes = @('Storage', 'Settings', 'Recovery'),
+    [switch]$RetainLogs
 )
 
 Set-StrictMode -Version Latest
@@ -302,10 +312,18 @@ function Remove-RedTildeDirectoryNoReparse {
     }
     $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
     if (Test-RedTildeSurrogateLinkItem -Item $item) {
-        [IO.Directory]::Delete($Path, $false)
+        if ($item.PSIsContainer) {
+            [IO.Directory]::Delete($Path, $false)
+        } else {
+            [IO.File]::Delete($Path)
+        }
         return
     }
     if (-not $item.PSIsContainer) {
+        if ((($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) -and
+            (($item.Attributes -band [IO.FileAttributes]::ReadOnly) -ne 0)) {
+            [IO.File]::SetAttributes($Path, ($item.Attributes -band (-bnot [IO.FileAttributes]::ReadOnly)))
+        }
         [IO.File]::Delete($Path)
         return
     }
@@ -320,8 +338,16 @@ function Remove-RedTildeDirectoryNoReparse {
         } elseif ($child.PSIsContainer) {
             Remove-RedTildeDirectoryNoReparse -Path $child.FullName
         } else {
+            if ((($child.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) -and
+                (($child.Attributes -band [IO.FileAttributes]::ReadOnly) -ne 0)) {
+                [IO.File]::SetAttributes($child.FullName, ($child.Attributes -band (-bnot [IO.FileAttributes]::ReadOnly)))
+            }
             [IO.File]::Delete($child.FullName)
         }
+    }
+    if ((($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) -and
+        (($item.Attributes -band [IO.FileAttributes]::ReadOnly) -ne 0)) {
+        [IO.File]::SetAttributes($Path, ($item.Attributes -band (-bnot [IO.FileAttributes]::ReadOnly)))
     }
     [IO.Directory]::Delete($Path, $false)
 }
@@ -335,7 +361,11 @@ function Invoke-RedTildeRealLocationRun {
         [ValidateSet('Debug', 'Release')]
         [string]$Configuration = 'Release',
         [switch]$DryRun,
-        [string]$ExecutablePath = ''
+        [string]$ExecutablePath = '',
+        [switch]$IncludeNativeSuites,
+        [ValidateSet('Storage', 'Settings', 'Recovery')]
+        [string[]]$NativeScopes = @('Storage', 'Settings', 'Recovery'),
+        [switch]$RetainLogs
     )
 
     $repoRoot = Split-Path -Parent $PSScriptRoot
@@ -357,6 +387,9 @@ function Invoke-RedTildeRealLocationRun {
         $exeItem = Get-Item -LiteralPath $exe -Force -ErrorAction Stop
         if (($exeItem.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
             throw "RedTilde executable must not be a reparse point: $exe"
+        }
+        if ($IncludeNativeSuites -and $NativeScopes.Count -eq 0) {
+            throw 'NativeScopes must select at least one scope when -IncludeNativeSuites is specified.'
         }
     }
 
@@ -384,11 +417,12 @@ function Invoke-RedTildeRealLocationRun {
         if (Test-Path -LiteralPath $runRoot) {
             throw "Unique per-run directory already exists: $runRoot"
         }
-        $dataDir = Join-Path $repoRoot ".build/real-location-runs/$runId/data"
+        $runScratchRoot = Join-Path $repoRoot ".build/real-location-runs/$runId"
+        $dataDir = Join-Path $runScratchRoot 'data'
 
         $createdRunRoot = $false
         $createdDataDir = $false
-        $runSucceeded = $false
+        $keepLogs = [bool]$RetainLogs
         try {
             [void][IO.Directory]::CreateDirectory($runRoot)
             $createdRunRoot = $true
@@ -427,30 +461,40 @@ function Invoke-RedTildeRealLocationRun {
             [IO.File]::WriteAllBytes($docPath, $expectedBytes)
             $beforeHash = (Get-FileHash -LiteralPath $docPath -Algorithm SHA256).Hash
 
-            $stdoutPath = Join-Path $repoRoot ".build/real-location-runs/$runId/stdout.log"
-            $stderrPath = Join-Path $repoRoot ".build/real-location-runs/$runId/stderr.log"
+            $stdoutPath = Join-Path $runScratchRoot 'stdout.log'
+            $stderrPath = Join-Path $runScratchRoot 'stderr.log'
             $proc = Start-Process -FilePath $exe -ArgumentList @(
                 '--capture', $capturePath,
                 '--scenario', 'sample-document',
                 '--document', $docPath,
                 '--data-dir', $dataDir
-            ) -NoNewWindow -Wait -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+            ) -NoNewWindow -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
+            if (-not $proc.WaitForExit(120000)) {
+                $keepLogs = $true
+                $proc.Kill($true)
+                throw "RedTilde.exe --capture timed out after 120s for '$($target.id)' ($verifiedRoot)."
+            }
 
             if ($proc.ExitCode -ne 0) {
+                $keepLogs = $true
                 throw "RedTilde.exe --capture exited with code $($proc.ExitCode) for '$($target.id)' ($verifiedRoot)."
             }
             if (-not (Test-Path -LiteralPath $capturePath -PathType Leaf)) {
+                $keepLogs = $true
                 throw "Capture PNG was not written under '$runRoot'."
             }
             $captureBytes = [IO.File]::ReadAllBytes($capturePath)
             if ($captureBytes.Length -lt 8 -or $captureBytes[0] -ne 0x89 -or $captureBytes[1] -ne 0x50 -or $captureBytes[2] -ne 0x4E -or $captureBytes[3] -ne 0x47) {
+                $keepLogs = $true
                 throw "Capture output is empty or not a valid PNG: $capturePath"
             }
             if (-not (Test-Path -LiteralPath $sidecarPath -PathType Leaf)) {
+                $keepLogs = $true
                 throw "Capture scenario sidecar was not written: $sidecarPath"
             }
             $sidecar = Get-Content -LiteralPath $sidecarPath -Raw | ConvertFrom-Json
             if (-not $sidecar.hidden -or [string]$sidecar.scenario -cne 'sample-document') {
+                $keepLogs = $true
                 throw "Capture scenario sidecar failed verification: $sidecarPath"
             }
 
@@ -458,7 +502,65 @@ function Invoke-RedTildeRealLocationRun {
             $afterBytes = [IO.File]::ReadAllBytes($docPath)
             if ($afterHash -cne $beforeHash -or $afterBytes.Length -ne $expectedBytes.Length -or
                 $afterBytes[0] -ne 0xEF -or $afterBytes[1] -ne 0xBB -or $afterBytes[2] -ne 0xBF) {
+                $keepLogs = $true
                 throw "Staged document bytes or UTF-8 BOM changed during capture: $docPath"
+            }
+
+            $suiteResults = [Collections.Generic.List[object]]::new()
+            $allSuitesPassed = $true
+            if ($IncludeNativeSuites) {
+                foreach ($scopeName in $NativeScopes) {
+                    $suiteDataDir = Join-Path $runRoot "suite-$scopeName"
+                    $suiteStdout = Join-Path $runScratchRoot "$scopeName.stdout.log"
+                    $suiteStderr = Join-Path $runScratchRoot "$scopeName.stderr.log"
+                    $suiteReportDest = Join-Path $runScratchRoot "$scopeName.tests.json"
+                    $suiteProc = Start-Process -FilePath $exe -ArgumentList @(
+                        '--self-test',
+                        '--test-scope', $scopeName,
+                        '--data-dir', $suiteDataDir
+                    ) -NoNewWindow -PassThru -RedirectStandardOutput $suiteStdout -RedirectStandardError $suiteStderr
+                    $timedOut = -not $suiteProc.WaitForExit(180000)
+                    if ($timedOut) {
+                        $keepLogs = $true
+                        $suiteProc.Kill($true)
+                    }
+                    $suiteExit = if ($timedOut) { -1 } else { $suiteProc.ExitCode }
+
+                    $reportSource = Join-Path $suiteDataDir 'tests.json'
+                    $passedCount = 0
+                    $failedCount = 0
+                    $selectedCount = 0
+                    $failedCases = @()
+                    if (Test-Path -LiteralPath $reportSource -PathType Leaf) {
+                        Copy-Item -LiteralPath $reportSource -Destination $suiteReportDest -Force
+                        $report = Get-Content -LiteralPath $suiteReportDest -Raw | ConvertFrom-Json
+                        $passedCount = [int]$report.passed
+                        $failedCount = [int]$report.failed
+                        $selectedCount = [int]$report.selected
+                        $failedCases = @($report.tests | Where-Object { -not $_.passed } | ForEach-Object {
+                                [pscustomobject]@{
+                                    name  = [string]$_.name
+                                    error = [string]$_.error
+                                }
+                            })
+                    }
+
+                    $suiteOk = (-not $timedOut) -and ($suiteExit -eq 0) -and ($failedCount -eq 0) -and ($selectedCount -gt 0)
+                    if (-not $suiteOk) {
+                        $allSuitesPassed = $false
+                        $keepLogs = $true
+                    }
+
+                    $suiteResults.Add([pscustomobject]@{
+                            scope       = $scopeName
+                            exitCode    = $suiteExit
+                            timedOut    = $timedOut
+                            passed      = $passedCount
+                            failed      = $failedCount
+                            selected    = $selectedCount
+                            failedCases = $failedCases
+                        })
+                }
             }
 
             $results.Add([pscustomobject]@{
@@ -470,16 +572,19 @@ function Invoke-RedTildeRealLocationRun {
                     dryRun           = $false
                     captureByteCount = $captureBytes.Length
                     documentSha256   = $afterHash
-                    status           = 'PASSED'
+                    nativeSuites     = @($suiteResults)
+                    logDirectory     = if ($keepLogs) { ".build/real-location-runs/$runId" } else { $null }
+                    status           = if ($allSuitesPassed) { 'PASSED' } else { 'NATIVE_SUITE_FAILED' }
                 })
-            $runSucceeded = $true
         } finally {
             if ($createdRunRoot) {
                 Remove-RedTildeDirectoryNoReparse -Path $runRoot
+                if (Test-Path -LiteralPath $runRoot) {
+                    throw "Per-run selftest directory still exists after cleanup: $runRoot"
+                }
             }
-            if ($createdDataDir -and $runSucceeded) {
-                $runScratchParent = Split-Path -Parent $dataDir
-                Remove-RedTildeDirectoryNoReparse -Path $runScratchParent
+            if ($createdDataDir -and -not $keepLogs) {
+                Remove-RedTildeDirectoryNoReparse -Path $runScratchRoot
             }
         }
     }
@@ -488,6 +593,9 @@ function Invoke-RedTildeRealLocationRun {
 }
 
 if ($MyInvocation.InvocationName -ne '.' -and -not [string]::IsNullOrEmpty($MyInvocation.InvocationName)) {
-    $runResult = Invoke-RedTildeRealLocationRun -ManifestPath $ManifestPath -IncludeKind $IncludeKind -Configuration $Configuration -DryRun:$DryRun -ExecutablePath $ExecutablePath
-    $runResult | ConvertTo-Json -Depth 6
+    $runResult = Invoke-RedTildeRealLocationRun -ManifestPath $ManifestPath -IncludeKind $IncludeKind -Configuration $Configuration -DryRun:$DryRun -ExecutablePath $ExecutablePath -IncludeNativeSuites:$IncludeNativeSuites -NativeScopes $NativeScopes -RetainLogs:$RetainLogs
+    $runResult | ConvertTo-Json -Depth 8
+    if (@($runResult | Where-Object { $_.status -cnotin @('PASSED', 'DRY_RUN_VERIFIED') }).Count -gt 0) {
+        exit 1
+    }
 }

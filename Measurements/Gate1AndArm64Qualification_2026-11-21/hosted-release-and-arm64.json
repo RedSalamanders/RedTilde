@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-hosted-release-and-native-arm64-qualification",
+  "commit": "de873eebdfddc970be295180abfc4c505250b74b",
+  "version": "0.1.519",
+  "buildNumber": 519,
+  "status": "experimental",
+  "engine": {
+    "repository": "RedSalamanders/.github",
+    "ref": "f965c7945aff98dbab352623a0cfbe333e7f282f"
+  },
+  "dependency": {
+    "repository": "RedSalamanders/DxUi",
+    "commit": "0c371a6197eb8c6b876b4b2843d75078bc21035c",
+    "apiRevision": 5
+  },
+  "toolchain": {
+    "toolset": "v145",
+    "vcToolsVersion": "14.52.37025",
+    "windowsSdkVersion": "10.0.26100.0"
+  },
+  "hostedRuns": [
+    {
+      "runId": "44928555514",
+      "workflowName": "Qualify main Release",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/44928555514",
+      "conclusion": "success",
+      "nativeDigest": "3f49ea866be56ad0ce0aff01f5326c9366cdce2906b1582ea16386d9f07f8283",
+      "profiles": [
+        {
+          "platform": "x64",
+          "configuration": "Release",
+          "hostArchitecture": "X64",
+          "osVersion": "Microsoft Windows NT 10.0.26100.0",
+          "sourceIdentity": "e9fa67147d69494328dc1064b58a8a24f863cef7655321a739616c34ccdbe8fb",
+          "binarySha256": "7E4DF3D8A3AA7F813161838EA34D61E309E4E2FBCCDBDC606AF2929AC10B5AB2",
+          "buildReceiptSha256": "39595E92F3C76B608B3B53F180C8AE8731385D41BDFCC400D51CD5556512AFBA",
+          "zeroWarningsAndErrors": true,
+          "passed": true,
+          "catalogCases": {
+            "registered": 178,
+            "executed": 178,
+            "passed": 178,
+            "failed": 0,
+            "unexpectedSkipped": 0,
+            "scopes": {
+              "Storage": 32,
+              "Settings": 15,
+              "Recovery": 22,
+              "Editor": 109
+            }
+          },
+          "symbolicSaveCasePassed": true,
+          "capturePngCount": 40,
+          "crashAndRestartDumpsCount": 6,
+          "crashExitCode": -531475201,
+          "crashDumpSha256": "94ABA528EF861740C1AD9EB93804418692BE0BD5D94485FD4DCCF786EF859392",
+          "failureReportRoutingPassed": true
+        },
+        {
+          "platform": "ARM64",
+          "configuration": "Release",
+          "hostArchitecture": "Arm64",
+          "osVersion": "Microsoft Windows NT 10.0.26200.0",
+          "sourceIdentity": "4da6faff6f99dbe6733230ec71aeefc8af4b1f245ab07e772b8cb648c187f3b6",
+          "binarySha256": "270B945B0F8C75CB2BD28AFFE946365424BCC045B712D1F034993998C0C16FA0",
+          "buildReceiptSha256": "6467C8D67AF323190462EFF083B7D4BA0060FDA1D1DF6E687649FF05355EB0C6",
+          "zeroWarningsAndErrors": true,
+          "passed": true,
+          "catalogCases": {
+            "registered": 178,
+            "executed": 178,
+            "passed": 178,
+            "failed": 0,
+            "unexpectedSkipped": 0,
+            "scopes": {
+              "Storage": 32,
+              "Settings": 15,
+              "Recovery": 22,
+              "Editor": 109
+            }
+          },
+          "symbolicSaveCasePassed": true,
+          "capturePngCount": 40,
+          "crashAndRestartDumpsCount": 6,
+          "crashExitCode": -531475201,
+          "crashDumpSha256": "304EDB5DD0151639849776335D6C2CDB9584A9B762980A6CFB8EE9598E965A6E",
+          "failureReportRoutingPassed": true
+        }
+      ],
+      "productionPackages": [
+        {
+          "platform": "x64",
+          "archiveFile": "RedTilde-0.1.519-x64-20261121-173310-061.zip",
+          "archiveSha256": "0411498ff197a084fdd454fe6be3050b44b1469632bc5106e6f87b1e0f4fd895",
+          "archiveSizeBytes": 3671770,
+          "binarySha256": "1E40AB24FC4AAE80A205E4D505454ADF8BA783C958BD04656CB49F7A9F4648FE",
+          "testsEnabled": false,
+          "runtimeRedistributableBundled": true,
+          "smokePassed": true,
+          "refusalsExitCode2Count": 16,
+          "zeroWarningsAndErrors": true
+        },
+        {
+          "platform": "ARM64",
+          "archiveFile": "RedTilde-0.1.519-ARM64-20261121-093426-031.zip",
+          "archiveSha256": "0f42da229c95634ca338d7fa29541cac9be8822f86d906fbefc8d24cfe8317e3",
+          "archiveSizeBytes": 4154583,
+          "binarySha256": "5FADA6675CF4CAB697F52582EB521CD6BBC41B8D3C34E41ABC721C3F69555DA7",
+          "testsEnabled": false,
+          "runtimeRedistributableBundled": true,
+          "smokePassed": true,
+          "refusalsExitCode2Count": 16,
+          "zeroWarningsAndErrors": true
+        }
+      ]
+    },
+    {
+      "runId": "44930332182",
+      "workflowName": "Manual extended qualification",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/44930332182",
+      "conclusion": "success",
+      "profiles": [
+        {
+          "platform": "ARM64",
+          "configuration": "Debug",
+          "hostArchitecture": "Arm64",
+          "osVersion": "Microsoft Windows NT 10.0.26200.0",
+          "sourceIdentity": "4da6faff6f99dbe6733230ec71aeefc8af4b1f245ab07e772b8cb648c187f3b6",
+          "binarySha256": "E460008517ECCE8B09FBD1662883F3752CD93B0FC7DC57FA59C74FF99A136A4F",
+          "buildReceiptSha256": "53E88DA811CDB9A15A0F15E5ED77BD912E3F5EDAAA11E4E7711FE89FD8659861",
+          "zeroWarningsAndErrors": true,
+          "passed": true,
+          "catalogCases": {
+            "registered": 178,
+            "executed": 178,
+            "passed": 178,
+            "failed": 0,
+            "unexpectedSkipped": 0,
+            "scopes": {
+              "Storage": 32,
+              "Settings": 15,
+              "Recovery": 22,
+              "Editor": 109
+            }
+          },
+          "symbolicSaveCasePassed": true,
+          "capturePngCount": 40,
+          "crashAndRestartDumpsCount": 6,
+          "crashExitCode": -531475201,
+          "crashDumpSha256": "6B6929916A0956F45B273DB3E2B2BA83591CAE878FFAAAF7904F54F204F271AA",
+          "failureReportRoutingPassed": true
+        }
+      ]
+    },
+    {
+      "runId": "44930335298",
+      "workflowName": "Manual extended qualification",
+      "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/44930335298",
+      "conclusion": "success",
+      "profiles": [
+        {
+          "platform": "ARM64",
+          "configuration": "ASan Debug",
+          "hostArchitecture": "Arm64",
+          "osVersion": "Microsoft Windows NT 10.0.26200.0",
+          "sourceIdentity": "4da6faff6f99dbe6733230ec71aeefc8af4b1f245ab07e772b8cb648c187f3b6",
+          "binarySha256": "78BC8A4087681064C38D5BFE833CA86F42316851F390849E061D74C1DF280187",
+          "buildReceiptSha256": "20F3EF7855B8B49A103A5BBE82F2469E524B346CB64A184601CA7C5249FDA823",
+          "zeroWarningsAndErrors": true,
+          "passed": true,
+          "catalogCases": {
+            "registered": 178,
+            "executed": 178,
+            "passed": 178,
+            "failed": 0,
+            "unexpectedSkipped": 0,
+            "scopes": {
+              "Storage": 32,
+              "Settings": 15,
+              "Recovery": 22,
+              "Editor": 109
+            }
+          },
+          "symbolicSaveCasePassed": true,
+          "capturePngCount": 40,
+          "crashAndRestartDumpsCount": 5,
+          "crashExitCode": -531475201,
+          "crashDumpSha256": "B137849AF6AEF02E105ED9B73D566B5D8601C11930D786DB25C40BF9CBDFA3C3",
+          "failureReportRoutingPassed": true,
+          "addressSanitizerProbe": {
+            "exitCode": 1,
+            "heapUseAfterFreeDetected": true
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,233 @@
+{
+  "schemaVersion": 1,
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-hardware-and-warp-resource-probe",
+  "sourceCommit": "ea111980a9aa3f9db0a8b49880b751c437e853fa",
+  "sourceIdentity": "50d518db078f2717dc6a7df2770e61772b2294bd924988dfd72ee2cfa2578e56",
+  "dependency": {
+    "repository": "RedSalamanders/DxUi",
+    "commit": "0c371a6197eb8c6b876b4b2843d75078bc21035c",
+    "apiRevision": 5
+  },
+  "platform": "x64",
+  "configuration": "Release",
+  "binarySha256": "D27923E4F2406B654A26944808002DDC7DBB092968DCC0A9DEE2DAAAA14BAD09",
+  "documentFixture": "docs/examples/s5-performance.md",
+  "cycles": 16,
+  "probes": [
+    {
+      "name": "hw-compose",
+      "view": "Compose",
+      "renderer": "Hardware",
+      "adapter": "NVIDIA GeForce RTX 5080",
+      "vendorId": 4318,
+      "deviceId": 11266,
+      "driverVersion": 9007199255791282,
+      "dpi": 144,
+      "widthPx": 2160,
+      "heightPx": 1350,
+      "completed": true,
+      "firstCompletedPreparation": {
+        "completedWallUs": 218281.3,
+        "processCpu100ns": 2187500,
+        "ownerCpuCycles": 892578928,
+        "rootChildFlushes": 7
+      },
+      "phases": {
+        "cleanAfterDirty": {
+          "renders": 64,
+          "privateBytes": 129609728,
+          "workingSetBytes": 106143744,
+          "dxgiLocalUsageBytes": 46780416
+        },
+        "cleanHiddenIdle": {
+          "renders": 64,
+          "unrequestedRenders": 0,
+          "idleWallUs": 516923.8,
+          "idleProcessCpu100ns": 0,
+          "idleOwnerCpuCycles": 1970028,
+          "privateBytes": 129609728,
+          "workingSetBytes": 106143744
+        },
+        "hiddenNotificationIdle": {
+          "renders": 64,
+          "unrequestedRenders": 0,
+          "idleWallUs": 513074.3,
+          "idleProcessCpu100ns": 0,
+          "idleOwnerCpuCycles": 2015949,
+          "privateBytes": 127930368,
+          "workingSetBytes": 105005056
+        },
+        "resumedForcedFrame": {
+          "renders": 65,
+          "privateBytes": 153726976,
+          "workingSetBytes": 117682176,
+          "dxgiLocalUsageBytes": 58994688
+        },
+        "resizedRootFlushes": 7,
+        "deviceLossRecovery": {
+          "cycles": 3,
+          "generations": [4, 6, 8],
+          "exactPixelsPreserved": true
+        },
+        "closed": {
+          "nativeHosts": 0,
+          "privateBytes": 97546240,
+          "workingSetBytes": 98557952,
+          "handles": 297,
+          "threads": 12
+        }
+      },
+      "ownedHeapDiagnostics": {
+        "complete": true,
+        "busyPayloadBytes": 3834510,
+        "freePayloadBytes": 15542336,
+        "regionCommittedBytes": 18317312
+      }
+    },
+    {
+      "name": "hw-split",
+      "view": "Split",
+      "renderer": "Hardware",
+      "adapter": "NVIDIA GeForce RTX 5080",
+      "vendorId": 4318,
+      "deviceId": 11266,
+      "driverVersion": 9007199255791282,
+      "dpi": 144,
+      "widthPx": 2160,
+      "heightPx": 1350,
+      "completed": true,
+      "firstCompletedPreparation": {
+        "completedWallUs": 219506.4,
+        "processCpu100ns": 2187500,
+        "ownerCpuCycles": 901133742,
+        "rootChildFlushes": 6
+      },
+      "phases": {
+        "cleanAfterDirty": {
+          "renders": 64,
+          "privateBytes": 133414912,
+          "workingSetBytes": 107331584,
+          "dxgiLocalUsageBytes": 46911488
+        },
+        "cleanHiddenIdle": {
+          "renders": 64,
+          "unrequestedRenders": 0,
+          "idleWallUs": 487486.9,
+          "idleProcessCpu100ns": 0,
+          "idleOwnerCpuCycles": 1617228,
+          "privateBytes": 133414912,
+          "workingSetBytes": 107331584
+        },
+        "hiddenNotificationIdle": {
+          "renders": 64,
+          "unrequestedRenders": 0,
+          "idleWallUs": 514958.1,
+          "idleProcessCpu100ns": 0,
+          "idleOwnerCpuCycles": 1888909,
+          "privateBytes": 131747840,
+          "workingSetBytes": 105664512
+        },
+        "resumedForcedFrame": {
+          "renders": 65,
+          "privateBytes": 158404608,
+          "workingSetBytes": 118222848,
+          "dxgiLocalUsageBytes": 59125760
+        },
+        "resizedRootFlushes": 6,
+        "deviceLossRecovery": {
+          "cycles": 3,
+          "generations": [4, 6, 8],
+          "exactPixelsPreserved": true
+        },
+        "closed": {
+          "nativeHosts": 0,
+          "privateBytes": 102416384,
+          "workingSetBytes": 83836928,
+          "handles": 302,
+          "threads": 12
+        }
+      },
+      "ownedHeapDiagnostics": {
+        "complete": true,
+        "busyPayloadBytes": 3831576,
+        "freePayloadBytes": 15419824,
+        "regionCommittedBytes": 18227200
+      }
+    },
+    {
+      "name": "warp-compose",
+      "view": "Compose",
+      "renderer": "WARP",
+      "adapter": "Microsoft Basic Render Driver",
+      "vendorId": 5140,
+      "deviceId": 140,
+      "driverVersion": 2814751477605978,
+      "dpi": 144,
+      "widthPx": 2160,
+      "heightPx": 1350,
+      "completed": true,
+      "firstCompletedPreparation": {
+        "completedWallUs": 115208.2,
+        "processCpu100ns": 2812500,
+        "ownerCpuCycles": 475469911,
+        "rootChildFlushes": 7
+      },
+      "phases": {
+        "cleanAfterDirty": {
+          "renders": 64,
+          "privateBytes": 58593280,
+          "workingSetBytes": 95854592,
+          "dxgiLocalUsageBytes": 0
+        },
+        "cleanHiddenIdle": {
+          "renders": 64,
+          "unrequestedRenders": 0,
+          "idleWallUs": 490758.4,
+          "idleProcessCpu100ns": 0,
+          "idleOwnerCpuCycles": 1909938,
+          "privateBytes": 58593280,
+          "workingSetBytes": 95854592
+        },
+        "hiddenNotificationIdle": {
+          "renders": 64,
+          "unrequestedRenders": 0,
+          "idleWallUs": 498808.1,
+          "idleProcessCpu100ns": 0,
+          "idleOwnerCpuCycles": 1904789,
+          "privateBytes": 56446976,
+          "workingSetBytes": 94814208
+        },
+        "resumedForcedFrame": {
+          "renders": 65,
+          "privateBytes": 72507392,
+          "workingSetBytes": 107573248,
+          "dxgiLocalUsageBytes": 0
+        },
+        "resizedRootFlushes": 7,
+        "deviceLossRecovery": {
+          "cycles": 3,
+          "generations": [4, 6, 8],
+          "exactPixelsPreserved": true
+        },
+        "closed": {
+          "nativeHosts": 0,
+          "privateBytes": 45150208,
+          "workingSetBytes": 66289664,
+          "handles": 282,
+          "threads": 42
+        }
+      },
+      "ownedHeapDiagnostics": {
+        "complete": true,
+        "busyPayloadBytes": 4460151,
+        "freePayloadBytes": 28303248,
+        "regionCommittedBytes": 31801344
+      }
+    }
+  ],
+  "limits": [
+    "Simulated device loss via DebugSimulateDeviceLoss(), resize, and WM_SHOWWINDOW hidden quiescence run in a hidden non-activating host",
+    "Physical DWM occlusion, live monitor DPI transitions, and quiet-host OS presentation stay separately open under Gate 6"
+  ]
+}

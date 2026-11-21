@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-observed-aa-control-and-attribution",
+  "sourceCommit": "ea111980a9aa3f9db0a8b49880b751c437e853fa",
+  "sourceIdentity": "50d518db078f2717dc6a7df2770e61772b2294bd924988dfd72ee2cfa2578e56",
+  "binarySha256": "D27923E4F2406B654A26944808002DDC7DBB092968DCC0A9DEE2DAAAA14BAD09",
+  "blocksPerView": 6,
+  "cyclesPerProcess": 16,
+  "controlDiagnostics": true,
+  "studies": [
+    {
+      "study": "aa-hw",
+      "renderer": "Hardware",
+      "observer": {
+        "samples": 95,
+        "coverageComplete": true,
+        "maximumGapSeconds": 1.0441453,
+        "maximumSystemBusyPercent": 18.599148130619973,
+        "meanSystemBusyPercent": 8.388918814422901,
+        "quietCpuWindowVerified": false
+      },
+      "primaryFindingCountRegressed": 0,
+      "primaryFindingCountImproved": 0,
+      "views": [
+        {
+          "view": "Compose",
+          "processes": 24,
+          "commandUsMedian": 122.0,
+          "prepSubmissionUsMedian": 2937.15,
+          "gpuWaitUsMedian": 5240.55,
+          "completedEditUsMedian": 8322.95,
+          "cleanCompletedUsMedian": 8322.55,
+          "finalPrivateBytesMedian": 81307648,
+          "finalWorkingSetBytesMedian": 67698688,
+          "topCommandPhasesWallUs": {
+            "caption": 39.3,
+            "identity": 20.7,
+            "selection": 19.1,
+            "analysis": 12.5,
+            "enter": 9.15,
+            "chrome": 7.0,
+            "recovery": 6.1,
+            "exit": 1.4,
+            "mirror": 0.5
+          },
+          "topSelectionComponentsWallUs": {
+            "block-labels": 3.4,
+            "position-status": 3.2,
+            "tool-caption-publication": 1.2,
+            "selection-snapshot": 1.1
+          }
+        },
+        {
+          "view": "Split",
+          "processes": 24,
+          "commandUsMedian": 113.0,
+          "prepSubmissionUsMedian": 4056.6,
+          "gpuWaitUsMedian": 4133.1,
+          "completedEditUsMedian": 8326.75,
+          "cleanCompletedUsMedian": 8319.85,
+          "finalPrivateBytesMedian": 84654080,
+          "finalWorkingSetBytesMedian": 68753408,
+          "topCommandPhasesWallUs": {
+            "caption": 37.8,
+            "identity": 19.1,
+            "selection": 17.8,
+            "analysis": 11.9,
+            "enter": 8.7,
+            "chrome": 7.0,
+            "recovery": 5.5,
+            "mirror": 1.6,
+            "exit": 1.4
+          },
+          "topSelectionComponentsWallUs": {
+            "position-status": 3.3,
+            "selection-snapshot": 1.1,
+            "tool-caption-publication": 1.1,
+            "mirror": 1.1,
+            "block-labels": 0.7
+          }
+        }
+      ]
+    },
+    {
+      "study": "aa-warp",
+      "renderer": "WARP",
+      "observer": {
+        "samples": 86,
+        "coverageComplete": true,
+        "maximumGapSeconds": 1.0295963,
+        "maximumSystemBusyPercent": 17.548076923076923,
+        "meanSystemBusyPercent": 9.475801661995808,
+        "quietCpuWindowVerified": false
+      },
+      "primaryFindingCountRegressed": 0,
+      "primaryFindingCountImproved": 0,
+      "views": [
+        {
+          "view": "Compose",
+          "processes": 24,
+          "commandUsMedian": 104.5,
+          "prepSubmissionUsMedian": 3229.5,
+          "gpuWaitUsMedian": 4934.85,
+          "completedEditUsMedian": 8321.8,
+          "cleanCompletedUsMedian": 8317.5,
+          "finalPrivateBytesMedian": 36462592,
+          "finalWorkingSetBytesMedian": 69658624
+        },
+        {
+          "view": "Split",
+          "processes": 24,
+          "commandUsMedian": 109.65,
+          "prepSubmissionUsMedian": 4562.1,
+          "gpuWaitUsMedian": 3661.4,
+          "completedEditUsMedian": 8323.5,
+          "cleanCompletedUsMedian": 8327.8,
+          "finalPrivateBytesMedian": 37052416,
+          "finalWorkingSetBytesMedian": 70803456
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Same-binary A/A control on a shared interactive workstation; quietCpuWindowVerified is false",
+    "Paired quiet-host A/B comparisons remain open when comparing candidate changes against a quiet baseline"
+  ]
+}

@@ -142,7 +142,13 @@ malformed envelope, second close and size-limit tests. See the retained
   including all four provider cases and actual symbolic-link saves, followed by both production packages.
 - [ ] Qualify the replacement fallback, read sharing and non-name-surrogate cloud tags on real
   OneDrive/cloud, SMB/NAS and WSL locations before support claims. Directed local errors establish the
-  backend contract; hosted native acceptance does not supply real-location acceptance.
+  backend contract; hosted native acceptance does not supply real-location acceptance. Live SMB execution
+  (`path.smb.primary` on `ea111980`, [RealLocationSmb_2026-11-21](../../../Measurements/RealLocationSmb_2026-11-21/README.md))
+  passed `--capture`, `Settings` (`15/15`), `Recovery` (`22/22`), and per-run cleanup, while exposing four
+  Win32/SMB2 root causes in `Storage` (`16/32` failed: post-`MoveFileExW` `ftLastWriteTime` delta,
+  `ReplaceFileW` `ERROR_PATH_NOT_FOUND` `3`, server `nNumberOfLinks == 1` / `FileIdInfo` `87` / `Win32 5`,
+  and intentional `DRIVE_REMOTE` asset guard); Wave 2 `Common/Storage.cpp` fixes plus owner-declared
+  OneDrive and WSL `selftest` roots remain open.
 - [x] Preserve symlink/hard-link identities under the approved distinct write policies (Q12).
   Implementation `020cb0b9` preserves hardlink aliases with independent durable recovery and separately follows
   symbolic targets. [Local evidence](../../../Measurements/LinkedSaveAndCosmeticSettlement_2026-11-06/README.md)
@@ -362,13 +368,22 @@ The two-block comparison leaves the full paired performance gate open.
 
 - [ ] Attribute current command/working-set costs using frozen, source-matched inputs. Preserve the accepted
   memory-cost advice disposition and the unresolved command/control, quiet-host and shared-policy gates.
-- [ ] Review the private Debug allocation-attribution design before app collection; retain exact live IDs,
+  Observed same-binary A/A control and phase/selection medians (`Compose commandUs = 122.0 us`, `Split 113.0 us`;
+  ~43 MiB Hardware WDDM/GPU vs WARP `privateBytes` delta; `~3.83 MiB` CRT/default heap) are recorded on `ea111980` in
+  [PerformanceAndGpuQualification_2026-11-21](../../../Measurements/PerformanceAndGpuQualification_2026-11-21/README.md);
+  quiet-host verification remains open.
+- [x] Review the private Debug allocation-attribution design before app collection; retain exact live IDs,
   public CRT quiet-point barriers, EXE/PDB caller identities, capacity/overflow refusals and all original failures.
+  ([debug-allocation-review.md](../../../Measurements/PerformanceAndGpuQualification_2026-11-21/debug-allocation-review.md)).
 - [ ] Implement only supported, feature-preserving improvements; predeclare fresh matched studies and
-  independently replay them using qualified controls. Never rerun an unchanged cohort seeking a favorable result.
+  independently replay them using qualified controls. Never rerun an unchanged cohort seeking a favorable result
+  (same-binary 6-block A/A control studies `aa-hw` and `aa-warp` pass `12/12` `no-resolved-change` on shared host;
+  quiet-host A/B candidate studies remain open).
 - [ ] Qualify long-lived GPU/kernel resources, actual device removal and physical visibility/occlusion separately
   from synthetic WARP/device-loss coverage. Measured simplification, including Q10 label-cache changes,
-  requires the agreed non-regression evidence.
+  requires the agreed non-regression evidence (hardware `NVIDIA GeForce RTX 5080` & `WARP` `--resource-probe`
+  zero idle renders/CPU ticks and 3x identical-pixel device-loss recovery archived; physical DWM occlusion and
+  live monitor DPI transitions remain open).
 
 This owns R10, C1/C2, S5, A7/A8 and the surviving original-UI performance findings. The dated SDK086/SDK702,
 source-ink, index, heap-oracle and timing investigations are historical evidence in the
@@ -535,23 +550,30 @@ is included here, without rebuilding or packaging the separate viewer.
   inspection of the current profile alone, and no tool or separately owned branch was removed.
 - [ ] Migrate Q15's historical replay callers/profile inputs before legacy validator retirement, and complete
   shared-module migration through an exact shared owner/pin and verified consumer coverage. Keep the
-  paired-study kit supported and follow tooling governance for each change.
+  paired-study kit supported and follow tooling governance for each change. (Cross-repo `.github`/consumer
+  migration explicitly deferred beyond Wave 1; see [GovernanceDisposition_2026-11-21](../../../Measurements/GovernanceDisposition_2026-11-21/README.md)).
 - [x] Diagnose the hosted-MSVC fixture launch refusal at observed 272-character paths in the isolated
   checkout. `.github/actions/setup-msvc/Setup.ps1` now enforces the `< 260` UTF-16-unit guard (`$installer.Length -ge 260`)
   and bounded download (`180 s`) / installer (`1800 s`) timeouts, covered by `Tests/Tooling.Tests.MsvcSetup.ps1`;
   coordinating the analogous SDK tooling boundary with D-T1 remains tracked separately.
-- [ ] Reconcile dispositions of remaining production/delivery findings and rejected worktree/cache cleanups;
+- [x] Reconcile dispositions of remaining production/delivery findings and rejected worktree/cache cleanups;
   never treat earlier removal refusals as permission for a new cleanup.
-- [ ] Apply normal Changes fragments and a separate post-merge fold when authorized. No cleanup changes the
+  ([GovernanceDisposition_2026-11-21](../../../Measurements/GovernanceDisposition_2026-11-21/README.md) preserves
+  all rejected cleanups from [retention-20261028.md](../../../Measurements/RedesignCompletion_2026-10-28/retention-20261028.md)
+  and reconciles `PR-01`..`PR-46` / `S1`..`S16`).
+- [x] Apply normal Changes fragments and a separate post-merge fold when authorized. No cleanup changes the
   shared fold cadence, manually edits CHANGELOG, or consolidates existing fragments outside its governing workflow.
+  (Gate 1/Phase 5 fragments folded cleanly on `main` via PR #147 `ea111980` using `Tools/Submit-ChangelogFold.ps1`,
+  and ongoing feature PRs continue adding one dated fragment under `Changes/`).
 
 <a id="t-cv1"></a>
 ### T-CV1 — shared code conventions (RedHome CV-6-08)
 
 Step CV-6-08 of the cross-repository
 [convergence plan](https://github.com/RedSalamanders/RedHome/blob/main/Specs/Plans/WIP/Convergence_2026-11-17.md)
-gives each code convention one target in every repository (register section H). These rows move RedTilde; hosted
-CI qualification and ARM64 runtime remain tracked under Gate 2 and Gate 7.
+gives each code convention one target in every repository (register section H). Local and hosted `de873ee`
+Release/ARM64 qualification completed (Gate 1 & Gate 2); remaining `H-01`/`H-02`/`H-05`/`H-14` wait for API 6
+(RedHome D20) and Gate 7 release cut.
 
 - [x] **CV-6-05 Shared `.clang-format` reformat.** Adopted RedHome's 155-line [.clang-format](../../../.clang-format) style and `Install-CiFormatter` inside [format.ps1](../../../format.ps1) with zero behavioral changes.
 - [x] **H-27 `_camelCase` member naming and `.clang-tidy`.** Added root [.clang-tidy](../../../.clang-tidy) (`bugprone-reserved-identifier`, `readability-identifier-naming`), converted private/protected non-static fields across `Common/`, `RedTilde/`, and `Tests/` to `_camelCase`, and wired compiler-free [Tests/Tooling.Tests.NamingStyle.ps1](../../../Tests/Tooling.Tests.NamingStyle.ps1) into [validate.ps1](../../../validate.ps1).
@@ -583,19 +605,23 @@ RT-10/11's old drops did not cancel them. Current unified CI supersedes obsolete
 
 Execution slices for Gates 1–7 below are sequenced in [Version 1.0 release readiness](V1ReleaseReadiness_2026-11-21.md).
 
-### Completed locally
+### Completed
 - **Explicit state machines (`RT-SM-01`..`RT-SM-09`)**: All 13 implicit state machines formalized across `Application`, `AsyncFiles`, `BitmapPasteWriter`, `RecoveryService`, `FilesService`, `SettingsWriter`, `RichImageLoader`, `PrintPreview`, `EditDiagnostics`, overlays, `FindController`, `DocumentSessionMetadata`/`DerivedDocumentCaches`, and `Build/` tooling ([archived closeout](../Done/ExplicitStateMachines_2026-11-10.md)).
 - **Product polish & safety**: `Command::CloseDocument` (`Ctrl+W`), `WM_DROPFILES` single-file drag-and-drop, stable `Open documents` ordering and row selection, `Q20` localized capacity-limit reporting, session-local `Command::Focus` without settings disk rewrites, `--version`/`--help` CLI exiting cleanly without data/crash directories, `PrintPreview` icon (`IDI_REDTILDE`) and `_pendingAction` cancellation, and Settings **About & Shortcuts**.
-- **Gate 1 — Settings & hygiene convergence (`CV-6-05`, `H-10`, `H-15`, `H-26`, `H-27`)**: Adopted RedHome's 155-line `.clang-format`, enforced `_camelCase` member naming via `.clang-tidy` + `Tests/Tooling.Tests.NamingStyle.ps1`, added `.build/`-isolated `vcpkg.json` / `vcpkg-tool.json` (`aeb162b7`) / `vcpkg-install.ps1` (`yyjson`), migrated settings to UTF-8 JSON5 (`RedTilde.settings.json` / `RedTilde-debug.settings.json`, `SettingsStore.schema.json`, `Specs/Core/Core_Settings.md`, lossless one-time migration, `.invalid-*` backup, `SettingsWatcher` coalesced non-writing live reload), and implemented opt-in fail-closed real-location harness (`Tools/Test-RealLocations.ps1` + `Tests/Tooling.Tests.RealLocations.ps1`). Verified locally across all six zero-warning builds (`95c5bd10`) and full x64 `Debug` (`20261121T150532426Z-67508-1e25903bd93340169cdc830f2f2282b0`), `Release` (`20261121T150913464Z-74740-e9eca9c010d148159d4283941060c9dc`), and `ASan Debug` (`20261121T151254349Z-67996-a999f12ffea54ab9b67b49024bb697dd`) test runs (`178` catalog cases).
+- **Gate 1 — Settings & hygiene convergence (`CV-6-05`, `H-10`, `H-15`, `H-26`, `H-27`)**: Adopted RedHome's 155-line `.clang-format`, enforced `_camelCase` member naming via `.clang-tidy` + `Tests/Tooling.Tests.NamingStyle.ps1`, added `.build/`-isolated `vcpkg.json` / `vcpkg-tool.json` (`aeb162b7`) / `vcpkg-install.ps1` (`yyjson`), migrated settings to UTF-8 JSON5 (`RedTilde.settings.json` / `RedTilde-debug.settings.json`, `SettingsStore.schema.json`, `Specs/Core/Core_Settings.md`, lossless one-time migration, `.invalid-*` backup, `SettingsWatcher` coalesced non-writing live reload), and implemented opt-in fail-closed real-location harness (`Tools/Test-RealLocations.ps1` + `Tests/Tooling.Tests.RealLocations.ps1`). Qualified locally on all six builds and full x64 matrices (`95c5bd10`) plus hosted `Qualify main Release` `#44928555514` (`de873ee`) and post-merge changelog fold PR #147 (`ea111980`).
+- **Gate 2 — Physical ARM64 runtime (`T-Q2` ARM64 parity)**: Hosted native `windows-11-vs2026-arm` (`Arm64`) qualification passed on `de873ee` across `Release` (`#44928555514` + `RedTilde-0.1.519-ARM64-20261121-093426-031.zip` `16/16` exit-`2` refusals), `Debug` (`#44930332182`), and `ASan Debug` (`#44930335298` with `heapUseAfterFreeDetected: true`), each passing `178/178` catalog cases (incl. `Storage.SymbolicSavePreservesEntryAndResolvesFinalTarget`), `40` captures, `FailureReportRouting`, and zero warnings/errors ([Gate1AndArm64Qualification_2026-11-21](../../../Measurements/Gate1AndArm64Qualification_2026-11-21/README.md)).
+- **Partial Gate 5 / Gate 6 & `T-G1` administrative qualification (`ea111980`)**:
+  - Live SMB run on `path.smb.primary` passed `--capture`, `Settings` (`15/15`), `Recovery` (`22/22`), and per-run cleanup while exposing four Win32/SMB2 root causes in `Storage` (`16/32`) for Wave 2 fixes ([RealLocationSmb_2026-11-21](../../../Measurements/RealLocationSmb_2026-11-21/README.md)).
+  - Hardware GPU (`NVIDIA GeForce RTX 5080`) & `WARP` `--resource-probe`, 6-block observed A/A control (`12/12` `no-resolved-change`), phase/selection attribution medians, and Debug allocation-attribution design review archived under [PerformanceAndGpuQualification_2026-11-21](../../../Measurements/PerformanceAndGpuQualification_2026-11-21/README.md).
+  - Historical `PR-01`..`PR-46` / `S1`..`S16` & rejected-cleanup dispositions reconciled under [GovernanceDisposition_2026-11-21](../../../Measurements/GovernanceDisposition_2026-11-21/README.md).
 - **Earlier convergence & packaging/tooling**: `H-24` (`Core_CrashHandling.md`), `H-22` (`Tests/Application.Tests.FailureReports.h`, 16 production refusals), `H-23` (`RedTilde/KeyboardState.h`), `H-06`/`H-08` (`Common/Resources.h` & `Tests/Tooling.Tests.ResourceStrings.ps1`), `Common/Version.h`, `Installer/Install-RedTilde.ps1`, `Setup.ps1` 260-char UTF-16 guard & bounded timeouts, updated `docs/` with `16` deterministic hidden captures, and reconciled `Specs/`.
 
 ### Remaining external, hardware, manual, and release-cut gates
-1. **Physical ARM64 runtime (Gate 2)**: Cross-compilation on x64 verifies compilation only; runtime qualification requires native ARM64 hardware.
-2. **Physical printer & virtual driver (Gate 3)**: Physical printer sheet verification, a secondary virtual destination (e.g., XPS), and live Print/Save dialog focus restoration.
-3. **Physical input & interactive focus (Gate 4)**: Physical IME, touch, assistive technology (screen reader), and owner-authorized foreground focus/clipboard (`test-interactive.ps1`).
-4. **Real storage & network locations (Gate 5)**: Live execution against OneDrive/cloud provider, `\\rubygloom` SMB/NAS (when online), and WSL `selftest` roots using `Tools/Test-RealLocations.ps1` and the backend safety matrix.
-5. **Paired performance & hardware graphics (Gate 6)**: Quiet-host paired Release performance study and real hardware device-removal / visibility / occlusion qualification.
-6. **Release cut & distribution (Gate 7)**: Hosted CI qualification for the Gate 1 + Phase 5 commits, upstream `DxUi` performance/product gates, setting v1.0 in `Common/Version.h` and `capabilities.json`, code signing, and publication handoff.
+1. **Physical printer & virtual driver (Gate 3)**: Physical printer sheet verification (`Brother HL-L2445DW Printer`), secondary virtual destination (e.g., `OneNote (Desktop)` or XPS), and live Print/Save dialog focus restoration.
+2. **Physical input & interactive focus (Gate 4)**: Physical IME, touch, assistive technology (screen reader), and owner-authorized foreground focus/clipboard (`test-interactive.ps1`).
+3. **Real storage & network locations (Gate 5 remaining)**: Wave 2 `Common/Storage.cpp` SMB fixes and re-qualification on `path.smb.primary`, plus live OneDrive/cloud and WSL `selftest` roots once authorized by the owner.
+4. **Paired performance & hardware graphics (Gate 6 remaining)**: Quiet-host paired Release A/B candidate studies and physical DWM occlusion / live monitor DPI switch verification.
+5. **Release cut & distribution (Gate 7)**: Upstream `DxUi` pin/sign-off (`H-01`/`H-02`/`H-05`/`H-14`), setting v1.0.0 in `Common/Version.h` and `capabilities.json`, code signing, `Tools/Release-Changelog.ps1`, installer clean-machine verification, and `Q15` / `Q17` disposition holds.
 
 <a id="t-deferred"></a>
 ## Explicitly deferred scope
