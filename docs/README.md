@@ -1,208 +1,223 @@
-# RedTilde guide
+# RedTilde User Guide
 
-Run `redtilde --help` for command-line usage. Use `redtilde --document <path>` to open a Markdown file.
+**RedTilde** is a native Windows Markdown editor built with Win32, Direct2D, DirectWrite, and DxUi. It keeps a single authoritative UTF-8 Markdown source, selection, and undo/redo history across **Compose**, **Split**, and **Source** views—with native LaTeX mathematics, bounded Mermaid diagrams, local crash recovery, and Windows printing. All editing stays local and requires no account.
 
-Source-view Enter and Shift+Enter keep your document's LF, CRLF or CR line endings.
-Each Enter is one Undo step. Documents are limited to 65,536 UTF-16 units; text
-input that would exceed the limit leaves your last accepted text intact.
-Invalid file names containing quotes or line breaks are refused when preparing a paste.
+> [!NOTE]
+> RedTilde is currently an **experimental 0.1** preview (`capabilities.json`). Documents are bounded to `65,536` UTF-16 units and `128` undo steps; full LaTeX/Mermaid parity and several platform qualifications remain tracked in [the capability status](../capabilities.json).
 
-**Pasting pictures:** paste a bitmap into Compose or Split to create a local PNG and replace the selection
-with its image reference in one Undo step. When the clipboard also contains text, text wins by default;
-Settings → Privacy → Prefer images when pasting switches that preference. Pasting never waits for image
-encoding on the UI thread. Editing or changing documents while a paste is pending cancels its insertion.
-Pictures live in RedTilde's local data `Assets` folder and survive Undo/Redo and recovery. When sharing or
-moving a document, copy its pictures and update the Markdown references; export does not bundle them automatically.
-The [bitmap paste evidence](../Measurements/BitmapPaste_2026-11-07/README.md) includes actual Light/Dark
-preference captures, cancellation and Undo checks, and the remaining platform boundaries.
+## Contents
 
-Invalid or oversized recovery copies are kept intact in quarantine instead of interrupting recovery. Valid
-copies remain available. An existing quarantine file is preserved; the original input stays intact if it
-cannot be moved beside that earlier file. Recovery never silently truncates your writing.
-Startup checks at most 512 entries in the recovery folder, including unrelated files, and offers at most 64
-valid inactive sessions. Files beyond that limit stay intact.
+- [Editing Views](#editing-views)
+- [Contextual Formatting & In-Place Semantic Editing](#contextual-formatting--in-place-semantic-editing)
+- [Mathematics & Supported Mermaid Diagrams](#mathematics--supported-mermaid-diagrams)
+- [Images, Clipboard Paste & Network Privacy](#images-clipboard-paste--network-privacy)
+- [Files Pane, Workspace & Open Documents](#files-pane-workspace--open-documents)
+- [Find & Replace](#find--replace)
+- [Printing & Print Preview](#printing--print-preview)
+- [Themes, Typography, Zoom & Accessibility](#themes-typography-zoom--accessibility)
+- [Automatic Crash Recovery & Safe File Saving](#automatic-crash-recovery--safe-file-saving)
+- [Command-Line Options & Portable Installation](#command-line-options--portable-installation)
+- [Keyboard Shortcuts](#keyboard-shortcuts)
+- [Related Documentation](#related-documentation)
 
-Saving through a symbolic link keeps the link and updates its target. A file with several hardlinks keeps those
-aliases and their shared identity: RedTilde first stores an independent complete recovery copy, then writes the
-shared file in place. If that write fails or is interrupted, it can leave partial file bytes; restart offers the
-complete admitted source as a recovery copy. Unavailable recovery storage prevents that write from starting.
+---
 
-If a storage provider explicitly does not support replacing an existing file, document Save uses that same
-recovery-protected in-place method. It preserves the existing file identity and rechecks conflicts first.
-An interrupted or failed write can leave partial file bytes; the complete admitted writing remains available
-for recovery. Other save failures keep their ordinary error. Actual cloud, network-share and WSL support still
-requires separate location qualification.
+## Editing Views
 
-The [linked-save evidence](../Measurements/LinkedSaveAndCosmeticSettlement_2026-11-06/README.md) records the
-actual interrupted-write recovery checks and the remaining symbolic-link runtime verification.
+Switch between **Compose**, **Source**, and **Split** from the document bar or with `Ctrl+1`, `Ctrl+2`, and `Ctrl+3`. Every view shares the exact same Markdown source, selection, and undo/redo history—switching views never re-serializes your document.
 
-Every modified workspace document has its own recovery copy. Healthy editing checkpoints after a short pause,
-with a five-second maximum admission delay while typing continuously. After a crash and relaunch, preview the
-last durable copies and choose **Restore a copy** or **Restore all copies**. Each restored document remains dirty
-and requires Save As; the original files stay untouched. The live Undo/Redo history is retained while switching
-files, but is not saved in recovery copies.
+- **Compose (`Ctrl+1`):** Distraction-free rich Markdown rendering with subtle separators, shaded blockquotes, compact tables, task checkboxes, syntax-colored fenced code (`C/C++`, `JSON`, `PowerShell`, `diff`), inline and display math, and Mermaid diagrams.
+- **Split (`Ctrl+3`):** Editable **Compose** on the left paired with a **read-only Source mirror** on the right that highlights syntax and follows your selection.
+- **Source (`Ctrl+2`):** Monospace exact-source editor with syntax coloring, preserved `LF`/`CRLF`/`CR`/mixed line endings, and optional UTF-8 BOM preservation.
+- **Focus Mode (`F11`):** Collapses toolbars and side panes into a minimal top strip with `Exit focus · Esc`, dims inactive blocks (configurable in Settings), and displays a bottom word-count pill.
 
-The [root README](../README.md) covers launching and shortcuts. Start with Compose, select text for formatting,
-and use Source to inspect exact Markdown. Switch views freely; the document, source selection and undo history
-are shared. Split is an editable Compose pane next to a read-only source mirror.
-Source stays editable while syntax colours and code decorations finish appearing. Those updates preserve
-your selection and never cancel a selection drag or withhold an otherwise ready document frame.
+![Compose view in Light theme](screenshots/compose-light.png)
 
-Quotes and callouts leave a small inner margin on both sides. Long documents show a scrollbar matching the
-current theme in Compose, Source and each Split pane; click its track or drag the thumb to move through the document.
-See the [actual native captures and matched comparisons](../Measurements/QuoteMarginsAndScrollbars_2026-11-04/README.md).
+![Compose view in Dark theme](screenshots/compose-dark.png)
 
-Diagram arrow labels blend into the graph background when contrast is sufficient. Otherwise a subtle light
-or dark backing improves readability. Notes and filled groups keep their own surface; Mermaid source and
-undo history stay unchanged.
+![Compose view in Paper theme](screenshots/compose-paper.png)
 
-**Printing.** Choose **File → Print…** or press **Ctrl+P** to preview the formatted pages, including unsaved
-edits from Compose, Source or Split. Choose an installed printer or **Microsoft Print to PDF** in the
-**Printer** dropdown beside the preview. The preview updates for the selected printer's paper.
-Use the arrows, mouse wheel, or Page Up and Page Down to move between sheets, or type a **Page** number and
-press Enter. **Fit width** scrolls within a sheet and moves to the adjacent page when you scroll past its edge.
+![Split view in Light theme](screenshots/split.png)
 
-Leave **Pages to print** blank for the whole document. Enter a page such as `3`, a range such as `4-6`, or a
-list such as `1, 4-6`. **Current page** fills in the number of the sheet you are viewing.
+![Split view in Dark theme](screenshots/split-dark.png)
 
-Set paper size, orientation, print sides, copies or collation when the selected driver offers them.
-Review the updated sheets after changing paper and correct any range that exceeds the new page count.
-Click **Print** to send the reviewed pages to the chosen destination. For PDF or **Print to file**, choose
-a filename in the Windows save dialog. Choose **Close** before sending to return to the document.
-If printing fails, RedTilde identifies the failed step and displays the Windows error.
+![Source view in Light theme](screenshots/source.png)
 
-Links print without automatic underlines. Microsoft Print to PDF saves the label as text without the clickable
-target. Native Mermaid diagrams use the document canvas or the printed sheet as their background.
+![Focus mode](screenshots/focus.png)
 
-**Closing files:** Close hides the window while an already admitted Save finishes. A failed write restores
-the window with an error and keeps your source and recovery copy. Edits made after Save still need a
-Save/Discard/Cancel choice. Close abandons an Open that is still loading; any edits typed meanwhile remain
-protected, and a cancelled Close cannot later apply that abandoned file.
+---
 
-**Local editing:** F2 on a code or diagram object opens its exact source in place. On ordinary text, F2 opens
-the selected range/current line in a source draft while the rest stays rendered. Apply/Ctrl+Enter commits one
-edit, and Esc cancels. Link insertion opens a reviewable source draft rather than replacing selected words
-without a chance to edit the destination.
-New templates and changed drafts follow the first line ending in the document; an empty document uses CRLF.
-Untouched source keeps its original line endings, including mixed files. Recovery previews use the same rule
-as Apply, and Undo restores the complete original source.
+## Contextual Formatting & In-Place Semantic Editing
 
-**Formatting:** the Text style menu offers paragraph/headings; the toolbar offers bold/italic/code, bullets and
-tasks. Insert offers link, image, table, Mermaid, equation, quote and code. The context menu adds strike,
-numbered lists and table row/column commands. Unavailable structural actions retain source and explain context.
-Select text before **Insert → Quote** or **Insert → Code Block** to turn that text into the block. This works
-in Compose, Source and Split, preserves the selected wording and line endings, and takes one Undo to reverse.
-With no selection, the commands insert their usual editable example.
+- **Floating Selection Toolbar:** Selecting text in **Compose** or **Split** displays a contextual toolbar right above the selection (`Text style`, `Bold`, `Italic`, `Code`, `Link`, and the `Alt+F10` keyboard hint). Press `Alt+F10` to move keyboard focus into the toolbar, or `Esc` to dismiss it.
+- **Command Row & Context Menu:** The top toolbar provides Undo/Redo, Text style (`Paragraph`, `Heading 1–3`), Bold (`Ctrl+B`), Italic (`Ctrl+I`), Inline code (`Ctrl+E`), Link (`Ctrl+K`), Bulleted/Task lists, and **Insert** (Link, Image from file, Table, Mermaid flowchart, Equation, Quote, Code block). Right-clicking (or pressing the context-menu key) also exposes Strikethrough, Numbered lists, table row/column actions, **Edit block source (`F2`)**, and **Open link** when on a link.
+- **Wrap Selection in Quote or Code Block:** Selecting prose and choosing **Insert → Quote** or **Insert → Code block** wraps the selected lines directly in Compose, Source, or Split as a single undoable edit while preserving original line endings.
+- **In-Place Semantic Source (`F2`):** Pressing `F2` inside a code block, Mermaid diagram, HTML/metadata block, or inline/display equation opens its exact delimited source **in place** while the rest of the document stays rendered. Press `F2`, `Esc`, or `Ctrl+Enter` to return to the rendered block. For ordinary prose, `F2` opens a local source draft (`Ctrl+Enter` or **Apply source** commits one undoable transaction; `Esc` cancels).
 
-**Find and replace:** Ctrl+F searches the exact Markdown source without changing it. Search ignores letter case
-unless **Match case** is selected. F3 finds the next occurrence and Shift+F3 the previous one, wrapping at the
-ends; both work after closing the Find bar. Replace changes the current occurrence in one undoable edit and
-selects the following match. Replace All is also one undoable edit.
+![Contextual selection toolbar](screenshots/context-selection.png)
 
-**Text size:** Ctrl+plus/equal or Ctrl+minus changes document text size by 5%; the numeric-keypad keys also
-work. Ctrl+mouse wheel changes the same preference, including high-resolution wheels, and Ctrl+0 restores
-100%. Size stays between 75% and 200%, is remembered in Settings, and leaves your writing and Undo history intact.
+![In-place equation source editing alongside the live Equation inspector](screenshots/local-source.png)
 
-**Window:** RedTilde remembers its normal window bounds and maximized state. It fits the window inside an
-attached monitor's work area when reopening, including after changing monitors or display scale. A launcher's
-explicit minimized or other show-state request takes precedence. Minimized bounds are never saved as the normal size.
+---
 
-**Starting again:** launching without a file reopens the last active saved document after checking recovery.
-Pending recovery copies take precedence. A missing document leaves a blank Untitled document and an explanatory
-status. Writing while startup is loading keeps your new text; New cancels that automatic load. Untitled and
-recovered copies become a normal startup file only after Save As. The Files root is remembered separately.
+## Mathematics & Supported Mermaid Diagrams
 
-**Markdown syntax:** tables, task lists, strikethrough and autolinks always work. Settings › Markdown syntax also
-turns on `==highlight==`, `^superscript^`, `~subscript~`, `++inserted++`, wiki links `[[page]]`, definition lists
-(a term line followed by `: definition` lines) and abbreviations (`*[HTML]: Hyper Text Markup Language`). All are on
-by default, each option explains its syntax, and changes apply immediately without editing the document. Text for
-a syntax you turn off stays exactly as typed. RedTilde does not open wiki pages or load `![[file]]` embeds yet.
+### Native LaTeX Mathematics
 
-**Files pane:** choose **File → Open Folder...** (Ctrl+Shift+O) to select a notebook root, or use **Open File...**
-(Ctrl+O); the first file establishes its containing folder when no root exists. The selected root stays in place
-when opening another file, using New, or saving elsewhere. Restart restores the folder and the pane's saved
-visibility. Switching file rows keeps each document's edits, selection and Undo/Redo without a save question.
-Open documents also keeps untitled files and recovered copies reachable, including copies with the same original
-path. Explicit Open File, Open Folder, New and Close ask about every modified document; cancelling a question or
-picker keeps the workspace. The workspace holds up to 64 documents and explains the limit before refusing another
-file. Press Ctrl+Shift+E to show or hide the pane. Filter by name, expand directories, and open a file with a single
-click or Enter. The pane is listing/opening only; it does not manage files. Without a selected root,
-the empty pane explains how to open a folder or file. An unavailable remembered folder reports an error while
-editing remains available; choose Open Folder to replace it. At most 5,000 directory entries are examined to depth 8; the pane reports the actual
-Markdown result count separately from traversal-limit or access errors.
+RedTilde renders mathematics natively in the document and in the read-only **Equation** inspector in the right sidebar without any external TeX installation or network fonts:
 
-**Images:** save the document first when you want relative image paths. Insert an image from file or paste an
-Explorer file path in rich text. RedTilde references that file; it does not copy the asset into a new folder.
-The image must remain available when reopening the Markdown. Supported files decode asynchronously and
-unsupported/missing images retain alt text. Remote images are off by default. Choose **Allow here** in the
-document's image bar to load them for that document, or **Always allow remote images** in Settings. Each open
-document keeps its own permission; a replacement document and restart ask again unless the global setting applies.
-Private/local-network addresses require the separate **Allow images from local networks** choice, off by default.
-That choice also permits an image on the current document's exact network share. Other shares and redirected
-image paths remain blocked. Local image changes refresh automatically within the bounded watch capacity;
-completed image loads and ordinary prose edits keep those watches active. Removing or retargeting an image
-retires its previous file binding, and repeated reloads of one image use one watch slot.
-Changing a remote image also keeps unchanged local-image watches and avoids an extra network reload.
-**File → Reload images** retries images without editing the document. Networks that require a proxy show a
-load failure; image fetching uses a direct connection.
-Use **Block here** to remove a document's remote images or **Reload images** to retry failures without changing
-text or Undo history. The bar explains blocked, oversized or failed image loads. Ordinary link clicks keep editing.
+- **Inline math:** `$...$` (non-space content edges, does not close before a digit) or `\(...\)`.
+- **Display math:** Put `$$` or `\[` / `\]` on lines of their own above and below the formula, or use a closed `math` / `latex` fenced code block. A single-line `$$x$$` remains literal text.
+- **Supported notation:** Fractions (`\frac`), indexed roots (`\sqrt`), simultaneous sub/superscripts, Greek symbols and operators, named functions, upright `\text{...}`, alphabets, accents, scalable paired delimiters, matrices (`&` cells and `\\` rows), `cases`, and `aligned` / `gathered` blocks.
+- **Bounds & Fallback:** Bounded to `16,384` source units, `4,096` AST nodes, `64` nesting levels, `64` rows/columns, and `1,024` matrix cells per equation (`32,768` total math records and `128` combined native objects per document). Unsupported or malformed notation stays exact editable source with an accessibility diagnostic.
 
-**Open a link:** put the caret in a link and choose **Open link** from its context menu, or Ctrl+click a rendered
-link. Review the destination and confirm before RedTilde hands it to your default application. Ordinary clicks
-keep editing. External http, https and mailto links are supported; local files, custom schemes and unresolved
-wiki targets stay inert. External dispatch runs away from the UI thread and never changes your source or Undo history.
+![Native inline and display mathematics](screenshots/math.png)
 
-The HTTP client loads on demand on the image worker when a permitted image first needs it. Its system-library
-imports stay loaded until exit so outstanding callbacks can retire safely. Windows library loading itself cannot
-be interrupted; cancellation and the request deadline are checked before contacting the image server.
+### Bounded Native Mermaid Diagrams
 
-**Equations:** use `$...$` / `\(...\)` inline. For display notation, put `$$` (or `\[` and `\]`) on lines of
-their own above and below the formula; a one-line `$$x$$` stays as typed. Fractions,
-indexed roots, simultaneous scripts, Greek/operators, named functions, text, alphabets, accents, scalable
-delimiters, matrices, cases and aligned/gathered rows render natively in the document. Matrix cells use `&`
-and rows use `\\`. F2 shows the exact equation source, delimiters included, in place; type to edit it and
-press F2, Esc or Ctrl+Enter to see it rendered again. Each edit is undoable, and the inspector renders the TeX as
-you type. Unsupported notation stays literal with diagnostics. Rendering capacity and unsupported notation
-retain distinct diagnostic and accessibility explanations. The optional
-inspector uses the same native engine. This bounded notation is not full LaTeX/package compatibility.
+RedTilde renders **eight** bounded Mermaid diagram families directly in native C++ onto the document canvas (and onto paper in Print Preview):
 
-**Mermaid:** bounded flowchart, state, class, sequence, pie, ER, Gantt and mind-map profiles use native C++
-rendering. The current pin already includes these eight profiles. Supported grouping, members, cardinalities
-and native style subsets follow the exact pinned DxUi guide; advanced control blocks, arbitrary CSS,
-interaction directives and other unsupported constructs retain exact fenced source. F2 edits a diagram in
-place. Try the [family gallery](examples/mermaid-supported-families.md) and
-[display regressions](examples/mermaid-display-regressions.md); see the [editor contract](../Specs/Editor/Editor_Markdown.md).
+1. **Flowchart** (`flowchart` / `graph` — defaults to top-to-bottom when no direction is specified)
+2. **State diagram** (`stateDiagram` / `stateDiagram-v2`)
+3. **Class diagram** (`classDiagram`)
+4. **Sequence diagram** (`sequenceDiagram` — including `actor` figures, plain aliases, `Note left of`/`right of`/`over`, bare `autonumber`, and solid/dotted/open/headless messages)
+5. **Pie chart** (`pie`)
+6. **Entity Relationship diagram** (`erDiagram`)
+7. **Gantt timeline** (`gantt`)
+8. **Mind map** (`mindmap`)
 
-The [sequence sample](examples/mermaid-sequence.md) covers the expanded actor, plain note, automatic
-numbering and unheaded-message syntax. Numbering starts at one and excludes notes; authored source stays exact.
+**Security & Static Rendering Boundaries:**
+- Diagrams render as **static native vector graphics**—no webview, JavaScript runtime, arbitrary CSS, or `click`/interaction directives ever run.
+- Arrow labels automatically add a subtle contrast-aware light or dark backing when crossing lines or low-contrast backgrounds, without modifying your Markdown source.
+- Unsupported constructs (such as sequence loops, activation bars, creation/destruction, or unsupported diagram families) keep their exact editable fenced Markdown source rather than drawing a partial diagram.
 
-**Files and diagnostics:** save explicitly to write your Markdown file. Recovery checkpoints unsaved writing
-after 750 ms of quiet. On restart, inspect the source preview, Restore a copy, Discard snapshot or Keep for
-later; reopen pending snapshots from Settings. Restored copies require Save As and suggest a recovered filename.
-Restore stays bound to the copy you selected while answering an unsaved-change question. If that snapshot
-has since been discarded, the current document stays unchanged. You can then choose another available copy.
-Unapplied local drafts are preserved as proposed edits in the previewable recovery copy. Cancelling a clean
-draft retires that proposed snapshot. Another live app's snapshots are excluded. Corrupt/newer data is retained
-as `.quarantine` under `RedTilde\Recovery`. A crash before the quiet interval can lose the newest keystrokes.
-Undoing to the exact saved text clears dirty state; edits made during a save remain protected against the text
-actually written.
-Recoverable command, shortcut, menu or completion failures keep the document open and report a status. A failed
-Close does not silently destroy the window. Menu actions that open a local source or Link draft keep typing
-focus in that draft.
-Files over 65,536 UTF-16 units and malformed UTF-8 are rejected with a specific explanation, never truncated.
-When another app changes the file, choose Reload, Save As, Overwrite or Cancel in one question. Cancel keeps
-editing. Save As writes a separate version; selecting the current file or its alias still checks the saved
-baseline. Reload keeps the other open documents and applies only after a successful read. New edits made while
-the question, picker or Reload is pending are retained and require a fresh choice. Touching only the timestamp
-of an otherwise identical file does not require a conflict question.
-Crash reports remain local, with a notification on the next launch. A dump may contain document text; sharing
-one is your choice. Settings use `RedTilde.settings` in LocalAppData; System/Light/Dark/Paper and outline changes
-apply immediately. High contrast takes precedence.
+![Native Mermaid diagrams](screenshots/mermaid.png)
 
-See [example.md](examples/example.md), [local images](examples/local-images.md), [technical notes](examples/technical-notes.md), [the design system](../Specs/UI/UI_DesignSystem.md),
-[actual captures](../Measurements/README.md) and [current capability status](../capabilities.json).
-The [sample document guide](examples/README.md) also links complex math, flowchart,
-state/class and intentional-fallback documents, with an edit/undo and presentation checklist.
+See [examples/mermaid-supported-families.md](examples/mermaid-supported-families.md) and [examples/mermaid-sequence.md](examples/mermaid-sequence.md) for runnable sample documents.
 
-[RedMonitor diagnostics](Diagnostics.md) explains the optional viewer and application logging.
+---
+
+## Images, Clipboard Paste & Network Privacy
+
+- **Local Images:** Relative image paths resolve from the saved document's folder (save an untitled document first if you want relative paths). Supported formats—**PNG, JPEG, BMP, GIF (first frame), and TIFF**—decode asynchronously off the UI thread. Modified local image files refresh automatically (up to `32` watched paths across `8` directories).
+- **Clipboard Bitmap Paste:** Pasting a bitmap in Compose or Split saves a durable PNG in `%LOCALAPPDATA%\RedTilde\Assets` and inserts its `file://` reference in a single undoable step. When the clipboard contains both Unicode text and an image, **text wins by default**; enable **Settings → Privacy → Prefer images when pasting** to prefer images. Note that copying or moving the `.md` file elsewhere does not automatically copy files out of `Assets`.
+- **Network Privacy (Default Off):** Remote `http(s)://` images, UNC network paths, `data:` URIs, and `![[wiki]]` embeds are blocked by default. Documents containing remote images show a non-modal consent bar where you can choose **Allow here** (for that document only) or **Block here**, or enable **Always allow remote images** in Settings. **Allow images from local networks** is a separate opt-in (off by default) for private/loopback addresses and the document's own network share. Remote fetches use direct TLS `1.2`/`1.3` connections with no cookies, redirects, credentials, or proxy auto-discovery.
+- **Safe Links:** Ordinary clicks in Compose keep editing. Hold `Ctrl+Click` on a link—or place the caret in a link and choose **Open link** from the context menu—to review the destination in a confirmation prompt before opening `http:`, `https:`, or `mailto:` links in your default app. Local `#heading` links scroll in-document. Markdown HTML and scripts never execute.
+
+![Remote image consent bar](screenshots/image-consent-light.png)
+
+---
+
+## Files Pane, Workspace & Open Documents
+
+- **Files Pane (`Ctrl+Shift+E`):** Choose **File → Open Folder…** (`Ctrl+Shift+O`) to pin a notebook folder root, or **File → Open File…** (`Ctrl+O`) (opening a file when no root is set uses its parent folder). The pane lists `.md` and `.markdown` files (up to `5,000` visited entries and depth `8`), excludes hidden/system items, never traverses reparse points, and supports live filename filtering.
+- **Drag-and-Drop:** Drag and drop a `.md`, `.markdown`, or `.txt` file onto the RedTilde window to open it (dropping multiple files or unsupported types reports a clear status without altering your document).
+- **Multi-Document Workspace & Open Documents:** RedTilde keeps up to `64` open documents in memory—preserving each document's edits, selection, undo/redo history, and remote-image grant—so clicking between rows in the Files pane switches instantly without prompting. When multiple documents are open, an **Open documents** group appears at the top of the Files tree in opening order (keeping untitled and recovered copies distinct and keeping tree selection on the clicked row).
+- **Closing Documents (`Ctrl+W`):** **File → Close document** (or `Ctrl+W`) prompts only if the active document has unsaved changes, then switches to the adjacent open document (or resets to an empty `Untitled.md` if it was the last document). Explicit **Open File**, **Open Folder**, **New**, and window **Close** protect every modified workspace document.
+
+---
+
+## Find & Replace
+
+Press `Ctrl+F` to open the **Find & Replace** bar (and `Esc` to close it):
+
+- Searches the **exact Markdown source** (including hidden syntax) using ordinal Unicode comparison.
+- **Match case** toggles case-sensitive vs. case-insensitive search.
+- Shows the current/total match counter (`2 of 3`), highlights matches in the document, and displays **per-section match counts** as badges in the Outline sidebar.
+- `F3` (Next) and `Shift+F3` (Previous) wrap at document ends and continue to work even after closing the Find bar.
+- **Replace** updates the current match as one undoable edit and advances to the next match; **Replace all** replaces all matches in one undoable transaction.
+
+![Find and Replace overlay with Outline section counts](screenshots/find.png)
+
+---
+
+## Printing & Print Preview
+
+Choose **File → Print…** or press `Ctrl+P` from Compose, Source, or Split to open the **Print Preview** window:
+
+- Renders formatted dark-ink-on-paper pages independent of the editor's theme, view, or zoom level (including unsaved edits and rendered Mermaid diagrams/equations).
+- Select any installed Windows printer or **Microsoft Print to PDF** from the **Printer** dropdown; pagination updates automatically when you switch printers, **Paper size** (e.g., Letter, A4), or **Orientation** (Portrait, Landscape).
+- Configure **Pages to print** (blank for all, single pages like `3`, ranges like `4-6`, or lists like `1, 4-6`), **Current page**, **Print sides**, **Copies**, **Collate copies**, and **Print to file** when supported by the selected driver.
+- Navigate sheets with `←` / `→`, typing a page number and pressing `Enter`, `Page Up` / `Page Down`, mouse wheel, or **Fit width** / **Fit page**.
+
+![Print preview window](screenshots/print-preview.png)
+
+---
+
+## Themes, Typography, Zoom & Accessibility
+
+Open **Settings** from the gear button or `Ctrl+,`:
+
+- **Appearance:** Choose **System** (follows Windows Light/Dark mode), **Light**, **Dark**, or **Paper** (`#EDE6D8` / `#F3EDDF` / `#FFFAEF`), all with immediate preview and live updates. **Windows High Contrast** automatically overrides custom theme colors with system `Window`/`Highlight`/`Hotlight` colors and persistent link underlines.
+- **Reading Width & Text Size:** Adjust reading width (`480–1040` DIPs, default `760`) and text scale (`75%–200%`, default `100%`) using the steppers or `Ctrl++` / `Ctrl+-` / `Ctrl+0` / `Ctrl+Mouse Wheel`.
+- **Writing & Markdown Syntax:** Toggle **Show outline**, **Focus mode**, **Dim other blocks in focus mode**, **Strike through completed tasks** (visual presentation only; Markdown stays unchanged), and seven optional RichMarkdown syntax switches (`==highlight==`, `^superscript^`, `~subscript~`, `++inserted++`, `[[wiki links]]`, definition lists, and `*[abbr]:` abbreviations).
+- **About & Shortcuts:** The bottom of Settings displays the installed version (`RedTilde 0.1.0 experimental`) and a built-in keyboard shortcuts reference.
+- **Outline & Current Block Inspector:** The right sidebar lists ATX headings hierarchically (with collapsible sections), tracks the active section, identifies the **Current block** (e.g., `Heading`, `Bulleted list · 3 items`, `Equation`), and hosts the live read-only **Equation** preview.
+
+![Settings drawer](screenshots/settings.png)
+
+---
+
+## Automatic Crash Recovery & Safe File Saving
+
+- **Session Recovery:** Unsaved edits (including unapplied local drafts and multiple workspace documents) are checkpointed to `%LOCALAPPDATA%\RedTilde\Recovery` after `750 ms` of idle time (or at most every `5` seconds during continuous typing). On the next launch after an unexpected exit, RedTilde shows a source preview with **Restore a copy**, **Discard snapshot**, **Keep for later**, and **Restore all copies** (when multiple snapshots exist). Restored documents open dirty and require **Save as…**, leaving original files untouched. Corrupt or oversized recovery snapshots are quarantined as `.quarantine` instead of failing startup.
+- **Atomic & Conflict-Safe Saving:** Saves write to a temporary file in the target folder, flush, and replace atomically while preserving UTF-8 BOM and line endings. If the file changed externally on disk, RedTilde presents one task dialog with **Reload from disk**, **Save as…**, **Overwrite**, and **Cancel**. Files with multiple hardlinks or storage providers that disallow replacement use a recovery-protected in-place write.
+- **Close-During-Save Protection:** Closing the window while a save is running hides the window until the write settles; if the write fails, the window restores with the error message and your edits intact.
+
+![Recovery sheet on startup](screenshots/recovery.png)
+
+---
+
+## Command-Line Options & Portable Installation
+
+```text
+redtilde [<document>]
+redtilde --document <document> [--data-dir <path>] [--headless]
+redtilde --capture <image.png> --scenario <name> [--document <document>]
+         [--capture-dpi <96|144|192>] [--viewport-width <px>] [--viewport-height <px>]
+         [--data-dir <path>]
+redtilde --version | -v
+redtilde --help | -h | /?
+```
+
+- `--redmonitor`: Launches or connects diagnostics to an independently installed RedMonitor viewer (see [Diagnostics.md](Diagnostics.md)).
+- **Portable & Per-User Installation:** Extract a portable release ZIP anywhere, or run [`Installer/Install-RedTilde.ps1`](../Installer/Install-RedTilde.ps1) to install to `%LOCALAPPDATA%\Programs\RedTilde`, create a Start Menu shortcut, register per-user Uninstall metadata, and optionally register `.md`/`.markdown` file associations (`-RegisterFileAssociation`). See [Portable.md](Portable.md) for full instructions.
+
+---
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
+| --- | --- |
+| `Ctrl+N` | New workspace document |
+| `Ctrl+O` | Open file |
+| `Ctrl+Shift+O` | Open folder in Files pane |
+| `Ctrl+S` | Save |
+| `Ctrl+Shift+S` | Save As |
+| `Ctrl+W` | Close active document |
+| `Ctrl+P` | Open Print Preview (and submit Print inside preview) |
+| `Ctrl+1` / `Ctrl+2` / `Ctrl+3` | Switch to Compose / Source / Split view |
+| `Ctrl+B` / `Ctrl+I` / `Ctrl+E` | Toggle Bold / Italic / Inline code |
+| `Ctrl+K` | Insert or edit Link |
+| `Ctrl+Z` / `Ctrl+Y` | Undo / Redo |
+| `Ctrl+F` | Find & Replace |
+| `F3` / `Shift+F3` | Find next / previous match (works when Find bar is closed) |
+| `F2` | Edit block source in place (or open local source draft) |
+| `Ctrl+Enter` / `Esc` | Apply / cancel local source draft |
+| `Ctrl+Shift+E` | Toggle Files pane |
+| `Ctrl+,` | Toggle Settings drawer |
+| `F11` | Toggle Focus mode (`Esc` exits) |
+| `Alt+F10` | Focus selected-text floating toolbar |
+| `Ctrl++` / `Ctrl+-` / `Ctrl+0` | Zoom text size +5% / -5% / reset 100% (`Ctrl+Wheel` also zooms) |
+| `Page Up` / `Page Down` | Navigate sheets (or pan in Fit width) in Print Preview |
+| `Esc` | Dismiss active overlay, floating toolbar, draft, Focus mode, or Files filter/pane |
+
+---
+
+## Related Documentation
+
+- [Portable Usage & Per-User Installer Guide](Portable.md)
+- [Diagnostics & RedMonitor Guide](Diagnostics.md)
+- [Sample Markdown Documents](examples/README.md) (including [starter example](examples/example.md), [local images](examples/local-images.md), [syntax options](examples/syntax-options.md), and [Mermaid family gallery](examples/mermaid-supported-families.md))
+- [Screenshot Provenance & Inventory](screenshots/README.md)
+- [Repository Root README](../README.md) · [Markdown & Editor Contract](../Specs/Editor/Editor_Markdown.md) · [Design System](../Specs/UI/UI_DesignSystem.md) · [Capabilities](../capabilities.json)

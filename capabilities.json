@@ -83,7 +83,15 @@
     "warned-lease-guarded-keyboard-test-harness",
     "source-bound-native-x64-and-arm64-release-debug-asan-qualification",
     "bounded-labelled-redmonitor-producer",
-    "header-only-redmonitor-client-and-installed-release-helper"
+    "header-only-redmonitor-client-and-installed-release-helper",
+    "close-active-document-with-dirty-protection",
+    "single-file-drag-and-drop-markdown-and-txt",
+    "cli-version-and-help-without-profile-creation",
+    "centralized-version-header-and-about-shortcuts-drawer",
+    "per-user-installer-and-hkcu-file-associations",
+    "localized-capacity-limit-errors-across-editing-commands",
+    "explicit-lifecycle-transaction-overlay-and-worker-state-machines",
+    "package-sha256-sidecars-and-complete-third-party-notices"
   ],
   "pending": [
     "api5-consumer-failure-and-native-qualification",

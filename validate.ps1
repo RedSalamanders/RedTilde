@@ -62,6 +62,7 @@ Check 'Six build configurations and native inventory' {
     [void](Assert-ScopedTestNames $PSScriptRoot)
 }
 Check 'Run evidence retention' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.RunEvidence.ps1') }
+Check 'Resource strings' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.ResourceStrings.ps1') }
 Check 'RedMonitor SDK consumption' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.RedMonitor.ps1') }
 Check 'Scope contracts and public runner' {
     Import-Module (Join-Path $PSScriptRoot 'Build/ScopedTesting.psm1') -Force
@@ -74,6 +75,9 @@ Check 'PowerShell syntax' {
     $files+=Get-ChildItem (Join-Path $PSScriptRoot 'Build') -Recurse -File | Where-Object Extension -in @('.ps1','.psm1')
     $files+=Get-ChildItem (Join-Path $PSScriptRoot 'Tests') -Recurse -File | Where-Object Extension -in @('.ps1','.psm1')
     $files+=Get-ChildItem (Join-Path $PSScriptRoot 'Tools') -Recurse -File | Where-Object Extension -in @('.ps1','.psm1')
+    if (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'Installer') -PathType Container) {
+        $files+=Get-ChildItem (Join-Path $PSScriptRoot 'Installer') -Recurse -File | Where-Object Extension -in @('.ps1','.psm1')
+    }
     foreach ($file in $files) {
         $tokens=$null; $errors=$null
         [void][Management.Automation.Language.Parser]::ParseFile($file.FullName,[ref]$tokens,[ref]$errors)

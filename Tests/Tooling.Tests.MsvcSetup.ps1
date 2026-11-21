@@ -49,7 +49,7 @@ if($LASTEXITCODE-ne 0){throw 'Cannot compile the fake GUI bootstrapper.'}
 $fakeDiscoveryExecutable=Join-Path $packet 'FakeDiscovery.exe'
 & (Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe') /nologo /target:exe /out:$fakeDiscoveryExecutable $source
 if($LASTEXITCODE-ne 0){throw 'Cannot compile the console discovery fixture.'}
-function Invoke-SetupFixture([string]$Name,[int]$ExitCode=0,[string]$Version='14.52.37025',[switch]$Ready,[switch]$VerifyOnly,[switch]$Local,[switch]$BadSignature,[string]$Missing=''){
+function Invoke-SetupFixture([string]$Name,[int]$ExitCode=0,[string]$Version='14.52.37025',[switch]$Ready,[switch]$VerifyOnly,[switch]$Local,[switch]$BadSignature,[string]$Missing='',[string]$RunnerTemp=''){
     $fixture=Join-Path $packet $Name
     $script=Join-Path $fixture '.github/actions/setup-msvc/Setup.ps1'
     [void][IO.Directory]::CreateDirectory((Split-Path $script))
@@ -71,7 +71,7 @@ function Invoke-SetupFixture([string]$Name,[int]$ExitCode=0,[string]$Version='14
 param([switch]$VerifyOnly)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
-function Invoke-WebRequest {param($Uri,$OutFile) Copy-Item $env:DXUI_FAKE_INSTALLER $OutFile;[IO.File]::WriteAllText((Join-Path $env:DXUI_SETUP_FIXTURE 'downloaded.txt'),$Uri)}
+function Invoke-WebRequest {param($Uri,$OutFile,$TimeoutSec) Copy-Item $env:DXUI_FAKE_INSTALLER $OutFile;[IO.File]::WriteAllText((Join-Path $env:DXUI_SETUP_FIXTURE 'downloaded.txt'),$Uri)}
 function Get-AuthenticodeSignature {param($LiteralPath) [pscustomobject]@{Status=$env:DXUI_FIXTURE_SIGNATURE;SignerCertificate=[pscustomobject]@{Subject='CN=Microsoft Corporation, O=Microsoft Corporation, C=US'}}}
 # Success starts with LASTEXITCODE unset, as on hosted CI. Failure has stale success.
 if($env:DXUI_FIXTURE_EXIT-ne '0'){$global:LASTEXITCODE=0}
@@ -86,7 +86,8 @@ if($env:DXUI_FIXTURE_EXIT-ne '0'){$global:LASTEXITCODE=0}
     $start.Environment['DXUI_FIXTURE_SIGNATURE']=if($BadSignature){'NotSigned'}else{'Valid'}
     $start.Environment['ProgramFiles(x86)']=Join-Path $fixture 'Program Files'
     $start.Environment['GITHUB_ACTIONS']=if($Local){'false'}else{'true'}
-    $start.Environment['RUNNER_ENVIRONMENT']='github-hosted';$start.Environment['RUNNER_TEMP']=Join-Path $fixture 'runner temp with spaces'
+    $start.Environment['RUNNER_ENVIRONMENT']='github-hosted'
+    $start.Environment['RUNNER_TEMP']=if($RunnerTemp){$RunnerTemp}else{Join-Path $fixture 'runner temp with spaces'}
     $start.Environment['TEMP']=$start.Environment['RUNNER_TEMP']
     $start.Environment['GITHUB_OUTPUT']=Join-Path $fixture 'github-output.txt'
     [void][IO.Directory]::CreateDirectory($start.Environment['RUNNER_TEMP'])
@@ -147,6 +148,16 @@ foreach($mode in @('VerifyOnly','Local','BadSignature')){
         Assert-True (-not(Test-Path (Join-Path $result.Root 'completed.txt'))) 'installer never launched'
         if($mode-ne 'BadSignature'){Assert-True (-not(Test-Path (Join-Path $result.Root 'downloaded.txt'))) 'no download'}
     }
+}
+Invoke-TestCase 'overlong RUNNER_TEMP refuses before download or output publication' {
+    $longRoot=Join-Path $packet 'overlong'
+    $longTemp=Join-Path $longRoot ('temp-segment-' + ('x'*120))
+    $result=Invoke-SetupFixture 'overlong' -RunnerTemp $longTemp
+    Assert-True ($result.Exit-ne 0) $result.Text
+    Assert-True ($result.Text-match 'shorter RUNNER_TEMP' -and $result.Text-match 'maximum 259') $result.Text
+    Assert-True (-not(Test-Path (Join-Path $result.Root 'downloaded.txt'))) 'no download'
+    Assert-True (-not(Test-Path (Join-Path $result.Root 'completed.txt'))) 'installer never launched'
+    Assert-True (-not(Test-Path (Join-Path $result.Root 'github-output.txt'))) 'no output published'
 }
 Write-Host "Retained MSVC setup fixtures: $packet"
 Write-Host "PASS hosted MSVC setup: $script:setupCases behavioral cases. No real installer ran."

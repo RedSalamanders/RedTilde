@@ -265,14 +265,41 @@ struct RecoveryService::State
         ULONGLONG first{}, latest{};
         bool immediate{};
     };
+    enum class WorkerPhase : std::uint8_t
+    {
+        Scanning,
+        Running,
+        Stopping,
+        Finished
+    };
     std::map<unsigned, PendingSnapshot> pending;
     std::vector<std::wstring> discards;
     std::vector<std::wstring> retired;
+    std::vector<std::wstring> failedDiscards;
     std::vector<RecoveryCandidate> candidates;
     RecoveryScanStatistics scanStatistics;
-    bool stopping{}, ready{}, settled{}, finished{};
+    WorkerPhase workerPhase{WorkerPhase::Scanning};
+    bool writingBatch{};
     HRESULT status = S_OK;
     std::array<HRESULT, RecoveryService::MaximumDocuments> snapshotStatuses{};
+#if defined(REDTILDE_ENABLE_TESTS)
+    std::shared_ptr<RecoveryService::TestGate> scanTestGate;
+    std::shared_ptr<RecoveryService::TestGate> postScanTestGate;
+    std::shared_ptr<RecoveryService::TestGate> batchTestGate;
+    std::size_t discardAdmissions{};
+#endif
+    [[nodiscard]] bool SettledLocked() const noexcept
+    {
+        const bool isReady = workerPhase != WorkerPhase::Scanning;
+        return (workerPhase == WorkerPhase::Finished) || (isReady && pending.empty() && discards.empty() && !writingBatch);
+    }
+    void UpdateSettlementLocked() noexcept
+    {
+        if (SettledLocked())
+            (void)SetEvent(settlement.get());
+        else
+            (void)ResetEvent(settlement.get());
+    }
     [[nodiscard]] std::wstring DocumentId(unsigned document) const
     {
         if (!document)
@@ -326,9 +353,24 @@ struct RecoveryService::State
                 (void)MoveFileW(entry.path().c_str(), quarantine.c_str()); // No overwrite, preserve unknown/corrupt bytes.
                 continue;
             }
-            std::lock_guard lock(mutex);
-            candidates.push_back({std::wstring(candidate), std::move(snapshot)});
+            {
+                std::lock_guard lock(mutex);
+                candidates.push_back({std::wstring(candidate), std::move(snapshot)});
+            }
         }
+#if defined(REDTILDE_ENABLE_TESTS)
+        std::shared_ptr<RecoveryService::TestGate> gate;
+        {
+            std::lock_guard lock(mutex);
+            gate = std::exchange(scanTestGate, {});
+        }
+        if (gate)
+        {
+            (void)SetEvent(gate->entered.get());
+            (void)WaitForSingleObject(gate->proceed.get(), 30000);
+            (void)SetEvent(gate->finished.get());
+        }
+#endif
     }
     static void CALLBACK Worker(PTP_CALLBACK_INSTANCE instance, void *context) noexcept
     {
@@ -347,25 +389,43 @@ struct RecoveryService::State
             self->Scan();
             {
                 std::lock_guard lock(self->mutex);
-                self->ready = true;
-                self->settled = self->pending.empty();
-                if (self->settled)
-                    SetEvent(self->settlement.get());
+                if (self->workerPhase == WorkerPhase::Scanning)
+                    self->workerPhase = WorkerPhase::Running;
+                self->UpdateSettlementLocked();
                 self->Notify();
             }
+#if defined(REDTILDE_ENABLE_TESTS)
+            {
+                std::shared_ptr<RecoveryService::TestGate> gate;
+                {
+                    std::lock_guard lock(self->mutex);
+                    gate = std::exchange(self->postScanTestGate, {});
+                }
+                if (gate)
+                {
+                    (void)SetEvent(gate->entered.get());
+                    (void)WaitForSingleObject(gate->proceed.get(), 30000);
+                    (void)SetEvent(gate->finished.get());
+                }
+            }
+#endif
             for (;;)
             {
                 std::vector<std::pair<unsigned, PendingSnapshot>> due;
                 std::vector<std::wstring> discards;
                 DWORD delay = INFINITE;
                 bool stopping{};
+#if defined(REDTILDE_ENABLE_TESTS)
+                std::shared_ptr<RecoveryService::TestGate> batchGate;
+#endif
                 {
                     std::lock_guard lock(self->mutex);
+                    stopping = self->workerPhase == WorkerPhase::Stopping;
                     const auto now = GetTickCount64();
                     for (auto item = self->pending.begin(); item != self->pending.end();)
                     {
                         const auto deadline = std::min(item->second.latest + 750u, item->second.first + 5000u);
-                        if (self->stopping || item->second.immediate || deadline <= now)
+                        if (stopping || item->second.immediate || deadline <= now)
                         {
                             due.emplace_back(item->first, std::move(item->second));
                             item = self->pending.erase(item);
@@ -377,7 +437,12 @@ struct RecoveryService::State
                         }
                     }
                     discards.swap(self->discards);
-                    stopping = self->stopping;
+                    self->writingBatch = !due.empty() || !discards.empty();
+                    self->UpdateSettlementLocked();
+#if defined(REDTILDE_ENABLE_TESTS)
+                    if (self->writingBatch)
+                        batchGate = std::exchange(self->batchTestGate, {});
+#endif
                 }
                 if (due.empty() && discards.empty() && !stopping)
                 {
@@ -386,6 +451,19 @@ struct RecoveryService::State
                     (void)WaitForSingleObject(self->wake.get(), delay);
                     continue;
                 }
+#if defined(REDTILDE_ENABLE_TESTS)
+                const auto finishBatchGate = wil::scope_exit(
+                    [&]() noexcept
+                    {
+                        if (batchGate)
+                            (void)SetEvent(batchGate->finished.get());
+                    });
+                if (batchGate)
+                {
+                    (void)SetEvent(batchGate->entered.get());
+                    (void)WaitForSingleObject(batchGate->proceed.get(), 30000);
+                }
+#endif
                 result = S_OK;
                 for (auto &[document, update] : due)
                 {
@@ -414,30 +492,40 @@ struct RecoveryService::State
                     if (SUCCEEDED(outcome) && !update.retire.empty())
                         discards.push_back(std::move(update.retire));
                 }
+                std::vector<std::wstring> batchFailedDiscards;
                 for (const auto &candidate : discards)
                 {
                     auto other = Lease(self->root, candidate);
                     const HRESULT removed = other ? Remove(SnapshotPath(self->root, candidate)) : HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION);
                     if (FAILED(removed))
+                    {
                         result = removed;
+                        batchFailedDiscards.push_back(candidate);
+                    }
                     else
                     {
                         other.reset();
                         (void)Remove(self->root / (L"session-" + candidate + L".lease"));
                         std::lock_guard lock(self->mutex);
+                        std::erase(self->failedDiscards, candidate);
                         if (std::ranges::find(self->retired, candidate) == self->retired.end() && self->retired.size() < MaximumCandidates)
                             self->retired.push_back(candidate);
                     }
                 }
                 {
                     std::lock_guard lock(self->mutex);
+                    for (auto &failedId : batchFailedDiscards)
+                    {
+                        if (std::ranges::find(self->failedDiscards, failedId) == self->failedDiscards.end() &&
+                            self->failedDiscards.size() < MaximumCandidates)
+                            self->failedDiscards.push_back(std::move(failedId));
+                    }
                     const auto failed = std::ranges::find_if(self->snapshotStatuses, [](HRESULT value) { return FAILED(value); });
                     self->status = failed != self->snapshotStatuses.end() ? *failed : result;
-                    self->settled = self->pending.empty() && self->discards.empty();
-                    if (self->settled)
-                        SetEvent(self->settlement.get());
+                    self->writingBatch = false;
+                    self->UpdateSettlementLocked();
                     self->Notify();
-                    if (stopping && self->settled)
+                    if (self->workerPhase == WorkerPhase::Stopping && self->SettledLocked())
                         break;
                 }
             }
@@ -462,8 +550,9 @@ struct RecoveryService::State
         std::lock_guard lock(self->mutex);
         if (FAILED(result))
             self->status = result;
-        self->ready = self->settled = self->finished = true;
-        SetEvent(self->settlement.get());
+        self->workerPhase = WorkerPhase::Finished;
+        self->writingBatch = false;
+        self->UpdateSettlementLocked();
         self->Notify();
     }
 };
@@ -490,6 +579,11 @@ try
         return HRESULT_FROM_WIN32(GetLastError());
     staged->window = window;
     staged->message = message;
+#if defined(REDTILDE_ENABLE_TESTS)
+    staged->scanTestGate = scanTestGate;
+    staged->postScanTestGate = postScanTestGate;
+    staged->batchTestGate = batchTestGate;
+#endif
     auto ownership = std::make_unique<ProcessWorkItem<State>>(staged);
     const HRESULT admission = ProcessWork::Acquire(ownership->lease);
     if (FAILED(admission))
@@ -516,7 +610,7 @@ try
     if (snapshot && !ValidSnapshot(*snapshot))
         return E_INVALIDARG;
     std::lock_guard lock(state->mutex);
-    if (state->stopping || state->finished)
+    if (state->workerPhase == State::WorkerPhase::Stopping || state->workerPhase == State::WorkerPhase::Finished)
         return E_ABORT;
     const auto now = GetTickCount64();
     auto [item, inserted] = state->pending.try_emplace(document);
@@ -527,10 +621,9 @@ try
     pending.snapshot = std::move(snapshot);
     if (!retire.empty())
         pending.retire = std::move(retire);
-    state->settled = false;
-    ResetEvent(state->settlement.get());
     pending.immediate = pending.immediate || immediate;
-    SetEvent(state->wake.get());
+    state->UpdateSettlementLocked();
+    (void)SetEvent(state->wake.get());
     return S_OK;
 }
 catch (const std::bad_alloc &)
@@ -547,12 +640,17 @@ try
     if (!state || !ValidId(id))
         return E_INVALIDARG;
     std::lock_guard lock(state->mutex);
-    if (state->stopping || state->finished || state->discards.size() + state->retired.size() >= MaximumCandidates)
+    if (state->workerPhase == State::WorkerPhase::Stopping || state->workerPhase == State::WorkerPhase::Finished)
+        return HRESULT_FROM_WIN32(ERROR_CANCELLED);
+    if (state->discards.size() + state->retired.size() >= MaximumCandidates)
         return E_ABORT;
-    state->discards.push_back(std::move(id));
-    state->settled = false;
-    ResetEvent(state->settlement.get());
-    SetEvent(state->wake.get());
+    if (std::ranges::find(state->discards, id) == state->discards.end())
+        state->discards.push_back(std::move(id));
+#if defined(REDTILDE_ENABLE_TESTS)
+    ++state->discardAdmissions;
+#endif
+    state->UpdateSettlementLocked();
+    (void)SetEvent(state->wake.get());
     return S_OK;
 }
 catch (const std::bad_alloc &)
@@ -573,26 +671,33 @@ std::vector<std::wstring> RecoveryService::TakeRetired()
     std::lock_guard lock(state->mutex);
     return std::exchange(state->retired, {});
 }
+std::vector<std::wstring> RecoveryService::TakeFailedDiscards()
+{
+    if (!state)
+        return {};
+    std::lock_guard lock(state->mutex);
+    return std::exchange(state->failedDiscards, {});
+}
 bool RecoveryService::Ready() const noexcept
 {
     if (!state)
         return true;
     std::lock_guard lock(state->mutex);
-    return state->ready;
+    return state->workerPhase != State::WorkerPhase::Scanning;
 }
 bool RecoveryService::Settled() const noexcept
 {
     if (!state)
         return true;
     std::lock_guard lock(state->mutex);
-    return state->settled;
+    return state->SettledLocked();
 }
 bool RecoveryService::Finished() const noexcept
 {
     if (!state)
         return true;
     std::lock_guard lock(state->mutex);
-    return state->finished;
+    return state->workerPhase == State::WorkerPhase::Finished;
 }
 HRESULT RecoveryService::Status() const noexcept
 {
@@ -622,18 +727,59 @@ void RecoveryService::Stop() noexcept
     if (state)
     {
         std::lock_guard lock(state->mutex);
-        state->stopping = true;
-        SetEvent(state->wake.get());
+        if (state->workerPhase != State::WorkerPhase::Finished)
+            state->workerPhase = State::WorkerPhase::Stopping;
+        state->UpdateSettlementLocked();
+        (void)SetEvent(state->wake.get());
     }
 }
 void RecoveryService::Close() noexcept
 {
-    Stop();
     if (state)
     {
         std::lock_guard lock(state->mutex);
+        if (state->workerPhase != State::WorkerPhase::Finished)
+            state->workerPhase = State::WorkerPhase::Stopping;
         state->window = nullptr;
+        state->UpdateSettlementLocked();
+        (void)SetEvent(state->wake.get());
     }
     state.reset();
 }
+#if defined(REDTILDE_ENABLE_TESTS)
+void RecoveryService::SetScanTestGate(std::shared_ptr<TestGate> gate) noexcept
+{
+    scanTestGate = std::move(gate);
+    if (state)
+    {
+        std::lock_guard lock(state->mutex);
+        state->scanTestGate = scanTestGate;
+    }
+}
+void RecoveryService::SetPostScanTestGate(std::shared_ptr<TestGate> gate) noexcept
+{
+    postScanTestGate = std::move(gate);
+    if (state)
+    {
+        std::lock_guard lock(state->mutex);
+        state->postScanTestGate = postScanTestGate;
+    }
+}
+void RecoveryService::SetBatchTestGate(std::shared_ptr<TestGate> gate) noexcept
+{
+    batchTestGate = std::move(gate);
+    if (state)
+    {
+        std::lock_guard lock(state->mutex);
+        state->batchTestGate = batchTestGate;
+    }
+}
+std::size_t RecoveryService::DiscardAdmissionCountForTest() const noexcept
+{
+    if (!state)
+        return 0;
+    std::lock_guard lock(state->mutex);
+    return state->discardAdmissions;
+}
+#endif
 } // namespace RedTilde

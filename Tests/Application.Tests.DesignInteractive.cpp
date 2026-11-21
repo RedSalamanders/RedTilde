@@ -145,7 +145,7 @@ class DesignInteractiveProbe final
                 DispatchMessageW(&message);
             }
         }
-        if (app.closing)
+        if (app.IsClosing())
         {
             app.FinishClose();
             return;
@@ -166,7 +166,7 @@ class DesignInteractiveProbe final
         do
         {
             Pump();
-            Require(shuttingDown || !app.closing, "The owned application began closing before its close stage");
+            Require(shuttingDown || !app.IsClosing(), "The owned application began closing before its close stage");
             if (complete())
                 return;
             (void)MsgWaitForMultipleObjectsEx(0, nullptr, 10, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
@@ -310,7 +310,7 @@ class DesignInteractiveProbe final
                        "Ctrl+F did not focus the real Find field");
                  Key('A', {VK_CONTROL});
                  Type(L"notes");
-                 Await([&] { return app.findText->GetText() == L"notes" && app.findMatches.size() == 2; },
+                 Await([&] { return app.findText->GetText() == L"notes" && app.find.table.matches.size() == 2; },
                        "Native Find input did not update exact matches");
                  Key(VK_F3);
                  Await([&] { return app.Document().GetSelection().Start() == baseline.find(L"notes"); }, "F3 did not select the first source match");
@@ -452,7 +452,7 @@ class DesignInteractiveProbe final
                  shuttingDown = true;
                  Key(VK_F4, {VK_MENU});
                  Await([&] { return app.Window() == nullptr; }, "Alt+F4 did not complete asynchronous app-owned shutdown", 10000);
-                 Require(app.closing && app.Host().GetHwnd() == nullptr && !app.folderFiles.TakeResult(),
+                 Require(app.IsClosing() && app.Host().GetHwnd() == nullptr && !app.folderFiles.TakeResult(),
                          "Shutdown retained a live UI binding or directory publication");
              });
     }
@@ -496,7 +496,7 @@ class DesignInteractiveProbe final
                 outcomes.push_back({"Lease.Setup", false, error.what()});
             else
                 outcomes.back().error = error.what();
-            if (!app.closing && app.Host().GetRoot())
+            if (!app.IsClosing() && app.Host().GetRoot())
             {
                 const auto text = app.Document().GetText();
                 std::string units;
@@ -513,7 +513,7 @@ class DesignInteractiveProbe final
                 shuttingDown = true;
                 try
                 {
-                    if (!app.closing)
+                    if (!app.IsClosing())
                         app.BeginClose();
                     Await([&] { return app.Window() == nullptr; }, "Failure cleanup did not retire its owned HWND", 10000);
                 }

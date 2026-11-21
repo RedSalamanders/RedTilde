@@ -1,4 +1,5 @@
 #include "Application.h"
+#include "PrintPreview.h"
 #include "Tests/Support/Support.Tests.FilesFixtures.h"
 #include <algorithm>
 #include <chrono>
@@ -138,7 +139,7 @@ void Application::PrepareDesignScenario()
     {
         settings.allowRemoteImages = false;
         settings.allowLocalNetworkImages = false;
-        documentRemoteImagesAllowed = false;
+        session.remoteImagesAllowed = false;
         editor->SetRemoteImagesEnabled(false);
         SetDocument(L"# Illustration notebook\n\n"
                     L"Remote illustrations load only after a choice for this document.\n\n"
@@ -156,9 +157,10 @@ void Application::PrepareDesignScenario()
     if (scenario == L"task-presentation-light" || scenario == L"task-presentation-dark")
         settings.strikeCompletedTasks = true;
     const bool reference = scenario == L"reference-dark";
-    const bool fixtureScene = scenario == L"compose-light" || scenario == L"compose-dark" || scenario == L"source" || scenario == L"split" ||
-                              scenario == L"settings" || scenario == L"narrow" || scenario == L"high-contrast" || scenario == L"files" ||
-                              scenario == L"find" || scenario == L"focus" || scenario == L"equation" || reference;
+    const bool fixtureScene = scenario == L"compose-light" || scenario == L"compose-dark" || scenario == L"compose-paper" || scenario == L"source" ||
+                              scenario == L"split" || scenario == L"split-dark" || scenario == L"settings" || scenario == L"settings-about" ||
+                              scenario == L"narrow" || scenario == L"high-contrast" || scenario == L"files" || scenario == L"find" ||
+                              scenario == L"focus" || scenario == L"equation" || reference;
     bool frozenFilesModel{}, reparseRemoved{};
     if (scenario == L"markdown-style" || scenario == L"caption-close-hover" || scenario == L"caption-maximize-hover")
     {
@@ -221,7 +223,6 @@ void Application::PrepareDesignScenario()
             [&]
             {
                 folderFiles.Close();
-                folderFilesActive = false;
                 if (!RemoveDirectoryW(link.c_str()) && GetLastError() != ERROR_FILE_NOT_FOUND && GetLastError() != ERROR_PATH_NOT_FOUND)
                     OutputDebugStringW(L"RedTilde capture could not remove its owned reparse fixture leaf.\n");
             });
@@ -240,7 +241,7 @@ void Application::PrepareDesignScenario()
         settings.filesRoot = writing;
         SetDocument(std::move(source), path, false, identity);
         fixtureName = reference ? L"weekly-report-2026-10-15.md" : L"Writing";
-        if (scenario != L"focus" && scenario != L"equation" && scenario != L"settings" && !settings.showFiles)
+        if (scenario != L"focus" && scenario != L"equation" && scenario != L"settings" && scenario != L"settings-about" && !settings.showFiles)
             Execute(Command::Files);
         if (settings.showFiles)
         {
@@ -271,7 +272,6 @@ void Application::PrepareDesignScenario()
             // Freeze this proved immutable listing while evidence retains only
             // ordinary files/directories. Closing invalidates future delivery.
             folderFiles.Close();
-            folderFilesActive = false;
             frozenFilesModel = true;
         }
         RequireCapture(RemoveDirectoryW(link.c_str()) != FALSE, "Cannot retire the owned capture reparse leaf before evidence retention");
@@ -304,7 +304,7 @@ void Application::PrepareDesignScenario()
             editor->SetSelection({0, 0});
             Execute(Command::FindNext);
             Execute(Command::FindNext);
-            RequireCapture(findBar->IsVisible() && findMatches.size() >= 2, "The Find capture did not expose its deterministic query state");
+            RequireCapture(findBar->IsVisible() && find.table.matches.size() >= 2, "The Find capture did not expose its deterministic query state");
         }
         if (scenario == L"focus")
         {
@@ -329,27 +329,132 @@ void Application::PrepareDesignScenario()
             RequireCapture(region && !HasBlockDraft() && editor->GetText().compare(region->source.first, 2, L"$$") == 0,
                            "The equation capture did not show its exact TeX source in place");
         }
-        if (scenario == L"settings")
+        if (scenario == L"settings" || scenario == L"settings-about")
         {
             if (drawer->IsVisible())
                 Execute(Command::CloseDrawer);
             Execute(Command::Settings);
+            if (scenario == L"settings-about")
+            {
+                Layout();
+                Prepare(512);
+                settingsScroll->SetScrollOffset(1250.f);
+            }
         }
-        if (scenario == L"files" || scenario == L"compose-light" || scenario == L"compose-dark")
+        if (scenario == L"files" || scenario == L"compose-light" || scenario == L"compose-dark" || scenario == L"compose-paper")
             host.SetFocusControl(editor, false);
+    }
+    if (scenario == L"compose-paper" && settings.appearance != Appearance::Paper)
+        Execute(Command::ThemePaper);
+    if (scenario == L"split-dark")
+    {
+        if (settings.appearance != Appearance::Dark)
+            Execute(Command::ThemeDark);
+        if (settings.view != EditorView::Split)
+            SetView(EditorView::Split);
+    }
+    if (scenario == L"print-preview")
+    {
+#if defined(REDTILDE_ENABLE_TESTS)
+        const auto showcasePath = CaptureNativePath(std::filesystem::absolute(options.dataDirectory) / L"Showcase.md");
+        SetDocument(SampleDocument(), showcasePath);
+        settings.appearance = Appearance::Light;
+        ApplyTheme();
+        settings.view = EditorView::Compose;
+        settings.showFiles = false;
+        settings.showOutline = false;
+        fixtureName = L"Showcase.md";
+        options.printDestinationsForTest =
+            Printing::Destinations{{L"Microsoft Print to PDF", L"Office Printer (Letter)"}, L"Office Printer (Letter)"};
+        options.printPrinterForTest = [](const std::wstring &name, const std::optional<Printing::PrinterSettings> &requested,
+                                         Printing::PrinterConfiguration &configuration) -> HRESULT
+        {
+            const bool pdf = Printing::SamePrintName(name, L"Microsoft Print to PDF");
+            configuration.selection.printer = name;
+            configuration.selection.port = pdf ? L"PORTPROMPT:" : L"LPT1:";
+            const Printing::PrinterSettings defaults{.form = L"Letter",
+                                                     .orientation = Printing::Orientation::Portrait,
+                                                     .duplex = pdf ? std::nullopt : std::optional{Printing::Duplex::OneSided},
+                                                     .collate = pdf ? std::nullopt : std::optional{false}};
+            configuration.settings = requested.value_or(defaults);
+            configuration.forms = {L"Letter", L"A4"};
+            configuration.maximumCopies = pdf ? 1u : 10u;
+            const bool landscape = configuration.settings.orientation == Printing::Orientation::Landscape;
+            const bool a4 = configuration.settings.form == L"A4";
+            const float w = a4 ? 794.f : 816.f;
+            const float h = a4 ? 1123.f : 1056.f;
+            const D2D1_SIZE_F size{landscape ? h : w, landscape ? w : h};
+            configuration.selection.paper = {size, {24.f, 24.f, size.width - 24.f, size.height - 24.f}};
+            return S_OK;
+        };
+        Layout();
+        Prepare(512);
+        Execute(Command::Print);
+        RequireCapture(printPreview != nullptr && printOperation != nullptr, "Print preview capture did not start the preview host");
+        const auto deadline = GetTickCount64() + 15000u;
+        unsigned turns{};
+        while (printPreview && !printPreview->IsReady() && GetTickCount64() < deadline && turns++ < 3000u)
+        {
+            MSG message{};
+            while (PeekMessageW(&message, window.get(), 0, 0, PM_REMOVE))
+            {
+                TranslateMessage(&message);
+                DispatchMessageW(&message);
+            }
+            if (printPreview && printPreview->Window())
+            {
+                while (PeekMessageW(&message, printPreview->Window(), 0, 0, PM_REMOVE))
+                {
+                    TranslateMessage(&message);
+                    DispatchMessageW(&message);
+                }
+            }
+            if (printPreview && !printPreview->IsReady())
+                (void)MsgWaitForMultipleObjectsEx(0, nullptr, 5, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+        }
+        RequireCapture(printPreview && printPreview->IsReady(), "Print preview capture did not settle a ready sheet");
+        if (options.captureDpi)
+        {
+            RECT previewFrame{};
+            RequireCapture(GetWindowRect(printPreview->Host().GetHwnd(), &previewFrame) != FALSE, "Cannot read the hidden print-preview frame");
+            previewFrame.right = previewFrame.left + MulDiv(1040, static_cast<int>(requestedDpi), 96);
+            previewFrame.bottom = previewFrame.top + MulDiv(840, static_cast<int>(requestedDpi), 96);
+            (void)SendMessageW(printPreview->Host().GetHwnd(), WM_DPICHANGED, MAKEWPARAM(requestedDpi, requestedDpi),
+                               reinterpret_cast<LPARAM>(&previewFrame));
+            RequireCapture(SetWindowPos(printPreview->Host().GetHwnd(), nullptr, previewFrame.left, previewFrame.top,
+                                        previewFrame.right - previewFrame.left, previewFrame.bottom - previewFrame.top,
+                                        SWP_NOZORDER | SWP_NOACTIVATE | SWP_NOSENDCHANGING) != FALSE,
+                           "Cannot size the owned hidden print-preview window");
+        }
+        for (unsigned prep = 0; prep < 64u && printPreview->Host().HasPendingContentPreparation(); ++prep)
+        {
+            (void)printPreview->Host().RenderInitialFrameForShow();
+            (void)MsgWaitForMultipleObjectsEx(0, nullptr, 5, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+        }
+        RequireCapture(!IsWindowVisible(window.get()) && !IsWindowVisible(printPreview->Host().GetHwnd()),
+                       "Print preview capture windows must remain hidden");
+#else
+        RequireCapture(false, "The synthetic print-preview capture requires a test-enabled build");
+#endif
     }
     // The published Settings fixture declares System Light rather than inheriting
     // the user's ambient preference. Normal ApplyTheme keeps resolving Windows
     // outside this headless capture path, which already excludes performance.
-    if (scenario == L"settings")
+    if (scenario == L"settings" || scenario == L"settings-about")
         systemDark = false;
-    Layout();
-    Prepare(512);
-    RequireCapture(!IsWindowVisible(window.get()) && host.RenderInitialFrameForShow(), "Design captures must render on an owned hidden window");
-    const auto actual = host.GetClientBoundsDip();
+    if (!printPreview)
+    {
+        Layout();
+        Prepare(512);
+    }
+    auto &activeHost = printPreview ? printPreview->Host() : host;
+    RequireCapture(!IsWindowVisible(window.get()) && (!printPreview || !IsWindowVisible(printPreview->Host().GetHwnd())) &&
+                       activeHost.RenderInitialFrameForShow(),
+                   "Design captures must render on an owned hidden window");
+    const auto actual = activeHost.GetClientBoundsDip();
     const auto scenarioUtf8 = DxUi::RichText::EncodeUtf8(options.scenario);
     const auto fixtureUtf8 = DxUi::RichText::EncodeUtf8(fixtureName);
-    const auto captureBackground = host.GetTheme().windowBackground;
+    const auto captureBackground = activeHost.GetTheme().windowBackground;
     const auto metadata = std::format(
         "{{\n  \"schemaVersion\": 1,\n  \"scenario\": \"{}\",\n  \"fixtureBasename\": \"{}\",\n"
         "  \"effectiveSystemPreference\": \"{}\",\n  \"systemPreferenceSource\": \"{}\",\n  \"renderedAppearance\": \"{}\",\n"
@@ -360,13 +465,14 @@ void Application::PrepareDesignScenario()
         "  \"actualWidthDip\": {},\n  \"actualHeightDip\": {},\n  \"filesModelFrozen\": {},\n  \"reparseFixtureRemoved\": {},\n  \"hidden\": true,\n"
         "  \"qualification\": \"Owned hidden application render; no physical-monitor or native-platform acceptance\"\n}}\n",
         scenarioUtf8, fixtureUtf8, systemDark ? "dark" : "light",
-        scenario == L"settings" ? "synthetic-fixture" : "windows-preference-or-light-fallback",
-        host.GetTheme().highContrast                                             ? "high-contrast"
+        scenario == L"settings" || scenario == L"settings-about" ? "synthetic-fixture" : "windows-preference-or-light-fallback",
+        activeHost.GetTheme().highContrast                                       ? "high-contrast"
         : captureBackground.r + captureBackground.g + captureBackground.b < 1.5f ? "dark"
                                                                                  : "light",
-        settings.strikeCompletedTasks ? "true" : "false", settings.imageFirstPaste ? "true" : "false", options.captureDpi, nativeDpi, host.GetDpi(),
-        requestedDpi != nativeDpi ? "true" : "false", widthPx, heightPx, host.DebugGetWidthPx(), host.DebugGetHeightPx(), actual.right - actual.left,
-        actual.bottom - actual.top, frozenFilesModel ? "true" : "false", reparseRemoved ? "true" : "false");
+        settings.strikeCompletedTasks ? "true" : "false", settings.imageFirstPaste ? "true" : "false", options.captureDpi, nativeDpi,
+        activeHost.GetDpi(), requestedDpi != nativeDpi ? "true" : "false", widthPx, heightPx, activeHost.DebugGetWidthPx(),
+        activeHost.DebugGetHeightPx(), actual.right - actual.left, actual.bottom - actual.top, frozenFilesModel ? "true" : "false",
+        reparseRemoved ? "true" : "false");
     auto sidecar = options.capture;
     sidecar += L".scenario.json";
     RequireCapture(SUCCEEDED(WriteBytesAtomic(sidecar, metadata)), "Cannot preserve the capture's actual viewport/DPI/scenario provenance");

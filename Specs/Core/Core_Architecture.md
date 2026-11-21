@@ -19,6 +19,65 @@ repository and executable. It must launch and test without RedXe, RedPrism or Re
 | Files navigation | Application-owned bounded directory enumeration/watch worker, cancellation and stale-result identity; the UI opens files through the normal file-safety path |
 | Harness | Hidden window, direct control commands, render capture and immutable scenario/build receipts |
 
+### Explicit application and worker state machines
+
+Application lifecycle, file transactions, overlays, caches, and background workers use explicit `enum class` phases,
+`std::variant` sum types, and invariant helpers rather than ad-hoc boolean tuples:
+
+- **Application lifecycle (`Application::LifecyclePhase`)**: `Uninitialized`, `Initializing`, `Active`, `ClosingAfterSave`,
+  `DrainingForClose`, `SessionEnding`, and `Destroyed`, transitioned via `TransitionLifecycle(LifecyclePhase)` and checked
+  through `CanAcceptCommand()`, `IsUiAttached()`, and `AreShutdownWorkersSettled()` (`!preferenceWriter.Busy() &&
+  recovery.Finished() && !bitmapWriter.Busy()`). `DispatchUiMessage()` rechecks `AreShutdownWorkersSettled()` so
+  settlement waits for all three services without spurious `PreferencesReady` churn.
+- **File transactions & modal prompts**: `ActiveFileTransaction` (`std::variant<std::monostate, StartupOpenTx,
+  PickerOpenTx, FilesPaneOpenTx, HeldOpenTx, SaveTx, ConflictReloadTx>`) binds each in-flight open, held open, save,
+  or conflict reload to its exact source snapshot and approvals so failure or close resets atomically to
+  `std::monostate{}`. `ModalPromptKind` (`None`, `UnsavedChanges`, `SaveConflict`, `ExternalLink`) prevents overlapping
+  prompts. `StartupRestoreState` (`Disabled`, `WaitingForRecovery`, `OpeningLastDocument`, `Completed`) bounds startup
+  restoration state.
+- **Exclusive overlays & deferred placement**: `OverlayKind` (`None`, `FloatingSelectionTools`, `FindBar`,
+  `SettingsDrawer`, `BlockDraftModal`, `RecoveryModal`) governed by `SetActiveOverlay(OverlayKind)` enforces mutual
+  exclusion across all five floating surfaces alongside `std::optional<BlockDraftSession>`. Deferred selection-tools and
+  draft geometry resolution post `PostPreparePlacement` (`ReconcilePostPreparePlacement()`) out of `WM_PAINT` so painting
+  never mutates control visibility or triggers re-layout.
+- **Workspace session, Find, outline & reentrant publications**: `DocumentSessionMetadata` and `DerivedDocumentCaches`
+  bundle per-document metadata and derived caches so `SwitchWorkspaceDocument()` swaps metadata atomically alongside
+  `ExchangeDocumentState()` before reentrant UI callbacks. `OutlinePreviewBaseline` preserves committed outline collapse
+  choices across transient IME previews. `FindController` owns one `MatchTable` shared across open Find-bar presentation
+  and closed `F3`/`Shift+F3` navigation plus derived `Projections`. `ReentrantPublication<T>` provides monotonic-token
+  cache invalidation for `appliedCaption`, `currentBlockPublishedFacts`, `listSummaryFacts`, and
+  `selectionCaptionPublishedEquationContext`.
+- **Worker & diagnostic phases**:
+  - `AsyncFiles::Phase`: `Idle`, `Loading`, `Saving`, `Completed`, `Closed` (with `CancelInFlightLoad()`).
+  - `BitmapPasteWriter::Phase`: `Idle`, `Encoding`, `Ready`, `Leased`, `Retiring`, `Stopped`.
+  - `RecoveryService::State::WorkerPhase`: `Scanning`, `Running`, `Stopping`, `Finished`, governed by `SettledLocked()` /
+    `UpdateSettlementLocked()` (`pending.empty() && discards.empty() && !writingBatch`), paired with UI
+    `RecoveryDisposition` (`Available`, `Discarding`).
+  - `FilesService` (`FilesPhase`): `Idle`, `Scanning`, `Watching`, `CoalescingWatch`, `Failed`, `Closed`, enabling
+    clean re-initialization when switching away from a failed root.
+  - `SettingsWriter::State::WorkerPhase`: `Idle`, `Active`, `Closed`.
+  - `RichImageLoader::State::WorkerPhase`: `Idle`, `Active`, `Closing`, `Stopped`.
+  - `Application::ExternalLinkState::Phase`: `Idle`, `LaunchingSta`, `CompletedPendingDrain`, `Closed`.
+  - `EditDiagnostics::SelectionPhase`: `Disarmed`, `Armed`, `InInvocation`, `InComponent`, `Invalid`.
+  - `PrintPreview` `pendingAction_` (`std::optional<Action>`, where `Action::Close` overrides pending `Action::Print`
+    without queuing a duplicate submission).
+
+### Shared infrastructure headers and command entry points
+
+- **Versioning (`Common/Version.h`)**: Single source of truth for `REDTILDE_VERSION_MAJOR`, `REDTILDE_VERSION_MINOR`,
+  `REDTILDE_BUILD_NUMBER`, and `REDTILDE_PRODUCT_VERSION` used by resources, About UI, `--version`, and `build.ps1` /
+  `package.ps1` validation.
+- **Resource strings (`Common/Resources.h`)**: Provides `LoadEmbeddedStringResourceView`, `LoadEmbeddedStringResource`,
+  and `FormatEmbeddedStringResource` (plus `LoadStringResource*` / `FormatStringResource` aliases) with positional
+  `std::vformat` placeholders, raw-pattern fallback on `std::format_error`, and `DxUi::Failure::FailAllocation()` on
+  `std::bad_alloc`.
+- **Keyboard modifier state (`RedTilde/KeyboardState.h`)**: Centralizes modifier queries (`Held`, `Read`, `Write`,
+  `ScopedSynthetic`) so hidden self-tests inject synthetic key state while keeping Win32 thread state synchronized.
+- **Workspace close & file drop**: `Command::CloseDocument` (`CloseActiveDocument`, `Ctrl+W`) protects dirty documents
+  via `AskThen`, switches to an adjacent retained workspace document (retiring the closed document's recovery slot), or
+  resets the final closed document to a clean untitled buffer. `WM_DROPFILES` delegates single-file drops through
+  `OpenDroppedFile()` after checking command admission and extension eligibility (`.md`, `.markdown`, `.txt`).
+
 Library objects remain inside the executable. No plugin ABI is introduced. The native host is used directly;
 RedTilde must not allocate a competing swap chain or render over an uncoordinated chrome HWND.
 
@@ -44,7 +103,7 @@ owners, closes admission and drains work on the COM-initialized owner before pro
 failure-host BUSY drain. Each cooperative drain has a five-second deadline; a blocked callback cannot be
 interrupted by it. Timeout is a failed shutdown with fatal diagnostics, never permission to unload live owners.
 The final OS session-end path retains its existing recovery allowance and transfers the process owner to OS
-teardown instead of adding these ordinary shutdown waits. See [crash/shutdown ownership](Core_SettingsAndCrashes.md).
+teardown instead of adding these ordinary shutdown waits. See [crash/shutdown ownership](Core_CrashHandling.md).
 
 RedTilde owns its Win32 non-client frame policy and caption behavior. The merged document bar is app-owned client
 content coordinated with that frame; the native window title remains the filename plus dirty marker for taskbar
@@ -82,13 +141,14 @@ submitting it to the workspace file path, preserving path validation, per-docume
 Switching retained documents does not prompt; explicit New/Open File/Open Folder/Close protect all dirty documents.
 Directory enumeration and notification handles follow WIL ownership and close during cancellation/teardown.
 
-The experimental upstream editor admits 65,536 UTF-16 units and 128 history transactions. Product file admission
-must honor that actual limit and report rejection. Never truncate. Large-file support requires a separately
-qualified upstream capacity increase. The UI must keep unsupported Markdown available as exact source.
+The pinned DxUi `RichTextEditor` admits `65,536` UTF-16 units (`DxUi::RichText::Document::MaximumUnits`) and `128` history
+transactions. Product file admission and editing commands must honor that actual limit and report localized rejection
+(`ReportCapacityLimit()`, `IDS_FILETOOLARGELIMIT`). Never truncate. Large-file support requires a separately qualified
+upstream capacity increase. The UI must keep unsupported Markdown available as exact source.
 
 No periodic autosave/polling timer: edited revisions arm one debounced recovery write; subsequent idle work sleeps.
-File/decode results carry a document generation and are applied only on the owner. Closing invalidates the window
-binding before workers can post. Image decoding must not join a blocked codec on UI teardown.
+File/decode results carry a worker generation or request identity and are applied only on the UI owner. Closing
+invalidates the window binding before workers can post. Image decoding must not join a blocked codec on UI teardown.
 Pruning cancelled image work signals the network-abort event only for a cancelled current remote transfer.
 An empty current request must not wake that event. Pruning still releases completion reservations and schedules
 valid queued work; a cancelled transfer must not prevent a later admitted request from completing.
@@ -175,9 +235,11 @@ history or recovery transaction is introduced. Retain deterministic work counter
 outline navigation and settled rendering checks so reduced work cannot hide stale presentation.
 
 Construct and publish the localized current-block label only when its resource category or physical-line
-character count changes. Invalidate the publication cache before calling the control and retain newer nested
-publication facts. This cache does not suppress source/syntax analysis, inline-format toggles, equation source,
-command enablement or preview/cancellation synchronization. Reset it when creating the label.
+character count changes, using `ReentrantPublication<CurrentBlockLabelFacts>` (`currentBlockPublishedFacts`).
+Invalidate the publication cache via `BeginPublish()` before calling the control and `CommitPublish()` only while
+its monotonic token matches, retaining newer nested publication facts. This cache does not suppress source/syntax
+analysis, inline-format toggles, equation source, command enablement or preview/cancellation synchronization. Reset it
+(`Invalidate()`) when creating the label.
 
 Performance qualification uses paired Release measurements on the same machine and fixture, recording source,
 dependency, binaries, WARP/hardware mode, dimensions, dirty/idle/hidden memory and CPU. Initial app measurements

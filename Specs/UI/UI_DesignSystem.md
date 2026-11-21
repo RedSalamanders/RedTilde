@@ -26,15 +26,18 @@ tests supply choices without opening a desktop dialog or acquiring focus; they d
 The application manifest declares Common Controls v6 for the task-dialog import; every native catalog/startup
 run must reach the application dispatcher, including test-enabled and production builds.
 
-File → Print… and Ctrl+P open an owned Print preview. Show the formatted sheet, its editable page number
+File → Print… and Ctrl+P open an owned Print preview (`RedTilde.PrintPreview`, carrying the `IDI_REDTILDE` window
+icon). Show the formatted sheet, its editable page number
 and the total page count. The left arrow selects the previous page and the right arrow selects the next page.
 Disable each arrow at its boundary. Enter commits a typed page number. Place the printer dropdown, page
 selection, status, Close and Print controls beside the sheet. Give the preview the remaining width and height.
 With Fit page, the mouse wheel and Page Up or Page Down move between sheets. With Fit width they scroll
 the sheet first and continue to the adjacent page at its edge. Wheel deltas smaller than one detent accumulate.
 Expose keyboard navigation and accessible names through the native controls. Use the app theme for the
-preview controls and the paper's print colors for the sheet. Close or Escape returns focus to the invoking
-control if it survives.
+preview controls and the paper's print colors for the sheet. Close or Escape posts `Action::Close` through
+`pendingAction_`—overriding any pending `Action::Print` without queuing a duplicate submission—and returns focus to
+the invoking control if it survives. The hidden `--scenario print-preview` harness scenario (available in
+test-enabled builds) renders the preview window with synthetic printer destinations and a Letter Portrait sheet.
 
 The Pages to print field is part of the preview settings. Blank means all pages. Accept one page,
 inclusive ranges and comma-separated combinations, bounded by the displayed page count. Current page fills the
@@ -122,7 +125,10 @@ exclusive toggle state exposed to UI Automation, and Ctrl+1/2/3. They are comman
 application enforces exclusivity. Use canonical DxUi Button toggle semantics; add shared support upstream and
 consume its public API rather than copying control code into RedTilde. Theme and
 preference choices are in a drawer rather than a second native settings app. Commands show labels/tooltips and
-shortcut hints. Selection tools should appear
+shortcut hints (File menu also exposes **Close document** `Ctrl+W`). All five overlay surfaces
+(`OverlayKind::FloatingSelectionTools`, `FindBar`, `SettingsDrawer`, `BlockDraftModal`, and `RecoveryModal`) are
+mutually exclusive under `SetActiveOverlay(OverlayKind)`, so opening Find or Settings cleanly dismisses the Recovery
+surface without overlapping overlays while retaining the pending candidate list. Selection tools should appear
 above selected text after pointer release, remain inside the viewport, and avoid following every pointer movement.
 Escape dismisses; Alt+F10 or the context-menu key provides keyboard access. Context menus retain the source
 selection and support arrows, Tab, Enter and Esc before returning focus.
@@ -130,7 +136,9 @@ selection and support arrows, Tab, Enter and Esc before returning focus.
 Alt+F10 retains its first-action focus intent while native selection geometry is pending, keyed to the exact
 source snapshot, selection and view. Fulfill it after preparation only while those keys still match; Escape,
 navigation, a different source/selection or a view change cancels it. A prepared source range with no painted
-extent is not pending work. Late syntax publication refreshes derived facts without reopening dismissed tools.
+extent is not pending work. Deferred selection-tool and block-draft geometry reconciliation posts
+`PostPreparePlacement` (`ReconcilePostPreparePlacement()`) out of `WM_PAINT` so painting never mutates visibility or
+re-layouts overlays. Late syntax publication refreshes derived facts without reopening dismissed tools.
 
 ## Tokens and behavior
 
@@ -271,7 +279,11 @@ region refuses and F2 falls back to the draft.
 ## Files pane
 
 The Files pane is available, closed by default, and lists Markdown files from a persistent selected root and its
-subfolders. File offers distinct Open File (Ctrl+O) and Open Folder (Ctrl+Shift+O) commands. The folder picker uses
+subfolders. When multiple documents are retained in the workspace, the tree also exposes an **Open documents**
+group (`WorkspaceGroupId`) keeping entries in stable opening order across workspace switches; clicking an **Open
+documents** row keeps tree selection on that row, clicking a folder row selects that folder row, and collapsing **Open
+documents** falls back to the visible folder row when present. File offers distinct Open File (Ctrl+O), Open Folder
+(Ctrl+Shift+O), and Close document (Ctrl+W) commands. The folder picker uses
 the native filesystem folder dialog; accepting it shows Files, clears its name filter and focuses the tree without
 replacing the current document, selection or undo history, even when the document is dirty. It is a listing/open
 surface only: it does not create, rename, delete, move, reveal or otherwise
@@ -340,6 +352,10 @@ privacy, size, timeout or generic load refusal while the image retains its alt/s
 anonymous HTTP(S) through admitted numeric endpoints; the shared editor never performs network I/O.
 The hidden `image-consent-light` and `image-consent-dark` harness scenes use an invented illustration notebook
 with image access disabled. The document-consent regression also captures an actual local-network refusal.
+Below Privacy, the Settings drawer ends with an **About & Shortcuts** section (`IDS_ABOUTSECTION`) displaying the
+product version from `Common/Version.h` (`IDS_ABOUTVERSION` with `REDTILDE_PRODUCT_VERSION_WIDE`), the local-editing
+summary (`IDS_ABOUT`), and the primary keyboard-shortcut reference (`IDS_SHORTCUTS`), captured at scroll offset in
+`settings-about`.
 
 ## Capture scenarios
 
@@ -349,11 +365,16 @@ engine. A recovery sheet shows original location and a scrollable read-only sour
 order by Restore a copy, Discard snapshot and Keep for later. Restore returns focus to the authoritative editor;
 the first save asks for a filename with a recovered suffix. Recovery errors remain visible in the document footer.
 
-Additional deterministic scenarios: `math`, `math-dark`, `mermaid`, `recovery`. Recovery capture uses an explicitly
-seeded synthetic candidate to show the actual sheet; crash/restart tests separately establish storage behavior.
+Additional deterministic scenarios: `compose-paper`, `split-dark`, `math`, `math-dark`, `mermaid`, `recovery`,
+`context-selection`, `settings-about`, and `print-preview` (in test-enabled builds). Recovery capture uses an
+explicitly seeded synthetic candidate to show the actual sheet; crash/restart tests separately establish storage
+behavior.
 
-The app harness owns `compose-light`, `compose-dark`, `source`, `split`, `context-selection`, `settings`,
-`local-source`, `mermaid`, `math`, `math-dark`, `recovery`, `narrow`, `high-contrast`, `files`, `find`, `focus`, `equation`
-and `reference-dark`. Captures must be actual application renders, tagged
+The app harness owns `compose-light`, `compose-dark`, `compose-paper`, `source`, `split`, `split-dark`,
+`context-selection`, `settings`, `settings-about`, `local-source`, `mermaid`, `math`, `math-dark`, `recovery`,
+`print-preview`, `narrow`, `high-contrast`, `files`, `find`, `focus`, `equation`, `quote-scroll-light`,
+`quote-scroll-dark`, `diagram-label-light`, `diagram-label-dark`, `image-paste-light`, `image-paste-dark`,
+`image-consent-light`, `image-consent-dark`, `task-presentation-light`, `task-presentation-dark`, `reference-dark`,
+`markdown-style`, `caption-close-hover`, and `caption-maximize-hover`. Captures must be actual application renders, tagged
 with dependency SHA, source identity, binary hash, dimensions, theme and scenario. Proposal art is separately
 labelled. Physical screen-reader/IME/touch acceptance and real focus restoration require separate evidence.

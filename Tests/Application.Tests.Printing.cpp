@@ -263,7 +263,7 @@ class PrintingProbe
                     "the print command records every page in order");
             Require(count == pages.size(), "every editor view uses the same pagination");
             Require(app.Document().Snapshot().IsSameRevision(snapshot) && app.Document().GetSelection() == selection && app.Document().CanUndo() &&
-                        app.Dirty() && app.documentPath.empty(),
+                        app.Dirty() && app.session.path.empty(),
                     "printing preserves unsaved source, selection, history and identity");
         }
         pages.clear();
@@ -424,7 +424,7 @@ class PrintingProbe
         Submit(app);
         Require(enteredPage.wait(10000u), "worker reaches a controlled blocked printer page");
         app.Execute(Command::Close);
-        Require(!app.printOperation && app.closing, "closing detaches the owned print job while the worker is blocked");
+        Require(!app.printOperation && app.IsClosing(), "closing detaches the owned print job while the worker is blocked");
         releasePage.SetEvent();
         Require(returnedPage.wait(10000u), "the submitted page returns after the owner closes");
         Require(calls == previous + 1u, "shutdown cancels before the next page");
@@ -495,6 +495,51 @@ class PrintingProbe
         Require(app.printPreview->Page().bgra == linkPixels, "a Markdown hyperlink prints like the same plain text without an underline");
         app.DismissPrintPreview();
     }
+
+    static void CloseOverridesPendingPrintAction(const std::filesystem::path &directory)
+    {
+        Testing::ForegroundOwnershipObserver foreground;
+        std::atomic_uint calls{};
+        std::optional<Printing::Selection> submitted;
+        LaunchOptions options;
+        options.headless = true;
+        options.dataDirectory = directory;
+        options.printDestinationsForTest = Printing::Destinations{{std::wstring(OfficePrinter)}, std::wstring(OfficePrinter)};
+        options.printPrinterForTest = ConfigureFixture;
+        options.printSubmissionForTest = [&](const Printing::Selection &selection) { submitted = selection; };
+        options.printPageForTest = [&](unsigned, ID2D1CommandList &)
+        {
+            ++calls;
+            return S_OK;
+        };
+        Application app(std::move(options));
+        Require(SUCCEEDED(app.Initialize()), "initialize the hidden print-action override fixture");
+        Require(app.SetDocument(MultipageSource()), "seed a synthetic document");
+        app.Host().SetFocusControl(&app.Document(), false);
+
+        Open(app);
+        const HWND firstPreview = app.printPreview->Window();
+        auto &firstHost = app.printPreview->Host();
+        Require(app.printPreview->CanPrint(), "ready preview accepts Print");
+        Require(firstHost.GetDefaultButton()->Invoke(firstHost, false), "queue Action::Print without pumping PreviewAction");
+        Require(SendMessageW(firstPreview, WM_CLOSE, 0, 0) == 0, "WM_CLOSE queues Action::Close over pending Action::Print");
+        MSG message{};
+        while (IsWindow(firstPreview) && PeekMessageW(&message, firstPreview, 0, 0, PM_REMOVE))
+            DispatchMessageW(&message);
+        Require(!app.printPreview && !app.printOperation && calls == 0u && !submitted && app.Host().GetFocusControl() == &app.Document(),
+                "WM_CLOSE overrides pending Print action and dismisses preview without submitting");
+
+        Open(app);
+        const HWND secondPreview = app.printPreview->Window();
+        auto &secondHost = app.printPreview->Host();
+        Require(SendMessageW(secondPreview, WM_CLOSE, 0, 0) == 0, "WM_CLOSE queues Action::Close");
+        Require(secondHost.GetDefaultButton()->Invoke(secondHost, false), "subsequent Print cannot override pending Close");
+        while (IsWindow(secondPreview) && PeekMessageW(&message, secondPreview, 0, 0, PM_REMOVE))
+            DispatchMessageW(&message);
+        Require(!app.printPreview && !app.printOperation && calls == 0u && !submitted && app.Host().GetFocusControl() == &app.Document(),
+                "pending Close remains sticky against subsequent Print before PreviewAction pumps");
+        Require(foreground.NeverAcquiredForeground() && !IsWindowVisible(app.Window()), "hidden preview override preserves desktop");
+    }
 };
 
 void RegisterPrintingTests(const std::filesystem::path &root, const std::function<void(std::string_view, const std::function<void()> &)> &test)
@@ -502,5 +547,6 @@ void RegisterPrintingTests(const std::filesystem::path &root, const std::functio
     test("Editor.PrintingPreservesRevisionAndHonorsPageRanges", [&] { PrintingProbe::StateAndRanges(root / L"print-pages"); });
     test("Editor.PrintingFailureAndShutdownRetireJobs", [&] { PrintingProbe::FailureAndShutdown(root / L"print-shutdown"); });
     test("Editor.PrintingDiagramFollowsCanvasAndPaper", [&] { PrintingProbe::DiagramBackground(root / L"print-diagram"); });
+    test("Editor.PrintingCloseOverridesPendingPrintAction", [&] { PrintingProbe::CloseOverridesPendingPrintAction(root / L"print-close-override"); });
 }
 } // namespace RedTilde

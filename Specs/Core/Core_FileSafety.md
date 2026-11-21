@@ -43,11 +43,13 @@ length. Regression coverage includes first publication and replacement of a 240-
 
 Open and save local `.md`, `.markdown` and text files using strict UTF-8. Preserve BOM and original line endings;
 invalid UTF-8/NUL/oversized files fail before replacing the current document. New documents use UTF-8 without BOM.
-The v0 source limit is 65,536 UTF-16 units. Bounded reads reject files above the maximum possible encoded size.
+The current source limit is 65,536 UTF-16 units (`DxUi::RichText::Document::MaximumUnits`). Bounded reads reject files
+above the maximum possible encoded size.
 File pickers label `.txt` as UTF-8 only. Unsupported encoding/NUL has a localized UTF-8 explanation; oversized
-input has a localized limit explanation, including the actual decoded UTF-16-unit count when the bounded valid
-input can be counted. Do not scan arbitrarily large files just to invent a precise count. Caller source/BOM/stamp
-remain unchanged on rejection.
+input and editing/command capacity refusals report a localized limit explanation (`IDS_FILETOOLARGELIMIT`, including
+the actual decoded UTF-16-unit count when bounded valid input can be counted, or `MaximumUnits` for in-editor command
+refusals). Do not scan arbitrarily large files just to invent a precise count. Caller source/BOM/stamp remain unchanged
+on rejection.
 
 An ordinary, singly linked file save stages a unique sibling temporary file with `CREATE_NEW`, writes all bytes, flushes and closes it,
 then uses `ReplaceFileW` for an existing destination or `MoveFileExW` for a new destination. Remove only the
@@ -134,15 +136,31 @@ metadata before replacing source. A new Files slot whose content is refused rest
 document and removes only its empty provisional slot. A rejected explicit Open does not retire the existing
 workspace. Native I/O failure remains an ordinary checked result; unexpected C++ allocation failure is fatal.
 
-New/explicit Open File/Open Folder/Close prompt Save, Discard, Cancel for every dirty workspace document.
+New/explicit Open File/Open Folder/Close/Close Document (`Command::CloseDocument`, `Ctrl+W`) prompt Save, Discard,
+Cancel for dirty workspace documents. `CloseActiveDocument` protects only the active document via `AskThen`: if other
+retained documents exist in the workspace, it switches atomically to the adjacent workspace document in key order,
+retires the closed document's recovery slot (`recovery.SubmitDocument(closedKey, std::nullopt, true)`), and drops its
+slot/approvals without disturbing disk files; closing the last workspace document resets to a clean untitled buffer.
 Files-pane activation retains each document and never prompts. Discard approval is staged until the requested
 action is admitted; cancelling a later question or picker retains even earlier approved documents. An approval
 is specific to the document's workspace identity and immutable source, so later edits are protected again.
 Save As cancellation cancels the original action. Undo
 back to saved text clears dirty; the saved baseline is exact source content, not just a transaction counter.
-While the Save/Discard/Cancel question is open, duplicate native or command Close requests are ignored.
-They keep the original prompt and continuation; they neither cancel it nor queue another Close. Cancel
-leaves the current source, selection and history intact. A later fresh Close may ask again normally.
+While the Save/Discard/Cancel question (`ModalPromptKind::UnsavedChanges`) is open, duplicate native or command Close
+requests are ignored. They keep the original prompt and continuation; they neither cancel it nor queue another Close.
+Cancel leaves the current source, selection and history intact. A later fresh Close may ask again normally.
+
+Drag-and-drop (`WM_DROPFILES` / `OpenDroppedFile`) admits at most one absolute non-directory file whose extension is
+`.md`, `.markdown`, or `.txt` (ordinal case-insensitive), and only when `CanAcceptCommand()`, `!HasActiveModalPrompt()`,
+`!HasBlockDraft()`, and `!files.Busy()` hold. Multi-file drops (`IDS_DROPMULTIPLE`), directories, missing paths,
+embedded NULs, paths `>= 32,767` UTF-16 units, or unsupported extensions (`IDS_DROPUNSUPPORTED`) refuse immediately
+without opening an unsaved-changes prompt or mutating the active document. Valid dropped files route through `OpenPath`
+with normal unsaved-changes protection, UTF-8/capacity validation, and workspace switching.
+
+`AsyncFiles` uses explicit `AsyncFiles::Phase` (`Idle`, `Loading`, `Saving`, `Completed`, `Closed`) and
+`CancelInFlightLoad()`, while `Application` binds every open, save, or conflict reload inside `ActiveFileTransaction`.
+Failed `OpenPath()` submissions, failed async open completions, and `WM_CLOSE` open cancellation reset `activeFileTx`
+to `std::monostate{}` atomically so no stale `entrySource`, `approvals`, `HeldOpenTx`, or `ConflictReloadTx` survives.
 
 Close during an admitted save hides the window and keeps its notification owner, file worker and recovery
 alive until the actual write/replace completes. Duplicate Close requests and queued editing commands are ignored

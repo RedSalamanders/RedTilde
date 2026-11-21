@@ -432,6 +432,13 @@
       "reason": "current build-receipt admission before packaging"
     },
     {
+      "pattern": "Installer/**",
+      "scopes": [
+        "Tooling"
+      ],
+      "reason": "per-user installer PowerShell syntax and contract validation"
+    },
+    {
       "pattern": "performance-paired.ps1",
       "scopes": [
         "Tooling"

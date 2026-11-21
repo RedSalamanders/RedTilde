@@ -71,7 +71,8 @@ If a behavior has no owning domain spec yet, create that spec in the first chang
 | Ownership, scheduling, limits, and Red-family integration | [Core/Core_Architecture.md](Core/Core_Architecture.md) |
 | Lossless source, commands, views, and resource content | [Editor/Editor_Markdown.md](Editor/Editor_Markdown.md) |
 | Encoding, persistence, conflicts, and recovery | [Core/Core_FileSafety.md](Core/Core_FileSafety.md) |
-| Live appearance, persistence, and local diagnostics | [Core/Core_SettingsAndCrashes.md](Core/Core_SettingsAndCrashes.md) |
+| Live appearance, preferences, and settings persistence | [Core/Core_SettingsAndCrashes.md](Core/Core_SettingsAndCrashes.md) |
+| Local crash diagnostics, protocol-2 reporting, and shutdown drain | [Core/Core_CrashHandling.md](Core/Core_CrashHandling.md) |
 | Performance and resource consumption | [Core/Core_PerformanceAndResources.md](Core/Core_PerformanceAndResources.md) |
 | Writing experience, responsive layout, and accessibility | [UI/UI_DesignSystem.md](UI/UI_DesignSystem.md) |
 | Pinned library and the six build configurations | [Build/Build_Toolchain.md](Build/Build_Toolchain.md) |

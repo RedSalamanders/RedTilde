@@ -1,0 +1,23 @@
+#pragma once
+
+#define REDTILDE_VERSION_MAJOR 0
+#define REDTILDE_VERSION_MINOR 1
+#ifndef REDTILDE_BUILD_NUMBER
+#define REDTILDE_BUILD_NUMBER 0
+#endif
+
+#define REDTILDE_VERSION_SUFFIX " experimental"
+#define REDTILDE_VERSION_SUFFIX_WIDE L" experimental"
+#define REDTILDE_COPYRIGHT "Copyright (c) 2026 RedSalamanders"
+
+#define REDTILDE_STRING_IMPL(value) #value
+#define REDTILDE_STRING(value) REDTILDE_STRING_IMPL(value)
+#define REDTILDE_WSTRING_IMPL(value) L"" #value
+#define REDTILDE_WSTRING(value) REDTILDE_WSTRING_IMPL(value)
+
+#define REDTILDE_VERSION                                                                                                                             \
+    REDTILDE_STRING(REDTILDE_VERSION_MAJOR) "." REDTILDE_STRING(REDTILDE_VERSION_MINOR) "." REDTILDE_STRING(REDTILDE_BUILD_NUMBER)
+#define REDTILDE_VERSION_WIDE                                                                                                                        \
+    REDTILDE_WSTRING(REDTILDE_VERSION_MAJOR) L"." REDTILDE_WSTRING(REDTILDE_VERSION_MINOR) L"." REDTILDE_WSTRING(REDTILDE_BUILD_NUMBER)
+#define REDTILDE_PRODUCT_VERSION REDTILDE_VERSION REDTILDE_VERSION_SUFFIX
+#define REDTILDE_PRODUCT_VERSION_WIDE REDTILDE_VERSION_WIDE REDTILDE_VERSION_SUFFIX_WIDE

@@ -2,6 +2,7 @@
 #include "Common/BitmapAssets.h"
 #include "Common/ProcessWork.h"
 #include <atomic>
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <objbase.h>
@@ -17,6 +18,15 @@ namespace RedTilde
 class BitmapPasteWriter final
 {
   public:
+    enum class Phase : std::uint8_t
+    {
+        Idle,
+        Encoding,
+        Ready,
+        Leased,
+        Retiring,
+        Stopped
+    };
     static constexpr WPARAM Cookie = 0x5254424du;
     struct Result
     {
@@ -50,7 +60,8 @@ class BitmapPasteWriter final
         HWND window{};
         UINT message{};
         std::uint64_t serial{};
-        bool busy{}, leased{}, stopping{};
+        Phase phase{Phase::Idle};
+        bool stopRequested{};
         std::optional<Result> result;
         std::atomic_bool hasResult{};
 #if defined(REDTILDE_ENABLE_TESTS)
@@ -101,12 +112,12 @@ class BitmapPasteWriter final
 #endif
         if (!discard && admitted)
         {
-            bool stopping{};
+            bool stopRequested{};
             {
                 const std::scoped_lock lock(owner->mutex);
-                stopping = owner->stopping;
+                stopRequested = owner->stopRequested;
             }
-            if (stopping)
+            if (stopRequested)
                 result.status = HRESULT_FROM_WIN32(ERROR_OPERATION_ABORTED);
             else
             {
@@ -120,11 +131,11 @@ class BitmapPasteWriter final
         job.reset();
         {
             const std::scoped_lock lock(owner->mutex);
-            if (!owner->stopping && !discard)
+            if (!discard && !owner->stopRequested)
             {
                 owner->result = std::move(result);
                 owner->hasResult.store(true, std::memory_order_release);
-                owner->busy = false;
+                owner->phase = Phase::Ready;
                 owner->Notify();
                 return;
             }
@@ -133,7 +144,7 @@ class BitmapPasteWriter final
         if (FAILED(retired))
             OutputDebugStringW(L"RedTilde: retained a clipboard asset whose cleanup could not be verified.\n");
         const std::scoped_lock lock(owner->mutex);
-        owner->busy = false;
+        owner->phase = owner->stopRequested ? Phase::Stopped : Phase::Idle;
         owner->Notify();
     }
     static HRESULT Launch(std::unique_ptr<Job> job) noexcept
@@ -147,7 +158,7 @@ class BitmapPasteWriter final
         if (SUCCEEDED(status))
             status = HRESULT_FROM_WIN32(GetLastError());
         const std::scoped_lock lock(job->state->mutex);
-        job->state->busy = false;
+        job->state->phase = job->state->stopRequested ? Phase::Stopped : Phase::Idle;
         job->state->Notify();
         if (job->discard)
             OutputDebugStringW(L"RedTilde: retained a clipboard asset because cleanup could not be scheduled.\n");
@@ -183,7 +194,7 @@ class BitmapPasteWriter final
         if (!state || dib.empty() || dib.size() > MaximumClipboardDibBytes)
             return E_INVALIDARG;
         const std::scoped_lock lock(state->mutex);
-        if (state->stopping || state->busy || state->leased || state->result)
+        if (state->stopRequested || state->phase != Phase::Idle)
             return HRESULT_FROM_WIN32(ERROR_BUSY);
         auto job = std::make_unique<Job>();
         job->state = state;
@@ -197,11 +208,11 @@ class BitmapPasteWriter final
         const HRESULT admission = ProcessWork::Acquire(job->lease);
         if (FAILED(admission))
             return admission;
-        state->busy = true;
-        // Submission failure resets busy here, avoiding recursive mutex entry.
+        state->phase = Phase::Encoding;
+        // Submission failure resets phase to Idle here, avoiding recursive mutex entry.
         if (!TrySubmitThreadpoolCallback(Worker, job.get(), nullptr))
         {
-            state->busy = false;
+            state->phase = Phase::Idle;
             return HRESULT_FROM_WIN32(GetLastError());
         }
         (void)job.release();
@@ -211,6 +222,13 @@ class BitmapPasteWriter final
     bool HasResult() const noexcept
     {
         return state && state->hasResult.load(std::memory_order_acquire);
+    }
+    [[nodiscard]] Phase CurrentPhase() const noexcept
+    {
+        if (!state)
+            return Phase::Idle;
+        const std::scoped_lock lock(state->mutex);
+        return state->phase;
     }
 #if defined(REDTILDE_ENABLE_TESTS)
     void SetTestGate(std::shared_ptr<TestGate> gate)
@@ -224,12 +242,12 @@ class BitmapPasteWriter final
         if (!state)
             return false;
         const std::scoped_lock lock(state->mutex);
-        if (!state->result || state->leased)
+        if (state->phase != Phase::Ready || !state->result)
             return false;
         result = std::move(state->result.value());
         state->result.reset();
         state->hasResult.store(false, std::memory_order_release);
-        state->leased = true;
+        state->phase = Phase::Leased;
         return true;
     }
     void Commit(std::uint64_t request) noexcept
@@ -237,9 +255,9 @@ class BitmapPasteWriter final
         if (!state)
             return;
         const std::scoped_lock lock(state->mutex);
-        if (state->leased && request == state->serial)
+        if (state->phase == Phase::Leased && request == state->serial)
         {
-            state->leased = false;
+            state->phase = state->stopRequested ? Phase::Stopped : Phase::Idle;
             state->Notify();
         }
     }
@@ -258,10 +276,9 @@ class BitmapPasteWriter final
         job->result = std::move(result);
         {
             const std::scoped_lock lock(state->mutex);
-            if (!state->leased || job->result.request != state->serial || state->busy)
+            if (state->phase != Phase::Leased || job->result.request != state->serial)
                 return E_UNEXPECTED;
-            state->leased = false;
-            state->busy = true;
+            state->phase = Phase::Retiring;
         }
         return Launch(std::move(job));
     }
@@ -269,22 +286,49 @@ class BitmapPasteWriter final
     {
         if (!state)
             return;
-        Result abandoned;
-        bool discard{};
+        std::unique_ptr<Job> retireJob;
+        if (HasResult())
+            retireJob = std::make_unique<Job>();
+        for (;;)
         {
-            const std::scoped_lock lock(state->mutex);
-            state->stopping = true;
-            if (state->result)
+            bool launchRetire{};
+            bool needAllocate{};
             {
-                abandoned = std::move(state->result.value());
-                state->result.reset();
-                state->hasResult.store(false, std::memory_order_release);
-                state->leased = true;
-                discard = true;
+                const std::scoped_lock lock(state->mutex);
+                state->stopRequested = true;
+                if (state->phase == Phase::Idle)
+                    state->phase = Phase::Stopped;
+                else if (state->phase == Phase::Ready && state->result)
+                {
+                    if (state->result.value().asset.path.empty())
+                    {
+                        state->result.reset();
+                        state->hasResult.store(false, std::memory_order_release);
+                        state->phase = Phase::Stopped;
+                    }
+                    else if (!retireJob)
+                        needAllocate = true;
+                    else
+                    {
+                        retireJob->state = state;
+                        retireJob->discard = true;
+                        retireJob->result = std::move(state->result.value());
+                        state->result.reset();
+                        state->hasResult.store(false, std::memory_order_release);
+                        state->phase = Phase::Retiring;
+                        launchRetire = true;
+                    }
+                }
             }
+            if (needAllocate)
+            {
+                retireJob = std::make_unique<Job>();
+                continue;
+            }
+            if (launchRetire)
+                (void)Launch(std::move(retireJob));
+            return;
         }
-        if (discard)
-            (void)Discard(std::move(abandoned));
     }
     void Detach() noexcept
     {
@@ -299,7 +343,7 @@ class BitmapPasteWriter final
         if (!state)
             return false;
         const std::scoped_lock lock(state->mutex);
-        return state->busy || state->leased;
+        return state->phase == Phase::Encoding || state->phase == Phase::Leased || state->phase == Phase::Retiring;
     }
 };
 } // namespace RedTilde

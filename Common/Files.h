@@ -76,6 +76,16 @@ struct FilesSnapshot
 // The filter matches file names, case-insensitively; an empty filter keeps all rows.
 [[nodiscard]] std::vector<std::size_t> FilterMarkdownFiles(const FilesSnapshot &snapshot, std::wstring_view filter);
 
+enum class FilesPhase : std::uint8_t
+{
+    Idle,
+    Scanning,
+    Watching,
+    CoalescingWatch,
+    Failed,
+    Closed
+};
+
 // One retained event-driven worker and one latest root/result. A new request
 // cancels the old scan; publication and consumption reject its generation/revision.
 // Close invalidates HWND posting and asks the worker to drain its own directory
@@ -91,14 +101,24 @@ class FilesService final
     [[nodiscard]] HRESULT SetRoot(std::filesystem::path root) noexcept;
     [[nodiscard]] HRESULT Refresh() noexcept;
     [[nodiscard]] std::optional<FilesSnapshot> TakeResult();
+    [[nodiscard]] FilesPhase CurrentPhase() const noexcept;
+    [[nodiscard]] bool IsFailed() const noexcept;
+    [[nodiscard]] bool IsActive() const noexcept;
     [[nodiscard]] bool Busy() const noexcept;
     [[nodiscard]] HRESULT Status() const noexcept;
     [[nodiscard]] std::uint64_t Generation() const noexcept;
     void Close() noexcept;
+#if defined(REDTILDE_ENABLE_TESTS)
+    void FailNextInitializeForTest(HRESULT hr) noexcept;
+    void SimulateWorkerFailureForTest(HRESULT hr) noexcept;
+#endif
 
   private:
     struct State;
     std::shared_ptr<State> state;
+#if defined(REDTILDE_ENABLE_TESTS)
+    std::optional<HRESULT> nextInitializeFailureForTest;
+#endif
 };
 
 struct FileChangeNotice

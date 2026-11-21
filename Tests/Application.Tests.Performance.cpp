@@ -679,7 +679,7 @@ class PerformanceProbe
                 DispatchMessageW(&message);
             }
         }
-        if (app.closing)
+        if (app.IsClosing())
         {
             app.FinishClose();
             return count;
@@ -860,12 +860,12 @@ class PerformanceProbe
         else
             unavailable("sourceUnits");
         if constexpr (requires {
-                          application.savedText.size();
-                          application.savedText.capacity();
+                          application.session.savedText.size();
+                          application.session.savedText.capacity();
                       })
         {
-            number("savedTextUnits", application.savedText.size());
-            number("savedTextCapacityUnits", application.savedText.capacity());
+            number("savedTextUnits", application.session.savedText.size());
+            number("savedTextCapacityUnits", application.session.savedText.capacity());
         }
         else
         {
@@ -873,12 +873,12 @@ class PerformanceProbe
             unavailable("savedTextCapacityUnits");
         }
         if constexpr (requires {
-                          application.cachedText.size();
-                          application.cachedText.capacity();
+                          application.derivedCaches.cachedText.size();
+                          application.derivedCaches.cachedText.capacity();
                       })
         {
-            number("cachedTextUnits", application.cachedText.size());
-            number("cachedTextCapacityUnits", application.cachedText.capacity());
+            number("cachedTextUnits", application.derivedCaches.cachedText.size());
+            number("cachedTextCapacityUnits", application.derivedCaches.cachedText.capacity());
         }
         else
         {
@@ -950,12 +950,12 @@ class PerformanceProbe
             unavailable("imageRequestCapacityItems");
         }
         if constexpr (requires {
-                          application.cachedSource.has_value();
-                          application.cachedSource->Length();
+                          application.derivedCaches.cachedSource.has_value();
+                          application.derivedCaches.cachedSource->Length();
                       })
         {
-            boolean("cachedSourcePresent", application.cachedSource.has_value());
-            number("cachedSourceUnits", application.cachedSource ? application.cachedSource->Length() : 0);
+            boolean("cachedSourcePresent", application.derivedCaches.cachedSource.has_value());
+            number("cachedSourceUnits", application.derivedCaches.cachedSource ? application.derivedCaches.cachedSource->Length() : 0);
         }
         else
         {
@@ -963,12 +963,12 @@ class PerformanceProbe
             unavailable("cachedSourceUnits");
         }
         if constexpr (requires {
-                          application.mirroredSource.has_value();
-                          application.mirroredSource->Length();
+                          application.derivedCaches.mirroredSource.has_value();
+                          application.derivedCaches.mirroredSource->Length();
                       })
         {
-            boolean("mirroredSourcePresent", application.mirroredSource.has_value());
-            number("mirroredSourceUnits", application.mirroredSource ? application.mirroredSource->Length() : 0);
+            boolean("mirroredSourcePresent", application.derivedCaches.mirroredSource.has_value());
+            number("mirroredSourceUnits", application.derivedCaches.mirroredSource ? application.derivedCaches.mirroredSource->Length() : 0);
         }
         else
         {
@@ -976,12 +976,13 @@ class PerformanceProbe
             unavailable("mirroredSourceUnits");
         }
         if constexpr (requires {
-                          application.selectionFactsSource.has_value();
-                          application.selectionFactsSource->Length();
+                          application.derivedCaches.selectionFactsSource.has_value();
+                          application.derivedCaches.selectionFactsSource->Length();
                       })
         {
-            boolean("selectionFactsSourcePresent", application.selectionFactsSource.has_value());
-            number("selectionFactsSourceUnits", application.selectionFactsSource ? application.selectionFactsSource->Length() : 0);
+            boolean("selectionFactsSourcePresent", application.derivedCaches.selectionFactsSource.has_value());
+            number("selectionFactsSourceUnits",
+                   application.derivedCaches.selectionFactsSource ? application.derivedCaches.selectionFactsSource->Length() : 0);
         }
         else
         {
@@ -989,12 +990,13 @@ class PerformanceProbe
             unavailable("selectionFactsSourceUnits");
         }
         if constexpr (requires {
-                          application.documentAnalysisSource.has_value();
-                          application.documentAnalysisSource->Length();
+                          application.derivedCaches.documentAnalysisSource.has_value();
+                          application.derivedCaches.documentAnalysisSource->Length();
                       })
         {
-            boolean("documentAnalysisSourcePresent", application.documentAnalysisSource.has_value());
-            number("documentAnalysisSourceUnits", application.documentAnalysisSource ? application.documentAnalysisSource->Length() : 0);
+            boolean("documentAnalysisSourcePresent", application.derivedCaches.documentAnalysisSource.has_value());
+            number("documentAnalysisSourceUnits",
+                   application.derivedCaches.documentAnalysisSource ? application.derivedCaches.documentAnalysisSource->Length() : 0);
         }
         else
         {
@@ -1002,12 +1004,13 @@ class PerformanceProbe
             unavailable("documentAnalysisSourceUnits");
         }
         if constexpr (requires {
-                          application.committedAnalysisSource.has_value();
-                          application.committedAnalysisSource->Length();
+                          application.derivedCaches.committedAnalysisSource.has_value();
+                          application.derivedCaches.committedAnalysisSource->Length();
                       })
         {
-            boolean("committedAnalysisSourcePresent", application.committedAnalysisSource.has_value());
-            number("committedAnalysisSourceUnits", application.committedAnalysisSource ? application.committedAnalysisSource->Length() : 0);
+            boolean("committedAnalysisSourcePresent", application.derivedCaches.committedAnalysisSource.has_value());
+            number("committedAnalysisSourceUnits",
+                   application.derivedCaches.committedAnalysisSource ? application.derivedCaches.committedAnalysisSource->Length() : 0);
         }
         else
         {
@@ -1015,12 +1018,14 @@ class PerformanceProbe
             unavailable("committedAnalysisSourceUnits");
         }
         if constexpr (requires {
-                          application.selectionFactsSyntax->Nodes().size();
-                          application.selectionFactsSyntax->Inlines().size();
+                          application.derivedCaches.selectionFactsSyntax->Nodes().size();
+                          application.derivedCaches.selectionFactsSyntax->Inlines().size();
                       })
         {
-            number("selectionSyntaxNodes", application.selectionFactsSyntax ? application.selectionFactsSyntax->Nodes().size() : 0);
-            number("selectionSyntaxInlines", application.selectionFactsSyntax ? application.selectionFactsSyntax->Inlines().size() : 0);
+            number("selectionSyntaxNodes",
+                   application.derivedCaches.selectionFactsSyntax ? application.derivedCaches.selectionFactsSyntax->Nodes().size() : 0);
+            number("selectionSyntaxInlines",
+                   application.derivedCaches.selectionFactsSyntax ? application.derivedCaches.selectionFactsSyntax->Inlines().size() : 0);
         }
         else
         {
@@ -1421,7 +1426,7 @@ class PerformanceProbe
             const auto image = options.dataDirectory / L"resource-input.png";
             Require(app.Capture(image), "native resource image fixture capture failed");
             const auto resourceSource = source + L"\n\n![Native resource fixture](<" + image.generic_wstring() + L">)\n";
-            app.SetDocument(resourceSource, app.documentPath, app.bom);
+            app.SetDocument(resourceSource, app.session.path, app.session.bom);
             app.host.SetFocusControl(nullptr, false);
             Ready(resourceSource);
             gpu->Wait();

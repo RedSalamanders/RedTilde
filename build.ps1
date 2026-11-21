@@ -12,6 +12,15 @@ $ErrorActionPreference='Stop'
 if ($env:CI_NATIVE_BUILDS_DISABLED -eq 'true') { throw 'Native builds are forbidden in compiler-free PR checks.' }
 if ($ProductionOnly -and $Configuration -ne 'Release') { throw 'ProductionOnly requires Release.' }
 if($DxUiSdkInputDescriptor -and $Configuration -cne 'Release'){throw 'Pinned SDK inputs require Release; Debug/ASan use source.'}
+$versionHeaderPath=Join-Path $PSScriptRoot 'Common/Version.h'
+if(-not(Test-Path -LiteralPath $versionHeaderPath -PathType Leaf)){throw 'Version header Common/Version.h is missing.'}
+$versionHeader=[IO.File]::ReadAllText($versionHeaderPath)
+$majorMatch=[regex]::Match($versionHeader,'(?m)^\s*#define\s+REDTILDE_VERSION_MAJOR\s+(?<value>\d+)\s*$')
+$minorMatch=[regex]::Match($versionHeader,'(?m)^\s*#define\s+REDTILDE_VERSION_MINOR\s+(?<value>\d+)\s*$')
+if(-not $majorMatch.Success -or -not $minorMatch.Success){throw 'Common/Version.h must define non-negative integer REDTILDE_VERSION_MAJOR and REDTILDE_VERSION_MINOR.'}
+$versionMajor=[int]$majorMatch.Groups['value'].Value
+$versionMinor=[int]$minorMatch.Groups['value'].Value
+$productVersion="$versionMajor.$versionMinor.$BuildNumber"
 $env:RedTildeBuildNumber = [string]$BuildNumber
 $env:RedTildeEnableTests = if ($ProductionOnly) { 'false' } else { 'true' }
 $nativeEntryElapsed = [Diagnostics.Stopwatch]::StartNew()
@@ -103,7 +112,9 @@ $postBuildInputs=Get-RedTildeBuildInputSnapshot -Root $PSScriptRoot -Platform $P
 if($buildInputs.identity -cne $postBuildInputs.identity){throw 'Compiled source, dependency or compiler context changed during the build. Rebuild before accepting this artifact.'}
 $artifactIdentity=Get-RedTildeArtifactIdentity $PSScriptRoot $Platform $Configuration
 $version=[Diagnostics.FileVersionInfo]::GetVersionInfo((Join-Path $output 'RedTilde.exe'))
-if($version.FileBuildPart -ne $BuildNumber){throw 'The compiled executable does not carry the frozen build number.'}
+if($version.FileMajorPart -ne $versionMajor -or $version.FileMinorPart -ne $versionMinor -or $version.FileBuildPart -ne $BuildNumber){
+    throw "The compiled executable version ($($version.FileMajorPart).$($version.FileMinorPart).$($version.FileBuildPart)) does not match $productVersion."
+}
 if($null -ne $sdkInput){$dependency=@{Fingerprint=$sdkInput.Evidence.inputKey;Identity=$sdkInput.Evidence.identity};$dependencyRecipe=$sdkInput.Evidence}
 else{$dependency=Get-Content (Join-Path $PSScriptRoot ".build/dependencies/DxUi/DxUi.identity.$Platform.json") -Raw | ConvertFrom-Json;$dependencyRecipe=@{recipe='PinnedSource'}}
 $success=[ordered]@{schemaVersion=2;passed=$true;sourceIdentity=$sourceIdentity;compiledSourceIdentity=$buildInputs.compiledSourceIdentity;
@@ -113,7 +124,7 @@ $success=[ordered]@{schemaVersion=2;passed=$true;sourceIdentity=$sourceIdentity;
     dependencyHeadersSha256=$buildInputs.dependencyHeadersSha256;dependencyResolvedPropsSha256=$buildInputs.dependencyResolvedPropsSha256;
     compilerContextSha256=$buildInputs.compilerContextSha256;
     platform=$Platform;configuration=$Configuration;dependency=$dependency;dependencyRecipe=$dependencyRecipe;artifactIdentity=$artifactIdentity;
-    buildNumber=$BuildNumber;testsEnabled=(-not [bool]$ProductionOnly);
+    version=$productVersion;buildNumber=$BuildNumber;testsEnabled=(-not [bool]$ProductionOnly);
     binarySha256=(Get-FileHash (Join-Path $output 'RedTilde.exe') -Algorithm SHA256).Hash;
     startedUtc=$started.ToString('o');finishedUtc=[DateTime]::UtcNow.ToString('o');runtimeExecuted=$false}
 if($null -ne $sdkInput){
@@ -135,5 +146,6 @@ try{
     [IO.File]::Move($receiptTemporary,$receiptPath,$true)
 }finally{if(Test-Path -LiteralPath $receiptTemporary){Remove-Item -LiteralPath $receiptTemporary -Force}}
 Write-NativeBuildResult -Project RedTilde -Platform $Platform -Configuration $Configuration -LogPath $log -Artifacts @((Join-Path $output 'RedTilde.exe')) -Executable (Join-Path $output 'RedTilde.exe') -Duration $nativeEntryElapsed.Elapsed
+Write-Host "Version: $productVersion"
 }catch{$sdkFailure=$_;throw}
 finally{if($null -ne $sdkInput -and -not $sdkInput.Closed){try{Close-CiPinnedSdkInput $sdkInput}catch{if($null -eq $sdkFailure){throw}else{Write-Warning ('SDK close also failed: '+$_.Exception.Message)}}}}

@@ -50,21 +50,13 @@ Editing those during compilation causes the full-source guard to refuse the resu
 are unchanged. Update checklists between operations. Between builds, unchanged compiled inputs may support
 receipt-verified incremental reuse; this never relabels an earlier run's full source identity.
 
-`restore-dxui.ps1` validates the exact lock, creates an isolated detached checkout and invokes the supported
+`restore-dxui.ps1` validates the exact lock (`apiRevision: 5`), creates an isolated detached checkout and invokes the supported
 consumer build-identity and dependency-restore APIs. It never resets/cleans a sibling checkout. Fingerprint source,
 API, toolchain, platform and flags. Import the public consumer props/targets and reference the single archive.
-The initial-frame host option is adopted only with its exact SDK revision and a complete consumer rebuild;
-API revision 4 alone does not permit mixing a newer host header with an older static library or consumer object.
-
-Optional read-only parsed-snapshot reuse follows that same source-coordinated rule. API revision 4 is retained
-for the additive methods, while MarkdownSyntax gains an immutable shared owner and changes object layout.
-Adopt the exact source pin, rebuild every consumer profile, and retain its exact source/package header inventory.
-An isolated method/layout probe supports a fixed comparison profile; it does not substitute for native linking,
-consumer behavior, platform execution or performance qualification.
-
-The ProgressBar animation-pause API also adds private class state while retaining API revision 4. A dependency
-update across that addition requires matching exact public headers and library plus all consumer profile rebuilds.
-A measured source/layout probe does not imply binary interchangeability with the older archive.
+API revision 5 is the current DxUi contract consumed by RedTilde; host options, read-only parsed-snapshot reuse,
+progress-bar animation state, and source-coordinated headers require matching exact `Dependencies/DxUi.lock.json`
+headers and static library across a complete consumer rebuild. An isolated method/layout probe does not substitute
+for native linking, consumer behavior, platform execution or performance qualification.
 
 Deeply nested workspaces can exceed the compiler's path limit while CMake probes the dependency build, even
 with Git long paths enabled. Retain the original configure/compiler logs. The pinned SDK's supported
@@ -80,9 +72,19 @@ reach the network: a partial clone fails the restore with "Could not resolve hos
 completed in place; nothing is deleted, and a checkout of another repository is refused.
 
 Support x64/ARM64 Debug, Release and ASan Debug. ASan Debug must have compiler instrumentation and the matching
-staged runtime. Native tests must execute on the target architecture. `build.ps1` rejects a running executable
-from its selected output directory and does not terminate it. Packaging produces a portable app with examples,
-license notices and a capability-status note. A release cannot depend on an unqualified moving PR branch.
+staged runtime. Native tests must execute on the target architecture. `build.ps1` validates `Common/Version.h`
+(`REDTILDE_VERSION_MAJOR` and `REDTILDE_VERSION_MINOR`), checks that the compiled `RedTilde.exe` `FileVersionInfo`
+matches `$versionMajor.$versionMinor.$BuildNumber`, rejects a running executable from its selected output directory,
+and does not terminate it. Packaging (`package.ps1`) verifies `RedTilde.exe` `FileVersionInfo` against both the build
+receipt and `Common/Version.h`, stages `README.md` (`docs/Portable.md`), `capabilities.json`, `examples/`, `res/`,
+licenses (`LICENSE.txt`, `THIRD-PARTY-NOTICES.md`, `Dependencies/RedMonitor-LICENSE.txt`, `Dependencies/WIL-LICENSE.txt`,
+`Dependencies/DxUi-LICENSE.txt`, `Dependencies/DxUi-THIRD-PARTY-NOTICES.md`, `Dependencies/docs/licenses/`,
+`Dependencies/libfyaml-LICENSE.txt`, `Dependencies/libfyaml-xxHash-LICENSE.txt`, or `Dependencies/DxUiSdk` in SDK-input
+packages), writes a `.sha256` sidecar beside the ZIP, and runs clean-extraction smoke (`--help`, `--version`, hidden
+capture, and all 16 test-entry refusals). [`Installer/Install-RedTilde.ps1`](../../Installer/Install-RedTilde.ps1)
+provides un-elevated per-user installation to `%LOCALAPPDATA%\Programs\RedTilde`, Start Menu shortcut creation, HKCU
+Uninstall registration, optional `.md`/`.markdown` `OpenWithProgids` registration, and clean uninstall while preserving
+`%LOCALAPPDATA%\RedTilde`. A release cannot depend on an unqualified moving PR branch.
 
 `build.ps1` hashes the compiled first-party source map by file bytes, so restored or preserved timestamps cannot make
 changed source appear current. Before MSBuild it verifies the exact DxUi lock commit and a clean pinned source checkout,
@@ -140,7 +142,18 @@ Active Windows compilation/tooling workflows use the local setup-msvc composite 
 
 RedMonitor is installed independently. Builds verify the local pinned client header/license and never compile or package the helper; see [RedMonitor integration](../Core/Core_RedMonitorIntegration.md).
 
-Hosted setup waits for the hidden, owned GUI bootstrapper with both its --wait switch and PowerShell Start-Process -Wait. It reads that process's explicit exit code (0 or 3010), then rechecks the required compiler family and complete target tools. Ambient LASTEXITCODE cannot establish installer success. Paths with spaces stay one argument; installer stdout, stderr and fresh dd_* logs remain downloadable on failure. Delayed-GUI, stale-exit, wrong-family, missing-tool, signature and local/read-only refusal controls exercise the actual setup script without running an installer.
+Hosted setup (`.github/actions/setup-msvc/Setup.ps1`) enforces a 260-UTF-16-unit guard on the planned bootstrapper
+path before downloading (`$installer.Length -ge 260`), bounds bootstrapper download (`180` seconds) and installer
+execution (`1800` seconds, killing the owned installer tree and waiting up to `15` seconds on timeout), waits with
+both `--wait` and `Start-Process`/`WaitForExit`, reads the explicit exit code (`0` or `3010`), and rechecks the
+required compiler family and complete target tools. Ambient `LASTEXITCODE` cannot establish installer success. Paths
+with spaces stay one argument; installer stdout, stderr and fresh `dd_*` logs remain downloadable on failure.
+Delayed-GUI, stale-exit, wrong-family, missing-tool, signature and local/read-only refusal controls exercise the
+actual setup script without running an installer. `Tests/Tooling.Tests.ResourceStrings.ps1` checks `res/RedTilde.rc`
+(`#pragma code_page(65001)`), `res/Resource.h` parity, positional placeholders without printf specifiers, and C++
+`IDS_*` definitions during `validate.ps1`. `Build/ScopedTesting.psm1` exposes `Resolve-ScopedIterationDisposition`
+(`BaselineAdvanced`, `PartialRunRetained`, `FailedRetained`, `MutatedWorktreeRetained`, `CiPending`, `NothingSelected`)
+to enforce explicit iteration-baseline dispositions.
 
 The [native policy, console and dependency-path contract](Build_ConsoleAndPaths.md) owns /Wall without /WX, zero-warning acceptance, Debug/ASan symbols, Release-only ICF, common terminal results and verified short dependency folders.
 

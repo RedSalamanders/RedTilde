@@ -1,4 +1,5 @@
 #include "Application.h"
+#include "Common/Version.h"
 #include "res/Resource.h"
 #include <DxUi/Typography.h>
 #include <algorithm>
@@ -316,11 +317,11 @@ HRESULT Application::BuildUi()
     outlineModel.expanded = [this](std::uint64_t id, bool value)
     {
         if (value)
-            collapsedHeadings.erase(id);
+            session.collapsedHeadings.erase(id);
         else
-            collapsedHeadings.insert(id);
-        if (previewCollapsedHeadings && PreviewOutlineMatchesCommitted())
-            previewCollapsedHeadings = collapsedHeadings;
+            session.collapsedHeadings.insert(id);
+        if (outlinePreviewBaseline && PreviewOutlineMatchesCommitted())
+            outlinePreviewBaseline->collapsedHeadings = session.collapsedHeadings;
         RefreshOutline();
     };
     currentBlock = Label(*sidebar, IDS_CURRENTBLOCK, DxUi::FontRole::Small);
@@ -386,13 +387,26 @@ HRESULT Application::BuildUi()
         if (id > WorkspaceGroupId && id <= WorkspaceGroupId + RecoveryService::MaximumDocuments)
         {
             const auto key = static_cast<unsigned>(id - WorkspaceGroupId - 1);
-            if (key != activeDocumentKey)
-                for (std::size_t index = 0; index < inactiveDocuments.size(); ++index)
-                    if (inactiveDocuments[index].recoveryKey == key)
+            if (key == session.key)
+            {
+                workspaceSelectionPreferred = true;
+                if (filesTree->GetSelectedItemId() != id)
+                    filesTree->SetSelectedItemId(id);
+                return;
+            }
+            for (std::size_t index = 0; index < inactiveDocuments.size(); ++index)
+                if (inactiveDocuments[index].metadata.key == key)
+                {
+                    const bool previous = workspaceSelectionPreferred;
+                    workspaceSelectionPreferred = true;
+                    if (!SwitchWorkspaceDocument(index))
                     {
-                        (void)SwitchWorkspaceDocument(index);
-                        break;
+                        workspaceSelectionPreferred = previous;
+                        if (IsUiAttached())
+                            RefreshFiles();
                     }
+                    break;
+                }
             return;
         }
         if (id && id <= visibleFilePaths.size())
@@ -403,6 +417,8 @@ HRESULT Application::BuildUi()
         if (id == WorkspaceGroupId)
         {
             workspaceCollapsed = !expanded;
+            if (workspaceCollapsed)
+                workspaceSelectionPreferred = false;
             RefreshFiles();
             return;
         }
@@ -500,6 +516,15 @@ HRESULT Application::BuildUi()
     imageFirstPasteToggle->SetAccessibleHelpText(Resource(IDS_IMAGEFIRSTPASTEHELP));
     writingTitle = Label(*settingsScroll, IDS_WRITINGSECTION, DxUi::FontRole::Small);
     Section(writingTitle);
+    aboutTitle = Label(*settingsScroll, IDS_ABOUTSECTION, DxUi::FontRole::Small);
+    Section(aboutTitle);
+    aboutVersion = settingsScroll->AddChild<DxUi::Label>(FormatStringResource(nullptr, IDS_ABOUTVERSION, REDTILDE_PRODUCT_VERSION_WIDE));
+    aboutVersion->SetFontRole(DxUi::FontRole::BodyStrong);
+    THROW_IF_FAILED(aboutVersion->SetTypographyOverride(DxUi::LabelTypography{14.f, DWRITE_FONT_WEIGHT_SEMI_BOLD, 0}));
+    aboutSummary = Label(*settingsScroll, IDS_ABOUT, DxUi::FontRole::Small);
+    aboutSummary->SetMultiline(true);
+    shortcutsList = Label(*settingsScroll, IDS_SHORTCUTS, DxUi::FontRole::Small);
+    shortcutsList->SetMultiline(true);
     findBar = root->AddChild<Surface>(Surface::Kind::Floating);
     findBar->SetVisible(false);
     findText = findBar->AddChild<DxUi::TextField>();
@@ -813,7 +838,7 @@ void Application::Layout()
     const float drawerLeft = width - 380;
     drawer->SetBounds(D2D1::RectF(drawerLeft, top, width, bottom));
     settingsScroll->SetBounds(D2D1::RectF(drawerLeft + 16, top + 12, width - 8, bottom - 12));
-    settingsScroll->SetContentHeight(1658);
+    settingsScroll->SetContentHeight(1934);
     const float dx = drawerLeft + 24;
     settingsScroll->GetLogicalChild(0)->SetBounds(D2D1::RectF(dx, top + 20, width - 24, top + 52));
     settingsScroll->GetLogicalChild(1)->SetBounds(D2D1::RectF(dx, top + 68, width - 24, top + 92));
@@ -866,11 +891,16 @@ void Application::Layout()
     recoveryAction->SetBounds(D2D1::RectF(dx, privacy + 228, width - 24, privacy + 264));
     drawerClose->SetBounds(D2D1::RectF(dx + 224, privacy + 276, width - 24, privacy + 312));
     drawerImmediate->SetBounds(D2D1::RectF(dx, privacy + 276, width - 160, privacy + 312));
+    const float about = privacy + 336;
+    aboutTitle->SetBounds(D2D1::RectF(dx, about, width - 24, about + 24));
+    aboutVersion->SetBounds(D2D1::RectF(dx, about + 30, width - 24, about + 54));
+    aboutSummary->SetBounds(D2D1::RectF(dx, about + 58, width - 24, about + 98));
+    shortcutsList->SetBounds(D2D1::RectF(dx, about + 106, width - 24, about + 250));
     const bool wideFind = right - left >= 660.f;
     const float fx = std::max(16.f, right - (wideFind ? 644.f : 476.f)), fy = top + 12;
     findBar->SetBounds(D2D1::RectF(fx, fy, right - 16, fy + (wideFind ? 104.f : 148.f)));
     findText->SetBounds(D2D1::RectF(fx + 12, fy + 10, fx + 204, fy + 46));
-    findCaseToggle->SetToggleState(findMatchCase);
+    findCaseToggle->SetToggleState(find.matchCase);
     findCaseToggle->SetBounds(wideFind ? D2D1::RectF(fx + 212.f, fy + 10.f, fx + 320.f, fy + 46.f)
                                        : D2D1::RectF(fx + 12.f, fy + 104.f, fx + 146.f, fy + 140.f));
     const float findStatus = wideFind ? 328.f : 212.f;
@@ -884,15 +914,17 @@ void Application::Layout()
     findBar->GetLogicalChild(7)->SetBounds(D2D1::RectF(fx + 334, fy + 58, fx + 448, fy + 94));
     const float draftLeft = std::max(left + 16, (left + right - 680) / 2), draftRight = std::min(right - 16, draftLeft + 680);
     float draftTop = top + 72;
-    pendingBlockPlacement = false;
-    if (blockDraft->IsVisible())
+    if (blockDraftSession)
+        blockDraftSession->pendingPlacement = false;
+    if (activeOverlay == OverlayKind::BlockDraftModal && blockDraftSession)
     {
-        if (const auto rects = editor->TryGetTextInputRangeRects(host, blockDraftRange.first, blockDraftRange.last); rects && !rects->empty())
+        const auto &range = blockDraftSession->range;
+        if (const auto rects = editor->TryGetTextInputRangeRects(host, range.first, range.last); rects && !rects->empty())
             draftTop = rects->back().bottom + 8;
-        else if (const auto caret = editor->TryGetTextInputCaretRect(host, blockDraftRange.first))
+        else if (const auto caret = editor->TryGetTextInputCaretRect(host, range.first))
             draftTop = caret->bottom + 8; // Empty/hidden-only source still has a prepared insertion site.
         else
-            pendingBlockPlacement = true;
+            blockDraftSession->pendingPlacement = true;
     }
     draftTop = std::clamp(draftTop, top + 8, std::max(top + 8, bottom - 244));
     blockDraft->SetBounds(D2D1::RectF(draftLeft, draftTop, draftRight, draftTop + 232));
@@ -931,12 +963,12 @@ void Application::Layout()
     title->SetTextColor(focus ? std::optional(host.GetTheme().subduedText) : std::nullopt);
     stats->SetVisible(true);
     positionStatus->SetVisible(!focus);
-    const auto name = documentPath.empty() ? Resource(IDS_UNTITLED) : documentPath.filename().native();
+    const auto name = session.path.empty() ? Resource(IDS_UNTITLED) : session.path.filename().native();
     title->SetText(focus && Dirty() ? name + L" · " + Resource(IDS_CHANGED) : name);
     feedback->SetBounds(D2D1::RectF(left + 16, bottom - 22, right - 16, bottom));
     // Reposition only an already visible toolbar: resize must not reopen
     // tools that Escape or another contextual surface deliberately dismissed.
-    if (floating->IsVisible())
+    if (activeOverlay == OverlayKind::FloatingSelectionTools)
         SelectionChanged();
     host.Invalidate();
 }

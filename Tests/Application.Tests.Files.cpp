@@ -1,9 +1,13 @@
 #include "Application.Tests.Files.h"
 #include "Common/DocumentInfo.h"
 #include "Common/Files.h"
+#include "Common/Recovery.h"
 #include "Common/Settings.h"
 #include "Common/Storage.h"
+#include "RedTilde/Application.h"
+#include "RedTilde/AsyncFiles.h"
 #include "Support/Support.Tests.FilesFixtures.h"
+#include "res/Resource.h"
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -47,6 +51,27 @@ FilesSnapshot AwaitSnapshot(FilesService &service, const std::function<bool(cons
     throw std::runtime_error("Files service did not publish the expected latest snapshot");
 }
 } // namespace
+
+class FilesProbe
+{
+  public:
+    static void SelectRoot(Application &app, const std::filesystem::path &path)
+    {
+        app.SelectFilesRoot(path);
+    }
+    static FilesService &Service(Application &app) noexcept
+    {
+        return app.folderFiles;
+    }
+    static const std::optional<FilesSnapshot> &Snapshot(const Application &app) noexcept
+    {
+        return app.folderSnapshot;
+    }
+    static const NavigationModel &Model(const Application &app) noexcept
+    {
+        return app.filesModel;
+    }
+};
 
 void RegisterFilesTests(const std::filesystem::path &root, const std::function<void(std::string_view, const std::function<void()> &)> &test)
 {
@@ -499,6 +524,250 @@ void RegisterFilesTests(const std::filesystem::path &root, const std::function<v
                          !syntax.SyntaxEnabled(MarkdownSyntax::WikiLinks) && syntax.SyntaxEnabled(MarkdownSyntax::DefinitionLists) &&
                          syntax.SyntaxEnabled(MarkdownSyntax::Abbreviations),
                      "invalid or unknown syntax keys keep the enabled default while valid neighbors apply");
+         });
+    test("Files.AsyncFilesPhaseTransitionsAndCancelLoad",
+         [&]
+         {
+             constexpr UINT message = WM_APP + 316;
+             wil::unique_hwnd window(
+                 CreateWindowExW(0, L"STATIC", L"AsyncFiles phase sink", 0, 0, 0, 0, 0, HWND_MESSAGE, nullptr, GetModuleHandleW(nullptr), nullptr));
+             Require(static_cast<bool>(window), "create hidden message-only AsyncFiles sink");
+             const auto base = root / L"async-files-phase";
+             std::filesystem::create_directories(base);
+             const auto first = base / L"first.md", second = base / L"second.md", savedPath = base / L"saved.md";
+             Success(WriteBytesAtomic(first, "# First\n"), "seed first AsyncFiles fixture");
+             Success(WriteBytesAtomic(second, "# Second\n"), "seed second AsyncFiles fixture");
+             AsyncFiles files;
+             files.Initialize(window.get(), message);
+             Require(files.CurrentPhase() == AsyncFiles::Phase::Idle && !files.Busy() && !files.Saving() && !files.HasPendingSave(),
+                     "initialized AsyncFiles starts in Idle");
+             auto gate1 = std::make_shared<AsyncFiles::TestGate>();
+             const auto release1 = wil::scope_exit(
+                 [&]
+                 {
+                     (void)SetEvent(gate1->proceed.get());
+                     if (WaitForSingleObject(gate1->entered.get(), 0) == WAIT_OBJECT_0)
+                         (void)WaitForSingleObject(gate1->finished.get(), 10000);
+                 });
+             files.SetTestGate(gate1);
+             Success(files.Submit(false, first), "admit first load");
+             Require(files.CurrentPhase() == AsyncFiles::Phase::Loading && files.Busy() && !files.Saving() && !files.HasPendingSave(),
+                     "Submit load enters Loading");
+             Require(WaitForSingleObject(gate1->entered.get(), 10000) == WAIT_OBJECT_0, "first load reaches test gate");
+             Require(files.Submit(false, second) == HRESULT_FROM_WIN32(ERROR_BUSY), "Loading refuses concurrent Submit");
+             Require(SetEvent(gate1->proceed.get()) != FALSE && WaitForSingleObject(gate1->finished.get(), 10000) == WAIT_OBJECT_0,
+                     "first load finishes");
+             Require(files.CurrentPhase() == AsyncFiles::Phase::Completed && files.Busy() && !files.Saving() && !files.HasPendingSave(),
+                     "finished load enters Completed and remains Busy until Take");
+             const auto firstResult = files.Take();
+             Require(firstResult && SUCCEEDED(firstResult.value().status) && !firstResult.value().saving &&
+                         firstResult.value().document.text == L"# First\n",
+                     "Take returns completed load result");
+             Require(files.CurrentPhase() == AsyncFiles::Phase::Idle && !files.Busy() && !files.Saving() && !files.HasPendingSave(),
+                     "Take returns AsyncFiles to Idle");
+
+             auto gate2 = std::make_shared<AsyncFiles::TestGate>();
+             const auto release2 = wil::scope_exit(
+                 [&]
+                 {
+                     (void)SetEvent(gate2->proceed.get());
+                     if (WaitForSingleObject(gate2->entered.get(), 0) == WAIT_OBJECT_0)
+                         (void)WaitForSingleObject(gate2->finished.get(), 10000);
+                 });
+             files.SetTestGate(gate2);
+             Success(files.Submit(true, savedPath, L"# Saved\n", false), "admit save");
+             Require(files.CurrentPhase() == AsyncFiles::Phase::Saving && files.Busy() && files.Saving() && files.HasPendingSave(),
+                     "Submit save enters Saving");
+             Require(WaitForSingleObject(gate2->entered.get(), 10000) == WAIT_OBJECT_0, "save reaches test gate");
+             Require(SetEvent(gate2->proceed.get()) != FALSE && WaitForSingleObject(gate2->finished.get(), 10000) == WAIT_OBJECT_0, "save finishes");
+             Require(files.CurrentPhase() == AsyncFiles::Phase::Completed && files.Busy() && !files.Saving() && files.HasPendingSave(),
+                     "completed save clears Saving() while preserving HasPendingSave() and Busy() until Take()");
+             files.CancelInFlightLoad();
+             Require(files.CurrentPhase() == AsyncFiles::Phase::Completed && files.HasPendingSave(),
+                     "CancelInFlightLoad never discards a completed pending save");
+             const auto saveResult = files.Take();
+             Require(saveResult && SUCCEEDED(saveResult.value().status) && saveResult.value().saving &&
+                         files.CurrentPhase() == AsyncFiles::Phase::Idle,
+                     "Take consumes completed save and transitions to Idle");
+
+             auto gate3 = std::make_shared<AsyncFiles::TestGate>();
+             const auto release3 = wil::scope_exit(
+                 [&]
+                 {
+                     (void)SetEvent(gate3->proceed.get());
+                     if (WaitForSingleObject(gate3->entered.get(), 0) == WAIT_OBJECT_0)
+                         (void)WaitForSingleObject(gate3->finished.get(), 10000);
+                 });
+             files.SetTestGate(gate3);
+             Success(files.Submit(false, first), "admit blocked load to cancel");
+             Require(WaitForSingleObject(gate3->entered.get(), 10000) == WAIT_OBJECT_0, "blocked load reaches test gate");
+             files.CancelInFlightLoad();
+             Require(files.CurrentPhase() == AsyncFiles::Phase::Idle && !files.Busy() && !files.HasPendingSave(),
+                     "CancelInFlightLoad detaches blocked reader and returns immediately to Idle");
+             auto gate4 = std::make_shared<AsyncFiles::TestGate>();
+             Require(SetEvent(gate4->proceed.get()) != FALSE, "allow replacement load to finish immediately");
+             files.SetTestGate(gate4);
+             Success(files.Submit(false, second), "admit replacement load immediately after CancelInFlightLoad");
+             Require(WaitForSingleObject(gate4->finished.get(), 10000) == WAIT_OBJECT_0, "replacement load completes");
+             Require(SetEvent(gate3->proceed.get()) != FALSE && WaitForSingleObject(gate3->finished.get(), 10000) == WAIT_OBJECT_0,
+                     "old cancelled load worker finishes harmlessly after replacement");
+             Require(files.CurrentPhase() == AsyncFiles::Phase::Completed, "replacement load result remains in Completed");
+             const auto secondResult = files.Take();
+             Require(secondResult && SUCCEEDED(secondResult.value().status) && secondResult.value().path == second &&
+                         secondResult.value().document.text == L"# Second\n",
+                     "cancelled worker cannot overwrite replacement load result");
+
+             auto gate5 = std::make_shared<AsyncFiles::TestGate>();
+             Require(SetEvent(gate5->proceed.get()) != FALSE, "allow unconsumed load to finish immediately");
+             files.SetTestGate(gate5);
+             Success(files.Submit(false, first), "admit completed load to cancel before Take");
+             Require(WaitForSingleObject(gate5->finished.get(), 10000) == WAIT_OBJECT_0, "completed load settles");
+             Require(files.CurrentPhase() == AsyncFiles::Phase::Completed, "unconsumed load enters Completed");
+             files.CancelInFlightLoad();
+             Require(files.CurrentPhase() == AsyncFiles::Phase::Idle && !files.Busy() && !files.Take(),
+                     "CancelInFlightLoad also clears an unconsumed Completed load");
+
+             files.Close();
+             Require(files.CurrentPhase() == AsyncFiles::Phase::Closed && !files.Busy() && !files.HasPendingSave() &&
+                         files.Submit(false, first) == HRESULT_FROM_WIN32(ERROR_BUSY),
+                     "Close transitions to Closed and rejects further submissions");
+         });
+    test("Recovery.DiscardQueuedDuringScanDelaysSettlement",
+         [&]
+         {
+             const auto directory = root / L"recovery-discard-during-scan";
+             std::filesystem::create_directories(directory / L"Recovery");
+             const std::wstring candidateId = L"fedcba9876543210fedcba9876543210";
+             const auto rtdPath = directory / L"Recovery" / (L"session-" + candidateId + L".rtd");
+             Success(WriteBytesAtomic(rtdPath, SerializeRecovery({L"Queued during scan 東京\r\n", {}, false, {0, 0}, 1})), "seed recovery candidate");
+             auto scanGate = std::make_shared<RecoveryService::TestGate>();
+             auto postScanGate = std::make_shared<RecoveryService::TestGate>();
+             const auto releaseGates = wil::scope_exit(
+                 [&]
+                 {
+                     (void)SetEvent(scanGate->proceed.get());
+                     (void)SetEvent(postScanGate->proceed.get());
+                 });
+             RecoveryService service;
+             service.SetScanTestGate(scanGate);
+             service.SetPostScanTestGate(postScanGate);
+             Success(service.Initialize(directory), "initialize RecoveryService with scan gates");
+             Require(WaitForSingleObject(scanGate->entered.get(), 10000) == WAIT_OBJECT_0, "worker reaches Scan gate");
+             Require(!service.Ready() && !service.Settled() && !service.Finished() &&
+                         service.WaitForSettlement(0) == HRESULT_FROM_WIN32(ERROR_TIMEOUT),
+                     "RecoveryService is neither Ready nor Settled during Scan");
+             Success(service.Discard(candidateId), "queue Discard while initial Scan is in progress");
+             Require(!service.Ready() && !service.Settled() && service.WaitForSettlement(0) == HRESULT_FROM_WIN32(ERROR_TIMEOUT),
+                     "queuing Discard during Scan keeps service unsettled");
+             Require(SetEvent(scanGate->proceed.get()) != FALSE && WaitForSingleObject(postScanGate->entered.get(), 10000) == WAIT_OBJECT_0,
+                     "Scan completes and pauses before first worker batch");
+             Require(service.Ready() && !service.Settled() && service.WaitForSettlement(0) == HRESULT_FROM_WIN32(ERROR_TIMEOUT) &&
+                         std::filesystem::exists(rtdPath),
+                     "Settled() stays false after Scan completes until the queued Discard executes");
+             Require(SetEvent(postScanGate->proceed.get()) != FALSE && WaitForSingleObject(postScanGate->finished.get(), 10000) == WAIT_OBJECT_0,
+                     "release post-scan gate to execute queued Discard");
+             Success(service.WaitForSettlement(5000), "queued Discard settles cleanly");
+             Require(service.Ready() && service.Settled() && SUCCEEDED(service.Status()) && !std::filesystem::exists(rtdPath),
+                     "queued Discard removes candidate before settling");
+             const auto retired = service.TakeRetired();
+             Require(retired.size() == 1u && retired.front() == candidateId && service.TakeFailedDiscards().empty(),
+                     "retired candidate is reported once with no failed discards");
+             service.Close();
+         });
+    test("Files.FailedWorkerRecoversOnNewValidRoot",
+         [&]
+         {
+             const auto dir1 = root / L"files-failed-worker-1", dir2 = root / L"files-failed-worker-2";
+             WriteFixture(dir1 / L"one.md");
+             WriteFixture(dir2 / L"two.md");
+
+             FilesService service;
+             Require(service.CurrentPhase() == FilesPhase::Closed && !service.IsActive() && !service.IsFailed() && !service.Busy(),
+                     "uninitialized FilesService starts Closed");
+             Success(service.Initialize(), "initialize standalone FilesService");
+             Require(service.CurrentPhase() == FilesPhase::Idle && service.IsActive() && !service.IsFailed() && !service.Busy(),
+                     "initialized FilesService enters Idle");
+             Success(service.SetRoot(dir1), "admit first directory");
+             const auto first = AwaitSnapshot(service, [&](const auto &snap) { return snap.root == dir1 && snap.markdownCount == 1; });
+             Require(SUCCEEDED(first.status) && SUCCEEDED(first.watchStatus), "first root scan and watch succeed");
+             {
+                 const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+                 while (service.Busy() && std::chrono::steady_clock::now() < deadline)
+                     std::this_thread::sleep_for(std::chrono::milliseconds(5));
+             }
+             Require(service.CurrentPhase() == FilesPhase::Watching && service.IsActive() && !service.Busy(), "settled watched root enters Watching");
+             WriteFixture(dir1 / L"added.md");
+             const auto updated = AwaitSnapshot(service, [&](const auto &snap) { return snap.revision > first.revision && snap.markdownCount == 2; });
+             Require(SUCCEEDED(updated.status) && updated.generation == first.generation,
+                     "watch coalescing transitions atomically to Scanning and publishes the updated tree");
+             {
+                 const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+                 while (service.Busy() && std::chrono::steady_clock::now() < deadline)
+                     std::this_thread::sleep_for(std::chrono::milliseconds(5));
+             }
+             Require(service.CurrentPhase() == FilesPhase::Watching && !service.Busy(), "watch-triggered rescan returns cleanly to Watching");
+             service.SimulateWorkerFailureForTest(E_FAIL);
+             Require(service.CurrentPhase() == FilesPhase::Failed && service.IsFailed() && !service.IsActive() && !service.Busy() &&
+                         service.Status() == E_FAIL,
+                     "worker failure enters Failed state");
+             Require(service.SetRoot(dir2) == E_FAIL && service.Refresh() == E_FAIL,
+                     "Failed FilesService rejects SetRoot and Refresh with failure status");
+             const auto failedSnap = service.TakeResult();
+             Require(failedSnap && failedSnap->status == E_FAIL, "Failed state publishes diagnostic snapshot");
+             service.Close();
+             Require(service.CurrentPhase() == FilesPhase::Closed && !service.IsActive() && !service.IsFailed(),
+                     "Close transitions Failed service to Closed");
+
+             LaunchOptions launch;
+             launch.headless = true;
+             launch.dataDirectory = root / L"files-app-recovery";
+             Application app(launch);
+             Success(app.Initialize(), "initialize hidden app for Files failure recovery");
+             const auto waitAppFolder = [&](const auto &predicate)
+             {
+                 const auto end = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+                 while (std::chrono::steady_clock::now() < end)
+                 {
+                     app.Prepare();
+                     if (predicate())
+                         return;
+                     std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                 }
+                 throw std::runtime_error("Application Files pane did not reach expected state");
+             };
+             FilesProbe::SelectRoot(app, dir1);
+             waitAppFolder([&] { return FilesProbe::Snapshot(app) && FilesProbe::Snapshot(app)->root == dir1 && !FilesProbe::Service(app).Busy(); });
+             Require(FilesProbe::Service(app).CurrentPhase() == FilesPhase::Watching && FilesProbe::Service(app).IsActive(),
+                     "application Files worker reaches Watching");
+
+             FilesProbe::Service(app).SimulateWorkerFailureForTest(E_FAIL);
+             waitAppFolder([&]
+                           { return FilesProbe::Service(app).IsFailed() && FilesProbe::Snapshot(app) && FAILED(FilesProbe::Snapshot(app)->status); });
+             Require(FilesProbe::Service(app).CurrentPhase() == FilesPhase::Failed && !FilesProbe::Service(app).IsActive() &&
+                         FilesProbe::Service(app).SetRoot(dir2) == E_FAIL,
+                     "application Files worker enters Failed and rejects direct SetRoot");
+
+             FilesProbe::SelectRoot(app, dir2);
+             waitAppFolder([&] { return FilesProbe::Snapshot(app) && FilesProbe::Snapshot(app)->root == dir2 && !FilesProbe::Service(app).Busy(); });
+             Require(FilesProbe::Service(app).IsActive() &&
+                         (FilesProbe::Service(app).CurrentPhase() == FilesPhase::Watching ||
+                          FilesProbe::Service(app).CurrentPhase() == FilesPhase::Idle) &&
+                         SUCCEEDED(FilesProbe::Snapshot(app)->status) && FilesProbe::Snapshot(app)->markdownCount == 1 &&
+                         std::ranges::any_of(FilesProbe::Model(app).rows, [](const auto &row) { return row.text == L"two.md"; }),
+                     "SelectFilesRoot re-initializes a Failed Files worker and recovers cleanly on a new valid root");
+
+             FilesProbe::Service(app).SimulateWorkerFailureForTest(E_FAIL);
+             waitAppFolder([&]
+                           { return FilesProbe::Service(app).IsFailed() && FilesProbe::Snapshot(app) && FAILED(FilesProbe::Snapshot(app)->status); });
+             FilesProbe::SelectRoot(app, dir2);
+             waitAppFolder(
+                 [&]
+                 {
+                     return FilesProbe::Snapshot(app) && FilesProbe::Snapshot(app)->root == dir2 && !FilesProbe::Service(app).Busy() &&
+                            SUCCEEDED(FilesProbe::Snapshot(app)->status);
+                 });
+             Require(FilesProbe::Service(app).IsActive() && FilesProbe::Snapshot(app)->markdownCount == 1,
+                     "SelectFilesRoot also recovers when re-selecting the same root after worker failure");
          });
 }
 } // namespace RedTilde

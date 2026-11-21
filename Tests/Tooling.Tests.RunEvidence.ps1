@@ -1,4 +1,4 @@
-<# .SYNOPSIS Exercises lossless, isolated run evidence without a native product build or desktop use. #>
+﻿<# .SYNOPSIS Exercises lossless, isolated run evidence without a native product build or desktop use. #>
 [CmdletBinding()]
 param([string] $ModulePath = '', [string] $ScratchRoot = '')
 Set-StrictMode -Version Latest
@@ -44,6 +44,7 @@ try {
 $root = New-Fixture 'ordinary'
 $a = Start-TestRunEvidence $root @{scenario='first'}
 $b = Start-TestRunEvidence $root @{scenario='concurrent'}
+Assert-Evidence ($a.State -ceq 'Active' -and -not $a.Closed -and $b.State -ceq 'Active' -and -not $b.Closed) 'New evidence run did not start in Active state.'
 try {
     Assert-Evidence ($a.Path -cne $b.Path) 'Concurrent runs shared a writable output path.'
     $file = Join-Path $a.Path 'evidence-Ł.txt'
@@ -54,6 +55,7 @@ try {
     $attributes = [IO.File]::GetAttributes($file)
     $security = (Get-Acl -LiteralPath $file).Sddl
     Complete-TestRunEvidence $a $true
+    Assert-Evidence ($a.State -ceq 'Completed' -and $a.Closed) 'Completed run did not transition to Completed state.'
     $manifest = Get-Content -LiteralPath (Join-Path $a.Directory 'completed.json') -Raw | ConvertFrom-Json
     Assert-Evidence ($manifest.outcome -ceq 'passed') 'Success outcome missing.'
     Assert-Evidence ($before.Hash -ceq (Get-FileHash -LiteralPath $file).Hash) 'Payload bytes changed.'
@@ -67,6 +69,7 @@ try {
     if (-not $a.Closed) { Complete-TestRunEvidence $a $false }
     if (-not $b.Closed) { Complete-TestRunEvidence $b $false }
 }
+Assert-Evidence ($b.State -ceq 'Failed' -and $b.Closed) 'Failed completion did not transition to Failed state.'
 Assert-Evidence ((Get-Content (Join-Path $b.Directory 'completed.json') -Raw | ConvertFrom-Json).outcome -ceq 'failed-or-interrupted') 'Failure output lost or promoted to success.'
 
 $run = Start-TestRunEvidence $root @{scenario='publication'}
@@ -91,6 +94,7 @@ $locked = Join-Path $run.Path 'still-writing.log'
 $writer = [IO.File]::Open($locked, 'CreateNew', 'ReadWrite', 'Read')
 try {
     Reject-Evidence { Complete-TestRunEvidence $run $true } 'A payload still open for writing was accepted.'
+    Assert-Evidence ($run.State -ceq 'Interrupted' -and $run.Closed) 'Failed completion verification did not transition to Interrupted state.'
     Assert-Evidence (-not (Test-Path (Join-Path $run.Directory 'completed.json')) -and (Test-Path $locked)) 'Failed verification lost data or published success.'
 } finally { $writer.Dispose() }
 
@@ -140,8 +144,10 @@ try {
     [IO.File]::WriteAllText($longFile+':source', 'long-path stream')
     $run.Owner = -1
     Reject-Evidence { Complete-TestRunEvidence $run $true } 'Another owner could close the run.'
+    Assert-Evidence ($run.State -ceq 'Active' -and -not $run.Closed) 'Preflight ownership refusal prematurely closed Active run.'
     $run.Owner = $PID
     Complete-TestRunEvidence $run $true
+    Assert-Evidence ($run.State -ceq 'Completed' -and $run.Closed) 'Subsequent valid completion did not transition to Completed state.'
     $longManifest = Get-Content (Join-Path $run.Directory 'completed.json') -Raw | ConvertFrom-Json
     $longRow = @($longManifest.payload | Where-Object { -not $_.directory })
     Assert-Evidence ($longRow.Count -eq 1 -and $longRow[0].streams.Count -eq 2) 'Long Unicode file or stream omitted.'

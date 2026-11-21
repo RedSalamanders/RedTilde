@@ -155,7 +155,7 @@ function Start-TestRunEvidence {
         $pins.Add($pin)
         $anchors.Add(@{path=$path;identity=[TestRunEvidenceV2.Native]::Identity($pin)})
         $run = [pscustomobject]@{ Repository=$root; Id=$id; Directory=$directory; Path=$path; Pins=$pins; Anchors=$anchors; Lock=$lock;
-            Owner=$PID; OwnerStarted=(Get-Process -Id $PID).StartTime.ToUniversalTime().Ticks; Closed=$false;
+            Owner=$PID; OwnerStarted=(Get-Process -Id $PID).StartTime.ToUniversalTime().Ticks; Closed=$false; State='Active';
             CaptureNativeArtifacts=[bool]$CaptureNativeArtifacts; ArtifactLock=$null; LocalSdkCandidate=[bool]$LocalSdkCandidate }
         Write-TestRunEvidenceRecord (Join-Path $directory 'started.json') ([ordered]@{
             schema=1; id=$id; repository=$root; owner=$run.Owner; ownerStartedTicks=$run.OwnerStarted;
@@ -237,12 +237,13 @@ function Get-TestRunEvidenceInventory([string] $Path, [Collections.Generic.List[
 function Complete-TestRunEvidence {
     [CmdletBinding()]
     param([Parameter(Mandatory)] $Run, [Parameter(Mandatory)][bool] $Passed)
-    if ($Run.Closed) { throw 'Run evidence has already been closed.' }
+    if ($Run.Closed -or $Run.State -cne 'Active') { throw 'Run evidence has already been closed.' }
     $runFolder=if($Run.LocalSdkCandidate){'local-sdk-test-runs'}else{'test-runs'}
     if ($Run.Owner -ne $PID -or $Run.OwnerStarted -ne (Get-Process -Id $PID).StartTime.ToUniversalTime().Ticks -or
         $Run.Directory -cne (Join-Path $Run.Repository ".build\evidence\$runFolder\$($Run.Id)") -or
         $Run.Path -cne (Join-Path $Run.Directory 'payload')) { throw 'Evidence ownership or path mismatch.' }
     $pins = [Collections.Generic.List[IDisposable]]::new()
+    $completed = $false
     try {
         foreach ($anchor in $Run.Anchors) {
             $pin = [TestRunEvidenceV2.Native]::Pin($anchor.path, $true)
@@ -255,19 +256,21 @@ function Complete-TestRunEvidence {
             schema=1; id=$Run.Id; outcome=$(if ($Passed) { 'passed' } else { 'failed-or-interrupted' });
             completedUtc=[DateTime]::UtcNow.ToString('o'); payload=@($rows)
         })
+        $completed = $true
     } finally {
         for ($i=$pins.Count-1; $i -ge 0; $i--) { $pins[$i].Dispose() }
         $Run.Lock.Dispose()
         if ($Run.ArtifactLock) { $Run.ArtifactLock.Dispose() }
         for ($i=$Run.Pins.Count-1; $i -ge 0; $i--) { $Run.Pins[$i].Dispose() }
         $Run.Closed=$true
+        $Run.State = if (-not $completed) { 'Interrupted' } elseif ($Passed) { 'Completed' } else { 'Failed' }
     }
 }
 
 function Publish-TestRunEvidenceReceipt {
     [CmdletBinding()]
     param([Parameter(Mandatory)] $Run, [Parameter(Mandatory)][string] $Name, [Parameter(Mandatory)] $Receipt)
-    if ($Name -notmatch '^[A-Za-z0-9_. -]+\.json$' -or $Run.Closed) { throw 'Invalid receipt publication.' }
+    if ($Name -notmatch '^[A-Za-z0-9_. -]+\.json$' -or $Run.Closed -or $Run.State -cne 'Active') { throw 'Invalid receipt publication.' }
     $archive = Join-Path $Run.Path $Name
     Write-TestRunEvidenceRecord $archive $Receipt
     $reports = Join-Path $Run.Repository '.build\reports'

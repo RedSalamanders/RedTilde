@@ -243,7 +243,9 @@ results from upstream library evidence. Keep failed receipts; a focused pass doe
 A successful default affected run retains a source-byte and Git-index baseline for that checkout, platform, configuration and environment. The next edit selects only changes since that baseline. Staging or committing identical tested working bytes does not rerun tests. A genuinely different staged blob is retained. Failed, interrupted, corrupt, mismatched, explicit partial or CI-pending runs never advance this baseline. Explicit `-BaseRef` and `-Force` bypass the incremental baseline. Unexplained artifact changes widen coverage. No selection is `NOT_EVALUATED`, never a new repository pass.
 
 Selected affected work suspends the old baseline before build/test execution, so failure or interruption cannot
-leave older success able to suppress the next run. An unchanged successful explicit/Full attempt may restore
+leave older success able to suppress the next run. `Resolve-ScopedIterationDisposition` (`Build/ScopedTesting.psm1`)
+resolves explicit run outcomes into `BaselineAdvanced`, `PartialRunRetained`, `FailedRetained`,
+`MutatedWorktreeRetained`, `CiPending`, or `NothingSelected`. An unchanged successful explicit/Full attempt may restore
 the exact old baseline bytes; it does not advance that baseline. A default success publishes its new completed
 state. Direct test.ps1 attempts revoke old affected state before validation or native work. State paths are
 bounded to the checkout's report root and refuse reparse points. A reentrant checkout/profile test lease
@@ -273,7 +275,7 @@ These record oracles establish error mapping, not recovery from an actually miss
 
 Physical focus/IME/AT, release/package acceptance, hardware-specific qualification and paired resource/performance studies retain their owning gates. Hidden/scoped/native CI passes never close those gates. Native test basenames use contextual `Scope.Tests.Something.h/.cpp`; inventories cover active files only. Immutable historical receipts, archived source and legacy references are not renamed or rewritten.
 
-RedTilde partitions its 156 registered native cases into Storage (30), Settings (11), Recovery (20) and Editor (95). Registration scanning includes reviewed Core `.cpp` and `.h` files from the native inventory. Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
+RedTilde partitions its 174 registered native cases into Storage (32), Settings (11), Recovery (22) and Editor (109). Registration scanning includes reviewed Core `.cpp` and `.h` files from the native inventory. Native listing and execution must equal Tests/native-case-catalog.json, reject unknown/duplicate/non-self-test scope arguments, and never count a catalog listing as execution. A Full run executes each partition once in an isolated process/data root and checks the complete union; the legacy --self-test default still names All. When all four native groups run together, `test.ps1` also verifies `InteractiveProbeRefusal` and `FailureReportRouting` (`--failure-report-self-test`: exit `3` with stderr diagnostics and no modal dialog in Debug / ASan Debug, exit `0` in test-enabled Release). Editor observations remain non-cacheable because they include native resource/render measurements. Preferences, recovery-restart, captures, process-crash, performance smoke and real ASan detection are separately selectable obligations. The paired S5/S6 studies retain their unchanged source/fixture/judge and remain separate from these functional scopes.
 
 `Recovery.StartupScanCountsUnrelatedEntries` seeds 576 unrelated files, runs the actual recovery worker, and
 requires its synchronized examined-entry count to stay within 512 with a remaining-entry limit indication.
@@ -281,13 +283,13 @@ It verifies that no unrelated file becomes a candidate and all fixture bytes rem
 old-guard counterexample and corrected worker results are separate evidence; a catalog listing does not prove
 that the scan ran, and an entry-count bound does not establish filesystem latency or physical-provider support.
 
-The shipped `redtilde --help` command prints usage to stdout and exits successfully before initializing the editor,
-settings, or recovery. The clean-extraction package smoke verifies this output and exit status with a system-only
+The shipped `redtilde --help` and `redtilde --version` commands print usage or version to stdout and exit `0` before initializing the editor,
+settings, or recovery (creating no profile or `Crashes/` directory). The clean-extraction package smoke verifies both outputs and exit statuses with a system-only
 `Path`, then verifies the hidden capture and production refusals. WinGet runs the same command through its installed alias.
 
-Production packaging separately executes fifteen refusal cases against the actual clean-extracted executable:
+Production packaging separately executes sixteen refusal cases against the actual clean-extracted executable:
 self-test, scope, listing, interactive test, crash, recovery crash/restart, preferences, sanitizer, linked-save
-crash/restart, and missing operands for scope/interactive test. Each owned hidden child must return 2 and leave
+crash/restart, failure-host probe, failure-report self-test (`--failure-report-self-test`), and missing operands for failure-host, scope, and interactive test. Each owned hidden child must return 2 and leave
 its initially absent private data directory absent. Retain every observed result in `testOnlyEntryPointRefusals`
 in the package receipt, bound to the same original executable/version/ZIP as the positive hidden capture smoke.
 A failure retains its raw process logs and blocks packaging acceptance; catalog or source inspection alone
@@ -355,9 +357,13 @@ Reusable tooling/formatting evidence also binds the actual selected formatter pa
 
 ## Design refresh scenarios
 
-The hidden capture obligation contains 36 PNG/sidecar pairs: 21 named scenes including Files, Find,
-Focus, equation-source editing, quote/scrollbar and diagram-label Light/Dark scenes, plus narrow,
-reference-document, Markdown-style and caption-hover 96/144/192-DPI variants. Each sidecar records requested,
+The hidden capture suite runs 40 PNG/sidecar pairs (`25` named scenes including `compose-light`, `compose-dark`,
+`source`, `split`, `context-selection`, `local-source`, `settings`, `math`, `math-dark`, `mermaid`, `recovery`,
+`narrow`, `high-contrast`, `files`, `find`, `focus`, `equation`, `quote-scroll-light`, `quote-scroll-dark`,
+`diagram-label-light`, `diagram-label-dark`, `image-paste-light`, `image-paste-dark`, `image-consent-light`, and
+`image-consent-dark`, plus `narrow`, `reference-dark`, `markdown-style`, `caption-close-hover`, and
+`caption-maximize-hover` at 96/144/192 DPI). The harness additionally supports `compose-paper`, `split-dark`,
+`settings-about`, and `print-preview` (under `REDTILDE_ENABLE_TESTS`) for documentation and preview inspection. Each sidecar records requested,
 native and host DPI, actual pixels/DIP, simulation state and invented fixture basename; the runner verifies PNG
 IHDR dimensions and binds both hashes, toolchain, binary, source and pin in the receipt. Captures never activate
 or publish environment-derived identifiers. The Files fixture freezes its proved model and retires only its
@@ -477,4 +483,4 @@ Editor cases cover malformed/oversized source, invalid metadata, near-capacity Q
 Find replacement. Assert unchanged source identity, selection, dirty/saved facts and both history directions on
 refusal, then a successful retry. Recovery serialization must reject malformed envelopes before mutation and
 preserve its output buffer. Production packages exclude the new test entry point and refuse both complete and
-missing-value invocations before creating the profile; the package and CI smoke require all fifteen cases.
+missing-value invocations before creating the profile; the package and CI smoke require all sixteen cases.
