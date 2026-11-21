@@ -144,6 +144,7 @@ struct LaunchOptions
     std::function<bool(std::wstring_view)> confirmLinkForTest;
     std::function<HRESULT(std::wstring_view)> launchLinkForTest;
     std::shared_ptr<AsyncFiles::TestGate> linkGateForTest;
+    std::optional<DWORD> printPrinterTimeoutMsForTest;
     std::optional<Printing::Destinations> printDestinationsForTest;
     std::function<HRESULT(const std::wstring&, const std::optional<Printing::PrinterSettings>&, Printing::PrinterConfiguration&)> printPrinterForTest;
     std::function<HRESULT(unsigned, ID2D1CommandList&)> printPageForTest;

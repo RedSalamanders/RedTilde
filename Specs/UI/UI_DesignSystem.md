@@ -44,10 +44,14 @@ inclusive ranges and comma-separated combinations, bounded by the displayed page
 field with the displayed page number. Invalid input leaves the entered text available for correction and prevents
 submission.
 
-The Printer dropdown lists local queues and installed connections, including virtual print drivers. The
-sidebar exposes driver-supported paper size, orientation, print sides, copies and collation. It scrolls
-independently of the preview. Selecting a queue or paper setting requests fresh paper geometry. Show the
-updated pages before enabling Print. Preserve entered page ranges and prompt for correction when a range
+The Printer dropdown lists local queues and installed connections, including virtual print drivers. Populate and
+enable the Printer dropdown as soon as queues are enumerated, keeping it interactive while checking a printer's
+configuration so users can switch queues immediately without waiting on a slow or offline driver. The sidebar
+exposes driver-supported paper size, orientation, print sides, copies and collation, scrolling independently of
+the preview. Selecting a queue or paper setting requests fresh paper geometry on an isolated helper query so
+a slow driver query never stalls queue switches or preview dismissal; if a query exceeds its bounded wait, present
+a browsable Letter fallback with Print disabled and promote the preview if the configuration completes later. Show
+the updated pages before enabling Print. Preserve entered page ranges and prompt for correction when a range
 exceeds the new page count. When no destination can be prepared, show a browsable Letter fallback and disable
 Print. For a rejected setting on the same queue, restore its previous accepted values and show the driver error.
 

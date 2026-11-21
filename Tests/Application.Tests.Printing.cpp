@@ -532,6 +532,170 @@ public:
                 "pending Close remains sticky against subsequent Print before PreviewAction pumps");
         Require(foreground.NeverAcquiredForeground() && ! IsWindowVisible(app.Window()), "hidden preview override preserves desktop");
     }
+
+    static void SlowPrinterAllowsSwitchAndFallback(const std::filesystem::path& directory)
+    {
+        Testing::ForegroundOwnershipObserver foreground;
+        auto enteredSlow  = wil::unique_event(wil::EventOptions::ManualReset);
+        auto releaseSlow  = wil::unique_event(wil::EventOptions::ManualReset);
+        auto returnedSlow = wil::unique_event(wil::EventOptions::ManualReset);
+        std::atomic_bool holdSlow{true};
+        constexpr std::wstring_view slowPrinter = L"Redfern slow printer";
+
+        LaunchOptions options;
+        options.headless                     = true;
+        options.forceWarp                    = true;
+        options.dataDirectory                = directory;
+        options.printPrinterTimeoutMsForTest = 250u;
+        options.printDestinationsForTest     = Printing::Destinations{{std::wstring(PdfPrinter), std::wstring(slowPrinter)}, std::wstring(slowPrinter)};
+        options.printPrinterForTest =
+            [&](const std::wstring& name, const std::optional<Printing::PrinterSettings>& settings, Printing::PrinterConfiguration& configuration) -> HRESULT
+        {
+            if (name == slowPrinter && holdSlow.load(std::memory_order_acquire))
+            {
+                enteredSlow.SetEvent();
+                const bool signalled = releaseSlow.wait(15000u);
+                returnedSlow.SetEvent();
+                if (! signalled)
+                    return HRESULT_FROM_WIN32(ERROR_TIMEOUT);
+            }
+            return ConfigureFixture(name, settings, configuration);
+        };
+
+        Application app(std::move(options));
+        const auto cleanupRelease = wil::scope_exit([&]
+        {
+            holdSlow.store(false, std::memory_order_release);
+            releaseSlow.SetEvent();
+            if (enteredSlow.wait(0u))
+                (void)returnedSlow.wait(10000u);
+        });
+        Require(SUCCEEDED(app.Initialize()), "initialize the slow-printer preview host");
+        const std::wstring mermaidAndProse =
+            L"# Shared renderer display regressions\n\n```mermaid\nflowchart LR\nA[Write] -->|review| B[Print]\n```\n\n" + MultipageSource();
+        Require(app.SetDocument(mermaidAndProse), "seed a multipage Mermaid document");
+        app.Host().SetFocusControl(&app.Document(), false);
+
+        const auto waitForDestinations = [&]()
+        {
+            Require(enteredSlow.wait(5000u), "worker starts querying the slow printer");
+            const auto start = GetTickCount64();
+            while (GetTickCount64() - start < 5000u)
+            {
+                MSG message{};
+                while (PeekMessageW(&message, app.Window(), Application::PrintReady, Application::PrintReady, PM_REMOVE))
+                    DispatchMessageW(&message);
+                if (app._printPreview && ! Find<DxUi::ComboBox>(app, IDS_PRINTDESTINATION).GetItems().empty())
+                    return;
+                (void)MsgWaitForMultipleObjectsEx(0, nullptr, 5, QS_POSTMESSAGE, 0);
+            }
+            throw std::runtime_error("destinations did not arrive while slow printer was blocked");
+        };
+
+        const auto waitUntil = [&](auto&& predicate, std::string_view detail)
+        {
+            const auto start = GetTickCount64();
+            while (! predicate() && GetTickCount64() - start < 10000u)
+            {
+                MSG message{};
+                if (PeekMessageW(&message, app.Window(), Application::PrintReady, Application::PrintReady, PM_REMOVE))
+                    DispatchMessageW(&message);
+                else
+                    (void)MsgWaitForMultipleObjectsEx(0, nullptr, 5, QS_POSTMESSAGE, 0);
+            }
+            if (! predicate())
+                throw std::runtime_error(std::string(detail));
+        };
+
+        const auto hasStatusText = [&](std::wstring_view expected)
+        {
+            const auto search = [&](this const auto& self, DxUi::Control* parent) -> bool
+            {
+                if (const auto* label = dynamic_cast<const DxUi::Label*>(parent); label && label->GetText() == expected)
+                    return true;
+                for (std::size_t index = 0; index < parent->GetLogicalChildCount(); ++index)
+                    if (self(parent->GetLogicalChild(index)))
+                        return true;
+                return false;
+            };
+            return app._printPreview && search(app._printPreview->Host().GetRoot());
+        };
+        const auto slowStatus = FormatStringResource(nullptr, IDS_PRINTPREVIEWSLOW, slowPrinter);
+
+        // 1 & 2. Destinations enable Printer immediately; timeout shows browsable Letter fallback while slow printer stays blocked.
+        app.Execute(Command::Print);
+        waitForDestinations();
+        auto& printers1 = Find<DxUi::ComboBox>(app, IDS_PRINTDESTINATION);
+        Require(printers1.GetItems().size() == 2u && printers1.GetSelectedValue() == slowPrinter && printers1.IsEnabled(),
+                "printer dropdown is populated and enabled while the default slow printer is still checking");
+        Require(! app._printPreview->IsReady() && ! app._printPreview->CanPrint(), "Print stays disabled before initial fallback renders");
+
+        Wait(app, true);
+        Require(app._printPreview->IsReady() && app._printPreview->Page().fallbackPaper && app._printPreview->Page().count >= 2u &&
+                    HasInk(app._printPreview->Page()) && ! app._printPreview->CanPrint() && printers1.IsEnabled() && hasStatusText(slowStatus),
+                "slow printer timeout shows a navigable Letter fallback preview with Printer enabled and Print disabled");
+        Require(Find<DxUi::Button>(app, IDS_PRINTNEXT).Invoke(app._printPreview->Host(), false), "advance page while slow printer is pending");
+        Wait(app, true);
+        Require(app._printPreview->Page().number == 2u && ! app._printPreview->CanPrint() && printers1.IsEnabled(),
+                "page navigation works while slow printer remains pending");
+        Require(Find<DxUi::Button>(app, IDS_PRINTPREVIOUS).Invoke(app._printPreview->Host(), false), "return to page 1 while slow printer is pending");
+        Wait(app, true);
+        Require(app._printPreview->Page().number == 1u, "returning to page 1 completes cleanly during fallback");
+
+        // 3. Unblock slow printer -> late driver configuration promotes the preview and enables Print.
+        releaseSlow.SetEvent();
+        Require(returnedSlow.wait(10000u), "blocked slow printer completes after release");
+        waitUntil([&] { return app._printPreview && app._printPreview->CanPrint() && ! app._printPreview->Page().fallbackPaper; },
+                  "slow printer late completion enables Print and leaves fallback paper");
+        Require(app._printPreview->Printer() == slowPrinter && app._printPreview->Page().paper == SmallPaper() && app._printPreview->Page().number == 1u &&
+                    HasInk(app._printPreview->Page()),
+                "late completion applies the slow printer paper geometry on the current page");
+        app.DismissPrintPreview();
+        Wait(app);
+
+        // 4. Switch to fast PDF printer immediately while slow printer is still blocked; stale completion is discarded.
+        enteredSlow.ResetEvent();
+        releaseSlow.ResetEvent();
+        returnedSlow.ResetEvent();
+        app.Execute(Command::Print);
+        waitForDestinations();
+        auto& printers2 = Find<DxUi::ComboBox>(app, IDS_PRINTDESTINATION);
+        Require(printers2.OnKeyDown(app._printPreview->Host(), VK_UP, 0), "switch immediately to the fast PDF printer while slow printer is checking");
+        Require(printers2.GetSelectedValue() == PdfPrinter, "combo moves immediately to the fast PDF printer");
+        Wait(app, true);
+        Require(app._printPreview->Printer() == PdfPrinter && app._printPreview->CanPrint() && ! app._printPreview->Page().fallbackPaper &&
+                    app._printPreview->Page().paper == WidePaper(),
+                "fast PDF printer configures immediately without waiting on the blocked slow printer");
+
+        releaseSlow.SetEvent();
+        Require(returnedSlow.wait(10000u), "abandoned slow printer finishes asynchronously after switch");
+        const auto drainStart = GetTickCount64();
+        while (GetTickCount64() - drainStart < 80u)
+        {
+            MSG message{};
+            while (PeekMessageW(&message, app.Window(), Application::PrintReady, Application::PrintReady, PM_REMOVE))
+                DispatchMessageW(&message);
+            (void)MsgWaitForMultipleObjectsEx(0, nullptr, 5, QS_POSTMESSAGE, 0);
+        }
+        Require(app._printPreview->Printer() == PdfPrinter && app._printPreview->CanPrint() && ! app._printPreview->Page().fallbackPaper &&
+                    app._printPreview->Page().paper == WidePaper(),
+                "stale slow printer completion never overwrites the newly selected fast printer");
+        app.DismissPrintPreview();
+        Wait(app);
+
+        // 5. Closing preview detaches the UI and returns editor focus immediately while the slow printer is still blocked.
+        enteredSlow.ResetEvent();
+        releaseSlow.ResetEvent();
+        returnedSlow.ResetEvent();
+        app.Execute(Command::Print);
+        Require(enteredSlow.wait(5000u), "worker enters slow printer on third open");
+        app.DismissPrintPreview();
+        Require(! app._printPreview && ! app._printOperation && app.Host().GetFocusControl() == &app.Document(),
+                "closing preview detaches the UI and restores focus immediately without waiting on the slow printer");
+        releaseSlow.SetEvent();
+        Require(returnedSlow.wait(10000u), "blocked slow printer test probe releases cleanly before teardown");
+        Require(foreground.NeverAcquiredForeground() && ! IsWindowVisible(app.Window()), "slow-printer test preserves desktop");
+    }
 };
 
 void RegisterPrintingTests(const std::filesystem::path& root, const std::function<void(std::string_view, const std::function<void()>&)>& test)
@@ -540,5 +704,6 @@ void RegisterPrintingTests(const std::filesystem::path& root, const std::functio
     test("Editor.PrintingFailureAndShutdownRetireJobs", [&] { PrintingProbe::FailureAndShutdown(root / L"print-shutdown"); });
     test("Editor.PrintingDiagramFollowsCanvasAndPaper", [&] { PrintingProbe::DiagramBackground(root / L"print-diagram"); });
     test("Editor.PrintingCloseOverridesPendingPrintAction", [&] { PrintingProbe::CloseOverridesPendingPrintAction(root / L"print-close-override"); });
+    test("Editor.PrintingSlowPrinterAllowsSwitchAndFallback", [&] { PrintingProbe::SlowPrinterAllowsSwitchAndFallback(root / L"print-slow-printer"); });
 }
 } // namespace RedTilde
