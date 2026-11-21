@@ -273,8 +273,13 @@ The app owns the preview window, the output filename dialog and one outstanding 
 COM apartment, an independent DxUi embedded host, paper-width layout, Direct2D page lists and Windows print
 package target. Keep the prepared document and approved image pixels through preview and submission.
 Rasterize a single bounded preview sheet from the same command list sent to the printer when selected.
-Transfer its pixel bytes and geometry to the UI. The worker also enumerates installed queues and queries paper
-geometry when the preview destination changes. Paper changes rebuild the prepared layout on the worker.
+Transfer its pixel bytes and geometry to the UI. The worker also enumerates installed queues immediately so the UI
+populates and enables queue selection up front, and runs Win32 driver configuration queries on an isolated,
+bounded helper thread without holding a `ProcessWorkLease` when calling the OS spooler. Wait against both the
+helper completion and incoming UI requests (`RequestPrinter`/`Cancel`) up to the preview fallback timeout so slow
+or offline WSD/IPP drivers promote a browsable Letter fallback, keep page navigation and Printer switching responsive,
+and never block preview close or application shutdown; late or superseded printer configurations are discarded by
+request/printer epoch. Paper changes rebuild the prepared layout on the worker.
 Resolve the print-specific Windows imports on first use and report missing imports as ordinary print failures.
 The worker obtains the selected printer's complete DEVMODE, including private data. It asks the driver to
 validate per-job choices without updating printer defaults and reads back the accepted configuration. Reuse

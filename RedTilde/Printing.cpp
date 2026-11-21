@@ -874,12 +874,26 @@ HRESULT ConfigurePrinter(const std::wstring& name, const std::optional<PrinterSe
 
 namespace
 {
+constexpr DWORD DefaultPrinterConfigurationTimeoutMs = 1500u;
+constexpr std::size_t MaximumSpoolerProbes           = 8u;
+std::atomic_size_t activeSpoolerProbes{0u};
+static_assert(std::is_trivially_destructible_v<std::atomic_size_t>);
+
 struct Request
 {
-    unsigned page = 1u;
+    std::uint64_t id{};
+    std::uint64_t printerEpoch = 1u;
+    unsigned page              = 1u;
     std::optional<std::wstring> printer;
     std::optional<PrinterSettings> settings;
     std::optional<Selection> selection;
+};
+
+enum class PostResult
+{
+    Posted,
+    Superseded,
+    Cancelled
 };
 } // namespace
 
@@ -893,18 +907,55 @@ struct Operation
     UINT message{};
     wil::unique_event_nothrow requested, fileChosen;
     std::atomic_bool cancel{};
+    std::uint64_t activeRequestId    = 1u;
+    std::uint64_t activePrinterEpoch = 1u;
     std::optional<Notice> notice;
+    std::optional<Notice> pendingConfig;
     Request request;
     HRESULT fileStatus = Cancelled;
     std::filesystem::path destination;
 
-    bool Post(Notice next) noexcept
+    PostResult Post(Notice next) noexcept
     {
         const std::lock_guard lock(mutex);
         if (! window || cancel.load())
-            return false;
+            return PostResult::Cancelled;
+        if (next.kind == Notice::Kind::Preview)
+        {
+            if (next.printerEpoch != activePrinterEpoch)
+                return PostResult::Superseded;
+            if (next.requestId != activeRequestId)
+            {
+                if (next.stage == Stage::ConfigurePrinter)
+                {
+                    pendingConfig = Notice{.kind           = Notice::Kind::Preview,
+                                           .result         = next.result,
+                                           .stage          = next.stage,
+                                           .printerEpoch   = next.printerEpoch,
+                                           .printerPending = next.printerPending,
+                                           .printer        = std::move(next.printer),
+                                           .configuration  = std::move(next.configuration)};
+                }
+                return PostResult::Superseded;
+            }
+            if (pendingConfig && pendingConfig->printerEpoch == activePrinterEpoch && next.stage != Stage::ConfigurePrinter)
+            {
+                next.stage          = pendingConfig->stage;
+                next.result         = pendingConfig->result;
+                next.printer        = std::move(pendingConfig->printer);
+                next.printerPending = pendingConfig->printerPending;
+                next.configuration  = std::move(pendingConfig->configuration);
+                pendingConfig.reset();
+            }
+            else if (next.stage == Stage::ConfigurePrinter)
+            {
+                pendingConfig.reset();
+            }
+        }
+        if (notice && notice->destinations && ! next.destinations)
+            next.destinations = std::move(notice->destinations);
         notice = std::move(next);
-        return PostMessageW(window, message, 0, 0) != FALSE;
+        return PostMessageW(window, message, 0, 0) != FALSE ? PostResult::Posted : PostResult::Cancelled;
     }
 };
 
@@ -919,6 +970,124 @@ struct Work
     std::shared_ptr<Operation> operation;
     Job job;
 };
+
+struct PrinterConfigProbe final
+{
+    PrinterConfigProbe()                                     = default;
+    ~PrinterConfigProbe()                                    = default;
+    PrinterConfigProbe(const PrinterConfigProbe&)            = delete;
+    PrinterConfigProbe& operator=(const PrinterConfigProbe&) = delete;
+    PrinterConfigProbe(PrinterConfigProbe&&)                 = delete;
+    PrinterConfigProbe& operator=(PrinterConfigProbe&&)      = delete;
+
+    std::wstring printer;
+    std::optional<PrinterSettings> requested;
+    bool retryWithoutSettings{};
+    std::atomic_bool abandoned{};
+    wil::unique_event_nothrow done;
+    HRESULT result = E_FAIL;
+    std::optional<PrinterConfiguration> configuration;
+#if defined(REDTILDE_ENABLE_TESTS)
+    bool useTestPrinter{};
+    std::function<HRESULT(const std::wstring&, const std::optional<PrinterSettings>&, PrinterConfiguration&)> printerForTest;
+    ProcessWorkLease testLease;
+#endif
+};
+
+DWORD WINAPI RunPrinterConfigProbe(void* context) noexcept
+{
+    const std::unique_ptr<std::shared_ptr<PrinterConfigProbe>> holder(static_cast<std::shared_ptr<PrinterConfigProbe>*>(context));
+    const auto probe = *holder;
+#if defined(REDTILDE_ENABLE_TESTS)
+    // Release any test callback lease only after clearing the test callback and signaling completion.
+    ProcessWorkLease testLease = std::move(probe->testLease);
+#endif
+    const auto cleanup = wil::scope_exit([&]() noexcept
+    {
+        activeSpoolerProbes.fetch_sub(1u, std::memory_order_acq_rel);
+        (void)probe->done.SetEvent();
+    });
+    try
+    {
+        PrinterConfiguration configured;
+#if defined(REDTILDE_ENABLE_TESTS)
+        const auto releaseCallback = wil::scope_exit([&]() noexcept { probe->printerForTest = {}; });
+        if (probe->useTestPrinter)
+        {
+            HRESULT hr = probe->printerForTest ? probe->printerForTest(probe->printer, probe->requested, configured) : E_INVALIDARG;
+            if (FAILED(hr) && probe->retryWithoutSettings && probe->requested && ! probe->abandoned.load(std::memory_order_acquire))
+                hr = probe->printerForTest ? probe->printerForTest(probe->printer, std::nullopt, configured) : E_INVALIDARG;
+            probe->result = hr;
+            if (SUCCEEDED(hr))
+                probe->configuration = std::move(configured);
+            return 0u;
+        }
+#endif
+        HRESULT hr = ConfigurePrinter(probe->printer, probe->requested, configured);
+        if (FAILED(hr) && probe->retryWithoutSettings && probe->requested && ! probe->abandoned.load(std::memory_order_acquire))
+            hr = ConfigurePrinter(probe->printer, std::nullopt, configured);
+        probe->result = hr;
+        if (SUCCEEDED(hr))
+            probe->configuration = std::move(configured);
+    }
+    catch (const std::bad_alloc&)
+    {
+        std::terminate();
+    }
+    catch (const std::exception&)
+    {
+        std::terminate();
+    }
+    return 0u;
+}
+
+HRESULT StartPrinterConfigProbe([[maybe_unused]] const Work& work,
+                                bool retryWithoutSettings,
+                                std::wstring printer,
+                                std::optional<PrinterSettings> requested,
+                                std::shared_ptr<PrinterConfigProbe>& outProbe)
+{
+    outProbe.reset();
+#if defined(REDTILDE_ENABLE_TESTS)
+    const bool useTestPrinter = work.job.destinationsForTest.has_value();
+    if (! useTestPrinter)
+        RETURN_IF_FAILED(LoadPrintImports("WINSPOOL.DRV"));
+#else
+    RETURN_IF_FAILED(LoadPrintImports("WINSPOOL.DRV"));
+#endif
+    auto probe = std::make_shared<PrinterConfigProbe>();
+    RETURN_IF_FAILED(probe->done.create(wil::EventOptions::ManualReset));
+    probe->printer              = std::move(printer);
+    probe->requested            = std::move(requested);
+    probe->retryWithoutSettings = retryWithoutSettings;
+#if defined(REDTILDE_ENABLE_TESTS)
+    probe->useTestPrinter = useTestPrinter;
+    if (useTestPrinter)
+    {
+        probe->printerForTest = work.job.printerForTest;
+        RETURN_IF_FAILED(ProcessWork::Acquire(probe->testLease));
+    }
+#endif
+    std::size_t current = activeSpoolerProbes.load(std::memory_order_acquire);
+    for (;;)
+    {
+        if (current >= MaximumSpoolerProbes)
+            return HRESULT_FROM_WIN32(ERROR_BUSY);
+        if (activeSpoolerProbes.compare_exchange_weak(current, current + 1u, std::memory_order_acq_rel))
+            break;
+    }
+    auto holder = std::make_unique<std::shared_ptr<PrinterConfigProbe>>(probe);
+    const wil::unique_handle thread(CreateThread(nullptr, 0u, RunPrinterConfigProbe, holder.get(), 0u, nullptr));
+    if (! thread)
+    {
+        const DWORD error = GetLastError();
+        activeSpoolerProbes.fetch_sub(1u, std::memory_order_acq_rel);
+        return HRESULT_FROM_WIN32(error);
+    }
+    (void)holder.release();
+    outProbe = std::move(probe);
+    return S_OK;
+}
 
 HRESULT Submit(Work& work, Selection& selection, Pages& pages, IWICImagingFactory* wic, Notice& finished)
 {
@@ -967,7 +1136,7 @@ HRESULT Submit(Work& work, Selection& selection, Pages& pages, IWICImagingFactor
         finished.stage = Stage::ChooseFile;
         FileFormat format{};
         RETURN_IF_FAILED(DestinationFormat(selection, format));
-        if (! operation.Post({.kind = Notice::Kind::ChooseFile, .format = format}))
+        if (operation.Post({.kind = Notice::Kind::ChooseFile, .format = format}) != PostResult::Posted)
             return Cancelled;
         // Close always signals this event. The worker retains only immutable
         // inputs and never shows a dialog itself.
@@ -1027,61 +1196,155 @@ HRESULT RunSession(Work& work, Notice& finished)
         return Cancelled;
     wil::com_ptr<IWICImagingFactory> wic;
     RETURN_IF_FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(wic.put())));
-    auto& job            = work.job;
-    const auto configure = [&](const std::wstring& printer, const std::optional<PrinterSettings>& settings, PrinterConfiguration& configured)
-    {
+    auto& job = work.job;
+    const DWORD timeoutMs =
 #if defined(REDTILDE_ENABLE_TESTS)
-        if (job.destinationsForTest)
-            return job.printerForTest ? job.printerForTest(printer, settings, configured) : E_INVALIDARG;
+        job.printerTimeoutMsForTest.value_or(DefaultPrinterConfigurationTimeoutMs);
+#else
+        DefaultPrinterConfigurationTimeoutMs;
 #endif
-        return ConfigurePrinter(printer, settings, configured);
-    };
     auto destinations =
 #if defined(REDTILDE_ENABLE_TESTS)
         job.destinationsForTest ? std::move(job.destinationsForTest.value()) :
 #endif
                                 ListDestinations(job.initialPrinter);
+    const auto selectedPrinter = destinations.selected;
+    if (operation.Post({.kind = Notice::Kind::Destinations, .printer = selectedPrinter, .destinations = std::move(destinations)}) == PostResult::Cancelled)
+        return Cancelled;
+
     constexpr Paper letter{{816.f, 1056.f}, {0.f, 0.f, 816.f, 1056.f}};
     auto paper = letter;
     std::wstring configuredPrinter;
     std::unique_ptr<Pages> pages;
-    Request request{.printer  = destinations.selected,
-                    .settings = SamePrintName(job.initialPrinter, destinations.selected) ? std::move(job.initialSettings) : std::nullopt};
-    auto discovered = std::optional{std::move(destinations)};
+    Request request{.id           = 1u,
+                    .printerEpoch = 1u,
+                    .printer      = selectedPrinter,
+                    .settings     = SamePrintName(job.initialPrinter, selectedPrinter) ? std::move(job.initialSettings) : std::nullopt};
+    bool initialRequest            = true;
+    std::uint64_t currentRequestId = 1u;
+    std::uint64_t currentEpoch     = 1u;
+    unsigned currentPage           = 1u;
+    std::wstring activePrinter     = selectedPrinter;
+    std::shared_ptr<PrinterConfigProbe> pendingProbe;
+    const auto abandonPending = wil::scope_exit([&]() noexcept
+    {
+        if (pendingProbe)
+            pendingProbe->abandoned.store(true, std::memory_order_release);
+    });
+
     for (;;)
     {
         if (operation.cancel.load())
             return Cancelled;
         if (request.selection)
         {
+            if (pendingProbe)
+            {
+                pendingProbe->abandoned.store(true, std::memory_order_release);
+                pendingProbe.reset();
+            }
             finished.stage   = Stage::PrepareJob;
             finished.printer = request.selection.value().printer;
             if (! pages || configuredPrinter.empty() || ! SamePrintName(configuredPrinter, request.selection->printer) || request.selection->paper != paper)
                 return E_INVALIDARG;
             return Submit(work, request.selection.value(), *pages, wic.get(), finished);
         }
-        Notice notice{.kind = Notice::Kind::Preview, .destinations = std::exchange(discovered, std::nullopt)};
+
+        currentRequestId = request.id;
+        currentEpoch     = request.printerEpoch;
+        currentPage      = request.page;
+        Notice notice{.kind = Notice::Kind::Preview, .requestId = currentRequestId, .printerEpoch = currentEpoch};
         auto desired = paper;
         if (request.printer)
         {
-            notice.stage   = Stage::ConfigurePrinter;
-            notice.printer = request.printer.value();
-            PrinterConfiguration configured;
-            notice.result = configure(notice.printer, request.settings, configured);
-            if (FAILED(notice.result) && notice.destinations && request.settings)
-                notice.result = configure(notice.printer, std::nullopt, configured);
-            if (SUCCEEDED(notice.result))
+            if (pendingProbe)
             {
-                configuredPrinter    = configured.selection.printer;
-                desired              = configured.selection.paper;
-                notice.configuration = std::move(configured);
+                pendingProbe->abandoned.store(true, std::memory_order_release);
+                pendingProbe.reset();
             }
-            else if (! SamePrintName(configuredPrinter, notice.printer))
+            activePrinter    = request.printer.value();
+            const bool retry = std::exchange(initialRequest, false) && request.settings.has_value();
+            if (! activePrinter.empty())
+            {
+                notice.stage   = Stage::ConfigurePrinter;
+                notice.printer = activePrinter;
+                std::shared_ptr<PrinterConfigProbe> probe;
+                const HRESULT started = StartPrinterConfigProbe(work, retry, activePrinter, std::move(request.settings), probe);
+                if (FAILED(started))
+                {
+                    notice.result = started;
+                    if (! SamePrintName(configuredPrinter, activePrinter))
+                    {
+                        configuredPrinter.clear();
+                        desired = letter;
+                    }
+                }
+                else
+                {
+                    const HANDLE waitHandles[2]{operation.requested.get(), probe->done.get()};
+                    const DWORD waited = WaitForMultipleObjects(2u, waitHandles, FALSE, timeoutMs);
+                    if (waited == WAIT_OBJECT_0)
+                    {
+                        if (operation.cancel.load())
+                        {
+                            probe->abandoned.store(true, std::memory_order_release);
+                            return Cancelled;
+                        }
+                        probe->abandoned.store(true, std::memory_order_release);
+                        const std::lock_guard lock(operation.mutex);
+                        request = std::exchange(operation.request, {});
+                        continue;
+                    }
+                    if (waited == WAIT_OBJECT_0 + 1u)
+                    {
+                        if (operation.cancel.load())
+                            return Cancelled;
+                        notice.result = probe->result;
+                        if (SUCCEEDED(probe->result) && probe->configuration)
+                        {
+                            configuredPrinter    = probe->configuration->selection.printer;
+                            desired              = probe->configuration->selection.paper;
+                            notice.configuration = std::move(probe->configuration);
+                        }
+                        else if (! SamePrintName(configuredPrinter, activePrinter))
+                        {
+                            configuredPrinter.clear();
+                            desired = letter;
+                        }
+                    }
+                    else if (waited == WAIT_TIMEOUT)
+                    {
+                        if (operation.cancel.load())
+                        {
+                            probe->abandoned.store(true, std::memory_order_release);
+                            return Cancelled;
+                        }
+                        pendingProbe          = std::move(probe);
+                        notice.printerPending = true;
+                        notice.result         = S_OK;
+                        configuredPrinter.clear();
+                        desired = letter;
+                    }
+                    else
+                    {
+                        probe->abandoned.store(true, std::memory_order_release);
+                        return HRESULT_FROM_WIN32(GetLastError());
+                    }
+                }
+            }
+            else
             {
                 configuredPrinter.clear();
                 desired = letter;
             }
         }
+        else
+        {
+            initialRequest        = false;
+            notice.printer        = activePrinter;
+            notice.printerPending = (pendingProbe != nullptr);
+        }
+
         if (! pages || desired != paper)
         {
             pages.reset();
@@ -1091,13 +1354,74 @@ HRESULT RunSession(Work& work, Notice& finished)
         }
         notice.preview.emplace();
         notice.preview->fallbackPaper = configuredPrinter.empty();
-        RETURN_IF_FAILED(pages->Preview(std::clamp(request.page, 1u, pages->Count()), notice.preview.value()));
-        if (! operation.Post(std::move(notice)))
+        RETURN_IF_FAILED(pages->Preview(std::clamp(currentPage, 1u, pages->Count()), notice.preview.value()));
+        if (operation.Post(std::move(notice)) == PostResult::Cancelled)
             return Cancelled;
-        if (! operation.requested.wait())
-            return E_FAIL;
-        const std::lock_guard lock(operation.mutex);
-        request = std::exchange(operation.request, {});
+
+        for (;;)
+        {
+            if (operation.cancel.load())
+                return Cancelled;
+            if (! pendingProbe)
+            {
+                if (! operation.requested.wait())
+                    return E_FAIL;
+                if (operation.cancel.load())
+                    return Cancelled;
+                const std::lock_guard lock(operation.mutex);
+                request = std::exchange(operation.request, {});
+                break;
+            }
+            const HANDLE waitHandles[2]{operation.requested.get(), pendingProbe->done.get()};
+            const DWORD waited = WaitForMultipleObjects(2u, waitHandles, FALSE, INFINITE);
+            if (waited == WAIT_OBJECT_0)
+            {
+                if (operation.cancel.load())
+                    return Cancelled;
+                const std::lock_guard lock(operation.mutex);
+                request = std::exchange(operation.request, {});
+                break;
+            }
+            if (waited == WAIT_OBJECT_0 + 1u)
+            {
+                if (operation.cancel.load())
+                    return Cancelled;
+                const auto completed = std::move(pendingProbe);
+                Notice resolved{.kind           = Notice::Kind::Preview,
+                                .result         = completed->result,
+                                .stage          = Stage::ConfigurePrinter,
+                                .requestId      = currentRequestId,
+                                .printerEpoch   = currentEpoch,
+                                .printerPending = false,
+                                .printer        = completed->printer};
+                auto resolvedDesired = paper;
+                if (SUCCEEDED(completed->result) && completed->configuration)
+                {
+                    configuredPrinter      = completed->configuration->selection.printer;
+                    resolvedDesired        = completed->configuration->selection.paper;
+                    resolved.configuration = std::move(completed->configuration);
+                }
+                else if (! SamePrintName(configuredPrinter, completed->printer))
+                {
+                    configuredPrinter.clear();
+                    resolvedDesired = letter;
+                }
+                if (! pages || resolvedDesired != paper)
+                {
+                    pages.reset();
+                    pages = std::make_unique<Pages>();
+                    paper = resolvedDesired;
+                    RETURN_IF_FAILED(pages->Prepare(job.document, paper, wic.get(), operation.cancel));
+                }
+                resolved.preview.emplace();
+                resolved.preview->fallbackPaper = configuredPrinter.empty();
+                RETURN_IF_FAILED(pages->Preview(std::clamp(currentPage, 1u, pages->Count()), resolved.preview.value()));
+                if (operation.Post(std::move(resolved)) == PostResult::Cancelled)
+                    return Cancelled;
+                continue;
+            }
+            return HRESULT_FROM_WIN32(GetLastError());
+        }
     }
 }
 
@@ -1167,21 +1491,61 @@ std::optional<Notice> TakeNotice(const std::shared_ptr<Operation>& operation)
 void RequestPreview(Operation& operation, unsigned page) noexcept
 {
     const std::lock_guard lock(operation.mutex);
-    operation.request = {.page = page};
+    ++operation.activeRequestId;
+    if (operation.notice && operation.notice->kind == Notice::Kind::Preview)
+    {
+        std::optional<Notice> preservedDestinations;
+        if (operation.notice->stage == Stage::ConfigurePrinter && operation.notice->printerEpoch == operation.activePrinterEpoch)
+        {
+            operation.pendingConfig = Notice{.kind           = Notice::Kind::Preview,
+                                             .result         = operation.notice->result,
+                                             .stage          = operation.notice->stage,
+                                             .printerEpoch   = operation.notice->printerEpoch,
+                                             .printerPending = operation.notice->printerPending,
+                                             .printer        = std::move(operation.notice->printer),
+                                             .configuration  = std::move(operation.notice->configuration)};
+        }
+        if (operation.notice->destinations)
+        {
+            preservedDestinations = Notice{.kind         = Notice::Kind::Destinations,
+                                           .printer      = operation.pendingConfig ? operation.pendingConfig->printer : std::wstring{},
+                                           .destinations = std::move(operation.notice->destinations)};
+        }
+        operation.notice = std::move(preservedDestinations);
+    }
+    operation.request = {.id = operation.activeRequestId, .printerEpoch = operation.activePrinterEpoch, .page = page};
     operation.requested.SetEvent();
 }
 
 void RequestPrinter(Operation& operation, unsigned page, std::wstring printer, std::optional<PrinterSettings> settings) noexcept
 {
     const std::lock_guard lock(operation.mutex);
-    operation.request = {.page = page, .printer = std::move(printer), .settings = std::move(settings)};
+    ++operation.activeRequestId;
+    ++operation.activePrinterEpoch;
+    operation.pendingConfig.reset();
+    if (operation.notice && operation.notice->kind == Notice::Kind::Preview)
+    {
+        if (operation.notice->destinations)
+            operation.notice = Notice{.kind = Notice::Kind::Destinations, .destinations = std::move(operation.notice->destinations)};
+        else
+            operation.notice.reset();
+    }
+    operation.request = {.id           = operation.activeRequestId,
+                         .printerEpoch = operation.activePrinterEpoch,
+                         .page         = page,
+                         .printer      = std::move(printer),
+                         .settings     = std::move(settings)};
     operation.requested.SetEvent();
 }
 
 void RequestPrint(Operation& operation, Selection selection) noexcept
 {
     const std::lock_guard lock(operation.mutex);
-    operation.request = {.selection = std::move(selection)};
+    ++operation.activeRequestId;
+    operation.pendingConfig.reset();
+    if (operation.notice && operation.notice->kind == Notice::Kind::Preview)
+        operation.notice.reset();
+    operation.request = {.id = operation.activeRequestId, .printerEpoch = operation.activePrinterEpoch, .selection = std::move(selection)};
     operation.requested.SetEvent();
 }
 

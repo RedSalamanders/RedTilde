@@ -136,6 +136,7 @@ struct Notice
 {
     enum class Kind
     {
+        Destinations,
         Preview,
         ChooseFile,
         Finished
@@ -146,7 +147,10 @@ struct Notice
     Stage stage{};
     unsigned failedPage{};
     unsigned invalidRangePageCount{};
+    std::uint64_t requestId{};
+    std::uint64_t printerEpoch{};
     bool savedFile{};
+    bool printerPending{};
     std::wstring printer;
     std::optional<Destinations> destinations;
     // Present when the worker has attempted to configure a printer.
@@ -160,6 +164,7 @@ struct Job
     std::wstring initialPrinter;
     std::optional<PrinterSettings> initialSettings;
 #if defined(REDTILDE_ENABLE_TESTS)
+    std::optional<DWORD> printerTimeoutMsForTest;
     std::optional<Destinations> destinationsForTest;
     std::function<HRESULT(const std::wstring&, const std::optional<PrinterSettings>&, PrinterConfiguration&)> printerForTest;
     // Receives the same closed Direct2D command lists used for driver submission.

@@ -30,7 +30,7 @@ public:
     void SetTheme(const DxUi::ThemePalette& theme) noexcept;
     void SetDestinations(Printing::Destinations destinations);
     void SetConfiguration(const Printing::PrinterConfiguration* configuration, bool keepJobValues);
-    void BeginRendering();
+    void BeginRendering(std::wstring_view status = {});
     void Present(Printing::PreviewPage page, std::wstring status);
     void SetStatus(std::wstring status);
     void ReportInvalidRange(bool focus);

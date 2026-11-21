@@ -75,6 +75,7 @@ void Application::Print()
     job.initialPrinter  = _printPrinter;
     job.initialSettings = _printSettings;
 #if defined(REDTILDE_ENABLE_TESTS)
+    job.printerTimeoutMsForTest = _options.printPrinterTimeoutMsForTest;
     if (_options.headless)
     {
         job.destinationsForTest = _options.printDestinationsForTest.value_or(Printing::Destinations{});
@@ -113,13 +114,20 @@ void Application::PreviewPrintPage(unsigned number)
 
 void Application::PreviewPrintDestination(std::optional<Printing::PrinterSettings> requested)
 {
-    if (! CanAcceptCommand() || ! _printOperation || ! _printPreview || ! _printPreview->IsReady())
+    if (! CanAcceptCommand() || ! _printOperation || ! _printPreview || (requested && ! _printPreview->IsReady()))
         return;
     auto printer = std::wstring(_printPreview->Printer());
+    if (printer.empty())
+        return;
     if (! requested && Printing::SamePrintName(printer, _printPrinter))
         requested = _printSettings;
-    const auto pageNumber = _printPreview->Page().number;
-    _printPreview->BeginRendering();
+    if (! requested && _printConfiguration && ! Printing::SamePrintName(_printConfiguration->selection.printer, printer))
+    {
+        _printConfiguration.reset();
+        _printPreview->SetConfiguration(nullptr, false);
+    }
+    const auto pageNumber = std::max(1u, _printPreview->Page().number);
+    _printPreview->BeginRendering(FormatStringResource(nullptr, IDS_PRINTPREVIEWCONNECTING, printer));
     Printing::RequestPrinter(*_printOperation, pageNumber, std::move(printer), std::move(requested));
 }
 
@@ -194,6 +202,16 @@ void Application::PrintCompleted()
         }
         return;
     }
+    if (notice->kind == Printing::Notice::Kind::Destinations)
+    {
+        if (! _printPreview)
+            return;
+        if (notice->destinations)
+            _printPreview->SetDestinations(std::move(notice->destinations.value()));
+        if (! notice->printer.empty())
+            _printPreview->SetStatus(FormatStringResource(nullptr, IDS_PRINTPREVIEWCONNECTING, notice->printer));
+        return;
+    }
     if (notice->kind == Printing::Notice::Kind::Preview)
     {
         if (! _printPreview)
@@ -207,17 +225,21 @@ void Application::PrintCompleted()
             const bool samePrinter = _printConfiguration && Printing::SamePrintName(_printConfiguration->selection.printer, notice->printer);
             if (notice->configuration)
                 _printConfiguration = std::move(notice->configuration);
-            else if (! samePrinter)
+            else if (! samePrinter || notice->printerPending)
                 _printConfiguration.reset();
-            _printPreview->SetConfiguration(_printConfiguration ? &_printConfiguration.value() : nullptr, samePrinter);
-            if (FAILED(notice->result) && ! notice->printer.empty())
+            _printPreview->SetConfiguration(_printConfiguration ? &_printConfiguration.value() : nullptr, samePrinter && ! notice->printerPending);
+            if (notice->printerPending && ! notice->printer.empty())
+                status = FormatStringResource(nullptr, IDS_PRINTPREVIEWSLOW, notice->printer);
+            else if (FAILED(notice->result) && ! notice->printer.empty())
             {
                 const auto summary = Resource(rendered.fallbackPaper ? IDS_PRINTPREVIEWDEFAULT : IDS_PRINTSETTINGSFAILED);
                 const auto error   = ErrorText(notice->result);
                 status             = FormatStringResource(nullptr, IDS_PRINTERRORDETAIL, summary, error);
             }
         }
-        if (status.empty() && rendered.fallbackPaper)
+        if (status.empty() && notice->printerPending && ! notice->printer.empty())
+            status = FormatStringResource(nullptr, IDS_PRINTPREVIEWSLOW, notice->printer);
+        else if (status.empty() && rendered.fallbackPaper)
             status = Resource(IDS_PRINTPREVIEWDEFAULT);
         _printPreview->Present(std::move(rendered), std::move(status));
         return;

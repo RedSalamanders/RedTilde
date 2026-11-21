@@ -374,6 +374,7 @@ void PrintPreview::SetDestinations(Printing::Destinations destinations)
     _printers->SetItems(std::move(items));
     _printers->SetPlaceholder(Resource(IDS_PRINTNOPRINTERSFOUND));
     SelectNamedItem(*_printers, destinations.selected);
+    _printers->SetEnabled(! _printers->GetItems().empty());
 }
 
 void PrintPreview::SetConfiguration(const Printing::PrinterConfiguration* configuration, bool keepJobValues)
@@ -415,6 +416,8 @@ void PrintPreview::SetConfiguration(const Printing::PrinterConfiguration* config
     setRow(_copiesLabel, _copies, showCopies);
     _collate->SetVisible(showCollate);
     _file->SetVisible(showFile);
+    if (_scroll)
+        Layout();
 }
 
 void PrintPreview::UpdatePaperSettings()
@@ -431,7 +434,7 @@ void PrintPreview::UpdatePaperSettings()
     _app.PreviewPrintDestination(std::move(selected));
 }
 
-void PrintPreview::BeginRendering()
+void PrintPreview::BeginRendering(std::wstring_view status)
 {
     _rendering = true;
     _print->SetEnabled(false);
@@ -439,7 +442,7 @@ void PrintPreview::BeginRendering()
     _previous->SetEnabled(false);
     _next->SetEnabled(false);
     _ranges->SetEnabled(false);
-    _printers->SetEnabled(false);
+    _printers->SetEnabled(! _printers->GetItems().empty());
     _papers->SetEnabled(false);
     _orientation->SetEnabled(false);
     _duplex->SetEnabled(false);
@@ -449,7 +452,7 @@ void PrintPreview::BeginRendering()
     _current->SetEnabled(false);
     _sheet->SetVisible(false);
     _zoom->SetEnabled(false);
-    SetStatus(Resource(IDS_PRINTPREVIEWPREPARING));
+    SetStatus(status.empty() ? Resource(IDS_PRINTPREVIEWPREPARING) : std::wstring(status));
 }
 
 void PrintPreview::Present(Printing::PreviewPage page, std::wstring status)
