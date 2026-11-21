@@ -50,7 +50,11 @@ configuration so users can switch queues immediately without waiting on a slow o
 exposes driver-supported paper size, orientation, print sides, copies and collation, scrolling independently of
 the preview. Selecting a queue or paper setting requests fresh paper geometry on an isolated helper query so
 a slow driver query never stalls queue switches or preview dismissal; if a query exceeds its bounded wait, present
-a browsable Letter fallback with Print disabled and promote the preview if the configuration completes later. Show
+a browsable Letter fallback with Print disabled and promote the preview if the configuration completes later. When
+preview preparation or printer configuration takes longer than 800 ms, present a centered waiting indicator over
+the preview canvas while leaving the sidebar Printer dropdown and Close action accessible; animate smoothly when
+motion is enabled, show a crisp static indicator under reduced motion or high contrast, and hide immediately once
+a sheet presents, another queue is selected, or preview closes. Show
 the updated pages before enabling Print. Preserve entered page ranges and prompt for correction when a range
 exceeds the new page count. When no destination can be prepared, show a browsable Letter fallback and disable
 Print. For a rejected setting on the same queue, restore its previous accepted values and show the driver error.

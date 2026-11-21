@@ -9,6 +9,8 @@ class Application;
 class PrintPreview final
 {
 public:
+    static constexpr UINT WaitingOverlayDelayMs = 800u;
+
     explicit PrintPreview(Application& app);
     ~PrintPreview();
     PrintPreview(const PrintPreview&)            = delete;
@@ -27,6 +29,12 @@ public:
     [[nodiscard]] bool IsReady() const noexcept;
     [[nodiscard]] bool CanPrint() const noexcept;
     [[nodiscard]] bool DispatchKeyboardMessage(const MSG& message);
+#if defined(REDTILDE_ENABLE_TESTS)
+    [[nodiscard]] bool IsWaitingOverlayVisible() const noexcept;
+    [[nodiscard]] std::wstring_view WaitingOverlayMessage() const noexcept;
+    [[nodiscard]] D2D1_RECT_F WaitingOverlayBounds() const noexcept;
+    void AdvanceWaitingForTest(std::uint64_t elapsedMs);
+#endif
     void SetTheme(const DxUi::ThemePalette& theme) noexcept;
     void SetDestinations(Printing::Destinations destinations);
     void SetConfiguration(const Printing::PrinterConfiguration* configuration, bool keepJobValues);
@@ -38,15 +46,22 @@ public:
 private:
     class Sheet;
     class Viewport;
+    class WaitingOverlay;
     enum class Action : WPARAM
     {
         Print,
         Close
     };
-    static constexpr UINT PreviewAction = WM_APP + 1u;
+    static constexpr UINT PreviewAction           = WM_APP + 1u;
+    static constexpr UINT_PTR WaitingDelayTimerId = 0x52545741u;
     static LRESULT CALLBACK WindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) noexcept;
     LRESULT HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
     void PostAction(Action action) noexcept;
+    void ArmWaitingTimer();
+    void CancelWaitingTimer() noexcept;
+    void ShowWaitingOverlay();
+    void StopWaiting() noexcept;
+    void SyncWaitingText();
     void Layout();
     void MoveThroughPages(int steps);
     void UpdatePaperSettings();
@@ -59,13 +74,14 @@ private:
     DxUi::ScrollPanel* _settings{};
     Viewport* _scroll{};
     Sheet* _sheet{};
+    WaitingOverlay* _waiting{};
     DxUi::Label *_title{}, *_document{}, *_pageLabel{}, *_total{}, *_printerLabel{}, *_rangeLabel{}, *_status{};
     DxUi::Label *_paperLabel{}, *_orientationLabel{}, *_duplexLabel{}, *_copiesLabel{};
     DxUi::ComboBox *_printers{}, *_papers{}, *_orientation{}, *_duplex{};
     DxUi::TextField *_page{}, *_ranges{}, *_copies{};
     DxUi::Checkbox *_collate{}, *_file{};
     DxUi::Button *_previous{}, *_next{}, *_zoom{}, *_current{}, *_close{}, *_print{};
-    bool _ownerDisabled{}, _fitWidth{}, _scrollToPageEnd{}, _rendering{};
+    bool _ownerDisabled{}, _fitWidth{}, _scrollToPageEnd{}, _rendering{}, _waitingTimerArmed{};
     std::optional<Action> _pendingAction;
 };
 } // namespace RedTilde
