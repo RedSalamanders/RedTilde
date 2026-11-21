@@ -3,9 +3,11 @@
 #include "KeyboardState.h"
 #include "res/Resource.h"
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <dwmapi.h>
 #include <format>
+#include <numbers>
 #include <utility>
 #include <wil/result.h>
 
@@ -116,12 +118,348 @@ private:
     float _wheelRemainder{};
 };
 
+class PrintPreview::WaitingOverlay final : public DxUi::Control
+{
+public:
+    WaitingOverlay()
+    {
+        EnableVisualContentPreparation();
+        SetAccessibilityRole(DxUi::AccessibilityRole::Status);
+        SetVisible(false);
+    }
+    WaitingOverlay(const WaitingOverlay&)            = delete;
+    WaitingOverlay(WaitingOverlay&&)                 = delete;
+    WaitingOverlay& operator=(const WaitingOverlay&) = delete;
+    WaitingOverlay& operator=(WaitingOverlay&&)      = delete;
+
+    void Show(DxUi::ControlHost& host, std::wstring headline, std::wstring hint)
+    {
+        _headline = std::move(headline);
+        _hint     = std::move(hint);
+        SetAccessibleName(_headline);
+        _active      = true;
+        _startTickMs = host.GetAnimationTickMs();
+        _elapsedMs   = 0u;
+        SetVisible(true);
+        RequestVisualContentPreparation();
+        host.Invalidate();
+        if (! host.GetTheme().reducedMotion)
+            host.RequestAnimation();
+    }
+
+    void UpdateText(DxUi::ControlHost& host, std::wstring headline, std::wstring hint)
+    {
+        if (_headline == headline && _hint == hint)
+            return;
+        _headline = std::move(headline);
+        _hint     = std::move(hint);
+        SetAccessibleName(_headline);
+        if (_active && IsVisible())
+            host.Invalidate();
+    }
+
+    void Hide(DxUi::ControlHost& host) noexcept
+    {
+        if (! _active && ! IsVisible())
+            return;
+        _active    = false;
+        _elapsedMs = 0u;
+        SetVisible(false);
+        host.Invalidate();
+    }
+
+    [[nodiscard]] std::wstring_view Headline() const noexcept
+    {
+        return _headline;
+    }
+
+#if defined(REDTILDE_ENABLE_TESTS)
+    void SetElapsedForTest(DxUi::ControlHost& host, std::uint64_t elapsedMs)
+    {
+        _elapsedMs = elapsedMs;
+        host.Invalidate();
+    }
+#endif
+
+    bool Tick(DxUi::ControlHost& host, std::uint64_t nowTickMs) override
+    {
+        const auto bounds = GetBounds();
+        if (! _active || ! IsVisible() || host.GetTheme().reducedMotion || ! (bounds.right > bounds.left) || ! (bounds.bottom > bounds.top))
+            return false;
+        if (nowTickMs < _startTickMs)
+            _startTickMs = nowTickMs;
+        _elapsedMs = nowTickMs - _startTickMs;
+        host.Invalidate();
+        return true;
+    }
+
+    void Paint(DxUi::ControlHost& host) const override
+    {
+        auto* const target = host.GetDeviceContext();
+        if (! target || ! _active || ! _brush || ! _roundStroke || _generation != host.GetResourceGeneration())
+            return;
+        const auto bounds  = GetBounds();
+        const float availW = bounds.right - bounds.left;
+        const float availH = bounds.bottom - bounds.top;
+        if (availW < 96.f || availH < 96.f)
+            return;
+
+        const auto& theme        = host.GetTheme();
+        const bool highContrast  = theme.highContrast;
+        const bool reducedMotion = theme.reducedMotion;
+        const auto setColor      = [&](const D2D1_COLOR_F& color, float alpha) noexcept
+        {
+            auto c = color;
+            c.a    = std::clamp(c.a * alpha, 0.f, 1.f);
+            _brush->SetColor(c);
+        };
+
+        float fade       = 1.f;
+        float slideY     = 0.f;
+        float elapsedSec = 0.42f;
+        if (! reducedMotion)
+        {
+            const float t     = std::clamp(static_cast<float>(_elapsedMs) / 180.f, 0.f, 1.f);
+            const float eased = 1.f - (1.f - t) * (1.f - t) * (1.f - t);
+            fade              = 0.25f + 0.75f * eased;
+            slideY            = (1.f - eased) * 8.f;
+            elapsedSec        = static_cast<float>(_elapsedMs) / 1000.f;
+        }
+
+        const float cardW      = std::min(368.f, std::max(180.f, availW - 32.f));
+        const float cardH      = std::min(216.f, std::max(156.f, availH - 32.f));
+        const float cardLeft   = bounds.left + (availW - cardW) * .5f;
+        const float cardTop    = bounds.top + (availH - cardH) * .5f + slideY;
+        const float cardRight  = cardLeft + cardW;
+        const float cardBottom = cardTop + cardH;
+        const auto cardRect    = D2D1::RectF(cardLeft, cardTop, cardRight, cardBottom);
+        const auto cardRounded = D2D1::RoundedRect(cardRect, 16.f, 16.f);
+
+        if (! highContrast)
+        {
+            struct ShadowLayer
+            {
+                float expand, yOffset, radius, darkAlpha, lightAlpha;
+            };
+            const auto shadowColor = D2D1::ColorF(0.f, 0.f, 0.f, 1.f);
+            constexpr std::array<ShadowLayer, 3u> shadowLayers{{
+                {10.f, 6.f, 22.f, .05f, .015f},
+                {6.f, 4.f, 19.f, .10f, .025f},
+                {3.f, 2.f, 17.f, .16f, .04f},
+            }};
+            for (const auto& layer : shadowLayers)
+            {
+                const auto rect = D2D1::RectF(
+                    cardLeft - layer.expand, cardTop + layer.yOffset - layer.expand, cardRight + layer.expand, cardBottom + layer.yOffset + layer.expand);
+                setColor(shadowColor, (theme.dark ? layer.darkAlpha : layer.lightAlpha) * fade);
+                target->FillRoundedRectangle(D2D1::RoundedRect(rect, layer.radius, layer.radius), _brush.get());
+            }
+            setColor(theme.cardBackground, fade);
+            target->FillRoundedRectangle(cardRounded, _brush.get());
+            setColor(theme.borderDefault, fade);
+            target->DrawRoundedRectangle(cardRounded, _brush.get(), 1.f);
+        }
+        else
+        {
+            setColor(theme.windowBackground, 1.f);
+            target->FillRoundedRectangle(cardRounded, _brush.get());
+            setColor(theme.text, 1.f);
+            target->DrawRoundedRectangle(cardRounded, _brush.get(), 2.f);
+        }
+
+        const float cx = cardLeft + cardW * .5f;
+        const float cy = cardTop + 60.f;
+        PaintCenterpiece(*target, theme, cx, cy, elapsedSec, fade, highContrast, reducedMotion);
+
+        if (! _headline.empty())
+        {
+            if (auto* const format = host.GetTextFormat(DxUi::FontRole::BodyStrong, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, true))
+            {
+                setColor(theme.text, highContrast ? 1.f : fade);
+                target->DrawTextW(_headline.data(),
+                                  static_cast<UINT32>(_headline.size()),
+                                  format,
+                                  D2D1::RectF(cardLeft + 20.f, cardTop + 108.f, cardRight - 20.f, cardTop + 148.f),
+                                  _brush.get(),
+                                  D2D1_DRAW_TEXT_OPTIONS_CLIP,
+                                  DWRITE_MEASURING_MODE_NATURAL);
+            }
+        }
+        const float dotY       = cardBottom - 16.f;
+        const float hintBottom = std::min(dotY - 10.f, cardTop + 188.f);
+        if (! _hint.empty() && hintBottom > cardTop + 150.f)
+        {
+            if (auto* const format = host.GetTextFormat(DxUi::FontRole::Small, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_NEAR, true))
+            {
+                setColor(highContrast ? theme.text : theme.subduedText, highContrast ? 1.f : fade);
+                target->DrawTextW(_hint.data(),
+                                  static_cast<UINT32>(_hint.size()),
+                                  format,
+                                  D2D1::RectF(cardLeft + 22.f, cardTop + 150.f, cardRight - 22.f, hintBottom),
+                                  _brush.get(),
+                                  D2D1_DRAW_TEXT_OPTIONS_CLIP,
+                                  DWRITE_MEASURING_MODE_NATURAL);
+            }
+        }
+
+        for (int dot = 0; dot < 3; ++dot)
+        {
+            const float wave   = reducedMotion ? .5f : .5f + .5f * std::sin(elapsedSec * 4.2f - static_cast<float>(dot) * .9f);
+            const float radius = reducedMotion ? 2.2f : 2.f + .7f * wave;
+            const float x      = cx + static_cast<float>(dot - 1) * 10.f;
+            setColor(theme.accent, highContrast ? 1.f : (.28f + .72f * wave) * fade);
+            target->FillEllipse(D2D1::Ellipse({x, dotY}, radius, radius), _brush.get());
+        }
+    }
+
+private:
+    void PrepareVisualContent(DxUi::ControlHost& host) noexcept override
+    {
+        const auto generation = host.GetResourceGeneration();
+        if (_brush && _roundStroke && _generation == generation)
+            return;
+        _brush.reset();
+        _roundStroke.reset();
+        auto* const target = host.GetDeviceContext();
+        if (! target)
+            return;
+        wil::com_ptr<ID2D1SolidColorBrush> brush;
+        if (FAILED(target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), brush.put())))
+            return;
+        wil::com_ptr<ID2D1Factory> factory;
+        target->GetFactory(factory.put());
+        if (! factory)
+            return;
+        const auto properties = D2D1::StrokeStyleProperties(
+            D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_LINE_JOIN_ROUND, 10.f, D2D1_DASH_STYLE_SOLID, 0.f);
+        wil::com_ptr<ID2D1StrokeStyle> roundStroke;
+        if (FAILED(factory->CreateStrokeStyle(properties, nullptr, 0u, roundStroke.put())))
+            return;
+        _brush       = std::move(brush);
+        _roundStroke = std::move(roundStroke);
+        _generation  = generation;
+    }
+
+    void CancelVisualContentPreparation() noexcept override
+    {
+        _brush.reset();
+        _roundStroke.reset();
+    }
+
+    void PaintCenterpiece(ID2D1DeviceContext& target,
+                          const DxUi::ThemePalette& theme,
+                          float cx,
+                          float cy,
+                          float elapsedSec,
+                          float fade,
+                          bool highContrast,
+                          bool reducedMotion) const noexcept
+    {
+        const auto setColor = [&](const D2D1_COLOR_F& color, float alpha) noexcept
+        {
+            auto c = color;
+            c.a    = std::clamp(c.a * alpha, 0.f, 1.f);
+            _brush->SetColor(c);
+        };
+        constexpr float ringR = 30.f;
+        if (! highContrast)
+        {
+            const float pulse = reducedMotion ? .5f : .5f + .5f * std::sin(elapsedSec * 2.6f);
+            setColor(theme.accent, (theme.dark ? .06f : .045f) * fade);
+            target.FillEllipse(D2D1::Ellipse({cx, cy}, ringR + 12.f + pulse * 3.5f, ringR + 12.f + pulse * 3.5f), _brush.get());
+            setColor(theme.accent, (theme.dark ? .11f : .08f) * fade);
+            target.FillEllipse(D2D1::Ellipse({cx, cy}, ringR + 4.f + pulse * 2.f, ringR + 4.f + pulse * 2.f), _brush.get());
+        }
+
+        setColor(highContrast ? theme.text : theme.borderDefault, highContrast ? .4f : (theme.dark ? .34f : .45f) * fade);
+        target.DrawEllipse(D2D1::Ellipse({cx, cy}, ringR, ringR), _brush.get(), 2.5f);
+
+        if (! highContrast)
+        {
+            constexpr int innerSegments = 14;
+            constexpr float innerR      = ringR - 5.5f;
+            constexpr float innerSweep  = 1.55f;
+            const float innerStart      = -elapsedSec * 1.45f;
+            for (int i = 0; i < innerSegments; ++i)
+            {
+                const float f0 = static_cast<float>(i) / static_cast<float>(innerSegments);
+                const float f1 = static_cast<float>(i + 1) / static_cast<float>(innerSegments);
+                const float a0 = innerStart + innerSweep * f0;
+                const float a1 = innerStart + innerSweep * f1;
+                setColor(theme.accent, (.06f + .22f * f1) * fade);
+                target.DrawLine(D2D1::Point2F(cx + std::cos(a0) * innerR, cy + std::sin(a0) * innerR),
+                                D2D1::Point2F(cx + std::cos(a1) * innerR, cy + std::sin(a1) * innerR),
+                                _brush.get(),
+                                1.5f,
+                                _roundStroke.get());
+            }
+        }
+
+        const float headAngle  = -std::numbers::pi_v<float> * .5f + elapsedSec * 3.1f + .65f * std::sin(elapsedSec * 2.15f);
+        const float sweep      = (.72f + .5f * (1.f - std::cos(elapsedSec * 2.15f))) * 2.15f;
+        constexpr int segments = 32;
+        for (int i = 0; i < segments; ++i)
+        {
+            const float u0 = static_cast<float>(i) / static_cast<float>(segments);
+            const float u1 = static_cast<float>(i + 1) / static_cast<float>(segments);
+            const float a0 = headAngle - sweep * (1.f - u0);
+            const float a1 = headAngle - sweep * (1.f - u1);
+            setColor(theme.accent, highContrast ? 1.f : (.08f + .92f * u1 * std::sqrt(u1)) * fade);
+            target.DrawLine(D2D1::Point2F(cx + std::cos(a0) * ringR, cy + std::sin(a0) * ringR),
+                            D2D1::Point2F(cx + std::cos(a1) * ringR, cy + std::sin(a1) * ringR),
+                            _brush.get(),
+                            3.f,
+                            _roundStroke.get());
+        }
+
+        const auto headPt = D2D1::Point2F(cx + std::cos(headAngle) * ringR, cy + std::sin(headAngle) * ringR);
+        if (! highContrast)
+        {
+            setColor(theme.accent, .28f * fade);
+            target.FillEllipse(D2D1::Ellipse(headPt, 5.5f, 5.5f), _brush.get());
+        }
+        const auto headCore = highContrast ? theme.accent : DxUi::BlendColor(theme.accent, D2D1::ColorF(D2D1::ColorF::White), theme.dark ? .35f : .15f);
+        setColor(headCore, highContrast ? 1.f : fade);
+        target.FillEllipse(D2D1::Ellipse(headPt, 2.6f, 2.6f), _brush.get());
+
+        const float floatY   = reducedMotion ? 0.f : -1.2f * std::sin(elapsedSec * 2.4f);
+        const float sheetTop = cy - 15.f + floatY;
+        const auto sheetRect = D2D1::RoundedRect(D2D1::RectF(cx - 12.f, sheetTop, cx + 12.f, sheetTop + 30.f), 4.f, 4.f);
+        setColor(highContrast ? theme.windowBackground : theme.surfaceBackground, highContrast ? 1.f : fade);
+        target.FillRoundedRectangle(sheetRect, _brush.get());
+        setColor(highContrast ? theme.text : theme.borderStrong, highContrast ? 1.f : fade);
+        target.DrawRoundedRectangle(sheetRect, _brush.get(), 1.25f);
+
+        constexpr std::array<float, 4u> barWidths{11.f, 15.f, 13.f, 9.f};
+        const float barLeft = cx - 7.5f;
+        for (std::size_t row = 0u; row < barWidths.size(); ++row)
+        {
+            const float y     = sheetTop + 8.f + static_cast<float>(row) * 4.7f;
+            const float wave  = reducedMotion ? .95f : .45f + .55f * (.5f + .5f * std::sin(elapsedSec * 3.2f - static_cast<float>(row) * .85f));
+            const bool tinted = row == 0u || (! highContrast && row == 3u);
+            const auto& color = tinted ? theme.accent : (highContrast ? theme.text : theme.subduedText);
+            setColor(color, highContrast ? 1.f : wave * fade);
+            target.DrawLine(D2D1::Point2F(barLeft, y), D2D1::Point2F(barLeft + barWidths[row], y), _brush.get(), 2.f, _roundStroke.get());
+        }
+    }
+
+    std::wstring _headline;
+    std::wstring _hint;
+    wil::com_ptr<ID2D1SolidColorBrush> _brush;
+    wil::com_ptr<ID2D1StrokeStyle> _roundStroke;
+    std::uint64_t _generation{};
+    std::uint64_t _startTickMs{};
+    std::uint64_t _elapsedMs{};
+    bool _active{};
+};
+
 PrintPreview::PrintPreview(Application& app) : _app(app)
 {
 }
 
 PrintPreview::~PrintPreview()
 {
+    CancelWaitingTimer();
     const bool wasActive = _window && GetActiveWindow() == _window.get();
     if (_ownerDisabled)
     {
@@ -280,7 +618,8 @@ HRESULT PrintPreview::Initialize(std::wstring_view title)
     _status->SetFontRole(DxUi::FontRole::Small);
     _scroll = _root->AddChild<Viewport>(*this);
     _scroll->SetAccessibleName(Resource(IDS_PRINTPREVIEW));
-    _sheet = _scroll->AddChild<Sheet>();
+    _sheet   = _scroll->AddChild<Sheet>();
+    _waiting = _root->AddChild<WaitingOverlay>();
     _host.SetRoot(std::move(tree));
     _host.SetCancelButton(_close);
     _host.SetDefaultButton(_print);
@@ -363,6 +702,12 @@ void PrintPreview::SetTheme(const DxUi::ThemePalette& theme) noexcept
     _host.SetTheme(theme);
     const BOOL dark = theme.dark && ! theme.highContrast;
     (void)DwmSetWindowAttribute(_window.get(), DWMWA_USE_IMMERSIVE_DARK_MODE, &dark, sizeof(dark));
+    if (_waiting && _waiting->IsVisible())
+    {
+        _host.Invalidate();
+        if (! theme.reducedMotion)
+            _host.RequestAnimation();
+    }
 }
 
 void PrintPreview::SetDestinations(Printing::Destinations destinations)
@@ -375,6 +720,8 @@ void PrintPreview::SetDestinations(Printing::Destinations destinations)
     _printers->SetPlaceholder(Resource(IDS_PRINTNOPRINTERSFOUND));
     SelectNamedItem(*_printers, destinations.selected);
     _printers->SetEnabled(! _printers->GetItems().empty());
+    if (_rendering)
+        SyncWaitingText();
 }
 
 void PrintPreview::SetConfiguration(const Printing::PrinterConfiguration* configuration, bool keepJobValues)
@@ -436,6 +783,7 @@ void PrintPreview::UpdatePaperSettings()
 
 void PrintPreview::BeginRendering(std::wstring_view status)
 {
+    StopWaiting();
     _rendering = true;
     _print->SetEnabled(false);
     _page->SetEnabled(false);
@@ -453,10 +801,12 @@ void PrintPreview::BeginRendering(std::wstring_view status)
     _sheet->SetVisible(false);
     _zoom->SetEnabled(false);
     SetStatus(status.empty() ? Resource(IDS_PRINTPREVIEWPREPARING) : std::wstring(status));
+    ArmWaitingTimer();
 }
 
 void PrintPreview::Present(Printing::PreviewPage page, std::wstring status)
 {
+    StopWaiting();
     const bool first  = Page().count == 0u;
     _rendering        = false;
     const auto count  = page.count;
@@ -507,7 +857,85 @@ void PrintPreview::MoveThroughPages(int steps)
 void PrintPreview::SetStatus(std::wstring status)
 {
     _status->SetText(std::move(status));
+    if (_rendering)
+        SyncWaitingText();
 }
+
+void PrintPreview::ArmWaitingTimer()
+{
+    CancelWaitingTimer();
+    if (! _window)
+        return;
+#if defined(REDTILDE_ENABLE_TESTS)
+    const UINT delay = _app._options.printWaitingDelayMsForTest.value_or(WaitingOverlayDelayMs);
+    if (delay == 0u)
+    {
+        ShowWaitingOverlay();
+        return;
+    }
+#else
+    constexpr UINT delay = WaitingOverlayDelayMs;
+#endif
+    if (SetTimer(_window.get(), WaitingDelayTimerId, delay, nullptr) != 0u)
+        _waitingTimerArmed = true;
+}
+
+void PrintPreview::CancelWaitingTimer() noexcept
+{
+    if (_waitingTimerArmed && _window)
+        (void)KillTimer(_window.get(), WaitingDelayTimerId);
+    _waitingTimerArmed = false;
+}
+
+void PrintPreview::ShowWaitingOverlay()
+{
+    if (! _rendering || ! _waiting)
+        return;
+    auto headline             = _status && ! _status->GetText().empty() ? std::wstring(_status->GetText()) : Resource(IDS_PRINTPREVIEWPREPARING);
+    const bool showSwitchHint = _printers && ! _printers->GetItems().empty() && ! _app._printConfiguration.has_value();
+    auto hint                 = Resource(showSwitchHint ? IDS_PRINTPREVIEWWAITSWITCHHINT : IDS_PRINTPREVIEWWAITRENDERHINT);
+    _waiting->Show(_host, std::move(headline), std::move(hint));
+}
+
+void PrintPreview::StopWaiting() noexcept
+{
+    CancelWaitingTimer();
+    if (_waiting)
+        _waiting->Hide(_host);
+}
+
+void PrintPreview::SyncWaitingText()
+{
+    if (! _waiting)
+        return;
+    auto headline             = _status && ! _status->GetText().empty() ? std::wstring(_status->GetText()) : Resource(IDS_PRINTPREVIEWPREPARING);
+    const bool showSwitchHint = _printers && ! _printers->GetItems().empty() && ! _app._printConfiguration.has_value();
+    auto hint                 = Resource(showSwitchHint ? IDS_PRINTPREVIEWWAITSWITCHHINT : IDS_PRINTPREVIEWWAITRENDERHINT);
+    _waiting->UpdateText(_host, std::move(headline), std::move(hint));
+}
+
+#if defined(REDTILDE_ENABLE_TESTS)
+bool PrintPreview::IsWaitingOverlayVisible() const noexcept
+{
+    return _waiting && _waiting->IsVisible();
+}
+
+std::wstring_view PrintPreview::WaitingOverlayMessage() const noexcept
+{
+    return _waiting ? _waiting->Headline() : std::wstring_view{};
+}
+
+D2D1_RECT_F PrintPreview::WaitingOverlayBounds() const noexcept
+{
+    return _waiting ? _waiting->GetBounds() : D2D1::RectF();
+}
+
+void PrintPreview::AdvanceWaitingForTest(std::uint64_t elapsedMs)
+{
+    if (_waiting)
+        _waiting->SetElapsedForTest(_host, elapsedMs);
+}
+#endif
 
 void PrintPreview::ReportInvalidRange(bool focus)
 {
@@ -584,6 +1012,8 @@ void PrintPreview::Layout()
     const float canvasTop = zoomTop + 42.f;
     const float bottom    = std::max(canvasTop + 1.f, height);
     _scroll->SetBounds({panelWidth, canvasTop, width, bottom});
+    if (_waiting)
+        _waiting->SetBounds({panelWidth, canvasTop, width, bottom});
     const auto paper           = Page().paper.size;
     constexpr float gutter     = 16.f;
     const float scrollbar      = _fitWidth ? _scroll->GetScrollbarThickness() : 0.f;
@@ -675,6 +1105,13 @@ LRESULT PrintPreview::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPAR
         }
         return 0;
     }
+    if (message == WM_TIMER && wParam == WaitingDelayTimerId)
+    {
+        CancelWaitingTimer();
+        if (_rendering)
+            ShowWaitingOverlay();
+        return 0;
+    }
     if (message == WM_CLOSE)
     {
         PostAction(Action::Close);
@@ -682,6 +1119,7 @@ LRESULT PrintPreview::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPAR
     }
     if (message == WM_NCDESTROY)
     {
+        CancelWaitingTimer();
         _host.Detach();
         _root = nullptr;
         (void)_window.release();

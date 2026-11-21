@@ -696,6 +696,247 @@ public:
         Require(returnedSlow.wait(10000u), "blocked slow printer test probe releases cleanly before teardown");
         Require(foreground.NeverAcquiredForeground() && ! IsWindowVisible(app.Window()), "slow-printer test preserves desktop");
     }
+
+    static void WaitingOverlayShowsAfterDelayAndClears(const std::filesystem::path& directory)
+    {
+        static_assert(PrintPreview::WaitingOverlayDelayMs == 800u, "waiting indicator appears after 800 ms");
+        Testing::ForegroundOwnershipObserver foreground;
+
+        // 1. Fast render (< 800 ms default delay) never shows the waiting card or activates an animation subscription.
+        {
+            LaunchOptions options;
+            options.headless                 = true;
+            options.forceWarp                = true;
+            options.dataDirectory            = directory / L"fast";
+            options.printDestinationsForTest = Printing::Destinations{{std::wstring(PdfPrinter)}, std::wstring(PdfPrinter)};
+            options.printPrinterForTest      = ConfigureFixture;
+            Application app(std::move(options));
+            Require(SUCCEEDED(app.Initialize()), "initialize fast waiting-overlay check");
+            Require(app.SetDocument(L"# Fast preview\n\nReady before 800 ms."), "seed fast document");
+            Open(app);
+            Require(! app._printPreview->IsWaitingOverlayVisible() && ! app._printPreview->Host().DebugHasActiveAnimationSubscription(),
+                    "fast preview settles before 800 ms without showing the waiting card");
+            app.DismissPrintPreview();
+            Wait(app);
+        }
+
+        // 2-6. Slow printer reveals centered themed waiting card after delay, animates when motion is on,
+        // and clears cleanly on completion, printer switch, or early dismissal.
+        auto enteredSlow  = wil::unique_event(wil::EventOptions::ManualReset);
+        auto releaseSlow  = wil::unique_event(wil::EventOptions::ManualReset);
+        auto returnedSlow = wil::unique_event(wil::EventOptions::ManualReset);
+        std::atomic_bool holdSlow{true};
+        constexpr std::wstring_view slowPrinter = L"Redfern stalled printer";
+
+        LaunchOptions options;
+        options.headless                     = true;
+        options.forceWarp                    = true;
+        options.dataDirectory                = directory / L"slow";
+        options.printWaitingDelayMsForTest   = 40u;
+        options.printPrinterTimeoutMsForTest = 8000u;
+        options.printDestinationsForTest     = Printing::Destinations{{std::wstring(PdfPrinter), std::wstring(slowPrinter)}, std::wstring(slowPrinter)};
+        options.printPrinterForTest =
+            [&](const std::wstring& name, const std::optional<Printing::PrinterSettings>& settings, Printing::PrinterConfiguration& configuration) -> HRESULT
+        {
+            if (name == slowPrinter && holdSlow.load(std::memory_order_acquire))
+            {
+                enteredSlow.SetEvent();
+                const bool signalled = releaseSlow.wait(15000u);
+                returnedSlow.SetEvent();
+                if (! signalled)
+                    return HRESULT_FROM_WIN32(ERROR_TIMEOUT);
+            }
+            return ConfigureFixture(name, settings, configuration);
+        };
+
+        Application app(std::move(options));
+        const auto cleanupRelease = wil::scope_exit([&]
+        {
+            holdSlow.store(false, std::memory_order_release);
+            releaseSlow.SetEvent();
+            if (enteredSlow.wait(0u))
+                (void)returnedSlow.wait(10000u);
+        });
+        Require(SUCCEEDED(app.Initialize()), "initialize slow waiting-overlay host");
+        Require(app.SetDocument(L"# Delayed print preview\n\nWaiting indicator coverage."), "seed delayed document");
+        app.Host().SetFocusControl(&app.Document(), false);
+
+        const auto pumpUntil = [&](auto&& predicate, std::string_view detail)
+        {
+            const auto start = GetTickCount64();
+            while (! predicate() && GetTickCount64() - start < 8000u)
+            {
+                MSG message{};
+                bool pumped{};
+                while (PeekMessageW(&message, app.Window(), Application::PrintReady, Application::PrintReady, PM_REMOVE))
+                {
+                    DispatchMessageW(&message);
+                    pumped = true;
+                }
+                if (app._printPreview && app._printPreview->Window())
+                {
+                    while (PeekMessageW(&message, app._printPreview->Window(), 0, 0, PM_REMOVE))
+                    {
+                        DispatchMessageW(&message);
+                        pumped = true;
+                    }
+                }
+                if (! predicate() && ! pumped)
+                    (void)MsgWaitForMultipleObjectsEx(0, nullptr, 10, QS_ALLINPUT | QS_TIMER, MWMO_INPUTAVAILABLE);
+            }
+            if (! predicate())
+                throw std::runtime_error(std::string(detail));
+        };
+
+        const auto captureCenterPixels = [&](DxUi::WindowHostBitmapCapture& capture, std::vector<std::uint8_t>& region)
+        {
+            auto& host = app._printPreview->Host();
+            for (unsigned prep = 0u; prep < 16u && host.HasPendingContentPreparation(); ++prep)
+                (void)host.RenderInitialFrameForShow();
+            Require(host.RenderInitialFrameForShow() && host.DebugCaptureBitmap(capture, true), "capture hidden waiting overlay bitmap");
+            const auto bounds = app._printPreview->WaitingOverlayBounds();
+            const float scale = host.GetDpi() / 96.f;
+            const auto cx     = static_cast<UINT>((bounds.left + bounds.right) * .5f * scale);
+            const auto cy     = static_cast<UINT>((bounds.top + bounds.bottom) * .5f * scale);
+            const UINT half   = 70u;
+            Require(cx > half && cy > half && cx + half < capture.widthPx && cy + half < capture.heightPx, "waiting overlay center fits capture");
+            region.clear();
+            bool hasDistinctPixel{};
+            const auto bgOffset =
+                ((static_cast<std::size_t>(bounds.top * scale) + 6u) * capture.widthPx + static_cast<std::size_t>(bounds.left * scale) + 6u) * 4u;
+            for (UINT y = cy - half; y <= cy + half; ++y)
+            {
+                const auto row = (static_cast<std::size_t>(y) * capture.widthPx + (cx - half)) * 4u;
+                region.insert(region.end(), capture.bgraPixels.data() + row, capture.bgraPixels.data() + row + static_cast<std::size_t>(half * 2u + 1u) * 4u);
+                for (UINT x = cx - half; x <= cx + half; ++x)
+                {
+                    const auto px = (static_cast<std::size_t>(y) * capture.widthPx + x) * 4u;
+                    if (! std::equal(capture.bgraPixels.data() + px, capture.bgraPixels.data() + px + 3u, capture.bgraPixels.data() + bgOffset))
+                        hasDistinctPixel = true;
+                }
+            }
+            Require(hasDistinctPixel, "waiting overlay renders visible artwork over the preview background");
+        };
+
+        const auto findWaitingControl = [&]() -> DxUi::Control&
+        {
+            const auto search = [&](this const auto& self, DxUi::Control* parent) -> DxUi::Control*
+            {
+                if (parent->GetAccessibilityRole() == DxUi::AccessibilityRole::Status)
+                    return parent;
+                for (std::size_t i = 0; i < parent->GetLogicalChildCount(); ++i)
+                    if (auto* const found = self(parent->GetLogicalChild(i)))
+                        return found;
+                return nullptr;
+            };
+            auto* const control = app._printPreview ? search(app._printPreview->Host().GetRoot()) : nullptr;
+            Require(control != nullptr, "locate waiting status control");
+            return *control;
+        };
+
+        app.Execute(Command::Print);
+        Require(app._printPreview && ! app._printPreview->IsWaitingOverlayVisible(), "waiting overlay stays hidden before timer elapses");
+        Require(enteredSlow.wait(5000u), "slow printer enters configuration wait");
+        pumpUntil([&] {
+            return app._printPreview && app._printPreview->IsWaitingOverlayVisible() && ! Find<DxUi::ComboBox>(app, IDS_PRINTDESTINATION).GetItems().empty();
+        }, "waiting overlay reveals after delay with populated destinations");
+
+        auto& printers1       = Find<DxUi::ComboBox>(app, IDS_PRINTDESTINATION);
+        const auto nextBounds = Find<DxUi::Button>(app, IDS_PRINTNEXT).GetBounds();
+        const auto waitBounds = app._printPreview->WaitingOverlayBounds();
+        Require(printers1.IsEnabled() && app._printPreview->WaitingOverlayMessage().find(slowPrinter) != std::wstring_view::npos &&
+                    waitBounds.left >= printers1.GetBounds().right && waitBounds.top >= nextBounds.bottom && waitBounds.right - waitBounds.left >= 200.f &&
+                    waitBounds.bottom - waitBounds.top >= 150.f,
+                "waiting overlay is centered inside preview canvas and leaves Printer enabled");
+
+        std::filesystem::create_directories(directory);
+        DxUi::WindowHostBitmapCapture darkCapture, lightCapture, frameA, frameB, staticCapture;
+        std::vector<std::uint8_t> darkPixels, lightPixels, pixelsA, pixelsB, staticPixels;
+        app.Execute(Command::ThemeDark);
+        captureCenterPixels(darkCapture, darkPixels);
+        Require(app.Capture(directory / L"waiting-dark.png"), "capture dark waiting overlay preview");
+        app.Execute(Command::ThemeLight);
+        captureCenterPixels(lightCapture, lightPixels);
+        Require(app.Capture(directory / L"waiting-light.png"), "capture light waiting overlay preview");
+        Require(darkPixels != lightPixels, "waiting overlay adapts cleanly between Dark and Light themes");
+
+        auto& host             = app._printPreview->Host();
+        auto& statusCtrl       = findWaitingControl();
+        auto animated          = host.GetTheme();
+        animated.reducedMotion = false;
+        app._printPreview->SetTheme(animated);
+        Require(host.DebugHasActiveAnimationSubscription(), "animated waiting card subscribes for frame updates when motion is enabled");
+        Require(statusCtrl.Tick(host, host.GetAnimationTickMs() + 100u), "waiting overlay requests continuous ticks while active");
+        app._printPreview->AdvanceWaitingForTest(450u);
+        captureCenterPixels(frameA, pixelsA);
+        app._printPreview->AdvanceWaitingForTest(900u);
+        captureCenterPixels(frameB, pixelsB);
+        Require(pixelsA != pixelsB, "waiting animation visibly updates between frames");
+
+        animated.reducedMotion = true;
+        app._printPreview->SetTheme(animated);
+        Require(! statusCtrl.Tick(host, host.GetAnimationTickMs() + 950u), "reducedMotion stops tick continuation");
+        const auto retireDeadline = GetTickCount64() + 2000u;
+        while (host.DebugHasActiveAnimationSubscription() && GetTickCount64() < retireDeadline)
+        {
+            MSG message{};
+            if (PeekMessageW(&message, nullptr, WM_TIMER, WM_TIMER, PM_REMOVE))
+                DispatchMessageW(&message);
+            else
+                (void)MsgWaitForMultipleObjectsEx(0, nullptr, 10, QS_TIMER, 0);
+        }
+        Require(! host.DebugHasActiveAnimationSubscription(), "animation dispatcher cleanly retires subscription once reducedMotion is enabled");
+        captureCenterPixels(staticCapture, staticPixels);
+
+        releaseSlow.SetEvent();
+        Require(returnedSlow.wait(10000u), "blocked slow printer completes");
+        pumpUntil([&] { return app._printPreview && app._printPreview->CanPrint() && ! app._printPreview->IsWaitingOverlayVisible(); },
+                  "waiting overlay hides immediately once preview presents");
+        Require(! app._printPreview->Host().DebugHasActiveAnimationSubscription(), "completed preview leaves no animation subscription");
+        app.DismissPrintPreview();
+        Wait(app);
+
+        // Immediate printer switch while waiting clears waiting overlay without flash.
+        enteredSlow.ResetEvent();
+        releaseSlow.ResetEvent();
+        returnedSlow.ResetEvent();
+        app.Execute(Command::Print);
+        Require(enteredSlow.wait(5000u), "slow printer blocks again before queue switch");
+        pumpUntil([&] {
+            return app._printPreview && app._printPreview->IsWaitingOverlayVisible() && ! Find<DxUi::ComboBox>(app, IDS_PRINTDESTINATION).GetItems().empty();
+        }, "waiting overlay appears before switching to fast PDF printer");
+        auto& printers2 = Find<DxUi::ComboBox>(app, IDS_PRINTDESTINATION);
+        Require(printers2.OnKeyDown(app._printPreview->Host(), VK_UP, 0), "switch immediately to PdfPrinter while waiting card is up");
+        Require(! app._printPreview->IsWaitingOverlayVisible(), "switching printers immediately clears the waiting overlay");
+        Wait(app, true);
+        Require(! app._printPreview->IsWaitingOverlayVisible() && app._printPreview->CanPrint() && app._printPreview->Page().paper == WidePaper(),
+                "fast PDF printer presents without restoring stale waiting overlay");
+        releaseSlow.SetEvent();
+        Require(returnedSlow.wait(10000u), "abandoned slow printer finishes after switch");
+        app.DismissPrintPreview();
+        Wait(app);
+
+        // Dismiss before delay timer fires detaches cleanly without crash or stray overlay.
+        enteredSlow.ResetEvent();
+        releaseSlow.ResetEvent();
+        returnedSlow.ResetEvent();
+        app.Execute(Command::Print);
+        Require(! app._printPreview->IsWaitingOverlayVisible(), "overlay stays hidden on immediate open");
+        Require(enteredSlow.wait(5000u), "slow printer blocks before early dismissal");
+        app.DismissPrintPreview();
+        Require(! app._printPreview && ! app._printOperation, "early dismiss closes preview immediately");
+        const auto drainStart = GetTickCount64();
+        while (GetTickCount64() - drainStart < 80u)
+        {
+            MSG message{};
+            while (PeekMessageW(&message, app.Window(), Application::PrintReady, Application::PrintReady, PM_REMOVE))
+                DispatchMessageW(&message);
+            (void)MsgWaitForMultipleObjectsEx(0, nullptr, 5, QS_POSTMESSAGE, 0);
+        }
+        releaseSlow.SetEvent();
+        Require(returnedSlow.wait(10000u), "blocked slow printer test probe unwinds before teardown");
+        Require(foreground.NeverAcquiredForeground() && ! IsWindowVisible(app.Window()), "waiting-overlay test preserves desktop");
+    }
 };
 
 void RegisterPrintingTests(const std::filesystem::path& root, const std::function<void(std::string_view, const std::function<void()>&)>& test)
@@ -705,5 +946,7 @@ void RegisterPrintingTests(const std::filesystem::path& root, const std::functio
     test("Editor.PrintingDiagramFollowsCanvasAndPaper", [&] { PrintingProbe::DiagramBackground(root / L"print-diagram"); });
     test("Editor.PrintingCloseOverridesPendingPrintAction", [&] { PrintingProbe::CloseOverridesPendingPrintAction(root / L"print-close-override"); });
     test("Editor.PrintingSlowPrinterAllowsSwitchAndFallback", [&] { PrintingProbe::SlowPrinterAllowsSwitchAndFallback(root / L"print-slow-printer"); });
+    test("Editor.PrintingWaitingOverlayShowsAfterDelayAndClears",
+         [&] { PrintingProbe::WaitingOverlayShowsAfterDelayAndClears(root / L"print-waiting-overlay"); });
 }
 } // namespace RedTilde
