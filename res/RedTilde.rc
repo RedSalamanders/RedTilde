@@ -1,18 +1,17 @@
 #pragma code_page(65001)
 #include <windows.h>
+#include "../Common/Version.h"
 #include "Resource.h"
-#ifndef REDTILDE_BUILD_NUMBER
-#define REDTILDE_BUILD_NUMBER 0
-#endif
-#define REDTILDE_STRING_IMPL(value) #value
-#define REDTILDE_STRING(value) REDTILDE_STRING_IMPL(value)
-#define REDTILDE_VERSION "0.1." REDTILDE_STRING(REDTILDE_BUILD_NUMBER)
 IDI_REDTILDE ICON "RedTilde.ico"
 1 VERSIONINFO
-FILEVERSION 0,1,REDTILDE_BUILD_NUMBER,0
-PRODUCTVERSION 0,1,REDTILDE_BUILD_NUMBER,0
+FILEVERSION REDTILDE_VERSION_MAJOR, REDTILDE_VERSION_MINOR, REDTILDE_BUILD_NUMBER, 0
+PRODUCTVERSION REDTILDE_VERSION_MAJOR, REDTILDE_VERSION_MINOR, REDTILDE_BUILD_NUMBER, 0
 FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+FILEFLAGS VS_FF_DEBUG
+#else
 FILEFLAGS 0
+#endif
 FILEOS VOS_NT_WINDOWS32
 FILETYPE VFT_APP
 BEGIN
@@ -24,9 +23,10 @@ BEGIN
       VALUE "FileDescription", "RedTilde Markdown editor\0"
       VALUE "FileVersion", REDTILDE_VERSION "\0"
       VALUE "InternalName", "RedTilde\0"
+      VALUE "LegalCopyright", REDTILDE_COPYRIGHT "\0"
       VALUE "OriginalFilename", "RedTilde.exe\0"
       VALUE "ProductName", "RedTilde\0"
-      VALUE "ProductVersion", REDTILDE_VERSION " experimental\0"
+      VALUE "ProductVersion", REDTILDE_PRODUCT_VERSION "\0"
     END
   END
   BLOCK "VarFileInfo"
@@ -337,5 +337,13 @@ IDS_PRINTTOFILE "Print to file"
 IDS_PRINTSUBMIT "Print"
 IDS_PRINTSETTINGSFAILED "Couldn’t apply the printer settings."
 IDS_PRINTSETTINGS "Print settings"
-IDS_COMMANDLINEHELP "RedTilde opens and previews Markdown documents.\r\n\r\nOpen a document\r\n  redtilde [<document>]\r\n  redtilde --document <document>\r\n\r\nCapture a document\r\n  redtilde --capture <image.png> --scenario <name> [--document <document>]\r\n\r\nShow help\r\n  redtilde --help\r\n"
+IDS_COMMANDLINEHELP "RedTilde opens and previews Markdown documents.\r\n\r\nUsage:\r\n  redtilde [<document>]\r\n  redtilde --document <document> [--data-dir <path>] [--headless]\r\n  redtilde --capture <image.png> --scenario <name> [--document <document>]\r\n           [--capture-dpi <96|144|192>] [--viewport-width <px>] [--viewport-height <px>]\r\n           [--data-dir <path>]\r\n  redtilde --version | -v\r\n  redtilde --help | -h | /?\r\n"
+IDS_WINDOWTITLE "{0}{1} — RedTilde"
+IDS_DEFAULTLINKTEXT "link text"
+IDS_CLOSEDOCUMENT "Close document"
+IDS_DROPUNSUPPORTED "Drop a .md, .markdown, or .txt file to open it."
+IDS_DROPMULTIPLE "Drop one Markdown or text file at a time."
+IDS_ABOUTSECTION "ABOUT & SHORTCUTS"
+IDS_ABOUTVERSION "RedTilde {0}"
+IDS_SHORTCUTS "Ctrl+N  New   ·   Ctrl+O  Open   ·   Ctrl+W  Close\nCtrl+S  Save   ·   Ctrl+Shift+S  Save As\nCtrl+P  Print   ·   Ctrl+F  Find & Replace\nCtrl+B / I / K  Bold / Italic / Link\nCtrl+1 / 2 / 3  Compose / Source / Split\nCtrl+0 / + / -  Reset / Zoom   ·   F11  Focus mode"
 END

@@ -68,6 +68,7 @@ class RecoveryService final
     [[nodiscard]] HRESULT Discard(std::wstring id) noexcept;
     [[nodiscard]] std::vector<RecoveryCandidate> TakeCandidates();
     [[nodiscard]] std::vector<std::wstring> TakeRetired();
+    [[nodiscard]] std::vector<std::wstring> TakeFailedDiscards();
     [[nodiscard]] bool Ready() const noexcept;
     [[nodiscard]] bool Settled() const noexcept;
     [[nodiscard]] bool Finished() const noexcept;
@@ -78,9 +79,29 @@ class RecoveryService final
     [[nodiscard]] HRESULT WaitForSettlement(DWORD milliseconds) const noexcept;
     void Stop() noexcept;
     void Close() noexcept;
+#if defined(REDTILDE_ENABLE_TESTS)
+    struct TestGate
+    {
+        TestGate() = default;
+        TestGate(const TestGate &) = delete;
+        TestGate &operator=(const TestGate &) = delete;
+        wil::unique_event entered{CreateEventW(nullptr, TRUE, FALSE, nullptr)};
+        wil::unique_event proceed{CreateEventW(nullptr, TRUE, FALSE, nullptr)};
+        wil::unique_event finished{CreateEventW(nullptr, TRUE, FALSE, nullptr)};
+    };
+    void SetScanTestGate(std::shared_ptr<TestGate> gate) noexcept;
+    void SetPostScanTestGate(std::shared_ptr<TestGate> gate) noexcept;
+    void SetBatchTestGate(std::shared_ptr<TestGate> gate) noexcept;
+    [[nodiscard]] std::size_t DiscardAdmissionCountForTest() const noexcept;
+#endif
 
   private:
     struct State;
     std::shared_ptr<State> state;
+#if defined(REDTILDE_ENABLE_TESTS)
+    std::shared_ptr<TestGate> scanTestGate;
+    std::shared_ptr<TestGate> postScanTestGate;
+    std::shared_ptr<TestGate> batchTestGate;
+#endif
 };
 } // namespace RedTilde

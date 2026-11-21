@@ -2,20 +2,21 @@
 
 ## Metadata
 
-- **Status**: ACTIVE (Plan only — zero production code changes in this PR)
-- **Date**: 2026-11-10
+- **Status**: DONE (Slices 1–6 implemented, normative domain contracts reconciled, and closeout qualification executed)
+- **Date**: 2026-11-10 (Completed 2026-11-21)
 - **Baseline commit**: `36e9cbe87ce46fb132401b0554acf6397cd543ab` (`origin/main`)
-- **Authoritative contracts to reconcile on closeout**:
+- **Authoritative contracts reconciled on closeout**:
   - [Specs/README.md](../../README.md)
   - [Specs/Core/Core_Architecture.md](../../Core/Core_Architecture.md)
   - [Specs/Core/Core_FileSafety.md](../../Core/Core_FileSafety.md)
   - [Specs/Core/Core_SettingsAndCrashes.md](../../Core/Core_SettingsAndCrashes.md)
+  - [Specs/Core/Core_CrashHandling.md](../../Core/Core_CrashHandling.md)
   - [Specs/Editor/Editor_Markdown.md](../../Editor/Editor_Markdown.md)
   - [Specs/UI/UI_DesignSystem.md](../../UI/UI_DesignSystem.md)
   - [Specs/Testing/Testing_Validation.md](../../Testing/Testing_Validation.md)
   - [Specs/Testing/Testing_Performance.md](../../Testing/Testing_Performance.md)
   - [Specs/Testing/Testing_RunEvidence.md](../../Testing/Testing_RunEvidence.md)
-- **Companion active plan**: [RemainingWork_2026-11-04.md](RemainingWork_2026-11-04.md) (owner qualification and delivery gates remain separate and explicit)
+- **Companion active plan**: [RemainingWork_2026-11-04.md](../WIP/RemainingWork_2026-11-04.md) (owner qualification and delivery gates remain separate and explicit)
 
 ---
 
@@ -258,8 +259,13 @@ Stop and ask the repository owner before proceeding if any slice encounters:
 
 ## Closeout checklist
 
-When all six slices and required qualification gates are complete:
+Completed across all six execution slices:
 
-1. Reconcile durable state-machine invariants into [Core_Architecture.md](../../Core/Core_Architecture.md), [Core_FileSafety.md](../../Core/Core_FileSafety.md), [Core_SettingsAndCrashes.md](../../Core/Core_SettingsAndCrashes.md), [Editor_Markdown.md](../../Editor/Editor_Markdown.md), [UI_DesignSystem.md](../../UI/UI_DesignSystem.md), [Testing_Validation.md](../../Testing/Testing_Validation.md), and [Testing_RunEvidence.md](../../Testing/Testing_RunEvidence.md).
-2. Review user-facing docs and [capabilities.json](../../../capabilities.json) for accuracy; regenerate any affected deterministic harness captures if visual overlay behavior changed.
-3. Move this file from `Specs/Plans/WIP/ExplicitStateMachines_2026-11-10.md` to `Specs/Plans/Done/ExplicitStateMachines_2026-11-10.md`, update [Specs/Plans/WIP/README.md](README.md) and [Specs/Plans/Done/README.md](../Done/README.md), and re-run `.\validate.ps1` and `.\Test-Changes.ps1 -Mode PrePush`.
+1. [x] **Slice 1 (`RT-SM-01`, `RT-SM-02`)**: Implemented `Application::LifecyclePhase`, `TransitionLifecycle()`, `CanAcceptCommand()`, `IsUiAttached()`, and `AreShutdownWorkersSettled()`, plus `Window.CloseDrainWaitsForBitmapWithoutSpuriousPreferencesReady` in [Application.Tests.Close.cpp](../../../Tests/Application.Tests.Close.cpp).
+2. [x] **Slice 2 (`RT-SM-03`, `RT-SM-04`)**: Implemented `AsyncFiles::Phase` + `CancelInFlightLoad()`, `BitmapPasteWriter::Phase`, `StartupRestoreState`, `ActiveFileTransaction`, and `ModalPromptKind`, plus `Files.AsyncFilesPhaseTransitionsAndCancelLoad` ([Application.Tests.Files.cpp](../../../Tests/Application.Tests.Files.cpp)) and `Editor.FailedOpenAndCloseClearTransactionState` ([Application.Tests.Close.cpp](../../../Tests/Application.Tests.Close.cpp)).
+3. [x] **Slice 3 (`RT-SM-05`, `RT-SM-06`)**: Implemented `RecoveryService::State::WorkerPhase` + `UpdateSettlementLocked()` / `SettledLocked()`, `RecoveryDisposition`, and `FilesPhase`, plus `Recovery.DiscardQueuedDuringScanDelaysSettlement` and `Files.FailedWorkerRecoversOnNewValidRoot` ([Application.Tests.Files.cpp](../../../Tests/Application.Tests.Files.cpp)) and `Recovery.DuplicateDiscardIgnoredUntilSettled` ([Application.Tests.Core.cpp](../../../Tests/Application.Tests.Core.cpp)).
+4. [x] **Slice 4 (`RT-SM-07`)**: Implemented `OverlayKind` + `SetActiveOverlay()`, `BlockDraftSession`, and `PostPreparePlacement` / `ReconcilePostPreparePlacement()` outside `WM_PAINT`, plus `Editor.OverlaysMutuallyExcludeRecoveryAndDeferPaintPlacement` in [Application.Tests.DesignRefresh.cpp](../../../Tests/Application.Tests.DesignRefresh.cpp).
+5. [x] **Slice 5 (`RT-SM-08`, `RT-SM-09`)**: Implemented `FindController` (`MatchTable` + `Projections`), `DocumentSessionMetadata`, `DerivedDocumentCaches`, `OutlinePreviewBaseline`, `ReentrantPublication<T>`, `Application::ExternalLinkState::Phase`, `SettingsWriter::State::WorkerPhase`, `RichImageLoader::State::WorkerPhase`, and `EditDiagnostics::SelectionPhase`, plus `Editor.FindReopenReusesMatchTableWithoutRebuild` ([Application.Tests.Core.cpp](../../../Tests/Application.Tests.Core.cpp)) and `Editor.WorkspaceSwitchAtomicallySwapsMetadataUnderReentrantClose` ([Application.Tests.DesignRefresh.cpp](../../../Tests/Application.Tests.DesignRefresh.cpp)).
+6. [x] **Slice 6 (PowerShell tooling)**: Implemented `Resolve-ScopedIterationDisposition` in [ScopedTesting.psm1](../../../Build/ScopedTesting.psm1) and explicit `$run.State` transitions (`Active` -> `Completed` | `Failed` | `Interrupted`) in [TestRunEvidence.psm1](../../../Build/TestRunEvidence.psm1), verified in [Tooling.Tests.ScopedTesting.ps1](../../../Tests/Tooling.Tests.ScopedTesting.ps1) and [Tooling.Tests.RunEvidence.ps1](../../../Tests/Tooling.Tests.RunEvidence.ps1).
+7. [x] Reconciled durable state-machine invariants into [Core_Architecture.md](../../Core/Core_Architecture.md), [Core_FileSafety.md](../../Core/Core_FileSafety.md), [Core_SettingsAndCrashes.md](../../Core/Core_SettingsAndCrashes.md), [Core_CrashHandling.md](../../Core/Core_CrashHandling.md), [Editor_Markdown.md](../../Editor/Editor_Markdown.md), [UI_DesignSystem.md](../../UI/UI_DesignSystem.md), [Testing_Validation.md](../../Testing/Testing_Validation.md), and [Testing_RunEvidence.md](../../Testing/Testing_RunEvidence.md).
+8. [x] Reviewed user-facing docs and [capabilities.json](../../../capabilities.json); moved this record from `Specs/Plans/WIP/ExplicitStateMachines_2026-11-10.md` to `Specs/Plans/Done/ExplicitStateMachines_2026-11-10.md`, updated [Specs/Plans/WIP/README.md](../WIP/README.md) and [Specs/Plans/Done/README.md](README.md), and executed full qualification (interactive desktop focus/clipboard and native ARM64 runtime execution remain gated per [RemainingWork_2026-11-04.md](../WIP/RemainingWork_2026-11-04.md)).

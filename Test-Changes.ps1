@@ -61,7 +61,8 @@ if($refusal){Write-Host "CI policy: $refusal" -ForegroundColor Yellow}
 if($Explain){exit 0}
 $selected=@($applicable|Where-Object{$_.name -in $names -and $_.name -notin $deferred})
 if(-not $selected.Count){
-    if($deferred.Count){Write-Host 'LOCAL_OBLIGATIONS_NONE; CI_PENDING'}else{Write-Host 'NOTHING_SELECTED; repository NOT_EVALUATED'}
+    $emptyDisposition=Resolve-ScopedIterationDisposition -Mode $Mode -ExplicitScopeCount $Scopes.Count -SelectedCount 0 -DeferredCount $deferred.Count
+    if($emptyDisposition -ceq 'CiPending'){Write-Host 'LOCAL_OBLIGATIONS_NONE; CI_PENDING'}else{Write-Host 'NOTHING_SELECTED; repository NOT_EVALUATED'}
     exit 0
 }
 $native=@($selected|Where-Object native)
@@ -139,15 +140,17 @@ if($pending.Count){
     }
     foreach($scope in @($pending|Where-Object native)){if($scope.reuse){Write-ScopedReceipt (Get-ReceiptPath $scope) $identities[$scope.name]}}
 }
-if((Get-ScopedMapIdentity (Get-ScopedSourceMap $root)) -cne (Get-ScopedMapIdentity $source) -or
+$mutated=((Get-ScopedMapIdentity (Get-ScopedSourceMap $root)) -cne (Get-ScopedMapIdentity $source) -or
     (Get-ScopedMapIdentity (Get-ScopedIndexMap $root)) -cne (Get-ScopedMapIdentity $index) -or
-    (Get-ScopedEnvironmentIdentity) -cne $environment){throw 'Inputs/index/environment changed during the run; the iteration baseline was not advanced.'}
-if($Mode -eq 'Affected' -and -not $Scopes.Count -and -not $deferred.Count){
+    (Get-ScopedEnvironmentIdentity) -cne $environment)
+$disposition=Resolve-ScopedIterationDisposition -Mode $Mode -ExplicitScopeCount $Scopes.Count -SelectedCount $selected.Count -DeferredCount $deferred.Count -Mutated $mutated
+if($disposition -ceq 'MutatedWorktreeRetained'){throw 'Inputs/index/environment changed during the run; the iteration baseline was not advanced.'}
+if($disposition -ceq 'BaselineAdvanced'){
     Write-ScopedIteration $iterationPath $root $Platform $Configuration $environment $source $index $artifact
-}elseif(-not $deferred.Count){
+}elseif($disposition -ceq 'PartialRunRetained'){
     Restore-ScopedIteration $iterationPath $root $previousIteration
 }
-if($deferred.Count){Write-Host 'LOCAL_OBLIGATIONS_PASSED; CI_PENDING'}
+if($disposition -ceq 'CiPending'){Write-Host 'LOCAL_OBLIGATIONS_PASSED; CI_PENDING'}
 elseif($names.Count -eq $applicable.Count){Write-Host 'FULL_NONINTERACTIVE_PASSED; manual/platform/resource qualification remains separate'}
 else{Write-Host 'SELECTED_PASSED; repository NOT_EVALUATED'}
 exit 0

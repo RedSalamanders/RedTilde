@@ -4,6 +4,7 @@
     { "name": "Editor.PrintingPreservesRevisionAndHonorsPageRanges", "scope": "Editor" },
     { "name": "Editor.PrintingFailureAndShutdownRetireJobs", "scope": "Editor" },
     { "name": "Editor.PrintingDiagramFollowsCanvasAndPaper", "scope": "Editor" },
+    { "name": "Editor.PrintingCloseOverridesPendingPrintAction", "scope": "Editor" },
     { "name": "Editor.ImageFileReadAndSharePolicy", "scope": "Editor" },
     { "name": "Editor.ImageFileNotificationsAreBoundedAndRetire", "scope": "Editor" },
     { "name": "Editor.LocalImageChangesReloadWithoutEditing", "scope": "Editor" },
@@ -51,6 +52,7 @@
     { "name": "Editor.RecoverableCommandsAndMenusRetainSourceAndDraftFocus", "scope": "Editor" },
     { "name": "Editor.FileCompletionFailureRetainsPendingWriteAndCancelsClose", "scope": "Editor" },
     { "name": "Editor.CloseCancellationNeverFallsThroughToDefaultDestroy", "scope": "Editor" },
+    { "name": "Window.CloseDrainWaitsForBitmapWithoutSpuriousPreferencesReady", "scope": "Editor" },
     { "name": "Storage.UnsupportedFilesReportKnownUnitCount", "scope": "Storage" },
     { "name": "Editor.OpenErrorsExplainEncodingAndCapacity", "scope": "Editor" },
     { "name": "Storage.TimestampOnlyTouchDoesNotConflict", "scope": "Storage" },
@@ -149,6 +151,7 @@
     { "name": "Recovery.DuplicateCloseKeepsUnsavedPrompt", "scope": "Recovery" },
     { "name": "Recovery.RestoreKeepsClickedIdentityAcrossUnsavedPrompt", "scope": "Recovery" },
     { "name": "Editor.WorkspaceSwitchRetainsEveryHistoryAndRecovery", "scope": "Editor" },
+    { "name": "Editor.WorkspaceOpenDocumentsOrderAndSelection", "scope": "Editor" },
     { "name": "Recovery.WorkspaceExplicitActionsProtectEveryDirtyDocument", "scope": "Recovery" },
     { "name": "Recovery.RestoreAllKeepsIndependentCopiesAndNavigation", "scope": "Recovery" },
     { "name": "Recovery.SessionEndCheckpointsEveryDocumentAndCancellationKeepsEditing", "scope": "Recovery" },
@@ -159,6 +162,18 @@
     { "name": "Settings.LocalNetworkImagePermission", "scope": "Settings" },
     { "name": "Editor.RemoteImagePublicAddressPolicy", "scope": "Editor" },
     { "name": "Editor.RemoteImagesDefaultBlocksOwnedLoopback", "scope": "Editor" },
-    { "name": "Editor.DocumentImageConsentAndReload", "scope": "Editor" }
+    { "name": "Editor.DocumentImageConsentAndReload", "scope": "Editor" },
+    { "name": "Files.AsyncFilesPhaseTransitionsAndCancelLoad", "scope": "Storage" },
+    { "name": "Editor.FailedOpenAndCloseClearTransactionState", "scope": "Editor" },
+    { "name": "Recovery.DiscardQueuedDuringScanDelaysSettlement", "scope": "Recovery" },
+    { "name": "Recovery.DuplicateDiscardIgnoredUntilSettled", "scope": "Recovery" },
+    { "name": "Files.FailedWorkerRecoversOnNewValidRoot", "scope": "Storage" },
+    { "name": "Editor.OverlaysMutuallyExcludeRecoveryAndDeferPaintPlacement", "scope": "Editor" },
+    { "name": "Editor.FindReopenReusesMatchTableWithoutRebuild", "scope": "Editor" },
+    { "name": "Editor.WorkspaceSwitchAtomicallySwapsMetadataUnderReentrantClose", "scope": "Editor" },
+    { "name": "Editor.CapacityLimitReportsLocalizedErrorAcrossCommands", "scope": "Editor" },
+    { "name": "Editor.CloseDocumentProtectsDirtyAndSwitchesWorkspace", "scope": "Editor" },
+    { "name": "Editor.DragDropOpensMarkdownAndRejectsInvalidDrops", "scope": "Editor" },
+    { "name": "Editor.FocusModeDoesNotRewriteSettings", "scope": "Editor" }
   ]
 }

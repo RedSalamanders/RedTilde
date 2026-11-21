@@ -439,7 +439,24 @@ function Restore-ScopedIteration {
         Move-Item -LiteralPath $temporary -Destination $Path -ErrorAction Stop
     }finally{if(Test-Path -LiteralPath $temporary){Remove-Item -LiteralPath $temporary}}
 }
-Export-ModuleMember -Function Enter-ScopedIterationLease,Suspend-ScopedIteration,Restore-ScopedIteration
+function Resolve-ScopedIterationDisposition {
+    [CmdletBinding()]
+    param(
+        [ValidateSet('Affected','Full','PrePush')][string] $Mode = 'Affected',
+        [int] $ExplicitScopeCount = 0,
+        [int] $SelectedCount = 0,
+        [int] $DeferredCount = 0,
+        [bool] $Failed = $false,
+        [bool] $Mutated = $false
+    )
+    if ($Mutated) { return 'MutatedWorktreeRetained' }
+    if ($Failed) { return 'FailedRetained' }
+    if ($DeferredCount -gt 0) { return 'CiPending' }
+    if ($SelectedCount -le 0) { return 'NothingSelected' }
+    if ($Mode -ceq 'Affected' -and $ExplicitScopeCount -eq 0) { return 'BaselineAdvanced' }
+    return 'PartialRunRetained'
+}
+Export-ModuleMember -Function Enter-ScopedIterationLease,Suspend-ScopedIteration,Restore-ScopedIteration,Resolve-ScopedIterationDisposition
 
 function Get-ScopedSourceMap {
     param([string]$Root,[switch]$CompiledOnly)

@@ -65,6 +65,7 @@ class PrintPreview final
     DxUi::TextField *page_{}, *ranges_{}, *copies_{};
     DxUi::Checkbox *collate_{}, *file_{};
     DxUi::Button *previous_{}, *next_{}, *zoom_{}, *current_{}, *close_{}, *print_{};
-    bool ownerDisabled_{}, fitWidth_{}, actionPending_{}, scrollToPageEnd_{}, rendering_{};
+    bool ownerDisabled_{}, fitWidth_{}, scrollToPageEnd_{}, rendering_{};
+    std::optional<Action> pendingAction_;
 };
 } // namespace RedTilde

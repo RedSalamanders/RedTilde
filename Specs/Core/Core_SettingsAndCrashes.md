@@ -1,4 +1,6 @@
-# Settings, theming and local crash diagnostics
+# Settings, theming, and close worker settlement
+
+Local crash diagnostics, DxUi protocol-2 reporting, dump retention, crash probes, and process shutdown drain live in [the crash-handling contract](Core_CrashHandling.md).
 
 Settings live under `%LOCALAPPDATA%\RedTilde` and use a versioned UTF-8 document. A caller may select an isolated
 data directory for tests. Themes are System, Light, Dark and Paper. Respect Windows high contrast before custom
@@ -58,7 +60,10 @@ Open Folder, a Files-row activation or Close abandons that startup read by closi
 the worker owns and retires its values without a UI wait. An explicit file argument takes precedence over the
 remembered path. Hidden deterministic captures continue using their explicit sample/document fixtures.
 Source, selection and history are never recovered from this preference; crash recovery retains that ownership.
-Focus mode is session-local and is not persisted. Apply persisted
+Focus mode is session-local and is not persisted: `Command::Focus` toggles `settings.focusMode`, closes overlays, and
+relayouts without calling `SavePreferences()` or rewriting `RedTilde.settings` on disk. Informational CLI commands
+(`--version`, `-v`, `--help`, `-h`, `/?`, `-?`) print usage or `RedTilde <REDTILDE_PRODUCT_VERSION>` and exit before
+resolving profile directories, creating `%LOCALAPPDATA%\RedTilde` or `Crashes/`, or installing crash handlers. Apply persisted
 appearance, reading width, text scale and dimming immediately; no restart is required. Reduced motion follows
 Windows preferences. The independent version-1 `imageFirstPaste=0|1` field defaults to disabled on missing or
 invalid input. Its live Settings toggle updates the editor host's clipboard preference and queues ordinary
@@ -69,16 +74,19 @@ input. Seven optional Markdown syntax fields — `syntaxHighlight`, `syntaxSuper
 independently to enabled on missing or invalid input and apply immediately. They are application-owned names;
 never persist library extension flag values. The live privacy command retires remote requests/pixels immediately; local image identity and completion
 remain valid. Invalid settings fall back per field and retain the rejected file for inspection. Persist
-through the same atomic writer as documents. Settings errors must not prevent editing a document. Preference
-persistence uses one active application worker and one coalesced latest pending state. Admitted writes finish after
+through the same atomic writer as documents. Settings errors must not prevent editing a document. Persistence
+uses `SettingsWriter::State::WorkerPhase` (`Idle`, `Active`, `Closed`) and one coalesced latest pending state. Admitted writes finish after
 the window closes without joining storage on the UI thread; notifications lose their window binding.
 
-After accepting Close, stop producers and detach the editor host. If an admitted preferences write, recovery
-retirement or bitmap-asset operation is still pending, hide the application window and retain its notification
-HWND until all three services are idle. A leased bitmap result is still busy until the owner commits or
-declines it. Recheck all states after dispatched messages as well as completion notifications; services may
-finish in any order. Window destruction requires all three finished states; service closure clears its
-notification binding. Do not join storage on the UI thread or retire the HWND after only one service completes.
+After accepting Close (`Application::LifecyclePhase::DrainingForClose`), stop producers and detach the editor host.
+If `AreShutdownWorkersSettled()` is false (an admitted preferences write, recovery retirement, or bitmap-asset
+operation is still pending), hide the application window and retain its notification HWND until all three services
+are idle (`!preferenceWriter.Busy() && recovery.Finished() && !bitmapWriter.Busy()`). A leased bitmap result
+(`BitmapPasteWriter::Phase::Leased` or `Retiring`) is still busy until the owner commits or declines it.
+`DispatchUiMessage()` rechecks `AreShutdownWorkersSettled()` after dispatched messages as well as completion
+notifications without sending spurious `PreferencesReady` churn; services may finish in any order. Window destruction
+requires all three finished states; service closure clears its notification binding. Do not join storage on the UI
+thread or retire the HWND after only one service completes.
 `WM_QUERYENDSESSION` immediately permits session termination and requests checkpoints for every dirty workspace
 document without a modal save question or shutdown-blocking reason. At final `WM_ENDSESSION(TRUE)`, editing
 commands stop, all workspace checkpoints are requested again and recovery may wait for at most 2,000 ms. A
@@ -92,40 +100,9 @@ Synchronous native window and accessibility notifications during document-change
 accepted Close; resumed updates must stop before using controls detached by that Close. This includes the
 Files badge publication before selection synchronization and recovery checkpointing.
 
-Install local crash handlers before UI/workers. Record a uniquely named `.dmp` with a bounded crash path and a
-pending marker; do not allocate while formatting crash metadata. DbgHelp is loaded before the fault. Handle
-unhandled SEH, terminate, invalid CRT parameters, pure virtual calls and abort. A reentrant crash must not recurse.
-The next ordinary launch identifies the pending report and offers its location. Reports remain local; no upload
-or telemetry is implied. Bound retention to ten app-owned dumps during normal startup. Dumps may include document
-text; the user must choose any later sharing action. A crash probe runs only in an isolated harness child process.
-
-The crash handler is a last-resort diagnostic, not a recovery save. Recovery snapshots are written during healthy
-execution. ASan owns sanitizer diagnostics and must still pass a real detection probe before qualification.
-
-DxUi API 5 uses an explicit process-owned protocol-2 reporter. Prepare the bounded crash path, handles and loaded
-DbgHelp before SDK use; start its dedicated writer before installing ProcessHooks. The app-owned reporter preserves
-the protocol record's natural context alignment, places that record
-first and explicitly accounts for its scalar tail; a size assertion forbids implicit member/tail padding on either
-compile target. Keep compiler warning policy enabled rather than suppressing alignment diagnostics. Copy the fixed record
-without allocation and keep the faulting thread held while the writer attempts its dump. Serialize DbgHelp use.
-The dump exception stream and fixed `.record` sidecar retain the original exception, machine context, thread,
-source site and frames. The writer's thread/context must never replace them. Record the actual native dump
-HRESULT; report completion has a 15-second bound. Reports use a process-creation identity plus PID/time, and
-healthy retention removes a paired sidecar when retiring its app-owned dump. A missing/unwritable configured
-destination remains a checked diagnostic failure; never silently substitute another directory or upload.
-
-Keep the reporter, registration and COM owner alive until all admitted callbacks and retained UIA peers retire.
-Worker admission is counted before submission, bounded to 256 callbacks, and closes before ordinary process
-drain. A refused submission releases its lease without publishing a job. A callback releases its lease after
-owned SDK objects and scopes; a WinHTTP transfer retains its lease until the final native HANDLE_CLOSING
-notification. Ordinary drain pumps owner/COM messages, preserves WM_QUIT, then disconnects process-wide UIA
-providers and retries failure-host BUSY for a cooperative five seconds. A component must not perform that
-process-wide operation. Final WM_ENDSESSION(TRUE) keeps the existing 2,000-ms recovery-only allowance; its heap
-process owner stays alive until OS teardown so a held codec callback adds no ordinary drain/join deadline.
-
-Expected source/codec/configuration rejection uses checked APIs. Invalid or oversized SetDocument input and
+Expected source/codec/configuration rejection uses checked APIs. Invalid or oversized `SetDocument` input and
 invalid file metadata leave source, selection, saved facts, recovery and histories intact. Capacity remains
 65,536 UTF-16 units and produces the existing localized source-unchanged limit status. Quote/Code Block and
 Find refusal preserve the selection and both history directions. Recovery parsing/serialization validates
 source, path and selection before writing or publishing; refused serialization preserves its output buffer.
-Unexpected C++ allocation failure remains fatal, including at application worker boundaries.
+Unexpected C++ allocation failure remains fatal; see [the crash-handling contract](Core_CrashHandling.md).

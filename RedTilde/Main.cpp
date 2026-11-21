@@ -2,9 +2,11 @@
 #include "Common/CrashHandler.h"
 #include "Common/DxUiFailureHost.h"
 #include "Common/MonitorDiagnostics.h"
+#include "Common/Version.h"
 #include "res/Resource.h"
 #if defined(REDTILDE_ENABLE_TESTS)
 #include "Tests/Application.Tests.FailureHost.h"
+#include "Tests/Application.Tests.FailureReports.h"
 #endif
 #include <format>
 #include <shellapi.h>
@@ -16,34 +18,80 @@
 
 namespace
 {
-int WriteCommandHelp()
+int WriteConsoleText(DWORD standardHandle, std::wstring_view text)
 {
-    const auto usage = RedTilde::ResourceView(IDS_COMMANDLINEHELP);
-    if (usage.empty())
-        return 1;
+    if (text.empty())
+        return 0;
 
-    auto output = GetStdHandle(STD_OUTPUT_HANDLE);
+    auto output = GetStdHandle(standardHandle);
     if ((!output || output == INVALID_HANDLE_VALUE) && AttachConsole(ATTACH_PARENT_PROCESS))
-        output = GetStdHandle(STD_OUTPUT_HANDLE);
+        output = GetStdHandle(standardHandle);
     if (!output || output == INVALID_HANDLE_VALUE)
         return 0;
 
     DWORD mode{}, written{};
     if (GetConsoleMode(output, &mode))
     {
-        const auto characters = static_cast<DWORD>(usage.size());
-        return WriteConsoleW(output, usage.data(), characters, &written, nullptr) && written == characters ? 0 : 1;
+        const auto characters = static_cast<DWORD>(text.size());
+        return WriteConsoleW(output, text.data(), characters, &written, nullptr) && written == characters ? 0 : 1;
     }
 
-    const auto characters = static_cast<int>(usage.size());
-    const int bytes = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, usage.data(), characters, nullptr, 0, nullptr, nullptr);
+    const auto characters = static_cast<int>(text.size());
+    const int bytes = WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, text.data(), characters, nullptr, 0, nullptr, nullptr);
     if (bytes <= 0)
         return 1;
     std::string encoded(static_cast<std::size_t>(bytes), '\0');
-    if (WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, usage.data(), characters, encoded.data(), bytes, nullptr, nullptr) != bytes)
+    if (WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, text.data(), characters, encoded.data(), bytes, nullptr, nullptr) != bytes)
         return 1;
     const auto length = static_cast<DWORD>(bytes);
     return WriteFile(output, encoded.data(), length, &written, nullptr) && written == length ? 0 : 1;
+}
+
+int WriteCommandHelp()
+{
+    const auto usage = RedTilde::ResourceView(IDS_COMMANDLINEHELP);
+    if (usage.empty())
+        return 1;
+    return WriteConsoleText(STD_OUTPUT_HANDLE, usage);
+}
+
+int WriteCommandVersion()
+{
+    return WriteConsoleText(STD_OUTPUT_HANDLE, L"RedTilde " REDTILDE_PRODUCT_VERSION_WIDE L"\r\n");
+}
+
+void WriteConsoleError(std::string_view message) noexcept
+{
+    try
+    {
+        std::wstring text(L"RedTilde: ");
+        if (!message.empty())
+        {
+            const int needed = MultiByteToWideChar(CP_UTF8, 0, message.data(), static_cast<int>(message.size()), nullptr, 0);
+            if (needed > 0)
+            {
+                const auto offset = text.size();
+                text.resize(offset + static_cast<std::size_t>(needed));
+                (void)MultiByteToWideChar(CP_UTF8, 0, message.data(), static_cast<int>(message.size()), text.data() + offset, needed);
+            }
+        }
+        text += L"\r\n";
+        (void)WriteConsoleText(STD_ERROR_HANDLE, text);
+    }
+    catch (const std::bad_alloc &)
+    {
+        std::terminate();
+    }
+}
+
+bool IsHelpArgument(std::wstring_view argument) noexcept
+{
+    return argument == L"--help" || argument == L"-h" || argument == L"/?" || argument == L"-?";
+}
+
+bool IsVersionArgument(std::wstring_view argument) noexcept
+{
+    return argument == L"--version" || argument == L"-v";
 }
 
 #if defined(REDTILDE_ENABLE_TESTS)
@@ -92,8 +140,14 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
         wil::unique_hlocal_ptr<wchar_t *[]> arguments(CommandLineToArgvW(GetCommandLineW(), &count));
         if (!arguments)
             return 1;
-        if (count == 2 && std::wstring_view(arguments[1]) == L"--help")
-            return WriteCommandHelp();
+        if (count == 2)
+        {
+            const std::wstring_view single(arguments[1]);
+            if (IsHelpArgument(single))
+                return WriteCommandHelp();
+            if (IsVersionArgument(single))
+                return WriteCommandVersion();
+        }
 
         LaunchOptions options;
         STARTUPINFOW startup{sizeof(startup)};
@@ -104,10 +158,11 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
 #if defined(REDTILDE_ENABLE_TESTS)
         bool sanitizerProbe{};
         bool linkedSaveCrash{}, linkedSaveRestart{};
+        bool failureReportSelfTest{};
         std::wstring failureHostProbe;
 #endif
         CoreTestScope testScope = CoreTestScope::All;
-        bool testScopeSpecified{}, listTests{};
+        bool testScopeSpecified{}, listTests{}, showHelp{}, showVersion{};
         for (int index = 1; index < count; ++index)
         {
             const std::wstring_view argument(arguments[static_cast<size_t>(index)]);
@@ -118,7 +173,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
             if (argument == L"--self-test" || argument == L"--test-scope" || argument == L"--list-tests" ||
                 argument == L"--design-interactive-probe" || argument == L"--crash-probe" || argument == L"--recovery-crash-probe" ||
                 argument == L"--recovery-restart-probe" || argument == L"--preferences-probe" || argument == L"--asan-probe" ||
-                argument == L"--linked-save-crash-probe" || argument == L"--linked-save-restart-probe" || argument == L"--failure-host-probe")
+                argument == L"--linked-save-crash-probe" || argument == L"--linked-save-restart-probe" || argument == L"--failure-host-probe" ||
+                argument == L"--failure-report-self-test")
                 return 2;
 #endif
             auto value = [&]() -> std::wstring
@@ -249,16 +305,29 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
                 sanitizerProbe = true;
                 options.headless = true;
             }
+            else if (argument == L"--failure-report-self-test")
+            {
+                failureReportSelfTest = true;
+                options.headless = true;
+            }
 #endif
             else if (argument == L"--headless")
                 options.headless = true;
-            else if (argument.starts_with(L"--"))
+            else if (IsHelpArgument(argument))
+                showHelp = true;
+            else if (IsVersionArgument(argument))
+                showVersion = true;
+            else if (argument.starts_with(L"--") || argument.starts_with(L"-"))
                 throw std::invalid_argument("Unknown command argument");
             else if (options.document.empty())
                 options.document = std::filesystem::absolute(argument);
             else
                 throw std::invalid_argument("Only one document can be opened per window");
         }
+        if (showHelp)
+            return WriteCommandHelp();
+        if (showVersion)
+            return WriteCommandVersion();
         if ((testScopeSpecified || listTests) && !options.selfTest)
             throw std::invalid_argument("Test scope/list options require --self-test");
 #if defined(REDTILDE_ENABLE_TESTS)
@@ -279,6 +348,16 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
         if (options.dataDirectory.empty())
             options.dataDirectory = DefaultDataDirectory();
 #if defined(REDTILDE_ENABLE_TESTS)
+        const bool isCrashOrSanitizerProbe =
+            options.crashProbe || options.recoveryProbe || linkedSaveCrash || sanitizerProbe || !failureHostProbe.empty();
+        const bool routeFailureReports =
+            !isCrashOrSanitizerProbe &&
+            (failureReportSelfTest || options.selfTest || testScopeSpecified || options.preferencesProbe || options.recoveryRestartProbe ||
+             linkedSaveRestart || !options.capture.empty() || !options.benchmark.empty() || !options.performance.empty());
+        if (routeFailureReports)
+            RedTildeTestFailureReports::RouteAwayFromDialogs();
+        if (failureReportSelfTest)
+            return RedTildeTestFailureReports::RunSelfTest();
         if (sanitizerProbe)
             return SanitizerProbe();
 #endif
@@ -328,7 +407,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
         if (!options.headless && std::filesystem::exists(crashes / L"pending.txt"))
         {
             const auto path = crashes.native();
-            const auto message = std::vformat(Resource(IDS_CRASHREPORT), std::make_wformat_args(path));
+            const auto message = FormatStringResource(nullptr, IDS_CRASHREPORT, path);
             MessageBoxW(nullptr, message.c_str(), Resource(IDS_APP).c_str(), MB_OK | MB_ICONINFORMATION);
             std::error_code error;
             std::filesystem::remove(crashes / L"pending.txt", error);
@@ -362,6 +441,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
     }
     catch (const std::exception &error)
     {
+        WriteConsoleError(error.what());
         OutputDebugStringA(error.what());
         MonitorDiagnostics::Write(RedMonitor::Severity::Error, L"application operation failed; document state retained");
         return 1;

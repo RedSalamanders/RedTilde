@@ -1,5 +1,6 @@
 #include "Application.Tests.Close.h"
 #include "RedTilde/Application.h"
+#include "Support/Support.Tests.BitmapAssets.h"
 #include "Support/Support.Tests.Foreground.h"
 #include "res/Resource.h"
 #include <chrono>
@@ -114,6 +115,198 @@ void Edit(Application &app, std::wstring text)
     Require(app.Document().ReplaceSelection(std::move(text)), "admit a real source edit");
 }
 } // namespace
+class CloseProbe
+{
+  public:
+    static void DrainWaitsForBitmapWithoutSpuriousPreferencesReady(const std::filesystem::path &root)
+    {
+        Testing::ForegroundOwnershipObserver foreground;
+        LaunchOptions launch;
+        launch.headless = true;
+        launch.preferencesProbe = true;
+        launch.dataDirectory = root / L"close-drain-bitmap";
+        Application app(launch);
+        Success(app.Initialize(), "initialize hidden close-drain fixture");
+        app.SetDocument(L"A clean document.\n");
+        app.Prepare(128);
+        app.Host().SetFocusControl(&app.Document(), false);
+        auto gate = std::make_shared<BitmapPasteWriter::TestGate>();
+        app.bitmapWriter.SetTestGate(gate);
+        const auto release = wil::scope_exit([&] { (void)SetEvent(gate->proceed.get()); });
+        (void)app.BeginBitmapPaste(Testing::ClipboardBitmapFixture(), false);
+        Await(app, [&] { return WaitForSingleObject(gate->entered.get(), 0) == WAIT_OBJECT_0; }, "bitmap worker enters its test gate");
+        app.Execute(Command::DimBlocks);
+        Await(
+            app, [&] { return !app.preferenceWriter.Busy() && app.RecoverySettled(); },
+            "preference writer and recovery settle while bitmap worker remains held");
+        const HWND window = app.Window();
+        Require(window != nullptr, "application owns a notification window before Close");
+        (void)SendMessageW(window, WM_CLOSE, 0, 0);
+        Require(app.IsClosing() && app.Window() == window && app.lifecyclePhase == Application::LifecyclePhase::DrainingForClose,
+                "Close enters DrainingForClose and retains the hidden notification window");
+        const auto dispatchOwned = [&]
+        {
+            MSG message{};
+            unsigned count{};
+            while (count++ < 64 && app.Window() == window && PeekMessageW(&message, window, 0, 0, PM_REMOVE))
+                app.DispatchUiMessage(message);
+        };
+        const auto drainDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+        while (std::chrono::steady_clock::now() < drainDeadline)
+        {
+            dispatchOwned();
+            if (!app.preferenceWriter.Busy() && app.recovery.Finished())
+                break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+        Require(!app.preferenceWriter.Busy() && app.recovery.Finished() && app.bitmapWriter.Busy(),
+                "preference writer and recovery are finished while bitmap worker remains blocked");
+        for (int index = 0; index < 5; ++index)
+            Require(PostMessageW(window, WM_NULL, 0, 0) != FALSE, "queue benign window message during close drain");
+        dispatchOwned();
+        Require(app.Window() == window && app.lifecyclePhase == Application::LifecyclePhase::DrainingForClose && app.bitmapWriter.Busy() &&
+                    app.preferencesReadySentDuringClose == 0,
+                "DispatchUiMessage never sends PreferencesReady while bitmapWriter remains busy");
+        Require(SetEvent(gate->proceed.get()) != FALSE, "release held bitmap worker");
+        const auto closeDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+        while (app.Window() && std::chrono::steady_clock::now() < closeDeadline)
+        {
+            dispatchOwned();
+            if (app.Window())
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        }
+        Require(app.Window() == nullptr && app.lifecyclePhase == Application::LifecyclePhase::Destroyed && !app.bitmapWriter.Busy(),
+                "releasing bitmap worker settles FinishClose and destroys the notification window");
+        Require(foreground.NeverAcquiredForeground(), "hidden close drain never acquires desktop foreground");
+    }
+    static void FailedOpenAndCloseClearTransactionState(const std::filesystem::path &root)
+    {
+        Testing::ForegroundOwnershipObserver foreground;
+        // 1. Failed OpenPath / Open submission leaves activeFileTx as std::monostate.
+        {
+            LaunchOptions launch;
+            launch.headless = true;
+            launch.dataDirectory = root / L"tx-failed-submit";
+            const auto target = launch.dataDirectory / L"target.md";
+            std::filesystem::create_directories(target.parent_path());
+            Success(WriteBytesAtomic(target, "# Target\n"), "seed failed-submit target");
+            launch.filePickerForTest = [&](bool saving) { return saving ? std::filesystem::path{} : target; };
+            Application app(launch);
+            Success(app.Initialize(), "initialize failed-submit fixture");
+            app.SetDocument(L"Current\n");
+            app.files.Close();
+            app.OpenPath(target);
+            Require(std::holds_alternative<std::monostate>(app.activeFileTx), "failed OpenPath submission leaves activeFileTx as std::monostate");
+            app.Execute(Command::Open);
+            Require(std::holds_alternative<std::monostate>(app.activeFileTx), "failed Open submission leaves activeFileTx as std::monostate");
+        }
+        // 2. Failed async open (!result.saving, non-startup) leaves activeFileTx as std::monostate.
+        {
+            LaunchOptions launch;
+            launch.headless = true;
+            launch.dataDirectory = root / L"tx-failed-async-open";
+            const auto missing = launch.dataDirectory / L"missing.md";
+            launch.filePickerForTest = [&](bool saving) { return saving ? std::filesystem::path{} : missing; };
+            Application app(launch);
+            Success(app.Initialize(), "initialize failed-async-open fixture");
+            app.SetDocument(L"Retained before failed open\n");
+            app.Execute(Command::Open);
+            Await(app, [&] { return !app.files.Busy(); }, "failed async open completes");
+            Require(std::holds_alternative<std::monostate>(app.activeFileTx) && app.Document().GetText() == L"Retained before failed open\n",
+                    "failed async open clears activeFileTx and retains document");
+        }
+        // 3. WM_CLOSE cancellation of in-flight Open and Close while HeldOpenTx is held behind LocalSource.
+        {
+            LaunchOptions launch;
+            launch.headless = true;
+            launch.dataDirectory = root / L"tx-close-open-cancel";
+            const auto other = launch.dataDirectory / L"other.md";
+            std::filesystem::create_directories(other.parent_path());
+            Success(WriteBytesAtomic(other, "# Other\n"), "seed open-cancel target");
+            launch.filePickerForTest = [&](bool saving) { return saving ? std::filesystem::path{} : other; };
+            int answer = IDCANCEL;
+            launch.unsavedPromptForTest = [&] { return answer; };
+            const auto gate = launch.fileGateForTest = std::make_shared<AsyncFiles::TestGate>();
+            Application app(launch);
+            Success(app.Initialize(), "initialize in-flight Open close fixture");
+            const auto release = ReleaseOnExit(gate);
+            app.SetDocument(L"Original\n");
+            app.Execute(Command::Open);
+            Entered(gate);
+            Require(std::holds_alternative<Application::PickerOpenTx>(app.activeFileTx), "in-flight Open records PickerOpenTx");
+            Edit(app, L"Edited\n");
+            (void)SendMessageW(app.Window(), WM_CLOSE, 0, 0);
+            Require(std::holds_alternative<std::monostate>(app.activeFileTx) && !app.files.Busy() && app.Window() != nullptr,
+                    "WM_CLOSE cancels in-flight Open and clears activeFileTx even on Cancel");
+            Release(gate);
+            Pump(app);
+            Require(std::holds_alternative<std::monostate>(app.activeFileTx) && app.Document().GetText() == L"Original\nEdited\n",
+                    "late cancelled Open worker never restores transaction or replaces retained edits");
+        }
+        {
+            LaunchOptions launch;
+            launch.headless = true;
+            launch.dataDirectory = root / L"tx-close-held-open";
+            const auto other = launch.dataDirectory / L"other.md";
+            std::filesystem::create_directories(other.parent_path());
+            Success(WriteBytesAtomic(other, "# Other\n"), "seed held-open target");
+            launch.filePickerForTest = [&](bool saving) { return saving ? std::filesystem::path{} : other; };
+            const auto gate = launch.fileGateForTest = std::make_shared<AsyncFiles::TestGate>();
+            Application app(launch);
+            Success(app.Initialize(), "initialize HeldOpenTx close fixture");
+            const auto release = ReleaseOnExit(gate);
+            const std::wstring source = L"# Draft\r\n\r\nParagraph text.\r\n";
+            app.SetDocument(source);
+            app.Prepare(64);
+            app.Execute(Command::Open);
+            Entered(gate);
+            const auto pos = source.find(L"Paragraph");
+            app.Document().SetSelection({pos, pos + 9});
+            app.Execute(Command::LocalSource);
+            Require(app.HasBlockDraft(), "open LocalSource draft while Open is in flight");
+            Release(gate);
+            Await(
+                app, [&] { return std::holds_alternative<Application::HeldOpenTx>(app.activeFileTx); },
+                "completed Open enters HeldOpenTx behind LocalSource draft");
+            (void)SendMessageW(app.Window(), WM_CLOSE, 0, 0);
+            Require(app.Window() != nullptr && std::holds_alternative<Application::HeldOpenTx>(app.activeFileTx),
+                    "WM_CLOSE refuses while LocalSource draft is open and retains HeldOpenTx");
+            app.Execute(Command::CloseDrawer);
+            Require(!app.HasBlockDraft() && std::holds_alternative<Application::HeldOpenTx>(app.activeFileTx),
+                    "CloseDrawer retires draft and leaves HeldOpenTx until FileReady drains");
+            (void)SendMessageW(app.Window(), WM_CLOSE, 0, 0);
+            Require(std::holds_alternative<std::monostate>(app.activeFileTx), "WM_CLOSE clears HeldOpenTx atomically to std::monostate");
+            Await(app, [&] { return app.Window() == nullptr; }, "Close after clearing HeldOpenTx settles cleanly");
+        }
+        // 4. WM_CLOSE when a save already entered AsyncFiles::Phase::Completed finalizes via ClosingAfterSave.
+        {
+            LaunchOptions launch;
+            launch.headless = true;
+            launch.dataDirectory = root / L"tx-close-completed-save";
+            const auto gate = launch.fileGateForTest = std::make_shared<AsyncFiles::TestGate>();
+            Application app(launch);
+            Success(app.Initialize(), "initialize completed-save WM_CLOSE fixture");
+            const auto release = ReleaseOnExit(gate);
+            const auto target = launch.dataDirectory / L"notebook.md";
+            Seed(app, target);
+            Edit(app, L"Completed before WM_CLOSE\r\n");
+            const auto expectedText = app.Document().GetText();
+            app.Execute(Command::Save);
+            Entered(gate);
+            Release(gate);
+            Require(app.files.CurrentPhase() == AsyncFiles::Phase::Completed && !app.files.Saving() && app.files.HasPendingSave(),
+                    "save enters AsyncFiles::Phase::Completed before WM_CLOSE arrives");
+            (void)SendMessageW(app.Window(), WM_CLOSE, 0, 0);
+            Require(app.IsClosingAfterSave() && std::holds_alternative<std::monostate>(app.activeFileTx),
+                    "WM_CLOSE enters ClosingAfterSave via HasPendingSave() rather than discarding completed save");
+            Await(app, [&] { return app.Window() == nullptr; }, "ClosingAfterSave finalizes completed save and closes");
+            StoredDocument actual;
+            Success(LoadDocument(target, actual), "read saved file after completed-save WM_CLOSE");
+            Require(actual.text == expectedText, "completed save content survives WM_CLOSE before FileReady");
+        }
+        Require(foreground.NeverAcquiredForeground(), "hidden transaction and close checks preserve desktop foreground");
+    }
+};
 void RegisterCloseTests(const std::filesystem::path &root, const std::function<void(std::string_view, const std::function<void()> &)> &test)
 {
     test("Editor.HardlinkSaveWorkerRetainsAliasesAndLaterEdits",
@@ -613,5 +806,8 @@ void RegisterCloseTests(const std::filesystem::path &root, const std::function<v
     };
     test("Recovery.CloseAbandonsPlainOpenWithoutPrompt", [&] { closeOpen(false); });
     test("Recovery.CloseAbandonsOpenAndProtectsLaterEdits", [&] { closeOpen(true); });
+    test("Window.CloseDrainWaitsForBitmapWithoutSpuriousPreferencesReady",
+         [&] { CloseProbe::DrainWaitsForBitmapWithoutSpuriousPreferencesReady(root); });
+    test("Editor.FailedOpenAndCloseClearTransactionState", [&] { CloseProbe::FailedOpenAndCloseClearTransactionState(root); });
 }
 } // namespace RedTilde

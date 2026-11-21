@@ -1,4 +1,4 @@
-# Git/content/process fixtures exercise the public runner without a native build or desktop use.
+﻿# Git/content/process fixtures exercise the public runner without a native build or desktop use.
 [CmdletBinding()]param()
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
@@ -81,7 +81,7 @@ try{
             if($mode -ceq 'Missing'){return}
             $names=@('self-test','test-scope','list-tests','interactive','crash','recovery-crash','recovery-restart',
                 'preferences','asan','linked-save-crash','linked-save-restart','failure-host','failure-host-missing-value',
-                'test-scope-missing-value','interactive-missing-value')
+                'test-scope-missing-value','interactive-missing-value','failure-report')
             $refusals=@($names|ForEach-Object {@{name=$_;exitCode=2;dataDirectoryAbsent=$true}})
             if($mode -ceq 'Incomplete'){$refusals=$refusals[0..11]}
             if($mode -ceq 'Duplicate'){$refusals[12].name=$refusals[0].name}
@@ -624,6 +624,7 @@ param([string]$Platform,[string]$Configuration,[switch]$ProductionOnly)
         Put (Join-Path $buildRoot 'RedTilde/RedTilde.vcxproj') '<Project />'
         Put (Join-Path $buildRoot 'Build/RedTilde.DxUi.props') '<Project />'
         Put (Join-Path $buildRoot 'Tests/test-scopes.json') ([IO.File]::ReadAllText((Join-Path $PSScriptRoot 'test-scopes.json')))
+        Put (Join-Path $buildRoot 'Common/Version.h') "#define REDTILDE_VERSION_MAJOR 0`n#define REDTILDE_VERSION_MINOR 0`n"
         Put (Join-Path $buildRoot 'Tests/GuardFixture.cpp') 'first source bytes'
         foreach($name in @('Harness.psm1','ScopedTesting.psm1','BuildConsole.psm1','DxUiPaths.psm1')){Copy-Item -LiteralPath (Join-Path $root "Build/$name") -Destination (Join-Path $buildRoot "Build/$name")}
         Copy-Item -LiteralPath (Join-Path $root 'build.ps1') -Destination (Join-Path $buildRoot 'build.ps1')
@@ -869,6 +870,18 @@ $global:LASTEXITCODE=0
             Assert (-not $receipt.passed) 'Failed attempt retained a passed build receipt'
             Assert-GuardArtifact 'failed build attempt'
         }
+    }
+    Case 'iteration disposition resolves every explicit state-machine outcome' {
+        Assert ((Resolve-ScopedIterationDisposition -Mode Affected -ExplicitScopeCount 0 -SelectedCount 2) -ceq 'BaselineAdvanced') 'Default affected pass did not advance baseline'
+        Assert ((Resolve-ScopedIterationDisposition -Mode Affected -ExplicitScopeCount 1 -SelectedCount 1) -ceq 'PartialRunRetained') 'Explicit scope selection did not retain prior baseline'
+        Assert ((Resolve-ScopedIterationDisposition -Mode Full -ExplicitScopeCount 0 -SelectedCount 2) -ceq 'PartialRunRetained') 'Explicit Full run did not retain prior baseline'
+        Assert ((Resolve-ScopedIterationDisposition -Mode PrePush -ExplicitScopeCount 0 -SelectedCount 2 -DeferredCount 0) -ceq 'PartialRunRetained') 'Local PrePush pass did not retain prior baseline'
+        Assert ((Resolve-ScopedIterationDisposition -Mode Affected -ExplicitScopeCount 0 -SelectedCount 1 -Failed $true) -ceq 'FailedRetained') 'Failed outcome did not resolve to FailedRetained'
+        Assert ((Resolve-ScopedIterationDisposition -Mode Affected -ExplicitScopeCount 0 -SelectedCount 1 -Mutated $true) -ceq 'MutatedWorktreeRetained') 'Mutated outcome did not resolve to MutatedWorktreeRetained'
+        Assert ((Resolve-ScopedIterationDisposition -Mode Affected -ExplicitScopeCount 0 -SelectedCount 1 -Failed $true -Mutated $true) -ceq 'MutatedWorktreeRetained') 'Mutation did not take precedence over failure'
+        Assert ((Resolve-ScopedIterationDisposition -Mode PrePush -ExplicitScopeCount 0 -SelectedCount 1 -DeferredCount 1) -ceq 'CiPending') 'Deferred PR coverage did not resolve to CiPending'
+        Assert ((Resolve-ScopedIterationDisposition -Mode PrePush -ExplicitScopeCount 0 -SelectedCount 0 -DeferredCount 1) -ceq 'CiPending') 'All-deferred PrePush did not resolve to CiPending'
+        Assert ((Resolve-ScopedIterationDisposition -Mode Affected -ExplicitScopeCount 0 -SelectedCount 0 -DeferredCount 0) -ceq 'NothingSelected') 'Empty selection did not resolve to NothingSelected'
     }
     Write-Host "Scoped testing: $passed cases passed."
 }finally{

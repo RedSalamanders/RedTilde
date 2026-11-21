@@ -131,6 +131,18 @@ try {
                 throw 'An unleased interactive child did not refuse before showing or injecting input.'
             }
             $receipt.results+=@{scope='InteractiveProbeRefusal';noLeaseNoInput=$true;childSha256=(Get-FileHash -LiteralPath $refusal).Hash}
+            $failureReportPrefix=Join-Path $run 'failure-report-self-test'
+            $failureReportExit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--failure-report-self-test') -LogPrefix $failureReportPrefix
+            $failureReportStderr=[IO.File]::ReadAllText($failureReportPrefix+'.stderr.log')
+            if($Configuration -ceq 'Release'){
+                if($failureReportExit -ne 0){throw "FailureReportRouting failed in Release: expected exit code 0, got $failureReportExit."}
+            }else{
+                if($failureReportExit -ne 3 -or [string]::IsNullOrWhiteSpace($failureReportStderr)){
+                    throw "FailureReportRouting failed in ${Configuration}: expected exit code 3 with diagnostic stderr text, got $failureReportExit."
+                }
+            }
+            $receipt.results+=@{scope='FailureReportRouting';exitCode=$failureReportExit;stderrLength=$failureReportStderr.Length}
+            Write-Host "Failure report routing verified ($Configuration, exit $failureReportExit)."
         }
     }
     if('Preferences' -in $Suites){

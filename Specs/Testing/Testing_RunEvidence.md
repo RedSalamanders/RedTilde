@@ -13,6 +13,8 @@ and cannot advance the ordinary pinned iteration baseline.
 
 After argument, desktop and build preflight, native test execution writes each invocation under `.build/evidence/test-runs/<UTC-pid-guid>/payload`.
 It creates a new directory and exclusive owner lease; it never reuses an old run directory or sweeps older runs.
+The in-memory run handle tracks an explicit lifecycle (`$run.State`: `Active` -> `Completed` | `Failed` | `Interrupted`
+in `Build/TestRunEvidence.psm1`), rejecting duplicate completion or receipt publication once closed.
 A flushed, create-only `started.json` records the owner process and start time plus the requested profile/scopes.
 The `completed.json` record is staged, flushed, independently read back and renamed without overwrite only after
 payload verification. A failed or interrupted invocation retains its output. Forced termination can leave only

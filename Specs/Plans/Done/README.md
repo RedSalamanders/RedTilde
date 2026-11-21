@@ -4,6 +4,8 @@ Completed plans are history: they record sequencing, rationale, and evidence, ne
 added here, newest first, in the change that moves it to Done, as a bullet that links its title to its file and
 ends with an em dash and its outcome.
 
+- [Explicit state machines and lifetime safety](ExplicitStateMachines_2026-11-10.md) — completed all six slices replacing implicit boolean/optional state machines across `Application`, `AsyncFiles`, `BitmapPasteWriter`, `RecoveryService`, `FilesService`, overlays, Find & Replace, workspace switching, and test-evidence tooling (`RT-SM-01`..`RT-SM-09`), reconciled normative domain contracts, and executed full local qualification; physical ARM64 runtime and owner-authorized interactive focus gates remain separate.
+
 - [API-5 consumer adoption](Api5ConsumerAdoption_2026-11-08.md) — six zero-warning local builds, all three hosted x64 profiles with 465 passing cases and 120 captures, actual symbolic-link saves and ASan detection, plus fifteen local production refusals. ARM64 compilation and broader physical/provider/performance/release gates remain distinct.
 
 - [Document image consent and bounded refresh](DocumentImageConsent_2026-11-08.md) — Q13 implementation, six clean builds, all three x64 nonstorage profiles, reviewed captures and production refusals; real-location and broader adoption gates remain active.

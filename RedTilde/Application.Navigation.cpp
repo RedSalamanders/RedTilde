@@ -35,21 +35,17 @@ void CollectSourceFindMatches(std::wstring_view text, std::wstring_view query, b
         from = position + query.size();
     }
 }
-template <class... Args> std::wstring Text(unsigned id, Args &&...args)
-{
-    return std::vformat(ResourceView(id), std::make_wformat_args(args...));
-}
 } // namespace
 bool Application::PreviewOutlineMatchesCommitted() const
 {
-    return previewCommittedOutline && documentInfo.headings.size() == previewCommittedOutline->size() &&
-           std::equal(documentInfo.headings.begin(), documentInfo.headings.end(), previewCommittedOutline->begin(),
+    return outlinePreviewBaseline && documentInfo.headings.size() == outlinePreviewBaseline->committedOutline.size() &&
+           std::equal(documentInfo.headings.begin(), documentInfo.headings.end(), outlinePreviewBaseline->committedOutline.begin(),
                       [](const Heading &heading, const auto &identity)
                       { return heading.level == identity.first && heading.text == identity.second; });
 }
 void Application::RefreshOutline()
 {
-    ++outlineRowsRevision;
+    ++derivedCaches.outlineRowsRevision;
     const auto previousRows = outlineModel.rows.size();
     outlineModel.rows.clear();
     std::vector<std::pair<unsigned, std::uint64_t>> ancestors;
@@ -66,20 +62,20 @@ void Application::RefreshOutline()
         item.depth = static_cast<unsigned>(ancestors.size());
         if (!ancestors.empty())
             item.parentId = ancestors.back().second;
-        item.expanded = !collapsedHeadings.contains(item.id);
+        item.expanded = !session.collapsedHeadings.contains(item.id);
         item.hasChildren = i + 1 < documentInfo.headings.size() && documentInfo.headings[i + 1].level > heading.level;
-        const bool hidden =
-            std::any_of(ancestors.begin(), ancestors.end(), [&](const auto &ancestor) { return collapsedHeadings.contains(ancestor.second); });
+        const bool hidden = std::any_of(ancestors.begin(), ancestors.end(),
+                                        [&](const auto &ancestor) { return session.collapsedHeadings.contains(ancestor.second); });
         if (!hidden)
             outlineModel.rows.push_back(std::move(item));
         ancestors.emplace_back(heading.level, i + 1);
     }
     outlineTree->NotifyDataChanged();
     const auto headingCount = documentInfo.headings.size();
-    outlineCount->SetText(Text(IDS_OUTLINECOUNT, headingCount));
+    outlineCount->SetText(FormatStringResource(nullptr, IDS_OUTLINECOUNT, headingCount));
     if (outlineModel.rows.size() != previousRows)
         Layout();
-    if (findBar->IsVisible())
+    if (activeOverlay == OverlayKind::FindBar)
         RefreshFind();
 }
 void Application::UpdateCurrentFileDirtyBadge(bool dirty)
@@ -87,10 +83,10 @@ void Application::UpdateCurrentFileDirtyBadge(bool dirty)
     lastFilesDirty = dirty;
     auto *const tree = filesTree;
     const auto lifetime = GetControlLifetimeToken(*tree);
-    const auto key = activeDocumentKey;
+    const auto key = session.key;
     if (!inactiveDocuments.empty())
     {
-        const auto id = WorkspaceGroupId + activeDocumentKey + 1;
+        const auto id = WorkspaceGroupId + session.key + 1;
         const auto item = std::find_if(filesModel.rows.begin(), filesModel.rows.end(), [&](const auto &row) { return row.id == id; });
         if (item != filesModel.rows.end())
         {
@@ -100,7 +96,7 @@ void Application::UpdateCurrentFileDirtyBadge(bool dirty)
                 item->badgeText = badge;
                 item->badgeIsDot = dirty;
                 const bool published = tree->NotifyItemPresentationChanged(id);
-                if (closing || lifetime.expired() || filesTree != tree || host.GetRoot() != root || activeDocumentKey != key || Dirty() != dirty)
+                if (IsClosing() || lifetime.expired() || filesTree != tree || host.GetRoot() != root || session.key != key || Dirty() != dirty)
                     return;
                 if (!published)
                 {
@@ -127,7 +123,7 @@ void Application::UpdateCurrentFileDirtyBadge(bool dirty)
 
     const auto &snapshot = folderSnapshot.value();
     const auto entry = std::find_if(snapshot.entries.begin(), snapshot.entries.end(), [&](const auto &candidate)
-                                    { return !candidate.directory && MatchesFilesPath(snapshot, candidate.path, documentPath); });
+                                    { return !candidate.directory && MatchesFilesPath(snapshot, candidate.path, session.path); });
     if (entry == snapshot.entries.end())
         return;
     const auto itemId = static_cast<std::uint64_t>(std::distance(snapshot.entries.begin(), entry) + 1);
@@ -136,7 +132,7 @@ void Application::UpdateCurrentFileDirtyBadge(bool dirty)
         return; // Filtering or a future visibility rule hides this file; a later structural refresh reads Dirty().
 
     const bool edited = dirty || std::ranges::any_of(inactiveDocuments, [&](const auto &document)
-                                                     { return document.dirty && MatchesFilesPath(snapshot, document.path, documentPath); });
+                                                     { return document.dirty && MatchesFilesPath(snapshot, document.metadata.path, session.path); });
     const auto badgeText = edited ? Resource(IDS_FILESEDITED) : std::wstring{};
     if (row->badgeText == badgeText && row->badgeIsDot == edited)
         return;
@@ -171,37 +167,28 @@ void Application::RefreshFiles(bool rootChanged)
         }
     };
     const auto requested = settings.showFiles ? settings.filesRoot : std::filesystem::path{};
-    if (rootChanged || requested != folderRoot)
+    if (requested != folderRoot || (rootChanged && !requested.empty() && !folderFiles.IsActive()))
     {
-        if (requested != folderRoot)
+        folderRoot = requested;
+        folderSnapshot.reset();
+        collapsedFolders.clear();
+        HRESULT result = S_OK;
+        if (requested.empty())
+            folderFiles.Close();
+        else
         {
-            folderRoot = requested;
-            folderSnapshot.reset();
-            collapsedFolders.clear();
-            HRESULT result = S_OK;
-            if (requested.empty())
-            {
-                folderFiles.Close();
-                folderFilesActive = false;
-            }
-            else
-            {
-                if (!folderFilesActive)
-                {
-                    result = folderFiles.Initialize(window.get(), FolderReady);
-                    folderFilesActive = SUCCEEDED(result);
-                }
-                if (folderFilesActive)
-                    result = folderFiles.SetRoot(requested);
-            }
-            folderAdmissionStatus = result;
+            if (!folderFiles.IsActive())
+                result = folderFiles.Initialize(window.get(), FolderReady);
+            if (folderFiles.IsActive())
+                result = folderFiles.SetRoot(requested);
         }
+        folderAdmissionStatus = result;
     }
     if (rootChanged && folderSnapshot)
         for (const auto &entry : folderSnapshot->entries)
             if (entry.directory)
             {
-                const auto relative = documentPath.lexically_relative(entry.path);
+                const auto relative = session.path.lexically_relative(entry.path);
                 if (!relative.empty() && *relative.begin() != L"..")
                     collapsedFolders.erase(entry.path);
             }
@@ -216,6 +203,7 @@ void Application::RefreshFiles(bool rootChanged)
     if (!inactiveDocuments.empty())
     {
         std::vector<DxUi::TreeItemData> documents;
+        documents.reserve(inactiveDocuments.size() + 1);
         const auto append = [&](unsigned key, const std::filesystem::path &path, bool dirty)
         {
             const auto name = path.empty() ? Resource(IDS_UNTITLED) : path.filename().native();
@@ -235,9 +223,10 @@ void Application::RefreshFiles(bool rootChanged)
                 item.badgeText = Resource(IDS_FILESEDITED);
             documents.push_back(std::move(item));
         };
-        append(activeDocumentKey, documentPath, Dirty());
+        append(session.key, session.path, Dirty());
         for (const auto &document : inactiveDocuments)
-            append(document.recoveryKey, document.path, document.dirty);
+            append(document.metadata.key, document.metadata.path, document.dirty);
+        std::ranges::sort(documents, {}, &DxUi::TreeItemData::id);
         if (!documents.empty())
         {
             DxUi::TreeItemData group;
@@ -252,6 +241,9 @@ void Application::RefreshFiles(bool rootChanged)
                     filesModel.rows.push_back(std::move(document));
         }
     }
+    const std::uint64_t workspaceItemId = WorkspaceGroupId + session.key + 1;
+    const bool hasVisibleWorkspaceRow =
+        !inactiveDocuments.empty() && std::ranges::any_of(filesModel.rows, [&](const auto &row) { return row.id == workspaceItemId; });
     if (!folderSnapshot)
     {
         setFooter(Resource(static_cast<unsigned>(requested.empty()               ? IDS_FILESUNTITLED
@@ -261,8 +253,7 @@ void Application::RefreshFiles(bool rootChanged)
                                                                     : FAILED(folderAdmissionStatus) ? IDS_FILESUNAVAILABLE
                                                                                                     : IDS_FILESLOADING)));
         filesTree->NotifyDataChanged();
-        filesTree->SetSelectedItemId(inactiveDocuments.empty() ? std::nullopt
-                                                               : std::optional<std::uint64_t>(WorkspaceGroupId + activeDocumentKey + 1));
+        filesTree->SetSelectedItemId(hasVisibleWorkspaceRow ? std::optional<std::uint64_t>(workspaceItemId) : std::nullopt);
         return;
     }
     const auto &snapshot = folderSnapshot.value();
@@ -294,9 +285,9 @@ void Application::RefreshFiles(bool rootChanged)
         item.expanded = item.hasChildren && (!filter.empty() || !collapsedFolders.contains(entry.path));
         if (entry.directory && !item.expanded)
             item.badgeText = std::to_wstring(entry.markdownCount);
-        else if ((MatchesFilesPath(snapshot, entry.path, documentPath) && Dirty()) ||
-                 std::ranges::any_of(inactiveDocuments,
-                                     [&](const auto &document) { return document.dirty && MatchesFilesPath(snapshot, entry.path, document.path); }))
+        else if ((MatchesFilesPath(snapshot, entry.path, session.path) && Dirty()) ||
+                 std::ranges::any_of(inactiveDocuments, [&](const auto &document)
+                                     { return document.dirty && MatchesFilesPath(snapshot, entry.path, document.metadata.path); }))
         {
             item.badgeText = Resource(IDS_FILESEDITED);
             item.badgeIsDot = true;
@@ -305,23 +296,33 @@ void Application::RefreshFiles(bool rootChanged)
     }
     filesTree->SetEmptyStateText(Resource(IDS_NOMATCH));
     filesTree->NotifyDataChanged();
+    std::optional<std::uint64_t> visibleFolderItemId;
     const auto current = std::find_if(visibleFilePaths.begin(), visibleFilePaths.end(),
-                                      [&](const auto &path) { return MatchesFilesPath(snapshot, path, documentPath); });
+                                      [&](const auto &path) { return MatchesFilesPath(snapshot, path, session.path); });
     if (current != visibleFilePaths.end())
-        filesTree->SetSelectedItemId(static_cast<std::uint64_t>(current - visibleFilePaths.begin() + 1));
-    else
-        filesTree->SetSelectedItemId(inactiveDocuments.empty() ? std::nullopt
-                                                               : std::optional<std::uint64_t>(WorkspaceGroupId + activeDocumentKey + 1));
-    auto footer = Text(IDS_FILESCOUNT, snapshot.markdownCount);
-    const auto append = [&](std::wstring detail) { footer = Text(IDS_FILESFOOTERDETAIL, footer, detail); };
+    {
+        const auto candidateId = static_cast<std::uint64_t>(current - visibleFilePaths.begin() + 1);
+        if (std::ranges::any_of(filesModel.rows, [&](const auto &row) { return row.id == candidateId; }))
+            visibleFolderItemId = candidateId;
+    }
+    std::optional<std::uint64_t> selectedId;
+    if (workspaceSelectionPreferred && hasVisibleWorkspaceRow)
+        selectedId = workspaceItemId;
+    else if (visibleFolderItemId)
+        selectedId = visibleFolderItemId;
+    else if (hasVisibleWorkspaceRow)
+        selectedId = workspaceItemId;
+    filesTree->SetSelectedItemId(selectedId);
+    auto footer = FormatStringResource(nullptr, IDS_FILESCOUNT, snapshot.markdownCount);
+    const auto append = [&](std::wstring detail) { footer = FormatStringResource(nullptr, IDS_FILESFOOTERDETAIL, footer, detail); };
     if (FAILED(snapshot.status) || snapshot.errorCount)
         append(Resource(IDS_FILESACCESSDETAIL));
     if (FAILED(snapshot.watchStatus))
         append(Resource(IDS_FILESWATCHDETAIL));
     if (snapshot.entryLimitReached)
-        append(Text(IDS_FILESENTRYLIMIT, snapshot.appliedLimits.maximumEntries));
+        append(FormatStringResource(nullptr, IDS_FILESENTRYLIMIT, snapshot.appliedLimits.maximumEntries));
     if (snapshot.depthLimitReached)
-        append(Text(IDS_FILESDEPTHLIMIT, snapshot.appliedLimits.maximumDepth));
+        append(FormatStringResource(nullptr, IDS_FILESDEPTHLIMIT, snapshot.appliedLimits.maximumDepth));
     setFooter(std::move(footer));
 }
 void Application::FolderCompleted()
@@ -341,7 +342,7 @@ void Application::FolderCompleted()
                 if (entry.directory)
                 {
                     currentDirectories.insert(entry.path.native());
-                    const auto relative = documentPath.lexically_relative(entry.path);
+                    const auto relative = session.path.lexically_relative(entry.path);
                     if (!relative.empty() && *relative.begin() != L"..")
                         collapsedFolders.erase(entry.path);
                     else if (!previousDirectories.contains(entry.path.native()))
@@ -355,10 +356,10 @@ void Application::FolderCompleted()
 }
 void Application::EnsureFilesRoot()
 {
-    if (!settings.filesRoot.empty() || documentPath.empty())
+    if (!settings.filesRoot.empty() || session.path.empty())
         return;
     std::error_code error;
-    const auto absolute = std::filesystem::absolute(documentPath, error);
+    const auto absolute = std::filesystem::absolute(session.path, error);
     if (error)
         return;
     settings.filesRoot = absolute.parent_path().lexically_normal();
@@ -370,6 +371,7 @@ void Application::SelectFilesRoot(const std::filesystem::path &path)
         return;
     settings.filesRoot = path.lexically_normal();
     settings.showFiles = true;
+    workspaceSelectionPreferred = false;
     filesFilter->SetText(L"");
     RefreshFiles(true);
     Layout();
@@ -393,9 +395,9 @@ void Application::OpenFolder()
 bool Application::SwitchWorkspaceDocument(std::size_t index)
 {
     pendingBitmapPaste.reset();
-    if (closing || closingAfterSave || sessionEnding || switchingDocument || !root || host.GetRoot() != root)
+    if (!CanAcceptCommand())
         return false;
-    if (index >= inactiveDocuments.size() || files.Busy() || HasBlockDraft() || unsavedPromptOpen)
+    if (index >= inactiveDocuments.size() || files.Busy() || HasBlockDraft() || HasActiveModalPrompt())
     {
         Status(IDS_BUSY);
         return false;
@@ -405,7 +407,10 @@ bool Application::SwitchWorkspaceDocument(std::size_t index)
     const auto primaryLifetime = GetControlLifetimeToken(*primary);
     const auto ownerLifetime = GetControlLifetimeToken(*owner);
     const auto current = [&]
-    { return !closing && !primaryLifetime.expired() && !ownerLifetime.expired() && editor == primary && root == owner && host.GetRoot() == owner; };
+    {
+        return !IsClosing() && !primaryLifetime.expired() && !ownerLifetime.expired() && editor == primary && root == owner &&
+               host.GetRoot() == owner;
+    };
     const bool previousDirty = Dirty();
     CheckpointRecovery(true);
     if (!current())
@@ -414,44 +419,34 @@ bool Application::SwitchWorkspaceDocument(std::size_t index)
     const bool previousImageTransition = imageBindingTransition;
     imageBindingTransition = true;
     const auto restoreImageTransition = wil::scope_exit([&] { imageBindingTransition = previousImageTransition; });
-    if (!AcceptSourceResult(primary->TrySetDocumentFilePath(document.path.native())) || !current())
+    if (!AcceptSourceResult(primary->TrySetDocumentFilePath(document.metadata.path.native())) || !current())
         return false;
     {
         switchingDocument = true;
         const auto restore = wil::scope_exit([&] { switchingDocument = false; });
         if (!primary->ExchangeDocumentState(document.state))
         {
-            (void)AcceptSourceResult(primary->TrySetDocumentFilePath(documentPath.native()));
+            (void)AcceptSourceResult(primary->TrySetDocumentFilePath(session.path.native()));
             Status(IDS_BUSY);
             return false;
         }
         ++activity.workspaceSwitches;
         activity.workspaceRetainedPeak = std::max(activity.workspaceRetainedPeak, static_cast<std::uint64_t>(inactiveDocuments.size() + 1));
+        if (index < inactiveDocuments.size())
+        {
+            std::swap(session, inactiveDocuments[index].metadata);
+            inactiveDocuments[index].dirty = previousDirty;
+        }
+        printNetworkImages.clear();
+        derivedCaches.Reset();
+        outlinePreviewBaseline.reset();
+        find.InvalidateMatches();
+        if (!primaryLifetime.expired())
+            primary->SetRemoteImagesEnabled(settings.allowRemoteImages || session.remoteImagesAllowed);
         if (!current())
             return true; // The exchange committed before a callback retired its owner.
-        documentPath.swap(document.path);
-        savedText.swap(document.savedText);
-        collapsedHeadings.swap(document.collapsedHeadings);
-        std::swap(bom, document.bom);
-        std::swap(recovered, document.recovered);
-        std::swap(stamp, document.stamp);
-        std::swap(activeDocumentKey, document.recoveryKey);
-        std::swap(documentRemoteImagesAllowed, document.remoteImagesAllowed);
-        printNetworkImages.clear();
-        primary->SetRemoteImagesEnabled(settings.allowRemoteImages || documentRemoteImagesAllowed);
-        document.dirty = previousDirty;
-        dirtyFact.reset();
     }
-    if (!current())
-        return true;
     RememberActiveDocument();
-    previewCollapsedHeadings.reset();
-    previewCommittedOutline.reset();
-    documentAnalysisSource.reset();
-    committedAnalysisSource.reset();
-    mirroredSource.reset();
-    selectionFactsSource.reset();
-    findSource.reset();
     SetView(settings.view);
     if (!current())
         return true; // The binding committed before a reentrant teardown.
@@ -465,7 +460,7 @@ bool Application::SwitchWorkspaceDocument(std::size_t index)
 }
 bool Application::StartWorkspaceDocument()
 {
-    if (documentPath.empty() && !Dirty() && !editor->CanUndo() && !editor->CanRedo())
+    if (session.path.empty() && !Dirty() && !editor->CanUndo() && !editor->CanRedo())
         return true;
     if (inactiveDocuments.size() + 1 >= RecoveryService::MaximumDocuments)
     {
@@ -473,10 +468,10 @@ bool Application::StartWorkspaceDocument()
         return false;
     }
     unsigned key{};
-    while (key == activeDocumentKey || std::ranges::any_of(inactiveDocuments, [&](const auto &document) { return document.recoveryKey == key; }))
+    while (key == session.key || std::ranges::any_of(inactiveDocuments, [&](const auto &document) { return document.metadata.key == key; }))
         ++key;
     WorkspaceDocument document;
-    document.recoveryKey = key;
+    document.metadata.key = key;
     inactiveDocuments.push_back(std::move(document));
     if (SwitchWorkspaceDocument(inactiveDocuments.size() - 1))
         return true;
@@ -486,15 +481,15 @@ bool Application::StartWorkspaceDocument()
 void Application::ResetWorkspace()
 {
     for (const auto &document : inactiveDocuments)
-        if (FAILED(recovery.SubmitDocument(document.recoveryKey, std::nullopt, true)))
+        if (FAILED(recovery.SubmitDocument(document.metadata.key, std::nullopt, true)))
             Status(IDS_RECOVERYFAILED);
-    if (FAILED(recovery.SubmitDocument(activeDocumentKey, std::nullopt, true)))
+    if (FAILED(recovery.SubmitDocument(session.key, std::nullopt, true)))
         Status(IDS_RECOVERYFAILED);
     inactiveDocuments.clear();
     workspaceCollapsed = false;
-    activeDocumentKey = 0;
+    workspaceSelectionPreferred = false;
+    session.key = 0;
     workspaceApprovals.clear();
-    openingApprovals.clear();
 }
 void Application::CheckpointWorkspaceRecovery()
 {
@@ -503,14 +498,15 @@ void Application::CheckpointWorkspaceRecovery()
     {
         std::optional<RecoverySnapshot> snapshot;
         if (document.dirty)
-            snapshot = RecoverySnapshot{document.state.Text(), document.path, document.bom, document.state.GetSelection(), ++recoveryGeneration};
-        if (FAILED(recovery.SubmitDocument(document.recoveryKey, std::move(snapshot), true)))
+            snapshot = RecoverySnapshot{document.state.Text(), document.metadata.path, document.metadata.bom, document.state.GetSelection(),
+                                        ++recoveryGeneration};
+        if (FAILED(recovery.SubmitDocument(document.metadata.key, std::move(snapshot), true)))
             Status(IDS_RECOVERYFAILED);
     }
 }
 void Application::OpenPath(const std::filesystem::path &path)
 {
-    if (!IsMarkdownFile(path) || path == documentPath || (folderSnapshot && MatchesFilesPath(folderSnapshot.value(), path, documentPath)))
+    if (!IsMarkdownFile(path))
         return;
     if (folderSnapshot)
     {
@@ -519,54 +515,179 @@ void Application::OpenPath(const std::filesystem::path &path)
             item != entries.end() && item->directory)
             return;
     }
+    if (path == session.path || (folderSnapshot && MatchesFilesPath(folderSnapshot.value(), path, session.path)))
+    {
+        if (workspaceSelectionPreferred)
+        {
+            workspaceSelectionPreferred = false;
+            RefreshFiles();
+        }
+        return;
+    }
     AbandonStartupRestore();
-    if (files.Busy() || HasBlockDraft() || unsavedPromptOpen || closing || closingAfterSave || switchingDocument || sessionEnding)
+    if (files.Busy() || HasBlockDraft() || HasActiveModalPrompt() || !CanAcceptCommand())
     {
         Status(IDS_BUSY);
+        if (IsUiAttached())
+            RefreshFiles();
         return;
     }
     for (std::size_t index = 0; index < inactiveDocuments.size(); ++index)
-        if (inactiveDocuments[index].path == path ||
-            (folderSnapshot && MatchesFilesPath(folderSnapshot.value(), path, inactiveDocuments[index].path)))
+        if (inactiveDocuments[index].metadata.path == path ||
+            (folderSnapshot && MatchesFilesPath(folderSnapshot.value(), path, inactiveDocuments[index].metadata.path)))
         {
-            (void)SwitchWorkspaceDocument(index);
+            const bool previous = workspaceSelectionPreferred;
+            workspaceSelectionPreferred = false;
+            if (!SwitchWorkspaceDocument(index))
+            {
+                workspaceSelectionPreferred = previous;
+                if (IsUiAttached())
+                    RefreshFiles();
+            }
             return;
         }
-    openingSnapshot = editor->Snapshot();
+    auto entrySource = editor->Snapshot();
     const HRESULT result = files.Submit(false, path);
-    openingFromFiles = SUCCEEDED(result);
-    Status(FAILED(result) ? IDS_BUSY : IDS_LOADING);
+    if (SUCCEEDED(result))
+    {
+        activeFileTx = FilesPaneOpenTx{std::move(entrySource), workspaceSelectionPreferred};
+        Status(IDS_LOADING);
+    }
+    else
+    {
+        activeFileTx = std::monostate{};
+        if (IsUiAttached())
+            RefreshFiles();
+        Status(IDS_BUSY);
+    }
+}
+void Application::CloseActiveDocument()
+{
+    AskThen(
+        [this]
+        {
+            if (!CanAcceptCommand() || !IsUiAttached())
+                return;
+            if (inactiveDocuments.empty())
+            {
+                ResetWorkspace();
+                SetDocument({});
+                if (IsUiAttached())
+                    host.SetFocusControl(editor, MayRequestNativeFocus());
+                return;
+            }
+            // Switch to the adjacent remaining document in workspace key order before retiring the closed slot.
+            std::optional<std::size_t> nextHigher, prevLower;
+            for (std::size_t index = 0; index < inactiveDocuments.size(); ++index)
+            {
+                const auto candidateKey = inactiveDocuments[index].metadata.key;
+                if (candidateKey > session.key && (!nextHigher || candidateKey < inactiveDocuments[nextHigher.value()].metadata.key))
+                    nextHigher = index;
+                else if (candidateKey < session.key && (!prevLower || candidateKey > inactiveDocuments[prevLower.value()].metadata.key))
+                    prevLower = index;
+            }
+            const std::size_t targetIndex = nextHigher ? nextHigher.value() : prevLower.value_or(0u);
+            if (!SwitchWorkspaceDocument(targetIndex) || !IsUiAttached())
+                return;
+            if (targetIndex < inactiveDocuments.size())
+            {
+                const auto closedKey = inactiveDocuments[targetIndex].metadata.key;
+                inactiveDocuments.erase(inactiveDocuments.begin() + static_cast<std::ptrdiff_t>(targetIndex));
+                std::erase_if(workspaceApprovals, [&](const WorkspaceApproval &approval) { return approval.key == closedKey; });
+                if (FAILED(recovery.SubmitDocument(closedKey, std::nullopt, true)))
+                    Status(IDS_RECOVERYFAILED);
+            }
+            if (inactiveDocuments.empty())
+                workspaceSelectionPreferred = false;
+            RefreshFiles();
+            if (IsUiAttached())
+                host.SetFocusControl(editor, MayRequestNativeFocus());
+        });
+}
+bool Application::OpenDroppedFile(const std::filesystem::path &path)
+{
+    if (!CanAcceptCommand() || HasActiveModalPrompt())
+        return false;
+    if (HasBlockDraft())
+    {
+        Status(IDS_BLOCKPENDING);
+        return false;
+    }
+    if (files.Busy())
+    {
+        Status(IDS_BUSY);
+        return false;
+    }
+    if (path.empty() || !path.is_absolute() || path.native().find(L'\0') != std::wstring::npos)
+    {
+        Status(IDS_DROPUNSUPPORTED);
+        return false;
+    }
+    const DWORD attributes = GetFileAttributesW(path.c_str());
+    if (attributes == INVALID_FILE_ATTRIBUTES || (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
+    {
+        Status(IDS_DROPUNSUPPORTED);
+        return false;
+    }
+    const auto extension = path.extension().native();
+    const auto matchesExtension = [&](std::wstring_view expected) noexcept
+    {
+        return extension.size() == expected.size() && CompareStringOrdinal(extension.data(), static_cast<int>(extension.size()), expected.data(),
+                                                                           static_cast<int>(expected.size()), TRUE) == CSTR_EQUAL;
+    };
+    if (!matchesExtension(L".md") && !matchesExtension(L".markdown") && !matchesExtension(L".txt"))
+    {
+        Status(IDS_DROPUNSUPPORTED);
+        return false;
+    }
+    AbandonStartupRestore();
+    const auto normalized = path.lexically_normal();
+    AskWorkspaceThen(
+        [this, normalized]
+        {
+            if (!CanAcceptCommand() || files.Busy())
+            {
+                Status(IDS_BUSY);
+                return;
+            }
+            auto entrySource = editor->Snapshot();
+            const HRESULT hr = files.Submit(false, normalized);
+            if (FAILED(hr))
+            {
+                activeFileTx = std::monostate{};
+                Status(IDS_BUSY);
+            }
+            else
+            {
+                activeFileTx = PickerOpenTx{std::move(entrySource), workspaceApprovals};
+                Status(IDS_LOADING);
+            }
+        });
+    return true;
 }
 void Application::RefreshFind()
 {
-    if (updatingFind || !findText)
+    if (find.updating || !findText)
         return;
-    if (!findBar->IsVisible())
+    if (activeOverlay != OverlayKind::FindBar)
     {
-        if (findPresentationCleared)
+        if (!find.IsPresentationActive())
             return;
 
-        closedFindMatches = std::move(findMatches);
-        findMatches.clear();
-        closedFindSource = std::move(findSource);
-        findSource.reset();
-        closedFindQuery = std::move(findQuery);
-        findQuery.clear();
-        closedFindCase = findCachedMatchCase;
-        findSectionCounts.clear();
-        findSectionCountsValid = false;
-        findHighlightedCurrent.reset();
-        findDisplayedCurrent.reset();
-        findDisplayedTotal.reset();
-        findDisplayedQuery.clear();
-        findHighlightsNeedRefresh = true;
-        findBadgesNeedRefresh = true;
+        find.projections.sectionCounts.clear();
+        find.projections.sectionCountsValid = false;
+        find.projections.highlightedCurrent.reset();
+        find.projections.displayedCurrent.reset();
+        find.projections.displayedTotal.reset();
+        find.projections.displayedQuery.clear();
+        find.projections.highlightsNeedRefresh = true;
+        find.projections.badgesNeedRefresh = true;
 
-        if (findHasHighlights)
+        if (find.projections.hasHighlights)
         {
             (void)AcceptSourceResult(editor->TrySetSourceHighlights({}));
             ++activity.findHighlightUpdates;
-            findHasHighlights = false;
+            find.projections.hasHighlights = false;
         }
         bool badgesChanged{};
         for (auto &row : outlineModel.rows)
@@ -577,42 +698,36 @@ void Application::RefreshFind()
             }
         if (badgesChanged)
             outlineTree->NotifyDataChanged();
-        findBadgeRowsRevision = outlineRowsRevision;
-        findPresentationCleared = true;
+        find.projections.badgeRowsRevision = derivedCaches.outlineRowsRevision;
+        find.projections.presentationCleared = true;
         return;
     }
 
-    findPresentationCleared = false;
+    find.projections.presentationCleared = false;
     const auto &needle = findText->GetText();
     const auto snapshot = editor->Snapshot();
-    if (closedFindSource)
+    if (!find.table.source || !find.table.source->IsSameRevision(snapshot) || find.table.query != needle || find.table.matchCase != find.matchCase)
     {
-        findMatches.swap(closedFindMatches);
-        closedFindMatches.clear();
-        closedFindSource.reset();
-        closedFindQuery.clear();
-    }
-    if (!findSource || !findSource->IsSameRevision(snapshot) || findQuery != needle || findCachedMatchCase != findMatchCase)
-    {
-        findQuery = needle;
-        findSource = snapshot;
-        findCachedMatchCase = findMatchCase;
-        CollectSourceFindMatches(CurrentText(), needle, findMatchCase, findMatches);
+        find.table.query = needle;
+        find.table.source = snapshot;
+        find.table.matchCase = find.matchCase;
+        CollectSourceFindMatches(CurrentText(), needle, find.matchCase, find.table.matches);
         ++activity.findMatchRebuilds;
-        findSectionCountsValid = false;
-        findHighlightsNeedRefresh = true;
-        findBadgesNeedRefresh = true;
-        findHighlightedCurrent.reset();
-        findDisplayedCurrent.reset();
-        findDisplayedTotal.reset();
-        findDisplayedQuery.clear();
+        find.projections.sectionCountsValid = false;
+        find.projections.highlightsNeedRefresh = true;
+        find.projections.badgesNeedRefresh = true;
+        find.projections.highlightedCurrent.reset();
+        find.projections.displayedCurrent.reset();
+        find.projections.displayedTotal.reset();
+        find.projections.displayedQuery.clear();
     }
 
-    if (!findSectionCountsValid || findSectionOutlineRevision != outlineRowsRevision || findSectionAnalysis != activity.changes)
+    if (!find.projections.sectionCountsValid || find.projections.sectionOutlineRevision != derivedCaches.outlineRowsRevision ||
+        find.projections.sectionAnalysis != activity.changes)
     {
         const auto &headings = documentInfo.headings;
         const auto &text = CurrentText();
-        findSectionCounts.assign(headings.size(), 0);
+        find.projections.sectionCounts.assign(headings.size(), 0);
         std::vector<std::size_t> sectionEnds(headings.size(), text.size());
         std::vector<std::size_t> openSections;
         openSections.reserve(headings.size());
@@ -627,32 +742,32 @@ void Application::RefreshFind()
         }
         for (std::size_t i = 0; i < headings.size(); ++i)
         {
-            const auto lower = std::lower_bound(findMatches.begin(), findMatches.end(), headings[i].offset,
+            const auto lower = std::lower_bound(find.table.matches.begin(), find.table.matches.end(), headings[i].offset,
                                                 [](const auto &range, std::size_t pos) { return range.first < pos; });
-            const auto upper =
-                std::lower_bound(lower, findMatches.end(), sectionEnds[i], [](const auto &range, std::size_t pos) { return range.first < pos; });
-            findSectionCounts[i] = static_cast<std::size_t>(upper - lower);
+            const auto upper = std::lower_bound(lower, find.table.matches.end(), sectionEnds[i],
+                                                [](const auto &range, std::size_t pos) { return range.first < pos; });
+            find.projections.sectionCounts[i] = static_cast<std::size_t>(upper - lower);
         }
-        findSectionOutlineRevision = outlineRowsRevision;
-        findSectionAnalysis = activity.changes;
-        findSectionCountsValid = true;
-        findBadgesNeedRefresh = true;
+        find.projections.sectionOutlineRevision = derivedCaches.outlineRowsRevision;
+        find.projections.sectionAnalysis = activity.changes;
+        find.projections.sectionCountsValid = true;
+        find.projections.badgesNeedRefresh = true;
         ++activity.findSectionCountRebuilds;
     }
 
     const auto selected = editor->GetSelection();
-    const auto active = std::lower_bound(findMatches.begin(), findMatches.end(), selected.Start(),
+    const auto active = std::lower_bound(find.table.matches.begin(), find.table.matches.end(), selected.Start(),
                                          [](const auto &range, std::size_t pos) { return range.first < pos; });
-    const bool hasActive = active != findMatches.end() && active->first == selected.Start() && active->last == selected.End();
-    const std::size_t current = hasActive ? static_cast<std::size_t>(active - findMatches.begin() + 1) : 0;
-    if (findHighlightsNeedRefresh || !findHighlightedCurrent || findHighlightedCurrent.value() != current)
+    const bool hasActive = active != find.table.matches.end() && active->first == selected.Start() && active->last == selected.End();
+    const std::size_t current = hasActive ? static_cast<std::size_t>(active - find.table.matches.begin() + 1) : 0;
+    if (find.projections.highlightsNeedRefresh || !find.projections.highlightedCurrent || find.projections.highlightedCurrent.value() != current)
     {
         std::vector<DxUi::RichTextSourceHighlight> highlights;
-        const auto count = std::min(findMatches.size(), std::size_t{4096});
+        const auto count = std::min(find.table.matches.size(), std::size_t{4096});
         highlights.reserve(count);
         for (std::size_t i = 0; i < count; ++i)
         {
-            const auto range = findMatches[i];
+            const auto range = find.table.matches[i];
             highlights.push_back({range.first, range.last - range.first, current == i + 1});
         }
         if (current > count)
@@ -660,30 +775,30 @@ void Application::RefreshFind()
         if (!AcceptSourceResult(editor->TrySetSourceHighlights(highlights)))
             return;
         ++activity.findHighlightUpdates;
-        findHasHighlights = !highlights.empty();
-        findHighlightedCurrent = current;
-        findHighlightsNeedRefresh = false;
+        find.projections.hasHighlights = !highlights.empty();
+        find.projections.highlightedCurrent = current;
+        find.projections.highlightsNeedRefresh = false;
     }
 
-    if (!findDisplayedCurrent || findDisplayedCurrent.value() != current || !findDisplayedTotal || findDisplayedTotal.value() != findMatches.size() ||
-        findDisplayedQuery != needle)
+    if (!find.projections.displayedCurrent || find.projections.displayedCurrent.value() != current || !find.projections.displayedTotal ||
+        find.projections.displayedTotal.value() != find.table.matches.size() || find.projections.displayedQuery != needle)
     {
-        const auto countText =
-            findMatches.empty() ? Resource(needle.empty() ? IDS_FINDQUERY : IDS_NOMATCH) : Text(IDS_FINDCOUNT, current, findMatches.size());
+        const auto countText = find.table.matches.empty() ? Resource(needle.empty() ? IDS_FINDQUERY : IDS_NOMATCH)
+                                                          : FormatStringResource(nullptr, IDS_FINDCOUNT, current, find.table.matches.size());
         if (findCount->GetText() != countText)
             findCount->SetText(countText);
-        findDisplayedCurrent = current;
-        findDisplayedTotal = findMatches.size();
-        findDisplayedQuery = needle;
+        find.projections.displayedCurrent = current;
+        find.projections.displayedTotal = find.table.matches.size();
+        find.projections.displayedQuery = needle;
     }
 
-    if (findBadgesNeedRefresh || findBadgeRowsRevision != outlineRowsRevision)
+    if (find.projections.badgesNeedRefresh || find.projections.badgeRowsRevision != derivedCaches.outlineRowsRevision)
     {
         bool changed{};
         for (auto &row : outlineModel.rows)
         {
             const auto heading = static_cast<std::size_t>(row.id - 1);
-            const auto count = heading < findSectionCounts.size() ? findSectionCounts[heading] : 0;
+            const auto count = heading < find.projections.sectionCounts.size() ? find.projections.sectionCounts[heading] : 0;
             const auto badge = count ? std::to_wstring(count) : std::wstring{};
             if (row.badgeText != badge)
             {
@@ -693,29 +808,28 @@ void Application::RefreshFind()
         }
         if (changed)
             outlineTree->NotifyDataChanged();
-        findBadgeRowsRevision = outlineRowsRevision;
-        findBadgesNeedRefresh = false;
+        find.projections.badgeRowsRevision = derivedCaches.outlineRowsRevision;
+        find.projections.badgesNeedRefresh = false;
     }
 }
 void Application::FindNext(bool previous)
 {
-    const bool visible = findBar->IsVisible();
-    if (visible)
+    if (activeOverlay == OverlayKind::FindBar)
         RefreshFind();
     else
     {
         const auto snapshot = editor->Snapshot();
         const auto &query = findText->GetText();
-        if (!closedFindSource || !closedFindSource->IsSameRevision(snapshot) || closedFindQuery != query || closedFindCase != findMatchCase)
+        if (!find.table.source || !find.table.source->IsSameRevision(snapshot) || find.table.query != query || find.table.matchCase != find.matchCase)
         {
-            CollectSourceFindMatches(CurrentText(), query, findMatchCase, closedFindMatches);
-            closedFindSource = snapshot;
-            closedFindQuery = query;
-            closedFindCase = findMatchCase;
+            find.table.query = query;
+            find.table.source = snapshot;
+            find.table.matchCase = find.matchCase;
+            CollectSourceFindMatches(CurrentText(), query, find.matchCase, find.table.matches);
             ++activity.findMatchRebuilds;
         }
     }
-    const auto &matches = visible ? findMatches : closedFindMatches;
+    const auto &matches = find.table.matches;
     if (matches.empty())
         return;
     const auto selection = editor->GetSelection();
@@ -747,7 +861,7 @@ void Application::ReplaceFind(bool all)
     if (HasBlockDraft() || editor->IsReadOnly())
         return;
     RefreshFind();
-    if (findMatches.empty())
+    if (find.table.matches.empty())
         return;
     const std::wstring replacement(replaceText->GetText());
     const auto source = editor->Snapshot();
@@ -755,7 +869,7 @@ void Application::ReplaceFind(bool all)
     std::vector<DxUi::RichText::SourceEdit> edits;
     std::size_t size = source.Length();
     const auto selection = editor->GetSelection();
-    for (const auto range : findMatches)
+    for (const auto range : find.table.matches)
         if (all || (selection.Start() == range.first && selection.End() == range.last))
         {
             size -= range.last - range.first;
@@ -775,8 +889,8 @@ void Application::ReplaceFind(bool all)
     const auto after = edits.front().source.first + replacement.size();
     bool applied{};
     {
-        updatingFind = true;
-        const auto resetUpdatingFind = wil::scope_exit([&] { updatingFind = false; });
+        find.updating = true;
+        const auto resetUpdatingFind = wil::scope_exit([&] { find.updating = false; });
         applied = editor->ApplySourceEdits(source, revision, edits, {after, after});
     }
     if (!applied)
@@ -804,6 +918,7 @@ void Application::FileMenu(bool overflow)
         add(IDS_OPEN, Command::Open, L"Ctrl+O");
         add(IDS_OPENFOLDER, Command::OpenFolder, L"Ctrl+Shift+O");
         add(IDS_SAVEAS, Command::SaveAs, L"Ctrl+Shift+S");
+        add(IDS_CLOSEDOCUMENT, Command::CloseDocument, L"Ctrl+W");
         add(IDS_PRINT, Command::Print, L"Ctrl+P");
         add(IDS_IMAGERELOAD, Command::ReloadImages);
     }
@@ -829,8 +944,7 @@ void Application::FileMenu(bool overflow)
 }
 bool Application::DismissSurface()
 {
-    if (pendingSelectionTools || selectionToolsFocus || drawer->IsVisible() || findBar->IsVisible() || floating->IsVisible() ||
-        blockDraft->IsVisible() || recoveryPanel->IsVisible())
+    if (pendingSelectionTools || selectionToolsFocus || activeOverlay != OverlayKind::None)
     {
         CloseDrawers();
         return true;

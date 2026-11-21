@@ -5,6 +5,7 @@
     { "path": "Tests/Application.Tests.Printing.h", "suite": "Core", "executable": "RedTilde.exe", "arguments": ["--self-test"], "interactive": false },
     { "path": "Tests/Application.Tests.FailureHost.cpp", "suite": "Core", "executable": "RedTilde.exe", "arguments": ["--self-test"], "interactive": false },
     { "path": "Tests/Application.Tests.FailureHost.h", "suite": "Core", "executable": "RedTilde.exe", "arguments": ["--self-test"], "interactive": false },
+    { "path": "Tests/Application.Tests.FailureReports.h", "suite": "Core", "executable": "RedTilde.exe", "arguments": ["--failure-report-self-test"], "interactive": false },
     { "path": "Tests/Support/Support.Tests.BitmapAssets.h", "suite": "Core", "executable": "RedTilde.exe", "arguments": ["--self-test"], "interactive": false },
     { "path": "Tests/Support/Support.Tests.Images.h", "suite": "Core", "executable": "RedTilde.exe", "arguments": ["--self-test"], "interactive": false },
     { "path": "Tests/Support/Support.Tests.StorageSafety.h", "suite": "Core", "executable": "RedTilde.exe", "arguments": ["--self-test"], "interactive": false },

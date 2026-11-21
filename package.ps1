@@ -34,7 +34,20 @@ if($built.PSObject.Properties['dependencyRecipe'] -and $built.dependencyRecipe.r
     if($null -eq $sdk -or $sdk.Descriptor.Hash -cne $built.sdkInputDescriptorSha256 -or $sdk.Evidence.inputKey -cne $built.dependencyRecipe.inputKey -or $sdk.Evidence.manifestSha256 -cne $built.dependencyRecipe.manifestSha256){throw 'Package SDK inputs differ from the original production build.'}
 }
 $output=Join-Path $PSScriptRoot '.build/package'
-$version='0.1.'+[string]$built.buildNumber
+$exeVersion=[Diagnostics.FileVersionInfo]::GetVersionInfo($exe)
+$version="$($exeVersion.FileMajorPart).$($exeVersion.FileMinorPart).$($exeVersion.FileBuildPart)"
+if($exeVersion.FileBuildPart -ne $built.buildNumber){throw 'Production executable build number differs from its build receipt.'}
+if($built.PSObject.Properties['version'] -and $built.version -cne $version){throw 'Production executable version differs from its build receipt.'}
+$versionHeaderPath=Join-Path $PSScriptRoot 'Common/Version.h'
+if(Test-Path -LiteralPath $versionHeaderPath -PathType Leaf){
+    $versionHeader=[IO.File]::ReadAllText($versionHeaderPath)
+    $majorMatch=[regex]::Match($versionHeader,'(?m)^\s*#define\s+REDTILDE_VERSION_MAJOR\s+(?<value>\d+)\s*$')
+    $minorMatch=[regex]::Match($versionHeader,'(?m)^\s*#define\s+REDTILDE_VERSION_MINOR\s+(?<value>\d+)\s*$')
+    if(-not $majorMatch.Success -or -not $minorMatch.Success){throw 'Common/Version.h must define REDTILDE_VERSION_MAJOR and REDTILDE_VERSION_MINOR.'}
+    if($exeVersion.FileMajorPart -ne [int]$majorMatch.Groups['value'].Value -or $exeVersion.FileMinorPart -ne [int]$minorMatch.Groups['value'].Value){
+        throw "Production executable version $version differs from Common/Version.h."
+    }
+}
 $stage=Join-Path $output ('RedTilde-'+$version+'-'+$Platform+'-'+(Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
 Copy-Item -LiteralPath $exe -Destination $stage
@@ -57,6 +70,8 @@ Copy-Item -LiteralPath (Join-Path $source 'THIRD-PARTY-NOTICES.md') -Destination
 # The notice links its full component licenses relative to itself as docs/licenses/*.txt.
 New-Item -ItemType Directory -Force -Path (Join-Path $stage 'Dependencies/docs') | Out-Null
 Copy-Item -LiteralPath (Join-Path $source 'docs/licenses') -Destination (Join-Path $stage 'Dependencies/docs/licenses') -Recurse
+Copy-Item -LiteralPath (Join-Path $source 'ThirdParty/libfyaml/0.9.4/LICENSE') -Destination (Join-Path $stage 'Dependencies/libfyaml-LICENSE.txt')
+Copy-Item -LiteralPath (Join-Path $source 'ThirdParty/libfyaml/0.9.4/LICENSE-xxHash.txt') -Destination (Join-Path $stage 'Dependencies/libfyaml-xxHash-LICENSE.txt')
 [xml]$resolved=Get-Content (Join-Path $PSScriptRoot ".build/dependencies/DxUi/DxUi.resolved.$Platform.props")
 $triplet=if ($Platform -eq 'ARM64') { 'arm64-windows' } else { 'x64-windows' }
 $wilCopyright=Join-Path ([string]$resolved.Project.PropertyGroup.DxUiConsumerOutputRoot) "vcpkg_installed/$Platform/$triplet/share/wil/copyright"
@@ -81,12 +96,18 @@ $smoke=Join-Path $output ('extracted-'+[guid]::NewGuid().ToString('N'))
 Expand-Archive -LiteralPath $archive -DestinationPath $smoke
 $smokeExe=Join-Path $smoke 'RedTilde.exe'
 $smokeVersion=[Diagnostics.FileVersionInfo]::GetVersionInfo($smokeExe)
-if($smokeVersion.FileBuildPart -ne $built.buildNumber -or
+if($smokeVersion.FileMajorPart -ne $exeVersion.FileMajorPart -or
+    $smokeVersion.FileMinorPart -ne $exeVersion.FileMinorPart -or
+    $smokeVersion.FileBuildPart -ne $built.buildNumber -or
     (Get-FileHash -LiteralPath $smokeExe).Hash -cne $built.binarySha256){throw 'Extracted package identity differs from the production build.'}
 $helpLog=Join-Path $smoke 'help'
 $exit=Invoke-RedTildeHarness -Executable $smokeExe -Arguments @('--help') -LogPrefix $helpLog -TimeoutSeconds 30 -SystemOnlyPath
 $helpText=Get-Content -LiteralPath ($helpLog+'.stdout.log') -Raw
-if($exit -ne 0 -or -not ($helpText -clike '*--document*' -and $helpText -clike '*--help*')){throw 'Clean-extraction command help failed.'}
+if($exit -ne 0 -or -not ($helpText -clike '*--document*' -and $helpText -clike '*--help*' -and $helpText -clike '*--version*')){throw 'Clean-extraction command help failed.'}
+$versionLog=Join-Path $smoke 'version'
+$exit=Invoke-RedTildeHarness -Executable $smokeExe -Arguments @('--version') -LogPrefix $versionLog -TimeoutSeconds 30 -SystemOnlyPath
+$versionText=Get-Content -LiteralPath ($versionLog+'.stdout.log') -Raw
+if($exit -ne 0 -or $versionText -cnotlike "*RedTilde $version*"){throw 'Clean-extraction command version failed.'}
 $exit=Invoke-RedTildeHarness -Executable $smokeExe -Arguments @('--capture',(Join-Path $smoke 'smoke.png'),'--scenario','compose-light','--data-dir',(Join-Path $smoke 'smoke-data')) -LogPrefix (Join-Path $smoke 'smoke') -TimeoutSeconds 120 -SystemOnlyPath
 if($exit -ne 0 -or -not(Test-Path -LiteralPath (Join-Path $smoke 'smoke.png'))){throw 'Clean-extraction hidden application smoke failed.'}
 $refusalCases=@(
@@ -104,7 +125,8 @@ $refusalCases=@(
     @{name='failure-host';arguments=@('--failure-host-probe','throw')},
     @{name='failure-host-missing-value';arguments=@('--failure-host-probe')},
     @{name='test-scope-missing-value';arguments=@('--test-scope')},
-    @{name='interactive-missing-value';arguments=@('--design-interactive-probe')}
+    @{name='interactive-missing-value';arguments=@('--design-interactive-probe')},
+    @{name='failure-report';arguments=@('--failure-report-self-test')}
 )
 $refusals=@()
 foreach($case in $refusalCases){
@@ -116,9 +138,12 @@ foreach($case in $refusalCases){
     $refusals+=[ordered]@{name=$case.name;arguments=$case.arguments;exitCode=$exit;dataDirectoryAbsent=$true}
 }
 if($null -ne $sdk){Close-CiPinnedSdkInput $sdk}
+$archiveHash=(Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash
+$archiveFileName=[IO.Path]::GetFileName($archive)
+[IO.File]::WriteAllText(($archive+'.sha256'),"$($archiveHash.ToLowerInvariant()) *$archiveFileName`n",[Text.UTF8Encoding]::new($false))
 Write-Host "Experimental portable package: $archive"
 [ordered]@{schemaVersion=1;sourceIdentity=$built.sourceIdentity;binarySha256=$built.binarySha256;platform=$Platform;
-    archiveSha256=(Get-FileHash $archive).Hash;status='experimental';version=$version;smokePassed=$true;
+    archiveSha256=$archiveHash;status='experimental';version=$version;smokePassed=$true;
     testsEnabled=$built.testsEnabled;runtimeRedistributableBundled=$true;testOnlyEntryPointRefusals=$refusals} |
     ConvertTo-Json -Depth 5 | Set-Content -LiteralPath ($archive+'.receipt.json') -Encoding utf8
 }catch{$packageFailure=$_;throw}

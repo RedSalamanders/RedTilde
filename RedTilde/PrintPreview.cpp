@@ -1,5 +1,6 @@
 #include "PrintPreview.h"
 #include "Application.h"
+#include "KeyboardState.h"
 #include "res/Resource.h"
 #include <algorithm>
 #include <cmath>
@@ -123,7 +124,7 @@ PrintPreview::~PrintPreview()
     {
         if (IsWindow(owner_))
             EnableWindow(owner_, TRUE);
-        if (wasActive && !app_.closing && !app_.sessionEnding && GetForegroundWindow() == window_.get() && IsWindowVisible(owner_))
+        if (wasActive && !app_.IsClosing() && !app_.IsSessionEnding() && GetForegroundWindow() == window_.get() && IsWindowVisible(owner_))
             (void)SetActiveWindow(owner_);
     }
     host_.Detach();
@@ -139,6 +140,8 @@ HRESULT PrintPreview::Initialize(std::wstring_view title)
     cls.lpfnWndProc = WindowProc;
     cls.hInstance = instance;
     cls.hCursor = LoadCursorW(nullptr, IDC_ARROW);
+    cls.hIcon = LoadIconW(instance, MAKEINTRESOURCEW(IDI_REDTILDE));
+    cls.hIconSm = cls.hIcon;
     cls.lpszClassName = L"RedTilde.PrintPreview";
     if (!RegisterClassExW(&cls) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
         return HRESULT_FROM_WIN32(GetLastError());
@@ -193,7 +196,7 @@ HRESULT PrintPreview::Initialize(std::wstring_view title)
                     }
                     else
                     {
-                        SetStatus(std::vformat(Resource(IDS_PRINTPAGENUMBER), std::make_wformat_args(count)));
+                        SetStatus(FormatStringResource(nullptr, IDS_PRINTPAGENUMBER, count));
                         page_->SetSelectionRange(0, page_->GetText().size());
                     }
                 });
@@ -319,7 +322,7 @@ std::optional<unsigned> PrintPreview::SelectedCopies(unsigned maximum)
     const auto count = copies_->IsVisible() ? Printing::ParsePageNumber(copies_->GetText(), maximum) : std::optional{1u};
     if (!count)
     {
-        SetStatus(std::vformat(Resource(IDS_PRINTCOPIESRANGE), std::make_wformat_args(maximum)));
+        SetStatus(FormatStringResource(nullptr, IDS_PRINTCOPIESRANGE, maximum));
         host_.SetFocusControl(copies_, !app_.options.headless && GetForegroundWindow() == window_.get());
         copies_->SetSelectionRange(0, copies_->GetText().size());
     }
@@ -446,7 +449,7 @@ void PrintPreview::Present(Printing::PreviewPage page, std::wstring status)
     rendering_ = false;
     const auto count = page.count;
     const auto number = page.number;
-    total_->SetText(std::vformat(Resource(IDS_PRINTPREVIEWTOTAL), std::make_wformat_args(count)));
+    total_->SetText(FormatStringResource(nullptr, IDS_PRINTPREVIEWTOTAL, count));
     page_->SetText(std::to_wstring(number));
     sheet_->SetVisible(true);
     sheet_->SetPage(std::move(page));
@@ -497,7 +500,7 @@ void PrintPreview::SetStatus(std::wstring status)
 void PrintPreview::ReportInvalidRange(bool focus)
 {
     const auto count = Page().count;
-    SetStatus(std::vformat(Resource(IDS_PRINTRANGE), std::make_wformat_args(count)));
+    SetStatus(FormatStringResource(nullptr, IDS_PRINTRANGE, count));
     if (focus)
     {
         host_.SetFocusControl(ranges_, !app_.options.headless && GetForegroundWindow() == window_.get());
@@ -587,8 +590,12 @@ void PrintPreview::Layout()
 
 void PrintPreview::PostAction(Action action) noexcept
 {
-    if (!actionPending_)
-        actionPending_ = PostMessageW(window_.get(), PreviewAction, static_cast<WPARAM>(action), 0) != FALSE;
+    if (pendingAction_ == Action::Close)
+        return;
+    const bool wasPending = pendingAction_.has_value();
+    pendingAction_ = action; // Close overrides pending Print cleanly
+    if (!wasPending && !PostMessageW(window_.get(), PreviewAction, static_cast<WPARAM>(action), 0))
+        pendingAction_.reset();
 }
 
 bool PrintPreview::DispatchKeyboardMessage(const MSG &message)
@@ -597,7 +604,7 @@ bool PrintPreview::DispatchKeyboardMessage(const MSG &message)
         return false;
     if (message.message == WM_KEYDOWN)
     {
-        const bool control = GetKeyState(VK_CONTROL) < 0, shift = GetKeyState(VK_SHIFT) < 0, alt = GetKeyState(VK_MENU) < 0;
+        const bool control = KeyboardState::Held(VK_CONTROL), shift = KeyboardState::Held(VK_SHIFT), alt = KeyboardState::Held(VK_MENU);
         if (control && !shift && !alt && message.wParam == 'P')
         {
             if (!(message.lParam & (static_cast<LPARAM>(1) << 30)))
@@ -646,11 +653,14 @@ LRESULT PrintPreview::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPAR
 {
     if (message == PreviewAction)
     {
-        actionPending_ = false;
-        if (wParam == static_cast<WPARAM>(Action::Print))
-            app_.SubmitPrintPreview();
-        else if (wParam == static_cast<WPARAM>(Action::Close))
-            app_.DismissPrintPreview();
+        const auto action = std::exchange(pendingAction_, std::nullopt);
+        if (action.has_value())
+        {
+            if (action.value() == Action::Print)
+                app_.SubmitPrintPreview();
+            else if (action.value() == Action::Close)
+                app_.DismissPrintPreview();
+        }
         return 0;
     }
     if (message == WM_CLOSE)

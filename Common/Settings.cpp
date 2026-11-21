@@ -211,12 +211,18 @@ catch (const std::filesystem::filesystem_error &error)
 #pragma warning(disable : 4625 4626 5026 5027)
 struct SettingsWriter::State
 {
+    enum class WorkerPhase : std::uint8_t
+    {
+        Idle,
+        Active,
+        Closed
+    };
     std::mutex mutex;
     std::filesystem::path directory;
     std::optional<Settings> pending;
     HWND window{};
     UINT message{};
-    bool active{};
+    WorkerPhase phase{WorkerPhase::Idle};
     HRESULT status = S_OK;
     static void CALLBACK Worker(PTP_CALLBACK_INSTANCE, void *context) noexcept
     {
@@ -230,7 +236,8 @@ struct SettingsWriter::State
                 std::lock_guard lock(shared->mutex);
                 if (!shared->pending)
                 {
-                    shared->active = false;
+                    if (shared->phase != WorkerPhase::Closed)
+                        shared->phase = WorkerPhase::Idle;
                     if (shared->window)
                         (void)PostMessageW(shared->window, shared->message, 0, 0);
                     return;
@@ -265,8 +272,10 @@ try
     if (!state)
         return E_UNEXPECTED;
     std::lock_guard lock(state->mutex);
+    if (state->phase == State::WorkerPhase::Closed)
+        return E_UNEXPECTED;
     state->pending = settings;
-    if (state->active)
+    if (state->phase == State::WorkerPhase::Active)
         return S_OK;
     auto ownership = std::make_unique<ProcessWorkItem<State>>(state);
     const HRESULT admission = ProcessWork::Acquire(ownership->lease);
@@ -275,10 +284,10 @@ try
         state->status = admission;
         return admission;
     }
-    state->active = true;
+    state->phase = State::WorkerPhase::Active;
     if (!TrySubmitThreadpoolCallback(State::Worker, ownership.get(), nullptr))
     {
-        state->active = false;
+        state->phase = State::WorkerPhase::Idle;
         state->status = HRESULT_FROM_WIN32(GetLastError());
         return state->status;
     }
@@ -294,7 +303,7 @@ bool SettingsWriter::Busy() const noexcept
     if (!state)
         return false;
     std::lock_guard lock(state->mutex);
-    return state->active;
+    return state->phase == State::WorkerPhase::Active;
 }
 HRESULT SettingsWriter::Status() const noexcept
 {
@@ -310,6 +319,7 @@ void SettingsWriter::Close() noexcept
     {
         std::lock_guard lock(state->mutex);
         state->window = nullptr;
+        state->phase = State::WorkerPhase::Closed;
     }
     state.reset();
 }

@@ -1,7 +1,7 @@
 # RedTilde remaining delivery and qualification
 
 Status: ACTIVE
-Updated: 18 November 2026
+Updated: 21 November 2026
 Owner: RedTilde maintainers; shared controls stay with DxUi.
 
 This is the **only active RedTilde plan**. It replaces the ten overlapping planning queues listed in the
@@ -197,8 +197,11 @@ RT-18 remains optional defensive hardening, not a newly confirmed defect.
   Actual symbolic-link saves, the repaired ARM64 ASan heap fixture and both production ZIPs pass. The local
   privilege failures and all original rejected cohorts remain retained. Physical input/AT and real browser
   association stay with T-Q2 rather than being inferred from injected-launcher tests.
-- [ ] Reconcile the current first-party review inventory and retained app/control findings before closing A2/A6,
-  including source/history, responsive layout, accessibility and actual interaction coverage.
+- [x] Reconcile the current first-party review inventory and retained app/control findings (`RT-SM-01`..`RT-SM-09`
+  closed in [ExplicitStateMachines_2026-11-10.md](../Done/ExplicitStateMachines_2026-11-10.md); `CloseDocument` `Ctrl+W`,
+  `WM_DROPFILES`, `Open documents` selection, `Q20` capacity-limit reporting, `Command::Focus` session-local behavior,
+  Settings About & Shortcuts, and `Specs/`/`docs/` reconciliation completed; owner-authorized interactive desktop focus
+  and physical IME/AT/input gates remain open under `T-Q2`).
 
 The approved Files root policy Q11 is completed by the folder-navigation slice; it is not a new task.
 Details and original counterexamples remain in the
@@ -533,9 +536,10 @@ is included here, without rebuilding or packaging the separate viewer.
 - [ ] Migrate Q15's historical replay callers/profile inputs before legacy validator retirement, and complete
   shared-module migration through an exact shared owner/pin and verified consumer coverage. Keep the
   paired-study kit supported and follow tooling governance for each change.
-- [ ] Diagnose the hosted-MSVC fixture launch refusal at observed 272-character paths in the isolated
-  checkout. Canonical short-path full validation passes; retain the failed long-root run separately and
-  coordinate the analogous SDK tooling boundary with D-T1.
+- [x] Diagnose the hosted-MSVC fixture launch refusal at observed 272-character paths in the isolated
+  checkout. `.github/actions/setup-msvc/Setup.ps1` now enforces the `< 260` UTF-16-unit guard (`$installer.Length -ge 260`)
+  and bounded download (`180 s`) / installer (`1800 s`) timeouts, covered by `Tests/Tooling.Tests.MsvcSetup.ps1`;
+  coordinating the analogous SDK tooling boundary with D-T1 remains tracked separately.
 - [ ] Reconcile dispositions of remaining production/delivery findings and rejected worktree/cache cleanups;
   never treat earlier removal refusals as permission for a new cleanup.
 - [ ] Apply normal Changes fragments and a separate post-merge fold when authorized. No cleanup changes the
@@ -551,23 +555,20 @@ C++ source changes until RedTilde's 155-line reformat (CV-6-05) is merged; each 
 with its `Changes/` fragment. Merge gate (RedHome decision D21): pull request checks pass and the six profiles build
 with zero warnings; tests are recorded as "tests deferred (D21)".
 
-- [ ] **H-10 Settings format.** `Common/Settings.cpp` stores line-based `key=value` text with a `RedTilde.Settings/1`
-  header. Target (owner default): JSON through `yyjson`, read with `YYJSON_READ_JSON5 | YYJSON_READ_ALLOW_BOM`. An
-  existing text file is read once and rewritten as JSON, so no user loses settings.
-- [ ] **H-15 Settings reload (RedHome decision D19).** No settings watcher today. Target, after H-10: a worker that
-  waits on the change and a stop event, coalesces and posts one notification; field-level fallback; unknown members
-  kept across a save.
-- [ ] **H-26 Settings file and contract names.** Target: `RedTilde.settings.json`, `RedTilde-debug.settings.json` and
-  `Specs/Core/Core_Settings.md`, with H-10.
-- [ ] **H-24 Crash contract.** The handler already covers all five paths (`Common/CrashHandler.cpp`). Target: the
-  crash half of [settings and crashes](../../Core/Core_SettingsAndCrashes.md) becomes `Specs/Core/Core_CrashHandling.md`.
-- [ ] **H-22 Test-process failure reports.** The test sources set no report routing. Target: every native test entry
-  point routes failure reports away from dialogs first and answers `--failure-report-self-test`, which tooling tests
-  run for every suite.
-- [ ] **H-23 Keyboard state under hidden self-tests.** `RedTilde/Application.cpp` and `RedTilde/PrintPreview.cpp` read
-  `GetKeyState`. Target: an application-owned keyboard state wherever a hidden self-test drives keys.
-- [ ] **H-06 and H-08 Resource strings.** A local `ResourceView` / `Resource` over `LoadStringW`. Target: the shared
-  helper set, then the resource-string gate over `res/RedTilde.rc`.
+- [ ] **H-10 Settings format.** *(Blocked on `CV-6-05` shared `.clang-format` reformat and `vcpkg` `yyjson` adoption.)*
+  `Common/Settings.cpp` stores line-based `key=value` text with a `RedTilde.Settings/1` header. Target (owner default):
+  JSON through `yyjson`, read with `YYJSON_READ_JSON5 | YYJSON_READ_ALLOW_BOM`. An existing text file is read once
+  and rewritten as JSON, so no user loses settings.
+- [ ] **H-15 Settings reload (RedHome decision D19).** *(Blocked on `CV-6-05` and `H-10`.)* No settings watcher today.
+  Target, after H-10: a worker that waits on the change and a stop event, coalesces and posts one notification;
+  field-level fallback; unknown members kept across a save.
+- [ ] **H-26 Settings file and contract names.** *(Blocked on `CV-6-05` and `H-10`.)* Target: `RedTilde.settings.json`,
+  `RedTilde-debug.settings.json` and `Specs/Core/Core_Settings.md`, with H-10.
+- [x] **H-24 Crash contract.** The handler already covers all five paths (`Common/CrashHandler.cpp`). Target: the
+  crash half of [settings and crashes](../../Core/Core_SettingsAndCrashes.md) becomes [Specs/Core/Core_CrashHandling.md](../../Core/Core_CrashHandling.md).
+- [x] **H-22 Test-process failure reports.** `Tests/Application.Tests.FailureReports.h` routes test failure reports away from dialogs first and answers `--failure-report-self-test`, run by `test.ps1` (`FailureReportRouting`) and verified in production refusals.
+- [x] **H-23 Keyboard state under hidden self-tests.** `RedTilde/Application.cpp` and `RedTilde/PrintPreview.cpp` read `RedTilde::KeyboardState::Held`; `RedTilde/KeyboardState.h` owns synthetic self-test state while keeping Win32 synchronized.
+- [x] **H-06 and H-08 Resource strings.** `Common/Resources.h` provides the shared resource loading/formatting helpers with OOM fatal termination and `std::format_error` fallback; `Tests/Tooling.Tests.ResourceStrings.ps1` enforces the `res/RedTilde.rc` gate in `validate.ps1`.
 
 H-01, H-02, H-05 and H-14 wait for API 6 (RedHome decision D20); H-16 waits for an owner choice of one crash artifact
 shape.
@@ -581,8 +582,24 @@ RT-10/11's old drops did not cancel them. Current unified CI supersedes obsolete
 | Open owner item | Current disposition |
 | --- | --- |
 | Q19: system proxy, direct-only failure or a setting | Resolved: direct-only with a visible failure, specified under T-I1. |
-| Q20: size-limit command behavior | Decide unchanged-document error versus preemptive disable before changing the capacity UX. |
-| Q21: release cut | Settle the application release command and exact validator transition; the library's support does not migrate this app implicitly. |
+| Q20: size-limit command behavior | Resolved: unchanged-document localized error (`IDS_FILETOOLARGELIMIT` via `ReportCapacityLimit()`) across `ToggleFormatting`, `ReplaceSelection`, `ExecuteMarkdownCommand`, `ApplyBlockSource`, and `ServiceBitmapPaste` (`Editor.CapacityLimitReportsLocalizedErrorAcrossCommands`). |
+| Q21: release cut | Shim/tooling ready (`Common/Version.h`, `build.ps1`/`package.ps1` `FileVersionInfo` checks + `.sha256` sidecars + `--version`/`--help`, `Installer/Install-RedTilde.ps1`, `docs/Portable.md`). Actual v1.0 bump in `Common/Version.h`, code signing, and release handoff remain gated on the release gates below. |
+
+## Version 1.0 Release Gate Summary
+
+### Completed locally
+- **Explicit state machines (`RT-SM-01`..`RT-SM-09`)**: All 13 implicit state machines formalized across `Application`, `AsyncFiles`, `BitmapPasteWriter`, `RecoveryService`, `FilesService`, `SettingsWriter`, `RichImageLoader`, `PrintPreview`, `EditDiagnostics`, overlays, `FindController`, `DocumentSessionMetadata`/`DerivedDocumentCaches`, and `Build/` tooling ([archived closeout](../Done/ExplicitStateMachines_2026-11-10.md)).
+- **Product polish & safety**: `Command::CloseDocument` (`Ctrl+W`), `WM_DROPFILES` single-file drag-and-drop, stable `Open documents` ordering and row selection, `Q20` localized capacity-limit reporting, session-local `Command::Focus` without settings disk rewrites, `--version`/`--help` CLI exiting cleanly without data/crash directories, `PrintPreview` icon (`IDI_REDTILDE`) and `pendingAction_` cancellation, and Settings **About & Shortcuts**.
+- **Convergence & packaging/tooling**: `H-24` (`Core_CrashHandling.md`), `H-22` (`Tests/Application.Tests.FailureReports.h`, 16 production refusals), `H-23` (`RedTilde/KeyboardState.h`), `H-06`/`H-08` (`Common/Resources.h` & `Tests/Tooling.Tests.ResourceStrings.ps1`), `Common/Version.h`, `Installer/Install-RedTilde.ps1`, `Setup.ps1` 260-char UTF-16 guard & bounded timeouts, `174` registered native cases, updated `docs/` with `16` deterministic hidden captures, and reconciled `Specs/`.
+
+### Remaining external, hardware, manual, and release-cut gates
+1. **Blocked settings convergence**: `CV-6-05` shared `.clang-format` reformat, `H-10` `yyjson` adoption via `vcpkg`, `H-15` live settings watcher, and `H-26` `Core_Settings.md` / JSON settings filenames.
+2. **Physical ARM64 runtime**: Cross-compilation on x64 verifies compilation only; runtime qualification requires native ARM64 hardware.
+3. **Physical printer & virtual driver**: Physical printer sheet verification, a secondary virtual destination (e.g., XPS), and live Print/Save dialog focus restoration.
+4. **Physical input & interactive focus**: Physical IME, touch, assistive technology (screen reader), and owner-authorized foreground focus/clipboard (`test-interactive.ps1`).
+5. **Real storage & network locations**: Native OneDrive/cloud provider, SMB/NAS, and WSL locations.
+6. **Paired performance & hardware graphics**: Quiet-host paired Release performance study and real hardware device-removal / visibility / occlusion qualification.
+7. **Release cut & distribution**: Upstream `DxUi` performance/product gates, setting v1.0 in `Common/Version.h` and `capabilities.json`, code signing, hosted CI qualification, and publication handoff.
 
 <a id="t-deferred"></a>
 ## Explicitly deferred scope

@@ -4,6 +4,7 @@
 #include "Common/DocumentInfo.h"
 #include "Common/Files.h"
 #include "Common/Recovery.h"
+#include "Common/Resources.h"
 #include "Common/Settings.h"
 #include "EditDiagnostics.h"
 #include "ImageLoader.h"
@@ -11,6 +12,7 @@
 #include "Printing.h"
 #include "UiControls.h"
 #include <array>
+#include <cstdint>
 #include <exception>
 #include <filesystem>
 #include <functional>
@@ -18,6 +20,7 @@
 #include <optional>
 #include <set>
 #include <utility>
+#include <variant>
 #include <vector>
 #include <wil/resource.h>
 
@@ -107,7 +110,8 @@ enum class Command
     ZoomReset,
     OpenLink,
     ImageFirstPaste,
-    Print
+    Print,
+    CloseDocument
 };
 enum class SaveConflictChoice
 {
@@ -167,6 +171,99 @@ class PerformanceProbe;
 class Application
 {
   public:
+    enum class LifecyclePhase : std::uint8_t
+    {
+        Uninitialized,
+        Initializing,
+        Active,
+        ClosingAfterSave,
+        DrainingForClose,
+        SessionEnding,
+        Destroyed
+    };
+    enum class ModalPromptKind : std::uint8_t
+    {
+        None,
+        UnsavedChanges,
+        SaveConflict,
+        ExternalLink
+    };
+    enum class OverlayKind : std::uint8_t
+    {
+        None,
+        FloatingSelectionTools,
+        FindBar,
+        SettingsDrawer,
+        BlockDraftModal,
+        RecoveryModal
+    };
+    struct BlockDraftSession
+    {
+        DxUi::RichText::SourceSnapshot snapshot;
+        std::uint64_t revision{};
+        DxUi::RichText::MarkdownRange range;
+        bool pendingPlacement{};
+    };
+    struct StartupRestoreState
+    {
+        enum class Phase : std::uint8_t
+        {
+            Disabled,
+            WaitingForRecovery,
+            OpeningLastDocument,
+            Completed
+        };
+        bool enabled{};
+        Phase phase{Phase::Disabled};
+        std::optional<DxUi::RichText::SourceSnapshot> source;
+        [[nodiscard]] bool IsWaitingForRecovery() const noexcept
+        {
+            return phase == Phase::WaitingForRecovery;
+        }
+        [[nodiscard]] bool IsOpeningLastDocument() const noexcept
+        {
+            return phase == Phase::OpeningLastDocument;
+        }
+    };
+    struct WorkspaceApproval
+    {
+        unsigned key{};
+        DxUi::RichText::SourceSnapshot source;
+    };
+    struct StartupOpenTx
+    {
+        DxUi::RichText::SourceSnapshot entrySource;
+    };
+    struct PickerOpenTx
+    {
+        DxUi::RichText::SourceSnapshot entrySource;
+        std::vector<WorkspaceApproval> approvals;
+    };
+    struct FilesPaneOpenTx
+    {
+        DxUi::RichText::SourceSnapshot entrySource;
+        bool previousWorkspaceSelectionPreferred{};
+    };
+    struct ConflictReloadTx
+    {
+        unsigned key{};
+        DxUi::RichText::SourceSnapshot source;
+        std::filesystem::path path;
+    };
+    struct HeldOpenTx
+    {
+        AsyncFiles::Result result;
+        bool fromFiles{};
+        std::optional<DxUi::RichText::SourceSnapshot> entrySource;
+        std::vector<WorkspaceApproval> approvals;
+        bool previousWorkspaceSelectionPreferred{};
+        std::optional<ConflictReloadTx> conflictReload;
+    };
+    struct SaveTx
+    {
+        std::function<void()> afterSave;
+    };
+    using ActiveFileTransaction = std::variant<std::monostate, StartupOpenTx, PickerOpenTx, FilesPaneOpenTx, HeldOpenTx, SaveTx, ConflictReloadTx>;
     explicit Application(LaunchOptions options);
     ~Application();
     [[nodiscard]] HRESULT Initialize();
@@ -181,9 +278,37 @@ class Application
     // This is not the production event loop or an input-readiness prerequisite.
     void Prepare(unsigned turns = 128);
     [[nodiscard]] bool Dirty() const;
+    [[nodiscard]] bool IsInitializing() const noexcept
+    {
+        return lifecyclePhase == LifecyclePhase::Initializing;
+    }
+    [[nodiscard]] bool IsClosingAfterSave() const noexcept
+    {
+        return lifecyclePhase == LifecyclePhase::ClosingAfterSave;
+    }
+    [[nodiscard]] bool IsClosing() const noexcept
+    {
+        return lifecyclePhase == LifecyclePhase::DrainingForClose || lifecyclePhase == LifecyclePhase::Destroyed;
+    }
     [[nodiscard]] bool IsSessionEnding() const noexcept
     {
-        return sessionEnding;
+        return lifecyclePhase == LifecyclePhase::SessionEnding || sessionEndCommitted;
+    }
+    [[nodiscard]] bool IsUiAttached() const noexcept
+    {
+        return lifecyclePhase != LifecyclePhase::Uninitialized && !IsClosing() && root && host.GetRoot() == root;
+    }
+    [[nodiscard]] bool CanAcceptCommand() const noexcept
+    {
+        return lifecyclePhase == LifecyclePhase::Active && !switchingDocument && root && host.GetRoot() == root;
+    }
+    [[nodiscard]] bool AreShutdownWorkersSettled() const noexcept
+    {
+        return !preferenceWriter.Busy() && recovery.Finished() && !bitmapWriter.Busy();
+    }
+    [[nodiscard]] bool HasActiveModalPrompt() const noexcept
+    {
+        return modalPrompt != ModalPromptKind::None;
     }
     [[nodiscard]] Editor &Document() const
     {
@@ -207,7 +332,7 @@ class Application
     }
     [[nodiscard]] bool HasBlockDraft() const
     {
-        return blockDraft && blockDraft->IsVisible();
+        return activeOverlay == OverlayKind::BlockDraftModal && blockDraftSession.has_value() && blockDraft && blockDraft->IsVisible();
     }
     [[nodiscard]] std::size_t RecoveryCount() const
     {
@@ -231,7 +356,7 @@ class Application
     }
     [[nodiscard]] bool RequiresSaveAs() const
     {
-        return recovered;
+        return session.recovered;
     }
     void CheckpointRecovery(bool immediate = false);
     [[nodiscard]] ApplicationActivity Activity() const noexcept
@@ -246,11 +371,14 @@ class Application
   private:
     friend class PerformanceProbe;
     friend class DesignRefreshProbe;
+    friend class CloseProbe;
     friend class DesignInteractiveProbe;
     friend class PrintPreview;
 #if defined(REDTILDE_ENABLE_TESTS)
     friend int RunFailureHostProbe(std::wstring_view, const std::filesystem::path &, ApplicationRuntime &);
     friend class PrintingProbe;
+    friend class FilesProbe;
+    friend class RecoveryProbe;
 #endif
     template <class Action> void RunUiAction(Action &&action) noexcept
     {
@@ -271,6 +399,7 @@ class Application
         }
     }
     Application(LaunchOptions value, const DxUi::Failure::Scope &constructionScope);
+    void TransitionLifecycle(LifecyclePhase next) noexcept;
     void ReportUiFailure(std::string_view cause) noexcept;
     [[nodiscard]] bool AcceptSourceResult(DxUi::RichText::SourceResult result);
     void ExecuteCommand(Command command, unsigned zoomSteps = 1);
@@ -278,13 +407,55 @@ class Application
     void OnMenuClosed(std::optional<int> selected) noexcept;
     EditDiagnostics *editDiagnostics{}; // Borrowed only for a synchronous harness transaction.
     ApplicationActivity activity;
-    std::optional<std::wstring> appliedCaption;
+    template <typename T> class ReentrantPublication
+    {
+      public:
+        [[nodiscard]] bool Matches(const T &value) const noexcept
+        {
+            return published_.has_value() && published_.value() == value;
+        }
+        [[nodiscard]] std::uint64_t BeginPublish() noexcept
+        {
+            published_.reset();
+            return ++generation_;
+        }
+        void CommitPublish(std::uint64_t token, T value)
+        {
+            if (generation_ == token)
+                published_ = std::move(value);
+        }
+        void Invalidate() noexcept
+        {
+            ++generation_;
+            published_.reset();
+        }
+        [[nodiscard]] const std::optional<T> &Published() const noexcept
+        {
+            return published_;
+        }
+
+      private:
+        std::optional<T> published_;
+        std::uint64_t generation_{};
+    };
+    ReentrantPublication<std::wstring> appliedCaption;
     LaunchOptions options;
     Settings settings;
     SettingsWriter preferenceWriter;
+    enum class RecoveryDisposition : std::uint8_t
+    {
+        Available,
+        Discarding
+    };
+    struct OfferedRecoveryCandidate
+    {
+        std::wstring id;
+        RecoverySnapshot snapshot;
+        RecoveryDisposition disposition{RecoveryDisposition::Available};
+    };
     RecoveryService recovery;
-    std::vector<RecoveryCandidate> recoveryCandidates;
-    bool recoveryOffered{}, recovered{};
+    std::vector<OfferedRecoveryCandidate> recoveryCandidates;
+    bool recoveryOffered{};
     std::uint64_t recoveryGeneration{};
     wil::unique_hwnd window;
     NavigationModel outlineModel, filesModel;
@@ -297,7 +468,8 @@ class Application
     Surface *filesPane{}, *focusPill{};
     DxUi::Splitter *filesSplitter{};
     DxUi::Label *filesTitle{}, *filesCount{}, *currentBlock{}, *positionStatus{}, *findCount{}, *drawerHelp{}, *currentBlockTitle{},
-        *equationReadOnly{}, *writingTitle{}, *syntaxTitle{}, *syntaxIntro{}, *privacyTitle{}, *drawerImmediate{};
+        *equationReadOnly{}, *writingTitle{}, *syntaxTitle{}, *syntaxIntro{}, *privacyTitle{}, *drawerImmediate{}, *aboutTitle{}, *aboutVersion{},
+        *aboutSummary{}, *shortcutsList{};
     std::array<DxUi::Button *, MarkdownSyntaxCount> syntaxToggles{};
     std::array<DxUi::Label *, MarkdownSyntaxCount> syntaxHelp{};
     std::array<DxUi::Separator *, 6> commandDividers{};
@@ -306,8 +478,7 @@ class Application
     DxUi::Button *closeFiles{}, *blockSourceAction{};
     DxUi::Separator *contextDivider{}, *filesFooterDivider{};
     DxUi::Label *listSummary{};
-    std::optional<std::pair<unsigned, std::size_t>> listSummaryFacts;
-    std::uint64_t listSummaryPublication{};
+    ReentrantPublication<std::pair<unsigned, std::size_t>> listSummaryFacts;
     // Header measurement waits for the host's first typography preparation; cold layout reserves explicit bounds.
     struct IdentityMeasure
     {
@@ -322,20 +493,38 @@ class Application
     DxUi::ScrollPanel *settingsScroll{};
     DxUi::CardPanel *selectionHintChip{};
     DxUi::Label *selectionHint{};
-    std::vector<DxUi::RichText::MarkdownRange> findMatches;
-    std::optional<DxUi::RichText::SourceSnapshot> findSource;
-    std::wstring findQuery;
-    std::vector<DxUi::RichText::MarkdownRange> closedFindMatches;
-    std::optional<DxUi::RichText::SourceSnapshot> closedFindSource;
-    std::wstring closedFindQuery;
-    bool findMatchCase{}, findCachedMatchCase{}, closedFindCase{};
+    struct FindController
+    {
+        struct MatchTable
+        {
+            std::optional<DxUi::RichText::SourceSnapshot> source;
+            std::wstring query;
+            bool matchCase{};
+            std::vector<DxUi::RichText::MarkdownRange> matches;
+        };
+        struct Projections
+        {
+            std::vector<std::size_t> sectionCounts;
+            std::uint64_t badgeRowsRevision{}, sectionOutlineRevision{}, sectionAnalysis{};
+            std::optional<std::size_t> highlightedCurrent, displayedCurrent, displayedTotal;
+            std::wstring displayedQuery;
+            bool presentationCleared{true}, sectionCountsValid{}, highlightsNeedRefresh{true}, hasHighlights{}, badgesNeedRefresh{true};
+        };
+        MatchTable table;
+        Projections projections;
+        bool matchCase{}, updating{};
+
+        [[nodiscard]] bool IsPresentationActive() const noexcept
+        {
+            return !projections.presentationCleared;
+        }
+        void InvalidateMatches() noexcept
+        {
+            table.source.reset();
+        }
+    };
+    FindController find;
     int zoomWheelRemainder{};
-    std::vector<std::size_t> findSectionCounts;
-    std::uint64_t outlineRowsRevision{}, findBadgeRowsRevision{}, findSectionOutlineRevision{}, findSectionAnalysis{};
-    std::optional<std::size_t> findHighlightedCurrent, findDisplayedCurrent, findDisplayedTotal;
-    std::wstring findDisplayedQuery;
-    bool findPresentationCleared = true, findSectionCountsValid{}, findHighlightsNeedRefresh = true, findHasHighlights{};
-    bool findBadgesNeedRefresh = true;
     std::vector<std::filesystem::path> visibleFilePaths;
     std::optional<std::size_t> currentHeading;
     struct CurrentBlockLabelFacts
@@ -344,10 +533,10 @@ class Application
         std::size_t lineCharacterCount{};
         bool operator==(const CurrentBlockLabelFacts &) const noexcept = default;
     };
-    std::optional<CurrentBlockLabelFacts> currentBlockPublishedFacts;
+    ReentrantPublication<CurrentBlockLabelFacts> currentBlockPublishedFacts;
     std::optional<CurrentBlockLabelFacts> currentBlockLatestFacts;
-    std::optional<bool> selectionCaptionPublishedEquationContext;
-    bool updatingFind{}, equationContext{}, pendingSelectionTools{}, pendingBlockPlacement{}, systemDark{};
+    ReentrantPublication<bool> selectionCaptionPublishedEquationContext;
+    bool equationContext{}, pendingSelectionTools{}, postPreparePosted{}, systemDark{};
     AsyncFiles files;
     RichImageLoader images;
     std::shared_ptr<Printing::Operation> printOperation;
@@ -400,69 +589,92 @@ class Application
     DxUi::TextField *recoveryPreview{};
     DxUi::Label *recoveryDescription{};
     DxUi::Button *restoreAllRecovery{};
-    DxUi::RichText::SourceSnapshot blockDraftSnapshot;
-    DxUi::RichText::MarkdownRange blockDraftRange;
-    std::uint64_t blockDraftRevision{};
+    OverlayKind activeOverlay{OverlayKind::None};
+    std::optional<BlockDraftSession> blockDraftSession;
     std::vector<DxUi::Button *> tools, floatingActions, themeButtons;
     std::array<DxUi::Button *, 3> modeButtons{};
     DxUi::Button *outlineToggle{}, *focusToggle{};
-    std::filesystem::path documentPath, folderRoot;
+    std::filesystem::path folderRoot;
     Surface *imageConsent{};
     DxUi::Label *imageConsentText{};
     DxUi::Button *imageConsentAction{}, *imageReload{};
     std::shared_ptr<const DxUi::RichText::SemanticDocument> imageConsentSource;
     std::filesystem::path imageConsentPath;
-    bool documentRemoteImagesAllowed{}, imageConsentHasNetwork{};
+    bool imageConsentHasNetwork{};
     HRESULT imageFailureStatus = S_OK;
-    struct WorkspaceDocument
+    struct DocumentSessionMetadata
     {
-        DxUi::RichText::Document state;
         std::filesystem::path path;
         std::wstring savedText;
         FileStamp stamp;
         std::set<std::uint64_t> collapsedHeadings;
-        unsigned recoveryKey{};
-        bool bom{}, recovered{}, dirty{}, remoteImagesAllowed{};
-    };
-    struct WorkspaceApproval
-    {
         unsigned key{};
-        DxUi::RichText::SourceSnapshot source;
+        bool bom{};
+        bool recovered{};
+        bool remoteImagesAllowed{};
+    };
+    DocumentSessionMetadata session;
+    struct WorkspaceDocument
+    {
+        DxUi::RichText::Document state;
+        DocumentSessionMetadata metadata;
+        bool dirty{};
     };
     std::vector<WorkspaceDocument> inactiveDocuments;
     static constexpr std::uint64_t WorkspaceGroupId = std::uint64_t{1} << 63;
-    bool workspaceCollapsed{};
-    std::vector<WorkspaceApproval> workspaceApprovals, openingApprovals;
-    unsigned activeDocumentKey{};
-    bool switchingDocument{}, openingFromFiles{};
-    bool sessionEnding{};
+    bool workspaceCollapsed{}, workspaceSelectionPreferred{};
+    std::vector<WorkspaceApproval> workspaceApprovals;
+    bool switchingDocument{};
     HRESULT sessionEndRecoveryStatus = S_OK;
-    bool lastFilesDirty{}, folderFilesActive{};
+    bool lastFilesDirty{};
     HRESULT folderAdmissionStatus = S_OK;
     struct FilesFooterMeasureCache
     {
         float widthDip = -1, heightDip = 52, dpi{};
         std::uint64_t textRevision{}, typographyRevision{}, measurements{};
     } filesFooterMeasure;
-    std::set<std::uint64_t> collapsedHeadings;
-    std::wstring savedText;
-    struct DirtyFact
+    struct DerivedDocumentCaches
     {
-        DxUi::RichText::SourceSnapshot source;
-        bool recovered{}, dirty{};
+        struct DirtyFact
+        {
+            DxUi::RichText::SourceSnapshot source;
+            bool recovered{}, dirty{};
+        };
+        // Saved-baseline replacement invalidates this fact without copying savedText.
+        mutable std::optional<DirtyFact> dirtyFact;
+        mutable std::optional<DxUi::RichText::SourceSnapshot> cachedSource;
+        mutable std::wstring cachedText;
+        std::optional<DxUi::RichText::SourceSnapshot> mirroredSource, selectionFactsSource;
+        std::optional<DxUi::RichText::SourceSnapshot> documentAnalysisSource, committedAnalysisSource;
+        std::shared_ptr<const DxUi::RichText::MarkdownSyntax> selectionFactsSyntax;
+        DxUi::RichText::Selection selectionFactsSelection;
+        EditorView selectionFactsView = EditorView::Compose;
+        std::uint64_t selectionFactsAnalysis{};
+        std::uint64_t outlineRowsRevision{};
+
+        void Reset() noexcept
+        {
+            dirtyFact.reset();
+            cachedSource.reset();
+            cachedText.clear();
+            mirroredSource.reset();
+            selectionFactsSource.reset();
+            documentAnalysisSource.reset();
+            committedAnalysisSource.reset();
+            selectionFactsSyntax.reset();
+            selectionFactsSelection = {};
+            selectionFactsView = EditorView::Compose;
+            selectionFactsAnalysis = 0;
+            outlineRowsRevision = 0;
+        }
     };
-    // Saved-baseline replacement invalidates this fact without copying savedText.
-    mutable std::optional<DirtyFact> dirtyFact;
-    mutable std::optional<DxUi::RichText::SourceSnapshot> cachedSource;
-    mutable std::wstring cachedText;
-    std::optional<DxUi::RichText::SourceSnapshot> mirroredSource, selectionFactsSource;
-    std::optional<DxUi::RichText::SourceSnapshot> documentAnalysisSource, committedAnalysisSource;
-    std::optional<std::set<std::uint64_t>> previewCollapsedHeadings;
-    std::optional<std::vector<std::pair<unsigned, std::wstring>>> previewCommittedOutline;
-    std::shared_ptr<const DxUi::RichText::MarkdownSyntax> selectionFactsSyntax;
-    DxUi::RichText::Selection selectionFactsSelection;
-    EditorView selectionFactsView = EditorView::Compose;
-    std::uint64_t selectionFactsAnalysis{};
+    DerivedDocumentCaches derivedCaches;
+    struct OutlinePreviewBaseline
+    {
+        std::set<std::uint64_t> collapsedHeadings;
+        std::vector<std::pair<unsigned, std::wstring>> committedOutline;
+    };
+    std::optional<OutlinePreviewBaseline> outlinePreviewBaseline;
     struct SelectionToolsFocusRequest
     {
         DxUi::RichText::SourceSnapshot source;
@@ -470,32 +682,25 @@ class Application
         EditorView view;
     };
     std::optional<SelectionToolsFocusRequest> selectionToolsFocus;
-    bool bom{}, closing{}, initialized{}, initializing{}, unsavedPromptOpen{}, reportingUiFailure{};
-    bool closingAfterSave{}, visibleBeforeSaveClose{};
-    bool waitingForPreferences{};
+    LifecyclePhase lifecyclePhase{LifecyclePhase::Uninitialized};
+    bool sessionEndCommitted{};
+    bool reportingUiFailure{};
+    ModalPromptKind modalPrompt{ModalPromptKind::None};
+    bool visibleBeforeSaveClose{};
+#if defined(REDTILDE_ENABLE_TESTS)
+    std::uint64_t preferencesReadySentDuringClose{};
+#endif
     bool windowPlacementDirty{};
-    bool startupPolicy{}, startupPending{}, startupOpening{};
+    StartupRestoreState startupRestore;
     struct ExternalLinkState;
     struct ExternalLinkJob;
     std::shared_ptr<ExternalLinkState> externalLink;
-    bool linkPromptOpen{};
-    std::optional<DxUi::RichText::SourceSnapshot> startupSource;
-    FileStamp stamp;
     DocumentInfo documentInfo;
     DocumentLineIndexStorage documentLineIndexStorage;
-    std::function<void()> afterSave;
-    std::optional<DxUi::RichText::SourceSnapshot> openingSnapshot;
-    std::optional<AsyncFiles::Result> heldOpen;
-    struct ConflictReload
-    {
-        unsigned key{};
-        DxUi::RichText::SourceSnapshot source;
-        std::filesystem::path path;
-    };
-    std::optional<ConflictReload> conflictReload;
+    ActiveFileTransaction activeFileTx;
     static constexpr UINT ImageReady = WM_APP + 401, FileReady = WM_APP + 402, PreferencesReady = WM_APP + 403, RecoveryReadyMessage = WM_APP + 404,
                           FolderReady = WM_APP + 405, ExternalLinkReady = WM_APP + 406, BitmapReady = WM_APP + 407, ImageFileChanged = WM_APP + 408,
-                          PrintReady = WM_APP + 409;
+                          PrintReady = WM_APP + 409, PostPreparePlacement = WM_APP + 410;
     static LRESULT CALLBACK WindowProc(HWND, UINT, WPARAM, LPARAM) noexcept;
     LRESULT HandleMessage(HWND, UINT, WPARAM, LPARAM);
     bool RouteShortcut(const MSG &message);
@@ -510,6 +715,8 @@ class Application
     void UpdateCurrentFileDirtyBadge(bool dirty);
     void FolderCompleted();
     void OpenPath(const std::filesystem::path &path);
+    [[nodiscard]] bool OpenDroppedFile(const std::filesystem::path &path);
+    void CloseActiveDocument();
     [[nodiscard]] bool SwitchWorkspaceDocument(std::size_t index);
     [[nodiscard]] bool StartWorkspaceDocument();
     void ResetWorkspace();
@@ -546,6 +753,7 @@ class Application
     [[nodiscard]] bool PublishCurrentBlockLabelIfVisible(bool sidebarWillBeVisible = false);
     void FocusSelectionTools();
     void Status(unsigned id);
+    void ReportCapacityLimit();
     void SavePreferences();
     void ServiceImages();
     void RefreshImageConsent();
@@ -562,6 +770,8 @@ class Application
     void LocalSource();
     void ApplyBlockSource();
     void FindNext(bool previous = false);
+    void SetActiveOverlay(OverlayKind next);
+    [[nodiscard]] bool ReconcilePostPreparePlacement();
     void CloseDrawers();
     void BeginClose();
     void ResumeAfterSaveClose();

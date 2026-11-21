@@ -32,7 +32,7 @@ function Run {
     [IO.File]::WriteAllText($archive,'inert package fixture')
     $names=@('self-test','test-scope','list-tests','interactive','crash','recovery-crash','recovery-restart',
         'preferences','asan','linked-save-crash','linked-save-restart','failure-host','failure-host-missing-value',
-        'test-scope-missing-value','interactive-missing-value')
+        'test-scope-missing-value','interactive-missing-value','failure-report')
     $proof=@{platform=$Platform;testsEnabled=$false;smokePassed=$true;archiveSha256=(Get-FileHash $archive).Hash;
         testOnlyEntryPointRefusals=@($names|ForEach-Object{@{name=$_;exitCode=2;dataDirectoryAbsent=$true}})}
     [IO.File]::WriteAllText(($archive+'.receipt.json'),($proof|ConvertTo-Json -Depth 5))

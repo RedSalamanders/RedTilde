@@ -12,10 +12,12 @@ existing line endings. View changes never reserialize Markdown, reset history or
 Source-view Enter and Shift+Enter use that same first physical terminator, retain
 the exact ending UTF-16 caret position, and create one undoable edit and recovery
 submission. RedTilde routes these messages through the adopted DxUi editor.
-The native text store must reject a staged edit beyond 65,536 UTF-16 units before
-changing source, selection or history; an in-range retry remains usable and the
-visible Split mirror follows only accepted source changes. Retained text stores
-disconnect when their application owner is destroyed.
+The native text store must reject a staged edit beyond 65,536 UTF-16 units (`DxUi::RichText::Document::MaximumUnits`)
+before changing source, selection or history; an in-range retry remains usable and the visible Split mirror follows
+only accepted source changes. Editing commands (`ToggleFormatting`, `ReplaceSelection`, `ExecuteMarkdownCommand`,
+`ApplyBlockSource`, and `ServiceBitmapPaste`) surface localized `IDS_FILETOOLARGELIMIT` via `ReportCapacityLimit()` on
+capacity refusal rather than silently discarding the failure, preserving source, selection, draft, and undo history.
+Retained text stores disconnect when their application owner is destroyed.
 
 File-paste preparation rejects file names containing quotes, CR or LF before
 producing a Markdown replacement in Compose, Source and Split. A refusal leaves
@@ -50,9 +52,10 @@ after normalization, and keep each accepted replacement in one source/history tr
   committed document-change/recovery workflow. A result commit remains one undoable source transaction.
 - Heading offsets, visible outline rows, line positions and Find section totals derive from the exact current
   source snapshot, including non-notifying previews and cancellation. Repeated selection/syntax notifications for
-  one revision reuse its analysis. Structural previews do not apply committed collapse indices to different
-  headings; cancellation restores the entry outline and its collapse choices, while a committed heading-structure
-  change resets them. Previews and cancellation do not increment committed activity or submit recovery snapshots.
+  one revision reuse its analysis (`DerivedDocumentCaches`). Structural previews do not apply committed collapse
+  indices to different headings (`OutlinePreviewBaseline`); cancellation restores the entry outline and its collapse
+  choices, while a committed heading-structure change resets them. Previews and cancellation do not increment
+  committed activity or submit recovery snapshots.
 - **Local source** uses DxUi's source-region API for a prepared code, HTML, metadata or diagram block, or an inline
   or display equation. F2 enters;
   Esc/F2/Ctrl+Enter returns. IME composition and stale semantic publications refuse the transition.
@@ -125,18 +128,17 @@ do not require chrome layout. Renaming, changing the level or adding/removing a 
 Find operates on source, wraps with a visible result, and selects/reveals the match. Never search rendered-only text.
 Find is case-insensitive by default, using locale-independent ordinal Unicode comparison. A localized Match case
 toggle enables exact case matching. Preserve original UTF-16 ACPs and source edit boundaries in either mode.
-Cache exact match ranges by source revision, query and case preference, and section totals by that identity plus the outline rebuild
-identity. Selection-only caret updates reuse match ranges and section totals; rebuild the bounded highlight list only
-when its source/query or active current match changes. Render at most 4,096 match highlights, including the active
-match even when it falls beyond that prefix, while Find navigation and Replace All continue to use the complete match
-set. Closing Find clears highlights and section badges once; subsequent closed selection/syntax updates do not scan
-source or rebuild badges. F3/Shift+F3 repeat the retained query while the bar stays closed. Keep that bounded
-closed navigation cache separate from visible highlights and badges; refresh it only on an explicit repeat when
-its source/query/case identity changes. Transfer its storage on close/reopen rather than duplicating the match set.
-Reopening recomputes from the current source and query. A successful single Replace selects the following match
-without requiring a second navigation action; each replacement remains one undoable source transaction. Same-ACP text-service preview,
-successive preview revisions and cancellation each use the exact current source revision without creating committed
-history or losing the entry source's results on cancel.
+`FindController` owns one `MatchTable` (cached by source revision, query and case preference) and derived
+`Projections` (section totals, bounded highlights, status label and outline badges). Selection-only caret updates
+reuse `MatchTable` and section totals; rebuild the bounded highlight list only when its source/query or active current
+match changes. Render at most 4,096 match highlights, including the active match even when it falls beyond that prefix,
+while Find navigation and Replace All continue to use the complete match set. Closing Find clears highlights and
+section badges once; subsequent closed selection/syntax updates do not scan source or rebuild badges. `F3`/`Shift+F3`
+repeat the retained query while the bar stays closed using the same `FindController::table`, and reopening Find reuses
+that `MatchTable` without rebuilding when the source snapshot, query, and case preference are unchanged. A successful
+single Replace selects the following match without requiring a second navigation action; each replacement remains one
+undoable source transaction. Same-ACP text-service preview, successive preview revisions and cancellation each use the
+exact current source revision without creating committed history or losing the entry source's results on cancel.
 The guarded local draft owns its separate exact-source highlight while open. Syntax refreshes must retain that
 highlight; Cancel and Apply clear it explicitly before ordinary Find presentation resumes. A closed-Find cache
 must never leave a draft highlight behind or clear an active draft's highlight as incidental work.
@@ -161,7 +163,7 @@ adoption. Reanalysis changes presentation only: source, selection, undo history,
 unchanged. Text for a disabled family remains exact literal source. Undo and redo decline while a changed
 text-service preview is active and return when it is cancelled or committed.
 
-Shortcuts: Ctrl+N/O/S, Ctrl+Shift+O for Open Folder, Ctrl+Shift+S, Ctrl+Z/Y, Ctrl+B/I, Ctrl+F, Ctrl+1/2/3 for Compose/Source/Split,
+Shortcuts: Ctrl+N/O/S/W/P, Ctrl+Shift+O for Open Folder, Ctrl+Shift+S, Ctrl+Z/Y, Ctrl+B/I/E/K, Ctrl+F, F3/Shift+F3, Ctrl+1/2/3 for Compose/Source/Split,
 Ctrl+Shift+E for the Files pane, F2 local source, F11 focus mode, Ctrl+, settings, Esc dismiss/restore. Keep native
 IME handling ahead of commands that could interrupt composition. Ctrl accelerators exclude Alt so AltGr text reaches
 native translation; F2/F11 are unmodified, F3 permits only optional Shift, and Alt+F10 excludes Ctrl/Shift.
@@ -173,10 +175,19 @@ mutually exclusive toggle state exposed through UI Automation; they are not a Ra
 
 The available optional Files tree lists `.md` and `.markdown` files in the persistent selected root and subfolders. It
 supports listing and opening only. Opening a row activates a retained document or reads a new document into the
-workspace without a save question. Each of at most 64 documents retains its authoritative source, oriented ACP
-selection, Undo/Redo history, exact saved-content baseline, BOM, file stamp and recovered-copy state. Reopening a
-retained path does no read and does not replace edits with an externally changed file. Global Compose/Source/Split
-presentation and the read-only Split mirror use the newly active source; presentation does not merge histories.
+workspace without a save question. Each of at most 64 documents retains its `DocumentSessionMetadata` (authoritative
+path, exact saved-content baseline, file stamp, collapsed headings, stable workspace key, BOM, recovered state, and
+per-document remote-image grant) alongside its `DxUi::RichText::Document` state, oriented ACP selection, and Undo/Redo
+history. `SwitchWorkspaceDocument()` swaps `session` and the inactive slot's `metadata` atomically alongside
+`ExchangeDocumentState()` and resets `DerivedDocumentCaches`, `OutlinePreviewBaseline`, and
+`FindController::InvalidateMatches()` before any reentrant UI or close callback can observe partial metadata.
+Reopening a retained path does no read and does not replace edits with an externally changed file. Global
+Compose/Source/Split presentation and the read-only Split mirror use the newly active source; presentation does not
+merge histories. `Command::CloseDocument` (`Ctrl+W`) protects dirty edits via `AskThen`, switches to the adjacent
+retained slot (retiring the closed document's recovery slot), or resets the final document to a clean untitled buffer.
+Drag-and-drop (`WM_DROPFILES` / `OpenDroppedFile`) opens a single valid `.md`, `.markdown`, or `.txt` file through the
+same dirty-safe file flow and refuses multi-drops, directories, or unsupported extensions without prompting or mutating
+the active document.
 The first opened/saved file seeds an empty root. After that, Open File, Save As and New keep that root. Explicit
 Open File, Open Folder, New and Close protect every dirty document through Save/Discard/Cancel. A decision applies
 only to the exact document/source revision shown; edits made during an asynchronous save/open need fresh protection.
@@ -186,7 +197,10 @@ root and pane visibility. Without a root, the pane explains Open Folder and Open
 
 When multiple documents are retained, the Files tree also exposes an **Open documents** group. Its stable
 workspace identities distinguish untitled/missing files and separate recovered copies with the same original
-path. Folder listing, expansion, filtering and the persistent root remain independent. Dirty dots cover retained
+path, and keep retained documents in workspace opening order across switches. Activating an **Open documents** row
+keeps selection on that workspace row even when the document also appears in the folder listing; activating a
+folder row selects that folder row, and collapsing **Open documents** falls back to the visible folder row when
+present. Folder listing, expansion, filtering and the persistent root remain independent. Dirty dots cover retained
 documents as well as the active file. Capacity refusal explains the limit and preserves every source, selection
 and history; it must never evict an edited document to admit a completed read. Switching declines atomically
 while a file operation, local draft, native composition or an unsaved question owns the current binding.

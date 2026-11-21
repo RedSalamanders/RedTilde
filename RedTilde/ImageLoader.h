@@ -65,7 +65,7 @@ class RichImageLoader final
             return;
         {
             std::lock_guard lock(state_->mutex);
-            state_->closing = true;
+            state_->phase = State::WorkerPhase::Closing;
             (void)SetEvent(state_->networkAbort.get());
             state_->window = nullptr;
             state_->jobCount = 0u;
@@ -86,7 +86,7 @@ class RichImageLoader final
         if (!state_)
             return E_UNEXPECTED;
         std::lock_guard lock(state_->mutex);
-        if (state_->closing)
+        if (state_->phase == State::WorkerPhase::Closing || state_->phase == State::WorkerPhase::Stopped)
             return HRESULT_FROM_WIN32(ERROR_CANCELLED);
         std::array<DxUi::RichText::RichImageRequest, State::MaximumJobs> staged{};
         std::size_t count{};
@@ -214,6 +214,13 @@ class RichImageLoader final
 #pragma warning(disable : 4625 4626 5026 5027)
     struct State
     {
+        enum class WorkerPhase : std::uint8_t
+        {
+            Idle,
+            Active,
+            Closing,
+            Stopped
+        };
         static constexpr std::size_t MaximumJobs = MaximumResults, MaximumResultBytes = 67108864u,
                                      MaximumImageBytes = static_cast<std::size_t>(DxUi::RichText::RichImage::MaximumPixels) * 4u;
         using Work = wil::unique_any<PTP_WORK, decltype(&CloseThreadpoolWork), CloseThreadpoolWork>;
@@ -225,7 +232,7 @@ class RichImageLoader final
         DxUi::RichText::RichImageRequest current;
         std::size_t jobCount{}, resultCount{}, resultBytes{};
         std::atomic_bool hasResults{false};
-        bool active{}, closing{};
+        WorkerPhase phase{WorkerPhase::Idle};
         std::wstring documentPath;
         std::atomic_bool allowLocalNetwork{};
         HWND window{};
@@ -235,13 +242,13 @@ class RichImageLoader final
         RedTilde::ProcessWorkLease callbackLease;
         HRESULT Schedule(const std::shared_ptr<State> &lifetime) noexcept
         {
-            if (active || closing || !jobCount || resultCount == MaximumJobs || resultBytes > MaximumResultBytes - MaximumImageBytes)
+            if (phase != WorkerPhase::Idle || !jobCount || resultCount == MaximumJobs || resultBytes > MaximumResultBytes - MaximumImageBytes)
                 return S_OK;
             const HRESULT admitted = RedTilde::ProcessWork::Acquire(callbackLease);
             if (FAILED(admitted))
                 return admitted;
             callbackLifetime = lifetime;
-            active = true;
+            phase = WorkerPhase::Active;
             SubmitThreadpoolWork(work.get());
             return S_OK;
         }
@@ -276,10 +283,11 @@ class RichImageLoader final
                 bool allowNetworkFiles{};
                 {
                     std::lock_guard lock(state.mutex);
-                    if (state.closing || !state.jobCount || state.resultCount == MaximumJobs ||
-                        state.resultBytes > MaximumResultBytes - MaximumImageBytes)
+                    if (state.phase == WorkerPhase::Closing || state.phase == WorkerPhase::Stopped || !state.jobCount ||
+                        state.resultCount == MaximumJobs || state.resultBytes > MaximumResultBytes - MaximumImageBytes)
                     {
-                        state.active = false;
+                        state.phase =
+                            (state.phase == WorkerPhase::Closing || state.phase == WorkerPhase::Stopped) ? WorkerPhase::Stopped : WorkerPhase::Idle;
                         state.callbackLifetime.reset();
                         return;
                     }
@@ -357,7 +365,7 @@ class RichImageLoader final
                 {
                     std::lock_guard lock(state.mutex);
                     state.current = {};
-                    if (!state.closing && !request.Cancelled())
+                    if (state.phase != WorkerPhase::Closing && state.phase != WorkerPhase::Stopped && !request.Cancelled())
                     {
                         state.results[state.resultCount++] = {request, image, status};
                         if (image)

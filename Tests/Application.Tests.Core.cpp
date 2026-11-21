@@ -6,6 +6,7 @@
 #include "Application.Tests.HeapDiagnostic.h"
 #include "Application.Tests.Printing.h"
 #include "Application.Tests.RemoteImages.h"
+#include "RedTilde/KeyboardState.h"
 #include "Support/Support.Tests.BitmapAssets.h"
 #include "Support/Support.Tests.Foreground.h"
 #include "Support/Support.Tests.StorageSafety.h"
@@ -32,6 +33,22 @@
 
 namespace RedTilde
 {
+class RecoveryProbe
+{
+  public:
+    static RecoveryService &Service(Application &app) noexcept
+    {
+        return app.recovery;
+    }
+    static std::wstring FeedbackText(const Application &app)
+    {
+        return std::wstring(app.feedback->GetText());
+    }
+    static bool IsPanelVisible(const Application &app) noexcept
+    {
+        return app.recoveryPanel && app.recoveryPanel->IsVisible();
+    }
+};
 using DxUi::RichText::ParseMath;
 namespace
 {
@@ -1046,6 +1063,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
          [&]
          {
              Testing::ForegroundOwnershipObserver foreground;
+             KeyboardState::ScopedSynthetic syntheticKeyboard;
              std::array<BYTE, 256> savedKeyboard{};
              Require(GetKeyboardState(savedKeyboard.data()) != FALSE, "snapshot the calling thread's Enter modifiers");
              const auto restoreKeyboard = wil::scope_exit(
@@ -1070,7 +1088,7 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                      app.Host().SetFocusControl(&app.Document(), false);
                      std::array<BYTE, 256> keys{};
                      keys[VK_SHIFT] = keys[VK_LSHIFT] = shift ? 0x80 : 0;
-                     Require(SetKeyboardState(keys.data()) != FALSE, "set only the owned thread's Enter modifiers");
+                     KeyboardState::Write(keys);
                      const auto before = app.Activity();
                      SendMessageW(app.Window(), WM_KEYDOWN, VK_RETURN, 0);
                      SendMessageW(app.Window(), WM_CHAR, L'\r', 0);
@@ -1872,6 +1890,64 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                      "accepted Close destroys the owned window or retains it hidden while admitted persistence finishes");
              Require(foreground.NeverAcquiredForeground(), "hidden native-close regression preserves foreground focus");
          });
+    test("Editor.FindReopenReusesMatchTableWithoutRebuild",
+         [&]
+         {
+             LaunchOptions launch;
+             launch.headless = true;
+             launch.dataDirectory = root / L"find-reopen-reuse";
+             Application app(launch);
+             Success(app.Initialize(), "create Find reopen reuse app");
+             const std::wstring source = L"# Section\n\nNeedle one and needle two.\n";
+             app.SetDocument(source);
+             app.Prepare();
+             std::function<DxUi::TextField *(DxUi::Control *)> findQueryField = [&](DxUi::Control *control) -> DxUi::TextField *
+             {
+                 if (auto *field = dynamic_cast<DxUi::TextField *>(control); field && field->GetAccessibleName() == Resource(IDS_FINDHINT))
+                     return field;
+                 for (std::size_t i = 0; i < control->GetLogicalChildCount(); ++i)
+                     if (auto *field = findQueryField(control->GetLogicalChild(i)))
+                         return field;
+                 return nullptr;
+             };
+             auto *queryField = findQueryField(app.Host().GetRoot());
+             Require(queryField != nullptr, "Find query field is present");
+
+             app.Execute(Command::Find);
+             const auto initialRebuilds = app.Activity().findMatchRebuilds;
+             queryField->SetTextAndNotify(L"needle");
+             Require(app.Activity().findMatchRebuilds == initialRebuilds + 1, "entering a query builds the match table once");
+             const auto populatedRebuilds = app.Activity().findMatchRebuilds;
+
+             app.Execute(Command::CloseDrawer);
+             app.Prepare();
+             Require(app.Activity().findMatchRebuilds == populatedRebuilds, "closing Find never rebuilds matches");
+
+             app.Execute(Command::Find);
+             app.Prepare();
+             Require(app.Activity().findMatchRebuilds == populatedRebuilds,
+                     "reopening Find on an unchanged document, query and case reuses the match table without rebuild");
+             app.Execute(Command::FindNext);
+             Require(app.Document().GetSelection() == DxUi::RichText::Selection{source.find(L"Needle"), source.find(L"Needle") + 6} &&
+                         app.Activity().findMatchRebuilds == populatedRebuilds,
+                     "reused match table navigates accurately without rebuilding");
+
+             queryField->SetTextAndNotify(L"one");
+             Require(app.Activity().findMatchRebuilds == populatedRebuilds + 1, "changing the query rebuilds the match table");
+             const auto queryChangedRebuilds = app.Activity().findMatchRebuilds;
+
+             app.Execute(Command::CloseDrawer);
+             app.Execute(Command::Find);
+             Require(app.Activity().findMatchRebuilds == queryChangedRebuilds, "reopening after closing preserves the updated query match table");
+
+             app.Execute(Command::FindMatchCase);
+             Require(app.Activity().findMatchRebuilds == queryChangedRebuilds + 1, "toggling match case rebuilds the match table");
+             const auto caseChangedRebuilds = app.Activity().findMatchRebuilds;
+
+             app.Document().SetSelection({source.size(), source.size()});
+             Require(app.Document().ReplaceSelection(L"Another one.\n"), "edit source while Find is open");
+             Require(app.Activity().findMatchRebuilds == caseChangedRebuilds + 1, "changing the source rebuilds the match table");
+         });
     test("Editor.DirtyCacheTracksDirectResetAndSameLengthUndo",
          [&]
          {
@@ -2615,6 +2691,62 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
              Require(app.Document().GetText() == current && !app.Dirty(), "discard never replaces the active document");
              Require(app.Host().GetFocusControl() == &app.Document(), "discarding the final snapshot returns logical focus to the editor");
          });
+    test("Recovery.DuplicateDiscardIgnoredUntilSettled",
+         [&]
+         {
+             const auto directory = root / L"recovery-duplicate-discard";
+             std::filesystem::create_directories(directory / L"Recovery");
+             const auto snapshot = directory / L"Recovery" / L"session-fedcba9876543210fedcba9876543210.rtd";
+             Success(WriteBytesAtomic(snapshot, SerializeRecovery({L"Pending discard 東京", {}, false, {0, 0}, 1})), "seed inactive recovery");
+             LaunchOptions launch;
+             launch.headless = true;
+             launch.dataDirectory = directory;
+             Application app(launch);
+             Success(app.Initialize(), "initialize duplicate-discard recovery app");
+             for (unsigned turn = 0; turn < 1000 && (!app.RecoveryReady() || app.RecoveryCount() != 1u); ++turn)
+             {
+                 app.Prepare();
+                 std::this_thread::sleep_for(std::chrono::milliseconds(5));
+             }
+             Require(app.RecoveryReady() && app.RecoveryCount() == 1u, "initial candidate scan completes");
+             const auto initialText = app.Document().GetText();
+             app.Execute(Command::Recovery);
+             Require(RecoveryProbe::IsPanelVisible(app), "recovery panel opens");
+
+             auto batchGate = std::make_shared<RecoveryService::TestGate>();
+             const auto releaseGate = wil::scope_exit([&] { (void)SetEvent(batchGate->proceed.get()); });
+             RecoveryProbe::Service(app).SetBatchTestGate(batchGate);
+
+             app.Execute(Command::DiscardRecovery);
+             Require(RecoveryProbe::FeedbackText(app) == Resource(IDS_RECOVERYBUSY),
+                     "first discard reports busy and transitions disposition to Discarding");
+             Require(app.RecoveryCount() == 1u, "candidate stays visible until worker settlement retires it");
+             Require(WaitForSingleObject(batchGate->entered.get(), 10000) == WAIT_OBJECT_0,
+                     "worker pauses at batch gate before completing first discard");
+
+             app.Execute(Command::DiscardRecovery);
+             Require(RecoveryProbe::FeedbackText(app) == Resource(IDS_RECOVERYBUSY), "duplicate discard reports busy");
+             Require(RecoveryProbe::Service(app).DiscardAdmissionCountForTest() == 1u,
+                     "clicking Discard twice before settlement admits only one worker Discard");
+             Require(app.RecoveryCount() == 1u, "candidate remains offered while discard is in flight");
+
+             app.Execute(Command::RestoreRecovery);
+             Require(RecoveryProbe::FeedbackText(app) == Resource(IDS_RECOVERYBUSY) && app.RecoveryCount() == 1u && !app.RequiresSaveAs() &&
+                         app.Document().GetText() == initialText,
+                     "concurrent RestoreRecovery is blocked while discard is in flight");
+
+             Require(SetEvent(batchGate->proceed.get()) != FALSE && WaitForSingleObject(batchGate->finished.get(), 10000) == WAIT_OBJECT_0,
+                     "release batch gate to complete discard");
+             for (unsigned turn = 0; turn < 1000 && (!app.RecoverySettled() || app.RecoveryCount() != 0u); ++turn)
+             {
+                 app.Prepare();
+                 std::this_thread::sleep_for(std::chrono::milliseconds(5));
+             }
+             app.Prepare();
+             Require(app.RecoverySettled() && SUCCEEDED(app.RecoveryStatus()) && app.RecoveryCount() == 0u && !std::filesystem::exists(snapshot) &&
+                         !RecoveryProbe::IsPanelVisible(app) && app.Host().GetFocusControl() == &app.Document(),
+                     "settled discard retires candidate cleanly and returns focus to editor");
+         });
     test("Editor.LocalizedResourceViewsRetainStorageAndFormatting",
          []
          {
@@ -2642,6 +2774,15 @@ int RunCoreTests(const std::filesystem::path &root, CoreTestScope scope, bool li
                      "borrowed localized templates preserve positional formatting and owned output");
              Require(std::vformat(L"{1}: {0}", std::make_wformat_args(blockType, characters)) == L"42: " + std::wstring(blockType),
                      "borrowed resource arguments permit translated placeholder reordering");
+             Require(LoadStringResourceView(nullptr, IDS_BLOCKINFO) == blockFormat &&
+                         LoadStringResource(nullptr, IDS_BLOCKINFO) == retainedBlockFormat &&
+                         LoadEmbeddedStringResource(nullptr, IDS_BLOCKINFO) == retainedBlockFormat &&
+                         FormatStringResource(nullptr, IDS_BLOCKINFO, blockType, characters) ==
+                             std::vformat(retainedBlockFormat, std::make_wformat_args(blockType, characters)) &&
+                         FormatEmbeddedStringResource(nullptr, IDS_BLOCKINFO, blockType, characters) ==
+                             std::vformat(retainedBlockFormat, std::make_wformat_args(blockType, characters)) &&
+                         FormatStringResource(nullptr, 0xFFFFu, blockType, characters).empty(),
+                     "shared Common/Resources helpers load, format and guard missing resource IDs");
          });
     test("Performance.OwnedHeapDiagnosticDistinguishesBusyFreeAndPartialCoverage",
          [&]

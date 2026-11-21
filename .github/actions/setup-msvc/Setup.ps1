@@ -35,14 +35,24 @@ $selected=Get-SelectedTools
 if(-not $selected){
     if($VerifyOnly){throw "The discovered installation lacks default MSVC $required.x, target/ASan/SDK/LLVM tools for $Platform. No installation attempted."}
     if($env:GITHUB_ACTIONS-ne 'true'-or $env:RUNNER_ENVIRONMENT-ne 'github-hosted'-or -not $env:RUNNER_TEMP){throw 'Automatic provisioning is restricted to GitHub-hosted runners. Install the required tools locally, then use -VerifyOnly.'}
-    $scratch=Join-Path $env:RUNNER_TEMP ('msvc-'+$required+'-'+[guid]::NewGuid().ToString('N'))
+    $scratch=[IO.Path]::GetFullPath((Join-Path $env:RUNNER_TEMP ('msvc-'+$required+'-'+[guid]::NewGuid().ToString('N'))))
+    $installer=Join-Path $scratch 'vs_BuildTools.exe'
+    # This bootstrapper route is not qualified for module paths of 260 units or
+    # more; the retained extended-prefix experiment also failed to launch.
+    # Refuse before download/output publication instead of reporting file-not-found.
+    if($installer.Length-ge 260){throw "VS provisioning requires a shorter RUNNER_TEMP: planned bootstrapper path has $($installer.Length) UTF-16 units (maximum 259). No download or installation attempted."}
     [void][IO.Directory]::CreateDirectory($scratch)
     if($env:GITHUB_OUTPUT){
         Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value "installer_logs=$scratch"
         Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value ('artifact_id='+[IO.Path]::GetFileName($scratch))
     }
-    $installer=Join-Path $scratch 'vs_BuildTools.exe'
-    Invoke-WebRequest 'https://aka.ms/vs/18/insiders/vs_buildtools.exe' -OutFile $installer
+    $downloadTimeoutSeconds=180
+    try { Invoke-WebRequest 'https://aka.ms/vs/18/insiders/vs_buildtools.exe' -OutFile $installer -TimeoutSec $downloadTimeoutSeconds }
+    catch [System.Exception] {
+        $message="VS bootstrapper download failed (request timeout $downloadTimeoutSeconds seconds): $($_.Exception.Message)"
+        [IO.File]::WriteAllText((Join-Path $scratch 'download.log'),$message)
+        throw "$message. Diagnostics remain at '$scratch'."
+    }
     $signature=Get-AuthenticodeSignature -LiteralPath $installer
     if($signature.Status-ne 'Valid'-or $signature.SignerCertificate.Subject-notmatch 'O=Microsoft Corporation(?:,|$)'){throw 'The Visual Studio bootstrapper does not have a valid Microsoft signature.'}
     $installRoot=Join-Path $env:RUNNER_TEMP ('VS-Msvc-'+$required)
@@ -57,13 +67,25 @@ if(-not $selected){
     $stdout=Join-Path $scratch 'bootstrapper.stdout.log'
     $stderr=Join-Path $scratch 'bootstrapper.stderr.log'
     Write-Host "Provisioning required MSVC $required at '$installRoot'; bootstrapper output: $scratch"
-    # Windows GUI applications launched with & can return before completion and leave
-    # LASTEXITCODE unset/stale. Both the bootstrapper's --wait and PowerShell's -Wait
-    # are required; use the owned process result, never ambient native-command state.
+    # --wait keeps the GUI bootstrapper alive for installation. The exact
+    # process handle supplies its exit code and bounds termination to the owned tree.
+    $installerTimeoutMilliseconds=1800000
     $installerStarted=Get-Date
-    $process=Start-Process -FilePath $installer -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
-    try {$installerExit=$process.ExitCode}finally{$process.Dispose()}
-    Write-Host "Visual Studio bootstrapper exit code: $installerExit"
+    $installerTimedOut=$false
+    $terminationProblem=$null
+    $installerExit=$null
+    $process=Start-Process -FilePath $installer -ArgumentList $arguments -WindowStyle Hidden -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+    try {
+        if(-not $process.WaitForExit($installerTimeoutMilliseconds)){
+            $installerTimedOut=$true
+            try { $process.Kill($true) }
+            catch [InvalidOperationException] { if(-not $process.HasExited){$terminationProblem=$_.Exception.Message} }
+            catch [System.Exception] { $terminationProblem=$_.Exception.Message }
+            if(-not $process.WaitForExit(15000)){$terminationProblem='Owned installer did not exit within 15 seconds after termination.'}
+        }
+        if($process.HasExited){$installerExit=$process.ExitCode}
+    } finally { $process.Dispose() }
+    if($null-ne $installerExit){Write-Host "Visual Studio bootstrapper exit code: $installerExit"}
     foreach($log in @($stdout,$stderr)){
         if(Test-Path -LiteralPath $log){Get-Content -LiteralPath $log -Tail 40 | Write-Host}
     }
@@ -77,6 +99,7 @@ if(-not $selected){
                 catch {Write-Warning "Cannot archive installer log '$($_.TargetObject)': $($_.Exception.Message)"}
             }
     }
+    if($installerTimedOut){throw "VS provisioning timed out after $($installerTimeoutMilliseconds / 1000) seconds. Owned installer termination: $(if($terminationProblem){$terminationProblem}else{'confirmed'}). Bootstrapper output remains at '$scratch'; detailed installer logs are listed above."}
     if($installerExit-notin @(0,3010)){throw "VS provisioning failed: $installerExit. Bootstrapper output remains at '$scratch'; detailed installer logs are listed above."}
     $selected=Get-SelectedTools
     if(-not $selected){throw "Insiders did not provide default MSVC $required.x and every required target tool. Review channel/component availability; another compiler is never accepted."}

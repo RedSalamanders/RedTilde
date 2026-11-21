@@ -464,34 +464,41 @@ struct FilesService::State
     std::optional<FilesSnapshot> result;
     std::stop_source cancellation;
     HRESULT status = S_OK;
-    bool closing{}, failed{}, busy{}, notificationPending{};
-    void Publish(FilesSnapshot snapshot)
+    FilesPhase phase{FilesPhase::Idle};
+    bool notificationPending{};
+    void Publish(FilesSnapshot snapshot, bool watching)
     {
         std::lock_guard lock(mutex);
-        if (closing || snapshot.cancelled || snapshot.generation != latest.generation || snapshot.revision != latest.revision)
+        if (phase == FilesPhase::Closed || phase == FilesPhase::Failed || snapshot.cancelled || snapshot.generation != latest.generation ||
+            snapshot.revision != latest.revision)
             return;
         status = FAILED(snapshot.status) ? snapshot.status : snapshot.watchStatus;
         result = std::move(snapshot);
-        busy = false;
+        phase = pending ? FilesPhase::Scanning : (watching ? FilesPhase::Watching : FilesPhase::Idle);
         if (window && !notificationPending)
             notificationPending = PostMessageW(window, message, 0, 0) != FALSE;
     }
     void Fail(HRESULT failure)
     {
-        FilesSnapshot snapshot;
         {
             std::lock_guard lock(mutex);
-            failed = true;
+            if (phase == FilesPhase::Closed)
+                return;
+            phase = FilesPhase::Failed;
             status = failure;
-            busy = false;
+            cancellation.request_stop();
             pending.reset();
+            FilesSnapshot snapshot;
             snapshot.root = latest.root;
             snapshot.generation = latest.generation;
             snapshot.revision = latest.revision;
             snapshot.appliedLimits = limits;
+            snapshot.status = failure;
+            result = std::move(snapshot);
+            if (window && !notificationPending)
+                notificationPending = PostMessageW(window, message, 0, 0) != FALSE;
+            (void)SetEvent(wake.get());
         }
-        snapshot.status = failure;
-        Publish(std::move(snapshot));
         OutputDebugStringW(L"RedTilde Files worker stopped after an unexpected service failure.\n");
     }
     static void CALLBACK Worker(PTP_CALLBACK_INSTANCE instance, void *context) noexcept
@@ -511,7 +518,7 @@ struct FilesService::State
                 bool requested{};
                 {
                     std::lock_guard lock(self->mutex);
-                    if (self->closing)
+                    if (self->phase == FilesPhase::Closed || self->phase == FilesPhase::Failed)
                         return;
                     if (self->pending)
                     {
@@ -523,7 +530,7 @@ struct FilesService::State
                     {
                         self->cancellation = std::stop_source{};
                         stop = self->cancellation.get_token();
-                        self->busy = true;
+                        self->phase = FilesPhase::Scanning;
                     }
                 }
                 if (requested)
@@ -534,7 +541,7 @@ struct FilesService::State
                     snapshot.generation = current.generation;
                     snapshot.revision = current.revision;
                     snapshot.watchStatus = watch.status;
-                    self->Publish(std::move(snapshot));
+                    self->Publish(std::move(snapshot), watch.pending);
                     scan = false;
                 }
                 const HANDLE waits[]{self->wake.get(), watch.pending ? watch.event.get() : nullptr};
@@ -549,6 +556,14 @@ struct FilesService::State
                 if (ready != WAIT_OBJECT_0 + 1)
                     continue;
                 watch.Complete();
+                if (watch.pending)
+                {
+                    std::lock_guard lock(self->mutex);
+                    if (self->phase == FilesPhase::Closed || self->phase == FilesPhase::Failed)
+                        return;
+                    if (!self->pending && current.generation == self->latest.generation)
+                        self->phase = FilesPhase::CoalescingWatch;
+                }
                 const ULONGLONG deadline = GetTickCount64() + 250;
                 // One quiet-time wait after an actual change, capped at 250 ms
                 // under continuous writes. No periodic wakeup while the tree is idle.
@@ -560,17 +575,27 @@ struct FilesService::State
                     const DWORD quiet = static_cast<DWORD>(std::min<ULONGLONG>(75, deadline - now));
                     const HANDLE coalesced[]{self->wake.get(), watch.event.get()};
                     const DWORD next = WaitForMultipleObjects(2, coalesced, FALSE, quiet);
-                    if (next == WAIT_OBJECT_0 || next == WAIT_TIMEOUT || next == WAIT_FAILED)
+                    if (next == WAIT_FAILED)
+                    {
+                        self->Fail(HRESULT_FROM_WIN32(GetLastError()));
+                        return;
+                    }
+                    if (next == WAIT_OBJECT_0 || next == WAIT_TIMEOUT)
                         break;
                     watch.Complete();
                 }
                 {
                     std::lock_guard lock(self->mutex);
-                    if (!self->closing && !self->pending && current.generation == self->latest.generation)
+                    if (self->phase == FilesPhase::Closed || self->phase == FilesPhase::Failed)
+                        return;
+                    if (!self->pending && current.generation == self->latest.generation)
                     {
                         current.revision = ++self->latest.revision;
                         scan = true;
+                        self->phase = FilesPhase::Scanning;
                     }
+                    else if (!self->pending)
+                        self->phase = watch.pending ? FilesPhase::Watching : FilesPhase::Idle;
                 }
             }
         }
@@ -596,6 +621,13 @@ FilesService::~FilesService()
 HRESULT FilesService::Initialize(HWND window, UINT message, FilesLimits limits) noexcept
 try
 {
+#if defined(REDTILDE_ENABLE_TESTS)
+    if (const auto injected = std::exchange(nextInitializeFailureForTest, std::nullopt))
+    {
+        Close();
+        return *injected;
+    }
+#endif
     if (!ValidLimits(limits) || (window && message < WM_APP))
         return E_INVALIDARG;
     auto staged = std::make_shared<State>();
@@ -629,9 +661,9 @@ try
         return E_INVALIDARG;
     root = root.lexically_normal();
     std::lock_guard lock(state->mutex);
-    if (state->closing)
+    if (state->phase == FilesPhase::Closed)
         return HRESULT_FROM_WIN32(ERROR_CANCELLED);
-    if (state->failed)
+    if (state->phase == FilesPhase::Failed)
         return state->status;
     if (state->latest.generation && root == state->latest.root)
         return S_FALSE;
@@ -641,8 +673,8 @@ try
     ++state->latest.revision;
     state->pending = state->latest;
     state->result.reset();
-    state->busy = true;
-    SetEvent(state->wake.get());
+    state->phase = FilesPhase::Scanning;
+    (void)SetEvent(state->wake.get());
     return S_OK;
 }
 catch (const std::bad_alloc &)
@@ -655,16 +687,16 @@ try
     if (!state)
         return E_UNEXPECTED;
     std::lock_guard lock(state->mutex);
-    if (state->closing)
+    if (state->phase == FilesPhase::Closed)
         return HRESULT_FROM_WIN32(ERROR_CANCELLED);
-    if (state->failed)
+    if (state->phase == FilesPhase::Failed)
         return state->status;
     state->cancellation.request_stop();
     ++state->latest.revision;
     state->pending = state->latest;
     state->result.reset();
-    state->busy = true;
-    SetEvent(state->wake.get());
+    state->phase = FilesPhase::Scanning;
+    (void)SetEvent(state->wake.get());
     return S_OK;
 }
 catch (const std::bad_alloc &)
@@ -683,12 +715,28 @@ std::optional<FilesSnapshot> FilesService::TakeResult()
         return {};
     return snapshot;
 }
+FilesPhase FilesService::CurrentPhase() const noexcept
+{
+    if (!state)
+        return FilesPhase::Closed;
+    std::lock_guard lock(state->mutex);
+    return state->phase;
+}
+bool FilesService::IsFailed() const noexcept
+{
+    return CurrentPhase() == FilesPhase::Failed;
+}
+bool FilesService::IsActive() const noexcept
+{
+    const auto phase = CurrentPhase();
+    return phase != FilesPhase::Closed && phase != FilesPhase::Failed;
+}
 bool FilesService::Busy() const noexcept
 {
     if (!state)
         return false;
     std::lock_guard lock(state->mutex);
-    return state->busy;
+    return state->phase == FilesPhase::Scanning || state->phase == FilesPhase::CoalescingWatch;
 }
 HRESULT FilesService::Status() const noexcept
 {
@@ -710,14 +758,25 @@ void FilesService::Close() noexcept
         return;
     {
         std::lock_guard lock(state->mutex);
-        state->closing = true;
+        state->phase = FilesPhase::Closed;
         state->window = nullptr;
         state->result.reset();
         state->cancellation.request_stop();
-        SetEvent(state->wake.get());
+        (void)SetEvent(state->wake.get());
     }
     state.reset();
 }
+#if defined(REDTILDE_ENABLE_TESTS)
+void FilesService::FailNextInitializeForTest(HRESULT hr) noexcept
+{
+    nextInitializeFailureForTest = hr;
+}
+void FilesService::SimulateWorkerFailureForTest(HRESULT hr) noexcept
+{
+    if (state)
+        state->Fail(hr);
+}
+#endif
 
 // Identity-bearing services are neither copied nor moved; their shared State
 // remains owned by ProcessWorkItem until the worker drains native notification I/O.

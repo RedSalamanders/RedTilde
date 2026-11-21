@@ -50,7 +50,7 @@ HRESULT PickPrintOutput(HWND owner, Printing::FileFormat format, std::wstring_vi
 
 void Application::Print()
 {
-    if (printPreview || printOperation)
+    if (!CanAcceptCommand() || HasBlockDraft() || HasActiveModalPrompt() || printPreview || printOperation)
         return;
 #if defined(REDTILDE_ENABLE_TESTS)
     if (options.headless && !options.printDestinationsForTest)
@@ -61,8 +61,8 @@ void Application::Print()
 #endif
     Printing::Job job;
     job.document.source = editor->Snapshot();
-    job.document.path = documentPath;
-    job.document.title = documentPath.empty() ? Resource(IDS_UNTITLED) : documentPath.filename().native();
+    job.document.path = session.path;
+    job.document.title = session.path.empty() ? Resource(IDS_UNTITLED) : session.path.filename().native();
     job.document.extensions = editor->GetMarkdownAnalysisExtensions();
     job.document.allowRemoteImages = editor->RemoteImagesEnabled();
     job.document.strikeCompletedTasks = settings.strikeCompletedTasks;
@@ -101,7 +101,7 @@ void Application::Print()
 
 void Application::PreviewPrintPage(unsigned number)
 {
-    if (!printOperation || !printPreview || !printPreview->IsReady() || number == printPreview->Page().number)
+    if (!CanAcceptCommand() || !printOperation || !printPreview || !printPreview->IsReady() || number == printPreview->Page().number)
         return;
     printPreview->BeginRendering();
     Printing::RequestPreview(*printOperation, number);
@@ -109,7 +109,7 @@ void Application::PreviewPrintPage(unsigned number)
 
 void Application::PreviewPrintDestination(std::optional<Printing::PrinterSettings> requested)
 {
-    if (!printOperation || !printPreview || !printPreview->IsReady())
+    if (!CanAcceptCommand() || !printOperation || !printPreview || !printPreview->IsReady())
         return;
     auto printer = std::wstring(printPreview->Printer());
     if (!requested && Printing::SamePrintName(printer, printPrinter))
@@ -121,7 +121,7 @@ void Application::PreviewPrintDestination(std::optional<Printing::PrinterSetting
 
 void Application::SubmitPrintPreview()
 {
-    if (!printOperation || !printPreview || !printConfiguration || !printPreview->CanPrint() || closing || closingAfterSave || sessionEnding)
+    if (!CanAcceptCommand() || !printOperation || !printPreview || !printConfiguration || !printPreview->CanPrint())
         return;
     auto ranges = printPreview->SelectedRanges();
     if (!ranges)
@@ -158,7 +158,7 @@ void Application::ClosePrintPreview() noexcept
     if (!printPreview)
         return;
     printPreview.reset();
-    if (!closing && !sessionEnding)
+    if (!IsClosing() && !IsSessionEnding() && !IsClosingAfterSave())
     {
         auto *const destination = printInvoker && !printInvokerLifetime.expired() ? printInvoker : editor;
         host.SetFocusControl(destination, MayRequestNativeFocus());
@@ -180,8 +180,16 @@ void Application::PrintCompleted()
 {
     const auto operation = printOperation;
     auto notice = Printing::TakeNotice(operation);
-    if (!notice || closing || sessionEnding)
+    if (!notice || IsClosing() || IsSessionEnding() || IsClosingAfterSave())
+    {
+        if (notice && notice->kind == Printing::Notice::Kind::ChooseFile)
+        {
+            Printing::ChooseFile(operation, Cancelled, {});
+            if (printOperation == operation)
+                Printing::Stop(printOperation);
+        }
         return;
+    }
     if (notice->kind == Printing::Notice::Kind::Preview)
     {
         if (!printPreview)
@@ -202,7 +210,7 @@ void Application::PrintCompleted()
             {
                 const auto summary = Resource(rendered.fallbackPaper ? IDS_PRINTPREVIEWDEFAULT : IDS_PRINTSETTINGSFAILED);
                 const auto error = ErrorText(notice->result);
-                status = std::vformat(Resource(IDS_PRINTERRORDETAIL), std::make_wformat_args(summary, error));
+                status = FormatStringResource(nullptr, IDS_PRINTERRORDETAIL, summary, error);
             }
         }
         if (status.empty() && rendered.fallbackPaper)
@@ -217,11 +225,17 @@ void Application::PrintCompleted()
         const auto focusLifetime = focus ? GetControlLifetimeToken(*focus) : std::weak_ptr<int>{};
         std::filesystem::path path;
         const HRESULT chosen = options.headless ? Cancelled : PickPrintOutput(owner, notice->format, printTitle, path);
-        if (printOperation == operation && window.get() == owner && !closing && !sessionEnding)
+        if (printOperation == operation && window.get() == owner && !IsClosing() && !IsSessionEnding() && !IsClosingAfterSave())
         {
             Printing::ChooseFile(operation, chosen, std::move(path));
             if (focus && !focusLifetime.expired())
                 host.SetFocusControl(focus, MayRequestNativeFocus());
+        }
+        else
+        {
+            Printing::ChooseFile(operation, Cancelled, {});
+            if (printOperation == operation)
+                Printing::Stop(printOperation);
         }
         return;
     }
@@ -230,7 +244,7 @@ void Application::PrintCompleted()
     if (notice->invalidRangePageCount)
     {
         const auto pages = notice->invalidRangePageCount;
-        feedback->SetText(std::vformat(Resource(IDS_PRINTRANGE), std::make_wformat_args(pages)));
+        feedback->SetText(FormatStringResource(nullptr, IDS_PRINTRANGE, pages));
     }
     else if (notice->result == Cancelled)
         Status(IDS_PRINTCANCELLED);
@@ -263,7 +277,7 @@ void Application::ReportPrintFailure(HRESULT result, Printing::Stage stage, std:
         summary = Resource(unavailable ? IDS_PRINTNOPRINTER : IDS_PRINTFAILED);
         break;
     case Stage::Page:
-        summary = std::vformat(Resource(IDS_PRINTPAGEFAILED), std::make_wformat_args(pageNumber));
+        summary = FormatStringResource(nullptr, IDS_PRINTPAGEFAILED, pageNumber);
         break;
     case Stage::FinishJob:
         summary = Resource(IDS_PRINTFINISHFAILED);
@@ -272,10 +286,9 @@ void Application::ReportPrintFailure(HRESULT result, Printing::Stage stage, std:
         summary = Resource(IDS_PRINTFILEFAILED);
         break;
     }
-    const auto messageSummary =
-        printer.empty() ? summary : std::vformat(Resource(IDS_PRINTDESTINATIONFAILED), std::make_wformat_args(summary, printer));
+    const auto messageSummary = printer.empty() ? summary : FormatStringResource(nullptr, IDS_PRINTDESTINATIONFAILED, summary, printer);
     const auto error = ErrorText(result);
-    const auto message = std::vformat(Resource(IDS_PRINTERRORDETAIL), std::make_wformat_args(messageSummary, error));
+    const auto message = FormatStringResource(nullptr, IDS_PRINTERRORDETAIL, messageSummary, error);
     feedback->SetText(messageSummary);
     if (printPreview)
         printPreview->SetStatus(messageSummary);

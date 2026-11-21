@@ -42,6 +42,10 @@
       <PreprocessorDefinitions Condition="'$(Configuration)'!='Release'">_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)'=='Release'">NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions Condition="'$(Configuration)'!='Release'">_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Release'">NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ResourceCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <AdditionalDependencies>d3d11.lib;dxgi.lib;d2d1.lib;dwrite.lib;ole32.lib;shell32.lib;shlwapi.lib;uuid.lib;advapi32.lib;user32.lib;gdi32.lib;comctl32.lib;winspool.lib;prntvpt.lib;windowscodecs.lib;dwmapi.lib;winhttp.lib;ws2_32.lib;delayimp.lib;shcore.lib;dbghelp.lib;bcrypt.lib;imm32.lib;uiautomationcore.lib;%(AdditionalDependencies)</AdditionalDependencies>
@@ -64,6 +68,7 @@
     <ClCompile Include="..\Common\Files.cpp" />
     <ClCompile Include="..\Common\RemoteImage.cpp" />
     <ClInclude Include="..\Common\RemoteImageImports.h" />
+    <ClInclude Include="..\Common\Version.h" />
     <ClCompile Include="..\Tests\Application.Tests.Files.cpp" Condition="'$(RedTildeEnableTests)'=='true'" />
     <ClCompile Include="..\Tests\Application.Tests.FailureHost.cpp" Condition="'$(RedTildeEnableTests)'=='true'" />
     <ClCompile Include="..\Tests\Application.Tests.Close.cpp" Condition="'$(RedTildeEnableTests)'=='true'" />

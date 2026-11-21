@@ -1,6 +1,7 @@
 #pragma once
 #include "Common/ProcessWork.h"
 #include "Common/Storage.h"
+#include <cstdint>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -13,6 +14,14 @@ namespace RedTilde
 class AsyncFiles
 {
   public:
+    enum class Phase : std::uint8_t
+    {
+        Idle,
+        Loading,
+        Saving,
+        Completed,
+        Closed
+    };
     AsyncFiles() = default;
     AsyncFiles(const AsyncFiles &) = delete;
     AsyncFiles &operator=(const AsyncFiles &) = delete;
@@ -49,7 +58,8 @@ class AsyncFiles
         std::mutex mutex;
         HWND window{};
         UINT message{};
-        bool closing{}, busy{}, saving{};
+        Phase phase{Phase::Idle};
+        std::uint64_t generation{};
         std::optional<Result> result;
 #if defined(REDTILDE_ENABLE_TESTS)
         std::shared_ptr<TestGate> testGate;
@@ -65,6 +75,7 @@ class AsyncFiles
         Job &operator=(Job &&) = delete;
         ProcessWorkLease lease;
         std::shared_ptr<State> state;
+        std::uint64_t generation{};
         Result result;
         std::optional<FileStamp> expected;
         bool sameIdentityOnly{};
@@ -94,9 +105,10 @@ class AsyncFiles
             {
                 result.status = HRESULT_FROM_WIN32(ERROR_TIMEOUT);
                 std::lock_guard lock(job->state->mutex);
-                if (!job->state->closing)
+                if (job->state->phase != Phase::Closed && job->generation == job->state->generation)
                 {
                     job->state->result = std::move(result);
+                    job->state->phase = Phase::Completed;
                     (void)PostMessageW(job->state->window, job->state->message, 0, 0);
                 }
                 return;
@@ -114,9 +126,10 @@ class AsyncFiles
         else
             result.status = LoadDocument(result.path, result.document, &result.rejectedUnits);
         std::lock_guard lock(job->state->mutex);
-        if (!job->state->closing)
+        if (job->state->phase != Phase::Closed && job->generation == job->state->generation)
         {
             job->state->result = std::move(result);
+            job->state->phase = Phase::Completed;
             // No pointer payload and no recycled-HWND delivery: close takes this
             // same lock and invalidates the window before destroying it.
             (void)PostMessageW(job->state->window, job->state->message, 0, 0);
@@ -139,23 +152,50 @@ class AsyncFiles
         if (!state)
             return;
         std::lock_guard lock(state->mutex);
-        state->closing = true;
+        state->phase = Phase::Closed;
+        ++state->generation;
         state->window = nullptr;
         state->result.reset();
     }
-    bool Busy() const noexcept
+    void CancelInFlightLoad() noexcept
     {
         if (!state)
-            return false;
+            return;
         std::lock_guard lock(state->mutex);
-        return state->busy;
+        if (state->phase == Phase::Loading || (state->phase == Phase::Completed && state->result && !state->result.value().saving))
+        {
+            ++state->generation;
+            state->result.reset();
+            state->phase = Phase::Idle;
+        }
     }
-    bool Saving() const noexcept
+    [[nodiscard]] Phase CurrentPhase() const noexcept
+    {
+        if (!state)
+            return Phase::Idle;
+        std::lock_guard lock(state->mutex);
+        return state->phase;
+    }
+    [[nodiscard]] bool Busy() const noexcept
     {
         if (!state)
             return false;
         std::lock_guard lock(state->mutex);
-        return state->busy && state->saving;
+        return state->phase == Phase::Loading || state->phase == Phase::Saving || state->phase == Phase::Completed;
+    }
+    [[nodiscard]] bool Saving() const noexcept
+    {
+        if (!state)
+            return false;
+        std::lock_guard lock(state->mutex);
+        return state->phase == Phase::Saving;
+    }
+    [[nodiscard]] bool HasPendingSave() const noexcept
+    {
+        if (!state)
+            return false;
+        std::lock_guard lock(state->mutex);
+        return state->phase == Phase::Saving || (state->phase == Phase::Completed && state->result && state->result.value().saving);
     }
 #if defined(REDTILDE_ENABLE_TESTS)
     void SetTestGate(std::shared_ptr<TestGate> gate)
@@ -168,6 +208,8 @@ class AsyncFiles
                    bool sameIdentityOnly = false, bool reloading = false, std::filesystem::path baselinePath = {},
                    std::optional<SaveRecoveryContext> recovery = {})
     {
+        if (!state)
+            return E_UNEXPECTED;
         auto job = std::make_unique<Job>();
         job->state = state;
         job->result.saving = saving;
@@ -180,22 +222,22 @@ class AsyncFiles
         job->baselinePath = std::move(baselinePath);
         job->recovery = std::move(recovery);
         std::lock_guard lock(state->mutex);
-        if (state->busy || state->closing)
+        if (state->phase != Phase::Idle)
             return HRESULT_FROM_WIN32(ERROR_BUSY);
 #if defined(REDTILDE_ENABLE_TESTS)
         job->testGate = state->testGate;
 #endif
-        state->busy = true;
-        state->saving = saving;
+        job->generation = ++state->generation;
+        state->phase = saving ? Phase::Saving : Phase::Loading;
         const HRESULT admission = ProcessWork::Acquire(job->lease);
         if (FAILED(admission))
         {
-            state->busy = false;
+            state->phase = Phase::Idle;
             return admission;
         }
         if (!TrySubmitThreadpoolCallback(Worker, job.get(), nullptr))
         {
-            state->busy = false;
+            state->phase = Phase::Idle;
             return HRESULT_FROM_WIN32(GetLastError());
         }
         (void)job.release();
@@ -203,12 +245,14 @@ class AsyncFiles
     }
     std::optional<Result> Take()
     {
+        if (!state)
+            return {};
         std::lock_guard lock(state->mutex);
-        if (!state->result)
+        if (state->phase != Phase::Completed || !state->result)
             return {};
         auto result = std::move(state->result);
         state->result.reset();
-        state->busy = false;
+        state->phase = Phase::Idle;
         return result;
     }
 };

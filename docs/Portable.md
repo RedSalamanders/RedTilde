@@ -1,33 +1,50 @@
-# RedTilde 0.1 — experimental
+# RedTilde 0.1 — Portable & Per-User Guide
 
-Run `RedTilde.exe`, or pass a Markdown filename on the command line. This portable development build requires
-Windows and the matching Microsoft Visual C++ 2026 runtime. It uses local files and requires no account.
+Extract the portable ZIP into any writable folder and run `RedTilde.exe`, or pass a Markdown filename on the command line. RedTilde requires Windows 11 (build `22000.2600` or later) and the matching Microsoft Visual C++ runtime. All editing stays local and requires no account.
 
-Portable ZIPs use the production-only Release role. Self-test, interactive-test, deliberate crash, recovery,
-preferences and sanitizer probe switches return 2 without opening the application or creating profile data.
-Supported hidden capture and performance diagnostics remain available. Building a ZIP with `package.ps1`
-selects that production role automatically; `-SkipBuild` requires its verified test-disabled artifact.
+## Portable ZIP & Per-User Installer
 
-Compose, Source and Split share one document and undo history. Select text for formatting; use F2 for local
-block source. For ordinary text, Apply/Ctrl+Enter commits the draft and Esc cancels. Split's source mirror is
-read-only. The outline navigates headings. Settings apply System/Light/Dark/Paper immediately.
+You can run `RedTilde.exe` directly from the extracted portable folder, or install it per user without administrator privileges using [`Install-RedTilde.ps1`](../Installer/Install-RedTilde.ps1):
 
-Ctrl+N/O/S: New/Open/Save. Ctrl+Shift+S: Save As. Ctrl+1/2/3: views. Ctrl+B/I: bold/italic. Ctrl+Z/Y: undo/redo.
-Ctrl+F: Find. Ctrl+comma: Settings. F11: Focus mode. Alt+F10: selected-text tools.
+```powershell
+# Install to %LOCALAPPDATA%\Programs\RedTilde and create a Start Menu shortcut
+pwsh -NoProfile -File .\Installer\Install-RedTilde.ps1 -SourceDirectory <extracted-portable-folder>
 
-The editor accepts valid UTF-8 Markdown up to 65,536 UTF-16 units, preserving BOM and existing line endings.
-It rejects invalid/oversized files without truncation and checks for external modifications before saving.
-Recovery checkpoints unsaved writing after 750 ms of quiet and offers a source preview on restart. Restore a
-copy requires Save As; it protects the original file. Settings can reopen pending recovery. Preferences,
-recovery and local crash reports live in LocalAppData/RedTilde.
-Nothing is uploaded automatically.
+# Also register per-user .md and .markdown OpenWithProgids under HKCU\Software\Classes
+pwsh -NoProfile -File .\Installer\Install-RedTilde.ps1 -SourceDirectory <extracted-portable-folder> -RegisterFileAssociation
 
-Local PNG/JPEG/BMP/GIF/TIFF references decode in the background. Assets are referenced, not copied. Network
-resources are declined by default. Mermaid supports native flowcharts and bounded state/class diagrams.
-Inline/display equations, fractions, indexed roots, scripts, matrices and aligned rows render in the document;
-F2 edits exact source. Unsupported notation stays editable. Full language compatibility remains pending. Links,
-Markdown scripts and HTML are never executed. The examples directory contains a starter document.
+# Uninstall program files, Start Menu shortcut, and HKCU associations (preserves %LOCALAPPDATA%\RedTilde)
+pwsh -NoProfile -File .\Installer\Install-RedTilde.ps1 -Uninstall
+```
 
-The dependency is an exact experimental DxUi API-5 pin with explicit application failure ownership. Fresh consumer qualification, upstream performance and
-product qualification remain separate gates. Read `capabilities.json` for the current limits and pending work.
-This build is not a production release. License notices are in `LICENSE.txt`, `THIRD-PARTY-NOTICES.md` and `Dependencies`.
+Pass `-InstallDirectory <path>` to target a different per-user folder (it must not be a drive root, traverse a reparse point, or overlap `%LOCALAPPDATA%\RedTilde`). Uninstalling removes the installed application files, Start Menu shortcut, Uninstall registry entry, and HKCU file associations while keeping your user settings, recovery snapshots, and crash reports intact.
+
+## Production-Only Portable Role
+
+Portable ZIPs packaged with `package.ps1` use the **production-only Release** role (`!defined(REDTILDE_ENABLE_TESTS)`). Self-test, interactive-test, deliberate crash, recovery, preferences, failure-host, and sanitizer probe switches return exit code `2` without opening the application or creating profile data. Ordinary launching, `--document`, `--version` (`-v`), `--help` (`-h`, `/?`), `--headless`, `--capture`, and performance diagnostics remain available.
+
+## Supported Features
+
+- **Views & Focus:** Switch freely between **Compose** (`Ctrl+1`), **Source** (`Ctrl+2`), and **Split** (`Ctrl+3`) with one shared document and undo history, or enter **Focus mode** (`F11` / `Esc`). Split shows editable Compose beside a read-only Source mirror.
+- **Contextual & Local-Source Editing:** Select text in Compose or Split for the floating selection toolbar (`Alt+F10`), or press `F2` to edit code blocks, Mermaid diagrams, metadata, and equations in place (or open a local source draft for prose with `Ctrl+Enter` to apply and `Esc` to cancel).
+- **Files, Open Documents & Drag-and-Drop:** Browse `.md` and `.markdown` folders in the **Files** pane (`Ctrl+Shift+E`, **Open Folder** `Ctrl+Shift+O`), switch between up to `64` open documents from **Open documents** without prompting, close the active document with `Ctrl+W`, or drag and drop a `.md`, `.markdown`, or `.txt` file onto the window.
+- **Find & Replace:** `Ctrl+F` searches exact Markdown source with optional **Match case**, section match badges in the Outline, **Replace** / **Replace all**, and `F3` / `Shift+F3` navigation even after closing the bar.
+- **Printing & Print Preview:** `Ctrl+P` / **File → Print…** previews formatted Letter/A4 pages, supports installed Windows printers and **Microsoft Print to PDF**, page ranges, orientation, duplex, copies, and **Fit width** / **Fit page** navigation.
+- **Themes, Zoom & Syntax Options:** Settings (`Ctrl+,`) provides **System**, **Light**, **Dark**, and **Paper** themes (automatically overridden by Windows High Contrast), reading width (`480–1040` DIPs), text scale (`75%–200%`, `Ctrl++`/`-`/`0` or `Ctrl+Wheel`), completed-task strikethrough, and seven optional RichMarkdown syntax toggles.
+- **Mathematics & Mermaid Diagrams:** Inline (`$...$`, `\(...\)`) and own-line display (`$$`, `\[` / `\]`, `math`/`latex` fences) equations render natively with a live **Equation** inspector in the sidebar. Eight bounded static Mermaid families are rendered natively in C++: **flowchart**, **state**, **class**, **sequence**, **pie**, **ER**, **Gantt**, and **mind map**. Unsupported syntax stays editable source.
+- **Images & Clipboard Paste:** Local `PNG`, `JPEG`, `BMP`, `GIF` (first frame), and `TIFF` files decode off the UI thread and refresh on disk changes; pasted bitmaps save as local PNGs under `%LOCALAPPDATA%\RedTilde\Assets` (text wins over images by default unless **Prefer images when pasting** is enabled).
+
+## User Data, Privacy & Recovery
+
+- **Data Location:** Preferences (`RedTilde.settings`), recovery snapshots (`Recovery/`), pasted clipboard assets (`Assets/`), and local crash reports (`Crashes/`) live under `%LOCALAPPDATA%\RedTilde`. Nothing is uploaded automatically.
+- **Encoding & Safe Saves:** Accepts valid UTF-8 Markdown up to `65,536` UTF-16 units, preserving UTF-8 BOM and `LF`/`CRLF`/`CR`/mixed line endings. Rejects invalid UTF-8, NUL bytes, or oversized files without truncation, saves atomically with external-change conflict prompts, and preserves hardlink aliases via independent recovery protection.
+- **Auto-Recovery:** Checkpoints unsaved edits after `750 ms` of quiet (at most `5 s` under continuous typing) and offers a source preview on restart (`Restore a copy`, `Discard snapshot`, `Keep for later`, `Restore all copies`). Restored copies require **Save as…**.
+- **Privacy Defaults:** Remote `http(s)://` images, local-network/UNC images, `data:` URIs, and `![[wiki]]` embeds are blocked by default. Markdown HTML, scripts, and Mermaid interaction directives never execute. External `http:`, `https:`, and `mailto:` links open only on explicit `Ctrl+Click` or **Open link** confirmation.
+
+## Troubleshooting & Further Reading
+
+- [User Guide](README.md) — full feature walkthrough, screenshots, and keyboard shortcut reference
+- [Diagnostics & RedMonitor](Diagnostics.md) — `--version`, local `Crashes/` minidumps, and optional RedMonitor logging
+- [Sample Documents](examples/README.md) — showcase Markdown, math, all eight Mermaid profiles, and fallback examples
+- [Capabilities](../capabilities.json) — current `experimental` capability boundaries and open qualification gates
+- License notices live in `LICENSE.txt`, `THIRD-PARTY-NOTICES.md`, and `Dependencies`.
