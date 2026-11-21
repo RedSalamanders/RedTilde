@@ -1,0 +1,168 @@
+{
+  "schemaVersion": 1,
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-real-location-smb-selftest",
+  "sourceCommit": "ea111980a9aa3f9db0a8b49880b751c437e853fa",
+  "sourceIdentity": "50d518db078f2717dc6a7df2770e61772b2294bd924988dfd72ee2cfa2578e56",
+  "dependency": {
+    "repository": "RedSalamanders/DxUi",
+    "commit": "0c371a6197eb8c6b876b4b2843d75078bc21035c",
+    "apiRevision": 5
+  },
+  "platform": "x64",
+  "configuration": "Release",
+  "binarySha256": "D27923E4F2406B654A26944808002DDC7DBB092968DCC0A9DEE2DAAAA14BAD09",
+  "target": {
+    "id": "path.smb.primary",
+    "kind": "smb-share",
+    "reachable": true,
+    "runLeaf": "redtilde-run-634e189f237948398089759b7fa028f7",
+    "verifiedLeftoverDirectoriesAfterCleanup": 0
+  },
+  "captureShowcase": {
+    "scenario": "sample-document",
+    "passed": true,
+    "captureByteCount": 118136,
+    "documentSha256Preserved": "1BA77DC71F2CC8E75F7C6826B2300AAE8D673A3D18C6D5E076D79E5CB4C749A8"
+  },
+  "nativeSuites": [
+    {
+      "scope": "Settings",
+      "exitCode": 0,
+      "passed": 15,
+      "failed": 0,
+      "selected": 15,
+      "failedCases": []
+    },
+    {
+      "scope": "Recovery",
+      "exitCode": 0,
+      "passed": 22,
+      "failed": 0,
+      "selected": 22,
+      "failedCases": []
+    },
+    {
+      "scope": "Storage",
+      "exitCode": 1,
+      "passed": 16,
+      "failed": 16,
+      "selected": 32,
+      "failedCases": [
+        {
+          "name": "Files.ReparseLeavesNeverTraverse",
+          "error": "create owned fixture junction",
+          "classification": "smb-server-fixture-limit"
+        },
+        {
+          "name": "Storage.SymbolicSavePreservesEntryAndResolvesFinalTarget",
+          "error": "create owned relative symlink (Win32 5)",
+          "classification": "smb-server-privilege-or-policy-refusal"
+        },
+        {
+          "name": "Storage.StampMatchesFullNativeFileIdentity",
+          "error": "query the actual filesystem's full file ID",
+          "classification": "smb-fileidinfo-error-87"
+        },
+        {
+          "name": "Storage.BitmapAssetsEncodeAndRetireOwnedFiles",
+          "error": "encode a real DIB to a durable PNG",
+          "classification": "intentional-drive-fixed-data-dir-guard"
+        },
+        {
+          "name": "Utf8.BomUnicodeMixedEolRoundTrip",
+          "error": "source, BOM and stamp preserved",
+          "classification": "product-smb-stamp-after-move-mismatch"
+        },
+        {
+          "name": "Storage.PublishedSaveDoesNotDependOnContentReadback",
+          "error": "published save returns its exact owned-write stamp without reopening content",
+          "classification": "product-smb-stamp-after-move-and-replace-failure"
+        },
+        {
+          "name": "Storage.AtomicSaveKeepsLongLeafWithinPathBudget",
+          "error": "replacement bytes and stamp are preserved",
+          "classification": "product-smb-stamp-after-move-and-replace-failure"
+        },
+        {
+          "name": "Storage.SharedWriterReadAndSaveAsBaseline",
+          "error": "a cooperative writer does not prevent a stable content read",
+          "classification": "product-smb-stamp-after-move-mismatch"
+        },
+        {
+          "name": "Storage.ProviderFallbackProtectsBeforeMutation",
+          "error": "provider fallback preserves source, BOM, terminators and complete file identity",
+          "classification": "product-smb-stamp-after-move-mismatch"
+        },
+        {
+          "name": "Storage.ProviderFallbackRequiresAdmissionAndReplacementProvenance",
+          "error": "unadmitted or unrelated failures preserve target, stamp and recovery state",
+          "classification": "product-smb-stamp-after-move-mismatch"
+        },
+        {
+          "name": "Storage.ProviderFallbackRechecksConflict",
+          "error": "the external revision is retained without creating a protection for a refused save",
+          "classification": "product-smb-stamp-after-move-mismatch"
+        },
+        {
+          "name": "Storage.HardlinkSavePreservesAliasesAndProtectsBeforeMutation",
+          "error": "complete immutable recovery is durable while every original byte still exists",
+          "classification": "smb-hardlink-link-count-1-and-replacefile-error-3"
+        },
+        {
+          "name": "Storage.HardlinkFailuresRetainCompleteRecoveryAndBaseline",
+          "error": "failed in-place write never publishes the caller's saved baseline",
+          "classification": "smb-hardlink-link-count-1-and-replacefile-error-3"
+        },
+        {
+          "name": "Storage.HardlinkAdmissionFailureNeverMutatesTarget",
+          "error": "hardlink save without recovery context is declined",
+          "classification": "smb-hardlink-link-count-1-and-replacefile-error-3"
+        },
+        {
+          "name": "Storage.HardlinkSaveSuccessSurvivesBlockedRecoveryRetirement",
+          "error": "recovery retirement failure cannot turn completed storage into a failed save",
+          "classification": "smb-hardlink-link-count-1-and-replacefile-error-3"
+        },
+        {
+          "name": "Storage.NewHardlinkDuringStagingSelectsProtectedInPlaceSave",
+          "error": "final staging check detects a new alias and reselects protected in-place writing",
+          "classification": "smb-hardlink-link-count-1-and-replacefile-error-3"
+        }
+      ]
+    }
+  ],
+  "win32SmbDiagnosticProbe": {
+    "driveType": 4,
+    "getFileInformationByHandle": {
+      "succeeded": true,
+      "hasNonZeroVolumeSerialAndFileIndex": true,
+      "nNumberOfLinksBeforeHardLink": 1,
+      "nNumberOfLinksAfterCreateHardLinkW": 1
+    },
+    "fileIdInfoQuery": {
+      "succeeded": false,
+      "win32Error": 87
+    },
+    "moveFileExW": {
+      "succeeded": true,
+      "lastWriteTimeDelta100nsTicks": 503718
+    },
+    "replaceFileW": {
+      "defaultFlagsSucceeded": false,
+      "defaultFlagsWin32Error": 3,
+      "ignoreMergeErrorsSucceeded": false,
+      "ignoreMergeErrorsWin32Error": 3
+    },
+    "createHardLinkW": {
+      "succeeded": true,
+      "win32Error": 0,
+      "reportedTargetLinksStillOne": true
+    }
+  },
+  "openBackends": [
+    "onedrive-selftest",
+    "wsl-selftest"
+  ],
+  "gateStatus": "open"
+}

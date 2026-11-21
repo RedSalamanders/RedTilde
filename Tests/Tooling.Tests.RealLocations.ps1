@@ -204,6 +204,66 @@ try {
         $liveResults = @(Invoke-RedTildeRealLocationRun -ManifestPath $validManifest -Configuration $candidateConfig -ExecutablePath $candidateExe)
         Assert-True ($liveResults.Count -eq 1 -and $liveResults[0].status -ceq 'PASSED' -and $liveResults[0].captureByteCount -gt 0) 'Controlled capture run succeeded against owned .build selftest'
         Assert-True (@(Get-ChildItem -LiteralPath $ownedSelftest -Force).Count -eq 0) 'Controlled run cleaned up redtilde-run-<guid> leaf completely'
+
+        $nativeSuiteResults = @(Invoke-RedTildeRealLocationRun -ManifestPath $validManifest -Configuration $candidateConfig -ExecutablePath $candidateExe -IncludeNativeSuites -NativeScopes @('Settings'))
+        Assert-True ($nativeSuiteResults.Count -eq 1 -and $nativeSuiteResults[0].status -ceq 'PASSED' -and $nativeSuiteResults[0].nativeSuites.Count -eq 1 -and $nativeSuiteResults[0].nativeSuites[0].scope -ceq 'Settings' -and $nativeSuiteResults[0].nativeSuites[0].passed -gt 0 -and $nativeSuiteResults[0].nativeSuites[0].failed -eq 0) 'Controlled -IncludeNativeSuites Settings run succeeded against owned .build selftest'
+        Assert-True (@(Get-ChildItem -LiteralPath $ownedSelftest -Force).Count -eq 0) 'Controlled -IncludeNativeSuites run cleaned up redtilde-run-<guid> leaf completely'
+    }
+
+    # 10. Verify ReadOnly leaf cleanup without reparse traversal + CLI exit 1 when native suite fails
+    $roDir = Join-Path $fixtureRoot 'ro-cleanup'
+    [void][IO.Directory]::CreateDirectory($roDir)
+    $roFile = Join-Path $roDir 'readonly.txt'
+    Write-Utf8NoBom $roFile 'readonly'
+    [IO.File]::SetAttributes($roFile, [IO.FileAttributes]::ReadOnly)
+    Remove-RedTildeDirectoryNoReparse -Path $roDir
+    Assert-True (-not (Test-Path -LiteralPath $roDir)) 'Remove-RedTildeDirectoryNoReparse removes non-reparse ReadOnly files cleanly'
+
+    if ([OperatingSystem]::IsWindows()) {
+        $fakeNativeSource = Join-Path $fixtureRoot 'FakeRealLocApp.cs'
+        $fakeNativeExe = Join-Path $fixtureRoot 'FakeRealLocApp.exe'
+        [IO.File]::WriteAllText($fakeNativeSource, @'
+using System;
+using System.IO;
+class FakeRealLocApp {
+    static int Main(string[] args) {
+        string cap = null, dataDir = null;
+        bool selfTest = false;
+        for (int i = 0; i < args.Length; ++i) {
+            if (args[i] == "--capture" && i + 1 < args.Length) cap = args[++i];
+            else if (args[i] == "--data-dir" && i + 1 < args.Length) dataDir = args[++i];
+            else if (args[i] == "--self-test") selfTest = true;
+        }
+        if (cap != null) {
+            File.WriteAllBytes(cap, new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A });
+            File.WriteAllText(cap + ".scenario.json", "{\"hidden\":true,\"scenario\":\"sample-document\"}");
+            return 0;
+        }
+        if (selfTest && dataDir != null) {
+            Directory.CreateDirectory(dataDir);
+            File.WriteAllText(Path.Combine(dataDir, "tests.json"), "{\"tests\":[{\"name\":\"Storage.FakeFail\",\"passed\":false,\"error\":\"synthetic failure\"}],\"passed\":0,\"failed\":1,\"selected\":1,\"registered\":1,\"catalogOnly\":false}");
+            return 1;
+        }
+        return 0;
+    }
+}
+'@)
+        $csc = Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
+        if (Test-Path -LiteralPath $csc -PathType Leaf) {
+            $null = & $csc /nologo /out:$fakeNativeExe $fakeNativeSource 2>&1
+            if ($LASTEXITCODE -ne 0) { throw 'Failed to compile fake real-location test binary.' }
+            $failOut = (& $pwshBinary -NoProfile -File $scriptPath -ManifestPath $validManifest -ExecutablePath $fakeNativeExe -IncludeNativeSuites -NativeScopes @('Settings') | Out-String)
+            $failExit = $LASTEXITCODE
+            $global:LASTEXITCODE = 0
+            $failParsed = $failOut | ConvertFrom-Json
+            Assert-True ($failExit -eq 1 -and $failParsed.status -ceq 'NATIVE_SUITE_FAILED' -and $failParsed.nativeSuites[0].failed -eq 1) 'Failed native suite exits 1 with structured NATIVE_SUITE_FAILED output'
+            Assert-True (@(Get-ChildItem -LiteralPath $ownedSelftest -Force).Count -eq 0) 'Failed -IncludeNativeSuites run cleaned up selftest leaf completely'
+            if ($null -ne $failParsed.logDirectory) {
+                $retainedDir = Join-Path $repoRoot $failParsed.logDirectory
+                Assert-True (Test-Path -LiteralPath (Join-Path $retainedDir 'Settings.tests.json') -PathType Leaf) 'Failed suite retains Settings.tests.json under .build/real-location-runs'
+                Remove-RedTildeDirectoryNoReparse -Path $retainedDir
+            }
+        }
     }
 } finally {
     foreach ($j in $junctionPaths) {
