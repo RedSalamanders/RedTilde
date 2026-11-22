@@ -188,7 +188,9 @@ public:
         None,
         UnsavedChanges,
         SaveConflict,
-        ExternalLink
+        ExternalLink,
+        FileDialog,
+        ErrorMessage
     };
     enum class OverlayKind : std::uint8_t
     {
@@ -696,6 +698,8 @@ private:
     std::uint64_t _preferencesReadySentDuringClose{};
 #endif
     bool _windowPlacementDirty{};
+    bool _settingsReloadDeferred{};
+    unsigned _settingsReloadRetries{};
     StartupRestoreState _startupRestore;
     struct ExternalLinkState;
     struct ExternalLinkJob;
@@ -703,6 +707,7 @@ private:
     DocumentInfo _documentInfo;
     DocumentLineIndexStorage _documentLineIndexStorage;
     ActiveFileTransaction _activeFileTx;
+    static constexpr UINT_PTR SettingsRetryTimerId = 0x52545352u;
     static constexpr UINT ImageReady = WM_APP + 401, FileReady = WM_APP + 402, PreferencesReady = WM_APP + 403, RecoveryReadyMessage = WM_APP + 404,
                           FolderReady = WM_APP + 405, ExternalLinkReady = WM_APP + 406, BitmapReady = WM_APP + 407, ImageFileChanged = WM_APP + 408,
                           PrintReady = WM_APP + 409, PostPreparePlacement = WM_APP + 410, SettingsChanged = WM_APP + 411;
@@ -722,7 +727,7 @@ private:
     void OpenPath(const std::filesystem::path& path);
     [[nodiscard]] bool OpenDroppedFile(const std::filesystem::path& path);
     void CloseActiveDocument();
-    [[nodiscard]] bool SwitchWorkspaceDocument(std::size_t index);
+    [[nodiscard]] bool SwitchWorkspaceDocument(std::size_t index, bool savePreviousRecovery = true, bool refreshFiles = true);
     [[nodiscard]] bool StartWorkspaceDocument();
     void ResetWorkspace();
     void CheckpointWorkspaceRecovery();

@@ -44,17 +44,27 @@ function Initialize-VcpkgToolCheckout {
         if ($LASTEXITCODE -ne 0 -or ([string]$origin).TrimEnd('/') -ne $repository.TrimEnd('/')) {
             throw "The managed vcpkg checkout does not use the pinned repository: $repository"
         }
-        # The filter setting goes only once every object is local, so an interrupted completion is retried.
-        if (& git.exe -C $root config --get remote.origin.partialclonefilter) {
-            Write-Host "Completing the partial vcpkg clone in $root" -ForegroundColor Cyan
-            if ((& git.exe -C $root rev-parse --is-shallow-repository) -eq 'true') {
+        $dirty = & git.exe -C $root status --porcelain
+        if ($LASTEXITCODE -ne 0) {
+            throw "Unable to inspect the managed vcpkg checkout status: $root"
+        }
+        if ($dirty) {
+            throw "The managed vcpkg checkout contains local changes: $root"
+        }
+        $hasPartialFilter = [bool](& git.exe -C $root config --get remote.origin.partialclonefilter)
+        $isShallow = ((& git.exe -C $root rev-parse --is-shallow-repository) -eq 'true')
+        if ($hasPartialFilter -or $isShallow) {
+            Write-Host "Completing the vcpkg clone in $root" -ForegroundColor Cyan
+            if ($isShallow) {
                 & git.exe -C $root fetch --unshallow origin
                 if ($LASTEXITCODE -ne 0) { throw "Unable to unshallow the managed vcpkg checkout (exit code $LASTEXITCODE)." }
             }
-            & git.exe -C $root fetch --refetch --no-filter origin
-            if ($LASTEXITCODE -ne 0) { throw "Unable to complete the managed vcpkg checkout (exit code $LASTEXITCODE)." }
-            & git.exe -C $root config --unset-all remote.origin.partialclonefilter
-            & git.exe -C $root config --unset-all remote.origin.promisor
+            if ($hasPartialFilter) {
+                & git.exe -C $root fetch --refetch --no-filter origin
+                if ($LASTEXITCODE -ne 0) { throw "Unable to complete the managed vcpkg checkout (exit code $LASTEXITCODE)." }
+                & git.exe -C $root config --unset-all remote.origin.partialclonefilter
+                & git.exe -C $root config --unset-all remote.origin.promisor
+            }
         }
     }
     if ((& git.exe -C $root rev-parse --verify --quiet HEAD) -ne $commit) {

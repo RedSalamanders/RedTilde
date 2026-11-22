@@ -43,6 +43,11 @@ $commit = ([string] $toolIdentity.commit).ToLowerInvariant()
 if ($commit -notmatch '^[0-9a-f]{40}$') {
     throw 'vcpkg-tool.json must contain a full 40-character commit hash.'
 }
+$manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
+$baseline = if ($manifest.PSObject.Properties['builtin-baseline']) { ([string]$manifest.'builtin-baseline').ToLowerInvariant() } else { '' }
+if ($baseline -cne $commit) {
+    throw "vcpkg.json builtin-baseline '$baseline' does not match vcpkg-tool.json commit '$commit'."
+}
 
 $msbuild = if ($MSBuildPath) { $MSBuildPath } else { Get-RedTildeMSBuild }
 if (-not (Test-Path -LiteralPath $msbuild -PathType Leaf)) {
@@ -76,7 +81,15 @@ if ($dirty) {
 
 $previousMetrics = [Environment]::GetEnvironmentVariable('VCPKG_DISABLE_METRICS', 'Process')
 $previousDownloads = [Environment]::GetEnvironmentVariable('VCPKG_DOWNLOADS', 'Process')
+$isolatedVars = @('VCPKG_ROOT', 'VCPKG_OVERLAY_PORTS', 'VCPKG_OVERLAY_TRIPLETS', 'VCPKG_DEFAULT_HOST_TRIPLET', 'VCPKG_DEFAULT_TRIPLET')
+$savedVars = @{}
+foreach ($varName in $isolatedVars) {
+    $savedVars[$varName] = [Environment]::GetEnvironmentVariable($varName, 'Process')
+}
 try {
+    foreach ($varName in $isolatedVars) {
+        [Environment]::SetEnvironmentVariable($varName, [NullString]::Value, 'Process')
+    }
     $env:VCPKG_DISABLE_METRICS = '1'
     $env:VCPKG_DOWNLOADS = $downloadsRoot
 
@@ -130,6 +143,7 @@ try {
         $arguments = @(
             'install',
             "--triplet=$triplet",
+            "--vcpkg-root=$toolRoot",
             "--x-manifest-root=$repoRoot",
             "--x-install-root=$installRoot",
             "--x-buildtrees-root=$buildTreesRoot",
@@ -144,8 +158,12 @@ try {
         }
     }
 } finally {
-    [Environment]::SetEnvironmentVariable('VCPKG_DISABLE_METRICS', $previousMetrics, 'Process')
-    [Environment]::SetEnvironmentVariable('VCPKG_DOWNLOADS', $previousDownloads, 'Process')
+    foreach ($varName in $isolatedVars) {
+        $restoreValue = if ($null -eq $savedVars[$varName]) { [NullString]::Value } else { $savedVars[$varName] }
+        [Environment]::SetEnvironmentVariable($varName, $restoreValue, 'Process')
+    }
+    [Environment]::SetEnvironmentVariable('VCPKG_DISABLE_METRICS', $(if ($null -eq $previousMetrics) { [NullString]::Value } else { $previousMetrics }), 'Process')
+    [Environment]::SetEnvironmentVariable('VCPKG_DOWNLOADS', $(if ($null -eq $previousDownloads) { [NullString]::Value } else { $previousDownloads }), 'Process')
 }
 
 Write-Host 'vcpkg dependencies are ready.' -ForegroundColor Green

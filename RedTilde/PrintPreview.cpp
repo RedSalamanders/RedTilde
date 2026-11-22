@@ -74,7 +74,7 @@ private:
     }
 
     Printing::PreviewPage _page;
-    wil::com_ptr<ID2D1Bitmap1> _bitmap;
+    wil::com_ptr_nothrow<ID2D1Bitmap1> _bitmap;
     std::uint64_t _generation{};
 };
 
@@ -204,6 +204,9 @@ public:
         if (availW < 96.f || availH < 96.f)
             return;
 
+        target->PushAxisAlignedClip(bounds, D2D1_ANTIALIAS_MODE_ALIASED);
+        const auto popClip = wil::scope_exit([target]() noexcept { target->PopAxisAlignedClip(); });
+
         const auto& theme        = host.GetTheme();
         const bool highContrast  = theme.highContrast;
         const bool reducedMotion = theme.reducedMotion;
@@ -323,16 +326,16 @@ private:
         auto* const target = host.GetDeviceContext();
         if (! target)
             return;
-        wil::com_ptr<ID2D1SolidColorBrush> brush;
+        wil::com_ptr_nothrow<ID2D1SolidColorBrush> brush;
         if (FAILED(target->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::White), brush.put())))
             return;
-        wil::com_ptr<ID2D1Factory> factory;
+        wil::com_ptr_nothrow<ID2D1Factory> factory;
         target->GetFactory(factory.put());
         if (! factory)
             return;
         const auto properties = D2D1::StrokeStyleProperties(
             D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_CAP_STYLE_ROUND, D2D1_LINE_JOIN_ROUND, 10.f, D2D1_DASH_STYLE_SOLID, 0.f);
-        wil::com_ptr<ID2D1StrokeStyle> roundStroke;
+        wil::com_ptr_nothrow<ID2D1StrokeStyle> roundStroke;
         if (FAILED(factory->CreateStrokeStyle(properties, nullptr, 0u, roundStroke.put())))
             return;
         _brush       = std::move(brush);
@@ -445,8 +448,8 @@ private:
 
     std::wstring _headline;
     std::wstring _hint;
-    wil::com_ptr<ID2D1SolidColorBrush> _brush;
-    wil::com_ptr<ID2D1StrokeStyle> _roundStroke;
+    wil::com_ptr_nothrow<ID2D1SolidColorBrush> _brush;
+    wil::com_ptr_nothrow<ID2D1StrokeStyle> _roundStroke;
     std::uint64_t _generation{};
     std::uint64_t _startTickMs{};
     std::uint64_t _elapsedMs{};
@@ -513,7 +516,10 @@ HRESULT PrintPreview::Initialize(std::wstring_view title)
                                   this));
     RETURN_LAST_ERROR_IF_NULL(_window.get());
     if (! _host.Attach(_window.get(), {.forceWarp = _app._options.forceWarp}))
-        return HRESULT_FROM_WIN32(GetLastError());
+    {
+        const DWORD error = GetLastError();
+        return error ? HRESULT_FROM_WIN32(error) : E_FAIL;
+    }
     SetTheme(_app._host.GetTheme());
 
     auto tree             = std::make_unique<Surface>();
@@ -623,8 +629,8 @@ HRESULT PrintPreview::Initialize(std::wstring_view title)
     _host.SetRoot(std::move(tree));
     _host.SetCancelButton(_close);
     _host.SetDefaultButton(_print);
-    BeginRendering();
     Layout();
+    BeginRendering();
     return S_OK;
 }
 
@@ -714,8 +720,8 @@ void PrintPreview::SetDestinations(Printing::Destinations destinations)
 {
     std::vector<DxUi::ComboBox::Item> items;
     items.reserve(destinations.names.size());
-    for (auto& name : destinations.names)
-        items.push_back({name, std::move(name)});
+    for (const auto& name : destinations.names)
+        items.push_back({name, name});
     _printers->SetItems(std::move(items));
     _printers->SetPlaceholder(Resource(IDS_PRINTNOPRINTERSFOUND));
     SelectNamedItem(*_printers, destinations.selected);
@@ -724,9 +730,10 @@ void PrintPreview::SetDestinations(Printing::Destinations destinations)
         SyncWaitingText();
 }
 
-void PrintPreview::SetConfiguration(const Printing::PrinterConfiguration* configuration, bool keepJobValues)
+void PrintPreview::SetConfiguration(const Printing::PrinterConfiguration* configuration, bool keepJobValues, bool configurationPending)
 {
-    const auto setRow = [](DxUi::Control* label, DxUi::Control* input, bool visible)
+    _configurationPending = configurationPending;
+    const auto setRow     = [](DxUi::Control* label, DxUi::Control* input, bool visible)
     {
         label->SetVisible(visible);
         input->SetVisible(visible);
@@ -828,7 +835,7 @@ void PrintPreview::Present(Printing::PreviewPage page, std::wstring status)
     _collate->SetEnabled(_collate->IsVisible());
     _file->SetEnabled(_file->IsVisible());
     _current->SetEnabled(true);
-    _print->SetEnabled(_app._printConfiguration.has_value());
+    _print->SetEnabled(_app._printConfiguration.has_value() && ! _configurationPending);
     _scroll->ScrollToTop();
     _scroll->ResetWheel();
     SetStatus(std::move(status));
@@ -887,13 +894,22 @@ void PrintPreview::CancelWaitingTimer() noexcept
     _waitingTimerArmed = false;
 }
 
+namespace
+{
+std::pair<std::wstring, std::wstring> BuildWaitingCopy(const DxUi::Label* status, const DxUi::ComboBox* printers, bool hasPrintConfiguration)
+{
+    auto headline             = status && ! status->GetText().empty() ? std::wstring(status->GetText()) : RedTilde::Resource(IDS_PRINTPREVIEWPREPARING);
+    const bool showSwitchHint = printers && ! printers->GetItems().empty() && ! hasPrintConfiguration;
+    auto hint                 = RedTilde::Resource(showSwitchHint ? IDS_PRINTPREVIEWWAITSWITCHHINT : IDS_PRINTPREVIEWWAITRENDERHINT);
+    return {std::move(headline), std::move(hint)};
+}
+} // namespace
+
 void PrintPreview::ShowWaitingOverlay()
 {
     if (! _rendering || ! _waiting)
         return;
-    auto headline             = _status && ! _status->GetText().empty() ? std::wstring(_status->GetText()) : Resource(IDS_PRINTPREVIEWPREPARING);
-    const bool showSwitchHint = _printers && ! _printers->GetItems().empty() && ! _app._printConfiguration.has_value();
-    auto hint                 = Resource(showSwitchHint ? IDS_PRINTPREVIEWWAITSWITCHHINT : IDS_PRINTPREVIEWWAITRENDERHINT);
+    auto [headline, hint] = BuildWaitingCopy(_status, _printers, _app._printConfiguration.has_value());
     _waiting->Show(_host, std::move(headline), std::move(hint));
 }
 
@@ -908,9 +924,7 @@ void PrintPreview::SyncWaitingText()
 {
     if (! _waiting)
         return;
-    auto headline             = _status && ! _status->GetText().empty() ? std::wstring(_status->GetText()) : Resource(IDS_PRINTPREVIEWPREPARING);
-    const bool showSwitchHint = _printers && ! _printers->GetItems().empty() && ! _app._printConfiguration.has_value();
-    auto hint                 = Resource(showSwitchHint ? IDS_PRINTPREVIEWWAITSWITCHHINT : IDS_PRINTPREVIEWWAITRENDERHINT);
+    auto [headline, hint] = BuildWaitingCopy(_status, _printers, _app._printConfiguration.has_value());
     _waiting->UpdateText(_host, std::move(headline), std::move(hint));
 }
 
@@ -1013,7 +1027,11 @@ void PrintPreview::Layout()
     const float bottom    = std::max(canvasTop + 1.f, height);
     _scroll->SetBounds({panelWidth, canvasTop, width, bottom});
     if (_waiting)
+    {
         _waiting->SetBounds({panelWidth, canvasTop, width, bottom});
+        if (_waiting->IsVisible() && ! _host.GetTheme().reducedMotion)
+            _host.RequestAnimation();
+    }
     const auto paper           = Page().paper.size;
     constexpr float gutter     = 16.f;
     const float scrollbar      = _fitWidth ? _scroll->GetScrollbarThickness() : 0.f;
@@ -1084,8 +1102,21 @@ LRESULT CALLBACK PrintPreview::WindowProc(HWND hwnd, UINT message, WPARAM wParam
     auto* preview = reinterpret_cast<PrintPreview*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
     if (preview && preview->_root)
     {
+        auto& app             = preview->_app;
+        const bool destroying = message == WM_NCDESTROY;
         LRESULT result{};
-        preview->_app.RunUiAction([&] { result = preview->HandleMessage(hwnd, message, wParam, lParam); });
+        app.RunUiAction([&] { result = preview->HandleMessage(hwnd, message, wParam, lParam); });
+        if (destroying)
+        {
+            app.RunUiAction([&]
+            {
+                if (app._printPreview.get() == preview)
+                {
+                    Printing::Stop(app._printOperation);
+                    app.ClosePrintPreview();
+                }
+            });
+        }
         return result;
     }
     return DefWindowProcW(hwnd, message, wParam, lParam);
@@ -1124,11 +1155,6 @@ LRESULT PrintPreview::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPAR
         _root = nullptr;
         (void)_window.release();
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
-        if (_app._printPreview.get() == this)
-        {
-            Printing::Stop(_app._printOperation);
-            _app.ClosePrintPreview();
-        }
         return DefWindowProcW(hwnd, message, wParam, lParam);
     }
     if (message == WM_GETMINMAXINFO)

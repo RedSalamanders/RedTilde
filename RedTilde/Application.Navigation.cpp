@@ -393,14 +393,14 @@ void Application::OpenFolder()
     AskWorkspaceThen([this]
     {
         const auto path = PickFile(false, false, true);
-        if (path.empty())
+        if (path.empty() || ! CanAcceptCommand() || ! IsUiAttached())
             return;
         ResetWorkspace();
         SetDocument({});
         SelectFilesRoot(path);
     });
 }
-bool Application::SwitchWorkspaceDocument(std::size_t index)
+bool Application::SwitchWorkspaceDocument(std::size_t index, bool savePreviousRecovery, bool refreshFiles)
 {
     _pendingBitmapPaste.reset();
     if (! CanAcceptCommand())
@@ -417,9 +417,12 @@ bool Application::SwitchWorkspaceDocument(std::size_t index)
     const auto current         = [&]
     { return ! IsClosing() && ! primaryLifetime.expired() && ! ownerLifetime.expired() && _editor == primary && _root == owner && _host.GetRoot() == owner; };
     const bool previousDirty = Dirty();
-    CheckpointRecovery(true);
-    if (! current())
-        return false;
+    if (savePreviousRecovery)
+    {
+        CheckpointRecovery(true);
+        if (! current())
+            return false;
+    }
     auto& document                     = _inactiveDocuments[index];
     const bool previousImageTransition = _imageBindingTransition;
     _imageBindingTransition            = true;
@@ -458,9 +461,13 @@ bool Application::SwitchWorkspaceDocument(std::size_t index)
     Changed();
     if (! current())
         return true;
-    RefreshFiles();
-    if (current())
-        _host.SetFocusControl(primary, MayRequestNativeFocus());
+    if (refreshFiles)
+    {
+        RefreshFiles();
+        if (! current())
+            return true;
+    }
+    _host.SetFocusControl(primary, MayRequestNativeFocus());
     return true;
 }
 bool Application::StartWorkspaceDocument()
@@ -591,7 +598,7 @@ void Application::CloseActiveDocument()
                 prevLower = index;
         }
         const std::size_t targetIndex = nextHigher ? nextHigher.value() : prevLower.value_or(0u);
-        if (! SwitchWorkspaceDocument(targetIndex) || ! IsUiAttached())
+        if (! SwitchWorkspaceDocument(targetIndex, false, false) || ! IsUiAttached())
             return;
         if (targetIndex < _inactiveDocuments.size())
         {
@@ -610,7 +617,7 @@ void Application::CloseActiveDocument()
 }
 bool Application::OpenDroppedFile(const std::filesystem::path& path)
 {
-    if (! CanAcceptCommand() || HasActiveModalPrompt())
+    if (! CanAcceptCommand() || HasActiveModalPrompt() || _printPreview)
         return false;
     if (HasBlockDraft())
     {
@@ -627,12 +634,6 @@ bool Application::OpenDroppedFile(const std::filesystem::path& path)
         Status(IDS_DROPUNSUPPORTED);
         return false;
     }
-    const DWORD attributes = GetFileAttributesW(path.c_str());
-    if (attributes == INVALID_FILE_ATTRIBUTES || (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
-    {
-        Status(IDS_DROPUNSUPPORTED);
-        return false;
-    }
     const auto extension        = path.extension().native();
     const auto matchesExtension = [&](std::wstring_view expected) noexcept
     {
@@ -641,6 +642,12 @@ bool Application::OpenDroppedFile(const std::filesystem::path& path)
                    CSTR_EQUAL;
     };
     if (! matchesExtension(L".md") && ! matchesExtension(L".markdown") && ! matchesExtension(L".txt"))
+    {
+        Status(IDS_DROPUNSUPPORTED);
+        return false;
+    }
+    const DWORD attributes = GetFileAttributesW(path.c_str());
+    if (attributes == INVALID_FILE_ATTRIBUTES || (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
     {
         Status(IDS_DROPUNSUPPORTED);
         return false;
@@ -910,22 +917,22 @@ void Application::FileMenu(bool overflow)
     if (_options.headless)
         return;
     std::vector<DxUi::MenuFlyoutItem> items;
-    auto add = [&](unsigned label, Command command, std::wstring accelerator = {})
+    auto add = [&](unsigned label, Command command, unsigned shortcut = 0u)
     {
         DxUi::MenuFlyoutItem item;
         item.text            = Resource(label);
         item.commandId       = static_cast<int>(command) + 1;
-        item.acceleratorText = std::move(accelerator);
+        item.acceleratorText = shortcut ? Resource(shortcut) : std::wstring{};
         items.push_back(std::move(item));
     };
     if (! overflow)
     {
-        add(IDS_NEW, Command::New, L"Ctrl+N");
-        add(IDS_OPEN, Command::Open, L"Ctrl+O");
-        add(IDS_OPENFOLDER, Command::OpenFolder, L"Ctrl+Shift+O");
-        add(IDS_SAVEAS, Command::SaveAs, L"Ctrl+Shift+S");
-        add(IDS_CLOSEDOCUMENT, Command::CloseDocument, L"Ctrl+W");
-        add(IDS_PRINT, Command::Print, L"Ctrl+P");
+        add(IDS_NEW, Command::New, IDS_SHORTCUT_NEW);
+        add(IDS_OPEN, Command::Open, IDS_SHORTCUT_OPEN);
+        add(IDS_OPENFOLDER, Command::OpenFolder, IDS_SHORTCUT_OPENFOLDER);
+        add(IDS_SAVEAS, Command::SaveAs, IDS_SHORTCUT_SAVEAS);
+        add(IDS_CLOSEDOCUMENT, Command::CloseDocument, IDS_SHORTCUT_CLOSEDOCUMENT);
+        add(IDS_PRINT, Command::Print, IDS_SHORTCUT_PRINT);
         add(IDS_IMAGERELOAD, Command::ReloadImages);
     }
     else

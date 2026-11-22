@@ -43,6 +43,10 @@ $context = New-CiProjectContext -Root $root -EngineRoot $EngineRoot -Phase $Phas
 function Run([string]$Script, [string[]]$CommandArguments = @()) {
     Invoke-CiProjectScript -Context $context -Script $Script -Arguments $CommandArguments
 }
+$previousNativeDisabled = [Environment]::GetEnvironmentVariable('CI_NATIVE_BUILDS_DISABLED', 'Process')
+$previousBuildNumber = [Environment]::GetEnvironmentVariable('RedTildeBuildNumber', 'Process')
+$previousEnableTests = [Environment]::GetEnvironmentVariable('RedTildeEnableTests', 'Process')
+try {
 if ($Phase -eq 'Static') {
     $env:CI_NATIVE_BUILDS_DISABLED = 'true'
     Test-CiProjectConfiguration $context
@@ -104,7 +108,7 @@ if ($Phase -eq 'Production') {
 if ($Platform -eq 'x64') { Run 'validate.ps1' }
 Assert-CiPeArchitecture -Path (Join-Path $root ".build/$Platform/$Configuration/RedTilde.exe") -Platform $Platform
 Run 'test.ps1' ($profile + @('-Full','-SkipTooling','-SkipBuild'))
-if ($Phase -eq 'Qualification') { Write-Host 'Explicit native qualification finished.'; return }
+if ($Phase -eq 'Qualification') { Write-Host 'Explicit qualification finished; it does not authorize production or publication.'; return }
 $receipts = @(Get-ChildItem $evidenceDirectory -Recurse -Filter 'receipt.json' -File | Where-Object LastWriteTimeUtc -ge $started)
 if ($receipts.Count -ne 1) { throw 'Expected one fresh native test receipt.' }
 $receipt = Get-Content $receipts[0].FullName -Raw | ConvertFrom-Json -AsHashtable
@@ -116,11 +120,12 @@ if (-not $receipt.passed -or @($cases).Count -ne @($catalog.cases).Count -or
 $probe = @($cases | Where-Object { $_ -ceq 'Utf8.CI_ASSERTION_PROBE' }).Count -eq 1
 $evidence = @{ discovered = @($catalog.cases).Count; executed = @($cases).Count; evidence = (Get-CiEvidenceReference @($receipts[0].FullName)) }
 $binaries = Get-CiProfileArtifacts -Context $context
-
-
-if ($Phase -eq 'Qualification') { Write-Host 'Explicit qualification finished; it does not authorize production or publication.'; return }
 $countUnit=if($evidence.Contains('countUnit')){$evidence.countUnit}else{'case'}
 $registered=if($evidence.Contains('registered')){[int]$evidence.registered}else{[int]$evidence.discovered}
 $expectedSkipped=if($evidence.Contains('expectedSkipped')){[int]$evidence.expectedSkipped}else{0}
 Write-CiRegressionReceipt -Context $context -Discovered $evidence.discovered -Executed $evidence.executed -AssertionProbePassed $probe -Artifacts $binaries -EvidenceDirectory $receiptDirectory -CanonicalEvidence $evidence.evidence -CountUnit $countUnit -Registered $registered -ExpectedSkipped $expectedSkipped
-if ($env:GITHUB_OUTPUT) { Add-Content -LiteralPath $env:GITHUB_OUTPUT -Value ('evidence_directory=' + $evidenceDirectory) }
+} finally {
+    [Environment]::SetEnvironmentVariable('CI_NATIVE_BUILDS_DISABLED', $(if ($null -eq $previousNativeDisabled) { [NullString]::Value } else { $previousNativeDisabled }), 'Process')
+    [Environment]::SetEnvironmentVariable('RedTildeBuildNumber', $(if ($null -eq $previousBuildNumber) { [NullString]::Value } else { $previousBuildNumber }), 'Process')
+    [Environment]::SetEnvironmentVariable('RedTildeEnableTests', $(if ($null -eq $previousEnableTests) { [NullString]::Value } else { $previousEnableTests }), 'Process')
+}

@@ -37,7 +37,7 @@ public:
 #endif
     void SetTheme(const DxUi::ThemePalette& theme) noexcept;
     void SetDestinations(Printing::Destinations destinations);
-    void SetConfiguration(const Printing::PrinterConfiguration* configuration, bool keepJobValues);
+    void SetConfiguration(const Printing::PrinterConfiguration* configuration, bool keepJobValues, bool configurationPending = false);
     void BeginRendering(std::wstring_view status = {});
     void Present(Printing::PreviewPage page, std::wstring status);
     void SetStatus(std::wstring status);
@@ -81,7 +81,7 @@ private:
     DxUi::TextField *_page{}, *_ranges{}, *_copies{};
     DxUi::Checkbox *_collate{}, *_file{};
     DxUi::Button *_previous{}, *_next{}, *_zoom{}, *_current{}, *_close{}, *_print{};
-    bool _ownerDisabled{}, _fitWidth{}, _scrollToPageEnd{}, _rendering{}, _waitingTimerArmed{};
+    bool _ownerDisabled{}, _fitWidth{}, _scrollToPageEnd{}, _rendering{}, _waitingTimerArmed{}, _configurationPending{};
     std::optional<Action> _pendingAction;
 };
 } // namespace RedTilde

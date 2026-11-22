@@ -73,7 +73,7 @@ Code, tools, tests, scripts, and AI agents **DO NOT HAVE THE RIGHT** to create, 
 (2) an explicitly owner-authorized `RedTilde.Perf` drive-root root with its verified ownership marker, or
 (3) an explicitly manifest-declared dedicated `selftest` root strictly inside a unique per-run subfolder (`redtilde-run-<guid>`) with cleanup on exit and no junction traversal.
 
-Never write to arbitrary drive roots, `%USERPROFILE%`, Desktop, Documents, undeclared personal/work OneDrive folders, network media shares (such as `\\rubygloom\Multimedia`), or out-of-scope siblings; matching names, environment variables, or low disk space never grant authorization — fail closed before writing. Keep outputs beneath approved roots, never invent sibling drive-root folders, and never follow junctions during cleanup or leave compatibility junctions at forbidden old drive-root paths.
+Never write to arbitrary drive roots, `%USERPROFILE%`, Desktop, Documents, undeclared personal/work OneDrive folders, network media shares (such as `\\fileserver.example.invalid\Multimedia`), or out-of-scope siblings; matching names, environment variables, or low disk space never grant authorization — fail closed before writing. Keep outputs beneath approved roots, never invent sibling drive-root folders, and never follow junctions during cleanup or leave compatibility junctions at forbidden old drive-root paths.
 
 ## Workflow
 

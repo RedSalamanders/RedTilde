@@ -170,9 +170,14 @@ HRESULT Application::BuildUi()
     _saveState = Label(*_saveStateChip, IDS_SAVED, DxUi::FontRole::Small);
     THROW_IF_FAILED(_saveState->SetTypographyOverride(DxUi::LabelTypography{12.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
     _saveState->SetAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
-    for (unsigned index = 0; index < 3; ++index)
+    constexpr std::array<std::pair<unsigned, Command>, 3> viewModes{{
+        {IDS_COMPOSE, Command::Compose},
+        {IDS_SOURCE, Command::Source},
+        {IDS_SPLIT, Command::Split},
+    }};
+    for (unsigned index = 0; index < viewModes.size(); ++index)
     {
-        _modeButtons[index] = Action(*_documentBar, IDS_COMPOSE + index, static_cast<Command>(static_cast<unsigned>(Command::Compose) + index));
+        _modeButtons[index] = Action(*_documentBar, viewModes[index].first, viewModes[index].second);
         _modeButtons[index]->SetAccessibleAutomationId(std::format(L"RedTilde.View{}", index));
         _modeButtons[index]->SetAppearance(DxUi::ButtonAppearance::Tab);
     }
@@ -343,7 +348,7 @@ HRESULT Application::BuildUi()
 
     _currentBlockTitle = Label(*_sidebar, IDS_CURRENTSECTION, DxUi::FontRole::Small);
     Section(_currentBlockTitle);
-    _outlineCount = Label(*_sidebar, IDS_OUTLINECOUNT, DxUi::FontRole::Small);
+    _outlineCount = Label(*_sidebar, IDS_EMPTY, DxUi::FontRole::Small);
     THROW_IF_FAILED(_outlineCount->SetTypographyOverride(DxUi::LabelTypography{11.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
     _outlineCount->SetAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
     _contextDivider         = _sidebar->AddChild<DxUi::Separator>();
@@ -446,8 +451,14 @@ HRESULT Application::BuildUi()
     _settingsScroll = _drawer->AddChild<DxUi::ScrollPanel>();
     Label(*_settingsScroll, IDS_SETTINGS, DxUi::FontRole::Subtitle);
     Section(Label(*_settingsScroll, IDS_APPEARANCESECTION, DxUi::FontRole::Small));
-    for (unsigned index = 0; index < 4; ++index)
-        _themeButtons.push_back(Action(*_settingsScroll, IDS_SYSTEM + index, static_cast<Command>(static_cast<unsigned>(Command::ThemeSystem) + index)));
+    constexpr std::array<std::pair<unsigned, Command>, 4> themes{{
+        {IDS_SYSTEM, Command::ThemeSystem},
+        {IDS_LIGHT, Command::ThemeLight},
+        {IDS_DARK, Command::ThemeDark},
+        {IDS_PAPER, Command::ThemePaper},
+    }};
+    for (const auto& [label, command] : themes)
+        _themeButtons.push_back(Action(*_settingsScroll, label, command));
     _readingWidth = _settingsScroll->AddChild<DxUi::NumericStepper>();
     _readingWidth->SetLabel(Resource(IDS_READINGWIDTH), 140);
     _readingWidth->SetMinimum(480);
@@ -486,14 +497,28 @@ HRESULT Application::BuildUi()
     Section(_syntaxTitle);
     _syntaxIntro = Label(*_settingsScroll, IDS_SYNTAXINTRO, DxUi::FontRole::Small);
     _syntaxIntro->SetMultiline(true);
-    for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
+    struct SyntaxToggleRow
     {
-        const auto offset = static_cast<unsigned>(index);
-        const auto help   = Resource(IDS_SYNTAXHIGHLIGHTHELP + offset);
-        _syntaxToggles[index] =
-            Action(*_settingsScroll, IDS_SYNTAXHIGHLIGHT + offset, static_cast<Command>(static_cast<unsigned>(Command::SyntaxHighlight) + offset), help);
+        unsigned label{};
+        unsigned help{};
+        Command command{};
+    };
+    constexpr std::array<SyntaxToggleRow, MarkdownSyntaxCount> syntaxRows{{
+        {IDS_SYNTAXHIGHLIGHT, IDS_SYNTAXHIGHLIGHTHELP, Command::SyntaxHighlight},
+        {IDS_SYNTAXSUPERSCRIPT, IDS_SYNTAXSUPERSCRIPTHELP, Command::SyntaxSuperscript},
+        {IDS_SYNTAXSUBSCRIPT, IDS_SYNTAXSUBSCRIPTHELP, Command::SyntaxSubscript},
+        {IDS_SYNTAXINSERTED, IDS_SYNTAXINSERTEDHELP, Command::SyntaxInserted},
+        {IDS_SYNTAXWIKILINKS, IDS_SYNTAXWIKILINKSHELP, Command::SyntaxWikiLinks},
+        {IDS_SYNTAXDEFINITIONS, IDS_SYNTAXDEFINITIONSHELP, Command::SyntaxDefinitionLists},
+        {IDS_SYNTAXABBREVIATIONS, IDS_SYNTAXABBREVIATIONSHELP, Command::SyntaxAbbreviations},
+    }};
+    for (std::size_t index = 0; index < syntaxRows.size(); ++index)
+    {
+        const auto& row       = syntaxRows[index];
+        const auto help       = Resource(row.help);
+        _syntaxToggles[index] = Action(*_settingsScroll, row.label, row.command, help);
         _syntaxToggles[index]->SetAccessibleHelpText(help);
-        _syntaxHelp[index] = Label(*_settingsScroll, IDS_SYNTAXHIGHLIGHTHELP + offset, DxUi::FontRole::Small);
+        _syntaxHelp[index] = Label(*_settingsScroll, row.help, DxUi::FontRole::Small);
         _syntaxHelp[index]->SetMultiline(true);
     }
     _privacyTitle = Label(*_settingsScroll, IDS_PRIVACYSECTION, DxUi::FontRole::Small);
@@ -563,7 +588,7 @@ HRESULT Application::BuildUi()
     _recoveryPanel = _root->AddChild<Surface>(Surface::Kind::Floating);
     _recoveryPanel->SetVisible(false);
     Label(*_recoveryPanel, IDS_RECOVERY, DxUi::FontRole::Subtitle);
-    _recoveryDescription = Label(*_recoveryPanel, IDS_RECOVERYHELP, DxUi::FontRole::Small);
+    _recoveryDescription = Label(*_recoveryPanel, IDS_EMPTY, DxUi::FontRole::Small);
     _recoveryDescription->SetMultiline(true);
     _recoveryPreview = _recoveryPanel->AddChild<DxUi::TextField>();
     _recoveryPreview->SetMultiline(true);
@@ -808,7 +833,7 @@ void Application::Layout()
         DxUi::DesiredSize desired;
         const HRESULT measured = DxUi::MeasureControl(*_filesCount, {_host}, DxUi::LayoutConstraints::AtMost(footerWidth), desired);
         if (measured == E_OUTOFMEMORY)
-            std::terminate();
+            DxUi::Failure::FailAllocation();
         THROW_IF_FAILED(measured);
         _filesFooterMeasure.widthDip     = footerWidth;
         _filesFooterMeasure.heightDip    = std::max(24.f, std::ceil(desired.sizeDip.height));

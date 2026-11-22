@@ -17,6 +17,7 @@ $localSdkMode=[bool]($LocalSdkBuildReceipt -or $LocalSdkBuildSha256)
 if($localSdkMode -and (-not $IsWindows -or $env:GITHUB_ACTIONS -ceq 'true' -or $env:CI_NATIVE_BUILDS_DISABLED -ceq 'true')){
     throw 'Local SDK runtime requires local Windows native execution.'
 }
+if($Suites.Count){$Suites=@($Suites|ForEach-Object{$_ -split ','}|ForEach-Object{$_.Trim()}|Where-Object{$_}|Sort-Object -Unique)}
 $localSdkSuites=@('Storage','Settings','Recovery','Editor','Preferences','RecoveryRestart','Performance','Captures','Crash')
 if($localSdkMode -and (-not $LocalSdkBuildReceipt -or $LocalSdkBuildSha256 -cnotmatch '^[a-f0-9]{64}$' -or
     $Configuration -cne 'Release' -or -not $SkipBuild -or $Full -or -not $Suites.Count -or @($Suites|Where-Object{$_ -cnotin $localSdkSuites}).Count)){

@@ -4,7 +4,7 @@ Opt-in, fail-closed real-location qualification harness for RedTilde (SMB/NAS, O
 .DESCRIPTION
 Never invoked automatically by default headless runs or hosted CI. Validates a manifest-declared selftest root,
 refuses drive roots, user profile/Desktop/Documents/undeclared OneDrive roots, non-selftest network shares
-(such as \\rubygloom\Multimedia), relative paths, '.'/'..' traversal, shallow 2-segment UNC roots, and surrogate
+(such as \\fileserver.example.invalid\Multimedia), relative paths, '.'/'..' traversal, shallow 2-segment UNC roots, and surrogate
 symlink/junction reparse paths. When reachable and -DryRun is not set, stages a UTF-8 showcase Markdown document
 inside a unique per-run redtilde-run-<guid> subfolder beneath the verified selftest root, executes RedTilde.exe
 --capture, verifies capture output and untouched document bytes/BOM, and cleans up without following reparse points.
@@ -86,6 +86,58 @@ function Test-RedTildeSurrogateLinkItem {
     return $false
 }
 
+function Get-RedTildeExistingItemOrReparseAttributes {
+    param([Parameter(Mandatory)][string]$Path)
+    try {
+        return [IO.File]::GetAttributes($Path)
+    } catch [IO.FileNotFoundException] {
+        return $null
+    } catch [IO.DirectoryNotFoundException] {
+        return $null
+    }
+}
+
+function Invoke-RedTildeRealLocationProcess {
+    param(
+        [Parameter(Mandatory)][string]$Executable,
+        [Parameter(Mandatory)][string[]]$Arguments,
+        [Parameter(Mandatory)][string]$StdoutPath,
+        [Parameter(Mandatory)][string]$StderrPath,
+        [Parameter(Mandatory)][int]$TimeoutMs
+    )
+    $start = [Diagnostics.ProcessStartInfo]::new($Executable)
+    $start.UseShellExecute = $false
+    $start.CreateNoWindow = $true
+    $start.RedirectStandardOutput = $true
+    $start.RedirectStandardError = $true
+    foreach ($argument in $Arguments) {
+        $start.ArgumentList.Add($argument)
+    }
+    $process = [Diagnostics.Process]::new()
+    $process.StartInfo = $start
+    try {
+        if (-not $process.Start()) {
+            throw "Failed to launch process '$Executable'."
+        }
+        $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+        $stderrTask = $process.StandardError.ReadToEndAsync()
+        $timedOut = -not $process.WaitForExit($TimeoutMs)
+        if ($timedOut) {
+            try { $process.Kill($true) } catch [InvalidOperationException] { }
+            [void]$process.WaitForExit(15000)
+        }
+        $utf8NoBom = [Text.UTF8Encoding]::new($false)
+        [IO.File]::WriteAllText($StdoutPath, $stdoutTask.GetAwaiter().GetResult(), $utf8NoBom)
+        [IO.File]::WriteAllText($StderrPath, $stderrTask.GetAwaiter().GetResult(), $utf8NoBom)
+        return [pscustomobject]@{
+            TimedOut = $timedOut
+            ExitCode = if ($timedOut) { -1 } else { $process.ExitCode }
+        }
+    } finally {
+        $process.Dispose()
+    }
+}
+
 function Assert-RedTildeSafePathAncestry {
     param(
         [Parameter(Mandatory)][string]$FullPath,
@@ -119,14 +171,21 @@ function Assert-RedTildeSafePathAncestry {
     }
 
     foreach ($candidate in $candidates) {
-        if (-not (Test-Path -LiteralPath $candidate)) {
+        $attrs = Get-RedTildeExistingItemOrReparseAttributes -Path $candidate
+        if ($null -eq $attrs) {
             continue
         }
-        $item = Get-Item -LiteralPath $candidate -Force -ErrorAction Stop
+        $item = Get-Item -LiteralPath $candidate -Force -ErrorAction SilentlyContinue
+        if ($null -eq $item) {
+            if (($attrs -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw "$Description must not traverse or target an inaccessible or dangling reparse point: $candidate"
+            }
+            continue
+        }
         if (Test-RedTildeSurrogateLinkItem -Item $item) {
             throw "$Description must not be or traverse a symlink or junction: $candidate"
         }
-        if (($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        if (($attrs -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
             if (-not $AllowNonSurrogateCloudReparse) {
                 throw "$Description must not be or traverse a reparse point: $candidate"
             }
@@ -143,7 +202,7 @@ function Assert-RedTildeAllowedSelftestRoot {
     )
 
     $raw = Test-RedTildePathText -Value $Path -Description "Selftest root ($Kind)"
-    if ($raw.StartsWith('\\?\') -or $raw.StartsWith('\\.\')) {
+    if ($raw -match '^(?:[\\/]{2}[?.][\\/]|[\\/]\?\?[\\/])') {
         throw "Selftest root must use ordinary Win32 or UNC path syntax, not device-namespace syntax: $raw"
     }
     if (-not [IO.Path]::IsPathFullyQualified($raw)) {
@@ -152,6 +211,9 @@ function Assert-RedTildeAllowedSelftestRoot {
     Assert-RedTildeNoDotSegments -Path $raw -Description 'Selftest root'
 
     $normalized = [IO.Path]::GetFullPath($raw).TrimEnd('\', '/')
+    if ($normalized -match '^(?:[\\/]{2}[?.][\\/]|[\\/]\?\?[\\/])') {
+        throw "Selftest root resolves to forbidden device-namespace syntax: $raw"
+    }
     if ($normalized.Length -eq 2 -and $normalized[1] -eq ':') {
         $normalized = "$normalized\"
     }
@@ -194,9 +256,15 @@ function Assert-RedTildeAllowedSelftestRoot {
         throw "Selftest root must include an explicit subdirectory segment containing 'selftest': $raw"
     }
 
-    foreach ($forbiddenFolder in @([Environment]::GetFolderPath('Desktop'), [Environment]::GetFolderPath('MyDocuments'))) {
+    $forbiddenCandidates = @(
+        [Environment]::GetFolderPath('Desktop'),
+        [Environment]::GetFolderPath('MyDocuments'),
+        $(if ($env:USERPROFILE) { Join-Path $env:USERPROFILE 'Desktop' }),
+        $(if ($env:USERPROFILE) { Join-Path $env:USERPROFILE 'Documents' })
+    )
+    foreach ($forbiddenFolder in $forbiddenCandidates) {
         if (-not [string]::IsNullOrWhiteSpace($forbiddenFolder)) {
-            $forbiddenFull = [IO.Path]::GetFullPath($forbiddenFolder).TrimEnd('\')
+            $forbiddenFull = [IO.Path]::GetFullPath($forbiddenFolder).TrimEnd('\', '/')
             if ($normalized.Equals($forbiddenFull, [StringComparison]::OrdinalIgnoreCase) -or
                 $normalized.StartsWith("$forbiddenFull\", [StringComparison]::OrdinalIgnoreCase)) {
                 throw "Selftest root must never target Desktop or Documents folders: $raw"
@@ -222,7 +290,7 @@ function Test-RedTildeRealLocationManifest {
     )
 
     $rawManifest = Test-RedTildePathText -Value $ManifestPath -Description 'ManifestPath'
-    if ($rawManifest.StartsWith('\\?\') -or $rawManifest.StartsWith('\\.\')) {
+    if ($rawManifest -match '^(?:[\\/]{2}[?.][\\/]|[\\/]\?\?[\\/])') {
         throw "ManifestPath must use ordinary path syntax: $rawManifest"
     }
     if (-not [IO.Path]::IsPathFullyQualified($rawManifest)) {
@@ -231,6 +299,9 @@ function Test-RedTildeRealLocationManifest {
     Assert-RedTildeNoDotSegments -Path $rawManifest -Description 'ManifestPath'
 
     $fullManifest = [IO.Path]::GetFullPath($rawManifest)
+    if ($fullManifest -match '^(?:[\\/]{2}[?.][\\/]|[\\/]\?\?[\\/])') {
+        throw "ManifestPath resolves to forbidden device-namespace syntax: $rawManifest"
+    }
     if (-not (Test-Path -LiteralPath $fullManifest -PathType Leaf)) {
         throw "Real-location manifest does not exist: $fullManifest"
     }
@@ -307,29 +378,29 @@ function Remove-RedTildeDirectoryNoReparse {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$Path)
 
-    if (-not (Test-Path -LiteralPath $Path)) {
+    $attrs = Get-RedTildeExistingItemOrReparseAttributes -Path $Path
+    if ($null -eq $attrs) {
         return
     }
-    $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
-    if (Test-RedTildeSurrogateLinkItem -Item $item) {
-        if ($item.PSIsContainer) {
+    if (($attrs -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        if (($attrs -band [IO.FileAttributes]::Directory) -ne 0) {
             [IO.Directory]::Delete($Path, $false)
         } else {
             [IO.File]::Delete($Path)
         }
         return
     }
+    $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
     if (-not $item.PSIsContainer) {
-        if ((($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) -and
-            (($item.Attributes -band [IO.FileAttributes]::ReadOnly) -ne 0)) {
-            [IO.File]::SetAttributes($Path, ($item.Attributes -band (-bnot [IO.FileAttributes]::ReadOnly)))
+        if ((($attrs -band [IO.FileAttributes]::ReadOnly) -ne 0)) {
+            [IO.File]::SetAttributes($Path, ($attrs -band (-bnot [IO.FileAttributes]::ReadOnly)))
         }
         [IO.File]::Delete($Path)
         return
     }
 
     foreach ($child in @(Get-ChildItem -LiteralPath $Path -Force -ErrorAction Stop)) {
-        if (Test-RedTildeSurrogateLinkItem -Item $child) {
+        if ((($child.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0)) {
             if ($child.PSIsContainer) {
                 [IO.Directory]::Delete($child.FullName, $false)
             } else {
@@ -338,16 +409,14 @@ function Remove-RedTildeDirectoryNoReparse {
         } elseif ($child.PSIsContainer) {
             Remove-RedTildeDirectoryNoReparse -Path $child.FullName
         } else {
-            if ((($child.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) -and
-                (($child.Attributes -band [IO.FileAttributes]::ReadOnly) -ne 0)) {
+            if ((($child.Attributes -band [IO.FileAttributes]::ReadOnly) -ne 0)) {
                 [IO.File]::SetAttributes($child.FullName, ($child.Attributes -band (-bnot [IO.FileAttributes]::ReadOnly)))
             }
             [IO.File]::Delete($child.FullName)
         }
     }
-    if ((($item.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) -and
-        (($item.Attributes -band [IO.FileAttributes]::ReadOnly) -ne 0)) {
-        [IO.File]::SetAttributes($Path, ($item.Attributes -band (-bnot [IO.FileAttributes]::ReadOnly)))
+    if ((($attrs -band [IO.FileAttributes]::ReadOnly) -ne 0)) {
+        [IO.File]::SetAttributes($Path, ($attrs -band (-bnot [IO.FileAttributes]::ReadOnly)))
     }
     [IO.Directory]::Delete($Path, $false)
 }
@@ -463,21 +532,20 @@ function Invoke-RedTildeRealLocationRun {
 
             $stdoutPath = Join-Path $runScratchRoot 'stdout.log'
             $stderrPath = Join-Path $runScratchRoot 'stderr.log'
-            $proc = Start-Process -FilePath $exe -ArgumentList @(
+            $capProc = Invoke-RedTildeRealLocationProcess -Executable $exe -Arguments @(
                 '--capture', $capturePath,
                 '--scenario', 'sample-document',
                 '--document', $docPath,
                 '--data-dir', $dataDir
-            ) -NoNewWindow -PassThru -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath
-            if (-not $proc.WaitForExit(120000)) {
+            ) -StdoutPath $stdoutPath -StderrPath $stderrPath -TimeoutMs 120000
+            if ($capProc.TimedOut) {
                 $keepLogs = $true
-                $proc.Kill($true)
                 throw "RedTilde.exe --capture timed out after 120s for '$($target.id)' ($verifiedRoot)."
             }
 
-            if ($proc.ExitCode -ne 0) {
+            if ($capProc.ExitCode -ne 0) {
                 $keepLogs = $true
-                throw "RedTilde.exe --capture exited with code $($proc.ExitCode) for '$($target.id)' ($verifiedRoot)."
+                throw "RedTilde.exe --capture exited with code $($capProc.ExitCode) for '$($target.id)' ($verifiedRoot)."
             }
             if (-not (Test-Path -LiteralPath $capturePath -PathType Leaf)) {
                 $keepLogs = $true
@@ -514,22 +582,22 @@ function Invoke-RedTildeRealLocationRun {
                     $suiteStdout = Join-Path $runScratchRoot "$scopeName.stdout.log"
                     $suiteStderr = Join-Path $runScratchRoot "$scopeName.stderr.log"
                     $suiteReportDest = Join-Path $runScratchRoot "$scopeName.tests.json"
-                    $suiteProc = Start-Process -FilePath $exe -ArgumentList @(
+                    $suiteProc = Invoke-RedTildeRealLocationProcess -Executable $exe -Arguments @(
                         '--self-test',
                         '--test-scope', $scopeName,
                         '--data-dir', $suiteDataDir
-                    ) -NoNewWindow -PassThru -RedirectStandardOutput $suiteStdout -RedirectStandardError $suiteStderr
-                    $timedOut = -not $suiteProc.WaitForExit(180000)
+                    ) -StdoutPath $suiteStdout -StderrPath $suiteStderr -TimeoutMs 180000
+                    $timedOut = $suiteProc.TimedOut
                     if ($timedOut) {
                         $keepLogs = $true
-                        $suiteProc.Kill($true)
                     }
-                    $suiteExit = if ($timedOut) { -1 } else { $suiteProc.ExitCode }
+                    $suiteExit = $suiteProc.ExitCode
 
                     $reportSource = Join-Path $suiteDataDir 'tests.json'
                     $passedCount = 0
                     $failedCount = 0
                     $selectedCount = 0
+                    $catalogOnly = $false
                     $failedCases = @()
                     if (Test-Path -LiteralPath $reportSource -PathType Leaf) {
                         Copy-Item -LiteralPath $reportSource -Destination $suiteReportDest -Force
@@ -537,6 +605,7 @@ function Invoke-RedTildeRealLocationRun {
                         $passedCount = [int]$report.passed
                         $failedCount = [int]$report.failed
                         $selectedCount = [int]$report.selected
+                        $catalogOnly = if ($report.PSObject.Properties['catalogOnly']) { [bool]$report.catalogOnly } else { $false }
                         $failedCases = @($report.tests | Where-Object { -not $_.passed } | ForEach-Object {
                                 [pscustomobject]@{
                                     name  = [string]$_.name
@@ -545,7 +614,7 @@ function Invoke-RedTildeRealLocationRun {
                             })
                     }
 
-                    $suiteOk = (-not $timedOut) -and ($suiteExit -eq 0) -and ($failedCount -eq 0) -and ($selectedCount -gt 0)
+                    $suiteOk = (-not $timedOut) -and ($suiteExit -eq 0) -and ($failedCount -eq 0) -and ($selectedCount -gt 0) -and ($passedCount -eq $selectedCount) -and (-not $catalogOnly)
                     if (-not $suiteOk) {
                         $allSuitesPassed = $false
                         $keepLogs = $true
@@ -576,6 +645,9 @@ function Invoke-RedTildeRealLocationRun {
                     logDirectory     = if ($keepLogs) { ".build/real-location-runs/$runId" } else { $null }
                     status           = if ($allSuitesPassed) { 'PASSED' } else { 'NATIVE_SUITE_FAILED' }
                 })
+        } catch {
+            $keepLogs = $true
+            throw
         } finally {
             if ($createdRunRoot) {
                 Remove-RedTildeDirectoryNoReparse -Path $runRoot

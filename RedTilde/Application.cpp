@@ -317,7 +317,11 @@ HRESULT Application::Initialize()
 {
     if (_options.dataDirectory.empty())
         _options.dataDirectory = DefaultDataDirectory();
-    if (_startupRestore.enabled || _options.preferencesProbe || ! _options.headless)
+    if (_startupRestore.enabled || _options.preferencesProbe || ! _options.headless
+#if defined(REDTILDE_ENABLE_TESTS)
+        || _options.watchSettingsForTest
+#endif
+    )
     {
         SettingsLoadResult loaded = LoadSettingsCold(_options.dataDirectory);
         _settings                 = std::move(loaded.settings);
@@ -387,12 +391,18 @@ HRESULT Application::Initialize()
         if (! SetWindowPos(
                 _window.get(), nullptr, bounds.left, bounds.top, bounds.right - bounds.left, bounds.bottom - bounds.top, SWP_NOZORDER | SWP_NOACTIVATE))
             return HRESULT_FROM_WIN32(GetLastError());
-        const bool maximized      = _settings.windowPlacement && _settings.windowPlacement.value().maximized;
-        _settings.windowPlacement = WindowPlacementSettings{bounds, actualDpi, maximized};
-        _windowPlacementDirty     = true;
+        const auto priorPlacement = _settings.windowPlacement;
+        const bool maximized      = priorPlacement && priorPlacement.value().maximized;
+        const WindowPlacementSettings resolved{bounds, actualDpi, maximized};
+        _settings.windowPlacement = resolved;
+        _windowPlacementDirty = ! priorPlacement || ! EqualRect(&priorPlacement->normalBounds, &resolved.normalBounds) || priorPlacement->dpi != resolved.dpi ||
+                                priorPlacement->maximized != resolved.maximized;
     }
     if (! _host.Attach(_window.get(), {.forceWarp = _options.forceWarp, .batchInitialRootChildren = true}))
-        return HRESULT_FROM_WIN32(GetLastError());
+    {
+        const DWORD error = GetLastError();
+        return error ? HRESULT_FROM_WIN32(error) : E_FAIL;
+    }
     _files.Initialize(_window.get(), FileReady);
 #if defined(REDTILDE_ENABLE_TESTS)
     _files.SetTestGate(_options.fileGateForTest);
@@ -599,7 +609,7 @@ void Application::RequestOpenLink(const DxUi::RichTextLinkActivation& activation
     if (_externalLink)
     {
         std::lock_guard lock(_externalLink->mutex);
-        if (_externalLink->phase == ExternalLinkState::Phase::LaunchingSta)
+        if (_externalLink->phase == ExternalLinkState::Phase::LaunchingSta || _externalLink->phase == ExternalLinkState::Phase::CompletedPendingDrain)
         {
             // No UI callback or status publication while holding a worker lock.
             return;
@@ -666,8 +676,7 @@ void Application::RequestOpenLink(const DxUi::RichTextLinkActivation& activation
     }
     {
         std::lock_guard lock(_externalLink->mutex);
-        if (_externalLink->phase == ExternalLinkState::Phase::LaunchingSta || _externalLink->phase == ExternalLinkState::Phase::Closed ||
-            ! _externalLink->window)
+        if (_externalLink->phase != ExternalLinkState::Phase::Idle || ! _externalLink->window)
             admitted = HRESULT_FROM_WIN32(ERROR_BUSY);
         else
         {
@@ -1314,13 +1323,13 @@ void Application::RecoveryCompleted()
         ShowRecovery();
     if (FAILED(_recovery.Status()))
         Status(IDS_RECOVERYFAILED);
-    if (! _recoveryOffered && _recovery.Ready())
+    if (! _recoveryOffered && _recovery.Ready() && ! HasActiveModalPrompt())
     {
         _recoveryOffered = true;
         if (! _recoveryCandidates.empty() && (_startupRestore.enabled || _options.recoveryRestartProbe || _options.scenario == L"recovery"))
             ShowRecovery();
     }
-    if (_startupRestore.IsWaitingForRecovery() && _recovery.Ready())
+    if (_startupRestore.IsWaitingForRecovery() && _recovery.Ready() && ! HasActiveModalPrompt())
     {
         if (SUCCEEDED(_recovery.Status()) && _recoveryCandidates.empty() && _startupRestore.source &&
             _editor->Snapshot().IsSameRevision(_startupRestore.source.value()) && ! _settings.lastDocument.empty() && _session.path.empty() &&
@@ -1733,17 +1742,36 @@ void Application::SavePreferences()
 
 void Application::ReloadSettingsFromDisk()
 {
+    if (_preferenceWriter.Busy())
+    {
+        _settingsReloadDeferred = true;
+        return;
+    }
+    if (_window)
+        (void)KillTimer(_window.get(), SettingsRetryTimerId);
     Settings reloaded;
     FileStamp stamp{};
     const HRESULT loadResult = LoadSettingsLive(_options.dataDirectory, reloaded, &stamp);
     if (FAILED(loadResult))
     {
+        if (loadResult == HRESULT_FROM_WIN32(ERROR_RETRY))
+        {
+            if (_settingsReloadRetries < 3u && _window)
+            {
+                ++_settingsReloadRetries;
+                (void)SetTimer(_window.get(), SettingsRetryTimerId, 150u, nullptr);
+            }
+            return;
+        }
+        _settingsReloadRetries = 0u;
         if (loadResult == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND) || loadResult == HRESULT_FROM_WIN32(ERROR_SHARING_VIOLATION))
             return;
         OutputDebugStringW(L"RedTilde: ignoring malformed live settings edit on disk\n");
         MonitorDiagnostics::Write(RedMonitor::Severity::Warning, L"Ignoring malformed live settings edit on disk");
         return;
     }
+    _settingsReloadRetries  = 0u;
+    _settingsReloadDeferred = false;
 
     if (stamp == _settingsFileStamp)
         return;
@@ -2235,7 +2263,7 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         case Command::Image:
         {
             const auto path = PickFile(false, true);
-            if (path.empty())
+            if (path.empty() || ! CanAcceptCommand() || ! IsUiAttached() || ! _editor)
                 return;
             DxUi::TextClipboardContent content;
             content.filePaths.push_back(path.native());
@@ -2502,12 +2530,12 @@ void Application::ApplyBlockSource()
 std::vector<DxUi::MenuFlyoutItem> Application::ContextMenuItems(bool insertOnly, bool headingOnly)
 {
     std::vector<DxUi::MenuFlyoutItem> items;
-    auto add = [&](unsigned label, Command command, std::wstring accelerator = {})
+    auto add = [&](unsigned label, Command command, unsigned shortcut = 0u)
     {
         DxUi::MenuFlyoutItem item;
         item.text            = Resource(label);
         item.commandId       = static_cast<int>(command) + 1;
-        item.acceleratorText = std::move(accelerator);
+        item.acceleratorText = shortcut ? Resource(shortcut) : std::wstring{};
         items.push_back(std::move(item));
     };
     if (! insertOnly)
@@ -2518,12 +2546,12 @@ std::vector<DxUi::MenuFlyoutItem> Application::ContextMenuItems(bool insertOnly,
         add(IDS_H3, Command::H3);
         if (! headingOnly)
         {
-            add(IDS_BOLD, Command::Bold, L"Ctrl+B");
-            add(IDS_ITALIC, Command::Italic, L"Ctrl+I");
+            add(IDS_BOLD, Command::Bold, IDS_SHORTCUT_BOLD);
+            add(IDS_ITALIC, Command::Italic, IDS_SHORTCUT_ITALIC);
             add(IDS_STRIKE, Command::Strike);
-            add(IDS_CODE, Command::Code);
+            add(IDS_CODE, Command::Code, IDS_SHORTCUT_CODE);
             add(IDS_NUMBERED, Command::Numbered);
-            add(IDS_LOCAL, Command::LocalSource, L"F2");
+            add(IDS_LOCAL, Command::LocalSource, IDS_SHORTCUT_LOCAL);
             if (CurrentLinkElement(_editor->GetSemanticDocument()))
                 add(IDS_OPENLINK, Command::OpenLink);
             add(IDS_ROWADD, Command::RowAdd);
@@ -2534,7 +2562,7 @@ std::vector<DxUi::MenuFlyoutItem> Application::ContextMenuItems(bool insertOnly,
     }
     if (! headingOnly)
     {
-        add(IDS_LINK, Command::Link);
+        add(IDS_LINK, Command::Link, IDS_SHORTCUT_LINK);
         add(IDS_IMAGE, Command::Image);
         add(IDS_TABLE, Command::Table);
         add(IDS_MERMAID, Command::Mermaid);
@@ -2584,6 +2612,10 @@ void Application::Menu(POINT point, bool insertOnly, bool headingOnly)
 
 std::filesystem::path Application::PickFile(bool saving, bool image, bool folder)
 {
+    if (! CanAcceptCommand() || HasActiveModalPrompt())
+        return {};
+    _modalPrompt             = ModalPromptKind::FileDialog;
+    const auto restorePrompt = wil::scope_exit([&]() noexcept { _modalPrompt = ModalPromptKind::None; });
 #if defined(REDTILDE_ENABLE_TESTS)
     if (_options.headless && _options.filePickerForTest && ! image && ! folder)
         return _options.filePickerForTest(saving);
@@ -2680,6 +2712,8 @@ void Application::AskThen(std::function<void()> continuation)
                                                  Resource(IDS_APP).c_str(),
                                                  static_cast<UINT>(MB_ICONQUESTION | MB_YESNOCANCEL | MB_DEFBUTTON3));
     }
+    if (! CanAcceptCommand())
+        return;
     if (choice == IDNO)
         continuation();
     else if (choice == IDYES)
@@ -2723,7 +2757,7 @@ void Application::Open()
     AskWorkspaceThen([this]
     {
         const auto path = PickFile(false);
-        if (path.empty())
+        if (path.empty() || ! CanAcceptCommand() || ! IsUiAttached() || ! _editor)
             return;
         auto entrySource = _editor->Snapshot();
         const HRESULT hr = _files.Submit(false, path);
@@ -2763,12 +2797,7 @@ void Application::Save(bool saveAs, bool force, std::optional<std::filesystem::p
     auto path = selectedPath ? selectedPath.value() : _session.path;
     if (! selectedPath && (saveAs || path.empty()))
         path = PickFile(true);
-    if (path.empty())
-    {
-        _activeFileTx = std::monostate{};
-        return;
-    }
-    if (! CanAcceptCommand())
+    if (path.empty() || ! CanAcceptCommand() || ! IsUiAttached() || ! _editor)
     {
         _activeFileTx = std::monostate{};
         return;
@@ -2786,8 +2815,9 @@ void Application::Save(bool saveAs, bool force, std::optional<std::filesystem::p
     const HRESULT hr = _files.Submit(true, path, _editor->GetText(), _session.bom, expected, sameIdentityOnly, false, _session.path, protection);
     if (FAILED(hr))
     {
-        _activeFileTx = std::monostate{};
-        Status(IDS_SAVEFAILED);
+        _activeFileTx    = std::monostate{};
+        const auto error = ErrorText(hr);
+        _feedback->SetText(FormatStringResource(nullptr, IDS_SAVEFAILED, error));
     }
     else
     {
@@ -3008,7 +3038,9 @@ void Application::CompleteFileOperation()
             return;
         }
         std::wstring message;
-        if (result.status == HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION))
+        if (result.saving && result.status == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH))
+            message = FormatStringResource(nullptr, IDS_SAVEFAILED, Resource(IDS_CONFLICTHELP));
+        else if (result.status == HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION))
             message = Resource(result.saving ? IDS_SOURCEENCODING : IDS_FILENOTUTF8);
         else if (result.status == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE))
         {
@@ -3021,10 +3053,15 @@ void Application::CompleteFileOperation()
             const auto error = ErrorText(result.status);
             message          = FormatStringResource(nullptr, result.saving ? IDS_SAVEFAILED : IDS_OPENFAILED, error);
         }
-        if (! _options.headless && ! failedClose && ! automaticStartup)
+        if (! _options.headless && ! failedClose && ! automaticStartup && ! HasActiveModalPrompt())
+        {
+            _modalPrompt       = ModalPromptKind::ErrorMessage;
+            const auto restore = wil::scope_exit([&]() noexcept { _modalPrompt = ModalPromptKind::None; });
             (void)DxUi::Failure::InvokeNative(
                 &MessageBoxW, _window.get(), message.c_str(), Resource(IDS_ERROR).c_str(), static_cast<UINT>(MB_OK | MB_ICONERROR));
-        _feedback->SetText(message);
+        }
+        if (IsUiAttached() && _feedback)
+            _feedback->SetText(message);
         _activeFileTx = std::monostate{};
         return;
     }
@@ -3064,7 +3101,11 @@ void Application::CompleteFileOperation()
         EnsureFilesRoot();
         RefreshFiles(true);
         if (! AcceptSourceResult(_editor->TrySetDocumentFilePath(_session.path.native())))
+        {
+            if (IsClosingAfterSave())
+                ResumeAfterSaveClose();
             return;
+        }
         RememberActiveDocument();
         Changed();
         Status(IDS_SAVED);
@@ -3408,14 +3449,15 @@ void Application::BeginClose()
 {
     Printing::Stop(_printOperation);
     ClosePrintPreview();
+    if (_window)
+        (void)KillTimer(_window.get(), SettingsRetryTimerId);
     // Reaching this point means the user saved or explicitly discarded source.
-    // Retire only this session's snapshot and wait asynchronously for its result.
+    // Retire all workspace recovery keys via ResetWorkspace and wait asynchronously.
     AbandonStartupRestore();
     RememberActiveDocument();
     RecordWindowPlacement(true);
     CloseExternalLinks();
     ResetWorkspace();
-    (void)_recovery.SubmitDocument(_session.key, std::nullopt, true);
     _recovery.Stop();
     TransitionLifecycle(LifecyclePhase::DrainingForClose);
     _pendingBitmapPaste.reset();
@@ -3604,6 +3646,8 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
     }
     if (message == WM_NCDESTROY)
     {
+        if (_window)
+            (void)KillTimer(_window.get(), SettingsRetryTimerId);
         Printing::Stop(_printOperation);
         ClosePrintPreview();
         _bitmapWriter.Stop();
@@ -3638,8 +3682,16 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         {
             FinishClose();
         }
-        else if (! IsClosing() && ! IsSessionEnding() && FAILED(_preferenceWriter.Status()))
-            Status(IDS_SETTINGSFAILED);
+        else if (! IsClosing() && ! IsSessionEnding())
+        {
+            if (FAILED(_preferenceWriter.Status()))
+                Status(IDS_SETTINGSFAILED);
+            if (_settingsReloadDeferred && ! _preferenceWriter.Busy() && ! IsClosingAfterSave())
+            {
+                _settingsReloadDeferred = false;
+                ReloadSettingsFromDisk();
+            }
+        }
         return 0;
     }
     if (message == RecoveryReadyMessage)
@@ -3664,9 +3716,17 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         FileCompleted();
         return 0;
     }
+    if (message == WM_TIMER && wParam == SettingsRetryTimerId)
+    {
+        (void)KillTimer(hwnd, SettingsRetryTimerId);
+        if (! IsClosing() && ! IsClosingAfterSave() && ! IsSessionEnding())
+            ReloadSettingsFromDisk();
+        return 0;
+    }
     if (message == SettingsChanged)
     {
         _settingsWatcher.Acknowledge();
+        _settingsReloadRetries = 0u;
         if (! IsClosing() && ! IsClosingAfterSave() && ! IsSessionEnding())
             ReloadSettingsFromDisk();
         return 0;
@@ -3680,9 +3740,9 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
     }
     if (message == WM_DROPFILES)
     {
-        const auto drop   = reinterpret_cast<HDROP>(wParam);
-        const auto finish = wil::scope_exit([&] { DragFinish(drop); });
-        if (! CanAcceptCommand() || HasActiveModalPrompt() || HasBlockDraft() || _files.Busy())
+        const auto drop = reinterpret_cast<HDROP>(wParam);
+        auto finish     = wil::scope_exit([&] { DragFinish(drop); });
+        if (! CanAcceptCommand() || HasActiveModalPrompt() || HasBlockDraft() || _files.Busy() || _printPreview)
             return 0;
         const UINT count = DragQueryFileW(drop, 0xFFFFFFFFu, nullptr, 0);
         if (count == 0u)
@@ -3706,6 +3766,8 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
             return 0;
         }
         buffer.resize(copied);
+        finish.release();
+        DragFinish(drop);
         (void)OpenDroppedFile(std::filesystem::path(std::move(buffer)));
         return 0;
     }

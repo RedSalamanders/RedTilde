@@ -19,6 +19,7 @@ $root=Split-Path $PSScriptRoot -Parent
 Import-Module (Join-Path $root 'Build/Toolchain.psm1')
 Import-Module (Join-Path $root '.ci-engine/Tools/Modules/Ci.LocalSdkBuild.psm1') -ErrorAction Stop
 $buildContract=[ordered]@{buildFile='RedTilde.sln';metadataProject='RedTilde/RedTilde.vcxproj';target='RedTilde';sdkProperty='RedTildeDxUiSdkRoot';engineProperty='RedTildeCiEngineRoot';outputProperty='RedTildeOutputRoot';testsProperty='RedTildeEnableTests';versionProperty='RedTildeBuildNumber';executable='RedTilde.exe'}
-$result=Invoke-CiLocalSdkApplicationBuild -ProjectRoot $root -Descriptor $Descriptor -ExpectedDescriptorSha256 $DescriptorSha256 -Platform $Platform -MSBuildPath (Get-RedTildeMSBuild) -BuildContract $buildContract -BuildNumber $BuildNumber
+$msbuild=Get-RedTildeMSBuild
+$result=Invoke-CiLocalSdkApplicationBuild -ProjectRoot $root -Descriptor $Descriptor -ExpectedDescriptorSha256 $DescriptorSha256 -Platform $Platform -MSBuildPath $msbuild -BuildContract $buildContract -BuildNumber $BuildNumber -PrepareDependencies { & (Join-Path $root 'vcpkg-install.ps1') -Platform $Platform -MSBuildPath $msbuild }
 Write-Host 'LOCAL_UNPINNED_BUILD: tests, repository and production qualification remain NOT_EVALUATED.'
 $result

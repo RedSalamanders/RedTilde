@@ -81,7 +81,7 @@ Application lifecycle, file transactions, overlays, caches, and background worke
   `RedTilde.Perf` drive-root root with its verified ownership marker, or (3) a manifest-declared dedicated `selftest`
   root strictly inside a unique `redtilde-run-<guid>` subfolder with exit cleanup and no junction traversal. Opt-in
   real-location testing (`Tools/Test-RealLocations.ps1`) fails closed before disk mutation on drive roots,
-  `%USERPROFILE%`, Desktop, Documents, undeclared OneDrive folders, non-selftest network shares (`\\rubygloom\Multimedia`),
+  `%USERPROFILE%`, Desktop, Documents, undeclared OneDrive folders, non-selftest network shares (`\\fileserver.example.invalid\Multimedia`),
   relative/`. `/`..`/shallow UNC paths, and surrogate symlinks/junctions.
 
 ### Shared infrastructure headers and command entry points

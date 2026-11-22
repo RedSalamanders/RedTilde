@@ -77,15 +77,18 @@ staged runtime. Native tests must execute on the target architecture. `build.ps1
 matches `$versionMajor.$versionMinor.$BuildNumber`, rejects a running executable from its selected output directory,
 and does not terminate it. `RedTilde/RedTilde.vcxproj` (`CopySettingsSchema`) stages `SettingsStore.schema.json`
 beside `RedTilde.exe` in `$(OutDir)`. Packaging (`package.ps1`) verifies `RedTilde.exe` `FileVersionInfo` against both the build
-receipt and `Common/Version.h`, stages `SettingsStore.schema.json`, `README.md` (`docs/Portable.md`), `capabilities.json`, `examples/`, `res/`,
+receipt and `Common/Version.h`, stages `SettingsStore.schema.json`, `README.md` (`docs/Portable.md` with portable-layout
+links rewritten/verified for `Installer/Install-RedTilde.ps1`, `docs/Diagnostics.md`, `docs/README.md`, and
+`capabilities.json`), `capabilities.json`, `examples/`, `res/`, `Installer/Install-RedTilde.ps1`,
 licenses (`LICENSE.txt`, `THIRD-PARTY-NOTICES.md`, `Dependencies/RedMonitor-LICENSE.txt`, `Dependencies/yyjson-LICENSE.txt`, `Dependencies/WIL-LICENSE.txt`,
 `Dependencies/DxUi-LICENSE.txt`, `Dependencies/DxUi-THIRD-PARTY-NOTICES.md`, `Dependencies/docs/licenses/`,
 `Dependencies/libfyaml-LICENSE.txt`, `Dependencies/libfyaml-xxHash-LICENSE.txt`, or `Dependencies/DxUiSdk` in SDK-input
 packages), writes a `.sha256` sidecar beside the ZIP, and runs clean-extraction smoke (`--help`, `--version`, hidden
 capture, and all 16 test-entry refusals). [`Installer/Install-RedTilde.ps1`](../../Installer/Install-RedTilde.ps1)
-provides un-elevated per-user installation to `%LOCALAPPDATA%\Programs\RedTilde`, Start Menu shortcut creation, HKCU
-Uninstall registration, optional `.md`/`.markdown` `OpenWithProgids` registration, and clean uninstall while preserving
-`%LOCALAPPDATA%\RedTilde`. A release cannot depend on an unqualified moving PR branch.
+provides non-nesting un-elevated per-user installation to `%LOCALAPPDATA%\Programs\RedTilde` with an install-ownership
+manifest marker, Start Menu shortcut creation, HKCU Uninstall registration using a resolved full PowerShell path, optional
+`.md`/`.markdown` `OpenWithProgids` and `Applications\RedTilde.exe` registration with `SHChangeNotify`, and CWD/reparse-safe
+uninstall while preserving `%LOCALAPPDATA%\RedTilde`. A release cannot depend on an unqualified moving PR branch.
 
 `build.ps1` hashes the compiled first-party source map by file bytes, so restored or preserved timestamps cannot make
 changed source appear current. Before MSBuild it verifies the exact DxUi lock commit and a clean pinned source checkout,
@@ -143,30 +146,30 @@ Active Windows compilation/tooling workflows use the local setup-msvc composite 
 
 RedMonitor is installed independently. Builds verify the local pinned client header/license and never compile or package the helper; see [RedMonitor integration](../Core/Core_RedMonitorIntegration.md).
 
-Hosted setup (`.github/actions/setup-msvc/Setup.ps1`) enforces a 260-UTF-16-unit guard on the planned bootstrapper
+Hosted setup (`.github/actions/setup-msvc/Setup.ps1`) checks `vswhere.exe` availability and filters Visual Studio 18 (`-version '[18.0,19.0)'`), enforces a 260-UTF-16-unit guard on the planned bootstrapper
 path before downloading (`$installer.Length -ge 260`), bounds bootstrapper download (`180` seconds) and installer
 execution (`1800` seconds, killing the owned installer tree and waiting up to `15` seconds on timeout), waits with
 both `--wait` and `Start-Process`/`WaitForExit`, reads the explicit exit code (`0` or `3010`), and rechecks the
 required compiler family and complete target tools. Ambient `LASTEXITCODE` cannot establish installer success. Paths
-with spaces stay one argument; installer stdout, stderr and fresh `dd_*` logs remain downloadable on failure.
+with spaces stay one argument; installer stdout, stderr and fresh `dd_*` logs (using a `2 s` timestamp safety window) remain downloadable on failure.
 Delayed-GUI, stale-exit, wrong-family, missing-tool, signature and local/read-only refusal controls exercise the
 actual setup script without running an installer. `Tests/Tooling.Tests.ResourceStrings.ps1` checks `res/RedTilde.rc`
-(`#pragma code_page(65001)`), `res/Resource.h` parity, positional placeholders without printf specifiers, and C++
+(`#pragma code_page(65001)`), forward and reverse `res/Resource.h` parity under strict UTF-8, production references and formatted-placeholder discipline, positional placeholders without printf specifiers, and C++
 `IDS_*` definitions during `validate.ps1`. `Tests/Tooling.Tests.NamingStyle.ps1` validates root `.clang-tidy`
 (`bugprone-reserved-identifier`, `readability-identifier-naming` requiring `_camelCase` private/protected non-static
-members) and scans `Common/`, `RedTilde/`, and `Tests/` compiler-free during `validate.ps1`.
-`Tests/Tooling.Tests.RealLocations.ps1` verifies compiler-free in `validate.ps1` that the opt-in
-`Tools/Test-RealLocations.ps1` harness fails closed before touching disk on drive roots, `%USERPROFILE%`, Desktop,
-Documents, undeclared OneDrive, non-selftest UNC shares, relative/`. `/`..`/shallow UNC paths, and surrogate
+members, anchored single-segment `HeaderFilterRegex` excluding `.build` and `ThirdParty`) and scans `Common/`, `RedTilde/`, and `Tests/` compiler-free during `validate.ps1`.
+`Tests/Tooling.Tests.RealLocations.ps1` and `Tests/Tooling.Tests.Installer.ps1` verify compiler-free in `validate.ps1` that the opt-in
+`Tools/Test-RealLocations.ps1` harness and `Installer/Install-RedTilde.ps1` enforce `testsEnabled -eq $true` receipt checks, non-nesting upgrades, ownership markers, and fail-closed exclusions before touching disk on drive roots, `%USERPROFILE%`, Desktop,
+Documents (including Known Folder Move paths), undeclared OneDrive, non-selftest UNC shares, forward/back-slash device/NT paths, relative/`. `/`..`/shallow UNC paths, and dangling or surrogate
 symlink/junction paths. `Build/ScopedTesting.psm1` exposes `Resolve-ScopedIterationDisposition`
 (`BaselineAdvanced`, `PartialRunRetained`, `FailedRetained`, `MutatedWorktreeRetained`, `CiPending`, `NothingSelected`)
 to enforce explicit iteration-baseline dispositions.
 
 ### Pinned vcpkg dependencies and formatting (`yyjson`, `CV-6-05`)
 
-- **Manifest & tool pin**: `vcpkg.json` declares `yyjson` (`>= 0.13.0`) at `builtin-baseline` `aeb162b71d47950344248a4ebcac733e12f8a992`, matching `vcpkg-tool.json` (`aeb162b7`).
-- **Triplets & isolated `.build/` restore**: `Build/vcpkg-triplets/` defines `x64-windows-static-md.cmake`, `arm64-windows-static-md.cmake`, `x64-windows-static-md-asan.cmake`, `arm64-windows-static-md-asan.cmake`, and `asan-toolchain.cmake` (stripping `/RTC1` for `/fsanitize=address`). `vcpkg-install.ps1` discovers Visual Studio, checks `RequiredMsvcToolsVersion` (`14.52`), pins `VCPKG_VISUAL_STUDIO_PATH` and `VCPKG_PLATFORM_TOOLSET_VERSION` into `.build/vcpkg-triplets/` via `Build/VcpkgToolset.psm1`, and runs `vcpkg install` strictly inside `.build/` (`.build/vcpkg-tool`, `.build/vcpkg_installed`, `.build/vcpkg_buildtrees`, `.build/vcpkg_packages`) with `--binarysource=clear`, `VCPKG_DISABLE_METRICS=1`, and `VCPKG_DOWNLOADS` set to `.build/vcpkg-downloads`.
-- **Build identity binding**: `Get-RedTildeBuildInputSnapshot` hashes the restored `yyjson.h` and `yyjson.lib` into `vcpkgSha256` inside schema-2 build receipts alongside `VcpkgInstalledDir` and `RedTildeVcpkgTriplet`.
+- **Manifest & tool pin**: `vcpkg.json` declares `yyjson` (`>= 0.13.0`) at `builtin-baseline` `aeb162b71d47950344248a4ebcac733e12f8a992`, matching `vcpkg-tool.json` (`aeb162b71d47950344248a4ebcac733e12f8a992`) and verified dynamically before restore.
+- **Triplets & isolated `.build/` restore**: `Build/vcpkg-triplets/` defines `x64-windows-static-md.cmake`, `arm64-windows-static-md.cmake`, `x64-windows-static-md-asan.cmake`, `arm64-windows-static-md-asan.cmake`, and `asan-toolchain.cmake` (stripping `/RTC1` for `/fsanitize=address`). `vcpkg-install.ps1` discovers Visual Studio, checks `RequiredMsvcToolsVersion` (`14.52`), clears ambient `VCPKG_*` override environment variables, pins `VCPKG_VISUAL_STUDIO_PATH` and `VCPKG_PLATFORM_TOOLSET_VERSION` into `.build/vcpkg-triplets/` via `Build/VcpkgToolset.psm1`, and runs `vcpkg install --vcpkg-root=<tool-checkout>` strictly inside `.build/` (`.build/vcpkg-tool`, `.build/vcpkg_installed`, `.build/vcpkg_buildtrees`, `.build/vcpkg_packages`) with `--binarysource=clear`, `VCPKG_DISABLE_METRICS=1`, and `VCPKG_DOWNLOADS` set to `.build/vcpkg-downloads`.
+- **Build identity binding**: `Get-RedTildeBuildInputSnapshot` and `Get-RedTildeSdkBuildInputSnapshot` hash the restored `yyjson.h` and `yyjson.lib` into `vcpkgSha256` inside schema-2 build receipts alongside `VcpkgInstalledDir` and `RedTildeVcpkgTriplet`.
 - **Formatting (`CV-6-05`)**: Root `.clang-format` uses RedHome's shared 155-line C++23 style; `format.ps1 -Check` invokes the pinned CI formatter (`Install-CiFormatter`) under `.build/shared-format`.
 
 The [native policy, console and dependency-path contract](Build_ConsoleAndPaths.md) owns /Wall without /WX, zero-warning acceptance, Debug/ASan symbols, Release-only ICF, common terminal results and verified short dependency folders.

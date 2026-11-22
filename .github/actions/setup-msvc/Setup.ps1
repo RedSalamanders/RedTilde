@@ -14,7 +14,8 @@ $required=[string]$node.InnerText
 if($required -notmatch '^14\.\d+$'){throw 'Missing required MSVC family in Directory.Build.props.'}
 $vswhere=Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
 function Get-SelectedTools {
-    $installation=(& $vswhere -latest -prerelease -products '*' -requires Microsoft.Component.MSBuild -property installationPath|Select-Object -First 1)
+    if(-not(Test-Path -LiteralPath $vswhere -PathType Leaf)){return $null}
+    $installation=(& $vswhere -latest -prerelease -products '*' -version '[18.0,19.0)' -requires Microsoft.Component.MSBuild -property installationPath|Select-Object -First 1)
     if(-not $installation){return $null}
     $default=Join-Path $installation 'VC/Auxiliary/Build/Microsoft.VCToolsVersion.default.txt'
     if(-not(Test-Path -LiteralPath $default)){return $null}
@@ -92,7 +93,7 @@ if(-not $selected){
     # VS writes detailed dd_* logs to TEMP, which need not equal RUNNER_TEMP.
     foreach($directory in @($env:TEMP,$env:RUNNER_TEMP)|Where-Object {$_}|Select-Object -Unique){
         Get-ChildItem -LiteralPath $directory -File -Filter 'dd_*.log' -ErrorAction SilentlyContinue |
-            Where-Object LastWriteTime -ge $installerStarted |
+            Where-Object LastWriteTime -ge $installerStarted.AddSeconds(-2) |
             ForEach-Object {
                 Write-Host "Visual Studio installer log: $($_.FullName)"
                 try {Copy-Item -LiteralPath $_.FullName -Destination (Join-Path $scratch $_.Name)}

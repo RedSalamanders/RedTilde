@@ -96,6 +96,20 @@ Initialize-VcpkgToolCheckout -ToolIdentityPath $identityPath -ToolRoot $partial
 Assert-CompleteCheckout $partial 'A completed partial checkout'
 Require (Invoke-StrippedExtraction $partial 'partial-after') 'A completed partial checkout cannot extract an older tree offline.'
 
+$dirty=$partial
+$dirtyMarker=Join-Path $dirty 'dirty-untracked.txt'
+[IO.File]::WriteAllText($dirtyMarker,'dirty')
+$refused=$false
+try{Initialize-VcpkgToolCheckout -ToolIdentityPath $identityPath -ToolRoot $dirty}catch{$refused=$_.Exception.Message.Contains('contains local changes')}
+Require $refused 'A dirty managed vcpkg checkout was not refused before checkout.'
+[IO.File]::Delete($dirtyMarker)
+
+$shallowOnly=Join-Path $ScratchRoot 'shallow-only/vcpkg-tool'
+Invoke-FixtureGit @('clone','-q','-c','core.longpaths=true','--depth','1',$repository,$shallowOnly) | Out-Null
+Initialize-VcpkgToolCheckout -ToolIdentityPath $identityPath -ToolRoot $shallowOnly
+Assert-CompleteCheckout $shallowOnly 'A non-partial shallow checkout'
+Require (Invoke-StrippedExtraction $shallowOnly 'shallow-only') 'A completed non-partial shallow checkout cannot extract an older tree offline.'
+
 $foreign=Join-Path $ScratchRoot 'foreign/vcpkg-tool'
 Invoke-FixtureGit @('clone','-q',$repository,$foreign) | Out-Null
 Invoke-FixtureGit @('-C',$foreign,'remote','set-url','origin','https://example.invalid/other') | Out-Null

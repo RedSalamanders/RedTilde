@@ -29,13 +29,18 @@ inline void UseSynthetic(bool active) noexcept
 class ScopedSynthetic final
 {
 public:
-    ScopedSynthetic() noexcept : _previous(Detail::g_synthetic)
+    ScopedSynthetic() noexcept : _previous(Detail::g_synthetic), _hasPreviousWin32(GetKeyboardState(_previousWin32.data()) != FALSE)
     {
         UseSynthetic(true);
     }
     ~ScopedSynthetic()
     {
         Detail::g_synthetic = _previous;
+        if (_hasPreviousWin32)
+        {
+            auto restored = _previousWin32;
+            (void)SetKeyboardState(restored.data());
+        }
     }
     ScopedSynthetic(const ScopedSynthetic&)            = delete;
     ScopedSynthetic& operator=(const ScopedSynthetic&) = delete;
@@ -44,6 +49,8 @@ public:
 
 private:
     const Detail::Synthetic _previous;
+    std::array<BYTE, 256> _previousWin32{};
+    bool _hasPreviousWin32{};
 };
 
 [[nodiscard]] inline bool Held(int virtualKey) noexcept

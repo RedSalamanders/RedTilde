@@ -305,6 +305,56 @@ public:
         }
         Require(foreground.NeverAcquiredForeground(), "hidden transaction and close checks preserve desktop foreground");
     }
+
+    static void SyncSaveRefusalAndCloseConflict(const std::filesystem::path& root)
+    {
+        Testing::ForegroundOwnershipObserver foreground;
+        // 1. Synchronous _files.Submit refusal formats IDS_SAVEFAILED without unreplaced {0}.
+        {
+            LaunchOptions launch;
+            launch.headless      = true;
+            launch.dataDirectory = root / L"sync-save-refusal";
+            Application app(launch);
+            Success(app.Initialize(), "initialize sync save refusal fixture");
+            const auto target = launch.dataDirectory / L"doc.md";
+            Seed(app, target);
+            Edit(app, L"Unsaved edit\r\n");
+            app._files.Close();
+            app.Execute(Command::Save);
+            const auto feedback     = app._feedback->GetText();
+            const auto templateText = Resource(IDS_SAVEFAILED);
+            const auto prefix       = std::wstring_view(templateText).substr(0, templateText.find(L'{'));
+            Require(! feedback.empty() && feedback.starts_with(prefix) && feedback.find(L"{0}") == std::wstring::npos,
+                    "synchronous save refusal formats IDS_SAVEFAILED without literal {0}");
+        }
+        // 2. Save conflict arriving during ClosingAfterSave restores active window with localized conflict guidance.
+        {
+            LaunchOptions launch;
+            launch.headless      = true;
+            launch.dataDirectory = root / L"close-after-save-conflict";
+            const auto gate = launch.fileGateForTest = std::make_shared<AsyncFiles::TestGate>();
+            Application app(launch);
+            Success(app.Initialize(), "initialize ClosingAfterSave conflict fixture");
+            const auto release = ReleaseOnExit(gate);
+            const auto target  = launch.dataDirectory / L"doc.md";
+            Seed(app, target);
+            Edit(app, L"Local edit before conflict\r\n");
+            const auto expectedText = app.Document().GetText();
+            app.Execute(Command::Save);
+            Entered(gate);
+            Success(WriteBytesAtomic(target, "External conflicting write\r\n"), "create external conflict while save is gated");
+            (void)SendMessageW(app.Window(), WM_CLOSE, 0, 0);
+            Require(app.IsClosingAfterSave(), "WM_CLOSE while saving enters ClosingAfterSave");
+            Release(gate);
+            Await(app, [&] {
+                return ! app._files.Busy() && ! app.IsClosingAfterSave();
+            }, "ClosingAfterSave conflict restores active window rather than staying stuck hidden");
+            Require(app.Window() != nullptr && app.Dirty() && app.Document().GetText() == expectedText &&
+                        app._feedback->GetText().find(Resource(IDS_CONFLICTHELP)) != std::wstring::npos,
+                    "ClosingAfterSave conflict retains document and displays localized conflict guidance");
+        }
+        Require(foreground.NeverAcquiredForeground(), "localized save refusal and close conflict checks preserve foreground");
+    }
 };
 void RegisterCloseTests(const std::filesystem::path& root, const std::function<void(std::string_view, const std::function<void()>&)>& test)
 {
@@ -796,5 +846,6 @@ void RegisterCloseTests(const std::filesystem::path& root, const std::function<v
     test("Recovery.CloseAbandonsOpenAndProtectsLaterEdits", [&] { closeOpen(true); });
     test("Window.CloseDrainWaitsForBitmapWithoutSpuriousPreferencesReady", [&] { CloseProbe::DrainWaitsForBitmapWithoutSpuriousPreferencesReady(root); });
     test("Editor.FailedOpenAndCloseClearTransactionState", [&] { CloseProbe::FailedOpenAndCloseClearTransactionState(root); });
+    test("Editor.SyncSaveRefusalAndCloseConflictUseLocalizedMessages", [&] { CloseProbe::SyncSaveRefusalAndCloseConflict(root); });
 }
 } // namespace RedTilde

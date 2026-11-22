@@ -12,14 +12,15 @@ $calls=@($ast.FindAll({param($n)$n -is [Management.Automation.Language.Assignmen
 if($contracts.Count -ne 1 -or $calls.Count -ne 1){throw 'Expected one literal application contract and broker invocation.'}
 function Get-RedTildeMSBuild {'C:/synthetic-not-launched/MSBuild.exe'}
 function Invoke-CiLocalSdkApplicationBuild {
-    param($ProjectRoot,$Descriptor,$ExpectedDescriptorSha256,$Platform,$MSBuildPath,$BuildContract,$BuildNumber)
+    param($ProjectRoot,$Descriptor,$ExpectedDescriptorSha256,$Platform,$MSBuildPath,$BuildContract,$BuildNumber,$PrepareDependencies)
     $script:received=$PSBoundParameters
     [pscustomobject]@{Role='LocalUnpinnedApplicationBuild';Sentinel='original broker result'}
 }
 $Descriptor='C:/synthetic-not-read/local snapshot.json';$DescriptorSha256='a'*64;$Platform='x64';$BuildNumber=123
 . ([scriptblock]::Create($contracts[0].Extent.Text))
+$msbuild=Get-RedTildeMSBuild
 . ([scriptblock]::Create($calls[0].Extent.Text))
-if($received.ProjectRoot -cne $root -or $received.Descriptor -cne $Descriptor -or $received.ExpectedDescriptorSha256 -cne $DescriptorSha256 -or $received.Platform -cne 'x64' -or $received.BuildNumber -ne 123 -or $result.Sentinel -cne 'original broker result'){throw 'Actual local SDK routing changed source, descriptor, profile, version or result.'}
+if($received.ProjectRoot -cne $root -or $received.Descriptor -cne $Descriptor -or $received.ExpectedDescriptorSha256 -cne $DescriptorSha256 -or $received.Platform -cne 'x64' -or $received.BuildNumber -ne 123 -or $null -eq $received.PrepareDependencies -or $received.PrepareDependencies.ToString() -notmatch 'vcpkg-install\.ps1' -or $result.Sentinel -cne 'original broker result'){throw 'Actual local SDK routing changed source, descriptor, profile, version, dependency prep or result.'}
 if($received.BuildContract.Count -ne 9 -or $received.BuildContract.sdkProperty -cne 'RedTildeDxUiSdkRoot' -or $received.BuildContract.outputProperty -cne 'RedTildeOutputRoot' -or $received.BuildContract.metadataProject -cne 'RedTilde/RedTilde.vcxproj' -or $received.BuildContract.target -cne 'RedTilde'){throw 'Actual application SDK/owned-output binding changed.'}
 $saved=$env:CI_NATIVE_BUILDS_DISABLED
 try{

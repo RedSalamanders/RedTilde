@@ -18,12 +18,14 @@ function Require([bool]$Condition, [string]$Message) {
 }
 
 function Strip-CppCommentsAndStrings([string]$Source) {
-    # Single-pass regex preserving line counts inside multiline comments/raw strings.
+    # Single-pass regex preserving line counts inside multiline comments/raw strings
+    # and matching numeric literals (with C++14 ' digit separators) before char literals.
     $pattern = @'
 (?sx)
 R"([A-Za-z0-9_]{0,16})\(.*?\)\1" |
 "(?:\\.|[^"\\])*" |
-'(?:\\.|[^'\\])*' |
+(?:0[xXbB][0-9A-Fa-f']+|(?:\d[\d']*(?:\.[\d']*)?|\.\d[\d']*)(?:[eEpP][+-]?[\d']+)?)[uUlLfFzZ]* |
+(?:u8?|U|L)?'(?:\\.|[^'\\\r\n])+' |
 //[^\r\n]* |
 /\*.*?\*/
 '@
@@ -36,8 +38,9 @@ R"([A-Za-z0-9_]{0,16})\(.*?\)\1" |
         }
         if ($nlCount -eq 0) {
             if ($val.StartsWith('"')) { return '""' }
-            if ($val.StartsWith('''')) { return '''''' }
-            return ' '
+            if ($val.StartsWith("'") -or $val -cmatch '^(?:u8?|U|L)''') { return "''" }
+            if ($val.StartsWith('//') -or $val.StartsWith('/*')) { return ' ' }
+            return $val.Replace("'", '')
         }
         return ("`n" * $nlCount)
     })
@@ -75,7 +78,7 @@ function Find-NamingViolations([string]$Label, [string]$Source) {
 
     # 2. Scan tokens for class/struct private/protected fields & namespace/global declarations
     $code = $strippedLines -join "`n"
-    $tokenMatches = [regex]::Matches($code, '\n|::|[A-Za-z_][A-Za-z0-9_]*|[{}();:,<>\[\]=]')
+    $tokenMatches = [regex]::Matches($code, '\n|::|[A-Za-z_][A-Za-z0-9_]*|\d[\d'']*(?:\.[\d'']*)?|""|''''|[{}();:,<>\[\]=+\-]')
 
     $scopeStack = [Collections.Generic.Stack[object]]::new()
     $scopeStack.Push([pscustomobject]@{ Kind = 'namespace'; Access = 'public'; BraceDepth = 0 })
@@ -87,10 +90,82 @@ function Find-NamingViolations([string]$Label, [string]$Source) {
     $pendingTypeKind = $null
     $lineNum = 1
 
+    function Test-ReservedName([string]$Name) {
+        return $Name -cmatch '^_[A-Z]' -or $Name.Contains('__')
+    }
+
+    function Strip-LeadingAttributes([System.Collections.Generic.List[string]]$Texts, [System.Collections.Generic.List[int]]$Lines) {
+        $outT = [Collections.Generic.List[string]]::new()
+        $outL = [Collections.Generic.List[int]]::new()
+        $i = 0
+        while (($i + 1) -lt $Texts.Count -and $Texts[$i] -eq '[' -and $Texts[$i + 1] -eq '[') {
+            $i += 2
+            $depth = 2
+            while ($i -lt $Texts.Count -and $depth -gt 0) {
+                if ($Texts[$i] -eq '[') { $depth++ }
+                elseif ($Texts[$i] -eq ']') { $depth-- }
+                $i++
+            }
+        }
+        while ($i -lt $Texts.Count) {
+            $outT.Add($Texts[$i])
+            $outL.Add($Lines[$i])
+            $i++
+        }
+        return [pscustomobject]@{ Texts = $outT; Lines = $outL }
+    }
+
     function Inspect-ClassMemberStatement($Texts, $Lines, [string]$Access) {
-        if ($Texts.Count -eq 0 -or $Access -notin @('private', 'protected')) { return }
+        $stripped = Strip-LeadingAttributes $Texts $Lines
+        $Texts = $stripped.Texts
+        $Lines = $stripped.Lines
+        if ($Texts.Count -eq 0) { return }
         $first = $Texts[0]
-        if ($first -in @('friend', 'using', 'typedef', 'static_assert', 'template', 'enum', 'struct', 'class', 'namespace', 'public', 'private', 'protected')) { return }
+        if ($first -in @('friend', 'static_assert', 'template', 'namespace', 'public', 'private', 'protected')) { return }
+        if ($first -in @('using', 'typedef')) {
+            $aliasName = $null
+            $aliasLine = 0
+            if ($first -eq 'using') {
+                for ($u = 1; ($u + 1) -lt $Texts.Count; $u++) {
+                    if ($Texts[$u + 1] -eq '=' -and $Texts[$u] -match '^[A-Za-z_][A-Za-z0-9_]*$') {
+                        $aliasName = $Texts[$u]; $aliasLine = $Lines[$u]; break
+                    }
+                }
+            } else {
+                for ($u = $Texts.Count - 1; $u -ge 1; $u--) {
+                    if ($Texts[$u] -match '^[A-Za-z_][A-Za-z0-9_]*$') {
+                        $aliasName = $Texts[$u]; $aliasLine = $Lines[$u]; break
+                    }
+                }
+            }
+            if ($null -ne $aliasName -and (Test-ReservedName $aliasName)) {
+                $issues.Add("${Label}:$aliasLine uses reserved identifier '$aliasName' for $Access alias.")
+            }
+            return
+        }
+        if ($first -in @('enum', 'struct', 'class')) {
+            if ($first -eq 'enum') {
+                $firstBrace = $Texts.IndexOf('{')
+                if ($firstBrace -ge 0) {
+                    $lastClose = $Texts.LastIndexOf('}')
+                    # enum [class] Name [: underlying] { ... }; has '{' right after optional ': type' and ends at '}'.
+                    $beforeBrace = $firstBrace
+                    $hasColon = $false
+                    for ($c = 0; $c -lt $firstBrace; $c++) { if ($Texts[$c] -eq ':') { $hasColon = $true; break } }
+                    if ($lastClose -eq ($Texts.Count - 1) -and ($hasColon -or $beforeBrace -le 3)) { return }
+                } elseif ($Texts.Count -le 2 -or ($Texts.Count -eq 3 -and $Texts[1] -in @('class', 'struct'))) {
+                    return
+                }
+            } else {
+                # Forward decl (`struct Foo;`) or elaborated type without member name.
+                $beforeInit = 0
+                for ($c = 0; $c -lt $Texts.Count; $c++) {
+                    if ($Texts[$c] -in @('{', '=', '(')) { break }
+                    $beforeInit++
+                }
+                if ($beforeInit -le 2 -and -not ($Texts -contains '}' -and $Texts.LastIndexOf('}') -lt ($Texts.Count - 1))) { return }
+            }
+        }
 
         $hasStatic = $false
         $angle = 0
@@ -105,12 +180,28 @@ function Find-NamingViolations([string]$Label, [string]$Source) {
         for ($k = 0; $k -lt $Texts.Count; $k++) {
             $tx = $Texts[$k]
             $ln = $Lines[$k]
-            if ($tx -eq 'static' -and $angle -eq 0 -and $bDepth -eq 0 -and $sqDepth -eq 0 -and $curT.Count -eq 0) {
+            if ($tx -eq 'static' -and $angle -eq 0 -and $bDepth -eq 0 -and $sqDepth -eq 0 -and -not $sawEq) {
                 $hasStatic = $true
             }
             if ($tx -eq '(' -and $angle -eq 0 -and $bDepth -eq 0 -and $sqDepth -eq 0 -and -not $sawEq) {
-                # Function/method/constructor/operator declaration
-                return
+                # Distinguish direct-initialized members (e.g. int _value(0);) from functions/methods.
+                $isDirectLiteralInit = $false
+                if ($curT.Count -ge 2 -and ($k + 1) -lt $Texts.Count) {
+                    $argTok = $Texts[$k + 1]
+                    if (($argTok -cmatch '^(?:\d|true$|false$|nullptr$|""$|''''$|-|\+)') -and ($curT -notcontains 'operator')) {
+                        $isDirectLiteralInit = $true
+                    }
+                }
+                if (-not $isDirectLiteralInit) {
+                    # Check function/method identifier itself only for reserved identifiers (__ / _Uppercase).
+                    if ($curT.Count -ge 1) {
+                        $fnName = $curT[$curT.Count - 1]
+                        if ($fnName -match '^[A-Za-z_][A-Za-z0-9_]*$' -and (Test-ReservedName $fnName)) {
+                            $issues.Add("${Label}:$ln uses reserved identifier '$fnName' for $Access method.")
+                        }
+                    }
+                    return
+                }
             }
             if ($tx -eq '=' -and $angle -eq 0 -and $bDepth -eq 0 -and $sqDepth -eq 0) { $sawEq = $true }
             if ($tx -eq '{') { $bDepth++ }
@@ -137,7 +228,6 @@ function Find-NamingViolations([string]$Label, [string]$Source) {
             $declTexts.Add($curT)
             $declLines.Add($curL)
         }
-        if ($hasStatic) { return }
 
         for ($di = 0; $di -lt $declTexts.Count; $di++) {
             $dt = $declTexts[$di]
@@ -149,7 +239,7 @@ function Find-NamingViolations([string]$Label, [string]$Source) {
                 $tx = $dt[$k]
                 if ($tx -eq '<') { $a++ }
                 elseif ($tx -eq '>') { if ($a -gt 0) { $a-- } }
-                elseif ($tx -eq '(') { $b++ }
+                elseif ($tx -eq '(') { if ($a -eq 0 -and $b -eq 0 -and $sq -eq 0) { break }; $b++ }
                 elseif ($tx -eq ')') { if ($b -gt 0) { $b-- } }
                 elseif ($tx -eq '[' -and $a -eq 0 -and $b -eq 0 -and $sq -eq 0) { break }
                 elseif ($tx -in @('{', '=', ':') -and $a -eq 0 -and $b -eq 0 -and $sq -eq 0) { break }
@@ -159,9 +249,9 @@ function Find-NamingViolations([string]$Label, [string]$Source) {
                 }
             }
             if ($null -ne $lastIdent -and $lastIdent -notin @('default', 'delete', 'override', 'final', 'noexcept', 'const', 'volatile', 'mutable')) {
-                if ($lastIdent -cmatch '^_[A-Z]' -or $lastIdent.Contains('__')) {
+                if (Test-ReservedName $lastIdent) {
                     $issues.Add("${Label}:$lastLine uses reserved identifier '$lastIdent' for $Access member.")
-                } elseif ($lastIdent -cnotmatch '^_[a-z][A-Za-z0-9]*$') {
+                } elseif (-not $hasStatic -and $Access -in @('private', 'protected') -and $lastIdent -cnotmatch '^_[a-z][A-Za-z0-9]*$') {
                     $issues.Add("${Label}:$lastLine $Access member '$lastIdent' must use _camelCase.")
                 }
             }
@@ -339,6 +429,12 @@ if (Test-Path -LiteralPath $tidyPath -PathType Leaf) {
 $selfBadCases = @(
     @{ Name = 'trailing underscore private'; Code = "class Foo {`nprivate:`n    int count_;`n};" },
     @{ Name = 'bare private'; Code = "class Foo {`n    int count{};`n};" },
+    @{ Name = 'digit separator before bad private'; Code = "class Foo {`nprivate:`n    int _ok = 1'000;`n    int bad{};`n};" },
+    @{ Name = 'attributed bad private'; Code = "class Foo {`nprivate:`n    [[maybe_unused]] int bad{};`n};" },
+    @{ Name = 'direct init bad private'; Code = "class Foo {`nprivate:`n    int bad(0);`n};" },
+    @{ Name = 'elaborated type bad private'; Code = "class Foo {`nprivate:`n    struct Bar bad;`n};" },
+    @{ Name = 'reserved static member'; Code = "class Foo {`npublic:`n    static inline int __bad = 1;`n};" },
+    @{ Name = 'reserved public alias'; Code = "class Foo {`npublic:`n    using _Reserved = int;`n};" },
     @{ Name = 'uppercase underscore protected'; Code = "struct Bar {`nprotected:`n    int _Count{};`n};" },
     @{ Name = 'double underscore member'; Code = "class Baz {`nprivate:`n    int __value{};`n};" },
     @{ Name = 'namespace leading underscore'; Code = "namespace Test {`nint _globalCount = 0;`n}" },
@@ -357,11 +453,14 @@ struct PublicDto {
 };
 class Sample final {
 public:
-    static constexpr int MaxItems = 10;
+    static constexpr int MaxItems = 1'000'000;
     explicit Sample(int value) : _value(value) {}
-    void Helper() const noexcept {}
+    [[nodiscard]] void Helper() const noexcept {}
+    struct ForwardOnly;
 private:
     int _value{};
+    [[maybe_unused]] int _count{1'000};
+    struct Nested* _nested{};
     std::vector<int> _items;
     std::function<void(int)> _callback;
 };

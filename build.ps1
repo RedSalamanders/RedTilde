@@ -21,6 +21,10 @@ if(-not $majorMatch.Success -or -not $minorMatch.Success){throw 'Common/Version.
 $versionMajor=[int]$majorMatch.Groups['value'].Value
 $versionMinor=[int]$minorMatch.Groups['value'].Value
 $productVersion="$versionMajor.$versionMinor.$BuildNumber"
+$previousBuildNumber = [Environment]::GetEnvironmentVariable('RedTildeBuildNumber', 'Process')
+$previousEnableTests = [Environment]::GetEnvironmentVariable('RedTildeEnableTests', 'Process')
+$sdkInput=$null;$sdkFailure=$null
+try {
 $env:RedTildeBuildNumber = [string]$BuildNumber
 $env:RedTildeEnableTests = if ($ProductionOnly) { 'false' } else { 'true' }
 $nativeEntryElapsed = [Diagnostics.Stopwatch]::StartNew()
@@ -31,13 +35,11 @@ Import-Module (Join-Path $PSScriptRoot '.ci-engine/Tools/Modules/Ci.Policy.psm1'
 $canonicalDirectories=Assert-RedTildeCanonicalBuildDirectories -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
 $output=$canonicalDirectories.output
 Assert-RedTildeOutputNotRunning -OutputDirectory $output
-$canonicalDirectories=Assert-RedTildeCanonicalBuildDirectories -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
 $receiptPath=Join-Path $output 'build-receipt.json'
 if((Test-Path -LiteralPath $receiptPath -PathType Leaf) -and ((Get-Item -LiteralPath $receiptPath -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)){
     throw 'Build receipt cannot be a reparse point.'
 }
 New-Item -ItemType Directory -Force -Path $output | Out-Null
-$canonicalDirectories=Assert-RedTildeCanonicalBuildDirectories -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
 $priorReceipt=$null
 if(Test-Path -LiteralPath $receiptPath -PathType Leaf){
     try{$priorReceipt=Get-Content -LiteralPath $receiptPath -Raw|ConvertFrom-Json -AsHashtable -ErrorAction Stop}
@@ -53,8 +55,6 @@ try{
         [IO.File]::Move($receiptTemporary,$receiptPath,$true)
     }else{[IO.File]::Move($receiptTemporary,$receiptPath)}
 }finally{if(Test-Path -LiteralPath $receiptTemporary){Remove-Item -LiteralPath $receiptTemporary -Force}}
-$sdkInput=$null;$sdkFailure=$null
-try{
 $msbuild=Get-RedTildeMSBuild
 $sdkProperties=@()
 if($DxUiSdkInputDescriptor){
@@ -76,8 +76,6 @@ if (-not $SkipRestore -and $null -eq $sdkInput) { & (Join-Path $PSScriptRoot 're
 if (-not $SkipRestore) {
     & (Join-Path $PSScriptRoot 'vcpkg-install.ps1') -Platform $Platform -Asan:($Configuration -eq 'ASan Debug') -MSBuildPath $msbuild
 }
-$canonicalDirectories=Assert-RedTildeCanonicalBuildDirectories -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
-$msbuild=Get-RedTildeMSBuild
 $logDirectory=Join-Path $PSScriptRoot '.build/logs'
 [void][IO.Directory]::CreateDirectory($logDirectory)
 $log=Join-Path $logDirectory ("build-$Platform-$($Configuration -replace ' ','-')-$([DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ'))-$([guid]::NewGuid().ToString('N')).log")
@@ -151,4 +149,8 @@ try{
 Write-NativeBuildResult -Project RedTilde -Platform $Platform -Configuration $Configuration -LogPath $log -Artifacts @((Join-Path $output 'RedTilde.exe')) -Executable (Join-Path $output 'RedTilde.exe') -Duration $nativeEntryElapsed.Elapsed
 Write-Host "Version: $productVersion"
 }catch{$sdkFailure=$_;throw}
-finally{if($null -ne $sdkInput -and -not $sdkInput.Closed){try{Close-CiPinnedSdkInput $sdkInput}catch{if($null -eq $sdkFailure){throw}else{Write-Warning ('SDK close also failed: '+$_.Exception.Message)}}}}
+finally{
+    if($null -ne $sdkInput -and -not $sdkInput.Closed){try{Close-CiPinnedSdkInput $sdkInput}catch{if($null -eq $sdkFailure){throw}else{Write-Warning ('SDK close also failed: '+$_.Exception.Message)}}}
+    [Environment]::SetEnvironmentVariable('RedTildeBuildNumber', $(if ($null -eq $previousBuildNumber) { [NullString]::Value } else { $previousBuildNumber }), 'Process')
+    [Environment]::SetEnvironmentVariable('RedTildeEnableTests', $(if ($null -eq $previousEnableTests) { [NullString]::Value } else { $previousEnableTests }), 'Process')
+}

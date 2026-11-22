@@ -33,7 +33,7 @@ void SetAtomicWriteHookForTest(AtomicWriteHook hook, void* context) noexcept
 #endif
 namespace
 {
-constexpr DWORD MaximumBytes = 4u * 65536u + 4096u;
+constexpr std::size_t MaximumBytes = DefaultDocumentBytes;
 std::atomic_uint64_t sequence{};
 std::uint64_t FileTimeValue(FILETIME value) noexcept
 {
@@ -85,14 +85,21 @@ HRESULT ReadOpenedBytes(HANDLE file, std::string& bytes, FileStamp* stamp, std::
     BY_HANDLE_FILE_INFORMATION info{};
     if (! GetFileInformationByHandle(file, &info))
         return LastError();
-    if ((info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) || info.nFileSizeHigh || info.nFileSizeLow > maximumBytes)
+    const std::uint64_t fileSize = (static_cast<std::uint64_t>(info.nFileSizeHigh) << 32u) | info.nFileSizeLow;
+    if ((info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) || fileSize > maximumBytes)
         return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
-    std::string staged(info.nFileSizeLow, '\0');
-    DWORD count{};
-    if (! staged.empty() && ! ReadFile(file, staged.data(), static_cast<DWORD>(staged.size()), &count, nullptr))
-        return LastError();
-    if (count != staged.size())
-        return HRESULT_FROM_WIN32(ERROR_READ_FAULT);
+    std::string staged(static_cast<std::size_t>(fileSize), '\0');
+    std::size_t offset{};
+    while (offset < staged.size())
+    {
+        DWORD count{};
+        const DWORD chunk = static_cast<DWORD>(std::min<std::size_t>(staged.size() - offset, 1u << 20u));
+        if (! ReadFile(file, staged.data() + offset, chunk, &count, nullptr))
+            return LastError();
+        if (count == 0u)
+            return HRESULT_FROM_WIN32(ERROR_READ_FAULT);
+        offset += count;
+    }
     BY_HANDLE_FILE_INFORMATION after{};
     if (! GetFileInformationByHandle(file, &after))
         return LastError();
@@ -155,14 +162,14 @@ std::uint64_t ContentHash(std::string_view bytes) noexcept
     return hash;
 }
 
-HRESULT ReadBytes(const std::filesystem::path& path, std::string& bytes, FileStamp* stamp) noexcept
+HRESULT ReadBytes(const std::filesystem::path& path, std::string& bytes, FileStamp* stamp, std::size_t maximumBytes) noexcept
 try
 {
     wil::unique_handle file(CreateFileW(
         path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
     if (! file)
         return LastError();
-    return ReadOpenedBytes(file.get(), bytes, stamp);
+    return ReadOpenedBytes(file.get(), bytes, stamp, maximumBytes);
 }
 catch (const std::bad_alloc&)
 {
@@ -401,12 +408,13 @@ HRESULT WriteBytesAtomic(const std::filesystem::path& path,
                          bool sameIdentityOnly,
                          const std::filesystem::path* baselinePath,
                          bool rejectHardlinkedTarget,
-                         bool* unsupportedReplacement) noexcept
+                         bool* unsupportedReplacement,
+                         std::size_t maximumBytes) noexcept
 try
 {
     if (unsupportedReplacement)
         *unsupportedReplacement = false;
-    if (bytes.size() > MaximumBytes)
+    if (bytes.size() > maximumBytes)
         return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
     const DWORD attributes = GetFileAttributesW(path.c_str());
     const bool exists      = attributes != INVALID_FILE_ATTRIBUTES;
@@ -431,15 +439,21 @@ try
         file.reset(); // The share-none staging handle must close before deletion on every failure path.
         DeleteFileW(temporary.c_str());
     });
-    DWORD written{};
 #ifdef REDTILDE_ENABLE_TESTS
     if (atomicWriteFailure == AtomicWriteFailure::Write)
         return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
 #endif
-    if (! bytes.empty() && ! WriteFile(file.get(), bytes.data(), static_cast<DWORD>(bytes.size()), &written, nullptr))
-        return LastError();
-    if (written != bytes.size())
-        return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
+    std::size_t writtenTotal{};
+    while (writtenTotal < bytes.size())
+    {
+        DWORD writtenChunk{};
+        const DWORD chunk = static_cast<DWORD>(std::min<std::size_t>(bytes.size() - writtenTotal, 1u << 20u));
+        if (! WriteFile(file.get(), bytes.data() + writtenTotal, chunk, &writtenChunk, nullptr))
+            return LastError();
+        if (writtenChunk != chunk)
+            return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
+        writtenTotal += writtenChunk;
+    }
 #ifdef REDTILDE_ENABLE_TESTS
     if (atomicWriteFailure == AtomicWriteFailure::Flush)
         return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
@@ -511,7 +525,7 @@ try
         if (finalExists)
         {
             std::string previous;
-            const HRESULT result = ReadBytes(path, previous, &current);
+            const HRESULT result = ReadBytes(path, previous, &current, maximumBytes);
             if (FAILED(result))
                 return result;
         }
