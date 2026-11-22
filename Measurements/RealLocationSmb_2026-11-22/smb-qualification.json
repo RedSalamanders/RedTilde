@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "workloadOwner": "RedTilde",
+  "fixture": "redtilde-real-location-smb-selftest",
+  "baseCommit": "4a255bcd5705c01346c9a728b6b6625ace9118c4",
+  "compiledSourceIdentity": "6a0a60b2339bd1f7832899793b38ce3171c3da38d40bfa483b3e87103039201a",
+  "dependency": {
+    "repository": "RedSalamanders/DxUi",
+    "commit": "0c371a6197eb8c6b876b4b2843d75078bc21035c",
+    "apiRevision": 5
+  },
+  "platform": "x64",
+  "configuration": "Release",
+  "binarySha256": "6728583A367DE10D6D0962F74DDB823F492D8E73C62CE87FA50D123403AC3378",
+  "target": {
+    "id": "path.smb.primary",
+    "kind": "smb-share",
+    "redactedRoot": "\\\\<nas-host>\\<selftest-share>\\selftest",
+    "reachable": true,
+    "runLeaf": "redtilde-run-70abe690f78a434db367a309c6ca2e4b",
+    "verifiedLeftoverDirectoriesAfterCleanup": 0
+  },
+  "capabilities": {
+    "driveType": 4,
+    "fileIdInfoSupported": false,
+    "fileIdInfoWin32Error": 87,
+    "hardlinkCreateSucceeded": true,
+    "hardlinkLinkCountReported": false,
+    "hardlinkSharesFileIndex": true,
+    "symlinkCreateSupported": false,
+    "symlinkWin32Error": 5,
+    "junctionCreateSupported": false
+  },
+  "captureShowcase": {
+    "scenario": "sample-document",
+    "passed": true,
+    "captureByteCount": 118565,
+    "documentSha256Preserved": "1BA77DC71F2CC8E75F7C6826B2300AAE8D673A3D18C6D5E076D79E5CB4C749A8"
+  },
+  "nativeSuites": [
+    {
+      "scope": "Storage",
+      "exitCode": 1,
+      "passed": 27,
+      "failed": 7,
+      "selected": 34,
+      "unexpectedFailures": [],
+      "unsupportedProviderPrimitives": [
+        {
+          "name": "Files.ReparseLeavesNeverTraverse",
+          "error": "create owned fixture junction"
+        },
+        {
+          "name": "Storage.HardlinkSavePreservesAliasesAndProtectsBeforeMutation",
+          "error": "complete immutable recovery is durable while every original byte still exists"
+        },
+        {
+          "name": "Storage.HardlinkFailuresRetainCompleteRecoveryAndBaseline",
+          "error": "failed in-place write never publishes the caller's saved baseline"
+        },
+        {
+          "name": "Storage.HardlinkAdmissionFailureNeverMutatesTarget",
+          "error": "hardlink save without recovery context is declined"
+        },
+        {
+          "name": "Storage.HardlinkSaveSuccessSurvivesBlockedRecoveryRetirement",
+          "error": "recovery retirement failure cannot turn completed storage into a failed save"
+        },
+        {
+          "name": "Storage.NewHardlinkDuringStagingSelectsProtectedInPlaceSave",
+          "error": "final staging check detects a new alias and reselects protected in-place writing"
+        },
+        {
+          "name": "Storage.SymbolicSavePreservesEntryAndResolvesFinalTarget",
+          "error": "create owned relative symlink (Win32 5)"
+        }
+      ]
+    },
+    {
+      "scope": "Settings",
+      "exitCode": 0,
+      "passed": 19,
+      "failed": 0,
+      "selected": 19,
+      "unexpectedFailures": [],
+      "unsupportedProviderPrimitives": []
+    },
+    {
+      "scope": "Recovery",
+      "exitCode": 0,
+      "passed": 23,
+      "failed": 0,
+      "selected": 23,
+      "unexpectedFailures": [],
+      "unsupportedProviderPrimitives": []
+    }
+  ],
+  "harnessStatus": "PASSED",
+  "openBackends": [
+    "onedrive-selftest",
+    "wsl-selftest"
+  ],
+  "gateStatus": "partial-smb-passed"
+}

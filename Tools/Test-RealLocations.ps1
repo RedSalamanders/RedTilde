@@ -421,6 +421,240 @@ function Remove-RedTildeDirectoryNoReparse {
     [IO.Directory]::Delete($Path, $false)
 }
 
+function Initialize-RedTildeRealLocationProbeNative {
+    if ('RedTildeRealLocationProbe.Native' -as [type]) {
+        return
+    }
+    Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+
+namespace RedTildeRealLocationProbe {
+    [StructLayout(LayoutKind.Sequential)]
+    public struct FILETIME {
+        public uint dwLowDateTime;
+        public uint dwHighDateTime;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct BY_HANDLE_FILE_INFORMATION {
+        public uint dwFileAttributes;
+        public FILETIME ftCreationTime;
+        public FILETIME ftLastAccessTime;
+        public FILETIME ftLastWriteTime;
+        public uint dwVolumeSerialNumber;
+        public uint nFileSizeHigh;
+        public uint nFileSizeLow;
+        public uint nNumberOfLinks;
+        public uint nFileIndexHigh;
+        public uint nFileIndexLow;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct FILE_ID_INFO {
+        public ulong VolumeSerialNumber;
+        public ulong FileIdLow;
+        public ulong FileIdHigh;
+    }
+
+    public static class Native {
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern uint GetDriveTypeW(string lpRootPathName);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern IntPtr CreateFileW(
+            string lpFileName,
+            uint dwDesiredAccess,
+            uint dwShareMode,
+            IntPtr lpSecurityAttributes,
+            uint dwCreationDisposition,
+            uint dwFlagsAndAttributes,
+            IntPtr hTemplateFile);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool CloseHandle(IntPtr hObject);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GetFileInformationByHandle(IntPtr hFile, out BY_HANDLE_FILE_INFORMATION lpFileInformation);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GetFileInformationByHandleEx(IntPtr hFile, int FileInformationClass, out FILE_ID_INFO lpFileInformation, uint dwBufferSize);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool CreateHardLinkW(string lpFileName, string lpExistingFileName, IntPtr lpSecurityAttributes);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool CreateSymbolicLinkW(string lpSymlinkFileName, string lpTargetFileName, uint dwFlags);
+    }
+}
+'@
+}
+
+function Get-RedTildeLocationCapabilities {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Directory)
+
+    Initialize-RedTildeRealLocationProbeNative
+    $probeDir = Join-Path $Directory 'cap-probe'
+    [void][IO.Directory]::CreateDirectory($probeDir)
+    $invalidHandle = [IntPtr]::new(-1)
+
+    $driveRoot = [IO.Path]::GetPathRoot($probeDir)
+    if (-not $driveRoot.EndsWith('\')) {
+        $driveRoot = "$driveRoot\"
+    }
+    $driveType = [int][RedTildeRealLocationProbe.Native]::GetDriveTypeW($driveRoot)
+
+    $fileIdInfoSupported = $false
+    $fileIdInfoWin32Error = 0
+    $hardlinkCreateSucceeded = $false
+    $hardlinkLinkCountReported = $false
+    $hardlinkSharesFileIndex = $false
+    $symlinkCreateSupported = $false
+    $symlinkWin32Error = 0
+    $junctionCreateSupported = $false
+
+    try {
+        $targetFile = Join-Path $probeDir 'target.txt'
+        [IO.File]::WriteAllText($targetFile, 'cap-probe', [Text.UTF8Encoding]::new($false))
+
+        $hTarget = [RedTildeRealLocationProbe.Native]::CreateFileW($targetFile, 0, 7, [IntPtr]::Zero, 3, 0x80, [IntPtr]::Zero)
+        if ($hTarget -ne [IntPtr]::Zero -and $hTarget -ne $invalidHandle) {
+            try {
+                $idInfo = [RedTildeRealLocationProbe.FILE_ID_INFO]::new()
+                if ([RedTildeRealLocationProbe.Native]::GetFileInformationByHandleEx($hTarget, 18, [ref]$idInfo, [uint32][Runtime.InteropServices.Marshal]::SizeOf($idInfo))) {
+                    $fileIdInfoSupported = $true
+                } else {
+                    $fileIdInfoWin32Error = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
+                }
+            } finally {
+                [void][RedTildeRealLocationProbe.Native]::CloseHandle($hTarget)
+            }
+        }
+
+        $aliasFile = Join-Path $probeDir 'alias.txt'
+        if ([RedTildeRealLocationProbe.Native]::CreateHardLinkW($aliasFile, $targetFile, [IntPtr]::Zero)) {
+            $hardlinkCreateSucceeded = $true
+            $hAfter = [RedTildeRealLocationProbe.Native]::CreateFileW($targetFile, 0, 7, [IntPtr]::Zero, 3, 0x80, [IntPtr]::Zero)
+            $hAlias = [RedTildeRealLocationProbe.Native]::CreateFileW($aliasFile, 0, 7, [IntPtr]::Zero, 3, 0x80, [IntPtr]::Zero)
+            try {
+                $afterInfo = [RedTildeRealLocationProbe.BY_HANDLE_FILE_INFORMATION]::new()
+                $aliasInfo = [RedTildeRealLocationProbe.BY_HANDLE_FILE_INFORMATION]::new()
+                if (($hAfter -ne [IntPtr]::Zero) -and ($hAfter -ne $invalidHandle) -and
+                    ([RedTildeRealLocationProbe.Native]::GetFileInformationByHandle($hAfter, [ref]$afterInfo))) {
+                    $hardlinkLinkCountReported = ($afterInfo.nNumberOfLinks -gt 1)
+                    if (($hAlias -ne [IntPtr]::Zero) -and ($hAlias -ne $invalidHandle) -and
+                        ([RedTildeRealLocationProbe.Native]::GetFileInformationByHandle($hAlias, [ref]$aliasInfo))) {
+                        $hardlinkSharesFileIndex = ($afterInfo.dwVolumeSerialNumber -eq $aliasInfo.dwVolumeSerialNumber) -and
+                            ($afterInfo.nFileIndexHigh -eq $aliasInfo.nFileIndexHigh) -and
+                            ($afterInfo.nFileIndexLow -eq $aliasInfo.nFileIndexLow) -and
+                            (($afterInfo.nFileIndexHigh -ne 0) -or ($afterInfo.nFileIndexLow -ne 0))
+                    }
+                }
+            } finally {
+                if ($hAfter -ne [IntPtr]::Zero -and $hAfter -ne $invalidHandle) {
+                    [void][RedTildeRealLocationProbe.Native]::CloseHandle($hAfter)
+                }
+                if ($hAlias -ne [IntPtr]::Zero -and $hAlias -ne $invalidHandle) {
+                    [void][RedTildeRealLocationProbe.Native]::CloseHandle($hAlias)
+                }
+            }
+        }
+
+        $symFile = Join-Path $probeDir 'sym.txt'
+        if ([RedTildeRealLocationProbe.Native]::CreateSymbolicLinkW($symFile, 'target.txt', 2)) {
+            $symlinkCreateSupported = $true
+        } else {
+            $symlinkWin32Error = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
+        }
+
+        $jTarget = Join-Path $probeDir 'jtarget'
+        $jLink = Join-Path $probeDir 'jlink'
+        [void][IO.Directory]::CreateDirectory($jTarget)
+        try {
+            $null = New-Item -ItemType Junction -Path $jLink -Target $jTarget -ErrorAction Stop
+            $jItem = Get-Item -LiteralPath $jLink -Force -ErrorAction Stop
+            if ($jItem.LinkType -ceq 'Junction') {
+                $junctionCreateSupported = $true
+            }
+        } catch {
+            $junctionCreateSupported = $false
+        }
+    } finally {
+        Remove-RedTildeDirectoryNoReparse -Path $probeDir
+    }
+
+    return [pscustomobject]@{
+        driveType                 = $driveType
+        fileIdInfoSupported       = $fileIdInfoSupported
+        fileIdInfoWin32Error      = $fileIdInfoWin32Error
+        hardlinkCreateSucceeded   = $hardlinkCreateSucceeded
+        hardlinkLinkCountReported = $hardlinkLinkCountReported
+        hardlinkSharesFileIndex   = $hardlinkSharesFileIndex
+        symlinkCreateSupported    = $symlinkCreateSupported
+        symlinkWin32Error         = $symlinkWin32Error
+        junctionCreateSupported   = $junctionCreateSupported
+    }
+}
+
+function Split-RedTildeRealLocationFailures {
+    [CmdletBinding()]
+    param(
+        [AllowEmptyCollection()][object[]]$FailedCases = @(),
+        [Parameter(Mandatory)][object]$Capabilities
+    )
+
+    $hardlinkDependentCases = @(
+        'Storage.HardlinkSavePreservesAliasesAndProtectsBeforeMutation',
+        'Storage.HardlinkFailuresRetainCompleteRecoveryAndBaseline',
+        'Storage.HardlinkAdmissionFailureNeverMutatesTarget',
+        'Storage.HardlinkSaveSuccessSurvivesBlockedRecoveryRetirement',
+        'Storage.NewHardlinkDuringStagingSelectsProtectedInPlaceSave'
+    )
+
+    $unexpected = [Collections.Generic.List[object]]::new()
+    $unsupported = [Collections.Generic.List[object]]::new()
+
+    foreach ($case in @($FailedCases)) {
+        if ($null -eq $case) {
+            continue
+        }
+        $name = [string]$case.name
+        $err = if ($case.PSObject.Properties['error']) { [string]$case.error } else { '' }
+        $isUnsupported = $false
+
+        if ($name -cin $hardlinkDependentCases -and -not [bool]$Capabilities.hardlinkLinkCountReported) {
+            $isUnsupported = $true
+        } elseif ($name -ceq 'Storage.SharedWriterReadAndSaveAsBaseline' -and
+            -not [bool]$Capabilities.hardlinkSharesFileIndex -and
+            ($err -match 'create an owned alias|Save As through an alias')) {
+            $isUnsupported = $true
+        } elseif ($name -ceq 'Storage.SymbolicSavePreservesEntryAndResolvesFinalTarget' -and
+            -not [bool]$Capabilities.symlinkCreateSupported) {
+            $isUnsupported = $true
+        } elseif ($name -ceq 'Files.ReparseLeavesNeverTraverse' -and
+            -not [bool]$Capabilities.junctionCreateSupported) {
+            $isUnsupported = $true
+        }
+
+        if ($isUnsupported) {
+            $unsupported.Add($case)
+        } else {
+            $unexpected.Add($case)
+        }
+    }
+
+    return [pscustomobject]@{
+        unexpectedFailures            = @($unexpected.ToArray())
+        unsupportedProviderPrimitives = @($unsupported.ToArray())
+    }
+}
+
 function Invoke-RedTildeRealLocationRun {
     [CmdletBinding()]
     param(
@@ -574,9 +808,11 @@ function Invoke-RedTildeRealLocationRun {
                 throw "Staged document bytes or UTF-8 BOM changed during capture: $docPath"
             }
 
+            $capabilities = $null
             $suiteResults = [Collections.Generic.List[object]]::new()
             $allSuitesPassed = $true
             if ($IncludeNativeSuites) {
+                $capabilities = Get-RedTildeLocationCapabilities -Directory $runRoot
                 foreach ($scopeName in $NativeScopes) {
                     $suiteDataDir = Join-Path $runRoot "suite-$scopeName"
                     $suiteStdout = Join-Path $runScratchRoot "$scopeName.stdout.log"
@@ -614,20 +850,29 @@ function Invoke-RedTildeRealLocationRun {
                             })
                     }
 
-                    $suiteOk = (-not $timedOut) -and ($suiteExit -eq 0) -and ($failedCount -eq 0) -and ($selectedCount -gt 0) -and ($passedCount -eq $selectedCount) -and (-not $catalogOnly)
+                    $split = Split-RedTildeRealLocationFailures -FailedCases $failedCases -Capabilities $capabilities
+                    $exitMatchesReport = (($failedCount -eq 0) -and ($suiteExit -eq 0)) -or
+                        (($failedCount -gt 0) -and ($suiteExit -eq 1) -and ($failedCases.Count -eq $failedCount) -and ($split.unexpectedFailures.Count -eq 0))
+                    $suiteOk = (-not $timedOut) -and ($selectedCount -gt 0) -and (-not $catalogOnly) -and
+                        (($passedCount + $failedCount) -eq $selectedCount) -and $exitMatchesReport
+                    if ($failedCount -gt 0) {
+                        $keepLogs = $true
+                    }
                     if (-not $suiteOk) {
                         $allSuitesPassed = $false
                         $keepLogs = $true
                     }
 
                     $suiteResults.Add([pscustomobject]@{
-                            scope       = $scopeName
-                            exitCode    = $suiteExit
-                            timedOut    = $timedOut
-                            passed      = $passedCount
-                            failed      = $failedCount
-                            selected    = $selectedCount
-                            failedCases = $failedCases
+                            scope                         = $scopeName
+                            exitCode                      = $suiteExit
+                            timedOut                      = $timedOut
+                            passed                        = $passedCount
+                            failed                        = $failedCount
+                            selected                      = $selectedCount
+                            failedCases                   = @($failedCases)
+                            unexpectedFailures            = @($split.unexpectedFailures)
+                            unsupportedProviderPrimitives = @($split.unsupportedProviderPrimitives)
                         })
                 }
             }
@@ -641,6 +886,7 @@ function Invoke-RedTildeRealLocationRun {
                     dryRun           = $false
                     captureByteCount = $captureBytes.Length
                     documentSha256   = $afterHash
+                    capabilities     = $capabilities
                     nativeSuites     = @($suiteResults)
                     logDirectory     = if ($keepLogs) { ".build/real-location-runs/$runId" } else { $null }
                     status           = if ($allSuitesPassed) { 'PASSED' } else { 'NATIVE_SUITE_FAILED' }

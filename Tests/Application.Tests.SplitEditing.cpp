@@ -2,8 +2,12 @@
 #include "Common/Settings.h"
 #include "Common/Storage.h"
 #include "RedTilde/Application.h"
+#include "RedTilde/KeyboardState.h"
 #include "Support/Support.Tests.Foreground.h"
 #include "res/Resource.h"
+#include <algorithm>
+#include <array>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <format>
@@ -66,6 +70,9 @@ class SplitEditingProbe final
 
     static void PressF6(Application& app)
     {
+        KeyboardState::ScopedSynthetic synthetic;
+        constexpr std::array<BYTE, 256> cleanKeys{};
+        KeyboardState::Write(cleanKeys);
         MSG msg{};
         msg.hwnd    = app.Window();
         msg.message = WM_KEYDOWN;
@@ -289,6 +296,24 @@ public:
             Resize(app, 1440, 900);
             app.SetView(EditorView::Split);
             app.Prepare(64);
+            const auto writerDeadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(5000);
+            while (app._preferenceWriter.Busy())
+            {
+                MSG msg{};
+                while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE))
+                {
+                    TranslateMessage(&msg);
+                    DispatchMessageW(&msg);
+                }
+                if (! app._preferenceWriter.Busy())
+                    break;
+                const auto now = std::chrono::steady_clock::now();
+                if (now >= writerDeadline)
+                    break;
+                const auto remaining = static_cast<DWORD>(std::chrono::duration_cast<std::chrono::milliseconds>(writerDeadline - now).count());
+                (void)MsgWaitForMultipleObjects(0, nullptr, FALSE, std::min<DWORD>(remaining, 25u), QS_ALLINPUT);
+            }
+            Require(! app._preferenceWriter.Busy(), "async preference save from SetView(Split) settles before external live edit");
             Require(app.IsSplitScrollSyncEnabled() && app._splitScrollSyncButton->GetToggleState() == std::optional<bool>{true},
                     "live app starts with splitScrollSync=true");
 

@@ -70,6 +70,8 @@
     { "name": "Storage.SharedWriterReadAndSaveAsBaseline", "scope": "Storage" },
     { "name": "Storage.RechecksIdentityAfterStaging", "scope": "Storage" },
     { "name": "Storage.PublishedSaveDoesNotDependOnContentReadback", "scope": "Storage" },
+    { "name": "Storage.PublishedTimestampRefreshPreservesIdentityAndGuardsReplacement", "scope": "Storage" },
+    { "name": "Storage.ImageFileReadAndWatchOnCurrentRoot", "scope": "Storage" },
     { "name": "Storage.ReplacementIdentityDetectsEqualBytesAndTimestamp", "scope": "Storage" },
     { "name": "Editor.SelectedBlockInsertionsRetainSourceAndHistory", "scope": "Editor" },
     { "name": "Recovery.OversizedValidEnvelopeRejectsAndPreservesQuarantine", "scope": "Recovery" },
