@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-22",
+  "repoCommit": "a85cdf1775157fa88d9eda00f77235566135e628",
+  "runId": "20261122T220455008Z-19144-a535ec0dc2374e57959a650a49179eaf",
+  "passed": true,
+  "interactive": true,
+  "userAgreedToCurrentTime": true,
+  "confirmationCountdownSeconds": 30,
+  "autoStart": true,
+  "injectedEvents": 134,
+  "clipboardTouched": false,
+  "physicalImeOrAtQualified": false,
+  "sourceIdentity": "98fde609e5dd9e5cf8fc9dd7fe660d00a2f5964d7a8933478903b6e53b98e6f8",
+  "dependency": "0c371a6197eb8c6b876b4b2843d75078bc21035c",
+  "binarySha256": "29CC8C389BE4B4E1A6379E07C35F167944279FE0EAC0F6E83DA7FC9E3745FB9F",
+  "buildReceiptSha256": "8F7523D250E33F2FC070E6C2CEDC7A20917A635631D512936355398A8A5A1F7D",
+  "platform": "x64",
+  "configuration": "Release",
+  "arguments": [
+    "--design-interactive-probe",
+    "<repo>\\.build\\evidence\\test-runs\\20261122T220455008Z-19144-a535ec0dc2374e57959a650a49179eaf\\payload\\design-interactive.json",
+    "--data-dir",
+    "<repo>\\.build\\evidence\\test-runs\\20261122T220455008Z-19144-a535ec0dc2374e57959a650a49179eaf\\payload\\app-data"
+  ],
+  "leaseBinarySha256": "EA24BBC92573BDB05C978D6BE69B4A67185B1AB67AD85F20FF3A59F84097C5F4",
+  "lease": {
+    "State": "completed",
+    "Exit": 0,
+    "Reason": "",
+    "Confirmation": "started",
+    "AutoStart": true,
+    "ConfirmationSeconds": 30,
+    "ConfirmationDuplicates": [],
+    "SavedForeground": "class 'CASCADIA_HOSTING_WINDOW_CLASS' of WindowsTerminal.exe (process 58360)",
+    "Foreground": "unchanged",
+    "Focus": "unchanged",
+    "FocusCapture": {
+      "Reason": "recorded",
+      "QueryError": 0
+    },
+    "FocusCaptureProblems": [],
+    "Cursor": "restored",
+    "CursorSaved": "2414,1569",
+    "CursorAtExit": "2123,1130",
+    "CursorDiagnostics": null,
+    "RunMovedSomething": true,
+    "Children": [
+      {
+        "Name": "RedTildeDesignInteractive",
+        "Launched": true,
+        "ExitCode": 0,
+        "Seconds": 1.3,
+        "TimedOut": false,
+        "Interrupted": false
+      }
+    ],
+    "ReceiptProblems": []
+  },
+  "childResultSha256": "9311C2E0D4A2BB33DBF5063E9E08A4AA34AE1422A16A042CFAAB160254AE331C",
+  "tests": [
+    {
+      "name": "NativeEditor.KeyboardTextAndUndo",
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "Files.ShortcutFocusAndEscape",
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "Find.TypedQueryTraversalAndEscape",
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "Settings.KeyboardDrawerAndEscape",
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "Focus.KeyboardToggleAndEscape",
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "SelectionToolbar.AltF10TabEnterEscape",
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "Equation.F2InPlaceEditUndoAndExit",
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "FileMenu.KeyboardOpenAndDismiss",
+      "passed": true,
+      "error": ""
+    },
+    {
+      "name": "Window.AltF4AsyncClose",
+      "passed": true,
+      "error": ""
+    }
+  ],
+  "finishedUtc": "2026-11-22T22:04:59.8345182Z",
+  "priorAttemptRetained": {
+    "runId": "20261122T220335534Z-49492-cd8d77d3059b49658d06d596536d2475",
+    "childPassed": true,
+    "childExitCode": 0,
+    "leaseExitCode": 25,
+    "reason": "the desktop could not be given back: cursor moved slightly by operator during run (2313,1401 -> 2192,1415); foreground and focus remained unchanged."
+  }
+}
