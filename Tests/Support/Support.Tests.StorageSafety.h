@@ -149,9 +149,25 @@ inline void RegisterProviderFallbackTests(const std::filesystem::path& root, con
                            checkpoint.snapshots[0].generation == recovery.generation,
                        "exact source and recovery are durable before the first target mutation");
         StoredDocument loaded;
-        RequireStorage(SUCCEEDED(LoadDocument(path, loaded)) && loaded.text == replacement && loaded.bom && loaded.stamp == saved &&
-                           saved.volume == original.volume && saved.fileIndex == original.fileIndex && saved.fileIndexHigh == original.fileIndexHigh,
-                       "provider fallback preserves source, BOM, terminators and complete file identity");
+        RequireStorage(SUCCEEDED(LoadDocument(path, loaded)), "load provider fallback result");
+        RequireStorage(loaded.text == replacement && loaded.bom && loaded.stamp == saved && saved.volume == original.volume &&
+                           saved.fileIndex == original.fileIndex && saved.fileIndexHigh == original.fileIndexHigh,
+                       std::format("provider fallback preserves source, BOM, terminators and complete file identity "
+                                   "(bom={}, size={}/{}, mod={}/{}, hash={}/{}, vol={}/{}/{}, idx={}/{}/{})",
+                                   loaded.bom,
+                                   loaded.stamp.size,
+                                   saved.size,
+                                   loaded.stamp.modified,
+                                   saved.modified,
+                                   loaded.stamp.hash,
+                                   saved.hash,
+                                   loaded.stamp.volume,
+                                   saved.volume,
+                                   original.volume,
+                                   loaded.stamp.fileIndex,
+                                   saved.fileIndex,
+                                   original.fileIndex)
+                           .c_str());
         RequireStorage(ProtectedSaveSnapshots(recovery.dataDirectory).empty(), "successful fallback retires only its own protection");
         for (const auto& entry : std::filesystem::directory_iterator(directory))
             RequireStorage(entry.path().extension() != L".tmp", "unsupported atomic replacement leaves no staging temporary");
@@ -500,13 +516,28 @@ inline void RegisterStorageSafetyTests(const std::filesystem::path& root, const 
         RequireStorage(SUCCEEDED(SaveDocument(path, L"Invented native identity fixture", false, nullptr, saved)), "seed native identity fixture");
         wil::unique_handle file(
             CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+        RequireStorage(bool(file), "open the native identity fixture");
         FILE_ID_INFO info{};
-        RequireStorage(file && GetFileInformationByHandleEx(file.get(), FileIdInfo, &info, sizeof(info)), "query the actual filesystem's full file ID");
-        std::uint64_t low{}, high{};
-        std::memcpy(&low, info.FileId.Identifier, sizeof(low));
-        std::memcpy(&high, info.FileId.Identifier + sizeof(low), sizeof(high));
-        RequireStorage(saved.volume == info.VolumeSerialNumber && saved.fileIndex == low && saved.fileIndexHigh == high,
-                       "saved stamp retains the full 64-bit volume serial and 128-bit filesystem identifier");
+        if (GetFileInformationByHandleEx(file.get(), FileIdInfo, &info, sizeof(info)))
+        {
+            std::uint64_t low{}, high{};
+            std::memcpy(&low, info.FileId.Identifier, sizeof(low));
+            std::memcpy(&high, info.FileId.Identifier + sizeof(low), sizeof(high));
+            RequireStorage(saved.volume == info.VolumeSerialNumber && saved.fileIndex == low && saved.fileIndexHigh == high,
+                           "saved stamp retains the full 64-bit volume serial and 128-bit filesystem identifier");
+        }
+        else
+        {
+            const auto fileIdError = GetLastError();
+            RequireStorage(fileIdError == ERROR_INVALID_PARAMETER || fileIdError == ERROR_NOT_SUPPORTED || fileIdError == ERROR_INVALID_FUNCTION,
+                           std::format("query the actual filesystem's full file ID (Win32 {})", fileIdError).c_str());
+            BY_HANDLE_FILE_INFORMATION legacy{};
+            RequireStorage(GetFileInformationByHandle(file.get(), &legacy) != FALSE, "fall back to BY_HANDLE_FILE_INFORMATION identity");
+            const auto legacyIndex = (static_cast<std::uint64_t>(legacy.nFileIndexHigh) << 32u) | legacy.nFileIndexLow;
+            RequireStorage(saved.volume == static_cast<std::uint64_t>(legacy.dwVolumeSerialNumber) && saved.fileIndex == legacyIndex &&
+                               saved.fileIndexHigh == 0u && saved.volume != 0u && saved.fileIndex != 0u,
+                           "saved stamp retains the legacy 64-bit volume/file index when FileIdInfo is unsupported");
+        }
     });
     test("Storage.UnsupportedFilesReportKnownUnitCount",
          [&]
@@ -645,6 +676,227 @@ inline void RegisterStorageSafetyTests(const std::filesystem::path& root, const 
                        "a different target object requires a conflict decision even with matching bytes, size and timestamp");
         StoredDocument actual;
         RequireStorage(SUCCEEDED(LoadDocument(path, actual)) && actual.text == L"same", "replacement bytes remain unchanged");
+    });
+    test("Storage.PublishedTimestampRefreshPreservesIdentityAndGuardsReplacement",
+         [&]
+    {
+        const auto directory = root / L"published-timestamp-refresh";
+        std::filesystem::create_directories(directory);
+
+        // 1. Same-object post-publication SetFileTime shift (simulating SMB server mtime update)
+        //    refreshes WriteBytesAtomic's returned stamp without reading content.
+        struct ShiftHook
+        {
+            std::filesystem::path expectedPath;
+            unsigned calls{};
+            std::uint64_t shiftedModified{};
+            bool ok{};
+            static void Observe(AtomicWriteCheckpoint phase, const std::filesystem::path& hookPath, void* context) noexcept
+            {
+                auto& self = *static_cast<ShiftHook*>(context);
+                if (phase != AtomicWriteCheckpoint::BeforeTimestampRefresh || hookPath != self.expectedPath)
+                    return;
+                ++self.calls;
+                wil::unique_handle target(CreateFileW(hookPath.c_str(),
+                                                      FILE_READ_ATTRIBUTES | FILE_WRITE_ATTRIBUTES,
+                                                      FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                                      nullptr,
+                                                      OPEN_EXISTING,
+                                                      FILE_ATTRIBUTE_NORMAL,
+                                                      nullptr));
+                if (! target)
+                    return;
+                BY_HANDLE_FILE_INFORMATION info{};
+                if (! GetFileInformationByHandle(target.get(), &info))
+                    return;
+                const auto currentTime = (static_cast<std::uint64_t>(info.ftLastWriteTime.dwHighDateTime) << 32u) | info.ftLastWriteTime.dwLowDateTime;
+                const auto shiftedTime = currentTime + 20000000ull;
+                const FILETIME shiftedFt{static_cast<DWORD>(shiftedTime), static_cast<DWORD>(shiftedTime >> 32u)};
+                if (! SetFileTime(target.get(), nullptr, nullptr, &shiftedFt))
+                    return;
+                BY_HANDLE_FILE_INFORMATION readback{};
+                if (! GetFileInformationByHandle(target.get(), &readback))
+                    return;
+                self.shiftedModified = (static_cast<std::uint64_t>(readback.ftLastWriteTime.dwHighDateTime) << 32u) | readback.ftLastWriteTime.dwLowDateTime;
+                self.ok              = self.shiftedModified != currentTime;
+            }
+        };
+
+        const auto clearHooks = wil::scope_exit([]
+        {
+            SetAtomicWriteHookForTest(nullptr, nullptr);
+            SetAtomicWriteFailureForTest(AtomicWriteFailure::None);
+        });
+
+        {
+            const auto atomicPath = directory / L"atomic-shift.md";
+            ShiftHook hook{atomicPath};
+            SetAtomicWriteHookForTest(ShiftHook::Observe, &hook);
+            FileStamp atomicSaved;
+            RequireStorage(SUCCEEDED(SaveDocument(atomicPath, L"atomic shift content", true, nullptr, atomicSaved)) && hook.calls == 1 && hook.ok,
+                           "atomic publication runs post-rename timestamp shift hook");
+            SetAtomicWriteHookForTest(nullptr, nullptr);
+            StoredDocument loadedAtomic;
+            RequireStorage(SUCCEEDED(LoadDocument(atomicPath, loadedAtomic)) && atomicSaved.modified == hook.shiftedModified &&
+                               loadedAtomic.stamp == atomicSaved,
+                           "WriteBytesAtomic refreshes post-rename modified timestamp on the same object");
+            FileStamp atomicNext;
+            RequireStorage(SUCCEEDED(SaveDocument(atomicPath, L"atomic follow-up", true, &atomicSaved, atomicNext)),
+                           "subsequent save accepts refreshed stamp without false conflict");
+        }
+
+        // 2. Same-object post-flush SetFileTime shift inside SaveProtectedDocument
+        //    (provider fallback) refreshes the returned stamp after closing the handle.
+        {
+            const auto protectedPath = directory / L"protected-shift.md";
+            FileStamp protectedOriginal;
+            RequireStorage(SUCCEEDED(SaveDocument(protectedPath, L"initial protected", false, nullptr, protectedOriginal)),
+                           "seed protected timestamp refresh target");
+            const SaveRecoveryContext recovery{directory / L"protected-state", {0, 0}, 77};
+            ShiftHook hook{protectedPath};
+            SetAtomicWriteFailureForTest(AtomicWriteFailure::ReplaceUnsupported);
+            SetAtomicWriteHookForTest(ShiftHook::Observe, &hook);
+            FileStamp protectedSaved;
+            RequireStorage(SUCCEEDED(SaveDocument(protectedPath, L"revised protected", false, &protectedOriginal, protectedSaved, false, nullptr, &recovery)) &&
+                               hook.calls == 1 && hook.ok,
+                           "protected fallback runs post-flush timestamp shift hook");
+            SetAtomicWriteHookForTest(nullptr, nullptr);
+            SetAtomicWriteFailureForTest(AtomicWriteFailure::None);
+            StoredDocument loadedProtected;
+            RequireStorage(SUCCEEDED(LoadDocument(protectedPath, loadedProtected)) && protectedSaved.modified == hook.shiftedModified &&
+                               loadedProtected.stamp == protectedSaved && protectedSaved.volume == protectedOriginal.volume &&
+                               protectedSaved.fileIndex == protectedOriginal.fileIndex && protectedSaved.fileIndexHigh == protectedOriginal.fileIndexHigh,
+                           "SaveProtectedDocument refreshes post-close modified timestamp while keeping file identity");
+            FileStamp protectedNext;
+            RequireStorage(SUCCEEDED(SaveDocument(protectedPath, L"protected follow-up", false, &protectedSaved, protectedNext)),
+                           "subsequent save after protected fallback accepts refreshed stamp");
+        }
+
+        // 3. Replacing target with a different file object of equal size during
+        //    BeforeTimestampRefresh must NOT adopt the foreign timestamp or identity.
+        {
+            struct ForeignReplaceHook
+            {
+                std::filesystem::path replacement;
+                unsigned calls{};
+                bool moved{};
+                static void Observe(AtomicWriteCheckpoint phase, const std::filesystem::path& hookPath, void* context) noexcept
+                {
+                    if (phase != AtomicWriteCheckpoint::BeforeTimestampRefresh)
+                        return;
+                    auto& self = *static_cast<ForeignReplaceHook*>(context);
+                    ++self.calls;
+                    SetAtomicWriteHookForTest(nullptr, nullptr);
+                    self.moved = MoveFileExW(self.replacement.c_str(), hookPath.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != FALSE;
+                }
+            };
+            const auto targetPath  = directory / L"foreign-replace-target.md";
+            const auto foreignPath = directory / L"foreign-replace-other.md";
+            FileStamp foreignSeed;
+            RequireStorage(SUCCEEDED(WriteBytesAtomic(foreignPath, "equal-size!", nullptr, &foreignSeed)), "seed equal-size foreign replacement");
+            {
+                wil::unique_handle f(CreateFileW(foreignPath.c_str(),
+                                                 FILE_WRITE_ATTRIBUTES,
+                                                 FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                                 nullptr,
+                                                 OPEN_EXISTING,
+                                                 FILE_ATTRIBUTE_NORMAL,
+                                                 nullptr));
+                const auto laterTime = foreignSeed.modified + 200000000ull;
+                const FILETIME laterFt{static_cast<DWORD>(laterTime), static_cast<DWORD>(laterTime >> 32u)};
+                RequireStorage(f && SetFileTime(f.get(), nullptr, nullptr, &laterFt), "give foreign replacement a distinct timestamp");
+            }
+            ForeignReplaceHook hook{foreignPath};
+            SetAtomicWriteHookForTest(ForeignReplaceHook::Observe, &hook);
+            FileStamp savedTarget;
+            RequireStorage(SUCCEEDED(SaveDocument(targetPath, L"equal-bytes", false, nullptr, savedTarget)) && hook.calls == 1 && hook.moved,
+                           "atomic save completes before concurrent foreign replacement race");
+            SetAtomicWriteHookForTest(nullptr, nullptr);
+            StoredDocument observedForeign;
+            RequireStorage(SUCCEEDED(LoadDocument(targetPath, observedForeign)) && observedForeign.stamp != savedTarget,
+                           "published stamp refuses to adopt foreign object's identity or timestamp");
+            FileStamp rejected = savedTarget;
+            RequireStorage(SaveDocument(targetPath, L"next edit", false, &savedTarget, rejected) == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH) &&
+                               rejected == savedTarget,
+                           "subsequent save detects foreign replacement conflict rather than silent overwrite");
+        }
+
+        // 4. Mutating target bytes to a different size during BeforeTimestampRefresh
+        //    must NOT adopt the external mutation's timestamp or size.
+        {
+            struct SizeMutateHook
+            {
+                unsigned calls{};
+                std::uint64_t mutatedModified{};
+                bool ok{};
+                static void Observe(AtomicWriteCheckpoint phase, const std::filesystem::path& hookPath, void* context) noexcept
+                {
+                    if (phase != AtomicWriteCheckpoint::BeforeTimestampRefresh)
+                        return;
+                    auto& self = *static_cast<SizeMutateHook*>(context);
+                    ++self.calls;
+                    SetAtomicWriteHookForTest(nullptr, nullptr);
+                    wil::unique_handle target(CreateFileW(hookPath.c_str(),
+                                                          FILE_READ_ATTRIBUTES | FILE_WRITE_DATA | FILE_WRITE_ATTRIBUTES,
+                                                          FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                                          nullptr,
+                                                          OPEN_EXISTING,
+                                                          FILE_ATTRIBUTE_NORMAL,
+                                                          nullptr));
+                    if (! target)
+                        return;
+                    BY_HANDLE_FILE_INFORMATION before{};
+                    if (! GetFileInformationByHandle(target.get(), &before))
+                        return;
+                    const auto laterTime =
+                        ((static_cast<std::uint64_t>(before.ftLastWriteTime.dwHighDateTime) << 32u) | before.ftLastWriteTime.dwLowDateTime) + 100000000ull;
+                    const char extra[] = "external-extra-bytes";
+                    DWORD written{};
+                    LARGE_INTEGER endPos{};
+                    if (! SetFilePointerEx(target.get(), LARGE_INTEGER{}, &endPos, FILE_END) ||
+                        ! WriteFile(target.get(), extra, static_cast<DWORD>(sizeof(extra) - 1u), &written, nullptr) || ! FlushFileBuffers(target.get()))
+                        return;
+                    const FILETIME laterFt{static_cast<DWORD>(laterTime), static_cast<DWORD>(laterTime >> 32u)};
+                    if (! SetFileTime(target.get(), nullptr, nullptr, &laterFt))
+                        return;
+                    BY_HANDLE_FILE_INFORMATION after{};
+                    if (! GetFileInformationByHandle(target.get(), &after))
+                        return;
+                    self.mutatedModified = (static_cast<std::uint64_t>(after.ftLastWriteTime.dwHighDateTime) << 32u) | after.ftLastWriteTime.dwLowDateTime;
+                    self.ok              = self.mutatedModified != 0u;
+                }
+            };
+            const auto mutatePath = directory / L"size-mutate.md";
+            SizeMutateHook hook;
+            SetAtomicWriteHookForTest(SizeMutateHook::Observe, &hook);
+            FileStamp savedShort;
+            RequireStorage(SUCCEEDED(SaveDocument(mutatePath, L"short", false, nullptr, savedShort)) && hook.calls == 1 && hook.ok,
+                           "atomic save runs external size-mutation hook");
+            SetAtomicWriteHookForTest(nullptr, nullptr);
+            StoredDocument observedMutated;
+            RequireStorage(SUCCEEDED(LoadDocument(mutatePath, observedMutated)) && savedShort.size == 5u && observedMutated.stamp.size > 5u &&
+                               savedShort.modified != hook.mutatedModified,
+                           "published stamp rejects refresh when target byte size changed");
+            FileStamp rejected = savedShort;
+            RequireStorage(SaveDocument(mutatePath, L"next edit", false, &savedShort, rejected) == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH) &&
+                               rejected == savedShort,
+                           "subsequent save detects external size change rather than masking conflict");
+        }
+    });
+    test("Storage.ImageFileReadAndWatchOnCurrentRoot",
+         [&]
+    {
+        const auto directory = std::filesystem::absolute(root / L"image-root-read").lexically_normal();
+        std::filesystem::create_directories(directory);
+        const auto imageFile             = directory / L"sample.bin";
+        constexpr std::string_view bytes = "BMP-FIXTURE-1234";
+        RequireStorage(SUCCEEDED(WriteBytesAtomic(imageFile, bytes)), "seed owned image fixture under current root");
+        std::string actual;
+        RequireStorage(SUCCEEDED(ReadImageFileBytes(imageFile.native(), actual)) && actual == bytes,
+                       "ReadImageFileBytes succeeds with exact bytes under current root");
+        wil::unique_handle watchedDirectory;
+        RequireStorage(SUCCEEDED(OpenImageDirectoryForNotifications(directory.native(), watchedDirectory)) && static_cast<bool>(watchedDirectory),
+                       "OpenImageDirectoryForNotifications opens handle under current root");
     });
 }
 } // namespace RedTilde::Testing

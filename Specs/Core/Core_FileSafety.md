@@ -105,7 +105,8 @@ invalid, full or unavailable recovery storage declines the save with original ta
 Hardlink writes are explicitly non-atomic: a write, truncate or flush failure can leave partial target bytes in every
 alias. Retain dirty state and the previous saved baseline, and keep the complete independent recovery copy. Never
 attempt to write recovery from a crash handler. A successful complete write, truncation, flush and final identity
-check publishes the known-byte stamp, then retires only its own checkpoint. Failed retirement logs a warning and
+check publishes the known-byte stamp, pinning the explicit final write timestamp with `SetFileTime` and flushing
+before closing the write handle, then retires only its own checkpoint. Failed retirement logs a warning and
 retains an extra valid recovery copy without changing the successful save result. Interruption releases the lease;
 ordinary restart offers the retained snapshot through the existing Restore a copy flow and never overwrites originals.
 
@@ -115,7 +116,12 @@ This does not promise a coherent snapshot against an uncooperative writer that c
 metadata change. An ordinary atomic save derives the successful stamp from the owned staging object after its exclusive writer
 closes and before publication, combined with the known written bytes. It does not reopen published content to
 decide success. Publication returns that stamp only after Replace/Move succeeds, so an immediately denied read
-cannot report a completed save as failed or poison the next baseline. A later external edit conflicts normally.
+cannot report a completed save as failed or poison the next baseline. Because remote SMB/cloud providers can adjust a
+published file's final `ftLastWriteTime` when rename/close completes, `WriteBytesAtomic`, `WriteNewBytesDurable`, and
+`SaveProtectedDocument` perform a best-effort metadata-only (`0` access) timestamp refresh after publication and close,
+updating `modified` only when the returned object identity (`SameObject`) and byte length match the completed write
+(never opening content, failing a completed write, or adopting a foreign replacement or size change). A later external
+edit conflicts normally.
 
 An ordinary save conflict has one surface with **Reload / Save As / Overwrite / Cancel**, defaulting to Cancel.
 Cancel, closing the question and cancelling Save As preserve source, selection, history, path, dirty state and

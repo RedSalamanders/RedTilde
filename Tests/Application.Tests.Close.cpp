@@ -3,6 +3,7 @@
 #include "Support/Support.Tests.BitmapAssets.h"
 #include "Support/Support.Tests.Foreground.h"
 #include "res/Resource.h"
+#include <algorithm>
 #include <chrono>
 #include <format>
 #include <stdexcept>
@@ -21,16 +22,39 @@ void Success(HRESULT result, std::string_view message)
 {
     Require(SUCCEEDED(result), message);
 }
-bool HasLabelPrefix(const DxUi::Control* control, std::wstring_view prefix)
+std::wstring FindLabelPrefix(const DxUi::Control* control, std::wstring_view prefix)
 {
     if (! control)
-        return false;
+        return {};
     if (const auto* label = dynamic_cast<const DxUi::Label*>(control); label && label->GetText().starts_with(prefix))
-        return true;
+        return std::wstring(label->GetText());
     for (std::size_t index = 0; index < control->GetLogicalChildCount(); ++index)
-        if (HasLabelPrefix(control->GetLogicalChild(index), prefix))
-            return true;
-    return false;
+    {
+        if (auto match = FindLabelPrefix(control->GetLogicalChild(index), prefix); ! match.empty())
+            return match;
+    }
+    return {};
+}
+bool HasLabelPrefix(const DxUi::Control* control, std::wstring_view prefix)
+{
+    return ! FindLabelPrefix(control, prefix).empty();
+}
+std::string SaveFailureText(const DxUi::Control* control)
+{
+    const auto format = Resource(IDS_SAVEFAILED);
+    const auto wide   = FindLabelPrefix(control, std::wstring_view(format).substr(0, format.find(L'{')));
+    if (wide.empty())
+        return {};
+    const int wideLength = static_cast<int>(std::min<std::size_t>(wide.size(), 4096u));
+    const int needed     = WideCharToMultiByte(CP_UTF8, 0, wide.data(), wideLength, nullptr, 0, nullptr, nullptr);
+    if (needed <= 0)
+        return {};
+    std::string utf8(static_cast<std::size_t>(needed), '\0');
+    const int written = WideCharToMultiByte(CP_UTF8, 0, wide.data(), wideLength, utf8.data(), needed, nullptr, nullptr);
+    if (written <= 0)
+        return {};
+    utf8.resize(static_cast<std::size_t>(written));
+    return utf8;
 }
 bool HasSaveFailure(const DxUi::Control* control)
 {
@@ -785,7 +809,24 @@ void RegisterCloseTests(const std::filesystem::path& root, const std::function<v
         Checkpoint(app);
         (void)SendMessageW(app.Window(), WM_CLOSE, 0, 0);
         Release(gate);
-        Await(app, [&] { return prompts == 1; }, "successful admitted save must protect edits made after admission");
+        const auto waitDeadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+        do
+        {
+            Pump(app);
+            if (prompts == 1)
+                break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        } while (std::chrono::steady_clock::now() < waitDeadline);
+        if (prompts != 1)
+        {
+            throw std::runtime_error(std::format(
+                "successful admitted save must protect edits made after admission (prompts={}, window={}, dirty={}, recoverySettled={}, saveFailure='{}')",
+                prompts,
+                app.Window() != nullptr,
+                app.Dirty(),
+                app.RecoverySettled(),
+                SaveFailureText(app.Host().GetRoot())));
+        }
         Require(app.Window() && app.Host().GetHwnd() && app.Dirty() && app.Document().Snapshot().IsSameRevision(revision),
                 "Cancel retains the later source revision and owner");
         StoredDocument actual;

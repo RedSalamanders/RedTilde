@@ -321,6 +321,49 @@ class FakeRealLocApp {
             }
         }
     }
+    # 11. Verify Split-RedTildeRealLocationFailures only excuses exact probed unsupported primitives
+    $smbCaps = [pscustomobject]@{
+        driveType                 = 4
+        fileIdInfoSupported       = $false
+        fileIdInfoWin32Error      = 87
+        hardlinkCreateSucceeded   = $true
+        hardlinkLinkCountReported = $false
+        hardlinkSharesFileIndex   = $false
+        symlinkCreateSupported    = $false
+        symlinkWin32Error         = 5
+        junctionCreateSupported   = $false
+    }
+    $mixedFailures = @(
+        [pscustomobject]@{ name = 'Storage.HardlinkSavePreservesAliasesAndProtectsBeforeMutation'; error = 'complete immutable recovery is durable' },
+        [pscustomobject]@{ name = 'Storage.SymbolicSavePreservesEntryAndResolvesFinalTarget'; error = 'create owned relative symlink (Win32 5)' },
+        [pscustomobject]@{ name = 'Files.ReparseLeavesNeverTraverse'; error = 'create owned fixture junction' },
+        [pscustomobject]@{ name = 'Storage.SharedWriterReadAndSaveAsBaseline'; error = 'Save As through an alias of a replaced current target' },
+        [pscustomobject]@{ name = 'Utf8.BomUnicodeMixedEolRoundTrip'; error = 'source, BOM and stamp preserved' },
+        [pscustomobject]@{ name = 'Storage.PublishedSaveDoesNotDependOnContentReadback'; error = 'published save returns its exact owned-write stamp' }
+    )
+    $mixedSplit = Split-RedTildeRealLocationFailures -FailedCases $mixedFailures -Capabilities $smbCaps
+    Assert-True ($mixedSplit.unsupportedProviderPrimitives.Count -eq 4 -and $mixedSplit.unexpectedFailures.Count -eq 2) 'Mixed failures separate exact unsupported primitives from core storage regressions'
+    Assert-True ((@($mixedSplit.unexpectedFailures | ForEach-Object name) -join ',') -ceq 'Utf8.BomUnicodeMixedEolRoundTrip,Storage.PublishedSaveDoesNotDependOnContentReadback') 'Core UTF-8 and atomic-save regressions remain unexpectedFailures'
+
+    $fullCaps = [pscustomobject]@{
+        driveType                 = 3
+        fileIdInfoSupported       = $true
+        fileIdInfoWin32Error      = 0
+        hardlinkCreateSucceeded   = $true
+        hardlinkLinkCountReported = $true
+        hardlinkSharesFileIndex   = $true
+        symlinkCreateSupported    = $true
+        symlinkWin32Error         = 0
+        junctionCreateSupported   = $true
+    }
+    $fullSplit = Split-RedTildeRealLocationFailures -FailedCases $mixedFailures -Capabilities $fullCaps
+    Assert-True ($fullSplit.unsupportedProviderPrimitives.Count -eq 0 -and $fullSplit.unexpectedFailures.Count -eq 6) 'Full capabilities never classify any failure as an unsupported primitive'
+
+    $sharedReadErrSplit = Split-RedTildeRealLocationFailures -FailedCases @(
+        [pscustomobject]@{ name = 'Storage.SharedWriterReadAndSaveAsBaseline'; error = 'a cooperative writer does not prevent a stable content read' }
+    ) -Capabilities $smbCaps
+    Assert-True ($sharedReadErrSplit.unexpectedFailures.Count -eq 1 -and $sharedReadErrSplit.unsupportedProviderPrimitives.Count -eq 0) 'SharedWriter stable-read failures remain unexpectedFailures even when hardlinks are unsupported'
+
 } finally {
     foreach ($j in $junctionPaths) {
         if (Test-Path -LiteralPath $j) {

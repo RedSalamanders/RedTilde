@@ -141,14 +141,8 @@ malformed envelope, second close and size-limit tests. See the retained
   Exact main `3bf88036` additionally passes all six hosted native profiles (132 cases and 36 captures each),
   including all four provider cases and actual symbolic-link saves, followed by both production packages.
 - [ ] Qualify the replacement fallback, read sharing and non-name-surrogate cloud tags on real
-  OneDrive/cloud, SMB/NAS and WSL locations before support claims. Directed local errors establish the
-  backend contract; hosted native acceptance does not supply real-location acceptance. Live SMB execution
-  (`path.smb.primary` on `ea111980`, [RealLocationSmb_2026-11-21](../../../Measurements/RealLocationSmb_2026-11-21/README.md))
-  passed `--capture`, `Settings` (`15/15`), `Recovery` (`22/22`), and per-run cleanup, while exposing four
-  Win32/SMB2 root causes in `Storage` (`16/32` failed: post-`MoveFileExW` `ftLastWriteTime` delta,
-  `ReplaceFileW` `ERROR_PATH_NOT_FOUND` `3`, server `nNumberOfLinks == 1` / `FileIdInfo` `87` / `Win32 5`,
-  and intentional `DRIVE_REMOTE` asset guard); Wave 2 `Common/Storage.cpp` fixes plus owner-declared
-  OneDrive and WSL `selftest` roots remain open.
+  OneDrive/cloud and WSL locations before support claims (SMB/NAS `path.smb.primary` live qualification now **PASSED** on `2026-11-22` with `0` unexpected failures after Wave 2 `Common/Storage.cpp` `RefreshPublishedTimestamp` & pre-close `SetFileTime` pin: [RealLocationSmb_2026-11-22](../../../Measurements/RealLocationSmb_2026-11-22/README.md); prior `ea111980` root-cause packet: [RealLocationSmb_2026-11-21](../../../Measurements/RealLocationSmb_2026-11-21/README.md)). Directed local errors establish the
+  backend contract; hosted native acceptance does not supply real-location acceptance; OneDrive and WSL `selftest` qualification await owner-declared paths.
 - [x] Preserve symlink/hard-link identities under the approved distinct write policies (Q12).
   Implementation `020cb0b9` preserves hardlink aliases with independent durable recovery and separately follows
   symbolic targets. [Local evidence](../../../Measurements/LinkedSaveAndCosmeticSettlement_2026-11-06/README.md)
@@ -619,7 +613,7 @@ Execution slices for Gates 1–7 below are sequenced in [Version 1.0 release rea
 ### Remaining external, hardware, manual, and release-cut gates
 1. **Physical printer & virtual driver (Gate 3)**: Physical printer sheet verification (`Brother HL-L2445DW Printer`), secondary virtual destination (e.g., `OneNote (Desktop)` or XPS), and live Print/Save dialog focus restoration.
 2. **Physical input & interactive focus (Gate 4)**: Physical IME, touch, assistive technology (screen reader), and owner-authorized foreground focus/clipboard (`test-interactive.ps1`).
-3. **Real storage & network locations (Gate 5 remaining)**: Wave 2 `Common/Storage.cpp` SMB fixes and re-qualification on `path.smb.primary`, plus live OneDrive/cloud and WSL `selftest` roots once authorized by the owner.
+3. **Real storage & network locations (Gate 5 remaining)**: Live SMB `path.smb.primary` re-qualification **PASSED** on `2026-11-22` (`0` unexpected failures: `--capture` PASS, `Settings` `19/19`, `Recovery` `23/23`, `Storage` `27/34` with `7` probed unsupported server primitives, `0` leftover directories; [RealLocationSmb_2026-11-22](../../../Measurements/RealLocationSmb_2026-11-22/README.md)); live OneDrive/cloud and WSL `selftest` roots remain open awaiting owner-declared paths.
 4. **Paired performance & hardware graphics (Gate 6 remaining)**: Quiet-host paired Release A/B candidate studies and physical DWM occlusion / live monitor DPI switch verification.
 5. **Release cut & distribution (Gate 7)**: Upstream `DxUi` pin/sign-off (`H-01`/`H-02`/`H-05`/`H-14`), setting v1.0.0 in `Common/Version.h` and `capabilities.json`, code signing, `Tools/Release-Changelog.ps1`, installer clean-machine verification, and `Q15` / `Q17` disposition holds.
 

@@ -439,38 +439,49 @@ int RunCoreTests(const std::filesystem::path& root, CoreTestScope scope, bool li
         const auto initialized = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
         Require(SUCCEEDED(initialized) || initialized == RPC_E_CHANGED_MODE, "use the existing COM apartment for bitmap fixtures");
         const wil::unique_call<decltype(&CoUninitialize), CoUninitialize> apartment(SUCCEEDED(initialized));
-        const auto directory = root / L"clipboard-assets";
+        const auto directory  = root / L"clipboard-assets";
+        const auto rootDrive  = directory.root_name().native();
+        const bool fixedDrive = rootDrive.size() == 2u && rootDrive[1] == L':' && GetDriveTypeW(directory.root_path().c_str()) == DRIVE_FIXED;
         for (const bool v5 : {false, true})
         {
             BitmapAsset asset;
             const auto dib = Testing::ClipboardBitmapFixture(v5);
-            Success(CreateBitmapAsset(directory, dib, v5, asset), "encode a real DIB to a durable PNG");
-            Require(asset.width == 2 && asset.height == 2 && asset.path.extension() == L".png" && asset.uri.starts_with(L"file:"),
-                    "clipboard assets carry their actual dimensions and an absolute file URI");
-            const std::array<unsigned char, 16> expected{0,
-                                                         0,
-                                                         255,
-                                                         255,
-                                                         0,
-                                                         255,
-                                                         0,
-                                                         static_cast<unsigned char>(v5 ? 128 : 255),
-                                                         255,
-                                                         0,
-                                                         0,
-                                                         255,
-                                                         255,
-                                                         255,
-                                                         255,
-                                                         static_cast<unsigned char>(v5 ? 64 : 255)};
-            Require(Testing::ReadClipboardPngPixels(asset.path) == expected, "independent PNG decoding preserves orientation, colors and DIBV5 alpha");
-            std::string png;
-            FileStamp observed;
-            Success(ReadBytes(asset.path, png, &observed), "read complete generated PNG and native stamp");
-            Require(observed == asset.stamp && png.starts_with("\x89PNG\r\n\x1a\n"), "the durable stamp describes the actual closed PNG file");
-            Success(RetireBitmapAsset(asset), "retire an unreferenced owned asset by full identity and content");
-            Require(! std::filesystem::exists(asset.path), "verified asset cleanup removed its own file");
+            if (fixedDrive)
+            {
+                Success(CreateBitmapAsset(directory, dib, v5, asset), "encode a real DIB to a durable PNG");
+                Require(asset.width == 2 && asset.height == 2 && asset.path.extension() == L".png" && asset.uri.starts_with(L"file:"),
+                        "clipboard assets carry their actual dimensions and an absolute file URI");
+                const std::array<unsigned char, 16> expected{0,
+                                                             0,
+                                                             255,
+                                                             255,
+                                                             0,
+                                                             255,
+                                                             0,
+                                                             static_cast<unsigned char>(v5 ? 128 : 255),
+                                                             255,
+                                                             0,
+                                                             0,
+                                                             255,
+                                                             255,
+                                                             255,
+                                                             255,
+                                                             static_cast<unsigned char>(v5 ? 64 : 255)};
+                Require(Testing::ReadClipboardPngPixels(asset.path) == expected, "independent PNG decoding preserves orientation, colors and DIBV5 alpha");
+                std::string png;
+                FileStamp observed;
+                Success(ReadBytes(asset.path, png, &observed), "read complete generated PNG and native stamp");
+                Require(observed == asset.stamp && png.starts_with("\x89PNG\r\n\x1a\n"), "the durable stamp describes the actual closed PNG file");
+                Success(RetireBitmapAsset(asset), "retire an unreferenced owned asset by full identity and content");
+                Require(! std::filesystem::exists(asset.path), "verified asset cleanup removed its own file");
+            }
+            else
+            {
+                Require(CreateBitmapAsset(directory, dib, v5, asset) == HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED) && asset.path.empty(),
+                        "bitmap asset creation intentionally refuses non-DRIVE_FIXED roots");
+            }
         }
+        std::filesystem::create_directories(directory);
         const auto owned = directory / L"created.bin";
         FileStamp original;
         Success(WriteNewBytesDurable(owned, "safe", original, MaximumClipboardPngBytes), "create an independent owned binary");

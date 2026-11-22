@@ -111,28 +111,23 @@ Source merge alone is never product release acceptance. Every gate below closes 
 
 ---
 
-### Gate 5 — Real Storage & Network Share Qualification (`T-S2`, `T-I1`) (**OPEN — PARTIAL: LIVE SMB EXECUTED WITH OPEN `Common/Storage.cpp` DEFECTS**)
+### Gate 5 — Real Storage & Network Share Qualification (`T-S2`, `T-I1`) (**OPEN — SMB PASSED (`0` UNEXPECTED FAILURES); ONEDRIVE & WSL AWAIT OWNER ROOTS**)
 
 - **Closes `RemainingWork` rows:** `T-S2` (real OneDrive/cloud, SMB/NAS, WSL qualification), `T-I1` (Q8/Q13 real-location acceptance).
 - **Host storage resources observed on 2026-11-21 (inventory only — never direct write targets):**
   - **OneDrive Consumer:** `%USERPROFILE%\OneDrive` (`$env:OneDriveConsumer`, present locally; awaits owner-declared `selftest` root)
   - **OneDrive Business:** `%USERPROFILE%\OneDrive - <Org>` (`$env:OneDriveCommercial`, present locally; awaits owner-declared `selftest` root)
   - **WSL 2:** `Ubuntu` distro installed (Version 2; UNC root `\\wsl.localhost\Ubuntu\...`; awaits owner-declared `selftest` root)
-  - **Dedicated SMB / NAS Self-Test Share:** `\\<nas-host>\<selftest-share>\selftest` declared in `Z:\RedSalamander.Perf\config\machine-resources.json` under id `path.smb.primary` (separate from media share `\\<nas-host>\<media-share>`; **reachable and executed on `ea111980`**)
+  - **Dedicated SMB / NAS Self-Test Share:** `\\<nas-host>\<selftest-share>\selftest` declared in `Z:\RedSalamander.Perf\config\machine-resources.json` under id `path.smb.primary` (separate from media share `\\<nas-host>\<media-share>`; **reachable and re-qualified cleanly on 2026-11-22**)
 - **Safety & isolation design (Allowed Write Locations Only — Fail Closed):**
-  1. **Implemented & executed locally:** [Tools/Test-RealLocations.ps1](../../../Tools/Test-RealLocations.ps1) (opt-in; NEVER invoked automatically by default headless runs or hosted CI; now extended with `-IncludeNativeSuites`, `-NativeScopes`, `-RetainLogs`, `Start-Process -Wait` timeouts, and read-only-safe per-run cleanup) and its compiler-free gate [Tests/Tooling.Tests.RealLocations.ps1](../../../Tests/Tooling.Tests.RealLocations.ps1) (`41` checks in [validate.ps1](../../../validate.ps1)) enforce the fail-closed contract:
+  1. **Implemented & executed locally:** [Tools/Test-RealLocations.ps1](../../../Tools/Test-RealLocations.ps1) (opt-in; NEVER invoked automatically by default headless runs or hosted CI; includes `-IncludeNativeSuites`, `-NativeScopes`, `-RetainLogs`, `Get-RedTildeLocationCapabilities` hardware/provider probing, `Split-RedTildeRealLocationFailures` exact primitive classification, `Start-Process`/process timeouts, and read-only-safe per-run cleanup) and its compiler-free gate [Tests/Tooling.Tests.RealLocations.ps1](../../../Tests/Tooling.Tests.RealLocations.ps1) (`53` checks in [validate.ps1](../../../validate.ps1)) enforce the fail-closed contract:
      - Live OneDrive, SMB, and WSL tests ONLY run against explicitly manifest-declared dedicated `selftest` roots (`redtilde.real-locations.v1` or compatible `red-salamander.test-machine-resources.v1` entries, each required to contain a `selftest` path segment and never pointing to drive roots, `%USERPROFILE%`, Desktop, Documents, undeclared `C:\Users\...\OneDrive`, or `\\<nas-host>\<media-share>`). Fail closed if a manifest or target root is missing, relative, >1024 chars, contains NUL/newlines or `.`/`..` segments, is a shallow 2-segment UNC root, lacks a `selftest` segment, or is/traverses a surrogate symlink/junction.
      - Perform explicit reachability preflight per target and operate strictly inside a per-run `redtilde-run-<guid>` subfolder with exit cleanup in `finally` that never follows reparse points.
-  2. **Live SMB qualification executed (`ea111980`, [RealLocationSmb_2026-11-21](../../../Measurements/RealLocationSmb_2026-11-21/README.md)):**
-     - **Passed:** UTF-8 BOM `--capture` (`118,136`-byte PNG, unchanged document SHA-256 `1BA77DC7...`), `Settings` (`15/15`), `Recovery` (`22/22`), and per-run directory cleanup (`0` leftover `redtilde-run-*` directories).
-     - **Failed (`Storage` `16/32` passed, `16` failed) — 4 proven Win32/SMB2 root causes diagnosed:**
-       1. *Product SMB bug:* `Common/Storage.cpp` samples `writtenStamp` before `MoveFileExW(..., MOVEFILE_WRITE_THROUGH)` / `ReplaceFileW`, whereas the SMB server updates `ftLastWriteTime` post-rename (`+503,718` 100-ns ticks ≈ `50.37 ms`) while keeping volume serial and file index identical.
-       2. *Product SMB bug:* `ReplaceFileW(..., 0)` and `ReplaceFileW(..., REPLACEFILE_IGNORE_MERGE_ERRORS)` both fail with `ERROR_PATH_NOT_FOUND` (`3`) on an existing SMB target, which `Common/Storage.cpp` does not route to the protected fallback.
-       3. *SMB server capability & fixture limits:* `CreateHardLinkW` returns `TRUE` while `GetFileInformationByHandle` still reports `nNumberOfLinks == 1`; `GetFileInformationByHandleEx(FileIdInfo)` returns error `87` (`Storage.cpp` already falls back, but `Storage.StampMatchesFullNativeFileIdentity` asserts `FileIdInfo`); remote junction/symlink fixture creation (`Win32 5`) is denied by the share.
-       4. *Intentional local-profile boundary:* `Common/BitmapAssets.cpp` intentionally rejects `DRIVE_REMOTE` (`4`) for `--data-dir` clipboard PNG staging (`Assets` belong under `%LOCALAPPDATA%` on `DRIVE_FIXED`).
-  3. **Remaining Wave 2 work to close Gate 5 (`T-S2`, `T-I1`):**
-     - Implement and qualify the Wave 2 `Common/Storage.cpp` SMB fixes (refresh/handle post-rename `ftLastWriteTime` when identity/bytes match; route `ReplaceFileW` `ERROR_PATH_NOT_FOUND` fallback safely; keep local `DRIVE_FIXED` data root in SMB `BitmapAssets` tests and separate SMB server capability probes from core save regressions) and re-qualify `path.smb.primary` to `0` unexpected failures.
-     - Obtain owner-declared dedicated `selftest` roots for OneDrive Personal/Business (`CfApi` non-name-surrogate cloud placeholders) and WSL 2 `Ubuntu` and archive clean live receipts across all three backends, plus update [capabilities.json](../../../capabilities.json) and [Core_FileSafety.md](../../Core/Core_FileSafety.md).
+  2. **Wave 1 live SMB diagnosis (`ea111980`, [RealLocationSmb_2026-11-21](../../../Measurements/RealLocationSmb_2026-11-21/README.md)) -> Wave 2 fixes & clean SMB pass (`2026-11-22`, [RealLocationSmb_2026-11-22](../../../Measurements/RealLocationSmb_2026-11-22/README.md)):**
+     - **Repaired & verified live on `path.smb.primary`:** Added best-effort post-publication metadata-only `RefreshPublishedTimestamp` across `WriteBytesAtomic`, `WriteNewBytesDurable`, and `SaveProtectedDocument`, plus `SetFileTime`+`FlushFileBuffers` pinning in `SaveProtectedDocument`, `BY_HANDLE_FILE_INFORMATION` fallback verification in `Storage.StampMatchesFullNativeFileIdentity` ONLY for `FileIdInfo` errors `87`/`50`/`1`, intentional `DRIVE_REMOTE` refusal verification in `Storage.BitmapAssetsEncodeAndRetireOwnedFiles`, `Storage.PublishedTimestampRefreshPreservesIdentityAndGuardsReplacement`, `Storage.ImageFileReadAndWatchOnCurrentRoot`, and `_preferenceWriter` quiescence in `Settings.SplitScrollSyncPersistenceAndLiveReload`.
+     - **Passed (`status: PASSED`, `0` unexpected failures, `0` leftover `redtilde-run-*` directories):** UTF-8 BOM `--capture` (`118,565`-byte PNG, unchanged document SHA-256 `1BA77DC7...`), `Settings` (`19/19`), `Recovery` (`23/23`), and `Storage` (`27/34` passed with all `7` remaining failures exclusively classified in `unsupportedProviderPrimitives` per live `Get-RedTildeLocationCapabilities`: junction creation unsupported, `nNumberOfLinks == 1` after `CreateHardLinkW`, and remote symlink Win32 `5`).
+  3. **Remaining Gate 5 work (`T-S2`, `T-I1`):**
+     - Obtain owner-declared dedicated `selftest` roots for OneDrive Personal/Business (`CfApi` non-name-surrogate cloud placeholders) and WSL 2 `Ubuntu` and archive clean live receipts across those remaining two backends (or record explicit v1.0 scope disposition), and verify [capabilities.json](../../../capabilities.json) accurately reflects SMB support claims vs. pending backends.
 
 ---
 
@@ -173,7 +168,7 @@ Source merge alone is never product release acceptance. Every gate below closes 
 
 | Section in `RemainingWork_2026-11-04.md` | Remaining Unchecked Items | Covered Here By |
 | --- | --- | --- |
-| `T-S2` (1 item) | Wave 2 SMB `Common/Storage.cpp` fixes & re-run, plus OneDrive/cloud and WSL `selftest` qualification | **Gate 5** (`PARTIAL` — SMB executed) |
+| `T-S2` (1 item) | Live OneDrive/cloud and WSL `selftest` qualification (live SMB `path.smb.primary` passed `0` unexpected failures) | **Gate 5** (`PARTIAL` — SMB passed) |
 | `T-U2` (1 item) | Step 6: publish qualified physical/PDF/driver printing behavior & receipts | **Gate 3** |
 | `T-I1` (1 item) | Q8/Q13 real-location acceptance | **Gate 5** (`PARTIAL` — SMB executed) |
 | `T-P1` (3 remaining open items; Debug alloc design review checked) | Quiet-host A/B matched Release studies, command/WS optimization follow-ups, physical DWM occlusion/DPI switch | **Gate 6** (`PARTIAL` — GPU probe, A/A & design review done) |

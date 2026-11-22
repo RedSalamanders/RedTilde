@@ -78,6 +78,19 @@ bool SameObject(const FileStamp& left, const FileStamp& right) noexcept
     return HasIdentity(left) && HasIdentity(right) && left.volume == right.volume && left.fileIndex == right.fileIndex &&
            left.fileIndexHigh == right.fileIndexHigh;
 }
+void RefreshPublishedTimestamp(const std::filesystem::path& path, FileStamp& stamp) noexcept
+{
+    wil::unique_handle published(
+        CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+    if (! published)
+        return;
+    BY_HANDLE_FILE_INFORMATION info{};
+    if (! GetFileInformationByHandle(published.get(), &info))
+        return;
+    auto refreshed = Stamp(info, stamp.hash);
+    if (SUCCEEDED(CompleteIdentity(published.get(), refreshed)) && SameObject(refreshed, stamp) && refreshed.size == stamp.size)
+        stamp.modified = refreshed.modified;
+}
 // Borrow one already-opened file at position zero. Both stable shared reads and
 // protected in-place saves use this one bounded read/identity implementation.
 HRESULT ReadOpenedBytes(HANDLE file, std::string& bytes, FileStamp* stamp, std::size_t maximumBytes = MaximumBytes)
@@ -362,8 +375,10 @@ try
     RETURN_IF_FAILED(CompleteIdentity(file.get(), stamp));
     if (stamp.size != bytes.size() || ! HasIdentity(stamp) || info.nNumberOfLinks != 1u)
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
-    saved = stamp;
     removeFailed.release();
+    file.reset();
+    RefreshPublishedTimestamp(path, stamp);
+    saved = stamp;
     return S_OK;
 }
 catch (const std::bad_alloc&)
@@ -560,8 +575,15 @@ try
     else if (! MoveFileExW(temporary.c_str(), path.c_str(), MOVEFILE_WRITE_THROUGH))
         return LastError();
     removeTemporary.release();
+#ifdef REDTILDE_ENABLE_TESTS
+    if (atomicWriteHook)
+        atomicWriteHook(AtomicWriteCheckpoint::BeforeTimestampRefresh, path, atomicWriteContext);
+#endif
     if (saved)
+    {
+        RefreshPublishedTimestamp(path, writtenStamp);
         *saved = writtenStamp;
+    }
 #ifdef REDTILDE_ENABLE_TESTS
     if (atomicWriteHook)
         atomicWriteHook(AtomicWriteCheckpoint::Published, path, atomicWriteContext);
@@ -641,7 +663,7 @@ HRESULT SaveProtectedDocument(const std::filesystem::path& target,
                               const SaveRecoveryContext* recovery)
 {
     // Deny cooperative writers/deletion across every alias until publication.
-    // The existing metadata-only probe shares all access and does not prevent this lock.
+    // The earlier metadata-only probe is already closed; any concurrent metadata probe still shares all access.
     wil::unique_handle file(CreateFileW(target.c_str(), GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
     if (! file)
         return LastError();
@@ -708,6 +730,12 @@ HRESULT SaveProtectedDocument(const std::filesystem::path& target,
 #endif
     if (! FlushFileBuffers(file.get()))
         return LastError();
+    // Pin an explicit final timestamp before closing so remote providers do not
+    // advance ftLastWriteTime asynchronously after handle close.
+    FILETIME now{};
+    GetSystemTimeAsFileTime(&now);
+    if (! SetFileTime(file.get(), nullptr, nullptr, &now) || ! FlushFileBuffers(file.get()))
+        return LastError();
     file.reset(); // Publish final write time before reading metadata, never content readback.
     BY_HANDLE_FILE_INFORMATION after{};
     if (! GetFileInformationByHandle(metadata.get(), &after))
@@ -718,6 +746,12 @@ HRESULT SaveProtectedDocument(const std::filesystem::path& target,
         return identity;
     if (result.size != bytes.size() || ! SameObject(current, result))
         return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
+    metadata.reset();
+#ifdef REDTILDE_ENABLE_TESTS
+    if (atomicWriteHook)
+        atomicWriteHook(AtomicWriteCheckpoint::BeforeTimestampRefresh, target, atomicWriteContext);
+#endif
+    RefreshPublishedTimestamp(target, result);
     saved = result;
     (void)protection.Retire(); // Failure is logged; a valid extra recovery copy remains available.
 #ifdef REDTILDE_ENABLE_TESTS
@@ -792,33 +826,37 @@ try
     {
         std::filesystem::path target = path;
         wil::unique_handle link;
-        wil::unique_handle metadata(
-            CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
-        if (! metadata)
+        bool protectInPlace{};
         {
-            const auto error = GetLastError();
-            if (error != ERROR_FILE_NOT_FOUND && error != ERROR_PATH_NOT_FOUND)
-                return HRESULT_FROM_WIN32(error);
-            if (GetFileAttributesW(path.c_str()) != INVALID_FILE_ATTRIBUTES)
-                return HRESULT_FROM_WIN32(error); // Never replace a dangling link entry.
+            wil::unique_handle metadata(
+                CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+            if (! metadata)
+            {
+                const auto error = GetLastError();
+                if (error != ERROR_FILE_NOT_FOUND && error != ERROR_PATH_NOT_FOUND)
+                    return HRESULT_FROM_WIN32(error);
+                if (GetFileAttributesW(path.c_str()) != INVALID_FILE_ATTRIBUTES)
+                    return HRESULT_FROM_WIN32(error); // Never replace a dangling link entry.
+            }
+            else
+            {
+                BY_HANDLE_FILE_INFORMATION info{};
+                if (! GetFileInformationByHandle(metadata.get(), &info))
+                    return LastError();
+                if (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+                    return HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
+                const auto resolved = ResolveSymbolicTarget(path, metadata, target, link);
+                if (FAILED(resolved))
+                    return resolved;
+                if (! GetFileInformationByHandle(metadata.get(), &info))
+                    return LastError();
+                if (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+                    return HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
+                protectInPlace = info.nNumberOfLinks > 1u;
+            }
         }
-        else
-        {
-            BY_HANDLE_FILE_INFORMATION info{};
-            if (! GetFileInformationByHandle(metadata.get(), &info))
-                return LastError();
-            if (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-                return HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
-            const auto resolved = ResolveSymbolicTarget(path, metadata, target, link);
-            if (FAILED(resolved))
-                return resolved;
-            if (! GetFileInformationByHandle(metadata.get(), &info))
-                return LastError();
-            if (info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-                return HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
-            if (info.nNumberOfLinks > 1u)
-                return SaveProtectedDocument(target, path, text, bytes, bom, expected, saved, sameIdentityOnly, baselinePath, recovery);
-        }
+        if (protectInPlace)
+            return SaveProtectedDocument(target, path, text, bytes, bom, expected, saved, sameIdentityOnly, baselinePath, recovery);
         bool unsupportedReplacement{};
         const auto result = WriteBytesAtomic(target, bytes, expected, &saved, sameIdentityOnly, baselinePath, true, &unsupportedReplacement);
         // Only an explicit unsupported result from replacement permits this
