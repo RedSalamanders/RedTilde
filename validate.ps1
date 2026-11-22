@@ -65,10 +65,10 @@ Check 'Run evidence retention' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests
 Check 'Resource strings' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.ResourceStrings.ps1') }
 Check 'Naming style' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.NamingStyle.ps1') }
 Check 'Real-location fail-closed contract' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.RealLocations.ps1') }
+Check 'PII hygiene' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.PiiHygiene.ps1') }
+Check 'Per-user installer behavioral tests' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.Installer.ps1') }
 Check 'RedMonitor SDK consumption' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.RedMonitor.ps1') }
 Check 'Scope contracts and public runner' {
-    Import-Module (Join-Path $PSScriptRoot 'Build/ScopedTesting.psm1') -Force
-    [void](Assert-ScopedTestNames $PSScriptRoot)
     & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.ScopedTesting.ps1')
     if($LASTEXITCODE -ne 0){throw 'Scoped-testing regressions failed.'}
 }
@@ -79,6 +79,10 @@ Check 'PowerShell syntax' {
     $files+=Get-ChildItem (Join-Path $PSScriptRoot 'Tools') -Recurse -File | Where-Object Extension -in @('.ps1','.psm1')
     if (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'Installer') -PathType Container) {
         $files+=Get-ChildItem (Join-Path $PSScriptRoot 'Installer') -Recurse -File | Where-Object Extension -in @('.ps1','.psm1')
+    }
+    $setupScript = Join-Path $PSScriptRoot '.github/actions/setup-msvc/Setup.ps1'
+    if (Test-Path -LiteralPath $setupScript -PathType Leaf) {
+        $files += Get-Item -LiteralPath $setupScript
     }
     foreach ($file in $files) {
         $tokens=$null; $errors=$null

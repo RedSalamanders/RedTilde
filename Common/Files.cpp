@@ -119,7 +119,7 @@ struct Scan
             Error(path, GetLastError());
             return;
         }
-        if (attributes.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
+        if ((attributes.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && IsReparseTagNameSurrogate(attributes.ReparseTag))
         {
             // A child replaced between listing/opening becomes a visible leaf.
             if (parent != NoFilesParent)
@@ -166,11 +166,11 @@ struct Scan
                         break;
                     }
                     ++snapshot.examinedEntries;
-                    const DWORD flags = entry->FileAttributes;
-                    const bool folder = (flags & FILE_ATTRIBUTE_DIRECTORY) != 0;
+                    const DWORD flags           = entry->FileAttributes;
+                    const bool folder           = (flags & FILE_ATTRIBUTE_DIRECTORY) != 0;
+                    const bool surrogateReparse = (flags & FILE_ATTRIBUTE_REPARSE_POINT) != 0 && IsReparseTagNameSurrogate(entry->EaSize) != FALSE;
                     if (! (flags & (FILE_ATTRIBUTE_HIDDEN | FILE_ATTRIBUTE_SYSTEM)) && (folder || IsMarkdownFile(std::filesystem::path(name))))
-                        children.push_back(
-                            {path / name, std::wstring(name), parent, folder ? 0u : 1u, depth, folder, (flags & FILE_ATTRIBUTE_REPARSE_POINT) != 0});
+                        children.push_back({path / name, std::wstring(name), parent, folder ? 0u : 1u, depth, folder, surrogateReparse});
                 }
                 if (! entry->NextEntryOffset)
                     break;
@@ -269,7 +269,7 @@ public:
         FILE_ATTRIBUTE_TAG_INFO attributes{};
         if (! GetFileInformationByHandleEx(directory.get(), FileAttributeTagInfo, &attributes, sizeof(attributes)))
             status = HRESULT_FROM_WIN32(GetLastError());
-        else if (((attributes.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && (! imageFiles || IsReparseTagNameSurrogate(attributes.ReparseTag))) ||
+        else if (((attributes.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && IsReparseTagNameSurrogate(attributes.ReparseTag)) ||
                  ! (attributes.FileAttributes & FILE_ATTRIBUTE_DIRECTORY))
             status = HRESULT_FROM_WIN32(ERROR_CANT_ACCESS_FILE);
         if (FAILED(status))
@@ -614,6 +614,10 @@ struct FilesService::State
             // Threadpool ABI boundary: publish a concrete failed result and stop
             // admission; a stopped worker must never accept an unserviceable root.
             self->Fail(HRESULT_FROM_WIN32(static_cast<DWORD>(error.code().value())));
+        }
+        catch (const std::exception&)
+        {
+            DxUi::Failure::FailUnexpected();
         }
     }
 };

@@ -43,8 +43,11 @@ length. Regression coverage includes first publication and replacement of a 240-
 
 Open and save local `.md`, `.markdown` and text files using strict UTF-8. Preserve BOM and original line endings;
 invalid UTF-8/NUL/oversized files fail before replacing the current document. New documents use UTF-8 without BOM.
-The current source limit is 65,536 UTF-16 units (`DxUi::RichText::Document::MaximumUnits`). Bounded reads reject files
-above the maximum possible encoded size.
+The current source limit is 65,536 UTF-16 units (`DxUi::RichText::Document::MaximumUnits`). Shared bounded helpers
+`ReadBytes` and `WriteBytesAtomic` accept an explicit `maximumBytes` cap defaulting to the encoded document ceiling while
+permitting settings callers to enforce `16 MiB` (`MaximumSettingsFileBytes`). Directory traversal and print-to-file
+outputs (`FilesService` and `Printing.cpp`) use the same `IsReparseTagNameSurrogate` admission, `FileIdInfo` fallback,
+explicit `FlushFileBuffers` staging durability, and protected `ReplaceFileW` fallback semantics.
 File pickers label `.txt` as UTF-8 only. Unsupported encoding/NUL has a localized UTF-8 explanation; oversized
 input and editing/command capacity refusals report a localized limit explanation (`IDS_FILETOOLARGELIMIT`, including
 the actual decoded UTF-16-unit count when bounded valid input can be counted, or `MaximumUnits` for in-editor command

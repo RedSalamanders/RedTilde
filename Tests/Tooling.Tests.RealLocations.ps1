@@ -80,7 +80,7 @@ try {
     Assert-Refused { Assert-RedTildeAllowedSelftestRoot -Path 'D:\' -Kind 'onedrive-selftest' } 'drive root D:\'
 
     # 3. User profile, Desktop, Documents, undeclared OneDrive
-    $userProfile = if ($env:USERPROFILE) { $env:USERPROFILE } else { 'C:\Users\eric' }
+    $userProfile = if ($env:USERPROFILE) { $env:USERPROFILE } else { 'C:\Users\example-user' }
     Assert-Refused { Assert-RedTildeAllowedSelftestRoot -Path $userProfile -Kind 'onedrive-selftest' } '%USERPROFILE%'
     Assert-Refused { Assert-RedTildeAllowedSelftestRoot -Path (Join-Path $userProfile 'Desktop') -Kind 'onedrive-selftest' } 'Desktop folder'
     Assert-Refused { Assert-RedTildeAllowedSelftestRoot -Path (Join-Path $userProfile 'Documents') -Kind 'onedrive-selftest' } 'Documents folder'
@@ -92,11 +92,11 @@ try {
     if (-not [string]::IsNullOrWhiteSpace($docsReal)) {
         Assert-Refused { Assert-RedTildeAllowedSelftestRoot -Path (Join-Path $docsReal 'selftest') -Kind 'onedrive-selftest' } 'Documents\selftest'
     }
-    Assert-Refused { Assert-RedTildeAllowedSelftestRoot -Path 'C:\Users\eric\OneDrive' -Kind 'onedrive-selftest' } 'undeclared C:\Users\eric\OneDrive'
+    Assert-Refused { Assert-RedTildeAllowedSelftestRoot -Path (Join-Path $userProfile 'OneDrive') -Kind 'onedrive-selftest' } 'undeclared %USERPROFILE%\OneDrive'
 
-    # 4. Non-selftest share \\rubygloom\Multimedia and shallow UNC roots
-    Assert-Refused { Assert-RedTildeAllowedSelftestRoot -Path '\\rubygloom\Multimedia' -Kind 'smb-share' } '\\rubygloom\Multimedia'
-    Assert-Refused { Assert-RedTildeAllowedSelftestRoot -Path '\\rubygloom\Multimedia\Subdir' -Kind 'smb-share' } '\\rubygloom\Multimedia\Subdir'
+    # 4. Non-selftest share \\fileserver.example.invalid\Multimedia and shallow UNC roots
+    Assert-Refused { Assert-RedTildeAllowedSelftestRoot -Path '\\fileserver.example.invalid\Multimedia' -Kind 'smb-share' } '\\fileserver.example.invalid\Multimedia'
+    Assert-Refused { Assert-RedTildeAllowedSelftestRoot -Path '\\fileserver.example.invalid\Multimedia\Subdir' -Kind 'smb-share' } '\\fileserver.example.invalid\Multimedia\Subdir'
     Assert-Refused { Assert-RedTildeAllowedSelftestRoot -Path '\\server\share' -Kind 'smb-share' } 'shallow 2-segment UNC \\server\share'
     Assert-Refused { Assert-RedTildeAllowedSelftestRoot -Path '\\wsl.localhost\Ubuntu' -Kind 'wsl-selftest' } 'shallow 2-segment WSL root'
 
@@ -107,6 +107,10 @@ try {
     Assert-Refused { Assert-RedTildeAllowedSelftestRoot -Path ($ownedSelftest + '\' + ('a' * 1025)) -Kind 'onedrive-selftest' } 'length > 1024'
     Assert-Refused { Assert-RedTildeAllowedSelftestRoot -Path "$ownedSelftest`0" -Kind 'onedrive-selftest' } 'embedded NUL'
     Assert-Refused { Assert-RedTildeAllowedSelftestRoot -Path "$ownedSelftest`n" -Kind 'onedrive-selftest' } 'embedded newline'
+    Assert-Refused { Assert-RedTildeAllowedSelftestRoot -Path "//?/$($userProfile.Replace('\', '/'))/Desktop/selftest" -Kind 'smb-share' } 'forward-slash //?/ Desktop bypass'
+    Assert-Refused { Assert-RedTildeAllowedSelftestRoot -Path '//?/C:/Users/example-user/Desktop/selftest' -Kind 'smb-share' } 'forward-slash //?/ synthetic Desktop bypass'
+    Assert-Refused { Assert-RedTildeAllowedSelftestRoot -Path '//./C:/temp/selftest' -Kind 'onedrive-selftest' } 'forward-slash //./ bypass'
+    Assert-Refused { Assert-RedTildeAllowedSelftestRoot -Path '\??\C:\temp\selftest' -Kind 'onedrive-selftest' } '\??\ device-namespace bypass'
 
     # 6. Reparse-point / junction manifest and root leaf strictly inside .build/real-location-tests/<guid>/
     $realTarget = Join-Path $fixtureRoot 'junction-target'
@@ -140,10 +144,10 @@ try {
     Write-Utf8NoBom $badRootManifest (@{
             schema    = 'redtilde.real-locations.v1'
             resources = @(
-                @{ id = 'bad.media'; kind = 'smb-share'; enabled = $true; root = '\\rubygloom\Multimedia' }
+                @{ id = 'bad.media'; kind = 'smb-share'; enabled = $true; root = '\\fileserver.example.invalid\Multimedia' }
             )
         } | ConvertTo-Json -Depth 6)
-    Assert-Refused { Invoke-RedTildeRealLocationRun -ManifestPath $badRootManifest -DryRun } 'manifest with \\rubygloom\Multimedia'
+    Assert-Refused { Invoke-RedTildeRealLocationRun -ManifestPath $badRootManifest -DryRun } 'manifest with \\fileserver.example.invalid\Multimedia'
 
     # Unreachable selftest root fails closed (no fallback)
     $unreachableManifest = Join-Path $fixtureRoot 'unreachable-manifest.json'
@@ -162,7 +166,7 @@ try {
             schema    = 'red-salamander.test-machine-resources.v1'
             resources = @(
                 @{ id = 'connection.ftp.primary'; kind = 'connection-profile'; enabled = $true; profile = 'unused' },
-                @{ id = 'path.smb.primary'; kind = 'smb-share'; enabled = $false; root = '\\rubygloom\RedSalamander-SelfTest\selftest' }
+                @{ id = 'path.smb.primary'; kind = 'smb-share'; enabled = $false; root = '\\fileserver.example.invalid\RedSalamander-SelfTest\selftest' }
             )
         } | ConvertTo-Json -Depth 6)
     $compatParsed = Test-RedTildeRealLocationManifest -ManifestPath $compatManifest
@@ -189,15 +193,20 @@ try {
     $cliParsed = $cliOutput | ConvertFrom-Json
     Assert-True ($cliParsed.status -ceq 'DRY_RUN_VERIFIED') 'CLI DryRun output verified'
 
-    # 9. Controlled real capture execution inside owned .build/.../selftest if a built RedTilde.exe is present
+    # 9. Controlled real capture execution inside owned .build/.../selftest if a receipt-verified test-enabled RedTilde.exe is present
     $candidateExe = $null
     $candidateConfig = 'Release'
     foreach ($cfg in @('Release', 'Debug')) {
         $probe = Join-Path $repoRoot ".build/x64/$cfg/RedTilde.exe"
-        if (Test-Path -LiteralPath $probe -PathType Leaf) {
-            $candidateExe = $probe
-            $candidateConfig = $cfg
-            break
+        $receiptPath = Join-Path $repoRoot ".build/x64/$cfg/build-receipt.json"
+        if ((Test-Path -LiteralPath $probe -PathType Leaf) -and (Test-Path -LiteralPath $receiptPath -PathType Leaf)) {
+            $receipt = Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json
+            if ($receipt.PSObject.Properties['passed'] -and $receipt.passed -eq $true -and
+                $receipt.PSObject.Properties['testsEnabled'] -and $receipt.testsEnabled -eq $true) {
+                $candidateExe = $probe
+                $candidateConfig = $cfg
+                break
+            }
         }
     }
     if ($null -ne $candidateExe) {
@@ -210,7 +219,18 @@ try {
         Assert-True (@(Get-ChildItem -LiteralPath $ownedSelftest -Force).Count -eq 0) 'Controlled -IncludeNativeSuites run cleaned up redtilde-run-<guid> leaf completely'
     }
 
-    # 10. Verify ReadOnly leaf cleanup without reparse traversal + CLI exit 1 when native suite fails
+    # 10. Verify ReadOnly leaf cleanup without reparse traversal, dangling junction refusal, spaced OneDrive - Test path quoting, and catalogOnly failure
+    if ([OperatingSystem]::IsWindows()) {
+        $danglingRoot = Join-Path $fixtureRoot 'dangling-junction\selftest'
+        $danglingTarget = Join-Path $fixtureRoot 'dangling-target'
+        [void][IO.Directory]::CreateDirectory($danglingTarget)
+        $danglingLink = Join-Path $fixtureRoot 'dangling-junction'
+        $null = New-Item -ItemType Junction -Path $danglingLink -Target $danglingTarget
+        [IO.Directory]::Delete($danglingTarget)
+        $junctionPaths.Add($danglingLink)
+        Assert-Refused { Assert-RedTildeAllowedSelftestRoot -Path $danglingRoot -Kind 'onedrive-selftest' } 'dangling junction ancestor'
+    }
+
     $roDir = Join-Path $fixtureRoot 'ro-cleanup'
     [void][IO.Directory]::CreateDirectory($roDir)
     $roFile = Join-Path $roDir 'readonly.txt'
@@ -227,20 +247,26 @@ using System;
 using System.IO;
 class FakeRealLocApp {
     static int Main(string[] args) {
-        string cap = null, dataDir = null;
+        string cap = null, doc = null, dataDir = null;
         bool selfTest = false;
         for (int i = 0; i < args.Length; ++i) {
             if (args[i] == "--capture" && i + 1 < args.Length) cap = args[++i];
+            else if (args[i] == "--document" && i + 1 < args.Length) doc = args[++i];
             else if (args[i] == "--data-dir" && i + 1 < args.Length) dataDir = args[++i];
             else if (args[i] == "--self-test") selfTest = true;
         }
         if (cap != null) {
+            if (doc == null || dataDir == null || !File.Exists(doc)) return 3;
             File.WriteAllBytes(cap, new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A });
             File.WriteAllText(cap + ".scenario.json", "{\"hidden\":true,\"scenario\":\"sample-document\"}");
             return 0;
         }
         if (selfTest && dataDir != null) {
             Directory.CreateDirectory(dataDir);
+            if (Environment.GetEnvironmentVariable("REDTILDE_TEST_CATALOG_ONLY") == "1") {
+                File.WriteAllText(Path.Combine(dataDir, "tests.json"), "{\"tests\":[{\"name\":\"Storage.FakeCatalog\",\"passed\":true}],\"passed\":1,\"failed\":0,\"selected\":1,\"registered\":1,\"catalogOnly\":true}");
+                return 0;
+            }
             File.WriteAllText(Path.Combine(dataDir, "tests.json"), "{\"tests\":[{\"name\":\"Storage.FakeFail\",\"passed\":false,\"error\":\"synthetic failure\"}],\"passed\":0,\"failed\":1,\"selected\":1,\"registered\":1,\"catalogOnly\":false}");
             return 1;
         }
@@ -252,6 +278,21 @@ class FakeRealLocApp {
         if (Test-Path -LiteralPath $csc -PathType Leaf) {
             $null = & $csc /nologo /out:$fakeNativeExe $fakeNativeSource 2>&1
             if ($LASTEXITCODE -ne 0) { throw 'Failed to compile fake real-location test binary.' }
+
+            # Verify spaced paths (OneDrive - Test) preserve --document / --data-dir arguments without splitting
+            $spacedSelftest = Join-Path $fixtureRoot 'OneDrive - Test\selftest'
+            [void][IO.Directory]::CreateDirectory($spacedSelftest)
+            $spacedManifest = Join-Path $fixtureRoot 'spaced-manifest.json'
+            Write-Utf8NoBom $spacedManifest (@{
+                    schema    = 'redtilde.real-locations.v1'
+                    resources = @(
+                        @{ id = 'local.spaced.selftest'; kind = 'onedrive-selftest'; enabled = $true; root = $spacedSelftest }
+                    )
+                } | ConvertTo-Json -Depth 6)
+            $spacedResults = @(Invoke-RedTildeRealLocationRun -ManifestPath $spacedManifest -ExecutablePath $fakeNativeExe)
+            Assert-True ($spacedResults.Count -eq 1 -and $spacedResults[0].status -ceq 'PASSED' -and $spacedResults[0].captureByteCount -eq 8) 'Spaced OneDrive - Test path preserves ProcessStartInfo ArgumentList cleanly'
+            Assert-True (@(Get-ChildItem -LiteralPath $spacedSelftest -Force).Count -eq 0) 'Spaced selftest run cleaned up redtilde-run-<guid> leaf completely'
+
             $failOut = (& $pwshBinary -NoProfile -File $scriptPath -ManifestPath $validManifest -ExecutablePath $fakeNativeExe -IncludeNativeSuites -NativeScopes @('Settings') | Out-String)
             $failExit = $LASTEXITCODE
             $global:LASTEXITCODE = 0
@@ -262,6 +303,21 @@ class FakeRealLocApp {
                 $retainedDir = Join-Path $repoRoot $failParsed.logDirectory
                 Assert-True (Test-Path -LiteralPath (Join-Path $retainedDir 'Settings.tests.json') -PathType Leaf) 'Failed suite retains Settings.tests.json under .build/real-location-runs'
                 Remove-RedTildeDirectoryNoReparse -Path $retainedDir
+            }
+
+            $prevCatalogEnv = $env:REDTILDE_TEST_CATALOG_ONLY
+            try {
+                $env:REDTILDE_TEST_CATALOG_ONLY = '1'
+                $catOut = (& $pwshBinary -NoProfile -File $scriptPath -ManifestPath $validManifest -ExecutablePath $fakeNativeExe -IncludeNativeSuites -NativeScopes @('Settings') | Out-String)
+                $catExit = $LASTEXITCODE
+                $global:LASTEXITCODE = 0
+                $catParsed = $catOut | ConvertFrom-Json
+                Assert-True ($catExit -eq 1 -and $catParsed.status -ceq 'NATIVE_SUITE_FAILED') 'catalogOnly native suite report must fail verification even on exit 0'
+                if ($null -ne $catParsed.logDirectory) {
+                    Remove-RedTildeDirectoryNoReparse -Path (Join-Path $repoRoot $catParsed.logDirectory)
+                }
+            } finally {
+                [Environment]::SetEnvironmentVariable('REDTILDE_TEST_CATALOG_ONLY', $prevCatalogEnv, 'Process')
             }
         }
     }

@@ -7,6 +7,9 @@
     { "name": "Editor.PrintingCloseOverridesPendingPrintAction", "scope": "Editor" },
     { "name": "Editor.PrintingSlowPrinterAllowsSwitchAndFallback", "scope": "Editor" },
     { "name": "Editor.PrintingWaitingOverlayShowsAfterDelayAndClears", "scope": "Editor" },
+    { "name": "Editor.PrintPreviewRapidSwitchWithPendingProbeDoesNotDeadlock", "scope": "Editor" },
+    { "name": "Editor.PrintPageRangesAndKeyboardShortcuts", "scope": "Editor" },
+    { "name": "Editor.PrintPreviewEmptyPrintersProbeCapAndRememberImage", "scope": "Editor" },
     { "name": "Editor.ImageFileReadAndSharePolicy", "scope": "Editor" },
     { "name": "Editor.ImageFileNotificationsAreBoundedAndRetire", "scope": "Editor" },
     { "name": "Editor.LocalImageChangesReloadWithoutEditing", "scope": "Editor" },
@@ -169,6 +172,7 @@
     { "name": "Editor.FailedOpenAndCloseClearTransactionState", "scope": "Editor" },
     { "name": "Recovery.DiscardQueuedDuringScanDelaysSettlement", "scope": "Recovery" },
     { "name": "Recovery.DuplicateDiscardIgnoredUntilSettled", "scope": "Recovery" },
+    { "name": "Recovery.StopDuringScanAndOrphanLeaseCleanup", "scope": "Recovery" },
     { "name": "Files.FailedWorkerRecoversOnNewValidRoot", "scope": "Storage" },
     { "name": "Editor.OverlaysMutuallyExcludeRecoveryAndDeferPaintPlacement", "scope": "Editor" },
     { "name": "Editor.FindReopenReusesMatchTableWithoutRebuild", "scope": "Editor" },
@@ -177,9 +181,13 @@
     { "name": "Editor.CloseDocumentProtectsDirtyAndSwitchesWorkspace", "scope": "Editor" },
     { "name": "Editor.DragDropOpensMarkdownAndRejectsInvalidDrops", "scope": "Editor" },
     { "name": "Editor.FocusModeDoesNotRewriteSettings", "scope": "Editor" },
+    { "name": "Editor.SyncSaveRefusalAndCloseConflictUseLocalizedMessages", "scope": "Editor" },
     { "name": "Settings.Json5SyntaxUnknownFieldsAndSchemaMerge", "scope": "Settings" },
     { "name": "Settings.ColdLoadMigrationCorruptBackupAndSizeCap", "scope": "Settings" },
     { "name": "Settings.LiveReloadAndMalformedRecovery", "scope": "Settings" },
-    { "name": "Settings.WatcherRapidBurstCoalescing", "scope": "Settings" }
+    { "name": "Settings.WatcherRapidBurstCoalescing", "scope": "Settings" },
+    { "name": "Settings.RejectsJson5NanAndInfinityWithoutTruncatingFile", "scope": "Settings" },
+    { "name": "Settings.SavesAndLoadsBetweenDocumentCapAndSixteenMiB", "scope": "Settings" },
+    { "name": "Settings.LegacyCrLfMigrationAndNoOpSavePreservesFile", "scope": "Settings" }
   ]
 }

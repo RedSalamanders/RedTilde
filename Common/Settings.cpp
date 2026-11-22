@@ -23,16 +23,21 @@ using unique_yyjson_doc     = wil::unique_any<yyjson_doc*, decltype(&yyjson_doc_
 using unique_yyjson_mut_doc = wil::unique_any<yyjson_mut_doc*, decltype(&yyjson_mut_doc_free), yyjson_mut_doc_free>;
 using unique_yyjson_text    = wil::unique_any<char*, decltype(&::free), ::free>;
 
-constexpr std::string_view LegacySettingsHeader  = "RedTilde.Settings/1\n";
 constexpr std::wstring_view LegacySettingsFile   = L"RedTilde.settings";
 constexpr std::wstring_view ReleaseSettingsFile  = L"RedTilde.settings.json";
 constexpr std::wstring_view DebugSettingsFile    = L"RedTilde-debug.settings.json";
 constexpr std::uint64_t CurrentSchemaVersion     = 1u;
 constexpr std::size_t MaximumSettingsFileBytes   = 16u * 1024u * 1024u;
-constexpr yyjson_read_flag SettingsJsonReadFlags = YYJSON_READ_JSON5 | YYJSON_READ_ALLOW_BOM;
+constexpr yyjson_read_flag SettingsJsonReadFlags = (YYJSON_READ_JSON5 & ~YYJSON_READ_ALLOW_INF_AND_NAN) | YYJSON_READ_ALLOW_BOM;
+static_assert((SettingsJsonReadFlags & YYJSON_READ_INSITU) == 0u);
 constexpr DWORD SettingsWatcherFilter = FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_SIZE | FILE_NOTIFY_CHANGE_CREATION;
 constexpr DWORD SettingsWatcherCoalesceMs = 250u;
 constexpr DWORD SettingsWatcherRetryMs    = 1000u;
+
+[[nodiscard]] bool HasLegacySettingsHeader(std::string_view bytes) noexcept
+{
+    return bytes.starts_with("RedTilde.Settings/1\n") || bytes.starts_with("RedTilde.Settings/1\r\n");
+}
 
 // Indexed by MarkdownSyntax. Missing or invalid keys keep the enabled default.
 constexpr std::array<std::string_view, MarkdownSyntaxCount> LegacyMarkdownSyntaxKeys{
@@ -51,86 +56,6 @@ bool EqualOrdinalIgnoreCase(std::wstring_view left, std::wstring_view right) noe
 {
     return left.size() == right.size() &&
            (left.empty() || CompareStringOrdinal(left.data(), static_cast<int>(left.size()), right.data(), static_cast<int>(right.size()), TRUE) == CSTR_EQUAL);
-}
-
-std::uint64_t FileTimeValue(FILETIME value) noexcept
-{
-    return (static_cast<std::uint64_t>(value.dwHighDateTime) << 32u) | value.dwLowDateTime;
-}
-
-HRESULT CompleteSettingsIdentity(HANDLE file, FileStamp& stamp) noexcept
-{
-    FILE_ID_INFO info{};
-    if (GetFileInformationByHandleEx(file, FileIdInfo, &info, sizeof(info)))
-    {
-        stamp.volume = info.VolumeSerialNumber;
-        std::memcpy(&stamp.fileIndex, info.FileId.Identifier, sizeof(stamp.fileIndex));
-        std::memcpy(&stamp.fileIndexHigh, info.FileId.Identifier + sizeof(stamp.fileIndex), sizeof(stamp.fileIndexHigh));
-        return S_OK;
-    }
-    const DWORD error = GetLastError();
-    if (error == ERROR_INVALID_PARAMETER || error == ERROR_NOT_SUPPORTED || error == ERROR_INVALID_FUNCTION)
-        return S_OK;
-    return HRESULT_FROM_WIN32(error);
-}
-
-HRESULT ReadSettingsBytes(const std::filesystem::path& path, std::string& bytes, FileStamp* stamp = nullptr) noexcept
-try
-{
-    wil::unique_handle file(CreateFileW(
-        path.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
-    if (! file)
-        return HRESULT_FROM_WIN32(GetLastError());
-
-    BY_HANDLE_FILE_INFORMATION info{};
-    if (! GetFileInformationByHandle(file.get(), &info))
-        return HRESULT_FROM_WIN32(GetLastError());
-    const std::uint64_t fileSize = (static_cast<std::uint64_t>(info.nFileSizeHigh) << 32u) | info.nFileSizeLow;
-    if ((info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) || fileSize > MaximumSettingsFileBytes)
-        return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
-
-    std::string staged(static_cast<std::size_t>(fileSize), '\0');
-    std::size_t offset{};
-    while (offset < staged.size())
-    {
-        DWORD count{};
-        const DWORD chunk = static_cast<DWORD>(std::min<std::size_t>(staged.size() - offset, 1u << 20u));
-        if (! ReadFile(file.get(), staged.data() + offset, chunk, &count, nullptr))
-            return HRESULT_FROM_WIN32(GetLastError());
-        if (count == 0u)
-            return HRESULT_FROM_WIN32(ERROR_READ_FAULT);
-        offset += count;
-    }
-
-    BY_HANDLE_FILE_INFORMATION after{};
-    if (! GetFileInformationByHandle(file.get(), &after))
-        return HRESULT_FROM_WIN32(GetLastError());
-
-    const auto makeStamp = [&](const BY_HANDLE_FILE_INFORMATION& meta, std::uint64_t hash) noexcept
-    {
-        return FileStamp{true,
-                         (static_cast<std::uint64_t>(meta.nFileSizeHigh) << 32u) | meta.nFileSizeLow,
-                         FileTimeValue(meta.ftLastWriteTime),
-                         hash,
-                         meta.dwVolumeSerialNumber,
-                         (static_cast<std::uint64_t>(meta.nFileIndexHigh) << 32u) | meta.nFileIndexLow};
-    };
-
-    FileStamp identity = makeStamp(info, ContentHash(staged));
-    if (identity != makeStamp(after, identity.hash))
-        return HRESULT_FROM_WIN32(ERROR_RETRY);
-    const HRESULT idResult = CompleteSettingsIdentity(file.get(), identity);
-    if (FAILED(idResult))
-        return idResult;
-
-    if (stamp)
-        *stamp = identity;
-    bytes.swap(staged);
-    return S_OK;
-}
-catch (const std::bad_alloc&)
-{
-    DxUi::Failure::FailAllocation();
 }
 
 std::filesystem::path BackupPathFor(const std::filesystem::path& path)
@@ -345,15 +270,17 @@ bool ValidWindowPlacement(const WindowPlacementSettings& placement) noexcept
 Settings ParseLegacySettings(std::string_view bytes)
 {
     Settings settings;
-    if (! bytes.starts_with(LegacySettingsHeader))
+    if (! HasLegacySettingsHeader(bytes))
         return settings;
     std::array<std::optional<int>, 4> windowBounds;
     std::optional<unsigned> windowDpi{96u};
     bool windowMaximized{};
     while (! bytes.empty())
     {
-        const auto end   = bytes.find('\n');
-        const auto line  = bytes.substr(0, end);
+        const auto end = bytes.find('\n');
+        auto line      = bytes.substr(0, end);
+        if (line.ends_with('\r'))
+            line.remove_suffix(1);
         const auto split = line.find('=');
         if (split != line.npos)
         {
@@ -441,9 +368,8 @@ try
     if (bytes.size() > MaximumSettingsFileBytes)
         return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
 
-    std::string mutableBytes(bytes);
     yyjson_read_err err{};
-    const unique_yyjson_doc doc(yyjson_read_opts(mutableBytes.data(), mutableBytes.size(), SettingsJsonReadFlags, nullptr, &err));
+    const unique_yyjson_doc doc(yyjson_read_opts(const_cast<char*>(bytes.data()), bytes.size(), SettingsJsonReadFlags, nullptr, &err));
     if (! doc)
     {
         if (err.code == YYJSON_READ_ERROR_MEMORY_ALLOCATION)
@@ -543,9 +469,9 @@ std::string SerializeSettings(const Settings& settings, std::string_view existin
     unique_yyjson_mut_doc mutDoc;
     if (! existingJson.empty() && existingJson.size() <= MaximumSettingsFileBytes)
     {
-        std::string mutableExisting(existingJson);
         yyjson_read_err err{};
-        const unique_yyjson_doc existingDoc(yyjson_read_opts(mutableExisting.data(), mutableExisting.size(), SettingsJsonReadFlags, nullptr, &err));
+        const unique_yyjson_doc existingDoc(
+            yyjson_read_opts(const_cast<char*>(existingJson.data()), existingJson.size(), SettingsJsonReadFlags, nullptr, &err));
         if (! existingDoc && err.code == YYJSON_READ_ERROR_MEMORY_ALLOCATION)
             DxUi::Failure::FailAllocation();
         if (existingDoc)
@@ -660,7 +586,7 @@ try
 
     std::string bytes;
     FileStamp readStamp;
-    const HRESULT readResult = ReadSettingsBytes(path, bytes, &readStamp);
+    const HRESULT readResult = ReadBytes(path, bytes, &readStamp, MaximumSettingsFileBytes);
     if (SUCCEEDED(readResult))
     {
         Settings parsed;
@@ -680,7 +606,9 @@ try
             outcome.backupPath     = backup;
             const std::string text = SerializeSettings(outcome.settings);
             const FileStamp missingStamp{};
-            outcome.templateWritten = SUCCEEDED(WriteBytesAtomic(path, text, &missingStamp, &outcome.stamp));
+            outcome.templateWritten =
+                ! text.empty() &&
+                SUCCEEDED(WriteBytesAtomic(path, text, &missingStamp, &outcome.stamp, false, nullptr, false, nullptr, MaximumSettingsFileBytes));
         }
         return outcome;
     }
@@ -693,7 +621,7 @@ try
 
     const auto legacyPath = directory / LegacySettingsFile;
     std::string legacyBytes;
-    if (SUCCEEDED(ReadSettingsBytes(legacyPath, legacyBytes)) && legacyBytes.starts_with(LegacySettingsHeader))
+    if (SUCCEEDED(ReadBytes(legacyPath, legacyBytes, nullptr, MaximumSettingsFileBytes)) && HasLegacySettingsHeader(legacyBytes))
     {
         outcome.settings = ParseLegacySettings(legacyBytes);
         outcome.status   = SettingsLoadStatus::Migrated;
@@ -709,7 +637,8 @@ try
     {
         const std::string text = SerializeSettings(outcome.settings);
         const FileStamp missingStamp{};
-        outcome.templateWritten = SUCCEEDED(WriteBytesAtomic(path, text, &missingStamp, &outcome.stamp));
+        outcome.templateWritten =
+            ! text.empty() && SUCCEEDED(WriteBytesAtomic(path, text, &missingStamp, &outcome.stamp, false, nullptr, false, nullptr, MaximumSettingsFileBytes));
     }
     return outcome;
 }
@@ -732,7 +661,7 @@ try
 {
     std::string bytes;
     FileStamp readStamp;
-    const HRESULT readResult = ReadSettingsBytes(SettingsPath(directory, debugBuild), bytes, &readStamp);
+    const HRESULT readResult = ReadBytes(SettingsPath(directory, debugBuild), bytes, &readStamp, MaximumSettingsFileBytes);
     if (FAILED(readResult))
         return readResult;
     if (stamp)
@@ -759,23 +688,33 @@ try
     const auto path = SettingsPath(directory, debugBuild);
     std::string existing;
     FileStamp stamp;
-    const HRESULT read = ReadSettingsBytes(path, existing, &stamp);
+    const HRESULT read = ReadBytes(path, existing, &stamp, MaximumSettingsFileBytes);
     if (FAILED(read) && read != HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND) && read != HRESULT_FROM_WIN32(ERROR_PATH_NOT_FOUND))
         return read;
 
     std::string_view mergeSource;
     const FileStamp* expectedStamp = &stamp;
+    Settings probe;
+    std::string existingCanonical;
     if (SUCCEEDED(read))
     {
-        Settings probe;
         const HRESULT parseResult = TryParseSettings(existing, probe);
         if (FAILED(parseResult))
             return parseResult;
-        mergeSource = existing;
+        mergeSource       = existing;
+        existingCanonical = SerializeSettings(probe, existing);
     }
 
     const std::string text = SerializeSettings(settings, mergeSource);
-    return WriteBytesAtomic(path, text, expectedStamp, savedStamp);
+    if (text.empty())
+        return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+    if (SUCCEEDED(read) && (existing == text || (! existingCanonical.empty() && text == existingCanonical)))
+    {
+        if (savedStamp)
+            *savedStamp = stamp;
+        return S_OK;
+    }
+    return WriteBytesAtomic(path, text, expectedStamp, savedStamp, false, nullptr, false, nullptr, MaximumSettingsFileBytes);
 }
 catch (const std::bad_alloc&)
 {
@@ -811,30 +750,42 @@ struct SettingsWriter::State
         ProcessWorkLease lease = std::move(static_cast<ProcessWorkItem<State>*>(context)->lease);
         const std::unique_ptr<ProcessWorkItem<State>> ownership(static_cast<ProcessWorkItem<State>*>(context));
         const auto& shared = ownership->state;
-        for (;;)
+        try
         {
-            Settings next;
+            const DxUi::Failure::Scope failureScope;
+            for (;;)
             {
-                std::lock_guard lock(shared->mutex);
-                if (! shared->pending)
+                Settings next;
                 {
-                    if (shared->phase != WorkerPhase::Closed)
-                        shared->phase = WorkerPhase::Idle;
-                    if (shared->window)
-                        (void)PostMessageW(shared->window, shared->message, 0, 0);
-                    return;
+                    std::lock_guard lock(shared->mutex);
+                    if (! shared->pending)
+                    {
+                        if (shared->phase != WorkerPhase::Closed)
+                            shared->phase = WorkerPhase::Idle;
+                        if (shared->window)
+                            (void)PostMessageW(shared->window, shared->message, 0, 0);
+                        return;
+                    }
+                    next = std::move(shared->pending.value());
+                    shared->pending.reset();
                 }
-                next = shared->pending.value();
-                shared->pending.reset();
+                FileStamp savedStamp;
+                const HRESULT result = SaveSettings(shared->directory, next, DefaultDebugSettingsBuild, &savedStamp);
+                {
+                    std::lock_guard lock(shared->mutex);
+                    shared->status = result;
+                    if (SUCCEEDED(result) && savedStamp.exists)
+                        shared->lastWrittenStamp = savedStamp;
+                }
             }
-            FileStamp savedStamp;
-            const HRESULT result = SaveSettings(shared->directory, next, DefaultDebugSettingsBuild, &savedStamp);
-            {
-                std::lock_guard lock(shared->mutex);
-                shared->status = result;
-                if (SUCCEEDED(result) && savedStamp.exists)
-                    shared->lastWrittenStamp = savedStamp;
-            }
+        }
+        catch (const std::bad_alloc&)
+        {
+            DxUi::Failure::FailAllocation();
+        }
+        catch (const std::exception&)
+        {
+            DxUi::Failure::FailUnexpected();
         }
     }
 };
@@ -1055,6 +1006,22 @@ void SettingsWatcher::WatchThread(ProcessWorkLease lease) noexcept
         return false;
     };
 
+    unsigned consecutiveErrors{};
+    constexpr unsigned MaximumWatcherRetries = 8u;
+    const auto permanentFailure              = [](DWORD error) noexcept
+    {
+        return error == ERROR_ACCESS_DENIED || error == ERROR_INVALID_NAME || error == ERROR_BAD_PATHNAME || error == ERROR_BAD_NETPATH ||
+               error == ERROR_BAD_NET_NAME || error == ERROR_NOT_SUPPORTED;
+    };
+    const auto waitRetryOrStop = [&](DWORD error) noexcept -> bool
+    {
+        if (permanentFailure(error) || consecutiveErrors >= MaximumWatcherRetries)
+            return false;
+        const DWORD backoff = SettingsWatcherRetryMs << std::min<unsigned>(consecutiveErrors, 4u);
+        ++consecutiveErrors;
+        return WaitForSingleObject(_stopEvent.get(), backoff) != WAIT_OBJECT_0;
+    };
+
     for (;;)
     {
         if (! directoryHandle)
@@ -1068,8 +1035,9 @@ void SettingsWatcher::WatchThread(ProcessWorkLease lease) noexcept
                                               nullptr));
             if (! directoryHandle || ! armWatch())
             {
+                const DWORD error = GetLastError();
                 directoryHandle.reset();
-                if (WaitForSingleObject(_stopEvent.get(), SettingsWatcherRetryMs) == WAIT_OBJECT_0)
+                if (! waitRetryOrStop(error))
                     return;
                 continue;
             }
@@ -1090,27 +1058,29 @@ void SettingsWatcher::WatchThread(ProcessWorkLease lease) noexcept
             ioPending         = false;
             if (error == ERROR_NOTIFY_ENUM_DIR)
             {
-                matched = true;
+                consecutiveErrors = 0u;
+                matched           = true;
             }
             else
             {
                 directoryHandle.reset();
-                if (WaitForSingleObject(_stopEvent.get(), SettingsWatcherRetryMs) == WAIT_OBJECT_0)
+                if (! waitRetryOrStop(error))
                     return;
                 continue;
             }
         }
         else
         {
-            ioPending = false;
-            matched   = matchesTarget(bytes);
+            consecutiveErrors = 0u;
+            ioPending         = false;
+            matched           = matchesTarget(bytes);
         }
 
         if (! matched)
         {
             if (! armWatch())
             {
-                if (WaitForSingleObject(_stopEvent.get(), SettingsWatcherRetryMs) == WAIT_OBJECT_0)
+                if (! waitRetryOrStop(GetLastError()))
                     return;
             }
             continue;

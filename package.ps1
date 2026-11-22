@@ -19,7 +19,13 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 if (-not $SkipBuild) { & (Join-Path $PSScriptRoot 'build.ps1') -Platform $Platform -Configuration Release -ProductionOnly -DxUiSdkInputDescriptor $DxUiSdkInputDescriptor }
 Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
-$artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform $Platform -Configuration Release
+$previousEnableTests = [Environment]::GetEnvironmentVariable('RedTildeEnableTests', 'Process')
+try {
+    $env:RedTildeEnableTests = 'false'
+    $artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform $Platform -Configuration Release
+} finally {
+    [Environment]::SetEnvironmentVariable('RedTildeEnableTests', $(if ($null -eq $previousEnableTests) { [NullString]::Value } else { $previousEnableTests }), 'Process')
+}
 $exe=$artifact.Executable
 $built=$artifact.Build
 if($built.testsEnabled -isnot [bool] -or $built.testsEnabled){throw 'Portable packaging requires a receipt-verified production-only Release build.'}
@@ -52,8 +58,19 @@ $stage=Join-Path $output ('RedTilde-'+$version+'-'+$Platform+'-'+(Get-Date -Form
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
 Copy-Item -LiteralPath $exe -Destination $stage
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'SettingsStore.schema.json') -Destination $stage
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/Portable.md') -Destination (Join-Path $stage 'README.md')
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'capabilities.json') -Destination $stage
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/Diagnostics.md') -Destination (Join-Path $stage 'Diagnostics.md')
+New-Item -ItemType Directory -Force -Path (Join-Path $stage 'docs') | Out-Null
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/README.md') -Destination (Join-Path $stage 'docs/README.md')
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/screenshots') -Destination (Join-Path $stage 'docs/screenshots') -Recurse -ErrorAction SilentlyContinue
+New-Item -ItemType Directory -Force -Path (Join-Path $stage 'Installer') | Out-Null
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Installer/Install-RedTilde.ps1') -Destination (Join-Path $stage 'Installer/Install-RedTilde.ps1')
+$portableReadme = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'docs/Portable.md'), [Text.UTF8Encoding]::new($false))
+$portableReadme = $portableReadme.Replace('(../Installer/Install-RedTilde.ps1)', '(Installer/Install-RedTilde.ps1)')
+$portableReadme = $portableReadme.Replace('(../capabilities.json)', '(capabilities.json)')
+$portableReadme = $portableReadme.Replace('[User Guide](README.md)', '[User Guide](docs/README.md)')
+$stagedReadmePath = Join-Path $stage 'README.md'
+[IO.File]::WriteAllText($stagedReadmePath, $portableReadme, [Text.UTF8Encoding]::new($false))
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/examples') -Destination (Join-Path $stage 'examples') -Recurse
 New-Item -ItemType Directory -Force -Path (Join-Path $stage 'res') | Out-Null
 foreach ($asset in @('RedTilde.png','RedTilde.ico')) { Copy-Item -LiteralPath (Join-Path $PSScriptRoot "res/$asset") -Destination (Join-Path $stage 'res') }
@@ -88,7 +105,9 @@ Import-Module (Join-Path $PSScriptRoot 'Build/Toolchain.psm1') -Force
 $installation=(Get-RedTildeMSBuild) -replace '(?i)[\\/]MSBuild[\\/].*$',''
 $redistRoot=Join-Path $installation 'VC/Redist/MSVC'
 $runtimeArchitecture=if($Platform -eq 'ARM64'){'arm64'}else{'x64'}
-$crt=@(Get-ChildItem -LiteralPath $redistRoot -Directory | Sort-Object Name -Descending |
+$crt=@(Get-ChildItem -LiteralPath $redistRoot -Directory |
+    Where-Object { $_.Name -match '^\d+\.\d+' } |
+    Sort-Object { [version]($_.Name -replace '[^0-9.].*$','') } -Descending |
     ForEach-Object { Join-Path $_.FullName "$runtimeArchitecture/Microsoft.VC145.CRT" } |
     Where-Object { Test-Path -LiteralPath $_ -PathType Container } | Select-Object -First 1)
 if($crt.Count -ne 1){throw 'The selected Visual Studio installation has no VC145 redistributable for this architecture.'}
@@ -96,6 +115,15 @@ $runtime=@(Get-ChildItem -LiteralPath $crt[0] -Filter '*.dll' -File)
 if(-not @($runtime | Where-Object Name -like 'vcruntime140*.dll').Count -or
     -not @($runtime | Where-Object Name -like 'msvcp140*.dll').Count){throw 'The selected VC runtime closure is incomplete.'}
 $runtime | Copy-Item -Destination $stage
+foreach ($linkMatch in [regex]::Matches($portableReadme, '\]\(([^)]+)\)')) {
+    $target = $linkMatch.Groups[1].Value.Split('#')[0]
+    if ($target -match '^(https?:|mailto:)' -or -not $target) { continue }
+    $resolvedTarget = [IO.Path]::GetFullPath((Join-Path $stage $target))
+    if (-not $resolvedTarget.StartsWith(([IO.Path]::GetFullPath($stage) + '\'), [StringComparison]::OrdinalIgnoreCase) -or
+        -not (Test-Path -LiteralPath $resolvedTarget)) {
+        throw "Staged package README contains a broken or escaping relative link: '$target'."
+    }
+}
 $archive=$stage+'.zip'
 Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $archive
 $smoke=Join-Path $output ('extracted-'+[guid]::NewGuid().ToString('N'))

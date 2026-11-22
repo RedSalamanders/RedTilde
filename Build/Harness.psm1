@@ -3,17 +3,38 @@ Import-Module (Join-Path $PSScriptRoot 'DxUiPaths.psm1') -Scope Local -ErrorActi
 
 function Get-RedTildeSourceIdentity {
     param([Parameter(Mandatory)][string] $Root)
-    $files=@(& git -c core.quotepath=false -C $Root ls-files --cached --others --exclude-standard) | Where-Object { $_ -notlike 'Measurements/*' } | Sort-Object -Unique
-    $entries=foreach ($file in $files) {
-        $path=Join-Path $Root $file
+    $start = [Diagnostics.ProcessStartInfo]::new('git')
+    $start.UseShellExecute = $false
+    $start.RedirectStandardOutput = $true
+    $start.RedirectStandardError = $true
+    $start.StandardOutputEncoding = [Text.UTF8Encoding]::new($false)
+    $start.StandardErrorEncoding = [Text.UTF8Encoding]::new($false)
+    foreach ($arg in @('-c', 'core.quotepath=false', '-C', $Root, 'ls-files', '-z', '--cached', '--others', '--exclude-standard')) {
+        $start.ArgumentList.Add($arg)
+    }
+    $process = [Diagnostics.Process]::Start($start)
+    try {
+        $errTask = $process.StandardError.ReadToEndAsync()
+        $raw = $process.StandardOutput.ReadToEnd()
+        $process.WaitForExit()
+        $errText = $errTask.GetAwaiter().GetResult().Trim()
+        if ($process.ExitCode -ne 0) {
+            throw "Git source identity enumeration failed with exit code $($process.ExitCode): $errText"
+        }
+    } finally {
+        $process.Dispose()
+    }
+    $files = @($raw.Split([char]0) | Where-Object { $_ -and $_ -notlike 'Measurements/*' } | Sort-Object -Unique)
+    $entries = foreach ($file in $files) {
+        $path = Join-Path $Root $file
         if (Test-Path -LiteralPath $path -PathType Leaf) { $file + ':' + (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash }
     }
-    if(Test-Path -LiteralPath (Join-Path $Root '.ci/project.json') -PathType Leaf){
+    if (Test-Path -LiteralPath (Join-Path $Root '.ci/project.json') -PathType Leaf) {
         Import-Module (Join-Path $Root '.ci-engine/Tools/Modules/Ci.SourceInputs.psm1') -ErrorAction Stop
-        $engineInputs=Get-CiPinnedEngineInputsIdentity -Root $Root
-        $entries=@($entries)+@("engine_inputs`0$engineInputs")
+        $engineInputs = Get-CiPinnedEngineInputsIdentity -Root $Root
+        $entries = @($entries) + @("engine_inputs`0$engineInputs")
     }
-    $bytes=[Text.Encoding]::UTF8.GetBytes(($entries -join "`n"))
+    $bytes = [Text.Encoding]::UTF8.GetBytes(($entries -join "`n"))
     [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData($bytes)).ToLowerInvariant()
 }
 
@@ -208,6 +229,22 @@ function Assert-RedTildeOwnedCleanDirectories {
         [string]$Toolchain.properties.IntDir.TrimEnd('\') -cne $expectedIntermediate){throw 'MSBuild output/intermediate directories are not the owned profile paths; refusing to clean.'}
 }
 
+function Get-RedTildeVcpkgInputSha256 {
+    param([Parameter(Mandatory)][string]$Root,[Parameter(Mandatory)][string]$Configuration,[Parameter(Mandatory)]$Properties)
+    if (-not $Properties.Contains('RedTildeVcpkgTriplet') -or [string]::IsNullOrWhiteSpace([string]$Properties['RedTildeVcpkgTriplet']) -or
+        -not (Test-Path -LiteralPath (Join-Path $Root 'vcpkg.json') -PathType Leaf)) {
+        return ''
+    }
+    $tripletDir = Join-Path ([string]$Properties['VcpkgInstalledDir']) ([string]$Properties['RedTildeVcpkgTriplet'])
+    $yyjsonHeader = Join-Path $tripletDir 'include/yyjson.h'
+    $libSubdir = if ($Configuration -ceq 'Release') { 'lib' } else { 'debug/lib' }
+    $yyjsonLib = Join-Path $tripletDir "$libSubdir/yyjson.lib"
+    if (-not (Test-Path -LiteralPath $yyjsonHeader -PathType Leaf)) { throw "Restored vcpkg yyjson header is missing: $yyjsonHeader" }
+    if (-not (Test-Path -LiteralPath $yyjsonLib -PathType Leaf)) { throw "Restored vcpkg yyjson library is missing: $yyjsonLib" }
+    $vcpkgParts = @("yyjson.h:$((Get-FileHash -LiteralPath $yyjsonHeader -Algorithm SHA256).Hash)","yyjson.lib:$((Get-FileHash -LiteralPath $yyjsonLib -Algorithm SHA256).Hash)")
+    return [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($vcpkgParts -join "`n"))))
+}
+
 function Get-RedTildeSdkBuildInputSnapshot {
     # SDK snapshots retain Tilde's before/after compiler and owned-directory
     # transaction. The active shared reader supplies authenticated dependency bytes.
@@ -218,7 +255,7 @@ function Get-RedTildeSdkBuildInputSnapshot {
     $names=@('OutDir','IntDir','PlatformToolset','VCToolsInstallDir','VCToolsVersion','WindowsSdkDir',
         'WindowsTargetPlatformVersion','PreferredToolArchitecture','VCToolArchitecture','WindowsSDKToolArchitecture',
         'CLToolPath','CLToolExe','LinkToolPath','LinkToolExe','ResourceCompileToolPath','ResourceCompileToolExe',
-        'DxUiRoot','DxUiSdkRoot','CiSdkContract')
+        'DxUiRoot','DxUiSdkRoot','CiSdkContract','RedTildeVcpkgTriplet','VcpkgInstalledDir')
     $query=@((Join-Path $Root 'RedTilde/RedTilde.vcxproj'),'/nologo','/v:quiet',('-getProperty:'+($names -join ',')),"/p:Platform=$Platform","/p:Configuration=$Configuration")+$sdkArguments
     $output=@(& $MSBuildPath @query)
     if($LASTEXITCODE){throw 'SDK actual-project metadata evaluation failed.'}
@@ -239,6 +276,7 @@ function Get-RedTildeSdkBuildInputSnapshot {
     $toolchain=[ordered]@{properties=$properties;msbuildSha256=(Get-FileHash -LiteralPath $MSBuildPath).Hash;environment=$environment;dependencyRecipe=$SdkInput.Evidence}
     $toolchain.sha256=& $hash ($toolchain|ConvertTo-Json -Depth 10 -Compress)
     Assert-RedTildeOwnedCleanDirectories -Root $Root -Platform $Platform -Configuration $Configuration -Toolchain $toolchain
+    $vcpkgSha256=Get-RedTildeVcpkgInputSha256 -Root $Root -Configuration $Configuration -Properties $properties
     $snapshot=[ordered]@{
         compiledSourceIdentity=(Get-ScopedSourceIdentity $Root -CompiledOnly)
         dependencyIdentitySha256=(& $hash (($SdkInput.Evidence|ConvertTo-Json -Depth 10 -Compress)+$SdkInput.Descriptor.Hash))
@@ -247,12 +285,13 @@ function Get-RedTildeSdkBuildInputSnapshot {
         dependencyHeadersSha256=$SdkInput.Evidence.manifestSha256
         dependencyResolvedPropsSha256=(Get-FileHash -LiteralPath (Join-Path $SdkInput.SdkRoot 'DxUi.Sdk.props')).Hash
         compilerContextSha256=$toolchain.sha256
+        vcpkgSha256=$vcpkgSha256
         buildNumber=$(if($env:RedTildeBuildNumber){[int]$env:RedTildeBuildNumber}else{0})
         testsEnabled=($env:RedTildeEnableTests -ne 'false')
         toolchain=$toolchain
     }
     $snapshot.identity=& $hash (@($snapshot.compiledSourceIdentity,$snapshot.dependencyIdentitySha256,$snapshot.dependencyHeadersSha256,
-        $snapshot.dependencyResolvedPropsSha256,$snapshot.compilerContextSha256,$Platform,$Configuration,$snapshot.buildNumber,$snapshot.testsEnabled) -join "`n")
+        $snapshot.dependencyResolvedPropsSha256,$snapshot.compilerContextSha256,$snapshot.vcpkgSha256,$Platform,$Configuration,$snapshot.buildNumber,$snapshot.testsEnabled) -join "`n")
     return $snapshot
 }
 
@@ -269,18 +308,7 @@ function Get-RedTildeBuildInputSnapshot {
     $dependencyResolution=Get-RedTildeDependencyResolutionSnapshot -Root $Root -Platform $Platform -Dependency $dependency
     $toolchain=Get-RedTildeBuildToolchainSnapshot -Root $Root -MSBuildPath $MSBuildPath -Platform $Platform -Configuration $Configuration -DependencyResolution $dependencyResolution
     Assert-RedTildeOwnedCleanDirectories -Root $Root -Platform $Platform -Configuration $Configuration -Toolchain $toolchain
-    $vcpkgSha256=''
-    if($toolchain.properties.Contains('RedTildeVcpkgTriplet') -and -not [string]::IsNullOrWhiteSpace([string]$toolchain.properties.RedTildeVcpkgTriplet) -and
-        (Test-Path -LiteralPath (Join-Path $Root 'vcpkg.json') -PathType Leaf)){
-        $tripletDir=Join-Path ([string]$toolchain.properties.VcpkgInstalledDir) ([string]$toolchain.properties.RedTildeVcpkgTriplet)
-        $yyjsonHeader=Join-Path $tripletDir 'include/yyjson.h'
-        $libSubdir=if($Configuration -ceq 'Release'){'lib'}else{'debug/lib'}
-        $yyjsonLib=Join-Path $tripletDir "$libSubdir/yyjson.lib"
-        if(-not(Test-Path -LiteralPath $yyjsonHeader -PathType Leaf)){throw "Restored vcpkg yyjson header is missing: $yyjsonHeader"}
-        if(-not(Test-Path -LiteralPath $yyjsonLib -PathType Leaf)){throw "Restored vcpkg yyjson library is missing: $yyjsonLib"}
-        $vcpkgParts=@("yyjson.h:$((Get-FileHash -LiteralPath $yyjsonHeader -Algorithm SHA256).Hash)","yyjson.lib:$((Get-FileHash -LiteralPath $yyjsonLib -Algorithm SHA256).Hash)")
-        $vcpkgSha256=[Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes(($vcpkgParts -join "`n"))))
-    }
+    $vcpkgSha256=Get-RedTildeVcpkgInputSha256 -Root $Root -Configuration $Configuration -Properties $toolchain.properties
     $snapshot=[ordered]@{
         compiledSourceIdentity=(Get-ScopedSourceIdentity $Root -CompiledOnly)
         dependencyIdentitySha256=(Get-FileHash -LiteralPath $dependencyPath -Algorithm SHA256).Hash

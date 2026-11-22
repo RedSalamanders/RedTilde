@@ -416,7 +416,7 @@ std::wstring DefaultPrinterName()
     if (! length || length > 32768u)
         return {};
     std::wstring name(length, L'\0');
-    if (! GetDefaultPrinterW(name.data(), &length))
+    if (! GetDefaultPrinterW(name.data(), &length) || length == 0u || length > name.size())
         return {};
     name.resize(length - 1u);
     return name;
@@ -469,6 +469,12 @@ Destinations ListDestinations(std::wstring_view preferred)
 using Printer                      = wil::unique_any<HANDLE, decltype(&ClosePrinter), ClosePrinter>;
 constexpr DWORD MaximumDriverBytes = 1024u * 1024u;
 
+struct PrinterForm
+{
+    std::wstring name;
+    WORD paperSize{};
+};
+
 HRESULT ReadPrinterInfo(HANDLE printer, std::vector<BYTE>& bytes)
 {
     DWORD needed{};
@@ -485,8 +491,43 @@ HRESULT ReadPrinterInfo(HANDLE printer, std::vector<BYTE>& bytes)
     return S_OK;
 }
 
-std::vector<std::wstring> ListForms(HANDLE printer)
+std::vector<PrinterForm> ListPrinterForms(HANDLE printer, const std::wstring& name, const std::wstring& port, const DEVMODEW* mode)
 {
+    std::vector<PrinterForm> forms;
+    constexpr int maximumCapabilities = 4096;
+    const int nameCount               = DeviceCapabilitiesW(name.c_str(), port.c_str(), DC_PAPERNAMES, nullptr, mode);
+    if (nameCount > 0 && nameCount <= maximumCapabilities)
+    {
+        std::vector<wchar_t> namesBuffer(static_cast<std::size_t>(nameCount) * 64u, L'\0');
+        const int readNames = DeviceCapabilitiesW(name.c_str(), port.c_str(), DC_PAPERNAMES, namesBuffer.data(), mode);
+        if (readNames > 0 && readNames <= nameCount)
+        {
+            std::vector<WORD> paperIds;
+            const int idCount = DeviceCapabilitiesW(name.c_str(), port.c_str(), DC_PAPERS, nullptr, mode);
+            if (idCount == readNames)
+            {
+                paperIds.resize(static_cast<std::size_t>(idCount));
+                if (DeviceCapabilitiesW(name.c_str(), port.c_str(), DC_PAPERS, reinterpret_cast<LPWSTR>(paperIds.data()), mode) != idCount)
+                    paperIds.clear();
+            }
+            forms.reserve(static_cast<std::size_t>(readNames));
+            for (int index = 0; index < readNames; ++index)
+            {
+                const wchar_t* slot      = namesBuffer.data() + static_cast<std::size_t>(index) * 64u;
+                const std::size_t length = wcsnlen_s(slot, 64u);
+                if (length == 0u)
+                    continue;
+                std::wstring formName(slot, length);
+                if (std::ranges::any_of(forms, [&](const auto& existing) { return SamePrintName(existing.name, formName); }))
+                    continue;
+                const WORD paperId = index < static_cast<int>(paperIds.size()) ? paperIds[static_cast<std::size_t>(index)] : 0u;
+                forms.push_back({std::move(formName), paperId});
+            }
+            if (! forms.empty())
+                return forms;
+        }
+    }
+
     DWORD bytes{}, count{};
     (void)EnumFormsW(printer, 1u, nullptr, 0u, &bytes, &count);
     if (bytes < sizeof(FORM_INFO_1W) || bytes > MaximumDriverBytes)
@@ -494,26 +535,33 @@ std::vector<std::wstring> ListForms(HANDLE printer)
     std::vector<BYTE> storage(bytes);
     if (! EnumFormsW(printer, 1u, storage.data(), bytes, &bytes, &count) || count > storage.size() / sizeof(FORM_INFO_1W))
         return {};
-    std::vector<std::wstring> names;
     for (const auto& form : std::span(reinterpret_cast<const FORM_INFO_1W*>(storage.data()), count))
         if (form.pName && form.pName[0] != L'\0' && wcsnlen_s(form.pName, CCHFORMNAME) < CCHFORMNAME)
-            names.emplace_back(form.pName);
-    return names;
+            if (std::ranges::none_of(forms, [&](const auto& existing) { return SamePrintName(existing.name, form.pName); }))
+                forms.push_back({form.pName, 0u});
+    return forms;
 }
 
-DEVMODEW* CheckedDeviceMode(std::span<std::byte> bytes) noexcept
+const DEVMODEW* CheckedDeviceMode(std::span<const std::byte> bytes) noexcept
 {
     if (bytes.size() < sizeof(DEVMODEW))
         return nullptr;
-    auto* const mode = reinterpret_cast<DEVMODEW*>(bytes.data());
+    const auto* const mode = reinterpret_cast<const DEVMODEW*>(bytes.data());
     return mode->dmSize >= sizeof(DEVMODEW) && static_cast<size_t>(mode->dmSize) + mode->dmDriverExtra <= bytes.size() ? mode : nullptr;
 }
 
-PrinterSettings SettingsFrom(const DEVMODEW& mode)
+PrinterSettings SettingsFrom(const DEVMODEW& mode, std::span<const PrinterForm> forms = {})
 {
     PrinterSettings settings;
     if (mode.dmFields & DM_FORMNAME)
-        settings.form.assign(mode.dmFormName, std::ranges::find(mode.dmFormName, L'\0'));
+        settings.form.assign(mode.dmFormName, wcsnlen_s(mode.dmFormName, CCHFORMNAME));
+    if (settings.form.empty() && (mode.dmFields & DM_PAPERSIZE) && mode.dmPaperSize > 0)
+    {
+        const WORD targetPaper = static_cast<WORD>(mode.dmPaperSize);
+        const auto match       = std::ranges::find_if(forms, [targetPaper](const auto& form) { return form.paperSize == targetPaper; });
+        if (match != forms.end())
+            settings.form = match->name;
+    }
     if (mode.dmFields & DM_ORIENTATION)
         settings.orientation = mode.dmOrientation == DMORIENT_LANDSCAPE ? Orientation::Landscape : Orientation::Portrait;
     if (mode.dmFields & DM_DUPLEX)
@@ -525,53 +573,74 @@ PrinterSettings SettingsFrom(const DEVMODEW& mode)
     return settings;
 }
 
-HRESULT MergeDeviceMode(HANDLE printer, Selection& selection, const PrinterSettings& requested)
+HRESULT MergeDeviceMode(HANDLE printer, Selection& selection, const PrinterSettings& requested, std::span<const PrinterForm> forms = {})
 {
-    auto* const mode = CheckedDeviceMode(selection.deviceMode);
-    RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_INVALID_DATA), ! mode);
-    const auto existing = SettingsFrom(*mode);
-    if (requested.form == existing.form && requested.orientation == existing.orientation && requested.duplex == existing.duplex &&
+    const auto* const current = CheckedDeviceMode(selection.deviceMode);
+    RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_INVALID_DATA), ! current);
+    const auto existing = SettingsFrom(*current, forms);
+    if (SamePrintName(requested.form, existing.form) && requested.orientation == existing.orientation && requested.duplex == existing.duplex &&
         requested.collate == existing.collate && requested.copies == existing.copies)
         return S_OK;
+
+    std::vector<std::byte> inputBytes = selection.deviceMode;
+    auto* const inputMode             = reinterpret_cast<DEVMODEW*>(inputBytes.data());
+    std::optional<WORD> requestedPaperSize;
     if (! requested.form.empty() && ! SamePrintName(requested.form, existing.form))
     {
-        RETURN_HR_IF(E_INVALIDARG, requested.form.size() >= CCHFORMNAME);
-        mode->dmFields = (mode->dmFields & ~(DM_PAPERSIZE | DM_PAPERWIDTH | DM_PAPERLENGTH)) | DM_FORMNAME;
-        std::ranges::fill(mode->dmFormName, L'\0');
-        std::ranges::copy(requested.form, mode->dmFormName);
+        const auto formIt = std::ranges::find_if(forms, [&](const auto& entry) { return SamePrintName(entry.name, requested.form); });
+        if (formIt != forms.end() && formIt->paperSize != 0u)
+        {
+            requestedPaperSize     = formIt->paperSize;
+            inputMode->dmFields    = (inputMode->dmFields & ~(DM_PAPERWIDTH | DM_PAPERLENGTH | DM_FORMNAME)) | DM_PAPERSIZE;
+            inputMode->dmPaperSize = static_cast<short>(formIt->paperSize);
+            std::ranges::fill(inputMode->dmFormName, L'\0');
+        }
+        else
+        {
+            RETURN_HR_IF(E_INVALIDARG, requested.form.size() >= CCHFORMNAME);
+            inputMode->dmFields = (inputMode->dmFields & ~(DM_PAPERSIZE | DM_PAPERWIDTH | DM_PAPERLENGTH)) | DM_FORMNAME;
+            std::ranges::fill(inputMode->dmFormName, L'\0');
+            std::ranges::copy(requested.form, inputMode->dmFormName);
+        }
     }
     if (requested.orientation)
     {
-        mode->dmFields |= DM_ORIENTATION;
-        mode->dmOrientation = requested.orientation.value() == Orientation::Landscape ? DMORIENT_LANDSCAPE : DMORIENT_PORTRAIT;
+        inputMode->dmFields |= DM_ORIENTATION;
+        inputMode->dmOrientation = requested.orientation.value() == Orientation::Landscape ? DMORIENT_LANDSCAPE : DMORIENT_PORTRAIT;
     }
     if (requested.duplex)
     {
         const auto duplex = requested.duplex.value();
-        mode->dmFields |= DM_DUPLEX;
-        mode->dmDuplex = duplex == Duplex::LongEdge ? DMDUP_VERTICAL : duplex == Duplex::ShortEdge ? DMDUP_HORIZONTAL : DMDUP_SIMPLEX;
+        inputMode->dmFields |= DM_DUPLEX;
+        inputMode->dmDuplex = duplex == Duplex::LongEdge ? DMDUP_VERTICAL : duplex == Duplex::ShortEdge ? DMDUP_HORIZONTAL : DMDUP_SIMPLEX;
     }
     if (requested.collate)
     {
-        mode->dmFields |= DM_COLLATE;
-        mode->dmCollate = requested.collate.value() ? DMCOLLATE_TRUE : DMCOLLATE_FALSE;
+        inputMode->dmFields |= DM_COLLATE;
+        inputMode->dmCollate = requested.collate.value() ? DMCOLLATE_TRUE : DMCOLLATE_FALSE;
     }
     if (requested.copies != existing.copies)
     {
         RETURN_HR_IF(E_INVALIDARG, requested.copies < 1u || requested.copies > static_cast<unsigned>((std::numeric_limits<short>::max)()));
-        mode->dmFields |= DM_COPIES;
-        mode->dmCopies = static_cast<short>(requested.copies);
+        inputMode->dmFields |= DM_COPIES;
+        inputMode->dmCopies = static_cast<short>(requested.copies);
     }
     const LONG needed = DocumentPropertiesW(nullptr, printer, selection.printer.data(), nullptr, nullptr, 0);
-    if (needed < static_cast<LONG>(sizeof(DEVMODEW)) || static_cast<size_t>(needed) > selection.deviceMode.size() ||
-        DocumentPropertiesW(nullptr, printer, selection.printer.data(), mode, mode, DM_IN_BUFFER | DM_OUT_BUFFER) != IDOK ||
-        ! CheckedDeviceMode(selection.deviceMode))
+    if (needed < static_cast<LONG>(sizeof(DEVMODEW)) || needed > static_cast<LONG>(MaximumDriverBytes))
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
-    const auto applied = SettingsFrom(*mode);
-    if ((! requested.form.empty() && ! SamePrintName(applied.form, requested.form)) ||
-        (requested.orientation && applied.orientation != requested.orientation) || (requested.duplex && applied.duplex != requested.duplex) ||
+    std::vector<std::byte> outputBytes(static_cast<size_t>(needed));
+    auto* const outputMode = reinterpret_cast<DEVMODEW*>(outputBytes.data());
+    if (DocumentPropertiesW(nullptr, printer, selection.printer.data(), outputMode, inputMode, DM_IN_BUFFER | DM_OUT_BUFFER) != IDOK ||
+        ! CheckedDeviceMode(outputBytes))
+        return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+    const auto applied = SettingsFrom(*outputMode, forms);
+    const bool formMatch =
+        requested.form.empty() || SamePrintName(applied.form, requested.form) ||
+        (requestedPaperSize && (outputMode->dmFields & DM_PAPERSIZE) && outputMode->dmPaperSize == static_cast<short>(requestedPaperSize.value()));
+    if (! formMatch || (requested.orientation && applied.orientation != requested.orientation) || (requested.duplex && applied.duplex != requested.duplex) ||
         (requested.collate && applied.collate != requested.collate) || applied.copies != requested.copies)
         return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
+    selection.deviceMode = std::move(outputBytes);
     return S_OK;
 }
 
@@ -637,14 +706,18 @@ HRESULT DestinationFormat(Selection& selection, FileFormat& format)
 
 struct OutputIdentity
 {
+    bool hasFileId{};
     FILE_ID_INFO id{};
     FILE_BASIC_INFO basic{};
     FILE_STANDARD_INFO standard{};
 
     bool operator==(const OutputIdentity& other) const noexcept
     {
-        return id.VolumeSerialNumber == other.id.VolumeSerialNumber && std::ranges::equal(id.FileId.Identifier, other.id.FileId.Identifier) &&
-               basic.LastWriteTime.QuadPart == other.basic.LastWriteTime.QuadPart && basic.ChangeTime.QuadPart == other.basic.ChangeTime.QuadPart &&
+        if (hasFileId != other.hasFileId)
+            return false;
+        if (hasFileId && (id.VolumeSerialNumber != other.id.VolumeSerialNumber || ! std::ranges::equal(id.FileId.Identifier, other.id.FileId.Identifier)))
+            return false;
+        return basic.LastWriteTime.QuadPart == other.basic.LastWriteTime.QuadPart && basic.ChangeTime.QuadPart == other.basic.ChangeTime.QuadPart &&
                standard.EndOfFile.QuadPart == other.standard.EndOfFile.QuadPart;
     }
 };
@@ -668,9 +741,25 @@ HRESULT IdentifyOutput(const std::filesystem::path& path, std::optional<OutputId
     }
     OutputIdentity facts;
     RETURN_IF_WIN32_BOOL_FALSE(GetFileInformationByHandleEx(file.get(), FileBasicInfo, &facts.basic, sizeof(facts.basic)));
-    if ((facts.basic.FileAttributes & (FILE_ATTRIBUTE_DIRECTORY | FILE_ATTRIBUTE_REPARSE_POINT)) != 0u)
+    if ((facts.basic.FileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0u)
         return E_ACCESSDENIED;
-    RETURN_IF_WIN32_BOOL_FALSE(GetFileInformationByHandleEx(file.get(), FileIdInfo, &facts.id, sizeof(facts.id)));
+    if ((facts.basic.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0u)
+    {
+        FILE_ATTRIBUTE_TAG_INFO tag{};
+        RETURN_IF_WIN32_BOOL_FALSE(GetFileInformationByHandleEx(file.get(), FileAttributeTagInfo, &tag, sizeof(tag)));
+        if (IsReparseTagNameSurrogate(tag.ReparseTag))
+            return E_ACCESSDENIED;
+    }
+    if (GetFileInformationByHandleEx(file.get(), FileIdInfo, &facts.id, sizeof(facts.id)))
+    {
+        facts.hasFileId = true;
+    }
+    else
+    {
+        const DWORD error = GetLastError();
+        if (error != ERROR_INVALID_PARAMETER && error != ERROR_NOT_SUPPORTED && error != ERROR_INVALID_FUNCTION)
+            return HRESULT_FROM_WIN32(error);
+    }
     RETURN_IF_WIN32_BOOL_FALSE(GetFileInformationByHandleEx(file.get(), FileStandardInfo, &facts.standard, sizeof(facts.standard)));
     identity = facts;
     return S_OK;
@@ -720,6 +809,17 @@ public:
         if (! facts.cbSize.QuadPart)
             return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
         stream.reset();
+        {
+            const wil::unique_handle flushHandle(CreateFileW(_staged.c_str(),
+                                                             GENERIC_WRITE,
+                                                             FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                                             nullptr,
+                                                             OPEN_EXISTING,
+                                                             FILE_ATTRIBUTE_NORMAL,
+                                                             nullptr));
+            RETURN_LAST_ERROR_IF(! flushHandle);
+            RETURN_IF_WIN32_BOOL_FALSE(FlushFileBuffers(flushHandle.get()));
+        }
         std::optional<OutputIdentity> current;
         RETURN_IF_FAILED(IdentifyOutput(path, current));
         if (current != _expected)
@@ -728,9 +828,19 @@ public:
             return Cancelled;
         _lease.reset();
         if (_expected)
-            RETURN_IF_WIN32_BOOL_FALSE(ReplaceFileW(path.c_str(), _staged.c_str(), nullptr, 0, nullptr, nullptr));
-        if (! _expected)
+        {
+            if (! ReplaceFileW(path.c_str(), _staged.c_str(), nullptr, 0, nullptr, nullptr))
+            {
+                const DWORD error = GetLastError();
+                if (error != ERROR_NOT_SUPPORTED && error != ERROR_INVALID_FUNCTION && error != ERROR_CALL_NOT_IMPLEMENTED)
+                    return HRESULT_FROM_WIN32(error);
+                RETURN_IF_WIN32_BOOL_FALSE(MoveFileExW(_staged.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH));
+            }
+        }
+        else
+        {
             RETURN_IF_WIN32_BOOL_FALSE(MoveFileExW(_staged.c_str(), path.c_str(), MOVEFILE_WRITE_THROUGH));
+        }
         _staged.clear();
         return S_OK;
     }
@@ -844,20 +954,23 @@ HRESULT ConfigurePrinter(const std::wstring& name, const std::optional<PrinterSe
     if (needed < static_cast<LONG>(sizeof(DEVMODEW)) || needed > static_cast<LONG>(MaximumDriverBytes))
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
     selection.deviceMode.resize(static_cast<size_t>(needed));
-    auto* const mode = reinterpret_cast<DEVMODEW*>(selection.deviceMode.data());
-    if (DocumentPropertiesW(nullptr, printer.get(), selection.printer.data(), mode, nullptr, DM_OUT_BUFFER) != IDOK ||
+    auto* const initialMode = reinterpret_cast<DEVMODEW*>(selection.deviceMode.data());
+    if (DocumentPropertiesW(nullptr, printer.get(), selection.printer.data(), initialMode, nullptr, DM_OUT_BUFFER) != IDOK ||
         ! CheckedDeviceMode(selection.deviceMode))
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+    const auto printerForms = ListPrinterForms(printer.get(), name, port, initialMode);
     if (requested)
-        RETURN_IF_FAILED(MergeDeviceMode(printer.get(), selection, requested.value()));
+        RETURN_IF_FAILED(MergeDeviceMode(printer.get(), selection, requested.value(), printerForms));
     RETURN_IF_FAILED(PaperForSelection(selection, selection.paper));
-    configured.settings = SettingsFrom(*mode);
-    if (! configured.settings.form.empty())
-    {
-        configured.forms = ListForms(printer.get());
-        if (std::ranges::none_of(configured.forms, [&](const auto& form) { return SamePrintName(form, configured.settings.form); }))
-            configured.forms.insert(configured.forms.begin(), configured.settings.form);
-    }
+    const auto* const mode = CheckedDeviceMode(selection.deviceMode);
+    RETURN_HR_IF(HRESULT_FROM_WIN32(ERROR_INVALID_DATA), ! mode);
+    configured.settings = SettingsFrom(*mode, printerForms);
+    configured.forms.reserve(printerForms.size() + 1u);
+    for (const auto& form : printerForms)
+        configured.forms.push_back(form.name);
+    if (! configured.settings.form.empty() &&
+        std::ranges::none_of(configured.forms, [&](const auto& form) { return SamePrintName(form, configured.settings.form); }))
+        configured.forms.insert(configured.forms.begin(), configured.settings.form);
     if (mode->dmFields & DM_COPIES)
     {
         const auto copies        = DeviceCapabilitiesW(name.c_str(), port, DC_COPIES, nullptr, mode);
@@ -876,7 +989,9 @@ namespace
 {
 constexpr DWORD DefaultPrinterConfigurationTimeoutMs = 1500u;
 constexpr std::size_t MaximumSpoolerProbes           = 8u;
+constexpr std::size_t MaximumSpoolerSubmits          = 4u;
 std::atomic_size_t activeSpoolerProbes{0u};
+std::atomic_size_t activeSpoolerSubmits{0u};
 static_assert(std::is_trivially_destructible_v<std::atomic_size_t>);
 
 struct Request
@@ -905,13 +1020,13 @@ struct Operation
     std::mutex mutex;
     HWND window{};
     UINT message{};
-    wil::unique_event_nothrow requested, fileChosen;
+    wil::unique_event_nothrow requested, fileChosen, cancelled;
     std::atomic_bool cancel{};
     std::uint64_t activeRequestId    = 1u;
     std::uint64_t activePrinterEpoch = 1u;
     std::optional<Notice> notice;
     std::optional<Notice> pendingConfig;
-    Request request;
+    std::optional<Request> request;
     HRESULT fileStatus = Cancelled;
     std::filesystem::path destination;
 
@@ -980,6 +1095,7 @@ struct PrinterConfigProbe final
     PrinterConfigProbe(PrinterConfigProbe&&)                 = delete;
     PrinterConfigProbe& operator=(PrinterConfigProbe&&)      = delete;
 
+    std::uint64_t printerEpoch = 1u;
     std::wstring printer;
     std::optional<PrinterSettings> requested;
     bool retryWithoutSettings{};
@@ -1009,6 +1125,14 @@ DWORD WINAPI RunPrinterConfigProbe(void* context) noexcept
     });
     try
     {
+        const HRESULT com = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+        if (FAILED(com))
+        {
+            probe->result = com;
+            return 0u;
+        }
+        const wil::unique_couninitialize_call apartment;
+        const DxUi::Failure::Scope failureScope;
         PrinterConfiguration configured;
 #if defined(REDTILDE_ENABLE_TESTS)
         const auto releaseCallback = wil::scope_exit([&]() noexcept { probe->printerForTest = {}; });
@@ -1032,16 +1156,17 @@ DWORD WINAPI RunPrinterConfigProbe(void* context) noexcept
     }
     catch (const std::bad_alloc&)
     {
-        std::terminate();
+        DxUi::Failure::FailAllocation();
     }
     catch (const std::exception&)
     {
-        std::terminate();
+        DxUi::Failure::FailUnexpected();
     }
     return 0u;
 }
 
 HRESULT StartPrinterConfigProbe([[maybe_unused]] const Work& work,
+                                std::uint64_t printerEpoch,
                                 bool retryWithoutSettings,
                                 std::wstring printer,
                                 std::optional<PrinterSettings> requested,
@@ -1057,6 +1182,7 @@ HRESULT StartPrinterConfigProbe([[maybe_unused]] const Work& work,
 #endif
     auto probe = std::make_shared<PrinterConfigProbe>();
     RETURN_IF_FAILED(probe->done.create(wil::EventOptions::ManualReset));
+    probe->printerEpoch         = printerEpoch;
     probe->printer              = std::move(printer);
     probe->requested            = std::move(requested);
     probe->retryWithoutSettings = retryWithoutSettings;
@@ -1089,46 +1215,36 @@ HRESULT StartPrinterConfigProbe([[maybe_unused]] const Work& work,
     return S_OK;
 }
 
-HRESULT Submit(Work& work, Selection& selection, Pages& pages, IWICImagingFactory* wic, Notice& finished)
+struct SpoolerSubmitState final
 {
-    auto& operation = *work.operation;
-    auto& job       = work.job;
+    SpoolerSubmitState()                                     = default;
+    ~SpoolerSubmitState()                                    = default;
+    SpoolerSubmitState(const SpoolerSubmitState&)            = delete;
+    SpoolerSubmitState& operator=(const SpoolerSubmitState&) = delete;
+    SpoolerSubmitState(SpoolerSubmitState&&)                 = delete;
+    SpoolerSubmitState& operator=(SpoolerSubmitState&&)      = delete;
+
+    std::shared_ptr<Operation> operation;
+    Selection selection;
+    std::unique_ptr<Pages> pages;
+    Document document;
+    Notice finished;
+    wil::unique_event_nothrow done;
+    HRESULT result = E_FAIL;
+};
+
+HRESULT ExecuteSpoolerSubmit(SpoolerSubmitState& state)
+{
+    auto& operation = *state.operation;
+    auto& selection = state.selection;
+    auto& finished  = state.finished;
     if (operation.cancel.load())
         return Cancelled;
-    const auto count   = pages.Count();
+    wil::com_ptr<IWICImagingFactory> wic;
+    RETURN_IF_FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(wic.put())));
+    const auto count   = state.pages->Count();
     const auto& ranges = selection.ranges;
-    if (! PageRangesFit(ranges, count))
-    {
-        finished.invalidRangePageCount = count;
-        return E_INVALIDARG;
-    }
-    const auto forPages = [&](auto&& submitPage) -> HRESULT
-    {
-        for (unsigned page = 1u; page <= count; ++page)
-        {
-            if (operation.cancel.load())
-                return Cancelled;
-            if (! ranges.empty() && std::ranges::none_of(ranges, [page](const auto& range) { return page >= range.first && page <= range.last; }))
-                continue;
-            finished.stage      = Stage::Page;
-            finished.failedPage = page;
-            wil::com_ptr<ID2D1CommandList> commands;
-            RETURN_IF_FAILED(pages.Record(page, commands.put()));
-            RETURN_IF_FAILED(submitPage(page, *commands));
-        }
-        return S_OK;
-    };
-#if defined(REDTILDE_ENABLE_TESTS)
-    if (job.pageForTest)
-    {
-        if (job.submissionForTest)
-            job.submissionForTest(selection);
-        RETURN_IF_FAILED(forPages(job.pageForTest));
-        finished.stage = Stage::FinishJob;
-        return job.finishForTest ? job.finishForTest() : S_OK;
-    }
-#endif
-    finished.stage = Stage::ConfigurePrinter;
+    finished.stage     = Stage::ConfigurePrinter;
     RETURN_IF_FAILED(ApplyJobOptions(selection));
     std::filesystem::path destination;
     if (IsFilePort(selection.port))
@@ -1138,10 +1254,10 @@ HRESULT Submit(Work& work, Selection& selection, Pages& pages, IWICImagingFactor
         RETURN_IF_FAILED(DestinationFormat(selection, format));
         if (operation.Post({.kind = Notice::Kind::ChooseFile, .format = format}) != PostResult::Posted)
             return Cancelled;
-        // Close always signals this event. The worker retains only immutable
-        // inputs and never shows a dialog itself.
-        if (! operation.fileChosen.wait())
-            return E_FAIL;
+        // Close signals operation.cancelled and operation.fileChosen; the worker holds only owned values.
+        const HANDLE waitHandles[2]{operation.cancelled.get(), operation.fileChosen.get()};
+        if (WaitForMultipleObjects(2u, waitHandles, FALSE, INFINITE) != WAIT_OBJECT_0 + 1u)
+            return Cancelled;
         if (operation.cancel.load())
             return Cancelled;
         const std::lock_guard lock(operation.mutex);
@@ -1159,20 +1275,31 @@ HRESULT Submit(Work& work, Selection& selection, Pages& pages, IWICImagingFactor
     if (! destination.empty())
     {
         finished.stage = Stage::SaveFile;
-        RETURN_IF_FAILED(output.Open(destination, job.document.path));
+        RETURN_IF_FAILED(output.Open(destination, state.document.path));
         finished.stage = Stage::PrepareJob;
     }
     wil::com_ptr<IPrintDocumentPackageTargetFactory> factory;
     RETURN_IF_FAILED(CoCreateInstance(__uuidof(PrintDocumentPackageTargetFactory), nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(factory.put())));
     wil::com_ptr<IPrintDocumentPackageTarget> target;
     RETURN_IF_FAILED(factory->CreateDocumentPackageTargetForPrintJob(
-        selection.printer.c_str(), job.document.title.c_str(), output.stream.get(), ticket.get(), target.put()));
+        selection.printer.c_str(), state.document.title.c_str(), output.stream.get(), ticket.get(), target.put()));
     auto cancelOnFailure = wil::scope_exit([&] noexcept { (void)target->Cancel(); });
     wil::com_ptr<ID2D1Device> device;
-    pages.Context().GetDevice(device.put());
+    state.pages->Context().GetDevice(device.put());
     wil::com_ptr<ID2D1PrintControl> print;
-    RETURN_IF_FAILED(device->CreatePrintControl(wic, target.get(), nullptr, print.put()));
-    RETURN_IF_FAILED(forPages([&](unsigned, ID2D1CommandList& commands) { return print->AddPage(&commands, selection.paper.size, nullptr); }));
+    RETURN_IF_FAILED(device->CreatePrintControl(wic.get(), target.get(), nullptr, print.put()));
+    for (unsigned page = 1u; page <= count; ++page)
+    {
+        if (operation.cancel.load())
+            return Cancelled;
+        if (! ranges.empty() && std::ranges::none_of(ranges, [page](const auto& range) { return page >= range.first && page <= range.last; }))
+            continue;
+        finished.stage      = Stage::Page;
+        finished.failedPage = page;
+        wil::com_ptr<ID2D1CommandList> commands;
+        RETURN_IF_FAILED(state.pages->Record(page, commands.put()));
+        RETURN_IF_FAILED(print->AddPage(commands.get(), selection.paper.size, nullptr));
+    }
     if (operation.cancel.load())
         return Cancelled;
     finished.stage = Stage::FinishJob;
@@ -1187,6 +1314,112 @@ HRESULT Submit(Work& work, Selection& selection, Pages& pages, IWICImagingFactor
         finished.savedFile = true;
     }
     return S_OK;
+}
+
+DWORD WINAPI RunSpoolerSubmit(void* context) noexcept
+{
+    const std::unique_ptr<std::shared_ptr<SpoolerSubmitState>> holder(static_cast<std::shared_ptr<SpoolerSubmitState>*>(context));
+    const auto state   = *holder;
+    const auto cleanup = wil::scope_exit([&]() noexcept
+    {
+        state->pages.reset();
+        activeSpoolerSubmits.fetch_sub(1u, std::memory_order_acq_rel);
+        (void)state->done.SetEvent();
+    });
+    try
+    {
+        const HRESULT com = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+        if (FAILED(com))
+        {
+            state->result = com;
+            return 0u;
+        }
+        const wil::unique_couninitialize_call apartment;
+        const DxUi::Failure::Scope failureScope;
+        state->result = ExecuteSpoolerSubmit(*state);
+        state->pages.reset();
+    }
+    catch (const std::bad_alloc&)
+    {
+        DxUi::Failure::FailAllocation();
+    }
+    catch (const std::filesystem::filesystem_error& error)
+    {
+        state->result = HRESULT_FROM_WIN32(static_cast<DWORD>(error.code().value()));
+    }
+    catch (const std::exception&)
+    {
+        DxUi::Failure::FailUnexpected();
+    }
+    return 0u;
+}
+
+HRESULT Submit(Work& work, Selection& selection, std::unique_ptr<Pages>& pages, Notice& finished)
+{
+    auto& operation = *work.operation;
+    auto& job       = work.job;
+    if (operation.cancel.load())
+        return Cancelled;
+    const auto count   = pages->Count();
+    const auto& ranges = selection.ranges;
+    if (! PageRangesFit(ranges, count))
+    {
+        finished.invalidRangePageCount = count;
+        return E_INVALIDARG;
+    }
+#if defined(REDTILDE_ENABLE_TESTS)
+    if (job.pageForTest)
+    {
+        if (job.submissionForTest)
+            job.submissionForTest(selection);
+        for (unsigned page = 1u; page <= count; ++page)
+        {
+            if (operation.cancel.load())
+                return Cancelled;
+            if (! ranges.empty() && std::ranges::none_of(ranges, [page](const auto& range) { return page >= range.first && page <= range.last; }))
+                continue;
+            finished.stage      = Stage::Page;
+            finished.failedPage = page;
+            wil::com_ptr<ID2D1CommandList> commands;
+            RETURN_IF_FAILED(pages->Record(page, commands.put()));
+            RETURN_IF_FAILED(job.pageForTest(page, *commands));
+        }
+        finished.stage = Stage::FinishJob;
+        return job.finishForTest ? job.finishForTest() : S_OK;
+    }
+#endif
+    auto state = std::make_shared<SpoolerSubmitState>();
+    RETURN_IF_FAILED(state->done.create(wil::EventOptions::ManualReset));
+    state->operation    = work.operation;
+    state->selection    = std::move(selection);
+    state->pages        = std::move(pages);
+    state->document     = std::move(job.document);
+    state->finished     = finished;
+    std::size_t current = activeSpoolerSubmits.load(std::memory_order_acquire);
+    for (;;)
+    {
+        if (current >= MaximumSpoolerSubmits)
+            return HRESULT_FROM_WIN32(ERROR_BUSY);
+        if (activeSpoolerSubmits.compare_exchange_weak(current, current + 1u, std::memory_order_acq_rel))
+            break;
+    }
+    auto holder = std::make_unique<std::shared_ptr<SpoolerSubmitState>>(state);
+    const wil::unique_handle thread(CreateThread(nullptr, 0u, RunSpoolerSubmit, holder.get(), 0u, nullptr));
+    if (! thread)
+    {
+        const DWORD error = GetLastError();
+        activeSpoolerSubmits.fetch_sub(1u, std::memory_order_acq_rel);
+        return HRESULT_FROM_WIN32(error);
+    }
+    (void)holder.release();
+    const HANDLE waitHandles[2]{operation.cancelled.get(), state->done.get()};
+    const DWORD waited = WaitForMultipleObjects(2u, waitHandles, FALSE, INFINITE);
+    if (waited == WAIT_OBJECT_0 || operation.cancel.load())
+        return Cancelled;
+    if (waited != WAIT_OBJECT_0 + 1u)
+        return HRESULT_FROM_WIN32(GetLastError());
+    finished = std::move(state->finished);
+    return state->result;
 }
 
 HRESULT RunSession(Work& work, Notice& finished)
@@ -1247,7 +1480,7 @@ HRESULT RunSession(Work& work, Notice& finished)
             finished.printer = request.selection.value().printer;
             if (! pages || configuredPrinter.empty() || ! SamePrintName(configuredPrinter, request.selection->printer) || request.selection->paper != paper)
                 return E_INVALIDARG;
-            return Submit(work, request.selection.value(), *pages, wic.get(), finished);
+            return Submit(work, request.selection.value(), pages, finished);
         }
 
         currentRequestId = request.id;
@@ -1269,7 +1502,7 @@ HRESULT RunSession(Work& work, Notice& finished)
                 notice.stage   = Stage::ConfigurePrinter;
                 notice.printer = activePrinter;
                 std::shared_ptr<PrinterConfigProbe> probe;
-                const HRESULT started = StartPrinterConfigProbe(work, retry, activePrinter, std::move(request.settings), probe);
+                const HRESULT started = StartPrinterConfigProbe(work, currentEpoch, retry, activePrinter, std::move(request.settings), probe);
                 if (FAILED(started))
                 {
                     notice.result = started;
@@ -1281,55 +1514,80 @@ HRESULT RunSession(Work& work, Notice& finished)
                 }
                 else
                 {
-                    const HANDLE waitHandles[2]{operation.requested.get(), probe->done.get()};
-                    const DWORD waited = WaitForMultipleObjects(2u, waitHandles, FALSE, timeoutMs);
-                    if (waited == WAIT_OBJECT_0)
+                    bool switchRequest{};
+                    const ULONGLONG deadline = GetTickCount64() + timeoutMs;
+                    for (;;)
                     {
-                        if (operation.cancel.load())
+                        const ULONGLONG now   = GetTickCount64();
+                        const DWORD remaining = now >= deadline ? 0u : static_cast<DWORD>(deadline - now);
+                        const HANDLE waitHandles[2]{operation.requested.get(), probe->done.get()};
+                        const DWORD waited = WaitForMultipleObjects(2u, waitHandles, FALSE, remaining);
+                        if (waited == WAIT_OBJECT_0)
                         {
+                            if (operation.cancel.load())
+                            {
+                                probe->abandoned.store(true, std::memory_order_release);
+                                return Cancelled;
+                            }
+                            std::optional<Request> next;
+                            {
+                                const std::lock_guard lock(operation.mutex);
+                                next = std::exchange(operation.request, std::nullopt);
+                            }
+                            if (! next)
+                                continue;
+                            if (! next->selection && ! next->printer && next->printerEpoch == currentEpoch)
+                            {
+                                currentRequestId = next->id;
+                                notice.requestId = currentRequestId;
+                                currentPage      = next->page;
+                                continue;
+                            }
                             probe->abandoned.store(true, std::memory_order_release);
-                            return Cancelled;
+                            request       = std::move(*next);
+                            switchRequest = true;
+                            break;
                         }
-                        probe->abandoned.store(true, std::memory_order_release);
-                        const std::lock_guard lock(operation.mutex);
-                        request = std::exchange(operation.request, {});
-                        continue;
-                    }
-                    if (waited == WAIT_OBJECT_0 + 1u)
-                    {
-                        if (operation.cancel.load())
-                            return Cancelled;
-                        notice.result = probe->result;
-                        if (SUCCEEDED(probe->result) && probe->configuration)
+                        if (waited == WAIT_OBJECT_0 + 1u)
                         {
-                            configuredPrinter    = probe->configuration->selection.printer;
-                            desired              = probe->configuration->selection.paper;
-                            notice.configuration = std::move(probe->configuration);
+                            if (operation.cancel.load())
+                                return Cancelled;
+                            notice.result = probe->result;
+                            if (SUCCEEDED(probe->result) && probe->configuration)
+                            {
+                                configuredPrinter    = probe->configuration->selection.printer;
+                                desired              = probe->configuration->selection.paper;
+                                notice.configuration = std::move(probe->configuration);
+                            }
+                            else if (! SamePrintName(configuredPrinter, activePrinter))
+                            {
+                                configuredPrinter.clear();
+                                desired = letter;
+                            }
+                            break;
                         }
-                        else if (! SamePrintName(configuredPrinter, activePrinter))
+                        if (waited == WAIT_TIMEOUT)
                         {
-                            configuredPrinter.clear();
-                            desired = letter;
+                            if (operation.cancel.load())
+                            {
+                                probe->abandoned.store(true, std::memory_order_release);
+                                return Cancelled;
+                            }
+                            pendingProbe          = std::move(probe);
+                            notice.printerPending = true;
+                            notice.result         = S_OK;
+                            if (! SamePrintName(configuredPrinter, activePrinter))
+                            {
+                                configuredPrinter.clear();
+                                desired = letter;
+                            }
+                            break;
                         }
-                    }
-                    else if (waited == WAIT_TIMEOUT)
-                    {
-                        if (operation.cancel.load())
-                        {
-                            probe->abandoned.store(true, std::memory_order_release);
-                            return Cancelled;
-                        }
-                        pendingProbe          = std::move(probe);
-                        notice.printerPending = true;
-                        notice.result         = S_OK;
-                        configuredPrinter.clear();
-                        desired = letter;
-                    }
-                    else
-                    {
                         probe->abandoned.store(true, std::memory_order_release);
                         return HRESULT_FROM_WIN32(GetLastError());
                     }
+                    if (switchRequest)
+                        continue;
                 }
             }
             else
@@ -1368,8 +1626,14 @@ HRESULT RunSession(Work& work, Notice& finished)
                     return E_FAIL;
                 if (operation.cancel.load())
                     return Cancelled;
-                const std::lock_guard lock(operation.mutex);
-                request = std::exchange(operation.request, {});
+                std::optional<Request> next;
+                {
+                    const std::lock_guard lock(operation.mutex);
+                    next = std::exchange(operation.request, std::nullopt);
+                }
+                if (! next)
+                    continue;
+                request = std::move(*next);
                 break;
             }
             const HANDLE waitHandles[2]{operation.requested.get(), pendingProbe->done.get()};
@@ -1378,8 +1642,14 @@ HRESULT RunSession(Work& work, Notice& finished)
             {
                 if (operation.cancel.load())
                     return Cancelled;
-                const std::lock_guard lock(operation.mutex);
-                request = std::exchange(operation.request, {});
+                std::optional<Request> next;
+                {
+                    const std::lock_guard lock(operation.mutex);
+                    next = std::exchange(operation.request, std::nullopt);
+                }
+                if (! next)
+                    continue;
+                request = std::move(*next);
                 break;
             }
             if (waited == WAIT_OBJECT_0 + 1u)
@@ -1387,11 +1657,13 @@ HRESULT RunSession(Work& work, Notice& finished)
                 if (operation.cancel.load())
                     return Cancelled;
                 const auto completed = std::move(pendingProbe);
+                if (completed->printerEpoch != currentEpoch)
+                    continue;
                 Notice resolved{.kind           = Notice::Kind::Preview,
                                 .result         = completed->result,
                                 .stage          = Stage::ConfigurePrinter,
                                 .requestId      = currentRequestId,
-                                .printerEpoch   = currentEpoch,
+                                .printerEpoch   = completed->printerEpoch,
                                 .printerPending = false,
                                 .printer        = completed->printer};
                 auto resolvedDesired = paper;
@@ -1463,6 +1735,7 @@ HRESULT Start(HWND owner, UINT message, Job job, std::shared_ptr<Operation>& ope
     auto staged = std::make_shared<Operation>();
     RETURN_IF_FAILED(staged->requested.create(wil::EventOptions::None));
     RETURN_IF_FAILED(staged->fileChosen.create(wil::EventOptions::ManualReset));
+    RETURN_IF_FAILED(staged->cancelled.create(wil::EventOptions::ManualReset));
     staged->window  = owner;
     staged->message = message;
     auto work       = std::make_unique<Work>();
@@ -1508,12 +1781,23 @@ void RequestPreview(Operation& operation, unsigned page) noexcept
         if (operation.notice->destinations)
         {
             preservedDestinations = Notice{.kind         = Notice::Kind::Destinations,
-                                           .printer      = operation.pendingConfig ? operation.pendingConfig->printer : std::wstring{},
+                                           .printer      = operation.pendingConfig ? std::wstring{} : std::move(operation.notice->printer),
                                            .destinations = std::move(operation.notice->destinations)};
         }
         operation.notice = std::move(preservedDestinations);
     }
-    operation.request = {.id = operation.activeRequestId, .printerEpoch = operation.activePrinterEpoch, .page = page};
+    std::optional<std::wstring> pendingPrinter;
+    std::optional<PrinterSettings> pendingSettings;
+    if (operation.request && operation.request->printerEpoch == operation.activePrinterEpoch)
+    {
+        pendingPrinter  = std::move(operation.request->printer);
+        pendingSettings = std::move(operation.request->settings);
+    }
+    operation.request.emplace(Request{.id           = operation.activeRequestId,
+                                      .printerEpoch = operation.activePrinterEpoch,
+                                      .page         = page,
+                                      .printer      = std::move(pendingPrinter),
+                                      .settings     = std::move(pendingSettings)});
     operation.requested.SetEvent();
 }
 
@@ -1530,11 +1814,11 @@ void RequestPrinter(Operation& operation, unsigned page, std::wstring printer, s
         else
             operation.notice.reset();
     }
-    operation.request = {.id           = operation.activeRequestId,
-                         .printerEpoch = operation.activePrinterEpoch,
-                         .page         = page,
-                         .printer      = std::move(printer),
-                         .settings     = std::move(settings)};
+    operation.request.emplace(Request{.id           = operation.activeRequestId,
+                                      .printerEpoch = operation.activePrinterEpoch,
+                                      .page         = page,
+                                      .printer      = std::move(printer),
+                                      .settings     = std::move(settings)});
     operation.requested.SetEvent();
 }
 
@@ -1545,7 +1829,7 @@ void RequestPrint(Operation& operation, Selection selection) noexcept
     operation.pendingConfig.reset();
     if (operation.notice && operation.notice->kind == Notice::Kind::Preview)
         operation.notice.reset();
-    operation.request = {.id = operation.activeRequestId, .printerEpoch = operation.activePrinterEpoch, .selection = std::move(selection)};
+    operation.request.emplace(Request{.id = operation.activeRequestId, .printerEpoch = operation.activePrinterEpoch, .selection = std::move(selection)});
     operation.requested.SetEvent();
 }
 
@@ -1564,6 +1848,7 @@ void Stop(std::shared_ptr<Operation>& operation) noexcept
         const std::lock_guard lock(job->mutex);
         job->window = nullptr;
         job->cancel.store(true);
+        job->cancelled.SetEvent();
         job->requested.SetEvent();
         job->fileChosen.SetEvent();
     }

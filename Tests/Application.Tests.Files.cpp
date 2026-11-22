@@ -672,6 +672,46 @@ void RegisterFilesTests(const std::filesystem::path& root, const std::function<v
                 "retired candidate is reported once with no failed discards");
         service.Close();
     });
+    test("Recovery.StopDuringScanAndOrphanLeaseCleanup",
+         [&]
+    {
+        const auto directory = root / L"recovery-stop-scan-lease";
+        const auto recDir    = directory / L"Recovery";
+        std::filesystem::create_directories(recDir);
+        const auto corrupt = recDir / L"session-0123456789abcdef0123456789abcdef.rtd";
+        Success(WriteBytesAtomic(corrupt, "{ invalid recovery payload "), "seed corrupt recovery file");
+
+        auto scanGate           = std::make_shared<RecoveryService::TestGate>();
+        const auto releaseGates = wil::scope_exit([&] { (void)SetEvent(scanGate->proceed.get()); });
+        RecoveryService service;
+        service.SetScanTestGate(scanGate);
+        Success(service.Initialize(directory), "initialize RecoveryService paused inside Scan");
+        Require(WaitForSingleObject(scanGate->entered.get(), 10000) == WAIT_OBJECT_0, "worker enters Scan gate");
+        service.Stop();
+        Require(! service.Ready() && ! service.Finished() && service.WaitForSettlement(0) == HRESULT_FROM_WIN32(ERROR_TIMEOUT),
+                "Stop() during Scan does not prematurely mark Ready or Finished");
+        Require(SetEvent(scanGate->proceed.get()) != FALSE, "release Scan gate after Stop");
+        Success(service.WaitForSettlement(5000), "RecoveryService settles cleanly after Scan finishes");
+        Require(service.Ready() && service.Settled(), "Ready and Settled become true after Scan finishes");
+        const auto candidateLease = recDir / L"session-0123456789abcdef0123456789abcdef.lease";
+        Require(! std::filesystem::exists(candidateLease), "quarantining corrupt recovery snapshot removes the candidate .lease immediately during Scan");
+        const ULONGLONG finishDeadline = GetTickCount64() + 5000u;
+        while (! service.Finished() && GetTickCount64() < finishDeadline)
+            Sleep(1);
+        Require(service.Finished(), "stopped worker exits and removes its own session lease before Close");
+        service.Close();
+
+        bool sawLease{}, sawQuarantine{};
+        for (const auto& entry : std::filesystem::directory_iterator(recDir))
+        {
+            const auto name = entry.path().filename().wstring();
+            if (name.ends_with(L".lease"))
+                sawLease = true;
+            if (name.ends_with(L".quarantine"))
+                sawQuarantine = true;
+        }
+        Require(! std::filesystem::exists(corrupt) && sawQuarantine && ! sawLease, "quarantining corrupt recovery snapshot leaves no orphaned .lease file");
+    });
     test("Files.FailedWorkerRecoversOnNewValidRoot",
          [&]
     {

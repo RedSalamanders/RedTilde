@@ -266,7 +266,6 @@ struct RecoveryService::State
     };
     enum class WorkerPhase : std::uint8_t
     {
-        Scanning,
         Running,
         Stopping,
         Finished
@@ -277,7 +276,8 @@ struct RecoveryService::State
     std::vector<std::wstring> failedDiscards;
     std::vector<RecoveryCandidate> candidates;
     RecoveryScanStatistics scanStatistics;
-    WorkerPhase workerPhase{WorkerPhase::Scanning};
+    WorkerPhase workerPhase{WorkerPhase::Running};
+    bool scanComplete{};
     bool writingBatch{};
     HRESULT status = S_OK;
     std::array<HRESULT, RecoveryService::MaximumDocuments> snapshotStatuses{};
@@ -289,8 +289,7 @@ struct RecoveryService::State
 #endif
     [[nodiscard]] bool SettledLocked() const noexcept
     {
-        const bool isReady = workerPhase != WorkerPhase::Scanning;
-        return (workerPhase == WorkerPhase::Finished) || (isReady && pending.empty() && discards.empty() && ! writingBatch);
+        return (workerPhase == WorkerPhase::Finished) || (scanComplete && pending.empty() && discards.empty() && ! writingBatch);
     }
     void UpdateSettlementLocked() noexcept
     {
@@ -332,8 +331,13 @@ struct RecoveryService::State
             const auto name = entry.path().filename().native();
             if (! name.starts_with(L"session-") || ! name.ends_with(L".rtd"))
                 continue;
-            const auto candidate = std::wstring_view(name).substr(8, name.size() - 12);
-            if (! ValidId(candidate) || candidate == id || candidates.size() >= MaximumCandidates)
+            const auto candidate      = std::wstring_view(name).substr(8, name.size() - 12);
+            const bool candidatesFull = [&]
+            {
+                std::lock_guard lock(mutex);
+                return candidates.size() >= MaximumCandidates;
+            }();
+            if (! ValidId(candidate) || candidate == id || candidatesFull)
                 continue;
             auto lease = Lease(root, candidate);
             if (! lease) // Another running session (or access error) retains ownership.
@@ -342,13 +346,19 @@ struct RecoveryService::State
             RecoverySnapshot snapshot;
             const HRESULT read = ReadBytes(entry.path(), bytes);
             if (FAILED(read))
+            {
+                lease.reset();
+                (void)Remove(root / (L"session-" + std::wstring(candidate) + L".lease"));
                 continue;
+            }
             const HRESULT parsed = ParseRecovery(bytes, snapshot);
             if (FAILED(parsed))
             {
                 auto quarantine = entry.path();
                 quarantine += L".quarantine";
                 (void)MoveFileW(entry.path().c_str(), quarantine.c_str()); // No overwrite, preserve unknown/corrupt bytes.
+                lease.reset();
+                (void)Remove(root / (L"session-" + std::wstring(candidate) + L".lease"));
                 continue;
             }
             {
@@ -387,8 +397,7 @@ struct RecoveryService::State
             self->Scan();
             {
                 std::lock_guard lock(self->mutex);
-                if (self->workerPhase == WorkerPhase::Scanning)
-                    self->workerPhase = WorkerPhase::Running;
+                self->scanComplete = true;
                 self->UpdateSettlementLocked();
                 self->Notify();
             }
@@ -543,6 +552,10 @@ struct RecoveryService::State
         {
             result = HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
         }
+        catch (const std::exception&)
+        {
+            DxUi::Failure::FailUnexpected();
+        }
         std::lock_guard lock(self->mutex);
         if (FAILED(result))
             self->status = result;
@@ -679,7 +692,7 @@ bool RecoveryService::Ready() const noexcept
     if (! _state)
         return true;
     std::lock_guard lock(_state->mutex);
-    return _state->workerPhase != State::WorkerPhase::Scanning;
+    return _state->scanComplete || _state->workerPhase == State::WorkerPhase::Finished;
 }
 bool RecoveryService::Settled() const noexcept
 {

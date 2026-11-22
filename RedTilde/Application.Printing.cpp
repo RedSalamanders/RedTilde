@@ -167,9 +167,10 @@ void Application::SubmitPrintPreview()
 
 void Application::ClosePrintPreview() noexcept
 {
-    if (! _printPreview)
+    auto preview = std::move(_printPreview);
+    if (! preview)
         return;
-    _printPreview.reset();
+    preview.reset();
     if (! IsClosing() && ! IsSessionEnding() && ! IsClosingAfterSave())
     {
         auto* const destination = _printInvoker && ! _printInvokerLifetime.expired() ? _printInvoker : _editor;
@@ -225,9 +226,9 @@ void Application::PrintCompleted()
             const bool samePrinter = _printConfiguration && Printing::SamePrintName(_printConfiguration->selection.printer, notice->printer);
             if (notice->configuration)
                 _printConfiguration = std::move(notice->configuration);
-            else if (! samePrinter || notice->printerPending)
+            else if (! samePrinter)
                 _printConfiguration.reset();
-            _printPreview->SetConfiguration(_printConfiguration ? &_printConfiguration.value() : nullptr, samePrinter && ! notice->printerPending);
+            _printPreview->SetConfiguration(_printConfiguration ? &_printConfiguration.value() : nullptr, samePrinter, notice->printerPending);
             if (notice->printerPending && ! notice->printer.empty())
                 status = FormatStringResource(nullptr, IDS_PRINTPREVIEWSLOW, notice->printer);
             else if (FAILED(notice->result) && ! notice->printer.empty())
@@ -250,8 +251,14 @@ void Application::PrintCompleted()
         auto* const focus        = _host.GetFocusControl();
         const auto focusLifetime = focus ? GetControlLifetimeToken(*focus) : std::weak_ptr<int>{};
         std::filesystem::path path;
-        const HRESULT chosen = _options.headless ? Cancelled : PickPrintOutput(owner, notice->format, _printTitle, path);
-        if (_printOperation == operation && _window.get() == owner && ! IsClosing() && ! IsSessionEnding() && ! IsClosingAfterSave())
+        HRESULT chosen = Cancelled;
+        if (! _options.headless && ! HasActiveModalPrompt())
+        {
+            _modalPrompt       = ModalPromptKind::FileDialog;
+            const auto restore = wil::scope_exit([&]() noexcept { _modalPrompt = ModalPromptKind::None; });
+            chosen             = PickPrintOutput(owner, notice->format, _printTitle, path);
+        }
+        if (_printOperation == operation && _window.get() == owner && CanAcceptCommand() && IsUiAttached())
         {
             Printing::ChooseFile(operation, chosen, std::move(path));
             if (focus && ! focusLifetime.expired())
@@ -304,9 +311,11 @@ void Application::ReportPrintFailure(HRESULT result, Printing::Stage stage, std:
     _feedback->SetText(messageSummary);
     if (_printPreview)
         _printPreview->SetStatus(messageSummary);
-    if (! _options.headless)
+    if (! _options.headless && ! HasActiveModalPrompt())
     {
-        const HWND owner = _printPreview ? _printPreview->Window() : _window.get();
+        _modalPrompt       = ModalPromptKind::ErrorMessage;
+        const auto restore = wil::scope_exit([&]() noexcept { _modalPrompt = ModalPromptKind::None; });
+        const HWND owner   = _printPreview ? _printPreview->Window() : _window.get();
         (void)DxUi::Failure::InvokeNative(&MessageBoxW, owner, message.c_str(), Resource(IDS_ERROR).c_str(), static_cast<UINT>(MB_OK | MB_ICONERROR));
     }
 }

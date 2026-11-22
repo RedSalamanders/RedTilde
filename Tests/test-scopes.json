@@ -346,6 +346,13 @@
       "reason": "compiler-free fail-closed real-location contract gate"
     },
     {
+      "pattern": "Tests/Tooling.Tests.PiiHygiene.ps1",
+      "scopes": [
+        "Tooling"
+      ],
+      "reason": "compiler-free repository PII hygiene check"
+    },
+    {
       "pattern": "Tests/NativeInventory.json",
       "scopes": [
         "Tooling"

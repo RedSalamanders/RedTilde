@@ -1,6 +1,7 @@
 #pragma once
 #include "Common/BitmapAssets.h"
 #include "Common/ProcessWork.h"
+#include <DxUi/Failure.h>
 #include <atomic>
 #include <cstdint>
 #include <memory>
@@ -48,9 +49,11 @@ public:
 #endif
 
 private:
+    struct Job;
     struct State
     {
-        State()                        = default;
+        State() = default;
+        ~State();
         State(const State&)            = delete;
         State& operator=(const State&) = delete;
         State(State&&)                 = delete;
@@ -63,6 +66,7 @@ private:
         Phase phase{Phase::Idle};
         bool stopRequested{};
         std::optional<Result> result;
+        std::unique_ptr<Job> retireJob;
         std::atomic_bool hasResult{};
 #if defined(REDTILDE_ENABLE_TESTS)
         std::shared_ptr<TestGate> testGate;
@@ -92,60 +96,71 @@ private:
     std::shared_ptr<State> _state;
     static void CALLBACK Worker(PTP_CALLBACK_INSTANCE instance, void* context) noexcept
     {
-        ProcessWorkLease lease = std::move(static_cast<Job*>(context)->lease);
-        (void)CallbackMayRunLong(instance);
-        std::unique_ptr<Job> job(static_cast<Job*>(context));
-        const auto owner   = job->state;
-        auto result        = std::move(job->result);
-        const bool discard = job->discard;
-        bool admitted      = true;
+        try
+        {
+            ProcessWorkLease lease = std::move(static_cast<Job*>(context)->lease);
+            (void)CallbackMayRunLong(instance);
+            std::unique_ptr<Job> job(static_cast<Job*>(context));
+            const auto owner   = job->state;
+            auto result        = std::move(job->result);
+            const bool discard = job->discard;
+            bool admitted      = true;
 #if defined(REDTILDE_ENABLE_TESTS)
-        if (job->testGate)
-        {
-            (void)SetEvent(job->testGate->entered.get());
-            if (WaitForSingleObject(job->testGate->proceed.get(), 30000) != WAIT_OBJECT_0)
+            if (job->testGate)
             {
-                result.status = HRESULT_FROM_WIN32(ERROR_TIMEOUT);
-                admitted      = false;
+                (void)SetEvent(job->testGate->entered.get());
+                if (WaitForSingleObject(job->testGate->proceed.get(), 30000) != WAIT_OBJECT_0)
+                {
+                    result.status = HRESULT_FROM_WIN32(ERROR_TIMEOUT);
+                    admitted      = false;
+                }
             }
-        }
 #endif
-        if (! discard && admitted)
-        {
-            bool stopRequested{};
+            if (! discard && admitted)
+            {
+                bool stopRequested{};
+                {
+                    const std::scoped_lock lock(owner->mutex);
+                    stopRequested = owner->stopRequested;
+                }
+                if (stopRequested)
+                    result.status = HRESULT_FROM_WIN32(ERROR_OPERATION_ABORTED);
+                else
+                {
+                    const auto initialized = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+                    const wil::unique_call<decltype(&CoUninitialize), CoUninitialize> apartment(SUCCEEDED(initialized));
+                    result.status = FAILED(initialized) ? initialized : CreateBitmapAsset(owner->directory, job->dib, job->v5, result.asset);
+                }
+            }
+            // Release the borrowed-input copy and codec apartment before advertising
+            // idle or allowing another paste. No callback tail retains bitmap bytes.
+            job.reset();
             {
                 const std::scoped_lock lock(owner->mutex);
-                stopRequested = owner->stopRequested;
+                if (! discard && ! owner->stopRequested)
+                {
+                    owner->result = std::move(result);
+                    owner->hasResult.store(true, std::memory_order_release);
+                    owner->phase = Phase::Ready;
+                    owner->Notify();
+                    return;
+                }
             }
-            if (stopRequested)
-                result.status = HRESULT_FROM_WIN32(ERROR_OPERATION_ABORTED);
-            else
-            {
-                const auto initialized = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
-                const wil::unique_call<decltype(&CoUninitialize), CoUninitialize> apartment(SUCCEEDED(initialized));
-                result.status = FAILED(initialized) ? initialized : CreateBitmapAsset(owner->directory, job->dib, job->v5, result.asset);
-            }
-        }
-        // Release the borrowed-input copy and codec apartment before advertising
-        // idle or allowing another paste. No callback tail retains bitmap bytes.
-        job.reset();
-        {
+            const auto retired = RetireBitmapAsset(result.asset);
+            if (FAILED(retired))
+                OutputDebugStringW(L"RedTilde: retained a clipboard asset whose cleanup could not be verified.\n");
             const std::scoped_lock lock(owner->mutex);
-            if (! discard && ! owner->stopRequested)
-            {
-                owner->result = std::move(result);
-                owner->hasResult.store(true, std::memory_order_release);
-                owner->phase = Phase::Ready;
-                owner->Notify();
-                return;
-            }
+            owner->phase = owner->stopRequested ? Phase::Stopped : Phase::Idle;
+            owner->Notify();
         }
-        const auto retired = RetireBitmapAsset(result.asset);
-        if (FAILED(retired))
-            OutputDebugStringW(L"RedTilde: retained a clipboard asset whose cleanup could not be verified.\n");
-        const std::scoped_lock lock(owner->mutex);
-        owner->phase = owner->stopRequested ? Phase::Stopped : Phase::Idle;
-        owner->Notify();
+        catch (const std::bad_alloc&)
+        {
+            DxUi::Failure::FailAllocation();
+        }
+        catch (const std::exception&)
+        {
+            DxUi::Failure::FailUnexpected();
+        }
     }
     static HRESULT Launch(std::unique_ptr<Job> job) noexcept
     {
@@ -186,6 +201,7 @@ public:
         next->directory = std::move(directory);
         next->window    = window;
         next->message   = message;
+        next->retireJob = std::make_unique<Job>();
         _state          = std::move(next);
         return S_OK;
     }
@@ -193,13 +209,18 @@ public:
     {
         if (! _state || dib.empty() || dib.size() > MaximumClipboardDibBytes)
             return E_INVALIDARG;
-        const std::scoped_lock lock(_state->mutex);
-        if (_state->stopRequested || _state->phase != Phase::Idle)
-            return HRESULT_FROM_WIN32(ERROR_BUSY);
+        {
+            const std::scoped_lock lock(_state->mutex);
+            if (_state->stopRequested || _state->phase != Phase::Idle)
+                return HRESULT_FROM_WIN32(ERROR_BUSY);
+        }
         auto job   = std::make_unique<Job>();
         job->state = _state;
         job->dib.assign(dib.begin(), dib.end());
         job->v5 = v5;
+        const std::scoped_lock lock(_state->mutex);
+        if (_state->stopRequested || _state->phase != Phase::Idle)
+            return HRESULT_FROM_WIN32(ERROR_BUSY);
 #if defined(REDTILDE_ENABLE_TESTS)
         job->testGate = _state->testGate;
 #endif
@@ -282,53 +303,45 @@ public:
         }
         return Launch(std::move(job));
     }
-    void Stop()
+    void Stop() noexcept
     {
         if (! _state)
             return;
         std::unique_ptr<Job> retireJob;
-        if (HasResult())
-            retireJob = std::make_unique<Job>();
-        for (;;)
         {
-            bool launchRetire{};
-            bool needAllocate{};
+            const std::scoped_lock lock(_state->mutex);
+            _state->stopRequested = true;
+            if (_state->phase == Phase::Idle)
+                _state->phase = Phase::Stopped;
+            else if (_state->phase == Phase::Ready && _state->result)
             {
-                const std::scoped_lock lock(_state->mutex);
-                _state->stopRequested = true;
-                if (_state->phase == Phase::Idle)
-                    _state->phase = Phase::Stopped;
-                else if (_state->phase == Phase::Ready && _state->result)
+                if (_state->result.value().asset.path.empty())
                 {
-                    if (_state->result.value().asset.path.empty())
-                    {
-                        _state->result.reset();
-                        _state->hasResult.store(false, std::memory_order_release);
-                        _state->phase = Phase::Stopped;
-                    }
-                    else if (! retireJob)
-                        needAllocate = true;
-                    else
-                    {
-                        retireJob->state   = _state;
-                        retireJob->discard = true;
-                        retireJob->result  = std::move(_state->result.value());
-                        _state->result.reset();
-                        _state->hasResult.store(false, std::memory_order_release);
-                        _state->phase = Phase::Retiring;
-                        launchRetire  = true;
-                    }
+                    _state->result.reset();
+                    _state->hasResult.store(false, std::memory_order_release);
+                    _state->phase = Phase::Stopped;
+                }
+                else if (_state->retireJob)
+                {
+                    retireJob          = std::move(_state->retireJob);
+                    retireJob->state   = _state;
+                    retireJob->discard = true;
+                    retireJob->result  = std::move(_state->result.value());
+                    _state->result.reset();
+                    _state->hasResult.store(false, std::memory_order_release);
+                    _state->phase = Phase::Retiring;
+                }
+                else
+                {
+                    OutputDebugStringW(L"RedTilde: retained a clipboard asset because retirement job storage was already consumed.\n");
+                    _state->result.reset();
+                    _state->hasResult.store(false, std::memory_order_release);
+                    _state->phase = Phase::Stopped;
                 }
             }
-            if (needAllocate)
-            {
-                retireJob = std::make_unique<Job>();
-                continue;
-            }
-            if (launchRetire)
-                (void)Launch(std::move(retireJob));
-            return;
         }
+        if (retireJob)
+            (void)Launch(std::move(retireJob));
     }
     void Detach() noexcept
     {
@@ -346,4 +359,6 @@ public:
         return _state->phase == Phase::Encoding || _state->phase == Phase::Leased || _state->phase == Phase::Retiring;
     }
 };
+
+inline BitmapPasteWriter::State::~State() = default;
 } // namespace RedTilde

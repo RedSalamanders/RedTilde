@@ -2,6 +2,7 @@
 #include "Common/Settings.h"
 #include "Common/Storage.h"
 #include "RedTilde/Application.h"
+#include "Support/Support.Tests.Foreground.h"
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
@@ -171,6 +172,11 @@ void RegisterSettingsTests(const std::filesystem::path& root, const std::functio
         const auto oversizedDir = root / L"cold-oversized";
         std::filesystem::create_directories(oversizedDir);
         const auto oversizedPath = SettingsPath(oversizedDir, false);
+        const auto removeLarge   = wil::scope_exit([&]
+        {
+            std::error_code cleanupError;
+            std::filesystem::remove(oversizedPath, cleanupError);
+        });
         {
             std::ofstream stream(oversizedPath, std::ios::binary | std::ios::trunc);
             Require(static_cast<bool>(stream), "create oversized settings fixture");
@@ -193,6 +199,7 @@ void RegisterSettingsTests(const std::filesystem::path& root, const std::functio
     test("Settings.LiveReloadAndMalformedRecovery",
          [&]
     {
+        Testing::ForegroundOwnershipObserver foreground;
         const auto directory = root / L"live-reload-app";
         Settings initial;
         initial.appearance   = Appearance::System;
@@ -209,10 +216,14 @@ void RegisterSettingsTests(const std::filesystem::path& root, const std::functio
         Success(app.Initialize(), "initialize headless Application with SettingsWatcher active");
         Require(SettingsProbe::WatcherActive(app), "SettingsWatcher starts when watchSettingsForTest is enabled");
 
-        // Own save via SettingsWriter must persist to disk without failing or resetting state.
+        // Own save via SettingsWriter must persist to disk and suppress its own watcher stamp past coalesce window.
         app.Execute(Command::ThemeDark);
         Require(PumpMessagesUntil(3000u, [&] { return ! SettingsProbe::PreferencesBusy(app); }), "own preference save completes asynchronously");
-        Require(SettingsProbe::CurrentSettings(app).appearance == Appearance::Dark, "own preference state remains Dark after self-save");
+        std::string selfSavedBytes;
+        Success(ReadBytes(SettingsPath(directory), selfSavedBytes), "read settings after self-save");
+        Require(selfSavedBytes.find("\"appearance\": \"dark\"") != std::string::npos, "self-save persists Dark appearance on disk");
+        (void)PumpMessagesUntil(450u, [] { return false; });
+        Require(SettingsProbe::CurrentSettings(app).appearance == Appearance::Dark, "own preference state remains Dark after self-save watcher settles");
 
         // External valid JSON5 edit with comments and unknown keys applies live fields without rewriting disk.
         constexpr std::string_view externalValid = "{\n"
@@ -248,7 +259,12 @@ void RegisterSettingsTests(const std::filesystem::path& root, const std::functio
         // Malformed live edit preserves last-good settings and leaves malformed disk bytes untouched.
         constexpr std::string_view malformedLive = "{ \"schema\": 1, \"appearance\": \"light\", broken ";
         Success(WriteBytesAtomic(SettingsPath(directory), malformedLive), "write malformed JSON5 live edit");
-        (void)PumpMessagesUntil(700u, [] { return false; });
+        (void)PumpMessagesUntil(450u,
+                                [&]
+        {
+            const auto& current = SettingsProbe::CurrentSettings(app);
+            return current.appearance != Appearance::Paper || current.readingWidth != 920u || current.textScale != 130u;
+        });
         {
             const auto& current = SettingsProbe::CurrentSettings(app);
             Require(current.appearance == Appearance::Paper && current.readingWidth == 920u && current.textScale == 130u,
@@ -272,11 +288,13 @@ void RegisterSettingsTests(const std::filesystem::path& root, const std::functio
             return current.appearance == Appearance::Light && current.readingWidth == 640u;
         }),
                 "valid live edit after malformed edit applies cleanly");
+        Require(foreground.NeverAcquiredForeground(), "live settings reload checks preserve desktop foreground");
     });
 
     test("Settings.WatcherRapidBurstCoalescing",
          [&]
     {
+        Testing::ForegroundOwnershipObserver foreground;
         const auto directory = root / L"watcher-burst";
         Settings initial;
         Success(SaveSettings(directory, initial), "seed initial burst settings");
@@ -298,13 +316,115 @@ void RegisterSettingsTests(const std::filesystem::path& root, const std::functio
             std::this_thread::sleep_for(std::chrono::milliseconds(5));
         }
 
+        unsigned observedTransitions{};
+        unsigned lastWidth        = initial.readingWidth;
+        Appearance lastAppearance = initial.appearance;
         Require(PumpMessagesUntil(4000u,
                                   [&]
         {
             const auto& current = SettingsProbe::CurrentSettings(app);
+            if (current.readingWidth != lastWidth || current.appearance != lastAppearance)
+            {
+                ++observedTransitions;
+                lastWidth      = current.readingWidth;
+                lastAppearance = current.appearance;
+            }
             return current.appearance == Appearance::Dark && current.readingWidth == 920u;
         }),
                 "coalesced SettingsWatcher converges cleanly to the final burst state");
+        Require(observedTransitions < 10u && foreground.NeverAcquiredForeground(),
+                "rapid burst coalesces intermediate writes cleanly without acquiring foreground");
+    });
+
+    test("Settings.RejectsJson5NanAndInfinityWithoutTruncatingFile",
+         [&]
+    {
+        for (const auto* invalidLiteral : {R"({"schema": 1, "extra": NaN})", R"({"schema": 1, "extra": Infinity})", R"({"schema": 1, "extra": -Infinity})"})
+        {
+            Settings parsed;
+            parsed.appearance = Appearance::Light;
+            Require(TryParseSettings(invalidLiteral, parsed) == HRESULT_FROM_WIN32(ERROR_BAD_FORMAT) && parsed.appearance == Appearance::Light,
+                    "JSON5 NaN and Infinity literals are rejected cleanly without mutating caller settings");
+        }
+
+        const auto directory = root / L"nan-no-truncate";
+        std::filesystem::create_directories(directory);
+        constexpr std::string_view seededWithNan = "{\n  \"schema\": 1,\n  \"appearance\": \"dark\",\n  \"extra\": NaN\n}\n";
+        Success(WriteBytesAtomic(SettingsPath(directory), seededWithNan), "seed settings containing unsupported NaN literal");
+
+        Settings toSave;
+        toSave.appearance    = Appearance::Paper;
+        const HRESULT saveHr = SaveSettings(directory, toSave);
+        std::string diskAfter;
+        Success(ReadBytes(SettingsPath(directory), diskAfter), "disk file remains readable after SaveSettings");
+        Require(! diskAfter.empty() && (FAILED(saveHr) || diskAfter.find("\"appearance\": \"paper\"") != std::string::npos),
+                "SaveSettings never truncates existing settings file to 0 bytes on non-finite preserved input");
+    });
+
+    test("Settings.SavesAndLoadsBetweenDocumentCapAndSixteenMiB",
+         [&]
+    {
+        const auto directory = root / L"settings-512k";
+        std::filesystem::create_directories(directory);
+        const auto cleanup  = wil::scope_exit([&]
+        {
+            std::error_code ec;
+            std::filesystem::remove_all(directory, ec);
+        });
+        std::string payload = "{\n  \"schema\": 1,\n  \"appearance\": \"dark\",\n  \"readingWidth\": 840,\n  \"blob\": \"";
+        payload.append(512u * 1024u, 'x');
+        payload += "\"\n}\n";
+        const auto settingsPath = SettingsPath(directory, false);
+        Success(WriteBytesAtomic(settingsPath, payload, nullptr, nullptr, true, nullptr, false, nullptr, 16u * 1024u * 1024u),
+                "write >266 KiB valid settings fixture");
+
+        const auto cold = LoadSettingsCold(directory, false);
+        Require(cold.status == SettingsLoadStatus::Loaded && cold.settings.appearance == Appearance::Dark && cold.settings.readingWidth == 840u,
+                "cold load reads valid settings above the 266 KiB document cap");
+
+        Settings updated  = cold.settings;
+        updated.textScale = 125u;
+        Success(SaveSettings(directory, updated, false), "SaveSettings updates >266 KiB settings cleanly within the 16 MiB budget");
+
+        Settings live;
+        Success(LoadSettingsLive(directory, live, nullptr, false), "live load reads merged >266 KiB settings cleanly");
+        Require(live.textScale == 125u && live.readingWidth == 840u && std::filesystem::file_size(settingsPath) > 500u * 1024u,
+                "updated >266 KiB settings preserve large unknown fields cleanly");
+    });
+
+    test("Settings.LegacyCrLfMigrationAndNoOpSavePreservesFile",
+         [&]
+    {
+        const auto migrateDir = root / L"cold-migrate-crlf";
+        std::filesystem::create_directories(migrateDir);
+        constexpr std::string_view crlfLegacy = "RedTilde.Settings/1\r\n"
+                                                "theme=2\r\n"
+                                                "view=1\r\n"
+                                                "scale=115\r\n"
+                                                "readingWidth=720\r\n"
+                                                "lastDocument=C:\\Notes\\CRLF Note.md\r\n";
+        Success(WriteBytesAtomic(migrateDir / L"RedTilde.settings", crlfLegacy), "seed CRLF legacy settings file");
+        const auto migrated = LoadSettingsCold(migrateDir, false);
+        Require(migrated.status == SettingsLoadStatus::Migrated && migrated.settings.appearance == Appearance::Dark &&
+                    migrated.settings.view == EditorView::Source && migrated.settings.textScale == 115u && migrated.settings.readingWidth == 720u &&
+                    migrated.settings.lastDocument == L"C:\\Notes\\CRLF Note.md",
+                "CRLF legacy settings migrate without trailing \\r corruption");
+
+        const auto noopDir = root / L"noop-save-comments";
+        std::filesystem::create_directories(noopDir);
+        constexpr std::string_view commented = "{\n"
+                                               "  // User comment kept on no-op save\n"
+                                               "  \"schema\": 1,\n"
+                                               "  \"appearance\": \"dark\",\n"
+                                               "  \"readingWidth\": 760\n"
+                                               "}\n";
+        Success(WriteBytesAtomic(SettingsPath(noopDir, false), commented), "seed commented JSON5 settings");
+        const auto loaded = LoadSettingsCold(noopDir, false);
+        Require(loaded.status == SettingsLoadStatus::Loaded, "load commented JSON5 settings");
+        Success(SaveSettings(noopDir, loaded.settings, false), "no-op SaveSettings succeeds cleanly");
+        std::string diskAfter;
+        Success(ReadBytes(SettingsPath(noopDir, false), diskAfter), "read commented settings after no-op SaveSettings");
+        Require(diskAfter == commented, "no-op SaveSettings skips rewrite and preserves existing user JSON5 comments");
     });
 }
 } // namespace RedTilde

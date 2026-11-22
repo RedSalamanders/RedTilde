@@ -9,19 +9,23 @@ $ast=[Management.Automation.Language.Parser]::ParseFile($file,[ref]$tokens,[ref]
 if($errors.Count){throw 'Runtime command syntax is invalid.'}
 $open=@($ast.FindAll({param($n)$n -is [Management.Automation.Language.CommandAst] -and $n.GetCommandName() -ceq 'Open-CiLocalSdkApplicationRuntimeInput'},$true))
 if($open.Count -ne 1){throw 'Expected one shared runtime admission.'}
-function Get-RedTildeMSBuild {'C:/synthetic-not-launched/MSBuild.exe'}
-function Open-CiLocalSdkApplicationRuntimeInput {
-    param($ProjectRoot,$BuildReceipt,$ExpectedBuildSha256,$MSBuildPath)
-    $script:received=$PSBoundParameters
-    [pscustomobject]@{sentinel='original admission'}
+$received=$null;$routingResult=$null
+& {
+    function Get-RedTildeMSBuild {'C:/synthetic-not-launched/MSBuild.exe'}
+    function Open-CiLocalSdkApplicationRuntimeInput {
+        param($ProjectRoot,$BuildReceipt,$ExpectedBuildSha256,$MSBuildPath)
+        $script:received=$PSBoundParameters
+        [pscustomobject]@{sentinel='original admission'}
+    }
+    $LocalSdkBuildReceipt='C:/synthetic-not-read/build.json';$LocalSdkBuildSha256='a'*64
+    $fixture=Join-Path $root ('.build/local-sdk-runtime-routing/'+[guid]::NewGuid().ToString('N'))
+    [void][IO.Directory]::CreateDirectory($fixture)
+    $scriptFile=Join-Path $fixture 'actual-routing.ps1'
+    [IO.File]::WriteAllText($scriptFile,('$script:routingResult='+$open[0].Extent.Text))
+    . $scriptFile
+    if($script:received.ProjectRoot -cne $fixture -or $script:received.BuildReceipt -cne $LocalSdkBuildReceipt -or $script:received.ExpectedBuildSha256 -cne $LocalSdkBuildSha256 -or $script:routingResult.sentinel -cne 'original admission'){throw 'Actual runtime routing changed root/record/digest or result.'}
 }
 $LocalSdkBuildReceipt='C:/synthetic-not-read/build.json';$LocalSdkBuildSha256='a'*64
-$fixture=Join-Path $root ('.build/local-sdk-runtime-routing/'+[guid]::NewGuid().ToString('N'))
-[void][IO.Directory]::CreateDirectory($fixture)
-$scriptFile=Join-Path $fixture 'actual-routing.ps1'
-[IO.File]::WriteAllText($scriptFile,('$script:routingResult='+$open[0].Extent.Text))
-. $scriptFile
-if($received.ProjectRoot -cne $fixture -or $received.BuildReceipt -cne $LocalSdkBuildReceipt -or $received.ExpectedBuildSha256 -cne $LocalSdkBuildSha256 -or $routingResult.sentinel -cne 'original admission'){throw 'Actual runtime routing changed root/record/digest or result.'}
 $saved=[Environment]::GetEnvironmentVariable('CI_NATIVE_BUILDS_DISABLED','Process')
 try{
     $env:CI_NATIVE_BUILDS_DISABLED='true';$refused=$false
@@ -47,5 +51,15 @@ function Enter-ScopedIterationLease {throw 'Local SDK touched ordinary iteration
 function Suspend-ScopedIteration {throw 'Local SDK invalidated ordinary iteration.'}
 $localSdkMode=$true
 . ([scriptblock]::Create($baselineGuards[0].Extent.Text))
+$normGuards=@($ast.FindAll({param($n)$n -is [Management.Automation.Language.IfStatementAst] -and $n.Extent.Text.Contains("-split ','")},$true))
+if($normGuards.Count -ne 1){throw 'Expected one suite normalization block before Local SDK scope guard.'}
+foreach($suiteArg in @(@('Storage,Settings'),@('  Storage , , Settings  '))){
+    $localSdkMode=$true;$Configuration='Release';$SkipBuild=$true;$Full=$false;$Suites=$suiteArg
+    . ([scriptblock]::Create($normGuards[0].Extent.Text+"`n"+$guards[0].Extent.Text))
+    if(($Suites -join ',') -cne 'Settings,Storage'){throw 'Comma-separated Local SDK suites did not normalize cleanly.'}
+}
+$refused=$false;$localSdkMode=$true;$Configuration='Release';$SkipBuild=$true;$Full=$false;$Suites=@('Storage,Tooling')
+try{. ([scriptblock]::Create($normGuards[0].Extent.Text+"`n"+$guards[0].Extent.Text))}catch{if($_.Exception.Message -notmatch 'requires the original build record/digest'){throw};$refused=$true}
+if(-not $refused){throw 'Comma-separated unsupported Local SDK scope was admitted.'}
 Write-Host 'PASS actual runtime routing, hosted/scope refusal and untouched ordinary iteration; no native execution.'
 $global:LASTEXITCODE=0

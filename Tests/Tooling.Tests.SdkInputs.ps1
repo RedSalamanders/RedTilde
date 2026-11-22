@@ -14,11 +14,18 @@ param([Parameter(ValueFromRemainingArguments)]$Arguments)
 Get-Content -LiteralPath (Join-Path $PSScriptRoot 'properties.json') -Raw
 $global:LASTEXITCODE=0
 '@)
+$vcpkgDir=Join-Path $run 'vcpkg_installed/x64';$tripletDir=Join-Path $vcpkgDir 'x64-windows-static-md'
+[void][IO.Directory]::CreateDirectory((Join-Path $tripletDir 'include'))
+[void][IO.Directory]::CreateDirectory((Join-Path $tripletDir 'lib'))
+$yyjsonHeader=Join-Path $tripletDir 'include/yyjson.h';$yyjsonLib=Join-Path $tripletDir 'lib/yyjson.lib'
+[IO.File]::WriteAllText($yyjsonHeader,'/* synthetic yyjson v1 */')
+[IO.File]::WriteAllText($yyjsonLib,'lib-v1')
 $properties=[ordered]@{OutDir=(Join-Path $root '.build/x64/Release');IntDir=(Join-Path $root '.build/obj/x64/Release/RedTilde');
     PlatformToolset='v145';VCToolsInstallDir=(Join-Path $run 'msvc');VCToolsVersion='14.52.37025';WindowsSdkDir=(Join-Path $run 'windows');
     WindowsTargetPlatformVersion='10.0.26100.0';PreferredToolArchitecture='x64';VCToolArchitecture='Native64Bit';WindowsSDKToolArchitecture='Native64Bit';
     CLToolPath='';CLToolExe='';LinkToolPath='';LinkToolExe='';ResourceCompileToolPath='';ResourceCompileToolExe='';
-    DxUiRoot='';DxUiSdkRoot=$sdkRoot;CiSdkContract='QualifiedAbiV2'}
+    DxUiRoot='';DxUiSdkRoot=$sdkRoot;CiSdkContract='QualifiedAbiV2';
+    RedTildeVcpkgTriplet='x64-windows-static-md';VcpkgInstalledDir=$vcpkgDir}
 $reader=@{Closed=$false;SdkRoot=$sdkRoot;LeasePath=(Join-Path $run 'lease.json');Descriptor=@{Hash=('a'*64)};
     Evidence=[ordered]@{recipe='PinnedQualifiedReleaseSdkV2';inputKey=('b'*64);manifestSha256=('c'*64);toolchainReference=('d'*64)}}
 function Put([Collections.IDictionary]$Value){[IO.File]::WriteAllText((Join-Path $run 'properties.json'),(@{Properties=$Value}|ConvertTo-Json))}
@@ -26,7 +33,10 @@ function Snapshot {Get-RedTildeBuildInputSnapshot -Root $root -Platform x64 -Con
 function Refuses([scriptblock]$Body,[string]$Message){$failed=$false;try{& $Body|Out-Null}catch{$failed=$true};if(-not $failed){throw $Message}}
 Put $properties
 $first=Snapshot;$same=Snapshot
-if($first.identity -cne $same.identity -or $first.dependencyHeadersSha256 -cne $reader.Evidence.manifestSha256){throw 'Identical authenticated-input references did not produce equal conservative snapshots.'}
+if($first.identity -cne $same.identity -or $first.dependencyHeadersSha256 -cne $reader.Evidence.manifestSha256 -or -not $first.vcpkgSha256){throw 'Identical authenticated-input references did not produce equal conservative snapshots.'}
+[IO.File]::WriteAllText($yyjsonHeader,'/* synthetic yyjson v2 */')
+if((Snapshot).identity -ceq $first.identity){throw 'Changed yyjson header reused the prior SDK snapshot.'}
+[IO.File]::WriteAllText($yyjsonHeader,'/* synthetic yyjson v1 */')
 $changed=$properties|ConvertTo-Json|ConvertFrom-Json -AsHashtable;$changed.VCToolsVersion='14.52.99999';Put $changed
 if((Snapshot).identity -ceq $first.identity){throw 'Changed actual compiler metadata reused the prior snapshot.'}
 foreach($field in @('OutDir','IntDir','DxUiRoot','DxUiSdkRoot','CiSdkContract')){
