@@ -11,6 +11,8 @@ owner, and a `git show` recovery command.
 
 - **ACTIVE**: [Version 1.0 release readiness](V1ReleaseReadiness_2026-11-21.md) — sequenced execution plan covering the seven remaining release gates (settings convergence, ARM64 runtime, physical printing, IME/AT/interactive focus, live OneDrive/SMB/WSL storage, quiet-host performance/GPU, and v1.0.0 release cut).
 
+- **ACTIVE**: [Dictionary and spell checking](DictionaryAndSpellChecking_2026-11-21.md) — implementation specification for RedTilde dictionary and spell-checking support using the selected pluggable `ISpellProvider` hybrid architecture (Windows native primary, portable `CUSTOM.DIC` custom dictionary, optional deferred Hunspell fallback), phased slices `S1`–`S4`, planned upstream DxUi simplifications (`DX-SPELL-1`–`DX-SPELL-6`), and reference annexes.
+
 The owner's 7 November delivery scope requires x64 runtime tests and ARM64 compilation in Debug, Release and
 ASan Debug. ARM64 runtime is explicitly set aside; the normal production release gate is unchanged.
 
