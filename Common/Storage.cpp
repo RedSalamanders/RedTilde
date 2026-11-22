@@ -52,6 +52,49 @@ FileStamp Stamp(const BY_HANDLE_FILE_INFORMATION& info, std::uint64_t hash) noex
             info.dwVolumeSerialNumber,
             (static_cast<std::uint64_t>(info.nFileIndexHigh) << 32u) | info.nFileIndexLow};
 }
+std::uint64_t VolumeRootFingerprint(HANDLE file) noexcept
+{
+    wchar_t buffer[1024]{};
+    const DWORD length = GetFinalPathNameByHandleW(file, buffer, static_cast<DWORD>(std::size(buffer)), FILE_NAME_NORMALIZED | VOLUME_NAME_DOS);
+    if (length == 0u || length >= std::size(buffer))
+        return 0u;
+    const std::wstring_view path(buffer, length);
+    std::wstring_view prefix;
+    std::size_t lowerLimit{};
+    if (path.starts_with(L"\\\\?\\UNC\\"))
+    {
+        const std::size_t serverEnd = path.find(L'\\', 8u);
+        if (serverEnd == path.npos || serverEnd <= 8u || serverEnd + 1u >= path.size())
+            return 0u;
+        std::size_t shareEnd = path.find(L'\\', serverEnd + 1u);
+        if (shareEnd == path.npos)
+            shareEnd = path.size();
+        if (shareEnd <= serverEnd + 1u)
+            return 0u;
+        prefix     = path.substr(0u, shareEnd);
+        lowerLimit = serverEnd;
+    }
+    else if (path.starts_with(L"\\\\?\\") && path.size() >= 6u && path[5u] == L':')
+    {
+        prefix     = path.substr(0u, 6u);
+        lowerLimit = 5u;
+    }
+    else
+        return 0u;
+    std::uint64_t hash = 14695981039346656037ull;
+    for (std::size_t index = 0u; index < prefix.size(); ++index)
+    {
+        wchar_t ch = prefix[index];
+        if (index < lowerLimit && ch >= L'A' && ch <= L'Z')
+            ch = static_cast<wchar_t>(ch + (L'a' - L'A'));
+        const auto unit = static_cast<std::uint16_t>(ch);
+        hash ^= static_cast<unsigned char>(unit & 0xFFu);
+        hash *= 1099511628211ull;
+        hash ^= static_cast<unsigned char>((unit >> 8u) & 0xFFu);
+        hash *= 1099511628211ull;
+    }
+    return hash ? hash : 1ull;
+}
 HRESULT CompleteIdentity(HANDLE file, FileStamp& stamp) noexcept
 {
     FILE_ID_INFO info{};
@@ -64,9 +107,14 @@ HRESULT CompleteIdentity(HANDLE file, FileStamp& stamp) noexcept
     }
     const auto error = GetLastError();
     // Older remote providers can expose only BY_HANDLE_FILE_INFORMATION's
-    // legacy identity. Preserve that capability without masking other failures.
+    // legacy identity. Preserve that capability without masking other failures,
+    // and bind a normalized volume/share root fingerprint when dwVolumeSerialNumber is zero (such as WSL 2 9P).
     if (error == ERROR_INVALID_PARAMETER || error == ERROR_NOT_SUPPORTED || error == ERROR_INVALID_FUNCTION)
+    {
+        if (stamp.volume == 0u && (stamp.fileIndex || stamp.fileIndexHigh))
+            stamp.volume = VolumeRootFingerprint(file);
         return S_OK;
+    }
     return HRESULT_FROM_WIN32(error);
 }
 bool HasIdentity(const FileStamp& stamp) noexcept
@@ -563,13 +611,29 @@ try
         {
             const auto error       = GetLastError();
             const bool unsupported = error == ERROR_NOT_SUPPORTED || error == ERROR_INVALID_FUNCTION || error == ERROR_CALL_NOT_IMPLEMENTED;
-            if (unsupportedReplacement)
-                *unsupportedReplacement = unsupported;
+            if (unsupported)
+            {
+                // Providers without ReplaceFileW (such as WSL 2 9P) still support single-link atomic replacement via MoveFileExW.
+                if (! MoveFileExW(temporary.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+                {
+                    const auto moveError = GetLastError();
+                    const bool moveUnsupported =
+                        moveError == ERROR_NOT_SUPPORTED || moveError == ERROR_INVALID_FUNCTION || moveError == ERROR_CALL_NOT_IMPLEMENTED;
+                    if (unsupportedReplacement)
+                        *unsupportedReplacement = moveUnsupported;
 #ifdef REDTILDE_ENABLE_TESTS
-            if (unsupported && atomicWriteHook)
-                atomicWriteHook(AtomicWriteCheckpoint::ReplacementUnsupported, path, atomicWriteContext);
+                    if (moveUnsupported && atomicWriteHook)
+                        atomicWriteHook(AtomicWriteCheckpoint::ReplacementUnsupported, path, atomicWriteContext);
 #endif
-            return HRESULT_FROM_WIN32(error);
+                    return HRESULT_FROM_WIN32(moveError);
+                }
+            }
+            else
+            {
+                if (unsupportedReplacement)
+                    *unsupportedReplacement = false;
+                return HRESULT_FROM_WIN32(error);
+            }
         }
     }
     else if (! MoveFileExW(temporary.c_str(), path.c_str(), MOVEFILE_WRITE_THROUGH))

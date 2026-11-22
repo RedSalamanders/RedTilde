@@ -382,7 +382,8 @@ function Remove-RedTildeDirectoryNoReparse {
     if ($null -eq $attrs) {
         return
     }
-    if (($attrs -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+    $item = Get-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+    if ($null -eq $item) {
         if (($attrs -band [IO.FileAttributes]::Directory) -ne 0) {
             [IO.Directory]::Delete($Path, $false)
         } else {
@@ -390,7 +391,14 @@ function Remove-RedTildeDirectoryNoReparse {
         }
         return
     }
-    $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
+    if (Test-RedTildeSurrogateLinkItem -Item $item) {
+        if ($item.PSIsContainer) {
+            [IO.Directory]::Delete($Path, $false)
+        } else {
+            [IO.File]::Delete($Path)
+        }
+        return
+    }
     if (-not $item.PSIsContainer) {
         if ((($attrs -band [IO.FileAttributes]::ReadOnly) -ne 0)) {
             [IO.File]::SetAttributes($Path, ($attrs -band (-bnot [IO.FileAttributes]::ReadOnly)))
@@ -400,7 +408,7 @@ function Remove-RedTildeDirectoryNoReparse {
     }
 
     foreach ($child in @(Get-ChildItem -LiteralPath $Path -Force -ErrorAction Stop)) {
-        if ((($child.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0)) {
+        if (Test-RedTildeSurrogateLinkItem -Item $child) {
             if ($child.PSIsContainer) {
                 [IO.Directory]::Delete($child.FullName, $false)
             } else {
@@ -428,6 +436,7 @@ function Initialize-RedTildeRealLocationProbeNative {
     Add-Type -TypeDefinition @'
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace RedTildeRealLocationProbe {
     [StructLayout(LayoutKind.Sequential)]
@@ -490,6 +499,56 @@ namespace RedTildeRealLocationProbe {
         [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool CreateSymbolicLinkW(string lpSymlinkFileName, string lpTargetFileName, uint dwFlags);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SetFileAttributesW(string lpFileName, uint dwFileAttributes);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern uint GetFileAttributesW(string lpFileName);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GetVolumeInformationByHandleW(
+            IntPtr hFile,
+            StringBuilder lpVolumeNameBuffer,
+            int nVolumeNameSize,
+            out uint lpVolumeSerialNumber,
+            out uint lpMaximumComponentLength,
+            out uint lpFileSystemFlags,
+            StringBuilder lpFileSystemNameBuffer,
+            int nFileSystemNameSize);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool ReadDirectoryChangesW(
+            IntPtr hDirectory,
+            byte[] lpBuffer,
+            uint nBufferLength,
+            [MarshalAs(UnmanagedType.Bool)] bool bWatchSubtree,
+            uint dwNotifyFilter,
+            out uint lpBytesReturned,
+            IntPtr lpOverlapped,
+            IntPtr lpCompletionRoutine);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern IntPtr CreateEventW(
+            IntPtr lpEventAttributes,
+            [MarshalAs(UnmanagedType.Bool)] bool bManualReset,
+            [MarshalAs(UnmanagedType.Bool)] bool bInitialState,
+            IntPtr lpName);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool CancelIoEx(IntPtr hFile, IntPtr lpOverlapped);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GetOverlappedResult(
+            IntPtr hFile,
+            IntPtr lpOverlapped,
+            out uint lpNumberOfBytesTransferred,
+            [MarshalAs(UnmanagedType.Bool)] bool bWait);
     }
 }
 '@
@@ -518,6 +577,11 @@ function Get-RedTildeLocationCapabilities {
     $symlinkCreateSupported = $false
     $symlinkWin32Error = 0
     $junctionCreateSupported = $false
+    $fileSystemName = ''
+    $volumeSerialZero = $false
+    $hiddenAttributePreserved = $false
+    $readDirectoryChangesSupported = $false
+    $readDirectoryChangesWin32Error = 0
 
     try {
         $targetFile = Join-Path $probeDir 'target.txt'
@@ -531,6 +595,18 @@ function Get-RedTildeLocationCapabilities {
                     $fileIdInfoSupported = $true
                 } else {
                     $fileIdInfoWin32Error = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
+                }
+                $targetInfo = [RedTildeRealLocationProbe.BY_HANDLE_FILE_INFORMATION]::new()
+                if ([RedTildeRealLocationProbe.Native]::GetFileInformationByHandle($hTarget, [ref]$targetInfo)) {
+                    $volumeSerialZero = ($targetInfo.dwVolumeSerialNumber -eq 0)
+                }
+                $volNameBuf = [System.Text.StringBuilder]::new(256)
+                $fsNameBuf = [System.Text.StringBuilder]::new(256)
+                [uint32]$volSerial = 0
+                [uint32]$maxComp = 0
+                [uint32]$fsFlags = 0
+                if ([RedTildeRealLocationProbe.Native]::GetVolumeInformationByHandleW($hTarget, $volNameBuf, 256, [ref]$volSerial, [ref]$maxComp, [ref]$fsFlags, $fsNameBuf, 256)) {
+                    $fileSystemName = $fsNameBuf.ToString()
                 }
             } finally {
                 [void][RedTildeRealLocationProbe.Native]::CloseHandle($hTarget)
@@ -585,20 +661,71 @@ function Get-RedTildeLocationCapabilities {
         } catch {
             $junctionCreateSupported = $false
         }
+
+        $hidProbeDir = Join-Path $probeDir 'hid-probe'
+        [void][IO.Directory]::CreateDirectory($hidProbeDir)
+        if ([RedTildeRealLocationProbe.Native]::SetFileAttributesW($hidProbeDir, 2)) {
+            $hidAttrs = [RedTildeRealLocationProbe.Native]::GetFileAttributesW($hidProbeDir)
+            $hiddenAttributePreserved = ($hidAttrs -ne [uint32]::MaxValue) -and (($hidAttrs -band 2) -ne 0)
+        }
+
+        $watchDir = Join-Path $probeDir 'watch-probe'
+        [void][IO.Directory]::CreateDirectory($watchDir)
+        $hWatch = [RedTildeRealLocationProbe.Native]::CreateFileW($watchDir, 1, 7, [IntPtr]::Zero, 3, 0x42000000, [IntPtr]::Zero)
+        if ($hWatch -ne [IntPtr]::Zero -and $hWatch -ne $invalidHandle) {
+            $evWatch = [RedTildeRealLocationProbe.Native]::CreateEventW([IntPtr]::Zero, $true, $false, [IntPtr]::Zero)
+            $ovWatch = [Runtime.InteropServices.Marshal]::AllocHGlobal(64)
+            $rdcArmed = $false
+            try {
+                for ($i = 0; $i -lt 64; $i++) {
+                    [Runtime.InteropServices.Marshal]::WriteByte($ovWatch, $i, 0)
+                }
+                if ($evWatch -ne [IntPtr]::Zero -and $evWatch -ne $invalidHandle) {
+                    $evOffset = if ([IntPtr]::Size -eq 8) { 24 } else { 16 }
+                    [Runtime.InteropServices.Marshal]::WriteIntPtr($ovWatch, $evOffset, $evWatch)
+                }
+                $watchBuf = [byte[]]::new(4096)
+                [uint32]$watchBytes = 0
+                if ([RedTildeRealLocationProbe.Native]::ReadDirectoryChangesW($hWatch, $watchBuf, [uint32]$watchBuf.Length, $true, [uint32]0x13, [ref]$watchBytes, $ovWatch, [IntPtr]::Zero)) {
+                    $readDirectoryChangesSupported = $true
+                    $rdcArmed = $true
+                } else {
+                    $readDirectoryChangesWin32Error = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
+                }
+            } finally {
+                if ($rdcArmed) {
+                    [void][RedTildeRealLocationProbe.Native]::CancelIoEx($hWatch, $ovWatch)
+                    [uint32]$drained = 0
+                    [void][RedTildeRealLocationProbe.Native]::GetOverlappedResult($hWatch, $ovWatch, [ref]$drained, $true)
+                }
+                [void][RedTildeRealLocationProbe.Native]::CloseHandle($hWatch)
+                if ($evWatch -ne [IntPtr]::Zero -and $evWatch -ne $invalidHandle) {
+                    [void][RedTildeRealLocationProbe.Native]::CloseHandle($evWatch)
+                }
+                [Runtime.InteropServices.Marshal]::FreeHGlobal($ovWatch)
+            }
+        } else {
+            $readDirectoryChangesWin32Error = [Runtime.InteropServices.Marshal]::GetLastWin32Error()
+        }
     } finally {
         Remove-RedTildeDirectoryNoReparse -Path $probeDir
     }
 
     return [pscustomobject]@{
-        driveType                 = $driveType
-        fileIdInfoSupported       = $fileIdInfoSupported
-        fileIdInfoWin32Error      = $fileIdInfoWin32Error
-        hardlinkCreateSucceeded   = $hardlinkCreateSucceeded
-        hardlinkLinkCountReported = $hardlinkLinkCountReported
-        hardlinkSharesFileIndex   = $hardlinkSharesFileIndex
-        symlinkCreateSupported    = $symlinkCreateSupported
-        symlinkWin32Error         = $symlinkWin32Error
-        junctionCreateSupported   = $junctionCreateSupported
+        driveType                      = $driveType
+        fileIdInfoSupported            = $fileIdInfoSupported
+        fileIdInfoWin32Error           = $fileIdInfoWin32Error
+        hardlinkCreateSucceeded        = $hardlinkCreateSucceeded
+        hardlinkLinkCountReported      = $hardlinkLinkCountReported
+        hardlinkSharesFileIndex        = $hardlinkSharesFileIndex
+        symlinkCreateSupported         = $symlinkCreateSupported
+        symlinkWin32Error              = $symlinkWin32Error
+        junctionCreateSupported        = $junctionCreateSupported
+        fileSystemName                 = $fileSystemName
+        volumeSerialZero               = $volumeSerialZero
+        hiddenAttributePreserved       = $hiddenAttributePreserved
+        readDirectoryChangesSupported  = $readDirectoryChangesSupported
+        readDirectoryChangesWin32Error = $readDirectoryChangesWin32Error
     }
 }
 
@@ -616,6 +743,17 @@ function Split-RedTildeRealLocationFailures {
         'Storage.HardlinkSaveSuccessSurvivesBlockedRecoveryRetirement',
         'Storage.NewHardlinkDuringStagingSelectsProtectedInPlaceSave'
     )
+
+    $hiddenSupported = if ($Capabilities.PSObject.Properties['hiddenAttributePreserved']) {
+        [bool]$Capabilities.hiddenAttributePreserved
+    } else {
+        $true
+    }
+    $watchSupported = if ($Capabilities.PSObject.Properties['readDirectoryChangesSupported']) {
+        [bool]$Capabilities.readDirectoryChangesSupported
+    } else {
+        $true
+    }
 
     $unexpected = [Collections.Generic.List[object]]::new()
     $unsupported = [Collections.Generic.List[object]]::new()
@@ -639,6 +777,16 @@ function Split-RedTildeRealLocationFailures {
             $isUnsupported = $true
         } elseif ($name -ceq 'Files.ReparseLeavesNeverTraverse' -and
             -not [bool]$Capabilities.junctionCreateSupported) {
+            $isUnsupported = $true
+        } elseif (-not $hiddenSupported -and
+            $name -ceq 'Files.MarkdownTreeNaturalOrderAndFilter' -and
+            ($err -match 'only visible Markdown and populated ancestors remain')) {
+            $isUnsupported = $true
+        } elseif (-not $watchSupported -and (
+                ($name -ceq 'Files.AsyncRerootChangeNotificationsAndClose' -and ($err -match 'recursive notification is armed|watch')) -or
+                ($name -ceq 'Files.FailedWorkerRecoversOnNewValidRoot' -and ($err -match 'first root scan and watch succeed|watch')) -or
+                ($name -ceq 'Settings.LiveReloadAndMalformedRecovery' -and ($err -match 'live reload applies every live setting from disk|live reload|watcher')) -or
+                ($name -ceq 'Settings.WatcherRapidBurstCoalescing' -and ($err -match 'coalesced SettingsWatcher converges|watcher')))) {
             $isUnsupported = $true
         }
 
