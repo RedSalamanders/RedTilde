@@ -296,9 +296,11 @@ void CollapsedPaneRail::LayoutChildren()
     const auto bounds = GetBounds();
     if (_expandButton)
     {
-        const float left = bounds.left + 2.f;
-        const float top  = bounds.top + ExpandHandleTopInsetDip;
-        _expandButton->SetBounds(D2D1::RectF(left, top, std::max(left + 12.f, bounds.right - 2.f), top + ExpandHandleSizeDip));
+        // Keep a 4-DIP outer edge margin uncovered so edge hover trigger tests and edge reveal stay distinct from clicking the chevron.
+        const float left  = _side == PaneSide::Left ? bounds.left + 4.f : bounds.left + 2.f;
+        const float right = _side == PaneSide::Left ? bounds.right - 2.f : bounds.right - 4.f;
+        const float top   = bounds.top + ExpandHandleTopInsetDip;
+        _expandButton->SetBounds(D2D1::RectF(left, top, std::max(left + 12.f, right), top + ExpandHandleSizeDip));
     }
     SyncVisibleDots();
 }
@@ -424,6 +426,11 @@ void CollapsedPaneRail::HandlePointerMoveDip(DxUi::ControlHost& host, D2D1_POINT
 
     if (_state.mode == PaneDisplayMode::HoverOverlay)
     {
+        if (_state.phase == PaneAnimationPhase::Collapsing && _state.collapseFromOverlay)
+        {
+            StartExpand(host, true);
+            return;
+        }
         CancelLeaveGrace();
         return;
     }
@@ -431,14 +438,13 @@ void CollapsedPaneRail::HandlePointerMoveDip(DxUi::ControlHost& host, D2D1_POINT
     if (_state.mode != PaneDisplayMode::CollapsedRail)
         return;
 
-    if (ContainsDot(point))
+    if (! IsHoverRevealZone(point))
     {
         CancelHoverDwell();
         return;
     }
 
-    if (PointInRect(point, GetBounds()))
-        ArmHoverDwell(host);
+    ArmHoverDwell(host);
 }
 
 void CollapsedPaneRail::NotifyDotHovered(DxUi::ControlHost* /*host*/, bool hovered) noexcept
@@ -502,6 +508,25 @@ bool CollapsedPaneRail::ContainsDot(D2D1_POINT_2F point) const noexcept
         if (_dotPool[i] && _dotPool[i]->IsVisible() && PointInRect(point, _dotPool[i]->GetBounds()))
             return true;
     return false;
+}
+
+bool CollapsedPaneRail::ContainsExpandButton(D2D1_POINT_2F point) const noexcept
+{
+    return _expandButton && _expandButton->IsVisible() && PointInRect(point, _expandButton->GetBounds());
+}
+
+bool CollapsedPaneRail::IsHoverRevealZone(D2D1_POINT_2F point) const noexcept
+{
+    const auto bounds = GetBounds();
+    if (! IsVisible() || ! PointInRect(point, bounds) || ContainsExpandButton(point) || ContainsDot(point))
+        return false;
+    if (ContainsTriggerEdge(point))
+        return true;
+
+    const float dotsBottom = bounds.top + DotsStartOffsetDip + static_cast<float>(_visibleDotCount) * DotPitchDip;
+    const bool belowDots   = point.y >= dotsBottom + 4.f;
+    const bool inOuterBand = _side == PaneSide::Left ? point.x < bounds.right - 10.f : point.x >= bounds.left + 10.f;
+    return belowDots && inOuterBand;
 }
 
 RailDotButton* CollapsedPaneRail::DotButton(std::size_t visibleIndex) const noexcept
@@ -641,15 +666,16 @@ bool CollapsedPaneRail::Tick(DxUi::ControlHost& host, uint64_t nowTickMs)
     return false;
 }
 
-bool CollapsedPaneRail::OnMouseMove(DxUi::ControlHost& host, D2D1_POINT_2F point, UINT /*modifiers*/)
+bool CollapsedPaneRail::OnMouseMove(DxUi::ControlHost& /*host*/, D2D1_POINT_2F /*point*/, UINT /*modifiers*/)
 {
-    HandlePointerMoveDip(host, point, PointInRect(point, GetBounds()));
+    // Application::UpdateHoverOverlayPointer coordinates rail and overlay hover state cleanly.
     return true;
 }
 
 bool CollapsedPaneRail::OnMouseLeave(DxUi::ControlHost& /*host*/)
 {
-    CancelHoverDwell();
+    if (_state.mode == PaneDisplayMode::CollapsedRail && _state.phase == PaneAnimationPhase::HoverDwell)
+        CancelHoverDwell();
     return true;
 }
 

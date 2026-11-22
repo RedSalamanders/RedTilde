@@ -499,6 +499,7 @@ Validation requirements covered by [Side panes and bidirectional split editing](
   `HoverOverlay` without altering editor/mirror layout width (`0` reflow), Left dot activation performs zero-prompt
   `SwitchWorkspaceDocument` (respecting draft/busy/IME guards), and Right dot activation scrolls to the heading without
   expanding the pane.
+- **Edge-attached drawers, Pin/Unpin, and hover UX polish**: `Window.SidePaneEdgeDrawersAndPinOpenBehavior` verifies sharp `0`-DIP flush edge drawers (`Surface::Kind::DrawerLeft`/`DrawerRight`), symmetric header `Pin` and `Close` buttons at minimum `200`-DIP width, `Pinned` docking in Compose and Split with `320`/`440`-DIP canvas minimum, `Unpinned` collapse to dot rail, persistence/live reload of `filesPinMode`/`outlinePinMode`, and `Unpinned -> Auto` reset on re-open. `Window.SidePaneHoverPolishReversalAndFocusHold` verifies expand-chevron/dot-gap/inner-scrollbar-margin dwell suppression, lower outer empty-rail dwell, Settings-drawer dwell suppression, mid-collapse pointer re-entry reversal (`Collapsing -> Expanding`), keyboard-focus overlay hold, explicit click-open persistence across mouse leave, and unpinned click-to-navigate dismissal vs. pinned persistence.
 - **Bidirectional Split editing, linked scroll, and Find (`P2`–`P3`)**: Verify clicking either Split text viewport or
   pressing `F6` preserves exact `128`-step unified Undo/Redo across interleaved Compose and Source edits, scrollbar
   clicks preserve the active pane, leaving Split restores `_editor` authority, linked scrolling maps matching source

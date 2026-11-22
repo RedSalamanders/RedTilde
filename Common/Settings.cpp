@@ -213,6 +213,26 @@ const char* ViewName(EditorView view) noexcept
     return "compose";
 }
 
+PanePinMode ParsePanePinModeName(std::string_view name) noexcept
+{
+    if (name == "pinned")
+        return PanePinMode::Pinned;
+    if (name == "unpinned")
+        return PanePinMode::Unpinned;
+    return PanePinMode::Auto;
+}
+
+const char* PanePinModeName(PanePinMode mode) noexcept
+{
+    switch (mode)
+    {
+        case PanePinMode::Pinned: return "pinned";
+        case PanePinMode::Unpinned: return "unpinned";
+        case PanePinMode::Auto: break;
+    }
+    return "auto";
+}
+
 yyjson_mut_val* CheckedAlloc(yyjson_mut_val* value) noexcept
 {
     if (! value)
@@ -413,6 +433,10 @@ try
     ReadJsonBool(root, "imageFirstPaste", parsed.imageFirstPaste);
     ReadJsonBool(root, "strikeCompletedTasks", parsed.strikeCompletedTasks);
     ReadJsonBool(root, "splitScrollSync", parsed.splitScrollSync);
+    if (std::string_view pinMode; TryReadJsonString(root, "filesPinMode", pinMode))
+        parsed.filesPinMode = ParsePanePinModeName(pinMode);
+    if (std::string_view pinMode; TryReadJsonString(root, "outlinePinMode", pinMode))
+        parsed.outlinePinMode = ParsePanePinModeName(pinMode);
 
     if (yyjson_val* placementObj = yyjson_obj_get(root, "windowPlacement"); placementObj && yyjson_is_obj(placementObj))
     {
@@ -533,6 +557,8 @@ std::string SerializeSettings(const Settings& settings, std::string_view existin
     PutObjectBool(mutDoc.get(), root, "imageFirstPaste", settings.imageFirstPaste);
     PutObjectBool(mutDoc.get(), root, "strikeCompletedTasks", settings.strikeCompletedTasks);
     PutObjectBool(mutDoc.get(), root, "splitScrollSync", settings.splitScrollSync);
+    PutObjectString(mutDoc.get(), root, "filesPinMode", PanePinModeName(settings.filesPinMode));
+    PutObjectString(mutDoc.get(), root, "outlinePinMode", PanePinModeName(settings.outlinePinMode));
 
     if (settings.windowPlacement && ValidWindowPlacement(settings.windowPlacement.value()))
     {

@@ -138,6 +138,8 @@ public:
 
     [[nodiscard]] bool ContainsTriggerEdge(D2D1_POINT_2F point) const noexcept;
     [[nodiscard]] bool ContainsDot(D2D1_POINT_2F point) const noexcept;
+    [[nodiscard]] bool ContainsExpandButton(D2D1_POINT_2F point) const noexcept;
+    [[nodiscard]] bool IsHoverRevealZone(D2D1_POINT_2F point) const noexcept;
     [[nodiscard]] DxUi::Button* ExpandButton() const noexcept
     {
         return _expandButton;
