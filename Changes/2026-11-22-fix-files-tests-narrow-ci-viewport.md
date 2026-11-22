@@ -1,0 +1,2 @@
+- Fix hosted CI `EditorWorkspace` failures (`1024x768` runner display clamping) across the three docked-Files tests in `Tests/Application.Tests.DesignRefresh.cpp`:
+  - Call `Resize(..., 1440, 900, 96, false)` immediately after `Initialize()` in `Editor.DesignRefreshFilesRerootFilterAndDirtyOpen`, `Editor.FilesDirtyBadgeUpdatesOneVisibleRow` (both `app` and `untitled`), and `Editor.DesignRefreshFilesAdmissionErrorsAndRootActions` so docked-pane preconditions do not depend on the host runner's physical monitor tracking limits (`< 1170` DIP left-rail collapse threshold).
