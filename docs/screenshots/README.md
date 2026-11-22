@@ -12,7 +12,7 @@ All screenshots in this directory are deterministic renders produced by RedTilde
 .\.build\x64\Release\RedTilde.exe --capture <out.png> --scenario <scenario> --capture-dpi 96 --data-dir <unique-temp-dir>
 ```
 
-- **Viewport:** `1440×900` DIPs at `96` DPI (`1440×900` px) for main-window scenarios; `1040×840` DIPs window (`1018×784` client px at `96` DPI) for `print-preview`.
+- **Viewport:** `1440×900` DIPs at `96` DPI (`1440×900` px) for standard main-window scenarios; `1080×820` DIPs (`1080×820` px) for `panes-collapsed-rails-light` and `pane-hover-reveal-dark`; `1040×840` DIPs window (`1018×784` client px at `96` DPI) for `print-preview`.
 
 ## Scenario Inventory
 
@@ -21,8 +21,12 @@ All screenshots in this directory are deterministic renders produced by RedTilde
 | [`compose-light.png`](compose-light.png) | `compose-light` | `1440×900` | Compose view in Light theme with Files pane, Outline, and Current Block |
 | [`compose-dark.png`](compose-dark.png) | `compose-dark` | `1440×900` | Compose view in Dark theme with Files pane and Outline |
 | [`compose-paper.png`](compose-paper.png) | `compose-paper` | `1440×900` | Compose view in warm Paper theme |
-| [`split.png`](split.png) | `split` | `1440×900` | Split view in Light theme (editable Compose + read-only Source mirror) |
-| [`split-dark.png`](split-dark.png) | `split-dark` | `1440×900` | Split view in Dark theme |
+| [`panes-collapsed-rails-light.png`](panes-collapsed-rails-light.png) | `panes-collapsed-rails-light` | `1080×820` | Both side panes auto-collapsed into `28`-DIP edge rails with left modified-file dots, right heading dots, and hover-parity toggle chrome |
+| [`pane-hover-reveal-dark.png`](pane-hover-reveal-dark.png) | `pane-hover-reveal-dark` | `1080×820` | Hovering the right rail trigger zone slides open the floating Outline overlay (`Surface::Kind::Floating`) over the Dark canvas with zero reflow |
+| [`split.png`](split.png) | `split` | `1440×900` | Split view in Light theme with Compose `Editing`, `Read-only` Source mirror, center linked-scroll toggle (`Ctrl+Shift+Y`), and collapsed right Outline dot rail |
+| [`split-dark.png`](split-dark.png) | `split-dark` | `1440×900` | Split view in Dark theme with active-pane indicator, center linked-scroll toggle, and collapsed right Outline dot rail |
+| [`split-source-active-light.png`](split-source-active-light.png) | `split-source-active-light` | `1440×900` | Bidirectional Split view with right Source pane active (`Editing`), passive Compose preview (`Read-only`), and Find & Replace targeting Source |
+| [`split-unlinked-dark.png`](split-unlinked-dark.png) | `split-unlinked-dark` | `1440×900` | Split view in Dark theme with Linked scrolling toggled Off (dashed seam) so Source scrolls independently while Find highlights active Compose and dot match rings update on the right rail |
 | [`source.png`](source.png) | `source` | `1440×900` | Source view with syntax-colored Markdown, Files pane, and Outline |
 | [`focus.png`](focus.png) | `focus` | `1440×900` | Focus mode with minimal top bar, dimmed inactive blocks, and word-count pill |
 | [`context-selection.png`](context-selection.png) | `context-selection` | `1440×900` | Floating contextual selection toolbar (`Alt+F10` hint) above selected prose |

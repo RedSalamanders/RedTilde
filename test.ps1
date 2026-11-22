@@ -182,7 +182,7 @@ try {
         Write-Host ("Native forced render: {0:N1} FPS; private memory {1:N1} MiB; dirty edit/render {2:N2} ms. Initial app baseline only." -f $metrics.cleanRenderFps,($metrics.privateBytes/1MB),$metrics.dirtyEditAndRenderMs)
     }
     if ('Captures' -in $Suites) {
-        $scenarios=@('compose-light','compose-dark','source','split','context-selection','local-source','settings','math','math-dark','mermaid','recovery','narrow','high-contrast','files','find','focus','equation','quote-scroll-light','quote-scroll-dark','diagram-label-light','diagram-label-dark','image-paste-light','image-paste-dark','image-consent-light','image-consent-dark')
+        $scenarios=@('compose-light','compose-dark','source','split','context-selection','local-source','settings','math','math-dark','mermaid','recovery','narrow','high-contrast','files','find','focus','equation','quote-scroll-light','quote-scroll-dark','diagram-label-light','diagram-label-dark','image-paste-light','image-paste-dark','image-consent-light','image-consent-dark','panel-toggle-hover','panes-collapsed-rails-light','pane-hover-reveal-dark','split-source-active-light','split-unlinked-dark')
         $captures=@($scenarios|ForEach-Object{@{name=$_;scenario=$_;arguments=@()}})
         $captures+=@(96,144,192|ForEach-Object{@{name="narrow-dpi-$_";scenario='narrow';arguments=@('--capture-dpi',"$_")}})
         $captures+=@(96,144,192|ForEach-Object{@{name="reference-dark-dpi-$_";scenario='reference-dark';arguments=@('--capture-dpi',"$_",'--document',(Join-Path $PSScriptRoot 'Tests/Fixtures/reference-dark.md'))}})
@@ -218,6 +218,9 @@ try {
             $maximize=(Get-FileHash -LiteralPath (Join-Path $run "caption-maximize-hover-dpi-$dpi.png")).Hash
             if($rest -eq $close -or $rest -eq $maximize -or $close -eq $maximize){throw "Caption hover captures must differ from resting pixels and each other at $dpi DPI."}
         }
+        $composeLightHash=(Get-FileHash -LiteralPath (Join-Path $run 'compose-light.png')).Hash
+        $panelHoverHash=(Get-FileHash -LiteralPath (Join-Path $run 'panel-toggle-hover.png')).Hash
+        if($composeLightHash -eq $panelHoverHash){throw 'panel-toggle-hover capture must differ from resting compose-light pixels.'}
         Write-Host "$($captures.Count) actual hidden application captures generated with viewport/DPI provenance."
     }
     if ('Crash' -in $Suites) {

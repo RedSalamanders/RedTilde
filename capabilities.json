@@ -95,7 +95,12 @@
     "json5-yyjson-settings-and-one-time-migration",
     "coalesced-live-settings-watcher-and-schema",
     "enforced-underscore-camelcase-and-clang-tidy",
-    "fail-closed-real-location-harness"
+    "fail-closed-real-location-harness",
+    "right-panel-toggle-hover-parity-and-ctrl-shift-l",
+    "responsive-collapsed-side-rails-hover-overlay-and-dot-navigation",
+    "bidirectional-split-editing-unified-history",
+    "split-linked-and-independent-scrolling",
+    "active-split-pane-find-replace-without-rebuild"
   ],
   "pending": [
     "api5-consumer-failure-and-native-qualification",

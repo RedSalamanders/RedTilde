@@ -46,24 +46,165 @@ BrandMarkPixels LoadBrandMarkPixels(HICON icon)
     return result;
 }
 
-HRESULT SourceMirrorEditor::PrepareContent(DxUi::ControlHost& host) noexcept
+void Surface::Paint(DxUi::ControlHost& host) const
 {
-    const auto selfLifetime    = GetControlLifetimeToken(*this);
-    auto* const primary        = _primary;
-    const auto primaryLifetime = _primaryLifetime;
-    auto* const owner          = host.GetRoot();
-    if (! primary || primaryLifetime.expired() || ! owner || ! IsVisible() || ! IsReadOnly() || GetViewMode() != DxUi::RichText::ViewMode::Source ||
-        GetHost() != &host || ! primary->IsAttachedTo(host, GetParent()))
+    auto* target = host.GetDeviceContext();
+    if (! target)
+        return;
+    const auto& theme = host.GetTheme();
+    const auto bounds = GetBounds();
+    if (kind == Kind::Floating)
+    {
+        DxUi::TransientSurfaceOptions options;
+        options.cornerRadiusDip = 10;
+        DxUi::PaintTransientSurface(host, bounds, options);
+    }
+    else
+    {
+        const auto color = kind == Kind::Canvas ? theme.cardBackground : kind == Kind::Chrome ? theme.windowBackground : theme.surfaceBackground;
+        target->FillRectangle(bounds, host.GetSolidBrush(color));
+        if (kind == Kind::Canvas && splitChrome.active)
+        {
+            const float headerH = splitChrome.headerHeightDip;
+            const float splitX  = std::clamp(splitChrome.splitX, bounds.left + 1.f, std::max(bounds.left + 1.f, bounds.right - 1.f));
+            const float seamTop = std::min(bounds.bottom, bounds.top + headerH);
+            if (! theme.highContrast)
+            {
+                auto passiveTint = theme.subduedText;
+                passiveTint.a    = 0.025f;
+                const auto pRect = splitChrome.sourceActive ? D2D1::RectF(bounds.left, seamTop, splitX, bounds.bottom)
+                                                            : D2D1::RectF(splitX, seamTop, bounds.right, bounds.bottom);
+                if (auto* wash = host.GetSolidBrush(passiveTint))
+                    target->FillRectangle(pRect, wash);
+            }
+            if (auto* headerBrush = host.GetSolidBrush(theme.surfaceBackground))
+                target->FillRectangle(D2D1::RectF(bounds.left, bounds.top, bounds.right, seamTop), headerBrush);
+            if (auto* divider = host.GetSolidBrush(theme.borderDefault))
+            {
+                target->DrawLine(D2D1::Point2F(bounds.left, seamTop - 0.5f), D2D1::Point2F(bounds.right, seamTop - 0.5f), divider);
+                if (splitChrome.linked)
+                {
+                    target->DrawLine(D2D1::Point2F(splitX, seamTop), D2D1::Point2F(splitX, bounds.bottom), divider);
+                }
+                else
+                {
+                    if (! _dashedStroke)
+                    {
+                        wil::com_ptr<ID2D1Factory> factory;
+                        target->GetFactory(factory.put());
+                        if (factory)
+                        {
+                            const D2D1_STROKE_STYLE_PROPERTIES props = D2D1::StrokeStyleProperties(
+                                D2D1_CAP_STYLE_FLAT, D2D1_CAP_STYLE_FLAT, D2D1_CAP_STYLE_FLAT, D2D1_LINE_JOIN_MITER, 10.f, D2D1_DASH_STYLE_DASH, 0.f);
+                            (void)factory->CreateStrokeStyle(props, nullptr, 0, _dashedStroke.put());
+                        }
+                    }
+                    target->DrawLine(D2D1::Point2F(splitX, seamTop), D2D1::Point2F(splitX, bounds.bottom), divider, 1.f, _dashedStroke.get());
+                }
+            }
+            if (splitChrome.linked && seamTop < bounds.bottom)
+            {
+                auto seamAccent   = theme.highContrast ? theme.focusStroke : theme.accent;
+                seamAccent.a      = theme.highContrast ? 1.0f : 0.55f;
+                const float glowB = std::min(bounds.bottom, seamTop + 120.f);
+                if (auto* accentBrush = host.GetSolidBrush(seamAccent))
+                    target->DrawLine(D2D1::Point2F(splitX, seamTop), D2D1::Point2F(splitX, glowB), accentBrush, 2.f);
+            }
+            const auto accentRect = splitChrome.sourceActive ? D2D1::RectF(splitX, bounds.top, bounds.right, bounds.top + 2.f)
+                                                             : D2D1::RectF(bounds.left, bounds.top, splitX, bounds.top + 2.f);
+            if (auto* activeLine = host.GetSolidBrush(theme.highContrast ? theme.focusStroke : theme.accent))
+                target->FillRectangle(accentRect, activeLine);
+            if (splitChrome.activeChipRect.right > splitChrome.activeChipRect.left)
+            {
+                if (auto* chipFill = host.GetSolidBrush(theme.selectionFill))
+                    target->FillRoundedRectangle(D2D1::RoundedRect(splitChrome.activeChipRect, 9.f, 9.f), chipFill);
+            }
+        }
+        if (auto* line = host.GetSolidBrush(theme.borderDefault))
+        {
+            if (borderLeft)
+                target->DrawLine(D2D1::Point2F(bounds.left, bounds.top), D2D1::Point2F(bounds.left, bounds.bottom), line);
+            if (borderRight)
+                target->DrawLine(D2D1::Point2F(bounds.right - 1, bounds.top), D2D1::Point2F(bounds.right - 1, bounds.bottom), line);
+            if (borderBottom)
+                target->DrawLine(D2D1::Point2F(bounds.left, bounds.bottom - 1), D2D1::Point2F(bounds.right, bounds.bottom - 1), line);
+        }
+    }
+    DxUi::Panel::Paint(host);
+}
+
+void SubtleToggleButton::Paint(DxUi::ControlHost& host) const
+{
+    DxUi::Button::Paint(host);
+    if (! IsVisible() || ! IsEnabled() || ! GetToggleState().value_or(false) || (! IsHovered() && ! IsPressed()))
+        return;
+
+    auto* target = host.GetDeviceContext();
+    if (! target)
+        return;
+
+    const auto& theme            = host.GetTheme();
+    const auto b                 = GetBounds();
+    const D2D1_ROUNDED_RECT pill = D2D1::RoundedRect(D2D1::RectF(b.left + 0.5f, b.top + 0.5f, b.right - 0.5f, b.bottom - 0.5f), 6.0f, 6.0f);
+    if (theme.highContrast)
+    {
+        if (auto* border = host.GetSolidBrush(theme.focusStroke))
+            target->DrawRoundedRectangle(pill, border, 1.0f);
+        return;
+    }
+    if (auto* wash = host.GetSolidBrush(D2D1::ColorF(theme.text.r, theme.text.g, theme.text.b, IsPressed() ? 0.12f : 0.07f)))
+        target->FillRoundedRectangle(pill, wash);
+    if (auto* border = host.GetSolidBrush(D2D1::ColorF(theme.accent.r, theme.accent.g, theme.accent.b, IsPressed() ? 0.55f : 0.35f)))
+        target->DrawRoundedRectangle(pill, border, 1.0f);
+}
+
+bool Editor::OnMouseDown(DxUi::ControlHost& host, D2D1_POINT_2F point, bool rightButton, UINT modifiers) noexcept
+{
+    if (IsReadOnly() && ! rightButton && _onBeforePassivePointerActivate)
+    {
+        const auto viewport    = TryGetTextInputViewportRect();
+        const auto info        = GetScrollInfo();
+        const bool scrollable  = info && info->contentHeightDip > info->viewportHeightDip;
+        const bool onScrollbar = scrollable && point.x >= GetBounds().right - 16.f;
+        const bool inViewport  = viewport && point.x >= viewport->left && point.x < viewport->right && point.y >= viewport->top && point.y < viewport->bottom;
+        if (! inViewport || onScrollbar)
+            return DxUi::RichTextEditor::OnMouseDown(host, point, rightButton, modifiers);
+
+        const auto lifetime = GetControlLifetimeToken(*this);
+        std::optional<DxUi::RichText::Selection> clickedSelection;
+        if (DxUi::RichTextEditor::OnMouseDown(host, point, rightButton, modifiers) && ! lifetime.expired() && GetHost() == &host)
+            clickedSelection = GetSelection();
+        if (lifetime.expired() || GetHost() != &host)
+            return true;
+        host.ReleaseMouseCapture();
+        if (lifetime.expired() || GetHost() != &host)
+            return true;
+        const auto callback = _onBeforePassivePointerActivate;
+        if (callback)
+            (void)callback(clickedSelection);
+        return true;
+    }
+    return DxUi::RichTextEditor::OnMouseDown(host, point, rightButton, modifiers);
+}
+
+HRESULT Editor::PrepareContent(DxUi::ControlHost& host) noexcept
+{
+    const auto selfLifetime = GetControlLifetimeToken(*this);
+    auto* const peer        = _syntaxPeer;
+    const auto peerLifetime = _syntaxPeerLifetime;
+    auto* const owner       = host.GetRoot();
+    if (! peer || peerLifetime.expired() || ! owner || ! IsVisible() || ! IsReadOnly() || GetViewMode() != DxUi::RichText::ViewMode::Source ||
+        GetHost() != &host || ! peer->IsAttachedTo(host, GetParent()))
         return DxUi::RichTextEditor::PrepareContent(host);
 
     const auto ownerLifetime = GetControlLifetimeToken(*owner);
     if (ownerLifetime.expired())
         return DxUi::RichTextEditor::PrepareContent(host);
 
-    const auto source          = primary->Snapshot();
-    const auto primaryRevision = primary->Revision();
-    const auto syntax          = primary->GetMarkdownSyntax();
-    if (syntax && syntax->Revision() == primaryRevision && source.IsSameRevision(primary->Snapshot()))
+    const auto source       = peer->Snapshot();
+    const auto peerRevision = peer->Revision();
+    const auto syntax       = peer->GetMarkdownSyntax();
+    if (syntax && syntax->Revision() == peerRevision && source.IsSameRevision(peer->Snapshot()))
     {
         const auto currentSyntax  = GetMarkdownSyntax();
         const bool alreadyAdopted = currentSyntax && Snapshot().IsSameRevision(source) && currentSyntax->Revision() == Revision() &&
@@ -78,10 +219,10 @@ HRESULT SourceMirrorEditor::PrepareContent(DxUi::ControlHost& host) noexcept
             // Adoption's final preparation request can re-enter and retire
             // either editor or replace the owning root. Prove all borrowers
             // still belong to this host before the ordinary preparation call.
-            if (selfLifetime.expired() || primaryLifetime.expired() || ownerLifetime.expired())
+            if (selfLifetime.expired() || peerLifetime.expired() || ownerLifetime.expired())
                 return S_FALSE;
-            if (GetHost() != &host || ! primary->IsAttachedTo(host, GetParent()) || host.GetRoot() != owner || ! source.IsSameRevision(primary->Snapshot()) ||
-                primary->Revision() != primaryRevision)
+            if (GetHost() != &host || ! peer->IsAttachedTo(host, GetParent()) || host.GetRoot() != owner || ! source.IsSameRevision(peer->Snapshot()) ||
+                peer->Revision() != peerRevision)
                 return S_FALSE;
             if (result == S_OK && (! IsVisible() || ! IsReadOnly() || GetViewMode() != DxUi::RichText::ViewMode::Source || Revision() != targetRevision ||
                                    ! Snapshot().IsSameRevision(source) || GetMarkdownAnalysisProfile() != syntax->Profile()))
@@ -153,6 +294,16 @@ void Icon(DxUi::Button* button, std::wstring glyph)
     button->SetVariant(DxUi::ButtonVariant::IconOnly);
     THROW_IF_FAILED(button->SetContentFontSizeDip(18.f));
     button->SetText(std::move(glyph));
+}
+template <class Fn> DxUi::Button* MakeSubtleToggle(DxUi::Panel& parent, unsigned label, std::wstring tooltip, Fn&& onClick)
+{
+    auto* button = parent.AddChild<SubtleToggleButton>(Resource(label));
+    THROW_IF_FAILED(button->SetContentFontSizeDip(14.f));
+    button->SetAccessibleName(Resource(label));
+    button->SetTooltipText(tooltip.empty() ? Resource(label) : std::move(tooltip));
+    button->SetOnClick(std::forward<Fn>(onClick));
+    button->SetAppearance(DxUi::ButtonAppearance::Subtle);
+    return button;
 }
 } // namespace
 
@@ -245,13 +396,10 @@ HRESULT Application::BuildUi()
     _tools[9]->SetLeadingIcon(L"\xE721");
     _tools[9]->SetShortcutText(Resource(IDS_FIND_SHORTCUT));
     _settingsToggle = _tools[12];
-    _filesToggle    = Action(*_commandBar, IDS_FILES, Command::Files, Resource(IDS_TIP_FILES));
+    _filesToggle    = MakeSubtleToggle(*_commandBar, IDS_FILES, Resource(IDS_TIP_FILES), [this] { Execute(Command::Files); });
     Icon(_filesToggle, L"\xE90C");
-    _filesToggle->SetAppearance(DxUi::ButtonAppearance::Subtle);
-    _panelToggle = Action(*_commandBar, IDS_PANEL, Command::Outline);
+    _panelToggle = MakeSubtleToggle(*_commandBar, IDS_PANEL, Resource(IDS_TIP_PANEL), [this] { Execute(Command::Outline); });
     Icon(_panelToggle, L"\xE90D");
-    _panelToggle->SetVariant(DxUi::ButtonVariant::Disclosure);
-    _panelToggle->SetAppearance(DxUi::ButtonAppearance::Subtle);
     _overflowButton = Action(*_commandBar, IDS_MORE, Command::Overflow);
     Icon(_overflowButton, L"\xE712");
     _overflowButton->SetAppearance(DxUi::ButtonAppearance::Subtle);
@@ -275,11 +423,57 @@ HRESULT Application::BuildUi()
     _editor->SetBitmapPasteHandler([this](std::span<const std::byte> dib, bool v5) { return BeginBitmapPaste(dib, v5); });
     _editor->SetOnContextMenu([this](POINT point, bool) { Menu(point); });
     _editor->SetOnLinkActivated([this](const DxUi::RichTextLinkActivation& activation) { RunUiAction([&] { RequestOpenLink(activation); }); });
-    _mirror = _page->AddChild<SourceMirrorEditor>(*_editor);
+    _editor->SetOnScrollChanged([this](float scrollDip) { OnSplitPaneScrolled(_editor, scrollDip); });
+    _editor->SetOnBeforePassivePointerActivate([this](std::optional<DxUi::RichText::Selection> selection)
+    {
+        SwitchSplitActivePane(SplitActivePane::Compose, true, selection);
+        return true;
+    });
+    _mirror = _page->AddChild<Editor>();
+    _mirror->SetSyntaxAdoptionPeer(_editor);
     if (! AcceptSourceResult(_mirror->TrySetMarkdownAnalysisProfile(DxUi::RichText::MarkdownProfile::RichMarkdown)) ||
         ! AcceptSourceResult(_mirror->TrySetMarkdownRenderingEnabled(true)))
         return E_INVALIDARG;
+    _mirror->SetCodeTokenizer(DxUi::RichText::TokenizeBuiltinCode);
+    _mirror->SetRemoteImagesEnabled(_settings.allowRemoteImages);
     _mirror->SetReadOnly(true);
+    _mirror->SetOnScrollChanged([this](float scrollDip) { OnSplitPaneScrolled(_mirror, scrollDip); });
+    _mirror->SetOnBeforePassivePointerActivate([this](std::optional<DxUi::RichText::Selection> selection)
+    {
+        SwitchSplitActivePane(SplitActivePane::Source, true, selection);
+        return true;
+    });
+    _splitComposeTitle = Label(*_page, IDS_COMPOSE, DxUi::FontRole::Small);
+    Section(_splitComposeTitle);
+    _splitSourceTitle = Label(*_page, IDS_SOURCE, DxUi::FontRole::Small);
+    Section(_splitSourceTitle);
+    _splitComposeChipBg = _page->AddChild<DxUi::CardPanel>();
+    _splitComposeChipBg->SetCornerRadius(9.f);
+    _splitSourceChipBg = _page->AddChild<DxUi::CardPanel>();
+    _splitSourceChipBg->SetCornerRadius(9.f);
+    _splitComposeChip = Label(*_page, IDS_SPLIT_EDITING_CHIP, DxUi::FontRole::Small);
+    THROW_IF_FAILED(_splitComposeChip->SetTypographyOverride(DxUi::LabelTypography{11.5f, DWRITE_FONT_WEIGHT_SEMI_BOLD, 0}));
+    _splitComposeChip->SetAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+    _splitSourceChip = Label(*_page, IDS_READONLYSHORT, DxUi::FontRole::Small);
+    THROW_IF_FAILED(_splitSourceChip->SetTypographyOverride(DxUi::LabelTypography{11.5f, DWRITE_FONT_WEIGHT_SEMI_BOLD, 0}));
+    _splitSourceChip->SetAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+    _splitSwitchHint = Label(*_page, IDS_SPLIT_SWITCH_HINT, DxUi::FontRole::Small);
+    THROW_IF_FAILED(_splitSwitchHint->SetTypographyOverride(DxUi::LabelTypography{11.5f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
+    _splitSwitchHint->SetAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
+    _splitScrollSyncButton =
+        MakeSubtleToggle(*_page, IDS_SPLIT_SCROLL_SYNC, Resource(IDS_TIP_SPLIT_SCROLL_ON), [this] { Execute(Command::ToggleSplitScrollSync); });
+    Icon(_splitScrollSyncButton, L"\xE71B");
+    THROW_IF_FAILED(_splitScrollSyncButton->SetContentFontSizeDip(14.f));
+    _splitScrollSyncButton->SetToggleState(_settings.splitScrollSync);
+    for (DxUi::Control* control : {static_cast<DxUi::Control*>(_splitComposeTitle),
+                                   static_cast<DxUi::Control*>(_splitSourceTitle),
+                                   static_cast<DxUi::Control*>(_splitComposeChipBg),
+                                   static_cast<DxUi::Control*>(_splitSourceChipBg),
+                                   static_cast<DxUi::Control*>(_splitComposeChip),
+                                   static_cast<DxUi::Control*>(_splitSourceChip),
+                                   static_cast<DxUi::Control*>(_splitSwitchHint),
+                                   static_cast<DxUi::Control*>(_splitScrollSyncButton)})
+        control->SetVisible(false);
     _imageConsent = _page->AddChild<Surface>(Surface::Kind::Floating);
     _imageConsent->SetVisible(false);
     _imageConsent->SetAccessibleAutomationId(L"RedTilde.RemoteImageConsent");
@@ -292,9 +486,47 @@ HRESULT Application::BuildUi()
     if (! AcceptSourceResult(_mirror->TrySetViewMode(DxUi::RichText::ViewMode::Source)))
         return E_INVALIDARG;
     _mirror->SetAccessibleName(Resource(IDS_MIRROR));
-    _sidebar             = _root->AddChild<Surface>(Surface::Kind::Sidebar);
-    _sidebar->borderLeft = true;
-    _outlineTitle        = Label(*_sidebar, IDS_OUTLINESECTION, DxUi::FontRole::Small);
+    _leftRail = _root->AddChild<CollapsedPaneRail>(PaneSide::Left);
+    _leftRail->SetAccessibleName(Resource(IDS_RAIL_FILES_NAME));
+    _leftRail->ConfigureStrings(Resource(IDS_RAIL_EXPAND_FILES), Resource(IDS_RAIL_NO_MODIFIED));
+    _leftRail->SetVisible(false);
+    _leftRail->onDotInvoked    = [this](std::uint64_t id) { RunUiAction([&] { OnRailDotActivated(PaneSide::Left, static_cast<std::size_t>(id)); }); };
+    _leftRail->onExpandClicked = [this] { RunUiAction([&] { OnRailExpandClicked(PaneSide::Left); }); };
+    _leftRail->onHoverReveal   = [this]
+    {
+        RunUiAction([&]
+        {
+            if (_rightRail && _rightRail->State().mode == PaneDisplayMode::HoverOverlay)
+                _rightRail->StartCollapse(_host, true);
+            _explicitPaneRevealSide.reset();
+            _leftRail->StartExpand(_host, true);
+            ApplySidePaneOverlayBounds();
+        });
+    };
+    _leftRail->onAnimationStep   = [this] { ApplySidePaneOverlayBounds(); };
+    _leftRail->onCollapseSettled = [this] { ApplySidePaneOverlayBounds(); };
+    _rightRail                   = _root->AddChild<CollapsedPaneRail>(PaneSide::Right);
+    _rightRail->SetAccessibleName(Resource(IDS_RAIL_OUTLINE_NAME));
+    _rightRail->ConfigureStrings(Resource(IDS_RAIL_EXPAND_OUTLINE), Resource(IDS_OUTLINEEMPTY));
+    _rightRail->SetVisible(false);
+    _rightRail->onDotInvoked    = [this](std::uint64_t id) { RunUiAction([&] { OnRailDotActivated(PaneSide::Right, static_cast<std::size_t>(id)); }); };
+    _rightRail->onExpandClicked = [this] { RunUiAction([&] { OnRailExpandClicked(PaneSide::Right); }); };
+    _rightRail->onHoverReveal   = [this]
+    {
+        RunUiAction([&]
+        {
+            if (_leftRail && _leftRail->State().mode == PaneDisplayMode::HoverOverlay)
+                _leftRail->StartCollapse(_host, true);
+            _explicitPaneRevealSide.reset();
+            _rightRail->StartExpand(_host, true);
+            ApplySidePaneOverlayBounds();
+        });
+    };
+    _rightRail->onAnimationStep   = [this] { ApplySidePaneOverlayBounds(); };
+    _rightRail->onCollapseSettled = [this] { ApplySidePaneOverlayBounds(); };
+    _sidebar                      = _root->AddChild<Surface>(Surface::Kind::Sidebar);
+    _sidebar->borderLeft          = true;
+    _outlineTitle                 = Label(*_sidebar, IDS_OUTLINESECTION, DxUi::FontRole::Small);
     Section(_outlineTitle);
     _outlineTree = _sidebar->AddChild<DxUi::Tree>();
     _outlineTree->SetModel(&_outlineModel);
@@ -310,11 +542,12 @@ HRESULT Application::BuildUi()
     {
         if (! id || id > _documentInfo.headings.size())
             return;
-        const auto offset = _documentInfo.headings[static_cast<std::size_t>(id - 1)].offset;
-        if (! AcceptSourceResult(_editor->TrySetSelection({offset, offset})))
+        const auto offset  = _documentInfo.headings[static_cast<std::size_t>(id - 1)].offset;
+        auto* const active = ActiveEditor();
+        if (! AcceptSourceResult(active->TrySetSelection({offset, offset})))
             return;
-        (void)_editor->ScrollSourceRangeIntoView(_host, offset, offset, true);
-        _host.SetFocusControl(_editor, MayRequestNativeFocus());
+        (void)active->ScrollSourceRangeIntoView(_host, offset, offset, true);
+        _host.SetFocusControl(active, MayRequestNativeFocus());
         SelectionChanged();
     };
     _outlineModel.expanded = [this](std::uint64_t id, bool value)
@@ -720,53 +953,95 @@ void Application::Layout()
     _panelToggle->SetToggleState(_settings.showOutline);
     _settingsToggle->SetToggleState(_drawer->IsVisible());
     _tools[11]->SetToggleState(focus);
-    const bool fileOverlay       = _settings.showFiles && width < static_cast<float>(_settings.readingWidth + _settings.filesWidth + 96 + 6);
-    const float filesWidth       = static_cast<float>(_settings.filesWidth);
-    const float left             = _settings.showFiles && ! fileOverlay && ! focus ? filesWidth : 0;
-    const bool showSidebar       = _settings.showOutline && ! focus && ! fileOverlay && width - left >= static_cast<float>(_settings.readingWidth + 336) &&
-                                   _settings.view != EditorView::Split;
-    const float right            = showSidebar ? width - 240 : width;
-    const auto layoutRequest     = _activity.layouts;
-    const bool sidebarWasVisible = _sidebar->IsVisible();
-    if (showSidebar && ! sidebarWasVisible && ! PublishCurrentBlockLabelIfVisible(true))
-        return;
+    const float filesWidth = static_cast<float>(_settings.filesWidth);
+    const float leftThreshold =
+        static_cast<float>(_settings.readingWidth + _settings.filesWidth + 96 + 6) + (_settings.showOutline ? CollapsedPaneRail::RailWidthDip : 0.f);
+    if (focus || ! _settings.showFiles)
+        _leftAutoCollapsed = false;
+    else if (_leftAutoCollapsed)
+        _leftAutoCollapsed = width < leftThreshold + 24.f;
+    else
+        _leftAutoCollapsed = width < leftThreshold;
+
+    const bool leftDocked    = _settings.showFiles && ! focus && ! _leftAutoCollapsed;
+    const bool leftCollapsed = _settings.showFiles && ! focus && _leftAutoCollapsed;
+    const float leftSpace    = leftDocked ? filesWidth : (leftCollapsed ? CollapsedPaneRail::RailWidthDip : 0.f);
+
+    const float rightThreshold = static_cast<float>(_settings.readingWidth + 336);
+    const bool split           = _settings.view == EditorView::Split;
+    if (focus || ! _settings.showOutline)
+        _rightAutoCollapsed = false;
+    else if (split || leftCollapsed)
+        _rightAutoCollapsed = true;
+    else if (_rightAutoCollapsed)
+        _rightAutoCollapsed = (width - leftSpace) < rightThreshold + 24.f;
+    else
+        _rightAutoCollapsed = (width - leftSpace) < rightThreshold;
+
+    const bool rightDocked    = _settings.showOutline && ! focus && ! split && ! _rightAutoCollapsed;
+    const bool rightCollapsed = _settings.showOutline && ! focus && ! rightDocked;
+    const float left          = leftDocked ? filesWidth : (leftCollapsed ? CollapsedPaneRail::RailWidthDip : 0.f);
+    const float right         = rightDocked ? width - 240.f : (rightCollapsed ? width - CollapsedPaneRail::RailWidthDip : width);
+
+    auto syncRail = [&](CollapsedPaneRail* rail, PaneSide side, bool enabled, bool collapsed)
+    {
+        if (! rail)
+            return;
+        const auto& state = rail->State();
+        if (focus || ! enabled)
+        {
+            if (_explicitPaneRevealSide == side)
+                _explicitPaneRevealSide.reset();
+            rail->SnapToMode(PaneDisplayMode::Hidden, false);
+        }
+        else if (! collapsed)
+        {
+            if (_explicitPaneRevealSide == side)
+                _explicitPaneRevealSide.reset();
+            rail->SnapToMode(PaneDisplayMode::Docked, false);
+        }
+        else
+        {
+            rail->SetAutoCollapsed(true);
+            if (IsInitializing() || state.mode == PaneDisplayMode::Hidden)
+                rail->SnapToMode(PaneDisplayMode::CollapsedRail, true);
+            else if (state.mode == PaneDisplayMode::Docked && state.phase != PaneAnimationPhase::Collapsing)
+                rail->StartCollapse(_host, false);
+        }
+    };
+    syncRail(_leftRail, PaneSide::Left, _settings.showFiles, leftCollapsed);
+    syncRail(_rightRail, PaneSide::Right, _settings.showOutline, rightCollapsed);
+    if (_leftRail)
+    {
+        const auto& ls      = _leftRail->State();
+        const bool showRail = ! focus && _settings.showFiles && (ls.autoCollapsed || ls.phase == PaneAnimationPhase::Collapsing);
+        _leftRail->SetVisible(showRail);
+        _leftRail->SetBounds(D2D1::RectF(0.f, top, CollapsedPaneRail::RailWidthDip, bottom));
+    }
+    if (_rightRail)
+    {
+        const auto& rs      = _rightRail->State();
+        const bool showRail = ! focus && _settings.showOutline && (rs.autoCollapsed || rs.phase == PaneAnimationPhase::Collapsing);
+        _rightRail->SetVisible(showRail);
+        _rightRail->SetBounds(D2D1::RectF(width - CollapsedPaneRail::RailWidthDip, top, width, bottom));
+    }
+
+    const auto layoutRequest = _activity.layouts;
+    ApplySidePaneOverlayBounds();
     if (_activity.layouts != layoutRequest)
         return;
-    _sidebar->SetVisible(showSidebar);
-    if (_activity.layouts != layoutRequest)
-        return;
-    _sidebar->SetBounds(D2D1::RectF(width - 240, top, width, bottom));
-    const float side = width - 224;
-    _outlineTitle->SetBounds(D2D1::RectF(side + 4, top + 16, width - 100, top + 40));
-    _outlineCount->SetBounds(D2D1::RectF(width - 104, top + 16, width - 16, top + 40));
-    const float contextHeight = _equationContext ? 260.f : 128.f;
-    const float outlineHeight = std::max(40.f, static_cast<float>(_outlineModel.rows.size()) * 42.f + 4.f);
-    const float outlineBottom = std::min(top + 44 + outlineHeight, std::max(top + 92, bottom - contextHeight));
-    _outlineTree->SetBounds(D2D1::RectF(side - 4, top + 44, width - 8, outlineBottom));
-    _contextDivider->SetBounds(D2D1::RectF(side + 4, outlineBottom + 12, width - 12, outlineBottom + 13));
-    _contextDivider->SetOrientation(DxUi::SeparatorOrientation::Horizontal);
-    _currentBlockTitle->SetBounds(D2D1::RectF(side + 4, outlineBottom + 28, width - 16, outlineBottom + 48));
-    _currentBlock->SetBounds(D2D1::RectF(side + 4, outlineBottom + 52, width - 16, outlineBottom + 76));
-    if (showSidebar && ! PublishCurrentBlockLabelIfVisible())
-        return;
-    if (_activity.layouts != layoutRequest)
-        return;
-    _listSummaryIcon->SetBounds(D2D1::RectF(side + 4, outlineBottom + 52, side + 20, outlineBottom + 76));
-    _listSummary->SetBounds(D2D1::RectF(side + 28, outlineBottom + 52, width - 16, outlineBottom + 76));
-    _blockSourceAction->SetBounds(D2D1::RectF(side + 4, outlineBottom + 84, width - 20, outlineBottom + 116));
-    _equationHelp->SetVisible(_equationContext);
-    _equation->SetVisible(_equationContext);
-    _equationReadOnly->SetVisible(_equationContext);
-    _equationHelp->SetBounds(D2D1::RectF(side, outlineBottom + 132, width - 100, outlineBottom + 156));
-    _equationReadOnly->SetBounds(D2D1::RectF(width - 96, outlineBottom + 132, width - 16, outlineBottom + 156));
-    _equation->SetBounds(D2D1::RectF(side, outlineBottom + 164, width - 16, bottom - 16));
+
     _page->SetBounds(D2D1::RectF(left, top, right, bottom));
-    const bool split          = _settings.view == EditorView::Split;
-    const float mid           = (left + right) / 2;
+    const float mid           = std::floor((left + right) * 0.5f);
+    const float splitHeaderH  = split && ! focus ? 30.f : 0.f;
     const float gutter        = focus ? 32.f : split ? 24.f : 48.f;
     const float consentHeight = right - left < 600.f ? 104.f : 64.f;
-    const float consentTop    = top + 12.f;
-    const float contentTop    = std::max(top + (focus ? 36.f : 60.f), _imageConsent->IsVisible() ? consentTop + consentHeight + 12.f : top);
+    const float consentTop    = top + splitHeaderH + 12.f;
+    const float contentTop    = std::max(top + splitHeaderH +
+                                             (focus   ? 36.f
+                                              : split ? 20.f
+                                                      : 60.f),
+                                         _imageConsent->IsVisible() ? consentTop + consentHeight + 12.f : top + splitHeaderH);
     _imageConsent->SetBounds(D2D1::RectF(left + 12.f, consentTop, right - 12.f, consentTop + consentHeight));
     const bool narrowConsent = right - left < 600.f;
     _imageConsentText->SetBounds(D2D1::RectF(left + 24.f, consentTop + 8.f, narrowConsent ? right - 24.f : right - 256.f, consentTop + 48.f));
@@ -776,7 +1051,49 @@ void Application::Layout()
     _imageReload->SetBounds(D2D1::RectF(right - 132.f, consentButtonsTop, right - 24.f, consentButtonsTop + 36.f));
     _editor->SetBounds(D2D1::RectF(left + gutter, contentTop, (split ? mid : right) - gutter, bottom));
     _mirror->SetVisible(split);
-    _mirror->SetBounds(D2D1::RectF(mid + 24, _imageConsent->IsVisible() ? contentTop : top + 56, right - 24, bottom - 24));
+    _mirror->SetBounds(D2D1::RectF(mid + gutter, _imageConsent->IsVisible() ? contentTop : top + splitHeaderH + 20.f, right - gutter, bottom));
+
+    const bool showSplitHeader        = split && ! focus;
+    const bool sourceActive           = _splitActivePane == SplitActivePane::Source;
+    const D2D1_RECT_F composeChipRect = D2D1::RectF(left + 86.f, top + 5.f, left + 160.f, top + 25.f);
+    const D2D1_RECT_F sourceChipRect  = D2D1::RectF(mid + 88.f, top + 5.f, mid + 162.f, top + 25.f);
+    _page->splitChrome                = Surface::SplitChromeState{30.f,
+                                                                  mid,
+                                                                  showSplitHeader ? (sourceActive ? sourceChipRect : composeChipRect) : D2D1_RECT_F{},
+                                                                  showSplitHeader,
+                                                                  sourceActive,
+                                                                  _settings.splitScrollSync};
+    if (_splitComposeTitle)
+    {
+        for (DxUi::Control* control : {static_cast<DxUi::Control*>(_splitComposeTitle),
+                                       static_cast<DxUi::Control*>(_splitSourceTitle),
+                                       static_cast<DxUi::Control*>(_splitComposeChip),
+                                       static_cast<DxUi::Control*>(_splitSourceChip),
+                                       static_cast<DxUi::Control*>(_splitScrollSyncButton)})
+            control->SetVisible(showSplitHeader);
+        if (showSplitHeader)
+        {
+            _splitComposeTitle->SetBounds(D2D1::RectF(left + 16.f, top + 5.f, left + 82.f, top + 25.f));
+            _splitSourceTitle->SetBounds(D2D1::RectF(mid + 24.f, top + 5.f, mid + 84.f, top + 25.f));
+            _splitComposeChipBg->SetBounds(composeChipRect);
+            _splitComposeChip->SetBounds(composeChipRect);
+            _splitSourceChipBg->SetBounds(sourceChipRect);
+            _splitSourceChip->SetBounds(sourceChipRect);
+            _splitScrollSyncButton->SetBounds(D2D1::RectF(mid - 14.f, top + 3.f, mid + 14.f, top + 27.f));
+            const bool showHint = (right - left) * 0.5f >= 340.f;
+            _splitSwitchHint->SetVisible(showHint);
+            if (showHint)
+                _splitSwitchHint->SetBounds(sourceActive ? D2D1::RectF(right - 156.f, top + 5.f, right - 16.f, top + 25.f)
+                                                         : D2D1::RectF(mid - 160.f, top + 5.f, mid - 20.f, top + 25.f));
+        }
+        else
+        {
+            _splitComposeChipBg->SetVisible(false);
+            _splitSourceChipBg->SetVisible(false);
+            _splitSwitchHint->SetVisible(false);
+        }
+    }
+    UpdateSplitHeaders();
     DxUi::RichTextEditorAppearance appearance;
     appearance.markdownPresentation        = DxUi::RichText::MarkdownPresentationStyle::Subtle;
     appearance.strikeCompletedTasks        = _settings.strikeCompletedTasks;
@@ -814,47 +1131,13 @@ void Application::Layout()
         return;
     if (! AcceptSourceResult(_equation->TrySetAppearance(appearance)))
         return;
-    _filesPane->SetVisible(_settings.showFiles && ! focus);
-    _filesPane->borderRight = fileOverlay;
-    _filesPane->SetBounds(D2D1::RectF(0, top, filesWidth, bottom));
-    _filesSectionTitle->SetBounds(D2D1::RectF(20, top + 16, filesWidth - 52, top + 40));
-    _closeFiles->SetBounds(D2D1::RectF(filesWidth - 44, top + 14, filesWidth - 12, top + 46));
-    _filesRootIcon->SetBounds(D2D1::RectF(20, top + 52, 36, top + 78));
-    _filesTitle->SetBounds(D2D1::RectF(44, top + 52, filesWidth - 16, top + 78));
-    _filesFilter->SetBounds(D2D1::RectF(20, top + 84, filesWidth - 12, top + 114));
-    const float footerWidth   = filesWidth - 24;
-    const auto footerRevision = _filesCount->GetMeasureRevision(), typographyRevision = _host.GetTypographyRevision();
-    const auto footerDpi = _host.GetDpi();
-    // Keep hidden measurement keys stale; the first visible layout measures
-    // current text/width/typography/DPI before reserving the footer's bounds.
-    if (_filesPane->IsVisible() && (_filesFooterMeasure.widthDip != footerWidth || _filesFooterMeasure.textRevision != footerRevision ||
-                                    _filesFooterMeasure.typographyRevision != typographyRevision || _filesFooterMeasure.dpi != footerDpi))
-    {
-        DxUi::DesiredSize desired;
-        const HRESULT measured = DxUi::MeasureControl(*_filesCount, {_host}, DxUi::LayoutConstraints::AtMost(footerWidth), desired);
-        if (measured == E_OUTOFMEMORY)
-            DxUi::Failure::FailAllocation();
-        THROW_IF_FAILED(measured);
-        _filesFooterMeasure.widthDip     = footerWidth;
-        _filesFooterMeasure.heightDip    = std::max(24.f, std::ceil(desired.sizeDip.height));
-        _filesFooterMeasure.textRevision = footerRevision;
-        // A cold MeasureControl may initialize the host's typography itself.
-        _filesFooterMeasure.typographyRevision = _host.GetTypographyRevision();
-        _filesFooterMeasure.dpi                = footerDpi;
-        ++_filesFooterMeasure.measurements;
-    }
-    const float footerTop = bottom - 8 - _filesFooterMeasure.heightDip;
-    _filesFooterDivider->SetBounds(D2D1::RectF(0, footerTop - 8, filesWidth, footerTop - 7));
-    _filesTree->SetBounds(D2D1::RectF(4, top + 122, filesWidth - 4, footerTop - 4));
-    _filesCount->SetBounds(D2D1::RectF(12, footerTop, filesWidth - 12, bottom - 8));
-    _filesSplitter->SetVisible(_settings.showFiles && ! focus && ! fileOverlay);
     _filesSplitter->SetBounds(D2D1::RectF(0, top, width, bottom));
     _filesSplitter->SetMinimumSecondPane(std::max(48.f, width - 406));
     _filesSplitter->SetPosition(filesWidth);
     const float drawerLeft = width - 380;
     _drawer->SetBounds(D2D1::RectF(drawerLeft, top, width, bottom));
     _settingsScroll->SetBounds(D2D1::RectF(drawerLeft + 16, top + 12, width - 8, bottom - 12));
-    _settingsScroll->SetContentHeight(1934);
+    _settingsScroll->SetContentHeight(1950);
     const float dx = drawerLeft + 24;
     _settingsScroll->GetLogicalChild(0)->SetBounds(D2D1::RectF(dx, top + 20, width - 24, top + 52));
     _settingsScroll->GetLogicalChild(1)->SetBounds(D2D1::RectF(dx, top + 68, width - 24, top + 92));
@@ -913,10 +1196,16 @@ void Application::Layout()
     _aboutTitle->SetBounds(D2D1::RectF(dx, about, width - 24, about + 24));
     _aboutVersion->SetBounds(D2D1::RectF(dx, about + 30, width - 24, about + 54));
     _aboutSummary->SetBounds(D2D1::RectF(dx, about + 58, width - 24, about + 98));
-    _shortcutsList->SetBounds(D2D1::RectF(dx, about + 106, width - 24, about + 250));
-    const bool wideFind = right - left >= 660.f;
-    const float fx = std::max(16.f, right - (wideFind ? 644.f : 476.f)), fy = top + 12;
-    _findBar->SetBounds(D2D1::RectF(fx, fy, right - 16, fy + (wideFind ? 104.f : 148.f)));
+    _shortcutsList->SetBounds(D2D1::RectF(dx, about + 106, width - 24, about + 266));
+    const float findAreaLeft  = split && ! focus && _splitActivePane == SplitActivePane::Source ? mid : left;
+    const float findAreaRight = split && ! focus && _splitActivePane == SplitActivePane::Compose ? mid : right;
+    const float findAvailW    = std::max(300.f, findAreaRight - findAreaLeft);
+    const bool wideFind       = findAvailW >= 660.f;
+    const float findBarW      = wideFind ? 628.f : 460.f;
+    const float findRight     = std::min(width - 16.f, std::max(16.f + findBarW, findAreaRight - 16.f));
+    const float fx            = std::max(16.f, findRight - findBarW);
+    const float fy            = top + splitHeaderH + 12.f;
+    _findBar->SetBounds(D2D1::RectF(fx, fy, findRight, fy + (wideFind ? 104.f : 148.f)));
     _findText->SetBounds(D2D1::RectF(fx + 12, fy + 10, fx + 204, fy + 46));
     _findCaseToggle->SetToggleState(_find.matchCase);
     _findCaseToggle->SetBounds(wideFind ? D2D1::RectF(fx + 212.f, fy + 10.f, fx + 320.f, fy + 46.f)
@@ -936,10 +1225,11 @@ void Application::Layout()
         _blockDraftSession->pendingPlacement = false;
     if (_activeOverlay == OverlayKind::BlockDraftModal && _blockDraftSession)
     {
-        const auto& range = _blockDraftSession->range;
-        if (const auto rects = _editor->TryGetTextInputRangeRects(_host, range.first, range.last); rects && ! rects->empty())
+        const auto& range        = _blockDraftSession->range;
+        auto* const activeEditor = ActiveEditor();
+        if (const auto rects = activeEditor->TryGetTextInputRangeRects(_host, range.first, range.last); rects && ! rects->empty())
             draftTop = rects->back().bottom + 8;
-        else if (const auto caret = _editor->TryGetTextInputCaretRect(_host, range.first))
+        else if (const auto caret = activeEditor->TryGetTextInputCaretRect(_host, range.first))
             draftTop = caret->bottom + 8; // Empty/hidden-only source still has a prepared insertion site.
         else
             _blockDraftSession->pendingPlacement = true;
@@ -988,5 +1278,256 @@ void Application::Layout()
     if (_activeOverlay == OverlayKind::FloatingSelectionTools)
         SelectionChanged();
     _host.Invalidate();
+}
+
+void Application::ApplySidePaneOverlayBounds()
+{
+    if (! _root || ! _leftRail || ! _rightRail || ! _sidebar || ! _filesPane)
+        return;
+    const auto bounds      = _host.GetClientBoundsDip();
+    const float width      = bounds.right;
+    const float height     = bounds.bottom;
+    const bool focus       = _settings.focusMode;
+    const float top        = focus ? 40.f : 104.f;
+    const float bottom     = std::max(top + 120.f, height - 28.f);
+    const float filesWidth = static_cast<float>(_settings.filesWidth);
+    const auto& leftState  = _leftRail->State();
+    const auto& rightState = _rightRail->State();
+    const auto layoutReq   = _activity.layouts;
+
+    const bool rightOverlay      = rightState.autoCollapsed || rightState.phase == PaneAnimationPhase::Collapsing;
+    const bool showSidebar       = ! focus && _settings.showOutline &&
+                                   (rightState.mode == PaneDisplayMode::Docked || rightState.mode == PaneDisplayMode::HoverOverlay ||
+                                    rightState.phase == PaneAnimationPhase::Expanding || rightState.phase == PaneAnimationPhase::Collapsing);
+    const bool sidebarWasVisible = _sidebar->IsVisible();
+    if (showSidebar && ! sidebarWasVisible && ! PublishCurrentBlockLabelIfVisible(true))
+        return;
+    if (_activity.layouts != layoutReq)
+        return;
+    _sidebar->SetVisible(showSidebar);
+    if (_activity.layouts != layoutReq)
+        return;
+    const float rightProgress = (rightState.mode == PaneDisplayMode::Docked && rightState.phase == PaneAnimationPhase::Settled) ? 1.f : rightState.progress;
+    const float sx            = width - 240.f * rightProgress;
+    _sidebar->kind            = rightOverlay ? Surface::Kind::Floating : Surface::Kind::Sidebar;
+    _sidebar->borderLeft      = true;
+    _sidebar->SetBounds(D2D1::RectF(sx, top, sx + 240.f, bottom));
+    const float side   = sx + 16.f;
+    const float sRight = sx + 240.f;
+    _outlineTitle->SetBounds(D2D1::RectF(side + 4.f, top + 16.f, sRight - 100.f, top + 40.f));
+    _outlineCount->SetBounds(D2D1::RectF(sRight - 104.f, top + 16.f, sRight - 16.f, top + 40.f));
+    const float contextHeight = _equationContext ? 260.f : 128.f;
+    const float outlineHeight = std::max(40.f, static_cast<float>(_outlineModel.rows.size()) * 42.f + 4.f);
+    const float outlineBottom = std::min(top + 44.f + outlineHeight, std::max(top + 92.f, bottom - contextHeight));
+    _outlineTree->SetBounds(D2D1::RectF(side - 4.f, top + 44.f, sRight - 8.f, outlineBottom));
+    _contextDivider->SetBounds(D2D1::RectF(side + 4.f, outlineBottom + 12.f, sRight - 12.f, outlineBottom + 13.f));
+    _contextDivider->SetOrientation(DxUi::SeparatorOrientation::Horizontal);
+    _currentBlockTitle->SetBounds(D2D1::RectF(side + 4.f, outlineBottom + 28.f, sRight - 16.f, outlineBottom + 48.f));
+    _currentBlock->SetBounds(D2D1::RectF(side + 4.f, outlineBottom + 52.f, sRight - 16.f, outlineBottom + 76.f));
+    if (showSidebar && ! PublishCurrentBlockLabelIfVisible())
+        return;
+    if (_activity.layouts != layoutReq)
+        return;
+    _listSummaryIcon->SetBounds(D2D1::RectF(side + 4.f, outlineBottom + 52.f, side + 20.f, outlineBottom + 76.f));
+    _listSummary->SetBounds(D2D1::RectF(side + 28.f, outlineBottom + 52.f, sRight - 16.f, outlineBottom + 76.f));
+    _blockSourceAction->SetBounds(D2D1::RectF(side + 4.f, outlineBottom + 84.f, sRight - 20.f, outlineBottom + 116.f));
+    _equationHelp->SetVisible(_equationContext);
+    _equation->SetVisible(_equationContext);
+    _equationReadOnly->SetVisible(_equationContext);
+    _equationHelp->SetBounds(D2D1::RectF(side, outlineBottom + 132.f, sRight - 100.f, outlineBottom + 156.f));
+    _equationReadOnly->SetBounds(D2D1::RectF(sRight - 96.f, outlineBottom + 132.f, sRight - 16.f, outlineBottom + 156.f));
+    _equation->SetBounds(D2D1::RectF(side, outlineBottom + 164.f, sRight - 16.f, bottom - 16.f));
+
+    const bool leftOverlay   = leftState.autoCollapsed || leftState.phase == PaneAnimationPhase::Collapsing;
+    const bool showFiles     = ! focus && _settings.showFiles &&
+                               (leftState.mode == PaneDisplayMode::Docked || leftState.mode == PaneDisplayMode::HoverOverlay ||
+                                leftState.phase == PaneAnimationPhase::Expanding || leftState.phase == PaneAnimationPhase::Collapsing);
+    const bool showLeftRail  = ! focus && _settings.showFiles && (leftState.autoCollapsed || leftState.phase == PaneAnimationPhase::Collapsing);
+    const bool showRightRail = ! focus && _settings.showOutline && (rightState.autoCollapsed || rightState.phase == PaneAnimationPhase::Collapsing);
+    _leftRail->SetVisible(showLeftRail);
+    _rightRail->SetVisible(showRightRail);
+    _filesPane->SetVisible(showFiles);
+    const float leftProgress = (leftState.mode == PaneDisplayMode::Docked && leftState.phase == PaneAnimationPhase::Settled) ? 1.f : leftState.progress;
+    const float fxPane       = -filesWidth * (1.f - leftProgress);
+    const float fRight       = fxPane + filesWidth;
+    _filesPane->kind         = leftOverlay ? Surface::Kind::Floating : Surface::Kind::Sidebar;
+    _filesPane->borderRight  = true;
+    _filesPane->SetBounds(D2D1::RectF(fxPane, top, fRight, bottom));
+    _filesSectionTitle->SetBounds(D2D1::RectF(fxPane + 20.f, top + 16.f, fRight - 52.f, top + 40.f));
+    _closeFiles->SetBounds(D2D1::RectF(fRight - 44.f, top + 14.f, fRight - 12.f, top + 46.f));
+    _filesRootIcon->SetBounds(D2D1::RectF(fxPane + 20.f, top + 52.f, fxPane + 36.f, top + 78.f));
+    _filesTitle->SetBounds(D2D1::RectF(fxPane + 44.f, top + 52.f, fRight - 16.f, top + 78.f));
+    _filesFilter->SetBounds(D2D1::RectF(fxPane + 20.f, top + 84.f, fRight - 12.f, top + 114.f));
+    const float footerWidth   = filesWidth - 24.f;
+    const auto footerRevision = _filesCount->GetMeasureRevision(), typographyRevision = _host.GetTypographyRevision();
+    const auto footerDpi = _host.GetDpi();
+    // Keep hidden measurement keys stale; the first visible layout measures
+    // current text/width/typography/DPI before reserving the footer's bounds.
+    if (_filesPane->IsVisible() && (_filesFooterMeasure.widthDip != footerWidth || _filesFooterMeasure.textRevision != footerRevision ||
+                                    _filesFooterMeasure.typographyRevision != typographyRevision || _filesFooterMeasure.dpi != footerDpi))
+    {
+        DxUi::DesiredSize desired;
+        const HRESULT measured = DxUi::MeasureControl(*_filesCount, {_host}, DxUi::LayoutConstraints::AtMost(footerWidth), desired);
+        if (measured == E_OUTOFMEMORY)
+            DxUi::Failure::FailAllocation();
+        THROW_IF_FAILED(measured);
+        _filesFooterMeasure.widthDip           = footerWidth;
+        _filesFooterMeasure.heightDip          = std::max(24.f, std::ceil(desired.sizeDip.height));
+        _filesFooterMeasure.textRevision       = footerRevision;
+        _filesFooterMeasure.typographyRevision = _host.GetTypographyRevision();
+        _filesFooterMeasure.dpi                = footerDpi;
+        ++_filesFooterMeasure.measurements;
+    }
+    const float footerTop = bottom - 8.f - _filesFooterMeasure.heightDip;
+    _filesFooterDivider->SetBounds(D2D1::RectF(fxPane, footerTop - 8.f, fRight, footerTop - 7.f));
+    _filesTree->SetBounds(D2D1::RectF(fxPane + 4.f, top + 122.f, fRight - 4.f, footerTop - 4.f));
+    _filesCount->SetBounds(D2D1::RectF(fxPane + 12.f, footerTop, fRight - 12.f, bottom - 8.f));
+    _filesSplitter->SetVisible(! focus && _settings.showFiles && ! leftState.autoCollapsed && leftState.mode == PaneDisplayMode::Docked &&
+                               leftState.phase == PaneAnimationPhase::Settled);
+    _host.Invalidate();
+}
+
+void Application::UpdateSplitHeaders()
+{
+    if (! _page || ! _editor || ! _mirror)
+        return;
+    const bool split        = _settings.view == EditorView::Split;
+    const bool sourceActive = split && _splitActivePane == SplitActivePane::Source;
+    const auto& theme       = _host.GetTheme();
+    _editor->SetAccessibleName(Resource(static_cast<unsigned>(! split ? IDS_DOC : sourceActive ? IDS_SPLIT_COMPOSE_PREVIEW : IDS_SPLIT_COMPOSE_EDITING)));
+    _mirror->SetAccessibleName(Resource(static_cast<unsigned>(! split ? IDS_MIRROR : sourceActive ? IDS_SPLIT_SOURCE_EDITING : IDS_SPLIT_SOURCE_MIRROR)));
+    if (! _splitComposeTitle)
+        return;
+    const bool showHeader = split && ! _settings.focusMode;
+    _splitComposeTitle->SetTextColor(sourceActive ? std::optional(theme.subduedText) : std::nullopt);
+    _splitSourceTitle->SetTextColor(sourceActive ? std::nullopt : std::optional(theme.subduedText));
+    _splitComposeChip->SetText(Resource(sourceActive ? IDS_READONLYSHORT : IDS_SPLIT_EDITING_CHIP));
+    _splitComposeChip->SetTextColor(sourceActive ? std::optional(theme.subduedText) : std::optional(theme.selectionText));
+    _splitSourceChip->SetText(Resource(sourceActive ? IDS_SPLIT_EDITING_CHIP : IDS_READONLYSHORT));
+    _splitSourceChip->SetTextColor(sourceActive ? std::optional(theme.selectionText) : std::optional(theme.subduedText));
+    _splitComposeChipBg->SetVisible(showHeader && sourceActive);
+    _splitSourceChipBg->SetVisible(showHeader && ! sourceActive);
+    _splitSwitchHint->SetTextColor(theme.subduedText);
+    _splitScrollSyncButton->SetToggleState(_settings.splitScrollSync);
+    _splitScrollSyncButton->SetTooltipText(Resource(_settings.splitScrollSync ? IDS_TIP_SPLIT_SCROLL_ON : IDS_TIP_SPLIT_SCROLL_OFF));
+    _page->splitChrome.sourceActive = sourceActive;
+    _page->splitChrome.linked       = _settings.splitScrollSync;
+}
+
+void Application::DismissHoverOverlays(bool animated)
+{
+    _explicitPaneRevealSide.reset();
+    auto dismiss = [&](CollapsedPaneRail* rail)
+    {
+        if (! rail)
+            return;
+        const auto& state = rail->State();
+        rail->CancelHoverDwell();
+        if (state.mode == PaneDisplayMode::HoverOverlay || state.phase == PaneAnimationPhase::Expanding || state.phase == PaneAnimationPhase::LeaveGrace)
+        {
+            if (animated && ! _host.GetTheme().reducedMotion)
+                rail->StartCollapse(_host, true);
+            else
+                rail->SnapToMode(PaneDisplayMode::CollapsedRail, true);
+        }
+    };
+    dismiss(_leftRail);
+    dismiss(_rightRail);
+    ApplySidePaneOverlayBounds();
+}
+
+bool Application::IsPaneOverlayActive(PaneSide side) const noexcept
+{
+    const auto* const rail = side == PaneSide::Left ? _leftRail : _rightRail;
+    if (! rail)
+        return false;
+    const auto& state = rail->State();
+    return state.phase != PaneAnimationPhase::Collapsing &&
+           (state.mode == PaneDisplayMode::HoverOverlay ||
+            (state.autoCollapsed && (state.phase == PaneAnimationPhase::Expanding || state.phase == PaneAnimationPhase::LeaveGrace)));
+}
+
+void Application::UpdateHoverOverlayPointer(D2D1_POINT_2F clientDip, bool insideWindow)
+{
+    _lastPointerClientDip = clientDip;
+    _pointerInsideClient  = insideWindow;
+    const auto contains   = [](const D2D1_RECT_F& rect, D2D1_POINT_2F point) noexcept
+    { return point.x >= rect.left && point.x < rect.right && point.y >= rect.top && point.y < rect.bottom; };
+    auto update = [&](CollapsedPaneRail* rail, Surface* pane, PaneSide side)
+    {
+        if (! rail || ! rail->IsVisible() || ! pane)
+            return;
+        const bool inside = insideWindow && (contains(rail->GetBounds(), clientDip) ||
+                                             (pane->IsVisible() && rail->State().autoCollapsed && contains(pane->GetBounds(), clientDip)));
+        if (inside && _explicitPaneRevealSide == side)
+            _explicitPaneRevealSide.reset();
+        if (! inside && _explicitPaneRevealSide == side)
+            return;
+        rail->HandlePointerMoveDip(_host, clientDip, inside);
+    };
+    update(_leftRail, _filesPane, PaneSide::Left);
+    update(_rightRail, _sidebar, PaneSide::Right);
+}
+
+void Application::OnRailDotActivated(PaneSide side, std::size_t itemIndex)
+{
+    if (HasBlockDraft() || HasActiveModalPrompt() || _files.Busy() || _switchingDocument || IsClosing())
+        return;
+    DismissHoverOverlays(false);
+    if (side == PaneSide::Right)
+    {
+        if (itemIndex >= _documentInfo.headings.size())
+            return;
+        const auto offset  = _documentInfo.headings[itemIndex].offset;
+        auto* const active = ActiveEditor();
+        if (! AcceptSourceResult(active->TrySetSelection({offset, offset})))
+            return;
+        (void)active->ScrollSourceRangeIntoView(_host, offset, offset, true);
+        _host.SetFocusControl(active, MayRequestNativeFocus());
+        SelectionChanged();
+        return;
+    }
+    const auto activeDirtyKey = itemIndex;
+    if (activeDirtyKey == _session.key)
+    {
+        _host.SetFocusControl(ActiveEditor(), MayRequestNativeFocus());
+        return;
+    }
+    for (std::size_t i = 0; i < _inactiveDocuments.size(); ++i)
+    {
+        if (_inactiveDocuments[i].metadata.key == activeDirtyKey)
+        {
+            const bool previous          = _workspaceSelectionPreferred;
+            _workspaceSelectionPreferred = true;
+            if (! SwitchWorkspaceDocument(i))
+            {
+                _workspaceSelectionPreferred = previous;
+                if (IsUiAttached())
+                    RefreshFiles();
+            }
+            return;
+        }
+    }
+}
+
+void Application::OnRailExpandClicked(PaneSide side)
+{
+    auto* const rail = side == PaneSide::Left ? _leftRail : _rightRail;
+    auto* const peer = side == PaneSide::Left ? _rightRail : _leftRail;
+    if (! rail || ! rail->IsVisible())
+        return;
+    if (peer && (peer->State().mode == PaneDisplayMode::HoverOverlay || peer->State().phase == PaneAnimationPhase::Expanding))
+        peer->StartCollapse(_host, true);
+    if (rail->State().mode == PaneDisplayMode::HoverOverlay)
+    {
+        _explicitPaneRevealSide.reset();
+        rail->StartCollapse(_host, true);
+    }
+    else
+    {
+        _explicitPaneRevealSide = side;
+        rail->StartExpand(_host, true);
+    }
+    ApplySidePaneOverlayBounds();
 }
 } // namespace RedTilde

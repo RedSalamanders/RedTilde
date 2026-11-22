@@ -4,9 +4,11 @@
 #include "Application.Tests.FailureHost.h"
 #include "Application.Tests.Files.h"
 #include "Application.Tests.HeapDiagnostic.h"
+#include "Application.Tests.Panes.h"
 #include "Application.Tests.Printing.h"
 #include "Application.Tests.RemoteImages.h"
 #include "Application.Tests.Settings.h"
+#include "Application.Tests.SplitEditing.h"
 #include "RedTilde/KeyboardState.h"
 #include "Support/Support.Tests.BitmapAssets.h"
 #include "Support/Support.Tests.Foreground.h"
@@ -324,6 +326,8 @@ int RunCoreTests(const std::filesystem::path& root, CoreTestScope scope, bool li
     RegisterRemoteImageTests(root, test);
     RegisterFailureHostTests(root, test);
     RegisterSettingsTests(root, test);
+    RegisterPanesTests(root, test);
+    RegisterSplitEditingTests(root, test);
     Testing::RegisterStorageSafetyTests(root, test);
     test("Utf8.CI_ASSERTION_PROBE",
          []

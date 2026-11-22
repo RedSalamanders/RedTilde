@@ -72,6 +72,7 @@ struct Settings
     bool allowLocalNetworkImages = false;
     bool imageFirstPaste         = false;
     bool strikeCompletedTasks    = false;
+    bool splitScrollSync         = true;
     std::optional<WindowPlacementSettings> windowPlacement;
     std::array<bool, MarkdownSyntaxCount> markdownSyntax{true, true, true, true, true, true, true};
     [[nodiscard]] bool SyntaxEnabled(MarkdownSyntax syntax) const noexcept

@@ -162,6 +162,21 @@
       "reason": "JSON5 settings store, legacy migration, and live SettingsWatcher regressions"
     },
     {
+      "pattern": "Tests/Application.Tests.Panes.*",
+      "scopes": [
+        "Editor"
+      ],
+      "reason": "right panel toggle parity, responsive auto-collapse rails, animations, and dot navigation"
+    },
+    {
+      "pattern": "Tests/Application.Tests.SplitEditing.*",
+      "scopes": [
+        "Settings",
+        "Editor"
+      ],
+      "reason": "bidirectional Split editing, linked scroll sync, active-view Find, and splitScrollSync settings"
+    },
+    {
       "pattern": "SettingsStore.schema.json",
       "scopes": [
         "Settings",

@@ -10,6 +10,7 @@
 #include "ImageLoader.h"
 #include "NavigationModel.h"
 #include "Printing.h"
+#include "SidePaneRail.h"
 #include "UiControls.h"
 #include <array>
 #include <cstdint>
@@ -111,7 +112,15 @@ enum class Command
     OpenLink,
     ImageFirstPaste,
     Print,
-    CloseDocument
+    CloseDocument,
+    SwitchSplitPane,
+    ToggleSplitScrollSync
+};
+
+enum class SplitActivePane : std::uint8_t
+{
+    Compose,
+    Source
 };
 enum class SaveConflictChoice
 {
@@ -164,6 +173,7 @@ struct ApplicationActivity
     mutable std::uint64_t dirtyTextComparisons{};
     std::uint64_t recoveryTextCopies{};
     std::uint64_t workspaceSwitches{}, workspaceRetainedPeak = 1;
+    std::uint64_t splitPaneSwitches{}, splitScrollSyncs{};
 };
 class PerformanceProbe;
 // Existing identity/RAII/reference traits intentionally delete these implicit operations.
@@ -316,7 +326,7 @@ public:
     }
     [[nodiscard]] Editor& Document() const
     {
-        return *_editor;
+        return *ActiveEditor();
     }
     [[nodiscard]] DxUi::ControlHost& Host()
     {
@@ -367,9 +377,17 @@ public:
     {
         return _activity;
     }
-    [[nodiscard]] const DxUi::RichTextEditor& SourceMirror() const noexcept
+    [[nodiscard]] const Editor& SourceMirror() const noexcept
     {
-        return *_mirror;
+        return *MirrorEditor();
+    }
+    [[nodiscard]] SplitActivePane ActiveSplitPane() const noexcept
+    {
+        return _splitActivePane;
+    }
+    [[nodiscard]] bool IsSplitScrollSyncEnabled() const noexcept
+    {
+        return _settings.splitScrollSync;
     }
 
 private:
@@ -384,6 +402,8 @@ private:
     friend class FilesProbe;
     friend class RecoveryProbe;
     friend class SettingsProbe;
+    friend class PanesProbe;
+    friend class SplitEditingProbe;
 #endif
     template <class Action> void RunUiAction(Action&& action) noexcept
     {
@@ -585,9 +605,29 @@ private:
     std::optional<PendingBitmapPaste> _pendingBitmapPaste;
     std::vector<DxUi::RichText::RichImageRequest> _imageRequests;
     Editor* _editor{};
-    DxUi::RichTextEditor* _mirror{};
+    Editor* _mirror{};
+    CollapsedPaneRail* _leftRail{};
+    CollapsedPaneRail* _rightRail{};
     Surface *_root{}, *_documentBar{}, *_commandBar{}, *_page{}, *_sidebar{}, *_floating{}, *_drawer{}, *_findBar{}, *_blockDraft{};
+    DxUi::CardPanel *_splitComposeChipBg{}, *_splitSourceChipBg{};
     DxUi::Label *_title{}, *_saveState{}, *_stats{}, *_feedback{}, *_outlineTitle{}, *_equationHelp{}, *_modeHint{};
+    DxUi::Label *_splitComposeTitle{}, *_splitSourceTitle{}, *_splitComposeChip{}, *_splitSourceChip{}, *_splitSwitchHint{};
+    DxUi::Button* _splitScrollSyncButton{};
+    std::optional<PaneSide> _explicitPaneRevealSide;
+    SplitActivePane _splitActivePane = SplitActivePane::Compose;
+    bool _leftAutoCollapsed          = false;
+    bool _rightAutoCollapsed         = false;
+    bool _splitScrollSyncInProgress  = false;
+    struct PendingSplitScroll
+    {
+        Editor* source{};
+        float scrollDip{};
+    };
+    std::optional<PendingSplitScroll> _pendingSplitScroll;
+    std::optional<float> _pendingComposeScrollRestore;
+    std::optional<float> _pendingSourceScrollRestore;
+    D2D1_POINT_2F _lastPointerClientDip{-1.0f, -1.0f};
+    bool _pointerInsideClient = false;
     DxUi::RichTextEditor* _equation{};
     DxUi::TextField* _findText{};
     DxUi::Button* _findCaseToggle{};
@@ -784,6 +824,22 @@ private:
     void SetActiveOverlay(OverlayKind next);
     [[nodiscard]] bool ReconcilePostPreparePlacement();
     void CloseDrawers();
+    [[nodiscard]] Editor* ActiveEditor() const noexcept;
+    [[nodiscard]] Editor* MirrorEditor() const noexcept;
+    void BindEditorCallbacks();
+    void SwitchSplitActivePane(SplitActivePane target, bool moveFocus = false, std::optional<DxUi::RichText::Selection> overrideSelection = std::nullopt);
+    void EnsurePrimaryEditorAuthoritative();
+    void OnSplitPaneScrolled(Editor* sourcePane, float scrollDip);
+    void ApplySplitScrollSync(Editor* sourcePane, float scrollDip, bool allowDefer = true);
+    void UpdateSplitHeaders();
+    void ApplySidePaneOverlayBounds();
+    void DismissHoverOverlays(bool animated = true);
+    [[nodiscard]] bool IsPaneOverlayActive(PaneSide side) const noexcept;
+    void UpdateHoverOverlayPointer(D2D1_POINT_2F clientDip, bool insideWindow);
+    void RefreshLeftRailDots();
+    void RefreshRightRailDots();
+    void OnRailDotActivated(PaneSide side, size_t itemIndex);
+    void OnRailExpandClicked(PaneSide side);
     void BeginClose();
     void ResumeAfterSaveClose();
     void RecoveryCompleted();

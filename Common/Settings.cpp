@@ -412,6 +412,7 @@ try
     ReadJsonBool(root, "allowLocalNetworkImages", parsed.allowLocalNetworkImages);
     ReadJsonBool(root, "imageFirstPaste", parsed.imageFirstPaste);
     ReadJsonBool(root, "strikeCompletedTasks", parsed.strikeCompletedTasks);
+    ReadJsonBool(root, "splitScrollSync", parsed.splitScrollSync);
 
     if (yyjson_val* placementObj = yyjson_obj_get(root, "windowPlacement"); placementObj && yyjson_is_obj(placementObj))
     {
@@ -531,6 +532,7 @@ std::string SerializeSettings(const Settings& settings, std::string_view existin
     PutObjectBool(mutDoc.get(), root, "allowLocalNetworkImages", settings.allowLocalNetworkImages);
     PutObjectBool(mutDoc.get(), root, "imageFirstPaste", settings.imageFirstPaste);
     PutObjectBool(mutDoc.get(), root, "strikeCompletedTasks", settings.strikeCompletedTasks);
+    PutObjectBool(mutDoc.get(), root, "splitScrollSync", settings.splitScrollSync);
 
     if (settings.windowPlacement && ValidWindowPlacement(settings.windowPlacement.value()))
     {

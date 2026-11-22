@@ -33,10 +33,17 @@ after normalization, and keep each accepted replacement in one source/history tr
 
 - **Compose** renders supported Markdown and edits its source through DxUi semantic commands.
 - **Source** displays exact Markdown in the same editor/document/history.
-- **Split** keeps Compose editable and shows a read-only exact-source mirror. Entering Split synchronizes
-  current source and selection; edits update the mirror while it is visible. Compose/Source defer its hidden
-  updates. Selecting a mirror range may navigate the authoritative editor. The mirror never becomes a second
-  independently editable document.
+- **Split** displays Compose on the left and Source on the right over one shared `DxUi::RichText::Document` and
+  unified 128-step Undo/Redo history ([Side panes and bidirectional split editing](../Plans/Done/SidePanesAndSplitEditing_2026-11-22.md)).
+  Clicking inside either pane's text viewport or pressing `F6`
+  transfers authoritative editing (`ExchangeDocumentState`) to that side while keeping the opposite side a read-only
+  synchronized mirror (scrollbar pointer clicks never steal active edit focus; leaving Split or switching workspace
+  documents returns authority cleanly to `_editor`). Entering Split and subsequent edits synchronize source, selection,
+  and when `splitScrollSync` is enabled (`true` by default, toggleable via the center Split seam button or
+  `Ctrl+Shift+Y`), vertical scope via source-offset alignment guarded against ping-pong reentrancy; disabling
+  `splitScrollSync` allows completely independent scrolling on both panes and suppresses automatic mirror selection
+  scroll. Toolbar commands, Find/Replace highlights, and `FloatingSelectionTools` follow `ActiveEditor()->GetViewMode()`.
+  Compose/Source defer hidden mirror updates, and the mirror never becomes a second independent editable document.
 - The read-only Source mirror shares the primary immutable snapshot through the pinned public DxUi API while
   retaining its own revision counter and independent parser. Changed source retires derived state; same source
   and selection skip repeated work. An incompatible mirror profile retains exact `SetText` fallback. After any
@@ -125,7 +132,9 @@ numbered lists, tasks, quotes, links, images, fenced code, tables and table-row/
 public planner when supported. An outline derives from ATX headings outside fences and navigates source ranges.
 Refresh its source offsets on every edit, including prose inserted before a heading; unchanged labels and levels
 do not require chrome layout. Renaming, changing the level or adding/removing a heading updates the visible outline.
-Find operates on source, wraps with a visible result, and selects/reveals the match. Never search rendered-only text.
+Find operates on the current editable view's exact Markdown source (`ActiveEditor()` in Split, clearing any passive mirror
+highlights), wraps with a visible result, and selects/reveals the match. Never search rendered-only text. Switching active
+Split panes transfers match highlights and active-pane overlay placement without rescanning `MatchTable`.
 Find is case-insensitive by default, using locale-independent ordinal Unicode comparison. A localized Match case
 toggle enables exact case matching. Preserve original UTF-16 ACPs and source edit boundaries in either mode.
 `FindController` owns one `MatchTable` (cached by source revision, query and case preference) and derived
@@ -164,9 +173,9 @@ unchanged. Text for a disabled family remains exact literal source. Undo and red
 text-service preview is active and return when it is cancelled or committed.
 
 Shortcuts: Ctrl+N/O/S/W/P, Ctrl+Shift+O for Open Folder, Ctrl+Shift+S, Ctrl+Z/Y, Ctrl+B/I/E/K, Ctrl+F, F3/Shift+F3, Ctrl+1/2/3 for Compose/Source/Split,
-Ctrl+Shift+E for the Files pane, F2 local source, F11 focus mode, Ctrl+, settings, Esc dismiss/restore. Keep native
+Ctrl+Shift+E for the Files pane, Ctrl+Shift+L for the Outline panel, F6 to switch the active Split side, Ctrl+Shift+Y to toggle Split linked scrolling, F2 local source, F11 focus mode, Ctrl+, settings, Esc dismiss/restore. Keep native
 IME handling ahead of commands that could interrupt composition. Ctrl accelerators exclude Alt so AltGr text reaches
-native translation; F2/F11 are unmodified, F3 permits only optional Shift, and Alt+F10 excludes Ctrl/Shift.
+native translation; F2/F6/F11 are unmodified, F3 permits only optional Shift, and Alt+F10 excludes Ctrl/Shift.
 Keyboard-only access must reach formatting,
 outline, Files, settings and menus. Compose/Source/Split use segmented command buttons with consumer-owned,
 mutually exclusive toggle state exposed through UI Automation; they are not a RadioGroup.

@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <vector>
 #include <wil/com.h>
 
@@ -32,81 +33,63 @@ public:
         Sidebar,
         Floating
     };
+    struct SplitChromeState
+    {
+        float headerHeightDip = 30.f;
+        float splitX{};
+        D2D1_RECT_F activeChipRect{};
+        bool active{};
+        bool sourceActive{};
+        bool linked{true};
+    };
     explicit Surface(Kind value = Kind::Chrome) : kind(value)
     {
     }
     // Product region boundaries; child control chrome remains library-owned.
     bool borderLeft{}, borderRight{}, borderBottom{};
-    void Paint(DxUi::ControlHost& host) const override
-    {
-        auto* target = host.GetDeviceContext();
-        if (! target)
-            return;
-        const auto& theme = host.GetTheme();
-        const auto bounds = GetBounds();
-        if (kind == Kind::Floating)
-        {
-            DxUi::TransientSurfaceOptions options;
-            options.cornerRadiusDip = 10;
-            DxUi::PaintTransientSurface(host, bounds, options);
-        }
-        else
-        {
-            const auto color = kind == Kind::Canvas ? theme.cardBackground : kind == Kind::Chrome ? theme.windowBackground : theme.surfaceBackground;
-            target->FillRectangle(bounds, host.GetSolidBrush(color));
-            if (auto* line = host.GetSolidBrush(theme.borderDefault))
-            {
-                if (borderLeft)
-                    target->DrawLine(D2D1::Point2F(bounds.left, bounds.top), D2D1::Point2F(bounds.left, bounds.bottom), line);
-                if (borderRight)
-                    target->DrawLine(D2D1::Point2F(bounds.right - 1, bounds.top), D2D1::Point2F(bounds.right - 1, bounds.bottom), line);
-                if (borderBottom)
-                    target->DrawLine(D2D1::Point2F(bounds.left, bounds.bottom - 1), D2D1::Point2F(bounds.right, bounds.bottom - 1), line);
-            }
-        }
-        DxUi::Panel::Paint(host);
-    }
+    SplitChromeState splitChrome;
+    void Paint(DxUi::ControlHost& host) const override;
     Kind kind;
-};
-#pragma warning(pop)
 
-// Existing identity/RAII/reference traits intentionally delete these implicit operations.
-// Preserve aggregate and overload behavior. Owner: repository maintainers; review: 2027-01-31.
-#pragma warning(push)
-#pragma warning(disable : 4625 4626 5026 5027)
+private:
+    mutable wil::com_ptr<ID2D1StrokeStyle> _dashedStroke;
+};
+
+class SubtleToggleButton final : public DxUi::Button
+{
+public:
+    using DxUi::Button::Button;
+    void Paint(DxUi::ControlHost& host) const override;
+};
+
 class Editor final : public DxUi::RichTextEditor
 {
 public:
     using DxUi::RichTextEditor::RichTextEditor;
+
+    void SetSyntaxAdoptionPeer(Editor* peer) noexcept
+    {
+        _syntaxPeer         = peer;
+        _syntaxPeerLifetime = peer ? GetControlLifetimeToken(*peer) : std::weak_ptr<int>{};
+    }
+    void SetOnBeforePassivePointerActivate(std::function<bool(std::optional<DxUi::RichText::Selection>)> callback)
+    {
+        _onBeforePassivePointerActivate = std::move(callback);
+    }
+    bool OnMouseDown(DxUi::ControlHost& host, D2D1_POINT_2F point, bool rightButton, UINT modifiers) noexcept override;
+
+protected:
+    [[nodiscard]] HRESULT PrepareContent(DxUi::ControlHost& host) noexcept override;
 
 private:
     [[nodiscard]] bool IsAttachedTo(const DxUi::ControlHost& host, const DxUi::Control* parent) const noexcept
     {
         return GetHost() == &host && GetParent() == parent;
     }
-    friend class SourceMirrorEditor;
-};
-#pragma warning(pop)
 
-// Read-only derived Source view. The primary pointer is borrowed for this
-// control's lifetime and is checked before each opportunistic syntax adoption.
-// Existing identity/RAII/reference traits intentionally delete these implicit operations.
-// Preserve aggregate and overload behavior. Owner: repository maintainers; review: 2027-01-31.
-#pragma warning(push)
-#pragma warning(disable : 4625 4626 5026 5027)
-class SourceMirrorEditor final : public DxUi::RichTextEditor
-{
-public:
-    explicit SourceMirrorEditor(Editor& primary) : _primary(&primary), _primaryLifetime(GetControlLifetimeToken(primary))
-    {
-    }
-
-protected:
-    [[nodiscard]] HRESULT PrepareContent(DxUi::ControlHost& host) noexcept override;
-
-private:
-    Editor* _primary{};
-    std::weak_ptr<int> _primaryLifetime;
+    Editor* _syntaxPeer{};
+    std::weak_ptr<int> _syntaxPeerLifetime;
+    std::function<bool(std::optional<DxUi::RichText::Selection>)> _onBeforePassivePointerActivate;
 };
 #pragma warning(pop)
 

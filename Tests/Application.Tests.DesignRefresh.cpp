@@ -1648,7 +1648,11 @@ public:
             {
                 app._settings.showFiles = true;
                 Resize(app, 1024, 900, 96, false);
-                Require(app._filesPane->IsVisible() && app._filesPane->borderRight && ! app._filesSplitter->IsVisible(),
+                Require(app._leftRail->IsVisible() && app._rightRail->IsVisible() && ! app._filesPane->IsVisible() && ! app._sidebar->IsVisible() &&
+                            ! app._filesSplitter->IsVisible(),
+                        "the narrow viewport collapses both panes to edge rails without showing the splitter");
+                app.OnRailExpandClicked(PaneSide::Left);
+                Require(app._filesPane->IsVisible() && app._filesPane->borderRight && ! app._filesSplitter->IsVisible() && ! app._sidebar->IsVisible(),
                         "the file-overlay fixture is active rather than a normal left Files pane");
             },
                 [&]
@@ -1833,11 +1837,12 @@ public:
                         Resize(app, width, width == 800 ? 560 : 900, dpi);
                         CheckChrome(app);
                         const auto actual = app.Host().GetClientBoundsDip();
-                        if (actual.right < 1142)
+                        if (actual.right < 1170)
                         {
-                            Require(! app._sidebar->IsVisible() && ! app._filesSplitter->IsVisible() && app._filesPane->IsVisible() &&
-                                        Near(app._page->GetBounds().left, 0),
-                                    std::format("Files overlay width={} dpi={} files={} reading={} sidebar={} splitter={} pane={} left={}",
+                            Require(! app._sidebar->IsVisible() && ! app._filesSplitter->IsVisible() && ! app._filesPane->IsVisible() &&
+                                        app._leftRail->IsVisible() && app._rightRail->IsVisible() &&
+                                        Near(app._page->GetBounds().left, CollapsedPaneRail::RailWidthDip),
+                                    std::format("Collapsed rails width={} dpi={} files={} reading={} sidebar={} splitter={} pane={} left={}",
                                                 actual.right,
                                                 dpi,
                                                 app._settings.filesWidth,
@@ -1850,14 +1855,15 @@ public:
                             if (width == 800)
                                 Require(app._overflowButton->IsVisible(), "the minimum-width command row moves hidden groups into overflow");
                         }
-                        if (actual.right >= 1382)
+                        if (actual.right >= 1400)
                             Require(app._sidebar->IsVisible() && app._filesPane->IsVisible() && app._filesSplitter->IsVisible() &&
+                                        ! app._leftRail->IsVisible() && ! app._rightRail->IsVisible() &&
                                         ! Overlap(app._filesPane->GetBounds(), app._page->GetBounds()) &&
                                         ! Overlap(app._sidebar->GetBounds(), app._page->GetBounds()),
                                     "wide layout shows both panes beside the canvas without overlap");
-                        if (actual.right >= 1142 && actual.right <= 1300)
-                            Require(! app._sidebar->IsVisible() && app._filesSplitter->IsVisible(),
-                                    "the right panel collapses before the Files pane becomes an overlay");
+                        if (actual.right >= 1194 && actual.right <= 1375)
+                            Require(! app._sidebar->IsVisible() && app._rightRail->IsVisible() && app._filesSplitter->IsVisible(),
+                                    "the right panel collapses before the Files pane becomes an edge rail");
                         if (app._filesSplitter->IsVisible())
                             Require(app._editor->GetBounds().right - app._editor->GetBounds().left >=
                                             static_cast<float>(app.Preferences().readingWidth) - 0.1f &&
@@ -3815,6 +3821,9 @@ public:
             const std::wstring completeFooter(app._filesCount->GetText());
             app._settings.filesWidth = 200;
             Resize(app, 800, 560, 96);
+            Require(app._leftRail->IsVisible() && ! app._filesPane->IsVisible(),
+                    "narrow viewport collapses Files to rail while deferring hidden footer measurement");
+            app.OnRailExpandClicked(PaneSide::Left);
             DxUi::DesiredSize desired;
             Success(DxUi::MeasureControl(*app._filesCount, {app.Host()}, DxUi::LayoutConstraints::AtMost(176.f), desired),
                     "independently measure the complete wrapped footer through canonical DxUi");
@@ -3860,6 +3869,9 @@ public:
             }
             app._settings.showFiles = true;
             app.Layout();
+            Require(app._leftRail->IsVisible() && ! app._filesPane->IsVisible(),
+                    "re-enabling Files at narrow 800x560 enters CollapsedRail before explicit hover expansion");
+            app.OnRailExpandClicked(PaneSide::Left);
             Require(app._filesPane->IsVisible() && app._filesFooterMeasure.measurements == hiddenMeasures + 1 &&
                         app._filesFooterMeasure.textRevision == app._filesCount->GetMeasureRevision() &&
                         app._filesFooterMeasure.typographyRevision == app.Host().GetTypographyRevision() && Near(app._filesFooterMeasure.widthDip, 176) &&
@@ -3885,6 +3897,9 @@ public:
                     "Focus mode also defers measurements for a requested but logically hidden Files pane");
             app._settings.focusMode = false;
             app.Layout();
+            Require(app._leftRail->IsVisible() && ! app._filesPane->IsVisible() && app._filesFooterMeasure.measurements == hiddenMeasures + 1,
+                    "leaving Focus at narrow 800x560 keeps Files collapsed in rail until hover-expanded");
+            app.OnRailExpandClicked(PaneSide::Left);
             Require(app._filesPane->IsVisible() && app._filesFooterMeasure.measurements == hiddenMeasures + 2 &&
                         Near(app._filesCount->GetBounds().bottom - app._filesCount->GetBounds().top, 24),
                     "leaving Focus measures a stale short footer once and restores its minimum height");

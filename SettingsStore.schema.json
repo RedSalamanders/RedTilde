@@ -100,6 +100,11 @@
       "default": false,
       "description": "Apply strikethrough presentation to completed Markdown task items."
     },
+    "splitScrollSync": {
+      "type": "boolean",
+      "default": true,
+      "description": "Link vertical scrolling between Compose and Source panes in Split view."
+    },
     "windowPlacement": {
       "type": "object",
       "description": "Normal screen-coordinate window bounds, source DPI, and maximized state.",

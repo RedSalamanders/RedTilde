@@ -76,12 +76,14 @@ void Application::RefreshOutline()
     _outlineCount->SetText(FormatStringResource(nullptr, IDS_OUTLINECOUNT, headingCount));
     if (_outlineModel.rows.size() != previousRows)
         Layout();
+    RefreshRightRailDots();
     if (_activeOverlay == OverlayKind::FindBar)
         RefreshFind();
 }
 void Application::UpdateCurrentFileDirtyBadge(bool dirty)
 {
-    _lastFilesDirty     = dirty;
+    _lastFilesDirty = dirty;
+    RefreshLeftRailDots();
     auto* const tree    = _filesTree;
     const auto lifetime = GetControlLifetimeToken(*tree);
     const auto key      = _session.key;
@@ -198,6 +200,7 @@ void Application::RefreshFiles(bool rootChanged)
     _filesTitle->SetTooltipText(requested.native());
     _filesTitle->SetAccessibleHelpText(requested.native());
     _lastFilesDirty = Dirty();
+    RefreshLeftRailDots();
     ++_activity.filesModelRebuilds;
     _filesModel.rows.clear();
     _visibleFilePaths.clear();
@@ -405,6 +408,7 @@ bool Application::SwitchWorkspaceDocument(std::size_t index, bool savePreviousRe
     _pendingBitmapPaste.reset();
     if (! CanAcceptCommand())
         return false;
+    EnsurePrimaryEditorAuthoritative();
     if (index >= _inactiveDocuments.size() || _files.Busy() || HasBlockDraft() || HasActiveModalPrompt())
     {
         Status(IDS_BUSY);
@@ -472,6 +476,7 @@ bool Application::SwitchWorkspaceDocument(std::size_t index, bool savePreviousRe
 }
 bool Application::StartWorkspaceDocument()
 {
+    EnsurePrimaryEditorAuthoritative();
     if (_session.path.empty() && ! Dirty() && ! _editor->CanUndo() && ! _editor->CanRedo())
         return true;
     if (_inactiveDocuments.size() + 1 >= RecoveryService::MaximumDocuments)
@@ -492,6 +497,7 @@ bool Application::StartWorkspaceDocument()
 }
 void Application::ResetWorkspace()
 {
+    EnsurePrimaryEditorAuthoritative();
     for (const auto& document : _inactiveDocuments)
         if (FAILED(_recovery.SubmitDocument(document.metadata.key, std::nullopt, true)))
             Status(IDS_RECOVERYFAILED);
@@ -502,6 +508,7 @@ void Application::ResetWorkspace()
     _workspaceSelectionPreferred = false;
     _session.key                 = 0;
     _workspaceApprovals.clear();
+    RefreshLeftRailDots();
 }
 void Application::CheckpointWorkspaceRecovery()
 {
@@ -558,7 +565,7 @@ void Application::OpenPath(const std::filesystem::path& path)
             }
             return;
         }
-    auto entrySource     = _editor->Snapshot();
+    auto entrySource     = ActiveEditor()->Snapshot();
     const HRESULT result = _files.Submit(false, path);
     if (SUCCEEDED(result))
     {
@@ -579,6 +586,7 @@ void Application::CloseActiveDocument()
     {
         if (! CanAcceptCommand() || ! IsUiAttached())
             return;
+        EnsurePrimaryEditorAuthoritative();
         if (_inactiveDocuments.empty())
         {
             ResetWorkspace();
@@ -661,7 +669,7 @@ bool Application::OpenDroppedFile(const std::filesystem::path& path)
             Status(IDS_BUSY);
             return;
         }
-        auto entrySource = _editor->Snapshot();
+        auto entrySource = ActiveEditor()->Snapshot();
         const HRESULT hr = _files.Submit(false, normalized);
         if (FAILED(hr))
         {
@@ -680,6 +688,8 @@ void Application::RefreshFind()
 {
     if (_find.updating || ! _findText)
         return;
+    auto* const activeEditor = ActiveEditor();
+    auto* const mirrorEditor = MirrorEditor();
     if (_activeOverlay != OverlayKind::FindBar)
     {
         if (! _find.IsPresentationActive())
@@ -696,7 +706,10 @@ void Application::RefreshFind()
 
         if (_find.projections.hasHighlights)
         {
-            (void)AcceptSourceResult(_editor->TrySetSourceHighlights({}));
+            if (activeEditor)
+                (void)AcceptSourceResult(activeEditor->TrySetSourceHighlights({}));
+            if (mirrorEditor && mirrorEditor != activeEditor)
+                mirrorEditor->ClearSourceHighlights();
             ++_activity.findHighlightUpdates;
             _find.projections.hasHighlights = false;
         }
@@ -711,12 +724,14 @@ void Application::RefreshFind()
             _outlineTree->NotifyDataChanged();
         _find.projections.badgeRowsRevision   = _derivedCaches.outlineRowsRevision;
         _find.projections.presentationCleared = true;
+        RefreshRightRailDots();
         return;
     }
 
     _find.projections.presentationCleared = false;
-    const auto& needle                    = _findText->GetText();
-    const auto snapshot                   = _editor->Snapshot();
+    _findBar->SetAccessibleName(Resource(activeEditor->GetViewMode() == DxUi::RichText::ViewMode::Source ? IDS_FIND_IN_SOURCE : IDS_FIND_IN_COMPOSE));
+    const auto& needle  = _findText->GetText();
+    const auto snapshot = activeEditor->Snapshot();
     if (! _find.table.source || ! _find.table.source->IsSameRevision(snapshot) || _find.table.query != needle || _find.table.matchCase != _find.matchCase)
     {
         _find.table.query     = needle;
@@ -733,6 +748,7 @@ void Application::RefreshFind()
         _find.projections.displayedQuery.clear();
     }
 
+    bool railCountsChanged{};
     if (! _find.projections.sectionCountsValid || _find.projections.sectionOutlineRevision != _derivedCaches.outlineRowsRevision ||
         _find.projections.sectionAnalysis != _activity.changes)
     {
@@ -765,10 +781,11 @@ void Application::RefreshFind()
         _find.projections.sectionAnalysis        = _activity.changes;
         _find.projections.sectionCountsValid     = true;
         _find.projections.badgesNeedRefresh      = true;
+        railCountsChanged                        = true;
         ++_activity.findSectionCountRebuilds;
     }
 
-    const auto selected = _editor->GetSelection();
+    const auto selected = activeEditor->GetSelection();
     const auto active   = std::lower_bound(
         _find.table.matches.begin(), _find.table.matches.end(), selected.Start(), [](const auto& range, std::size_t pos) { return range.first < pos; });
     const bool hasActive      = active != _find.table.matches.end() && active->first == selected.Start() && active->last == selected.End();
@@ -785,7 +802,9 @@ void Application::RefreshFind()
         }
         if (current > count)
             highlights.back() = {active->first, active->last - active->first, true};
-        if (! AcceptSourceResult(_editor->TrySetSourceHighlights(highlights)))
+        if (mirrorEditor && mirrorEditor != activeEditor)
+            mirrorEditor->ClearSourceHighlights();
+        if (! AcceptSourceResult(activeEditor->TrySetSourceHighlights(highlights)))
             return;
         ++_activity.findHighlightUpdates;
         _find.projections.hasHighlights         = ! highlights.empty();
@@ -823,15 +842,19 @@ void Application::RefreshFind()
             _outlineTree->NotifyDataChanged();
         _find.projections.badgeRowsRevision = _derivedCaches.outlineRowsRevision;
         _find.projections.badgesNeedRefresh = false;
+        railCountsChanged                   = true;
     }
+    if (railCountsChanged)
+        RefreshRightRailDots();
 }
 void Application::FindNext(bool previous)
 {
+    auto* const activeEditor = ActiveEditor();
     if (_activeOverlay == OverlayKind::FindBar)
         RefreshFind();
     else
     {
-        const auto snapshot = _editor->Snapshot();
+        const auto snapshot = activeEditor->Snapshot();
         const auto& query   = _findText->GetText();
         if (! _find.table.source || ! _find.table.source->IsSameRevision(snapshot) || _find.table.query != query || _find.table.matchCase != _find.matchCase)
         {
@@ -845,7 +868,7 @@ void Application::FindNext(bool previous)
     const auto& matches = _find.table.matches;
     if (matches.empty())
         return;
-    const auto selection = _editor->GetSelection();
+    const auto selection = activeEditor->GetSelection();
     std::size_t index{};
     if (previous)
     {
@@ -864,24 +887,25 @@ void Application::FindNext(bool previous)
             index = static_cast<std::size_t>(next - matches.begin());
     }
     const auto range = matches[index];
-    if (! AcceptSourceResult(_editor->TrySetSelection({range.first, range.last})))
+    if (! AcceptSourceResult(activeEditor->TrySetSelection({range.first, range.last})))
         return;
-    (void)_editor->ScrollSourceRangeIntoView(_host, range.first, range.last, false);
+    (void)activeEditor->ScrollSourceRangeIntoView(_host, range.first, range.last, false);
     SelectionChanged();
 }
 void Application::ReplaceFind(bool all)
 {
-    if (HasBlockDraft() || _editor->IsReadOnly())
+    auto* const activeEditor = ActiveEditor();
+    if (HasBlockDraft() || activeEditor->IsReadOnly())
         return;
     RefreshFind();
     if (_find.table.matches.empty())
         return;
     const std::wstring replacement(_replaceText->GetText());
-    const auto source   = _editor->Snapshot();
-    const auto revision = _editor->Revision();
+    const auto source   = activeEditor->Snapshot();
+    const auto revision = activeEditor->Revision();
     std::vector<DxUi::RichText::SourceEdit> edits;
     std::size_t size     = source.Length();
-    const auto selection = _editor->GetSelection();
+    const auto selection = activeEditor->GetSelection();
     for (const auto range : _find.table.matches)
         if (all || (selection.Start() == range.first && selection.End() == range.last))
         {
@@ -904,7 +928,7 @@ void Application::ReplaceFind(bool all)
     {
         _find.updating               = true;
         const auto resetUpdatingFind = wil::scope_exit([&] { _find.updating = false; });
-        applied                      = _editor->ApplySourceEdits(source, revision, edits, {after, after});
+        applied                      = activeEditor->ApplySourceEdits(source, revision, edits, {after, after});
     }
     if (! applied)
         Status(IDS_NOTAVAILABLE);
@@ -963,9 +987,15 @@ bool Application::DismissSurface()
         CloseDrawers();
         return true;
     }
-    if (_editor->GetSemanticSourceRegion())
+    if (IsPaneOverlayActive(PaneSide::Left) || IsPaneOverlayActive(PaneSide::Right))
     {
-        if (! _editor->EndSemanticSourceEdit(_host))
+        DismissHoverOverlays(false);
+        return true;
+    }
+    auto* const activeEditor = ActiveEditor();
+    if (activeEditor->GetSemanticSourceRegion())
+    {
+        if (! activeEditor->EndSemanticSourceEdit(_host))
             return false;
         SelectionChanged();
         return true;
@@ -988,7 +1018,7 @@ bool Application::DismissSurface()
             RefreshFiles(true);
             Layout();
             SavePreferences();
-            _host.SetFocusControl(_editor, MayRequestNativeFocus());
+            _host.SetFocusControl(ActiveEditor(), MayRequestNativeFocus());
         }
         return true;
     }

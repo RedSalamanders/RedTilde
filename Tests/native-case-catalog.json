@@ -188,6 +188,17 @@
     { "name": "Settings.WatcherRapidBurstCoalescing", "scope": "Settings" },
     { "name": "Settings.RejectsJson5NanAndInfinityWithoutTruncatingFile", "scope": "Settings" },
     { "name": "Settings.SavesAndLoadsBetweenDocumentCapAndSixteenMiB", "scope": "Settings" },
-    { "name": "Settings.LegacyCrLfMigrationAndNoOpSavePreservesFile", "scope": "Settings" }
+    { "name": "Settings.LegacyCrLfMigrationAndNoOpSavePreservesFile", "scope": "Settings" },
+    { "name": "Window.PanelToggleMatchesFilesToggleHoverAndTooltip", "scope": "Editor" },
+    { "name": "Window.SidePaneCollapsePriorityAndHysteresis", "scope": "Editor" },
+    { "name": "Window.SidePaneAnimationZeroPollingAndReducedMotion", "scope": "Editor" },
+    { "name": "Window.SidePaneDotHoverNonInterferenceAndDismissal", "scope": "Editor" },
+    { "name": "Outline.CollapsedRightRailDotsJumpFindRingsAndOverflow", "scope": "Editor" },
+    { "name": "Editor.FilesCollapsedLeftRailDirtyDotsSwitchAndGuards", "scope": "Editor" },
+    { "name": "Editor.SplitBidirectionalClickF6AndUnifiedUndoHistory", "scope": "Editor" },
+    { "name": "Editor.SplitScrollbarClickDoesNotStealEditFocusAndExitRestoresAuthority", "scope": "Editor" },
+    { "name": "Editor.SplitActivePaneFindReplaceWithoutRebuild", "scope": "Editor" },
+    { "name": "Editor.SplitLinkedAndUnlinkedScrollSync", "scope": "Editor" },
+    { "name": "Settings.SplitScrollSyncPersistenceAndLiveReload", "scope": "Settings" }
   ]
 }

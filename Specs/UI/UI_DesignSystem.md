@@ -118,15 +118,28 @@ six-DIP splitter hit region remains usable while the idle presentation is a thin
 
 The 56-DIP document bar groups brand, file identity/dirty state, global view selector, File menu, primary Save and
 caption controls. A 48-DIP command row groups Files, text structure, inline emphasis, lists, insertion and contextual
-commands; 20-DIP group dividers make these command families legible. The canvas starts below it with generous gutters and a configurable reading measure, defaulting to
-760 DIP (480–1040 DIP). Source and Split use the available width. A 240-DIP right panel holds the hierarchical
-outline, active-block actions and the equation inspector. Panel section labels use 11-DIP semibold uppercase text
-with 0.08em tracking. It is hidden in Split and when the remaining width cannot
-accommodate the reading measure plus the panel. Status shows words, characters, reading time, selection,
-line/column, encoding and line endings; the document bar carries save state. Narrow windows collapse the inspector
-before an open Files pane overlays the canvas; the reading measure is reduced only after that. At 800x560 DIP,
-commands that do not fit move into overflow instead of wrapping or clipping. Focus mode hides optional chrome. No
-overlapping or off-screen commands at 100/150/200% DPI.
+commands; 20-DIP group dividers make these command families legible. Both the left Files toggle (`_filesToggle`,
+`Ctrl+Shift+E`) and the right Outline/panel toggle (`_panelToggle`, `Ctrl+Shift+L` via `IDS_TIP_PANEL`) use
+`SubtleToggleButton` (`DxUi::ButtonVariant::IconOnly` with `DxUi::ButtonAppearance::Subtle`) so both paint identical
+hover, pressed, and active selection fills (including subtle hover/pressed pill feedback when already toggled on);
+`_panelToggle` must never use `ButtonVariant::Disclosure`. The canvas starts below it with
+generous gutters and a configurable reading measure, defaulting to 760 DIP (480–1040 DIP). Source and Split use the
+available width. A 240-DIP right panel holds the hierarchical outline, active-block actions and the equation inspector.
+Panel section labels use 11-DIP semibold uppercase text with 0.08em tracking. Per
+[Side panes and bidirectional split editing](../Plans/Done/SidePanesAndSplitEditing_2026-11-22.md), when remaining width cannot
+accommodate the reading measure plus a docked panel (Right collapses before Left with a `24`-DIP hysteresis band, and
+Right also collapses whenever Left is collapsed or Split view is active), each enabled panel animates (`200 ms`, `EasingCurve::FastDecelerate`; `0 ms` snap under
+`reducedMotion`) into a `28`-DIP edge rail (`CollapsedPaneRail`) with an outer `6`-DIP hover-reveal zone (`180 ms` dwell,
+`200 ms` `PointToPoint` floating-overlay slide without canvas reflow, `300 ms` leave grace) and summary dots with
+tooltips (Right: hierarchical H1/H2/H3 heading dots with active halo, Find match rings, and click-to-jump; Left:
+modified/edited file dots with basename disambiguation tooltips and click-to-switch; hovering a dot shows its tooltip
+without triggering the full floating drawer). In Split view, a slim `30`-DIP pane header strip marks the active editable
+pane (`Editing` chip + `2`-DIP top `theme.accent` hairline) versus the passive read-only mirror (`Read-only` chip), and
+anchors a centered `28×24`-DIP Subtle Linked-Scroll toggle (`Ctrl+Shift+Y`, UIA `TogglePattern`, default on) over the
+Split divider seam. Status shows words, characters, reading time, selection, line/column, encoding and line endings;
+the document bar carries save state. At 800x560 DIP, commands that do not fit move into overflow instead of wrapping or
+clipping. Focus mode hides optional chrome (including collapsed rails and hover zones). No overlapping or off-screen
+commands at 100/150/200% DPI.
 
 Compose/Source/Split are visible, mutually exclusive underlined view commands with accessible names, mutually
 exclusive toggle state exposed to UI Automation, and Ctrl+1/2/3. They are command buttons, not a RadioGroup; the
@@ -260,15 +273,18 @@ changes and focus restoration remain
 synchronous, including while the inspector is hidden. Repeated edits within one heading must not repeat the
 same selection publication or change source selection/history.
 
-Find/Replace is an overlay at the canvas's upper right, with at least 16 DIP left inset. With 660 DIP of canvas
-width it uses a 628-DIP wide two-row surface; otherwise its 460-DIP surface adds a third row for Match case.
-The first row contains query, current/total count, Previous (Shift+F3), Next (F3) and Close. Match case sits
-beside the query in the wide form; the second row contains replacement, Replace and Replace all.
-The current match is the exact source selection. Other source highlights and nested per-section outline
-counts are derived from the same cached query/revision/case preference, and disappear when Find closes.
-F3 and Shift+F3 still repeat the retained search without reopening the surface. A single Replace selects the next match.
-Find preserves outline collapse choices; collapsed parents still count all nested matches without exposing hidden
-descendants.
+Find/Replace is an overlay at the active editor pane's upper right, with at least 16 DIP left inset. With 660 DIP of
+canvas width (measured per active pane in Split view) it uses a 628-DIP wide two-row surface; otherwise its 460-DIP
+surface adds a third row for Match case. The first row contains query, current/total count, Previous (Shift+F3),
+Next (F3) and Close. Match case sits beside the query in the wide form; the second row contains replacement, Replace
+and Replace all. The current match is the exact source selection on the active editable pane. Under the
+bidirectional Split contract ([Side panes and bidirectional split editing](../Plans/Done/SidePanesAndSplitEditing_2026-11-22.md)),
+Find/Replace targets `ActiveEditor()` exclusively (clearing highlights on the passive mirror and transferring highlights
+plus re-anchoring `_findBar` without rebuilding `MatchTable` when switching Split panes). Other source highlights and
+nested per-section outline counts are derived from the same cached query/revision/case preference, and disappear from
+both panes when Find closes. F3 and Shift+F3 still repeat the retained search without reopening the surface. A single
+Replace selects the next match. Find preserves outline collapse choices; collapsed parents still count all nested matches
+without exposing hidden descendants.
 
 Enter/Space activation of a formatting button preserves one source transaction after returning editor focus.
 The translated activation character must remain owned by that button action; it cannot become a second
@@ -383,6 +399,10 @@ The app harness owns `compose-light`, `compose-dark`, `compose-paper`, `source`,
 `print-preview`, `narrow`, `high-contrast`, `files`, `find`, `focus`, `equation`, `quote-scroll-light`,
 `quote-scroll-dark`, `diagram-label-light`, `diagram-label-dark`, `image-paste-light`, `image-paste-dark`,
 `image-consent-light`, `image-consent-dark`, `task-presentation-light`, `task-presentation-dark`, `reference-dark`,
-`markdown-style`, `caption-close-hover`, and `caption-maximize-hover`. Captures must be actual application renders, tagged
-with dependency SHA, source identity, binary hash, dimensions, theme and scenario. Proposal art is separately
-labelled. Physical screen-reader/IME/touch acceptance and real focus restoration require separate evidence.
+`markdown-style`, `caption-close-hover`, `caption-maximize-hover`, `panel-toggle-hover`, `panes-collapsed-rails-light`,
+`pane-hover-reveal-dark`, `split-source-active-light`, and `split-unlinked-dark` (see
+[Side panes and bidirectional split editing](../Plans/Done/SidePanesAndSplitEditing_2026-11-22.md) for paired proposal
+art and Release renders under `docs/screenshots/`). Captures must be actual application renders, tagged with dependency
+SHA, source identity, binary hash, dimensions, theme and scenario.
+Proposal art is separately labelled. Physical screen-reader/IME/touch acceptance and real focus restoration require
+separate evidence.

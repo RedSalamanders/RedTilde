@@ -48,6 +48,12 @@ Application lifecycle, file transactions, overlays, caches, and background worke
   and closed `F3`/`Shift+F3` navigation plus derived `Projections`. `ReentrantPublication<T>` provides monotonic-token
   cache invalidation for `appliedCaption`, `currentBlockPublishedFacts`, `listSummaryFacts`, and
   `selectionCaptionPublishedEquationContext`.
+- **Responsive side panes & bidirectional Split state** ([Side panes and bidirectional split editing](../Plans/Done/SidePanesAndSplitEditing_2026-11-22.md)):
+  `CollapsedPaneRail` / `SidePaneState` governs per-side `PaneDisplayMode` (`Hidden`, `Docked`, `CollapsedRail`, `HoverOverlay`) and
+  zero-polling `Control::Tick` `PaneAnimationPhase` (`Settled`, `Collapsing`, `Expanding`, `HoverDwell`, `LeaveGrace`),
+  keeping collapsed `28`-DIP dot rails event-idle when settled. `SplitActivePane` (`Compose`, `Source`) routes single-document
+  ownership across Split panes via `ExchangeDocumentState()`, and Split scroll sync guards bidirectional
+  source-offset alignment behind `_splitScrollSyncInProgress` (with `splitScrollSync` toggling independent scroll).
 - **Worker & diagnostic phases**:
   - `AsyncFiles::Phase`: `Idle`, `Loading`, `Saving`, `Completed`, `Closed` (with `CancelInFlightLoad()`).
   - `BitmapPasteWriter::Phase`: `Idle`, `Encoding`, `Ready`, `Leased`, `Retiring`, `Stopped`.
