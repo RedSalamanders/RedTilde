@@ -534,9 +534,22 @@ inline void RegisterStorageSafetyTests(const std::filesystem::path& root, const 
             BY_HANDLE_FILE_INFORMATION legacy{};
             RequireStorage(GetFileInformationByHandle(file.get(), &legacy) != FALSE, "fall back to BY_HANDLE_FILE_INFORMATION identity");
             const auto legacyIndex = (static_cast<std::uint64_t>(legacy.nFileIndexHigh) << 32u) | legacy.nFileIndexLow;
-            RequireStorage(saved.volume == static_cast<std::uint64_t>(legacy.dwVolumeSerialNumber) && saved.fileIndex == legacyIndex &&
-                               saved.fileIndexHigh == 0u && saved.volume != 0u && saved.fileIndex != 0u,
-                           "saved stamp retains the legacy 64-bit volume/file index when FileIdInfo is unsupported");
+            if (legacy.dwVolumeSerialNumber != 0u)
+            {
+                RequireStorage(saved.volume == static_cast<std::uint64_t>(legacy.dwVolumeSerialNumber) && saved.fileIndex == legacyIndex &&
+                                   saved.fileIndexHigh == 0u && saved.volume != 0u && saved.fileIndex != 0u,
+                               "saved stamp retains the legacy 64-bit volume/file index when FileIdInfo is unsupported");
+            }
+            else
+            {
+                RequireStorage(saved.volume != 0u && saved.fileIndex == legacyIndex && saved.fileIndexHigh == 0u && saved.fileIndex != 0u,
+                               "saved stamp retains a derived non-zero volume fingerprint and legacy file index when dwVolumeSerialNumber is zero");
+                std::string reread;
+                FileStamp reloaded;
+                RequireStorage(SUCCEEDED(ReadBytes(path, reread, &reloaded)) && reloaded.volume == saved.volume && reloaded.fileIndex == saved.fileIndex &&
+                                   reloaded.fileIndexHigh == 0u,
+                               "repeated reads produce the same derived volume fingerprint and file index");
+            }
         }
     });
     test("Storage.UnsupportedFilesReportKnownUnitCount",

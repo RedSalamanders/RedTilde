@@ -364,6 +364,55 @@ class FakeRealLocApp {
     ) -Capabilities $smbCaps
     Assert-True ($sharedReadErrSplit.unexpectedFailures.Count -eq 1 -and $sharedReadErrSplit.unsupportedProviderPrimitives.Count -eq 0) 'SharedWriter stable-read failures remain unexpectedFailures even when hardlinks are unsupported'
 
+    $wslCaps = [pscustomobject]@{
+        driveType                      = 4
+        fileIdInfoSupported            = $false
+        fileIdInfoWin32Error           = 50
+        hardlinkCreateSucceeded        = $false
+        hardlinkLinkCountReported      = $false
+        hardlinkSharesFileIndex        = $false
+        symlinkCreateSupported         = $false
+        symlinkWin32Error              = 5
+        junctionCreateSupported        = $false
+        fileSystemName                 = '9P'
+        volumeSerialZero               = $true
+        hiddenAttributePreserved       = $false
+        readDirectoryChangesSupported  = $false
+        readDirectoryChangesWin32Error = 1
+    }
+    $wslFailures = @(
+        [pscustomobject]@{ name = 'Files.MarkdownTreeNaturalOrderAndFilter'; error = 'only visible Markdown and populated ancestors remain' },
+        [pscustomobject]@{ name = 'Files.AsyncRerootChangeNotificationsAndClose'; error = 'only the latest root publishes and its recursive notification is armed' },
+        [pscustomobject]@{ name = 'Files.FailedWorkerRecoversOnNewValidRoot'; error = 'first root scan and watch succeed' },
+        [pscustomobject]@{ name = 'Settings.LiveReloadAndMalformedRecovery'; error = 'live reload applies every live setting from disk' },
+        [pscustomobject]@{ name = 'Settings.WatcherRapidBurstCoalescing'; error = 'coalesced SettingsWatcher converges cleanly to the final burst state' },
+        [pscustomobject]@{ name = 'Settings.LiveReloadAndMalformedRecovery'; error = 'self-save persists Dark appearance on disk' }
+    )
+    $wslSplit = Split-RedTildeRealLocationFailures -FailedCases $wslFailures -Capabilities $wslCaps
+    Assert-True ($wslSplit.unsupportedProviderPrimitives.Count -eq 5 -and $wslSplit.unexpectedFailures.Count -eq 1) 'WSL hidden-attribute and directory-watch limits classify only matching failures'
+    Assert-True ($wslSplit.unexpectedFailures[0].error -ceq 'self-save persists Dark appearance on disk') 'Settings disk-save regression remains unexpectedFailure even when ReadDirectoryChangesW is unsupported'
+
+    $fullWithNewCaps = [pscustomobject]@{
+        driveType                      = 3
+        fileIdInfoSupported            = $true
+        fileIdInfoWin32Error           = 0
+        hardlinkCreateSucceeded        = $true
+        hardlinkLinkCountReported      = $true
+        hardlinkSharesFileIndex        = $true
+        symlinkCreateSupported         = $true
+        symlinkWin32Error              = 0
+        junctionCreateSupported        = $true
+        fileSystemName                 = 'NTFS'
+        volumeSerialZero               = $false
+        hiddenAttributePreserved       = $true
+        readDirectoryChangesSupported  = $true
+        readDirectoryChangesWin32Error = 0
+    }
+    $hiddenEnabledSplit = Split-RedTildeRealLocationFailures -FailedCases @(
+        [pscustomobject]@{ name = 'Files.MarkdownTreeNaturalOrderAndFilter'; error = 'only visible Markdown and populated ancestors remain' }
+    ) -Capabilities $fullWithNewCaps
+    Assert-True ($hiddenEnabledSplit.unexpectedFailures.Count -eq 1 -and $hiddenEnabledSplit.unsupportedProviderPrimitives.Count -eq 0) 'Files.MarkdownTreeNaturalOrderAndFilter remains unexpectedFailure when hiddenAttributePreserved is true'
+
 } finally {
     foreach ($j in $junctionPaths) {
         if (Test-Path -LiteralPath $j) {

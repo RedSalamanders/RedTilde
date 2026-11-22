@@ -55,9 +55,12 @@ refusals). Do not scan arbitrarily large files just to invent a precise count. C
 on rejection.
 
 An ordinary, singly linked file save stages a unique sibling temporary file with `CREATE_NEW`, writes all bytes, flushes and closes it,
-then uses `ReplaceFileW` for an existing destination or `MoveFileExW` for a new destination. Remove only the
+then uses `ReplaceFileW` for an existing destination or `MoveFileExW` for a new destination. When an actual `ReplaceFileW`
+operation returns `ERROR_NOT_SUPPORTED`, `ERROR_INVALID_FUNCTION`, or `ERROR_CALL_NOT_IMPLEMENTED`, single-link atomic publication
+first attempts `MoveFileExW(..., MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)` so providers such as WSL 2 `9P` that
+support atomic POSIX rename without `ReplaceFileW` succeed atomically. Remove only the
 owned temporary file on failure. Never clear dirty state on failed/cancelled storage or change path/BOM prematurely.
-An existing document whose actual `ReplaceFileW` operation returns `ERROR_NOT_SUPPORTED`,
+An existing document whose atomic replacement (including any `MoveFileExW` retry) returns `ERROR_NOT_SUPPORTED`,
 `ERROR_INVALID_FUNCTION` or `ERROR_CALL_NOT_IMPLEMENTED` may use the same recovery-protected in-place writer
 as a hardlink save. Reopen under the cooperative writer/deletion lock and recheck the expected identity/content
 before admitting an independently durable recovery copy of the complete intended source. Preserve the existing
@@ -77,8 +80,11 @@ alias of the currently replaced original still checks the original saved baselin
 destination has the native picker's overwrite consent. Unknown identities remain conservative.
 Keep the complete 64-bit volume serial and 128-bit identifier returned by
 [`FileIdInfo`](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_id_info), including
-ReFS identifiers. Only explicit unsupported-information errors permit a provider's legacy handle identity;
-other metadata failures propagate. A missing identity never establishes automatic overwrite consent. Native
+ReFS identifiers. Only explicit unsupported-information errors permit a provider's legacy handle identity; when that
+legacy `BY_HANDLE_FILE_INFORMATION` reports a non-zero `nFileIndex` with `dwVolumeSerialNumber == 0` (such as WSL 2 `9P`),
+derive a non-zero volume fingerprint from the normalized handle volume/share root (`GetFinalPathNameByHandleW`) so
+object identity checks (`HasIdentity`/`SameObject`) remain sound without masking metadata failures. Other metadata
+failures propagate. A missing identity never establishes automatic overwrite consent. Native
 NTFS/ReFS diagnostics compare the actual complete handle identity independently of stamp equality.
 Atomicity does not eliminate the cross-process check/replace race; no conditional-write or cross-process lock is
 claimed. Native OneDrive/cloud, SMB/NAS and WSL retain their independent qualification.
