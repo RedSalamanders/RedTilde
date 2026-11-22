@@ -3435,6 +3435,7 @@ public:
             WriteFixture(other, "# Published\n");
             Application app(Options(root, L"design-files-ui"));
             Success(app.Initialize(), "create hidden Files integration app");
+            Resize(app, 1440, 900, 96, false);
             StoredDocument loaded;
             Success(LoadDocument(first, loaded), "read original Files fixture");
             app.SetDocument(loaded.text, first, loaded.bom, loaded.stamp);
@@ -3554,6 +3555,7 @@ public:
 
             Application app(Options(root, L"files-dirty-badge"));
             Success(app.Initialize(), "create the hidden large Files-pane app");
+            Resize(app, 1440, 900, 96, false);
             StoredDocument loaded;
             Success(LoadDocument(document, loaded), "read the current document fixture");
             app.SetDocument(loaded.text, document, loaded.bom, loaded.stamp);
@@ -3723,6 +3725,7 @@ public:
 
             Application untitled(Options(root, L"files-dirty-no-snapshot"));
             Success(untitled.Initialize(), "create the hidden untitled Files-pane app");
+            Resize(untitled, 1440, 900, 96, false);
             untitled.Execute(Command::Files);
             Require(! untitled._folderSnapshot && untitled._filesModel.rows.empty() && untitled._folderFiles.CurrentPhase() == FilesPhase::Closed,
                     "the untitled Files pane has no folder snapshot or worker");
@@ -3745,6 +3748,7 @@ public:
             WriteFixture(directory / L"Draft/folder.md/inside.md");
             Application app(Options(root, L"design-files-errors"));
             Success(app.Initialize(), "create hidden Files error/root-action app");
+            Resize(app, 1440, 900, 96, false);
             app.SetDocument(L"Unsaved writing");
             app.Execute(Command::Files);
             Require(app._filesCount->GetText() == Resource(IDS_FILESUNTITLED) && app._folderFiles.CurrentPhase() == FilesPhase::Closed,
