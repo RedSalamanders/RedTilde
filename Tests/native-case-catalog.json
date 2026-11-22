@@ -195,6 +195,8 @@
     { "name": "Window.SidePaneCollapsePriorityAndHysteresis", "scope": "Editor" },
     { "name": "Window.SidePaneAnimationZeroPollingAndReducedMotion", "scope": "Editor" },
     { "name": "Window.SidePaneDotHoverNonInterferenceAndDismissal", "scope": "Editor" },
+    { "name": "Window.SidePaneEdgeDrawersAndPinOpenBehavior", "scope": "Editor" },
+    { "name": "Window.SidePaneHoverPolishReversalAndFocusHold", "scope": "Editor" },
     { "name": "Outline.CollapsedRightRailDotsJumpFindRingsAndOverflow", "scope": "Editor" },
     { "name": "Editor.FilesCollapsedLeftRailDirtyDotsSwitchAndGuards", "scope": "Editor" },
     { "name": "Editor.SplitBidirectionalClickF6AndUnifiedUndoHistory", "scope": "Editor" },

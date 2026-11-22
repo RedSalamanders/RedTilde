@@ -114,7 +114,9 @@ enum class Command
     Print,
     CloseDocument,
     SwitchSplitPane,
-    ToggleSplitScrollSync
+    ToggleSplitScrollSync,
+    PinFiles,
+    PinOutline
 };
 
 enum class SplitActivePane : std::uint8_t
@@ -502,7 +504,8 @@ private:
     std::array<DxUi::Separator*, 6> _commandDividers{};
     DxUi::CardPanel* _saveStateChip{};
     DxUi::Label *_filesSectionTitle{}, *_outlineCount{}, *_filesRootIcon{}, *_listSummaryIcon{};
-    DxUi::Button *_closeFiles{}, *_blockSourceAction{};
+    DxUi::Button *_closeFiles{}, *_closeOutline{}, *_blockSourceAction{};
+    SubtleToggleButton *_pinFiles{}, *_pinOutline{};
     DxUi::Separator *_contextDivider{}, *_filesFooterDivider{};
     DxUi::Label* _listSummary{};
     ReentrantPublication<std::pair<unsigned, std::size_t>> _listSummaryFacts;
@@ -614,6 +617,7 @@ private:
     DxUi::Label *_splitComposeTitle{}, *_splitSourceTitle{}, *_splitComposeChip{}, *_splitSourceChip{}, *_splitSwitchHint{};
     DxUi::Button* _splitScrollSyncButton{};
     std::optional<PaneSide> _explicitPaneRevealSide;
+    PaneSide _lastPinnedSide{PaneSide::Left};
     SplitActivePane _splitActivePane = SplitActivePane::Compose;
     bool _leftAutoCollapsed          = false;
     bool _rightAutoCollapsed         = false;

@@ -105,6 +105,18 @@
       "default": true,
       "description": "Link vertical scrolling between Compose and Source panes in Split view."
     },
+    "filesPinMode": {
+      "type": "string",
+      "enum": ["auto", "pinned", "unpinned"],
+      "default": "auto",
+      "description": "Pin state for the left-hand Files pane (auto collapses below viewport width, pinned keeps docked whenever minimum canvas width fits, unpinned collapses to the dot rail)."
+    },
+    "outlinePinMode": {
+      "type": "string",
+      "enum": ["auto", "pinned", "unpinned"],
+      "default": "auto",
+      "description": "Pin state for the right-hand Outline pane (auto collapses below viewport width or in Split view, pinned keeps docked whenever minimum canvas width fits, unpinned collapses to the dot rail)."
+    },
     "windowPlacement": {
       "type": "object",
       "description": "Normal screen-coordinate window bounds, source DPI, and maximized state.",

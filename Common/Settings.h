@@ -35,6 +35,12 @@ enum class EditorView
     Source,
     Split
 };
+enum class PanePinMode : std::uint8_t
+{
+    Auto,
+    Pinned,
+    Unpinned
+};
 // Optional RichMarkdown syntax beyond the always-on GFM set, in drawer order.
 // Each persists under its own application-owned key, never a library enum value.
 enum class MarkdownSyntax
@@ -73,6 +79,8 @@ struct Settings
     bool imageFirstPaste         = false;
     bool strikeCompletedTasks    = false;
     bool splitScrollSync         = true;
+    PanePinMode filesPinMode     = PanePinMode::Auto;
+    PanePinMode outlinePinMode   = PanePinMode::Auto;
     std::optional<WindowPlacementSettings> windowPlacement;
     std::array<bool, MarkdownSyntaxCount> markdownSyntax{true, true, true, true, true, true, true};
     [[nodiscard]] bool SyntaxEnabled(MarkdownSyntax syntax) const noexcept

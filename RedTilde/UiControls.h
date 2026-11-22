@@ -31,7 +31,9 @@ public:
         Chrome,
         Canvas,
         Sidebar,
-        Floating
+        Floating,
+        DrawerLeft,
+        DrawerRight
     };
     struct SplitChromeState
     {

@@ -1846,10 +1846,11 @@ void Application::ReloadSettingsFromDisk()
     const bool remoteChanged     = _settings.allowRemoteImages != reloaded.allowRemoteImages;
     const bool syntaxChanged     = _settings.markdownSyntax != reloaded.markdownSyntax;
     const bool splitSyncChanged  = _settings.splitScrollSync != reloaded.splitScrollSync;
+    const bool pinModesChanged   = _settings.filesPinMode != reloaded.filesPinMode || _settings.outlinePinMode != reloaded.outlinePinMode;
     const bool layoutNeeded      = appearanceChanged || _settings.readingWidth != reloaded.readingWidth || _settings.textScale != reloaded.textScale ||
                                    _settings.showOutline != reloaded.showOutline || _settings.dimInactiveBlocks != reloaded.dimInactiveBlocks ||
                                    _settings.strikeCompletedTasks != reloaded.strikeCompletedTasks || syntaxChanged || remoteChanged || localNetChanged ||
-                                   splitSyncChanged;
+                                   splitSyncChanged || pinModesChanged;
 
     _settings.appearance              = reloaded.appearance;
     _settings.readingWidth            = reloaded.readingWidth;
@@ -1862,6 +1863,8 @@ void Application::ReloadSettingsFromDisk()
     _settings.strikeCompletedTasks    = reloaded.strikeCompletedTasks;
     _settings.markdownSyntax          = reloaded.markdownSyntax;
     _settings.splitScrollSync         = reloaded.splitScrollSync;
+    _settings.filesPinMode            = reloaded.filesPinMode;
+    _settings.outlinePinMode          = reloaded.outlinePinMode;
 
     if (clipboardChanged)
     {
@@ -2009,12 +2012,62 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
             }
             DismissHoverOverlays(false);
             _settings.showFiles = ! _settings.showFiles;
+            if (_settings.showFiles && _settings.filesPinMode == PanePinMode::Unpinned)
+                _settings.filesPinMode = PanePinMode::Auto;
             RefreshFiles(true);
             Layout();
             SavePreferences();
             _host.SetFocusControl(_settings.showFiles && _filesPane->IsVisible() ? static_cast<DxUi::Control*>(_filesTree) : ActiveEditor(),
                                   MayRequestNativeFocus());
             return;
+        case Command::PinFiles:
+        {
+            if (! _settings.showFiles)
+            {
+                _settings.showFiles = true;
+                RefreshFiles(true);
+            }
+            const bool docked = _leftRail && _leftRail->State().mode == PaneDisplayMode::Docked && _leftRail->State().phase != PaneAnimationPhase::Collapsing;
+            if (docked)
+            {
+                _settings.filesPinMode = PanePinMode::Unpinned;
+            }
+            else
+            {
+                _settings.filesPinMode = PanePinMode::Pinned;
+                _lastPinnedSide        = PaneSide::Left;
+                if (_explicitPaneRevealSide == PaneSide::Left)
+                    _explicitPaneRevealSide.reset();
+            }
+            Layout();
+            SavePreferences();
+            if (docked)
+                _host.SetFocusControl(ActiveEditor(), MayRequestNativeFocus());
+            return;
+        }
+        case Command::PinOutline:
+        {
+            if (! _settings.showOutline)
+                _settings.showOutline = true;
+            const bool docked =
+                _rightRail && _rightRail->State().mode == PaneDisplayMode::Docked && _rightRail->State().phase != PaneAnimationPhase::Collapsing;
+            if (docked)
+            {
+                _settings.outlinePinMode = PanePinMode::Unpinned;
+            }
+            else
+            {
+                _settings.outlinePinMode = PanePinMode::Pinned;
+                _lastPinnedSide          = PaneSide::Right;
+                if (_explicitPaneRevealSide == PaneSide::Right)
+                    _explicitPaneRevealSide.reset();
+            }
+            Layout();
+            SavePreferences();
+            if (docked)
+                _host.SetFocusControl(ActiveEditor(), MayRequestNativeFocus());
+            return;
+        }
         case Command::Minimize:
             if (! _options.headless)
                 ShowWindow(_window.get(), SW_MINIMIZE);
@@ -2473,8 +2526,12 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         case Command::Outline:
             DismissHoverOverlays(false);
             _settings.showOutline = ! _settings.showOutline;
+            if (_settings.showOutline && _settings.outlinePinMode == PanePinMode::Unpinned)
+                _settings.outlinePinMode = PanePinMode::Auto;
             Layout();
             SavePreferences();
+            if (! _settings.showOutline)
+                _host.SetFocusControl(ActiveEditor(), MayRequestNativeFocus());
             return;
         case Command::ThemeSystem:
         case Command::ThemeLight:

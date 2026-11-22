@@ -128,12 +128,9 @@ available width. A 240-DIP right panel holds the hierarchical outline, active-bl
 Panel section labels use 11-DIP semibold uppercase text with 0.08em tracking. Per
 [Side panes and bidirectional split editing](../Plans/Done/SidePanesAndSplitEditing_2026-11-22.md), when remaining width cannot
 accommodate the reading measure plus a docked panel (Right collapses before Left with a `24`-DIP hysteresis band, and
-Right also collapses whenever Left is collapsed or Split view is active), each enabled panel animates (`200 ms`, `EasingCurve::FastDecelerate`; `0 ms` snap under
-`reducedMotion`) into a `28`-DIP edge rail (`CollapsedPaneRail`) with an outer `6`-DIP hover-reveal zone (`180 ms` dwell,
-`200 ms` `PointToPoint` floating-overlay slide without canvas reflow, `300 ms` leave grace) and summary dots with
-tooltips (Right: hierarchical H1/H2/H3 heading dots with active halo, Find match rings, and click-to-jump; Left:
-modified/edited file dots with basename disambiguation tooltips and click-to-switch; hovering a dot shows its tooltip
-without triggering the full floating drawer). In Split view, a slim `30`-DIP pane header strip marks the active editable
+Right also collapses when Auto whenever Auto Left is collapsed or Split view is active), each enabled panel animates (`200 ms`, `EasingCurve::FastDecelerate`; `0 ms` snap under
+`reducedMotion`) into a `28`-DIP edge rail (`CollapsedPaneRail`) and renders when expanded as a flush edge-attached drawer (`Surface::Kind::DrawerLeft` / `DrawerRight`, `0`-DIP square corners flush with the window border, command bar, and status bar, crisp inner edge divider, and directional canvas-side shadow bounded vertically to `[top, bottom]`) rather than rounded inset floating cards (`Surface::Kind::Floating`). Hover-reveal arms `180 ms` dwell only in the outer `6`-DIP edge trigger strip or empty outer `18`-DIP rail area strictly below all dots (never over dots, dot gaps, the inner `10`-DIP scrollbar-adjacent strip, or the `<`/`>` expand chevron, and suppressed while Settings, modals, menus, or block drafts are active), slides smoothly without canvas reflow (`200 ms` `PointToPoint`), holds open while keyboard focus or pointer remains inside the drawer or rail, reverses smoothly back open if the pointer re-enters mid-collapse, and dismisses after `300 ms` leave grace, `Esc`, outside clicks, or invoking a file/heading inside an unpinned overlay; explicit `<`/`>` clicks hold open until dismissed. Both **Files** and **Outline** headers expose symmetric `28×28` **Pin/Unpin** (`_pinFiles`, `_pinOutline`; `\xE718` / `\xE840`) and **Close** (`_closeFiles`, `_closeOutline`) actions: **Pin** keeps a side pane docked beside the canvas whenever minimum usable canvas width remains (`320` DIP Compose/Source, `440` DIP Split, yielding to `_lastPinnedSide` only when both pinned panes cannot simultaneously fit), **Unpin** collapses to the edge rail, and summary dots show tooltips (Right: hierarchical H1/H2/H3 heading dots with active halo, Find match rings, and click-to-jump; Left: modified/edited file dots with basename disambiguation tooltips and click-to-switch; hovering a dot shows its tooltip
+without triggering the edge drawer). In Split view, a slim `30`-DIP pane header strip marks the active editable
 pane (`Editing` chip + `2`-DIP top `theme.accent` hairline) versus the passive read-only mirror (`Read-only` chip), and
 anchors a centered `28×24`-DIP Subtle Linked-Scroll toggle (`Ctrl+Shift+Y`, UIA `TogglePattern`, default on) over the
 Split divider seam. Status shows words, characters, reading time, selection, line/column, encoding and line endings;
@@ -349,7 +346,7 @@ all file-safety checks.
 
 ## Preferences and focus
 
-Settings are a non-modal right drawer with immediate effect. Appearance offers System, Light, Dark and Paper as
+Settings are a non-modal right edge-attached drawer (`Surface::Kind::DrawerRight`, square flush edges with directional canvas-side shadow) with immediate effect. Appearance offers System, Light, Dark and Paper as
 preview tiles. The System tile previews Windows' current light/dark preference independently of the selected
 appearance; cache that preference at theme changes rather than reading the registry during layout.
 The hidden Settings capture instead seeds a synthetic System Light preference before layout and rendering,
