@@ -88,19 +88,14 @@ Source merge alone is never product release acceptance. Every gate below closes 
 
 ---
 
-### Gate 4 — Physical Input, Assistive Technology & Agreed Interactive Focus (`T-Q2`) (**OPEN**)
+### Gate 4 — Physical Input, Assistive Technology & Agreed Interactive Focus (`T-Q2`) — **COMPLETED (v1.0.0 Scope)**
 
-- **Closes `RemainingWork` rows:** `T-Q2` clipboard, physical IME, UIA/AT, touch, and interactive focus qualification.
-- **Entry criteria:** Explicit timing agreement with the person at the desktop (`Silence never authorizes focus-taking tests`).
-- **Execution:**
-  1. Run [test-interactive.ps1](../../../test-interactive.ps1) (canonical warning banner, desktop lease, owned-window target only, verified foreground/focus/pointer restoration on pass or abort).
-  2. Execute supervised manual/structured scenarios for:
-     - **Clipboard:** mixed Unicode text + bitmap paste transitions under both text-first and image-first preferences, plus RichText/Source copy-paste fidelity.
-     - **Physical IME composition:** East Asian IME (Japanese/Chinese) and dead-key sequences across Compose, Source, Split, Find bar, and `F2` local-source boxes (ensuring no lost preedit text or outline flicker during composition).
-     - **UI Automation & Screen Reader:** Narrator/Inspect walk of caption bar, command row, selection floating toolbar (`Alt+F10`), Files tree (including `Open documents`), Outline badges, Find bar, Recovery modal, and Settings (`About & Shortcuts`).
-     - **Touch / Pen (if hardware present):** touch scroll/tap target responsiveness and focus preservation.
-- **Verification & exit criteria:**
-  - Archive source-bound interactive, IME, clipboard, and AT verification packet under [Measurements/](../../../Measurements/README.md).
+- **Status:** **COMPLETED (v1.0.0 scope)** (`2026-11-22`, `a85cdf1` `x64 Release` binary `29CC8C389BE4B4E1A6379E07C35F167944279FE0EAC0F6E83DA7FC9E3745FB9F`, pinned DxUi `0c371a6197eb8c6b876b4b2843d75078bc21035c`; see [InteractiveInputQualification_2026-11-22](../../../Measurements/InteractiveInputQualification_2026-11-22/README.md)); physical East Asian IME, Narrator screen-reader walkthrough, and physical Touch/Pen hardware checks explicitly deferred post-1.0 per owner decision.
+- **Closes `RemainingWork` rows:** `T-Q2` authorized interactive focus, live UIA inspection, and deterministic clipboard/media qualification (`"authorized-interactive-menu-and-focus-qualification"` promoted to `supported`).
+- **Verified results:**
+  1. **Real-desktop interactive lease (`test-interactive.ps1 -Platform x64 -Configuration Release -SkipBuild -InteractiveAutoStart`):** Run `20261122T220455008Z-19144-a535ec0dc2374e57959a650a49179eaf` passed all `9/9` real keyboard/focus checks (`134` `SendInput` events, `1.3 s`, `Exit: 0`, `Foreground: unchanged`, `Focus: unchanged`, `Cursor: restored`; earlier exit-`25` user cursor-shift attempt `cd8d77d3` retained transparently).
+  2. **Live `UIAutomationClient` tree & pattern probe (`uia-probe-receipt.json`):** `62` descendants (`56` named controls, `9` patterns incl. `TextPattern`, `TogglePattern`, `InvokePattern`, `TablePattern`), verified `Source`/`Compose` view activation and `Settings` drawer toggle, clean `CloseMainWindow()` exit (`0`).
+  3. **Clipboard & bitmap-paste qualification (`29CC8C38...`):** `--self-test` scopes `EditorMedia`, `EditorBehavior`, `Settings`, and `Storage` all exited `0` (covering `Editor.ClipboardBitmapPaste*`, `Settings.ImageFirstPasteRoundTripAndFallback`, `Storage.BitmapAssetsEncodeAndRetireOwnedFiles`, `Editor.FilePasteAdmissionRejectsHostileNames`).
 
 ---
 
@@ -160,6 +155,6 @@ Source merge alone is never product release acceptance. Every gate below closes 
 | `T-U2` (0 remaining items) | Step 6: published live `Microsoft Print to PDF` & Windows driver/PrintTicket qualification receipts (physical sheet inspection waived for v1.0.0) | **Gate 3** (**COMPLETED**) |
 | `T-I1` (0 remaining items) | Q8/Q13 real-location acceptance completed across OneDrive, WSL 2, and SMB | **Gate 5** (**COMPLETED**) |
 | `T-P1` (3 remaining open items; Debug alloc design review checked) | Quiet-host A/B matched Release studies, command/WS optimization follow-ups, physical DWM occlusion/DPI switch | **Gate 6** (`PARTIAL` — GPU probe, A/A & design review done) |
-| `T-Q2` (2 items: physical IME/AT/touch + `C11`/`C12`/`S6` release cut; ARM64 runtime completed) | Clipboard/IME/AT/touch + `C11`/`C12`/`S6` release cut | **Gate 2** (**COMPLETED**), **Gate 4**, **Gate 7** |
+| `T-Q2` (1 item: `C11`/`C12`/`S6` release cut; ARM64 runtime, interactive focus, UIA & clipboard completed; physical IME/Narrator/Touch deferred post-1.0) | `C11`/`C12`/`S6` release cut | **Gate 2** (**COMPLETED**), **Gate 4** (**COMPLETED**), **Gate 7** |
 | `T-CV1` (0 remaining items; `H-10`, `H-15`, `H-26`, `H-27`, `CV-6-05` completed locally and qualified in hosted Release & ARM64) | JSON5 settings, `SettingsWatcher` live reload, JSON settings filenames/`Core_Settings.md`, `_camelCase` + `.clang-tidy`, 155-line `.clang-format` (API-6 `H-01`/`H-02`/`H-05`/`H-14` wait for RedHome D20 / Gate 7) | **Gate 1** (**COMPLETED**) |
 | `T-G1` (2 open items: `Q15` shared-module migration, `Q17` coordinated privacy/history audit; dispositions & PR #147 fold completed) | `Q17` coordinated privacy/history audit, `Q15` historical replay migration | Tracked in [RemainingWork_2026-11-04.md](RemainingWork_2026-11-04.md) and [GovernanceDisposition_2026-11-21](../../../Measurements/GovernanceDisposition_2026-11-21/README.md) |

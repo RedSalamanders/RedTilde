@@ -1,0 +1,356 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-22",
+  "repoCommit": "a85cdf1775157fa88d9eda00f77235566135e628",
+  "binarySha256": "29CC8C389BE4B4E1A6379E07C35F167944279FE0EAC0F6E83DA7FC9E3745FB9F",
+  "dxuiCommit": "0c371a6197eb8c6b876b4b2843d75078bc21035c",
+  "windowNameVerified": true,
+  "descendantCount": 62,
+  "controlTypeCounts": {
+    "ControlType.ListItem": 2,
+    "ControlType.List": 1,
+    "ControlType.Document": 1,
+    "ControlType.Tree": 1,
+    "ControlType.DataItem": 2,
+    "ControlType.Table": 1,
+    "ControlType.TreeItem": 1,
+    "ControlType.Image": 1,
+    "ControlType.CheckBox": 2,
+    "ControlType.Separator": 6,
+    "ControlType.Button": 26,
+    "ControlType.Text": 16,
+    "ControlType.HeaderItem": 2
+  },
+  "supportedPatterns": [
+    "GridItemPatternIdentifiers.Pattern",
+    "GridPatternIdentifiers.Pattern",
+    "InvokePatternIdentifiers.Pattern",
+    "SelectionItemPatternIdentifiers.Pattern",
+    "SelectionPatternIdentifiers.Pattern",
+    "TableItemPatternIdentifiers.Pattern",
+    "TablePatternIdentifiers.Pattern",
+    "TextPatternIdentifiers.Pattern",
+    "TogglePatternIdentifiers.Pattern"
+  ],
+  "namedElementCount": 56,
+  "sampleNamedControls": [
+    {
+      "name": "uia-fixture.md",
+      "controlType": "ControlType.Text",
+      "isEnabled": true,
+      "isKeyboardFocusable": false,
+      "patterns": []
+    },
+    {
+      "name": "Saved",
+      "controlType": "ControlType.Text",
+      "isEnabled": true,
+      "isKeyboardFocusable": false,
+      "patterns": []
+    },
+    {
+      "name": "Compose",
+      "controlType": "ControlType.Button",
+      "isEnabled": true,
+      "isKeyboardFocusable": true,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern",
+        "TogglePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Source",
+      "controlType": "ControlType.Button",
+      "isEnabled": true,
+      "isKeyboardFocusable": true,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern",
+        "TogglePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Split",
+      "controlType": "ControlType.Button",
+      "isEnabled": true,
+      "isKeyboardFocusable": true,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern",
+        "TogglePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "File",
+      "controlType": "ControlType.Button",
+      "isEnabled": true,
+      "isKeyboardFocusable": true,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Save",
+      "controlType": "ControlType.Button",
+      "isEnabled": true,
+      "isKeyboardFocusable": true,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Minimize",
+      "controlType": "ControlType.Button",
+      "isEnabled": true,
+      "isKeyboardFocusable": false,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Maximize or restore",
+      "controlType": "ControlType.Button",
+      "isEnabled": true,
+      "isKeyboardFocusable": false,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Close",
+      "controlType": "ControlType.Button",
+      "isEnabled": true,
+      "isKeyboardFocusable": false,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Undo",
+      "controlType": "ControlType.Button",
+      "isEnabled": false,
+      "isKeyboardFocusable": false,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Redo",
+      "controlType": "ControlType.Button",
+      "isEnabled": false,
+      "isKeyboardFocusable": false,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Text style",
+      "controlType": "ControlType.Button",
+      "isEnabled": true,
+      "isKeyboardFocusable": true,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Bold",
+      "controlType": "ControlType.Button",
+      "isEnabled": true,
+      "isKeyboardFocusable": true,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern",
+        "TogglePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Italic",
+      "controlType": "ControlType.Button",
+      "isEnabled": true,
+      "isKeyboardFocusable": true,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern",
+        "TogglePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Code",
+      "controlType": "ControlType.Button",
+      "isEnabled": true,
+      "isKeyboardFocusable": true,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern",
+        "TogglePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Bullets",
+      "controlType": "ControlType.Button",
+      "isEnabled": true,
+      "isKeyboardFocusable": true,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Task",
+      "controlType": "ControlType.Button",
+      "isEnabled": true,
+      "isKeyboardFocusable": true,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Insert",
+      "controlType": "ControlType.Button",
+      "isEnabled": true,
+      "isKeyboardFocusable": true,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Find",
+      "controlType": "ControlType.Button",
+      "isEnabled": true,
+      "isKeyboardFocusable": true,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Focus mode",
+      "controlType": "ControlType.Button",
+      "isEnabled": true,
+      "isKeyboardFocusable": true,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern",
+        "TogglePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Settings",
+      "controlType": "ControlType.Button",
+      "isEnabled": true,
+      "isKeyboardFocusable": true,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern",
+        "TogglePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Link",
+      "controlType": "ControlType.Button",
+      "isEnabled": true,
+      "isKeyboardFocusable": true,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern",
+        "TogglePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Files",
+      "controlType": "ControlType.Button",
+      "isEnabled": true,
+      "isKeyboardFocusable": true,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern",
+        "TogglePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Show document panel",
+      "controlType": "ControlType.Button",
+      "isEnabled": true,
+      "isKeyboardFocusable": true,
+      "patterns": [
+        "InvokePatternIdentifiers.Pattern",
+        "TogglePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Markdown document",
+      "controlType": "ControlType.Document",
+      "isEnabled": true,
+      "isKeyboardFocusable": true,
+      "patterns": [
+        "TextPatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "Gate 4 UIA Fixture",
+      "controlType": "ControlType.Text",
+      "isEnabled": true,
+      "isKeyboardFocusable": false,
+      "patterns": []
+    },
+    {
+      "name": "A careful paragraph with café, 東京, and 🌙.",
+      "controlType": "ControlType.Text",
+      "isEnabled": true,
+      "isKeyboardFocusable": false,
+      "patterns": []
+    },
+    {
+      "name": "☑ Verify UIA tree\n☐ Verify pattern invoke\n",
+      "controlType": "ControlType.List",
+      "isEnabled": true,
+      "isKeyboardFocusable": false,
+      "patterns": []
+    },
+    {
+      "name": "☑ Verify UIA tree\n",
+      "controlType": "ControlType.ListItem",
+      "isEnabled": true,
+      "isKeyboardFocusable": false,
+      "patterns": []
+    },
+    {
+      "name": "☑ Verify UIA tree",
+      "controlType": "ControlType.Text",
+      "isEnabled": true,
+      "isKeyboardFocusable": false,
+      "patterns": []
+    },
+    {
+      "name": "☑ Verify UIA tree",
+      "controlType": "ControlType.CheckBox",
+      "isEnabled": true,
+      "isKeyboardFocusable": false,
+      "patterns": [
+        "TogglePatternIdentifiers.Pattern"
+      ]
+    },
+    {
+      "name": "☐ Verify pattern invoke\n",
+      "controlType": "ControlType.ListItem",
+      "isEnabled": true,
+      "isKeyboardFocusable": false,
+      "patterns": []
+    },
+    {
+      "name": "☐ Verify pattern invoke",
+      "controlType": "ControlType.Text",
+      "isEnabled": true,
+      "isKeyboardFocusable": false,
+      "patterns": []
+    },
+    {
+      "name": "☐ Verify pattern invoke",
+      "controlType": "ControlType.CheckBox",
+      "isEnabled": true,
+      "isKeyboardFocusable": false,
+      "patterns": [
+        "TogglePatternIdentifiers.Pattern"
+      ]
+    }
+  ],
+  "sourceAndComposeInvokeVerified": true,
+  "settingsToggleVerified": true,
+  "closeMainWindowSent": true,
+  "processExitCode": 0,
+  "deterministicClipboardAndMediaSuites": {
+    "editorMediaExitCode": 0,
+    "editorBehaviorExitCode": 0,
+    "settingsExitCode": 0,
+    "storageExitCode": 0
+  }
+}
