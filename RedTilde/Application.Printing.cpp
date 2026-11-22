@@ -63,12 +63,13 @@ void Application::Print()
     if (_options.headless)
         return;
 #endif
+    auto* const activeEditor = ActiveEditor();
     Printing::Job job;
-    job.document.source               = _editor->Snapshot();
+    job.document.source               = activeEditor->Snapshot();
     job.document.path                 = _session.path;
     job.document.title                = _session.path.empty() ? Resource(IDS_UNTITLED) : _session.path.filename().native();
-    job.document.extensions           = _editor->GetMarkdownAnalysisExtensions();
-    job.document.allowRemoteImages    = _editor->RemoteImagesEnabled();
+    job.document.extensions           = activeEditor->GetMarkdownAnalysisExtensions();
+    job.document.allowRemoteImages    = _editor->RemoteImagesEnabled() || activeEditor->RemoteImagesEnabled();
     job.document.strikeCompletedTasks = _settings.strikeCompletedTasks;
     if (job.document.allowRemoteImages)
         job.document.networkImages = _printNetworkImages;
@@ -173,7 +174,7 @@ void Application::ClosePrintPreview() noexcept
     preview.reset();
     if (! IsClosing() && ! IsSessionEnding() && ! IsClosingAfterSave())
     {
-        auto* const destination = _printInvoker && ! _printInvokerLifetime.expired() ? _printInvoker : _editor;
+        auto* const destination = _printInvoker && ! _printInvokerLifetime.expired() ? _printInvoker : ActiveEditor();
         _host.SetFocusControl(destination, MayRequestNativeFocus());
     }
     _printInvoker = nullptr;

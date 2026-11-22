@@ -27,7 +27,7 @@
 Switch between **Compose**, **Source**, and **Split** from the document bar or with `Ctrl+1`, `Ctrl+2`, and `Ctrl+3`. Every view shares the exact same Markdown source, selection, and undo/redo history—switching views never re-serializes your document.
 
 - **Compose (`Ctrl+1`):** Distraction-free rich Markdown rendering with subtle separators, shaded blockquotes, compact tables, task checkboxes, syntax-colored fenced code (`C/C++`, `JSON`, `PowerShell`, `diff`), inline and display math, and Mermaid diagrams.
-- **Split (`Ctrl+3`):** Editable **Compose** on the left paired with a **read-only Source mirror** on the right that highlights syntax and follows your selection.
+- **Split (`Ctrl+3`):** Compose on the left paired with exact Markdown source on the right sharing one document and `128`-step undo history ([design & verification record](../Specs/Plans/Done/SidePanesAndSplitEditing_2026-11-22.md)). Click either pane or press `F6` to transfer active editing between Compose and Source (with the top header marking `Editing` vs. `Read-only`), use the center seam button (or `Ctrl+Shift+Y`) to link or unlink vertical scrolling, and keep quick heading jump/tooltip dots accessible in the collapsed right edge rail.
 - **Source (`Ctrl+2`):** Monospace exact-source editor with syntax coloring, preserved `LF`/`CRLF`/`CR`/mixed line endings, and optional UTF-8 BOM preservation.
 - **Focus Mode (`F11`):** Collapses toolbars and side panes into a minimal top strip with `Exit focus · Esc`, dims inactive blocks (configurable in Settings), and displays a bottom word-count pill.
 
@@ -40,6 +40,10 @@ Switch between **Compose**, **Source**, and **Split** from the document bar or w
 ![Split view in Light theme](screenshots/split.png)
 
 ![Split view in Dark theme](screenshots/split-dark.png)
+
+![Bidirectional Split view with right Source pane active and Find targeting Source](screenshots/split-source-active-light.png)
+
+![Unlinked Split view in Dark theme with independent scroll and dot match rings](screenshots/split-unlinked-dark.png)
 
 ![Source view in Light theme](screenshots/source.png)
 
@@ -110,10 +114,12 @@ See [examples/mermaid-supported-families.md](examples/mermaid-supported-families
 
 ## Files Pane, Workspace & Open Documents
 
-- **Files Pane (`Ctrl+Shift+E`):** Choose **File → Open Folder…** (`Ctrl+Shift+O`) to pin a notebook folder root, or **File → Open File…** (`Ctrl+O`) (opening a file when no root is set uses its parent folder). The pane lists `.md` and `.markdown` files (up to `5,000` visited entries and depth `8`), excludes hidden/system items, never traverses reparse points, and supports live filename filtering.
+- **Files Pane (`Ctrl+Shift+E`):** Choose **File → Open Folder…** (`Ctrl+Shift+O`) to pin a notebook folder root, or **File → Open File…** (`Ctrl+O`) (opening a file when no root is set uses its parent folder). The pane lists `.md` and `.markdown` files (up to `5,000` visited entries and depth `8`), excludes hidden/system items, never traverses reparse points, and supports live filename filtering. When window space is tight, the pane smoothly collapses into a `28`-DIP left rail displaying dots (with disambiguated tooltips) for open modified files—clicking a dot switches directly to that file without prompting, and hovering the outer edge zone slides the full pane back as a floating overlay without reflowing text ([collapsed side rails specification](../Specs/Plans/Done/SidePanesAndSplitEditing_2026-11-22.md)).
 - **Drag-and-Drop:** Drag and drop a `.md`, `.markdown`, or `.txt` file onto the RedTilde window to open it (dropping multiple files or unsupported types reports a clear status without altering your document).
 - **Multi-Document Workspace & Open Documents:** RedTilde keeps up to `64` open documents in memory—preserving each document's edits, selection, undo/redo history, and remote-image grant—so clicking between rows in the Files pane switches instantly without prompting. When multiple documents are open, an **Open documents** group appears at the top of the Files tree in opening order (keeping untitled and recovered copies distinct and keeping tree selection on the clicked row).
 - **Closing Documents (`Ctrl+W`):** **File → Close document** (or `Ctrl+W`) prompts only if the active document has unsaved changes, then switches to the adjacent open document (or resets to an empty `Untitled.md` if it was the last document). Explicit **Open File**, **Open Folder**, **New**, and window **Close** protect every modified workspace document.
+
+![Auto-collapsed left and right edge rails showing modified-file dots and heading dots](screenshots/panes-collapsed-rails-light.png)
 
 ---
 
@@ -121,7 +127,7 @@ See [examples/mermaid-supported-families.md](examples/mermaid-supported-families
 
 Press `Ctrl+F` to open the **Find & Replace** bar (and `Esc` to close it):
 
-- Searches the **exact Markdown source** (including hidden syntax) using ordinal Unicode comparison.
+- Searches the **exact Markdown source** (including hidden syntax) using ordinal Unicode comparison. In **Split** view, Find & Replace searches, highlights, and anchors strictly on the currently active pane (**Compose** or **Source**), transferring highlights immediately when you switch Split sides.
 - **Match case** toggles case-sensitive vs. case-insensitive search.
 - Shows the current/total match counter (`2 of 3`), highlights matches in the document, and displays **per-section match counts** as badges in the Outline sidebar.
 - `F3` (Next) and `Shift+F3` (Previous) wrap at document ends and continue to work even after closing the Find bar.
@@ -153,7 +159,9 @@ Open **Settings** from the gear button or `Ctrl+,`:
 - **Writing & Markdown Syntax:** Toggle **Show outline**, **Focus mode**, **Dim other blocks in focus mode**, **Strike through completed tasks** (visual presentation only; Markdown stays unchanged), and seven optional RichMarkdown syntax switches (`==highlight==`, `^superscript^`, `~subscript~`, `++inserted++`, `[[wiki links]]`, definition lists, and `*[abbr]:` abbreviations).
 - **About & Shortcuts:** The bottom of Settings displays the installed version (`RedTilde 0.1.0 experimental`) and a built-in keyboard shortcuts reference.
 - **Preferences File & Live Reload:** Settings are stored as UTF-8 JSON5 in `%LOCALAPPDATA%\RedTilde\RedTilde.settings.json` (`RedTilde-debug.settings.json` in debug builds, described by `SettingsStore.schema.json`), with lossless one-time migration from legacy text settings and live reload when edited externally.
-- **Outline & Current Block Inspector:** The right sidebar lists ATX headings hierarchically (with collapsible sections), tracks the active section, identifies the **Current block** (e.g., `Heading`, `Bulleted list · 3 items`, `Equation`), and hosts the live read-only **Equation** preview.
+- **Outline & Current Block Inspector (`Ctrl+Shift+L`):** The right sidebar lists ATX headings hierarchically (with collapsible sections), tracks the active section, identifies the **Current block** (e.g., `Heading`, `Bulleted list · 3 items`, `Equation`), and hosts the live read-only **Equation** preview. When horizontal space is tight (or in **Split** view), the sidebar smoothly animates into a `28`-DIP right dot rail summarizing headings with interactive tooltips that jump directly to each section, and hovering the outer edge zone slides the full inspector back over the canvas.
+
+![Hovering the right edge rail reveals the Outline floating overlay without reflowing text in Dark theme](screenshots/pane-hover-reveal-dark.png)
 
 ![Settings drawer](screenshots/settings.png)
 
@@ -206,6 +214,9 @@ redtilde --help | -h | /?
 | `F2` | Edit block source in place (or open local source draft) |
 | `Ctrl+Enter` / `Esc` | Apply / cancel local source draft |
 | `Ctrl+Shift+E` | Toggle Files pane |
+| `Ctrl+Shift+L` | Toggle Document outline panel |
+| `F6` | Switch active editing pane in Split view |
+| `Ctrl+Shift+Y` | Toggle Linked scrolling in Split view |
 | `Ctrl+,` | Toggle Settings drawer |
 | `F11` | Toggle Focus mode (`Esc` exits) |
 | `Alt+F10` | Focus selected-text floating toolbar |

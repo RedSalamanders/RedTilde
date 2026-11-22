@@ -486,3 +486,22 @@ Find replacement. Assert unchanged source identity, selection, dirty/saved facts
 refusal, then a successful retry. Recovery serialization must reject malformed envelopes before mutation and
 preserve its output buffer. Production packages exclude the new test entry point and refuse both complete and
 missing-value invocations before creating the profile; the package and CI smoke require all sixteen cases.
+
+## Side panes, dot rails, and bidirectional Split editing
+
+Validation requirements covered by [Side panes and bidirectional split editing](../Plans/Done/SidePanesAndSplitEditing_2026-11-22.md):
+
+- **Right panel toggle chrome (`P1`)**: Hidden `panel-toggle-hover` capture proves resting vs. hovered `_panelToggle`
+  PNG hashes differ and paint Subtle hover/selection fills matching `_filesToggle`, paired with UIA `TogglePattern` checks.
+- **Animated side panes & dot rails (`P1`)**: Verify `24`-DIP resize hysteresis prevents `Docked <-> CollapsedRail`
+  chatter, `Control::Tick` settles within `200 ms` (`0` post-settle ticks, `idleProcessCpu100ns == 0`), `reducedMotion`
+  snaps immediately, dot hover shows tooltips without opening `HoverOverlay`, outer `6`-DIP edge dwell (`180 ms`) opens
+  `HoverOverlay` without altering editor/mirror layout width (`0` reflow), Left dot activation performs zero-prompt
+  `SwitchWorkspaceDocument` (respecting draft/busy/IME guards), and Right dot activation scrolls to the heading without
+  expanding the pane.
+- **Bidirectional Split editing, linked scroll, and Find (`P2`–`P3`)**: Verify clicking either Split text viewport or
+  pressing `F6` preserves exact `128`-step unified Undo/Redo across interleaved Compose and Source edits, scrollbar
+  clicks preserve the active pane, leaving Split restores `_editor` authority, linked scrolling maps matching source
+  scopes without ping-pong loops (`_splitScrollSyncInProgress`), unlinked scrolling (`splitScrollSync == false` via seam
+  toggle, `Ctrl+Shift+Y`, or live JSON5 reload) leaves the passive pane offset untouched across scrolls and edits, and
+  Find/Replace switches active highlights and `_findBar` placement without rebuilding `MatchTable`.

@@ -1,0 +1,121 @@
+<!doctype html>
+<!-- RedTilde proposal art, 2026-11-22: design mockup, not an application capture. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1080">
+<title>RedTilde proposal — Right pane hover-reveal overlay with matching button hover chrome</title>
+<link rel="stylesheet" href="proposal.css">
+</head>
+<body class="dark">
+<svg class="sprite" aria-hidden="true">
+<symbol id="undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+<symbol id="redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/></symbol>
+<symbol id="bold" viewBox="0 0 24 24"><path d="M6 12h9a4 4 0 0 1 0 8H7a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h7a4 4 0 0 1 0 8"/></symbol>
+<symbol id="italic" viewBox="0 0 24 24"><path d="M19 4h-9"/><path d="M14 20H5"/><path d="M15 4 9 20"/></symbol>
+<symbol id="code" viewBox="0 0 24 24"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></symbol>
+<symbol id="link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+<symbol id="list" viewBox="0 0 24 24"><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/></symbol>
+<symbol id="task" viewBox="0 0 24 24"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></symbol>
+<symbol id="plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+<symbol id="chevron" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="chev-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+<symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+<symbol id="focus" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="panel" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M15 3v18"/></symbol>
+<symbol id="sidebar" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></symbol>
+<symbol id="settings" viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></symbol>
+</svg>
+<div class="window">
+
+<header class="docbar">
+<div class="docbar-left"><img class="brand" src="../../../../res/RedTilde.png" alt="RedTilde"><span class="filename">Ideas.md</span><span class="chip">Edited</span></div>
+<nav class="tabs" aria-label="View"><button class="tab active" aria-pressed="true">Compose</button><button class="tab" aria-pressed="false">Source</button><button class="tab" aria-pressed="false">Split</button></nav>
+<div class="docbar-right">
+<button class="btn">File<svg class="i sm"><use href="#chevron"/></svg></button>
+<button class="btn primary">Save</button>
+<div class="caption"><button aria-label="Minimize"><svg viewBox="0 0 12 12"><path d="M1 6h10"/></svg></button><button aria-label="Maximize"><svg viewBox="0 0 12 12"><rect x="1.5" y="1.5" width="9" height="9" rx="1.5"/></svg></button><button aria-label="Close"><svg viewBox="0 0 12 12"><path d="M1.5 1.5l9 9M10.5 1.5l-9 9"/></svg></button></div>
+</div>
+</header>
+
+<div class="cmdrow" role="toolbar" aria-label="Formatting">
+<button class="icon-btn pressed" title="Files · Ctrl+Shift+E" aria-label="Files" aria-pressed="true"><svg class="i"><use href="#sidebar"/></svg></button>
+<span class="divider"></span>
+<button class="icon-btn" title="Undo (Ctrl+Z)" aria-label="Undo"><svg class="i"><use href="#undo"/></svg></button>
+<button class="icon-btn" title="Redo (Ctrl+Y)" aria-label="Redo" disabled><svg class="i"><use href="#redo"/></svg></button>
+<span class="divider"></span>
+<button class="btn style-btn">Heading 2<svg class="i sm"><use href="#chevron"/></svg></button>
+<span class="divider"></span>
+<button class="icon-btn" title="Bold · Ctrl+B" aria-label="Bold"><svg class="i"><use href="#bold"/></svg></button>
+<button class="icon-btn" title="Italic · Ctrl+I" aria-label="Italic"><svg class="i"><use href="#italic"/></svg></button>
+<button class="icon-btn" title="Inline code · Ctrl+E" aria-label="Code"><svg class="i"><use href="#code"/></svg></button>
+<button class="icon-btn" title="Link · Ctrl+K" aria-label="Link"><svg class="i"><use href="#link"/></svg></button>
+<span class="divider"></span>
+<button class="icon-btn" title="Bulleted list" aria-label="Bullets"><svg class="i"><use href="#list"/></svg></button>
+<button class="icon-btn" title="Task list" aria-label="Task"><svg class="i"><use href="#task"/></svg></button>
+<span class="divider"></span>
+<button class="btn"><svg class="i sm"><use href="#plus"/></svg>Insert<svg class="i sm"><use href="#chevron"/></svg></button>
+<span class="spacer"></span>
+<button class="btn"><svg class="i sm"><use href="#search"/></svg>Find<span class="kbd">Ctrl+F</span></button>
+<button class="icon-btn" title="Focus mode (F11)" aria-label="Focus mode"><svg class="i"><use href="#focus"/></svg></button>
+<button class="icon-btn hot" title="Document outline · Ctrl+Shift+L" aria-label="Show document panel" aria-pressed="true"><svg class="i"><use href="#panel"/></svg></button>
+<button class="icon-btn" title="Settings" aria-label="Settings"><svg class="i"><use href="#settings"/></svg></button>
+</div>
+
+<div class="body">
+<aside class="rail left" aria-label="Modified files rail">
+  <div class="rail-handle" title="Hover or click to open Files pane"><svg class="i xs"><use href="#chev-right"/></svg></div>
+  <div class="rail-dots" role="list" aria-label="Modified documents">
+    <div class="dot-slot active-halo" role="listitem" aria-label="Ideas.md, Edited (Active)"><span class="dot dirty current"></span></div>
+    <div class="dot-slot" role="listitem" aria-label="Chapter2.md, Edited"><span class="dot dirty"></span></div>
+  </div>
+</aside>
+
+<main class="canvas" aria-label="Markdown document">
+<article class="doc">
+<h1>A little room for big ideas</h1>
+<div class="hr-sub"></div>
+<p>Good writing starts with a clear space. Keep your thoughts close and let the next sentence arrive naturally.</p>
+<h2>Make it yours</h2>
+<p>A place for <strong>careful words</strong>, a little curiosity, and a few ideas worth keeping. Markdown stays right beside you.<span class="caret"></span></p>
+<ul>
+<li class="task-item"><span class="chk">✓</span><span>Gather the notes</span></li>
+<li class="task-item"><span class="chk">✓</span><span>Find the thread</span></li>
+<li class="task-item"><span class="chk" style="border-color: var(--control)"></span><span>Share the next draft</span></li>
+</ul>
+<h2>Keep the details</h2>
+<p>Writing is a series of small discoveries. Give this paragraph a little room and follow one thought at a time.</p>
+<p>A quiet moment of writing can make a busy day feel clear. <a href="https://example.invalid/outline">Read the outline</a> when you are ready.</p>
+<blockquote>The next idea does not need to be perfect. It only needs a place to begin.</blockquote>
+</article>
+</main>
+
+<!-- Right pane slid open smoothly as floating hover-reveal overlay without reflowing document -->
+<aside class="panel floating-overlay" aria-label="Outline and block tools (hover overlay)">
+<div class="hover-trigger-edge" aria-hidden="true"></div>
+<section class="section">
+<div class="section-head"><h2 class="label">Outline</h2><span class="hint">6 headings</span></div>
+<button class="outline-row l1">A little room for big ideas</button>
+<button class="outline-row l2 current" aria-current="location">Make it yours</button>
+<button class="outline-row l2" style="padding-left: 32px; font-size: 12.5px">Drafting steps</button>
+<button class="outline-row l2">Keep the details</button>
+<button class="outline-row l2" style="padding-left: 32px; font-size: 12.5px">References</button>
+<button class="outline-row l2">Next steps</button>
+</section>
+<section class="section">
+<div class="section-head"><h2 class="label">Current block</h2></div>
+<div class="block-kind"><svg class="i sm"><use href="#list"/></svg><b>Heading</b><span class="hint">16 characters</span></div>
+<div style="padding: 6px 8px 0"><button class="btn outline full">Edit block source</button></div>
+</section>
+<svg class="pointer-cursor" viewBox="0 0 16 22" style="right: 6px; top: 586px;"><path d="M1 1 L1 16 L5 12 L8 19 L10.5 18 L7.5 11 L13 11 Z" fill="#ffffff" stroke="#141414" stroke-width="1.3"/></svg>
+<div class="tooltip" style="right: 26px; top: 576px;">Hover edge reveal <span class="sub">· no reflow</span></div>
+</aside>
+</div>
+
+<footer class="status">
+<div><span>119 words</span><span>679 characters</span><span>1 min read</span></div>
+<div><span>0 selected</span><span>Ln 5, Col 44</span><span>UTF-8</span><span>LF</span></div>
+</footer>
+</div>
+</body>
+</html>

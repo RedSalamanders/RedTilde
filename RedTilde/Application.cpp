@@ -569,9 +569,10 @@ bool Application::SupportedExternalLink(std::wstring_view destination) noexcept
 
 std::optional<std::size_t> Application::CurrentLinkElement(const std::shared_ptr<const DxUi::RichText::SemanticDocument>& document) const
 {
-    if (! document || ! _editor->Snapshot().MatchesText(document->Syntax()->Source()))
+    auto* const activeEditor = ActiveEditor();
+    if (! document || ! activeEditor || ! activeEditor->Snapshot().MatchesText(document->Syntax()->Source()))
         return std::nullopt;
-    const auto selection = _editor->GetSelection();
+    const auto selection = activeEditor->GetSelection();
     const auto elements  = document->Elements();
     for (std::size_t index = 0; index < elements.size(); ++index)
     {
@@ -593,8 +594,9 @@ void Application::RequestOpenLink(const DxUi::RichTextLinkActivation& activation
         Status(IDS_LINKUNAVAILABLE);
         return;
     }
-    const auto semantic = _editor->GetSemanticDocument();
-    const auto source   = _editor->Snapshot();
+    auto* const primary = ActiveEditor();
+    const auto semantic = primary->GetSemanticDocument();
+    const auto source   = primary->Snapshot();
     if (! semantic || ! source.MatchesText(semantic->Syntax()->Source()) ||
         std::ranges::none_of(semantic->Elements(),
                              [&](const auto& element)
@@ -616,10 +618,9 @@ void Application::RequestOpenLink(const DxUi::RichTextLinkActivation& activation
         }
     }
     std::wstring destination(activation.destination); // Own every byte before the modal/reentrant boundary.
-    const auto selection = _editor->GetSelection();
+    const auto selection = primary->GetSelection();
     const auto key       = _session.key;
     auto* const owner    = _root;
-    auto* const primary  = _editor;
     const auto lifetime  = GetControlLifetimeToken(*primary);
     bool approved{};
     _modalPrompt      = ModalPromptKind::ExternalLink;
@@ -648,7 +649,7 @@ void Application::RequestOpenLink(const DxUi::RichTextLinkActivation& activation
     }
     if (! approved)
         return;
-    if (IsClosing() || lifetime.expired() || _host.GetRoot() != owner || _editor != primary)
+    if (IsClosing() || lifetime.expired() || _host.GetRoot() != owner || ActiveEditor() != primary)
         return;
     if (IsSessionEnding() || _session.key != key || ! primary->Snapshot().IsSameRevision(source) || primary->GetSelection() != selection)
     {
@@ -886,7 +887,7 @@ void Application::ApplyTheme()
     if (_printPreview)
         _printPreview->SetTheme(theme);
     const auto underline = highContrast ? DxUi::RichTextLinkUnderlinePolicy::Always : DxUi::RichTextLinkUnderlinePolicy::HoverOrCaret;
-    for (auto* target : {static_cast<DxUi::RichTextEditor*>(_editor), _mirror, _equation})
+    for (auto* target : {static_cast<DxUi::RichTextEditor*>(_editor), static_cast<DxUi::RichTextEditor*>(_mirror), _equation})
         if (! AcceptSourceResult(target->TrySetLinkUnderlinePolicy(underline)))
             return;
     const BOOL nativeDark = dark;
@@ -896,7 +897,7 @@ void Application::ApplyTheme()
 
 const std::wstring& Application::CurrentText() const
 {
-    const auto source = _editor->Snapshot();
+    const auto source = ActiveEditor()->Snapshot();
     if (! _derivedCaches.cachedSource || ! _derivedCaches.cachedSource->IsSameRevision(source))
     {
         _derivedCaches.cachedText   = source.Text();
@@ -906,9 +907,10 @@ const std::wstring& Application::CurrentText() const
 }
 bool Application::Dirty() const
 {
-    if (! _editor)
+    auto* const activeEditor = ActiveEditor();
+    if (! activeEditor)
         return false;
-    const auto source = _editor->Snapshot();
+    const auto source = activeEditor->Snapshot();
     if (_derivedCaches.dirtyFact && _derivedCaches.dirtyFact->recovered == _session.recovered && _derivedCaches.dirtyFact->source.IsSameRevision(source))
         return _derivedCaches.dirtyFact->dirty;
     bool dirty = _session.recovered || source.Length() != _session.savedText.size();
@@ -1015,8 +1017,8 @@ bool Application::SynchronizeMirror()
         return true;
     if (! _root || _host.GetRoot() != _root)
         return false;
-    auto* const primary = _editor;
-    auto* const target  = _mirror;
+    auto* const primary = ActiveEditor();
+    auto* const target  = MirrorEditor();
     auto* const owner   = _root;
     const auto source   = primary->Snapshot();
     if (_derivedCaches.mirroredSource && _derivedCaches.mirroredSource->IsSameRevision(source))
@@ -1028,8 +1030,8 @@ bool Application::SynchronizeMirror()
     const auto ownerLifetime   = GetControlLifetimeToken(*owner);
     const auto current         = [&]
     {
-        if (IsClosing() || primaryLifetime.expired() || targetLifetime.expired() || ownerLifetime.expired() || _editor != primary || _mirror != target ||
-            _root != owner || _host.GetRoot() != owner || _settings.view != EditorView::Split)
+        if (IsClosing() || primaryLifetime.expired() || targetLifetime.expired() || ownerLifetime.expired() || ActiveEditor() != primary ||
+            MirrorEditor() != target || _root != owner || _host.GetRoot() != owner || _settings.view != EditorView::Split)
             return false;
         // These app-owned controls are never reparented independently of the
         // root; its host ownership and all three weak identities were checked.
@@ -1044,13 +1046,39 @@ bool Application::SynchronizeMirror()
     {
         if (! current())
             return false;
-        // Retain exact SetText fallback for an incompatible mirror profile.
+        const auto savedTargetScroll = target->GetScrollInfo();
+        // Retain exact SetText fallback for an incompatible mirror profile or Rich-preview mirror.
         // Own this spelling across callbacks instead of borrowing a mutable app cache.
         const auto text = source.Text();
+        if (! AcceptSourceResult(target->TrySetDocumentFilePath(_session.path.native())) || ! current())
+            return false;
+        target->SetRemoteImagesEnabled(_settings.allowRemoteImages || _session.remoteImagesAllowed);
         if (! AcceptSourceResult(target->TrySetText(text)))
             return false;
         if (! current() || target->GetText() != text)
             return false;
+        if (target->GetSelection() != selection)
+        {
+            if (! AcceptSourceResult(target->TrySetSelection(selection)))
+                return false;
+            if (! current())
+                return false;
+        }
+        if (! _settings.splitScrollSync && savedTargetScroll)
+        {
+            _pendingComposeScrollRestore = savedTargetScroll->offsetDip;
+            if (_window && ! _postPreparePosted)
+                _postPreparePosted = PostMessageW(_window.get(), PostPreparePlacement, 0, 0) != FALSE;
+        }
+        else if (_settings.splitScrollSync)
+        {
+            if (const auto driverScroll = primary->GetScrollInfo())
+            {
+                _pendingSplitScroll = PendingSplitScroll{primary, driverScroll->offsetDip};
+                if (_window && ! _postPreparePosted)
+                    _postPreparePosted = PostMessageW(_window.get(), PostPreparePlacement, 0, 0) != FALSE;
+            }
+        }
     }
     // A nested synchronization may already have published this same source.
     if (! _derivedCaches.mirroredSource || ! _derivedCaches.mirroredSource->IsSameRevision(source))
@@ -1087,6 +1115,7 @@ bool Application::SetDocument(std::wstring text, std::filesystem::path path, boo
         return AcceptSourceResult(DxUi::RichText::SourceResult::InvalidSource);
     if (text.size() > DxUi::RichText::Document::MaximumUnits)
         return AcceptSourceResult(DxUi::RichText::SourceResult::CapacityExceeded);
+    EnsurePrimaryEditorAuthoritative();
     const auto lifetime = GetControlLifetimeToken(*_editor);
     // A replacement document cannot inherit a one-document grant through synchronous text callbacks.
     const bool previousDocumentPermission = _session.remoteImagesAllowed;
@@ -1135,7 +1164,8 @@ void Application::Changed()
     if (_editDiagnostics)
         _editDiagnostics->Mark(EditPhase::Enter);
     ++_activity.changes;
-    const auto source = _editor->Snapshot();
+    auto* const activeEditor = ActiveEditor();
+    const auto source        = activeEditor->Snapshot();
     RefreshDocumentAnalysis(source, true);
     if (_editDiagnostics)
         _editDiagnostics->Mark(EditPhase::Analysis);
@@ -1161,16 +1191,24 @@ void Application::Changed()
     if (_editDiagnostics)
         _editDiagnostics->Mark(EditPhase::Caption);
     UpdateCounts();
-    _tools[0]->SetEnabled(_editor->CanUndo());
-    _tools[1]->SetEnabled(_editor->CanRedo());
+    _tools[0]->SetEnabled(activeEditor->CanUndo());
+    _tools[1]->SetEnabled(activeEditor->CanRedo());
     if (_activeOverlay == OverlayKind::FloatingSelectionTools)
         SetActiveOverlay(OverlayKind::None);
-    if (_settings.showFiles && dirty != _lastFilesDirty)
+    if (dirty != _lastFilesDirty)
     {
-        UpdateCurrentFileDirtyBadge(dirty);
-        // A synchronous accessibility publication can dispatch Close and detach the host.
-        if (IsClosing())
-            return;
+        if (_settings.showFiles)
+        {
+            UpdateCurrentFileDirtyBadge(dirty);
+            // A synchronous accessibility publication can dispatch Close and detach the host.
+            if (IsClosing())
+                return;
+        }
+        else
+        {
+            _lastFilesDirty = dirty;
+            RefreshLeftRailDots();
+        }
     }
     if (_editDiagnostics)
         _editDiagnostics->Mark(EditPhase::Chrome);
@@ -1253,13 +1291,14 @@ void Application::UpdateCaption(std::wstring caption)
 void Application::CheckpointRecovery(bool immediate)
 {
     std::optional<RecoverySnapshot> snapshot;
-    auto selection     = _editor->GetSelection();
-    bool needsRecovery = Dirty();
+    auto* const activeEditor = ActiveEditor();
+    auto selection           = activeEditor->GetSelection();
+    bool needsRecovery       = Dirty();
     std::wstring_view draft;
     std::wstring normalizedDraft;
     bool changedDraft{};
-    if (HasBlockDraft() && _editor->Snapshot().IsSameRevision(_blockDraftSession.value().snapshot) &&
-        _editor->Revision() == _blockDraftSession.value().revision)
+    if (HasBlockDraft() && activeEditor->Snapshot().IsSameRevision(_blockDraftSession.value().snapshot) &&
+        activeEditor->Revision() == _blockDraftSession.value().revision)
     {
         const auto& range              = _blockDraftSession.value().range;
         draft                          = _blockDraftText->GetText();
@@ -1332,10 +1371,10 @@ void Application::RecoveryCompleted()
     if (_startupRestore.IsWaitingForRecovery() && _recovery.Ready() && ! HasActiveModalPrompt())
     {
         if (SUCCEEDED(_recovery.Status()) && _recoveryCandidates.empty() && _startupRestore.source &&
-            _editor->Snapshot().IsSameRevision(_startupRestore.source.value()) && ! _settings.lastDocument.empty() && _session.path.empty() &&
+            ActiveEditor()->Snapshot().IsSameRevision(_startupRestore.source.value()) && ! _settings.lastDocument.empty() && _session.path.empty() &&
             ! _files.Busy() && ! HasBlockDraft() && ! IsSessionEnding())
         {
-            auto entrySource     = _editor->Snapshot();
+            auto entrySource     = ActiveEditor()->Snapshot();
             const HRESULT result = _files.Submit(false, _settings.lastDocument);
             if (SUCCEEDED(result))
             {
@@ -1367,7 +1406,7 @@ void Application::ShowRecovery()
             Layout();
         }
         Status(IDS_NORECOVERY);
-        _host.SetFocusControl(_editor, MayRequestNativeFocus());
+        _host.SetFocusControl(ActiveEditor(), MayRequestNativeFocus());
         return;
     }
     const auto& snapshot = _recoveryCandidates.front().snapshot;
@@ -1387,21 +1426,24 @@ void Application::SetView(EditorView view)
 {
     if (! IsUiAttached())
         return;
-    auto* const primary        = _editor;
-    auto* const target         = _mirror;
+    if (view != EditorView::Split)
+        EnsurePrimaryEditorAuthoritative();
+    auto* const primary        = ActiveEditor();
+    auto* const target         = MirrorEditor();
     auto* const owner          = _root;
     const auto primaryLifetime = GetControlLifetimeToken(*primary);
     const auto targetLifetime  = GetControlLifetimeToken(*target);
     const auto ownerLifetime   = GetControlLifetimeToken(*owner);
     const auto current         = [&]
     {
-        return ! IsClosing() && ! primaryLifetime.expired() && ! targetLifetime.expired() && ! ownerLifetime.expired() && _editor == primary &&
-               _mirror == target && _root == owner && _host.GetRoot() == owner && _settings.view == view;
+        return ! IsClosing() && ! primaryLifetime.expired() && ! targetLifetime.expired() && ! ownerLifetime.expired() && ActiveEditor() == primary &&
+               MirrorEditor() == target && _root == owner && _host.GetRoot() == owner && _settings.view == view;
     };
     _selectionToolsFocus.reset();
     // The same editor/document/history survives all global presentation changes.
     _settings.view = view;
-    if (! AcceptSourceResult(primary->TrySetViewMode(view == EditorView::Source ? DxUi::RichText::ViewMode::Source : DxUi::RichText::ViewMode::Rich)))
+    if (primary == _editor &&
+        ! AcceptSourceResult(primary->TrySetViewMode(view == EditorView::Source ? DxUi::RichText::ViewMode::Source : DxUi::RichText::ViewMode::Rich)))
         return;
     if (! current())
         return;
@@ -1434,12 +1476,13 @@ void Application::SelectionChanged(bool refreshTools)
     EditDiagnostics::SelectionInvocation selectionInvocation(_editDiagnostics);
     if (IsClosing() || _switchingDocument || ! _floating)
         return;
+    auto* const activeEditor = ActiveEditor();
     if (_pendingBitmapPaste && (_pendingBitmapPaste->lifetime.expired() || _pendingBitmapPaste->documentKey != _session.key ||
                                 _pendingBitmapPaste->view != _settings.view || _pendingBitmapPaste->documentPath != _session.path ||
-                                _pendingBitmapPaste->selection != _editor->GetSelection() || _editor->IsSelectionGestureActive() ||
-                                _editor->Snapshot().ChangedRangeFrom(_pendingBitmapPaste->source).kind != DxUi::RichText::SourceChangeKind::Unchanged))
+                                _pendingBitmapPaste->selection != activeEditor->GetSelection() || activeEditor->IsSelectionGestureActive() ||
+                                activeEditor->Snapshot().ChangedRangeFrom(_pendingBitmapPaste->source).kind != DxUi::RichText::SourceChangeKind::Unchanged))
         _pendingBitmapPaste.reset();
-    if (_editor->IsSelectionGestureActive())
+    if (activeEditor->IsSelectionGestureActive())
     {
         // Shared editor owns every selection route and the final release event.
         // Keep pointer movement O(1); derived facts and placement update on release.
@@ -1455,14 +1498,14 @@ void Application::SelectionChanged(bool refreshTools)
     const auto selection = [&]
     {
         EditDiagnostics::SelectionMeasure measure(_editDiagnostics, SelectionComponent::SelectionSnapshot);
-        return _editor->GetSelection();
+        return activeEditor->GetSelection();
     }();
     const auto source = [&]
     {
         EditDiagnostics::SelectionMeasure measure(_editDiagnostics, SelectionComponent::SelectionSnapshot);
-        return _editor->Snapshot();
+        return activeEditor->Snapshot();
     }();
-    const auto sourceRevision = _editor->Revision();
+    const auto sourceRevision = activeEditor->Revision();
     {
         EditDiagnostics::SelectionMeasure measure(_editDiagnostics, SelectionComponent::DocumentAnalysisRefresh);
         RefreshDocumentAnalysis(source, false);
@@ -1470,7 +1513,7 @@ void Application::SelectionChanged(bool refreshTools)
     const auto syntax = [&]
     {
         EditDiagnostics::SelectionMeasure measure(_editDiagnostics, SelectionComponent::SelectionSnapshot);
-        return _editor->GetMarkdownSyntax();
+        return activeEditor->GetMarkdownSyntax();
     }();
     bool selectionChanged{};
     {
@@ -1496,16 +1539,16 @@ void Application::SelectionChanged(bool refreshTools)
             EditDiagnostics::SelectionMeasure measure(_editDiagnostics, SelectionComponent::Mirror);
             if (! IsUiAttached())
                 return;
-            auto* const primary        = _editor;
-            auto* const target         = _mirror;
+            auto* const primary        = activeEditor;
+            auto* const target         = MirrorEditor();
             auto* const owner          = _root;
             const auto primaryLifetime = GetControlLifetimeToken(*primary);
             const auto targetLifetime  = GetControlLifetimeToken(*target);
             const auto ownerLifetime   = GetControlLifetimeToken(*owner);
             const auto current         = [&]
             {
-                if (IsClosing() || primaryLifetime.expired() || targetLifetime.expired() || ownerLifetime.expired() || _editor != primary ||
-                    _mirror != target || _root != owner || _host.GetRoot() != owner || _settings.view != EditorView::Split)
+                if (IsClosing() || primaryLifetime.expired() || targetLifetime.expired() || ownerLifetime.expired() || ActiveEditor() != primary ||
+                    MirrorEditor() != target || _root != owner || _host.GetRoot() != owner || _settings.view != EditorView::Split)
                     return false;
                 return primary->Snapshot().IsSameRevision(source) && primary->Revision() == sourceRevision && primary->GetSelection() == selection;
             };
@@ -1521,7 +1564,12 @@ void Application::SelectionChanged(bool refreshTools)
             }
             if (! current())
                 return;
-            (void)target->ScrollSourceRangeIntoView(_host, selection.Start(), selection.End(), false);
+            if (_settings.splitScrollSync)
+            {
+                _splitScrollSyncInProgress = true;
+                const auto resetSync       = wil::scope_exit([&] { _splitScrollSyncInProgress = false; });
+                (void)target->ScrollSourceRangeIntoView(_host, selection.Start(), selection.End(), false);
+            }
             ++_activity.mirrorSelectionUpdates;
         }
         std::wstring expression;
@@ -1529,9 +1577,9 @@ void Application::SelectionChanged(bool refreshTools)
         {
             EditDiagnostics::SelectionMeasure measure(_editDiagnostics, SelectionComponent::InlineSemantics);
             // In-place math source previews what is being typed; only the region itself is read.
-            if (const auto region = _editor->GetSemanticSourceRegion(); region && region->source.first <= region->source.last &&
-                                                                        region->source.last <= source.Length() && selection.caret >= region->source.first &&
-                                                                        selection.caret <= region->source.last)
+            if (const auto region = activeEditor->GetSemanticSourceRegion(); region && region->source.first <= region->source.last &&
+                                                                             region->source.last <= source.Length() &&
+                                                                             selection.caret >= region->source.first && selection.caret <= region->source.last)
                 expression = MathRegionExpression(*region, source.Slice(region->source.first, region->source.last));
             if (syntax)
                 for (const auto& node : syntax->Inlines())
@@ -1575,6 +1623,10 @@ void Application::SelectionChanged(bool refreshTools)
             const bool nextEquationContext = ! expression.empty();
             layoutChanged                  = _equationContext != nextEquationContext;
             _equationContext               = nextEquationContext;
+            const bool sourceViewActive    = activeEditor->GetViewMode() == DxUi::RichText::ViewMode::Source;
+            _tools[2]->SetEnabled(! sourceViewActive);
+            _tools[6]->SetEnabled(! sourceViewActive);
+            _tools[7]->SetEnabled(! sourceViewActive);
             for (unsigned i = 0; i < 4; ++i)
             {
                 auto* button = _tools[i == 3 ? 13 : i + 3];
@@ -1592,6 +1644,7 @@ void Application::SelectionChanged(bool refreshTools)
         if (selectionChanged)
         {
             EditDiagnostics::SelectionMeasure measure(_editDiagnostics, SelectionComponent::Outline);
+            const auto previousHeading = _currentHeading;
             _currentHeading.reset();
             for (std::size_t i = 0; i < _documentInfo.headings.size(); ++i)
                 if (_documentInfo.headings[i].offset <= selection.caret)
@@ -1604,6 +1657,8 @@ void Application::SelectionChanged(bool refreshTools)
                 ++_activity.outlineSelectionUpdates;
                 _outlineTree->SetSelectedItemId(headingId);
             }
+            if (_currentHeading != previousHeading)
+                RefreshRightRailDots();
         }
         DocumentPosition position;
         std::optional<std::pair<unsigned, std::size_t>> listFacts;
@@ -1669,7 +1724,7 @@ void Application::SelectionChanged(bool refreshTools)
     // by Escape or an explicit navigation command.
     if (! refreshTools)
         return;
-    if (selection.Start() == selection.End() || _settings.view == EditorView::Source ||
+    if (selection.Start() == selection.End() || activeEditor->GetViewMode() == DxUi::RichText::ViewMode::Source ||
         (_activeOverlay != OverlayKind::None && _activeOverlay != OverlayKind::FloatingSelectionTools) || _settings.focusMode || _equationContext)
     {
         if (_activeOverlay == OverlayKind::FloatingSelectionTools)
@@ -1681,7 +1736,7 @@ void Application::SelectionChanged(bool refreshTools)
         }
         return;
     }
-    const auto rectangles = _editor->TryGetTextInputRangeRects(_host, selection.Start(), selection.End());
+    const auto rectangles = activeEditor->TryGetTextInputRangeRects(_host, selection.Start(), selection.End());
     if (! rectangles)
     {
         _pendingSelectionTools = true;
@@ -1695,11 +1750,13 @@ void Application::SelectionChanged(bool refreshTools)
         SetActiveOverlay(OverlayKind::None);
         return;
     }
-    const auto first       = rectangles->front();
-    const float viewport   = _host.GetClientBoundsDip().right;
-    const float left       = std::clamp(first.left, 16.f, std::max(16.f, viewport - 452));
-    const float minimumTop = _editor->GetBounds().top + 4;
-    const float top        = std::clamp(first.top - 52, minimumTop, std::max(minimumTop, _page->GetBounds().bottom - 52));
+    const auto first        = rectangles->front();
+    const auto editorBounds = activeEditor->GetBounds();
+    const float minLeft     = _settings.view == EditorView::Split ? editorBounds.left : 16.f;
+    const float maxRight    = (_settings.view == EditorView::Split ? editorBounds.right + 16.f : _host.GetClientBoundsDip().right) - 16.f;
+    const float left        = std::clamp(first.left, minLeft, std::max(minLeft, maxRight - 436.f));
+    const float minimumTop  = editorBounds.top + 4.f;
+    const float top         = std::clamp(first.top - 52, minimumTop, std::max(minimumTop, _page->GetBounds().bottom - 52));
     _floating->SetBounds(D2D1::RectF(left, top, left + 436, top + 44));
     const std::array<float, 5> widths{112, 56, 56, 56, 56};
     float x = left + 8;
@@ -1720,7 +1777,8 @@ void Application::SelectionChanged(bool refreshTools)
 
 void Application::FocusSelectionTools()
 {
-    _selectionToolsFocus = SelectionToolsFocusRequest{_editor->Snapshot(), _editor->GetSelection(), _settings.view};
+    auto* const activeEditor = ActiveEditor();
+    _selectionToolsFocus     = SelectionToolsFocusRequest{activeEditor->Snapshot(), activeEditor->GetSelection(), _settings.view};
     SelectionChanged();
 }
 
@@ -1787,9 +1845,11 @@ void Application::ReloadSettingsFromDisk()
     const bool localNetChanged   = _settings.allowLocalNetworkImages != reloaded.allowLocalNetworkImages;
     const bool remoteChanged     = _settings.allowRemoteImages != reloaded.allowRemoteImages;
     const bool syntaxChanged     = _settings.markdownSyntax != reloaded.markdownSyntax;
+    const bool splitSyncChanged  = _settings.splitScrollSync != reloaded.splitScrollSync;
     const bool layoutNeeded      = appearanceChanged || _settings.readingWidth != reloaded.readingWidth || _settings.textScale != reloaded.textScale ||
                                    _settings.showOutline != reloaded.showOutline || _settings.dimInactiveBlocks != reloaded.dimInactiveBlocks ||
-                                   _settings.strikeCompletedTasks != reloaded.strikeCompletedTasks || syntaxChanged || remoteChanged || localNetChanged;
+                                   _settings.strikeCompletedTasks != reloaded.strikeCompletedTasks || syntaxChanged || remoteChanged || localNetChanged ||
+                                   splitSyncChanged;
 
     _settings.appearance              = reloaded.appearance;
     _settings.readingWidth            = reloaded.readingWidth;
@@ -1801,6 +1861,7 @@ void Application::ReloadSettingsFromDisk()
     _settings.imageFirstPaste         = reloaded.imageFirstPaste;
     _settings.strikeCompletedTasks    = reloaded.strikeCompletedTasks;
     _settings.markdownSyntax          = reloaded.markdownSyntax;
+    _settings.splitScrollSync         = reloaded.splitScrollSync;
 
     if (clipboardChanged)
     {
@@ -1834,6 +1895,8 @@ void Application::SetActiveOverlay(OverlayKind next)
 {
     const bool wasFindBar    = _activeOverlay == OverlayKind::FindBar;
     const bool wasBlockDraft = _activeOverlay == OverlayKind::BlockDraftModal;
+    if (next == OverlayKind::FindBar || next == OverlayKind::SettingsDrawer || next == OverlayKind::BlockDraftModal || next == OverlayKind::RecoveryModal)
+        DismissHoverOverlays(false);
     if (next != OverlayKind::FloatingSelectionTools)
     {
         _pendingSelectionTools = false;
@@ -1842,8 +1905,9 @@ void Application::SetActiveOverlay(OverlayKind next)
     if (wasBlockDraft && next != OverlayKind::BlockDraftModal)
     {
         _blockDraftSession.reset();
-        _editor->SetReadOnly(false);
-        (void)AcceptSourceResult(_editor->TrySetSourceHighlights({}));
+        auto* const activeEditor = ActiveEditor();
+        activeEditor->SetReadOnly(false);
+        (void)AcceptSourceResult(activeEditor->TrySetSourceHighlights({}));
     }
     _floating->SetVisible(next == OverlayKind::FloatingSelectionTools);
     _findBar->SetVisible(next == OverlayKind::FindBar);
@@ -1860,7 +1924,7 @@ void Application::CloseDrawers()
     const bool hadBlockDraft = HasBlockDraft();
     SetActiveOverlay(OverlayKind::None);
     Layout();
-    _host.SetFocusControl(_editor, MayRequestNativeFocus());
+    _host.SetFocusControl(ActiveEditor(), MayRequestNativeFocus());
     if (! IsInitializing() && ! IsClosing())
         CheckpointRecovery();
     if (hadBlockDraft && std::holds_alternative<HeldOpenTx>(_activeFileTx))
@@ -1943,11 +2007,13 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
                 _pendingSelectionTools = false;
                 _selectionToolsFocus.reset();
             }
+            DismissHoverOverlays(false);
             _settings.showFiles = ! _settings.showFiles;
             RefreshFiles(true);
             Layout();
             SavePreferences();
-            _host.SetFocusControl(_settings.showFiles ? static_cast<DxUi::Control*>(_filesTree) : _editor, MayRequestNativeFocus());
+            _host.SetFocusControl(_settings.showFiles && _filesPane->IsVisible() ? static_cast<DxUi::Control*>(_filesTree) : ActiveEditor(),
+                                  MayRequestNativeFocus());
             return;
         case Command::Minimize:
             if (! _options.headless)
@@ -1960,8 +2026,9 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         case Command::Close: SendMessageW(_window.get(), WM_CLOSE, 0, 0); return;
         case Command::OpenLink:
         {
-            const auto document = _editor->GetSemanticDocument();
-            const auto index    = CurrentLinkElement(document);
+            auto* const activeEditor = ActiveEditor();
+            const auto document      = activeEditor->GetSemanticDocument();
+            const auto index         = CurrentLinkElement(document);
             if (! index)
             {
                 Status(IDS_LINKUNAVAILABLE);
@@ -1970,7 +2037,7 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
             const auto& link = document->Elements()[index.value()];
             if (link.destination.starts_with(L'#'))
             {
-                if (! _editor->NavigateSemanticElement(_host, document, index.value()))
+                if (! activeEditor->NavigateSemanticElement(_host, document, index.value()))
                     Status(IDS_NOTAVAILABLE);
             }
             else
@@ -2054,7 +2121,7 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         case Command::LaterRecovery:
             SetActiveOverlay(OverlayKind::None);
             Layout();
-            _host.SetFocusControl(_editor, MayRequestNativeFocus());
+            _host.SetFocusControl(ActiveEditor(), MayRequestNativeFocus());
             return;
         case Command::DiscardRecovery:
             if (! _recoveryCandidates.empty())
@@ -2131,7 +2198,8 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
                 return;
             }
             const auto candidates   = _recoveryCandidates;
-            const std::size_t reuse = _session.path.empty() && ! Dirty() && ! _editor->CanUndo() && ! _editor->CanRedo() ? 1u : 0u;
+            const auto* activeEd    = ActiveEditor();
+            const std::size_t reuse = _session.path.empty() && ! Dirty() && ! activeEd->CanUndo() && ! activeEd->CanRedo() ? 1u : 0u;
             if (_inactiveDocuments.size() + 1 + candidates.size() - reuse > RecoveryService::MaximumDocuments)
             {
                 Status(IDS_WORKSPACEFULL);
@@ -2183,12 +2251,25 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         case Command::Compose: SetView(EditorView::Compose); return;
         case Command::Source: SetView(EditorView::Source); return;
         case Command::Split: SetView(EditorView::Split); return;
+        case Command::SwitchSplitPane:
+            SwitchSplitActivePane(_splitActivePane == SplitActivePane::Compose ? SplitActivePane::Source : SplitActivePane::Compose, true);
+            return;
+        case Command::ToggleSplitScrollSync:
+            _settings.splitScrollSync = ! _settings.splitScrollSync;
+            Layout();
+            if (_settings.splitScrollSync && _settings.view == EditorView::Split)
+            {
+                if (const auto info = ActiveEditor()->GetScrollInfo())
+                    ApplySplitScrollSync(ActiveEditor(), info->offsetDip);
+            }
+            SavePreferences();
+            return;
         case Command::Undo:
-            (void)_editor->Undo();
+            (void)ActiveEditor()->Undo();
             semantic = false;
             break;
         case Command::Redo:
-            (void)_editor->Redo();
+            (void)ActiveEditor()->Redo();
             semantic = false;
             break;
         case Command::Heading:
@@ -2202,15 +2283,17 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         case Command::Italic:
         case Command::Strike:
         case Command::Code:
-            if (_settings.view == EditorView::Source)
+        {
+            auto* const activeEditor = ActiveEditor();
+            if (activeEditor->GetViewMode() == DxUi::RichText::ViewMode::Source)
             {
                 const std::wstring_view marker = command == Command::Bold     ? L"**"
                                                  : command == Command::Italic ? L"*"
                                                  : command == Command::Strike ? L"~~"
                                                                               : L"`";
-                if (! _editor->ToggleFormatting(marker))
+                if (! activeEditor->ToggleFormatting(marker))
                 {
-                    if (_editor->Snapshot().Length() + marker.size() * 2u > Document::MaximumUnits)
+                    if (activeEditor->Snapshot().Length() + marker.size() * 2u > Document::MaximumUnits)
                         ReportCapacityLimit();
                     else
                         Status(IDS_NOTAVAILABLE);
@@ -2226,6 +2309,7 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
                                                                : MarkdownTextStyle::Code;
             }
             break;
+        }
         case Command::Bullets: request.command = MarkdownCommand::SetList; break;
         case Command::Numbered:
             request.command  = MarkdownCommand::SetList;
@@ -2249,7 +2333,7 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         case Command::ColumnRemove: request.command = MarkdownCommand::DeleteTableColumn; break;
         case Command::Link:
         {
-            const auto selection = _editor->GetSelection();
+            const auto selection = ActiveEditor()->GetSelection();
             LocalSource();
             if (HasBlockDraft())
             {
@@ -2262,19 +2346,20 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         }
         case Command::Image:
         {
-            const auto path = PickFile(false, true);
-            if (path.empty() || ! CanAcceptCommand() || ! IsUiAttached() || ! _editor)
+            const auto path          = PickFile(false, true);
+            auto* const activeEditor = ActiveEditor();
+            if (path.empty() || ! CanAcceptCommand() || ! IsUiAttached() || ! activeEditor)
                 return;
             DxUi::TextClipboardContent content;
             content.filePaths.push_back(path.native());
             std::wstring insertion;
-            if (_editor->TryPrepareClipboardPaste(content, insertion))
+            if (activeEditor->TryPrepareClipboardPaste(content, insertion))
             {
-                const auto selection     = _editor->GetSelection();
-                const auto currentLength = _editor->Snapshot().Length();
+                const auto selection     = activeEditor->GetSelection();
+                const auto currentLength = activeEditor->Snapshot().Length();
                 const auto replaced      = selection.End() - selection.Start();
                 const auto insertedUnits = insertion.size();
-                if (! _editor->ReplaceSelection(std::move(insertion)))
+                if (! activeEditor->ReplaceSelection(std::move(insertion)))
                 {
                     if (currentLength - replaced + insertedUnits > Document::MaximumUnits)
                         ReportCapacityLimit();
@@ -2293,15 +2378,16 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         case Command::Math:
         {
             // Display delimiters must own their lines; a one-line $$...$$ stays literal at this pin.
+            auto* const activeEditor = ActiveEditor();
             const auto snippet =
                 NormalizeInsertedLineEndings(command == Command::Mermaid ? L"\n\n```mermaid\ngraph LR\nA[Idea] --> B[Write]\nB --> C[Share]\n```\n\n"
                                                                          : L"\n\n$$\nx = \\frac{-b + \\sqrt{b^2 - 4ac}}{2a}\n$$\n\n",
                                              CurrentText());
-            const auto selection     = _editor->GetSelection();
-            const auto currentLength = _editor->Snapshot().Length();
+            const auto selection     = activeEditor->GetSelection();
+            const auto currentLength = activeEditor->Snapshot().Length();
             const auto replaced      = selection.End() - selection.Start();
             const auto insertedUnits = snippet.size();
-            if (! _editor->ReplaceSelection(snippet))
+            if (! activeEditor->ReplaceSelection(snippet))
             {
                 if (currentLength - replaced + insertedUnits > Document::MaximumUnits)
                     ReportCapacityLimit();
@@ -2316,19 +2402,20 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         case Command::Quote:
         case Command::Fence:
         {
-            const auto selection = _editor->GetSelection();
-            const bool quote     = command == Command::Quote;
+            auto* const activeEditor = ActiveEditor();
+            const auto selection     = activeEditor->GetSelection();
+            const bool quote         = command == Command::Quote;
             const auto snippet =
                 NormalizeInsertedLineEndings(quote ? L"\n> A thought worth keeping.\n" : L"\n\n```text\nYour code here\n```\n\n", CurrentText());
             const bool changed = selection.Start() != selection.End()
-                                     ? _editor->WrapSelectionInMarkdownBlock(quote ? MarkdownBlockKind::BlockQuote : MarkdownBlockKind::FencedCode,
-                                                                             quote ? std::wstring_view{} : std::wstring_view(L"text"))
-                                     : _editor->ReplaceSelection(snippet);
+                                     ? activeEditor->WrapSelectionInMarkdownBlock(quote ? MarkdownBlockKind::BlockQuote : MarkdownBlockKind::FencedCode,
+                                                                                  quote ? std::wstring_view{} : std::wstring_view(L"text"))
+                                     : activeEditor->ReplaceSelection(snippet);
             if (changed)
                 Status(IDS_FORMATTED);
             else
             {
-                const auto currentLength    = _editor->Snapshot().Length();
+                const auto currentLength    = activeEditor->Snapshot().Length();
                 const auto replaced         = selection.End() - selection.Start();
                 const bool capacityExceeded = selection.Start() != selection.End() ? currentLength + (quote ? 2u : 12u) > Document::MaximumUnits
                                                                                    : currentLength - replaced + snippet.size() > Document::MaximumUnits;
@@ -2375,7 +2462,7 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
             const bool opening = _activeOverlay != OverlayKind::SettingsDrawer;
             SetActiveOverlay(opening ? OverlayKind::SettingsDrawer : OverlayKind::None);
             Layout();
-            _host.SetFocusControl(opening ? static_cast<DxUi::Control*>(_themeButtons[0]) : _editor, MayRequestNativeFocus());
+            _host.SetFocusControl(opening ? static_cast<DxUi::Control*>(_themeButtons[0]) : ActiveEditor(), MayRequestNativeFocus());
             return;
         }
         case Command::Focus:
@@ -2384,6 +2471,7 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
             Layout();
             return;
         case Command::Outline:
+            DismissHoverOverlays(false);
             _settings.showOutline = ! _settings.showOutline;
             Layout();
             SavePreferences();
@@ -2399,12 +2487,13 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         case Command::CloseDrawer: CloseDrawers(); return;
         case Command::ApplyBlock: ApplyBlockSource(); return;
     }
+    auto* const activeEditor = ActiveEditor();
     if (semantic)
     {
-        const auto result = _editor->ExecuteMarkdownCommand(request);
+        const auto result = activeEditor->ExecuteMarkdownCommand(request);
         if (result == MarkdownCommandStatus::Unavailable)
         {
-            if (IsMarkdownCommandCapacityExceeded(*_editor, request, _editor->GetSelection()))
+            if (IsMarkdownCommandCapacityExceeded(*activeEditor, request, activeEditor->GetSelection()))
                 ReportCapacityLimit();
             else
                 Status(IDS_NOTAVAILABLE);
@@ -2414,20 +2503,21 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
     }
     if (_activeOverlay == OverlayKind::FloatingSelectionTools)
         SetActiveOverlay(OverlayKind::None);
-    _host.SetFocusControl(_editor, MayRequestNativeFocus());
+    _host.SetFocusControl(activeEditor, MayRequestNativeFocus());
 }
 
 void Application::LocalSource()
 {
-    if (_editor->GetSemanticSourceRegion())
+    auto* const activeEditor = ActiveEditor();
+    if (activeEditor->GetSemanticSourceRegion())
     {
-        if (_editor->EndSemanticSourceEdit(_host))
+        if (activeEditor->EndSemanticSourceEdit(_host))
             SelectionChanged();
         return;
     }
-    const auto semantic  = _editor->GetAcknowledgedSemanticDocument(_host);
-    const auto selection = _editor->GetSelection();
-    const auto source    = _editor->GetText();
+    const auto semantic  = activeEditor->GetAcknowledgedSemanticDocument(_host);
+    const auto selection = activeEditor->GetSelection();
+    const auto source    = activeEditor->GetText();
     if (semantic)
     {
         const auto elements = semantic->Elements();
@@ -2437,7 +2527,7 @@ void Application::LocalSource()
             // Code, diagrams and math edit their exact source in place. A display equation
             // ends at its closing delimiter, so the following line is not inside it.
             const auto elementLast = element.role == DxUi::RichText::SemanticRole::Math ? WithoutLineEnd(source, element.source) : element.source.last;
-            if (selection.caret >= element.source.first && selection.caret <= elementLast && _editor->BeginSemanticSourceEdit(_host, semantic, index - 1))
+            if (selection.caret >= element.source.first && selection.caret <= elementLast && activeEditor->BeginSemanticSourceEdit(_host, semantic, index - 1))
             {
                 CloseDrawers();
                 // The block caption and live equation preview follow the region.
@@ -2450,7 +2540,7 @@ void Application::LocalSource()
     // When the native region refuses (pending preparation), math falls back to a guarded
     // draft of its exact envelope. Exact math source is a syntax fact; an unrelated preview
     // may still be preparing. Raster acknowledgment is required only for in-document editors.
-    if (const auto document = _editor->GetSemanticDocument())
+    if (const auto document = activeEditor->GetSemanticDocument())
         for (const auto& element : document->Elements())
             if (element.role == DxUi::RichText::SemanticRole::Math && selection.caret >= element.source.first &&
                 selection.caret <= WithoutLineEnd(source, element.source))
@@ -2460,7 +2550,7 @@ void Application::LocalSource()
                 break;
             }
     if (first == last)
-        if (const auto syntax = _editor->GetMarkdownSyntax())
+        if (const auto syntax = activeEditor->GetMarkdownSyntax())
             for (const auto& node : syntax->Inlines())
                 if (node.kind == DxUi::RichText::MarkdownInlineKind::Math && selection.caret >= node.source.first && selection.caret <= node.source.last)
                 {
@@ -2475,16 +2565,16 @@ void Application::LocalSource()
         last  = source.find_first_of(L"\r\n", selection.caret);
         last  = last == source.npos ? source.size() : last;
     }
-    _blockDraftSession = BlockDraftSession{_editor->Snapshot(), _editor->Revision(), {first, last}, false};
+    _blockDraftSession = BlockDraftSession{activeEditor->Snapshot(), activeEditor->Revision(), {first, last}, false};
     _blockDraftText->SetText(source.substr(first, last - first));
     _blockDraft->GetLogicalChild(0)->SetAccessibleName(Resource(_equationContext ? IDS_BLOCKEQUATION : IDS_LOCAL));
     static_cast<DxUi::Label*>(_blockDraft->GetLogicalChild(0))->SetText(Resource(_equationContext ? IDS_BLOCKEQUATION : IDS_LOCAL));
     SetActiveOverlay(OverlayKind::BlockDraftModal);
-    _editor->SetReadOnly(true);
+    activeEditor->SetReadOnly(true);
     if (last > first)
     {
         const DxUi::RichTextSourceHighlight block{first, last - first, true};
-        (void)AcceptSourceResult(_editor->TrySetSourceHighlights(std::span(&block, 1)));
+        (void)AcceptSourceResult(activeEditor->TrySetSourceHighlights(std::span(&block, 1)));
     }
     Layout();
     _host.SetFocusControl(_blockDraftText, MayRequestNativeFocus());
@@ -2495,8 +2585,9 @@ void Application::ApplyBlockSource()
 {
     if (! HasBlockDraft())
         return;
+    auto* const activeEditor = ActiveEditor();
     const auto& draftSession = _blockDraftSession.value();
-    if (! _editor->Snapshot().IsSameRevision(draftSession.snapshot) || _editor->Revision() != draftSession.revision)
+    if (! activeEditor->Snapshot().IsSameRevision(draftSession.snapshot) || activeEditor->Revision() != draftSession.revision)
     {
         Status(IDS_NOTAVAILABLE);
         return;
@@ -2516,8 +2607,8 @@ void Application::ApplyBlockSource()
     }
     const DxUi::RichText::SourceEdit edit{draftSession.range, value};
     const auto end = draftSession.range.first + value.size();
-    _editor->SetReadOnly(false);
-    if (! _editor->ApplySourceEdits(draftSession.snapshot, draftSession.revision, std::span(&edit, 1), {end, end}))
+    activeEditor->SetReadOnly(false);
+    if (! activeEditor->ApplySourceEdits(draftSession.snapshot, draftSession.revision, std::span(&edit, 1), {end, end}))
     {
         CloseDrawers();
         Status(IDS_NOTAVAILABLE);
@@ -2552,7 +2643,7 @@ std::vector<DxUi::MenuFlyoutItem> Application::ContextMenuItems(bool insertOnly,
             add(IDS_CODE, Command::Code, IDS_SHORTCUT_CODE);
             add(IDS_NUMBERED, Command::Numbered);
             add(IDS_LOCAL, Command::LocalSource, IDS_SHORTCUT_LOCAL);
-            if (CurrentLinkElement(_editor->GetSemanticDocument()))
+            if (CurrentLinkElement(ActiveEditor()->GetSemanticDocument()))
                 add(IDS_OPENLINK, Command::OpenLink);
             add(IDS_ROWADD, Command::RowAdd);
             add(IDS_ROWREMOVE, Command::RowRemove);
@@ -2578,10 +2669,11 @@ void Application::Menu(POINT point, bool insertOnly, bool headingOnly)
     if (_options.headless)
         return; // Focus-taking menus are an explicitly interactive gate.
     auto items           = ContextMenuItems(insertOnly, headingOnly);
-    const auto source    = _editor->Snapshot();
-    const auto selection = _editor->GetSelection();
+    auto* const primary  = ActiveEditor();
+    const auto source    = primary->Snapshot();
+    const auto selection = primary->GetSelection();
     const auto key       = _session.key;
-    const auto lifetime  = GetControlLifetimeToken(*_editor);
+    const auto lifetime  = GetControlLifetimeToken(*primary);
     if (_activeOverlay == OverlayKind::FloatingSelectionTools)
         SetActiveOverlay(OverlayKind::None);
     DxUi::ContextMenuSessionCallbacks callbacks;
@@ -2590,15 +2682,15 @@ void Application::Menu(POINT point, bool insertOnly, bool headingOnly)
                                        point,
                                        items,
                                        _host.GetTheme(),
-                                       [this, source, selection, key, lifetime](std::optional<int> selected) noexcept
+                                       [this, primary, source, selection, key, lifetime](std::optional<int> selected) noexcept
     {
         RunUiAction([&]
         {
             if (selected == static_cast<int>(Command::OpenLink) + 1)
             {
-                if (! IsUiAttached() || lifetime.expired())
+                if (! IsUiAttached() || lifetime.expired() || ActiveEditor() != primary)
                     return;
-                if (_session.key != key || ! _editor->Snapshot().IsSameRevision(source) || _editor->GetSelection() != selection)
+                if (_session.key != key || ! primary->Snapshot().IsSameRevision(source) || primary->GetSelection() != selection)
                 {
                     Status(IDS_LINKCHANGED);
                     return;
@@ -2728,7 +2820,7 @@ void Application::AskWorkspaceThen(std::function<void()> continuation, std::vect
         return;
     const auto accepted = [&](unsigned key, const DxUi::RichText::SourceSnapshot& source)
     { return std::ranges::any_of(approved, [&](const auto& value) { return value.key == key && value.source.IsSameRevision(source); }); };
-    if (! Dirty() || accepted(_session.key, _editor->Snapshot()))
+    if (! Dirty() || accepted(_session.key, ActiveEditor()->Snapshot()))
     {
         const auto pending = std::find_if(_inactiveDocuments.begin(), _inactiveDocuments.end(), [&](const auto& document) {
             return document.dirty && ! accepted(document.metadata.key, document.state.Snapshot());
@@ -2744,7 +2836,7 @@ void Application::AskWorkspaceThen(std::function<void()> continuation, std::vect
         if (! IsUiAttached())
             return;
     }
-    const auto promptingSource = _editor->Snapshot();
+    const auto promptingSource = ActiveEditor()->Snapshot();
     const auto promptingKey    = _session.key;
     AskThen([this, promptingSource, promptingKey, continuation = std::move(continuation), approved = std::move(approved)]() mutable
     {
@@ -2756,10 +2848,11 @@ void Application::Open()
 {
     AskWorkspaceThen([this]
     {
-        const auto path = PickFile(false);
-        if (path.empty() || ! CanAcceptCommand() || ! IsUiAttached() || ! _editor)
+        const auto path          = PickFile(false);
+        auto* const activeEditor = ActiveEditor();
+        if (path.empty() || ! CanAcceptCommand() || ! IsUiAttached() || ! activeEditor)
             return;
-        auto entrySource = _editor->Snapshot();
+        auto entrySource = activeEditor->Snapshot();
         const HRESULT hr = _files.Submit(false, path);
         if (FAILED(hr))
         {
@@ -2789,7 +2882,10 @@ void Application::Save(bool saveAs, bool force, std::optional<std::filesystem::p
         Status(IDS_BUSY);
         return;
     }
-    const auto source        = _editor->Snapshot();
+    auto* const activeEditor = ActiveEditor();
+    if (! activeEditor)
+        return;
+    const auto source        = activeEditor->Snapshot();
     const auto key           = _session.key;
     const auto originalPath  = _session.path;
     const auto originalStamp = _session.stamp;
@@ -2797,13 +2893,13 @@ void Application::Save(bool saveAs, bool force, std::optional<std::filesystem::p
     auto path = selectedPath ? selectedPath.value() : _session.path;
     if (! selectedPath && (saveAs || path.empty()))
         path = PickFile(true);
-    if (path.empty() || ! CanAcceptCommand() || ! IsUiAttached() || ! _editor)
+    if (path.empty() || ! CanAcceptCommand() || ! IsUiAttached() || ActiveEditor() != activeEditor)
     {
         _activeFileTx = std::monostate{};
         return;
     }
     if (key != _session.key || _session.path != originalPath || _session.stamp != originalStamp || _session.bom != originalBom ||
-        _session.recovered != originalRecovered || ! _editor->Snapshot().IsSameRevision(source))
+        _session.recovered != originalRecovered || ! activeEditor->Snapshot().IsSameRevision(source))
     {
         _activeFileTx = std::monostate{};
         Status(IDS_FILECONTEXTCHANGED);
@@ -2811,8 +2907,8 @@ void Application::Save(bool saveAs, bool force, std::optional<std::filesystem::p
     }
     const auto expected         = (! force && ! _session.path.empty()) ? std::optional<FileStamp>(_session.stamp) : std::nullopt;
     const bool sameIdentityOnly = saveAs && path.lexically_normal() != _session.path.lexically_normal();
-    const SaveRecoveryContext protection{_options.dataDirectory, _editor->GetSelection(), ++_recoveryGeneration};
-    const HRESULT hr = _files.Submit(true, path, _editor->GetText(), _session.bom, expected, sameIdentityOnly, false, _session.path, protection);
+    const SaveRecoveryContext protection{_options.dataDirectory, activeEditor->GetSelection(), ++_recoveryGeneration};
+    const HRESULT hr = _files.Submit(true, path, activeEditor->GetText(), _session.bom, expected, sameIdentityOnly, false, _session.path, protection);
     if (FAILED(hr))
     {
         _activeFileTx    = std::monostate{};
@@ -2833,7 +2929,8 @@ void Application::ResolveSaveConflict(const AsyncFiles::Result& result)
         _activeFileTx = std::monostate{};
         return;
     }
-    const auto source      = _editor->Snapshot();
+    auto* const primary    = ActiveEditor();
+    const auto source      = primary->Snapshot();
     const auto key         = _session.key;
     const auto path        = _session.path;
     const auto identity    = _session.stamp;
@@ -2883,7 +2980,7 @@ void Application::ResolveSaveConflict(const AsyncFiles::Result& result)
         return;
     }
     if (key != _session.key || path != _session.path || _session.stamp != identity || originalBom != _session.bom || originalRecovered != _session.recovered ||
-        ! _editor->Snapshot().IsSameRevision(source))
+        ActiveEditor() != primary || ! primary->Snapshot().IsSameRevision(source))
     {
         _activeFileTx = std::monostate{};
         Status(IDS_FILECONTEXTCHANGED);
@@ -2918,7 +3015,7 @@ void Application::OnMenuClosed(std::optional<int> selected) noexcept
             Execute(static_cast<Command>(selected.value() - 1));
         // Commands may retire the root or open a draft/drawer that owns focus.
         if (CanAcceptCommand() && ! _printPreview && (_activeOverlay == OverlayKind::None || _activeOverlay == OverlayKind::FloatingSelectionTools))
-            _host.SetFocusControl(_editor, MayRequestNativeFocus());
+            _host.SetFocusControl(ActiveEditor(), MayRequestNativeFocus());
     });
 }
 void Application::FileCompleted() noexcept
@@ -3016,7 +3113,7 @@ void Application::CompleteFileOperation()
     {
         _startupRestore.phase = StartupRestoreState::Phase::Completed;
         const auto admitted   = std::exchange(_startupRestore.source, std::nullopt);
-        if (! admitted || ! _editor->Snapshot().IsSameRevision(admitted.value()) || ! _recoveryCandidates.empty() || IsSessionEnding())
+        if (! admitted || ! ActiveEditor()->Snapshot().IsSameRevision(admitted.value()) || ! _recoveryCandidates.empty() || IsSessionEnding())
         {
             _activeFileTx = std::monostate{};
             Status(IDS_FILECONTEXTCHANGED);
@@ -3076,7 +3173,7 @@ void Application::CompleteFileOperation()
         _activeFileTx = std::monostate{};
         if (! IsUiAttached())
             return;
-        if (! request || _session.key != request->key || _session.path != request->path || ! _editor->Snapshot().IsSameRevision(request->source))
+        if (! request || _session.key != request->key || _session.path != request->path || ! ActiveEditor()->Snapshot().IsSameRevision(request->source))
         {
             Status(IDS_FILECONTEXTCHANGED);
             return;
@@ -3100,12 +3197,14 @@ void Application::CompleteFileOperation()
         _session.stamp = result.document.stamp;
         EnsureFilesRoot();
         RefreshFiles(true);
-        if (! AcceptSourceResult(_editor->TrySetDocumentFilePath(_session.path.native())))
+        if (! AcceptSourceResult(ActiveEditor()->TrySetDocumentFilePath(_session.path.native())))
         {
             if (IsClosingAfterSave())
                 ResumeAfterSaveClose();
             return;
         }
+        if (ActiveEditor() != _editor)
+            (void)AcceptSourceResult(_editor->TrySetDocumentFilePath(_session.path.native()));
         RememberActiveDocument();
         Changed();
         Status(IDS_SAVED);
@@ -3173,7 +3272,7 @@ void Application::CompleteFileOperation()
             else if (IsUiAttached())
                 RefreshFiles();
         }
-        else if (entrySource && _editor->Snapshot().IsSameRevision(entrySource.value()))
+        else if (entrySource && ActiveEditor()->Snapshot().IsSameRevision(entrySource.value()))
             apply();
         else
             AskWorkspaceThen(std::move(apply), std::move(approvals));
@@ -3181,16 +3280,18 @@ void Application::CompleteFileOperation()
 }
 std::optional<std::wstring> Application::BeginBitmapPaste(std::span<const std::byte> dib, bool v5)
 {
-    if (! CanAcceptCommand() || IsSessionEnding() || HasActiveModalPrompt() || ! _editor || _editor->IsReadOnly() || _settings.view == EditorView::Source ||
-        _host.GetFocusControl() != _editor || _editor->IsSelectionGestureActive() || HasBlockDraft())
+    auto* const activeEditor = ActiveEditor();
+    if (! CanAcceptCommand() || IsSessionEnding() || HasActiveModalPrompt() || ! activeEditor || activeEditor->IsReadOnly() ||
+        activeEditor->GetViewMode() == DxUi::RichText::ViewMode::Source || _host.GetFocusControl() != activeEditor ||
+        activeEditor->IsSelectionGestureActive() || HasBlockDraft())
         return std::nullopt;
     PendingBitmapPaste pending;
     pending.documentKey  = _session.key;
-    pending.source       = _editor->Snapshot();
-    pending.selection    = _editor->GetSelection();
+    pending.source       = activeEditor->Snapshot();
+    pending.selection    = activeEditor->GetSelection();
     pending.view         = _settings.view;
     pending.documentPath = _session.path;
-    pending.lifetime     = GetControlLifetimeToken(*_editor);
+    pending.lifetime     = GetControlLifetimeToken(*activeEditor);
     const auto submitted = _bitmapWriter.Submit(dib, v5, pending.request);
     if (FAILED(submitted))
     {
@@ -3224,10 +3325,12 @@ void Application::ServiceBitmapPaste()
         Status(IDS_IMAGEPASTEFAILED);
         return;
     }
+    auto* const activeEditor = ActiveEditor();
     if (! pending || HasActiveModalPrompt() || pending->request != result.request || pending->lifetime.expired() || pending->documentKey != _session.key ||
-        pending->view != _settings.view || pending->documentPath != _session.path || ! _editor || _editor->IsReadOnly() || _host.GetFocusControl() != _editor ||
-        _editor->IsSelectionGestureActive() || _editor->GetSelection() != pending->selection ||
-        _editor->Snapshot().ChangedRangeFrom(pending->source).kind != DxUi::RichText::SourceChangeKind::Unchanged || HasBlockDraft())
+        pending->view != _settings.view || pending->documentPath != _session.path || ! activeEditor || activeEditor->IsReadOnly() ||
+        activeEditor->GetViewMode() == DxUi::RichText::ViewMode::Source || _host.GetFocusControl() != activeEditor ||
+        activeEditor->IsSelectionGestureActive() || activeEditor->GetSelection() != pending->selection ||
+        activeEditor->Snapshot().ChangedRangeFrom(pending->source).kind != DxUi::RichText::SourceChangeKind::Unchanged || HasBlockDraft())
     {
         Status(IDS_IMAGEPASTECANCELLED);
         return;
@@ -3238,12 +3341,12 @@ void Application::ServiceBitmapPaste()
     request.command     = DxUi::RichText::MarkdownCommand::InsertImage;
     request.text        = alt;
     request.destination = result.asset.uri;
-    keep                = _editor->ExecuteMarkdownCommand(request) == DxUi::RichText::MarkdownCommandStatus::Changed;
+    keep                = activeEditor->ExecuteMarkdownCommand(request) == DxUi::RichText::MarkdownCommandStatus::Changed;
     if (! IsClosing() && ! lifetime.expired())
     {
         if (keep)
             Status(IDS_IMAGEPASTED);
-        else if (IsMarkdownCommandCapacityExceeded(*_editor, request, pending->selection))
+        else if (IsMarkdownCommandCapacityExceeded(*activeEditor, request, pending->selection))
             ReportCapacityLimit();
         else
             Status(IDS_IMAGEPASTEFAILED);
@@ -3798,6 +3901,30 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         }
         _zoomWheelRemainder = 0;
     }
+    if (message == WM_MOUSEMOVE)
+    {
+        const float scale = 96.f / _host.GetDpi();
+        UpdateHoverOverlayPointer({static_cast<float>(GET_X_LPARAM(lParam)) * scale, static_cast<float>(GET_Y_LPARAM(lParam)) * scale}, true);
+    }
+    else if (message == WM_MOUSELEAVE)
+    {
+        UpdateHoverOverlayPointer({-1.f, -1.f}, false);
+    }
+    else if (message == WM_LBUTTONDOWN || message == WM_RBUTTONDOWN)
+    {
+        const float scale             = 96.f / _host.GetDpi();
+        const D2D1_POINT_2F clientDip = {static_cast<float>(GET_X_LPARAM(lParam)) * scale, static_cast<float>(GET_Y_LPARAM(lParam)) * scale};
+        const auto inRect             = [](const DxUi::Control* c, D2D1_POINT_2F pt) noexcept
+        {
+            if (! c || ! c->IsVisible())
+                return false;
+            const auto r = c->GetBounds();
+            return pt.x >= r.left && pt.x < r.right && pt.y >= r.top && pt.y < r.bottom;
+        };
+        if ((IsPaneOverlayActive(PaneSide::Left) && ! inRect(_filesPane, clientDip) && ! inRect(_leftRail, clientDip)) ||
+            (IsPaneOverlayActive(PaneSide::Right) && ! inRect(_sidebar, clientDip) && ! inRect(_rightRail, clientDip)))
+            DismissHoverOverlays(true);
+    }
     bool handled{};
     const auto result = _host.HandleMessage(hwnd, message, wParam, lParam, handled);
     if (message == WM_MOVE || message == WM_SIZE || message == WM_EXITSIZEMOVE || message == WM_DPICHANGED)
@@ -3813,8 +3940,10 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         ServiceImages();
         // Published syntax or deferred placement can arrive after a committed source/selection event.
         // Observe immutable identity and defer overlay/layout reconciliation out of WM_PAINT.
-        const bool placementPending = ! IsClosing() && (_pendingSelectionTools || (_blockDraftSession && _blockDraftSession->pendingPlacement) ||
-                                                        _editor->GetMarkdownSyntax() != _derivedCaches.selectionFactsSyntax);
+        const bool placementPending =
+            ! IsClosing() && (_pendingSelectionTools || (_blockDraftSession && _blockDraftSession->pendingPlacement) ||
+                              ActiveEditor()->GetMarkdownSyntax() != _derivedCaches.selectionFactsSyntax || _pendingComposeScrollRestore.has_value() ||
+                              _pendingSourceScrollRestore.has_value() || _pendingSplitScroll.has_value());
         if (placementPending && ! _postPreparePosted)
             _postPreparePosted = PostMessageW(hwnd, PostPreparePlacement, 0, 0) != FALSE;
     }
@@ -3825,13 +3954,39 @@ bool Application::ReconcilePostPreparePlacement()
 {
     if (IsClosing() || ! _host.GetRoot())
         return false;
-    const bool refreshFacts     = _pendingSelectionTools || _editor->GetMarkdownSyntax() != _derivedCaches.selectionFactsSyntax;
+    bool scrolled{};
+    if (_pendingComposeScrollRestore && _editor && _editor->IsVisible())
+    {
+        const float offset = _pendingComposeScrollRestore.value();
+        _pendingComposeScrollRestore.reset();
+        _splitScrollSyncInProgress = true;
+        const auto reset           = wil::scope_exit([&] { _splitScrollSyncInProgress = false; });
+        scrolled                   = _editor->SetScrollOffsetDip(offset) || scrolled;
+    }
+    if (_pendingSourceScrollRestore && _mirror && _mirror->IsVisible())
+    {
+        const float offset = _pendingSourceScrollRestore.value();
+        _pendingSourceScrollRestore.reset();
+        _splitScrollSyncInProgress = true;
+        const auto reset           = wil::scope_exit([&] { _splitScrollSyncInProgress = false; });
+        scrolled                   = _mirror->SetScrollOffsetDip(offset) || scrolled;
+    }
+    if (_pendingSplitScroll)
+    {
+        const auto pending = std::exchange(_pendingSplitScroll, std::nullopt);
+        if (_settings.view == EditorView::Split && _settings.splitScrollSync)
+        {
+            ApplySplitScrollSync(pending->source, pending->scrollDip, false);
+            scrolled = true;
+        }
+    }
+    const bool refreshFacts     = _pendingSelectionTools || ActiveEditor()->GetMarkdownSyntax() != _derivedCaches.selectionFactsSyntax;
     const bool pendingPlacement = _blockDraftSession && _blockDraftSession->pendingPlacement;
     if (refreshFacts)
         SelectionChanged(_pendingSelectionTools || _activeOverlay == OverlayKind::FloatingSelectionTools);
     if (pendingPlacement)
         Layout();
-    return refreshFacts || pendingPlacement;
+    return refreshFacts || pendingPlacement || scrolled;
 }
 
 void Application::Prepare(unsigned turns)
@@ -3894,6 +4049,18 @@ bool Application::Capture(const std::filesystem::path& path, bool prepareContent
     if (prepareContent && ! _printPreview)
         Prepare();
     DxUi::Button* captureHover{};
+    if (_options.headless && path == _options.capture && _options.scenario == L"panel-toggle-hover" && _panelToggle)
+    {
+        captureHover      = _panelToggle;
+        const auto bounds = captureHover->GetBounds();
+        const float scale = _host.GetDpi() / 96.f;
+        const LONG px     = static_cast<LONG>((bounds.left + bounds.right) * .5f * scale);
+        const LONG py     = static_cast<LONG>((bounds.top + bounds.bottom) * .5f * scale);
+        bool handled{};
+        (void)_host.HandleMessage(_window.get(), WM_MOUSEMOVE, 0, MAKELPARAM(px, py), handled);
+        if (! captureHover->IsHovered())
+            return false;
+    }
     if (_options.headless && path == _options.capture && (_options.scenario == L"caption-close-hover" || _options.scenario == L"caption-maximize-hover"))
     {
         const bool close  = _options.scenario == L"caption-close-hover";
@@ -3981,6 +4148,14 @@ bool Application::RouteShortcut(const MSG& message)
                     }
                     break;
                 case 'E': command = shift ? Command::Files : Command::Code; break;
+                case 'L':
+                    if (shift)
+                        command = Command::Outline;
+                    break;
+                case 'Y':
+                    if (shift)
+                        command = Command::ToggleSplitScrollSync;
+                    break;
                 case 'K': command = Command::Link; break;
                 case 'F': command = Command::Find; break;
                 case '1': command = Command::Compose; break;
@@ -3999,6 +4174,8 @@ bool Application::RouteShortcut(const MSG& message)
             command = shift ? Command::FindPrevious : Command::FindNext;
         if (message.wParam == VK_F2 && ! ctrl && ! shift && ! alt)
             command = Command::LocalSource;
+        if (message.wParam == VK_F6 && ! ctrl && ! shift && ! alt)
+            command = Command::SwitchSplitPane;
         if (message.wParam == VK_F11 && ! ctrl && ! shift && ! alt)
             command = Command::Focus;
         if (message.wParam == VK_F10 && alt && ! ctrl && ! shift)
@@ -4110,7 +4287,8 @@ int Application::Run()
                                        _options.scenario == L"compose-dark" || _options.scenario == L"split-dark" || _options.scenario == L"math-dark" ||
                                        _options.scenario == L"quote-scroll-dark" || _options.scenario == L"diagram-label-dark" ||
                                        _options.scenario == L"reference-dark" || _options.scenario == L"markdown-style" ||
-                                       _options.scenario == L"caption-close-hover" || _options.scenario == L"caption-maximize-hover"
+                                       _options.scenario == L"caption-close-hover" || _options.scenario == L"caption-maximize-hover" ||
+                                       _options.scenario == L"pane-hover-reveal-dark" || _options.scenario == L"split-unlinked-dark"
                                    ? Appearance::Dark
                                : _options.scenario == L"compose-paper" ? Appearance::Paper
                                                                        : Appearance::Light;
@@ -4218,7 +4396,7 @@ int Application::Run()
     ShowWindow(_window.get(), InitialShowCommand());
     UpdateWindow(_window.get());
     RecordWindowPlacement(true);
-    _host.SetFocusControl(_editor, MayRequestNativeFocus());
+    _host.SetFocusControl(ActiveEditor(), MayRequestNativeFocus());
     MSG message{};
     while (GetMessageW(&message, nullptr, 0, 0) > 0)
     {
@@ -4247,5 +4425,334 @@ void Application::DispatchUiMessage(const MSG& message) noexcept
         if (! IsClosing() && _files.Busy())
             FileCompleted();
     });
+}
+
+Editor* Application::ActiveEditor() const noexcept
+{
+    return _settings.view == EditorView::Split && _splitActivePane == SplitActivePane::Source && _mirror ? _mirror : _editor;
+}
+
+Editor* Application::MirrorEditor() const noexcept
+{
+    return _settings.view == EditorView::Split && _splitActivePane == SplitActivePane::Source && _editor ? _editor : _mirror;
+}
+
+namespace
+{
+void ClearEditorCallbacks(Editor* target)
+{
+    if (! target)
+        return;
+    target->SetOnTextChanged({});
+    target->SetOnSelectionChanged({});
+    target->SetBitmapPasteHandler({});
+    target->SetOnContextMenu({});
+    target->SetOnLinkActivated({});
+}
+
+bool ExchangeEditorsWithoutCallbacks(Editor& from, Editor& to)
+{
+    ClearEditorCallbacks(&from);
+    ClearEditorCallbacks(&to);
+    DxUi::RichText::Document staging;
+    to.SetReadOnly(false);
+    if (! from.ExchangeDocumentState(staging))
+    {
+        to.SetReadOnly(true);
+        return false;
+    }
+    if (! to.ExchangeDocumentState(staging))
+    {
+        (void)from.ExchangeDocumentState(staging);
+        to.SetReadOnly(true);
+        return false;
+    }
+    from.SetReadOnly(true);
+    return true;
+}
+} // namespace
+
+void Application::BindEditorCallbacks()
+{
+    auto* const active  = ActiveEditor();
+    auto* const passive = MirrorEditor();
+    ClearEditorCallbacks(passive);
+    if (active)
+    {
+        active->SetOnTextChanged([this] { Changed(); });
+        active->SetOnSelectionChanged([this] { SelectionChanged(); });
+        active->SetBitmapPasteHandler([this](std::span<const std::byte> dib, bool v5) { return BeginBitmapPaste(dib, v5); });
+        active->SetOnContextMenu([this](POINT point, bool) { Menu(point); });
+        active->SetOnLinkActivated([this](const DxUi::RichTextLinkActivation& activation) { RunUiAction([&] { RequestOpenLink(activation); }); });
+    }
+}
+
+void Application::EnsurePrimaryEditorAuthoritative()
+{
+    if (_splitActivePane == SplitActivePane::Compose)
+        return;
+    _splitScrollSyncInProgress = true;
+    const auto resetSync       = wil::scope_exit([&] { _splitScrollSyncInProgress = false; });
+    if (_editor && _mirror)
+    {
+        (void)ExchangeEditorsWithoutCallbacks(*_mirror, *_editor);
+        _editor->SetReadOnly(false);
+        _mirror->SetReadOnly(true);
+    }
+    _splitActivePane = SplitActivePane::Compose;
+    BindEditorCallbacks();
+    _derivedCaches.mirroredSource.reset();
+    _derivedCaches.dirtyFact.reset();
+    _derivedCaches.selectionFactsSource.reset();
+    _pendingComposeScrollRestore.reset();
+    _pendingSourceScrollRestore.reset();
+    _pendingSplitScroll.reset();
+    UpdateSplitHeaders();
+}
+
+void Application::SwitchSplitActivePane(SplitActivePane target, bool moveFocus, std::optional<DxUi::RichText::Selection> overrideSelection)
+{
+    if (IsClosing() || ! IsUiAttached() || _settings.view != EditorView::Split || target == _splitActivePane)
+        return;
+    if (! CanAcceptCommand() || HasActiveModalPrompt() || _files.Busy() || _switchingDocument)
+    {
+        Status(IDS_BUSY);
+        return;
+    }
+    if (HasBlockDraft())
+    {
+        Status(IDS_BLOCKPENDING);
+        return;
+    }
+    DxUi::NativeTextInputState native;
+    if (_host.TryReadNativeTextInputState(_host.GetFocusControl(), native) && native.compositionStartIndex)
+        return;
+    auto* const oldActive = ActiveEditor();
+    auto* const newActive = MirrorEditor();
+    if (! oldActive || ! newActive || oldActive->GetSemanticSourceRegion() || newActive->GetSemanticSourceRegion())
+    {
+        Status(IDS_BUSY);
+        return;
+    }
+    const auto oldScroll       = oldActive->GetScrollInfo();
+    const auto newScroll       = newActive->GetScrollInfo();
+    _splitScrollSyncInProgress = true;
+    const auto resetSync       = wil::scope_exit([&] { _splitScrollSyncInProgress = false; });
+    if (! ExchangeEditorsWithoutCallbacks(*oldActive, *newActive))
+    {
+        BindEditorCallbacks();
+        Status(IDS_BUSY);
+        return;
+    }
+    _splitActivePane = target;
+    ++_activity.splitPaneSwitches;
+    (void)AcceptSourceResult(newActive->TrySetDocumentFilePath(_session.path.native()));
+    newActive->SetRemoteImagesEnabled(_settings.allowRemoteImages || _session.remoteImagesAllowed);
+    BindEditorCallbacks();
+    if (overrideSelection)
+    {
+        const auto snap = newActive->Snapshot();
+        const auto& sel = overrideSelection.value();
+        if (sel.anchor <= snap.Length() && sel.caret <= snap.Length() && snap.IsBoundary(sel.anchor) && snap.IsBoundary(sel.caret))
+            (void)AcceptSourceResult(newActive->TrySetSelection(sel));
+    }
+    _derivedCaches.mirroredSource.reset();
+    _derivedCaches.dirtyFact.reset();
+    _derivedCaches.selectionFactsSource.reset();
+    (void)SynchronizeMirror();
+    _pendingSplitScroll.reset();
+    if (oldScroll)
+    {
+        if (oldActive == _editor)
+            _pendingComposeScrollRestore = oldScroll->offsetDip;
+        else
+            _pendingSourceScrollRestore = oldScroll->offsetDip;
+    }
+    if (newScroll)
+    {
+        if (newActive == _editor)
+            _pendingComposeScrollRestore = newScroll->offsetDip;
+        else
+            _pendingSourceScrollRestore = newScroll->offsetDip;
+    }
+    if ((_pendingComposeScrollRestore || _pendingSourceScrollRestore) && _window && ! _postPreparePosted)
+        _postPreparePosted = PostMessageW(_window.get(), PostPreparePlacement, 0, 0) != FALSE;
+    if (_activeOverlay == OverlayKind::FindBar)
+    {
+        oldActive->ClearSourceHighlights();
+        _find.projections.highlightsNeedRefresh = true;
+        RefreshFind();
+    }
+    if (_activeOverlay == OverlayKind::FloatingSelectionTools && _splitActivePane == SplitActivePane::Source)
+        SetActiveOverlay(OverlayKind::None);
+    Layout();
+    SelectionChanged();
+    if (moveFocus)
+        _host.SetFocusControl(newActive, MayRequestNativeFocus());
+}
+
+void Application::OnSplitPaneScrolled(Editor* sourcePane, float scrollDip)
+{
+    if (_splitScrollSyncInProgress || ! _settings.splitScrollSync || _settings.view != EditorView::Split || IsClosing() || ! sourcePane)
+        return;
+    if (! sourcePane->IsVisible())
+        return;
+    ApplySplitScrollSync(sourcePane, scrollDip, true);
+}
+
+void Application::ApplySplitScrollSync(Editor* sourcePane, float scrollDip, bool allowDefer)
+{
+    if (_splitScrollSyncInProgress || ! _settings.splitScrollSync || _settings.view != EditorView::Split || IsClosing() || ! sourcePane)
+        return;
+    Editor* const follower = sourcePane == _editor ? _mirror : sourcePane == _mirror ? _editor : nullptr;
+    if (! follower || ! follower->IsVisible())
+        return;
+    const auto driverInfo   = sourcePane->GetScrollInfo();
+    const auto followerInfo = follower->GetScrollInfo();
+    if (! driverInfo || ! followerInfo)
+    {
+        if (allowDefer)
+        {
+            _pendingSplitScroll = PendingSplitScroll{sourcePane, scrollDip};
+            if (_window && ! _postPreparePosted)
+                _postPreparePosted = PostMessageW(_window.get(), PostPreparePlacement, 0, 0) != FALSE;
+        }
+        return;
+    }
+    _splitScrollSyncInProgress = true;
+    const auto resetSync       = wil::scope_exit([&] { _splitScrollSyncInProgress = false; });
+    const float driverMax      = std::max(0.f, driverInfo->contentHeightDip - driverInfo->viewportHeightDip);
+    const float followerMax    = std::max(0.f, followerInfo->contentHeightDip - followerInfo->viewportHeightDip);
+    if (scrollDip <= 1.0f || driverMax <= 1.0f)
+    {
+        (void)follower->SetScrollOffsetDip(0.0f);
+        ++_activity.splitScrollSyncs;
+        return;
+    }
+    if (scrollDip >= driverMax - 1.0f)
+    {
+        (void)follower->SetScrollOffsetDip(followerMax);
+        ++_activity.splitScrollSyncs;
+        return;
+    }
+    const auto visibleRange = sourcePane->GetVisibleSourceRange(_host);
+    if (visibleRange && follower->ScrollSourceRangeIntoView(_host, visibleRange->first, visibleRange->first, true))
+    {
+        ++_activity.splitScrollSyncs;
+        return;
+    }
+    if (allowDefer)
+    {
+        _pendingSplitScroll = PendingSplitScroll{sourcePane, scrollDip};
+        if (_window && ! _postPreparePosted)
+            _postPreparePosted = PostMessageW(_window.get(), PostPreparePlacement, 0, 0) != FALSE;
+        return;
+    }
+    const float ratio = std::clamp(scrollDip / driverMax, 0.f, 1.f);
+    (void)follower->SetScrollOffsetDip(ratio * followerMax);
+    ++_activity.splitScrollSyncs;
+}
+
+void Application::RefreshLeftRailDots()
+{
+    if (! _leftRail)
+        return;
+    struct DirtyEntry
+    {
+        unsigned key{};
+        std::filesystem::path path;
+        bool active{};
+    };
+    std::vector<DirtyEntry> dirtyEntries;
+    std::vector<std::wstring> baseNames;
+    auto recordBase = [&](const std::filesystem::path& path) { baseNames.push_back(path.empty() ? Resource(IDS_UNTITLED) : path.filename().native()); };
+    recordBase(_session.path);
+    if (Dirty())
+        dirtyEntries.push_back({_session.key, _session.path, true});
+    for (const auto& doc : _inactiveDocuments)
+    {
+        recordBase(doc.metadata.path);
+        if (doc.dirty)
+            dirtyEntries.push_back({doc.metadata.key, doc.metadata.path, false});
+    }
+    std::ranges::sort(dirtyEntries, {}, &DirtyEntry::key);
+
+    const std::wstring editedWord = Resource(IDS_FILESEDITED);
+    std::vector<RailDotItem> items;
+    items.reserve(dirtyEntries.size());
+    for (const auto& entry : dirtyEntries)
+    {
+        const std::wstring base = entry.path.empty() ? Resource(IDS_UNTITLED) : entry.path.filename().native();
+        const auto duplicates   = std::ranges::count(baseNames, base);
+        std::wstring label      = base;
+        if (duplicates > 1 && ! entry.path.empty())
+        {
+            const auto parent = entry.path.parent_path().filename().native();
+            if (! parent.empty())
+                label = parent + L"/" + base;
+        }
+        RailDotItem item;
+        item.id         = entry.key;
+        item.level      = 1u;
+        item.active     = entry.active;
+        item.name       = label;
+        item.itemStatus = editedWord;
+        item.tooltip    = FormatStringResource(nullptr, IDS_RAIL_FILE_TOOLTIP, label, editedWord);
+        items.push_back(std::move(item));
+    }
+    _leftRail->SetItems(std::move(items), true);
+}
+
+void Application::RefreshRightRailDots()
+{
+    if (! _rightRail)
+        return;
+    const bool findActive = _activeOverlay == OverlayKind::FindBar;
+    std::vector<RailDotItem> items;
+    items.reserve(_documentInfo.headings.size());
+    for (std::size_t i = 0; i < _documentInfo.headings.size(); ++i)
+    {
+        const auto& heading = _documentInfo.headings[i];
+        std::wstring cleaned;
+        cleaned.reserve(std::min<std::size_t>(heading.text.size(), 80u));
+        bool lastSpace = false;
+        for (const wchar_t ch : heading.text)
+        {
+            if (ch == L'\r' || ch == L'\n' || ch == L'\t' || ch == L' ')
+            {
+                if (! cleaned.empty() && ! lastSpace)
+                {
+                    cleaned.push_back(L' ');
+                    lastSpace = true;
+                }
+            }
+            else
+            {
+                cleaned.push_back(ch);
+                lastSpace = false;
+            }
+            if (cleaned.size() >= 82u)
+                break;
+        }
+        while (! cleaned.empty() && cleaned.back() == L' ')
+            cleaned.pop_back();
+        if (cleaned.size() > 80u)
+        {
+            cleaned.resize(79u);
+            if (! cleaned.empty() && IS_HIGH_SURROGATE(cleaned.back()))
+                cleaned.pop_back();
+            cleaned.push_back(L'\x2026');
+        }
+        RailDotItem item;
+        item.id             = i;
+        item.level          = heading.level;
+        item.active         = _currentHeading && _currentHeading.value() == i;
+        item.findMatchCount = (findActive && i < _find.projections.sectionCounts.size()) ? _find.projections.sectionCounts[i] : 0u;
+        item.name           = std::move(cleaned);
+        item.tooltip        = item.findMatchCount > 0u ? FormatStringResource(nullptr, IDS_RAIL_HEADING_MATCHES, item.name, item.findMatchCount)
+                                                       : FormatStringResource(nullptr, IDS_RAIL_HEADING_TOOLTIP, item.name, item.level);
+        items.push_back(std::move(item));
+    }
+    _rightRail->SetItems(std::move(items), true);
 }
 } // namespace RedTilde

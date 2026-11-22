@@ -63,6 +63,7 @@
     <ClCompile Include="Application.CaptureScenarios.cpp" />
     <ClCompile Include="Application.Navigation.cpp" />
     <ClCompile Include="Application.Printing.cpp" />
+    <ClCompile Include="SidePaneRail.cpp" />
     <ClCompile Include="PrintPreview.cpp" />
     <ClCompile Include="Printing.cpp" />
     <ClCompile Include="..\Common\Files.cpp" />
@@ -85,6 +86,8 @@
     <ClCompile Include="..\Common\ProcessWork.cpp" />
     <ClCompile Include="..\Common\Recovery.cpp" />
     <ClCompile Include="..\Tests\Application.Tests.Core.cpp" Condition="'$(RedTildeEnableTests)'=='true'" />
+    <ClCompile Include="..\Tests\Application.Tests.Panes.cpp" Condition="'$(RedTildeEnableTests)'=='true'" />
+    <ClCompile Include="..\Tests\Application.Tests.SplitEditing.cpp" Condition="'$(RedTildeEnableTests)'=='true'" />
     <ClCompile Include="..\Tests\Application.Tests.Settings.cpp" Condition="'$(RedTildeEnableTests)'=='true'" />
     <ClCompile Include="..\Tests\Application.Tests.Performance.cpp" />
     <ResourceCompile Include="..\res\RedTilde.rc" />

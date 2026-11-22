@@ -63,8 +63,9 @@ void Application::PrepareDesignScenario()
     const UINT nativeDpi    = GetDpiForWindow(_window.get());
     const UINT requestedDpi = _options.captureDpi ? _options.captureDpi : nativeDpi;
     RequireCapture(requestedDpi >= 96 && requestedDpi <= 384, "Capture DPI must be between 96 and 384");
-    const unsigned defaultWidth  = _options.scenario == L"narrow" ? 800u : 1440u;
-    const unsigned defaultHeight = _options.scenario == L"narrow" ? 560u : 900u;
+    const bool compactRailScene  = _options.scenario == L"panes-collapsed-rails-light" || _options.scenario == L"pane-hover-reveal-dark";
+    const unsigned defaultWidth  = _options.scenario == L"narrow" ? 800u : compactRailScene ? 1080u : 1440u;
+    const unsigned defaultHeight = _options.scenario == L"narrow" ? 560u : compactRailScene ? 820u : 900u;
     const int widthPx =
         _options.viewportWidthPx ? static_cast<int>(_options.viewportWidthPx) : MulDiv(static_cast<int>(defaultWidth), static_cast<int>(requestedDpi), 96);
     const int heightPx =
@@ -158,7 +159,9 @@ void Application::PrepareDesignScenario()
     const bool fixtureScene = scenario == L"compose-light" || scenario == L"compose-dark" || scenario == L"compose-paper" || scenario == L"source" ||
                               scenario == L"split" || scenario == L"split-dark" || scenario == L"settings" || scenario == L"settings-about" ||
                               scenario == L"narrow" || scenario == L"high-contrast" || scenario == L"files" || scenario == L"find" || scenario == L"focus" ||
-                              scenario == L"equation" || reference;
+                              scenario == L"equation" || scenario == L"panel-toggle-hover" || scenario == L"panes-collapsed-rails-light" ||
+                              scenario == L"pane-hover-reveal-dark" || scenario == L"split-source-active-light" || scenario == L"split-unlinked-dark" ||
+                              reference;
     bool frozenFilesModel{}, reparseRemoved{};
     if (scenario == L"markdown-style" || scenario == L"caption-close-hover" || scenario == L"caption-maximize-hover")
     {
@@ -233,6 +236,9 @@ void Application::PrepareDesignScenario()
                 OutputDebugStringW(L"RedTilde capture could not remove its owned reparse fixture leaf.\n");
         });
         auto source          = reference ? CurrentText() : WritingFixture();
+        if (scenario == L"split-unlinked-dark")
+            for (unsigned section = 1; section <= 14; ++section)
+                source += std::format(L"\n## Section {}\n\nWriting keeps its place across independent viewports when linked scroll is off.\n", section);
         if (scenario == L"equation")
             source = L"# The shape of an idea\n\n"
                      L"A few symbols can make a complicated thought feel clear. Keep the exact source one step away.\n\n"
@@ -347,8 +353,75 @@ void Application::PrepareDesignScenario()
                 _settingsScroll->SetScrollOffset(1250.f);
             }
         }
-        if (scenario == L"files" || scenario == L"compose-light" || scenario == L"compose-dark" || scenario == L"compose-paper")
+        if (scenario == L"files" || scenario == L"compose-light" || scenario == L"compose-dark" || scenario == L"compose-paper" ||
+            scenario == L"panel-toggle-hover")
             _host.SetFocusControl(_editor, false);
+        if (scenario == L"panes-collapsed-rails-light" || scenario == L"pane-hover-reveal-dark")
+        {
+            RequireCapture(StartWorkspaceDocument(), "Cannot add second dirty workspace document for collapsed-rail capture");
+            RequireCapture(SetDocument(L"# Second chapter\n\nA second modified workspace file.\n", writing / L"Drafts/Chapter2.md", false, {}),
+                           "Cannot seed second dirty workspace file for collapsed-rail capture");
+            const auto secondEnd = _editor->Snapshot().Length();
+            _editor->SetSelection({secondEnd, secondEnd});
+            RequireCapture(_editor->ReplaceSelection(L"\n"), "Cannot mark second workspace capture file Edited");
+            RequireCapture(SwitchWorkspaceDocument(0), "Cannot return to primary workspace fixture");
+            _editor->SetSelection({0, 0});
+            SelectionChanged();
+            (void)_editor->ScrollSourceRangeIntoView(_host, 0, 0, true);
+            _host.SetFocusControl(_editor, false);
+            Layout();
+            Prepare(512);
+            if (scenario == L"pane-hover-reveal-dark")
+            {
+                OnRailExpandClicked(PaneSide::Right);
+                Prepare(512);
+                RequireCapture(_leftRail && _leftRail->IsVisible() && _rightRail && _rightRail->IsVisible() && IsPaneOverlayActive(PaneSide::Right) &&
+                                   _sidebar->IsVisible() && ! _filesPane->IsVisible(),
+                               "Hover-reveal dark capture must render floating Right Outline overlay over the dark canvas");
+            }
+            else
+            {
+                RequireCapture(_leftRail && _leftRail->IsVisible() && _rightRail && _rightRail->IsVisible() && ! _filesPane->IsVisible() &&
+                                   ! _sidebar->IsVisible() && _leftRail->ItemCount() == 2u && _rightRail->ItemCount() == 3u,
+                               "Collapsed rails capture must render both 28-DIP rails with 2 edited files and 3 headings");
+            }
+        }
+        if (scenario == L"split-source-active-light")
+        {
+            SetView(EditorView::Split);
+            Prepare(512);
+            SwitchSplitActivePane(SplitActivePane::Source, true);
+            Execute(Command::Find);
+            _findText->SetTextAndNotify(L"writing");
+            _replaceText->SetTextAndNotify(L"drafting");
+            ActiveEditor()->SetSelection({0, 0});
+            Execute(Command::FindNext);
+            Layout();
+            Prepare(512);
+            RequireCapture(_splitActivePane == SplitActivePane::Source && ! _mirror->IsReadOnly() && _editor->IsReadOnly() && _findBar->IsVisible() &&
+                               _findBar->GetBounds().left >= _mirror->GetBounds().left - 32.f,
+                           "Split Source-active capture must place active editing and Find over the Source pane");
+        }
+        if (scenario == L"split-unlinked-dark")
+        {
+            if (_settings.splitScrollSync)
+                Execute(Command::ToggleSplitScrollSync);
+            SetView(EditorView::Split);
+            Layout();
+            Prepare(512);
+            (void)_editor->SetScrollOffsetDip(0.f);
+            const auto mirrorInfo = _mirror->GetScrollInfo();
+            RequireCapture(mirrorInfo && mirrorInfo->contentHeightDip > mirrorInfo->viewportHeightDip + 80.f,
+                           "Split unlinked dark capture requires scrollable Source content");
+            (void)_mirror->SetScrollOffsetDip(std::min(280.f, mirrorInfo->contentHeightDip - mirrorInfo->viewportHeightDip));
+            Execute(Command::Find);
+            _findText->SetTextAndNotify(L"writing");
+            Layout();
+            Prepare(512);
+            RequireCapture(! _settings.splitScrollSync && _splitActivePane == SplitActivePane::Compose && _mirror->GetScrollInfo() &&
+                               _mirror->GetScrollInfo()->offsetDip > 50.f && _editor->GetScrollInfo() && _editor->GetScrollInfo()->offsetDip < 10.f,
+                           "Split unlinked dark capture must preserve independent Source scroll depth");
+        }
     }
     if (scenario == L"compose-paper" && _settings.appearance != Appearance::Paper)
         Execute(Command::ThemePaper);
