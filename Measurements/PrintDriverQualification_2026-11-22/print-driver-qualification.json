@@ -1,0 +1,524 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-22",
+  "repoCommit": "fc33843f2db0e856c071b3422f2c52a412d35e80",
+  "architecture": "x64",
+  "configuration": "Release",
+  "x64ReleaseBinarySha256": "B4AD60EB15D62C62B171821F81AC504A680ADEB930BABD913E0AF5537B0A20E1",
+  "dxuiCommit": "0c371a6197eb8c6b876b4b2843d75078bc21035c",
+  "osBuild": "10.0.26300.9974",
+  "osDisplayVersion": "26H2",
+  "physicalPaperSpooled": false,
+  "physicalPaperWaiver": "Owner-authorized Gate 3 scope (A2): full live Microsoft Print to PDF generation + WinRT PDF verification + live Brother HL-L2445DW / OneNote driver configuration, PrintTicket conversion, and preview rendering without consuming physical paper/toner.",
+  "leftoverPrintTemps": 0,
+  "drivers": [
+    {
+      "name": "Microsoft Print to PDF",
+      "driver": {
+        "driverName": "Microsoft Print To PDF",
+        "driverVersion": "10.0.26100.4484",
+        "majorVersion": 4
+      },
+      "port": "PORTPROMPT:",
+      "configured": true,
+      "configureHr": 0,
+      "spoolSubmitted": false,
+      "formCount": 84,
+      "hasLetter": true,
+      "hasA4": true,
+      "defaultForm": "A4",
+      "defaultPaperSizeDip": [
+        793.76,
+        1122.56
+      ],
+      "defaultPrintableDip": [
+        0.0,
+        0.0,
+        793.76,
+        1122.56
+      ],
+      "defaultOrientation": "Portrait",
+      "defaultDuplex": "none",
+      "maximumCopies": 1,
+      "devModeBytes": 5428,
+      "defaultTicketHr": 0,
+      "defaultTicketBytes": 9143,
+      "defaultTicketValidXml": true,
+      "landscapeSupported": true,
+      "landscapeSizeDip": [
+        1122.56,
+        793.76
+      ],
+      "landscapeTicketHr": 0,
+      "a4LandscapeSupported": true,
+      "a4LandscapeSizeDip": [
+        1122.56,
+        793.76
+      ],
+      "duplexLongEdgeSupported": false,
+      "duplexShortEdgeSupported": false,
+      "multiCopySupported": false,
+      "previewReady": true,
+      "previewFallbackPaper": false,
+      "previewHasInk": true,
+      "previewPageCount": 3,
+      "previewPixels": [
+        1132,
+        1600
+      ]
+    },
+    {
+      "name": "Brother HL-L2445DW Printer",
+      "driver": {
+        "driverName": "Microsoft IPP Class Driver",
+        "driverVersion": "10.0.26100.9974",
+        "majorVersion": 4
+      },
+      "port": "WSD-8fe0d130-007f-4573-95c2-e0a8305c653e",
+      "configured": true,
+      "configureHr": 0,
+      "spoolSubmitted": false,
+      "formCount": 20,
+      "hasLetter": true,
+      "hasA4": true,
+      "defaultForm": "A4",
+      "defaultPaperSizeDip": [
+        793.76,
+        1122.56
+      ],
+      "defaultPrintableDip": [
+        16.0,
+        16.0,
+        777.76,
+        1106.56
+      ],
+      "defaultOrientation": "Portrait",
+      "defaultDuplex": "OneSided",
+      "maximumCopies": 999,
+      "devModeBytes": 33188,
+      "defaultTicketHr": 0,
+      "defaultTicketBytes": 56149,
+      "defaultTicketValidXml": true,
+      "landscapeSupported": true,
+      "landscapeSizeDip": [
+        1122.56,
+        793.76
+      ],
+      "landscapeTicketHr": 0,
+      "a4LandscapeSupported": true,
+      "a4LandscapeSizeDip": [
+        1122.56,
+        793.76
+      ],
+      "duplexLongEdgeSupported": true,
+      "duplexShortEdgeSupported": true,
+      "multiCopySupported": true,
+      "previewReady": true,
+      "previewFallbackPaper": false,
+      "previewHasInk": true,
+      "previewPageCount": 3,
+      "previewPixels": [
+        1132,
+        1600
+      ]
+    },
+    {
+      "name": "OneNote (Desktop)",
+      "driver": {
+        "driverName": "Send to Microsoft OneNote 16 Driver",
+        "driverVersion": "16.0.7629.4000",
+        "majorVersion": 4
+      },
+      "port": "nul:",
+      "configured": true,
+      "configureHr": 0,
+      "spoolSubmitted": false,
+      "formCount": 10,
+      "hasLetter": true,
+      "hasA4": true,
+      "defaultForm": "A4",
+      "defaultPaperSizeDip": [
+        793.76,
+        1122.56
+      ],
+      "defaultPrintableDip": [
+        22.72,
+        16.0,
+        770.88,
+        1106.24
+      ],
+      "defaultOrientation": "Portrait",
+      "defaultDuplex": "none",
+      "maximumCopies": 1,
+      "devModeBytes": 1052,
+      "defaultTicketHr": 0,
+      "defaultTicketBytes": 3207,
+      "defaultTicketValidXml": true,
+      "landscapeSupported": true,
+      "landscapeSizeDip": [
+        1122.56,
+        793.76
+      ],
+      "landscapeTicketHr": 0,
+      "a4LandscapeSupported": true,
+      "a4LandscapeSizeDip": [
+        1122.56,
+        793.76
+      ],
+      "duplexLongEdgeSupported": false,
+      "duplexShortEdgeSupported": false,
+      "multiCopySupported": false,
+      "previewReady": true,
+      "previewFallbackPaper": false,
+      "previewHasInk": true,
+      "previewPageCount": 3,
+      "previewPixels": [
+        1132,
+        1600
+      ]
+    },
+    {
+      "name": "OneNote (Desktop) - Protected",
+      "driver": {
+        "driverName": "Microsoft Virtual Print Class Driver",
+        "driverVersion": "10.0.26100.9974",
+        "majorVersion": 4
+      },
+      "port": "Microsoft.Office.OneNoteVirtualPrinter_8wekyb3d8bbwe_onenote-psa:print-to-onenote_S-1-5-21-<sid-redacted>",
+      "configured": true,
+      "configureHr": 0,
+      "spoolSubmitted": false,
+      "formCount": 10,
+      "hasLetter": true,
+      "hasA4": true,
+      "defaultForm": "A4",
+      "defaultPaperSizeDip": [
+        793.76,
+        1122.56
+      ],
+      "defaultPrintableDip": [
+        0.0,
+        0.0,
+        793.76,
+        1122.56
+      ],
+      "defaultOrientation": "Portrait",
+      "defaultDuplex": "none",
+      "maximumCopies": 1,
+      "devModeBytes": 3512,
+      "defaultTicketHr": 0,
+      "defaultTicketBytes": 6601,
+      "defaultTicketValidXml": true,
+      "landscapeSupported": true,
+      "landscapeSizeDip": [
+        1122.56,
+        793.76
+      ],
+      "landscapeTicketHr": 0,
+      "a4LandscapeSupported": true,
+      "a4LandscapeSizeDip": [
+        1122.56,
+        793.76
+      ],
+      "duplexLongEdgeSupported": false,
+      "duplexShortEdgeSupported": false,
+      "multiCopySupported": false,
+      "previewReady": true,
+      "previewFallbackPaper": false,
+      "previewHasInk": true,
+      "previewPageCount": 3,
+      "previewPixels": [
+        1132,
+        1600
+      ]
+    }
+  ],
+  "pdfCases": [
+    {
+      "id": "pdf-showcase-letter-portrait",
+      "scenario": "docs/examples/markdown-showcase.md (Letter Portrait, all pages)",
+      "outputFile": "showcase-letter.pdf",
+      "previewPageCount": 3,
+      "previewPixels": [
+        1224,
+        1584
+      ],
+      "paperSizeDip": [
+        816.0,
+        1056.0
+      ],
+      "previewHasInk": true,
+      "chooseFileSeen": true,
+      "fileFormat": 1,
+      "terminalHr": 0,
+      "savedFile": true,
+      "errorDetail": ""
+    },
+    {
+      "id": "pdf-showcase-a4-landscape-range",
+      "scenario": "docs/examples/markdown-showcase.md (A4 Landscape, disjoint range 1, 2-3, 2)",
+      "outputFile": "showcase-a4-landscape-range.pdf",
+      "previewPageCount": 4,
+      "previewPixels": [
+        1600,
+        1132
+      ],
+      "paperSizeDip": [
+        1122.56,
+        793.76
+      ],
+      "previewHasInk": true,
+      "chooseFileSeen": true,
+      "fileFormat": 1,
+      "terminalHr": 0,
+      "savedFile": true,
+      "errorDetail": ""
+    },
+    {
+      "id": "pdf-fallback-current-page",
+      "scenario": "docs/examples/rendering-fallback-cases.md (Letter Portrait, Current page = 2)",
+      "outputFile": "fallback-current-page.pdf",
+      "previewPageCount": 4,
+      "previewPixels": [
+        1224,
+        1584
+      ],
+      "paperSizeDip": [
+        816.0,
+        1056.0
+      ],
+      "previewHasInk": true,
+      "chooseFileSeen": true,
+      "fileFormat": 1,
+      "terminalHr": 0,
+      "savedFile": true,
+      "errorDetail": ""
+    },
+    {
+      "id": "pdf-local-images-letter-portrait",
+      "scenario": "docs/examples/local-images.md (Letter Portrait, all pages with PNG/JPG/BMP/GIF/TIF)",
+      "outputFile": "local-images.pdf",
+      "previewPageCount": 2,
+      "previewPixels": [
+        1224,
+        1584
+      ],
+      "paperSizeDip": [
+        816.0,
+        1056.0
+      ],
+      "previewHasInk": true,
+      "chooseFileSeen": true,
+      "fileFormat": 1,
+      "terminalHr": 0,
+      "savedFile": true,
+      "errorDetail": ""
+    },
+    {
+      "id": "pdf-overwrite-existing",
+      "scenario": "Overwrite pre-existing PDF target via FileOutput::Publish atomic ReplaceFileW",
+      "outputFile": "overwrite-existing.pdf",
+      "previewPageCount": 4,
+      "previewPixels": [
+        1224,
+        1584
+      ],
+      "paperSizeDip": [
+        816.0,
+        1056.0
+      ],
+      "previewHasInk": true,
+      "chooseFileSeen": true,
+      "fileFormat": 1,
+      "terminalHr": 0,
+      "savedFile": true,
+      "errorDetail": ""
+    },
+    {
+      "id": "pdf-cancel-preserves-existing",
+      "scenario": "Cancelled ChooseFile preserves pre-existing file bytes with zero .tmp left",
+      "outputFile": "existing-cancel.pdf",
+      "previewPageCount": 4,
+      "previewPixels": [
+        1224,
+        1584
+      ],
+      "paperSizeDip": [
+        816.0,
+        1056.0
+      ],
+      "previewHasInk": true,
+      "chooseFileSeen": true,
+      "fileFormat": 1,
+      "terminalHr": -2147023673,
+      "savedFile": false,
+      "errorDetail": ""
+    },
+    {
+      "id": "pdf-refuse-overwrite-open-source",
+      "scenario": "Refuse ChooseFile destination equal to active document.path (E_ACCESSDENIED)",
+      "outputFile": "open-source.md",
+      "previewPageCount": 1,
+      "previewPixels": [
+        1224,
+        1584
+      ],
+      "paperSizeDip": [
+        816.0,
+        1056.0
+      ],
+      "previewHasInk": true,
+      "chooseFileSeen": true,
+      "fileFormat": 1,
+      "terminalHr": -2147024891,
+      "savedFile": false,
+      "errorDetail": ""
+    }
+  ],
+  "verifiedPdfs": [
+    {
+      "id": "pdf-showcase-letter-portrait",
+      "outputFile": "showcase-letter.pdf",
+      "fileBytes": 1395041,
+      "sha256": "507105B0B6A40D8BFB0B20296B018CE3BBBA79CC12620719EAB76C450A7BEAEF",
+      "pdfHeaderValid": true,
+      "pdfEofValid": true,
+      "fontObjectCount": 14,
+      "imageObjectCount": 2,
+      "hasDecompressedTextOps": true,
+      "winrtPageCount": 3,
+      "pages": [
+        {
+          "pageNumber": 1,
+          "widthDip": 816,
+          "heightDip": 1056,
+          "renderedPage1HasInk": true
+        },
+        {
+          "pageNumber": 2,
+          "widthDip": 816,
+          "heightDip": 1056,
+          "renderedPage1HasInk": null
+        },
+        {
+          "pageNumber": 3,
+          "widthDip": 816,
+          "heightDip": 1056,
+          "renderedPage1HasInk": null
+        }
+      ]
+    },
+    {
+      "id": "pdf-showcase-a4-landscape-range",
+      "outputFile": "showcase-a4-landscape-range.pdf",
+      "fileBytes": 1389291,
+      "sha256": "6BBF13B69E4A4764F520B23D5215AE7811BB496ABFF6D21DFC195143B486B33D",
+      "pdfHeaderValid": true,
+      "pdfEofValid": true,
+      "fontObjectCount": 14,
+      "imageObjectCount": 2,
+      "hasDecompressedTextOps": true,
+      "winrtPageCount": 3,
+      "pages": [
+        {
+          "pageNumber": 1,
+          "widthDip": 1122.56,
+          "heightDip": 793.76,
+          "renderedPage1HasInk": true
+        },
+        {
+          "pageNumber": 2,
+          "widthDip": 1122.56,
+          "heightDip": 793.76,
+          "renderedPage1HasInk": null
+        },
+        {
+          "pageNumber": 3,
+          "widthDip": 1122.56,
+          "heightDip": 793.76,
+          "renderedPage1HasInk": null
+        }
+      ]
+    },
+    {
+      "id": "pdf-fallback-current-page",
+      "outputFile": "fallback-current-page.pdf",
+      "fileBytes": 1060063,
+      "sha256": "B0CEABA99E616ECE4649B84F37912256A1B55DB22ACF9221E1F253C0B9C86FB4",
+      "pdfHeaderValid": true,
+      "pdfEofValid": true,
+      "fontObjectCount": 6,
+      "imageObjectCount": 0,
+      "hasDecompressedTextOps": true,
+      "winrtPageCount": 1,
+      "pages": [
+        {
+          "pageNumber": 1,
+          "widthDip": 816,
+          "heightDip": 1056,
+          "renderedPage1HasInk": true
+        }
+      ]
+    },
+    {
+      "id": "pdf-local-images-letter-portrait",
+      "outputFile": "local-images.pdf",
+      "fileBytes": 1152279,
+      "sha256": "544AB4381566A30148452A0B98FE6A7A2C7A31B6333FB407DE84D81CE1320654",
+      "pdfHeaderValid": true,
+      "pdfEofValid": true,
+      "fontObjectCount": 8,
+      "imageObjectCount": 6,
+      "hasDecompressedTextOps": true,
+      "winrtPageCount": 2,
+      "pages": [
+        {
+          "pageNumber": 1,
+          "widthDip": 816,
+          "heightDip": 1056,
+          "renderedPage1HasInk": true
+        },
+        {
+          "pageNumber": 2,
+          "widthDip": 816,
+          "heightDip": 1056,
+          "renderedPage1HasInk": null
+        }
+      ]
+    },
+    {
+      "id": "pdf-overwrite-existing",
+      "outputFile": "overwrite-existing.pdf",
+      "fileBytes": 1056017,
+      "sha256": "8BCBA5773FF1CA92B1ECD1499E4D4CDEA3D096D065584CC96D2467ABCB0D5E03",
+      "pdfHeaderValid": true,
+      "pdfEofValid": true,
+      "fontObjectCount": 6,
+      "imageObjectCount": 0,
+      "hasDecompressedTextOps": true,
+      "winrtPageCount": 1,
+      "pages": [
+        {
+          "pageNumber": 1,
+          "widthDip": 816,
+          "heightDip": 1056,
+          "renderedPage1HasInk": true
+        }
+      ]
+    },
+    {
+      "id": "pdf-cancel-preserves-existing",
+      "status": "passed",
+      "fileBytes": 32,
+      "sha256": "E3F3DB5F7AECEAB953D588C566F3F7B6165F0BF0BA69DBC8327848B22BCA2546",
+      "preservedExactSentinel": true
+    },
+    {
+      "id": "pdf-refuse-overwrite-open-source",
+      "status": "passed",
+      "fileBytes": 833,
+      "sha256": "AD44850AAB0FACF39FD86715BD79F2CDD7E40EEBFB8AF8712B556FDF8994E201",
+      "refusedOverwrite": true
+    }
+  ]
+}
