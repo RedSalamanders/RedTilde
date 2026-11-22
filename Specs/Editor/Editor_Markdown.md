@@ -113,6 +113,14 @@ by Microsoft Print to PDF through this path contain the link label without a cli
 Native Mermaid diagrams use the underlying document canvas in the editor and the paper in preview and
 output. Paint diagram elements and their local fills on that surface without a separate graph backdrop.
 
+Live Windows destination qualification covers end-to-end PDF generation and WinRT PDF inspection on
+`Microsoft Print to PDF` (Letter Portrait, A4 Landscape disjoint ranges, single-page selection, five local
+image formats, atomic overwrite, cancel preservation, and open-source refusal) alongside real-driver
+`DEVMODE`/`PrintTicket` configuration and preview generation on `Microsoft IPP Class Driver`,
+`Send to Microsoft OneNote 16 Driver`, and `Microsoft Virtual Print Class Driver`
+([Gate 3 receipt](../../Measurements/PrintDriverQualification_2026-11-22/README.md)); physical paper/toner
+sheet inspection remains separately scoped.
+
 ## Formatting and navigation
 
 Insert Quote and Insert Code Block transform a nonempty selection through

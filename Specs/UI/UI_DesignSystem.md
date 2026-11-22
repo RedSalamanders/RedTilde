@@ -34,10 +34,7 @@ selection, status, Close and Print controls beside the sheet. Give the preview t
 With Fit page, the mouse wheel and Page Up or Page Down move between sheets. With Fit width they scroll
 the sheet first and continue to the adjacent page at its edge. Wheel deltas smaller than one detent accumulate.
 Expose keyboard navigation and accessible names through the native controls. Use the app theme for the
-preview controls and the paper's print colors for the sheet. Close or Escape posts `Action::Close` through
-`pendingAction_`—overriding any pending `Action::Print` without queuing a duplicate submission—and returns focus to
-the invoking control if it survives. The hidden `--scenario print-preview` harness scenario (available in
-test-enabled builds) renders the preview window with synthetic printer destinations and a Letter Portrait sheet.
+preview controls and the paper's print colors for the sheet. Close or Escape posts `Action::Close` through `pendingAction_`—overriding any pending `Action::Print` without queuing a duplicate submission—and returns focus to the invoking control if it survives. The hidden `--scenario print-preview` harness scenario (available in test-enabled builds) renders the preview window with synthetic printer destinations and a Letter Portrait sheet, while live Windows PDF and virtual/IPP queue qualification is recorded separately in [Gate 3 print driver evidence](../../Measurements/PrintDriverQualification_2026-11-22/README.md).
 
 The Pages to print field is part of the preview settings. Blank means all pages. Accept one page,
 inclusive ranges and comma-separated combinations, bounded by the displayed page count. Current page fills the

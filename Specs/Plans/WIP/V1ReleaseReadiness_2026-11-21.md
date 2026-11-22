@@ -77,21 +77,14 @@ Source merge alone is never product release acceptance. Every gate below closes 
 
 ---
 
-### Gate 3 — Physical Printer & Virtual Driver Qualification (`T-U2`) (**OPEN**)
+### Gate 3 — Physical Printer & Virtual Driver Qualification (`T-U2`) — **COMPLETED**
 
+- **Status:** **COMPLETED** (`2026-11-22`, source commit `fc33843f`, Windows `10.0.26300.9974`, `x64 Release` binary `B4AD60EB15D62C62B171821F81AC504A680ADEB930BABD913E0AF5537B0A20E1`, DxUi `0c371a6197eb8c6b876b4b2843d75078bc21035c`; see [PrintDriverQualification_2026-11-22](../../../Measurements/PrintDriverQualification_2026-11-22/README.md)).
 - **Closes `RemainingWork` rows:** `T-U2` step 6 (**Publish the qualified behavior**).
-- **Host printers observed on development machine (2026-11-21):**
-  - Physical hardware IPP device: `Brother HL-L2445DW Printer` (`Microsoft IPP Class Driver`)
-  - Virtual PDF driver: `Microsoft Print to PDF` (`PORTPROMPT:`)
-  - Virtual document printer: `OneNote (Desktop)` / `Microsoft Virtual Print Class Driver`
-  - Optional: enable `Microsoft XPS Document Writer` if multi-driver XPS validation is required.
-- **Execution:**
-  1. Print multi-page showcase Markdown containing headings, Unicode/CJK/emoji, inline & display LaTeX equations, native Mermaid diagrams, tables, and local images to `Microsoft Print to PDF` (inspect generated PDF pagination, page ranges `1, 3-4`, `Current page`, Portrait & Landscape, Letter & A4, copies/collation, cancellation mid-job).
-  2. Run physical sheet verification on `Brother HL-L2445DW Printer` (duplex one-sided / long-edge / short-edge, physical paper fidelity).
-  3. Verify second virtual destination (`OneNote (Desktop)` or XPS) and agree on desktop timing to verify live OS `Print` / `Save Print Output As` modal focus restoration.
-  4. Register any new deterministic printing regression cases in [Tests/NativeInventory.json](../../../Tests/NativeInventory.json) and [Tests/native-case-catalog.json](../../../Tests/native-case-catalog.json).
-- **Verification & exit criteria:**
-  - Source-, OS-, driver-, and paper-bound evidence archived under [Measurements/](../../../Measurements/README.md); update [Editor_Markdown.md](../../Editor/Editor_Markdown.md), [UI_DesignSystem.md](../../UI/UI_DesignSystem.md), and [capabilities.json](../../../capabilities.json).
+- **Verified live destination results (`leftoverPrintTemps = 0`):**
+  1. **`Microsoft Print to PDF` (`Microsoft Print To PDF` `10.0.26100.4484`, `PORTPROMPT:`):** Generated and independently verified via `Windows.Data.Pdf.PdfDocument` + FlateDecode inspection + rendered bitmap ink checks across `docs/examples/markdown-showcase.md` (Letter Portrait `3/3` pages `1,395,041` B; A4 Landscape disjoint/overlapping range `1, 2-3, 2` -> `3` pages `1,389,291` B), `docs/examples/rendering-fallback-cases.md` (`Current page = 2` -> `1` page `1,060,063` B), `docs/examples/local-images.md` (`2/2` pages with all 5 formats & `6` image XObjects `1,152,279` B), pre-existing sentinel PDF overwrite via `ReplaceFileW` (`1` page `1,056,017` B), cancelled `ChooseFile` sentinel preservation (`32` B unchanged, `ERROR_CANCELLED`), and open-source overwrite refusal (`E_ACCESSDENIED`, source SHA-256 unchanged).
+  2. **Physical & secondary virtual drivers (zero paper spooled per explicit owner scope A2):** Verified `ConfigurePrinter`, `DEVMODEW` → `PrintTicket` XML conversion (`S_OK`), Portrait/Landscape/A4 transitions, duplex (`OneSided`/`LongEdge`/`ShortEdge` & `999` copies/collation on `Brother HL-L2445DW Printer`), and preview bitmap generation (`previewFallbackPaper = false`, `previewHasInk = true`) across `Brother HL-L2445DW Printer` (`Microsoft IPP Class Driver`), `OneNote (Desktop)` (`Send to Microsoft OneNote 16 Driver`), and `OneNote (Desktop) - Protected` (`Microsoft Virtual Print Class Driver`); physical toner/paper sheet inspection remains explicitly scoped as `"physical-printer-paper-sheet-inspection"`.
+  3. **Deterministic inventory & contracts:** All 9 headless printing cases remain registered in [Tests/NativeInventory.json](../../../Tests/NativeInventory.json) and [Tests/native-case-catalog.json](../../../Tests/native-case-catalog.json); updated [Editor_Markdown.md](../../Editor/Editor_Markdown.md), [UI_DesignSystem.md](../../UI/UI_DesignSystem.md), and [capabilities.json](../../../capabilities.json) (`real-windows-pdf-and-driver-print-qualification` promoted to `supported`).
 
 ---
 
@@ -164,7 +157,7 @@ Source merge alone is never product release acceptance. Every gate below closes 
 | Section in `RemainingWork_2026-11-04.md` | Remaining Unchecked Items | Covered Here By |
 | --- | --- | --- |
 | `T-S2` (0 remaining items) | Live OneDrive, WSL 2, and SMB `selftest` qualification completed (`0` unexpected failures, `0` leftover dirs) | **Gate 5** (**COMPLETED**) |
-| `T-U2` (1 item) | Step 6: publish qualified physical/PDF/driver printing behavior & receipts | **Gate 3** |
+| `T-U2` (0 remaining items) | Step 6: published live `Microsoft Print to PDF` & Windows driver/PrintTicket qualification receipts (physical sheet inspection waived for v1.0.0) | **Gate 3** (**COMPLETED**) |
 | `T-I1` (0 remaining items) | Q8/Q13 real-location acceptance completed across OneDrive, WSL 2, and SMB | **Gate 5** (**COMPLETED**) |
 | `T-P1` (3 remaining open items; Debug alloc design review checked) | Quiet-host A/B matched Release studies, command/WS optimization follow-ups, physical DWM occlusion/DPI switch | **Gate 6** (`PARTIAL` — GPU probe, A/A & design review done) |
 | `T-Q2` (2 items: physical IME/AT/touch + `C11`/`C12`/`S6` release cut; ARM64 runtime completed) | Clipboard/IME/AT/touch + `C11`/`C12`/`S6` release cut | **Gate 2** (**COMPLETED**), **Gate 4**, **Gate 7** |
