@@ -149,8 +149,10 @@ try{
         foreach($file in 'Build/UnknownNewBuildPolicy.psm1','Unmapped/New.cpp','res/Welcome.md'){
             Assert ((Get-ScopedTestPlan -Manifest $manifest -ChangedPaths @($file)).full) "Expected full coverage for $file"
         }
-        $plan=Get-ScopedTestPlan -Manifest $manifest -ChangedPaths @('Build/SkillPackageIntegrity.psm1')
-        Assert (($plan.scopes -join ',') -ceq 'Tooling') 'Skill package integrity lost its independent scope'
+        foreach($file in 'validate-skills.ps1','Tools/Test-AgentGuidance.ps1'){
+            $plan=Get-ScopedTestPlan -Manifest $manifest -ChangedPaths @($file)
+            Assert (($plan.scopes -join ',') -ceq 'Tooling') "Guidance validation lost its independent scope: $file"
+        }
     }
     Case 'shipped Markdown remains an input and ordinary prose selects only independent scopes' {
         $map=Get-ScopedSourceMap -Root $root -Manifest $manifest -CompiledOnly

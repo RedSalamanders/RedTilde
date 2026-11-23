@@ -53,6 +53,7 @@ if ($Phase -eq 'Static') {
     & (Join-Path $EngineRoot 'Tools/Test-Workflows.ps1') -Root $root
     $baseCommit = Resolve-CiCommit $root $Base
     Run 'Tools/Test-Changelog.ps1' @('-Base',$baseCommit)
+    Run 'validate-skills.ps1'
     # Source syntax, manifest, native-PR delegation and Changes are checked above.
     # validate.ps1 includes compiler fixtures and belongs to the native main lane.
     return

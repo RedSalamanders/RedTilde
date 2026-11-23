@@ -94,7 +94,7 @@ remains historical evidence rather than a requirement to reproduce a repaired SD
 
 Use `validate.ps1` for links/spec indexes, skill metadata, dependencies, resource string parity/usage/placeholder-formatting (`Tests/Tooling.Tests.ResourceStrings.ps1`), naming style with C++14 digit separators/attributes/elaborated types/reserved checks (`Tests/Tooling.Tests.NamingStyle.ps1`), fail-closed real-location contract requiring `testsEnabled -eq $true` build receipts (`Tests/Tooling.Tests.RealLocations.ps1` covering opt-in `Tools/Test-RealLocations.ps1`), per-user installer behavioral regressions (`Tests/Tooling.Tests.Installer.ps1`), and build inventory; aggregate all failures.
 The [skill package contract](Testing_SkillPackages.md) defines structural, package-reference and root-guidance
-checks separately from model decisions. Its negative fixtures run without native builds or desktop access.
+checks. The engine owns the negative fixtures, which run without native builds or desktop access.
 `Tools/Test-RealLocations.ps1` is strictly opt-in (never invoked by default headless tests or hosted CI) and fails
 closed before creating any file unless given an absolute non-reparse manifest declaring enabled `selftest` roots (rejecting forward/back-slash device/NT paths, dangling reparse links, and Known Folder Move profile Desktop/Documents paths).
 Use `format.ps1 -Check` for C++. Scoped iteration uses `Test-Changes.ps1 -Explain` then the affected default.

@@ -23,17 +23,8 @@ Check 'Specifications and links' {
             if (-not (Test-Path -LiteralPath (Join-Path $file.DirectoryName $target))) { throw "Broken link in $($file.Name): $target" }
         }
     }
-    $plans=@(Get-ChildItem (Join-Path $PSScriptRoot 'Specs/Plans/WIP') -Filter '*.md' | Where-Object Name -ne 'README.md')
-    $index=Get-Content (Join-Path $PSScriptRoot 'Specs/Plans/WIP/README.md') -Raw
-    foreach ($plan in $plans) { if ([regex]::Matches($index,[regex]::Escape($plan.Name)).Count -ne 1) { throw "WIP index must name $($plan.Name) once." } }
 }
-Check 'Skill structure, package references and root guidance' {
-    Import-Module (Join-Path $PSScriptRoot 'Build/SkillPackageIntegrity.psm1') -Force
-    $result = Get-SkillPackageIntegrity -Root $PSScriptRoot
-    if ($result.Problems.Count) { throw ($result.Problems -join "`n") }
-    Write-Host "Validated structure/packages for $($result.Skills) skills and $($result.Guidance) guidance files; model decisions were not evaluated."
-}
-Check 'Skill package regression fixtures' { & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.SkillPackages.ps1') }
+Check 'Skill packages and root guidance' { & (Join-Path $PSScriptRoot 'validate-skills.ps1') }
 Check 'Exact dependency and capability status' {
     $pin=Get-Content (Join-Path $PSScriptRoot 'Dependencies/DxUi.lock.json') -Raw | ConvertFrom-Json
     if ($pin.commit -cnotmatch '^[0-9a-f]{40}$' -or $pin.apiRevision -ne 5 -or @($pin.targets).Count -ne 1 -or $pin.targets[0] -ne 'DxUi') { throw 'Invalid dependency pin.' }
