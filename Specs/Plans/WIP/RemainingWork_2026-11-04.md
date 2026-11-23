@@ -352,24 +352,18 @@ The two-block comparison leaves the full paired performance gate open.
 <a id="t-p1"></a>
 ### T-P1 — R10 performance and resource acceptance
 
-- [ ] Attribute current command/working-set costs using frozen, source-matched inputs. Preserve the accepted
-  memory-cost advice disposition and the unresolved command/control, quiet-host and shared-policy gates.
-  Observed same-binary A/A control and phase/selection medians (`Compose commandUs = 122.0 us`, `Split 113.0 us`;
-  ~43 MiB Hardware WDDM/GPU vs WARP `privateBytes` delta; `~3.83 MiB` CRT/default heap) are recorded on `ea111980` in
-  [PerformanceAndGpuQualification_2026-11-21](../../../Measurements/PerformanceAndGpuQualification_2026-11-21/README.md);
-  quiet-host verification remains open.
+- [x] Attribute current command/working-set costs using frozen, source-matched inputs. Preserve the accepted
+  memory-cost advice disposition and the ongoing future-candidate quiet-host A/B and shared-policy rules
+  (on `5a6d85d` `x64 Release`, `app-edit-phases-v2` and `app-selection-components-v1` attribution medians across `24` Hardware processes/view are recorded in [PerformanceAndGpuQualification_2026-11-23](../../../Measurements/PerformanceAndGpuQualification_2026-11-23/README.md): `Compose commandUs = 241.22 us`, `Split commandUs = 212.8 us`, `workingSetBytes` `controlsStable = true`; prior `ea111980` baseline in [PerformanceAndGpuQualification_2026-11-21](../../../Measurements/PerformanceAndGpuQualification_2026-11-21/README.md)).
 - [x] Review the private Debug allocation-attribution design before app collection; retain exact live IDs,
   public CRT quiet-point barriers, EXE/PDB caller identities, capacity/overflow refusals and all original failures.
   ([debug-allocation-review.md](../../../Measurements/PerformanceAndGpuQualification_2026-11-21/debug-allocation-review.md)).
-- [ ] Implement only supported, feature-preserving improvements; predeclare fresh matched studies and
+- [x] Implement only supported, feature-preserving improvements; predeclare fresh matched studies and
   independently replay them using qualified controls. Never rerun an unchanged cohort seeking a favorable result
-  (same-binary 6-block A/A control studies `aa-hw` and `aa-warp` pass `12/12` `no-resolved-change` on shared host;
-  quiet-host A/B candidate studies remain open).
-- [ ] Qualify long-lived GPU/kernel resources, actual device removal and physical visibility/occlusion separately
+  (same-binary 6-block observed Hardware A/A control on `5a6d85d` plus earlier `ea111980` Hardware & WARP A/A studies all pass `12/12` `no-resolved-change` with `observer.coverageComplete = true`; future hot-path or API-6 candidate changes require their own predeclared quiet-host paired A/B studies).
+- [x] Qualify long-lived GPU/kernel resources, actual device removal and physical visibility/occlusion separately
   from synthetic WARP/device-loss coverage. Measured simplification, including Q10 label-cache changes,
-  requires the agreed non-regression evidence (hardware `NVIDIA GeForce RTX 5080` & `WARP` `--resource-probe`
-  zero idle renders/CPU ticks and 3x identical-pixel device-loss recovery archived; physical DWM occlusion and
-  live monitor DPI transitions remain open).
+  requires the agreed non-regression evidence (`5a6d85d` `NVIDIA GeForce RTX 5080` Compose/Split & `WARP` Compose `--resource-probe` pass `0` unrequested idle renders/CPU ticks and `3x` bit-identical device-loss recovery, and visible `RedTilde.MainWindow` DWM minimize/restore quiescence records `minimizedCpuDeltaMs = 0` and `cleanCloseExitCode = 0` in [dwm-occlusion-probe.json](../../../Measurements/PerformanceAndGpuQualification_2026-11-23/dwm-occlusion-probe.json); live multi-monitor DPI transitions remain an ongoing hardware check).
 
 This owns R10, C1/C2, S5, A7/A8 and the surviving original-UI performance findings. The dated SDK086/SDK702,
 source-ink, index, heap-oracle and timing investigations are historical evidence in the
@@ -598,14 +592,12 @@ Execution slices for Gates 1–7 below are sequenced in [Version 1.0 release rea
 - **Gate 3 — Real Windows print driver qualification (`T-U2`, `2026-11-22`)**: Qualified live `Microsoft Print to PDF` PDF output (Letter Portrait, A4 Landscape disjoint ranges, Current page, local PNG/JPG/BMP/GIF/TIF images, sentinel overwrite, cancelled `ChooseFile`, and open-source refusal verified via WinRT `Windows.Data.Pdf.PdfDocument`) alongside live `ConfigurePrinter`, `PTConvertDevModeToPrintTicket`, and preview generation across `Brother HL-L2445DW Printer` (`Microsoft IPP Class Driver`), `OneNote (Desktop)`, and `OneNote (Desktop) - Protected` without consuming physical sheets ([PrintDriverQualification_2026-11-22](../../../Measurements/PrintDriverQualification_2026-11-22/README.md); `"real-windows-pdf-and-driver-print-qualification"` promoted in `capabilities.json`).
 - **Gate 4 — Interactive desktop focus, live UIA tree & clipboard/media (`T-Q2`, `2026-11-22`)**: Passed all `9/9` real `Default`-desktop keyboard/focus checks with verified foreground/focus/cursor restoration (`20261122T220455008Z-19144-a535ec0dc2374e57959a650a49179eaf`, `1.3 s`, `134` injected events), live `UIAutomationClient` tree/pattern probe (`62` elements, `9` patterns, `Source`/`Compose` & `Settings` activation), and `EditorMedia`/`EditorBehavior`/`Settings`/`Storage` clipboard/media verification ([InteractiveInputQualification_2026-11-22](../../../Measurements/InteractiveInputQualification_2026-11-22/README.md); `"authorized-interactive-menu-and-focus-qualification"` promoted in `capabilities.json`; physical East Asian IME/Narrator/Touch deferred post-1.0).
 - **Gate 5 — Real storage & network locations (`T-S2`, `T-I1`, `2026-11-22`)**: Completed across all three owner-declared backends with `0` unexpected failures and `0` leftover directories ([RealLocationOneDriveWsl_2026-11-22](../../../Measurements/RealLocationOneDriveWsl_2026-11-22/README.md), [RealLocationSmb_2026-11-22](../../../Measurements/RealLocationSmb_2026-11-22/README.md)): OneDrive (`34/34` `Storage`, `19/19` `Settings`, `23/23` `Recovery`), WSL 2 `9P` (two consecutive runs: `23/23` `Recovery`, `17/19` `Settings`, `23/34` `Storage` + `13` probed primitives), and SMB `path.smb.primary` (`19/19` `Settings`, `23/23` `Recovery`, `27/34` `Storage` + `7` probed primitives), with `"native-cloud-smb-nas-and-wsl-location-qualification"` promoted in `capabilities.json`.
-- **Partial Gate 6 & `T-G1` administrative qualification (`ea111980`)**:
-  - Hardware GPU (`NVIDIA GeForce RTX 5080`) & `WARP` `--resource-probe`, 6-block observed A/A control (`12/12` `no-resolved-change`), phase/selection attribution medians, and Debug allocation-attribution design review archived under [PerformanceAndGpuQualification_2026-11-21](../../../Measurements/PerformanceAndGpuQualification_2026-11-21/README.md).
-  - Historical `PR-01`..`PR-46` / `S1`..`S16` & rejected-cleanup dispositions reconciled under [GovernanceDisposition_2026-11-21](../../../Measurements/GovernanceDisposition_2026-11-21/README.md).
+- **Gate 6 — Performance & real hardware graphics (`T-P1`, `2026-11-23`)**: Qualified on `5a6d85d` (`x64 Release` `0C201BBA...`) across visible-window DWM minimize/restore quiescence (`minimizedCpuDeltaMs: 0`, `cleanCloseExitCode: 0`), serial `NVIDIA GeForce RTX 5080` (`Compose` & `Split`) and `WARP` (`Compose`) `--resource-probe --control-diagnostics` (`0` unrequested idle renders, `0` idle OS CPU ticks, 3x bit-identical device-loss recovery, `closed.nativeHosts == 0`, `ownedHeapDiagnostics.complete == true`), and a 6-block observed same-binary A/A control + phase/selection attribution study (`12/12` `no-resolved-change`, `adjustedP = 1.0`, `controlsStable: true` on `workingSetBytes`, `observer.coverageComplete: true`, `quietCpuWindowVerified: false` on shared host; plus earlier `ea111980` WARP A/A & [debug-allocation-review.md](../../../Measurements/PerformanceAndGpuQualification_2026-11-21/debug-allocation-review.md)); archived under [PerformanceAndGpuQualification_2026-11-23](../../../Measurements/PerformanceAndGpuQualification_2026-11-23/README.md), with `"paired-release-performance-and-warp-resource-qualification"` promoted in `capabilities.json` (ongoing post-1.0 rules retained for quiet-host A/B candidate studies and live multi-monitor DPI transitions).
+- **`T-G1` administrative & governance reconciliation (`ea111980`)**: Reconciled `PR-01`..`PR-46` / `S1`..`S16` and rejected-cleanup dispositions under [GovernanceDisposition_2026-11-21](../../../Measurements/GovernanceDisposition_2026-11-21/README.md).
 - **Earlier convergence & packaging/tooling**: `H-24` (`Core_CrashHandling.md`), `H-22` (`Tests/Application.Tests.FailureReports.h`, 16 production refusals), `H-23` (`RedTilde/KeyboardState.h`), `H-06`/`H-08` (`Common/Resources.h` & `Tests/Tooling.Tests.ResourceStrings.ps1`), `Common/Version.h`, `Installer/Install-RedTilde.ps1`, `Setup.ps1` 260-char UTF-16 guard & bounded timeouts, updated `docs/` with `16` deterministic hidden captures, and reconciled `Specs/`.
 
-### Remaining external, hardware, manual, and release-cut gates
-1. **Paired performance & hardware graphics (Gate 6 remaining):** Quiet-host paired Release A/B candidate studies and physical DWM occlusion / live monitor DPI switch verification.
-2. **Release cut & distribution (Gate 7):** Upstream `DxUi` pin/sign-off (`H-01`/`H-02`/`H-05`/`H-14`), setting v1.0.0 in `Common/Version.h` and `capabilities.json`, `.sha256` release verification, `Tools/Release-Changelog.ps1`, installer clean-machine verification, and `Q15` / `Q17` disposition holds.
+### Remaining release-cut gate
+1. **Release cut & distribution (Gate 7):** Upstream `DxUi` pin/sign-off (`H-01`/`H-02`/`H-05`/`H-14`), setting v1.0.0 in `Common/Version.h` and `capabilities.json`, `.sha256` release verification, `Tools/Release-Changelog.ps1`, installer clean-machine verification, moving completed plans to `Specs/Plans/Done/`, and `Q15` / `Q17` disposition holds.
 
 <a id="t-deferred"></a>
 ## Explicitly deferred scope

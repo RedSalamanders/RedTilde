@@ -1,0 +1,22 @@
+﻿{
+    "schemaVersion":  1,
+    "windowClass":  "RedTilde.MainWindow",
+    "visibleBeforeMinimize":  true,
+    "minimizedIsIconic":  true,
+    "minimizedObserveMs":  2000,
+    "minimizedCpuDeltaMs":  0,
+    "workingSetBytesBeforeMinimizeWait":  76427264,
+    "workingSetBytesAfterMinimizeWait":  76427264,
+    "privateBytesBeforeMinimizeWait":  80068608,
+    "privateBytesAfterMinimizeWait":  80068608,
+    "gdiHandlesBeforeAfter":  [
+                                  45,
+                                  45
+                              ],
+    "userHandlesBeforeAfter":  [
+                                   55,
+                                   55
+                               ],
+    "restoredVisibleAndNonIconic":  true,
+    "cleanCloseExitCode":  0
+}

@@ -103,7 +103,8 @@
     "active-split-pane-find-replace-without-rebuild",
     "native-cloud-smb-nas-and-wsl-location-qualification",
     "real-windows-pdf-and-driver-print-qualification",
-    "authorized-interactive-menu-and-focus-qualification"
+    "authorized-interactive-menu-and-focus-qualification",
+    "paired-release-performance-and-warp-resource-qualification"
   ],
   "pending": [
     "api5-consumer-failure-and-native-qualification",
@@ -112,7 +113,6 @@
     "conditional-cross-process-atomic-replacement",
     "physical-ime-touch-and-assistive-technology",
     "physical-printer-paper-sheet-inspection",
-    "paired-release-performance-and-warp-resource-qualification",
     "release-pin-installer-and-file-association-handoff",
     "full-latex-and-mermaid-language-compatibility",
     "wiki-target-navigation-and-embed-resolution"
