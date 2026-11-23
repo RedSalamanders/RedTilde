@@ -1,5 +1,7 @@
 <#
 .SYNOPSIS Runs selected RedTilde application tests with retained, source-bound evidence.
+.PARAMETER ParallelSuites
+Maximum suite concurrency. RedTilde executes its application suites serially.
 .PARAMETER LocalSdkBuildReceipt
 Original local SDK candidate build record. Requires Release, SkipBuild and explicit application Suites.
 .PARAMETER LocalSdkBuildSha256
@@ -10,6 +12,7 @@ Independently retained SHA-256 of that original record. Current source, engine, 
 param([ValidateSet('x64','ARM64')][string] $Platform='x64',
       [ValidateSet('Debug','Release','ASan Debug')][string] $Configuration='Debug',
       [ValidateSet('Core','Captures','Crash','All')][string] $Suite='Core',[switch] $SkipBuild,[string[]]$Suites=@(),[switch]$Full,[switch]$SkipTooling,
+      [ValidateRange(1,8)][int]$ParallelSuites=1,
       [string]$LocalSdkBuildReceipt='', [string]$LocalSdkBuildSha256='')
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
@@ -23,12 +26,15 @@ if($localSdkMode -and (-not $LocalSdkBuildReceipt -or $LocalSdkBuildSha256 -cnot
     $Configuration -cne 'Release' -or -not $SkipBuild -or $Full -or -not $Suites.Count -or @($Suites|Where-Object{$_ -cnotin $localSdkSuites}).Count)){
     throw 'Local SDK runtime requires the original build record/digest, Release, SkipBuild and explicit supported application Suites.'
 }
-Import-Module (Join-Path $PSScriptRoot 'Build/ScopedTesting.psm1') -Force
+Import-Module (Join-Path $PSScriptRoot 'Build/ScopedTesting.psm1') -Scope Local -ErrorAction Stop
 $iterationLease=$null;$runtimeInput=$null;$runtimeFailure=$null
+$scopedManifest=$null
 try {
 if(-not $localSdkMode){
-    $iterationLease=Enter-ScopedIterationLease $PSScriptRoot $Platform $Configuration
-    [void](Suspend-ScopedIteration (Join-Path $PSScriptRoot ".build/reports/scoped-tests/$Platform-$($Configuration -replace ' ','')/iteration.json") $PSScriptRoot)
+    $iterationLease=Enter-ScopedProfileLease -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
+    $scopedReports=Get-ScopedReportRoot -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
+    Remove-ScopedIteration -Path (Join-Path $scopedReports 'iteration.json') -Root $PSScriptRoot
+    $scopedManifest=Read-ScopedTestManifest -Root $PSScriptRoot -SkipProjectRules
 }
 $available=@('Storage','Settings','Recovery','Editor','Preferences','RecoveryRestart','Performance','Captures','Crash','Sanitizer','Tooling')
 if($Full -or (-not $Suites.Count -and $Suite -eq 'All')){$Suites=$available}
@@ -37,6 +43,14 @@ $Suites=@($Suites|ForEach-Object{$_ -split ','}|ForEach-Object{$_.Trim()}|Where-
 foreach($name in $Suites){if($name -notin $available){throw "Unknown suite '$name'."}}
 if($SkipTooling){$Suites=@($Suites|Where-Object{$_ -ne 'Tooling'})}
 if($Configuration -ne 'ASan Debug'){$Suites=@($Suites|Where-Object{$_ -ne 'Sanitizer'})}
+if(-not $localSdkMode){
+    Import-Module (Join-Path $PSScriptRoot '.ci-engine/Tools/Modules/Ci.Policy.psm1')
+    # Invalidate previous reusable results for suites entered directly as well as through the shared runner.
+    foreach($scope in $scopedManifest.scopes | Where-Object {$_.native -and $_.name -in $Suites}){
+        $previous=Assert-CiContainedPath -Root $PSScriptRoot -Path (Join-Path $scopedReports ($scope.name+'.json'))
+        if([IO.File]::Exists($previous)){[IO.File]::Delete($previous)}
+    }
+}
 if('Tooling' -in $Suites){& (Join-Path $PSScriptRoot 'validate.ps1')}
 if(-not @($Suites|Where-Object{$_ -ne 'Tooling'}).Count){Write-Host 'Independent tooling passed; native coverage NOT_EVALUATED';exit 0}
 if (-not $SkipBuild) { & (Join-Path $PSScriptRoot 'build.ps1') -Platform $Platform -Configuration $Configuration }
@@ -59,6 +73,8 @@ if($localSdkMode){
     $sourceIdentity=$artifact.SourceIdentity
     $binarySha256=$built.binarySha256
 }
+if($ParallelSuites -gt 1){Write-Verbose 'RedTilde executes native suites serially.'}
+$instrumented=$null -ne $scopedManifest -and @(Get-ScopedInstrumentation -Manifest $scopedManifest).Count -gt 0
 Import-Module (Join-Path $PSScriptRoot 'Build/TestRunEvidence.psm1') -Force
 $evidence=Start-TestRunEvidence -Repository $PSScriptRoot -LocalSdkCandidate:$localSdkMode -Context @{project='RedTilde';platform=$Platform;configuration=$Configuration;suites=$Suites;sourceIdentity=$sourceIdentity;binarySha256=$binarySha256;localSdkCandidate=$localSdkMode}
 $run=$evidence.Path
@@ -241,7 +257,20 @@ try {
         Write-Host 'Real AddressSanitizer heap-use-after-free detection verified.'
     }
     if ($sourceIdentity -cne (Get-RedTildeSourceIdentity -Root $PSScriptRoot)) { throw 'Source changed during testing; this receipt cannot qualify the new source.' }
-    if($localSdkMode){$receipt.testsExecuted=$receipt.results.Count -gt 0;Close-CiLocalSdkApplicationRuntimeInput $runtimeInput}
+    if($localSdkMode){
+        $receipt.testsExecuted=$receipt.results.Count -gt 0
+        Close-CiLocalSdkApplicationRuntimeInput $runtimeInput
+    }else{
+        if($built.artifactIdentity -cne (Get-RedTildeArtifactIdentity -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration)){
+            throw 'The native artifacts changed during testing; suite reports were not published.'
+        }
+        $suffix=if($instrumented){'.instrumented.json'}else{'.json'}
+        foreach($scope in $Suites | Where-Object {$_ -ne 'Tooling'}){
+            # Every selected harness branch must complete its checks above before it reaches publication.
+            $suiteReport=[ordered]@{schemaVersion=1;suite=$scope;platform=$Platform;configuration=$Configuration;exitCode=0;skips=@()}
+            Publish-TestRunEvidenceReceipt -Run $evidence -Name "$scope-$Platform-$Configuration$suffix" -Receipt $suiteReport
+        }
+    }
     $receipt.passed=$true
 } catch {
     if($localSdkMode){$receipt.error=$_.Exception.Message}
@@ -261,6 +290,7 @@ finally{
             try{Close-CiLocalSdkApplicationRuntimeInput $runtimeInput}
             catch{if($null -eq $runtimeFailure){throw};Write-Warning ('Local SDK runtime close also failed: '+$_.Exception.Message)}
         }
-    }finally{if($null -ne $iterationLease){try{$iterationLease.ReleaseMutex()}finally{$iterationLease.Dispose()}}}
+    }finally{if($null -ne $iterationLease){Exit-ScopedProfileLease -Lease $iterationLease}}
 }
-if($localSdkMode){Write-Host 'LOCAL_UNPINNED_RUNTIME: ordinary local/main, repository and production gates remain NOT_EVALUATED.';$global:LASTEXITCODE=0}
+if($localSdkMode){Write-Host 'LOCAL_UNPINNED_RUNTIME: ordinary local/main, repository and production gates remain NOT_EVALUATED.'}
+$global:LASTEXITCODE=0

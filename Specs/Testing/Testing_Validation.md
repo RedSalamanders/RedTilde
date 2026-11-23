@@ -98,8 +98,8 @@ checks separately from model decisions. Its negative fixtures run without native
 `Tools/Test-RealLocations.ps1` is strictly opt-in (never invoked by default headless tests or hosted CI) and fails
 closed before creating any file unless given an absolute non-reparse manifest declaring enabled `selftest` roots (rejecting forward/back-slash device/NT paths, dangling reparse links, and Known Folder Move profile Desktop/Documents paths).
 Use `format.ps1 -Check` for C++. Scoped iteration uses `Test-Changes.ps1 -Explain` then the affected default.
-PrePush accounts for existing enabled CI; pending CI is never recorded as a pass. Do not rerun an identical full
-matrix without a changed source, pin, binary, profile or unresolved result.
+PrePush plans all six profiles with runtime execution on x64. Its exact reuse rules account for successful
+matching local evidence. Hosted CI retains its separate qualification policy.
 
 Mock build/admission fixtures use an explicit version matching their synthetic executable, independently of
 the inherited hosted product version. Every positive and negative admission probe receives that same explicit
@@ -169,12 +169,9 @@ and default/WARP resource probes run through the same executable as Core, with t
 
 PowerShell evidence tooling has independent numerical oracles under `Tests/` and is syntax-checked with the
 other scripts. Retain the full v2 study audit and adversarial rejection receipts alongside the raw studies.
-Independent scope commands pass their manifest `arguments` as command-line tokens to the current PowerShell
-engine running the target script with `-File`. Empty arrays invoke strict no-parameter scripts, and named
-switches bind as declared. The scoped-testing fixture exercises both cases through the public
-`Test-Changes.ps1` runner. Each temporary Git repository sets `core.longpaths=true` locally
-before staging; a tracked and committed fixture path exceeds the Windows path limit without
-changing global Git configuration.
+Independent scope commands pass their manifest `arguments` to a child PowerShell with `-File`. The shared
+engine's fixtures cover empty argument arrays and named switches. RedTilde's product fixtures cover its source
+rules, native partition and receipt admission.
 Native-v2 diagnostics also require cheap settled-memory snapshots, complete command CPU/processor arrays and
 observer coverage. Observation tests cover process disappearance and single reads of volatile properties, CPU
 classification and UTC/local/JSON date representations. An incomplete trace is retained as a failed collection;
@@ -240,23 +237,32 @@ results from upstream library evidence. Keep failed receipts; a focused pass doe
 
 ## Scoped iteration and exact evidence
 
-`Test-Changes.ps1 -Explain` is the read-only planning entrypoint; `Test-Changes.ps1` runs affected scopes. The first run compares committed work since the local merge base with `origin/main` plus independent staged, working, rename-side, deletion and untracked paths. No ref is fetched. Unknown executable/build/shared inputs widen coverage. `-Scopes A,B` selects explicit scopes; unknown or incompatible selectors fail before execution.
+`Test-Changes.ps1` loads the shared engine selected by `.ci/project.json`. RedTilde's
+`Tests/test-scopes.json` version 2 owns the native inventory, suites, source mappings and profile matrix.
+The [shared command contract](https://github.com/RedSalamanders/.github/blob/main/Specs/ProjectCommands.md#scoped-testing)
+owns planning, status tokens and receipt admission. Shipped Markdown examples and the reference-dark fixture
+are native inputs. Ordinary guide files select independent checks, and unknown build or source inputs widen
+to every applicable scope.
 
-A successful default affected run retains a source-byte and Git-index baseline for that checkout, platform, configuration and environment. The next edit selects only changes since that baseline. Staging or committing identical tested working bytes does not rerun tests. A genuinely different staged blob is retained. Failed, interrupted, corrupt, mismatched, explicit partial or CI-pending runs never advance this baseline. Explicit `-BaseRef` and `-Force` bypass the incremental baseline. Unexplained artifact changes widen coverage. No selection is `NOT_EVALUATED`, never a new repository pass.
+Use `-Explain` for the read-only plan and `-Scopes A,B` to select scopes explicitly. Affected mode uses the
+local merge base of `origin/main` by default and discovers staged, working, renamed, deleted and untracked
+paths without fetching. A successful ordinary affected run can advance the source and index baseline for up
+to 24 hours. A build or test attempt revokes the old baseline first. Explicit base selection, `-Force`, CI,
+instrumentation, failures and capability skips prevent ordinary baseline reuse or advancement as applicable.
 
-Selected affected work suspends the old baseline before build/test execution, so failure or interruption cannot
-leave older success able to suppress the next run. `Resolve-ScopedIterationDisposition` (`Build/ScopedTesting.psm1`)
-resolves explicit run outcomes into `BaselineAdvanced`, `PartialRunRetained`, `FailedRetained`,
-`MutatedWorktreeRetained`, `CiPending`, or `NothingSelected`. An unchanged successful explicit/Full attempt may restore
-the exact old baseline bytes; it does not advance that baseline. A default success publishes its new completed
-state. Direct test.ps1 attempts revoke old affected state before validation or native work. State paths are
-bounded to the checkout's report root and refuse reparse points. A reentrant checkout/profile test lease
-refuses competing processes while keeping other profiles/workspaces independent. These controls preserve
-the existing local evidence boundary and do not grant hosted, foreground or release acceptance.
+`-Mode Full` covers one profile. `-Mode PrePush` validates the committed changelog and runs x64 Debug,
+Release and ASan Debug runtime profiles, then ARM64 Debug, Release and ASan Debug cross-builds. Use PrePush
+without profile arguments. Native runtime tests require a matching host. The scoped runner lists
+`INTERACTIVE_NOT_RUN` for the real keyboard and focus obligation. Execute that separate suite through
+`test-interactive.ps1` after desktop admission. The ordinary direct and hosted suite sets keep their existing
+hidden behavior and interactive refusal control.
 
-Only exact successful reusable scope results may be reused: source/dependency/build policy, binary/DLL/PDB and required deployed inputs, physical checkout, toolchain/environment, profile and normalized scenario arguments must match. Missing runtime inputs, JSON-only profiles, failures and mutation invalidate evidence. Receipts publish atomically only after successful unchanged execution. `-Force` bypasses result reuse; explicit Full/PrePush do not narrow obligations through the incremental baseline. IO/clipboard, stress, resource/benchmark observations, captures and process-fault workflows remain fresh when selected. Omission by an affected plan is not reusable qualification for omitted scopes.
-
-`test.ps1 -Full -SkipTooling` runs the complete native obligation for its profile; `validate.ps1` runs independent tooling and scope regressions once. `format.ps1 -Check` is an independently reusable Format scope. `-Mode Full` selects the complete applicable local obligation. `-Mode PrePush` accounts for matching local work and forthcoming enabled CI. Deferral requires clean committed bytes, a matching reviewed workflow digest, matching profile/scenarios and stable HEAD/worktree through the API lookup. Disabled/missing/unreadable CI, changed runner contracts and direct default-branch pushes keep obligations local. Deferral is always `CI_PENDING`, never a pass or merge approval.
+The checkout/profile lease protects the scoped runner and direct build and test entry points. A held lease
+refuses competing operations and accepts the owning process's children. Reusable native results bind
+current source, exact engine, toolchain, environment, build outputs, profile and options, and require a
+fresh per-suite report with zero exit and no skips. Failed runs and changed inputs refuse reuse. Format and
+Tooling remain independent. The product's canonical input snapshots, complete runtime closure check,
+production role and separate local SDK receipts remain the artifact admission authority.
 
 The [unified CI contract](../Build/Build_UnifiedCI.md) owns hosted qualification. PR checks are compiler-free
 tooling, formatting and security checks; they do not establish native acceptance. Main Release qualification
