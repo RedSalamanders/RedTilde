@@ -20,4 +20,4 @@ Original desktop identities remain private.
 
 This closes the existing F2 and nine-stage real keyboard/focus obligations. Physical IME, touch, assistive
 technology, clipboard, other platforms and paired performance remain in the
-[single active plan](../WIP/RemainingWork_2026-11-04.md).
+[single active plan](RemainingWork_2026-11-04.md).

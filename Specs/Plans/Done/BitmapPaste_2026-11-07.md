@@ -33,6 +33,6 @@ and 228 captures in total. Every original wrapper and canonical payload member i
 verified. Both production ZIPs are version `0.1.378`, start only after the combined
 native Release gate, and pass all 13 test-entry-point refusals each.
 
-The [remaining plan](../WIP/RemainingWork_2026-11-04.md) continues to own API-5
+The [remaining plan](RemainingWork_2026-11-04.md) continues to own API-5
 adoption, real locations, remote-image policy, drag/drop/export,
 physical input/AT and formal performance qualification.

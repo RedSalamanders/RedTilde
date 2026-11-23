@@ -111,6 +111,6 @@ belong under `.build/`, never under `Specs/` or `docs/`.
 
 ## Repository rules
 
-- [Remaining work — 4 November 2026](Plans/WIP/RemainingWork_2026-11-04.md) is the single current execution plan.
+- [Remaining work — 4 November 2026](Plans/Done/RemainingWork_2026-11-04.md) and [Version 1.0 release readiness](Plans/Done/V1ReleaseReadiness_2026-11-21.md) are closed (`DONE`) in `Specs/Plans/Done/` for `RedTilde v1.0.0`; [Dictionary and spell checking](Plans/WIP/DictionaryAndSpellChecking_2026-11-21.md) is the active post-1.0 plan.
   Done also retains explicitly SUPERSEDED planning references. Their unresolved requirements transfer to the
-  current plan; archiving them establishes neither implementation nor performance, platform, or release acceptance.
+  current plan or explicit post-1.0 disposition records; archiving them establishes neither implementation nor performance, platform, or release acceptance.

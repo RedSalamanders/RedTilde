@@ -21,4 +21,4 @@ counterexample/timeout, profile-archive and canonical receipt identities.
 
 This closes RT-02/PR-05 and the bounded execution repair needed for qualification. Native ARM64 runtime,
 physical/foreground input, paired performance, other recovery/storage work and release acceptance remain
-in the [single active plan](../WIP/RemainingWork_2026-11-04.md).
+in the [single active plan](RemainingWork_2026-11-04.md).

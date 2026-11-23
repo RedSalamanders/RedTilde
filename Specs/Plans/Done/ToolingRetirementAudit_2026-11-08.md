@@ -9,5 +9,5 @@ profile verify. Removing those reachable paths without migration would break
 supported replay; no files or branches were retired.
 
 The [performance contract](../../Testing/Testing_Performance.md) owns the durable
-retirement requirements. The [parent plan](../WIP/RemainingWork_2026-11-04.md)
+retirement requirements. The [parent plan](RemainingWork_2026-11-04.md)
 continues to own implementation and its consumer qualification.

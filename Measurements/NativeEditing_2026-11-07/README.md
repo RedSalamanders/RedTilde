@@ -47,7 +47,7 @@ native test gate. Every original wrapper and canonical payload member is byte
 verified; package and executable hashes match the original smoke receipts. These
 are internal qualified packages, with no GitHub release publication implied.
 
-The [active plan](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md) retains
+The [active plan](../../Specs/Plans/Done/RemainingWork_2026-11-04.md) retains
 physical IME/AT/keyboard, formal performance and API-5 adoption. The
 headless ACP component and hidden preview checks do not qualify physical IME or
 foreground input. Existing gallery pixels are unchanged by this test-only scope.

@@ -21,4 +21,4 @@ counterexample, fixture-failure, native/profile and original-source identities.
 
 This closes RT-08 and its fixture repair. Session end, continuous-typing staleness, other recovery/storage
 behavior, newer-source native/production acceptance, ARM64 Debug/ASan, physical input and paired R10 acceptance remain
-in the [single active plan](../WIP/RemainingWork_2026-11-04.md).
+in the [single active plan](RemainingWork_2026-11-04.md).

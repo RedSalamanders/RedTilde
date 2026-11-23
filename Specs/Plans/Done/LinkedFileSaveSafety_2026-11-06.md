@@ -23,4 +23,4 @@ The [packet](../../../Measurements/LinkedSaveAndCosmeticSettlement_2026-11-06/RE
 Release source `4e85948b` and extended source `48f1f447` contain this implementation. This closeout does not
 qualify later interaction/clipboard candidates, real cloud/SMB/WSL locations, physical input/AT or paired
 performance. Those and the repaired heap fixture's new ARM64 ASan execution remain in the
-[single active plan](../WIP/RemainingWork_2026-11-04.md).
+[single active plan](RemainingWork_2026-11-04.md).

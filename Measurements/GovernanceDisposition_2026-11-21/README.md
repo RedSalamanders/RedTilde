@@ -1,7 +1,7 @@
 # Governance, Tooling & Production-Review Reconciliation — 21 November 2026
 
 Source state: `ea111980a9aa3f9db0a8b49880b751c437e853fa` (`RedTilde` `main` after post-merge changelog fold PR #147).
-Purpose: Reconcile open `T-G1` administrative items in [RemainingWork_2026-11-04.md](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md), historical [ProductionReview_2026-10-28.md](../../Specs/Plans/Done/ProductionReview_2026-10-28.md) items, [reduced historical retention](../../Measurements/RedesignCompletion_2026-10-28/retention-20261028.md), [Q15 tooling retirement](../../Specs/Plans/Done/ToolingRetirementAudit_2026-11-08.md), and Gate 3 virtual-PDF printing coverage.
+Purpose: Reconcile open `T-G1` administrative items in [RemainingWork_2026-11-04.md](../../Specs/Plans/Done/RemainingWork_2026-11-04.md), historical [ProductionReview_2026-10-28.md](../../Specs/Plans/Done/ProductionReview_2026-10-28.md) items, [reduced historical retention](../../Measurements/RedesignCompletion_2026-10-28/retention-20261028.md), [Q15 tooling retirement](../../Specs/Plans/Done/ToolingRetirementAudit_2026-11-08.md), and Gate 3 virtual-PDF printing coverage.
 
 ## 1. Post-Merge `Changes/` Cadence (`T-G1`)
 

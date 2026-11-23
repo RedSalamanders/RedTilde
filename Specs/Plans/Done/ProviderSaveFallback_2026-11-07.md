@@ -23,5 +23,5 @@ thirteen actual refusals each after the combined Release test gate. See the
 and [Release/production packet](../../../Measurements/ProviderSaveFallback_2026-11-07/hosted-release.json).
 
 Real provider/share/WSL locations, physical-input acceptance, API-5 adoption and
-performance-policy acceptance remain in the [current plan](../WIP/RemainingWork_2026-11-04.md).
+performance-policy acceptance remain in the [current plan](RemainingWork_2026-11-04.md).
 This scoped completion does not accept them.

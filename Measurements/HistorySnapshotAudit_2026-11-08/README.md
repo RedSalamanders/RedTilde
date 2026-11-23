@@ -15,4 +15,4 @@ This is a snapshot audit, not the coordinated Q17 rewrite. Active source is not
 frozen and the mirrors are not complete dirty-worktree backups. Public refs,
 history and visibility were untouched. Private originals, a reviewed rewrite and
 commit map, consumer coordination and worktree repair remain with the
-[single parent](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md).
+[single parent](../../Specs/Plans/Done/RemainingWork_2026-11-04.md).

@@ -2,7 +2,7 @@
 
 Status: DONE — scoped implementation/review record; outstanding acceptance is transferred.
 Archived: 4 November 2026
-Current work: [the single remaining-work plan](../WIP/RemainingWork_2026-11-04.md).
+Current work: [the single remaining-work plan](RemainingWork_2026-11-04.md).
 Original: `Specs/Plans/WIP/NativeBuildPolicyCoherence_2026-10-28.md` at `1cd59c08528cc1e20720a45ef833bb9e69c315e4`; SHA-256 `97B3FF2F68DB417D236AD440CF5D9AC3ABA50AA4F566455E8E090DD3F8965DAB`.
 [Original committed record](https://github.com/RedSalamanders/RedTilde/blob/1cd59c08528cc1e20720a45ef833bb9e69c315e4/Specs/Plans/WIP/NativeBuildPolicyCoherence_2026-10-28.md).
 
@@ -34,7 +34,7 @@ Five repositories implement the same policy without implicitly advancing DxUi pi
 - [x] Publish zero-warning guidance and normative build/path/terminal contracts, with meaningful tooling tests.
 - [x] Execute affected tests, evaluated profiles, required native builds and applicable local x64 runtime qualification; retain every failed result and distinguish ARM64 cross-builds from runtime tests.
 - [x] Freeze matching Release artifacts, report before/after image sizes and collect the prespecified quiet paired performance measurements; retain inconclusive outcomes.
-- **Transferred to [T-G1](../WIP/RemainingWork_2026-11-04.md#t-g1).** Fold/check the changelog; validate formatting/specs/tooling and close this plan only after all required gates pass.
+- **Transferred to [T-G1](RemainingWork_2026-11-04.md#t-g1).** Fold/check the changelog; validate formatting/specs/tooling and close this plan only after all required gates pass.
 
 ## Decisions and limits
 

@@ -53,7 +53,7 @@ changes those attempts' dispositions.
 Durable behavior belongs to [file safety](../../Specs/Core/Core_FileSafety.md),
 [validation](../../Specs/Testing/Testing_Validation.md) and
 [build admission](../../Specs/Build/Build_ConsoleAndPaths.md); usage is in the
-[application guide](../../docs/README.md). The [single active plan](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md)
+[application guide](../../docs/README.md). The [single active plan](../../Specs/Plans/Done/RemainingWork_2026-11-04.md)
 records Q12's [scoped completion](../../Specs/Plans/Done/LinkedFileSaveSafety_2026-11-06.md) with actual symbolic-link
 execution, while the ARM64 ASan heap-fixture failure retains its owner. Physical input/AT, real-share/cloud/WSL and
 paired-performance acceptance remain separate. Unpaired diagnostics establish no performance verdict.

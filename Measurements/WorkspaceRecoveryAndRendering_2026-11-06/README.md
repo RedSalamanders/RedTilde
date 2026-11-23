@@ -69,7 +69,7 @@ The durable owners are [file safety](../../Specs/Core/Core_FileSafety.md),
 [editing](../../Specs/Editor/Editor_Markdown.md), [validation](../../Specs/Testing/Testing_Validation.md)
 and [usage](../../docs/README.md). Current generated outputs are under an existing approved workspace after
 byte-verifying all 140 compiled inputs against the earlier checkout; no receipt is relabelled as another root's run.
-The [remaining plan](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md) retains conflict/location policy,
+The [remaining plan](../../Specs/Plans/Done/RemainingWork_2026-11-04.md) retains conflict/location policy,
 managed image assets, R10 and physical/native platform/release gates.
 
 [Retained attempts](retained-attempts.json) keep counterexamples and unaccepted builds distinct. 

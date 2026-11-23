@@ -19,4 +19,4 @@ The [source-bound packet](../../../Measurements/FileSafetyAndUiBoundaries_2026-1
 actual compiled inputs and independent original failures. This closes RT-07/Q6/Q7/C6 and the RT-12/PR-07/35
 UI boundary scope. C6 is a documented best-effort race contract, not an atomic filesystem compare-and-swap.
 Q8 cloud/share/WSL fallbacks, Q12 link-write policies, native ARM64 Debug/ASan, physical input and performance
-acceptance remain with the [single active plan](../WIP/RemainingWork_2026-11-04.md).
+acceptance remain with the [single active plan](RemainingWork_2026-11-04.md).

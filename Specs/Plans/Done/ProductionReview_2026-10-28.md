@@ -2,7 +2,7 @@
 
 Status: SUPERSEDED — sequencing consolidated; unfinished product work remains open under the new owner.
 Archived: 4 November 2026
-Current work: [the single remaining-work plan](../WIP/RemainingWork_2026-11-04.md).
+Current work: [the single remaining-work plan](RemainingWork_2026-11-04.md).
 Original: `Specs/Plans/WIP/ProductionReview_2026-10-28.md` at `1cd59c08528cc1e20720a45ef833bb9e69c315e4`; SHA-256 `14324CB6A2AB0573DCCABE24584BF9E7D11ACE72C8C0F8F1EF9CE29060E290E4`.
 [Original committed record](https://github.com/RedSalamanders/RedTilde/blob/1cd59c08528cc1e20720a45ef833bb9e69c315e4/Specs/Plans/WIP/ProductionReview_2026-10-28.md).
 

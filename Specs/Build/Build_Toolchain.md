@@ -194,7 +194,7 @@ host ownership, rather than changing only the lock. `ba94f4eb0cd8bbdeecb0b96d5e2
 `6ed0512c68743c57ac209e22010679d211c4a42b` predates the 2 November adapters and is restored only with those adapters. Packaging
 carries the pin's third-party notices and their `docs/licenses` texts. The indexed
 [historical DxUi delivery adoption plan](../Plans/Done/DxUiDeliveryAdoption_2026-11-02.md) records earlier adapters.
-The [current parent](../Plans/WIP/RemainingWork_2026-11-04.md) owns outstanding acceptance; a pin selection alone
+The [completed v1.0.0 delivery plan](../Plans/Done/RemainingWork_2026-11-04.md) records the qualification rules; a pin selection alone
 is not a green product receipt.
 
 ## Qualified pinned SDK inputs

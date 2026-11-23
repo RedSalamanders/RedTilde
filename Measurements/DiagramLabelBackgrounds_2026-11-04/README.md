@@ -67,4 +67,4 @@ foreground focus and does not substitute for physical dialog/input qualification
 The complete raw runs, first failures, exact executables/symbols and restoration manifests remain retained
 in the approved private workspace. Current build/runtime qualification is recorded separately; functional
 passes, captures and unpaired smoke observations do not establish paired performance or release acceptance.
-Remaining work stays in the [single active plan](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md).
+Remaining work stays in the [single active plan](../../Specs/Plans/Done/RemainingWork_2026-11-04.md).

@@ -28,4 +28,4 @@ cohort still has one symbolic-link privilege failure; it is not relabelled as pa
 
 The final packet closes hosted native ARM64/production and this exact source's test-before-production gate.
 Physical input/AT, API-5 migration, supported external locations, performance and product-release acceptance
-remain with [T-Q2](../WIP/RemainingWork_2026-11-04.md#t-q2) and its named owners.
+remain with [T-Q2](RemainingWork_2026-11-04.md#t-q2) and its named owners.

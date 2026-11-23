@@ -51,7 +51,7 @@ setup is counted as a native product pass.
 The enduring contract is in [file safety](../../Specs/Core/Core_FileSafety.md) and
 [validation](../../Specs/Testing/Testing_Validation.md), with user guidance in
 [the writing guide](../../docs/README.md). The broader
-[parent plan](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md) keeps its remaining
+[parent plan](../../Specs/Plans/Done/RemainingWork_2026-11-04.md) keeps its remaining
 review, provider, physical-input, performance, history and release requirements.
 This work changes startup bounds rather than ordinary pixels; new public screenshots
 are unnecessary. An entry count does not establish filesystem latency or paired performance.

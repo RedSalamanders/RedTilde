@@ -2,7 +2,7 @@
 
 Status: DONE — scoped implementation/review record; outstanding acceptance is transferred.
 Archived: 4 November 2026
-Current work: [the single remaining-work plan](../WIP/RemainingWork_2026-11-04.md).
+Current work: [the single remaining-work plan](RemainingWork_2026-11-04.md).
 Original: `Specs/Plans/WIP/WipFolderQuality_2026-10-31.md` at `1cd59c08528cc1e20720a45ef833bb9e69c315e4`; SHA-256 `0B6407CD7C9D55B838917D38B9E52FFAB33A90E6F962F9485B21A11E228ECBD5`.
 [Original committed record](https://github.com/RedSalamanders/RedTilde/blob/1cd59c08528cc1e20720a45ef833bb9e69c315e4/Specs/Plans/WIP/WipFolderQuality_2026-10-31.md).
 

@@ -19,4 +19,4 @@ DxUi: `8dc328dec0a80cc0e36fa08e5364265ebd25d37e`, API 4.
 [Source-bound evidence](../../../Measurements/WorkspaceRecoveryAndRendering_2026-11-06/README.md) retains
 original counterexamples, intermediate fixture/warning failures and exact identities. No OS logoff, native ARM64
 runtime, physical input or paired-performance acceptance is inferred from these hidden local runs. Remaining
-work stays with the [single current plan](../WIP/RemainingWork_2026-11-04.md).
+work stays with the [single current plan](RemainingWork_2026-11-04.md).

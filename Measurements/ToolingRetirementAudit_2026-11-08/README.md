@@ -16,4 +16,4 @@ Q15 retirement must first migrate the historical replay callers and immutable
 profile inputs. Shared-module migration needs an exact shared owner/pin and its
 consumer coverage before local copies or separately owned branches can be
 removed. No validator, fixture, module or branch was deleted by this audit. Those
-implementation steps remain with the [single active plan](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md).
+implementation steps remain with the [single active plan](../../Specs/Plans/Done/RemainingWork_2026-11-04.md).

@@ -37,7 +37,7 @@ number; the production frozen-version guard is unchanged.
 
 ## Remaining acceptance
 
-The [single active plan](../WIP/RemainingWork_2026-11-04.md) retains native ARM64 verification of the two
+The [single active plan](RemainingWork_2026-11-04.md) retains native ARM64 verification of the two
 corrected fixtures (T-Q1), current platform/physical-input/release qualification (T-Q2) and paired performance
 acceptance (T-P1). Cross-compilation, unpaired diagnostic timings and source publication do not close those gates.
 Recovery, file safety and the other product work remain active under their existing owners.
