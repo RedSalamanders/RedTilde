@@ -37,4 +37,4 @@ checkout has its own identity. Compiled identity:
 `6dc6d7c6881bc3dd544d4e1e5ac4cce42fb3e8a50d239b50fbb729b9206b508f`.
 
 Raw compiler contexts and physical paths stay private. Native ARM64 runtime, foreground/physical IME/AT,
-release and paired R10 acceptance remain in the [active plan](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md).
+release and paired R10 acceptance remain in the [active plan](../../Specs/Plans/Done/RemainingWork_2026-11-04.md).

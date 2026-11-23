@@ -16,4 +16,4 @@ Qualified implementation: `4c967858d4482e45d114e0f4455fe1efefbd2b4a`.
 [The evidence packet](../../../Measurements/SelectedBlockInsertions_2026-11-05/README.md) preserves exact
 source, dependency, failure, build and native receipt identities. This closes the selected-block request;
 new rendering examples, multi-document recovery and broader acceptance remain in the
-[single active plan](../WIP/RemainingWork_2026-11-04.md).
+[single active plan](RemainingWork_2026-11-04.md).

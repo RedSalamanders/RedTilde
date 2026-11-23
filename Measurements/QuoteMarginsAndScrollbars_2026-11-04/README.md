@@ -36,7 +36,7 @@ The complete raw runs, failed baselines, executables, symbols and original recei
 These identities describe the retained working-tree candidates based on main `1cd59c0`; a later
 documentation/publication receipt does not rewrite them. Functional passes and unpaired performance smoke
 do not establish performance acceptance, physical-input coverage or native ARM64 qualification. Remaining
-delivery and platform work stays in the [single active plan](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md).
+delivery and platform work stays in the [single active plan](../../Specs/Plans/Done/RemainingWork_2026-11-04.md).
 
 ## Current native rendering
 

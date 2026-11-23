@@ -37,6 +37,6 @@ Durable contracts are in [editor behavior](../../Specs/Editor/Editor_Markdown.md
 [architecture](../../Specs/Core/Core_Architecture.md), [UI](../../Specs/UI/UI_DesignSystem.md), and
 [validation](../../Specs/Testing/Testing_Validation.md). Usage is in the [user guide](../../docs/README.md).
 The [scoped Done record](../../Specs/Plans/Done/RemainingInteractions_2026-11-06.md) closes the implementation
-and these source-specific functional gates. The [single remaining-work plan](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md)
+and these source-specific functional gates. The [single remaining-work plan](../../Specs/Plans/Done/RemainingWork_2026-11-04.md)
 retains physical input/AT, real browser association, supported remote locations, API-5 adoption and paired
 performance. No complete-repository or product-release publication acceptance is claimed here.

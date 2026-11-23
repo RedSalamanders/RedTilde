@@ -31,4 +31,4 @@ Compiled identity is `621e089ea0203d103fd38004134df78d5acce1db93aeee821901cbdb56
 Final canonical validation and formatting pass. Raw machine paths and compiler contexts remain private.
 
 The durable contract is [Markdown editing](../../Specs/Editor/Editor_Markdown.md); remaining work stays in
-the [single active plan](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md).
+the [single active plan](../../Specs/Plans/Done/RemainingWork_2026-11-04.md).

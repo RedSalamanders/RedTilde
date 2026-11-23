@@ -5,7 +5,7 @@
 - **Status**: `DONE`
 - **Created / Completed**: `2026-11-22`
 - **Pinned DxUi baseline**: `0c371a6197eb8c6b876b4b2843d75078bc21035c` (API 5, [Dependencies/DxUi.lock.json](../../../Dependencies/DxUi.lock.json)) — `P1`–`P4` shipped against the current pin; optional future upstream `DxUi` simplifications remain isolated in [Section 7](#7-planned-upstream-dxui-improvements-dx-split-1dx-split-2).
-- **Companion active plans**: [Remaining work and qualification](../WIP/RemainingWork_2026-11-04.md), [Version 1.0 release readiness](../WIP/V1ReleaseReadiness_2026-11-21.md), [Dictionary and spell checking](../WIP/DictionaryAndSpellChecking_2026-11-21.md)
+- **Companion active plans**: [Remaining work and qualification](RemainingWork_2026-11-04.md), [Version 1.0 release readiness](V1ReleaseReadiness_2026-11-21.md), [Dictionary and spell checking](../WIP/DictionaryAndSpellChecking_2026-11-21.md)
 - **Normative contracts updated**:
   - [UI_DesignSystem.md](../../UI/UI_DesignSystem.md)
   - [Editor_Markdown.md](../../Editor/Editor_Markdown.md)
@@ -369,7 +369,7 @@ While `P1`–`P4` ship cleanly on the pinned `DxUi` API-5 commit (`0c371a61`), t
 
 ### Separate unexecuted external/hardware/interactive gates (remain tracked in companion WIP plans)
 
-- **Physical ARM64 execution**: `ARM64` binaries compiled across all three profiles (`Debug`, `Release`, `ASan Debug`), while runtime execution requires a physical ARM64 Windows device ([V1ReleaseReadiness_2026-11-21.md](../WIP/V1ReleaseReadiness_2026-11-21.md)).
+- **Physical ARM64 execution**: `ARM64` binaries compiled across all three profiles (`Debug`, `Release`, `ASan Debug`), while runtime execution requires a physical ARM64 Windows device ([V1ReleaseReadiness_2026-11-21.md](V1ReleaseReadiness_2026-11-21.md)).
 - **Owner-agreed interactive desktop & Assistive Technology acceptance**: `test-interactive.ps1` real foreground focus/hover/Narrator UIA inspection requires interactive agreement to the time and was not run silently ([Testing_Validation.md](../../Testing/Testing_Validation.md)).
 - **Quiet-host paired Release performance study**: `performance-paired.ps1` comparison (`idleProcessCpu100ns == 0` paired benchmark against a pinned baseline on a quiet host) remains tracked separately.
 - **Hosted CI / release packaging**: Hosted GitHub Actions workflow runs and portable ZIP packaging remain outside this local completion change.

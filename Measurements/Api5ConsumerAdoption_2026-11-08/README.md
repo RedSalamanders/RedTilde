@@ -75,4 +75,4 @@ and formatting pass for the frozen source. The source-bound prior baseline at
 Current foreground/physical input/AT, named provider locations,
 paired-performance policy, long-lived physical GPU resources, coordinated privacy
 history and release publication retain their separate gates in the
-[single parent plan](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md).
+[single parent plan](../../Specs/Plans/Done/RemainingWork_2026-11-04.md).

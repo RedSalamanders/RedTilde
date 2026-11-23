@@ -8,7 +8,7 @@ builds, all 375 x64 nonstorage case executions, 120 captures, actual ASan and
 fifteen actual x64 production-entry refusals. Every original source/native/SDK/run
 member verifies. ARM64 is compilation-only. The local Storage privilege failure
 remains unwaived; real provider, physical-input and wider adoption gates remain
-with the [parent](../WIP/RemainingWork_2026-11-04.md).
+with the [parent](RemainingWork_2026-11-04.md).
 
 The editor and architecture contracts own per-document/local-network permission,
 direct anonymous transport, connection-time address checks, bounded source-owned

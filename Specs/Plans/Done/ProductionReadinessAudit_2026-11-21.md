@@ -5,7 +5,7 @@
 - **Status**: `DONE`
 - **Date**: `2026-11-21` (remediated and closed `2026-11-22`)
 - **Audited commit range & state**: `63cd441..abaa0da` (10-day window across `2026-11-11` through `2026-11-21`, including `PrintPreview::WaitingOverlay`) and surrounding subsystems for side effects. Original file/line anchors below record the pre-remediation `abaa0da` baseline.
-- **Companion active plans**: [Remaining work and qualification](../WIP/RemainingWork_2026-11-04.md), [Version 1.0 release readiness](../WIP/V1ReleaseReadiness_2026-11-21.md)
+- **Companion active plans**: [Remaining work and qualification](RemainingWork_2026-11-04.md), [Version 1.0 release readiness](V1ReleaseReadiness_2026-11-21.md)
 - **Authoritative contracts preserved / reconciled**:
   - [Specs/README.md](../../README.md)
   - [Core_Architecture.md](../../Core/Core_Architecture.md)
@@ -32,7 +32,7 @@
 
 **Verdict (`2026-11-22` audit remediation closure): All audit-identified defects (`C1`–`C6`, `H1`–`H9`, `M1`–`M4`, `T1`–`T3`, `S1`–`S6`) are remediated and locally verified on Windows x64 (`Debug`, `Release`, `ASan Debug`) plus six-profile zero-warning compilation (`x64`/`ARM64` × `Debug`/`Release`/`ASan Debug`) and clean portable x64 packaging.**
 
-Separate external, hardware, and cross-repository gates — physical ARM64 host execution, owner-authorized interactive desktop focus/IME/assistive-technology runs, physical/virtual printer driver testing, live OneDrive/SMB/WSL real-location storage runs, paired Release performance/resource qualification, and upstream `DxUi`/`RedMonitor` qualification — remain explicitly open in [capabilities.json](../../../capabilities.json), [Remaining work and qualification](../WIP/RemainingWork_2026-11-04.md), and [Version 1.0 release readiness](../WIP/V1ReleaseReadiness_2026-11-21.md).
+Separate external, hardware, and cross-repository gates — physical ARM64 host execution, owner-authorized interactive desktop focus/IME/assistive-technology runs, physical/virtual printer driver testing, live OneDrive/SMB/WSL real-location storage runs, paired Release performance/resource qualification, and upstream `DxUi`/`RedMonitor` qualification — remain explicitly open in [capabilities.json](../../../capabilities.json), [Remaining work and qualification](RemainingWork_2026-11-04.md), and [Version 1.0 release readiness](V1ReleaseReadiness_2026-11-21.md).
 
 ### Verified-Clean Baseline (Audited & Re-verified)
 

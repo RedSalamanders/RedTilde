@@ -46,7 +46,7 @@ establish R10 or shared performance-policy acceptance.
 Durable contracts live in [file safety](../../Specs/Core/Core_FileSafety.md),
 [architecture](../../Specs/Core/Core_Architecture.md), [validation](../../Specs/Testing/Testing_Validation.md),
 [run evidence](../../Specs/Testing/Testing_RunEvidence.md) and [usage](../../docs/README.md).
-The [single active plan](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md) retains real locations/links,
+The [single active plan](../../Specs/Plans/Done/RemainingWork_2026-11-04.md) retains real locations/links,
 managed images, remaining UI work, native/physical qualification, API migration and release decisions.
 
 The previous workspace/rendering implementation has an independently verified

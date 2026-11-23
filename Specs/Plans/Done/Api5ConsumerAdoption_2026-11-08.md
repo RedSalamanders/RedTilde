@@ -33,7 +33,7 @@ fixture and stale-restore histories separately. Hosted and local canonical sourc
 identities are not interchangeable. No earlier failed run is relabeled green.
 
 This completes T-Q2's API-5 software adoption row. It does not close the
-[parent's](../WIP/RemainingWork_2026-11-04.md) physical IME/AT/touch, provider
+[parent's](RemainingWork_2026-11-04.md) physical IME/AT/touch, provider
 locations, physical GPU lifecycle, paired performance, history rewrite or release
 publication requirements. Normal automatic two-architecture production gates
 remain unchanged.

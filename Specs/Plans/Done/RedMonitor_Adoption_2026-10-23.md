@@ -2,7 +2,7 @@
 
 Status: DONE — scoped implementation/review record; outstanding acceptance is transferred.
 Archived: 4 November 2026
-Current work: [the single remaining-work plan](../WIP/RemainingWork_2026-11-04.md).
+Current work: [the single remaining-work plan](RemainingWork_2026-11-04.md).
 Original: `Specs/Plans/WIP/RedMonitor_Adoption_2026-10-23.md` at `1cd59c08528cc1e20720a45ef833bb9e69c315e4`; SHA-256 `54BC8E179B2D50FB2F6D2D785796B3BE8F2F93CD37080F94DEEC65F9E4D2CAB4`.
 [Original committed record](https://github.com/RedSalamanders/RedTilde/blob/1cd59c08528cc1e20720a45ef833bb9e69c315e4/Specs/Plans/WIP/RedMonitor_Adoption_2026-10-23.md).
 
@@ -26,7 +26,7 @@ The current contract is [RedMonitor integration](../../Core/Core_RedMonitorInteg
 - [x] Build all six profiles and run required x64 Debug/Release/ASan suites, including actual ASan detection.
 - [x] Verify the actual app ETW Unicode/severity/PID/TID probe, missing-helper behavior and clean app-only package.
 After final source validation, retain reviewed receipts under Measurements, fold changes, commit and push; verify the remote branch equals local HEAD.
-- **Transferred to [T-Q2](../WIP/RemainingWork_2026-11-04.md#t-q2).** Close native ARM64 runtime, physical input/accessibility, controlled performance and release gates.
+- **Transferred to [T-Q2](RemainingWork_2026-11-04.md#t-q2).** Close native ARM64 runtime, physical input/accessibility, controlled performance and release gates.
 
 Earlier 2026-10-23 managed-viewer checkpoints remain historical evidence in Measurements and .build.
 They do not qualify this revised dependency boundary. Tests never require an installed helper.

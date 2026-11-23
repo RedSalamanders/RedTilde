@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-23",
+  "workflow": "Qualify main Release",
+  "runId": "45167960343",
+  "runAttempt": 1,
+  "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/45167960343",
+  "commit": "1b8174b8d28b6177ee81c79df2f5b3066c0dc959",
+  "conclusion": "success",
+  "engine": {
+    "repository": "RedSalamanders/.github",
+    "ref": "f965c7945aff98dbab352623a0cfbe333e7f282f"
+  },
+  "nativeDigest": "9fca4e632beb7fa71de37d09954a7563abc866f84d4b6c320aaa1ed42da2d57e",
+  "buildNumber": 538,
+  "version": "1.0.538",
+  "jobs": [
+    { "name": "qualify / admission", "conclusion": "success" },
+    { "name": "qualify / regression (x64, windows-2025-vs2026)", "conclusion": "success" },
+    { "name": "qualify / regression (ARM64, windows-11-vs2026-arm)", "conclusion": "success" },
+    { "name": "qualify / test-gate", "conclusion": "success" },
+    { "name": "qualify / production (x64, windows-2025-vs2026)", "conclusion": "success" },
+    { "name": "qualify / production (ARM64, windows-11-vs2026-arm)", "conclusion": "success" },
+    { "name": "qualify / complete", "conclusion": "success" }
+  ],
+  "regression": {
+    "x64": {
+      "passed": true,
+      "countUnit": "case",
+      "registered": 203,
+      "expectedSkipped": 0,
+      "discovered": 203,
+      "executed": 203,
+      "failed": 0,
+      "unexpectedSkipped": 0,
+      "assertionProbePassed": true,
+      "sourceIdentity": "757581238ab384aebc43bd59ff19c5976aeb7ad09b0de0a6c3c1e9b492211082",
+      "binaryPath": ".build/x64/Release/RedTilde.exe",
+      "binarySha256": "bd3226bf9f5269cda39f051221d215a8629d232e2658512949f4aeae628b0de5",
+      "evidenceId": "20261123T115835905Z-2080-aa603a234b0b4f2cb88bbdc1c38cb774",
+      "receiptSha256": "869e0db39f94e8a5ecc10511001ed1aebefd5ead055b36f639487288cab99fbb",
+      "completedAt": "2026-11-23T12:00:26.9406452+00:00"
+    },
+    "ARM64": {
+      "passed": true,
+      "countUnit": "case",
+      "registered": 203,
+      "expectedSkipped": 0,
+      "discovered": 203,
+      "executed": 203,
+      "failed": 0,
+      "unexpectedSkipped": 0,
+      "assertionProbePassed": true,
+      "sourceIdentity": "882d5ebcddf2c45415f14f42c94ac3750acfbd8781df8f18234063d8cc842719",
+      "binaryPath": ".build/ARM64/Release/RedTilde.exe",
+      "binarySha256": "5062d3e5b74328b739cd0f3b0ea82fe8eb312f101adb10408a44c009608e601d",
+      "evidenceId": "20261123T115515975Z-6680-6e3467e4a343475baf0865988fef862b",
+      "receiptSha256": "b8944d9083e183f644334971001d806f4ea21b517456a55e42c17983f623cc54",
+      "completedAt": "2026-11-23T11:57:31.8168986+00:00"
+    }
+  },
+  "production": {
+    "x64": {
+      "archiveFile": "RedTilde-1.0.538-x64-20261123-120618-798.zip",
+      "archiveSize": 5773643,
+      "archiveSha256": "1DF31F25FCFFBEBD094C3D8CA86EE6A7C53EDD859EB6CB261D9738D591DFA01F",
+      "binarySha256": "E434C8CCBA67B43E8F358897170767ED64B1355C25724E201D85BBBA814F7758",
+      "status": "production",
+      "version": "1.0.538",
+      "testsEnabled": false,
+      "runtimeRedistributableBundled": true,
+      "smokePassed": true,
+      "refusalCount": 16
+    },
+    "ARM64": {
+      "archiveFile": "RedTilde-1.0.538-ARM64-20261123-040919-734.zip",
+      "archiveSize": 6254049,
+      "archiveSha256": "0E3DE44A53317FDAD240D14236D289F2CEAF43D86BB83898A6F887B296E37C5C",
+      "binarySha256": "8DB48BCFCE42CBCC624B67F41E151645DB666BD82D2EA66CD05F0F3837035C34",
+      "status": "production",
+      "version": "1.0.538",
+      "testsEnabled": false,
+      "runtimeRedistributableBundled": true,
+      "smokePassed": true,
+      "refusalCount": 16
+    }
+  },
+  "priorFailedRun": {
+    "runId": "45148102890",
+    "url": "https://github.com/RedSalamanders/RedTilde/actions/runs/45148102890",
+    "commit": "c8ac8dd2c2a56266fa4519607f391198c7dddbe2",
+    "failedJobs": [
+      "qualify / production (x64)",
+      "qualify / production (ARM64)"
+    ],
+    "rootCause": "Write-CiProductionReceipt rejected RedTilde.exe 1.0.x because .ci/project.json still declared versionBase '0.1'. Aligned to '1.0' (and vcpkg.json '1.0.0' + validate.ps1 check) in PR #163 (1f906912) and folded in PR #164 (1b8174b8)."
+  }
+}

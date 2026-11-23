@@ -28,4 +28,4 @@ identity as this frozen qualification checkpoint.
 
 This closes RT-04/PR-06. Other recovery/shutdown/storage work, native ARM64 runtime for the new app candidate,
 physical input/AT, paired performance and release acceptance remain in the
-[single active plan](../WIP/RemainingWork_2026-11-04.md).
+[single active plan](RemainingWork_2026-11-04.md).

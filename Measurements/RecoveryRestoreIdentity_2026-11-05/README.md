@@ -54,7 +54,7 @@ compiled identity `5e137713537ca826ed99f57a7a82253eeb597eaab84bb669688cd20b56655
 ARM64 coverage here is cross-build coverage. Hidden functional checks and ordinary unpaired FPS/memory
 observations do not establish native ARM64 runtime, physical keyboard/IME/AT/touch, paired performance or
 product-wide release acceptance. Those gates and other remaining correctness work stay with the
-[active plan](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md).
+[active plan](../../Specs/Plans/Done/RemainingWork_2026-11-04.md).
 
 ## Additional real keyboard/focus qualification
 

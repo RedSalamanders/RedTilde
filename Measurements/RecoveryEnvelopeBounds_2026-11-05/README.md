@@ -38,7 +38,7 @@ Canonical integration matches those actual working bytes. Compiled identity:
 `39b7d538bc367d9dfc56ff1c3d6de93067317862b7d3ac3735dda22659e5a96b`.
 
 Raw compiler contexts, machine identities and physical paths stay private. Remaining work belongs to the
-[active plan](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md).
+[active plan](../../Specs/Plans/Done/RemainingWork_2026-11-04.md).
 
 ## Hosted Release follow-up
 

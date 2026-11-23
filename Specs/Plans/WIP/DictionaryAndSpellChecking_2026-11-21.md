@@ -5,7 +5,7 @@
 - **Status**: `ACTIVE` (Option E — Pluggable `ISpellProvider` Hybrid selected by owner on `2026-11-22`)
 - **Created**: `2026-11-21` · **Updated**: `2026-11-22`
 - **Pinned DxUi baseline**: `0c371a6197eb8c6b876b4b2843d75078bc21035c` (API 5, [Dependencies/DxUi.lock.json](../../../Dependencies/DxUi.lock.json)) — `S1`–`S3` ship immediately against the current pin; planned upstream `DxUi` simplifications are specified in [Section 6](#6-planned-upstream-dxui-improvements-to-simplify-redtilde)
-- **Companion active plans**: [Remaining work and qualification](RemainingWork_2026-11-04.md), [Version 1.0 release readiness](V1ReleaseReadiness_2026-11-21.md)
+- **Completed v1.0.0 predecessor plans**: [Remaining work and qualification](../Done/RemainingWork_2026-11-04.md), [Version 1.0 release readiness](../Done/V1ReleaseReadiness_2026-11-21.md)
 - **Domain contracts to update upon implementation**:
   - [Specs/README.md](../../README.md)
   - [Core_Architecture.md](../../Core/Core_Architecture.md)
@@ -42,7 +42,7 @@ RedTilde adopts **Option E — Pluggable `ISpellProvider` Hybrid**:
 | **Deferred scope (`S4`)** | Optional local user-supplied Hunspell `.aff`/`.dic` fallback and optional local user-supplied MyThes (`.idx`/`.dat`) thesaurus lookup; zero bundled corpora, zero automatic pack downloads. |
 | **Default enabled state** | `spelling.enabled = true`, with lazy STA initialization triggered only when enabled and non-empty prose needs checking (`0 B` overhead on cold start or empty documents). |
 | **Custom dictionary write boundary** | Writes go **only** to RedTilde's `custom-dictionary.txt` (under `--data-dir` / `%LOCALAPPDATA%\RedTilde`) or an explicitly configured freestanding `CUSTOM.DIC`. Windows OS dictionaries are read via `ISpellChecker::Check`/`Suggest` strictly read-only; RedTilde never calls `ISpellChecker::Add` or `ISpellChecker2::Remove` by default. |
-| **Milestone target** | Flagship **`v1.1`** feature; `v1.0.0` stabilization keeps existing Gates 3–7 in [Version 1.0 release readiness](V1ReleaseReadiness_2026-11-21.md) undisturbed while `S1` proceeds cleanly on a dedicated feature branch. |
+| **Milestone target** | Flagship **`v1.1`** feature; `v1.0.0` stabilization kept existing Gates 3–7 in [Version 1.0 release readiness](../Done/V1ReleaseReadiness_2026-11-21.md) undisturbed while `S1` proceeds cleanly on a dedicated feature branch. |
 
 ### Hard engineering invariants
 

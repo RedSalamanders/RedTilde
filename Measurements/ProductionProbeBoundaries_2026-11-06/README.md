@@ -31,7 +31,7 @@ command behavior. The [scoped Done record](../../Specs/Plans/Done/ProductionProb
 closes implementation and these local/x64-production checks. The hosted native-runtime follow-up below
 closes all six runtime profiles. The final production packet below closes the original-receipt proof gap.
 Physical input/AT, application API-5 migration and performance stay in the
-[single active plan](../../Specs/Plans/WIP/RemainingWork_2026-11-04.md).
+[single active plan](../../Specs/Plans/Done/RemainingWork_2026-11-04.md).
 
 [Hosted Debug/ASan](hosted-debug-asan.json) independently verifies four native x64/ARM64 profiles at
 `7d1c6ecb`, each with all 128 cases, 36 captures, actual symbolic-link saves, original interrupted-write

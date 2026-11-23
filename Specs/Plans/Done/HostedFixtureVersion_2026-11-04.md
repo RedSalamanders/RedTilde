@@ -15,4 +15,4 @@ The [evidence packet](../../../Measurements/HostedFixtureVersion_2026-11-04/READ
 and raw-log identities. No native application source, runtime build-admission rule, dependency pin or product
 version policy changes. The [source-bound main gate proof](../../../Measurements/HostedFixtureVersion_2026-11-04/main-test-gate.json)
 also closes T-Q1. Production completion, the other native runtime profiles, physical interaction and performance
-remain with T-Q2/T-P1 in the [active plan](../WIP/RemainingWork_2026-11-04.md).
+remain with T-Q2/T-P1 in the [active plan](RemainingWork_2026-11-04.md).

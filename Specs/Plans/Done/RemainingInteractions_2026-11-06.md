@@ -30,5 +30,5 @@ remains failed; the new one-entry observation does not establish its missing his
 
 Physical keyboard/IME/touch/AT, real browser association, cloud/SMB/WSL acceptance, image assets/settings,
 application API-5 migration, installer/file associations and paired performance remain in the
-[single active plan](../WIP/RemainingWork_2026-11-04.md). This is functional qualification of the recorded source,
+[single active plan](RemainingWork_2026-11-04.md). This is functional qualification of the recorded source,
 not complete-repository or product-release publication acceptance.

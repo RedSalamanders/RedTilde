@@ -2,11 +2,12 @@
 
 ## Metadata
 
-- **Status**: `ACTIVE`
-- **Date**: 2026-11-21
-- **Baseline commit**: `b7c31920b8bb9f1c0952d6b6f152978328137058` (`main` after PR #145)
-- **Companion active plan**: [RemainingWork_2026-11-04.md](RemainingWork_2026-11-04.md) (retains broader governance/tooling items including `Q17`, `Q15`, rejected-cleanup dispositions, and routine post-merge changelog folds alongside the open engineering gates)
-- **Archived predecessor**: [ExplicitStateMachines_2026-11-10.md](../Done/ExplicitStateMachines_2026-11-10.md) (`DONE`)
+- **Status**: `DONE` (closed `2026-11-23` — `RedTilde 1.0.0` production release qualified and shipped)
+- **Date**: `2026-11-21` · **Closed**: `2026-11-23`
+- **Baseline commit**: `b7c31920b8bb9f1c0952d6b6f152978328137058` (`main` after PR #145) · **Release baseline**: `1b8174b8d28b6177ee81c79df2f5b3066c0dc959` (after PR #164)
+- **Companion plan**: [RemainingWork_2026-11-04.md](RemainingWork_2026-11-04.md) (`DONE`; post-1.0 governance holds `Q15`/`Q17` recorded in [GovernanceDisposition_2026-11-21](../../../Measurements/GovernanceDisposition_2026-11-21/README.md))
+- **Post-1.0 active feature plan**: [DictionaryAndSpellChecking_2026-11-21.md](../WIP/DictionaryAndSpellChecking_2026-11-21.md) (`ACTIVE`, targeted for `v1.1`)
+- **Archived predecessor**: [ExplicitStateMachines_2026-11-10.md](ExplicitStateMachines_2026-11-10.md) (`DONE`)
 - **Authoritative contracts**:
   - [Specs/README.md](../../README.md)
   - [Core_Architecture.md](../../Core/Core_Architecture.md)
@@ -129,34 +130,33 @@ Source merge alone is never product release acceptance. Every gate below closes 
 
 ---
 
-### Gate 7 — Upstream `DxUi` Sign-Off, v1.0.0 Cut, Signing & Release Handoff (`Q21`, `C11`/`C12`/`S6`) (**OPEN**)
+### Gate 7 — Upstream `DxUi` Sign-Off, v1.0.0 Cut, Signing Disposition & Release Handoff (`Q21`, `C11`/`C12`/`S6`) — **COMPLETED (`v1.0.0`, `2026-11-23`)**
 
+- **Status:** **COMPLETED (`2026-11-23`)** — see [ReleaseV100_2026-11-23](../../../Measurements/ReleaseV100_2026-11-23/README.md), [local-qualification.json](../../../Measurements/ReleaseV100_2026-11-23/local-qualification.json), [installer-smoke.json](../../../Measurements/ReleaseV100_2026-11-23/installer-smoke.json), and [hosted-qualification.json](../../../Measurements/ReleaseV100_2026-11-23/hosted-qualification.json).
 - **Closes `RemainingWork` rows:** `T-Q2` (`C11`/`C12`/`S6` release decisions), `Q21` release cut.
-- **Entry criteria:** Gates 1–6 closed (or explicit owner waiver recorded in [RemainingWork_2026-11-04.md](RemainingWork_2026-11-04.md) and [capabilities.json](../../../capabilities.json)).
-- **Execution:**
-  1. **Upstream dependency alignment:** Confirm upstream `DxUi` qualification sign-off and decide final shipped `DxUi` pin (API 5 or API 6 per RedHome D20) and pinned `RedMonitor` `Client.h` hash.
-  2. **Version 1.0.0 transition:**
-     - Flip `REDTILDE_VERSION_MAJOR 1`, `REDTILDE_VERSION_MINOR 0`, and empty `REDTILDE_VERSION_SUFFIX` / `REDTILDE_VERSION_SUFFIX_WIDE` in [Common/Version.h](../../../Common/Version.h).
-     - Transition [capabilities.json](../../../capabilities.json) and [validate.ps1](../../../validate.ps1) from `experimental` to `production` truthfully with remaining non-v1.0 deferrals cleanly listed under `deferred`.
-     - Update [docs/README.md](../../../docs/README.md), [docs/Portable.md](../../../docs/Portable.md), [README.md](../../../README.md), and regenerate Settings / showcase screenshots if visible version strings changed.
-  3. **Final release build, signing & changelog release:**
-     - Pass hosted CI main qualification across all 6 profiles plus production x64 & ARM64 packages (`package.ps1`).
-     - Apply Authenticode code signing to release executables and installer scripts (if distributed publicly) and regenerate `.sha256` sidecars / verification receipts.
-     - Fold remaining `Changes/` fragments via post-merge fold PR and generate the `1.0.0` section using [Tools/Release-Changelog.ps1](../../../Tools/Release-Changelog.ps1) (never hand-editing).
-     - Verify end-to-end clean-machine install, Start Menu launch, optional `.md`/`.markdown` HKCU association, and clean uninstall (preserving `%LOCALAPPDATA%\RedTilde`) via [Installer/Install-RedTilde.ps1](../../../Installer/Install-RedTilde.ps1).
-- **Verification & exit criteria:**
-  - Signed v1.0.0 release ZIPs (x64 & ARM64), final receipts archived in `Measurements/`, git tag / GitHub Release created, and `RemainingWork_2026-11-04.md` + `V1ReleaseReadiness_2026-11-21.md` moved to `Specs/Plans/Done/`.
+- **Owner scope decisions (Gates 3, 4 & 7 — `A1`–`A4`):**
+  - `A1` / `A2`: Completed Gate 4 (`test-interactive.ps1` + live UIA/clipboard) and Gate 3 (`Microsoft Print to PDF` + WinRT verification + live printer config/DEVMODE/PrintTicket/preview without physical sheet consumption), with physical IME/Narrator/Touch and physical printer sheet inspection deferred post-1.0 in [capabilities.json](../../../capabilities.json).
+  - `A3`: Shipped `v1.0.0` portable ZIPs (`x64` & `ARM64`) unsigned with verified `.zip.sha256` sidecars (`public-ca-authenticode-code-signing` listed under `deferred` in [capabilities.json](../../../capabilities.json)).
+  - `A4`: Released `CHANGELOG.md` `1.0.0`, qualified hosted `x64` & `ARM64` `Qualify main Release`, archived receipts, moved both plans to `Specs/Plans/Done/`, and pushed annotated git tag `v1.0.0`.
+- **Executed & verified evidence:**
+  1. **Dependency pin alignment:** Shipped on pinned `DxUi` API 5 (`0c371a6197eb8c6b876b4b2843d75078bc21035c`) and pinned `RedMonitor` client header (`9ebea6577fe9a5ced7647283c918f51f67d666fd`); API 6 adoption (`H-01`/`H-02`/`H-05`/`H-14`) deferred post-1.0.
+  2. **Version `1.0.0` transition (`PR #161`, `PR #163` `1f906912`, `PR #164` `1b8174b8`):**
+     - Updated [Common/Version.h](../../../Common/Version.h) (`1.0`), `res/RedTilde.manifest`, `res/RedTilde.rc` (`IDS_ABOUT`), [.ci/project.json](../../../.ci/project.json) (`versionBase: "1.0"`), [vcpkg.json](../../../vcpkg.json) (`1.0.0`), [capabilities.json](../../../capabilities.json) (`status: "production"`, `version: "1.0.0"`, `pending: []`), [validate.ps1](../../../validate.ps1), `README.md`, `docs/`, and regenerated [`docs/screenshots/settings.png`](../../../docs/screenshots/settings.png).
+     - All 8 local builds (`x64`/`ARM64` × `Release`/`Debug`/`ASan Debug`/`Release -ProductionOnly`) compiled with `0 Warning(s)`/`0 Error(s)`, Full `x64` `Release`/`Debug`/`ASan Debug` passed (`203/203` catalog cases each + `FailureReportRouting` + real ASan detection, with an earlier `20261123T085815666Z` `RecoveryService` teardown timeout transparently retained), and local `package.ps1` + sandboxed `Installer/Install-RedTilde.ps1` smoke passed.
+  3. **Hosted `Qualify main Release` (`x64` & `ARM64` — Run [`#45167960343`](https://github.com/RedSalamanders/RedTilde/actions/runs/45167960343) on `1b8174b8`):**
+     - All `7/7` jobs succeeded (`buildNumber: 538`, `version: 1.0.538`), with `203/203` regression cases on both `x64` and `ARM64` and `16/16` exit-`2` refusals on both `RedTilde-1.0.538-x64-20261123-120618-798.zip` (`1DF31F25FCFFBEBD094C3D8CA86EE6A7C53EDD859EB6CB261D9738D591DFA01F`) and `RedTilde-1.0.538-ARM64-20261123-040919-734.zip` (`0E3DE44A53317FDAD240D14236D289F2CEAF43D86BB83898A6F887B296E37C5C`). Earlier failed [`#45148102890`](https://github.com/RedSalamanders/RedTilde/actions/runs/45148102890) (`versionBase: "0.1"` mismatch on `c8ac8dd2`) is preserved transparently.
+  4. **Changelog release & plan closeout:** Generated `## 1.0.0 - 2026-11-23` via [Tools/Release-Changelog.ps1](../../../Tools/Release-Changelog.ps1), moved `V1ReleaseReadiness_2026-11-21.md` and `RemainingWork_2026-11-04.md` to `Specs/Plans/Done/`, and tagged `v1.0.0`.
 
 ---
 
 ## Mapping to Remaining Items in `RemainingWork_2026-11-04.md`
 
-| Section in `RemainingWork_2026-11-04.md` | Remaining Unchecked Items | Covered Here By |
+| Section in `RemainingWork_2026-11-04.md` | Items & Disposition | Covered By |
 | --- | --- | --- |
-| `T-S2` (0 remaining items) | Live OneDrive, WSL 2, and SMB `selftest` qualification completed (`0` unexpected failures, `0` leftover dirs) | **Gate 5** (**COMPLETED**) |
-| `T-U2` (0 remaining items) | Step 6: published live `Microsoft Print to PDF` & Windows driver/PrintTicket qualification receipts (physical sheet inspection waived for v1.0.0) | **Gate 3** (**COMPLETED**) |
-| `T-I1` (0 remaining items) | Q8/Q13 real-location acceptance completed across OneDrive, WSL 2, and SMB | **Gate 5** (**COMPLETED**) |
-| `T-P1` (0 remaining v1.0.0 items; ongoing post-1.0 quiet-host A/B & multi-monitor DPI rules retained) | DWM minimize/restore quiescence (`0 ms` CPU), `NVIDIA GeForce RTX 5080` + `WARP` probes, 6-block observed A/A + attribution, Debug alloc design review | **Gate 6** (**COMPLETED — v1.0.0 scope**) |
-| `T-Q2` (1 item: `C11`/`C12`/`S6` release cut; ARM64 runtime, interactive focus, UIA & clipboard completed; physical IME/Narrator/Touch deferred post-1.0) | `C11`/`C12`/`S6` release cut | **Gate 2** (**COMPLETED**), **Gate 4** (**COMPLETED**), **Gate 7** |
-| `T-CV1` (0 remaining items; `H-10`, `H-15`, `H-26`, `H-27`, `CV-6-05` completed locally and qualified in hosted Release & ARM64) | JSON5 settings, `SettingsWatcher` live reload, JSON settings filenames/`Core_Settings.md`, `_camelCase` + `.clang-tidy`, 155-line `.clang-format` (API-6 `H-01`/`H-02`/`H-05`/`H-14` wait for RedHome D20 / Gate 7) | **Gate 1** (**COMPLETED**) |
-| `T-G1` (2 open items: `Q15` shared-module migration, `Q17` coordinated privacy/history audit; dispositions & PR #147 fold completed) | `Q17` coordinated privacy/history audit, `Q15` historical replay migration | Tracked in [RemainingWork_2026-11-04.md](RemainingWork_2026-11-04.md) and [GovernanceDisposition_2026-11-21](../../../Measurements/GovernanceDisposition_2026-11-21/README.md) |
+| `T-S2` | Live OneDrive, WSL 2, and SMB `selftest` qualification completed (`0` unexpected failures, `0` leftover dirs) | **Gate 5** (**COMPLETED**) |
+| `T-U2` | Published live `Microsoft Print to PDF` & Windows driver/PrintTicket qualification receipts (physical sheet inspection deferred post-1.0) | **Gate 3** (**COMPLETED**) |
+| `T-I1` | Q8/Q13 real-location acceptance completed across OneDrive, WSL 2, and SMB | **Gate 5** (**COMPLETED**) |
+| `T-P1` | DWM minimize/restore quiescence (`0 ms` CPU), `NVIDIA GeForce RTX 5080` + `WARP` probes, 6-block observed A/A + attribution, Debug alloc design review (quiet-host A/B & multi-monitor DPI rules retained post-1.0) | **Gate 6** (**COMPLETED**) |
+| `T-Q2` | ARM64 runtime (`Gate 2`), interactive focus/UIA/clipboard (`Gate 4`), and `C11`/`C12`/`S6` `v1.0.0` release cut (`Gate 7`) completed (physical IME/Narrator/Touch & Authenticode deferred in `capabilities.json`) | **Gates 2, 4, 7** (**COMPLETED**) |
+| `T-CV1` | JSON5 settings, `SettingsWatcher` live reload, `_camelCase` + `.clang-tidy`, 155-line `.clang-format` completed (API-6 adoption waits for upstream `DxUi` sign-off / post-1.0) | **Gate 1** (**COMPLETED**) |
+| `T-G1` | `PR-01`..`PR-46`/`S1`..`S16` & fold PRs completed; `Q15` shared-module migration & `Q17` coordinated privacy/history audit explicitly held outside v1.0.0 scope | **Transferred / held post-1.0** in [GovernanceDisposition_2026-11-21](../../../Measurements/GovernanceDisposition_2026-11-21/README.md) |
