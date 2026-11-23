@@ -298,7 +298,7 @@ function Get-RedTildeSdkBuildInputSnapshot {
 function Get-RedTildeBuildInputSnapshot {
     param([Parameter(Mandatory)][string]$Root,[Parameter(Mandatory)][string]$Platform,
           [Parameter(Mandatory)][string]$Configuration,[Parameter(Mandatory)][string]$MSBuildPath,$SdkInput=$null)
-    Import-Module (Join-Path $Root 'Build/ScopedTesting.psm1') -Force
+    Import-Module (Join-Path $Root 'Build/ScopedTesting.psm1') -Scope Local -ErrorAction Stop
     if($null -ne $SdkInput){return Get-RedTildeSdkBuildInputSnapshot -Root $Root -Platform $Platform -Configuration $Configuration -MSBuildPath $MSBuildPath -SdkInput $SdkInput}
     $dependencyPath=Join-Path $Root ".build/dependencies/DxUi/DxUi.identity.$Platform.json"
     if(-not(Test-Path -LiteralPath $dependencyPath -PathType Leaf)){throw 'Restored DxUi build identity is missing.'}
@@ -330,7 +330,7 @@ function Get-RedTildeBuildInputSnapshot {
 function Get-RedTildeArtifactIdentity {
     param([Parameter(Mandatory)][string]$Root,[Parameter(Mandatory)][string]$Platform,
           [Parameter(Mandatory)][string]$Configuration)
-    Import-Module (Join-Path $Root 'Build/ScopedTesting.psm1') -Force
+    Import-Module (Join-Path $Root 'Build/ScopedTesting.psm1') -Scope Local -ErrorAction Stop
     return Get-ScopedArtifactIdentity $Root $Platform $Configuration
 }
 

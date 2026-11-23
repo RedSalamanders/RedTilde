@@ -11,10 +11,16 @@ build digest, source, actual engine, SDK dependency and complete runtime catalog
 runtime verification precede a pass. Failure evidence retains its original error
 and cannot advance the ordinary pinned iteration baseline.
 
+Ordinary selected suites publish an individual compatibility view at
+`.build/reports/<suite>-<platform>-<configuration>.json` with the execution exit code and capability skips.
+The report is also retained in the run payload. Caller-supplied instrumentation selects the
+`.instrumented.json` suffix and prevents reuse. The scoped runner requires a fresh report for each invoked
+suite and a successful test entry point exit. Local SDK candidates retain only their own receipt and payload.
+
 After argument, desktop and build preflight, native test execution writes each invocation under `.build/evidence/test-runs/<UTC-pid-guid>/payload`.
 It creates a new directory and exclusive owner lease; it never reuses an old run directory or sweeps older runs.
 The in-memory run handle tracks an explicit lifecycle (`$run.State`: `Active` -> `Completed` | `Failed` | `Interrupted`
-in `Build/TestRunEvidence.psm1`), rejecting duplicate completion or receipt publication once closed.
+in the pinned module behind `Build/TestRunEvidence.psm1`), rejecting duplicate completion or receipt publication once closed.
 A flushed, create-only `started.json` records the owner process and start time plus the requested profile/scopes.
 The `completed.json` record is staged, flushed, independently read back and renamed without overwrite only after
 payload verification. A failed or interrupted invocation retains its output. Forced termination can leave only

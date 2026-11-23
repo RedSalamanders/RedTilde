@@ -45,10 +45,10 @@ foreach($arguments in @(@{Suites=@('Tooling')},@{Suites=@('Sanitizer')},@{Full=$
     try{. ([scriptblock]::Create($guards[0].Extent.Text))}catch{if($_.Exception.Message -notmatch 'requires the original build record/digest'){throw};$refused=$true}
     if(-not $refused){throw 'Unsupported runtime scope was admitted.'}
 }
-$baselineGuards=@($ast.FindAll({param($n)$n -is [Management.Automation.Language.IfStatementAst] -and $n.Extent.Text.StartsWith('if(-not $localSdkMode)') -and $n.Extent.Text.Contains('Enter-ScopedIterationLease')},$true))
+$baselineGuards=@($ast.FindAll({param($n)$n -is [Management.Automation.Language.IfStatementAst] -and $n.Extent.Text.StartsWith('if(-not $localSdkMode)') -and $n.Extent.Text.Contains('Enter-ScopedProfileLease')},$true))
 if($baselineGuards.Count -ne 1){throw 'Ordinary iteration boundary is ambiguous.'}
-function Enter-ScopedIterationLease {throw 'Local SDK touched ordinary iteration admission.'}
-function Suspend-ScopedIteration {throw 'Local SDK invalidated ordinary iteration.'}
+function Enter-ScopedProfileLease {throw 'Local SDK touched ordinary iteration admission.'}
+function Remove-ScopedIteration {throw 'Local SDK invalidated ordinary iteration.'}
 $localSdkMode=$true
 . ([scriptblock]::Create($baselineGuards[0].Extent.Text))
 $normGuards=@($ast.FindAll({param($n)$n -is [Management.Automation.Language.IfStatementAst] -and $n.Extent.Text.Contains("-split ','")},$true))

@@ -23,8 +23,12 @@ $versionMinor=[int]$minorMatch.Groups['value'].Value
 $productVersion="$versionMajor.$versionMinor.$BuildNumber"
 $previousBuildNumber = [Environment]::GetEnvironmentVariable('RedTildeBuildNumber', 'Process')
 $previousEnableTests = [Environment]::GetEnvironmentVariable('RedTildeEnableTests', 'Process')
+Import-Module (Join-Path $PSScriptRoot 'Build/ScopedTesting.psm1') -Scope Local -ErrorAction Stop
+$profileLease=Enter-ScopedProfileLease -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
 $sdkInput=$null;$sdkFailure=$null
 try {
+$scopedReports=Get-ScopedReportRoot -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
+Remove-ScopedIteration -Path (Join-Path $scopedReports 'iteration.json') -Root $PSScriptRoot
 $env:RedTildeBuildNumber = [string]$BuildNumber
 $env:RedTildeEnableTests = if ($ProductionOnly) { 'false' } else { 'true' }
 $nativeEntryElapsed = [Diagnostics.Stopwatch]::StartNew()
@@ -150,7 +154,9 @@ Write-NativeBuildResult -Project RedTilde -Platform $Platform -Configuration $Co
 Write-Host "Version: $productVersion"
 }catch{$sdkFailure=$_;throw}
 finally{
-    if($null -ne $sdkInput -and -not $sdkInput.Closed){try{Close-CiPinnedSdkInput $sdkInput}catch{if($null -eq $sdkFailure){throw}else{Write-Warning ('SDK close also failed: '+$_.Exception.Message)}}}
-    [Environment]::SetEnvironmentVariable('RedTildeBuildNumber', $(if ($null -eq $previousBuildNumber) { [NullString]::Value } else { $previousBuildNumber }), 'Process')
-    [Environment]::SetEnvironmentVariable('RedTildeEnableTests', $(if ($null -eq $previousEnableTests) { [NullString]::Value } else { $previousEnableTests }), 'Process')
+    try{
+        if($null -ne $sdkInput -and -not $sdkInput.Closed){try{Close-CiPinnedSdkInput $sdkInput}catch{if($null -eq $sdkFailure){throw}else{Write-Warning ('SDK close also failed: '+$_.Exception.Message)}}}
+        [Environment]::SetEnvironmentVariable('RedTildeBuildNumber', $(if ($null -eq $previousBuildNumber) { [NullString]::Value } else { $previousBuildNumber }), 'Process')
+        [Environment]::SetEnvironmentVariable('RedTildeEnableTests', $(if ($null -eq $previousEnableTests) { [NullString]::Value } else { $previousEnableTests }), 'Process')
+    }finally{Exit-ScopedProfileLease -Lease $profileLease}
 }

@@ -94,7 +94,10 @@ regressions; fixture replay is not execution or qualification of a current nativ
 
 ## Affected testing
 
-Use `.\Test-Changes.ps1 -Explain` from the repository root to see selected scopes, paths and reasons, then `.\Test-Changes.ps1` to execute. `-Scopes A,B` is an explicit partial selection; `-Mode Full` and `-Mode PrePush` retain full applicable obligations. `-Force` bypasses exact result reuse. The next ordinary edit compares against the last successful default affected run, not every older change on the branch. Read [the validation contract](../Specs/Testing/Testing_Validation.md) for mutation barriers, CI_PENDING and qualification limits.
+Use `./Test-Changes.ps1 -Explain` from the repository root to see the selected scopes, paths and reasons, then
+`./Test-Changes.ps1` to execute. `-Scopes A,B` selects particular scopes. Full covers one profile and PrePush
+covers the six-profile build matrix with x64 runtime tests. The shared runner lists the interactive design
+obligation separately. Read the [validation contract](../Specs/Testing/Testing_Validation.md).
 
 
 Generated test output stays under `.build/evidence/test-runs/<id>/payload` on success, failure and interruption.

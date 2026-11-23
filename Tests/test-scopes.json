@@ -1,10 +1,35 @@
 {
-  "version": 1,
-  "project": "RedTilde",
-  "repository": "RedSalamanders/RedTilde",
+  "version": 2,
   "defaultBranch": "main",
-  "nativeInventory": "Tests/NativeInventory.json",
+  "buildNumber": "none",
+  "nativeInventory": {
+    "path": "Tests/NativeInventory.json",
+    "exclude": [
+      "Specs/**",
+      "Measurements/**",
+      "legacy/**",
+      "ThirdParty/**"
+    ],
+    "testFolders": [
+      "Tests/**"
+    ]
+  },
   "runtimeFiles": [],
+  "prose": [
+    "README.md",
+    "CHANGELOG.md",
+    "**/AGENTS.md",
+    "docs/**/*.md",
+    "Specs/**/*.md",
+    ".agents/**/*.md",
+    "Changes/**/*.md"
+  ],
+  "unscoped": [
+    "legacy/**",
+    "docs/**",
+    "Measurements/**",
+    "Mockups/**"
+  ],
   "scopes": [
     {
       "name": "Storage",
@@ -86,8 +111,25 @@
   ],
   "rules": [
     {
+      "pattern": "Build/SkillPackageIntegrity.psm1",
+      "scopes": [
+        "Tooling"
+      ],
+      "reason": "independent skill package integrity",
+      "exclusive": true
+    },
+    {
+      "pattern": "docs/examples/**/*.md",
+      "scopes": [
+        "*"
+      ],
+      "reason": "shipped Markdown examples and paired-performance runtime fixtures"
+    },
+    {
       "pattern": "docs/examples/**",
-      "scopes": ["*"],
+      "scopes": [
+        "*"
+      ],
       "reason": "shipped package examples and paired-performance runtime fixtures"
     },
     {
@@ -117,7 +159,10 @@
     },
     {
       "pattern": "Tests/Application.Tests.Close.*",
-      "scopes": ["Recovery", "Editor"],
+      "scopes": [
+        "Recovery",
+        "Editor"
+      ],
       "reason": "real file-worker admission, asynchronous shutdown, recovery retention, stale Open refusal and source-bound editor save commands"
     },
     {
@@ -390,14 +435,16 @@
       "scopes": [
         "Format"
       ],
-      "reason": "native source formatting"
+      "reason": "native source formatting",
+      "additive": true
     },
     {
       "pattern": "**/*.h",
       "scopes": [
         "Format"
       ],
-      "reason": "native header formatting"
+      "reason": "native header formatting",
+      "additive": true
     },
     {
       "pattern": ".clang-format",
@@ -534,10 +581,63 @@
       "reason": "shared build, dependency, runner or scope policy"
     }
   ],
-  "toolingCommands": [
-    "validate.ps1",
-    "format.ps1"
+  "interactiveObligations": [
+    {
+      "pattern": "**",
+      "suites": [
+        "DesignInteractive"
+      ],
+      "reason": "run test-interactive.ps1 for physical keyboard and focus after desktop admission"
+    }
   ],
-  "prCoverage": [],
-  "prWorkflowDigest": "8da40d0350b862c3596a141b674116631321f3439fba8c296dfda7d8e847d05a"
+  "watchedProcesses": [
+    "RedTilde.exe",
+    "DxUi.ControlTests.exe",
+    "DxUi.EmbeddedTests.exe",
+    "DxUi.FoundationTests.exe",
+    "DxUi.InteractiveLease.exe"
+  ],
+  "prePushProfiles": [
+    {
+      "platform": "x64",
+      "configuration": "Debug",
+      "buildOnly": false
+    },
+    {
+      "platform": "x64",
+      "configuration": "Release",
+      "buildOnly": false
+    },
+    {
+      "platform": "x64",
+      "configuration": "ASan Debug",
+      "buildOnly": false
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Debug",
+      "buildOnly": true
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Release",
+      "buildOnly": true
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "ASan Debug",
+      "buildOnly": true
+    }
+  ],
+  "instrumentationVariables": [
+    "ASAN_OPTIONS"
+  ],
+  "systemFiles": [
+    "d2d1.dll",
+    "d3d10warp.dll",
+    "d3d11.dll",
+    "dwrite.dll",
+    "dxgi.dll",
+    "windowscodecs.dll"
+  ]
 }

@@ -82,15 +82,14 @@ plan to Done only when its implementation, tests and documentation are complete.
 IME/AT, interactive focus, native ARM64 and release gates explicit; a cross-build is not a runtime pass.
 
 
-Use `Test-Changes.ps1 -Explain` and affected testing while editing. `-Mode PrePush` accounts for enabled CI and
-remaining local obligations. Never reuse evidence without the exact source, pin, toolchain, binary and scenario
+Use `Test-Changes.ps1 -Explain` and affected testing while editing. `-Mode PrePush` runs the local six-profile matrix
+with runtime tests on x64 and build-only lanes on ARM64. Never reuse evidence without the exact source, pin, toolchain, binary and scenario
 identity. Run `validate.ps1`, `format.ps1 -Check` and the affected suites. Qualification requires all six builds,
 x64 tests in all three configurations, a real ASan detection probe and native platform execution for claims.
 Real-focus/clipboard desktop tests require the person's agreement to the time. Headless harness tests do not
 take foreground focus. Capture paired performance on the same fixture before claiming non-regression.
-Successful default affected runs advance their source and index baseline; explicit partial, failed, mutated or
-CI-pending runs do not. `CI_PENDING` requires every named candidate check to pass before merge, including when this
-private account cannot enforce protected checks. Native, manual, platform and performance gates stay in
+The shared scoped runner records the baseline of a successful ordinary affected run. Every required PR
+check must pass on the candidate before merge. Native, manual, platform and performance gates stay in
 [Specs/Testing/Testing_Validation.md](Specs/Testing/Testing_Validation.md).
 
 ## Skills
@@ -126,9 +125,8 @@ and non-activating, and no scoped, CI or partial pass closes a focus-taking gate
 ## Scoped testing policy
 
 The user's accepted workflow replaces unconditional full-test iteration. While editing, run `Test-Changes.ps1 -Explain`
-and then the affected default; use `-Mode PrePush` to account for the remaining local and pull-request obligations
-without repeating identical ones, and explicit Full where qualification requires it. A pending CI check is never a
-passed result. Reuse only exact successful evidence for the same source, pin, toolchain, binary and scenario. Native
+and then the affected default. Use PrePush for the local profile matrix and Full for a complete scoped run on
+one profile. Reuse only exact successful evidence for the same source, pin, toolchain, binary and scenario. Native
 test files use contextual `<Component>.Tests.<Subject>.h/.cpp` names, listed in the native file inventory where the
 repository keeps one. Focus-taking work requires agreement to the time, and no scoped pass closes that gate. Build,
 runtime and platform qualification still applies to changed behavior. [Specs/Testing/Testing_Validation.md](Specs/Testing/Testing_Validation.md) and [the test guide](Tests/README.md) own the details.
