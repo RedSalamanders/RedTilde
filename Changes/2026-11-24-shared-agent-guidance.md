@@ -1,1 +1,0 @@
-- Validate RedTilde skill packages, repository guidance, and plan indexes through the pinned shared CI engine.
