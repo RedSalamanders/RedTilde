@@ -1,0 +1,1 @@
+- Fixed: Aligned `.ci/project.json` `versionBase` (`1.0`) and `vcpkg.json` `version-string` (`1.0.0`) with `Common/Version.h` and `capabilities.json`, and enforced matching `major.minor` version metadata in `validate.ps1` so hosted production packaging matches the compiled executable version.

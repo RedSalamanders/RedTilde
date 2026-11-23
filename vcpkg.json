@@ -1,7 +1,7 @@
 {
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "name": "redtilde",
-  "version-string": "0.1.0",
+  "version-string": "1.0.0",
   "$comment": "builtin-baseline must be the same commit as vcpkg-tool.json.",
   "builtin-baseline": "aeb162b71d47950344248a4ebcac733e12f8a992",
   "dependencies": [

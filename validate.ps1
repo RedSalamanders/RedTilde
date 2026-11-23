@@ -41,6 +41,25 @@ Check 'Exact dependency and capability status' {
     if ($capabilities.status -cne 'production' -or $capabilities.version -cnotmatch '^\d+\.\d+\.\d+$' -or @($capabilities.pending).Count -ne 0 -or @($capabilities.deferred).Count -eq 0) {
         throw 'Production capability status must declare a semantic version, zero pending release gates, and explicit post-release deferrals.'
     }
+    $versionHeader=Get-Content (Join-Path $PSScriptRoot 'Common/Version.h') -Raw
+    $majorMatch=[regex]::Match($versionHeader,'(?m)^#define\s+REDTILDE_VERSION_MAJOR\s+(\d+)\b')
+    $minorMatch=[regex]::Match($versionHeader,'(?m)^#define\s+REDTILDE_VERSION_MINOR\s+(\d+)\b')
+    if (-not $majorMatch.Success -or -not $minorMatch.Success) { throw 'Common/Version.h must define REDTILDE_VERSION_MAJOR and REDTILDE_VERSION_MINOR.' }
+    $headerBase="$($majorMatch.Groups[1].Value).$($minorMatch.Groups[1].Value)"
+    $ciProject=Get-Content (Join-Path $PSScriptRoot '.ci/project.json') -Raw | ConvertFrom-Json
+    if ($ciProject.versionBase -cne $headerBase) {
+        throw ".ci/project.json versionBase '$($ciProject.versionBase)' does not match Common/Version.h '$headerBase'."
+    }
+    $capBase=($capabilities.version -split '\.',3)[0..1] -join '.'
+    if ($capBase -cne $headerBase) {
+        throw "capabilities.json version '$($capabilities.version)' does not match Common/Version.h '$headerBase'."
+    }
+    $vcpkg=Get-Content (Join-Path $PSScriptRoot 'vcpkg.json') -Raw | ConvertFrom-Json
+    $vcpkgVer=[string]$vcpkg.'version-string'
+    $vcpkgBase=($vcpkgVer -split '\.',3)[0..1] -join '.'
+    if ($vcpkgVer -cnotmatch '^\d+\.\d+\.\d+$' -or $vcpkgBase -cne $headerBase) {
+        throw "vcpkg.json version-string '$vcpkgVer' does not match Common/Version.h '$headerBase'."
+    }
 }
 Check 'Evaluated Release compiler and linker policy' {
     & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.ReleaseBuildPolicy.ps1')
