@@ -626,7 +626,9 @@ param([string]$Platform,[string]$Configuration,[switch]$ProductionOnly)
         Put (Join-Path $buildRoot 'Tests/test-scopes.json') ([IO.File]::ReadAllText((Join-Path $PSScriptRoot 'test-scopes.json')))
         Put (Join-Path $buildRoot 'Common/Version.h') "#define REDTILDE_VERSION_MAJOR 0`n#define REDTILDE_VERSION_MINOR 0`n"
         Put (Join-Path $buildRoot 'Tests/GuardFixture.cpp') 'first source bytes'
-        foreach($name in @('Harness.psm1','ScopedTesting.psm1','BuildConsole.psm1','DxUiPaths.psm1')){Copy-Item -LiteralPath (Join-Path $root "Build/$name") -Destination (Join-Path $buildRoot "Build/$name")}
+        foreach($name in @('Harness.psm1','ScopedTesting.psm1','DxUiPaths.psm1')){Copy-Item -LiteralPath (Join-Path $root "Build/$name") -Destination (Join-Path $buildRoot "Build/$name")}
+        # Build/BuildConsole.psm1 is an engine module shim; this mocked-engine fixture takes the implementation itself.
+        Copy-Item -LiteralPath (Join-Path $root '.ci-engine/Tools/Modules/Ci.BuildConsole.psm1') -Destination (Join-Path $buildRoot 'Build/BuildConsole.psm1')
         Copy-Item -LiteralPath (Join-Path $root 'build.ps1') -Destination (Join-Path $buildRoot 'build.ps1')
         # Keep this input/receipt fixture compiler-free. The real shared bridge
         # has its own process/argv/service controls; this adapter records the
