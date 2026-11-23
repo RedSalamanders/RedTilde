@@ -14,7 +14,7 @@ RedTilde keeps a single authoritative UTF-8 Markdown source and undo history whi
 
 ## Status
 
-RedTilde is an **experimental 0.1 preview** built against an exact DxUi API-5 pin (`0c371a6197eb8c6b876b4b2843d75078bc21035c` in [Dependencies/DxUi.lock.json](Dependencies/DxUi.lock.json)). Documents are currently bounded to `65,536` UTF-16 units and `128` undo steps. Upstream performance, physical IME/AT/input qualification, real cloud/SMB/WSL location qualification, and v1.0 release handoff remain open gates tracked in [capabilities.json](capabilities.json) and the [active plan index](Specs/Plans/WIP/README.md).
+RedTilde `1.0.0` is a **production release** built against an exact DxUi API-5 pin (`0c371a6197eb8c6b876b4b2843d75078bc21035c` in [Dependencies/DxUi.lock.json](Dependencies/DxUi.lock.json)). Documents remain bounded to `65,536` UTF-16 units and `128` undo steps; deferred post-1.0 work and future milestones are tracked in [capabilities.json](capabilities.json) (`deferred`) and the [active plan index](Specs/Plans/WIP/README.md).
 
 Expected refusals retain your edits; unexpected C++ failures record local minidumps and `.record` sidecars under `%LOCALAPPDATA%\RedTilde\Crashes` without uploading anything (see [Diagnostics](docs/Diagnostics.md)).
 
@@ -23,7 +23,7 @@ Expected refusals retain your edits; unexpected C++ failures record local minidu
 - **User Guide & Shortcuts:** [docs/README.md](docs/README.md) covers Compose/Source/Split/Focus views, contextual selection tools, in-place `F2` editing, Find & Replace (`Ctrl+F`), Print Preview (`Ctrl+P`), Themes (`System`, `Light`, `Dark`, `Paper`, High Contrast), crash recovery, and the full shortcut table.
 - **Portable & Per-User Install:** [docs/Portable.md](docs/Portable.md) covers running from a portable ZIP or installing per user with [Installer/Install-RedTilde.ps1](Installer/Install-RedTilde.ps1) (including optional `.md` / `.markdown` HKCU file associations).
 - **Sample Documents:** [docs/examples/README.md](docs/examples/README.md) provides starter notes, the [Markdown showcase](docs/examples/markdown-showcase.md), [local images](docs/examples/local-images.md), [syntax options](docs/examples/syntax-options.md), [Mermaid family gallery](docs/examples/mermaid-supported-families.md), [complex math](docs/examples/complex-math.md), and [intentional fallback cases](docs/examples/rendering-fallback-cases.md).
-- **Hidden Harness Screenshots:** [docs/screenshots/README.md](docs/screenshots/README.md) documents all 16 deterministic hidden-window captures.
+- **Hidden Harness Screenshots:** [docs/screenshots/README.md](docs/screenshots/README.md) documents all 20 deterministic hidden-window captures.
 
 ## Build and Test
 
@@ -38,7 +38,7 @@ Requires Windows 11 (`10.0.22000.2600`+), PowerShell 7, Git, Visual Studio 2026 
 ```
 
 - **Configurations & Platforms:** `build.ps1` supports `-Platform x64|ARM64` and `-Configuration Debug|Release|'ASan Debug'`, plus `-ProductionOnly` (Release) and `package.ps1` for production portable ZIP packaging. ARM64 cross-builds compile locally; ARM64 runtime tests require an ARM64 Windows host.
-- **Native Test Catalog:** `174` behavioral cases (`Storage` `32`, `Settings` `11`, `Recovery` `22`, `Editor` `109`), plus Preferences, RecoveryRestart, Performance, Captures, Crash, Sanitizer, and Tooling suites. See [Tests/README.md](Tests/README.md) and [Specs/Testing/Testing_Validation.md](Specs/Testing/Testing_Validation.md).
+- **Native Test Catalog:** `203` behavioral cases (`Storage` `34`, `Settings` `19`, `Recovery` `23`, `Editor` `127`), plus Preferences, RecoveryRestart, Performance, Captures, Crash, Sanitizer, and Tooling suites. See [Tests/README.md](Tests/README.md) and [Specs/Testing/Testing_Validation.md](Specs/Testing/Testing_Validation.md).
 - **Validation & Formatting:** `.\validate.ps1` checks specifications, links, skill packages, resource strings, build policies, and PowerShell tests; `.\format.ps1 -Check` checks C++ formatting.
 
 ## Specifications, Measurements & Contributing

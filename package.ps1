@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-Builds and verifies an experimental production-only portable RedTilde ZIP.
+Builds and verifies a production-only portable RedTilde ZIP.
 .DESCRIPTION
 Builds a test-disabled Release artifact, stages its runtime and licenses beneath .build/package, verifies
 the clean extraction through hidden capture, and checks that every test-only entry point refuses without
@@ -175,9 +175,9 @@ if($null -ne $sdk){Close-CiPinnedSdkInput $sdk}
 $archiveHash=(Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash
 $archiveFileName=[IO.Path]::GetFileName($archive)
 [IO.File]::WriteAllText(($archive+'.sha256'),"$($archiveHash.ToLowerInvariant()) *$archiveFileName`n",[Text.UTF8Encoding]::new($false))
-Write-Host "Experimental portable package: $archive"
+Write-Host "Production portable package: $archive"
 [ordered]@{schemaVersion=1;sourceIdentity=$built.sourceIdentity;binarySha256=$built.binarySha256;platform=$Platform;
-    archiveSha256=$archiveHash;status='experimental';version=$version;smokePassed=$true;
+    archiveSha256=$archiveHash;status='production';version=$version;smokePassed=$true;
     testsEnabled=$built.testsEnabled;runtimeRedistributableBundled=$true;testOnlyEntryPointRefusals=$refusals} |
     ConvertTo-Json -Depth 5 | Set-Content -LiteralPath ($archive+'.receipt.json') -Encoding utf8
 }catch{$packageFailure=$_;throw}

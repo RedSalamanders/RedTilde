@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "packageArchive": "RedTilde-1.0.0-x64-20261123-101619-065.zip",
+  "packageSha256": "AA669267B696B4BC7109A80518A35A3FACEE5EA4507F1F28C66594215742A0B5",
+  "binarySha256": "A97C7E251BD96F46DF2A03712B5DB3FA16F5EAE564140004E04F6613BC968D62",
+  "installedProductVersion": "1.0.0",
+  "installedFileVersion": "1.0.0",
+  "cliVersionOutput": "RedTilde 1.0.0",
+  "cliVersionExitCode": 0,
+  "installedCaptureExitCode": 0,
+  "installedCaptureBytes": 118711,
+  "shortcutCreated": true,
+  "registryBeforeUninstall": {
+    "uninstallDisplayVersion": "1.0.0",
+    "uninstallPublisher": "RedSalamanders",
+    "progIdPresent": true,
+    "appSupportedTypesPresent": true,
+    "appCommandPresent": true,
+    "mdOpenWithProgIdPresent": true,
+    "markdownOpenWithProgIdPresent": true
+  },
+  "uninstallVerified": {
+    "installDirectoryRemoved": true,
+    "shortcutRemoved": true,
+    "uninstallKeyRemoved": true,
+    "progIdRemoved": true,
+    "appRegistrationRemoved": true,
+    "mdOpenWithProgIdRemoved": true,
+    "markdownOpenWithProgIdRemoved": true,
+    "sentinelUserDataPreserved": true
+  }
+}

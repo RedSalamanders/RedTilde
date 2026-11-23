@@ -185,7 +185,7 @@ the real Require throws in Release.
 ProductionOnly removes Core/Files/DesignRefresh/DesignInteractive/RemoteImages test sources and refuses self-test and
 interactive-test dispatch. Supported hidden capture and performance diagnostics remain product capabilities. Packaging
 bundles the selected VS VC145 CRT, validates extracted executable bytes/version, renders a hidden fixture and verifies
-every test-only entry point's rejection. The product's experimental status is unchanged.
+every test-only entry point's rejection. Packaging emits the qualified portable ZIP without altering documented capability bounds.
 
 `package.ps1` requests `build.ps1 -Configuration Release -ProductionOnly` by default. `-SkipBuild` accepts only an
 otherwise valid receipt whose `testsEnabled` is the Boolean `false`; a test-enabled artifact is refused before creating

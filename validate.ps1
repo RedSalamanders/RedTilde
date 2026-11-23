@@ -38,7 +38,9 @@ Check 'Exact dependency and capability status' {
     $pin=Get-Content (Join-Path $PSScriptRoot 'Dependencies/DxUi.lock.json') -Raw | ConvertFrom-Json
     if ($pin.commit -cnotmatch '^[0-9a-f]{40}$' -or $pin.apiRevision -ne 5 -or @($pin.targets).Count -ne 1 -or $pin.targets[0] -ne 'DxUi') { throw 'Invalid dependency pin.' }
     $capabilities=Get-Content (Join-Path $PSScriptRoot 'capabilities.json') -Raw | ConvertFrom-Json
-    if ($capabilities.status -ne 'experimental' -or @($capabilities.pending).Count -eq 0) { throw 'Experimental dependency gates must stay explicit.' }
+    if ($capabilities.status -cne 'production' -or $capabilities.version -cnotmatch '^\d+\.\d+\.\d+$' -or @($capabilities.pending).Count -ne 0 -or @($capabilities.deferred).Count -eq 0) {
+        throw 'Production capability status must declare a semantic version, zero pending release gates, and explicit post-release deferrals.'
+    }
 }
 Check 'Evaluated Release compiler and linker policy' {
     & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.ReleaseBuildPolicy.ps1')

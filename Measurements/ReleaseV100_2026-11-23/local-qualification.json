@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "product": "RedTilde",
+  "version": "1.0.0",
+  "status": "production",
+  "codeSigning": "unsigned-sha256-sidecars-per-owner-a3",
+  "dependency": {
+    "repository": "RedSalamanders/DxUi",
+    "commit": "0c371a6197eb8c6b876b4b2843d75078bc21035c",
+    "apiRevision": 5
+  },
+  "redMonitorClientHeaderSha256": "9ebea6577fe9a5ced7647283c918f51f67d666fd",
+  "zeroWarningBuilds": [
+    {
+      "platform": "x64",
+      "configuration": "Release",
+      "testsEnabled": false,
+      "version": "1.0.0",
+      "passed": true,
+      "warnings": 0,
+      "errors": 0,
+      "compiledSourceIdentity": "720905a6e7b1c1d69f60f02c59702f7a15419fe6f8e2cb10fc4569c29488f5c8",
+      "sourceIdentity": "4101797df48eec550d708e0d42b6ee50584e7ea8f171765ca5664515b04bb23a",
+      "binarySha256": "A97C7E251BD96F46DF2A03712B5DB3FA16F5EAE564140004E04F6613BC968D62"
+    },
+    {
+      "platform": "x64",
+      "configuration": "Debug",
+      "testsEnabled": true,
+      "version": "1.0.0",
+      "passed": true,
+      "warnings": 0,
+      "errors": 0,
+      "compiledSourceIdentity": "720905a6e7b1c1d69f60f02c59702f7a15419fe6f8e2cb10fc4569c29488f5c8",
+      "sourceIdentity": "4101797df48eec550d708e0d42b6ee50584e7ea8f171765ca5664515b04bb23a",
+      "binarySha256": "82906602DA7FC1695A1C61EC1E1CD53C74979BBC7E8941EAB57995FC6ECE6385"
+    },
+    {
+      "platform": "x64",
+      "configuration": "ASan Debug",
+      "testsEnabled": true,
+      "version": "1.0.0",
+      "passed": true,
+      "warnings": 0,
+      "errors": 0,
+      "compiledSourceIdentity": "720905a6e7b1c1d69f60f02c59702f7a15419fe6f8e2cb10fc4569c29488f5c8",
+      "sourceIdentity": "4101797df48eec550d708e0d42b6ee50584e7ea8f171765ca5664515b04bb23a",
+      "binarySha256": "817F79449992BCAE7E426A4A92DA5FA00E9BF8EC262CF7CAE033514B03A4D938"
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Release",
+      "testsEnabled": false,
+      "version": "1.0.0",
+      "passed": true,
+      "warnings": 0,
+      "errors": 0,
+      "compiledSourceIdentity": "720905a6e7b1c1d69f60f02c59702f7a15419fe6f8e2cb10fc4569c29488f5c8",
+      "sourceIdentity": "07100c72780695ad6062f8022ffa2af5a06bba2e9e50d1e95d647fffc6b67f85",
+      "binarySha256": "C8CB0CC6D00E56A16B9648D574E00E93BCD3E0D50E82D1294F42D638023BC7B6"
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "Debug",
+      "testsEnabled": true,
+      "version": "1.0.0",
+      "passed": true,
+      "warnings": 0,
+      "errors": 0,
+      "compiledSourceIdentity": "720905a6e7b1c1d69f60f02c59702f7a15419fe6f8e2cb10fc4569c29488f5c8",
+      "sourceIdentity": "07100c72780695ad6062f8022ffa2af5a06bba2e9e50d1e95d647fffc6b67f85",
+      "binarySha256": "6CD64172DD4B957DA6CAF531ABCB7B7125D6680CDE9F226857AD1D3F6A182016"
+    },
+    {
+      "platform": "ARM64",
+      "configuration": "ASan Debug",
+      "testsEnabled": true,
+      "version": "1.0.0",
+      "passed": true,
+      "warnings": 0,
+      "errors": 0,
+      "compiledSourceIdentity": "720905a6e7b1c1d69f60f02c59702f7a15419fe6f8e2cb10fc4569c29488f5c8",
+      "sourceIdentity": "07100c72780695ad6062f8022ffa2af5a06bba2e9e50d1e95d647fffc6b67f85",
+      "binarySha256": "F5F40A4EDC804D8621A3EC74A91889FF69A0F5C4270C7E5E5925EFBABDA000B7"
+    }
+  ],
+  "x64FullTestRuns": {
+    "Release": {
+      "runId": "20261123T090525611Z-61572-62e381761f0c47aa95e3db6d25068bfa",
+      "passed": true,
+      "sourceIdentity": "4101797df48eec550d708e0d42b6ee50584e7ea8f171765ca5664515b04bb23a",
+      "binarySha256": "19F60FF00599DF57741AB966E1AB4E8079826AD953A7D748DA46004777BC72ED",
+      "catalogCasesPassed": 203,
+      "failureReportRoutingExitCode": 0
+    },
+    "Debug": {
+      "runId": "20261123T090825904Z-78484-7a5680bdd31d4eb1b1cbf84d5642df70",
+      "passed": true,
+      "sourceIdentity": "4101797df48eec550d708e0d42b6ee50584e7ea8f171765ca5664515b04bb23a",
+      "binarySha256": "82906602DA7FC1695A1C61EC1E1CD53C74979BBC7E8941EAB57995FC6ECE6385",
+      "catalogCasesPassed": 203,
+      "failureReportRoutingExitCode": 3
+    },
+    "ASan Debug": {
+      "runId": "20261123T091122646Z-57996-fec48ff1423448fd9db701f08c94b35b",
+      "passed": true,
+      "sourceIdentity": "4101797df48eec550d708e0d42b6ee50584e7ea8f171765ca5664515b04bb23a",
+      "binarySha256": "817F79449992BCAE7E426A4A92DA5FA00E9BF8EC262CF7CAE033514B03A4D938",
+      "catalogCasesPassed": 203,
+      "failureReportRoutingExitCode": 3,
+      "heapUseAfterFreeDetected": true
+    }
+  },
+  "portablePackageX64": {
+    "archive": "RedTilde-1.0.0-x64-20261123-101619-065.zip",
+    "archiveSha256": "AA669267B696B4BC7109A80518A35A3FACEE5EA4507F1F28C66594215742A0B5",
+    "binarySha256": "A97C7E251BD96F46DF2A03712B5DB3FA16F5EAE564140004E04F6613BC968D62",
+    "status": "production",
+    "version": "1.0.0",
+    "testsEnabled": false,
+    "smokePassed": true,
+    "testOnlyEntryPointRefusalCount": 16
+  },
+  "earlierObservedTeardownTimeoutRunId": "20261123T085815666Z-64900-c053e3d91837468eb1dcd2ebc9b24c15"
+}

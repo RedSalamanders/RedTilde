@@ -1,13 +1,13 @@
 #pragma once
 
-#define REDTILDE_VERSION_MAJOR 0
-#define REDTILDE_VERSION_MINOR 1
+#define REDTILDE_VERSION_MAJOR 1
+#define REDTILDE_VERSION_MINOR 0
 #ifndef REDTILDE_BUILD_NUMBER
 #define REDTILDE_BUILD_NUMBER 0
 #endif
 
-#define REDTILDE_VERSION_SUFFIX " experimental"
-#define REDTILDE_VERSION_SUFFIX_WIDE L" experimental"
+#define REDTILDE_VERSION_SUFFIX ""
+#define REDTILDE_VERSION_SUFFIX_WIDE L""
 #define REDTILDE_COPYRIGHT "Copyright (c) 2026 RedSalamanders"
 
 #define REDTILDE_STRING_IMPL(value) #value

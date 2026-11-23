@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "product": "RedTilde",
-  "version": "0.1.0",
-  "status": "experimental",
+  "version": "1.0.0",
+  "status": "production",
   "platform": "Windows",
   "sourceCapacityUtf16": 65536,
   "supported": [
@@ -104,16 +104,18 @@
     "native-cloud-smb-nas-and-wsl-location-qualification",
     "real-windows-pdf-and-driver-print-qualification",
     "authorized-interactive-menu-and-focus-qualification",
-    "paired-release-performance-and-warp-resource-qualification"
-  ],
-  "pending": [
+    "paired-release-performance-and-warp-resource-qualification",
     "api5-consumer-failure-and-native-qualification",
+    "release-pin-installer-and-file-association-handoff"
+  ],
+  "pending": [],
+  "deferred": [
     "upstream-performance-and-product-qualification",
     "documents-over-65536-utf16-units",
     "conditional-cross-process-atomic-replacement",
     "physical-ime-touch-and-assistive-technology",
     "physical-printer-paper-sheet-inspection",
-    "release-pin-installer-and-file-association-handoff",
+    "public-ca-authenticode-code-signing",
     "full-latex-and-mermaid-language-compatibility",
     "wiki-target-navigation-and-embed-resolution"
   ]
