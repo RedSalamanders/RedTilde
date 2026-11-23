@@ -44,7 +44,7 @@
     "Tests"
   ],
   "formatExclude": [],
-  "versionBase": "0.1",
+  "versionBase": "1.0",
   "winget": {
     "identifier": "RedSalamanders.RedTilde",
     "executable": "RedTilde.exe",
