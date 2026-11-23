@@ -4,6 +4,9 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- RedTilde now uses the pinned shared scoped-testing runner and evidence modules. PrePush covers the six local
+  build profiles. The runner preserves the shipped Markdown input rules, emits fresh per-suite reports and
+  keeps the desktop obligation and the production and local SDK receipts under their own gates.
 - Import the build console from the pinned shared CI engine (convergence CV-5-03). `Build/BuildConsole.psm1` is now the
   engine's module shim (`Templates/Project/Build/BuildConsole.psm1`): `build.ps1` and the tooling tests keep importing
   the same path and get the same four functions from `.ci-engine/Tools/Modules/Ci.BuildConsole.psm1`, which is this
