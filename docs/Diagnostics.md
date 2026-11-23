@@ -9,7 +9,7 @@ RedTilde.exe --version
 # or: RedTilde.exe -v
 ```
 
-This prints `RedTilde 0.1.<build> experimental`. Always keep the exact `RedTilde.exe`, matching `RedTilde.pdb`, and pinned dependency identity (`Dependencies/DxUi.lock.json`) alongside any diagnostic report.
+This prints `RedTilde 1.0.<build>`. Always keep the exact `RedTilde.exe`, matching `RedTilde.pdb`, and pinned dependency identity (`Dependencies/DxUi.lock.json`) alongside any diagnostic report.
 
 ## Diagnostics with RedMonitor
 

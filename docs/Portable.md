@@ -1,6 +1,6 @@
-# RedTilde 0.1 — Portable & Per-User Guide
+# RedTilde 1.0 — Portable & Per-User Guide
 
-Extract the portable ZIP into any writable folder and run `RedTilde.exe`, or pass a Markdown filename on the command line. RedTilde requires Windows 11 (build `22000.2600` or later) and the matching Microsoft Visual C++ runtime. All editing stays local and requires no account.
+Extract the portable ZIP (and verify its companion `.zip.sha256` sidecar; `v1.0.0` packages are unsigned without a public CA Authenticode certificate) into any writable folder and run `RedTilde.exe`, or pass a Markdown filename on the command line. RedTilde requires Windows 11 (build `22000.2600` or later) and the matching Microsoft Visual C++ runtime. All editing stays local and requires no account.
 
 ## Portable ZIP & Per-User Installer
 
@@ -46,5 +46,5 @@ Portable ZIPs packaged with `package.ps1` use the **production-only Release** ro
 - [User Guide](README.md) — full feature walkthrough, screenshots, and keyboard shortcut reference
 - [Diagnostics & RedMonitor](Diagnostics.md) — `--version`, local `Crashes/` minidumps, and optional RedMonitor logging
 - [Sample Documents](examples/README.md) — showcase Markdown, math, all eight Mermaid profiles, and fallback examples
-- [Capabilities](../capabilities.json) — current `experimental` capability boundaries and open qualification gates
+- [Capabilities](../capabilities.json) — current `production` capability boundaries and explicit `deferred` post-1.0 items
 - License notices live in `LICENSE.txt`, `THIRD-PARTY-NOTICES.md`, and `Dependencies`.

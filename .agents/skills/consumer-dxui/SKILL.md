@@ -4,7 +4,8 @@ description: Adopt or update the exact DxUi rich-text pin and its public native 
 ---
 
 Read [the build contract](../../../Specs/Build/Build_Toolchain.md), `Dependencies/DxUi.lock.json` and the pinned
-source's `docs/rich-text.md`, `docs/upgrade.md` and `capabilities.json`. The API-5 migration remains experimental
+source's `docs/rich-text.md`, `docs/upgrade.md` and `capabilities.json`. API-5 (`0c371a61`) is the qualified `v1.0.0`
+pin in `Dependencies/DxUi.lock.json`; any future API-6 migration remains separate post-1.0 work (RedHome D20)
 until fresh consumer failure/native qualification and separate performance/product gates close. API-4
 measurements keep their original identity and cannot qualify the API-5 host/adapters.
 Use public headers and the imported single-library targets. Never enumerate/copy control sources or include

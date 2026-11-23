@@ -3,7 +3,7 @@
 **RedTilde** is a native Windows Markdown editor built with Win32, Direct2D, DirectWrite, and DxUi. It keeps a single authoritative UTF-8 Markdown source, selection, and undo/redo history across **Compose**, **Split**, and **Source** views—with native LaTeX mathematics, bounded Mermaid diagrams, local crash recovery, and Windows printing. All editing stays local and requires no account.
 
 > [!NOTE]
-> RedTilde is currently an **experimental 0.1** preview (`capabilities.json`). Documents are bounded to `65,536` UTF-16 units and `128` undo steps; full LaTeX/Mermaid parity and several platform qualifications remain tracked in [the capability status](../capabilities.json).
+> RedTilde `1.0.0` is a **production release** (`capabilities.json`). Documents remain bounded to `65,536` UTF-16 units and `128` undo steps; explicit post-1.0 deferrals (such as documents over 65,536 units, full LaTeX/Mermaid parity, wiki navigation, and physical East Asian IME/Narrator/Touch checks) are listed under `deferred` in [the capability status](../capabilities.json).
 
 ## Contents
 
@@ -157,7 +157,7 @@ Open **Settings** from the gear button or `Ctrl+,`:
 - **Appearance:** Choose **System** (follows Windows Light/Dark mode), **Light**, **Dark**, or **Paper** (`#EDE6D8` / `#F3EDDF` / `#FFFAEF`), all with immediate preview and live updates. **Windows High Contrast** automatically overrides custom theme colors with system `Window`/`Highlight`/`Hotlight` colors and persistent link underlines.
 - **Reading Width & Text Size:** Adjust reading width (`480–1040` DIPs, default `760`) and text scale (`75%–200%`, default `100%`) using the steppers or `Ctrl++` / `Ctrl+-` / `Ctrl+0` / `Ctrl+Mouse Wheel`.
 - **Writing & Markdown Syntax:** Toggle **Show outline**, **Focus mode**, **Dim other blocks in focus mode**, **Strike through completed tasks** (visual presentation only; Markdown stays unchanged), and seven optional RichMarkdown syntax switches (`==highlight==`, `^superscript^`, `~subscript~`, `++inserted++`, `[[wiki links]]`, definition lists, and `*[abbr]:` abbreviations).
-- **About & Shortcuts:** The bottom of Settings displays the installed version (`RedTilde 0.1.0 experimental`) and a built-in keyboard shortcuts reference.
+- **About & Shortcuts:** The bottom of Settings displays the installed version (`RedTilde 1.0.<build>`) and a built-in keyboard shortcuts reference.
 - **Preferences File & Live Reload:** Settings are stored as UTF-8 JSON5 in `%LOCALAPPDATA%\RedTilde\RedTilde.settings.json` (`RedTilde-debug.settings.json` in debug builds, described by `SettingsStore.schema.json`), with lossless one-time migration from legacy text settings and live reload when edited externally.
 - **Outline & Current Block Inspector (`Ctrl+Shift+L`):** The right sidebar lists ATX headings hierarchically (with collapsible sections), tracks the active section, identifies the **Current block** (e.g., `Heading`, `Bulleted list · 3 items`, `Equation`), hosts the live read-only **Equation** preview, and includes header **Pin/Unpin** and **Close** actions matching the Files pane. When unpinned or when horizontal space is tight (or in **Split** view when `Auto`), the sidebar smoothly animates into a `28`-DIP right dot rail summarizing headings with interactive tooltips that jump directly to each section; hovering the outer edge or clicking `<` slides the flush edge drawer open over the canvas and dismisses cleanly when you click a heading.
 
