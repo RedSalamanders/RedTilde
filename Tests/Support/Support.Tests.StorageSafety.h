@@ -644,6 +644,66 @@ inline void RegisterStorageSafetyTests(const std::filesystem::path& root, const 
         for (const auto& entry : std::filesystem::directory_iterator(root))
             RequireStorage(entry.path().extension() != L".tmp", "late conflict removes only its owned staging file");
     });
+    test("Storage.GuardsAcceptedObjectBeforePublishing",
+         [&]
+    {
+        const auto path        = root / L"guarded-name.md";
+        const auto earlierPath = root / L"guarded-name-earlier.md";
+        FileStamp original;
+        RequireStorage(SUCCEEDED(SaveDocument(path, L"original", false, nullptr, original)), "seed guarded target");
+        struct GuardControl
+        {
+            const std::filesystem::path* earlierPath;
+            DWORD writerError{};
+            HRESULT replacementStatus{E_UNEXPECTED};
+            static void Observe(AtomicWriteCheckpoint phase, const std::filesystem::path& target, void* context) noexcept
+            {
+                if (phase != AtomicWriteCheckpoint::BeforeGuardedNameCheck)
+                    return;
+                auto& self = *static_cast<GuardControl*>(context);
+                SetAtomicWriteHookForTest(nullptr, nullptr);
+                wil::unique_handle writer(CreateFileW(target.c_str(),
+                                                      GENERIC_WRITE,
+                                                      FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                                      nullptr,
+                                                      OPEN_EXISTING,
+                                                      FILE_ATTRIBUTE_NORMAL,
+                                                      nullptr));
+                self.writerError = writer ? ERROR_SUCCESS : GetLastError();
+                if (! MoveFileExW(target.c_str(), self.earlierPath->c_str(), MOVEFILE_WRITE_THROUGH))
+                {
+                    self.replacementStatus = HRESULT_FROM_WIN32(GetLastError());
+                    return;
+                }
+                self.replacementStatus = WriteBytesAtomic(target, "replacement");
+            }
+        } control{&earlierPath};
+        SetAtomicWriteHookForTest(GuardControl::Observe, &control);
+        const auto clear  = wil::scope_exit([] { SetAtomicWriteHookForTest(nullptr, nullptr); });
+        auto saved        = original;
+        const auto status = SaveDocument(path, L"pending", false, &original, saved);
+        std::string earlier, current;
+        RequireStorage(control.writerError == ERROR_SHARING_VIOLATION && SUCCEEDED(control.replacementStatus),
+                       "guard denies in-place writes and the fixture can change the pathname");
+        RequireStorage(status == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH) && saved == original && SUCCEEDED(ReadBytes(path, current)) &&
+                           current == "replacement" && SUCCEEDED(ReadBytes(earlierPath, earlier)) && earlier == "original",
+                       "final name check preserves both the replacement and the guarded original");
+    });
+    test("Storage.NewSaveRefusesCompetingCreation",
+         [&]
+    {
+        const auto path = root / L"new-save-race.md";
+        StorageCheckpoint checkpoint;
+        checkpoint.phase = AtomicWriteCheckpoint::Staged;
+        SetAtomicWriteHookForTest(StorageCheckpoint::Observe, &checkpoint);
+        const auto clear = wil::scope_exit([] { SetAtomicWriteHookForTest(nullptr, nullptr); });
+        FileStamp saved;
+        const auto status = SaveDocument(path, L"pending", false, nullptr, saved);
+        std::string current;
+        RequireStorage(checkpoint.calls == 1 && SUCCEEDED(checkpoint.result) && status == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH) && ! saved.exists &&
+                           SUCCEEDED(ReadBytes(path, current)) && current == "external during staging",
+                       "a competing creation keeps its bytes and the new save retains its pending state");
+    });
     test("Storage.PublishedSaveDoesNotDependOnContentReadback",
          [&]
     {

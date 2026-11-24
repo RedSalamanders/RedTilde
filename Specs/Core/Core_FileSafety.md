@@ -72,12 +72,14 @@ not. Access/sharing failures never authorize fallback. Raw settings/recovery ato
 failure result. Real cloud/share/WSL qualification remains separate from directed local provider refusals.
 Close the exclusive staging handle before failure cleanup, including failed WriteFile and FlushFileBuffers
 paths. Directed atomic-staging faults must leave the target bytes/stamp unchanged and no owned `.tmp` behind.
-An existing file identity (volume/file index where supplied by the filesystem, size, last-write and content
-fingerprint) is checked **after staging**, immediately before replacement. A different file object is a conflict
+After staging an existing-file save, open the selected file for read and delete access with only read and delete sharing.
+Keep this write guard open across the expected-version check and the replacement. Recheck that the final name still
+selects the guarded object, including before a provider fallback. A different file object is a conflict
 even if its size, timestamp and bytes match. A timestamp-only touch of the same object with identical size and
 fingerprint does not require a conflict choice. Save As to the current path, an alias of its saved object, or an
-alias of the currently replaced original still checks the original saved baseline. A separately chosen different
-destination has the native picker's overwrite consent. Unknown identities remain conservative.
+alias of the currently replaced original still checks the original saved baseline for an ordinary save. After the path
+picker returns an existing destination, the file worker observes its version before the application asks for overwrite
+consent. A newly selected missing destination is admitted as a non-replacing creation. Unknown identities remain conservative.
 Keep the complete 64-bit volume serial and 128-bit identifier returned by
 [`FileIdInfo`](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_id_info), including
 ReFS identifiers. Only explicit unsupported-information errors permit a provider's legacy handle identity; when that
@@ -86,8 +88,9 @@ derive a non-zero volume fingerprint from the normalized handle volume/share roo
 object identity checks (`HasIdentity`/`SameObject`) remain sound without masking metadata failures. Other metadata
 failures propagate. A missing identity never establishes automatic overwrite consent. Native
 NTFS/ReFS diagnostics compare the actual complete handle identity independently of stamp equality.
-Atomicity does not eliminate the cross-process check/replace race; no conditional-write or cross-process lock is
-claimed. Native OneDrive/cloud, SMB/NAS and WSL retain their independent qualification.
+An uncooperative rename can still occur between the final name check and a pathname operation. If the guard or name check
+refuses the replacement, preserve the accepted document state and leave the newer target intact. Publishing a new file
+refuses a competing creation. Native OneDrive/cloud, SMB/NAS and WSL retain their independent qualification.
 
 Saving through a symbolic link resolves its final followed target using handle-derived identity and path. Keep
 the symbolic entry intact and protect that chosen entry against cooperative replacement while saving the target.
@@ -132,8 +135,9 @@ edit conflicts normally.
 An ordinary save conflict has one surface with **Reload / Save As / Overwrite / Cancel**, defaulting to Cancel.
 Cancel, closing the question and cancelling Save As preserve source, selection, history, path, dirty state and
 recovery without another generic error question. Duplicate Close requests keep the existing question.
-Only the explicit Overwrite choice bypasses the expected stamp, for that selected destination and immutable
-document context. Choice/picker continuations revalidate workspace identity, source revision, baseline, location,
+An explicit Overwrite adopts the conflicting version that the worker observed before the question for that destination
+and immutable document context. Without a stable observation, the choice is unavailable. A later destination change
+requires a new decision. Choice/picker continuations revalidate workspace identity, source revision, baseline, location,
 BOM and recovered state before admission. A changed context retains its newer edits and shows a localized status.
 Reload reads asynchronously and replaces only the current document after validating the exact approved source
 and workspace identity again; other retained documents and the root stay intact. Failed or stale Reload retains

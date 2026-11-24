@@ -1,7 +1,38 @@
-[CmdletBinding()]
-param()
+<#
+.SYNOPSIS
+Validates RedTilde. Use CompilerFree for the pull request checks.
+.PARAMETER CompilerFree
+Validate project configuration, workflows, changelog and skills with native tools disabled.
+#>
+[CmdletBinding(DefaultParameterSetName='Full')]
+param(
+    [Parameter(Mandatory, ParameterSetName='CompilerFree')][switch]$CompilerFree,
+    [Parameter(ParameterSetName='CompilerFree')][string]$Base = 'origin/main',
+    [Parameter(ParameterSetName='CompilerFree')][string]$EngineRoot = (Join-Path $PSScriptRoot '.ci-engine'),
+    [Parameter(ParameterSetName='CompilerFree')][ValidateSet('x64','ARM64')][string]$Platform = 'x64',
+    [Parameter(ParameterSetName='CompilerFree')][switch]$DevelopmentEngine
+)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
+if ($CompilerFree) {
+    $EngineRoot = [IO.Path]::GetFullPath($EngineRoot)
+    Import-Module (Join-Path $EngineRoot 'Tools/Modules/Ci.Policy.psm1') -Scope Local -ErrorAction Stop
+    Import-Module (Join-Path $EngineRoot 'Tools/Modules/Ci.Project.psm1') -Scope Local -ErrorAction Stop
+    $context = New-CiProjectContext -Root $PSScriptRoot -EngineRoot $EngineRoot -Phase Static -Platform $Platform -DevelopmentEngine:$DevelopmentEngine
+    $previous = [Environment]::GetEnvironmentVariable('CI_NATIVE_BUILDS_DISABLED', 'Process')
+    try {
+        $env:CI_NATIVE_BUILDS_DISABLED = 'true'
+        Test-CiProjectConfiguration $context
+        & (Join-Path $EngineRoot 'Tools/Test-Workflows.ps1') -Root $PSScriptRoot
+        $baseCommit = Resolve-CiCommit $PSScriptRoot $Base
+        Invoke-CiProjectScript -Context $context -Script 'Tools/Test-Changelog.ps1' -Arguments @('-Base', $baseCommit)
+        Invoke-CiProjectScript -Context $context -Script 'validate-skills.ps1' -Arguments @()
+    }
+    finally {
+        [Environment]::SetEnvironmentVariable('CI_NATIVE_BUILDS_DISABLED', $(if ($null -eq $previous) { [NullString]::Value } else { $previous }), 'Process')
+    }
+    return
+}
 $failures=[Collections.Generic.List[string]]::new()
 function Check([string] $Name,[scriptblock] $Body) {
     try { & $Body; Write-Host "PASS $Name" }
@@ -13,17 +44,7 @@ Check 'Changes workflow' {
     [void][IO.Directory]::CreateDirectory($scratch)
     & (Join-Path $PSScriptRoot 'Tools/Test-ChangelogWorkflow.ps1') -ScratchRoot $scratch
 }
-Check 'Specifications and links' {
-    $files=@(Get-ChildItem (Join-Path $PSScriptRoot 'Specs'),(Join-Path $PSScriptRoot '.agents') -Recurse -Filter '*.md')
-    $files+=Get-Item (Join-Path $PSScriptRoot 'README.md'),(Join-Path $PSScriptRoot 'AGENTS.md')
-    foreach ($file in $files) {
-        foreach ($match in [regex]::Matches((Get-Content $file.FullName -Raw),'\]\(([^)]+)\)')) {
-            $target=$match.Groups[1].Value.Split('#')[0]
-            if ($target -match '^(https?:|mailto:)' -or -not $target) { continue }
-            if (-not (Test-Path -LiteralPath (Join-Path $file.DirectoryName $target))) { throw "Broken link in $($file.Name): $target" }
-        }
-    }
-}
+Check 'Specifications and links' { & (Join-Path $PSScriptRoot 'validate-specs.ps1') }
 Check 'Skill packages and root guidance' { & (Join-Path $PSScriptRoot 'validate-skills.ps1') }
 Check 'Exact dependency and capability status' {
     $pin=Get-Content (Join-Path $PSScriptRoot 'Dependencies/DxUi.lock.json') -Raw | ConvertFrom-Json

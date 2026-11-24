@@ -2,7 +2,7 @@
 .SYNOPSIS
 Builds and verifies a production-only portable RedTilde ZIP.
 .DESCRIPTION
-Builds a test-disabled Release artifact, stages its runtime and licenses beneath .build/package, verifies
+Builds a test-disabled Release artifact, stages its runtime and licenses beneath .build/packages, verifies
 the clean extraction through hidden capture, and checks that every test-only entry point refuses without
 creating its private data directory. Never activates a window or launches a diagnostic probe.
 .PARAMETER Platform
@@ -11,7 +11,7 @@ Native package architecture, x64 or ARM64.
 Uses the exact receipt-verified Release artifact already present. Test-enabled artifacts are refused.
 .PARAMETER DxUiSdkInputDescriptor Independent descriptor for the original production SDK; omitted uses the accepted build binding.
 .OUTPUTS
-Portable ZIP and source/binary-bound JSON receipt beneath .build/package; retained staging and smoke evidence.
+Portable ZIP and source/binary-bound JSON receipt beneath .build/packages with retained staging and smoke evidence.
 #>
 [CmdletBinding()]
 param([ValidateSet('x64','ARM64')][string] $Platform='x64',[switch] $SkipBuild,[string]$DxUiSdkInputDescriptor='')
@@ -19,13 +19,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 if (-not $SkipBuild) { & (Join-Path $PSScriptRoot 'build.ps1') -Platform $Platform -Configuration Release -ProductionOnly -DxUiSdkInputDescriptor $DxUiSdkInputDescriptor }
 Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
-$previousEnableTests = [Environment]::GetEnvironmentVariable('RedTildeEnableTests', 'Process')
-try {
-    $env:RedTildeEnableTests = 'false'
-    $artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform $Platform -Configuration Release
-} finally {
-    [Environment]::SetEnvironmentVariable('RedTildeEnableTests', $(if ($null -eq $previousEnableTests) { [NullString]::Value } else { $previousEnableTests }), 'Process')
-}
+$artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform $Platform -Configuration Release
 $exe=$artifact.Executable
 $built=$artifact.Build
 if($built.testsEnabled -isnot [bool] -or $built.testsEnabled){throw 'Portable packaging requires a receipt-verified production-only Release build.'}
@@ -39,7 +33,10 @@ if($built.PSObject.Properties['dependencyRecipe'] -and $built.dependencyRecipe.r
     $sdk=Open-CiApplicationSdkInput -ProjectRoot $PSScriptRoot -Descriptor $DxUiSdkInputDescriptor -Platform $Platform -Configuration Release -MSBuildPath (Get-RedTildeMSBuild)
     if($null -eq $sdk -or $sdk.Descriptor.Hash -cne $built.sdkInputDescriptorSha256 -or $sdk.Evidence.inputKey -cne $built.dependencyRecipe.inputKey -or $sdk.Evidence.manifestSha256 -cne $built.dependencyRecipe.manifestSha256){throw 'Package SDK inputs differ from the original production build.'}
 }
-$output=Join-Path $PSScriptRoot '.build/package'
+$output=Join-Path $PSScriptRoot '.build/packages'
+if ((Test-Path -LiteralPath $output) -and ((Get-Item -LiteralPath $output -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+    throw 'The package output directory cannot be a reparse point.'
+}
 $exeVersion=[Diagnostics.FileVersionInfo]::GetVersionInfo($exe)
 $version="$($exeVersion.FileMajorPart).$($exeVersion.FileMinorPart).$($exeVersion.FileBuildPart)"
 if($exeVersion.FileBuildPart -ne $built.buildNumber){throw 'Production executable build number differs from its build receipt.'}

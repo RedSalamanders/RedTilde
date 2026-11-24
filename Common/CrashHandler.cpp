@@ -11,6 +11,7 @@
 #include <new>
 #include <string_view>
 #include <strsafe.h>
+#include <utility>
 #include <vector>
 #include <wil/resource.h>
 
@@ -19,6 +20,7 @@ namespace RedTilde
 namespace
 {
 // Prepared before workers start. The fault path uses fixed buffers and already-loaded DbgHelp.
+constexpr wchar_t kCrashReportPrefix[] = L"RedTilde-report-";
 std::array<wchar_t, 1024> crashDirectory{};
 volatile LONG ownerThread{};
 wil::unique_handle dumpFinished;
@@ -120,8 +122,9 @@ HRESULT WriteReport(EXCEPTION_POINTERS* exception, DWORD faultThread, const DxUi
     wchar_t path[1200]{};
     const HRESULT formatted = StringCchPrintfW(path,
                                                std::size(path),
-                                               L"%s\\RedTilde-%04u%02u%02u-%02u%02u%02u-%lu-%016llx.dmp",
+                                               L"%s\\%s%04u%02u%02u-%02u%02u%02u-%lu-%016llx.dmp",
                                                crashDirectory.data(),
+                                               kCrashReportPrefix,
                                                time.wYear,
                                                time.wMonth,
                                                time.wDay,
@@ -248,25 +251,6 @@ try
     std::filesystem::create_directories(directory, error);
     if (error)
         return HRESULT_FROM_WIN32(static_cast<DWORD>(error.value()));
-    std::vector<std::filesystem::path> dumps;
-    for (std::filesystem::directory_iterator iterator(directory, error), end; ! error && iterator != end; iterator.increment(error))
-    {
-        const auto& entry = *iterator;
-        const auto name   = entry.path().filename().native();
-        if (name.starts_with(L"RedTilde-") && entry.path().extension() == L".dmp" && entry.is_regular_file(error))
-            dumps.push_back(entry.path());
-    }
-    std::ranges::sort(dumps, std::greater<>{});
-    for (std::size_t index = 10; index < dumps.size(); ++index)
-    {
-        std::filesystem::remove(dumps[index], error);
-        if (! error)
-        {
-            auto sidecar = dumps[index];
-            sidecar.replace_extension(L".record");
-            std::filesystem::remove(sidecar, error);
-        }
-    }
     return S_OK;
 }
 catch (const std::bad_alloc&)
@@ -277,6 +261,73 @@ catch (const std::filesystem::filesystem_error& error)
 {
     return HRESULT_FROM_WIN32(static_cast<DWORD>(error.code().value()));
 }
+
+void RetainRecentCrashReports(const std::filesystem::path& directory)
+{
+    std::error_code enumerationError;
+    std::vector<std::pair<std::filesystem::file_time_type, std::filesystem::path>> reports;
+    for (std::filesystem::directory_iterator iterator(directory, enumerationError), end; ! enumerationError && iterator != end;
+         iterator.increment(enumerationError))
+    {
+        const auto& report = *iterator;
+        const auto name    = report.path().filename().native();
+        if (! name.starts_with(kCrashReportPrefix) || report.path().extension() != L".dmp")
+            continue;
+        std::error_code error;
+        if (! std::filesystem::is_regular_file(report.symlink_status(error)) || error)
+            continue;
+        const auto written = report.last_write_time(error);
+        if (! error)
+            reports.emplace_back(written, report.path());
+    }
+    if (enumerationError)
+        return;
+
+    // Order by the dump's write time. The leaf gives a deterministic tie-breaker.
+    std::ranges::sort(reports, std::greater<>{});
+    constexpr std::size_t kRetainedReportCount = 10;
+    for (std::size_t index = kRetainedReportCount; index < reports.size(); ++index)
+    {
+        std::error_code error;
+        const auto& dump = reports[index].second;
+        if (! std::filesystem::remove(dump, error))
+            continue;
+
+        auto sidecar = dump;
+        sidecar.replace_extension(L".record");
+        if (std::filesystem::is_regular_file(std::filesystem::symlink_status(sidecar, error)) && ! error)
+            std::filesystem::remove(sidecar, error);
+    }
+}
+
+std::optional<std::filesystem::path> TakePendingCrashNotice(const std::filesystem::path& directory, bool interactive)
+{
+    if (! interactive)
+        return std::nullopt;
+
+    const auto marker = directory / L"pending.txt";
+    // The reader holds DELETE access with no delete sharing. A second ordinary
+    // startup cannot claim the same marker while this one is reading it.
+    wil::unique_handle pending(CreateFileW(
+        marker.c_str(), GENERIC_READ | DELETE, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_FLAG_DELETE_ON_CLOSE | FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
+    if (! pending)
+        return std::nullopt;
+
+    std::array<wchar_t, 1200> path{};
+    DWORD bytes{};
+    if (! ReadFile(pending.get(), path.data(), static_cast<DWORD>(sizeof(path)), &bytes, nullptr) || bytes == 0u || bytes >= sizeof(path) ||
+        bytes % sizeof(wchar_t) != 0u)
+        return directory;
+    const std::wstring_view reportedPath(path.data(), bytes / sizeof(wchar_t));
+    if (reportedPath.contains(L'\0'))
+        return directory;
+
+    const auto filename = std::filesystem::path(reportedPath).filename();
+    if (! filename.native().starts_with(L"RedTilde-") || filename.extension() != L".dmp")
+        return directory;
+    return directory / filename;
+}
+
 bool CrashReportingPrepared() noexcept
 {
     return crashDirectory[0] != L'\0' && static_cast<bool>(dumpFinished);

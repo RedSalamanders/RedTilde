@@ -246,7 +246,7 @@ struct Application::ExternalLinkJob
     ProcessWorkLease lease;
     std::shared_ptr<ExternalLinkState> state;
     std::wstring destination;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     std::function<HRESULT(std::wstring_view)> launchForTest;
     std::shared_ptr<AsyncFiles::TestGate> gate;
 #endif
@@ -286,7 +286,7 @@ Application::Application(LaunchOptions value) : Application(std::move(value), Dx
 Application::Application(LaunchOptions value, const DxUi::Failure::Scope&) : _options(std::move(value))
 {
     _startupRestore.enabled = ! _options.headless;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     _startupRestore.enabled = _startupRestore.enabled || _options.startupRestoreForTest;
 #endif
 }
@@ -319,7 +319,7 @@ HRESULT Application::Initialize()
     if (_options.dataDirectory.empty())
         _options.dataDirectory = DefaultDataDirectory();
     if (_startupRestore.enabled || _options.preferencesProbe || ! _options.headless
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         || _options.watchSettingsForTest
 #endif
     )
@@ -405,7 +405,7 @@ HRESULT Application::Initialize()
         return error ? HRESULT_FROM_WIN32(error) : E_FAIL;
     }
     _files.Initialize(_window.get(), FileReady);
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     _files.SetTestGate(_options.fileGateForTest);
 #endif
     const MARGINS frame{1, 1, 1, 1};
@@ -417,7 +417,7 @@ HRESULT Application::Initialize()
     RETURN_IF_FAILED(_imageFiles.Initialize(_window.get(), ImageFileChanged, 0x5254));
     _images.SetAllowLocalNetwork(_settings.allowLocalNetworkImages);
     RETURN_IF_FAILED(_bitmapWriter.Initialize(_options.dataDirectory, _window.get(), BitmapReady));
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     _shellReveal = _options.shellRevealForTest ? _options.shellRevealForTest : std::make_shared<WindowsShellReveal>();
     _credentials = _options.credentialStoreForTest ? _options.credentialStoreForTest : std::make_shared<WindowsCredentialStore>();
     RETURN_IF_FAILED(_fileOps.Initialize(
@@ -472,7 +472,7 @@ HRESULT Application::Initialize()
     TransitionLifecycle(LifecyclePhase::Active);
     Layout();
     const bool shouldWatchSettings = (! _options.headless && ! _options.preferencesProbe)
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
                                      || _options.watchSettingsForTest
 #endif
         ;
@@ -649,12 +649,12 @@ void Application::RequestOpenLink(const DxUi::RichTextLinkActivation& activation
     bool approved{};
     _modalPrompt      = ModalPromptKind::ExternalLink;
     const auto unwind = wil::scope_exit([&] { _modalPrompt = ModalPromptKind::None; });
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     const auto testLaunch = _options.launchLinkForTest;
 #endif
     if (_options.headless)
     {
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         const auto confirm = _options.confirmLinkForTest;
         if (! confirm || ! testLaunch)
             return;
@@ -685,7 +685,7 @@ void Application::RequestOpenLink(const DxUi::RichTextLinkActivation& activation
     auto job         = std::make_unique<ExternalLinkJob>();
     job->state       = _externalLink;
     job->destination = std::move(destination);
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     if (_options.headless)
     {
         job->launchForTest = testLaunch;
@@ -729,7 +729,7 @@ DWORD WINAPI Application::ExternalLinkWorker(void* context) noexcept
 {
     ProcessWorkLease lease = std::move(static_cast<ExternalLinkJob*>(context)->lease);
     const std::unique_ptr<ExternalLinkJob> job(static_cast<ExternalLinkJob*>(context));
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     const auto settled = wil::scope_exit([&]
     {
         if (job->gate)
@@ -739,7 +739,7 @@ DWORD WINAPI Application::ExternalLinkWorker(void* context) noexcept
     HRESULT result = E_FAIL;
     try
     {
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         bool admitted = true;
         if (job->gate)
         {
@@ -756,7 +756,7 @@ DWORD WINAPI Application::ExternalLinkWorker(void* context) noexcept
             {
                 const wil::unique_couninitialize_call apartment;
                 const DxUi::Failure::Scope failureScope;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
                 if (job->launchForTest)
                     result = job->launchForTest(job->destination);
                 else
@@ -1959,7 +1959,7 @@ void Application::FocusSelectionTools()
 void Application::SavePreferences()
 {
     const bool allowSave = ! _options.headless || _options.preferencesProbe
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
                            || _options.watchSettingsForTest
 #endif
         ;
@@ -2175,7 +2175,7 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
     if (command == Command::New || command == Command::Open || command == Command::OpenFolder || command == Command::Close ||
         command == Command::CloseDocument || command == Command::LocalSource || command == Command::RestoreRecovery || command == Command::RestoreAllRecovery)
         _pendingBitmapPaste.reset();
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     if (_options.commandAdmissionForTest)
     {
         const HRESULT admitted = _options.commandAdmissionForTest(command);
@@ -2820,7 +2820,7 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         case Command::GitHubImportGhCli:
         {
             std::wstring imported;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
             if (_options.ghCliImporterForTest)
             {
                 if (auto token = _options.ghCliImporterForTest())
@@ -3121,7 +3121,7 @@ std::filesystem::path Application::PickFile(bool saving, bool image, bool folder
         return {};
     _modalPrompt             = ModalPromptKind::FileDialog;
     const auto restorePrompt = wil::scope_exit([&]() noexcept { _modalPrompt = ModalPromptKind::None; });
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     if (_options.headless && _options.filePickerForTest && ! image && ! folder)
         return _options.filePickerForTest(saving);
 #endif
@@ -3143,11 +3143,15 @@ std::filesystem::path Application::PickFile(bool saving, bool image, bool folder
         (void)InvokeNativeMethod(dialog.get(), &IFileDialog::SetTitle, Resource(IDS_OPENFOLDER).c_str());
     DWORD flags{};
     (void)InvokeNativeMethod(dialog.get(), &IFileDialog::GetOptions, &flags);
+    // The file worker observes the selected destination before the application
+    // prompts for overwrite. That consent can then be tied to a file version.
+    if (saving)
+        flags &= ~static_cast<DWORD>(FOS_OVERWRITEPROMPT);
     (void)InvokeNativeMethod(dialog.get(),
                              &IFileDialog::SetOptions,
                              flags | FOS_FORCEFILESYSTEM | FOS_NOCHANGEDIR |
                                  (folder   ? FOS_PICKFOLDERS | FOS_PATHMUSTEXIST
-                                  : saving ? FOS_OVERWRITEPROMPT
+                                  : saving ? FOS_PATHMUSTEXIST
                                            : FOS_FILEMUSTEXIST));
     if (! _settings.filesRoot.empty())
     {
@@ -3194,7 +3198,7 @@ void Application::AskThen(std::function<void()> continuation)
         continuation();
         return;
     }
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     if (_options.headless && _options.unsavedPromptForTest && ! _options.forceDxUiSaveDialogForTest)
     {
         int choice = IDCANCEL;
@@ -3216,7 +3220,7 @@ void Application::AskThen(std::function<void()> continuation)
     }
 #endif
     if (_options.headless
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         && ! _options.forceDxUiSaveDialogForTest
 #endif
     )
@@ -3247,7 +3251,7 @@ void Application::AskWorkspaceThen(std::function<void()> continuation, std::vect
         return;
     }
     const bool keepLegacyTestHook =
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         (_options.headless && _options.unsavedPromptForTest && ! _options.forceDxUiSaveDialogForTest);
 #else
         false;
@@ -3287,7 +3291,7 @@ void Application::AskWorkspaceThen(std::function<void()> continuation, std::vect
         return;
     }
     if (_options.headless
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         && ! _options.forceDxUiSaveDialogForTest
 #endif
     )
@@ -3895,7 +3899,7 @@ void Application::Open()
         }
     });
 }
-void Application::Save(bool saveAs, bool force, std::optional<std::filesystem::path> selectedPath)
+void Application::Save(bool saveAs, const AsyncFiles::Result* confirmed, std::optional<std::filesystem::path> selectedPath)
 {
     if (! CanAcceptCommand() || HasActiveModalPrompt())
     {
@@ -3919,8 +3923,9 @@ void Application::Save(bool saveAs, bool force, std::optional<std::filesystem::p
     const auto originalPath  = _session.path;
     const auto originalStamp = _session.stamp;
     const bool originalBom = _session.bom, originalRecovered = _session.recovered;
-    auto path = selectedPath ? selectedPath.value() : _session.path;
-    if (! selectedPath && (saveAs || path.empty()))
+    auto path                    = confirmed ? confirmed->path : (selectedPath ? selectedPath.value() : _session.path);
+    const bool pickedDestination = ! confirmed && ! selectedPath && (saveAs || path.empty());
+    if (pickedDestination)
         path = PickFile(true);
     if (path.empty() || ! CanAcceptCommand() || ! IsUiAttached() || ActiveEditor() != activeEditor)
     {
@@ -3934,10 +3939,14 @@ void Application::Save(bool saveAs, bool force, std::optional<std::filesystem::p
         Status(IDS_FILECONTEXTCHANGED);
         return;
     }
-    const auto expected         = (! force && ! _session.path.empty()) ? std::optional<FileStamp>(_session.stamp) : std::nullopt;
-    const bool sameIdentityOnly = saveAs && path.lexically_normal() != _session.path.lexically_normal();
-    const SaveRecoveryContext protection{_options.dataDirectory, activeEditor->GetSelection(), ++_recoveryGeneration};
-    const HRESULT hr = _files.Submit(true, path, activeEditor->GetText(), _session.bom, expected, sameIdentityOnly, false, _session.path, protection);
+    const auto expected         = confirmed ? confirmed->conflictVersion : (! _session.path.empty() ? std::optional<FileStamp>(_session.stamp) : std::nullopt);
+    const bool sameIdentityOnly = ! confirmed && saveAs && path.lexically_normal() != _session.path.lexically_normal();
+    auto protection   = confirmed && confirmed->recovery ? confirmed->recovery.value()
+                                                         : SaveRecoveryContext{_options.dataDirectory, activeEditor->GetSelection(), ++_recoveryGeneration};
+    std::wstring text = confirmed ? confirmed->document.text : activeEditor->GetText();
+    const bool bom    = confirmed ? confirmed->document.bom : _session.bom;
+    const HRESULT hr =
+        _files.Submit(true, path, std::move(text), bom, expected, sameIdentityOnly, false, _session.path, std::move(protection), pickedDestination);
     if (FAILED(hr))
     {
         _activeFileTx    = std::monostate{};
@@ -3964,22 +3973,29 @@ void Application::ResolveSaveConflict(const AsyncFiles::Result& result)
     const auto path        = _session.path;
     const auto identity    = _session.stamp;
     const bool originalBom = _session.bom, originalRecovered = _session.recovered;
-    Status(IDS_CONFLICT);
+    Status(result.pickerOverwrite ? IDS_PICKEROVERWRITE : IDS_CONFLICT);
     SaveConflictChoice choice = SaveConflictChoice::Cancel;
     {
         const auto previousPrompt = std::exchange(_modalPrompt, ModalPromptKind::SaveConflict);
         const auto restore        = wil::scope_exit([&] { _modalPrompt = previousPrompt; });
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         if (_options.headless && _options.saveConflictForTest)
             choice = _options.saveConflictForTest();
         else
 #endif
             if (! _options.headless)
         {
-            const auto dialogTitle = Resource(IDS_APP), instruction = Resource(IDS_CONFLICT), content = Resource(IDS_CONFLICTHELP);
+            const auto dialogTitle = Resource(IDS_APP);
+            const auto instruction = Resource(result.pickerOverwrite ? IDS_PICKEROVERWRITE : IDS_CONFLICT);
+            const auto content     = result.pickerOverwrite ? result.path.filename().native() : Resource(IDS_CONFLICTHELP);
             const auto reload = Resource(IDS_RELOAD), saveAs = Resource(IDS_SAVEAS), overwrite = Resource(IDS_OVERWRITE), cancel = Resource(IDS_CANCEL);
-            const TASKDIALOG_BUTTON buttons[]{
-                {IDS_RELOAD, reload.c_str()}, {IDS_SAVEAS, saveAs.c_str()}, {IDS_OVERWRITE, overwrite.c_str()}, {IDCANCEL, cancel.c_str()}};
+            std::vector<TASKDIALOG_BUTTON> buttons;
+            if (! result.pickerOverwrite)
+                buttons.push_back({IDS_RELOAD, reload.c_str()});
+            buttons.push_back({IDS_SAVEAS, saveAs.c_str()});
+            if (result.conflictVersion)
+                buttons.push_back({IDS_OVERWRITE, overwrite.c_str()});
+            buttons.push_back({IDCANCEL, cancel.c_str()});
             TASKDIALOGCONFIG config{};
             config.cbSize             = sizeof(config);
             config.hwndParent         = _window.get();
@@ -3989,7 +4005,7 @@ void Application::ResolveSaveConflict(const AsyncFiles::Result& result)
             config.pszMainInstruction = instruction.c_str();
             config.pszContent         = content.c_str();
             config.cButtons           = static_cast<UINT>(std::size(buttons));
-            config.pButtons           = buttons;
+            config.pButtons           = buttons.data();
             config.nDefaultButton     = IDCANCEL;
             int pressed               = IDCANCEL;
             if (SUCCEEDED(DxUi::Failure::InvokeNative(&TaskDialogIndirect, &config, &pressed, nullptr, nullptr)))
@@ -4015,8 +4031,8 @@ void Application::ResolveSaveConflict(const AsyncFiles::Result& result)
         Status(IDS_FILECONTEXTCHANGED);
         return;
     }
-    if (choice == SaveConflictChoice::Overwrite)
-        Save(false, true, result.path);
+    if (choice == SaveConflictChoice::Overwrite && result.conflictVersion)
+        Save(false, &result);
     else if (choice == SaveConflictChoice::SaveAs)
         Save(true);
     else
@@ -4053,7 +4069,7 @@ void Application::FileCompleted() noexcept
 }
 void Application::CompleteFileOperation()
 {
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     if (_options.fileCompletionAdmissionForTest)
     {
         const HRESULT admitted = _options.fileCompletionAdmissionForTest();
@@ -5380,7 +5396,7 @@ int Application::Run()
 {
     if (! _options.designInteractive.empty())
     {
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         return RunDesignInteractiveProbe(*this, _options);
 #else
         return 2;
@@ -5478,7 +5494,7 @@ int Application::Run()
                                                     : Appearance::Light;
         if (! _options.capture.empty() && ! _options.scenario.starts_with(L"spelling-"))
         {
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
             if (_options.scenario == L"settings" || _options.scenario == L"settings-about")
             {
                 auto deterministicProvider = std::make_shared<FakeSpellProvider>();
@@ -5617,7 +5633,7 @@ void Application::DispatchUiMessage(const MSG& message) noexcept
         }
         if (_lifecyclePhase == LifecyclePhase::DrainingForClose && AreShutdownWorkersSettled())
         {
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
             ++_preferencesReadySentDuringClose;
 #endif
             (void)SendMessageW(_window.get(), PreferencesReady, 0, 0);

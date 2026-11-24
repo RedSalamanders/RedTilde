@@ -10,7 +10,7 @@ Install local crash handlers before creating UI or starting workers (`InstallCra
 
 Handle unhandled SEH exceptions, `std::terminate`, invalid CRT parameters (`_set_invalid_parameter_handler`), pure virtual calls (`_set_purecall_handler`), and `SIGABRT`. A reentrant crash must not recurse: serialize DbgHelp use and wait on the active dump event instead of writing concurrently.
 
-The next ordinary launch identifies the pending report (`pending.txt`) and offers its location (`IDS_CRASHREPORT`). Reports remain local; no upload or telemetry is implied. Bound retention to ten app-owned `RedTilde-*.dmp` dumps during normal startup, removing each retired dump's paired `.record` sidecar. Dumps may include document text; the user must choose any later sharing action.
+On a healthy interactive launch, claim the pending report (`pending.txt`) once and show its local path (`IDS_CRASHREPORT`). A headless launch leaves a pending notice available. Keep the newest ten files in the post-adoption `RedTilde-report-*.dmp` collection by dump write time and remove each retired dump's regular `.record` sidecar. Legacy and unrelated files remain intact. Keep pruning in healthy interactive startup. Dumps may contain document text and remain local until the user chooses to share them.
 
 The crash handler is a last-resort diagnostic, not a recovery save. Recovery snapshots are written during healthy execution. AddressSanitizer owns sanitizer diagnostics and must still pass a real detection probe before qualification.
 
@@ -38,7 +38,7 @@ Unexpected C++ allocation failure (`std::bad_alloc`) remains fatal, including at
 
 ## Isolated crash, sanitizer, and failure-report probes
 
-Crash and sanitizer probes run only in isolated harness child processes under `REDTILDE_ENABLE_TESTS`:
+Crash and sanitizer probes run only in isolated harness child processes under `ENABLE_TESTS`:
 
 - `--crash-probe`: triggers an unhandled non-continuable exception through the installed crash handler to prove one local minidump (`MDMP`) and `pending.txt` marker are written.
 - `--recovery-crash-probe`: stages two dirty workspace documents, waits for settled recovery checkpoints, and triggers `CrashProbe()` so `--recovery-restart-probe` can prove restart restoration.
@@ -47,4 +47,4 @@ Crash and sanitizer probes run only in isolated harness child processes under `R
 - `--asan-probe`: exercises an intentional isolated heap-use-after-free read in `ASan Debug` builds so `test.ps1` verifies real AddressSanitizer instrumentation.
 - `--failure-report-self-test`: verifies test-process failure routing (`RedTildeTestFailureReports::RouteAwayFromDialogs()` and `RedTildeTestFailureReports::RunSelfTest()` before `InstallCrashHandler`), ending with stderr diagnostic text and exit code `3` without modal dialogs in Debug / ASan Debug, and exiting `0` in test-enabled Release.
 
-In test-disabled production builds (`!defined(REDTILDE_ENABLE_TESTS)`), every test and probe switch (including `--failure-report-self-test`) refuses immediately with exit code `2` before resolving profile paths, installing the crash handler, or creating a private data directory. Standalone informational flags (`--version`, `-v`, `--help`, `-h`, `/?`, `-?`) likewise exit without creating profile or `Crashes/` directories. See [validation and evidence](../Testing/Testing_Validation.md).
+In test-disabled production builds (`!defined(ENABLE_TESTS)`), every test and probe switch (including `--failure-report-self-test`) refuses immediately with exit code `2` before resolving profile paths, installing the crash handler, or creating a private data directory. Standalone informational flags (`--version`, `-v`, `--help`, `-h`, `/?`, `-?`) likewise exit without creating profile or `Crashes/` directories. See [validation and evidence](../Testing/Testing_Validation.md).

@@ -2659,7 +2659,7 @@ public:
                         "New remembers a blank untitled startup instead of the previous file");
                 Require(app.Document().ReplaceSelection(L"Saved new writing\r\n"), "edit the new untitled document before Save As");
                 const auto target = directory / L"Saved draft.md";
-                app.Save(true, false, target);
+                app.Save(true, {}, target);
                 wait(app, [&] { return ! app._files.Busy() && app._session.path == target; });
                 wait(app, [&] { return ! app._preferenceWriter.Busy(); });
                 Settings durable;

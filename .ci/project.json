@@ -4,7 +4,7 @@
   "repository": "RedSalamanders/RedTilde",
   "engine": {
     "repository": "RedSalamanders/.github",
-    "ref": "235b2a78edb9d4bf1d8687606fc68bd6840007f5"
+    "ref": "0bac99d97f815d68d4e3fbaab41f14088ee4eb00"
   },
   "kind": "application",
   "adapter": "Tools/Invoke-ProjectCi.ps1",
@@ -50,6 +50,15 @@
     "executable": "RedTilde.exe",
     "alias": "redtilde",
     "license": "MIT",
-    "minimumOSVersion": "10.0.22000.2600"
+    "minimumOSVersion": "10.0.22000.2600",
+    "smokeTests": [
+      {
+        "command": "redtilde",
+        "arguments": [
+          "--version"
+        ],
+        "timeoutSeconds": 30
+      }
+    ]
   }
 }

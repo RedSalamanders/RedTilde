@@ -4,6 +4,24 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Write RedTilde's portable packages and receipts under `.build/packages` and use the same location in production CI. The local installer also accepts earlier staged packages.
+- Add RedTilde's root `-Clean`, `-Rebuild` and `-MaxCpuCount` options with owned-profile checks and current build receipts.
+- Expose RedTilde's local Markdown link validation through the root `validate-specs.ps1` command and call it from the complete validator.
+- Verify `redtilde --version` through the WinGet-installed portable alias on both native architectures.
+- Run the existing desktop-lease suite from `test.ps1 -Interactive` and retain the direct interactive command.
+- Align the shared engine pin with the reviewed policy and WinGet metadata revision.
+- Route compiler-free pull request checks through RedTilde's root `validate.ps1`.
+- Select affected RedTilde suites by default from `test.ps1` and retain explicit suite and full-profile runs.
+- Adopt the shared Dependabot configuration for GitHub Actions and vcpkg.
+- Add an opt-in MSVC code analysis build with isolated RedTilde output.
+- Use the common test-hook macro and require explicit test mode for Release builds.
+- Read the paired benchmark compiler log from the checkout's configured intermediate directory.
+- Add a root restore command for pinned RedTilde and DxUi dependencies on x64 and ARM64.
+- Use the common Intermediate layout and preserve compiler-profile comparison with earlier builds.
+- Pin the reviewed shared MSVC setup and regenerate its reusable workflow callers.
+- Guard an existing document version through save and ask again if the file changes after an overwrite confirmation.
+- Use the pinned engine's MSVC verification in hosted workflows and local setup tests.
+- Keep the newest ten new local crash reports and show the pending report once. Preserve older reports.
 - Adopt the pinned formatting and repository policy checks.
 - Use the pinned CI engine's shared Visual Studio setup in native hosted jobs.
 - Use the public evidence receipts to verify that shared read-only hard links retain their identity.

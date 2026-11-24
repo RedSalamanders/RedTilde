@@ -199,8 +199,9 @@ function Assert-RedTildeCanonicalBuildDirectories {
     }
     $paths=[ordered]@{
         output=[IO.Path]::GetFullPath((Join-Path $rootPath ".build/$Platform/$Configuration"))
-        intermediate=[IO.Path]::GetFullPath((Join-Path $rootPath ".build/obj/$Platform/$Configuration/RedTilde"))
+        intermediate=[IO.Path]::GetFullPath((Join-Path $rootPath ".build/Intermediate/$Platform/$Configuration/RedTilde"))
         dependency=[IO.Path]::GetFullPath((Join-Path $rootPath '.build/dependencies/DxUi'))
+        logs=[IO.Path]::GetFullPath((Join-Path $rootPath '.build/logs'))
     }
     foreach($target in $paths.Values){
         $relative=[IO.Path]::GetRelativePath($rootPath,$target)
@@ -287,7 +288,7 @@ function Get-RedTildeSdkBuildInputSnapshot {
         compilerContextSha256=$toolchain.sha256
         vcpkgSha256=$vcpkgSha256
         buildNumber=$(if($env:RedTildeBuildNumber){[int]$env:RedTildeBuildNumber}else{0})
-        testsEnabled=($env:RedTildeEnableTests -ne 'false')
+        testsEnabled=($env:RedTildeEnableTests -eq 'true' -or (-not $env:RedTildeEnableTests -and $Configuration -ne 'Release'))
         toolchain=$toolchain
     }
     $snapshot.identity=& $hash (@($snapshot.compiledSourceIdentity,$snapshot.dependencyIdentitySha256,$snapshot.dependencyHeadersSha256,
@@ -317,7 +318,7 @@ function Get-RedTildeBuildInputSnapshot {
         compilerContextSha256=$toolchain.sha256
         vcpkgSha256=$vcpkgSha256
         buildNumber=$(if($env:RedTildeBuildNumber){[int]$env:RedTildeBuildNumber}else{0})
-        testsEnabled=($env:RedTildeEnableTests -ne 'false')
+        testsEnabled=($env:RedTildeEnableTests -eq 'true' -or (-not $env:RedTildeEnableTests -and $Configuration -ne 'Release'))
         toolchain=$toolchain
     }
     $rows=@($snapshot.compiledSourceIdentity,$snapshot.dependencyIdentitySha256,$snapshot.dependencyHeadersSha256,
@@ -365,7 +366,8 @@ function Invoke-RedTildeHarness {
 function Assert-RedTildeTestArtifact {
     param([Parameter(Mandatory)][string] $Root,
           [Parameter(Mandatory)][string] $Platform,
-          [Parameter(Mandatory)][string] $Configuration)
+          [Parameter(Mandatory)][string] $Configuration,
+          [switch] $RequireTests)
     $canonical=Assert-RedTildeCanonicalBuildDirectories -Root $Root -Platform $Platform -Configuration $Configuration
     $executable=Join-Path $canonical.output 'RedTilde.exe'
     $receipt=Join-Path $Root ".build/$Platform/$Configuration/build-receipt.json"
@@ -381,6 +383,12 @@ function Assert-RedTildeTestArtifact {
     if (-not $built.PSObject.Properties['artifactIdentity'] -or $built.artifactIdentity -cne (Get-RedTildeArtifactIdentity $Root $Platform $Configuration)) {
         throw 'The complete executable/runtime closure does not match its successful build. Rebuild before testing.'
     }
+    if (-not $built.PSObject.Properties['testsEnabled'] -or $built.testsEnabled -isnot [bool]) {
+        throw 'The build receipt is missing its native test-hook mode.'
+    }
+    if ($RequireTests -and -not $built.testsEnabled) {
+        throw 'This run requires an artifact built with test hooks. Rebuild with build.ps1 -EnableTests.'
+    }
     Import-Module (Join-Path $Root 'Build/Toolchain.psm1') -Force
     $msbuild=Get-RedTildeMSBuild
     $sdk=$null;$sdkFailure=$null
@@ -393,7 +401,13 @@ function Assert-RedTildeTestArtifact {
         if($null -eq $sdk -or $sdk.Descriptor.Hash -cne $built.sdkInputDescriptorSha256 -or
             $sdk.Evidence.inputKey -cne $built.dependencyRecipe.inputKey -or $sdk.Evidence.manifestSha256 -cne $built.dependencyRecipe.manifestSha256){throw 'Existing artifact SDK inputs do not match their original accepted build.'}
     }
-    $inputs=Get-RedTildeBuildInputSnapshot -Root $Root -Platform $Platform -Configuration $Configuration -MSBuildPath $msbuild -SdkInput $sdk
+    $previousEnableTests=$env:RedTildeEnableTests
+    try {
+        $env:RedTildeEnableTests=if($built.testsEnabled){'true'}else{'false'}
+        $inputs=Get-RedTildeBuildInputSnapshot -Root $Root -Platform $Platform -Configuration $Configuration -MSBuildPath $msbuild -SdkInput $sdk
+    } finally {
+        $env:RedTildeEnableTests=$previousEnableTests
+    }
     if(-not $built.buildInputs -or $built.buildInputs.identity -cne $inputs.identity -or
         $built.compiledSourceIdentity -cne $inputs.compiledSourceIdentity -or
         $built.dependencyHeadersSha256 -cne $inputs.dependencyHeadersSha256 -or

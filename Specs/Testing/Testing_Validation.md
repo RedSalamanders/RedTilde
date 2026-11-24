@@ -28,7 +28,7 @@ of the host's legacy long-path setting. This changes neither fixture content nor
 rendering, keyboard, focus or theme assertions; it does not establish arbitrary long-path product support.
 
 Storage failure regressions direct write and flush refusal through a thread-local fault under
-`REDTILDE_ENABLE_TESTS`; production builds contain neither the setter nor the injection branches. Assert
+`ENABLE_TESTS`; production builds contain neither the setter nor the injection branches. Assert
 the actual owned staging handle closes before deletion, original bytes/stamp survive, and no `.tmp` remains.
 Rejected settings tests cover synchronous/asynchronous persistence and real hidden view changes. Draft and
 template tests compare exact LF/CRLF/CR/mixed source, normalized recovery previews, unchanged-draft identity
@@ -244,7 +244,9 @@ owns planning, status tokens and receipt admission. Shipped Markdown examples an
 are native inputs. Ordinary guide files select independent checks, and unknown build or source inputs widen
 to every applicable scope.
 
-Use `-Explain` for the read-only plan and `-Scopes A,B` to select scopes explicitly. Affected mode uses the
+The root `test.ps1` command delegates ordinary runs to Affected mode. Use `test.ps1 -Full`
+for the complete direct profile or specify `-Suite Core` to retain the named Core set.
+Use `Test-Changes.ps1 -Explain` for the read-only plan and `-Scopes A,B` to select scopes explicitly. Affected mode uses the
 local merge base of `origin/main` by default and discovers staged, working, renamed, deleted and untracked
 paths without fetching. A successful ordinary affected run can advance the source and index baseline for up
 to 24 hours. A build or test attempt revokes the old baseline first. Explicit base selection, `-Force`, CI,
@@ -371,7 +373,7 @@ The hidden capture suite runs 40 PNG/sidecar pairs (`25` named scenes including 
 `diagram-label-light`, `diagram-label-dark`, `image-paste-light`, `image-paste-dark`, `image-consent-light`, and
 `image-consent-dark`, plus `narrow`, `reference-dark`, `markdown-style`, `caption-close-hover`, and
 `caption-maximize-hover` at 96/144/192 DPI). The harness additionally supports `compose-paper`, `split-dark`,
-`settings-about`, and `print-preview` (under `REDTILDE_ENABLE_TESTS`) for documentation and preview inspection. Each sidecar records requested,
+`settings-about`, and `print-preview` (under `ENABLE_TESTS`) for documentation and preview inspection. Each sidecar records requested,
 native and host DPI, actual pixels/DIP, simulation state and invented fixture basename; the runner verifies PNG
 IHDR dimensions and binds both hashes, toolchain, binary, source and pin in the receipt. Captures never activate
 or publish environment-derived identifiers. The Files fixture freezes its proved model and retires only its
@@ -403,7 +405,9 @@ text-service import on the actual editor through its base member pointer. They c
 replace no callback and acquire no visible IME session. Preview, successive same-ACP revision, cancellation and
 result tests retain exact source/selection plus both history directions and committed-change/recovery counts.
 
-`test-interactive.ps1` is an explicit, time-authorized obligation outside the ordinary hidden/Full suites.
+`test.ps1 -Interactive` is the root entry point for the time-authorized desktop suite. It forwards the platform,
+configuration, build reuse and countdown options to the existing `test-interactive.ps1` runner. Callers can still use
+that command directly. Ordinary affected and full commands preserve the existing unattended test selection.
 It compiles the canonical exact-pinned DxUi InteractiveLease target into the consumer's fingerprint output and
 uses that library's runner/protocol for consent, warning, session ownership, watchdog and verified restoration.
 Before that direct MSBuild invocation, it forwards the receipt-pinned compiler, SDK, host architecture and

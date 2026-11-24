@@ -13,7 +13,15 @@ function Assert-True([bool]$Condition,[string]$Message){if(-not $Condition){thro
 function Assert-Equal($Expected,$Actual,[string]$Message){if($Expected -cne $Actual){throw "$Message; expected '$Expected', actual '$Actual'."}}
 function Assert-Contains($Values,$Expected,[string]$Message){if($Expected -cnotin $Values){throw $Message}}
 $repository=(& git -C $PSScriptRoot rev-parse --show-toplevel).Trim()
-if(-not $SetupScriptPath){$SetupScriptPath=Join-Path $repository '.github/actions/setup-msvc/Setup.ps1'}
+if(-not $SetupScriptPath){
+    $engine=Join-Path $repository '.ci-engine'
+    $pin=(Get-Content -LiteralPath (Join-Path $repository '.ci/project.json') -Raw|ConvertFrom-Json).engine.ref
+    if((git -C $engine rev-parse HEAD) -cne $pin -or (git -C $engine --no-optional-locks status --porcelain)){
+        throw 'The setup fixture requires the clean engine pin from .ci/project.json.'
+    }
+    $SetupScriptPath=Join-Path $engine '.github/actions/setup-msvc/Setup.ps1'
+}
+$SetupScriptPath=(Resolve-Path -LiteralPath $SetupScriptPath).Path
 if(-not $IsWindows){Write-Host 'SKIP hosted MSVC GUI bootstrapper fixtures: Windows process semantics required.';return}
 # Retain all attempts as setup evidence.
 $packet=Join-Path $repository ('.build/msvc-setup-fixtures/'+[guid]::NewGuid().ToString('N'))
@@ -51,9 +59,6 @@ $fakeDiscoveryExecutable=Join-Path $packet 'FakeDiscovery.exe'
 if($LASTEXITCODE-ne 0){throw 'Cannot compile the console discovery fixture.'}
 function Invoke-SetupFixture([string]$Name,[int]$ExitCode=0,[string]$Version='14.52.37025',[switch]$Ready,[switch]$VerifyOnly,[switch]$Local,[switch]$BadSignature,[string]$Missing='',[string]$RunnerTemp=''){
     $fixture=Join-Path $packet $Name
-    $script=Join-Path $fixture '.github/actions/setup-msvc/Setup.ps1'
-    [void][IO.Directory]::CreateDirectory((Split-Path $script))
-    Copy-Item $SetupScriptPath $script
     $discovery=Join-Path $fixture 'Program Files/Microsoft Visual Studio/Installer/vswhere.exe'
     [void][IO.Directory]::CreateDirectory((Split-Path $discovery))
     Copy-Item -LiteralPath $fakeDiscoveryExecutable -Destination $discovery
@@ -61,6 +66,7 @@ function Invoke-SetupFixture([string]$Name,[int]$ExitCode=0,[string]$Version='14
     $installation=Join-Path $fixture 'VS instance'
     $hostArch=if([Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()-eq 'Arm64'){'arm64'}else{'x64'}
     $files=@("VC/Tools/MSVC/14.52.37025/bin/Host$hostArch/x64/cl.exe","VC/Tools/MSVC/14.52.37025/bin/Host$hostArch/x64/link.exe",'VC/Tools/MSVC/14.52.37025/lib/x64/clang_rt.asan_dynamic-x86_64.lib','VC/Tools/Llvm/x64/bin/llvm-pdbutil.exe','VC/Auxiliary/Build/Microsoft.VCToolsVersion.default.txt')
+    $files+="MSBuild/Current/Bin/$(if($hostArch-eq 'arm64'){'arm64'}else{'amd64'})/MSBuild.exe"
     foreach($file in $files){$path=Join-Path $installation $file;[void][IO.Directory]::CreateDirectory((Split-Path $path));if($file-ne $Missing){[IO.File]::WriteAllText($path,'')}}
     $sdk=Join-Path $fixture 'Program Files/Windows Kits/10/Include/10.0.26100.0/um/Windows.h'
     [void][IO.Directory]::CreateDirectory((Split-Path $sdk))
@@ -75,7 +81,7 @@ function Invoke-WebRequest {param($Uri,$OutFile,$TimeoutSec) Copy-Item $env:DXUI
 function Get-AuthenticodeSignature {param($LiteralPath) [pscustomobject]@{Status=$env:DXUI_FIXTURE_SIGNATURE;SignerCertificate=[pscustomobject]@{Subject='CN=Microsoft Corporation, O=Microsoft Corporation, C=US'}}}
 # Success starts with LASTEXITCODE unset, as on hosted CI. Failure has stale success.
 if($env:DXUI_FIXTURE_EXIT-ne '0'){$global:LASTEXITCODE=0}
-& (Join-Path $PSScriptRoot '.github/actions/setup-msvc/Setup.ps1') -Platform x64 -VerifyOnly:$VerifyOnly
+& $env:REDTILDE_TEST_SETUP_SCRIPT -ProjectRoot $PSScriptRoot -Platform x64 -VerifyOnly:$VerifyOnly
 '@)
     $start=[Diagnostics.ProcessStartInfo]::new('pwsh')
     $start.UseShellExecute=$false;$start.CreateNoWindow=$true;$start.RedirectStandardOutput=$true;$start.RedirectStandardError=$true
@@ -89,6 +95,8 @@ if($env:DXUI_FIXTURE_EXIT-ne '0'){$global:LASTEXITCODE=0}
     $start.Environment['RUNNER_ENVIRONMENT']='github-hosted'
     $start.Environment['RUNNER_TEMP']=if($RunnerTemp){$RunnerTemp}else{Join-Path $fixture 'runner temp with spaces'}
     $start.Environment['TEMP']=$start.Environment['RUNNER_TEMP']
+    $start.Environment['REDTILDE_TEST_SETUP_SCRIPT']=$SetupScriptPath
+    $start.Environment['GITHUB_ENV']=Join-Path $fixture 'github-env.txt'
     $start.Environment['GITHUB_OUTPUT']=Join-Path $fixture 'github-output.txt'
     [void][IO.Directory]::CreateDirectory($start.Environment['RUNNER_TEMP'])
     $process=[Diagnostics.Process]::new();$process.StartInfo=$start
@@ -108,6 +116,10 @@ Invoke-TestCase 'delayed GUI success waits and preserves install path with space
     $index=[Array]::IndexOf($arguments,'--installPath')
     Assert-Equal (Join-Path $result.Root 'runner temp with spaces/VS-Msvc-14.52') $arguments[$index+1] 'install path remains one argument'
     Assert-Contains $arguments '--wait' 'bootstrapper waits for its installer'
+    $hostName=if([Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()-eq 'Arm64'){'arm64'}else{'amd64'}
+    $msbuild=Join-Path $result.Root "VS instance/MSBuild/Current/Bin/$hostName/MSBuild.exe"
+    $handoff=[IO.File]::ReadAllLines((Join-Path $result.Root 'github-env.txt'))
+    Assert-Contains $handoff "MSBUILD_EXE_PATH=$msbuild" 'verified native MSBuild is exported to the next job step'
 }
 Invoke-TestCase 'reboot-required success is accepted only after exact tools verify' {
     $result=Invoke-SetupFixture 'reboot' -ExitCode 3010

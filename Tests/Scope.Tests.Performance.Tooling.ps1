@@ -121,41 +121,59 @@ Require-CompilerRejected 'duplicate expected package include' $compilerA $duplic
 $missingIdentity=[ordered]@{Fingerprint=('2'*64);Identity=[ordered]@{apiRevision=4}}
 Require-CompilerRejected 'missing dependency identity commit' $compilerA $compilerB $dependencyA $missingIdentity
 $fixtureRoot=Join-Path $PSScriptRoot ('../.build/performance-tooling/'+[guid]::NewGuid().ToString('N'))
-function Write-CompilerFixture([string]$Name,[string[]]$Files,[string[]]$Flags) {
+function Write-CompilerFixture([string]$Name,[string[]]$Files,[string[]]$Flags,[ValidateSet('Intermediate','obj')][string]$Layout='Intermediate') {
     $directory=[IO.Path]::GetFullPath((Join-Path $fixtureRoot $Name))
     $projectDirectory=Join-Path $directory 'RedTilde'
-    $logs=Join-Path $directory '.build/obj/x64/Release/RedTilde/RedTilde.tlog'
+    $logs=Join-Path $directory ".build/$Layout/x64/Release/RedTilde/RedTilde.tlog"
     [void][IO.Directory]::CreateDirectory($projectDirectory)
     [void][IO.Directory]::CreateDirectory($logs)
     $items=($Files|ForEach-Object{'<ClCompile Include="'+$_+'" />'}) -join ''
     '<Project><ItemGroup>'+$items+'</ItemGroup></Project>'|Set-Content (Join-Path $projectDirectory 'RedTilde.vcxproj')
+    ('<Project><PropertyGroup><IntDir>$(RedTildeOutputRoot)'+$Layout+
+        '\$(Platform)\$(Configuration)\$(MSBuildProjectName)\</IntDir></PropertyGroup></Project>') |
+        Set-Content -LiteralPath (Join-Path $directory 'Directory.Build.props')
     $lines=@(for($index=0;$index -lt $Files.Count;++$index) {
         $source=Join-Path $projectDirectory $Files[$index]
         '^'+$source.ToUpperInvariant()
-        '/c /I"'+$directory.ToUpperInvariant()+'\INCLUDE" '+$Flags[$index]+' /Fo"'+$directory.ToUpperInvariant()+'\.BUILD\OBJ\\" "'+$source.ToUpperInvariant()+'"'
+        '/c /I"'+$directory.ToUpperInvariant()+'\INCLUDE" '+$Flags[$index]+' /Fo"'+$directory.ToUpperInvariant()+'\.BUILD\'+
+            $Layout.ToUpperInvariant()+'\\" "'+$source.ToUpperInvariant()+'"'
     })
     $lines|Set-Content (Join-Path $logs 'CL.command.1.tlog')
     return $directory
 }
-$profileA=Get-RedTildeCompilerProfile (Write-CompilerFixture 'baseline' @('A.cpp','B.cpp') @('/O2 /W4 /WX','/O2 /W4 /WX'))
+$currentProfileRoot=Write-CompilerFixture 'baseline' @('A.cpp','B.cpp') @('/O2 /W4 /WX','/O2 /W4 /WX')
+$profileA=Get-RedTildeCompilerProfile $currentProfileRoot
 $profileB=Get-RedTildeCompilerProfile (Write-CompilerFixture 'candidate' @('A.cpp','B.cpp','New.cpp') @('/O2 /W4 /WX','/O2 /W4 /WX','/O2 /W4 /WX'))
+$legacyProfileRoot=Write-CompilerFixture 'legacy-layout' @('A.cpp','B.cpp') @('/O2 /W4 /WX','/O2 /W4 /WX') -Layout obj
+$legacyProfile=Get-RedTildeCompilerProfile $legacyProfileRoot
+Require ((Get-FileHash -LiteralPath (Get-RedTildeCompilerCommandLogPath $currentProfileRoot)).Hash -ceq $profileA.rawSha256 -and
+    (Get-FileHash -LiteralPath (Get-RedTildeCompilerCommandLogPath $legacyProfileRoot)).Hash -ceq $legacyProfile.rawSha256) (
+    'The paired run uses the same original command log bytes as its compiler profile in either layout.')
 Require ($profileA.schemaVersion -eq 2 -and $profileA.sha256 -ceq $profileB.sha256 -and
     $profileA.rawSha256 -cne $profileB.rawSha256 -and $profileA.translationUnits.Count -eq 2 -and $profileB.translationUnits.Count -eq 3) `
     'Only repository placement and translation-unit identity normalize; raw provenance remains distinct.'
+Require ($profileA.sha256 -ceq $legacyProfile.sha256 -and $profileA.rawSha256 -cne $legacyProfile.rawSha256) (
+    'The current and legacy output paths have the same compiler profile and distinct raw receipts.')
+$staleRoot=Write-CompilerFixture 'stale-legacy-layout' @('A.cpp') @('/O2 /W4 /WX') -Layout obj
+$staleProps=Join-Path $staleRoot 'Directory.Build.props'
+(Get-Content -LiteralPath $staleProps -Raw).Replace(')obj\',')Intermediate\') | Set-Content -LiteralPath $staleProps
+$staleRejected=$false
+try { Get-RedTildeCompilerProfile $staleRoot | Out-Null } catch { $staleRejected=$true }
+Require $staleRejected 'A migrated profile cannot use an old tracking log as the current compiler receipt.'
 foreach($flag in @('/Od /W4 /WX','/O2 /W3 /WX','/O2 /W4 /WX /D NEW_BEHAVIOR','/O2 /W4 /WX /fsanitize=address','/O2 /W4 /WX /IC:\External')) {
     $changed=Get-RedTildeCompilerProfile (Write-CompilerFixture ('changed-'+[guid]::NewGuid().ToString('N')) @('A.cpp') @($flag))
     Require ($profileA.sha256 -cne $changed.sha256) 'Optimization, diagnostics, macros, sanitizer and external includes remain exact.'
 }
 $mixed=Write-CompilerFixture 'mixed' @('A.cpp','B.cpp') @('/O2 /W4 /WX','/Od /W4 /WX')
 $missing=Write-CompilerFixture 'missing' @('A.cpp') @('/O2 /W4 /WX')
-$missingLog=Join-Path $missing '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
+$missingLog=Join-Path $missing '.build/Intermediate/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
 Set-Content $missingLog '^MISSING.CPP'
 $duplicate=Write-CompilerFixture 'duplicate' @('A.cpp') @('/O2 /W4 /WX')
-$duplicateLog=Join-Path $duplicate '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
+$duplicateLog=Join-Path $duplicate '.build/Intermediate/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
 @(Get-Content $duplicateLog;Get-Content $duplicateLog)|Set-Content $duplicateLog
 $forced=Write-CompilerFixture 'forced' @('A.cpp') @('/O2 /W4 /WX /FIforced.h')
 $wrongSource=Write-CompilerFixture 'wrong-source' @('A.cpp','B.cpp') @('/O2 /W4 /WX','/O2 /W4 /WX')
-$wrongLog=Join-Path $wrongSource '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
+$wrongLog=Join-Path $wrongSource '.build/Intermediate/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
 $wrongLines=@(Get-Content $wrongLog);$wrongLines[1]=$wrongLines[1].Replace('\A.CPP','\B.CPP');$wrongLines|Set-Content $wrongLog
 $unexpected=Write-CompilerFixture 'unexpected-source' @('A.cpp') @('/O2 /W4 /WX C:\Unreviewed.cpp')
 $macroRootA=[IO.Path]::GetFullPath((Join-Path $fixtureRoot 'macro-a'))
@@ -267,7 +285,7 @@ $auditRoot=Join-Path $fixtureRoot 'identity-audit'
 $profileRoot=Write-CompilerFixture 'audit-source' @('A.cpp','B.cpp') @('/O2 /W4 /WX','/O2 /W4 /WX')
 $auditProfile=Get-RedTildeCompilerProfile $profileRoot
 $groupedRoot=Write-CompilerFixture 'grouped-source' @('A.cpp','B.cpp') @('/O2 /W4 /WX','/O2 /W4 /WX')
-$groupedLog=Join-Path $groupedRoot '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
+$groupedLog=Join-Path $groupedRoot '.build/Intermediate/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
 $groupedLines=@(Get-Content -LiteralPath $groupedLog)
 $groupedLines=@(($groupedLines[0]+'|'+$groupedLines[2].Substring(1)),($groupedLines[1]+' "'+$groupedLines[2].Substring(1)+'"'))
 $groupedLines|Set-Content -LiteralPath $groupedLog
@@ -279,7 +297,7 @@ $auditStudy=[ordered]@{baseline=@{compiler=(Copy-IdentityFixture $auditProfile)}
     compilerReceipts=[ordered]@{}}
 foreach($side in 'baseline','candidate') {
     $leaf=$side+'-compiler-command.tlog'
-    Copy-Item -LiteralPath (Join-Path $profileRoot '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog') -Destination (Join-Path $auditRoot $leaf)
+    Copy-Item -LiteralPath (Join-Path $profileRoot '.build/Intermediate/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog') -Destination (Join-Path $auditRoot $leaf)
     $auditStudy.compilerReceipts[$side]=@{file=$leaf;sha256=$auditProfile.rawSha256}
 }
 Assert-CompilerProfileEvidence -Study $auditStudy -Root $auditRoot
@@ -299,7 +317,7 @@ $rawAdoptionStudy=[ordered]@{dependencyComparisonMode='sdk-adoption';baseline=[o
 foreach($side in 'baseline','candidate') {
     $item=if($side -ceq 'baseline'){$rawAdoptionA}else{$rawAdoptionB}
     $leaf='raw-adoption-'+$side+'-compiler-command.tlog'
-    $from=Join-Path $item.root '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
+    $from=Join-Path $item.root '.build/Intermediate/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
     Copy-Item -LiteralPath $from -Destination (Join-Path $auditRoot $leaf)
     $rawAdoptionStudy.compilerReceipts[$side]=@{file=$leaf;sha256=$item.profile.rawSha256}
 }
@@ -308,7 +326,7 @@ $rawChangedUnknown=New-RawAdoptionProfile 'raw-adopt-unknown' $dependencyB 'C:\A
 $rawChangedStudy=Copy-IdentityFixture $rawAdoptionStudy
 $rawChangedStudy.candidate.compiler=$rawChangedUnknown.profile
 $rawChangedLeaf='raw-adoption-changed-unknown-compiler-command.tlog'
-Copy-Item -LiteralPath (Join-Path $rawChangedUnknown.root '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog') -Destination (Join-Path $auditRoot $rawChangedLeaf)
+Copy-Item -LiteralPath (Join-Path $rawChangedUnknown.root '.build/Intermediate/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog') -Destination (Join-Path $auditRoot $rawChangedLeaf)
 $rawChangedStudy.compilerReceipts.candidate=@{file=$rawChangedLeaf;sha256=$rawChangedUnknown.profile.rawSha256}
 $rawChangedRejected=$false;try {Assert-CompilerProfileEvidence -Study $rawChangedStudy -Root $auditRoot}catch{$rawChangedRejected=$true}
 Require $rawChangedRejected 'Independent raw-command adoption audit rejects a changed unknown separate include operand.'
@@ -316,7 +334,7 @@ $rawChangedMacro=New-RawAdoptionProfile 'raw-adopt-macro' $dependencyB 'C:\Audit
 $rawChangedStudy=Copy-IdentityFixture $rawAdoptionStudy
 $rawChangedStudy.candidate.compiler=$rawChangedMacro.profile
 $rawChangedLeaf='raw-adoption-changed-macro-compiler-command.tlog'
-Copy-Item -LiteralPath (Join-Path $rawChangedMacro.root '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog') -Destination (Join-Path $auditRoot $rawChangedLeaf)
+Copy-Item -LiteralPath (Join-Path $rawChangedMacro.root '.build/Intermediate/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog') -Destination (Join-Path $auditRoot $rawChangedLeaf)
 $rawChangedStudy.compilerReceipts.candidate=@{file=$rawChangedLeaf;sha256=$rawChangedMacro.profile.rawSha256}
 $rawChangedRejected=$false;try {Assert-CompilerProfileEvidence -Study $rawChangedStudy -Root $auditRoot}catch{$rawChangedRejected=$true}
 Require $rawChangedRejected 'Independent raw-command adoption audit rejects changed macro bytes.'

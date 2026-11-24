@@ -37,6 +37,10 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $root = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 $EngineRoot = [IO.Path]::GetFullPath($EngineRoot)
+if ($Phase -eq 'Static') {
+    & (Join-Path $root 'validate.ps1') -CompilerFree -EngineRoot $EngineRoot -Base $Base -Platform $Platform -DevelopmentEngine:$DevelopmentEngine
+    return
+}
 Import-Module (Join-Path $EngineRoot 'Tools/Modules/Ci.Policy.psm1') -ErrorAction Stop
 Import-Module (Join-Path $EngineRoot 'Tools/Modules/Ci.Project.psm1') -ErrorAction Stop
 $context = New-CiProjectContext -Root $root -EngineRoot $EngineRoot -Phase $Phase -Platform $Platform -Descriptor $Descriptor -DevelopmentEngine:$DevelopmentEngine
@@ -47,17 +51,6 @@ $previousNativeDisabled = [Environment]::GetEnvironmentVariable('CI_NATIVE_BUILD
 $previousBuildNumber = [Environment]::GetEnvironmentVariable('RedTildeBuildNumber', 'Process')
 $previousEnableTests = [Environment]::GetEnvironmentVariable('RedTildeEnableTests', 'Process')
 try {
-if ($Phase -eq 'Static') {
-    $env:CI_NATIVE_BUILDS_DISABLED = 'true'
-    Test-CiProjectConfiguration $context
-    & (Join-Path $EngineRoot 'Tools/Test-Workflows.ps1') -Root $root
-    $baseCommit = Resolve-CiCommit $root $Base
-    Run 'Tools/Test-Changelog.ps1' @('-Base',$baseCommit)
-    Run 'validate-skills.ps1'
-    # Source syntax, manifest, native-PR delegation and Changes are checked above.
-    # validate.ps1 includes compiler fixtures and belongs to the native main lane.
-    return
-}
 if ($Phase -ne 'Qualification') { $Configuration = 'Release' }
 $number = [string]$context.batch.buildNumber
 $profile = @('-Platform',$Platform,'-Configuration',$Configuration)
@@ -71,6 +64,7 @@ if ($Phase -in @('ReleaseTestBuild','Qualification','Production')) {
     $sdkDescriptor=$null
     $buildArguments = $profile + @('-BuildNumber',$number)
     if ($Phase -eq 'Production') { $buildArguments += '-ProductionOnly' }
+    else { $buildArguments += '-EnableTests' }
     if($Configuration -ceq 'Release' -and $Phase -cin @('ReleaseTestBuild','Production')){
         Import-Module (Join-Path $EngineRoot 'Tools/Modules/Ci.SdkPreparation.psm1')
         $lock=Get-Content (Join-Path $root 'Dependencies/DxUi.lock.json') -Raw|ConvertFrom-Json
@@ -84,7 +78,7 @@ if ($Phase -eq 'Production') {
     $packageArguments=@('-Platform',$Platform,'-SkipBuild')
     if($sdkDescriptor){$packageArguments+=@('-DxUiSdkInputDescriptor',$sdkDescriptor)}
     Run 'package.ps1' $packageArguments
-    $archives = @(Get-ChildItem (Join-Path $root '.build/package') -Filter "*-$Platform-*.zip" -File | ForEach-Object FullName)
+    $archives = @(Get-ChildItem -LiteralPath (Join-Path $root '.build/packages') -Filter "*-$Platform-*.zip" -File | ForEach-Object FullName)
     if ($archives.Count -ne 1) { throw 'Expected one original production package and smoke receipt.' }
     $smokePath = $archives[0]+'.receipt.json'
     if (-not (Test-Path -LiteralPath $smokePath -PathType Leaf)) { throw 'Original production package smoke receipt is missing.' }

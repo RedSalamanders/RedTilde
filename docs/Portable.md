@@ -21,7 +21,7 @@ Pass `-InstallDirectory <path>` to target a different per-user folder (it must n
 
 ## Production-Only Portable Role
 
-Portable ZIPs packaged with `package.ps1` use the **production-only Release** role (`!defined(REDTILDE_ENABLE_TESTS)`). Self-test, interactive-test, deliberate crash, recovery, preferences, failure-host, and sanitizer probe switches return exit code `2` without opening the application or creating profile data. Ordinary launching, `--document`, `--version` (`-v`), `--help` (`-h`, `/?`), `--headless`, `--capture`, and performance diagnostics remain available.
+Portable ZIPs packaged with `package.ps1` use the **production-only Release** role (`!defined(ENABLE_TESTS)`). Self-test, interactive-test, deliberate crash, recovery, preferences, failure-host, and sanitizer probe switches return exit code `2` without opening the application or creating profile data. Ordinary launching, `--document`, `--version` (`-v`), `--help` (`-h`, `/?`), `--headless`, `--capture`, and performance diagnostics remain available.
 
 ## Supported Features
 
@@ -38,7 +38,8 @@ Portable ZIPs packaged with `package.ps1` use the **production-only Release** ro
 
 - **Data Location & Credentials:** Preferences (`RedTilde.settings.json`, or `RedTilde-debug.settings.json` in debug builds, including up to `16` workspace folders, `8` pinned GitHub repositories, and `exitUnsavedBehavior`), recovery/resume snapshots (`Recovery/`), pasted clipboard assets (`Assets/`), and local crash reports (`Crashes/`) live under `%LOCALAPPDATA%\RedTilde`. Optional GitHub sign-in tokens are stored in Windows Credential Manager (`RedTilde/GitHub/api.github.com`) rather than plain-text config files; nothing is uploaded or fetched automatically at startup.
 - **Encoding & Safe Saves:** Accepts valid UTF-8 Markdown up to `65,536` UTF-16 units, preserving UTF-8 BOM and `LF`/`CRLF`/`CR`/mixed line endings. Rejects invalid UTF-8, NUL bytes, or oversized files without truncation, saves atomically with external-change conflict prompts, validates workspace rename/paste targets against reserved names and reparse points, and preserves hardlink aliases via independent recovery protection.
-- **Seamless Resume & Crash Recovery:** Manual closing prompts cleanly via the in-window **Save confirmation** dialog (with **Keep & Exit** to hot-exit and reopen unsaved drafts ready to save next launch, or opt into skipping the prompt under **Settings → Writing**); Windows shutdown/logoff always keeps and resumes dirty drafts via `SessionResume` without blocking, while crashes surface the **Restore a copy** preview sheet.
+  An overwrite confirmation applies to the observed file version. A later external edit opens a fresh conflict question.
+- **Seamless Resume & Auto-Recovery:** Manual closing prompts cleanly via the in-window **Save confirmation** dialog (with **Keep & Exit** to hot-exit and reopen unsaved drafts ready to save next launch, or opt into skipping the prompt under **Settings → Writing**); Windows shutdown/logoff always keeps and resumes dirty drafts via `SessionResume` without blocking. Crash recovery checkpoints unsaved edits after `750 ms` of quiet (at most `5 s` under continuous typing) and offers a source preview on restart (`Restore a copy`, `Discard snapshot`, `Keep for later`, `Restore all copies`), where restored copies require **Save as…**.
 - **Privacy Defaults:** Remote `http(s)://` images, local-network/UNC images, `data:` URIs, and `![[wiki]]` embeds are blocked by default. Markdown HTML, scripts, and Mermaid interaction directives never execute. External `http:`, `https:`, and `mailto:` links open only on explicit `Ctrl+Click` or **Open link** confirmation.
 
 ## Troubleshooting & Further Reading

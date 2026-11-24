@@ -631,7 +631,7 @@ FilesService::~FilesService()
 HRESULT FilesService::Initialize(HWND window, UINT message, FilesLimits limits) noexcept
 try
 {
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     if (const auto injected = std::exchange(_nextInitializeFailureForTest, std::nullopt))
     {
         Close();
@@ -776,7 +776,7 @@ void FilesService::Close() noexcept
     }
     _state.reset();
 }
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
 void FilesService::FailNextInitializeForTest(HRESULT hr) noexcept
 {
     _nextInitializeFailureForTest = hr;

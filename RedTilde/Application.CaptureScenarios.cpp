@@ -170,7 +170,7 @@ void Application::PrepareDesignScenario()
         provider->SetSuggestions(L"en-US", L"documnet", {L"document"});
         provider->SetSuggestions(L"en-US", L"recieve", {L"receive"});
         provider->SetSuggestions(L"en-US", L"teh", {L"the"});
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         _options.spellProviderForTest = provider;
 #endif
         _spellService.SetProviderForTest(provider);
@@ -615,7 +615,7 @@ void Application::PrepareDesignScenario()
     }
     if (scenario == L"print-preview")
     {
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         const auto showcasePath = CaptureNativePath(std::filesystem::absolute(_options.dataDirectory) / L"Showcase.md");
         SetDocument(SampleDocument(), showcasePath);
         _settings.appearance = Appearance::Light;

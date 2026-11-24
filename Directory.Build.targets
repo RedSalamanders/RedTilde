@@ -1,5 +1,5 @@
 <Project>
-  <Target Name="ValidateRedTildeOutputRoot" BeforeTargets="PrepareForBuild">
+  <Target Name="ValidateRedTildeOutputRoot" BeforeTargets="PrepareForBuild" Condition="'$(RedTildeAnalyze)'!='true'">
     <PropertyGroup>
       <_RedTildeCanonicalOutputRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory).build\'))</_RedTildeCanonicalOutputRoot>
       <_RedTildeEvaluatedOutputRoot>$([System.IO.Path]::GetFullPath('$(RedTildeOutputRoot)'))</_RedTildeEvaluatedOutputRoot>
@@ -7,6 +7,18 @@
     <Error Condition="'$(_RedTildeEvaluatedOutputRoot)'!='$(_RedTildeCanonicalOutputRoot)' and ('$(CiSdkContract)'!='LocalUnpinnedAbiV1' or '$(RedTildeDxUiSdkRoot)'=='' or '$(RedTildeCiEngineRoot)'=='')" Text="Separate RedTilde output roots require the explicit local SDK build broker and its active compiler lease." />
     <CallTarget Targets="CiRequireSdkConsumerLease" Condition="'$(_RedTildeEvaluatedOutputRoot)'!='$(_RedTildeCanonicalOutputRoot)'" />
   </Target>
+  <!-- MSVC clears tracking state in _PrepareForClean, before BeforeClean. -->
+  <Target Name="ValidateRedTildeAnalysisOutput" BeforeTargets="PrepareForBuild;_PrepareForClean" Condition="'$(RedTildeAnalyze)'=='true'">
+    <PropertyGroup>
+      <_RedTildeAnalysisOutputRoot>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory).build\analysis\'))</_RedTildeAnalysisOutputRoot>
+      <_RedTildeEvaluatedOutputRoot>$([System.IO.Path]::GetFullPath('$(RedTildeOutputRoot)'))</_RedTildeEvaluatedOutputRoot>
+    </PropertyGroup>
+    <Error Condition="'$(_RedTildeEvaluatedOutputRoot)'!='$(_RedTildeAnalysisOutputRoot)' or '$(CiSdkContract)'!='' or '$(RedTildeDxUiSdkRoot)'!=''" Text="RedTilde code analysis requires its dedicated output directory and source dependencies." />
+    <Exec Command="pwsh -NoProfile -NonInteractive -File &quot;$(MSBuildThisFileDirectory)Tools\Assert-AnalysisOutput.ps1&quot; -OutputDirectory &quot;$(OutDir)/.&quot; -IntermediateDirectory &quot;$(IntDir)/.&quot;" />
+  </Target>
+  <ItemDefinitionGroup Condition="'$(RedTildeAnalyze)'=='true' and '$(MSBuildProjectExtension)'=='.vcxproj'">
+    <ClCompile><EnablePREfast>true</EnablePREfast></ClCompile>
+  </ItemDefinitionGroup>
   <PropertyGroup Condition="'$(MSBuildProjectExtension)'=='.vcxproj' and '$(Configuration)'=='Release'">
     <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>

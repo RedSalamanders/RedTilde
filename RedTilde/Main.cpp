@@ -4,7 +4,7 @@
 #include "Common/MonitorDiagnostics.h"
 #include "Common/Version.h"
 #include "res/Resource.h"
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
 #include "Tests/Application.Tests.FailureHost.h"
 #include "Tests/Application.Tests.FailureReports.h"
 #endif
@@ -98,7 +98,7 @@ bool IsVersionArgument(std::wstring_view argument) noexcept
     return argument == L"--version" || argument == L"-v";
 }
 
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
 #if defined(__SANITIZE_ADDRESS__)
 // The isolated use-after-free probe deliberately reads volatile storage for ASan detection.
 // Owner: RedTilde test maintainers; review: 2027-01-31.
@@ -159,7 +159,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
         const bool startupShow      = (startup.dwFlags & STARTF_USESHOWWINDOW) != 0;
         options.showCommand         = startupShow ? startup.wShowWindow : showCommand;
         options.explicitShowCommand = startupShow || (showCommand != SW_SHOWNORMAL && showCommand != SW_SHOWDEFAULT);
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         bool sanitizerProbe{};
         bool linkedSaveCrash{}, linkedSaveRestart{};
         bool failureReportSelfTest{};
@@ -172,7 +172,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
             for (int index = 1; index < count; ++index)
             {
                 const std::wstring_view argument(arguments[static_cast<size_t>(index)]);
-#if ! defined(REDTILDE_ENABLE_TESTS)
+#if ! defined(ENABLE_TESTS)
                 // Refuse test entry points before resolving profile paths, installing
                 // the crash handler or dispatching any probe. Capture and performance
                 // diagnostics remain supported production capabilities.
@@ -280,7 +280,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
                 }
                 else if (argument == L"--list-tests")
                     listTests = true;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
                 else if (argument == L"--failure-host-probe")
                 {
                     failureHostProbe = value();
@@ -335,7 +335,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
                 return WriteCommandVersion();
             if ((testScopeSpecified || listTests) && ! options.selfTest)
                 throw std::invalid_argument("Test scope/list options require --self-test");
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
             if (! failureHostProbe.empty() && (options.dataDirectory.empty() || ! options.dataDirectory.is_absolute()))
                 throw std::invalid_argument("Failure-host probe requires an explicit absolute test data directory");
             if ((linkedSaveCrash || linkedSaveRestart) && (options.dataDirectory.empty() || ! options.dataDirectory.is_absolute()))
@@ -391,7 +391,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
             }
             (void)std::filesystem::remove_all(autoHarnessDataDir, cleanupError);
         });
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         const bool isCrashOrSanitizerProbe = options.crashProbe || options.recoveryProbe || linkedSaveCrash || sanitizerProbe || ! failureHostProbe.empty();
         const bool routeFailureReports =
             ! isCrashOrSanitizerProbe &&
@@ -409,7 +409,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
             OutputDebugStringW(L"RedTilde crash storage unavailable; the configured native failure remains checked\n");
         if (! CrashReportingPrepared())
             return 2;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         if (options.crashProbe)
             CrashProbe();
 #endif
@@ -424,7 +424,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
         MonitorDiagnostics::Initialize();
         (void)MonitorDiagnostics::HandleCommand(commandLine);
         MonitorDiagnostics::Write(RedMonitor::Severity::Info, L"application starting");
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         if (! failureHostProbe.empty())
         {
             const int result = RunFailureHostProbe(failureHostProbe, options.dataDirectory, *runtime);
@@ -441,20 +441,18 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
 #endif
         if (options.selfTest)
         {
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
             return RunCoreTests(options.dataDirectory, testScope, listTests);
 #else
             return 2;
 #endif
         }
-        std::error_code pendingError;
-        if (! options.headless && std::filesystem::exists(crashes / L"pending.txt", pendingError) && ! pendingError)
+        if (! options.headless)
+            RetainRecentCrashReports(crashes);
+        if (const auto report = TakePendingCrashNotice(crashes, ! options.headless))
         {
-            const auto path    = crashes.native();
-            const auto message = FormatStringResource(nullptr, IDS_CRASHREPORT, path);
+            const auto message = FormatStringResource(nullptr, IDS_CRASHREPORT, report->native());
             MessageBoxW(nullptr, message.c_str(), Resource(IDS_APP).c_str(), MB_OK | MB_ICONINFORMATION);
-            std::error_code error;
-            std::filesystem::remove(crashes / L"pending.txt", error);
         }
         std::unique_ptr<Application> app;
         {

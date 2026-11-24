@@ -141,7 +141,7 @@ std::filesystem::path Application::ActiveCustomDictionaryPath() const
 void Application::InitializeSpelling()
 {
     _spellService.Initialize(_window.get(), SpellReady);
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     if (_options.spellProviderForTest)
         _spellService.SetProviderForTest(_options.spellProviderForTest);
 #endif
@@ -1047,7 +1047,7 @@ std::filesystem::path Application::PickDictionaryFile()
         return {};
     _modalPrompt             = ModalPromptKind::FileDialog;
     const auto restorePrompt = wil::scope_exit([&]() noexcept { _modalPrompt = ModalPromptKind::None; });
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     if (_options.headless && _options.filePickerForTest)
         return _options.filePickerForTest(false);
 #endif

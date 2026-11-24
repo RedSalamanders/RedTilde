@@ -1,8 +1,10 @@
 #include "Application.Tests.FailureHost.h"
+#include "Common/CrashHandler.h"
 #include "Common/DxUiFailureHost.h"
 #include "RedTilde/Application.h"
 #include <array>
 #include <charconv>
+#include <chrono>
 #include <cstring>
 #include <dbghelp.h>
 #include <format>
@@ -291,6 +293,65 @@ int RunFailureHostProbe(std::wstring_view kind, const std::filesystem::path& roo
 
 void RegisterFailureHostTests(const std::filesystem::path& root, const std::function<void(std::string_view, const std::function<void()>&)>& test)
 {
+    test("Settings.CrashReportRetention",
+         [&]
+    {
+        for (const int reportCount : {0, 10, 11})
+        {
+            const auto directory = root / std::format(L"crash-retention-{}", reportCount);
+            std::filesystem::create_directories(directory);
+            const auto legacyDump    = directory / L"RedTilde-20261101-100001-1-0000000000000000.dmp";
+            const auto legacySidecar = directory / L"RedTilde-20261101-100001-1-0000000000000000.record";
+            const auto unrelated     = directory / L"external.dmp";
+            std::ofstream(legacyDump, std::ios::binary) << "old dump";
+            std::ofstream(legacySidecar, std::ios::binary) << "old record";
+            std::ofstream(unrelated, std::ios::binary) << "external evidence";
+
+            std::vector<std::filesystem::path> dumps;
+            const auto now = std::filesystem::file_time_type::clock::now();
+            for (int index = 0; index < reportCount; ++index)
+            {
+                auto dump    = directory / std::format(L"RedTilde-report-20261124-1000{:02}-1-0000000000000000.dmp", 20 - index);
+                auto sidecar = dump;
+                sidecar.replace_extension(L".record");
+                std::ofstream(dump, std::ios::binary) << "local dump";
+                std::ofstream(sidecar, std::ios::binary) << "local record";
+                std::filesystem::last_write_time(dump, now - std::chrono::seconds(20 - index));
+                dumps.push_back(std::move(dump));
+            }
+
+            RetainRecentCrashReports(directory);
+            for (std::size_t index = 0; index < dumps.size(); ++index)
+            {
+                auto sidecar = dumps[index];
+                sidecar.replace_extension(L".record");
+                const bool retained = reportCount != 11 || index != 0;
+                Require(std::filesystem::exists(dumps[index]) == retained && std::filesystem::exists(sidecar) == retained,
+                        "prune only the oldest new dump and its sidecar above ten reports");
+            }
+            Require(ReadText(legacyDump) == "old dump" && ReadText(legacySidecar) == "old record" && ReadText(unrelated) == "external evidence",
+                    "leave legacy and unrelated report bytes intact");
+        }
+    });
+    test("Settings.CrashNoticeOnce",
+         [&]
+    {
+        const auto directory = root / L"crash-notice";
+        std::filesystem::create_directories(directory);
+        const auto marker = directory / L"pending.txt";
+        const auto report = directory / L"RedTilde-20261101-100001-1-0000000000000000.dmp";
+        {
+            std::ofstream output(marker, std::ios::binary);
+            output.write(reinterpret_cast<const char*>(report.c_str()), static_cast<std::streamsize>(report.native().size() * sizeof(wchar_t)));
+            output.close();
+            Require(output.good(), "write the production marker's UTF-16 path");
+        }
+
+        Require(! TakePendingCrashNotice(directory, false).has_value() && std::filesystem::exists(marker), "headless startup leaves the user's pending notice");
+        Require(TakePendingCrashNotice(directory, true) == report && ! std::filesystem::exists(marker),
+                "first interactive startup names and claims the legacy report");
+        Require(! TakePendingCrashNotice(directory, true).has_value(), "second interactive startup has no repeat notice");
+    });
     test("Settings.Api5OriginalContextAndNativeIsolation",
          [&]
     {

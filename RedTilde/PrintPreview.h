@@ -29,7 +29,7 @@ public:
     [[nodiscard]] bool IsReady() const noexcept;
     [[nodiscard]] bool CanPrint() const noexcept;
     [[nodiscard]] bool DispatchKeyboardMessage(const MSG& message);
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     [[nodiscard]] bool IsWaitingOverlayVisible() const noexcept;
     [[nodiscard]] std::wstring_view WaitingOverlayMessage() const noexcept;
     [[nodiscard]] D2D1_RECT_F WaitingOverlayBounds() const noexcept;

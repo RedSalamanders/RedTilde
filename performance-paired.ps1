@@ -8,7 +8,7 @@ $ErrorActionPreference='Stop'
 Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'Build/Performance.psm1') -Force
 $exe=Join-Path $PSScriptRoot '.build/x64/Release/RedTilde.exe'
-$artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform x64 -Configuration Release
+$artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform x64 -Configuration Release -RequireTests
 $build=$artifact.Build
 $source=$artifact.SourceIdentity
 $fixture=Join-Path $PSScriptRoot 'docs/examples/s5-performance.md'
@@ -25,7 +25,7 @@ if($ReviewedHeaderDelta) {
     $reviewedProfile=Get-RedTildeReviewedHeaderDeltaProfile -Root $PSScriptRoot
     $reviewedProfileSha256=(Get-FileHash (Join-Path $PSScriptRoot 'Build/ReviewedHeaderDeltaProfile.json')).Hash
 }
-$rawCompiler=Join-Path $PSScriptRoot '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
+$rawCompiler=Get-RedTildeCompilerCommandLogPath -Root $PSScriptRoot
 $power=(& powercfg /getactivescheme | Out-String).Trim()
 if($LASTEXITCODE -ne 0 -or -not $power) { throw 'Power policy identity is unavailable.' }
 $environment=[ordered]@{machine=$env:COMPUTERNAME;cpu=$env:PROCESSOR_IDENTIFIER;os=[Environment]::OSVersion.VersionString;

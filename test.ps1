@@ -1,5 +1,9 @@
 <#
-.SYNOPSIS Runs selected RedTilde application tests with retained, source-bound evidence.
+.SYNOPSIS Runs affected or explicitly selected RedTilde tests with source-bound evidence.
+.DESCRIPTION Ordinary calls run Test-Changes.ps1. Use Full for the complete direct profile or Suite/Suites for explicit coverage.
+.PARAMETER Full Run every applicable direct suite for the selected profile.
+.PARAMETER Interactive Run the existing desktop-lease suite with the selected profile and agreed time.
+.PARAMETER InteractiveAutoStart Enable the visible Start countdown. Requires Interactive and prior agreement.
 .PARAMETER ParallelSuites
 Maximum suite concurrency. RedTilde executes its application suites serially.
 .PARAMETER LocalSdkBuildReceipt
@@ -12,10 +16,29 @@ Independently retained SHA-256 of that original record. Current source, engine, 
 param([ValidateSet('x64','ARM64')][string] $Platform='x64',
       [ValidateSet('Debug','Release','ASan Debug')][string] $Configuration='Debug',
       [ValidateSet('Core','Captures','Crash','All')][string] $Suite='Core',[switch] $SkipBuild,[string[]]$Suites=@(),[switch]$Full,[switch]$SkipTooling,
+      [switch]$Interactive,[switch]$InteractiveAutoStart,
       [ValidateRange(1,8)][int]$ParallelSuites=1,
       [string]$LocalSdkBuildReceipt='', [string]$LocalSdkBuildSha256='')
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
+if ($Interactive -or $InteractiveAutoStart) {
+    if (-not $Interactive) { throw 'Use -InteractiveAutoStart with -Interactive.' }
+    $noninteractiveOptions = @('Suite','Suites','Full','SkipTooling','ParallelSuites','LocalSdkBuildReceipt','LocalSdkBuildSha256')
+    if (@($PSBoundParameters.Keys | Where-Object { $_ -in $noninteractiveOptions }).Count) {
+        throw 'Use -Interactive with only the profile, SkipBuild and InteractiveAutoStart options.'
+    }
+    $global:LASTEXITCODE = 0
+    & (Join-Path $PSScriptRoot 'test-interactive.ps1') -Platform $Platform -Configuration $Configuration `
+        -SkipBuild:$SkipBuild -InteractiveAutoStart:$InteractiveAutoStart
+    exit $LASTEXITCODE
+}
+
+$profileOptions = @('Platform', 'Configuration', 'SkipBuild', 'ParallelSuites', 'Full')
+if (-not $Full -and @($PSBoundParameters.Keys | Where-Object { $_ -notin $profileOptions }).Count -eq 0) {
+    $global:LASTEXITCODE = 0
+    & (Join-Path $PSScriptRoot 'Test-Changes.ps1') -Mode Affected -Platform $Platform -Configuration $Configuration -SkipBuild:$SkipBuild -ParallelSuites $ParallelSuites
+    exit $LASTEXITCODE
+}
 $localSdkMode=[bool]($LocalSdkBuildReceipt -or $LocalSdkBuildSha256)
 if($localSdkMode -and (-not $IsWindows -or $env:GITHUB_ACTIONS -ceq 'true' -or $env:CI_NATIVE_BUILDS_DISABLED -ceq 'true')){
     throw 'Local SDK runtime requires local Windows native execution.'
@@ -53,7 +76,7 @@ if(-not $localSdkMode){
 }
 if('Tooling' -in $Suites){& (Join-Path $PSScriptRoot 'validate.ps1')}
 if(-not @($Suites|Where-Object{$_ -ne 'Tooling'}).Count){Write-Host 'Independent tooling passed; native coverage NOT_EVALUATED';exit 0}
-if (-not $SkipBuild) { & (Join-Path $PSScriptRoot 'build.ps1') -Platform $Platform -Configuration $Configuration }
+if (-not $SkipBuild) { & (Join-Path $PSScriptRoot 'build.ps1') -Platform $Platform -Configuration $Configuration -EnableTests }
 $architecture=[Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
 if ($Platform -eq 'ARM64' -and $architecture -ne 'Arm64') { throw 'ARM64 runtime tests require a native ARM64 host.' }
 Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
@@ -67,7 +90,7 @@ if($localSdkMode){
     $sourceIdentity=Get-RedTildeSourceIdentity -Root $PSScriptRoot
     $binarySha256=$runtimeInput.Build.executableSha256
 }else{
-    $artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
+    $artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration -RequireTests
     $exe=$artifact.Executable
     $built=$artifact.Build
     $sourceIdentity=$artifact.SourceIdentity
@@ -247,12 +270,19 @@ try {
     if ('Crash' -in $Suites) {
         $crashData=Join-Path $run 'crash-probe'
         $exit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--crash-probe','--data-dir',$crashData) -LogPrefix (Join-Path $run 'crash')
-        $dumps=@(Get-ChildItem (Join-Path $crashData 'Crashes') -Filter 'RedTilde-*.dmp' -File)
+        $dumps=@(Get-ChildItem (Join-Path $crashData 'Crashes') -Filter 'RedTilde-report-*.dmp' -File)
         if ($exit -eq 0 -or $dumps.Count -ne 1 -or -not (Test-Path (Join-Path $crashData 'Crashes/pending.txt'))) { throw 'Crash probe did not produce one local dump and marker.' }
+        $markerName=[IO.File]::ReadAllText((Join-Path $crashData 'Crashes/pending.txt'),[Text.Encoding]::Unicode)
+        if($markerName -cne $dumps[0].FullName){throw 'The crash marker did not name the dump from this probe.'}
         $signature=[IO.File]::ReadAllBytes($dumps[0].FullName)
         if ([Text.Encoding]::ASCII.GetString($signature,0,4) -ne 'MDMP') { throw 'Crash report has no minidump signature.' }
-        $receipt.results+=@{scope='Crash';exitCode=$exit;dumpSha256=(Get-FileHash $dumps[0].FullName).Hash;pendingMarker=$true}
-        Write-Host 'Isolated local crash dump and marker verified.'
+        $markerPath=Join-Path $crashData 'Crashes/pending.txt'
+        $headlessExit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--self-test','--test-scope','Settings','--list-tests','--data-dir',$crashData) -LogPrefix (Join-Path $run 'crash-headless-restart')
+        if($headlessExit -ne 0 -or [IO.File]::ReadAllText($markerPath,[Text.Encoding]::Unicode) -cne $markerName){
+            throw 'A headless restart must preserve the pending crash notice.'
+        }
+        $receipt.results+=@{scope='Crash';exitCode=$exit;dumpSha256=(Get-FileHash $dumps[0].FullName).Hash;pendingMarker=$true;headlessNoticePreserved=$true}
+        Write-Host 'The isolated crash marker names its minidump and survives a headless restart.'
     }
     if ($Configuration -eq 'ASan Debug' -and 'Sanitizer' -in $Suites) {
         $exit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--asan-probe','--data-dir',(Join-Path $run 'asan-probe')) -LogPrefix (Join-Path $run 'asan')

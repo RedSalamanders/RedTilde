@@ -11,7 +11,7 @@ $package=@($ast.FindAll({param($n)$n -is [Management.Automation.Language.IfState
 if($build.Count -ne 1 -or $package.Count -ne 1){throw 'Expected one actual build and production branch.'}
 $fixture=Join-Path $repo ('.build/hosted-sdk-controls/'+[guid]::NewGuid().ToString('N'))
 [void][IO.Directory]::CreateDirectory((Join-Path $fixture 'Dependencies'))
-[void][IO.Directory]::CreateDirectory((Join-Path $fixture '.build/package'))
+[void][IO.Directory]::CreateDirectory((Join-Path $fixture '.build/packages'))
 $lockPath=Join-Path $repo 'Dependencies/DxUi.lock.json'
 $lockedSource=(Get-Content -LiteralPath $lockPath -Raw | ConvertFrom-Json).commit
 Copy-Item -LiteralPath $lockPath -Destination (Join-Path $fixture 'Dependencies/DxUi.lock.json')
@@ -28,7 +28,7 @@ function Run {
     param($Script,$CommandArguments)
     $Probe.commands.Add(@{script=$Script;arguments=@($CommandArguments)})
     if($Script -cne 'package.ps1'){return}
-    $archive=Join-Path $root ".build/package/synthetic-$Platform-0.zip"
+    $archive=Join-Path $root ".build/packages/synthetic-$Platform-0.zip"
     [IO.File]::WriteAllText($archive,'inert package fixture')
     $names=@('self-test','test-scope','list-tests','interactive','crash','recovery-crash','recovery-restart',
         'preferences','asan','linked-save-crash','linked-save-restart','failure-host','failure-host-missing-value',

@@ -1699,7 +1699,7 @@ void Application::ShowFilesContextMenuNow(std::uint64_t id, POINT screenPoint, b
         add(IDS_CTX_COPY, Command::FilesCtxCopy);
         FileClipboardPayload payload;
         bool hasDrop{};
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         if (_options.clipboardDropReaderForTest)
         {
             if (auto testPayload = _options.clipboardDropReaderForTest())
@@ -1843,7 +1843,7 @@ void Application::ExecuteFilesContextAction(Command command)
         if (copied.empty())
             return;
         HRESULT hr = S_OK;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         if (_options.clipboardWriterForTest)
             hr = _options.clipboardWriterForTest(copied);
         else
@@ -1870,7 +1870,7 @@ void Application::ExecuteFilesContextAction(Command command)
         payload.paths.push_back(target.localPath.lexically_normal());
         payload.effect = command == Command::FilesCtxCut ? DropEffectKind::Move : DropEffectKind::Copy;
         HRESULT hr     = S_OK;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         if (_options.clipboardDropWriterForTest)
             hr = _options.clipboardDropWriterForTest(payload);
         else
@@ -1903,7 +1903,7 @@ void Application::ExecuteFilesContextAction(Command command)
             return;
         FileClipboardPayload payload;
         HRESULT hr = S_OK;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         if (_options.clipboardDropReaderForTest)
         {
             if (auto testPayload = _options.clipboardDropReaderForTest())

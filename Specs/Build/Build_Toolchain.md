@@ -69,6 +69,9 @@ The application's `vcpkg-install.ps1` uses the pinned CI engine to prepare its c
 overlays and assemble the manifest arguments. The product supplies the static-md triplets and its existing
 binary-cache policy.
 
+Run `.\restore.ps1` for x64 or `.\restore.ps1 -Platform ARM64` to prepare the standard RedTilde and
+pinned DxUi dependencies without compiling the editor. The command uses repository-owned dependency trees.
+
 `restore-dxui.ps1` prepares `<output root>/vcpkg-tool` as a complete, clean vcpkg checkout at the pinned DxUi's
 `vcpkg-tool.json` commit (`Build/VcpkgToolCheckout.psm1`) before it runs that DxUi's `vcpkg-install.ps1`, which then
 reuses it. vcpkg reads versioned ports with Git commands whose environment holds only `GIT_INDEX_FILE` and so cannot
@@ -87,12 +90,13 @@ links rewritten/verified for `Installer/Install-RedTilde.ps1`, `docs/Diagnostics
 licenses (`LICENSE.txt`, `THIRD-PARTY-NOTICES.md`, `Dependencies/RedMonitor-LICENSE.txt`, `Dependencies/yyjson-LICENSE.txt`, `Dependencies/WIL-LICENSE.txt`,
 `Dependencies/DxUi-LICENSE.txt`, `Dependencies/DxUi-THIRD-PARTY-NOTICES.md`, `Dependencies/docs/licenses/`,
 `Dependencies/libfyaml-LICENSE.txt`, `Dependencies/libfyaml-xxHash-LICENSE.txt`, or `Dependencies/DxUiSdk` in SDK-input
-packages), writes a `.sha256` sidecar beside the ZIP, and runs clean-extraction smoke (`--help`, `--version`, hidden
+packages), writes the staged files, ZIP, receipt and `.sha256` sidecar under `.build/packages`, and runs clean-extraction smoke (`--help`, `--version`, hidden
 capture, and all 16 test-entry refusals). [`Installer/Install-RedTilde.ps1`](../../Installer/Install-RedTilde.ps1)
 provides non-nesting un-elevated per-user installation to `%LOCALAPPDATA%\Programs\RedTilde` with an install-ownership
 manifest marker, Start Menu shortcut creation, HKCU Uninstall registration using a resolved full PowerShell path, optional
 `.md`/`.markdown` `OpenWithProgids` and `Applications\RedTilde.exe` registration with `SHChangeNotify`, and CWD/reparse-safe
-uninstall while preserving `%LOCALAPPDATA%\RedTilde`. A release cannot depend on an unqualified moving PR branch.
+uninstall while preserving `%LOCALAPPDATA%\RedTilde`. A local install can find staged folders under
+`.build/packages` and earlier packages under `.build/package`. A release cannot depend on an unqualified moving PR branch.
 
 `build.ps1` hashes the compiled first-party source map by file bytes, so restored or preserved timestamps cannot make
 changed source appear current. Before MSBuild it verifies the exact DxUi lock commit and a clean pinned source checkout,
@@ -104,6 +108,10 @@ an old receipt, or changed output closure causes an app-project-only `Clean` wit
 before the normal build. If the clean boundary or required input identity cannot be verified, the build fails closed.
 An unchanged compiled-input identity permits incremental reuse, including documentation-only edits; the receipt still
 updates its full source identity.
+
+`build.ps1 -Clean` verifies the selected project's evaluated output paths, invalidates its receipt and cleans its
+first-party outputs without restoring or building dependencies. `-Rebuild` requests that clean before a normal
+verified build. `-MaxCpuCount` accepts an explicit MSBuild and C++ compiler worker limit.
 
 After path preflight, each build attempt revokes the profile's prior successful receipt before dependency restore or
 MSBuild. Only a completed build whose source, dependency headers, compiler context, output closure and executable remain
@@ -119,6 +127,10 @@ claim to fingerprint arbitrary external imports outside those declared inputs.
 All native profiles require the installed default MSVC **14.52.x** family with the v145 platform toolset. Discovery remains installation-independent. Restore rejects another default family before dependency compilation; MSBuild validates the selected family before compilation. Record exact patch/compiler/linker identities; GL archives and their final links require exactly matching tools.
 
 Release explicitly uses /Gy and /GL, /OPT:REF and full /LTCG, with ordinary incremental linking disabled. Debug/ASan diagnostic optimization settings are unchanged. Preserve existing project-specific size/speed, warning, ISA, CRT and subsystem choices. Evaluated-profile tests check all six native configurations, pinned archives, and negative compiler/linker controls; resource-only satellites contain no C++ bodies.
+
+Native object and tracking files use `.build/Intermediate/<Platform>/<Configuration>/RedTilde`. The
+compiler-profile reader follows the checked-out build policy for current and earlier sources. It keeps each
+original tracking log's digest and normalizes the common object and PDB directory in the comparison profile.
 
 Project references explicitly forward WholeProgramOptimization and VCToolsVersion into the adopted DxUi archive. Dependency identity includes releaseOptimizationPolicy=Gy-REF-GL-LTCG-full-v1 and is rehashed before choosing writable outputs. This separates the new archive policy without changing the adopted API/source pin. Keep header/library/compiler/CRT identities matched.
 
@@ -144,18 +156,18 @@ LTO is scoped to each final EXE/DLL and does not guarantee reduced size or impro
 
 ### CI toolchain preparation and audit evidence
 
-Active Windows compilation/tooling workflows use the local setup-msvc composite action. It reads RequiredMsvcToolsVersion, verifies the discovered default compiler, linker, ASan target libraries, SDK and x64 LLVM scanner tools, and provisions Visual Studio 2026 Insiders only on GitHub-hosted runners when necessary. The Microsoft-signed bootstrapper runs under RUNNER_TEMP; existing installations are retained. A channel that no longer supplies 14.52 fails rather than accepting another compiler. Local -VerifyOnly is read-only; automatic local installation is refused. Hosted provisioning remains a separate unexecuted branch until its actual CI receipt exists.
+Active Windows compilation and tooling workflows run setup-msvc from the pinned CI engine. It reads RequiredMsvcToolsVersion, verifies the discovered default compiler, linker, ASan target libraries, SDK and x64 LLVM scanner tools, and provisions Visual Studio 2026 Insiders only on GitHub-hosted runners when necessary. The Microsoft-signed bootstrapper runs under RUNNER_TEMP; existing installations are retained. A channel that no longer supplies 14.52 fails rather than accepting another compiler. Local -VerifyOnly is read-only; automatic local installation is refused. Hosted provisioning remains a separate unexecuted branch until its actual CI receipt exists.
 
 [Full evaluated settings and differences](../../Measurements/Toolchain/2026-10-23-msvc1452/Settings.md) include both platform/configuration matrices and exact per-file metadata. [Microsoft installation guidance](https://learn.microsoft.com/en-us/cpp/overview/acquire-msvc) documents channel-specific acquisition. The published [runner image inventory](https://github.com/actions/runner-images/blob/main/images/windows/Windows2025-VS2026-Readme.md) does not establish that the required toolset is installed; runtime versions alone are also not compiler proof.
 
 RedMonitor is installed independently. Builds verify the local pinned client header/license and never compile or package the helper; see [RedMonitor integration](../Core/Core_RedMonitorIntegration.md).
 
-Hosted setup (`.github/actions/setup-msvc/Setup.ps1`) checks `vswhere.exe` availability and filters Visual Studio 18 (`-version '[18.0,19.0)'`), enforces a 260-UTF-16-unit guard on the planned bootstrapper
+Hosted setup (`.ci-engine/.github/actions/setup-msvc/Setup.ps1`) discovers Visual Studio with `vswhere.exe` and enforces a 260-UTF-16-unit guard on the planned bootstrapper
 path before downloading (`$installer.Length -ge 260`), bounds bootstrapper download (`180` seconds) and installer
 execution (`1800` seconds, killing the owned installer tree and waiting up to `15` seconds on timeout), waits with
 both `--wait` and `Start-Process`/`WaitForExit`, reads the explicit exit code (`0` or `3010`), and rechecks the
 required compiler family and complete target tools. Ambient `LASTEXITCODE` cannot establish installer success. Paths
-with spaces stay one argument; installer stdout, stderr and fresh `dd_*` logs (using a `2 s` timestamp safety window) remain downloadable on failure.
+with spaces stay one argument; installer stdout, stderr and fresh `dd_*` logs remain downloadable on failure.
 Delayed-GUI, stale-exit, wrong-family, missing-tool, signature and local/read-only refusal controls exercise the
 actual setup script without running an installer. `Tests/Tooling.Tests.ResourceStrings.ps1` checks `res/RedTilde.rc`
 (`#pragma code_page(65001)`), forward and reverse `res/Resource.h` parity under strict UTF-8, production references and formatted-placeholder discipline, positional placeholders without printf specifiers, and C++

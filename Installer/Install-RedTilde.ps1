@@ -206,9 +206,11 @@ function Resolve-RedTildeSourceDirectory {
     $parent = Split-Path $PSScriptRoot -Parent
     if ($parent) {
         $candidates.Add($parent)
-        $packageRoot = Join-Path $parent '.build\package'
-        if ([IO.Directory]::Exists($packageRoot)) {
-            $hostArch = Get-RedTildeHostArchLabel
+        $hostArch = Get-RedTildeHostArchLabel
+        foreach ($packagePath in '.build\packages', '.build\package') {
+            $packageRoot = Join-Path $parent $packagePath
+            if (-not [IO.Directory]::Exists($packageRoot)) { continue }
+            Assert-NoReparseComponent -FullPath $packageRoot -Description 'Package staging directory'
             foreach ($dir in @(Get-ChildItem -LiteralPath $packageRoot -Directory |
                     Where-Object { $_.Name -like "RedTilde-*-$hostArch-*" -and (($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -eq 0) } |
                     Sort-Object LastWriteTimeUtc -Descending)) {
