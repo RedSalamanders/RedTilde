@@ -393,6 +393,8 @@ void RegisterCloseTests(const std::filesystem::path& root, const std::function<v
             launch.dataDirectory = root / (saveAs ? L"worker-link-save-as" : L"worker-link-save");
             const auto target = launch.dataDirectory / L"notebook.md", alias = launch.dataDirectory / L"same-notebook.md";
             launch.filePickerForTest = [&](bool saving) { return saving ? alias : std::filesystem::path{}; };
+            if (saveAs)
+                launch.saveConflictForTest = [] { return SaveConflictChoice::Overwrite; };
             const auto gate = launch.fileGateForTest = std::make_shared<AsyncFiles::TestGate>();
             Application app(launch);
             Success(app.Initialize(), "create hidden linked-file worker fixture");
@@ -410,7 +412,7 @@ void RegisterCloseTests(const std::filesystem::path& root, const std::function<v
             const auto later = app.Document().Snapshot();
             Checkpoint(app);
             Release(gate);
-            Pump(app);
+            Await(app, [&] { return HasLabelPrefix(app.Host().GetRoot(), Resource(IDS_SAVED)); }, "finish the guarded save, including a picker confirmation");
             StoredDocument actual, shared;
             Success(LoadDocument(target, actual), "read admitted worker save");
             Success(LoadDocument(alias, shared), "read application save alias");
@@ -599,6 +601,38 @@ void RegisterCloseTests(const std::filesystem::path& root, const std::function<v
         Require(edited && app.Dirty() && app.Document().GetText() == L"Notebook\r\nFirst edit\nLater edit\n" && actual.text == L"External source\n",
                 "a choice for an older immutable source cannot overwrite or discard newer edits");
         Require(app.Document().Undo() && app.Document().GetText() == L"Notebook\r\nFirst edit\n", "later edit retains its own Undo transaction");
+    });
+    test("Editor.OverwriteChoiceProtectsTheObservedVersion",
+         [&]
+    {
+        for (const bool saveAs : {false, true})
+        {
+            LaunchOptions launch;
+            launch.headless      = true;
+            launch.dataDirectory = root / (saveAs ? L"guarded-picker-choice" : L"guarded-overwrite-choice");
+            const auto original  = launch.dataDirectory / L"notebook.md";
+            const auto target    = saveAs ? launch.dataDirectory / L"existing-copy.md" : original;
+            unsigned questions{};
+            launch.filePickerForTest   = [&](bool) { return target; };
+            launch.saveConflictForTest = [&]
+            {
+                if (++questions != 1)
+                    return SaveConflictChoice::Cancel;
+                Success(WriteBytesAtomic(target, "Later external edit\n"), "update external bytes before confirming the earlier version");
+                return SaveConflictChoice::Overwrite;
+            };
+            Application app(launch);
+            Success(app.Initialize(), "create hidden guarded overwrite app");
+            Seed(app, original);
+            Edit(app, L"Pending edit\n");
+            Success(WriteBytesAtomic(target, "First external edit\n"), "seed the observed conflicting version");
+            app.Execute(saveAs ? Command::SaveAs : Command::Save);
+            Await(app, [&] { return questions == 2; }, "offer a new conflict decision for the changed file");
+            StoredDocument actual;
+            Success(LoadDocument(target, actual), "read the second external version");
+            Require(actual.text == L"Later external edit\n" && app.Dirty() && app.Document().GetText() == L"Notebook\r\nPending edit\n",
+                    "the earlier overwrite choice cannot authorize the later external version");
+        }
     });
     test("Editor.SavePickerCannotRetargetNewerSource",
          [&]

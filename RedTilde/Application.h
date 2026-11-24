@@ -818,7 +818,7 @@ private:
     void CompleteFileOperation();
     void AskThen(std::function<void()> continuation);
     void Open();
-    void Save(bool saveAs = false, bool force = false, std::optional<std::filesystem::path> selectedPath = {});
+    void Save(bool saveAs = false, const AsyncFiles::Result* confirmed = nullptr, std::optional<std::filesystem::path> selectedPath = {});
     void ResolveSaveConflict(const AsyncFiles::Result& result);
     std::filesystem::path PickFile(bool saving, bool image = false, bool folder = false);
     void Menu(POINT point, bool insertOnly = false, bool headingOnly = false);

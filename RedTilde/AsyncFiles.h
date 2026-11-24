@@ -33,6 +33,9 @@ public:
         StoredDocument document;
         HRESULT status{};
         std::size_t rejectedUnits{};
+        std::optional<FileStamp> conflictVersion;
+        std::optional<SaveRecoveryContext> recovery;
+        bool pickerOverwrite{};
     };
 #if defined(REDTILDE_ENABLE_TESTS)
     // Test-only admission barrier around the real filesystem operation. The
@@ -80,7 +83,7 @@ private:
         std::optional<FileStamp> expected;
         bool sameIdentityOnly{};
         std::filesystem::path baselinePath;
-        std::optional<SaveRecoveryContext> recovery;
+        bool probePickerDestination{};
 #if defined(REDTILDE_ENABLE_TESTS)
         std::shared_ptr<TestGate> testGate;
 #endif
@@ -116,16 +119,48 @@ private:
 #endif
         if (result.saving)
         {
-            result.status = SaveDocument(result.path,
-                                         result.document.text,
-                                         result.document.bom,
-                                         job->expected ? &job->expected.value() : nullptr,
-                                         result.document.stamp,
-                                         job->sameIdentityOnly,
-                                         job->baselinePath.empty() ? nullptr : &job->baselinePath,
-                                         job->recovery ? &job->recovery.value() : nullptr);
+            if (job->probePickerDestination)
+            {
+                FileStamp observed;
+                std::string previous;
+                result.status = ReadBytes(result.path, previous, &observed);
+                if (SUCCEEDED(result.status))
+                {
+                    result.conflictVersion = observed;
+                    result.pickerOverwrite = true;
+                    result.status          = HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
+                }
+                else if (result.status == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND) || result.status == HRESULT_FROM_WIN32(ERROR_PATH_NOT_FOUND))
+                {
+                    job->expected         = FileStamp{};
+                    job->sameIdentityOnly = false;
+                    result.status         = S_OK;
+                }
+            }
+            if (SUCCEEDED(result.status))
+            {
+                result.status = SaveDocument(result.path,
+                                             result.document.text,
+                                             result.document.bom,
+                                             job->expected ? &job->expected.value() : nullptr,
+                                             result.document.stamp,
+                                             job->sameIdentityOnly,
+                                             job->baselinePath.empty() ? nullptr : &job->baselinePath,
+                                             result.recovery ? &result.recovery.value() : nullptr);
+            }
             if (result.status == HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE))
                 result.rejectedUnits = result.document.text.size();
+            if (result.status == HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH) && ! result.conflictVersion)
+            {
+                FileStamp observed;
+                std::string previous;
+                const auto observedStatus = ReadBytes(result.path, previous, &observed);
+                if (SUCCEEDED(observedStatus) || observedStatus == HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND) ||
+                    observedStatus == HRESULT_FROM_WIN32(ERROR_PATH_NOT_FOUND))
+                {
+                    result.conflictVersion = observed;
+                }
+            }
         }
         else
             result.status = LoadDocument(result.path, result.document, &result.rejectedUnits);
@@ -216,21 +251,23 @@ public:
                    bool sameIdentityOnly                       = false,
                    bool reloading                              = false,
                    std::filesystem::path baselinePath          = {},
-                   std::optional<SaveRecoveryContext> recovery = {})
+                   std::optional<SaveRecoveryContext> recovery = {},
+                   bool probePickerDestination                 = false)
     {
         if (! _state)
             return E_UNEXPECTED;
-        auto job                  = std::make_unique<Job>();
-        job->state                = _state;
-        job->result.saving        = saving;
-        job->result.path          = std::move(path);
-        job->result.document.text = std::move(text);
-        job->result.document.bom  = bom;
-        job->expected             = expected;
-        job->sameIdentityOnly     = sameIdentityOnly;
-        job->result.reloading     = reloading;
-        job->baselinePath         = std::move(baselinePath);
-        job->recovery             = std::move(recovery);
+        auto job                    = std::make_unique<Job>();
+        job->state                  = _state;
+        job->result.saving          = saving;
+        job->result.path            = std::move(path);
+        job->result.document.text   = std::move(text);
+        job->result.document.bom    = bom;
+        job->expected               = expected;
+        job->sameIdentityOnly       = sameIdentityOnly;
+        job->result.reloading       = reloading;
+        job->baselinePath           = std::move(baselinePath);
+        job->result.recovery        = std::move(recovery);
+        job->probePickerDestination = probePickerDestination;
         std::lock_guard lock(_state->mutex);
         if (_state->phase != Phase::Idle)
             return HRESULT_FROM_WIN32(ERROR_BUSY);

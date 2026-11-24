@@ -2787,11 +2787,15 @@ std::filesystem::path Application::PickFile(bool saving, bool image, bool folder
         (void)InvokeNativeMethod(dialog.get(), &IFileDialog::SetTitle, Resource(IDS_OPENFOLDER).c_str());
     DWORD flags{};
     (void)InvokeNativeMethod(dialog.get(), &IFileDialog::GetOptions, &flags);
+    // The file worker observes the selected destination before the application
+    // prompts for overwrite. That consent can then be tied to a file version.
+    if (saving)
+        flags &= ~static_cast<DWORD>(FOS_OVERWRITEPROMPT);
     (void)InvokeNativeMethod(dialog.get(),
                              &IFileDialog::SetOptions,
                              flags | FOS_FORCEFILESYSTEM | FOS_NOCHANGEDIR |
                                  (folder   ? FOS_PICKFOLDERS | FOS_PATHMUSTEXIST
-                                  : saving ? FOS_OVERWRITEPROMPT
+                                  : saving ? FOS_PATHMUSTEXIST
                                            : FOS_FILEMUSTEXIST));
     if (! _settings.filesRoot.empty())
     {
@@ -2923,7 +2927,7 @@ void Application::Open()
         }
     });
 }
-void Application::Save(bool saveAs, bool force, std::optional<std::filesystem::path> selectedPath)
+void Application::Save(bool saveAs, const AsyncFiles::Result* confirmed, std::optional<std::filesystem::path> selectedPath)
 {
     if (! CanAcceptCommand() || HasActiveModalPrompt())
     {
@@ -2947,8 +2951,9 @@ void Application::Save(bool saveAs, bool force, std::optional<std::filesystem::p
     const auto originalPath  = _session.path;
     const auto originalStamp = _session.stamp;
     const bool originalBom = _session.bom, originalRecovered = _session.recovered;
-    auto path = selectedPath ? selectedPath.value() : _session.path;
-    if (! selectedPath && (saveAs || path.empty()))
+    auto path                    = confirmed ? confirmed->path : (selectedPath ? selectedPath.value() : _session.path);
+    const bool pickedDestination = ! confirmed && ! selectedPath && (saveAs || path.empty());
+    if (pickedDestination)
         path = PickFile(true);
     if (path.empty() || ! CanAcceptCommand() || ! IsUiAttached() || ActiveEditor() != activeEditor)
     {
@@ -2962,10 +2967,14 @@ void Application::Save(bool saveAs, bool force, std::optional<std::filesystem::p
         Status(IDS_FILECONTEXTCHANGED);
         return;
     }
-    const auto expected         = (! force && ! _session.path.empty()) ? std::optional<FileStamp>(_session.stamp) : std::nullopt;
-    const bool sameIdentityOnly = saveAs && path.lexically_normal() != _session.path.lexically_normal();
-    const SaveRecoveryContext protection{_options.dataDirectory, activeEditor->GetSelection(), ++_recoveryGeneration};
-    const HRESULT hr = _files.Submit(true, path, activeEditor->GetText(), _session.bom, expected, sameIdentityOnly, false, _session.path, protection);
+    const auto expected         = confirmed ? confirmed->conflictVersion : (! _session.path.empty() ? std::optional<FileStamp>(_session.stamp) : std::nullopt);
+    const bool sameIdentityOnly = ! confirmed && saveAs && path.lexically_normal() != _session.path.lexically_normal();
+    auto protection   = confirmed && confirmed->recovery ? confirmed->recovery.value()
+                                                         : SaveRecoveryContext{_options.dataDirectory, activeEditor->GetSelection(), ++_recoveryGeneration};
+    std::wstring text = confirmed ? confirmed->document.text : activeEditor->GetText();
+    const bool bom    = confirmed ? confirmed->document.bom : _session.bom;
+    const HRESULT hr =
+        _files.Submit(true, path, std::move(text), bom, expected, sameIdentityOnly, false, _session.path, std::move(protection), pickedDestination);
     if (FAILED(hr))
     {
         _activeFileTx    = std::monostate{};
@@ -2992,7 +3001,7 @@ void Application::ResolveSaveConflict(const AsyncFiles::Result& result)
     const auto path        = _session.path;
     const auto identity    = _session.stamp;
     const bool originalBom = _session.bom, originalRecovered = _session.recovered;
-    Status(IDS_CONFLICT);
+    Status(result.pickerOverwrite ? IDS_PICKEROVERWRITE : IDS_CONFLICT);
     SaveConflictChoice choice = SaveConflictChoice::Cancel;
     {
         const auto previousPrompt = std::exchange(_modalPrompt, ModalPromptKind::SaveConflict);
@@ -3004,10 +3013,17 @@ void Application::ResolveSaveConflict(const AsyncFiles::Result& result)
 #endif
             if (! _options.headless)
         {
-            const auto dialogTitle = Resource(IDS_APP), instruction = Resource(IDS_CONFLICT), content = Resource(IDS_CONFLICTHELP);
+            const auto dialogTitle = Resource(IDS_APP);
+            const auto instruction = Resource(result.pickerOverwrite ? IDS_PICKEROVERWRITE : IDS_CONFLICT);
+            const auto content     = result.pickerOverwrite ? result.path.filename().native() : Resource(IDS_CONFLICTHELP);
             const auto reload = Resource(IDS_RELOAD), saveAs = Resource(IDS_SAVEAS), overwrite = Resource(IDS_OVERWRITE), cancel = Resource(IDS_CANCEL);
-            const TASKDIALOG_BUTTON buttons[]{
-                {IDS_RELOAD, reload.c_str()}, {IDS_SAVEAS, saveAs.c_str()}, {IDS_OVERWRITE, overwrite.c_str()}, {IDCANCEL, cancel.c_str()}};
+            std::vector<TASKDIALOG_BUTTON> buttons;
+            if (! result.pickerOverwrite)
+                buttons.push_back({IDS_RELOAD, reload.c_str()});
+            buttons.push_back({IDS_SAVEAS, saveAs.c_str()});
+            if (result.conflictVersion)
+                buttons.push_back({IDS_OVERWRITE, overwrite.c_str()});
+            buttons.push_back({IDCANCEL, cancel.c_str()});
             TASKDIALOGCONFIG config{};
             config.cbSize             = sizeof(config);
             config.hwndParent         = _window.get();
@@ -3017,7 +3033,7 @@ void Application::ResolveSaveConflict(const AsyncFiles::Result& result)
             config.pszMainInstruction = instruction.c_str();
             config.pszContent         = content.c_str();
             config.cButtons           = static_cast<UINT>(std::size(buttons));
-            config.pButtons           = buttons;
+            config.pButtons           = buttons.data();
             config.nDefaultButton     = IDCANCEL;
             int pressed               = IDCANCEL;
             if (SUCCEEDED(DxUi::Failure::InvokeNative(&TaskDialogIndirect, &config, &pressed, nullptr, nullptr)))
@@ -3043,8 +3059,8 @@ void Application::ResolveSaveConflict(const AsyncFiles::Result& result)
         Status(IDS_FILECONTEXTCHANGED);
         return;
     }
-    if (choice == SaveConflictChoice::Overwrite)
-        Save(false, true, result.path);
+    if (choice == SaveConflictChoice::Overwrite && result.conflictVersion)
+        Save(false, &result);
     else if (choice == SaveConflictChoice::SaveAs)
         Save(true);
     else
