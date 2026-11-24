@@ -25,7 +25,7 @@ if($ReviewedHeaderDelta) {
     $reviewedProfile=Get-RedTildeReviewedHeaderDeltaProfile -Root $PSScriptRoot
     $reviewedProfileSha256=(Get-FileHash (Join-Path $PSScriptRoot 'Build/ReviewedHeaderDeltaProfile.json')).Hash
 }
-$rawCompiler=Join-Path $PSScriptRoot '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
+$rawCompiler=Get-RedTildeCompilerCommandLogPath -Root $PSScriptRoot
 $power=(& powercfg /getactivescheme | Out-String).Trim()
 if($LASTEXITCODE -ne 0 -or -not $power) { throw 'Power policy identity is unavailable.' }
 $environment=[ordered]@{machine=$env:COMPUTERNAME;cpu=$env:PROCESSOR_IDENTIFIER;os=[Environment]::OSVersion.VersionString;

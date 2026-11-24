@@ -141,9 +141,14 @@ function Write-CompilerFixture([string]$Name,[string[]]$Files,[string[]]$Flags,[
     $lines|Set-Content (Join-Path $logs 'CL.command.1.tlog')
     return $directory
 }
-$profileA=Get-RedTildeCompilerProfile (Write-CompilerFixture 'baseline' @('A.cpp','B.cpp') @('/O2 /W4 /WX','/O2 /W4 /WX'))
+$currentProfileRoot=Write-CompilerFixture 'baseline' @('A.cpp','B.cpp') @('/O2 /W4 /WX','/O2 /W4 /WX')
+$profileA=Get-RedTildeCompilerProfile $currentProfileRoot
 $profileB=Get-RedTildeCompilerProfile (Write-CompilerFixture 'candidate' @('A.cpp','B.cpp','New.cpp') @('/O2 /W4 /WX','/O2 /W4 /WX','/O2 /W4 /WX'))
-$legacyProfile=Get-RedTildeCompilerProfile (Write-CompilerFixture 'legacy-layout' @('A.cpp','B.cpp') @('/O2 /W4 /WX','/O2 /W4 /WX') -Layout obj)
+$legacyProfileRoot=Write-CompilerFixture 'legacy-layout' @('A.cpp','B.cpp') @('/O2 /W4 /WX','/O2 /W4 /WX') -Layout obj
+$legacyProfile=Get-RedTildeCompilerProfile $legacyProfileRoot
+Require ((Get-FileHash -LiteralPath (Get-RedTildeCompilerCommandLogPath $currentProfileRoot)).Hash -ceq $profileA.rawSha256 -and
+    (Get-FileHash -LiteralPath (Get-RedTildeCompilerCommandLogPath $legacyProfileRoot)).Hash -ceq $legacyProfile.rawSha256) (
+    'The paired run uses the same original command log bytes as its compiler profile in either layout.')
 Require ($profileA.schemaVersion -eq 2 -and $profileA.sha256 -ceq $profileB.sha256 -and
     $profileA.rawSha256 -cne $profileB.rawSha256 -and $profileA.translationUnits.Count -eq 2 -and $profileB.translationUnits.Count -eq 3) `
     'Only repository placement and translation-unit identity normalize; raw provenance remains distinct.'
