@@ -1,1 +1,0 @@
-- Adopt the pinned formatting and repository policy checks.
