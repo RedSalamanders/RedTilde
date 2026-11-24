@@ -34,7 +34,8 @@ Requires Windows 11 (`10.0.22000.2600`+), PowerShell 7, Git, Visual Studio 2026 
 .\.build\x64\Debug\RedTilde.exe
 .\.build\x64\Debug\RedTilde.exe C:\Notes\idea.md
 .\Test-Changes.ps1 -Explain
-.\Test-Changes.ps1
+.\test.ps1
+.\test.ps1 -Full
 ```
 
 - **Configurations and platforms.** `build.ps1` supports x64 and ARM64 with Debug, Release and ASan Debug. Use `-EnableTests` for a Release test or benchmark build. Use `package.ps1` for a production portable ZIP. ARM64 runtime tests require native ARM64 Windows.

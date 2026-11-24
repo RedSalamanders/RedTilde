@@ -1,5 +1,7 @@
 <#
-.SYNOPSIS Runs selected RedTilde application tests with retained, source-bound evidence.
+.SYNOPSIS Runs affected or explicitly selected RedTilde tests with source-bound evidence.
+.DESCRIPTION Ordinary calls run Test-Changes.ps1. Use Full for the complete direct profile or Suite/Suites for explicit coverage.
+.PARAMETER Full Run every applicable direct suite for the selected profile.
 .PARAMETER ParallelSuites
 Maximum suite concurrency. RedTilde executes its application suites serially.
 .PARAMETER LocalSdkBuildReceipt
@@ -16,6 +18,12 @@ param([ValidateSet('x64','ARM64')][string] $Platform='x64',
       [string]$LocalSdkBuildReceipt='', [string]$LocalSdkBuildSha256='')
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
+$profileOptions = @('Platform', 'Configuration', 'SkipBuild', 'ParallelSuites', 'Full')
+if (-not $Full -and @($PSBoundParameters.Keys | Where-Object { $_ -notin $profileOptions }).Count -eq 0) {
+    $global:LASTEXITCODE = 0
+    & (Join-Path $PSScriptRoot 'Test-Changes.ps1') -Mode Affected -Platform $Platform -Configuration $Configuration -SkipBuild:$SkipBuild -ParallelSuites $ParallelSuites
+    exit $LASTEXITCODE
+}
 $localSdkMode=[bool]($LocalSdkBuildReceipt -or $LocalSdkBuildSha256)
 if($localSdkMode -and (-not $IsWindows -or $env:GITHUB_ACTIONS -ceq 'true' -or $env:CI_NATIVE_BUILDS_DISABLED -ceq 'true')){
     throw 'Local SDK runtime requires local Windows native execution.'
