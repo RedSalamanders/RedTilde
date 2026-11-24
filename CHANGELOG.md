@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Read the paired benchmark compiler log from the checkout's configured intermediate directory.
 - Add a root restore command for pinned RedTilde and DxUi dependencies on x64 and ARM64.
 - Use the common Intermediate layout and preserve compiler-profile comparison with earlier builds.
 - Pin the reviewed shared MSVC setup and regenerate its reusable workflow callers.
