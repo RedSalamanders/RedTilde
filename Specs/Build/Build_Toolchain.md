@@ -108,6 +108,10 @@ before the normal build. If the clean boundary or required input identity cannot
 An unchanged compiled-input identity permits incremental reuse, including documentation-only edits; the receipt still
 updates its full source identity.
 
+`build.ps1 -Clean` verifies the selected project's evaluated output paths, invalidates its receipt and cleans its
+first-party outputs without restoring or building dependencies. `-Rebuild` requests that clean before a normal
+verified build. `-MaxCpuCount` accepts an explicit MSBuild and C++ compiler worker limit.
+
 After path preflight, each build attempt revokes the profile's prior successful receipt before dependency restore or
 MSBuild. Only a completed build whose source, dependency headers, compiler context, output closure and executable remain
 unchanged receives a schema-2 passed receipt. Failed or interrupted attempts leave no reusable success. Test, package

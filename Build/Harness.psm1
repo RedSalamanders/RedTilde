@@ -201,6 +201,7 @@ function Assert-RedTildeCanonicalBuildDirectories {
         output=[IO.Path]::GetFullPath((Join-Path $rootPath ".build/$Platform/$Configuration"))
         intermediate=[IO.Path]::GetFullPath((Join-Path $rootPath ".build/Intermediate/$Platform/$Configuration/RedTilde"))
         dependency=[IO.Path]::GetFullPath((Join-Path $rootPath '.build/dependencies/DxUi'))
+        logs=[IO.Path]::GetFullPath((Join-Path $rootPath '.build/logs'))
     }
     foreach($target in $paths.Values){
         $relative=[IO.Path]::GetRelativePath($rootPath,$target)

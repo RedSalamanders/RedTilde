@@ -3,18 +3,23 @@
 .PARAMETER DxUiSdkInputDescriptor Independent pinned Release SDK descriptor below .build; exact misses retain source.
 .PARAMETER EnableTests Compile native test hooks. Debug and ASan Debug enable them by default.
 .PARAMETER Analyze Run MSVC code analysis in an isolated source build under .build/analysis.
+.PARAMETER Clean Clean the selected first-party profile without restoring or building dependencies.
+.PARAMETER Rebuild Clean the selected profile before the verified native build.
+.PARAMETER MaxCpuCount Bound the MSBuild and C++ compiler worker counts. Zero uses the tool defaults.
 #>
 [CmdletBinding()]
 param([ValidateSet('x64','ARM64')][string] $Platform='x64',
       [ValidateSet('Debug','Release','ASan Debug')][string] $Configuration='Debug', [switch] $SkipRestore,
       [ValidateRange(0,65535)][int]$BuildNumber = $(if ($env:RedTildeBuildNumber) { [int]$env:RedTildeBuildNumber } else { 0 }),
-      [switch]$ProductionOnly,[string]$DxUiSdkInputDescriptor='',[switch]$EnableTests,[switch]$Analyze)
+      [switch]$ProductionOnly,[string]$DxUiSdkInputDescriptor='',[switch]$EnableTests,[switch]$Analyze,
+      [switch]$Clean,[switch]$Rebuild,[ValidateRange(0,256)][int]$MaxCpuCount=0)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 if ($env:CI_NATIVE_BUILDS_DISABLED -eq 'true') { throw 'Native builds are forbidden in compiler-free PR checks.' }
 if ($ProductionOnly -and $Configuration -ne 'Release') { throw 'ProductionOnly requires Release.' }
 if ($ProductionOnly -and $EnableTests) { throw 'ProductionOnly and EnableTests are mutually exclusive.' }
 if ($Analyze -and ($ProductionOnly -or $DxUiSdkInputDescriptor)) { throw '-Analyze requires an ordinary source build.' }
+if ($Clean -and ($Rebuild -or $Analyze -or $DxUiSdkInputDescriptor)) { throw '-Clean requires a standalone source profile.' }
 if($DxUiSdkInputDescriptor -and $Configuration -cne 'Release'){throw 'Pinned SDK inputs require Release; Debug/ASan use source.'}
 $versionHeaderPath=Join-Path $PSScriptRoot 'Common/Version.h'
 if(-not(Test-Path -LiteralPath $versionHeaderPath -PathType Leaf)){throw 'Version header Common/Version.h is missing.'}
@@ -43,6 +48,10 @@ Import-Module (Join-Path $PSScriptRoot 'Build/BuildConsole.psm1') -ErrorAction S
 Import-Module (Join-Path $PSScriptRoot 'Build/Toolchain.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot '.ci-engine/Tools/Modules/Ci.Policy.psm1') -ErrorAction Stop
+$project=Join-Path $PSScriptRoot 'RedTilde/RedTilde.vcxproj'
+$workers=if($MaxCpuCount){"/m:$MaxCpuCount"}else{'/m'}
+$arguments=@($project,'/nologo',$workers,'/v:minimal',"/p:Platform=$Platform","/p:Configuration=$Configuration")
+if($MaxCpuCount){$arguments+="/p:CL_MPCount=$MaxCpuCount"}
 if ($Analyze) {
     $analysisRoot = Assert-CiContainedPath -Root $PSScriptRoot -Path (Join-Path $PSScriptRoot '.build/analysis')
     $analysisOutput = Assert-CiContainedPath -Root $analysisRoot -Path (Join-Path $analysisRoot "$Platform/$Configuration")
@@ -54,8 +63,7 @@ if ($Analyze) {
     }
     [void][IO.Directory]::CreateDirectory($analysisOutput)
     $log = Join-Path $analysisOutput "build-$([Guid]::NewGuid().ToString('N')).log"
-    $project = Join-Path $PSScriptRoot 'RedTilde/RedTilde.vcxproj'
-    $arguments = @($project, '/nologo', '/m', '/v:minimal', "/p:Platform=$Platform", "/p:Configuration=$Configuration", '/p:RedTildeAnalyze=true')
+    $arguments += '/p:RedTildeAnalyze=true'
     # Analyze every first-party source file while preserving the pinned DxUi archive.
     Invoke-CiNativeCommand -FilePath $msbuild -WorkingDirectory $PSScriptRoot -Arguments ($arguments + @(
         '/t:Clean', '/p:BuildProjectReferences=false', "/flp:LogFile=$log;Verbosity=normal"))
@@ -92,6 +100,21 @@ try{
     }else{[IO.File]::Move($receiptTemporary,$receiptPath)}
 }finally{if(Test-Path -LiteralPath $receiptTemporary){Remove-Item -LiteralPath $receiptTemporary -Force}}
 $msbuild=Get-RedTildeMSBuild
+$logDirectory=$canonicalDirectories.logs
+[void][IO.Directory]::CreateDirectory($logDirectory)
+$log=Join-Path $logDirectory ("build-$Platform-$($Configuration -replace ' ','-')-$([DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ'))-$([guid]::NewGuid().ToString('N')).log")
+$cleanArguments = $arguments + @('/t:Clean','/p:BuildProjectReferences=false',"/flp:LogFile=$log;Verbosity=normal")
+if ($Clean) {
+    $evaluated = @(& $msbuild @arguments '-getProperty:OutDir,IntDir')
+    if ($LASTEXITCODE -ne 0) { throw 'MSBuild could not evaluate the clean paths.' }
+    $paths = ($evaluated -join "`n") | ConvertFrom-Json
+    Assert-RedTildeOwnedCleanDirectories -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration -Toolchain $paths
+    Invoke-CiNativeCommand -FilePath $msbuild -WorkingDirectory $PSScriptRoot -Arguments $cleanArguments
+    if ($LASTEXITCODE -ne 0) { throw "RedTilde $Platform $Configuration owned-profile clean failed. See '$log'." }
+    Assert-NativeBuildDiagnostics -LogPath $log
+    Write-Host "Cleaned RedTilde $Platform $Configuration first-party outputs."
+    return
+}
 $sdkProperties=@()
 if($DxUiSdkInputDescriptor){
     Import-Module (Join-Path $PSScriptRoot '.ci-engine/Tools/Modules/Ci.SdkConsumer.psm1')
@@ -112,14 +135,11 @@ if (-not $SkipRestore -and $null -eq $sdkInput) { & (Join-Path $PSScriptRoot 're
 if (-not $SkipRestore) {
     & (Join-Path $PSScriptRoot 'vcpkg-install.ps1') -Platform $Platform -Asan:($Configuration -eq 'ASan Debug') -MSBuildPath $msbuild
 }
-$logDirectory=Join-Path $PSScriptRoot '.build/logs'
-[void][IO.Directory]::CreateDirectory($logDirectory)
-$log=Join-Path $logDirectory ("build-$Platform-$($Configuration -replace ' ','-')-$([DateTime]::UtcNow.ToString('yyyyMMddTHHmmssfffZ'))-$([guid]::NewGuid().ToString('N')).log")
 $started=[DateTime]::UtcNow
 $sourceIdentity=Get-RedTildeSourceIdentity -Root $PSScriptRoot
 $buildInputs=Get-RedTildeBuildInputSnapshot -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration -MSBuildPath $msbuild -SdkInput $sdkInput
 $allowIncremental=$false
-if($priorReceipt -and $priorReceipt.schemaVersion -eq 2 -and $priorReceipt.passed -eq $true -and
+if(-not $Rebuild -and $priorReceipt -and $priorReceipt.schemaVersion -eq 2 -and $priorReceipt.passed -eq $true -and
     $priorReceipt.platform -ceq $Platform -and $priorReceipt.configuration -ceq $Configuration -and
     $priorReceipt.buildInputs -and $priorReceipt.buildInputs.identity -ceq $buildInputs.identity -and
     $priorReceipt.compiledSourceIdentity -ceq $buildInputs.compiledSourceIdentity -and
@@ -132,16 +152,11 @@ if($priorReceipt -and $priorReceipt.schemaVersion -eq 2 -and $priorReceipt.passe
         $allowIncremental=($priorReceipt.artifactIdentity -ceq $currentArtifact -and $priorReceipt.binarySha256 -ceq $currentBinary)
     }catch [System.Management.Automation.RuntimeException]{$allowIncremental=$false}
 }
-$project=Join-Path $PSScriptRoot 'RedTilde/RedTilde.vcxproj'
 if(-not $allowIncremental){
-    Invoke-CiNativeCommand -FilePath $msbuild -WorkingDirectory $PSScriptRoot -Arguments (@(
-        $project,'/nologo','/m','/v:minimal',"/p:Platform=$Platform","/p:Configuration=$Configuration",
-        '/t:Clean','/p:BuildProjectReferences=false',"/flp:LogFile=$log;Verbosity=normal")+$sdkProperties)
+    Invoke-CiNativeCommand -FilePath $msbuild -WorkingDirectory $PSScriptRoot -Arguments ($cleanArguments+$sdkProperties)
     if ($LASTEXITCODE -ne 0) { throw "RedTilde $Platform $Configuration owned-profile clean failed. See '$log'." }
 }
-Invoke-CiNativeCommand -FilePath $msbuild -WorkingDirectory $PSScriptRoot -Arguments (@(
-    $project,'/nologo','/m','/v:minimal',"/p:Platform=$Platform","/p:Configuration=$Configuration",
-    "/flp:LogFile=$log;Verbosity=normal;Append=true")+$sdkProperties)
+Invoke-CiNativeCommand -FilePath $msbuild -WorkingDirectory $PSScriptRoot -Arguments ($arguments+@("/flp:LogFile=$log;Verbosity=normal;Append=true")+$sdkProperties)
 if ($LASTEXITCODE -ne 0) { throw "RedTilde $Platform $Configuration build failed. See '$log'." }
 Assert-NativeBuildDiagnostics -LogPath $log
 if ($sourceIdentity -cne (Get-RedTildeSourceIdentity -Root $PSScriptRoot)) { throw 'Source changed during the build. Rebuild before accepting this artifact.' }
