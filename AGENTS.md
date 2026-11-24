@@ -39,7 +39,7 @@ DxUi controls, DirectWrite and Direct2D. Read [Specs/README.md](Specs/README.md)
 - Review the design system and usage docs on every UI change. Screenshots come from the app's deterministic,
   hidden, non-activating harness, with scenario/build provenance. Never substitute desktop capture.
 - No generated products are committed under `.build`. Do not kill independently launched applications.
-- Private/protected non-static class/struct members MUST use `_camelCase` (`_[a-z][A-Za-z0-9]*`, member-scope only; no `name_`, bare private fields, `_Uppercase`, `__`, or global `_name`; public `struct`/DTO fields stay `camelCase`), enforced via root `.clang-tidy` (coming in Phase 3 / `H-27`).
+- Private and protected non-static members MUST use `_camelCase` (`_[a-z][A-Za-z0-9]*`) under H-27. Public struct and DTO fields use `camelCase`. Avoid reserved identifiers, including `_Uppercase`, `__` and leading underscores at global scope. The root `.clang-tidy` carries the naming rules, and `validate.ps1` runs the naming source check.
 
 ## Folder guidance
 

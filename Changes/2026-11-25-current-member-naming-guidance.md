@@ -1,0 +1,1 @@
+- Point RedTilde coding guidance to the active member naming rules and the root validation check.
