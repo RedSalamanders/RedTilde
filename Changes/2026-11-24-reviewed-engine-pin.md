@@ -1,1 +1,0 @@
-- Align the shared engine pin with the reviewed policy and WinGet metadata revision.
