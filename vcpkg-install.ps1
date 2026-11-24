@@ -21,8 +21,11 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = Split-Path -Parent $PSCommandPath
 Import-Module (Join-Path $repoRoot 'Build/Toolchain.psm1') -Force
-Import-Module (Join-Path $repoRoot 'Build/VcpkgToolCheckout.psm1') -Force
 Import-Module (Join-Path $repoRoot 'Build/VcpkgToolset.psm1') -Force
+Import-Module (Join-Path $repoRoot '.ci-engine/Tools/Modules/Ci.EngineBinding.psm1') -ErrorAction Stop
+foreach ($module in @('VcpkgCheckout.psm1', 'VcpkgInstall.psm1')) {
+    Import-Module (Resolve-CiPinnedEngineModule -ProjectRoot $repoRoot -Name $module) -Scope Local -ErrorAction Stop
+}
 
 $buildRoot = Join-Path $repoRoot '.build'
 $toolRoot = Join-Path $buildRoot 'vcpkg-tool'
@@ -39,6 +42,7 @@ if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
 }
 
 $toolIdentity = Get-Content -Raw -LiteralPath $toolIdentityPath | ConvertFrom-Json
+$repository = [string] $toolIdentity.repository
 $commit = ([string] $toolIdentity.commit).ToLowerInvariant()
 if ($commit -notmatch '^[0-9a-f]{40}$') {
     throw 'vcpkg-tool.json must contain a full 40-character commit hash.'
@@ -69,15 +73,7 @@ Write-Host "MSVC toolset:  $($toolset.Version), the default MSBuild compiles wit
 [void][IO.Directory]::CreateDirectory($buildRoot)
 [void][IO.Directory]::CreateDirectory($downloadsRoot)
 
-Initialize-VcpkgToolCheckout -ToolIdentityPath $toolIdentityPath -ToolRoot $toolRoot
-
-$dirty = & git.exe -C $toolRoot status --porcelain
-if ($LASTEXITCODE -ne 0) {
-    throw 'Unable to inspect the managed vcpkg checkout.'
-}
-if ($dirty) {
-    throw "The managed vcpkg checkout contains local changes: $toolRoot"
-}
+Initialize-CiVcpkgCheckout -ProjectRoot $repoRoot -Path $toolRoot -Repository $repository -Commit $commit
 
 $previousMetrics = [Environment]::GetEnvironmentVariable('VCPKG_DISABLE_METRICS', 'Process')
 $previousDownloads = [Environment]::GetEnvironmentVariable('VCPKG_DOWNLOADS', 'Process')
@@ -93,20 +89,7 @@ try {
     $env:VCPKG_DISABLE_METRICS = '1'
     $env:VCPKG_DOWNLOADS = $downloadsRoot
 
-    $vcpkg = Join-Path $toolRoot 'vcpkg.exe'
-    $stampedCommit = if (Test-Path -LiteralPath $toolStampPath -PathType Leaf) {
-        (Get-Content -Raw -LiteralPath $toolStampPath).Trim()
-    } else {
-        ''
-    }
-    if (-not (Test-Path -LiteralPath $vcpkg -PathType Leaf) -or $stampedCommit -cne $commit) {
-        Write-Host 'Bootstrapping vcpkg...' -ForegroundColor Cyan
-        & (Join-Path $toolRoot 'bootstrap-vcpkg.bat') -disableMetrics
-        if ($LASTEXITCODE -ne 0) {
-            throw "vcpkg bootstrap failed with exit code $LASTEXITCODE."
-        }
-        Set-Content -LiteralPath $toolStampPath -Value $commit -Encoding ascii
-    }
+    $vcpkg = Initialize-CiVcpkgExecutable -ProjectRoot $repoRoot -ToolRoot $toolRoot -StampPath $toolStampPath -Commit $commit
 
     $overlayDirectory = Join-Path $buildRoot 'vcpkg-triplets'
     $toolchainFromOverlay = [IO.Path]::GetFullPath((Join-Path $overlayDirectory '..\..\.build\vcpkg-tool\scripts\toolchains\windows.cmake'))
@@ -140,18 +123,9 @@ try {
         $packagesRoot = Join-Path $buildRoot "vcpkg_packages\$platformScope"
 
         Write-Host "Installing RedTilde dependencies ($triplet)" -ForegroundColor Cyan
-        $arguments = @(
-            'install',
-            "--triplet=$triplet",
-            "--vcpkg-root=$toolRoot",
-            "--x-manifest-root=$repoRoot",
-            "--x-install-root=$installRoot",
-            "--x-buildtrees-root=$buildTreesRoot",
-            "--x-packages-root=$packagesRoot",
-            "--downloads-root=$downloadsRoot",
-            "--overlay-triplets=$overlayDirectory",
-            '--binarysource=clear'
-        )
+        $arguments = Get-CiVcpkgManifestInstallArguments -ProjectRoot $repoRoot -Triplet $triplet `
+            -InstallRoot $installRoot -BuildTreesRoot $buildTreesRoot -PackagesRoot $packagesRoot `
+            -DownloadsRoot $downloadsRoot -OverlayTriplets $overlayDirectory -RegistryRoot $toolRoot -DisableBinaryCache
         & $vcpkg @arguments
         if ($LASTEXITCODE -ne 0) {
             throw "vcpkg install failed for $triplet with exit code $LASTEXITCODE."
