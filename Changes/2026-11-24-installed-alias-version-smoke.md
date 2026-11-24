@@ -1,0 +1,1 @@
+- Verify `redtilde --version` through the WinGet-installed portable alias on both native architectures.

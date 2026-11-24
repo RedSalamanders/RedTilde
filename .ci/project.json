@@ -50,6 +50,15 @@
     "executable": "RedTilde.exe",
     "alias": "redtilde",
     "license": "MIT",
-    "minimumOSVersion": "10.0.22000.2600"
+    "minimumOSVersion": "10.0.22000.2600",
+    "smokeTests": [
+      {
+        "command": "redtilde",
+        "arguments": [
+          "--version"
+        ],
+        "timeoutSeconds": 30
+      }
+    ]
   }
 }
