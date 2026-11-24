@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Use the pinned engine for application vcpkg checkouts, overlay generation and manifest arguments.
 - Bind the root RedMonitor client commands to the producer-owned tooling hashes recorded in the existing lock.
 - Validate RedTilde skill packages, repository guidance, and plan indexes through the pinned shared CI engine.
 - RedTilde now uses the pinned shared scoped-testing runner and evidence modules. PrePush covers the six local
