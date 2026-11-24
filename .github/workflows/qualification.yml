@@ -25,9 +25,9 @@ concurrency:
 jobs:
   qualification:
     if: github.ref == 'refs/heads/main'
-    uses: RedSalamanders/.github/.github/workflows/qualification.yml@fb9e281d6e4571c6591654dfe45f4e718d0147ce
+    uses: RedSalamanders/.github/.github/workflows/qualification.yml@e22cc583e40d3d6d0f375ab620dd95005935b9e7
     with:
-      engine_ref: fb9e281d6e4571c6591654dfe45f4e718d0147ce
+      engine_ref: e22cc583e40d3d6d0f375ab620dd95005935b9e7
       configuration: ${{ inputs.configuration }}
       scope: ${{ inputs.scope }}
       platform: ${{ inputs.platform }}
