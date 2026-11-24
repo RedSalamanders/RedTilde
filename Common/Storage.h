@@ -29,6 +29,7 @@ void SetAtomicWriteFailureForTest(AtomicWriteFailure failure) noexcept;
 enum class AtomicWriteCheckpoint
 {
     Staged,
+    BeforeGuardedNameCheck,
     ReplacementUnsupported,
     BeforeTimestampRefresh,
     Published,

@@ -126,6 +126,41 @@ bool SameObject(const FileStamp& left, const FileStamp& right) noexcept
     return HasIdentity(left) && HasIdentity(right) && left.volume == right.volume && left.fileIndex == right.fileIndex &&
            left.fileIndexHigh == right.fileIndexHigh;
 }
+
+HRESULT ReadOpenedIdentity(HANDLE file, FileStamp& stamp, DWORD* links = nullptr) noexcept
+{
+    BY_HANDLE_FILE_INFORMATION info{};
+    if (! GetFileInformationByHandle(file, &info))
+        return LastError();
+    if ((info.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0)
+        return HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
+    if (links)
+        *links = info.nNumberOfLinks;
+    stamp = Stamp(info, 0);
+    return CompleteIdentity(file, stamp);
+}
+
+HRESULT CheckGuardedName(const std::filesystem::path& path, const FileStamp& guarded, bool rejectHardlinkedTarget) noexcept
+{
+    wil::unique_handle selected(
+        CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+    if (! selected)
+    {
+        const DWORD error = GetLastError();
+        if (error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND)
+            return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
+        return HRESULT_FROM_WIN32(error);
+    }
+    FileStamp identity;
+    DWORD links{};
+    const auto result = ReadOpenedIdentity(selected.get(), identity, &links);
+    if (FAILED(result))
+        return result;
+    if (! SameObject(identity, guarded) || identity.size != guarded.size || identity.modified != guarded.modified)
+        return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
+    return rejectHardlinkedTarget && links > 1u ? HRESULT_FROM_WIN32(ERROR_RETRY) : S_OK;
+}
+
 void RefreshPublishedTimestamp(const std::filesystem::path& path, FileStamp& stamp) noexcept
 {
     wil::unique_handle published(
@@ -485,6 +520,24 @@ try
         return LastError();
     if (exists && (attributes & FILE_ATTRIBUTE_DIRECTORY))
         return HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
+    FileStamp beforeStaging;
+    if (exists)
+    {
+        wil::unique_handle selected(
+            CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+        if (! selected)
+        {
+            const DWORD error = GetLastError();
+            if (error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND)
+                return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
+            return HRESULT_FROM_WIN32(error);
+        }
+        const auto result = ReadOpenedIdentity(selected.get(), beforeStaging);
+        if (FAILED(result))
+            return result;
+        if (! HasIdentity(beforeStaging))
+            return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
+    }
     std::filesystem::path temporary;
     wil::unique_handle file;
     for (unsigned attempt = 0; attempt < 8 && ! file; ++attempt)
@@ -554,47 +607,63 @@ try
     if (atomicWriteHook)
         atomicWriteHook(AtomicWriteCheckpoint::Staged, path, atomicWriteContext);
 #endif
-    // The expected identity is checked after staging, immediately before
-    // publication. This narrows, but cannot eliminate, a cross-process race.
     const DWORD finalAttributes = GetFileAttributesW(path.c_str());
     const bool finalExists      = finalAttributes != INVALID_FILE_ATTRIBUTES;
     if (! finalExists && GetLastError() != ERROR_FILE_NOT_FOUND && GetLastError() != ERROR_PATH_NOT_FOUND)
         return LastError();
     if (finalExists && (finalAttributes & FILE_ATTRIBUTE_DIRECTORY))
         return HRESULT_FROM_WIN32(ERROR_ACCESS_DENIED);
-    bool compareExpected = expected != nullptr;
-    if (finalExists && (rejectHardlinkedTarget || (expected && sameIdentityOnly && HasIdentity(*expected))))
+    if (finalExists != exists)
+        return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
+    wil::unique_handle guard;
+    FileStamp guarded;
+    if (finalExists)
     {
-        wil::unique_handle target(
-            CreateFileW(path.c_str(), 0, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
-        BY_HANDLE_FILE_INFORMATION info{};
-        if (! target || ! GetFileInformationByHandle(target.get(), &info))
-            return LastError();
-        if (rejectHardlinkedTarget && info.nNumberOfLinks > 1u)
-            return HRESULT_FROM_WIN32(ERROR_RETRY);
-        auto identity             = Stamp(info, 0);
-        const auto identityResult = CompleteIdentity(target.get(), identity);
+        // ReplaceFileW can publish while this handle stays open. Deny writers on
+        // the selected object, then recheck the name before the pathname commit.
+        guard.reset(
+            CreateFileW(path.c_str(), GENERIC_READ | DELETE, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+        if (! guard)
+        {
+            const DWORD error = GetLastError();
+            if (error == ERROR_SHARING_VIOLATION || error == ERROR_FILE_NOT_FOUND || error == ERROR_PATH_NOT_FOUND)
+                return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
+            return HRESULT_FROM_WIN32(error);
+        }
+        DWORD links{};
+        const auto identityResult = ReadOpenedIdentity(guard.get(), guarded, &links);
         if (FAILED(identityResult))
             return identityResult;
-        const auto comparison = NeedsExpectedComparison(identity, expected, sameIdentityOnly, baselinePath, compareExpected);
+        if (! SameObject(guarded, beforeStaging))
+            return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
+        if (rejectHardlinkedTarget && links > 1u)
+            return HRESULT_FROM_WIN32(ERROR_RETRY);
+        bool compareExpected{};
+        const auto comparison = NeedsExpectedComparison(guarded, expected, sameIdentityOnly, baselinePath, compareExpected);
         if (FAILED(comparison))
             return comparison;
-    }
-    else if (expected && sameIdentityOnly && ! finalExists)
-        compareExpected = false;
-    if (expected && compareExpected)
-    {
-        FileStamp current;
-        if (finalExists)
+        if (compareExpected)
         {
             std::string previous;
-            const HRESULT result = ReadBytes(path, previous, &current, maximumBytes);
+            const HRESULT result = ReadOpenedBytes(guard.get(), previous, &guarded, maximumBytes);
             if (FAILED(result))
                 return result;
+            if (! MatchesSavedContent(guarded, *expected))
+                return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
         }
-        if (! MatchesSavedContent(current, *expected))
+        else if (guarded != beforeStaging)
             return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
+#ifdef REDTILDE_ENABLE_TESTS
+        if (atomicWriteHook)
+            atomicWriteHook(AtomicWriteCheckpoint::BeforeGuardedNameCheck, path, atomicWriteContext);
+#endif
+        const auto named = CheckGuardedName(path, guarded, rejectHardlinkedTarget);
+        if (FAILED(named))
+            return named;
     }
+    else if (expected && ! sameIdentityOnly && expected->exists)
+        return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
+
     if (finalExists)
     {
 #ifdef REDTILDE_ENABLE_TESTS
@@ -602,6 +671,7 @@ try
         {
             if (unsupportedReplacement)
                 *unsupportedReplacement = true;
+            guard.reset();
             if (atomicWriteHook)
                 atomicWriteHook(AtomicWriteCheckpoint::ReplacementUnsupported, path, atomicWriteContext);
             return HRESULT_FROM_WIN32(ERROR_NOT_SUPPORTED);
@@ -613,6 +683,9 @@ try
             const bool unsupported = error == ERROR_NOT_SUPPORTED || error == ERROR_INVALID_FUNCTION || error == ERROR_CALL_NOT_IMPLEMENTED;
             if (unsupported)
             {
+                const auto named = CheckGuardedName(path, guarded, rejectHardlinkedTarget);
+                if (FAILED(named))
+                    return named;
                 // Providers without ReplaceFileW (such as WSL 2 9P) still support single-link atomic replacement via MoveFileExW.
                 if (! MoveFileExW(temporary.c_str(), path.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
                 {
@@ -622,22 +695,27 @@ try
                     if (unsupportedReplacement)
                         *unsupportedReplacement = moveUnsupported;
 #ifdef REDTILDE_ENABLE_TESTS
+                    guard.reset();
                     if (moveUnsupported && atomicWriteHook)
                         atomicWriteHook(AtomicWriteCheckpoint::ReplacementUnsupported, path, atomicWriteContext);
 #endif
-                    return HRESULT_FROM_WIN32(moveError);
+                    return HRESULT_FROM_WIN32(moveError == ERROR_SHARING_VIOLATION ? ERROR_REVISION_MISMATCH : moveError);
                 }
             }
             else
             {
                 if (unsupportedReplacement)
                     *unsupportedReplacement = false;
-                return HRESULT_FROM_WIN32(error);
+                return HRESULT_FROM_WIN32(error == ERROR_SHARING_VIOLATION ? ERROR_REVISION_MISMATCH : error);
             }
         }
     }
     else if (! MoveFileExW(temporary.c_str(), path.c_str(), MOVEFILE_WRITE_THROUGH))
-        return LastError();
+    {
+        const DWORD error = GetLastError();
+        return HRESULT_FROM_WIN32(error == ERROR_ALREADY_EXISTS || error == ERROR_FILE_EXISTS ? ERROR_REVISION_MISMATCH : error);
+    }
+    guard.reset();
     removeTemporary.release();
 #ifdef REDTILDE_ENABLE_TESTS
     if (atomicWriteHook)
