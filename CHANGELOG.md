@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Expose RedTilde's local Markdown link validation through the root `validate-specs.ps1` command and call it from the complete validator.
 - Verify `redtilde --version` through the WinGet-installed portable alias on both native architectures.
 - Run the existing desktop-lease suite from `test.ps1 -Interactive` and retain the direct interactive command.
 - Align the shared engine pin with the reviewed policy and WinGet metadata revision.
