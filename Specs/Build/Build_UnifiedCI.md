@@ -26,7 +26,9 @@ PRs run changed-source clang-format feedback and the reviewed compiler-free stat
 retains a patch. The explicit Commit PR formatting action accepts an open same-repository PR, checks its current head,
 commits only selected formatted source paths by ordinary fast-forward push and explicitly dispatches fresh compiler-free
 checks for that exact head. Forks retain a patch for their author. PR checks never count as native acceptance.
-Compiler-dependent tooling runs in main qualification.
+The adapter's Static phase calls root `validate.ps1 -CompilerFree`. Use the same command locally
+for the project configuration, workflows, changelog and skill checks. The complete `validate.ps1`
+run includes compiler-dependent tooling in main qualification.
 
 ## Main admission and qualification state
 
