@@ -74,6 +74,13 @@ Debug, ASan, paired benchmarks, repeated stress, and other extended obligations 
 qualification. Their canonical warnings, native-host rules, budgets, evidence preservation and desktop leases remain
 unchanged. There are no scheduled native builds.
 
+The manual paired benchmark workflow builds its dispatched source and an explicit baseline commit on one x64
+Windows runner. Both use the same pinned engine, native toolchain, test-enabled Release profile and WARP. The
+[performance contract](../Testing/Testing_Performance.md) owns the paired workload, audit and acceptance.
+The dispatch takes a base64-encoded DER public RSA certificate. The owner keeps its private key and uses it to
+open the CMS-encrypted evidence packet. The artifact contains that packet and a public summary with the source
+revisions, verdict and packet digest.
+
 ## Dependency inputs
 
 The pinned shared engine restores vcpkg's ABI-indexed package cache for normal and manual native qualification. Exact

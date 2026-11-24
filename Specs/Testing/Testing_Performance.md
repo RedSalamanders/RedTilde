@@ -144,6 +144,11 @@ coverage cannot establish quiet. Tolerate disappearing process properties as una
 volatile values once and retain observer errors. Normalize UTC/local/JSON date representations before checking
 coverage. A failed collector permits a documented replacement collection after repair, with every failed attempt
 retained and no pooling or selection based on its statistical findings.
+
+The hosted paired workflow selects WARP and uses this same observer. It audits both complete studies with the
+independent evidence reader. Unstable controls, an incomplete quiet-host observation or a resolved regression
+fail the hosted check. A successful check makes the pair available for review under this contract. The
+encrypted packet retains the native observations, logs, build and source receipts, and independent audit.
 User-directed shared-host execution proceeds with activity recorded; a powerful host is not evidence of quiet.
 Do not change power policy, affinity, priorities, the primary family or investigation bands to force acceptance.
 A later collection explicitly requested after a reported host-condition change is a separate fixed-scope cohort.
