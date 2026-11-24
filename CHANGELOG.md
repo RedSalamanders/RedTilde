@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Verify `redtilde --version` through the WinGet-installed portable alias on both native architectures.
 - Run the existing desktop-lease suite from `test.ps1 -Interactive` and retain the direct interactive command.
 - Align the shared engine pin with the reviewed policy and WinGet metadata revision.
 - Route compiler-free pull request checks through RedTilde's root `validate.ps1`.
