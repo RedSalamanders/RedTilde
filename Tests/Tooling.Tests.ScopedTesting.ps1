@@ -252,6 +252,11 @@ $configuration=([string](@($args|Where-Object{$_ -like '/p:Configuration=*'})[0]
 $output=Join-Path $root ".build/$platform/$configuration"
 $intermediate=Join-Path $root ".build/Intermediate/$platform/$configuration/RedTilde"
 $tools=Join-Path $root 'Tools'
+if($args -contains '-getProperty:OutDir,IntDir'){
+    if(Test-Path (Join-Path $root '.build/mock-clean-redirect')){$output=Join-Path $root '.build/protected-profile'}
+    @{Properties=@{OutDir=$output+'\';IntDir=$intermediate+'\'}}|ConvertTo-Json -Depth 3 -Compress|Write-Output
+    $global:LASTEXITCODE=0;return
+}
 if($args -match '^-getProperty:'){
     $executablePath=((Join-Path $tools 'VC/bin/HostX86/x64')+';'+(Join-Path $tools 'SDK/bin/10.0.26100.0/x86'))
     if(Test-Path (Join-Path $root '.build/mock-foreign-first')){$executablePath=(Join-Path $root '.build/foreign')+';'+$executablePath}
@@ -273,6 +278,9 @@ if($args -match '^-getProperty:'){
 }
 $calls=Join-Path $root '.build/mock-calls.txt';[IO.File]::AppendAllText($calls,($args -join ' ') + "`n")
 if($args -contains '/t:Clean'){
+    $logOption=[string](@($args|Where-Object{$_ -like '/flp:logfile=*'})[0])
+    $nativeLog=($logOption.Substring('/flp:logfile='.Length) -split ';',2)[0]
+    [IO.File]::WriteAllText($nativeLog,'Fixture profile clean completed.')
     if(Test-Path $intermediate){Remove-Item -LiteralPath $intermediate -Recurse -Force}
     $exe=Join-Path $output 'RedTilde.exe';if(Test-Path $exe){Remove-Item -LiteralPath $exe -Force}
     $global:LASTEXITCODE=0;return
@@ -465,6 +473,33 @@ $global:LASTEXITCODE=0
             $receipt=Get-Content (Join-Path $buildRoot '.build/x64/Debug/build-receipt.json') -Raw|ConvertFrom-Json
             Assert (-not $receipt.passed) 'Failed attempt retained a passed build receipt'
             Assert-GuardArtifact 'failed build attempt'
+        }
+        Case 'explicit rebuild cleans a compatible profile and forwards the worker limit' {
+            Remove-Item -LiteralPath (Join-Path $buildRoot '.build/mock-fail') -Force
+            $run=Invoke-BuildFixture;Assert ($run.exit -eq 0) "Fixture recovery failed: $($run.text)"
+            $run=Invoke-BuildFixture -Extra @('-Rebuild','-MaxCpuCount','2')
+            Assert ($run.exit -eq 0) "Explicit rebuild failed: $($run.text)"
+            $calls=@(Get-Content (Join-Path $buildRoot '.build/mock-calls.txt') -Tail 2)
+            Assert ($calls.Count -eq 2 -and $calls[0] -match '/t:Clean' -and $calls[0] -match '/p:BuildProjectReferences=false' -and
+                $calls[1] -notmatch '/t:Clean') 'Explicit rebuild did not run selected Clean before Build'
+            Assert (@($calls|Where-Object{$_ -match '/m:2' -and $_ -match '/p:CL_MPCount=2'}).Count -eq 2) 'Worker limit was lost'
+            Assert-GuardArtifact 'explicit rebuild' -Allowed
+        }
+        Case 'explicit clean rejects redirected paths before cleanup and revokes the selected receipt' {
+            $log=Join-Path $buildRoot '.build/mock-calls.txt'
+            $callsBefore=@(Get-Content $log).Count
+            $redirect=Join-Path $buildRoot '.build/mock-clean-redirect'
+            Put $redirect 'redirected evaluated path'
+            $run=Invoke-BuildFixture -NoRestore -Extra @('-Clean')
+            Assert ($run.exit -ne 0 -and $run.text -match 'not the owned profile paths') 'Explicit clean accepted a foreign evaluated output'
+            Assert (@(Get-Content $log).Count -eq $callsBefore) 'The refused clean reached the build graph'
+            Remove-Item -LiteralPath $redirect -Force
+            $run=Invoke-BuildFixture -NoRestore -Extra @('-Clean','-MaxCpuCount','2')
+            Assert ($run.exit -eq 0) "Explicit clean failed: $($run.text)"
+            $calls=@(Get-Content $log)
+            Assert ($calls.Count -eq $callsBefore+1 -and $calls[-1] -match '/t:Clean' -and $calls[-1] -match '/p:BuildProjectReferences=false') 'Explicit clean invoked work outside its selected project'
+            Assert (-not(Test-Path (Join-Path $buildRoot '.build/restore-called'))) 'Explicit clean invoked dependency restore'
+            Assert-GuardArtifact 'explicit clean'
         }
     }
     Write-Host "Scoped testing: $passed cases passed."
