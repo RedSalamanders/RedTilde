@@ -1,0 +1,1 @@
+- Write RedTilde's portable packages and receipts under `.build/packages` and use the same location in production CI. The local installer also accepts earlier staged packages.

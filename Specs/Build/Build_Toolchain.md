@@ -90,12 +90,13 @@ links rewritten/verified for `Installer/Install-RedTilde.ps1`, `docs/Diagnostics
 licenses (`LICENSE.txt`, `THIRD-PARTY-NOTICES.md`, `Dependencies/RedMonitor-LICENSE.txt`, `Dependencies/yyjson-LICENSE.txt`, `Dependencies/WIL-LICENSE.txt`,
 `Dependencies/DxUi-LICENSE.txt`, `Dependencies/DxUi-THIRD-PARTY-NOTICES.md`, `Dependencies/docs/licenses/`,
 `Dependencies/libfyaml-LICENSE.txt`, `Dependencies/libfyaml-xxHash-LICENSE.txt`, or `Dependencies/DxUiSdk` in SDK-input
-packages), writes a `.sha256` sidecar beside the ZIP, and runs clean-extraction smoke (`--help`, `--version`, hidden
+packages), writes the staged files, ZIP, receipt and `.sha256` sidecar under `.build/packages`, and runs clean-extraction smoke (`--help`, `--version`, hidden
 capture, and all 16 test-entry refusals). [`Installer/Install-RedTilde.ps1`](../../Installer/Install-RedTilde.ps1)
 provides non-nesting un-elevated per-user installation to `%LOCALAPPDATA%\Programs\RedTilde` with an install-ownership
 manifest marker, Start Menu shortcut creation, HKCU Uninstall registration using a resolved full PowerShell path, optional
 `.md`/`.markdown` `OpenWithProgids` and `Applications\RedTilde.exe` registration with `SHChangeNotify`, and CWD/reparse-safe
-uninstall while preserving `%LOCALAPPDATA%\RedTilde`. A release cannot depend on an unqualified moving PR branch.
+uninstall while preserving `%LOCALAPPDATA%\RedTilde`. A local install can find staged folders under
+`.build/packages` and earlier packages under `.build/package`. A release cannot depend on an unqualified moving PR branch.
 
 `build.ps1` hashes the compiled first-party source map by file bytes, so restored or preserved timestamps cannot make
 changed source appear current. Before MSBuild it verifies the exact DxUi lock commit and a clean pinned source checkout,
