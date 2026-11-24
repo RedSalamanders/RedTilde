@@ -1,1 +1,0 @@
-- Use the pinned engine's MSVC verification in hosted workflows and local setup tests.
