@@ -1,1 +1,0 @@
-- Adopt the shared Dependabot configuration for GitHub Actions and vcpkg.
