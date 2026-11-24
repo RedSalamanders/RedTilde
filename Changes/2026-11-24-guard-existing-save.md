@@ -1,1 +1,0 @@
-- Guard an existing document version through save and ask again if the file changes after an overwrite confirmation.

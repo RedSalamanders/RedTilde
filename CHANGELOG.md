@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Guard an existing document version through save and ask again if the file changes after an overwrite confirmation.
 - Use the pinned engine's MSVC verification in hosted workflows and local setup tests.
 - Keep the newest ten new local crash reports and show the pending report once. Preserve older reports.
 - Adopt the pinned formatting and repository policy checks.
