@@ -109,7 +109,9 @@ toolchain change. Every project translation unit must have exactly one command a
 mixed, missing, duplicate or forced-include commands refuse comparison. All optimization, diagnostic, macro,
 sanitizer, include and output options remain in the profile. External paths stay exact. The separate dependency
 identity still requires identical compiler/linker/MSBuild binaries, SDK headers/libraries, runtime, architecture
-and exact DxUi pin. Both sides use this common instrumented protocol before a new baseline is frozen.
+and exact DxUi pin. The same-pin auditor reads matching API 4 and API 5 evidence. The historical SDK adoption
+and reviewed-header modes retain their API 4 contracts. Both sides use this common instrumented protocol
+before a new baseline is frozen.
 The evidence auditor recomputes the normalized profile hash, checks the unique homogeneous source inventory
 and verifies each retained raw command file. Historical schema-less receipts remain readable as historical
 evidence; new paired collection requires a freshly frozen schema-2 compiler profile.

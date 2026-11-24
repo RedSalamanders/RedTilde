@@ -1,0 +1,1 @@
+- Accept matching DxUi API 5 metadata in the independent same-pin performance audit.
