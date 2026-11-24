@@ -1,1 +1,0 @@
-- Run the existing desktop-lease suite from `test.ps1 -Interactive` and retain the direct interactive command.
