@@ -447,14 +447,12 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
             return 2;
 #endif
         }
-        std::error_code pendingError;
-        if (! options.headless && std::filesystem::exists(crashes / L"pending.txt", pendingError) && ! pendingError)
+        if (! options.headless)
+            RetainRecentCrashReports(crashes);
+        if (const auto report = TakePendingCrashNotice(crashes, ! options.headless))
         {
-            const auto path    = crashes.native();
-            const auto message = FormatStringResource(nullptr, IDS_CRASHREPORT, path);
+            const auto message = FormatStringResource(nullptr, IDS_CRASHREPORT, report->native());
             MessageBoxW(nullptr, message.c_str(), Resource(IDS_APP).c_str(), MB_OK | MB_ICONINFORMATION);
-            std::error_code error;
-            std::filesystem::remove(crashes / L"pending.txt", error);
         }
         std::unique_ptr<Application> app;
         {

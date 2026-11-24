@@ -242,12 +242,19 @@ try {
     if ('Crash' -in $Suites) {
         $crashData=Join-Path $run 'crash-probe'
         $exit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--crash-probe','--data-dir',$crashData) -LogPrefix (Join-Path $run 'crash')
-        $dumps=@(Get-ChildItem (Join-Path $crashData 'Crashes') -Filter 'RedTilde-*.dmp' -File)
+        $dumps=@(Get-ChildItem (Join-Path $crashData 'Crashes') -Filter 'RedTilde-report-*.dmp' -File)
         if ($exit -eq 0 -or $dumps.Count -ne 1 -or -not (Test-Path (Join-Path $crashData 'Crashes/pending.txt'))) { throw 'Crash probe did not produce one local dump and marker.' }
+        $markerName=[IO.File]::ReadAllText((Join-Path $crashData 'Crashes/pending.txt'),[Text.Encoding]::Unicode)
+        if($markerName -cne $dumps[0].FullName){throw 'The crash marker did not name the dump from this probe.'}
         $signature=[IO.File]::ReadAllBytes($dumps[0].FullName)
         if ([Text.Encoding]::ASCII.GetString($signature,0,4) -ne 'MDMP') { throw 'Crash report has no minidump signature.' }
-        $receipt.results+=@{scope='Crash';exitCode=$exit;dumpSha256=(Get-FileHash $dumps[0].FullName).Hash;pendingMarker=$true}
-        Write-Host 'Isolated local crash dump and marker verified.'
+        $markerPath=Join-Path $crashData 'Crashes/pending.txt'
+        $headlessExit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--self-test','--test-scope','Settings','--list-tests','--data-dir',$crashData) -LogPrefix (Join-Path $run 'crash-headless-restart')
+        if($headlessExit -ne 0 -or [IO.File]::ReadAllText($markerPath,[Text.Encoding]::Unicode) -cne $markerName){
+            throw 'A headless restart must preserve the pending crash notice.'
+        }
+        $receipt.results+=@{scope='Crash';exitCode=$exit;dumpSha256=(Get-FileHash $dumps[0].FullName).Hash;pendingMarker=$true;headlessNoticePreserved=$true}
+        Write-Host 'The isolated crash marker names its minidump and survives a headless restart.'
     }
     if ($Configuration -eq 'ASan Debug' -and 'Sanitizer' -in $Suites) {
         $exit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--asan-probe','--data-dir',(Join-Path $run 'asan-probe')) -LogPrefix (Join-Path $run 'asan')

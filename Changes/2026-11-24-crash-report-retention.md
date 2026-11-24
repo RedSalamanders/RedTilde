@@ -1,0 +1,1 @@
+- Keep the newest ten new local crash reports and show the pending report once. Preserve older reports.
