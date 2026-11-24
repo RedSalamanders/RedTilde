@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Accept matching DxUi API 5 metadata in the independent same-pin performance audit.
 - Add a manual hosted paired performance check with independently audited, encrypted raw evidence.
 - Use the common resource message-box helper for the pending crash report notice.
 - Write RedTilde's portable packages and receipts under `.build/packages` and use the same location in production CI. The local installer also accepts earlier staged packages.
