@@ -53,6 +53,9 @@ and native ARM64 execute:
 3. A global AND gate verifies both architectures before either production Release job may begin.
 4. Separate production-only Release outputs, clean-extraction native smoke and ZIP artifact retention.
 
+The contained WinGet verification runs `redtilde --version` through the installed portable alias on each native
+architecture. The command prints the installed application's version and exits before the editor starts.
+
 These are separate test and production roles. They intentionally compile production code twice; neither a PR matrix nor
 a second push matrix repeats the same role. Test receipts and production artifacts never share mutable cached object
 outputs. Exact dependency binary cache keys include the engine, native architecture, manifests, locks, restore/toolchain
