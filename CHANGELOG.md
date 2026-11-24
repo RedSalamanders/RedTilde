@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Add a manual hosted paired performance check with independently audited, encrypted raw evidence.
 - Use the common resource message-box helper for the pending crash report notice.
 - Write RedTilde's portable packages and receipts under `.build/packages` and use the same location in production CI. The local installer also accepts earlier staged packages.
 - Add RedTilde's root `-Clean`, `-Rebuild` and `-MaxCpuCount` options with owned-profile checks and current build receipts.
