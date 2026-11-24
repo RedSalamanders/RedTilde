@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Keep the newest ten new local crash reports and show the pending report once. Preserve older reports.
 - Adopt the pinned formatting and repository policy checks.
 - Use the pinned CI engine's shared Visual Studio setup in native hosted jobs.
 - Use the public evidence receipts to verify that shared read-only hard links retain their identity.
