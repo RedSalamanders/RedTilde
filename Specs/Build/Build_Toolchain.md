@@ -65,6 +65,10 @@ using the same discovered installation, default toolset, triplet and manifest. T
 through its canonical output and exact-pin checks. Verify the package ABI matches; do not copy installed packages,
 edit generated consumer props or substitute a drive alias/junction to make the failed restore appear successful.
 
+The application's `vcpkg-install.ps1` uses the pinned CI engine to prepare its complete vcpkg checkout, generate
+overlays and assemble the manifest arguments. The product supplies the static-md triplets and its existing
+binary-cache policy.
+
 `restore-dxui.ps1` prepares `<output root>/vcpkg-tool` as a complete, clean vcpkg checkout at the pinned DxUi's
 `vcpkg-tool.json` commit (`Build/VcpkgToolCheckout.psm1`) before it runs that DxUi's `vcpkg-install.ps1`, which then
 reuses it. vcpkg reads versioned ports with Git commands whose environment holds only `GIT_INDEX_FILE` and so cannot
