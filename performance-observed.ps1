@@ -2,7 +2,7 @@
 param([Parameter(Mandatory)][string]$Baseline,[Parameter(Mandatory)][string]$OutputRoot,
     [ValidateRange(2,16)][int]$Blocks=12,[ValidateRange(4,64)][int]$Cycles=64,
     [ValidateRange(0,2147483647)][int]$Seed=20261021,[switch]$ControlDiagnostics,[switch]$DependencyAdoption,
-    [switch]$ReviewedHeaderDelta)
+    [switch]$ReviewedHeaderDelta,[switch]$Warp)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 Import-Module (Join-Path $PSScriptRoot 'Build/PerformanceObservation.psm1') -Force
@@ -31,6 +31,7 @@ try {
         $windows.Add($window)
         $arguments=@{Baseline=$Baseline;OutputRoot=(Join-Path $OutputRoot $kind);Blocks=$Blocks;Cycles=$Cycles;Seed=$Seed}
         if($ControlDiagnostics) { $arguments.ControlDiagnostics=$true }
+        if($Warp) { $arguments.Warp=$true }
         if($DependencyAdoption) { $arguments.DependencyAdoption=$true }
         if($kind -ceq 'aa') { $arguments.SameBinaryControl=$true }
         elseif($ReviewedHeaderDelta) { $arguments.ReviewedHeaderDelta=$true }
