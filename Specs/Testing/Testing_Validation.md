@@ -244,7 +244,9 @@ owns planning, status tokens and receipt admission. Shipped Markdown examples an
 are native inputs. Ordinary guide files select independent checks, and unknown build or source inputs widen
 to every applicable scope.
 
-Use `-Explain` for the read-only plan and `-Scopes A,B` to select scopes explicitly. Affected mode uses the
+The root `test.ps1` command delegates ordinary runs to Affected mode. Use `test.ps1 -Full`
+for the complete direct profile or specify `-Suite Core` to retain the named Core set.
+Use `Test-Changes.ps1 -Explain` for the read-only plan and `-Scopes A,B` to select scopes explicitly. Affected mode uses the
 local merge base of `origin/main` by default and discovers staged, working, renamed, deleted and untracked
 paths without fetching. A successful ordinary affected run can advance the source and index baseline for up
 to 24 hours. A build or test attempt revokes the old baseline first. Explicit base selection, `-Force`, CI,
