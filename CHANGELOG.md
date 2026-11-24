@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Add an opt-in MSVC code analysis build with isolated RedTilde output.
 - Use the common test-hook macro and require explicit test mode for Release builds.
 - Read the paired benchmark compiler log from the checkout's configured intermediate directory.
 - Add a root restore command for pinned RedTilde and DxUi dependencies on x64 and ARM64.
