@@ -44,17 +44,7 @@ Check 'Changes workflow' {
     [void][IO.Directory]::CreateDirectory($scratch)
     & (Join-Path $PSScriptRoot 'Tools/Test-ChangelogWorkflow.ps1') -ScratchRoot $scratch
 }
-Check 'Specifications and links' {
-    $files=@(Get-ChildItem (Join-Path $PSScriptRoot 'Specs'),(Join-Path $PSScriptRoot '.agents') -Recurse -Filter '*.md')
-    $files+=Get-Item (Join-Path $PSScriptRoot 'README.md'),(Join-Path $PSScriptRoot 'AGENTS.md')
-    foreach ($file in $files) {
-        foreach ($match in [regex]::Matches((Get-Content $file.FullName -Raw),'\]\(([^)]+)\)')) {
-            $target=$match.Groups[1].Value.Split('#')[0]
-            if ($target -match '^(https?:|mailto:)' -or -not $target) { continue }
-            if (-not (Test-Path -LiteralPath (Join-Path $file.DirectoryName $target))) { throw "Broken link in $($file.Name): $target" }
-        }
-    }
-}
+Check 'Specifications and links' { & (Join-Path $PSScriptRoot 'validate-specs.ps1') }
 Check 'Skill packages and root guidance' { & (Join-Path $PSScriptRoot 'validate-skills.ps1') }
 Check 'Exact dependency and capability status' {
     $pin=Get-Content (Join-Path $PSScriptRoot 'Dependencies/DxUi.lock.json') -Raw | ConvertFrom-Json

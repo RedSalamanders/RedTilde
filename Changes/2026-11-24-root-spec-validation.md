@@ -1,0 +1,1 @@
+- Expose RedTilde's local Markdown link validation through the root `validate-specs.ps1` command and call it from the complete validator.
