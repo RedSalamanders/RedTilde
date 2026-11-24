@@ -19,13 +19,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 if (-not $SkipBuild) { & (Join-Path $PSScriptRoot 'build.ps1') -Platform $Platform -Configuration Release -ProductionOnly -DxUiSdkInputDescriptor $DxUiSdkInputDescriptor }
 Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
-$previousEnableTests = [Environment]::GetEnvironmentVariable('RedTildeEnableTests', 'Process')
-try {
-    $env:RedTildeEnableTests = 'false'
-    $artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform $Platform -Configuration Release
-} finally {
-    [Environment]::SetEnvironmentVariable('RedTildeEnableTests', $(if ($null -eq $previousEnableTests) { [NullString]::Value } else { $previousEnableTests }), 'Process')
-}
+$artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform $Platform -Configuration Release
 $exe=$artifact.Executable
 $built=$artifact.Build
 if($built.testsEnabled -isnot [bool] -or $built.testsEnabled){throw 'Portable packaging requires a receipt-verified production-only Release build.'}

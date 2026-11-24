@@ -246,7 +246,7 @@ struct Application::ExternalLinkJob
     ProcessWorkLease lease;
     std::shared_ptr<ExternalLinkState> state;
     std::wstring destination;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     std::function<HRESULT(std::wstring_view)> launchForTest;
     std::shared_ptr<AsyncFiles::TestGate> gate;
 #endif
@@ -286,7 +286,7 @@ Application::Application(LaunchOptions value) : Application(std::move(value), Dx
 Application::Application(LaunchOptions value, const DxUi::Failure::Scope&) : _options(std::move(value))
 {
     _startupRestore.enabled = ! _options.headless;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     _startupRestore.enabled = _startupRestore.enabled || _options.startupRestoreForTest;
 #endif
 }
@@ -318,7 +318,7 @@ HRESULT Application::Initialize()
     if (_options.dataDirectory.empty())
         _options.dataDirectory = DefaultDataDirectory();
     if (_startupRestore.enabled || _options.preferencesProbe || ! _options.headless
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         || _options.watchSettingsForTest
 #endif
     )
@@ -404,7 +404,7 @@ HRESULT Application::Initialize()
         return error ? HRESULT_FROM_WIN32(error) : E_FAIL;
     }
     _files.Initialize(_window.get(), FileReady);
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     _files.SetTestGate(_options.fileGateForTest);
 #endif
     const MARGINS frame{1, 1, 1, 1};
@@ -448,7 +448,7 @@ HRESULT Application::Initialize()
     TransitionLifecycle(LifecyclePhase::Active);
     Layout();
     const bool shouldWatchSettings = (! _options.headless && ! _options.preferencesProbe)
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
                                      || _options.watchSettingsForTest
 #endif
         ;
@@ -625,12 +625,12 @@ void Application::RequestOpenLink(const DxUi::RichTextLinkActivation& activation
     bool approved{};
     _modalPrompt      = ModalPromptKind::ExternalLink;
     const auto unwind = wil::scope_exit([&] { _modalPrompt = ModalPromptKind::None; });
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     const auto testLaunch = _options.launchLinkForTest;
 #endif
     if (_options.headless)
     {
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         const auto confirm = _options.confirmLinkForTest;
         if (! confirm || ! testLaunch)
             return;
@@ -661,7 +661,7 @@ void Application::RequestOpenLink(const DxUi::RichTextLinkActivation& activation
     auto job         = std::make_unique<ExternalLinkJob>();
     job->state       = _externalLink;
     job->destination = std::move(destination);
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     if (_options.headless)
     {
         job->launchForTest = testLaunch;
@@ -705,7 +705,7 @@ DWORD WINAPI Application::ExternalLinkWorker(void* context) noexcept
 {
     ProcessWorkLease lease = std::move(static_cast<ExternalLinkJob*>(context)->lease);
     const std::unique_ptr<ExternalLinkJob> job(static_cast<ExternalLinkJob*>(context));
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     const auto settled = wil::scope_exit([&]
     {
         if (job->gate)
@@ -715,7 +715,7 @@ DWORD WINAPI Application::ExternalLinkWorker(void* context) noexcept
     HRESULT result = E_FAIL;
     try
     {
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         bool admitted = true;
         if (job->gate)
         {
@@ -732,7 +732,7 @@ DWORD WINAPI Application::ExternalLinkWorker(void* context) noexcept
             {
                 const wil::unique_couninitialize_call apartment;
                 const DxUi::Failure::Scope failureScope;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
                 if (job->launchForTest)
                     result = job->launchForTest(job->destination);
                 else
@@ -1785,7 +1785,7 @@ void Application::FocusSelectionTools()
 void Application::SavePreferences()
 {
     const bool allowSave = ! _options.headless || _options.preferencesProbe
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
                            || _options.watchSettingsForTest
 #endif
         ;
@@ -1970,7 +1970,7 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
     if (command == Command::New || command == Command::Open || command == Command::OpenFolder || command == Command::Close ||
         command == Command::CloseDocument || command == Command::LocalSource || command == Command::RestoreRecovery || command == Command::RestoreAllRecovery)
         _pendingBitmapPaste.reset();
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     if (_options.commandAdmissionForTest)
     {
         const HRESULT admitted = _options.commandAdmissionForTest(command);
@@ -2765,7 +2765,7 @@ std::filesystem::path Application::PickFile(bool saving, bool image, bool folder
         return {};
     _modalPrompt             = ModalPromptKind::FileDialog;
     const auto restorePrompt = wil::scope_exit([&]() noexcept { _modalPrompt = ModalPromptKind::None; });
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     if (_options.headless && _options.filePickerForTest && ! image && ! folder)
         return _options.filePickerForTest(saving);
 #endif
@@ -2843,7 +2843,7 @@ void Application::AskThen(std::function<void()> continuation)
         return;
     }
     if (_options.headless
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         && ! _options.unsavedPromptForTest
 #endif
     )
@@ -2854,7 +2854,7 @@ void Application::AskThen(std::function<void()> continuation)
         // owns this continuation until its answer has been collected.
         _modalPrompt       = ModalPromptKind::UnsavedChanges;
         const auto restore = wil::scope_exit([&] { _modalPrompt = ModalPromptKind::None; });
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         if (_options.headless)
             choice = _options.unsavedPromptForTest();
         else
@@ -3006,7 +3006,7 @@ void Application::ResolveSaveConflict(const AsyncFiles::Result& result)
     {
         const auto previousPrompt = std::exchange(_modalPrompt, ModalPromptKind::SaveConflict);
         const auto restore        = wil::scope_exit([&] { _modalPrompt = previousPrompt; });
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         if (_options.headless && _options.saveConflictForTest)
             choice = _options.saveConflictForTest();
         else
@@ -3097,7 +3097,7 @@ void Application::FileCompleted() noexcept
 }
 void Application::CompleteFileOperation()
 {
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     if (_options.fileCompletionAdmissionForTest)
     {
         const HRESULT admitted = _options.fileCompletionAdmissionForTest();
@@ -4269,7 +4269,7 @@ int Application::Run()
 {
     if (! _options.designInteractive.empty())
     {
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         return RunDesignInteractiveProbe(*this, _options);
 #else
         return 2;
@@ -4490,7 +4490,7 @@ void Application::DispatchUiMessage(const MSG& message) noexcept
         }
         if (_lifecyclePhase == LifecyclePhase::DrainingForClose && AreShutdownWorkersSettled())
         {
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
             ++_preferencesReadySentDuringClose;
 #endif
             (void)SendMessageW(_window.get(), PreferencesReady, 0, 0);

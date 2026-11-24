@@ -281,7 +281,7 @@ struct RecoveryService::State
     bool writingBatch{};
     HRESULT status = S_OK;
     std::array<HRESULT, RecoveryService::MaximumDocuments> snapshotStatuses{};
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     std::shared_ptr<RecoveryService::TestGate> scanTestGate;
     std::shared_ptr<RecoveryService::TestGate> postScanTestGate;
     std::shared_ptr<RecoveryService::TestGate> batchTestGate;
@@ -366,7 +366,7 @@ struct RecoveryService::State
                 candidates.push_back({std::wstring(candidate), std::move(snapshot)});
             }
         }
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         std::shared_ptr<RecoveryService::TestGate> gate;
         {
             std::lock_guard lock(mutex);
@@ -401,7 +401,7 @@ struct RecoveryService::State
                 self->UpdateSettlementLocked();
                 self->Notify();
             }
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
             {
                 std::shared_ptr<RecoveryService::TestGate> gate;
                 {
@@ -422,7 +422,7 @@ struct RecoveryService::State
                 std::vector<std::wstring> discards;
                 DWORD delay = INFINITE;
                 bool stopping{};
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
                 std::shared_ptr<RecoveryService::TestGate> batchGate;
 #endif
                 {
@@ -446,7 +446,7 @@ struct RecoveryService::State
                     discards.swap(self->discards);
                     self->writingBatch = ! due.empty() || ! discards.empty();
                     self->UpdateSettlementLocked();
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
                     if (self->writingBatch)
                         batchGate = std::exchange(self->batchTestGate, {});
 #endif
@@ -458,7 +458,7 @@ struct RecoveryService::State
                     (void)WaitForSingleObject(self->wake.get(), delay);
                     continue;
                 }
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
                 const auto finishBatchGate = wil::scope_exit([&]() noexcept
                 {
                     if (batchGate)
@@ -588,7 +588,7 @@ try
         return HRESULT_FROM_WIN32(GetLastError());
     staged->window  = window;
     staged->message = message;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     staged->scanTestGate     = _scanTestGate;
     staged->postScanTestGate = _postScanTestGate;
     staged->batchTestGate    = _batchTestGate;
@@ -655,7 +655,7 @@ try
         return E_ABORT;
     if (std::ranges::find(_state->discards, id) == _state->discards.end())
         _state->discards.push_back(std::move(id));
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     ++_state->discardAdmissions;
 #endif
     _state->UpdateSettlementLocked();
@@ -755,7 +755,7 @@ void RecoveryService::Close() noexcept
     }
     _state.reset();
 }
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
 void RecoveryService::SetScanTestGate(std::shared_ptr<TestGate> gate) noexcept
 {
     _scanTestGate = std::move(gate);

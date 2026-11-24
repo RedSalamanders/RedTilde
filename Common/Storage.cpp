@@ -14,7 +14,7 @@
 
 namespace RedTilde
 {
-#ifdef REDTILDE_ENABLE_TESTS
+#ifdef ENABLE_TESTS
 namespace
 {
 thread_local AtomicWriteFailure atomicWriteFailure{};
@@ -555,7 +555,7 @@ try
         file.reset(); // The share-none staging handle must close before deletion on every failure path.
         DeleteFileW(temporary.c_str());
     });
-#ifdef REDTILDE_ENABLE_TESTS
+#ifdef ENABLE_TESTS
     if (atomicWriteFailure == AtomicWriteFailure::Write)
         return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
 #endif
@@ -570,7 +570,7 @@ try
             return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
         writtenTotal += writtenChunk;
     }
-#ifdef REDTILDE_ENABLE_TESTS
+#ifdef ENABLE_TESTS
     if (atomicWriteFailure == AtomicWriteFailure::Flush)
         return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
     if (atomicWriteFailure == AtomicWriteFailure::FlushUnsupported)
@@ -603,7 +603,7 @@ try
             return identityResult;
         metadata.reset();
     }
-#ifdef REDTILDE_ENABLE_TESTS
+#ifdef ENABLE_TESTS
     if (atomicWriteHook)
         atomicWriteHook(AtomicWriteCheckpoint::Staged, path, atomicWriteContext);
 #endif
@@ -653,7 +653,7 @@ try
         }
         else if (guarded != beforeStaging)
             return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
-#ifdef REDTILDE_ENABLE_TESTS
+#ifdef ENABLE_TESTS
         if (atomicWriteHook)
             atomicWriteHook(AtomicWriteCheckpoint::BeforeGuardedNameCheck, path, atomicWriteContext);
 #endif
@@ -666,7 +666,7 @@ try
 
     if (finalExists)
     {
-#ifdef REDTILDE_ENABLE_TESTS
+#ifdef ENABLE_TESTS
         if (atomicWriteFailure == AtomicWriteFailure::ReplaceUnsupported)
         {
             if (unsupportedReplacement)
@@ -694,7 +694,7 @@ try
                         moveError == ERROR_NOT_SUPPORTED || moveError == ERROR_INVALID_FUNCTION || moveError == ERROR_CALL_NOT_IMPLEMENTED;
                     if (unsupportedReplacement)
                         *unsupportedReplacement = moveUnsupported;
-#ifdef REDTILDE_ENABLE_TESTS
+#ifdef ENABLE_TESTS
                     guard.reset();
                     if (moveUnsupported && atomicWriteHook)
                         atomicWriteHook(AtomicWriteCheckpoint::ReplacementUnsupported, path, atomicWriteContext);
@@ -717,7 +717,7 @@ try
     }
     guard.reset();
     removeTemporary.release();
-#ifdef REDTILDE_ENABLE_TESTS
+#ifdef ENABLE_TESTS
     if (atomicWriteHook)
         atomicWriteHook(AtomicWriteCheckpoint::BeforeTimestampRefresh, path, atomicWriteContext);
 #endif
@@ -726,7 +726,7 @@ try
         RefreshPublishedTimestamp(path, writtenStamp);
         *saved = writtenStamp;
     }
-#ifdef REDTILDE_ENABLE_TESTS
+#ifdef ENABLE_TESTS
     if (atomicWriteHook)
         atomicWriteHook(AtomicWriteCheckpoint::Published, path, atomicWriteContext);
 #endif
@@ -838,7 +838,7 @@ HRESULT SaveProtectedDocument(const std::filesystem::path& target,
     const auto admitted = protection.Admit(recovery->dataDirectory, snapshot);
     if (FAILED(admitted))
         return admitted;
-#ifdef REDTILDE_ENABLE_TESTS
+#ifdef ENABLE_TESTS
     if (atomicWriteHook)
         atomicWriteHook(AtomicWriteCheckpoint::InPlaceProtected, target, atomicWriteContext);
     if (atomicWriteFailure == AtomicWriteFailure::InPlaceWrite)
@@ -851,7 +851,7 @@ HRESULT SaveProtectedDocument(const std::filesystem::path& target,
     if (! SetFilePointerEx(file.get(), LARGE_INTEGER{}, nullptr, FILE_BEGIN))
         return LastError();
     DWORD written{};
-#ifdef REDTILDE_ENABLE_TESTS
+#ifdef ENABLE_TESTS
     if (atomicWriteFailure == AtomicWriteFailure::InPlacePartialWrite)
     {
         const auto partial = static_cast<DWORD>((std::max)(std::size_t{1u}, bytes.size() / 2u));
@@ -866,7 +866,7 @@ HRESULT SaveProtectedDocument(const std::filesystem::path& target,
         return LastError();
     if (written != bytes.size() || ! SetEndOfFile(file.get()))
         return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
-#ifdef REDTILDE_ENABLE_TESTS
+#ifdef ENABLE_TESTS
     if (atomicWriteFailure == AtomicWriteFailure::InPlaceFlush)
         return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
 #endif
@@ -889,14 +889,14 @@ HRESULT SaveProtectedDocument(const std::filesystem::path& target,
     if (result.size != bytes.size() || ! SameObject(current, result))
         return HRESULT_FROM_WIN32(ERROR_WRITE_FAULT);
     metadata.reset();
-#ifdef REDTILDE_ENABLE_TESTS
+#ifdef ENABLE_TESTS
     if (atomicWriteHook)
         atomicWriteHook(AtomicWriteCheckpoint::BeforeTimestampRefresh, target, atomicWriteContext);
 #endif
     RefreshPublishedTimestamp(target, result);
     saved = result;
     (void)protection.Retire(); // Failure is logged; a valid extra recovery copy remains available.
-#ifdef REDTILDE_ENABLE_TESTS
+#ifdef ENABLE_TESTS
     if (atomicWriteHook)
         atomicWriteHook(AtomicWriteCheckpoint::Published, target, atomicWriteContext);
 #endif

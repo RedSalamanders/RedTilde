@@ -37,7 +37,7 @@ Requires Windows 11 (`10.0.22000.2600`+), PowerShell 7, Git, Visual Studio 2026 
 .\Test-Changes.ps1
 ```
 
-- **Configurations & Platforms:** `build.ps1` supports `-Platform x64|ARM64` and `-Configuration Debug|Release|'ASan Debug'`, plus `-ProductionOnly` (Release) and `package.ps1` for production portable ZIP packaging. ARM64 cross-builds compile locally; ARM64 runtime tests require an ARM64 Windows host.
+- **Configurations and platforms.** `build.ps1` supports x64 and ARM64 with Debug, Release and ASan Debug. Use `-EnableTests` for a Release test or benchmark build. Use `package.ps1` for a production portable ZIP. ARM64 runtime tests require native ARM64 Windows.
 - **Native Test Catalog:** `203` behavioral cases (`Storage` `34`, `Settings` `19`, `Recovery` `23`, `Editor` `127`), plus Preferences, RecoveryRestart, Performance, Captures, Crash, Sanitizer, and Tooling suites. See [Tests/README.md](Tests/README.md) and [Specs/Testing/Testing_Validation.md](Specs/Testing/Testing_Validation.md).
 - **Validation & Formatting:** `.\validate.ps1` checks specifications, links, skill packages, resource strings, build policies, and PowerShell tests; `.\format.ps1 -Check` checks C++ formatting.
 

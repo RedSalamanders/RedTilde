@@ -177,8 +177,9 @@ None.
 
 The adapter preserves exact source, dependency, public-header, compiler-context and artifact attestation.
 RedTildeBuildNumber freezes the third native version field and participates in build input identity. RedTildeEnableTests
-is also input-bound. Test mode compiles and enumerates the reviewed native catalog; its Utf8.CI_ASSERTION_PROBE verifies
-the real Require throws in Release.
+is also input-bound. `ENABLE_TESTS` compiles the reviewed native test catalog. Debug and ASan Debug enable it by
+default. Release builds enable it through `build.ps1 -EnableTests` when the direct tests, shared scoped runner or
+qualification request it. In that Release profile, Utf8.CI_ASSERTION_PROBE verifies that Require throws.
 
 ### Production and packaging
 
@@ -189,7 +190,7 @@ every test-only entry point's rejection. Packaging emits the qualified portable 
 
 `package.ps1` requests `build.ps1 -Configuration Release -ProductionOnly` by default. `-SkipBuild` accepts only an
 otherwise valid receipt whose `testsEnabled` is the Boolean `false`; a test-enabled artifact is refused before creating
-package staging. Ordinary test-enabled Release remains required for regression execution. The production artifact MUST
+package staging. Test-enabled Release remains required for regression execution. The production artifact MUST
 include the original package receipt as `portable-smoke.json`, preserving its exact bytes, positive-capture result and
 individual test-only refusal records. Admit its platform, ZIP SHA-256, Boolean production/test mode, the complete
 fifteen-case refusal union and each observed successful outcome before writing a successful outer CI receipt. Missing,

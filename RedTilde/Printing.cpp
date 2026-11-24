@@ -1103,7 +1103,7 @@ struct PrinterConfigProbe final
     wil::unique_event_nothrow done;
     HRESULT result = E_FAIL;
     std::optional<PrinterConfiguration> configuration;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     bool useTestPrinter{};
     std::function<HRESULT(const std::wstring&, const std::optional<PrinterSettings>&, PrinterConfiguration&)> printerForTest;
     ProcessWorkLease testLease;
@@ -1114,7 +1114,7 @@ DWORD WINAPI RunPrinterConfigProbe(void* context) noexcept
 {
     const std::unique_ptr<std::shared_ptr<PrinterConfigProbe>> holder(static_cast<std::shared_ptr<PrinterConfigProbe>*>(context));
     const auto probe = *holder;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     // Release any test callback lease only after clearing the test callback and signaling completion.
     ProcessWorkLease testLease = std::move(probe->testLease);
 #endif
@@ -1134,7 +1134,7 @@ DWORD WINAPI RunPrinterConfigProbe(void* context) noexcept
         const wil::unique_couninitialize_call apartment;
         const DxUi::Failure::Scope failureScope;
         PrinterConfiguration configured;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         const auto releaseCallback = wil::scope_exit([&]() noexcept { probe->printerForTest = {}; });
         if (probe->useTestPrinter)
         {
@@ -1173,7 +1173,7 @@ HRESULT StartPrinterConfigProbe([[maybe_unused]] const Work& work,
                                 std::shared_ptr<PrinterConfigProbe>& outProbe)
 {
     outProbe.reset();
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     const bool useTestPrinter = work.job.destinationsForTest.has_value();
     if (! useTestPrinter)
         RETURN_IF_FAILED(LoadPrintImports("WINSPOOL.DRV"));
@@ -1186,7 +1186,7 @@ HRESULT StartPrinterConfigProbe([[maybe_unused]] const Work& work,
     probe->printer              = std::move(printer);
     probe->requested            = std::move(requested);
     probe->retryWithoutSettings = retryWithoutSettings;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     probe->useTestPrinter = useTestPrinter;
     if (useTestPrinter)
     {
@@ -1367,7 +1367,7 @@ HRESULT Submit(Work& work, Selection& selection, std::unique_ptr<Pages>& pages, 
         finished.invalidRangePageCount = count;
         return E_INVALIDARG;
     }
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     if (job.pageForTest)
     {
         if (job.submissionForTest)
@@ -1431,13 +1431,13 @@ HRESULT RunSession(Work& work, Notice& finished)
     RETURN_IF_FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(wic.put())));
     auto& job = work.job;
     const DWORD timeoutMs =
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         job.printerTimeoutMsForTest.value_or(DefaultPrinterConfigurationTimeoutMs);
 #else
         DefaultPrinterConfigurationTimeoutMs;
 #endif
     auto destinations =
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         job.destinationsForTest ? std::move(job.destinationsForTest.value()) :
 #endif
                                 ListDestinations(job.initialPrinter);

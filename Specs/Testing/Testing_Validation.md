@@ -28,7 +28,7 @@ of the host's legacy long-path setting. This changes neither fixture content nor
 rendering, keyboard, focus or theme assertions; it does not establish arbitrary long-path product support.
 
 Storage failure regressions direct write and flush refusal through a thread-local fault under
-`REDTILDE_ENABLE_TESTS`; production builds contain neither the setter nor the injection branches. Assert
+`ENABLE_TESTS`; production builds contain neither the setter nor the injection branches. Assert
 the actual owned staging handle closes before deletion, original bytes/stamp survive, and no `.tmp` remains.
 Rejected settings tests cover synchronous/asynchronous persistence and real hidden view changes. Draft and
 template tests compare exact LF/CRLF/CR/mixed source, normalized recovery previews, unchanged-draft identity
@@ -371,7 +371,7 @@ The hidden capture suite runs 40 PNG/sidecar pairs (`25` named scenes including 
 `diagram-label-light`, `diagram-label-dark`, `image-paste-light`, `image-paste-dark`, `image-consent-light`, and
 `image-consent-dark`, plus `narrow`, `reference-dark`, `markdown-style`, `caption-close-hover`, and
 `caption-maximize-hover` at 96/144/192 DPI). The harness additionally supports `compose-paper`, `split-dark`,
-`settings-about`, and `print-preview` (under `REDTILDE_ENABLE_TESTS`) for documentation and preview inspection. Each sidecar records requested,
+`settings-about`, and `print-preview` (under `ENABLE_TESTS`) for documentation and preview inspection. Each sidecar records requested,
 native and host DPI, actual pixels/DIP, simulation state and invented fixture basename; the runner verifies PNG
 IHDR dimensions and binds both hashes, toolchain, binary, source and pin in the receipt. Captures never activate
 or publish environment-derived identifiers. The Files fixture freezes its proved model and retires only its

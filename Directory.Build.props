@@ -7,6 +7,7 @@
     <UseDebugLibraries Condition="'$(Configuration)'!='Release'">true</UseDebugLibraries>
     <UseDebugLibraries Condition="'$(Configuration)'=='Release'">false</UseDebugLibraries>
     <RedTildeBuildNumber Condition="'$(RedTildeBuildNumber)'==''">0</RedTildeBuildNumber>
+    <RedTildeEnableTests Condition="'$(RedTildeEnableTests)'=='' and '$(Configuration)'=='Release'">false</RedTildeEnableTests>
     <RedTildeEnableTests Condition="'$(RedTildeEnableTests)'==''">true</RedTildeEnableTests>
     <RedTildeBuildRoot>$(MSBuildThisFileDirectory).build\</RedTildeBuildRoot>
     <RedTildeOutputRoot Condition="'$(RedTildeOutputRoot)'==''">$(RedTildeBuildRoot)</RedTildeOutputRoot>
@@ -36,7 +37,7 @@
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>/utf-8 /permissive- /Zc:preprocessor %(AdditionalOptions)</AdditionalOptions>
       <PreprocessorDefinitions>UNICODE;_UNICODE;WIN32_LEAN_AND_MEAN;NOMINMAX;REDTILDE_BUILD_NUMBER=$(RedTildeBuildNumber);%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <PreprocessorDefinitions Condition="'$(RedTildeEnableTests)'=='true'">REDTILDE_ENABLE_TESTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions Condition="'$(RedTildeEnableTests)'=='true'">ENABLE_TESTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <RuntimeLibrary Condition="'$(Configuration)'!='Release'">MultiThreadedDebugDLL</RuntimeLibrary>

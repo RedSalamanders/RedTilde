@@ -38,7 +38,7 @@ Unexpected C++ allocation failure (`std::bad_alloc`) remains fatal, including at
 
 ## Isolated crash, sanitizer, and failure-report probes
 
-Crash and sanitizer probes run only in isolated harness child processes under `REDTILDE_ENABLE_TESTS`:
+Crash and sanitizer probes run only in isolated harness child processes under `ENABLE_TESTS`:
 
 - `--crash-probe`: triggers an unhandled non-continuable exception through the installed crash handler to prove one local minidump (`MDMP`) and `pending.txt` marker are written.
 - `--recovery-crash-probe`: stages two dirty workspace documents, waits for settled recovery checkpoints, and triggers `CrashProbe()` so `--recovery-restart-probe` can prove restart restoration.
@@ -47,4 +47,4 @@ Crash and sanitizer probes run only in isolated harness child processes under `R
 - `--asan-probe`: exercises an intentional isolated heap-use-after-free read in `ASan Debug` builds so `test.ps1` verifies real AddressSanitizer instrumentation.
 - `--failure-report-self-test`: verifies test-process failure routing (`RedTildeTestFailureReports::RouteAwayFromDialogs()` and `RedTildeTestFailureReports::RunSelfTest()` before `InstallCrashHandler`), ending with stderr diagnostic text and exit code `3` without modal dialogs in Debug / ASan Debug, and exiting `0` in test-enabled Release.
 
-In test-disabled production builds (`!defined(REDTILDE_ENABLE_TESTS)`), every test and probe switch (including `--failure-report-self-test`) refuses immediately with exit code `2` before resolving profile paths, installing the crash handler, or creating a private data directory. Standalone informational flags (`--version`, `-v`, `--help`, `-h`, `/?`, `-?`) likewise exit without creating profile or `Crashes/` directories. See [validation and evidence](../Testing/Testing_Validation.md).
+In test-disabled production builds (`!defined(ENABLE_TESTS)`), every test and probe switch (including `--failure-report-self-test`) refuses immediately with exit code `2` before resolving profile paths, installing the crash handler, or creating a private data directory. Standalone informational flags (`--version`, `-v`, `--help`, `-h`, `/?`, `-?`) likewise exit without creating profile or `Crashes/` directories. See [validation and evidence](../Testing/Testing_Validation.md).

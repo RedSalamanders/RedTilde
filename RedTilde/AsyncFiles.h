@@ -37,7 +37,7 @@ public:
         std::optional<SaveRecoveryContext> recovery;
         bool pickerOverwrite{};
     };
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     // Test-only admission barrier around the real filesystem operation. The
     // worker owns the events through publication, even when its UI is closed.
     struct TestGate
@@ -64,7 +64,7 @@ private:
         Phase phase{Phase::Idle};
         std::uint64_t generation{};
         std::optional<Result> result;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         std::shared_ptr<TestGate> testGate;
 #endif
     };
@@ -84,7 +84,7 @@ private:
         bool sameIdentityOnly{};
         std::filesystem::path baselinePath;
         bool probePickerDestination{};
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         std::shared_ptr<TestGate> testGate;
 #endif
     };
@@ -94,7 +94,7 @@ private:
         ProcessWorkLease lease = std::move(static_cast<Job*>(context)->lease);
         const std::unique_ptr<Job> job(static_cast<Job*>(context));
         auto& result = job->result;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         const auto signalFinished = wil::scope_exit([&]
         {
             if (job->testGate)
@@ -236,7 +236,7 @@ public:
         std::lock_guard lock(_state->mutex);
         return _state->phase == Phase::Saving || (_state->phase == Phase::Completed && _state->result && _state->result.value().saving);
     }
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     void SetTestGate(std::shared_ptr<TestGate> gate)
     {
         std::lock_guard lock(_state->mutex);
@@ -271,7 +271,7 @@ public:
         std::lock_guard lock(_state->mutex);
         if (_state->phase != Phase::Idle)
             return HRESULT_FROM_WIN32(ERROR_BUSY);
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         job->testGate = _state->testGate;
 #endif
         job->generation         = ++_state->generation;

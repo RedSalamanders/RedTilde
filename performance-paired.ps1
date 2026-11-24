@@ -8,7 +8,7 @@ $ErrorActionPreference='Stop'
 Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'Build/Performance.psm1') -Force
 $exe=Join-Path $PSScriptRoot '.build/x64/Release/RedTilde.exe'
-$artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform x64 -Configuration Release
+$artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform x64 -Configuration Release -RequireTests
 $build=$artifact.Build
 $source=$artifact.SourceIdentity
 $fixture=Join-Path $PSScriptRoot 'docs/examples/s5-performance.md'

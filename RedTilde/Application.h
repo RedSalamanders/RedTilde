@@ -141,7 +141,7 @@ struct LaunchOptions
     unsigned captureDpi{}, viewportWidthPx{}, viewportHeightPx{};
     std::wstring scenario = L"compose-light";
     std::filesystem::path document, capture, dataDirectory, benchmark, performance, designInteractive;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     bool startupRestoreForTest{}; // Exercise ordinary startup policy in a hidden owner; no new production switch.
     bool watchSettingsForTest{};  // Exercise live settings watcher against an isolated test directory.
     // Hidden harness replacement for the ordinary unsaved-change question.
@@ -398,7 +398,7 @@ private:
     friend class CloseProbe;
     friend class DesignInteractiveProbe;
     friend class PrintPreview;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     friend int RunFailureHostProbe(std::wstring_view, const std::filesystem::path&, ApplicationRuntime&);
     friend class PrintingProbe;
     friend class FilesProbe;
@@ -738,7 +738,7 @@ private:
     bool _reportingUiFailure{};
     ModalPromptKind _modalPrompt{ModalPromptKind::None};
     bool _visibleBeforeSaveClose{};
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     std::uint64_t _preferencesReadySentDuringClose{};
 #endif
     bool _windowPlacementDirty{};
@@ -871,7 +871,7 @@ enum class CoreTestScope
     EditorMedia
 };
 int RunCoreTests(const std::filesystem::path& root, CoreTestScope scope = CoreTestScope::All, bool listOnly = false);
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
 int RunLinkedSaveInterruptionProbe(const std::filesystem::path& root, bool restart);
 #endif
 int RunPerformanceProbe(Application& app, const LaunchOptions& options);
