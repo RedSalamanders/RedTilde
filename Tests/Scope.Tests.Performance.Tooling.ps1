@@ -272,6 +272,18 @@ Require-RejectedDependencyEvidence 'boolean API coercion' {param($study) $study.
 Require-RejectedDependencyEvidence 'mode downgrade' {param($study) $study.dependencyComparisonMode='same-pin'}
 Require-RejectedDependencyEvidence 'build/dependency platform mismatch' {param($study) $study.candidate.build.platform='ARM64'}
 $legacyHeaderEvidence=[ordered]@{schemaVersion=1;sha256=(Get-HeaderFixtureDigest @($sourceHeaderRow));files=@($sourceHeaderRow)}
+$api5Dependency=$dependencyA | ConvertTo-Json -Depth 30 | ConvertFrom-Json -AsHashtable
+$api5Dependency.Identity.apiRevision=5
+$api5Study=[ordered]@{dependencyComparisonMode='same-pin';
+    baseline=[ordered]@{build=@{platform='x64';dependency=$api5Dependency};publicHeaders=$headerEvidence};
+    candidate=[ordered]@{build=@{platform='x64';dependency=($api5Dependency | ConvertTo-Json -Depth 30 | ConvertFrom-Json -AsHashtable)};publicHeaders=$headerEvidence}}
+$api5Comparison=@{dependencyComparisonMode='same-pin'}
+Assert-DependencyEvidence $api5Study $api5Comparison
+$api5Study.candidate.build.dependency.Identity.apiRevision=4
+$rejectedMixedApis=$false
+try { Assert-DependencyEvidence $api5Study $api5Comparison } catch { $rejectedMixedApis=$true }
+Require $rejectedMixedApis 'Independent same-pin evidence rejects mixed API revisions.'
+
 $samePinStudy=[ordered]@{dependencyComparisonMode='same-pin';baseline=[ordered]@{build=@{platform='x64';dependency=$dependencyA};publicHeaders=$legacyHeaderEvidence};
     candidate=[ordered]@{build=@{platform='x64';dependency=$dependencyA};publicHeaders=$legacyHeaderEvidence}}
 Assert-DependencyEvidence $samePinStudy @{dependencyComparisonMode='same-pin'}
