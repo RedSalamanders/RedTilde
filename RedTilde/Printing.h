@@ -13,7 +13,7 @@
 #include <string_view>
 #include <vector>
 #include <wil/resource.h>
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
 #include <functional>
 #endif
 
@@ -163,7 +163,7 @@ struct Job
     Document document;
     std::wstring initialPrinter;
     std::optional<PrinterSettings> initialSettings;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     std::optional<DWORD> printerTimeoutMsForTest;
     std::optional<Destinations> destinationsForTest;
     std::function<HRESULT(const std::wstring&, const std::optional<PrinterSettings>&, PrinterConfiguration&)> printerForTest;

@@ -434,7 +434,7 @@ void Application::PrepareDesignScenario()
     }
     if (scenario == L"print-preview")
     {
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         const auto showcasePath = CaptureNativePath(std::filesystem::absolute(_options.dataDirectory) / L"Showcase.md");
         SetDocument(SampleDocument(), showcasePath);
         _settings.appearance = Appearance::Light;

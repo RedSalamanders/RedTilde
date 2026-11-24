@@ -53,7 +53,7 @@ if(-not $localSdkMode){
 }
 if('Tooling' -in $Suites){& (Join-Path $PSScriptRoot 'validate.ps1')}
 if(-not @($Suites|Where-Object{$_ -ne 'Tooling'}).Count){Write-Host 'Independent tooling passed; native coverage NOT_EVALUATED';exit 0}
-if (-not $SkipBuild) { & (Join-Path $PSScriptRoot 'build.ps1') -Platform $Platform -Configuration $Configuration }
+if (-not $SkipBuild) { & (Join-Path $PSScriptRoot 'build.ps1') -Platform $Platform -Configuration $Configuration -EnableTests }
 $architecture=[Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
 if ($Platform -eq 'ARM64' -and $architecture -ne 'Arm64') { throw 'ARM64 runtime tests require a native ARM64 host.' }
 Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
@@ -67,7 +67,7 @@ if($localSdkMode){
     $sourceIdentity=Get-RedTildeSourceIdentity -Root $PSScriptRoot
     $binarySha256=$runtimeInput.Build.executableSha256
 }else{
-    $artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
+    $artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration -RequireTests
     $exe=$artifact.Executable
     $built=$artifact.Build
     $sourceIdentity=$artifact.SourceIdentity

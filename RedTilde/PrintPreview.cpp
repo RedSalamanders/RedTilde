@@ -173,7 +173,7 @@ public:
         return _headline;
     }
 
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     void SetElapsedForTest(DxUi::ControlHost& host, std::uint64_t elapsedMs)
     {
         _elapsedMs = elapsedMs;
@@ -873,7 +873,7 @@ void PrintPreview::ArmWaitingTimer()
     CancelWaitingTimer();
     if (! _window)
         return;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     const UINT delay = _app._options.printWaitingDelayMsForTest.value_or(WaitingOverlayDelayMs);
     if (delay == 0u)
     {
@@ -928,7 +928,7 @@ void PrintPreview::SyncWaitingText()
     _waiting->UpdateText(_host, std::move(headline), std::move(hint));
 }
 
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
 bool PrintPreview::IsWaitingOverlayVisible() const noexcept
 {
     return _waiting && _waiting->IsVisible();

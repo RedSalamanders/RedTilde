@@ -81,7 +81,7 @@ public:
     [[nodiscard]] HRESULT WaitForSettlement(DWORD milliseconds) const noexcept;
     void Stop() noexcept;
     void Close() noexcept;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     struct TestGate
     {
         TestGate()                           = default;
@@ -100,7 +100,7 @@ public:
 private:
     struct State;
     std::shared_ptr<State> _state;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     std::shared_ptr<TestGate> _scanTestGate;
     std::shared_ptr<TestGate> _postScanTestGate;
     std::shared_ptr<TestGate> _batchTestGate;

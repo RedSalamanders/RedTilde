@@ -21,7 +21,7 @@ Pass `-InstallDirectory <path>` to target a different per-user folder (it must n
 
 ## Production-Only Portable Role
 
-Portable ZIPs packaged with `package.ps1` use the **production-only Release** role (`!defined(REDTILDE_ENABLE_TESTS)`). Self-test, interactive-test, deliberate crash, recovery, preferences, failure-host, and sanitizer probe switches return exit code `2` without opening the application or creating profile data. Ordinary launching, `--document`, `--version` (`-v`), `--help` (`-h`, `/?`), `--headless`, `--capture`, and performance diagnostics remain available.
+Portable ZIPs packaged with `package.ps1` use the **production-only Release** role (`!defined(ENABLE_TESTS)`). Self-test, interactive-test, deliberate crash, recovery, preferences, failure-host, and sanitizer probe switches return exit code `2` without opening the application or creating profile data. Ordinary launching, `--document`, `--version` (`-v`), `--help` (`-h`, `/?`), `--headless`, `--capture`, and performance diagnostics remain available.
 
 ## Supported Features
 

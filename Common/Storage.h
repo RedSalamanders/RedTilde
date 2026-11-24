@@ -11,7 +11,7 @@
 
 namespace RedTilde
 {
-#ifdef REDTILDE_ENABLE_TESTS
+#ifdef ENABLE_TESTS
 // Thread-local faults affect only an explicitly directed native storage test.
 // Production builds contain neither this control nor its injection branches.
 enum class AtomicWriteFailure

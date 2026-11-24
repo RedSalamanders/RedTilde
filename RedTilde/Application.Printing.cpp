@@ -56,7 +56,7 @@ void Application::Print()
 {
     if (! CanAcceptCommand() || HasBlockDraft() || HasActiveModalPrompt() || _printPreview || _printOperation)
         return;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     if (_options.headless && ! _options.printDestinationsForTest)
         return;
 #else
@@ -75,7 +75,7 @@ void Application::Print()
         job.document.networkImages = _printNetworkImages;
     job.initialPrinter  = _printPrinter;
     job.initialSettings = _printSettings;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     job.printerTimeoutMsForTest = _options.printPrinterTimeoutMsForTest;
     if (_options.headless)
     {

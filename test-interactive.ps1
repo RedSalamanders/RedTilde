@@ -16,9 +16,9 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 Import-Module (Join-Path $PSScriptRoot 'Build/ScopedTesting.psm1') -Force
 Assert-ScopedRuntimePlatform -Platform $Platform
-if(-not $SkipBuild){& (Join-Path $PSScriptRoot 'build.ps1') -Platform $Platform -Configuration $Configuration}
+if(-not $SkipBuild){& (Join-Path $PSScriptRoot 'build.ps1') -Platform $Platform -Configuration $Configuration -EnableTests}
 Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
-$artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
+$artifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration -RequireTests
 $pinPath=Join-Path $PSScriptRoot 'Dependencies/DxUi.lock.json'
 $pin=Get-Content -LiteralPath $pinPath -Raw|ConvertFrom-Json
 $source=Join-Path $PSScriptRoot ".build/dependencies/DxUi/source/$($pin.commit.Substring(0,16))"
@@ -64,7 +64,7 @@ try {
         @($checks.tests|Where-Object{-not $_.passed}).Count -or (Compare-Object $required @($checks.tests.name))){
         throw 'The keyboard/focus child did not complete every required check.'
     }
-    $finalArtifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
+    $finalArtifact=Assert-RedTildeTestArtifact -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration -RequireTests
     if($finalArtifact.SourceIdentity -cne $artifact.SourceIdentity -or $finalArtifact.ReceiptSha256 -cne $artifact.ReceiptSha256 -or
         $finalArtifact.Build.binarySha256 -cne $artifact.Build.binarySha256 -or
         $finalArtifact.Build.artifactIdentity -cne $artifact.Build.artifactIdentity -or

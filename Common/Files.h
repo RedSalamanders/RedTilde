@@ -108,7 +108,7 @@ public:
     [[nodiscard]] HRESULT Status() const noexcept;
     [[nodiscard]] std::uint64_t Generation() const noexcept;
     void Close() noexcept;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     void FailNextInitializeForTest(HRESULT hr) noexcept;
     void SimulateWorkerFailureForTest(HRESULT hr) noexcept;
 #endif
@@ -116,7 +116,7 @@ public:
 private:
     struct State;
     std::shared_ptr<State> _state;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     std::optional<HRESULT> _nextInitializeFailureForTest;
 #endif
 };

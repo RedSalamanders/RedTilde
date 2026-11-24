@@ -35,7 +35,7 @@ public:
         HRESULT status = S_OK;
         BitmapAsset asset;
     };
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     struct TestGate
     {
         TestGate()                           = default;
@@ -68,7 +68,7 @@ private:
         std::optional<Result> result;
         std::unique_ptr<Job> retireJob;
         std::atomic_bool hasResult{};
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         std::shared_ptr<TestGate> testGate;
 #endif
         void Notify() const noexcept
@@ -89,7 +89,7 @@ private:
         std::vector<std::byte> dib;
         bool v5{}, discard{};
         Result result;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         std::shared_ptr<TestGate> testGate;
 #endif
     };
@@ -105,7 +105,7 @@ private:
             auto result        = std::move(job->result);
             const bool discard = job->discard;
             bool admitted      = true;
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
             if (job->testGate)
             {
                 (void)SetEvent(job->testGate->entered.get());
@@ -221,7 +221,7 @@ public:
         const std::scoped_lock lock(_state->mutex);
         if (_state->stopRequested || _state->phase != Phase::Idle)
             return HRESULT_FROM_WIN32(ERROR_BUSY);
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
         job->testGate = _state->testGate;
 #endif
         job->result.request     = ++_state->serial;
@@ -251,7 +251,7 @@ public:
         const std::scoped_lock lock(_state->mutex);
         return _state->phase;
     }
-#if defined(REDTILDE_ENABLE_TESTS)
+#if defined(ENABLE_TESTS)
     void SetTestGate(std::shared_ptr<TestGate> gate)
     {
         const std::scoped_lock lock(_state->mutex);

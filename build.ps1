@@ -1,16 +1,18 @@
 <#
 .SYNOPSIS Builds one owned RedTilde profile and publishes its verified input/artifact receipt.
 .PARAMETER DxUiSdkInputDescriptor Independent pinned Release SDK descriptor below .build; exact misses retain source.
+.PARAMETER EnableTests Compile native test hooks. Debug and ASan Debug enable them by default.
 #>
 [CmdletBinding()]
 param([ValidateSet('x64','ARM64')][string] $Platform='x64',
       [ValidateSet('Debug','Release','ASan Debug')][string] $Configuration='Debug', [switch] $SkipRestore,
       [ValidateRange(0,65535)][int]$BuildNumber = $(if ($env:RedTildeBuildNumber) { [int]$env:RedTildeBuildNumber } else { 0 }),
-      [switch]$ProductionOnly,[string]$DxUiSdkInputDescriptor='')
+      [switch]$ProductionOnly,[string]$DxUiSdkInputDescriptor='',[switch]$EnableTests)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 if ($env:CI_NATIVE_BUILDS_DISABLED -eq 'true') { throw 'Native builds are forbidden in compiler-free PR checks.' }
 if ($ProductionOnly -and $Configuration -ne 'Release') { throw 'ProductionOnly requires Release.' }
+if ($ProductionOnly -and $EnableTests) { throw 'ProductionOnly and EnableTests are mutually exclusive.' }
 if($DxUiSdkInputDescriptor -and $Configuration -cne 'Release'){throw 'Pinned SDK inputs require Release; Debug/ASan use source.'}
 $versionHeaderPath=Join-Path $PSScriptRoot 'Common/Version.h'
 if(-not(Test-Path -LiteralPath $versionHeaderPath -PathType Leaf)){throw 'Version header Common/Version.h is missing.'}
@@ -30,7 +32,8 @@ try {
 $scopedReports=Get-ScopedReportRoot -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
 Remove-ScopedIteration -Path (Join-Path $scopedReports 'iteration.json') -Root $PSScriptRoot
 $env:RedTildeBuildNumber = [string]$BuildNumber
-$env:RedTildeEnableTests = if ($ProductionOnly) { 'false' } else { 'true' }
+$enableTestHooks = $EnableTests -or $Configuration -ne 'Release'
+$env:RedTildeEnableTests = if ($enableTestHooks) { 'true' } else { 'false' }
 $nativeEntryElapsed = [Diagnostics.Stopwatch]::StartNew()
 Import-Module (Join-Path $PSScriptRoot 'Build/BuildConsole.psm1') -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'Build/Toolchain.psm1') -Force
@@ -129,7 +132,7 @@ $success=[ordered]@{schemaVersion=2;passed=$true;sourceIdentity=$sourceIdentity;
     dependencyHeadersSha256=$buildInputs.dependencyHeadersSha256;dependencyResolvedPropsSha256=$buildInputs.dependencyResolvedPropsSha256;
     compilerContextSha256=$buildInputs.compilerContextSha256;
     platform=$Platform;configuration=$Configuration;dependency=$dependency;dependencyRecipe=$dependencyRecipe;artifactIdentity=$artifactIdentity;
-    version=$productVersion;buildNumber=$BuildNumber;testsEnabled=(-not [bool]$ProductionOnly);
+    version=$productVersion;buildNumber=$BuildNumber;testsEnabled=$enableTestHooks;
     binarySha256=(Get-FileHash (Join-Path $output 'RedTilde.exe') -Algorithm SHA256).Hash;
     startedUtc=$started.ToString('o');finishedUtc=[DateTime]::UtcNow.ToString('o');runtimeExecuted=$false}
 if($null -ne $sdkInput){
