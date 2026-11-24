@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Use the pinned engine's MSVC verification in hosted workflows and local setup tests.
 - Keep the newest ten new local crash reports and show the pending report once. Preserve older reports.
 - Adopt the pinned formatting and repository policy checks.
 - Use the pinned CI engine's shared Visual Studio setup in native hosted jobs.
