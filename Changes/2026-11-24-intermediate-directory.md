@@ -1,0 +1,1 @@
+- Use the common Intermediate layout and preserve compiler-profile comparison with earlier builds.

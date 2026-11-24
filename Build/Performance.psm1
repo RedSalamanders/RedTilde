@@ -161,7 +161,17 @@ function Compare-RedTildePerformanceBlocks {
 function Get-RedTildeCompilerProfile {
     param([string]$Root)
     $rootPath=[IO.Path]::GetFullPath($Root).TrimEnd('\','/')
-    function Normalize-PathOperand([string]$Operand) {
+    $layout='Intermediate'
+    $propsPath=Join-Path $rootPath 'Directory.Build.props'
+    if(Test-Path -LiteralPath $propsPath -PathType Leaf) {
+        [xml]$props=Get-Content -LiteralPath $propsPath -Raw
+        $intermediate=$props.SelectSingleNode('/Project/PropertyGroup/IntDir')
+        if($null -eq $intermediate -or $intermediate.InnerText -cnotmatch '^\$\(RedTildeOutputRoot\)(?<layout>Intermediate|obj)\\') {
+            throw 'Unsupported Release intermediate directory.'
+        }
+        $layout=$Matches.layout
+    }
+    function Normalize-PathOperand([string]$Operand,[string]$Flag) {
         $quoted=$Operand.StartsWith('"') -and $Operand.EndsWith('"')
         $value=if($quoted){$Operand.Substring(1,$Operand.Length-2)}else{$Operand}
         if($value.Contains('"')){throw 'Unsupported compiler path quoting.'}
@@ -170,10 +180,14 @@ function Get-RedTildeCompilerProfile {
             $value.StartsWith($rootPath+'/',[StringComparison]::OrdinalIgnoreCase)) {
             $value='<ROOT>'+$value.Substring($rootPath.Length)
         }
+        if($Flag -cin @('/Fo','/Fd')) {
+            # Keep the profile's established spelling for the owned output directory.
+            $value=[regex]::Replace($value,'^(?<prefix><ROOT>[\\/]\.build[\\/])Intermediate(?=[\\/])','${prefix}OBJ','IgnoreCase')
+        }
         if($quoted){return '"'+$value+'"'}
         return $value
     }
-    $path=Join-Path $Root '.build/obj/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog'
+    $path=Join-Path $rootPath ".build/$layout/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog"
     if(-not (Test-Path -LiteralPath $path)) { throw 'The Release compiler command inventory is missing.' }
     [xml]$project=Get-Content -LiteralPath (Join-Path $Root 'RedTilde/RedTilde.vcxproj')
     $sources=@($project.SelectNodes('//*[local-name()="ClCompile"][@Include]') | ForEach-Object {
@@ -214,11 +228,12 @@ function Get-RedTildeCompilerProfile {
             }
             $pathFlag=[regex]::Match($token,'^(?<flag>/I|/Fo|/Fd)(?<path>.*)$')
             if($pathFlag.Success) {
+                $flag=$pathFlag.Groups['flag'].Value
                 $operand=$pathFlag.Groups['path'].Value
                 if(-not $operand) {
                     if(++$tokenIndex -ge $tokens.Count){throw 'Missing compiler path operand.'}
-                    $options.Add($token);$options.Add((Normalize-PathOperand $tokens[$tokenIndex]))
-                } else {$options.Add($pathFlag.Groups['flag'].Value+(Normalize-PathOperand $operand))}
+                    $options.Add($token);$options.Add((Normalize-PathOperand $tokens[$tokenIndex] $flag))
+                } else {$options.Add($flag+(Normalize-PathOperand $operand $flag))}
                 continue
             }
             if($argument -iin $sources) {

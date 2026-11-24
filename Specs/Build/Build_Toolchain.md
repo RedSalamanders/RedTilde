@@ -120,6 +120,10 @@ All native profiles require the installed default MSVC **14.52.x** family with t
 
 Release explicitly uses /Gy and /GL, /OPT:REF and full /LTCG, with ordinary incremental linking disabled. Debug/ASan diagnostic optimization settings are unchanged. Preserve existing project-specific size/speed, warning, ISA, CRT and subsystem choices. Evaluated-profile tests check all six native configurations, pinned archives, and negative compiler/linker controls; resource-only satellites contain no C++ bodies.
 
+Native object and tracking files use `.build/Intermediate/<Platform>/<Configuration>/RedTilde`. The
+compiler-profile reader follows the checked-out build policy for current and earlier sources. It keeps each
+original tracking log's digest and normalizes the common object and PDB directory in the comparison profile.
+
 Project references explicitly forward WholeProgramOptimization and VCToolsVersion into the adopted DxUi archive. Dependency identity includes releaseOptimizationPolicy=Gy-REF-GL-LTCG-full-v1 and is rehashed before choosing writable outputs. This separates the new archive policy without changing the adopted API/source pin. Keep header/library/compiler/CRT identities matched.
 
 Direct SDK helper builds that use this fingerprinted output must preserve the same policy. The interactive lease

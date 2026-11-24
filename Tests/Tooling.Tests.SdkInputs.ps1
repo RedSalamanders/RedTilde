@@ -20,7 +20,7 @@ $vcpkgDir=Join-Path $run 'vcpkg_installed/x64';$tripletDir=Join-Path $vcpkgDir '
 $yyjsonHeader=Join-Path $tripletDir 'include/yyjson.h';$yyjsonLib=Join-Path $tripletDir 'lib/yyjson.lib'
 [IO.File]::WriteAllText($yyjsonHeader,'/* synthetic yyjson v1 */')
 [IO.File]::WriteAllText($yyjsonLib,'lib-v1')
-$properties=[ordered]@{OutDir=(Join-Path $root '.build/x64/Release');IntDir=(Join-Path $root '.build/obj/x64/Release/RedTilde');
+$properties=[ordered]@{OutDir=(Join-Path $root '.build/x64/Release');IntDir=(Join-Path $root '.build/Intermediate/x64/Release/RedTilde');
     PlatformToolset='v145';VCToolsInstallDir=(Join-Path $run 'msvc');VCToolsVersion='14.52.37025';WindowsSdkDir=(Join-Path $run 'windows');
     WindowsTargetPlatformVersion='10.0.26100.0';PreferredToolArchitecture='x64';VCToolArchitecture='Native64Bit';WindowsSDKToolArchitecture='Native64Bit';
     CLToolPath='';CLToolExe='';LinkToolPath='';LinkToolExe='';ResourceCompileToolPath='';ResourceCompileToolExe='';
