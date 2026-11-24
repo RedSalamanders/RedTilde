@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Run the existing desktop-lease suite from `test.ps1 -Interactive` and retain the direct interactive command.
 - Align the shared engine pin with the reviewed policy and WinGet metadata revision.
 - Route compiler-free pull request checks through RedTilde's root `validate.ps1`.
 - Select affected RedTilde suites by default from `test.ps1` and retain explicit suite and full-profile runs.
