@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Use the common Intermediate layout and preserve compiler-profile comparison with earlier builds.
 - Pin the reviewed shared MSVC setup and regenerate its reusable workflow callers.
 - Guard an existing document version through save and ask again if the file changes after an overwrite confirmation.
 - Use the pinned engine's MSVC verification in hosted workflows and local setup tests.
