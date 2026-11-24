@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Use the common resource message-box helper for the pending crash report notice.
 - Write RedTilde's portable packages and receipts under `.build/packages` and use the same location in production CI. The local installer also accepts earlier staged packages.
 - Add RedTilde's root `-Clean`, `-Rebuild` and `-MaxCpuCount` options with owned-profile checks and current build receipts.
 - Expose RedTilde's local Markdown link validation through the root `validate-specs.ps1` command and call it from the complete validator.

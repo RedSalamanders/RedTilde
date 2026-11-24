@@ -1,1 +1,0 @@
-- Use the common resource message-box helper for the pending crash report notice.
