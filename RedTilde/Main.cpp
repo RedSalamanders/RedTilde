@@ -451,8 +451,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR command, int showCommand)
             RetainRecentCrashReports(crashes);
         if (const auto report = TakePendingCrashNotice(crashes, ! options.headless))
         {
-            const auto message = FormatStringResource(nullptr, IDS_CRASHREPORT, report->native());
-            MessageBoxW(nullptr, message.c_str(), Resource(IDS_APP).c_str(), MB_OK | MB_ICONINFORMATION);
+            MessageBoxResource(nullptr, nullptr, IDS_CRASHREPORT, IDS_APP, MB_OK | MB_ICONINFORMATION, report->native());
         }
         std::unique_ptr<Application> app;
         {
