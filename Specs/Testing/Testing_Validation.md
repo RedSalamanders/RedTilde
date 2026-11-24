@@ -405,7 +405,9 @@ text-service import on the actual editor through its base member pointer. They c
 replace no callback and acquire no visible IME session. Preview, successive same-ACP revision, cancellation and
 result tests retain exact source/selection plus both history directions and committed-change/recovery counts.
 
-`test-interactive.ps1` is an explicit, time-authorized obligation outside the ordinary hidden/Full suites.
+`test.ps1 -Interactive` is the root entry point for the time-authorized desktop suite. It forwards the platform,
+configuration, build reuse and countdown options to the existing `test-interactive.ps1` runner. Callers can still use
+that command directly. Ordinary affected and full commands preserve the existing unattended test selection.
 It compiles the canonical exact-pinned DxUi InteractiveLease target into the consumer's fingerprint output and
 uses that library's runner/protocol for consent, warning, session ownership, watchdog and verified restoration.
 Before that direct MSBuild invocation, it forwards the receipt-pinned compiler, SDK, host architecture and
