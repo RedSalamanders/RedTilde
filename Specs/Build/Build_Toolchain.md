@@ -69,6 +69,9 @@ The application's `vcpkg-install.ps1` uses the pinned CI engine to prepare its c
 overlays and assemble the manifest arguments. The product supplies the static-md triplets and its existing
 binary-cache policy.
 
+Run `.\restore.ps1` for x64 or `.\restore.ps1 -Platform ARM64` to prepare the standard RedTilde and
+pinned DxUi dependencies without compiling the editor. The command uses repository-owned dependency trees.
+
 `restore-dxui.ps1` prepares `<output root>/vcpkg-tool` as a complete, clean vcpkg checkout at the pinned DxUi's
 `vcpkg-tool.json` commit (`Build/VcpkgToolCheckout.psm1`) before it runs that DxUi's `vcpkg-install.ps1`, which then
 reuses it. vcpkg reads versioned ports with Git commands whose environment holds only `GIT_INDEX_FILE` and so cannot
