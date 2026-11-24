@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Select affected RedTilde suites by default from `test.ps1` and retain explicit suite and full-profile runs.
 - Adopt the shared Dependabot configuration for GitHub Actions and vcpkg.
 - Add an opt-in MSVC code analysis build with isolated RedTilde output.
 - Use the common test-hook macro and require explicit test mode for Release builds.
