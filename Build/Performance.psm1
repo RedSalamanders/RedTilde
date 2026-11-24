@@ -158,11 +158,10 @@ function Compare-RedTildePerformanceBlocks {
     return @($rows)
 }
 
-function Get-RedTildeCompilerProfile {
-    param([string]$Root)
-    $rootPath=[IO.Path]::GetFullPath($Root).TrimEnd('\','/')
+function Get-RedTildeCompilerCommandLogPath {
+    param([Parameter(Mandatory)][string]$Root)
     $layout='Intermediate'
-    $propsPath=Join-Path $rootPath 'Directory.Build.props'
+    $propsPath=Join-Path $Root 'Directory.Build.props'
     if(Test-Path -LiteralPath $propsPath -PathType Leaf) {
         [xml]$props=Get-Content -LiteralPath $propsPath -Raw
         $intermediate=$props.SelectSingleNode('/Project/PropertyGroup/IntDir')
@@ -171,6 +170,14 @@ function Get-RedTildeCompilerProfile {
         }
         $layout=$Matches.layout
     }
+    $path=Join-Path $Root ".build/$layout/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog"
+    if(-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw 'The Release compiler command inventory is missing.' }
+    return $path
+}
+
+function Get-RedTildeCompilerProfile {
+    param([string]$Root)
+    $rootPath=[IO.Path]::GetFullPath($Root).TrimEnd('\','/')
     function Normalize-PathOperand([string]$Operand,[string]$Flag) {
         $quoted=$Operand.StartsWith('"') -and $Operand.EndsWith('"')
         $value=if($quoted){$Operand.Substring(1,$Operand.Length-2)}else{$Operand}
@@ -187,8 +194,7 @@ function Get-RedTildeCompilerProfile {
         if($quoted){return '"'+$value+'"'}
         return $value
     }
-    $path=Join-Path $rootPath ".build/$layout/x64/Release/RedTilde/RedTilde.tlog/CL.command.1.tlog"
-    if(-not (Test-Path -LiteralPath $path)) { throw 'The Release compiler command inventory is missing.' }
+    $path=Get-RedTildeCompilerCommandLogPath $rootPath
     [xml]$project=Get-Content -LiteralPath (Join-Path $Root 'RedTilde/RedTilde.vcxproj')
     $sources=@($project.SelectNodes('//*[local-name()="ClCompile"][@Include]') | ForEach-Object {
         [IO.Path]::GetFullPath((Join-Path (Join-Path $Root 'RedTilde') $_.Include))
@@ -984,4 +990,4 @@ function Assert-RedTildeCompilerComparison {
         throw 'Compiler adoption changed options beyond the declared DxUi include operands.'
     }
 }
-Export-ModuleMember -Function Get-RedTildeMedian,Get-RedTildePerformanceMetrics,Get-RedTildeControlDiagnostics,New-RedTildePerformanceSchedule,Get-RedTildeSignFlipP,Compare-RedTildePerformanceBlocks,Get-RedTildeCompilerProfile,Get-RedTildeReviewedHeaderDeltaProfile,Assert-RedTildeReviewedHeaderDelta,Get-RedTildePairedAdmissionCandidate,Assert-RedTildeDependencyComparison,Assert-RedTildeCompilerComparison
+Export-ModuleMember -Function Get-RedTildeMedian,Get-RedTildePerformanceMetrics,Get-RedTildeControlDiagnostics,New-RedTildePerformanceSchedule,Get-RedTildeSignFlipP,Compare-RedTildePerformanceBlocks,Get-RedTildeCompilerCommandLogPath,Get-RedTildeCompilerProfile,Get-RedTildeReviewedHeaderDeltaProfile,Assert-RedTildeReviewedHeaderDelta,Get-RedTildePairedAdmissionCandidate,Assert-RedTildeDependencyComparison,Assert-RedTildeCompilerComparison
