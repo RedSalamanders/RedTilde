@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Use the pinned CI engine's shared Visual Studio setup in native hosted jobs.
 - Use the public evidence receipts to verify that shared read-only hard links retain their identity.
 - Use the pinned engine for application vcpkg checkouts, overlay generation and manifest arguments.
 - Bind the root RedMonitor client commands to the producer-owned tooling hashes recorded in the existing lock.

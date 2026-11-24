@@ -1,1 +1,0 @@
-- Use the pinned CI engine's shared Visual Studio setup in native hosted jobs.
