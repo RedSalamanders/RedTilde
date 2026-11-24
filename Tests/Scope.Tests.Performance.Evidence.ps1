@@ -73,13 +73,22 @@ public static class PairedEvidenceReference {
     static bool SamePath(string left,string right) {
         return string.Equals(CompilerPath(left),CompilerPath(right),StringComparison.OrdinalIgnoreCase);
     }
-    static string NormalizeCompilerPath(string operand,string root) {
+    static string NormalizeCompilerPath(string operand,string root,string flag) {
         bool quoted = operand.Length >= 2 && operand[0] == '"' && operand[operand.Length-1] == '"';
         string value = Unquote(operand);
         if(value.Length == 0 || value.IndexOf('"') >= 0) throw new ArgumentException("Unsupported compiler path operand.");
         if(string.Equals(value,root,StringComparison.OrdinalIgnoreCase) ||
             value.StartsWith(root+"\\",StringComparison.OrdinalIgnoreCase) || value.StartsWith(root+"/",StringComparison.OrdinalIgnoreCase))
             value = "<ROOT>" + value.Substring(root.Length);
+        if(flag == "/Fo" || flag == "/Fd") {
+            string[] segments = value.Split(new[]{'\\','/'});
+            if(segments.Length > 3 && segments[0] == "<ROOT>" &&
+                string.Equals(segments[1],".build",StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(segments[2],"Intermediate",StringComparison.OrdinalIgnoreCase)) {
+                int offset = segments[0].Length + segments[1].Length + 2;
+                value = value.Substring(0,offset) + "OBJ" + value.Substring(offset+segments[2].Length);
+            }
+        }
         return quoted ? "\""+value+"\"" : value;
     }
     static string NormalizeCompilerCommand(string command,string root,string source,string[] reviewed) {
@@ -105,8 +114,8 @@ public static class PairedEvidenceReference {
                 string operand = token.Substring(flag.Length);
                 if(operand.Length == 0) {
                     if(index+1 == tokens.Length) throw new ArgumentException("Missing compiler path operand.");
-                    options.Add(token); options.Add(NormalizeCompilerPath(tokens[++index],root));
-                } else options.Add(flag+NormalizeCompilerPath(operand,root));
+                    options.Add(token); options.Add(NormalizeCompilerPath(tokens[++index],root,flag));
+                } else options.Add(flag+NormalizeCompilerPath(operand,root,flag));
                 continue;
             }
             if(reviewed.Any(value => SamePath(argument,value))) {

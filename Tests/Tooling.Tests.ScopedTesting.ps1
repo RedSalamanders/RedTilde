@@ -250,7 +250,7 @@ $root=Split-Path $PSScriptRoot -Parent
 $platform=([string](@($args|Where-Object{$_ -like '/p:Platform=*'})[0]) -split '=',2)[1]
 $configuration=([string](@($args|Where-Object{$_ -like '/p:Configuration=*'})[0]) -split '=',2)[1]
 $output=Join-Path $root ".build/$platform/$configuration"
-$intermediate=Join-Path $root ".build/obj/$platform/$configuration/RedTilde"
+$intermediate=Join-Path $root ".build/Intermediate/$platform/$configuration/RedTilde"
 $tools=Join-Path $root 'Tools'
 if($args -match '^-getProperty:'){
     $executablePath=((Join-Path $tools 'VC/bin/HostX86/x64')+';'+(Join-Path $tools 'SDK/bin/10.0.26100.0/x86'))

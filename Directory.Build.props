@@ -11,7 +11,7 @@
     <RedTildeBuildRoot>$(MSBuildThisFileDirectory).build\</RedTildeBuildRoot>
     <RedTildeOutputRoot Condition="'$(RedTildeOutputRoot)'==''">$(RedTildeBuildRoot)</RedTildeOutputRoot>
     <OutDir>$(RedTildeOutputRoot)$(Platform)\$(Configuration)\</OutDir>
-    <IntDir>$(RedTildeOutputRoot)obj\$(Platform)\$(Configuration)\$(MSBuildProjectName)\</IntDir>
+    <IntDir>$(RedTildeOutputRoot)Intermediate\$(Platform)\$(Configuration)\$(MSBuildProjectName)\</IntDir>
     <RedTildeVcpkgPlatformScope Condition="'$(Platform)'=='ARM64'">arm64</RedTildeVcpkgPlatformScope>
     <RedTildeVcpkgPlatformScope Condition="'$(Platform)'=='x64' and '$(Configuration)'=='ASan Debug'">x64-asan</RedTildeVcpkgPlatformScope>
     <RedTildeVcpkgPlatformScope Condition="'$(Platform)'=='ARM64' and '$(Configuration)'=='ASan Debug'">arm64-asan</RedTildeVcpkgPlatformScope>
