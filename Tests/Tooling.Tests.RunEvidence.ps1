@@ -167,8 +167,16 @@ if ($volume.FileSystem -eq 'NTFS') {
         # when an otherwise ordinary fixture inherits a long checkout prefix.
         [void](New-Item -ItemType HardLink -Path ('\\?\'+[IO.Path]::GetFullPath($alias)) -Target ('\\?\'+[IO.Path]::GetFullPath($shared)))
         [IO.File]::SetAttributes($shared, [IO.FileAttributes]::ReadOnly)
-        $handle = [TestRunEvidenceV2.Native]::Pin($shared, $false)
-        try { $identity = [TestRunEvidenceV2.Native]::Identity($handle) } finally { $handle.Dispose() }
+        # An independent run inventories a second hard link to the same known file.
+        $control = Start-TestRunEvidence (New-Fixture 'i') @{scenario='shared-payload-identity-control'}
+        try {
+            $controlAlias = Join-Path $control.Path 'shared.bin'
+            [void](New-Item -ItemType HardLink -Path ('\\?\'+[IO.Path]::GetFullPath($controlAlias)) -Target ('\\?\'+[IO.Path]::GetFullPath($shared)))
+            Complete-TestRunEvidence $control $true
+            $controlManifest = Get-Content (Join-Path $control.Directory 'completed.json') -Raw | ConvertFrom-Json
+            $identity = $controlManifest.payload[0].identity
+            Assert-Evidence (-not [string]::IsNullOrWhiteSpace($identity)) 'The clear hard-link control lacked an identity.'
+        } finally { if (-not $control.Closed) { Complete-TestRunEvidence $control $false } }
         Complete-TestRunEvidence $run $true
         $sharedManifest = Get-Content (Join-Path $run.Directory 'completed.json') -Raw | ConvertFrom-Json
         Assert-Evidence ($sharedManifest.payload[0].identity -ceq $identity -and

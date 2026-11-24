@@ -1,0 +1,1 @@
+- Use the public evidence receipts to verify that shared read-only hard links retain their identity.
