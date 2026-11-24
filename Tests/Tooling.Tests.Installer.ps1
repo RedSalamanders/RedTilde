@@ -209,7 +209,29 @@ Assert-True ($null -eq $regAfterUninstall.PSObject.Properties['Software\Classes\
 Assert-True ($null -eq $regAfterUninstall.PSObject.Properties['Software\Classes\Applications\RedTilde.exe\SupportedTypes']) 'uninstall removed SupportedTypes'
 Assert-True ($null -eq $regAfterUninstall.PSObject.Properties['Software\Classes\Applications\RedTilde.exe\shell\open\command']) 'uninstall removed Applications command'
 
-# 6. Check Windows PowerShell 5.1 parser compatibility of Install-RedTilde.ps1 if available
+# Check local staged output discovery with the real installer and isolated registry.
+$hostArchitecture = if ($env:PROCESSOR_ARCHITEW6432) { $env:PROCESSOR_ARCHITEW6432 } else { $env:PROCESSOR_ARCHITECTURE }
+$hostLabel = if ($hostArchitecture -ieq 'ARM64') { 'ARM64' } else { 'x64' }
+$localRepo = Join-Path $scratchRoot 'local-package-tree'
+$localInstallerFolder = Join-Path $localRepo 'Installer'
+[void][IO.Directory]::CreateDirectory($localInstallerFolder)
+$localInstaller = Join-Path $localInstallerFolder 'Install-RedTilde.ps1'
+Copy-Item -LiteralPath $installerScript -Destination $localInstaller
+$priorStage = Join-Path $localRepo ".build/package/RedTilde-0.1.42-$hostLabel-older"
+[void][IO.Directory]::CreateDirectory((Split-Path $priorStage -Parent))
+Copy-Item -LiteralPath $sourceV1 -Destination $priorStage -Recurse
+$stagedInstall = Join-Path $scratchRoot 'staged-install'
+& $localInstaller -InstallDirectory $stagedInstall -TestRegistryJsonPath $fakeRegistry -TestProgramsMenuDirectory $fakePrograms -SkipShellNotify
+$installed = Join-Path $stagedInstall 'RedTilde.exe'
+Assert-True ((Get-FileHash -LiteralPath $installed).Hash -ceq (Get-FileHash -LiteralPath $exeV1).Hash) 'existing singular package staging is discoverable'
+$currentStage = Join-Path $localRepo ".build/packages/RedTilde-0.1.43-$hostLabel-current"
+[void][IO.Directory]::CreateDirectory((Split-Path $currentStage -Parent))
+Copy-Item -LiteralPath $sourceV2 -Destination $currentStage -Recurse
+& $localInstaller -InstallDirectory $stagedInstall -TestRegistryJsonPath $fakeRegistry -TestProgramsMenuDirectory $fakePrograms -SkipShellNotify
+Assert-True ((Get-FileHash -LiteralPath $installed).Hash -ceq (Get-FileHash -LiteralPath $exeV2).Hash) 'canonical package staging takes precedence'
+& $localInstaller -Uninstall -InstallDirectory $stagedInstall -TestRegistryJsonPath $fakeRegistry -TestProgramsMenuDirectory $fakePrograms -SkipShellNotify
+
+# Check Windows PowerShell 5.1 parser compatibility of Install-RedTilde.ps1 if available.
 $winPs = if ($env:WINDIR) { Join-Path $env:WINDIR 'System32\WindowsPowerShell\v1.0\powershell.exe' } else { '' }
 if ($winPs -and (Test-Path -LiteralPath $winPs -PathType Leaf)) {
     $escapedInstaller = $installerScript.Replace("'", "''")

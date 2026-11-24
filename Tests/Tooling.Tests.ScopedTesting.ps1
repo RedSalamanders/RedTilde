@@ -79,7 +79,7 @@ try{
         $Platform='x64';$context=[pscustomobject]@{root=$root};$sdkDescriptor=$null
         function Run([string]$Script,[string[]]$CommandArguments){
             Assert ($Script -ceq 'package.ps1' -and ($CommandArguments -join '|') -ceq '-Platform|x64|-SkipBuild') 'Production did not use the public package command'
-            $package=Join-Path $root '.build/package/synthetic-x64-0.zip'
+            $package=Join-Path $root '.build/packages/synthetic-x64-0.zip'
             Put $package 'original synthetic package bytes'
             if($mode -ceq 'Missing'){return}
             $names=@('self-test','test-scope','list-tests','interactive','crash','recovery-crash','recovery-restart',
@@ -107,7 +107,7 @@ try{
         $output=Join-Path $root '.build/ci/production/x64/portable-smoke.json'
         if($mode -ceq 'Complete'){
             Assert (-not $refused -and (Test-Path -LiteralPath $output)) 'Production discarded its actual smoke receipt'
-            $original=Join-Path $root '.build/package/synthetic-x64-0.zip.receipt.json'
+            $original=Join-Path $root '.build/packages/synthetic-x64-0.zip.receipt.json'
             Assert ((Get-FileHash $output).Hash -ceq (Get-FileHash $original).Hash) 'Production normalized or replaced the original smoke bytes'
         }else{
             Assert $refused 'Production accepted missing or mismatched original smoke proof'

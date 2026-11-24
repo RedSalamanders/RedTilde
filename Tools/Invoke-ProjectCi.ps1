@@ -78,7 +78,7 @@ if ($Phase -eq 'Production') {
     $packageArguments=@('-Platform',$Platform,'-SkipBuild')
     if($sdkDescriptor){$packageArguments+=@('-DxUiSdkInputDescriptor',$sdkDescriptor)}
     Run 'package.ps1' $packageArguments
-    $archives = @(Get-ChildItem (Join-Path $root '.build/package') -Filter "*-$Platform-*.zip" -File | ForEach-Object FullName)
+    $archives = @(Get-ChildItem -LiteralPath (Join-Path $root '.build/packages') -Filter "*-$Platform-*.zip" -File | ForEach-Object FullName)
     if ($archives.Count -ne 1) { throw 'Expected one original production package and smoke receipt.' }
     $smokePath = $archives[0]+'.receipt.json'
     if (-not (Test-Path -LiteralPath $smokePath -PathType Leaf)) { throw 'Original production package smoke receipt is missing.' }
