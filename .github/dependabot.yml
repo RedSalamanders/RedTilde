@@ -12,3 +12,10 @@ updates:
       # Reusable workflows are separate dependencies named RedSalamanders/.github/.github/workflows/<file>.yml.
       - dependency-name: RedSalamanders/.github
       - dependency-name: RedSalamanders/.github/*
+  - package-ecosystem: vcpkg
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '05:30'
+    open-pull-requests-limit: 5
