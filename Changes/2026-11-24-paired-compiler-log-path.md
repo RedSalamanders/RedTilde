@@ -1,1 +1,0 @@
-- Read the paired benchmark compiler log from the checkout's configured intermediate directory.
