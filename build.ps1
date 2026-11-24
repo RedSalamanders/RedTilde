@@ -2,17 +2,19 @@
 .SYNOPSIS Builds one owned RedTilde profile and publishes its verified input/artifact receipt.
 .PARAMETER DxUiSdkInputDescriptor Independent pinned Release SDK descriptor below .build; exact misses retain source.
 .PARAMETER EnableTests Compile native test hooks. Debug and ASan Debug enable them by default.
+.PARAMETER Analyze Run MSVC code analysis in an isolated source build under .build/analysis.
 #>
 [CmdletBinding()]
 param([ValidateSet('x64','ARM64')][string] $Platform='x64',
       [ValidateSet('Debug','Release','ASan Debug')][string] $Configuration='Debug', [switch] $SkipRestore,
       [ValidateRange(0,65535)][int]$BuildNumber = $(if ($env:RedTildeBuildNumber) { [int]$env:RedTildeBuildNumber } else { 0 }),
-      [switch]$ProductionOnly,[string]$DxUiSdkInputDescriptor='',[switch]$EnableTests)
+      [switch]$ProductionOnly,[string]$DxUiSdkInputDescriptor='',[switch]$EnableTests,[switch]$Analyze)
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
 if ($env:CI_NATIVE_BUILDS_DISABLED -eq 'true') { throw 'Native builds are forbidden in compiler-free PR checks.' }
 if ($ProductionOnly -and $Configuration -ne 'Release') { throw 'ProductionOnly requires Release.' }
 if ($ProductionOnly -and $EnableTests) { throw 'ProductionOnly and EnableTests are mutually exclusive.' }
+if ($Analyze -and ($ProductionOnly -or $DxUiSdkInputDescriptor)) { throw '-Analyze requires an ordinary source build.' }
 if($DxUiSdkInputDescriptor -and $Configuration -cne 'Release'){throw 'Pinned SDK inputs require Release; Debug/ASan use source.'}
 $versionHeaderPath=Join-Path $PSScriptRoot 'Common/Version.h'
 if(-not(Test-Path -LiteralPath $versionHeaderPath -PathType Leaf)){throw 'Version header Common/Version.h is missing.'}
@@ -29,8 +31,10 @@ Import-Module (Join-Path $PSScriptRoot 'Build/ScopedTesting.psm1') -Scope Local 
 $profileLease=Enter-ScopedProfileLease -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
 $sdkInput=$null;$sdkFailure=$null
 try {
-$scopedReports=Get-ScopedReportRoot -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
-Remove-ScopedIteration -Path (Join-Path $scopedReports 'iteration.json') -Root $PSScriptRoot
+if (-not $Analyze) {
+    $scopedReports=Get-ScopedReportRoot -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
+    Remove-ScopedIteration -Path (Join-Path $scopedReports 'iteration.json') -Root $PSScriptRoot
+}
 $env:RedTildeBuildNumber = [string]$BuildNumber
 $enableTestHooks = $EnableTests -or $Configuration -ne 'Release'
 $env:RedTildeEnableTests = if ($enableTestHooks) { 'true' } else { 'false' }
@@ -39,6 +43,31 @@ Import-Module (Join-Path $PSScriptRoot 'Build/BuildConsole.psm1') -ErrorAction S
 Import-Module (Join-Path $PSScriptRoot 'Build/Toolchain.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot '.ci-engine/Tools/Modules/Ci.Policy.psm1') -ErrorAction Stop
+if ($Analyze) {
+    $analysisRoot = Assert-CiContainedPath -Root $PSScriptRoot -Path (Join-Path $PSScriptRoot '.build/analysis')
+    $analysisOutput = Assert-CiContainedPath -Root $analysisRoot -Path (Join-Path $analysisRoot "$Platform/$Configuration")
+    Assert-RedTildeOutputNotRunning -OutputDirectory $analysisOutput
+    $msbuild = Get-RedTildeMSBuild
+    if (-not $SkipRestore) {
+        & (Join-Path $PSScriptRoot 'restore-dxui.ps1') -Platform $Platform
+        & (Join-Path $PSScriptRoot 'vcpkg-install.ps1') -Platform $Platform -Asan:($Configuration -eq 'ASan Debug') -MSBuildPath $msbuild
+    }
+    [void][IO.Directory]::CreateDirectory($analysisOutput)
+    $log = Join-Path $analysisOutput "build-$([Guid]::NewGuid().ToString('N')).log"
+    $project = Join-Path $PSScriptRoot 'RedTilde/RedTilde.vcxproj'
+    $arguments = @($project, '/nologo', '/m', '/v:minimal', "/p:Platform=$Platform", "/p:Configuration=$Configuration", '/p:RedTildeAnalyze=true')
+    # Analyze every first-party source file while preserving the pinned DxUi archive.
+    Invoke-CiNativeCommand -FilePath $msbuild -WorkingDirectory $PSScriptRoot -Arguments ($arguments + @(
+        '/t:Clean', '/p:BuildProjectReferences=false', "/flp:LogFile=$log;Verbosity=normal"))
+    if ($LASTEXITCODE -ne 0) { throw "RedTilde analysis clean failed. See '$log'." }
+    Invoke-CiNativeCommand -FilePath $msbuild -WorkingDirectory $PSScriptRoot -Arguments ($arguments + @(
+        "/flp:LogFile=$log;Verbosity=normal;Append=true"))
+    if ($LASTEXITCODE -ne 0) { throw "RedTilde $Platform $Configuration analysis build failed. See '$log'." }
+    Assert-NativeBuildDiagnostics -LogPath $log
+    $executable = Join-Path $analysisOutput 'RedTilde.exe'
+    Write-NativeBuildResult -Project RedTilde -Platform $Platform -Configuration $Configuration -LogPath $log -Artifacts @($executable) -Executable $executable -Duration $nativeEntryElapsed.Elapsed
+    return
+}
 $canonicalDirectories=Assert-RedTildeCanonicalBuildDirectories -Root $PSScriptRoot -Platform $Platform -Configuration $Configuration
 $output=$canonicalDirectories.output
 Assert-RedTildeOutputNotRunning -OutputDirectory $output

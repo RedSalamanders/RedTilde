@@ -1,0 +1,1 @@
+- Add an opt-in MSVC code analysis build with isolated RedTilde output.

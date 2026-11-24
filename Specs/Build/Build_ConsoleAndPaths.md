@@ -32,6 +32,10 @@ archives and direct helper builds. Consumers do not modify the SDK source clone.
 Full native policy version and normalized target-file digests participate in
 dependency fingerprints; an old archive cannot reuse the changed policy's output.
 
+Use `build.ps1 -Analyze` to run MSVC code analysis for a source profile. It cleans
+and compiles RedTilde under `.build/analysis`, reusing the pinned source dependencies.
+Warnings fail the diagnostic run, which publishes a log instead of a build or test receipt.
+
 ## Successful terminal output
 
 Build/BuildConsole.psm1 is the shared CI engine's module shim for Tools/Modules/Ci.BuildConsole.psm1, which implements the common result/diagnostic/link contract.
