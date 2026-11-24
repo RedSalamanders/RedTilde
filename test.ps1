@@ -2,6 +2,8 @@
 .SYNOPSIS Runs affected or explicitly selected RedTilde tests with source-bound evidence.
 .DESCRIPTION Ordinary calls run Test-Changes.ps1. Use Full for the complete direct profile or Suite/Suites for explicit coverage.
 .PARAMETER Full Run every applicable direct suite for the selected profile.
+.PARAMETER Interactive Run the existing desktop-lease suite with the selected profile and agreed time.
+.PARAMETER InteractiveAutoStart Enable the visible Start countdown. Requires Interactive and prior agreement.
 .PARAMETER ParallelSuites
 Maximum suite concurrency. RedTilde executes its application suites serially.
 .PARAMETER LocalSdkBuildReceipt
@@ -14,10 +16,23 @@ Independently retained SHA-256 of that original record. Current source, engine, 
 param([ValidateSet('x64','ARM64')][string] $Platform='x64',
       [ValidateSet('Debug','Release','ASan Debug')][string] $Configuration='Debug',
       [ValidateSet('Core','Captures','Crash','All')][string] $Suite='Core',[switch] $SkipBuild,[string[]]$Suites=@(),[switch]$Full,[switch]$SkipTooling,
+      [switch]$Interactive,[switch]$InteractiveAutoStart,
       [ValidateRange(1,8)][int]$ParallelSuites=1,
       [string]$LocalSdkBuildReceipt='', [string]$LocalSdkBuildSha256='')
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
+if ($Interactive -or $InteractiveAutoStart) {
+    if (-not $Interactive) { throw 'Use -InteractiveAutoStart with -Interactive.' }
+    $noninteractiveOptions = @('Suite','Suites','Full','SkipTooling','ParallelSuites','LocalSdkBuildReceipt','LocalSdkBuildSha256')
+    if (@($PSBoundParameters.Keys | Where-Object { $_ -in $noninteractiveOptions }).Count) {
+        throw 'Use -Interactive with only the profile, SkipBuild and InteractiveAutoStart options.'
+    }
+    $global:LASTEXITCODE = 0
+    & (Join-Path $PSScriptRoot 'test-interactive.ps1') -Platform $Platform -Configuration $Configuration `
+        -SkipBuild:$SkipBuild -InteractiveAutoStart:$InteractiveAutoStart
+    exit $LASTEXITCODE
+}
+
 $profileOptions = @('Platform', 'Configuration', 'SkipBuild', 'ParallelSuites', 'Full')
 if (-not $Full -and @($PSBoundParameters.Keys | Where-Object { $_ -notin $profileOptions }).Count -eq 0) {
     $global:LASTEXITCODE = 0
