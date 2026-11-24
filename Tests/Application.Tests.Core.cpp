@@ -3,11 +3,15 @@
 #include "Application.Tests.DesignRefresh.h"
 #include "Application.Tests.FailureHost.h"
 #include "Application.Tests.Files.h"
+#include "Application.Tests.GitHub.h"
 #include "Application.Tests.HeapDiagnostic.h"
+#include "Application.Tests.MultiFolderFiles.h"
 #include "Application.Tests.Panes.h"
 #include "Application.Tests.Printing.h"
 #include "Application.Tests.RemoteImages.h"
+#include "Application.Tests.SaveDialog.h"
 #include "Application.Tests.Settings.h"
+#include "Application.Tests.Spelling.h"
 #include "Application.Tests.SplitEditing.h"
 #include "RedTilde/KeyboardState.h"
 #include "Support/Support.Tests.BitmapAssets.h"
@@ -328,6 +332,10 @@ int RunCoreTests(const std::filesystem::path& root, CoreTestScope scope, bool li
     RegisterSettingsTests(root, test);
     RegisterPanesTests(root, test);
     RegisterSplitEditingTests(root, test);
+    RegisterSpellingTests(root, test);
+    RegisterSaveDialogTests(root, test);
+    RegisterMultiFolderFilesTests(root, test);
+    RegisterGitHubTests(root, test);
     Testing::RegisterStorageSafetyTests(root, test);
     test("Utf8.CI_ASSERTION_PROBE",
          []

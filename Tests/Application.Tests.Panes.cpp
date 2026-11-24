@@ -107,11 +107,12 @@ public:
 
             const bool initialOutline = app._settings.showOutline;
             app.Execute(Command::Outline);
-            Require(app._settings.showOutline == ! initialOutline && app._panelToggle->GetToggleState() == ! initialOutline,
-                    "Command::Outline updates showOutline and panel toggle state");
+            Require(app._settings.showOutline == ! initialOutline && app._panelToggle->GetToggleState() == ! initialOutline &&
+                        app._rightRail->IsVisible() == initialOutline,
+                    "Command::Outline updates showOutline, panel toggle state, and compact right rail visibility");
             app.Execute(Command::Outline);
-            Require(app._settings.showOutline == initialOutline && app._panelToggle->GetToggleState() == initialOutline,
-                    "second Command::Outline restores original state");
+            Require(app._settings.showOutline == initialOutline && app._panelToggle->GetToggleState() == initialOutline && ! app._rightRail->IsVisible(),
+                    "second Command::Outline re-pins Outline open and hides compact rail");
 
             app.Prepare(64);
             DxUi::WindowHostBitmapCapture restCapture;
@@ -147,6 +148,8 @@ public:
             Application app(Options(root, L"panes-collapse-hysteresis"));
             Success(app.Initialize(), "initialize hidden collapse-priority app");
             app.Execute(Command::Files);
+            app._settings.filesPinMode   = PanePinMode::Auto;
+            app._settings.outlinePinMode = PanePinMode::Auto;
             Require(app._settings.showFiles && app._settings.showOutline, "both side panes enabled before resize sweep");
 
             Resize(app, 1440, 900);
@@ -266,7 +269,7 @@ public:
 
             theme.reducedMotion = true;
             app.Host().SetTheme(theme);
-            app.OnRailExpandClicked(PaneSide::Right);
+            app.RevealPaneOverlay(PaneSide::Right);
             Require(app._rightRail->State().phase == PaneAnimationPhase::Settled && app._rightRail->State().mode == PaneDisplayMode::HoverOverlay &&
                         Near(app._rightRail->State().progress, 1.f),
                     "reducedMotion opens HoverOverlay instantaneously without intermediate animation frames");
@@ -295,29 +298,35 @@ public:
             Require(app._rightRail->IsVisible() && app._rightRail->VisibleDotCount() == 3u, "right rail displays three hierarchical heading dots");
 
             auto* const dot0 = app._rightRail->DotButton(0);
-            Require(dot0 != nullptr && ! dot0->GetTooltipText().empty() && ! dot0->GetAccessibleName().empty(),
+            auto* const dot2 = app._rightRail->DotButton(2);
+            Require(dot0 != nullptr && dot2 != nullptr && ! dot0->GetTooltipText().empty() && ! dot0->GetAccessibleName().empty(),
                     "heading dot exposes localized tooltip and accessible name");
-            const auto dBounds = dot0->GetBounds();
+            const auto dBounds  = dot0->GetBounds();
+            const auto d2Bounds = dot2->GetBounds();
+            const auto railRect = app._rightRail->GetBounds();
+            const auto expRect  = app._rightRail->ExpandButton()->GetBounds();
+            const float bandMid = (expRect.bottom + 8.f + railRect.bottom - 12.f) * 0.5f;
+            const float dotsMid = (dBounds.top + d2Bounds.bottom) * 0.5f;
+            Require(std::abs(dotsMid - bandMid) <= 2.f, "minimized right-rail dots are vertically centered inside the rail band");
             (void)app.HandleMessage(
                 app.Window(), WM_MOUSEMOVE, 0, DipToClientLParam(app, {(dBounds.left + dBounds.right) * 0.5f, (dBounds.top + dBounds.bottom) * 0.5f}));
             Require(app._rightRail->State().phase == PaneAnimationPhase::Settled && app._rightRail->State().mode == PaneDisplayMode::CollapsedRail,
                     "hovering directly over a rail dot suppresses HoverDwell drawer reveal");
 
-            const auto railRect = app._rightRail->GetBounds();
             (void)app.HandleMessage(app.Window(), WM_MOUSEMOVE, 0, DipToClientLParam(app, {railRect.right - 2.f, railRect.top + 8.f}));
             Require(app._rightRail->State().phase == PaneAnimationPhase::HoverDwell, "moving pointer onto outer 6-DIP trigger edge arms HoverDwell");
 
-            app.OnRailExpandClicked(PaneSide::Right);
+            app.RevealPaneOverlay(PaneSide::Right);
             Require(app.IsPaneOverlayActive(PaneSide::Right) && app._sidebar->IsVisible(), "overlay is open before Escape dismissal");
             Require(app.DismissSurface() && ! app.IsPaneOverlayActive(PaneSide::Right) && app._rightRail->IsVisible(),
-                    "Escape dismisses HoverOverlay cleanly without disabling showOutline");
+                    "Escape dismisses HoverOverlay cleanly back to compact right rail");
 
-            app.OnRailExpandClicked(PaneSide::Right);
-            Require(app.IsPaneOverlayActive(PaneSide::Right), "re-open overlay before outside click dismissal");
+            (void)app.HandleMessage(app.Window(), WM_LBUTTONDOWN, MK_LBUTTON, DipToClientLParam(app, {railRect.right - 10.f, railRect.bottom - 12.f}));
+            Require(app.IsPaneOverlayActive(PaneSide::Right), "clicking a free zone on compact rail pops HoverOverlay open");
             (void)app.HandleMessage(app.Window(), WM_LBUTTONDOWN, MK_LBUTTON, DipToClientLParam(app, {250.f, 250.f}));
             Require(! app.IsPaneOverlayActive(PaneSide::Right), "clicking outside floating overlay dismisses it cleanly");
 
-            app.OnRailExpandClicked(PaneSide::Right);
+            app.RevealPaneOverlay(PaneSide::Right);
             app.Execute(Command::Find);
             Require(! app.IsPaneOverlayActive(PaneSide::Right) && app._findBar->IsVisible(), "opening FindBar dismisses active pane HoverOverlay");
             Require(foreground.NeverAcquiredForeground() && ! IsWindowVisible(app.Window()), "dot-hover test stays hidden");
@@ -382,6 +391,8 @@ public:
             Application app(std::move(opts));
             Success(app.Initialize(), "initialize hidden left-rail dots app");
             app.Execute(Command::Files);
+            app._settings.filesPinMode   = PanePinMode::Auto;
+            app._settings.outlinePinMode = PanePinMode::Auto;
             Resize(app, 1080, 820);
             Require(app._leftRail->IsVisible() && app._leftRail->ItemCount() == 0u, "clean workspace shows zero left-rail dots");
 
@@ -445,33 +456,31 @@ public:
                     "Settings drawer attaches flush to right client edge, command bar, and status bar");
             app.Execute(Command::CloseDrawer);
 
-            Require(app._pinFiles->IsVisible() && app._closeFiles->IsVisible() && app._pinOutline->IsVisible() && app._closeOutline->IsVisible(),
-                    "both docked side panes expose Pin and Close header buttons");
+            Require(app._pinFiles->IsVisible() && app._pinOutline->IsVisible(), "both docked side panes expose a single Pin header button");
             Require(Inside(app._filesSectionTitle->GetBounds(), app._filesPane->GetBounds()) &&
-                        Inside(app._pinFiles->GetBounds(), app._filesPane->GetBounds()) && Inside(app._closeFiles->GetBounds(), app._filesPane->GetBounds()) &&
+                        Inside(app._pinFiles->GetBounds(), app._filesPane->GetBounds()) &&
                         ! Overlap(app._filesSectionTitle->GetBounds(), app._pinFiles->GetBounds()) &&
-                        ! Overlap(app._pinFiles->GetBounds(), app._closeFiles->GetBounds()) &&
                         Inside(app._outlineTitle->GetBounds(), app._sidebar->GetBounds()) &&
                         Inside(app._outlineCount->GetBounds(), app._sidebar->GetBounds()) && Inside(app._pinOutline->GetBounds(), app._sidebar->GetBounds()) &&
-                        Inside(app._closeOutline->GetBounds(), app._sidebar->GetBounds()) &&
                         ! Overlap(app._outlineTitle->GetBounds(), app._outlineCount->GetBounds()) &&
-                        ! Overlap(app._outlineCount->GetBounds(), app._pinOutline->GetBounds()) &&
-                        ! Overlap(app._pinOutline->GetBounds(), app._closeOutline->GetBounds()),
-                    "symmetric Pin and Close header controls fit cleanly without overlap even at minimum 200-DIP width");
+                        ! Overlap(app._outlineCount->GetBounds(), app._pinOutline->GetBounds()),
+                    "Pin header controls fit cleanly without overlap even at minimum 200-DIP width");
             Require(app._pinFiles->GetToggleState() == std::optional<bool>{true} && app._pinFiles->GetTooltipText() == Resource(IDS_UNPIN_FILES) &&
                         app._pinOutline->GetToggleState() == std::optional<bool>{true} && app._pinOutline->GetTooltipText() == Resource(IDS_UNPIN_OUTLINE) &&
-                        app._closeOutline->GetTooltipText() == Resource(IDS_CLOSE_OUTLINE),
-                    "docked panes reflect pinned toggle state and localized Unpin/Close labels");
+                        app._feedback->GetText().empty(),
+                    "docked panes reflect pinned toggle state, localized Unpin labels, and no lingering bottom-left Saved status");
 
-            app._settings.filesWidth = 280u;
+            app._settings.filesWidth     = 280u;
+            app._settings.filesPinMode   = PanePinMode::Auto;
+            app._settings.outlinePinMode = PanePinMode::Auto;
             Resize(app, 1080, 820);
-            app.OnRailExpandClicked(PaneSide::Right);
+            app.RevealPaneOverlay(PaneSide::Right);
             const auto rightOverlayRect = app._sidebar->GetBounds();
             Require(app._sidebar->kind == Surface::Kind::DrawerRight && Near(rightOverlayRect.right, 1080.f) && Near(rightOverlayRect.top, 104.f) &&
                         Near(rightOverlayRect.bottom, 792.f) && app._pinOutline->GetToggleState() == std::optional<bool>{false} &&
                         app._pinOutline->GetTooltipText() == Resource(IDS_PIN_OUTLINE),
                     "collapsed Right overlay uses flush DrawerRight surface and shows unpinned Pin Outline button");
-            app.OnRailExpandClicked(PaneSide::Left);
+            app.RevealPaneOverlay(PaneSide::Left);
             const auto leftOverlayRect = app._filesPane->GetBounds();
             Require(app._filesPane->kind == Surface::Kind::DrawerLeft && Near(leftOverlayRect.left, 0.f) && Near(leftOverlayRect.top, 104.f) &&
                         Near(leftOverlayRect.bottom, 792.f) && app._pinFiles->GetToggleState() == std::optional<bool>{false} &&
@@ -493,14 +502,24 @@ public:
 
             app.SetView(EditorView::Compose);
             app.Execute(Command::PinOutline);
-            Require(app._settings.outlinePinMode == PanePinMode::Unpinned && ! app._sidebar->IsVisible() && app._rightRail->IsVisible() &&
-                        app._filesPane->IsVisible(),
-                    "Unpinning Outline collapses it to rail even at 1440x900 while leaving Files docked");
+            Require(app._settings.outlinePinMode == PanePinMode::Unpinned && ! app._settings.showOutline && ! app._sidebar->IsVisible() &&
+                        app._rightRail->IsVisible() && app._filesPane->IsVisible(),
+                    "Unpinning Outline collapses it to compact right rail at 1440x900 while leaving Files docked");
             app.Execute(Command::Outline);
-            Require(! app._settings.showOutline && ! app._sidebar->IsVisible() && ! app._rightRail->IsVisible(), "Outline command closes Outline off");
+            Require(app._settings.showOutline && app._settings.outlinePinMode == PanePinMode::Pinned && app._sidebar->IsVisible() &&
+                        ! app._rightRail->IsVisible(),
+                    "Outline command from compact rail pins Outline open again at 1440x900");
             app.Execute(Command::Outline);
-            Require(app._settings.showOutline && app._settings.outlinePinMode == PanePinMode::Auto && app._sidebar->IsVisible(),
-                    "re-enabling Outline after closing resets Unpinned back to Auto and docks at 1440x900");
+            Require(! app._settings.showOutline && app._settings.outlinePinMode == PanePinMode::Unpinned && ! app._sidebar->IsVisible() &&
+                        app._rightRail->IsVisible(),
+                    "second Outline command minimizes Outline back to compact rail");
+            const auto railExp = app._rightRail->ExpandButton()->GetBounds();
+            Require(app._rightRail->ExpandButton()->IsVisible() && Inside(railExp, app._rightRail->GetBounds()),
+                    "compact rail Pin button sits inside the collapsed rail");
+            Require(app._rightRail->ExpandButton()->Invoke(app.Host(), false), "invoking the compact rail Pin button fires its callback");
+            Require(app._settings.showOutline && app._settings.outlinePinMode == PanePinMode::Pinned && app._sidebar->IsVisible() &&
+                        ! app._rightRail->IsVisible(),
+                    "clicking the compact rail button pins Outline open");
 
             app.Execute(Command::PinFiles);
             Require(app._settings.filesPinMode == PanePinMode::Unpinned && ! app._filesPane->IsVisible() && app._leftRail->IsVisible() &&
@@ -563,6 +582,8 @@ public:
 
             app.SetDocument(L"# Intro\n\nAlpha.\n\n## Second\n\nBeta.\n\n### Third\n\nGamma.\n");
             app.Execute(Command::Files);
+            app._settings.filesPinMode   = PanePinMode::Auto;
+            app._settings.outlinePinMode = PanePinMode::Auto;
             Resize(app, 1080, 820);
             std::uint64_t nowMs = 1000u;
             while (app._leftRail->Tick(app.Host(), nowMs) || app._rightRail->Tick(app.Host(), nowMs))
@@ -593,16 +614,27 @@ public:
             Require(app._rightRail->State().phase == PaneAnimationPhase::Settled, "collapsed rail suppresses HoverDwell while Settings drawer is active");
             app.Execute(Command::CloseDrawer);
 
-            app.OnRailExpandClicked(PaneSide::Right);
+            (void)app.HandleMessage(
+                app.Window(), WM_LBUTTONDOWN, MK_LBUTTON, DipToClientLParam(app, {rightRailBounds.right - 12.f, rightRailBounds.bottom - 30.f}));
             while (app._rightRail->Tick(app.Host(), nowMs))
                 nowMs += 100u;
             const auto sidebarBounds = app._sidebar->GetBounds();
             (void)app.HandleMessage(
                 app.Window(), WM_MOUSEMOVE, 0, DipToClientLParam(app, {(sidebarBounds.left + sidebarBounds.right) * 0.5f, sidebarBounds.top + 80.f}));
-            (void)app.HandleMessage(app.Window(), WM_MOUSEMOVE, 0, DipToClientLParam(app, {250.f, 250.f}));
             Require(app.IsPaneOverlayActive(PaneSide::Right) && app._rightRail->State().phase == PaneAnimationPhase::Settled,
-                    "explicitly clicked overlay stays open even after pointer enters and leaves pane");
-            Require(app.DismissSurface() && ! app.IsPaneOverlayActive(PaneSide::Right), "Escape dismisses explicit overlay cleanly");
+                    "free-zone click opens HoverOverlay and stays open while pointer is inside pane");
+            (void)app.HandleMessage(app.Window(), WM_MOUSEMOVE, 0, DipToClientLParam(app, {250.f, 250.f}));
+            Require(app._rightRail->State().phase == PaneAnimationPhase::LeaveGrace, "moving pointer out of free-zone clicked overlay arms LeaveGrace");
+            while (app._rightRail->Tick(app.Host(), nowMs))
+                nowMs += 100u;
+            Require(! app.IsPaneOverlayActive(PaneSide::Right) && app._rightRail->State().mode == PaneDisplayMode::CollapsedRail,
+                    "free-zone clicked overlay closes cleanly on mouse leave");
+
+            (void)app.HandleMessage(
+                app.Window(), WM_LBUTTONDOWN, MK_LBUTTON, DipToClientLParam(app, {rightRailBounds.right - 12.f, rightRailBounds.bottom - 30.f}));
+            while (app._rightRail->Tick(app.Host(), nowMs))
+                nowMs += 100u;
+            Require(app.DismissSurface() && ! app.IsPaneOverlayActive(PaneSide::Right), "Escape dismisses HoverOverlay cleanly");
             while (app._rightRail->Tick(app.Host(), nowMs))
                 nowMs += 100u;
 

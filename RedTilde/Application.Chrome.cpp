@@ -53,6 +53,16 @@ void Surface::Paint(DxUi::ControlHost& host) const
         return;
     const auto& theme = host.GetTheme();
     const auto bounds = GetBounds();
+    if (kind == Kind::ModalBackdrop)
+    {
+        auto scrim = theme.smokeOverlay;
+        if (scrim.a <= 0.01f)
+            scrim = theme.highContrast ? D2D1::ColorF(0.f, 0.f, 0.f, 0.65f) : D2D1::ColorF(0.f, 0.f, 0.f, 0.42f);
+        if (auto* brush = host.GetSolidBrush(scrim))
+            target->FillRectangle(bounds, brush);
+        DxUi::Panel::Paint(host);
+        return;
+    }
     if (kind == Kind::Floating)
     {
         DxUi::TransientSurfaceOptions options;
@@ -167,6 +177,20 @@ void Surface::Paint(DxUi::ControlHost& host) const
     DxUi::Panel::Paint(host);
 }
 
+bool Surface::OnMouseDown(DxUi::ControlHost& host, D2D1_POINT_2F point, bool rightButton, UINT modifiers)
+{
+    if (DxUi::Panel::OnMouseDown(host, point, rightButton, modifiers))
+        return true;
+    return kind == Kind::ModalBackdrop;
+}
+
+bool Surface::OnMouseUp(DxUi::ControlHost& host, D2D1_POINT_2F point, bool rightButton, UINT modifiers)
+{
+    if (DxUi::Panel::OnMouseUp(host, point, rightButton, modifiers))
+        return true;
+    return kind == Kind::ModalBackdrop;
+}
+
 void SubtleToggleButton::Paint(DxUi::ControlHost& host) const
 {
     DxUi::Button::Paint(host);
@@ -190,6 +214,115 @@ void SubtleToggleButton::Paint(DxUi::ControlHost& host) const
         target->FillRoundedRectangle(pill, wash);
     if (auto* border = host.GetSolidBrush(D2D1::ColorF(theme.accent.r, theme.accent.g, theme.accent.b, IsPressed() ? 0.55f : 0.35f)))
         target->DrawRoundedRectangle(pill, border, 1.0f);
+}
+
+void DirtyDot::Paint(DxUi::ControlHost& host) const
+{
+    if (! IsVisible())
+        return;
+
+    auto* target = host.GetDeviceContext();
+    if (! target)
+        return;
+
+    const auto& theme = host.GetTheme();
+    const auto b      = GetBounds();
+    const float cx    = (b.left + b.right) * 0.5f;
+    const float cy    = (b.top + b.bottom) * 0.5f;
+    const float r     = std::max(2.f, std::min(b.right - b.left, b.bottom - b.top) * 0.44f);
+    if (auto* brush = host.GetSolidBrush(theme.highContrast ? theme.text : theme.accent))
+        target->FillEllipse(D2D1::Ellipse(D2D1::Point2F(cx, cy), r, r), brush);
+}
+
+void StatusLanguageComboBox::Paint(DxUi::ControlHost& host) const
+{
+    if (! IsVisible())
+        return;
+
+    auto* target = host.GetDeviceContext();
+    if (! target)
+        return;
+
+    const auto& theme     = host.GetTheme();
+    const auto b          = GetBounds();
+    const float widthDip  = b.right - b.left;
+    const float heightDip = b.bottom - b.top;
+    if (widthDip <= 4.f || heightDip <= 4.f)
+        return;
+
+    const bool showChrome = IsHovered() || IsPopupOpen() || (HasFocus() && host.IsKeyboardFocusVisible());
+    if (showChrome)
+    {
+        const D2D1_ROUNDED_RECT pill = D2D1::RoundedRect(D2D1::RectF(b.left + 0.5f, b.top + 1.5f, b.right - 0.5f, b.bottom - 1.5f), 4.f, 4.f);
+        if (theme.highContrast)
+        {
+            if (auto* fill = host.GetSolidBrush(theme.windowBackground))
+                target->FillRoundedRectangle(pill, fill);
+            if (auto* border = host.GetSolidBrush((HasFocus() && host.IsKeyboardFocusVisible()) ? theme.focusStroke : theme.border))
+                target->DrawRoundedRectangle(pill, border, 1.f);
+        }
+        else
+        {
+            if (auto* wash = host.GetSolidBrush(D2D1::ColorF(theme.text.r, theme.text.g, theme.text.b, IsPopupOpen() ? 0.10f : 0.06f)))
+                target->FillRoundedRectangle(pill, wash);
+            const auto& strokeColor = (HasFocus() && host.IsKeyboardFocusVisible()) ? theme.focusStroke : theme.borderDefault;
+            if (auto* border = host.GetSolidBrush(strokeColor))
+                target->DrawRoundedRectangle(pill, border, 1.f);
+        }
+    }
+
+    const std::wstring_view displayed = GetDisplayedText();
+    const float leftPad               = showChrome ? 8.f : 4.f;
+    const float rightPad              = showChrome ? 22.f : 4.f;
+    const float textW                 = std::max(8.f, widthDip - leftPad - rightPad);
+    const std::uint64_t typoRev       = host.GetTypographyRevision();
+
+    if (! _textLayout || _cachedText != displayed || _cachedWidth != textW || _cachedHeight != heightDip || _cachedTypographyRevision != typoRev)
+    {
+        _textLayout.reset();
+        if (auto* factory = host.GetWriteFactory())
+        {
+            if (auto* format = host.GetTextFormat(
+                    DxUi::FontRole::Small, 12.f, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, false))
+            {
+                wil::com_ptr<IDWriteTextLayout> layout;
+                if (SUCCEEDED(factory->CreateTextLayout(displayed.data(), static_cast<UINT32>(displayed.size()), format, textW, heightDip, layout.put())) &&
+                    layout)
+                {
+                    if (! _ellipsisSign)
+                        (void)factory->CreateEllipsisTrimmingSign(format, _ellipsisSign.put());
+                    const DWRITE_TRIMMING trimming{DWRITE_TRIMMING_GRANULARITY_CHARACTER, 0u, 0u};
+                    (void)layout->SetTrimming(&trimming, _ellipsisSign.get());
+                    _textLayout               = std::move(layout);
+                    _cachedText               = std::wstring(displayed);
+                    _cachedWidth              = textW;
+                    _cachedHeight             = heightDip;
+                    _cachedTypographyRevision = typoRev;
+                }
+            }
+        }
+    }
+
+    const D2D1_COLOR_F ink = theme.highContrast ? theme.text : (showChrome ? theme.text : theme.subduedText);
+    if (_textLayout)
+    {
+        if (auto* textBrush = host.GetSolidBrush(ink))
+            target->DrawTextLayout(D2D1::Point2F(b.left + leftPad, b.top), _textLayout.get(), textBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
+    }
+
+    if (showChrome)
+    {
+        if (auto* iconFormat = host.GetTextFormat(
+                DxUi::FontRole::Icon, 10.f, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_TEXT_ALIGNMENT_CENTER, DWRITE_PARAGRAPH_ALIGNMENT_CENTER, false))
+        {
+            if (auto* iconBrush = host.GetSolidBrush(ink))
+            {
+                constexpr wchar_t chevron  = L'\xE70D';
+                const D2D1_RECT_F iconRect = D2D1::RectF(std::max(b.left + 4.f, b.right - 20.f), b.top, b.right - 4.f, b.bottom);
+                target->DrawTextW(&chevron, 1u, iconFormat, iconRect, iconBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
+            }
+        }
+    }
 }
 
 bool Editor::OnMouseDown(DxUi::ControlHost& host, D2D1_POINT_2F point, bool rightButton, UINT modifiers) noexcept
@@ -362,11 +495,11 @@ HRESULT Application::BuildUi()
     _brandMark   = _documentBar->AddChild<BrandMark>();
     _title       = Label(*_documentBar, IDS_UNTITLED, DxUi::FontRole::BodyStrong);
     THROW_IF_FAILED(_title->SetTypographyOverride(DxUi::LabelTypography{14.f, DWRITE_FONT_WEIGHT_SEMI_BOLD, 0}));
-    _saveStateChip = _documentBar->AddChild<DxUi::CardPanel>();
-    _saveStateChip->SetCornerRadius(10.f);
-    _saveState = Label(*_saveStateChip, IDS_SAVED, DxUi::FontRole::Small);
-    THROW_IF_FAILED(_saveState->SetTypographyOverride(DxUi::LabelTypography{12.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
-    _saveState->SetAlignment(DWRITE_TEXT_ALIGNMENT_CENTER);
+    _dirtyDot = _documentBar->AddChild<DirtyDot>();
+    _dirtyDot->SetFocusable(false);
+    _dirtyDot->SetAccessibleName(Resource(IDS_CHANGED));
+    _dirtyDot->SetTooltipText(Resource(IDS_CHANGED));
+    _dirtyDot->SetVisible(false);
     constexpr std::array<std::pair<unsigned, Command>, 3> viewModes{{
         {IDS_COMPOSE, Command::Compose},
         {IDS_SOURCE, Command::Source},
@@ -467,9 +600,13 @@ HRESULT Application::BuildUi()
     _editor->SetOnTextChanged([this] { Changed(); });
     _editor->SetOnSelectionChanged([this] { SelectionChanged(); });
     _editor->SetBitmapPasteHandler([this](std::span<const std::byte> dib, bool v5) { return BeginBitmapPaste(dib, v5); });
-    _editor->SetOnContextMenu([this](POINT point, bool) { Menu(point); });
+    _editor->SetOnContextMenu([this](POINT point, bool keyboard) { Menu(point, false, false, keyboard); });
     _editor->SetOnLinkActivated([this](const DxUi::RichTextLinkActivation& activation) { RunUiAction([&] { RequestOpenLink(activation); }); });
-    _editor->SetOnScrollChanged([this](float scrollDip) { OnSplitPaneScrolled(_editor, scrollDip); });
+    _editor->SetOnScrollChanged([this](float scrollDip)
+    {
+        OnSplitPaneScrolled(_editor, scrollDip);
+        OnSpellScrollChanged();
+    });
     _editor->SetOnBeforePassivePointerActivate([this](std::optional<DxUi::RichText::Selection> selection)
     {
         SwitchSplitActivePane(SplitActivePane::Compose, true, selection);
@@ -536,38 +673,26 @@ HRESULT Application::BuildUi()
     _leftRail->SetAccessibleName(Resource(IDS_RAIL_FILES_NAME));
     _leftRail->ConfigureStrings(Resource(IDS_RAIL_EXPAND_FILES), Resource(IDS_RAIL_NO_MODIFIED));
     _leftRail->SetVisible(false);
-    _leftRail->onDotInvoked    = [this](std::uint64_t id) { RunUiAction([&] { OnRailDotActivated(PaneSide::Left, static_cast<std::size_t>(id)); }); };
-    _leftRail->onExpandClicked = [this] { RunUiAction([&] { OnRailExpandClicked(PaneSide::Left); }); };
-    _leftRail->onHoverReveal   = [this]
+    _leftRail->onDotInvoked      = [this](std::uint64_t id) { RunUiAction([&] { OnRailDotActivated(PaneSide::Left, static_cast<std::size_t>(id)); }); };
+    _leftRail->onExpandClicked   = [this] { Execute(Command::PinFiles); };
+    _leftRail->onHoverReveal     = [this] { RunUiAction([&] { RevealPaneOverlay(PaneSide::Left); }); };
+    _leftRail->onAnimationStep   = [this] { ApplySidePaneOverlayBounds(); };
+    _leftRail->onCollapseSettled = [this]
     {
         RunUiAction([&]
         {
-            if (_rightRail && _rightRail->State().mode == PaneDisplayMode::HoverOverlay)
-                _rightRail->StartCollapse(_host, true);
-            _explicitPaneRevealSide.reset();
-            _leftRail->StartExpand(_host, true);
             ApplySidePaneOverlayBounds();
+            if (! _settings.showFiles && _folderFiles.IsActive())
+                RefreshFiles();
         });
     };
-    _leftRail->onAnimationStep   = [this] { ApplySidePaneOverlayBounds(); };
-    _leftRail->onCollapseSettled = [this] { ApplySidePaneOverlayBounds(); };
-    _rightRail                   = _root->AddChild<CollapsedPaneRail>(PaneSide::Right);
+    _rightRail = _root->AddChild<CollapsedPaneRail>(PaneSide::Right);
     _rightRail->SetAccessibleName(Resource(IDS_RAIL_OUTLINE_NAME));
     _rightRail->ConfigureStrings(Resource(IDS_RAIL_EXPAND_OUTLINE), Resource(IDS_OUTLINEEMPTY));
     _rightRail->SetVisible(false);
-    _rightRail->onDotInvoked    = [this](std::uint64_t id) { RunUiAction([&] { OnRailDotActivated(PaneSide::Right, static_cast<std::size_t>(id)); }); };
-    _rightRail->onExpandClicked = [this] { RunUiAction([&] { OnRailExpandClicked(PaneSide::Right); }); };
-    _rightRail->onHoverReveal   = [this]
-    {
-        RunUiAction([&]
-        {
-            if (_leftRail && _leftRail->State().mode == PaneDisplayMode::HoverOverlay)
-                _leftRail->StartCollapse(_host, true);
-            _explicitPaneRevealSide.reset();
-            _rightRail->StartExpand(_host, true);
-            ApplySidePaneOverlayBounds();
-        });
-    };
+    _rightRail->onDotInvoked      = [this](std::uint64_t id) { RunUiAction([&] { OnRailDotActivated(PaneSide::Right, static_cast<std::size_t>(id)); }); };
+    _rightRail->onExpandClicked   = [this] { Execute(Command::PinOutline); };
+    _rightRail->onHoverReveal     = [this] { RunUiAction([&] { RevealPaneOverlay(PaneSide::Right); }); };
     _rightRail->onAnimationStep   = [this] { ApplySidePaneOverlayBounds(); };
     _rightRail->onCollapseSettled = [this] { ApplySidePaneOverlayBounds(); };
     _sidebar                      = _root->AddChild<Surface>(Surface::Kind::Sidebar);
@@ -635,11 +760,6 @@ HRESULT Application::BuildUi()
     _pinOutline = MakeSubtleToggle(*_sidebar, IDS_PIN_OUTLINE, Resource(IDS_PIN_OUTLINE), [this] { Execute(Command::PinOutline); });
     Icon(_pinOutline, L"\xE718");
     THROW_IF_FAILED(_pinOutline->SetContentFontSizeDip(12.f));
-    _closeOutline = Action(*_sidebar, IDS_CLOSE_OUTLINE, Command::Outline);
-    Icon(_closeOutline, L"\xE8BB");
-    _closeOutline->SetAppearance(DxUi::ButtonAppearance::Subtle);
-    _closeOutline->SetTooltipText(Resource(IDS_CLOSE_OUTLINE));
-    THROW_IF_FAILED(_closeOutline->SetContentFontSizeDip(12.f));
     _contextDivider         = _sidebar->AddChild<DxUi::Separator>();
     _equationReadOnly       = Label(*_sidebar, IDS_READONLYSHORT, DxUi::FontRole::Small);
     _filesPane              = _root->AddChild<Surface>(Surface::Kind::Sidebar);
@@ -651,14 +771,17 @@ HRESULT Application::BuildUi()
     _filesRootIcon->SetAccessibleName(Resource(IDS_FILES));
     _filesSectionTitle = Label(*_filesPane, IDS_FILESSECTION, DxUi::FontRole::Small);
     Section(_filesSectionTitle);
+    _filesAddFolder = Action(*_filesPane, IDS_ADD_FOLDER_SHORT, Command::AddFolder, Resource(IDS_ADDFOLDER));
+    _filesAddFolder->SetLeadingIcon(L"\xE8F4");
+    _filesAddFolder->SetAppearance(DxUi::ButtonAppearance::Subtle);
+    _filesAddFolder->SetAccessibleAutomationId(L"RedTilde.FilesAddFolder");
+    _filesAddGitHub = Action(*_filesPane, IDS_GITHUB_SHORT, Command::OpenGitHub, Resource(IDS_OPENGITHUB));
+    _filesAddGitHub->SetLeadingIcon(L"\xE774");
+    _filesAddGitHub->SetAppearance(DxUi::ButtonAppearance::Subtle);
+    _filesAddGitHub->SetAccessibleAutomationId(L"RedTilde.FilesAddGitHub");
     _pinFiles = MakeSubtleToggle(*_filesPane, IDS_PIN_FILES, Resource(IDS_PIN_FILES), [this] { Execute(Command::PinFiles); });
     Icon(_pinFiles, L"\xE718");
     THROW_IF_FAILED(_pinFiles->SetContentFontSizeDip(12.f));
-    _closeFiles = Action(*_filesPane, IDS_CLOSEFILES, Command::Files);
-    Icon(_closeFiles, L"\xE8BB");
-    _closeFiles->SetAppearance(DxUi::ButtonAppearance::Subtle);
-    _closeFiles->SetTooltipText(Resource(IDS_CLOSEFILES));
-    THROW_IF_FAILED(_closeFiles->SetContentFontSizeDip(12.f));
     _filesFilter = _filesPane->AddChild<DxUi::TextField>();
     _filesFilter->SetAccessibleName(Resource(IDS_FILTERFILES));
     _filesFilter->SetPlaceholder(Resource(IDS_FILTERSHORT));
@@ -673,12 +796,19 @@ HRESULT Application::BuildUi()
     THROW_IF_FAILED(_filesTree->SetTypographyOverride(DxUi::Tree::TypographyOverride{13.f, DWRITE_FONT_WEIGHT_NORMAL, DWRITE_FONT_WEIGHT_SEMI_BOLD}));
     _filesTree->SetInvokeOnSingleClick(true);
     _filesTree->SetEmptyStateText(Resource(IDS_FILESUNTITLED));
+    _filesEmptyOpenFolder = Action(*_filesPane, IDS_OPENFOLDER, Command::OpenFolder);
+    _filesEmptyOpenFolder->SetVisible(false);
+    _filesEmptyOpenFolder->SetAccessibleAutomationId(L"RedTilde.FilesEmptyOpenFolder");
+    _filesEmptyOpenGitHub = Action(*_filesPane, IDS_OPENGITHUB, Command::OpenGitHub);
+    _filesEmptyOpenGitHub->SetVisible(false);
+    _filesEmptyOpenGitHub->SetAccessibleAutomationId(L"RedTilde.FilesEmptyOpenGitHub");
     _filesCount = Label(*_filesPane, IDS_FILESUNTITLED, DxUi::FontRole::Small);
     THROW_IF_FAILED(_filesCount->SetTypographyOverride(DxUi::LabelTypography{12.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
     _filesCount->SetMultiline(true);
     _filesFooterDivider = _filesPane->AddChild<DxUi::Separator>();
     _filesFooterDivider->SetOrientation(DxUi::SeparatorOrientation::Horizontal);
-    _filesModel.invoked = [this](std::uint64_t id)
+    _filesModel.contextMenu = [this](std::uint64_t id, POINT screenPoint) { OnFilesContextMenu(id, screenPoint); };
+    _filesModel.invoked     = [this](std::uint64_t id)
     {
         if (id > WorkspaceGroupId && id <= WorkspaceGroupId + RecoveryService::MaximumDocuments)
         {
@@ -715,6 +845,72 @@ HRESULT Application::BuildUi()
                 }
             return;
         }
+        const auto bindingIt = std::ranges::find_if(_filesRowBindings, [&](const auto& pair) { return pair.first == id; });
+        if (bindingIt != _filesRowBindings.end())
+        {
+            const auto& binding = bindingIt->second;
+            if (binding.kind == FilesRowContextBinding::Kind::LocalEntry)
+            {
+                if (! binding.isDirectory && IsMarkdownFile(binding.localPath) && IsPaneOverlayActive(PaneSide::Left))
+                    DismissHoverOverlays(true);
+                OpenPath(binding.localPath);
+                return;
+            }
+            if (binding.kind == FilesRowContextBinding::Kind::LocalRootHeader)
+            {
+                if (_collapsedLocalRoots.contains(binding.localRoot))
+                    _collapsedLocalRoots.erase(binding.localRoot);
+                else
+                    _collapsedLocalRoots.insert(binding.localRoot);
+                RefreshFiles();
+                return;
+            }
+            if (binding.kind == FilesRowContextBinding::Kind::GitHubRepoHeader)
+            {
+                const std::wstring key = binding.githubOwner + L"/" + binding.githubRepo;
+                if (_collapsedGitHubRepos.contains(key))
+                {
+                    _collapsedGitHubRepos.erase(key);
+                    for (auto& connected : _connectedGitHubRepos)
+                    {
+                        if (connected.ref.owner == binding.githubOwner && connected.ref.repo == binding.githubRepo && ! connected.loaded && ! connected.loading)
+                        {
+                            connected.loading = true;
+                            GitHubRequest req;
+                            req.kind      = GitHubRequest::Kind::FetchRepoTree;
+                            req.requestId = ++_nextGitHubRequestId;
+                            req.owner     = connected.ref.owner;
+                            req.repo      = connected.ref.repo;
+                            req.branch    = connected.ref.branch;
+                            (void)_github.Submit(std::move(req));
+                        }
+                    }
+                }
+                else
+                {
+                    _collapsedGitHubRepos.insert(key);
+                }
+                RefreshFiles();
+                return;
+            }
+            if (binding.kind == FilesRowContextBinding::Kind::GitHubDir)
+            {
+                const std::wstring key = binding.githubOwner + L"/" + binding.githubRepo + L":" + binding.githubPath;
+                if (_collapsedGitHubDirs.contains(key))
+                    _collapsedGitHubDirs.erase(key);
+                else
+                    _collapsedGitHubDirs.insert(key);
+                RefreshFiles();
+                return;
+            }
+            if (binding.kind == FilesRowContextBinding::Kind::GitHubFile)
+            {
+                if (IsPaneOverlayActive(PaneSide::Left))
+                    DismissHoverOverlays(true);
+                OpenGitHubDocument(binding.githubOwner, binding.githubRepo, binding.githubBranch, binding.githubPath);
+                return;
+            }
+        }
         if (id && id <= _visibleFilePaths.size())
         {
             const auto path  = _visibleFilePaths[static_cast<std::size_t>(id - 1)];
@@ -741,6 +937,73 @@ HRESULT Application::BuildUi()
             RefreshFiles();
             return;
         }
+        if (id == GitHubSectionGroupId)
+        {
+            _githubSectionCollapsed = ! expanded;
+            RefreshFiles();
+            return;
+        }
+        const auto bindingIt = std::ranges::find_if(_filesRowBindings, [&](const auto& pair) { return pair.first == id; });
+        if (bindingIt != _filesRowBindings.end())
+        {
+            const auto& binding = bindingIt->second;
+            if (binding.kind == FilesRowContextBinding::Kind::LocalRootHeader)
+            {
+                if (expanded)
+                    _collapsedLocalRoots.erase(binding.localRoot);
+                else
+                    _collapsedLocalRoots.insert(binding.localRoot);
+                RefreshFiles();
+                return;
+            }
+            if (binding.kind == FilesRowContextBinding::Kind::LocalEntry && binding.isDirectory)
+            {
+                if (expanded)
+                    _collapsedFolders.erase(binding.localPath);
+                else
+                    _collapsedFolders.insert(binding.localPath);
+                RefreshFiles();
+                return;
+            }
+            if (binding.kind == FilesRowContextBinding::Kind::GitHubRepoHeader)
+            {
+                const std::wstring key = binding.githubOwner + L"/" + binding.githubRepo;
+                if (expanded)
+                {
+                    _collapsedGitHubRepos.erase(key);
+                    for (auto& connected : _connectedGitHubRepos)
+                    {
+                        if (connected.ref.owner == binding.githubOwner && connected.ref.repo == binding.githubRepo && ! connected.loaded && ! connected.loading)
+                        {
+                            connected.loading = true;
+                            GitHubRequest req;
+                            req.kind      = GitHubRequest::Kind::FetchRepoTree;
+                            req.requestId = ++_nextGitHubRequestId;
+                            req.owner     = connected.ref.owner;
+                            req.repo      = connected.ref.repo;
+                            req.branch    = connected.ref.branch;
+                            (void)_github.Submit(std::move(req));
+                        }
+                    }
+                }
+                else
+                {
+                    _collapsedGitHubRepos.insert(key);
+                }
+                RefreshFiles();
+                return;
+            }
+            if (binding.kind == FilesRowContextBinding::Kind::GitHubDir)
+            {
+                const std::wstring key = binding.githubOwner + L"/" + binding.githubRepo + L":" + binding.githubPath;
+                if (expanded)
+                    _collapsedGitHubDirs.erase(key);
+                else
+                    _collapsedGitHubDirs.insert(key);
+                RefreshFiles();
+                return;
+            }
+        }
         if (! id || id > _visibleFilePaths.size())
             return;
         const auto path = _visibleFilePaths[static_cast<std::size_t>(id - 1)];
@@ -764,9 +1027,18 @@ HRESULT Application::BuildUi()
 
     _drawer = _root->AddChild<Surface>(Surface::Kind::DrawerRight);
     _drawer->SetVisible(false);
-    _settingsScroll = _drawer->AddChild<DxUi::ScrollPanel>();
-    Label(*_settingsScroll, IDS_SETTINGS, DxUi::FontRole::Subtitle);
-    Section(Label(*_settingsScroll, IDS_APPEARANCESECTION, DxUi::FontRole::Small));
+    _settingsTitle = Label(*_drawer, IDS_SETTINGS, DxUi::FontRole::Subtitle);
+    _drawerClose   = Action(*_drawer, IDS_CLOSE, Command::CloseDrawer);
+    Icon(_drawerClose, L"\xE8BB");
+    _drawerClose->SetAppearance(DxUi::ButtonAppearance::Subtle);
+    _drawerClose->SetTooltipText(Resource(IDS_CLOSE));
+    THROW_IF_FAILED(_drawerClose->SetContentFontSizeDip(12.f));
+    _drawerImmediate       = Label(*_drawer, IDS_IMMEDIATE, DxUi::FontRole::Small);
+    _settingsHeaderDivider = _drawer->AddChild<DxUi::Separator>();
+    _settingsHeaderDivider->SetOrientation(DxUi::SeparatorOrientation::Horizontal);
+    _settingsScroll  = _drawer->AddChild<DxUi::ScrollPanel>();
+    _appearanceTitle = Label(*_settingsScroll, IDS_APPEARANCESECTION, DxUi::FontRole::Small);
+    Section(_appearanceTitle);
     constexpr std::array<std::pair<unsigned, Command>, 4> themes{{
         {IDS_SYSTEM, Command::ThemeSystem},
         {IDS_LIGHT, Command::ThemeLight},
@@ -804,12 +1076,50 @@ HRESULT Application::BuildUi()
         if (c.phase == DxUi::NumericStepperChangePhase::Commit)
             SavePreferences();
     });
-    _outlineToggle     = Action(*_settingsScroll, IDS_VIEWTOOLS, Command::Outline);
-    _focusToggle       = Action(*_settingsScroll, IDS_FOCUS, Command::Focus);
-    _dimToggle         = Action(*_settingsScroll, IDS_DIMBLOCKS, Command::DimBlocks);
-    _strikeTasksToggle = Action(*_settingsScroll, IDS_STRIKECOMPLETEDTASKS, Command::StrikeCompletedTasks, Resource(IDS_STRIKECOMPLETEDTASKSHELP));
-    _strikeTasksToggle->SetAccessibleHelpText(Resource(IDS_STRIKECOMPLETEDTASKSHELP));
-    _syntaxTitle = Label(*_settingsScroll, IDS_SYNTAXSECTION, DxUi::FontRole::Small);
+    _writingTitle = Label(*_settingsScroll, IDS_WRITINGSECTION, DxUi::FontRole::Small);
+    Section(_writingTitle);
+    _outlineToggle     = MakeSettingToggle(*_settingsScroll, IDS_VIEWTOOLS, Command::Outline);
+    _focusToggle       = MakeSettingToggle(*_settingsScroll, IDS_FOCUS, Command::Focus);
+    _dimToggle         = MakeSettingToggle(*_settingsScroll, IDS_DIMBLOCKS, Command::DimBlocks);
+    _strikeTasksToggle = MakeSettingToggle(*_settingsScroll, IDS_STRIKECOMPLETEDTASKS, Command::StrikeCompletedTasks, Resource(IDS_STRIKECOMPLETEDTASKSHELP));
+    _strikeTasksHelp   = Label(*_settingsScroll, IDS_STRIKECOMPLETEDTASKSHELP, DxUi::FontRole::Small);
+    _strikeTasksHelp->SetMultiline(true);
+    _keepUnsavedToggle = MakeSettingToggle(*_settingsScroll, IDS_SETTING_KEEP_UNSAVED, Command::ExitUnsavedBehavior, Resource(IDS_SETTING_KEEP_UNSAVED_HELP));
+    _keepUnsavedHelp   = Label(*_settingsScroll, IDS_SETTING_KEEP_UNSAVED_HELP, DxUi::FontRole::Small);
+    _keepUnsavedHelp->SetMultiline(true);
+    _proofingTitle = Label(*_settingsScroll, IDS_PROOFINGSECTION, DxUi::FontRole::Small);
+    Section(_proofingTitle);
+    _spellingEnabledToggle = MakeSettingToggle(*_settingsScroll, IDS_SPELL_CHECK_TYPING, Command::ToggleSpelling, Resource(IDS_SPELL_CHECK_TYPING_HELP));
+    _spellingHelp          = Label(*_settingsScroll, IDS_SPELL_CHECK_TYPING_HELP, DxUi::FontRole::Small);
+    _spellingHelp->SetMultiline(true);
+    _spellingLanguageLabel = Label(*_settingsScroll, IDS_SPELL_LANGUAGE_LABEL, DxUi::FontRole::Small);
+    _spellingLanguageCombo = _settingsScroll->AddChild<DxUi::ComboBox>();
+    _spellingLanguageCombo->SetVariant(DxUi::ComboBoxVariant::Modern);
+    _spellingLanguageCombo->SetEditable(false);
+    _spellingLanguageCombo->SetMaxVisibleItems(8u);
+    _spellingLanguageCombo->SetAccessibleName(Resource(IDS_SPELL_LANGUAGE_LABEL));
+    _spellingLanguageCombo->SetAccessibleAutomationId(L"RedTilde.SpellingLanguage");
+    _spellingLanguageCombo->SetTooltipText(Resource(IDS_SPELL_LANGUAGE_SELECT_TIP));
+    _spellingLanguageCombo->SetOnPopupRequested([this]
+    {
+        RunUiAction([&] { RefreshSpellLanguageCombos(true); });
+        return false;
+    });
+    _spellingLanguageCombo->SetOnSelectionChanged([this](std::size_t index)
+    {
+        if (_spell.syncingLanguageCombos || ! _spellingLanguageCombo)
+            return;
+        const auto items = _spellingLanguageCombo->GetItems();
+        if (index < items.size())
+            ApplySpellLanguageSelection(items[index].value, false);
+    });
+    _spellingIgnoreUpperToggle  = MakeSettingToggle(*_settingsScroll, IDS_SPELL_IGNORE_UPPER, Command::SpellIgnoreUppercase);
+    _spellingIgnoreDigitsToggle = MakeSettingToggle(*_settingsScroll, IDS_SPELL_IGNORE_DIGITS, Command::SpellIgnoreDigits);
+    _spellingIgnorePathsToggle  = MakeSettingToggle(*_settingsScroll, IDS_SPELL_IGNORE_PATHS, Command::SpellIgnoreInternetPaths);
+    _spellingDictPathLabel      = Label(*_settingsScroll, IDS_SPELL_CUSTOM_DICT, DxUi::FontRole::Small);
+    _spellingDictChooseButton   = Action(*_settingsScroll, IDS_SPELL_DICT_CHOOSE, Command::SpellChooseCustomDictionary);
+    _spellingDictResetButton    = Action(*_settingsScroll, IDS_SPELL_DICT_RESET, Command::SpellResetCustomDictionary);
+    _syntaxTitle                = Label(*_settingsScroll, IDS_SYNTAXSECTION, DxUi::FontRole::Small);
     Section(_syntaxTitle);
     _syntaxIntro = Label(*_settingsScroll, IDS_SYNTAXINTRO, DxUi::FontRole::Small);
     _syntaxIntro->SetMultiline(true);
@@ -832,26 +1142,37 @@ HRESULT Application::BuildUi()
     {
         const auto& row       = syntaxRows[index];
         const auto help       = Resource(row.help);
-        _syntaxToggles[index] = Action(*_settingsScroll, row.label, row.command, help);
-        _syntaxToggles[index]->SetAccessibleHelpText(help);
-        _syntaxHelp[index] = Label(*_settingsScroll, row.help, DxUi::FontRole::Small);
+        _syntaxToggles[index] = MakeSettingToggle(*_settingsScroll, row.label, row.command, help);
+        _syntaxHelp[index]    = Label(*_settingsScroll, row.help, DxUi::FontRole::Small);
         _syntaxHelp[index]->SetMultiline(true);
     }
     _privacyTitle = Label(*_settingsScroll, IDS_PRIVACYSECTION, DxUi::FontRole::Small);
     Section(_privacyTitle);
-    _drawerHelp = Label(*_settingsScroll, IDS_LOCALIMAGES, DxUi::FontRole::Small);
+    _remoteImagesToggle = MakeSettingToggle(*_settingsScroll, IDS_REMOTEIMAGES, Command::RemoteImages, Resource(IDS_LOCALIMAGES));
+    _drawerHelp         = Label(*_settingsScroll, IDS_LOCALIMAGES, DxUi::FontRole::Small);
     _drawerHelp->SetMultiline(true);
-    _recoveryAction           = Action(*_settingsScroll, IDS_RECOVERY, Command::Recovery);
-    _drawerClose              = Action(*_settingsScroll, IDS_CLOSE, Command::CloseDrawer);
-    _drawerImmediate          = Label(*_settingsScroll, IDS_IMMEDIATE, DxUi::FontRole::Small);
-    _remoteImagesToggle       = Action(*_settingsScroll, IDS_REMOTEIMAGES, Command::RemoteImages);
-    _localNetworkImagesToggle = Action(*_settingsScroll, IDS_LOCALNETWORKIMAGES, Command::LocalNetworkImages, Resource(IDS_LOCALNETWORKIMAGESHELP));
-    _localNetworkImagesToggle->SetAccessibleHelpText(Resource(IDS_LOCALNETWORKIMAGESHELP));
-    _imageFirstPasteToggle = Action(*_settingsScroll, IDS_IMAGEFIRSTPASTE, Command::ImageFirstPaste, Resource(IDS_IMAGEFIRSTPASTEHELP));
-    _imageFirstPasteToggle->SetAccessibleHelpText(Resource(IDS_IMAGEFIRSTPASTEHELP));
-    _writingTitle = Label(*_settingsScroll, IDS_WRITINGSECTION, DxUi::FontRole::Small);
-    Section(_writingTitle);
-    _aboutTitle = Label(*_settingsScroll, IDS_ABOUTSECTION, DxUi::FontRole::Small);
+    _localNetworkImagesToggle = MakeSettingToggle(*_settingsScroll, IDS_LOCALNETWORKIMAGES, Command::LocalNetworkImages, Resource(IDS_LOCALNETWORKIMAGESHELP));
+    _localNetworkImagesHelp   = Label(*_settingsScroll, IDS_LOCALNETWORKIMAGESHELP, DxUi::FontRole::Small);
+    _localNetworkImagesHelp->SetMultiline(true);
+    _imageFirstPasteToggle = MakeSettingToggle(*_settingsScroll, IDS_IMAGEFIRSTPASTE, Command::ImageFirstPaste, Resource(IDS_IMAGEFIRSTPASTEHELP));
+    _imageFirstPasteHelp   = Label(*_settingsScroll, IDS_IMAGEFIRSTPASTEHELP, DxUi::FontRole::Small);
+    _imageFirstPasteHelp->SetMultiline(true);
+    _recoveryAction = Action(*_settingsScroll, IDS_RECOVERY, Command::Recovery);
+    _accountsTitle  = Label(*_settingsScroll, IDS_ACCOUNTS_SECTION, DxUi::FontRole::Small);
+    Section(_accountsTitle);
+    _accountsStatusLabel = Label(*_settingsScroll, IDS_GITHUB_NOT_SIGNED_IN, DxUi::FontRole::Small);
+    _accountsStatusLabel->SetMultiline(true);
+    _accountsDeviceBtn   = Action(*_settingsScroll, IDS_GITHUB_SIGNIN_DEVICE, Command::GitHubSignInDevice);
+    _accountsImportGhBtn = Action(*_settingsScroll, IDS_GITHUB_IMPORT_GH, Command::GitHubImportGhCli);
+    _accountsTokenInput  = _settingsScroll->AddChild<DxUi::TextField>();
+    _accountsTokenInput->SetPlaceholder(Resource(IDS_GITHUB_TOKEN_PLACEHOLDER));
+    _accountsTokenInput->SetAccessibleName(Resource(IDS_GITHUB_TOKEN_PLACEHOLDER));
+    _accountsTokenInput->SetMasked(true);
+    _accountsTokenInput->SetPasswordRevealMode(DxUi::PasswordRevealMode::Peek);
+    _accountsTokenInput->SetOnSubmitted([this] { Execute(Command::GitHubUseToken); });
+    _accountsUseTokenBtn = Action(*_settingsScroll, IDS_GITHUB_SAVE_TOKEN, Command::GitHubUseToken);
+    _accountsSignOutBtn  = Action(*_settingsScroll, IDS_GITHUB_SIGNOUT, Command::GitHubSignOut);
+    _aboutTitle          = Label(*_settingsScroll, IDS_ABOUTSECTION, DxUi::FontRole::Small);
     Section(_aboutTitle);
     _aboutVersion = _settingsScroll->AddChild<DxUi::Label>(FormatStringResource(nullptr, IDS_ABOUTVERSION, REDTILDE_PRODUCT_VERSION_WIDE));
     _aboutVersion->SetFontRole(DxUi::FontRole::BodyStrong);
@@ -901,6 +1222,8 @@ HRESULT Application::BuildUi()
     });
     Action(*_blockDraft, IDS_APPLY, Command::ApplyBlock)->SetPrimary(true);
     Action(*_blockDraft, IDS_CANCEL, Command::CloseDrawer);
+    _modalBackdrop = _root->AddChild<Surface>(Surface::Kind::ModalBackdrop);
+    _modalBackdrop->SetVisible(false);
     _recoveryPanel = _root->AddChild<Surface>(Surface::Kind::Floating);
     _recoveryPanel->SetVisible(false);
     Label(*_recoveryPanel, IDS_RECOVERY, DxUi::FontRole::Subtitle);
@@ -915,12 +1238,155 @@ HRESULT Application::BuildUi()
     Action(*_recoveryPanel, IDS_LATER, Command::LaterRecovery);
     _restoreAllRecovery = Action(*_recoveryPanel, IDS_RESTOREALL, Command::RestoreAllRecovery);
     _restoreAllRecovery->SetVisible(false);
+    _saveConfirmPanel = _root->AddChild<Surface>(Surface::Kind::Floating);
+    _saveConfirmPanel->SetVisible(false);
+    _saveConfirmPanel->SetAccessibleAutomationId(L"RedTilde.SaveConfirmModal");
+    _saveConfirmTitle = Label(*_saveConfirmPanel, IDS_SAVE_CONFIRM_SINGLE_TITLE, DxUi::FontRole::Subtitle);
+    _saveConfirmHint  = Label(*_saveConfirmPanel, IDS_SAVE_CONFIRM_HINT, DxUi::FontRole::Small);
+    _saveConfirmHint->SetMultiline(true);
+    _saveConfirmSelectAll = _saveConfirmPanel->AddChild<DxUi::Checkbox>(Resource(IDS_SELECT_ALL));
+    _saveConfirmSelectAll->SetAccessibleAutomationId(L"RedTilde.SaveConfirmSelectAll");
+    _saveConfirmSelectAll->SetChecked(true);
+    _saveConfirmSelectAll->SetOnToggled([this](bool) { Execute(Command::SaveConfirmSelectAll); });
+    _saveConfirmScroll = _saveConfirmPanel->AddChild<DxUi::ScrollPanel>();
+    _saveConfirmScroll->SetAccessibleName(Resource(IDS_SAVE_CONFIRM_MULTI_TITLE));
+    _saveConfirmPrimary = Action(*_saveConfirmPanel, IDS_SAVE, Command::SaveConfirmAccept);
+    _saveConfirmPrimary->SetPrimary(true);
+    _saveConfirmPrimary->SetAccessibleAutomationId(L"RedTilde.SaveConfirmPrimary");
+    _saveConfirmKeepExit = Action(*_saveConfirmPanel, IDS_KEEP_AND_EXIT, Command::SaveConfirmKeepExit);
+    _saveConfirmKeepExit->SetAccessibleAutomationId(L"RedTilde.SaveConfirmKeepExit");
+    _saveConfirmDiscard = Action(*_saveConfirmPanel, IDS_DONT_SAVE, Command::SaveConfirmDiscard);
+    _saveConfirmDiscard->SetAccessibleAutomationId(L"RedTilde.SaveConfirmDiscard");
+    _saveConfirmCancel = Action(*_saveConfirmPanel, IDS_CANCEL, Command::CloseDrawer);
+    _saveConfirmCancel->SetAccessibleAutomationId(L"RedTilde.SaveConfirmCancel");
+
+    _renamePanel = _root->AddChild<Surface>(Surface::Kind::Floating);
+    _renamePanel->SetVisible(false);
+    _renamePanel->SetAccessibleAutomationId(L"RedTilde.RenameFileModal");
+    _renameTitle    = Label(*_renamePanel, IDS_RENAME_TITLE, DxUi::FontRole::Subtitle);
+    _renameLocation = Label(*_renamePanel, IDS_EMPTY, DxUi::FontRole::Small);
+    _renameLocation->SetMultiline(true);
+    _renameInput = _renamePanel->AddChild<DxUi::TextField>();
+    _renameInput->SetAccessibleAutomationId(L"RedTilde.RenameFileInput");
+    _renameInput->SetAccessibleName(Resource(IDS_RENAME_TITLE));
+    _renameInput->SetOnSubmitted([this] { Execute(Command::RenameConfirm); });
+    _renameInput->SetOnTextChanged([this](std::wstring_view text)
+    {
+        if (! _renameSession || ! _renameError || ! _renameConfirmBtn)
+            return;
+        auto* ops = _options.fileOpsForTest ? _options.fileOpsForTest.get() : nullptr;
+        WindowsWorkspaceFileOps fallbackOps;
+        const auto err = (ops ? ops : &fallbackOps)->ValidateFileName(text);
+        const bool ok  = err == FileNameValidationError::None;
+        _renameConfirmBtn->SetEnabled(ok);
+        _renameError->SetText(ok ? std::wstring{} : Resource(IDS_RENAME_INVALID));
+    });
+    _renameError = Label(*_renamePanel, IDS_EMPTY, DxUi::FontRole::Small);
+    _renameError->SetMultiline(true);
+    _renameConfirmBtn = Action(*_renamePanel, IDS_CTX_RENAME, Command::RenameConfirm);
+    _renameConfirmBtn->SetPrimary(true);
+    Action(*_renamePanel, IDS_CANCEL, Command::CloseDrawer);
+
+    _fileConflictPanel = _root->AddChild<Surface>(Surface::Kind::Floating);
+    _fileConflictPanel->SetVisible(false);
+    _fileConflictPanel->SetAccessibleAutomationId(L"RedTilde.FileConflictModal");
+    _fileConflictTitle = Label(*_fileConflictPanel, IDS_FILE_CONFLICT_TITLE, DxUi::FontRole::Subtitle);
+    _fileConflictDesc  = Label(*_fileConflictPanel, IDS_EMPTY, DxUi::FontRole::Small);
+    _fileConflictDesc->SetMultiline(true);
+    _conflictReplaceBtn  = Action(*_fileConflictPanel, IDS_REPLACE_TARGET, Command::FileConflictReplace);
+    _conflictKeepBothBtn = Action(*_fileConflictPanel, IDS_KEEP_BOTH, Command::FileConflictKeepBoth);
+    _conflictKeepBothBtn->SetPrimary(true);
+    Action(*_fileConflictPanel, IDS_CANCEL, Command::CloseDrawer);
+
+    _openGitHubPanel = _root->AddChild<Surface>(Surface::Kind::Floating);
+    _openGitHubPanel->SetVisible(false);
+    _openGitHubPanel->SetAccessibleAutomationId(L"RedTilde.OpenGitHubModal");
+    _openGitHubTitle     = Label(*_openGitHubPanel, IDS_OPENGITHUB, DxUi::FontRole::Subtitle);
+    _openGitHubAuthLabel = Label(*_openGitHubPanel, IDS_GITHUB_NOT_SIGNED_IN, DxUi::FontRole::Small);
+    _openGitHubAuthLabel->SetMultiline(true);
+    _openGitHubDeviceBtn   = Action(*_openGitHubPanel, IDS_GITHUB_SIGNIN_DEVICE, Command::GitHubSignInDevice);
+    _openGitHubImportGhBtn = Action(*_openGitHubPanel, IDS_GITHUB_IMPORT_GH, Command::GitHubImportGhCli);
+    _openGitHubTokenInput  = _openGitHubPanel->AddChild<DxUi::TextField>();
+    _openGitHubTokenInput->SetPlaceholder(Resource(IDS_GITHUB_TOKEN_PLACEHOLDER));
+    _openGitHubTokenInput->SetAccessibleName(Resource(IDS_GITHUB_TOKEN_PLACEHOLDER));
+    _openGitHubTokenInput->SetMasked(true);
+    _openGitHubTokenInput->SetPasswordRevealMode(DxUi::PasswordRevealMode::Peek);
+    _openGitHubTokenInput->SetOnSubmitted([this] { Execute(Command::GitHubUseToken); });
+    _openGitHubUseTokenBtn = Action(*_openGitHubPanel, IDS_GITHUB_SAVE_TOKEN, Command::GitHubUseToken);
+    _openGitHubUrlInput    = _openGitHubPanel->AddChild<DxUi::TextField>();
+    _openGitHubUrlInput->SetAccessibleAutomationId(L"RedTilde.OpenGitHubUrlInput");
+    _openGitHubUrlInput->SetPlaceholder(Resource(IDS_GITHUB_URL_PLACEHOLDER));
+    _openGitHubUrlInput->SetAccessibleName(Resource(IDS_GITHUB_URL_PLACEHOLDER));
+    _openGitHubUrlInput->SetOnTextChanged([this](std::wstring_view) { RefreshOpenGitHubSuggestTree(); });
+    _openGitHubUrlInput->SetOnSubmitted([this] { Execute(Command::GitHubOpenConfirm); });
+    _openGitHubUrlInput->SetOnPreviewKeyDown([this](DxUi::ControlHost& host, UINT key, UINT)
+    {
+        if (key == VK_DOWN && _githubSuggestTree && ! _githubSuggestMatches.empty())
+        {
+            host.SetFocusControl(_githubSuggestTree, MayRequestNativeFocus());
+            _githubSuggestTree->SetSelectedItemId(1u);
+            return true;
+        }
+        return false;
+    });
+    _openGitHubBranchInput = _openGitHubPanel->AddChild<DxUi::TextField>();
+    _openGitHubBranchInput->SetAccessibleAutomationId(L"RedTilde.OpenGitHubBranchInput");
+    _openGitHubBranchInput->SetPlaceholder(Resource(IDS_GITHUB_BRANCH_PLACEHOLDER));
+    _openGitHubBranchInput->SetAccessibleName(Resource(IDS_GITHUB_BRANCH_PLACEHOLDER));
+    _openGitHubBranchInput->SetOnSubmitted([this] { Execute(Command::GitHubOpenConfirm); });
+    _openGitHubSuggestLabel = Label(*_openGitHubPanel, IDS_GITHUB_SUGGESTIONS, DxUi::FontRole::Small);
+    Section(_openGitHubSuggestLabel);
+    _githubSuggestTree = _openGitHubPanel->AddChild<DxUi::Tree>();
+    _githubSuggestTree->SetModel(&_githubSuggestModel);
+    _githubSuggestTree->SetDelegate(&_githubSuggestModel);
+    _githubSuggestTree->SetAccessibleAutomationId(L"RedTilde.OpenGitHubSuggestTree");
+    _githubSuggestTree->SetAccessibleName(Resource(IDS_GITHUB_SUGGESTIONS));
+    _githubSuggestTree->SetRowHeightDip(30);
+    _githubSuggestTree->SetAppearance({.drawBackground = false, .drawBorder = true, .reserveExpanderSpace = false, .neutralDecorations = true});
+    _githubSuggestTree->SetInvokeOnSingleClick(true);
+    _githubSuggestModel.invoked = [this](std::uint64_t id)
+    {
+        if (id && id <= _githubSuggestMatches.size())
+        {
+            const auto& repo = _githubSuggestMatches[static_cast<std::size_t>(id - 1)];
+            _openGitHubUrlInput->SetText(repo.fullName);
+            if (_openGitHubBranchInput->GetText().empty())
+                _openGitHubBranchInput->SetText(repo.defaultBranch);
+            RefreshOpenGitHubSuggestTree();
+        }
+    };
+    _openGitHubErrorLabel = Label(*_openGitHubPanel, IDS_EMPTY, DxUi::FontRole::Small);
+    _openGitHubErrorLabel->SetMultiline(true);
+    _openGitHubOpenBtn = Action(*_openGitHubPanel, IDS_GITHUB_OPEN_BTN, Command::GitHubOpenConfirm);
+    _openGitHubOpenBtn->SetPrimary(true);
+    _openGitHubOpenBtn->SetAccessibleAutomationId(L"RedTilde.OpenGitHubConfirm");
+    Action(*_openGitHubPanel, IDS_CANCEL, Command::CloseDrawer);
     _focusPill = _root->AddChild<Surface>(Surface::Kind::Floating);
     _stats     = Label(*_focusPill, IDS_SAVED, DxUi::FontRole::Small);
     THROW_IF_FAILED(_stats->SetTypographyOverride(DxUi::LabelTypography{12.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
     _positionStatus = Label(*_root, IDS_SAVED, DxUi::FontRole::Small);
     THROW_IF_FAILED(_positionStatus->SetTypographyOverride(DxUi::LabelTypography{12.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
     _positionStatus->SetAlignment(DWRITE_TEXT_ALIGNMENT_TRAILING);
+    _spellStatusCombo = _root->AddChild<StatusLanguageComboBox>();
+    _spellStatusCombo->SetVariant(DxUi::ComboBoxVariant::Modern);
+    _spellStatusCombo->SetDensity(DxUi::Density::Compact);
+    _spellStatusCombo->SetEditable(false);
+    _spellStatusCombo->SetMaxVisibleItems(8u);
+    _spellStatusCombo->SetAccessibleName(Resource(IDS_SPELL_STATUS_COMBO_NAME));
+    _spellStatusCombo->SetAccessibleAutomationId(L"RedTilde.SpellStatus");
+    _spellStatusCombo->SetOnPopupRequested([this]
+    {
+        RunUiAction([&] { RefreshSpellLanguageCombos(true); });
+        return false;
+    });
+    _spellStatusCombo->SetOnSelectionChanged([this](std::size_t index)
+    {
+        if (_spell.syncingLanguageCombos || ! _spellStatusCombo)
+            return;
+        const auto items = _spellStatusCombo->GetItems();
+        if (index < items.size())
+            ApplySpellLanguageSelection(items[index].value, true);
+    });
     _feedback = Label(*_root, IDS_EMPTY, DxUi::FontRole::Small);
     for (auto* label : {_stats, _positionStatus, _feedback})
         THROW_IF_FAILED(label->SetTypographyOverride(DxUi::LabelTypography{12.f, DWRITE_FONT_WEIGHT_NORMAL, 0}));
@@ -955,11 +1421,14 @@ void Application::Layout()
     _commandBar->SetVisible(! focus);
     _brandMark->SetVisible(! focus);
     _brandMark->SetBounds(D2D1::RectF(16, 14, 44, 42));
+    const auto name = _session.path.empty() ? Resource(IDS_UNTITLED) : _session.path.filename().native();
+    _title->SetText(name);
     const bool compactHeader  = width < 1040;
     const float tabsLeft      = compactHeader ? width - 520 : width / 2 - 104;
-    const float titleLimit    = std::max(56.f, tabsLeft - 120.f);
+    const float titleLeft     = focus ? 20.f : 54.f;
+    const float titleLimit    = focus ? std::max(titleLeft + 56.f, width - 316.f) : std::max(titleLeft + 56.f, tabsLeft - 28.f);
     const auto typography     = _host.GetTypographyRevision();
-    const float identityWidth = titleLimit - 54.f;
+    const float identityWidth = std::max(40.f, titleLimit - titleLeft);
     if (typography && (_identityMeasure.textRevision != _title->GetMeasureRevision() || _identityMeasure.typographyRevision != typography ||
                        _identityMeasure.availableWidth != identityWidth || _identityMeasure.dpi != _host.GetDpi()))
     {
@@ -967,11 +1436,14 @@ void Application::Layout()
         THROW_IF_FAILED(DxUi::MeasureControl(*_title, {_host}, DxUi::LayoutConstraints::AtMost(identityWidth), identitySize));
         _identityMeasure = {_title->GetMeasureRevision(), _host.GetTypographyRevision(), identityWidth, identitySize.sizeDip.width, _host.GetDpi()};
     }
-    const float titleRight = typography ? std::min(titleLimit, 54.f + _identityMeasure.width) : titleLimit;
-    _title->SetBounds(focus ? D2D1::RectF(20, 6, width - 320, 34) : D2D1::RectF(54, 16, titleRight, 40));
-    _saveStateChip->SetVisible(! focus);
-    _saveStateChip->SetBounds(D2D1::RectF(titleRight + 10, 18, titleRight + 62, 38));
-    _saveState->SetBounds(D2D1::RectF(titleRight + 14, 18, titleRight + 58, 38));
+    const float titleRight = typography ? std::min(titleLimit, titleLeft + _identityMeasure.width) : titleLimit;
+    _title->SetBounds(focus ? D2D1::RectF(20.f, 6.f, titleRight, 34.f) : D2D1::RectF(54.f, 16.f, titleRight, 40.f));
+    if (_dirtyDot)
+    {
+        const float dotCenterY = focus ? 20.f : 28.f;
+        _dirtyDot->SetBounds(D2D1::RectF(titleRight + 8.f, dotCenterY - 4.f, titleRight + 16.f, dotCenterY + 4.f));
+        _dirtyDot->SetVisible(Dirty());
+    }
     constexpr std::array<float, 3> tabOffsets{0.f, 92.f, 170.f}, tabWidths{88.f, 74.f, 54.f};
     for (unsigned index = 0; index < 3; ++index)
     {
@@ -1032,8 +1504,6 @@ void Application::Layout()
     place(_tools[11], 36);
     place(_panelToggle, 36);
     place(_settingsToggle, 36);
-    _filesToggle->SetToggleState(_settings.showFiles);
-    _panelToggle->SetToggleState(_settings.showOutline);
     _settingsToggle->SetToggleState(_drawer->IsVisible());
     _tools[11]->SetToggleState(focus);
     constexpr float OutlineWidthDip         = 240.f;
@@ -1042,13 +1512,12 @@ void Application::Layout()
     const float filesWidth                  = static_cast<float>(_settings.filesWidth);
     const bool split                        = _settings.view == EditorView::Split;
     const float minPinnedCanvas             = split ? MinPinnedSplitCanvasDip : MinPinnedCanvasWidthDip;
-    const bool leftEnabled                  = _settings.showFiles && ! focus;
-    const bool rightEnabled                 = _settings.showOutline && ! focus;
-    const bool leftPinned                   = leftEnabled && _settings.filesPinMode == PanePinMode::Pinned;
-    const bool rightPinned                  = rightEnabled && _settings.outlinePinMode == PanePinMode::Pinned;
-    const bool leftUnpinned                 = leftEnabled && _settings.filesPinMode == PanePinMode::Unpinned;
-    const bool rightUnpinned                = rightEnabled && _settings.outlinePinMode == PanePinMode::Unpinned;
-    const bool leftAuto                     = leftEnabled && _settings.filesPinMode == PanePinMode::Auto;
+    const bool leftWantsDock                = ! focus && _settings.showFiles && _settings.filesPinMode != PanePinMode::Unpinned;
+    const bool rightWantsDock               = ! focus && _settings.showOutline && _settings.outlinePinMode != PanePinMode::Unpinned;
+    const bool leftPinned                   = leftWantsDock && _settings.filesPinMode == PanePinMode::Pinned;
+    const bool rightPinned                  = rightWantsDock && _settings.outlinePinMode == PanePinMode::Pinned;
+    const bool leftAuto                     = leftWantsDock && _settings.filesPinMode == PanePinMode::Auto;
+    const bool rightAuto                    = rightWantsDock && _settings.outlinePinMode == PanePinMode::Auto;
     const float rightThreshold              = static_cast<float>(_settings.readingWidth + 336);
     bool leftDocked                         = false;
     bool rightDocked                        = false;
@@ -1068,89 +1537,78 @@ void Application::Layout()
         {
             leftDocked = (width - filesWidth - CollapsedPaneRail::RailWidthDip) >= minPinnedCanvas;
         }
-        _leftAutoCollapsed  = leftEnabled && ! leftDocked;
-        _rightAutoCollapsed = rightEnabled && ! rightDocked;
+        _leftAutoCollapsed  = ! focus && ! leftDocked;
+        _rightAutoCollapsed = ! focus && ! rightDocked;
     }
     else if (leftPinned)
     {
-        leftDocked         = (width - filesWidth - (rightEnabled ? CollapsedPaneRail::RailWidthDip : 0.f)) >= minPinnedCanvas;
-        _leftAutoCollapsed = leftEnabled && ! leftDocked;
+        leftDocked         = (width - filesWidth - CollapsedPaneRail::RailWidthDip) >= minPinnedCanvas;
+        _leftAutoCollapsed = ! focus && ! leftDocked;
         const float lSpace = leftDocked ? filesWidth : CollapsedPaneRail::RailWidthDip;
-        if (! rightEnabled)
-            _rightAutoCollapsed = false;
-        else if (rightUnpinned)
-            _rightAutoCollapsed = true;
+        if (! rightAuto)
+            _rightAutoCollapsed = ! focus;
         else if (split || _leftAutoCollapsed)
             _rightAutoCollapsed = true;
         else if (_rightAutoCollapsed)
             _rightAutoCollapsed = (width - lSpace) < rightThreshold + 24.f;
         else
             _rightAutoCollapsed = (width - lSpace) < rightThreshold;
-        rightDocked = rightEnabled && ! split && ! _rightAutoCollapsed;
+        rightDocked = rightAuto && ! split && ! _rightAutoCollapsed;
     }
     else if (rightPinned)
     {
-        rightDocked         = (width - OutlineWidthDip - (leftEnabled ? CollapsedPaneRail::RailWidthDip : 0.f)) >= minPinnedCanvas;
-        _rightAutoCollapsed = rightEnabled && ! rightDocked;
-        if (! leftEnabled)
-            _leftAutoCollapsed = false;
-        else if (leftUnpinned)
-            _leftAutoCollapsed = true;
+        rightDocked         = (width - OutlineWidthDip - CollapsedPaneRail::RailWidthDip) >= minPinnedCanvas;
+        _rightAutoCollapsed = ! focus && ! rightDocked;
+        if (! leftAuto)
+            _leftAutoCollapsed = ! focus;
         else
         {
             const float rightReserve = rightDocked ? OutlineWidthDip : CollapsedPaneRail::RailWidthDip;
             const float leftThresh   = static_cast<float>(_settings.readingWidth + _settings.filesWidth + 96 + 6) + rightReserve;
             _leftAutoCollapsed       = _leftAutoCollapsed ? (width < leftThresh + 24.f) : (width < leftThresh);
         }
-        leftDocked = leftEnabled && ! _leftAutoCollapsed;
+        leftDocked = leftAuto && ! _leftAutoCollapsed;
     }
     else
     {
-        if (! leftEnabled)
-            _leftAutoCollapsed = false;
-        else if (leftUnpinned)
-            _leftAutoCollapsed = true;
+        if (! leftAuto)
+            _leftAutoCollapsed = ! focus;
         else
         {
-            const float leftThresh =
-                static_cast<float>(_settings.readingWidth + _settings.filesWidth + 96 + 6) + (rightEnabled ? CollapsedPaneRail::RailWidthDip : 0.f);
-            _leftAutoCollapsed = _leftAutoCollapsed ? (width < leftThresh + 24.f) : (width < leftThresh);
+            const float leftThresh = static_cast<float>(_settings.readingWidth + _settings.filesWidth + 96 + 6) + CollapsedPaneRail::RailWidthDip;
+            _leftAutoCollapsed     = _leftAutoCollapsed ? (width < leftThresh + 24.f) : (width < leftThresh);
         }
-        leftDocked         = leftEnabled && ! _leftAutoCollapsed;
-        const float lSpace = leftDocked ? filesWidth : (leftEnabled ? CollapsedPaneRail::RailWidthDip : 0.f);
-        if (! rightEnabled)
-            _rightAutoCollapsed = false;
-        else if (rightUnpinned)
-            _rightAutoCollapsed = true;
-        else if (split || (_leftAutoCollapsed && leftAuto))
+        leftDocked         = leftAuto && ! _leftAutoCollapsed;
+        const float lSpace = leftDocked ? filesWidth : CollapsedPaneRail::RailWidthDip;
+        if (! rightAuto)
+            _rightAutoCollapsed = ! focus;
+        else if (split || (leftAuto && _leftAutoCollapsed))
             _rightAutoCollapsed = true;
         else if (_rightAutoCollapsed)
             _rightAutoCollapsed = (width - lSpace) < rightThreshold + 24.f;
         else
             _rightAutoCollapsed = (width - lSpace) < rightThreshold;
-        rightDocked = rightEnabled && ! split && ! _rightAutoCollapsed;
+        rightDocked = rightAuto && ! split && ! _rightAutoCollapsed;
     }
 
-    const bool leftCollapsed  = leftEnabled && ! leftDocked;
-    const bool rightCollapsed = rightEnabled && ! rightDocked;
-    const float left          = leftDocked ? filesWidth : (leftCollapsed ? CollapsedPaneRail::RailWidthDip : 0.f);
-    const float right         = rightDocked ? width - OutlineWidthDip : (rightCollapsed ? width - CollapsedPaneRail::RailWidthDip : width);
+    _filesToggle->SetToggleState(leftDocked);
+    _panelToggle->SetToggleState(rightDocked);
+    const bool leftCollapsed  = ! focus && ! leftDocked;
+    const bool rightCollapsed = ! focus && ! rightDocked;
+    const float left          = focus ? 0.f : (leftDocked ? filesWidth : CollapsedPaneRail::RailWidthDip);
+    const float right         = focus ? width : (rightDocked ? width - OutlineWidthDip : width - CollapsedPaneRail::RailWidthDip);
 
-    auto syncRail = [&](CollapsedPaneRail* rail, PaneSide side, bool enabled, bool collapsed)
+    auto syncRail = [&](CollapsedPaneRail* rail, bool collapsed)
     {
         if (! rail)
             return;
         const auto& state = rail->State();
-        if (focus || ! enabled)
+        if (focus)
         {
-            if (_explicitPaneRevealSide == side)
-                _explicitPaneRevealSide.reset();
             rail->SnapToMode(PaneDisplayMode::Hidden, false);
         }
         else if (! collapsed)
         {
-            if (_explicitPaneRevealSide == side)
-                _explicitPaneRevealSide.reset();
             rail->SnapToMode(PaneDisplayMode::Docked, false);
         }
         else
@@ -1162,19 +1620,21 @@ void Application::Layout()
                 rail->StartCollapse(_host, false);
         }
     };
-    syncRail(_leftRail, PaneSide::Left, _settings.showFiles, leftCollapsed);
-    syncRail(_rightRail, PaneSide::Right, _settings.showOutline, rightCollapsed);
+    syncRail(_leftRail, leftCollapsed);
+    syncRail(_rightRail, rightCollapsed);
     if (_leftRail)
     {
         const auto& ls      = _leftRail->State();
-        const bool showRail = ! focus && _settings.showFiles && (ls.autoCollapsed || ls.phase == PaneAnimationPhase::Collapsing);
+        const bool showRail = ! focus && (ls.autoCollapsed || ls.mode == PaneDisplayMode::CollapsedRail || ls.mode == PaneDisplayMode::HoverOverlay ||
+                                          ls.phase == PaneAnimationPhase::Collapsing);
         _leftRail->SetVisible(showRail);
         _leftRail->SetBounds(D2D1::RectF(0.f, top, CollapsedPaneRail::RailWidthDip, bottom));
     }
     if (_rightRail)
     {
         const auto& rs      = _rightRail->State();
-        const bool showRail = ! focus && _settings.showOutline && (rs.autoCollapsed || rs.phase == PaneAnimationPhase::Collapsing);
+        const bool showRail = ! focus && (rs.autoCollapsed || rs.mode == PaneDisplayMode::CollapsedRail || rs.mode == PaneDisplayMode::HoverOverlay ||
+                                          rs.phase == PaneAnimationPhase::Collapsing);
         _rightRail->SetVisible(showRail);
         _rightRail->SetBounds(D2D1::RectF(width - CollapsedPaneRail::RailWidthDip, top, width, bottom));
     }
@@ -1289,11 +1749,34 @@ void Application::Layout()
     _filesSplitter->SetPosition(filesWidth);
     const float drawerLeft = width - 380;
     _drawer->SetBounds(D2D1::RectF(drawerLeft, top, width, bottom));
-    _settingsScroll->SetBounds(D2D1::RectF(drawerLeft + 16, top + 12, width - 8, bottom - 12));
-    _settingsScroll->SetContentHeight(1950);
-    const float dx = drawerLeft + 24;
-    _settingsScroll->GetLogicalChild(0)->SetBounds(D2D1::RectF(dx, top + 20, width - 24, top + 52));
-    _settingsScroll->GetLogicalChild(1)->SetBounds(D2D1::RectF(dx, top + 68, width - 24, top + 92));
+    const float dx             = drawerLeft + 24;
+    const float dRight         = width - 24;
+    const float fullW          = std::max(40.f, dRight - dx);
+    const float helpLeft       = dx + 8.f;
+    const float helpW          = std::max(40.f, dRight - helpLeft);
+    const float scrollTop      = top + 74.f;
+    const float contentOriginY = scrollTop + 12.f;
+    _settingsTitle->SetBounds(D2D1::RectF(dx, top + 14.f, width - 48.f, top + 44.f));
+    _drawerClose->SetBounds(D2D1::RectF(width - 40.f, top + 14.f, width - 12.f, top + 42.f));
+    _drawerImmediate->SetBounds(D2D1::RectF(dx, top + 44.f, dRight, top + 64.f));
+    _settingsHeaderDivider->SetBounds(D2D1::RectF(drawerLeft, top + 72.f, width, top + 73.f));
+    _settingsScroll->SetBounds(D2D1::RectF(drawerLeft + 8.f, scrollTop, width - 4.f, bottom - 8.f));
+    const auto measureLabelHeight = [&](DxUi::Label* label, float maxWidth, float fallbackHeight) -> float
+    {
+        if (! label || maxWidth <= 1.f || _host.GetTypographyRevision() == 0u)
+            return fallbackHeight;
+        DxUi::DesiredSize desired;
+        const HRESULT hr = DxUi::MeasureControl(*label, {_host}, DxUi::LayoutConstraints::AtMost(maxWidth), desired);
+        if (hr == E_OUTOFMEMORY)
+            DxUi::Failure::FailAllocation();
+        if (FAILED(hr))
+            return fallbackHeight;
+        return std::max(18.f, std::ceil(desired.sizeDip.height));
+    };
+
+    float y = contentOriginY;
+    _appearanceTitle->SetBounds(D2D1::RectF(dx, y, dRight, y + 24.f));
+    y += 34.f;
     std::array<DxUi::ButtonThemePreview, 4> previews{{{},
                                                       {{D2D1::ColorF(0xF0F1F4), D2D1::ColorF(0xF8F8FA), D2D1::ColorF(0xFFFFFF)}},
                                                       {{D2D1::ColorF(0x17191E), D2D1::ColorF(0x1C1F25), D2D1::ColorF(0x22252B)}},
@@ -1302,54 +1785,143 @@ void Application::Layout()
     for (unsigned i = 0; i < 4; ++i)
     {
         _themeButtons[i]->SetBounds(D2D1::RectF(dx + static_cast<float>(i % 2) * 168.f,
-                                                top + 104 + static_cast<float>(i / 2) * 80.f,
+                                                y + static_cast<float>(i / 2) * 80.f,
                                                 dx + 156 + static_cast<float>(i % 2) * 168.f,
-                                                top + 168 + static_cast<float>(i / 2) * 80.f));
+                                                y + 64.f + static_cast<float>(i / 2) * 80.f));
         _themeButtons[i]->SetThemePreview(previews[i]);
         _themeButtons[i]->SetToggleState(static_cast<unsigned>(_settings.appearance) == i);
     }
-    _readingWidth->SetBounds(D2D1::RectF(dx, top + 272, width - 24, top + 308));
+    y += 168.f;
+    _readingWidth->SetBounds(D2D1::RectF(dx, y, dRight, y + 36.f));
     if (! _readingWidth->IsEditing())
         _readingWidth->SetValue(_settings.readingWidth);
-    _textScale->SetBounds(D2D1::RectF(dx, top + 320, width - 24, top + 356));
+    y += 48.f;
+    _textScale->SetBounds(D2D1::RectF(dx, y, dRight, y + 36.f));
     if (! _textScale->IsEditing())
         _textScale->SetValue(_settings.textScale);
-    _writingTitle->SetBounds(D2D1::RectF(dx, top + 372, width - 24, top + 396));
-    _outlineToggle->SetBounds(D2D1::RectF(dx, top + 408, width - 24, top + 444));
-    _outlineToggle->SetToggleState(_settings.showOutline);
-    _focusToggle->SetBounds(D2D1::RectF(dx, top + 456, width - 24, top + 492));
-    _focusToggle->SetToggleState(focus);
-    _dimToggle->SetBounds(D2D1::RectF(dx, top + 504, width - 24, top + 540));
-    _dimToggle->SetToggleState(_settings.dimInactiveBlocks);
-    _strikeTasksToggle->SetBounds(D2D1::RectF(dx, top + 556, width - 24, top + 592));
-    _strikeTasksToggle->SetToggleState(_settings.strikeCompletedTasks);
-    _syntaxTitle->SetBounds(D2D1::RectF(dx, top + 608, width - 24, top + 632));
-    _syntaxIntro->SetBounds(D2D1::RectF(dx, top + 640, width - 24, top + 680));
-    // Each option reserves two lines of explanation beneath its toggle.
+    y += 52.f;
+
+    _writingTitle->SetBounds(D2D1::RectF(dx, y, dRight, y + 24.f));
+    y += 34.f;
+    _outlineToggle->SetBounds(D2D1::RectF(dx, y, dRight, y + 34.f));
+    _outlineToggle->SetChecked(_settings.showOutline);
+    y += 40.f;
+    _focusToggle->SetBounds(D2D1::RectF(dx, y, dRight, y + 34.f));
+    _focusToggle->SetChecked(focus);
+    y += 40.f;
+    _dimToggle->SetBounds(D2D1::RectF(dx, y, dRight, y + 34.f));
+    _dimToggle->SetChecked(_settings.dimInactiveBlocks);
+    y += 40.f;
+    _strikeTasksToggle->SetBounds(D2D1::RectF(dx, y, dRight, y + 34.f));
+    _strikeTasksToggle->SetChecked(_settings.strikeCompletedTasks);
+    y += 36.f;
+    const float strikeHelpH = measureLabelHeight(_strikeTasksHelp, helpW, 38.f);
+    _strikeTasksHelp->SetBounds(D2D1::RectF(helpLeft, y, dRight, y + strikeHelpH));
+    y += strikeHelpH + 12.f;
+    _keepUnsavedToggle->SetBounds(D2D1::RectF(dx, y, dRight, y + 34.f));
+    _keepUnsavedToggle->SetChecked(_settings.exitUnsavedBehavior == ExitUnsavedBehavior::KeepAndResume);
+    y += 36.f;
+    const float keepUnsavedHelpH = measureLabelHeight(_keepUnsavedHelp, helpW, 40.f);
+    _keepUnsavedHelp->SetBounds(D2D1::RectF(helpLeft, y, dRight, y + keepUnsavedHelpH));
+    y += keepUnsavedHelpH + 16.f;
+
+    const float proofingTop = y;
+    _proofingTitle->SetBounds(D2D1::RectF(dx, y, dRight, y + 24.f));
+    y += 34.f;
+    _spellingEnabledToggle->SetBounds(D2D1::RectF(dx, y, dRight, y + 34.f));
+    y += 36.f;
+    const float spellHelpH = measureLabelHeight(_spellingHelp, helpW, 40.f);
+    _spellingHelp->SetBounds(D2D1::RectF(helpLeft, y, dRight, y + spellHelpH));
+    y += spellHelpH + 12.f;
+    _spellingLanguageLabel->SetBounds(D2D1::RectF(dx, y, dRight, y + 22.f));
+    y += 24.f;
+    _spellingLanguageCombo->SetBounds(D2D1::RectF(dx, y, dRight, y + 36.f));
+    y += 48.f;
+    _spellingIgnoreUpperToggle->SetBounds(D2D1::RectF(dx, y, dRight, y + 34.f));
+    y += 40.f;
+    _spellingIgnoreDigitsToggle->SetBounds(D2D1::RectF(dx, y, dRight, y + 34.f));
+    y += 40.f;
+    _spellingIgnorePathsToggle->SetBounds(D2D1::RectF(dx, y, dRight, y + 34.f));
+    y += 44.f;
+    _spellingDictPathLabel->SetBounds(D2D1::RectF(dx, y, dRight, y + 24.f));
+    y += 30.f;
+    _spellingDictChooseButton->SetBounds(D2D1::RectF(dx, y, dx + 156, y + 36.f));
+    _spellingDictResetButton->SetBounds(D2D1::RectF(dx + 168, y, dRight, y + 36.f));
+    y += 56.f;
+    RefreshProofingDrawerControls();
+
+    _syntaxTitle->SetBounds(D2D1::RectF(dx, y, dRight, y + 24.f));
+    y += 32.f;
+    const float syntaxIntroH = measureLabelHeight(_syntaxIntro, fullW, 40.f);
+    _syntaxIntro->SetBounds(D2D1::RectF(dx, y, dRight, y + syntaxIntroH));
+    y += syntaxIntroH + 12.f;
     for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
     {
-        const float row = top + 692 + static_cast<float>(index) * 92.f;
-        _syntaxToggles[index]->SetBounds(D2D1::RectF(dx, row, width - 24, row + 36));
-        _syntaxToggles[index]->SetToggleState(_settings.markdownSyntax[index]);
-        _syntaxHelp[index]->SetBounds(D2D1::RectF(dx, row + 40, width - 24, row + 80));
+        _syntaxToggles[index]->SetBounds(D2D1::RectF(dx, y, dRight, y + 34.f));
+        _syntaxToggles[index]->SetChecked(_settings.markdownSyntax[index]);
+        y += 36.f;
+        const float rowHelpH = measureLabelHeight(_syntaxHelp[index], helpW, 40.f);
+        _syntaxHelp[index]->SetBounds(D2D1::RectF(helpLeft, y, dRight, y + rowHelpH));
+        y += rowHelpH + 12.f;
     }
-    const float privacy = top + 1340;
-    _privacyTitle->SetBounds(D2D1::RectF(dx, privacy, width - 24, privacy + 24));
-    _remoteImagesToggle->SetBounds(D2D1::RectF(dx, privacy + 36, width - 24, privacy + 72));
-    _remoteImagesToggle->SetToggleState(_settings.allowRemoteImages);
-    _localNetworkImagesToggle->SetBounds(D2D1::RectF(dx, privacy + 80, width - 24, privacy + 116));
-    _localNetworkImagesToggle->SetToggleState(_settings.allowLocalNetworkImages);
-    _drawerHelp->SetBounds(D2D1::RectF(dx, privacy + 124, width - 24, privacy + 164));
-    _imageFirstPasteToggle->SetBounds(D2D1::RectF(dx, privacy + 176, width - 24, privacy + 212));
-    _imageFirstPasteToggle->SetToggleState(_settings.imageFirstPaste);
-    _recoveryAction->SetBounds(D2D1::RectF(dx, privacy + 228, width - 24, privacy + 264));
-    _drawerClose->SetBounds(D2D1::RectF(dx + 224, privacy + 276, width - 24, privacy + 312));
-    _drawerImmediate->SetBounds(D2D1::RectF(dx, privacy + 276, width - 160, privacy + 312));
-    const float about = privacy + 336;
-    _aboutTitle->SetBounds(D2D1::RectF(dx, about, width - 24, about + 24));
-    _aboutVersion->SetBounds(D2D1::RectF(dx, about + 30, width - 24, about + 54));
-    _aboutSummary->SetBounds(D2D1::RectF(dx, about + 58, width - 24, about + 98));
-    _shortcutsList->SetBounds(D2D1::RectF(dx, about + 106, width - 24, about + 266));
+    y += 8.f;
+
+    const float privacyTop = y;
+    _privacyTitle->SetBounds(D2D1::RectF(dx, y, dRight, y + 24.f));
+    y += 34.f;
+    _remoteImagesToggle->SetBounds(D2D1::RectF(dx, y, dRight, y + 34.f));
+    _remoteImagesToggle->SetChecked(_settings.allowRemoteImages);
+    y += 36.f;
+    const float drawerHelpH = measureLabelHeight(_drawerHelp, helpW, 40.f);
+    _drawerHelp->SetBounds(D2D1::RectF(helpLeft, y, dRight, y + drawerHelpH));
+    y += drawerHelpH + 12.f;
+    _localNetworkImagesToggle->SetBounds(D2D1::RectF(dx, y, dRight, y + 34.f));
+    _localNetworkImagesToggle->SetChecked(_settings.allowLocalNetworkImages);
+    y += 36.f;
+    const float localNetHelpH = measureLabelHeight(_localNetworkImagesHelp, helpW, 56.f);
+    _localNetworkImagesHelp->SetBounds(D2D1::RectF(helpLeft, y, dRight, y + localNetHelpH));
+    y += localNetHelpH + 12.f;
+    _imageFirstPasteToggle->SetBounds(D2D1::RectF(dx, y, dRight, y + 34.f));
+    _imageFirstPasteToggle->SetChecked(_settings.imageFirstPaste);
+    y += 36.f;
+    const float pasteHelpH = measureLabelHeight(_imageFirstPasteHelp, helpW, 56.f);
+    _imageFirstPasteHelp->SetBounds(D2D1::RectF(helpLeft, y, dRight, y + pasteHelpH));
+    y += pasteHelpH + 14.f;
+    _recoveryAction->SetBounds(D2D1::RectF(dx, y, dRight, y + 36.f));
+    y += 52.f;
+
+    _accountsTitle->SetBounds(D2D1::RectF(dx, y, dRight, y + 24.f));
+    y += 30.f;
+    const float acctStatusH = measureLabelHeight(_accountsStatusLabel, fullW, 24.f);
+    _accountsStatusLabel->SetBounds(D2D1::RectF(dx, y, dRight, y + acctStatusH));
+    y += acctStatusH + 10.f;
+    const float halfBtnW = (fullW - 8.f) * 0.5f;
+    _accountsDeviceBtn->SetBounds(D2D1::RectF(dx, y, dx + halfBtnW, y + 34.f));
+    _accountsImportGhBtn->SetBounds(D2D1::RectF(dx + halfBtnW + 8.f, y, dRight, y + 34.f));
+    y += 42.f;
+    _accountsTokenInput->SetBounds(D2D1::RectF(dx, y, dRight - 104.f, y + 34.f));
+    _accountsUseTokenBtn->SetBounds(D2D1::RectF(dRight - 96.f, y, dRight, y + 34.f));
+    y += 42.f;
+    _accountsSignOutBtn->SetBounds(D2D1::RectF(dx, y, dRight, y + 34.f));
+    y += 50.f;
+    RefreshAccountsDrawerControls();
+
+    const float aboutTop = y;
+    _aboutTitle->SetBounds(D2D1::RectF(dx, y, dRight, y + 24.f));
+    y += 30.f;
+    _aboutVersion->SetBounds(D2D1::RectF(dx, y, dRight, y + 24.f));
+    y += 28.f;
+    const float aboutSummaryH = measureLabelHeight(_aboutSummary, fullW, 42.f);
+    _aboutSummary->SetBounds(D2D1::RectF(dx, y, dRight, y + aboutSummaryH));
+    y += aboutSummaryH + 10.f;
+    const float shortcutsH = measureLabelHeight(_shortcutsList, fullW, 160.f);
+    _shortcutsList->SetBounds(D2D1::RectF(dx, y, dRight, y + shortcutsH));
+    y += shortcutsH + 24.f;
+
+    _settingsProofingScrollY = std::max(0.f, proofingTop - contentOriginY);
+    _settingsPrivacyScrollY  = std::max(0.f, privacyTop - contentOriginY);
+    _settingsAboutScrollY    = std::max(0.f, aboutTop - contentOriginY);
+    _settingsScroll->SetContentHeight(std::ceil(y - scrollTop));
     const float findAreaLeft  = split && ! focus && _splitActivePane == SplitActivePane::Source ? mid : left;
     const float findAreaRight = split && ! focus && _splitActivePane == SplitActivePane::Compose ? mid : right;
     const float findAvailW    = std::max(300.f, findAreaRight - findAreaLeft);
@@ -1413,8 +1985,13 @@ void Application::Layout()
         for (unsigned i = 0; i < 3; ++i)
             _recoveryPanel->GetLogicalChild(i + 3)->SetBounds(
                 D2D1::RectF(draftLeft + 20 + static_cast<float>(i) * 208.f, bottom - 62, draftLeft + 220 + static_cast<float>(i) * 208.f, bottom - 28));
-    _stats->SetBounds(D2D1::RectF(16, height - 26, width / 2, height - 2));
-    _positionStatus->SetBounds(D2D1::RectF(width / 2, height - 26, width - 16, height - 2));
+    LayoutOverlayPanels(left, right, top, bottom, width, height);
+    const float spellW     = std::clamp(width * 0.17f, 148.f, 212.f);
+    const float statsRight = std::max(240.f, (width - spellW) * 0.5f - 8.f);
+    _stats->SetBounds(D2D1::RectF(16.f, height - 26.f, statsRight, height - 2.f));
+    if (_spellStatusCombo)
+        _spellStatusCombo->SetBounds(D2D1::RectF(statsRight + 8.f, height - 27.f, statsRight + 8.f + spellW, height - 1.f));
+    _positionStatus->SetBounds(D2D1::RectF(statsRight + 16.f + spellW, height - 26.f, width - 16.f, height - 2.f));
     _focusPill->SetBounds(focus ? D2D1::RectF(width / 2 - 224, height - 50, width / 2 + 224, height - 10) : D2D1::RectF(0, height - 28, width / 2, height));
     _focusPill->kind = focus ? Surface::Kind::Floating : Surface::Kind::Chrome;
     if (focus)
@@ -1423,14 +2000,145 @@ void Application::Layout()
     _title->SetTextColor(focus ? std::optional(_host.GetTheme().subduedText) : std::nullopt);
     _stats->SetVisible(true);
     _positionStatus->SetVisible(! focus);
-    const auto name = _session.path.empty() ? Resource(IDS_UNTITLED) : _session.path.filename().native();
-    _title->SetText(focus && Dirty() ? name + L" · " + Resource(IDS_CHANGED) : name);
+    if (_spellStatusCombo)
+        _spellStatusCombo->SetVisible(! focus);
     _feedback->SetBounds(D2D1::RectF(left + 16, bottom - 22, right - 16, bottom));
     // Reposition only an already visible toolbar: resize must not reopen
     // tools that Escape or another contextual surface deliberately dismissed.
     if (_activeOverlay == OverlayKind::FloatingSelectionTools)
         SelectionChanged();
     _host.Invalidate();
+}
+
+void Application::LayoutOverlayPanels(float left, float right, float top, float bottom, float width, float height)
+{
+    if (_modalBackdrop)
+        _modalBackdrop->SetBounds(D2D1::RectF(0.f, 0.f, width, height));
+
+    const float modalAreaW = std::max(380.f, std::min(width - 32.f, right - left + 220.f));
+    if (_saveConfirmPanel)
+    {
+        const float dialogW        = std::clamp(modalAreaW, 380.f, 640.f);
+        const std::size_t rowCount = _saveConfirmSession ? _saveConfirmSession->items.size() : 0u;
+        const bool multiDoc        = rowCount > 1u;
+        const float listH          = std::clamp(static_cast<float>(std::max<std::size_t>(1u, rowCount)) * 48.f, 52.f, 224.f);
+        const float dialogH        = std::min(height - 48.f, (multiDoc ? 230.f : 196.f) + listH);
+        const float x0             = std::max(16.f, (width - dialogW) * 0.5f);
+        const float y0             = std::max(top + 8.f, (top + bottom - dialogH) * 0.5f);
+        const float x1             = x0 + dialogW;
+        const float y1             = y0 + dialogH;
+        _saveConfirmPanel->SetBounds(D2D1::RectF(x0, y0, x1, y1));
+        _saveConfirmTitle->SetBounds(D2D1::RectF(x0 + 20.f, y0 + 18.f, x1 - 20.f, y0 + 48.f));
+        _saveConfirmHint->SetBounds(D2D1::RectF(x0 + 20.f, y0 + 50.f, x1 - 20.f, y0 + 88.f));
+        float listTop = y0 + 92.f;
+        if (multiDoc)
+        {
+            _saveConfirmSelectAll->SetVisible(true);
+            _saveConfirmSelectAll->SetBounds(D2D1::RectF(x0 + 20.f, listTop, x1 - 20.f, listTop + 28.f));
+            listTop += 34.f;
+        }
+        else
+        {
+            _saveConfirmSelectAll->SetVisible(false);
+        }
+        const float buttonTop  = y1 - 54.f;
+        const float listBottom = std::max(listTop + 48.f, buttonTop - 14.f);
+        _saveConfirmScroll->SetBounds(D2D1::RectF(x0 + 16.f, listTop, x1 - 16.f, listBottom));
+        const float innerW = std::max(280.f, dialogW - 44.f);
+        float ry           = listTop + 4.f;
+        for (std::size_t i = 0; i < _saveConfirmRowControls.size(); ++i)
+        {
+            const auto& rowControls = _saveConfirmRowControls[i];
+            const bool activeRow    = i < rowCount;
+            rowControls.checkbox->SetVisible(activeRow);
+            rowControls.locationLabel->SetVisible(activeRow);
+            if (! activeRow)
+                continue;
+            const auto& item             = _saveConfirmSession->items[i];
+            const std::wstring nameLabel = item.location.fileName;
+            const std::wstring locText = item.location.relativePath.empty()
+                                             ? item.location.sectionLabel
+                                             : FormatStringResource(nullptr, IDS_SAVE_LOCATION_FORMAT, item.location.sectionLabel, item.location.relativePath);
+            rowControls.checkbox->SetText(nameLabel);
+            rowControls.checkbox->SetTooltipText(item.location.fullPath);
+            rowControls.locationLabel->SetText(locText);
+            rowControls.locationLabel->SetTooltipText(item.location.fullPath);
+            rowControls.checkbox->SetBounds(D2D1::RectF(x0 + 22.f, ry, x0 + 22.f + innerW, ry + 24.f));
+            rowControls.locationLabel->SetBounds(D2D1::RectF(x0 + 48.f, ry + 24.f, x0 + 22.f + innerW, ry + 42.f));
+            ry += 48.f;
+        }
+        _saveConfirmScroll->SetContentHeight(std::max(0.f, ry - listTop));
+
+        const float gap  = 8.f;
+        const float btnW = (dialogW - 40.f - gap * 3.f) * 0.25f;
+        float bx         = x0 + 20.f;
+        for (auto* btn : {_saveConfirmPrimary, _saveConfirmKeepExit, _saveConfirmDiscard, _saveConfirmCancel})
+        {
+            btn->SetBounds(D2D1::RectF(bx, buttonTop, bx + btnW, buttonTop + 34.f));
+            bx += btnW + gap;
+        }
+    }
+
+    if (_renamePanel)
+    {
+        const float dialogW = std::clamp(width - 48.f, 360.f, 520.f);
+        const float dialogH = 224.f;
+        const float x0      = std::max(16.f, (width - dialogW) * 0.5f);
+        const float y0      = std::max(top + 12.f, (top + bottom - dialogH) * 0.5f);
+        const float x1      = x0 + dialogW;
+        const float y1      = y0 + dialogH;
+        _renamePanel->SetBounds(D2D1::RectF(x0, y0, x1, y1));
+        _renameTitle->SetBounds(D2D1::RectF(x0 + 20.f, y0 + 18.f, x1 - 20.f, y0 + 48.f));
+        _renameLocation->SetBounds(D2D1::RectF(x0 + 20.f, y0 + 50.f, x1 - 20.f, y0 + 82.f));
+        _renameInput->SetBounds(D2D1::RectF(x0 + 20.f, y0 + 88.f, x1 - 20.f, y0 + 124.f));
+        _renameError->SetBounds(D2D1::RectF(x0 + 20.f, y0 + 130.f, x1 - 20.f, y0 + 162.f));
+        _renamePanel->GetLogicalChild(4)->SetBounds(D2D1::RectF(x1 - 228.f, y1 - 52.f, x1 - 124.f, y1 - 18.f));
+        _renamePanel->GetLogicalChild(5)->SetBounds(D2D1::RectF(x1 - 116.f, y1 - 52.f, x1 - 20.f, y1 - 18.f));
+    }
+
+    if (_fileConflictPanel)
+    {
+        const float dialogW = std::clamp(width - 48.f, 360.f, 500.f);
+        const float dialogH = 196.f;
+        const float x0      = std::max(16.f, (width - dialogW) * 0.5f);
+        const float y0      = std::max(top + 12.f, (top + bottom - dialogH) * 0.5f);
+        const float x1      = x0 + dialogW;
+        const float y1      = y0 + dialogH;
+        _fileConflictPanel->SetBounds(D2D1::RectF(x0, y0, x1, y1));
+        _fileConflictTitle->SetBounds(D2D1::RectF(x0 + 20.f, y0 + 18.f, x1 - 20.f, y0 + 48.f));
+        _fileConflictDesc->SetBounds(D2D1::RectF(x0 + 20.f, y0 + 54.f, x1 - 20.f, y0 + 120.f));
+        const float btnW = (dialogW - 56.f) / 3.f;
+        _conflictReplaceBtn->SetBounds(D2D1::RectF(x0 + 20.f, y1 - 52.f, x0 + 20.f + btnW, y1 - 18.f));
+        _conflictKeepBothBtn->SetBounds(D2D1::RectF(x0 + 28.f + btnW, y1 - 52.f, x0 + 28.f + btnW * 2.f, y1 - 18.f));
+        _fileConflictPanel->GetLogicalChild(4)->SetBounds(D2D1::RectF(x0 + 36.f + btnW * 2.f, y1 - 52.f, x1 - 20.f, y1 - 18.f));
+    }
+
+    if (_openGitHubPanel)
+    {
+        const float dialogW = std::clamp(width - 32.f, 480.f, 760.f);
+        const float dialogH = std::clamp(height - 40.f, 440.f, 560.f);
+        const float x0      = std::max(16.f, (width - dialogW) * 0.5f);
+        const float y0      = std::max(top + 8.f, (top + bottom - dialogH) * 0.5f);
+        const float x1      = x0 + dialogW;
+        const float y1      = y0 + dialogH;
+        const float innerW  = dialogW - 40.f;
+        _openGitHubPanel->SetBounds(D2D1::RectF(x0, y0, x1, y1));
+        _openGitHubTitle->SetBounds(D2D1::RectF(x0 + 20.f, y0 + 18.f, x1 - 20.f, y0 + 48.f));
+        _openGitHubAuthLabel->SetBounds(D2D1::RectF(x0 + 20.f, y0 + 50.f, x1 - 20.f, y0 + 72.f));
+        const float tokenAreaW = std::min(300.f, innerW * 0.44f);
+        const float authBtnW   = std::max(120.f, (innerW - tokenAreaW - 16.f) * 0.5f);
+        _openGitHubDeviceBtn->SetBounds(D2D1::RectF(x0 + 20.f, y0 + 76.f, x0 + 20.f + authBtnW, y0 + 108.f));
+        _openGitHubImportGhBtn->SetBounds(D2D1::RectF(x0 + 28.f + authBtnW, y0 + 76.f, x0 + 28.f + authBtnW * 2.f, y0 + 108.f));
+        _openGitHubTokenInput->SetBounds(D2D1::RectF(x1 - 20.f - tokenAreaW, y0 + 76.f, x1 - 122.f, y0 + 108.f));
+        _openGitHubUseTokenBtn->SetBounds(D2D1::RectF(x1 - 114.f, y0 + 76.f, x1 - 20.f, y0 + 108.f));
+        _openGitHubUrlInput->SetBounds(D2D1::RectF(x0 + 20.f, y0 + 118.f, x1 - 244.f, y0 + 154.f));
+        _openGitHubBranchInput->SetBounds(D2D1::RectF(x1 - 236.f, y0 + 118.f, x1 - 20.f, y0 + 154.f));
+        _openGitHubSuggestLabel->SetBounds(D2D1::RectF(x0 + 20.f, y0 + 162.f, x1 - 20.f, y0 + 184.f));
+        _githubSuggestTree->SetBounds(D2D1::RectF(x0 + 20.f, y0 + 186.f, x1 - 20.f, y1 - 86.f));
+        _openGitHubErrorLabel->SetBounds(D2D1::RectF(x0 + 20.f, y1 - 80.f, x1 - 240.f, y1 - 18.f));
+        _openGitHubOpenBtn->SetBounds(D2D1::RectF(x1 - 228.f, y1 - 52.f, x1 - 122.f, y1 - 18.f));
+        _openGitHubPanel->GetLogicalChild(12)->SetBounds(D2D1::RectF(x1 - 114.f, y1 - 52.f, x1 - 20.f, y1 - 18.f));
+    }
 }
 
 void Application::ApplySidePaneOverlayBounds()
@@ -1449,9 +2157,8 @@ void Application::ApplySidePaneOverlayBounds()
     const auto layoutReq   = _activity.layouts;
 
     const bool rightOverlay      = rightState.autoCollapsed || rightState.phase == PaneAnimationPhase::Collapsing;
-    const bool showSidebar       = ! focus && _settings.showOutline &&
-                                   (rightState.mode == PaneDisplayMode::Docked || rightState.mode == PaneDisplayMode::HoverOverlay ||
-                                    rightState.phase == PaneAnimationPhase::Expanding || rightState.phase == PaneAnimationPhase::Collapsing);
+    const bool showSidebar       = ! focus && (rightState.mode == PaneDisplayMode::Docked || rightState.mode == PaneDisplayMode::HoverOverlay ||
+                                               rightState.phase == PaneAnimationPhase::Expanding || rightState.phase == PaneAnimationPhase::Collapsing);
     const bool sidebarWasVisible = _sidebar->IsVisible();
     if (showSidebar && ! sidebarWasVisible && ! PublishCurrentBlockLabelIfVisible(true))
         return;
@@ -1468,19 +2175,17 @@ void Application::ApplySidePaneOverlayBounds()
     const float side   = sx + 16.f;
     const float sRight = sx + 240.f;
     _outlineTitle->SetBounds(D2D1::RectF(side + 4.f, top + 16.f, sx + 84.f, top + 40.f));
-    _outlineCount->SetBounds(D2D1::RectF(sx + 88.f, top + 16.f, sRight - 76.f, top + 40.f));
+    _outlineCount->SetBounds(D2D1::RectF(sx + 88.f, top + 16.f, sRight - 44.f, top + 40.f));
     const bool rightDockedUi = rightState.mode == PaneDisplayMode::Docked && rightState.phase != PaneAnimationPhase::Collapsing;
     if (_pinOutline)
     {
-        _pinOutline->SetBounds(D2D1::RectF(sRight - 72.f, top + 14.f, sRight - 44.f, top + 42.f));
+        _pinOutline->SetBounds(D2D1::RectF(sRight - 40.f, top + 14.f, sRight - 12.f, top + 42.f));
         _pinOutline->SetText(rightDockedUi ? L"\xE840" : L"\xE718");
         _pinOutline->SetToggleState(rightDockedUi);
         const auto pinOutlineText = Resource(rightDockedUi ? IDS_UNPIN_OUTLINE : IDS_PIN_OUTLINE);
         _pinOutline->SetTooltipText(pinOutlineText);
         _pinOutline->SetAccessibleName(pinOutlineText);
     }
-    if (_closeOutline)
-        _closeOutline->SetBounds(D2D1::RectF(sRight - 40.f, top + 14.f, sRight - 12.f, top + 42.f));
     const float contextHeight = _equationContext ? 260.f : 128.f;
     const float outlineHeight = std::max(40.f, static_cast<float>(_outlineModel.rows.size()) * 42.f + 4.f);
     const float outlineBottom = std::min(top + 44.f + outlineHeight, std::max(top + 92.f, bottom - contextHeight));
@@ -1504,11 +2209,12 @@ void Application::ApplySidePaneOverlayBounds()
     _equation->SetBounds(D2D1::RectF(side, outlineBottom + 164.f, sRight - 16.f, bottom - 16.f));
 
     const bool leftOverlay   = leftState.autoCollapsed || leftState.phase == PaneAnimationPhase::Collapsing;
-    const bool showFiles     = ! focus && _settings.showFiles &&
-                               (leftState.mode == PaneDisplayMode::Docked || leftState.mode == PaneDisplayMode::HoverOverlay ||
-                                leftState.phase == PaneAnimationPhase::Expanding || leftState.phase == PaneAnimationPhase::Collapsing);
-    const bool showLeftRail  = ! focus && _settings.showFiles && (leftState.autoCollapsed || leftState.phase == PaneAnimationPhase::Collapsing);
-    const bool showRightRail = ! focus && _settings.showOutline && (rightState.autoCollapsed || rightState.phase == PaneAnimationPhase::Collapsing);
+    const bool showFiles     = ! focus && (leftState.mode == PaneDisplayMode::Docked || leftState.mode == PaneDisplayMode::HoverOverlay ||
+                                           leftState.phase == PaneAnimationPhase::Expanding || leftState.phase == PaneAnimationPhase::Collapsing);
+    const bool showLeftRail  = ! focus && (leftState.autoCollapsed || leftState.mode == PaneDisplayMode::CollapsedRail ||
+                                           leftState.mode == PaneDisplayMode::HoverOverlay || leftState.phase == PaneAnimationPhase::Collapsing);
+    const bool showRightRail = ! focus && (rightState.autoCollapsed || rightState.mode == PaneDisplayMode::CollapsedRail ||
+                                           rightState.mode == PaneDisplayMode::HoverOverlay || rightState.phase == PaneAnimationPhase::Collapsing);
     _leftRail->SetVisible(showLeftRail);
     _rightRail->SetVisible(showRightRail);
     _filesPane->SetVisible(showFiles);
@@ -1518,18 +2224,21 @@ void Application::ApplySidePaneOverlayBounds()
     _filesPane->kind         = leftOverlay ? Surface::Kind::DrawerLeft : Surface::Kind::Sidebar;
     _filesPane->borderRight  = true;
     _filesPane->SetBounds(D2D1::RectF(fxPane, top, fRight, bottom));
-    _filesSectionTitle->SetBounds(D2D1::RectF(fxPane + 20.f, top + 16.f, fRight - 76.f, top + 40.f));
+    _filesSectionTitle->SetBounds(D2D1::RectF(fxPane + 20.f, top + 16.f, std::max(fxPane + 72.f, fRight - 200.f), top + 40.f));
+    if (_filesAddFolder)
+        _filesAddFolder->SetBounds(D2D1::RectF(fRight - 196.f, top + 14.f, fRight - 122.f, top + 42.f));
+    if (_filesAddGitHub)
+        _filesAddGitHub->SetBounds(D2D1::RectF(fRight - 118.f, top + 14.f, fRight - 44.f, top + 42.f));
     const bool leftDockedUi = leftState.mode == PaneDisplayMode::Docked && leftState.phase != PaneAnimationPhase::Collapsing;
     if (_pinFiles)
     {
-        _pinFiles->SetBounds(D2D1::RectF(fRight - 72.f, top + 14.f, fRight - 44.f, top + 42.f));
+        _pinFiles->SetBounds(D2D1::RectF(fRight - 40.f, top + 14.f, fRight - 12.f, top + 42.f));
         _pinFiles->SetText(leftDockedUi ? L"\xE840" : L"\xE718");
         _pinFiles->SetToggleState(leftDockedUi);
         const auto pinFilesText = Resource(leftDockedUi ? IDS_UNPIN_FILES : IDS_PIN_FILES);
         _pinFiles->SetTooltipText(pinFilesText);
         _pinFiles->SetAccessibleName(pinFilesText);
     }
-    _closeFiles->SetBounds(D2D1::RectF(fRight - 40.f, top + 14.f, fRight - 12.f, top + 42.f));
     _filesRootIcon->SetBounds(D2D1::RectF(fxPane + 20.f, top + 52.f, fxPane + 36.f, top + 78.f));
     _filesTitle->SetBounds(D2D1::RectF(fxPane + 44.f, top + 52.f, fRight - 16.f, top + 78.f));
     _filesFilter->SetBounds(D2D1::RectF(fxPane + 20.f, top + 84.f, fRight - 12.f, top + 114.f));
@@ -1556,6 +2265,21 @@ void Application::ApplySidePaneOverlayBounds()
     const float footerTop = bottom - 8.f - _filesFooterMeasure.heightDip;
     _filesFooterDivider->SetBounds(D2D1::RectF(fxPane, footerTop - 8.f, fRight, footerTop - 7.f));
     _filesTree->SetBounds(D2D1::RectF(fxPane + 4.f, top + 122.f, fRight - 4.f, footerTop - 4.f));
+    const bool showEmptyActions =
+        showFiles && _settings.filesRoots.empty() && _connectedGitHubRepos.empty() && _filesModel.rows.empty() && (footerTop - (top + 122.f)) > 160.f;
+    if (_filesEmptyOpenFolder && _filesEmptyOpenGitHub)
+    {
+        _filesEmptyOpenFolder->SetVisible(showEmptyActions);
+        _filesEmptyOpenGitHub->SetVisible(showEmptyActions);
+        if (showEmptyActions)
+        {
+            const float btnW = std::max(140.f, filesWidth - 48.f);
+            const float bx   = fxPane + (filesWidth - btnW) * 0.5f;
+            const float by   = std::min(footerTop - 92.f, top + 210.f);
+            _filesEmptyOpenFolder->SetBounds(D2D1::RectF(bx, by, bx + btnW, by + 34.f));
+            _filesEmptyOpenGitHub->SetBounds(D2D1::RectF(bx, by + 42.f, bx + btnW, by + 76.f));
+        }
+    }
     _filesCount->SetBounds(D2D1::RectF(fxPane + 12.f, footerTop, fRight - 12.f, bottom - 8.f));
     _filesSplitter->SetVisible(! focus && _settings.showFiles && ! leftState.autoCollapsed && leftState.mode == PaneDisplayMode::Docked &&
                                leftState.phase == PaneAnimationPhase::Settled);
@@ -1591,7 +2315,6 @@ void Application::UpdateSplitHeaders()
 
 void Application::DismissHoverOverlays(bool animated)
 {
-    _explicitPaneRevealSide.reset();
     auto dismiss = [&](CollapsedPaneRail* rail)
     {
         if (! rail)
@@ -1609,6 +2332,8 @@ void Application::DismissHoverOverlays(bool animated)
     dismiss(_leftRail);
     dismiss(_rightRail);
     ApplySidePaneOverlayBounds();
+    if (! _settings.showFiles && ! IsPaneOverlayActive(PaneSide::Left) && _folderFiles.IsActive())
+        RefreshFiles();
 }
 
 bool Application::IsPaneOverlayActive(PaneSide side) const noexcept
@@ -1627,7 +2352,8 @@ void Application::UpdateHoverOverlayPointer(D2D1_POINT_2F clientDip, bool inside
     _lastPointerClientDip = clientDip;
     _pointerInsideClient  = insideWindow;
     if (HasBlockDraft() || HasActiveModalPrompt() || _activeOverlay == OverlayKind::RecoveryModal || _activeOverlay == OverlayKind::SettingsDrawer ||
-        _activeOverlay == OverlayKind::BlockDraftModal || _printPreview != nullptr)
+        _activeOverlay == OverlayKind::BlockDraftModal || _activeOverlay == OverlayKind::SaveConfirmModal || _activeOverlay == OverlayKind::RenameFileModal ||
+        _activeOverlay == OverlayKind::FileConflictModal || _activeOverlay == OverlayKind::OpenGitHubModal || _printPreview != nullptr)
     {
         if (_leftRail)
             _leftRail->CancelHoverDwell();
@@ -1637,26 +2363,21 @@ void Application::UpdateHoverOverlayPointer(D2D1_POINT_2F clientDip, bool inside
     }
     const auto contains = [](const D2D1_RECT_F& rect, D2D1_POINT_2F point) noexcept
     { return point.x >= rect.left && point.x < rect.right && point.y >= rect.top && point.y < rect.bottom; };
-    auto update = [&](CollapsedPaneRail* rail, Surface* pane, PaneSide side)
+    auto update = [&](CollapsedPaneRail* rail, Surface* pane)
     {
         if (! rail || ! rail->IsVisible() || ! pane)
             return;
         const bool overlayOpen = rail->State().mode == PaneDisplayMode::HoverOverlay;
         const bool focusInside = overlayOpen && pane->IsVisible() && ContainsControl(pane, _host.GetFocusControl());
+        const bool menuOpen    = rail == _leftRail && _filesContextMenuOpen;
         const bool pointerInside =
             insideWindow && (contains(rail->GetBounds(), clientDip) ||
                              (pane->IsVisible() && (rail->State().autoCollapsed || rail->State().phase == PaneAnimationPhase::Collapsing) &&
                               contains(pane->GetBounds(), clientDip)));
-        if (_explicitPaneRevealSide == side)
-        {
-            if (rail->State().phase == PaneAnimationPhase::Collapsing && rail->State().collapseFromOverlay && pointerInside)
-                rail->StartExpand(_host, true);
-            return;
-        }
-        rail->HandlePointerMoveDip(_host, clientDip, pointerInside || focusInside);
+        rail->HandlePointerMoveDip(_host, clientDip, pointerInside || focusInside || menuOpen);
     };
-    update(_leftRail, _filesPane, PaneSide::Left);
-    update(_rightRail, _sidebar, PaneSide::Right);
+    update(_leftRail, _filesPane);
+    update(_rightRail, _sidebar);
 }
 
 void Application::OnRailDotActivated(PaneSide side, std::size_t itemIndex)
@@ -1700,24 +2421,21 @@ void Application::OnRailDotActivated(PaneSide side, std::size_t itemIndex)
     }
 }
 
-void Application::OnRailExpandClicked(PaneSide side)
+void Application::RevealPaneOverlay(PaneSide side)
 {
     auto* const rail = side == PaneSide::Left ? _leftRail : _rightRail;
     auto* const peer = side == PaneSide::Left ? _rightRail : _leftRail;
-    if (! rail || ! rail->IsVisible())
+    if (! rail || ! rail->IsVisible() || rail->State().mode == PaneDisplayMode::Docked || _settings.focusMode)
         return;
     if (peer && (peer->State().mode == PaneDisplayMode::HoverOverlay || peer->State().phase == PaneAnimationPhase::Expanding))
+    {
         peer->StartCollapse(_host, true);
-    if (rail->State().mode == PaneDisplayMode::HoverOverlay && rail->State().phase != PaneAnimationPhase::Collapsing && _explicitPaneRevealSide == side)
-    {
-        _explicitPaneRevealSide.reset();
-        rail->StartCollapse(_host, true);
+        if (side == PaneSide::Right && ! _settings.showFiles && _folderFiles.IsActive())
+            RefreshFiles();
     }
-    else
-    {
-        _explicitPaneRevealSide = side;
-        rail->StartExpand(_host, true);
-    }
+    rail->StartExpand(_host, true);
+    if (side == PaneSide::Left && ! _settings.showFiles && (! _settings.filesRoots.empty() || ! _connectedGitHubRepos.empty()))
+        RefreshFiles(false);
     ApplySidePaneOverlayBounds();
 }
 } // namespace RedTilde

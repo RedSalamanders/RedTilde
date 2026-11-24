@@ -166,6 +166,7 @@ public:
     void Paint(DxUi::ControlHost& host) const override;
     bool Tick(DxUi::ControlHost& host, uint64_t nowTickMs) override;
     bool OnMouseMove(DxUi::ControlHost& host, D2D1_POINT_2F point, UINT modifiers) override;
+    bool OnMouseDown(DxUi::ControlHost& host, D2D1_POINT_2F point, bool rightButton, UINT modifiers) override;
     bool OnMouseLeave(DxUi::ControlHost& host) override;
     bool OnMouseWheel(DxUi::ControlHost& host, D2D1_POINT_2F point, float wheelDelta, UINT modifiers) override;
     void OnHidden() noexcept override;
@@ -190,6 +191,8 @@ private:
     std::size_t _scrollOffset{};
     std::size_t _visibleDotCount{};
     std::size_t _overflowCount{};
+    float _dotsTopDip{DotsStartOffsetDip};
+    float _dotsBottomDip{DotsStartOffsetDip};
     PaneSide _side{PaneSide::Right};
     int _wheelRemainder{};
 };

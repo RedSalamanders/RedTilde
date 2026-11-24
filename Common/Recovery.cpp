@@ -6,20 +6,27 @@
 #include <array>
 #include <charconv>
 #include <combaseapi.h>
+#include <cstdlib>
 #include <format>
 #include <map>
 #include <mutex>
 #include <span>
 #include <stdexcept>
 #include <wil/resource.h>
+#include <yyjson.h>
 
 namespace RedTilde
 {
 namespace
 {
 constexpr std::string_view Magic            = "RedTilde.Recovery/1\n";
+constexpr std::string_view MagicV2          = "RedTilde.Recovery/2\n";
 constexpr std::size_t MaximumCandidates     = 64;
 constexpr std::size_t MaximumScannedEntries = 512;
+constexpr std::size_t MaximumMetadataBytes  = 64u * 1024u;
+using unique_yyjson_doc                     = wil::unique_any<yyjson_doc*, decltype(&yyjson_doc_free), yyjson_doc_free>;
+using unique_yyjson_mut_doc                 = wil::unique_any<yyjson_mut_doc*, decltype(&yyjson_mut_doc_free), yyjson_mut_doc_free>;
+using unique_yyjson_text                    = wil::unique_any<char*, decltype(&::free), ::free>;
 HRESULT CreateRecoveryId(std::wstring& id)
 {
     GUID guid{};
@@ -43,8 +50,19 @@ bool ValidSnapshot(const RecoverySnapshot& value) noexcept
         ! DxUi::RichText::IsValidUtf16(value.originalPath.native()) || (! value.originalPath.empty() && ! value.originalPath.is_absolute()) ||
         value.selection.anchor > value.text.size() || value.selection.caret > value.text.size())
         return false;
+    const auto validOriginField = [](std::wstring_view field, std::size_t maxLen) noexcept
+    { return field.size() <= maxLen && DxUi::RichText::IsValidUtf16(field); };
+    if (! validOriginField(value.origin.owner, 128) || ! validOriginField(value.origin.repo, 128) || ! validOriginField(value.origin.branch, 256) ||
+        ! validOriginField(value.origin.relativePath, 1024) || ! validOriginField(value.origin.blobSha, 128) || ! validOriginField(value.origin.htmlUrl, 1024))
+        return false;
     const auto boundary = [&](std::size_t at) { return at == 0 || at == value.text.size() || value.text[at] < 0xDC00 || value.text[at] > 0xDFFF; };
     return boundary(value.selection.anchor) && boundary(value.selection.caret);
+}
+bool NeedsV2Envelope(const RecoverySnapshot& snapshot) noexcept
+{
+    return snapshot.kind != RecoverySnapshotKind::CrashRecovery || snapshot.workspaceOrder != 0u || snapshot.wasActive ||
+           snapshot.savedBaselineStamp.has_value() || snapshot.origin.kind != DocumentOriginInfo::Kind::Local || ! snapshot.origin.owner.empty() ||
+           ! snapshot.origin.repo.empty() || ! snapshot.origin.relativePath.empty();
 }
 std::filesystem::path SnapshotPath(const std::filesystem::path& root, std::wstring_view id)
 {
@@ -169,10 +187,94 @@ try
     if (DxUi::RichText::TryEncodeUtf8(snapshot.originalPath.native(), path) != DxUi::RichText::SourceResult::Success ||
         DxUi::RichText::TryEncodeUtf8(snapshot.text, text) != DxUi::RichText::SourceResult::Success)
         return HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION);
-    const auto payload  = path + text;
-    const auto metadata = std::format(
-        "{} {} {} {} {} {}", path.size(), text.size(), snapshot.bom ? 1 : 0, snapshot.selection.anchor, snapshot.selection.caret, snapshot.generation);
-    auto staged = std::string(Magic) + metadata + std::format(" {}\n", ContentHash(metadata + "\n" + payload)) + payload;
+    if (! NeedsV2Envelope(snapshot))
+    {
+        const auto payload  = path + text;
+        const auto metadata = std::format(
+            "{} {} {} {} {} {}", path.size(), text.size(), snapshot.bom ? 1 : 0, snapshot.selection.anchor, snapshot.selection.caret, snapshot.generation);
+        auto staged = std::string(Magic) + metadata + std::format(" {}\n", ContentHash(metadata + "\n" + payload)) + payload;
+        output.swap(staged);
+        return S_OK;
+    }
+
+    const unique_yyjson_mut_doc doc(yyjson_mut_doc_new(nullptr));
+    if (! doc)
+        DxUi::Failure::FailAllocation();
+    auto* const root = yyjson_mut_obj(doc.get());
+    if (! root)
+        DxUi::Failure::FailAllocation();
+    yyjson_mut_doc_set_root(doc.get(), root);
+
+    const auto checkedAddVal = [&](yyjson_mut_val* parent, const char* key, yyjson_mut_val* val) noexcept
+    {
+        auto* const keyVal = yyjson_mut_strcpy(doc.get(), key);
+        if (! keyVal || ! val || ! yyjson_mut_obj_put(parent, keyVal, val))
+            DxUi::Failure::FailAllocation();
+    };
+    const auto putStr = [&](yyjson_mut_val* parent, const char* key, std::string_view val) noexcept
+    { checkedAddVal(parent, key, yyjson_mut_strncpy(doc.get(), val.data(), val.size())); };
+    const auto putWide = [&](yyjson_mut_val* parent, const char* key, std::wstring_view wide)
+    {
+        std::string utf8;
+        if (DxUi::RichText::TryEncodeUtf8(wide, utf8) != DxUi::RichText::SourceResult::Success)
+            return false;
+        putStr(parent, key, utf8);
+        return true;
+    };
+
+    checkedAddVal(root, "kind", yyjson_mut_uint(doc.get(), static_cast<std::uint64_t>(snapshot.kind)));
+    checkedAddVal(root, "order", yyjson_mut_uint(doc.get(), snapshot.workspaceOrder));
+    checkedAddVal(root, "active", yyjson_mut_bool(doc.get(), snapshot.wasActive));
+    checkedAddVal(root, "bom", yyjson_mut_bool(doc.get(), snapshot.bom));
+    checkedAddVal(root, "anchor", yyjson_mut_uint(doc.get(), snapshot.selection.anchor));
+    checkedAddVal(root, "caret", yyjson_mut_uint(doc.get(), snapshot.selection.caret));
+    checkedAddVal(root, "generation", yyjson_mut_uint(doc.get(), snapshot.generation));
+    putStr(root, "path", path);
+
+    if (snapshot.savedBaselineStamp)
+    {
+        auto* const stampObj = yyjson_mut_obj(doc.get());
+        if (! stampObj)
+            DxUi::Failure::FailAllocation();
+        const auto& s = snapshot.savedBaselineStamp.value();
+        checkedAddVal(stampObj, "exists", yyjson_mut_bool(doc.get(), s.exists));
+        checkedAddVal(stampObj, "size", yyjson_mut_uint(doc.get(), s.size));
+        checkedAddVal(stampObj, "modified", yyjson_mut_uint(doc.get(), s.modified));
+        checkedAddVal(stampObj, "hash", yyjson_mut_uint(doc.get(), s.hash));
+        checkedAddVal(stampObj, "volume", yyjson_mut_uint(doc.get(), s.volume));
+        checkedAddVal(stampObj, "fileIndex", yyjson_mut_uint(doc.get(), s.fileIndex));
+        checkedAddVal(stampObj, "fileIndexHigh", yyjson_mut_uint(doc.get(), s.fileIndexHigh));
+        checkedAddVal(root, "stamp", stampObj);
+    }
+    if (snapshot.origin.kind != DocumentOriginInfo::Kind::Local)
+    {
+        auto* const originObj = yyjson_mut_obj(doc.get());
+        if (! originObj)
+            DxUi::Failure::FailAllocation();
+        checkedAddVal(originObj, "kind", yyjson_mut_uint(doc.get(), static_cast<std::uint64_t>(snapshot.origin.kind)));
+        if (! putWide(originObj, "owner", snapshot.origin.owner) || ! putWide(originObj, "repo", snapshot.origin.repo) ||
+            ! putWide(originObj, "branch", snapshot.origin.branch) || ! putWide(originObj, "relativePath", snapshot.origin.relativePath) ||
+            ! putWide(originObj, "blobSha", snapshot.origin.blobSha) || ! putWide(originObj, "htmlUrl", snapshot.origin.htmlUrl))
+            return HRESULT_FROM_WIN32(ERROR_NO_UNICODE_TRANSLATION);
+        checkedAddVal(root, "origin", originObj);
+    }
+
+    std::size_t metaLen{};
+    yyjson_write_err writeErr{};
+    const unique_yyjson_text metaText(yyjson_mut_write_opts(doc.get(), 0, nullptr, &metaLen, &writeErr));
+    if (! metaText)
+    {
+        if (writeErr.code == YYJSON_WRITE_ERROR_MEMORY_ALLOCATION)
+            DxUi::Failure::FailAllocation();
+        return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+    }
+    if (metaLen > MaximumMetadataBytes)
+        return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
+
+    std::string metaView(metaText.get(), metaLen);
+    const auto payload = metaView + text;
+    const auto header  = std::format("{} {}", metaView.size(), text.size());
+    auto staged        = std::string(MagicV2) + header + std::format(" {}\n", ContentHash(header + "\n" + payload)) + payload;
     output.swap(staged);
     return S_OK;
 }
@@ -188,9 +290,11 @@ catch (const std::exception&)
 HRESULT ParseRecovery(std::string_view bytes, RecoverySnapshot& snapshot) noexcept
 try
 {
-    if (! bytes.starts_with(Magic))
+    const bool isV1 = bytes.starts_with(Magic);
+    const bool isV2 = ! isV1 && bytes.starts_with(MagicV2);
+    if (! isV1 && ! isV2)
         return HRESULT_FROM_WIN32(ERROR_REVISION_MISMATCH);
-    bytes.remove_prefix(Magic.size());
+    bytes.remove_prefix(isV1 ? Magic.size() : MagicV2.size());
     const auto end = bytes.find('\n');
     if (end == bytes.npos || end > 200)
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
@@ -199,31 +303,140 @@ try
     if (checksumAt == header.npos)
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
     const auto metadata = header.substr(0, checksumAt);
-    std::array<std::uint64_t, 7> values{};
-    for (std::size_t index = 0; index < values.size(); ++index)
+    const auto payload  = bytes.substr(end + 1);
+
+    if (isV1)
     {
-        const auto last = index + 1 == values.size() ? header.size() : header.find(' ');
+        std::array<std::uint64_t, 7> values{};
+        for (std::size_t index = 0; index < values.size(); ++index)
+        {
+            const auto last = index + 1 == values.size() ? header.size() : header.find(' ');
+            if (last == header.npos)
+                return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+            const auto parsed = std::from_chars(header.data(), header.data() + last, values[index]);
+            if (parsed.ec != std::errc{} || parsed.ptr != header.data() + last)
+                return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+            header.remove_prefix(last + (index + 1 == values.size() ? 0 : 1));
+        }
+        if (values[0] > 4096 || values[1] > 4 * 65536 || values[0] + values[1] != payload.size() || values[2] > 1 || values[3] > 65536 || values[4] > 65536 ||
+            ContentHash(std::string(metadata) + "\n" + std::string(payload)) != values[6])
+            return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+        RecoverySnapshot staged;
+        std::wstring path;
+        if (DxUi::RichText::TryDecodeUtf8(payload.substr(0, static_cast<std::size_t>(values[0])), path) != DxUi::RichText::SourceResult::Success ||
+            DxUi::RichText::TryDecodeUtf8(payload.substr(static_cast<std::size_t>(values[0])), staged.text) != DxUi::RichText::SourceResult::Success)
+            return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+        staged.originalPath = std::move(path);
+        staged.bom          = values[2] != 0;
+        staged.selection    = {static_cast<std::size_t>(values[3]), static_cast<std::size_t>(values[4])};
+        staged.generation   = values[5];
+        if (! ValidSnapshot(staged))
+            return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+        snapshot = std::move(staged);
+        return S_OK;
+    }
+
+    std::array<std::uint64_t, 3> v2Header{};
+    for (std::size_t index = 0; index < v2Header.size(); ++index)
+    {
+        const auto last = index + 1 == v2Header.size() ? header.size() : header.find(' ');
         if (last == header.npos)
             return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
-        const auto parsed = std::from_chars(header.data(), header.data() + last, values[index]);
+        const auto parsed = std::from_chars(header.data(), header.data() + last, v2Header[index]);
         if (parsed.ec != std::errc{} || parsed.ptr != header.data() + last)
             return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
-        header.remove_prefix(last + (index + 1 == values.size() ? 0 : 1));
+        header.remove_prefix(last + (index + 1 == v2Header.size() ? 0 : 1));
     }
-    const auto payload = bytes.substr(end + 1);
-    if (values[0] > 4096 || values[1] > 4 * 65536 || values[0] + values[1] != payload.size() || values[2] > 1 || values[3] > 65536 || values[4] > 65536 ||
-        ContentHash(std::string(metadata) + "\n" + std::string(payload)) != values[6])
+    if (v2Header[0] > MaximumMetadataBytes || v2Header[1] > 4u * 65536u || v2Header[0] + v2Header[1] != payload.size() ||
+        ContentHash(std::string(metadata) + "\n" + std::string(payload)) != v2Header[2])
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+
+    const auto metaSlice = payload.substr(0, static_cast<std::size_t>(v2Header[0]));
+    const auto textSlice = payload.substr(static_cast<std::size_t>(v2Header[0]));
+    yyjson_read_err readErr{};
+    const unique_yyjson_doc jsonDoc(yyjson_read_opts(const_cast<char*>(metaSlice.data()), metaSlice.size(), 0, nullptr, &readErr));
+    if (! jsonDoc)
+    {
+        if (readErr.code == YYJSON_READ_ERROR_MEMORY_ALLOCATION)
+            DxUi::Failure::FailAllocation();
+        return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+    }
+    auto* const root = yyjson_doc_get_root(jsonDoc.get());
+    if (! root || ! yyjson_is_obj(root))
+        return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+
     RecoverySnapshot staged;
+    auto* const kindVal = yyjson_obj_get(root, "kind");
+    if (! kindVal || ! yyjson_is_uint(kindVal) || yyjson_get_uint(kindVal) > 1u)
+        return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+    staged.kind = static_cast<RecoverySnapshotKind>(yyjson_get_uint(kindVal));
+
+    if (auto* const orderVal = yyjson_obj_get(root, "order"); orderVal && yyjson_is_uint(orderVal) && yyjson_get_uint(orderVal) <= 1024u)
+        staged.workspaceOrder = static_cast<std::uint32_t>(yyjson_get_uint(orderVal));
+    if (auto* const activeVal = yyjson_obj_get(root, "active"); activeVal && yyjson_is_bool(activeVal))
+        staged.wasActive = yyjson_get_bool(activeVal);
+    if (auto* const bomVal = yyjson_obj_get(root, "bom"); bomVal && yyjson_is_bool(bomVal))
+        staged.bom = yyjson_get_bool(bomVal);
+    if (auto* const genVal = yyjson_obj_get(root, "generation"); genVal && yyjson_is_uint(genVal))
+        staged.generation = yyjson_get_uint(genVal);
+    auto* const anchorVal = yyjson_obj_get(root, "anchor");
+    auto* const caretVal  = yyjson_obj_get(root, "caret");
+    if (! anchorVal || ! caretVal || ! yyjson_is_uint(anchorVal) || ! yyjson_is_uint(caretVal) || yyjson_get_uint(anchorVal) > 65536u ||
+        yyjson_get_uint(caretVal) > 65536u)
+        return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+    staged.selection = {static_cast<std::size_t>(yyjson_get_uint(anchorVal)), static_cast<std::size_t>(yyjson_get_uint(caretVal))};
+
+    const auto decodeField = [](yyjson_val* obj, const char* key, std::wstring& out) -> bool
+    {
+        auto* const val = yyjson_obj_get(obj, key);
+        if (! val)
+            return true;
+        if (! yyjson_is_str(val))
+            return false;
+        const std::string_view slice(yyjson_get_str(val), yyjson_get_len(val));
+        return DxUi::RichText::TryDecodeUtf8(slice, out) == DxUi::RichText::SourceResult::Success;
+    };
     std::wstring path;
-    if (DxUi::RichText::TryDecodeUtf8(payload.substr(0, static_cast<std::size_t>(values[0])), path) != DxUi::RichText::SourceResult::Success ||
-        DxUi::RichText::TryDecodeUtf8(payload.substr(static_cast<std::size_t>(values[0])), staged.text) != DxUi::RichText::SourceResult::Success)
+    if (! decodeField(root, "path", path))
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
     staged.originalPath = std::move(path);
-    staged.bom          = values[2] != 0;
-    staged.selection    = {static_cast<std::size_t>(values[3]), static_cast<std::size_t>(values[4])};
-    staged.generation   = values[5];
-    if (! ValidSnapshot(staged))
+
+    if (auto* const stampObj = yyjson_obj_get(root, "stamp"))
+    {
+        if (! yyjson_is_obj(stampObj))
+            return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+        FileStamp s;
+        if (auto* const v = yyjson_obj_get(stampObj, "exists"); v && yyjson_is_bool(v))
+            s.exists = yyjson_get_bool(v);
+        if (auto* const v = yyjson_obj_get(stampObj, "size"); v && yyjson_is_uint(v))
+            s.size = yyjson_get_uint(v);
+        if (auto* const v = yyjson_obj_get(stampObj, "modified"); v && yyjson_is_uint(v))
+            s.modified = yyjson_get_uint(v);
+        if (auto* const v = yyjson_obj_get(stampObj, "hash"); v && yyjson_is_uint(v))
+            s.hash = yyjson_get_uint(v);
+        if (auto* const v = yyjson_obj_get(stampObj, "volume"); v && yyjson_is_uint(v))
+            s.volume = yyjson_get_uint(v);
+        if (auto* const v = yyjson_obj_get(stampObj, "fileIndex"); v && yyjson_is_uint(v))
+            s.fileIndex = yyjson_get_uint(v);
+        if (auto* const v = yyjson_obj_get(stampObj, "fileIndexHigh"); v && yyjson_is_uint(v))
+            s.fileIndexHigh = yyjson_get_uint(v);
+        staged.savedBaselineStamp = s;
+    }
+    if (auto* const originObj = yyjson_obj_get(root, "origin"))
+    {
+        if (! yyjson_is_obj(originObj))
+            return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+        auto* const okVal = yyjson_obj_get(originObj, "kind");
+        if (! okVal || ! yyjson_is_uint(okVal) || yyjson_get_uint(okVal) > 1u)
+            return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+        staged.origin.kind = static_cast<DocumentOriginInfo::Kind>(yyjson_get_uint(okVal));
+        if (! decodeField(originObj, "owner", staged.origin.owner) || ! decodeField(originObj, "repo", staged.origin.repo) ||
+            ! decodeField(originObj, "branch", staged.origin.branch) || ! decodeField(originObj, "relativePath", staged.origin.relativePath) ||
+            ! decodeField(originObj, "blobSha", staged.origin.blobSha) || ! decodeField(originObj, "htmlUrl", staged.origin.htmlUrl))
+            return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
+    }
+
+    if (DxUi::RichText::TryDecodeUtf8(textSlice, staged.text) != DxUi::RichText::SourceResult::Success || ! ValidSnapshot(staged))
         return HRESULT_FROM_WIN32(ERROR_INVALID_DATA);
     snapshot = std::move(staged);
     return S_OK;

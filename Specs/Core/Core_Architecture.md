@@ -18,6 +18,7 @@ repository and executable. It must launch and test without RedXe, RedPrism or Re
 | Image file notifications | Shared directory-notification machinery in `Common/Files.*`, one process-counted worker, at most 32 files/eight local directories, coalesced owner notification |
 | Mathematics | DxUi source-backed inline/display objects and read-only inspector, native cached glyphs/lines, explicit diagnostics |
 | Files navigation | Application-owned bounded directory enumeration/watch worker, cancellation and stale-result identity; the UI opens files through the normal file-safety path |
+| Spelling & proofing | Abstract `ISpellProvider` (`Common/SpellProvider.h`), read-only `<spellcheck.h>` STA provider (`Common/WinSpellProvider.*`), `Common/CustomDictionary.*`, `Common/ProseExtractor.*`, lazy event-driven STA `SpellService` (`ProcessWorkLease`, `WorkerPhase`, 128-entry LRU suggestion cache, `SpellRequestKey` cancellation), and `RedTilde/Application.Spelling.cpp` |
 | Harness | Hidden window, direct control commands, render capture and immutable scenario/build receipts |
 
 ### Explicit application and worker state machines
@@ -28,8 +29,8 @@ Application lifecycle, file transactions, overlays, caches, and background worke
 - **Application lifecycle (`Application::LifecyclePhase`)**: `Uninitialized`, `Initializing`, `Active`, `ClosingAfterSave`,
   `DrainingForClose`, `SessionEnding`, and `Destroyed`, transitioned via `TransitionLifecycle(LifecyclePhase)` and checked
   through `CanAcceptCommand()`, `IsUiAttached()`, and `AreShutdownWorkersSettled()` (`!preferenceWriter.Busy() &&
-  recovery.Finished() && !bitmapWriter.Busy()`). `DispatchUiMessage()` rechecks `AreShutdownWorkersSettled()` so
-  settlement waits for all three services without spurious `PreferencesReady` churn.
+  recovery.Finished() && !bitmapWriter.Busy() && spellService.Finished() && !fileOps.Busy() && !github.Busy()`).
+  `DispatchUiMessage()` rechecks `AreShutdownWorkersSettled()` so settlement waits for all background services without spurious `PreferencesReady` churn.
 - **File transactions & modal prompts**: `ActiveFileTransaction` (`std::variant<std::monostate, StartupOpenTx,
   PickerOpenTx, FilesPaneOpenTx, HeldOpenTx, SaveTx, ConflictReloadTx>`) binds each in-flight open, held open, save,
   or conflict reload to its exact source snapshot and approvals so failure or close resets atomically to
@@ -37,10 +38,16 @@ Application lifecycle, file transactions, overlays, caches, and background worke
   prompts. `StartupRestoreState` (`Disabled`, `WaitingForRecovery`, `OpeningLastDocument`, `Completed`) bounds startup
   restoration state.
 - **Exclusive overlays & deferred placement**: `OverlayKind` (`None`, `FloatingSelectionTools`, `FindBar`,
-  `SettingsDrawer`, `BlockDraftModal`, `RecoveryModal`) governed by `SetActiveOverlay(OverlayKind)` enforces mutual
-  exclusion across all five floating surfaces alongside `std::optional<BlockDraftSession>`. Deferred selection-tools and
+  `SettingsDrawer`, `BlockDraftModal`, `RecoveryModal`, `SaveConfirmModal`, `RenameFileModal`, `FileConflictModal`,
+  `OpenGitHubModal`) governed by `SetActiveOverlay(OverlayKind)` enforces mutual exclusion across all floating surfaces
+  alongside `Surface::Kind::ModalBackdrop` and `std::optional<BlockDraftSession>`. Deferred selection-tools and
   draft geometry resolution post `PostPreparePlacement` (`ReconcilePostPreparePlacement()`) out of `WM_PAINT` so painting
   never mutates control visibility or triggers re-layout.
+- **On-demand GitHub transport & credential storage**: `GitHubService` (`IGitHubTransport` + redirect-disabled TLS
+  `WinHttpGitHubTransport`, `ICredentialStore` backed by Windows Credential Manager target `RedTilde/GitHub/api.github.com`)
+  issues zero network calls at startup or automatically for `gh` CLI; all OAuth Device Flow (`timer`-polled), PAT,
+  explicit `gh auth token` opt-in, repository tree queries, and raw Markdown blob fetches happen solely on explicit user
+  action (`Settings → Accounts` or `Ctrl+Shift+G` Open GitHub modal).
 - **Workspace session, Find, outline & reentrant publications**: `DocumentSessionMetadata` and `DerivedDocumentCaches`
   bundle per-document metadata and derived caches so `SwitchWorkspaceDocument()` swaps metadata atomically alongside
   `ExchangeDocumentState()` before reentrant UI callbacks. `OutlinePreviewBaseline` preserves committed outline collapse
@@ -68,6 +75,7 @@ Application lifecycle, file transactions, overlays, caches, and background worke
   - `RichImageLoader::State::WorkerPhase`: `Idle`, `Active`, `Closing`, `Stopped`.
   - `Application::ExternalLinkState::Phase`: `Idle`, `LaunchingSta`, `CompletedPendingDrain`, `Closed`.
   - `EditDiagnostics::SelectionPhase`: `Disarmed`, `Armed`, `InInvocation`, `InComponent`, `Invalid`.
+  - `SpellService::WorkerPhase`: `Idle`, `Initializing`, `Checking`, `Closing`, `Stopped` (lazy-launched only when enabled non-empty prose requires checking, draining via `SpellReady` on close without UI-thread joins).
   - `PrintPreview` `_pendingAction` (`std::optional<Action>`, where `Action::Close` overrides pending `Action::Print`
     without queuing a duplicate submission).
 

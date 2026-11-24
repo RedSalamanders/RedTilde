@@ -233,6 +233,95 @@ const char* PanePinModeName(PanePinMode mode) noexcept
     return "auto";
 }
 
+SpellEngine ParseSpellEngineName(std::string_view name) noexcept
+{
+    if (name == "windows")
+        return SpellEngine::Windows;
+    return SpellEngine::Auto;
+}
+
+const char* SpellEngineName(SpellEngine engine) noexcept
+{
+    switch (engine)
+    {
+        case SpellEngine::Windows: return "windows";
+        case SpellEngine::Auto: break;
+    }
+    return "auto";
+}
+
+ExitUnsavedBehavior ParseExitUnsavedBehavior(std::string_view name) noexcept
+{
+    if (name == "keepAndResume")
+        return ExitUnsavedBehavior::KeepAndResume;
+    return ExitUnsavedBehavior::Prompt;
+}
+
+const char* ExitUnsavedBehaviorName(ExitUnsavedBehavior behavior) noexcept
+{
+    switch (behavior)
+    {
+        case ExitUnsavedBehavior::KeepAndResume: return "keepAndResume";
+        case ExitUnsavedBehavior::Prompt: break;
+    }
+    return "prompt";
+}
+
+bool ContainsWideControlOrSlash(std::wstring_view text) noexcept
+{
+    return std::ranges::any_of(text, [](wchar_t ch) { return ch < L' ' || ch == 0x7Fu || ch == L'\\' || ch == L'/'; });
+}
+
+void AppendUniqueFilesRoot(std::vector<std::filesystem::path>& roots, std::filesystem::path candidate)
+{
+    if (roots.size() >= MaximumFilesRoots || candidate.empty() || ! ValidPreferencePath(candidate))
+        return;
+    candidate = candidate.lexically_normal();
+    const bool dup =
+        std::ranges::any_of(roots, [&](const std::filesystem::path& existing) { return EqualOrdinalIgnoreCase(existing.native(), candidate.native()); });
+    if (! dup)
+        roots.push_back(std::move(candidate));
+}
+
+bool ContainsAsciiControl(std::string_view text) noexcept
+{
+    for (const char ch : text)
+    {
+        const auto uch = static_cast<unsigned char>(ch);
+        if (uch < 0x20u || uch == 0x7Fu)
+            return true;
+    }
+    return false;
+}
+
+bool ValidLanguageTagUtf8(std::string_view tag, std::wstring& outWide)
+{
+    outWide.clear();
+    if (tag.empty() || tag.size() > 32u || ContainsAsciiControl(tag))
+        return false;
+    if (tag == "auto")
+    {
+        outWide = L"auto";
+        return true;
+    }
+    bool hasAlpha = false;
+    for (const char ch : tag)
+    {
+        const bool isAlpha = (ch >= 'A' && ch <= 'Z') || (ch >= 'a' && ch <= 'z');
+        const bool isDigit = (ch >= '0' && ch <= '9');
+        if (isAlpha)
+            hasAlpha = true;
+        else if (! isDigit && ch != '-')
+            return false;
+    }
+    if (! hasAlpha || tag.front() == '-' || tag.back() == '-')
+        return false;
+    outWide.reserve(tag.size());
+    for (const char ch : tag)
+        outWide.push_back(static_cast<wchar_t>(ch));
+    return true;
+}
+
 yyjson_mut_val* CheckedAlloc(yyjson_mut_val* value) noexcept
 {
     if (! value)
@@ -267,6 +356,38 @@ void PutObjectUint(yyjson_mut_doc* doc, yyjson_mut_val* obj, const char* key, st
     PutObjectValue(doc, obj, key, yyjson_mut_uint(doc, value));
 }
 } // namespace
+
+bool IsValidGitHubTokenSegment(std::wstring_view segment, std::size_t maximumLength) noexcept
+{
+    if (segment.empty() || segment.size() > maximumLength || ! DxUi::RichText::IsValidUtf16(segment) || segment == L"." || segment == L"..")
+        return false;
+    for (const wchar_t ch : segment)
+    {
+        const bool ok = (ch >= L'A' && ch <= L'Z') || (ch >= L'a' && ch <= L'z') || (ch >= L'0' && ch <= L'9') || ch == L'-' || ch == L'_' || ch == L'.';
+        if (! ok)
+            return false;
+    }
+    return true;
+}
+
+bool IsValidLanguageTag(std::wstring_view tag) noexcept
+{
+    if (tag.empty() || tag.size() > 32u)
+        return false;
+    if (tag == L"auto")
+        return true;
+    bool hasAlpha = false;
+    for (const wchar_t ch : tag)
+    {
+        const bool isAlpha = (ch >= L'A' && ch <= L'Z') || (ch >= L'a' && ch <= L'z');
+        const bool isDigit = (ch >= L'0' && ch <= L'9');
+        if (isAlpha)
+            hasAlpha = true;
+        else if (! isDigit && ch != L'-')
+            return false;
+    }
+    return hasAlpha && tag.front() != L'-' && tag.back() != L'-';
+}
 
 std::wstring_view SettingsFileName(bool debugBuild) noexcept
 {
@@ -376,6 +497,8 @@ Settings ParseLegacySettings(std::string_view bytes)
         if (ValidWindowPlacement(placement))
             settings.windowPlacement = placement;
     }
+    if (! settings.filesRoot.empty())
+        AppendUniqueFilesRoot(settings.filesRoots, settings.filesRoot);
     // Focus mode is intentionally session-local, so restart never hides commands.
     return settings;
 }
@@ -417,6 +540,63 @@ try
     ReadJsonBool(root, "showOutline", parsed.showOutline);
     ReadJsonBool(root, "showFiles", parsed.showFiles);
     ReadJsonPath(root, "filesRoot", parsed.filesRoot);
+    if (yyjson_val* rootsArray = yyjson_obj_get(root, "filesRoots"); rootsArray && yyjson_is_arr(rootsArray))
+    {
+        std::size_t idx{}, maxIdx{};
+        yyjson_val* item{};
+        yyjson_arr_foreach(rootsArray, idx, maxIdx, item)
+        {
+            if (! item || ! yyjson_is_str(item))
+                continue;
+            const std::string_view utf8(yyjson_get_str(item), yyjson_get_len(item));
+            if (utf8.empty() || utf8.size() > 3u * 32767u)
+                continue;
+            std::wstring decoded;
+            if (DxUi::RichText::TryDecodeUtf8(utf8, decoded) == DxUi::RichText::SourceResult::Success)
+                AppendUniqueFilesRoot(parsed.filesRoots, std::filesystem::path(std::move(decoded)));
+        }
+        parsed.filesRoot = parsed.filesRoots.empty() ? std::filesystem::path{} : parsed.filesRoots.front();
+    }
+    else if (! parsed.filesRoot.empty())
+    {
+        AppendUniqueFilesRoot(parsed.filesRoots, parsed.filesRoot);
+    }
+    if (yyjson_val* reposArray = yyjson_obj_get(root, "githubRepos"); reposArray && yyjson_is_arr(reposArray))
+    {
+        std::size_t idx{}, maxIdx{};
+        yyjson_val* item{};
+        yyjson_arr_foreach(reposArray, idx, maxIdx, item)
+        {
+            if (! item || ! yyjson_is_obj(item))
+                continue;
+            std::string_view ownerU8, repoU8, branchU8;
+            if (! TryReadJsonString(item, "owner", ownerU8) || ! TryReadJsonString(item, "repo", repoU8))
+                continue;
+            (void)TryReadJsonString(item, "branch", branchU8);
+            std::wstring owner, repo, branch;
+            if (DxUi::RichText::TryDecodeUtf8(ownerU8, owner) != DxUi::RichText::SourceResult::Success ||
+                DxUi::RichText::TryDecodeUtf8(repoU8, repo) != DxUi::RichText::SourceResult::Success ||
+                DxUi::RichText::TryDecodeUtf8(branchU8, branch) != DxUi::RichText::SourceResult::Success)
+                continue;
+            if (! IsValidGitHubTokenSegment(owner, 128u) || ! IsValidGitHubTokenSegment(repo, 128u) || branch.size() > 256u ||
+                std::ranges::any_of(branch, [](wchar_t ch) { return ch < L' ' || ch == 0x7Fu || ch == L'\\'; }) || ContainsWideControlOrSlash(owner) ||
+                ContainsWideControlOrSlash(repo))
+                continue;
+            const bool dup = std::ranges::any_of(parsed.githubRepos, [&](const GitHubRepoRef& existing) {
+                return EqualOrdinalIgnoreCase(existing.owner, owner) && EqualOrdinalIgnoreCase(existing.repo, repo) && existing.branch == branch;
+            });
+            if (! dup)
+            {
+                parsed.githubRepos.push_back({std::move(owner), std::move(repo), std::move(branch)});
+                if (parsed.githubRepos.size() >= MaximumGitHubRepos)
+                    break;
+            }
+        }
+    }
+    if (std::filesystem::path rsPath; ReadJsonPath(root, "redSalamanderPath", rsPath), ! rsPath.empty())
+        parsed.redSalamanderPath = std::move(rsPath);
+    if (std::string_view exitMode; TryReadJsonString(root, "exitUnsavedBehavior", exitMode))
+        parsed.exitUnsavedBehavior = ParseExitUnsavedBehavior(exitMode);
     ReadJsonPath(root, "lastDocument", parsed.lastDocument);
 
     std::int64_t numeric{};
@@ -470,6 +650,43 @@ try
     {
         for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
             ReadJsonBool(syntaxObj, JsonMarkdownSyntaxKeys[index], parsed.markdownSyntax[index]);
+    }
+
+    if (yyjson_val* spellingObj = yyjson_obj_get(root, "spelling"); spellingObj && yyjson_is_obj(spellingObj))
+    {
+        ReadJsonBool(spellingObj, "enabled", parsed.spelling.enabled);
+        ReadJsonBool(spellingObj, "ignoreUppercase", parsed.spelling.ignoreUppercase);
+        ReadJsonBool(spellingObj, "ignoreWordsWithDigits", parsed.spelling.ignoreWordsWithDigits);
+        ReadJsonBool(spellingObj, "ignoreInternetAndPaths", parsed.spelling.ignoreInternetAndPaths);
+        ReadJsonPath(spellingObj, "customDictionaryPath", parsed.spelling.customDictionaryPath);
+        ReadJsonPath(spellingObj, "dictionariesFolder", parsed.spelling.dictionariesFolder);
+        if (std::string_view engineName; TryReadJsonString(spellingObj, "engine", engineName))
+            parsed.spelling.engine = ParseSpellEngineName(engineName);
+
+        if (yyjson_val* langArray = yyjson_obj_get(spellingObj, "languages"); langArray && yyjson_is_arr(langArray))
+        {
+            std::vector<std::wstring> languages;
+            std::size_t idx{}, maxIdx{};
+            yyjson_val* item{};
+            yyjson_arr_foreach(langArray, idx, maxIdx, item)
+            {
+                if (! item || ! yyjson_is_str(item))
+                    continue;
+                const std::string_view rawTag(yyjson_get_str(item), yyjson_get_len(item));
+                std::wstring wideTag;
+                if (! ValidLanguageTagUtf8(rawTag, wideTag))
+                    continue;
+                const bool duplicate = std::ranges::any_of(languages, [&](const std::wstring& existing) { return EqualOrdinalIgnoreCase(existing, wideTag); });
+                if (! duplicate)
+                {
+                    languages.push_back(std::move(wideTag));
+                    if (languages.size() >= MaximumSpellingLanguages)
+                        break;
+                }
+            }
+            if (! languages.empty())
+                parsed.spelling.languages = std::move(languages);
+        }
     }
 
     settings = std::move(parsed);
@@ -536,11 +753,75 @@ std::string SerializeSettings(const Settings& settings, std::string_view existin
     PutObjectBool(mutDoc.get(), root, "showFiles", settings.showFiles);
 
     std::string encodedPath;
-    if (! settings.filesRoot.empty() && ValidPreferencePath(settings.filesRoot) &&
-        DxUi::RichText::TryEncodeUtf8(settings.filesRoot.native(), encodedPath) == DxUi::RichText::SourceResult::Success)
+    std::vector<std::filesystem::path> normalizedRoots;
+    for (const auto& candidate : settings.filesRoots)
+        AppendUniqueFilesRoot(normalizedRoots, candidate);
+    if (normalizedRoots.empty() && ! settings.filesRoot.empty())
+        AppendUniqueFilesRoot(normalizedRoots, settings.filesRoot);
+
+    const std::filesystem::path primaryRoot = normalizedRoots.empty() ? std::filesystem::path{} : normalizedRoots.front();
+    if (! primaryRoot.empty() && ValidPreferencePath(primaryRoot) &&
+        DxUi::RichText::TryEncodeUtf8(primaryRoot.native(), encodedPath) == DxUi::RichText::SourceResult::Success)
         PutObjectString(mutDoc.get(), root, "filesRoot", encodedPath);
     else
         (void)yyjson_mut_obj_remove_key(root, "filesRoot");
+
+    if (! normalizedRoots.empty())
+    {
+        yyjson_mut_val* rootsArr = CheckedAlloc(yyjson_mut_arr(mutDoc.get()));
+        for (const auto& r : normalizedRoots)
+        {
+            if (DxUi::RichText::TryEncodeUtf8(r.native(), encodedPath) == DxUi::RichText::SourceResult::Success)
+            {
+                if (! yyjson_mut_arr_append(rootsArr, CheckedAlloc(yyjson_mut_strncpy(mutDoc.get(), encodedPath.data(), encodedPath.size()))))
+                    DxUi::Failure::FailAllocation();
+            }
+        }
+        PutObjectValue(mutDoc.get(), root, "filesRoots", rootsArr);
+    }
+    else
+    {
+        (void)yyjson_mut_obj_remove_key(root, "filesRoots");
+    }
+
+    if (! settings.githubRepos.empty())
+    {
+        yyjson_mut_val* reposArr = CheckedAlloc(yyjson_mut_arr(mutDoc.get()));
+        std::size_t count{};
+        for (const auto& repoRef : settings.githubRepos)
+        {
+            if (count >= MaximumGitHubRepos || ! IsValidGitHubTokenSegment(repoRef.owner, 128u) || ! IsValidGitHubTokenSegment(repoRef.repo, 128u) ||
+                repoRef.branch.size() > 256u)
+                continue;
+            std::string ownerU8, repoU8, branchU8;
+            if (DxUi::RichText::TryEncodeUtf8(repoRef.owner, ownerU8) == DxUi::RichText::SourceResult::Success &&
+                DxUi::RichText::TryEncodeUtf8(repoRef.repo, repoU8) == DxUi::RichText::SourceResult::Success &&
+                DxUi::RichText::TryEncodeUtf8(repoRef.branch, branchU8) == DxUi::RichText::SourceResult::Success)
+            {
+                yyjson_mut_val* repoObj = CheckedAlloc(yyjson_mut_obj(mutDoc.get()));
+                PutObjectString(mutDoc.get(), repoObj, "owner", ownerU8);
+                PutObjectString(mutDoc.get(), repoObj, "repo", repoU8);
+                if (! branchU8.empty())
+                    PutObjectString(mutDoc.get(), repoObj, "branch", branchU8);
+                if (! yyjson_mut_arr_append(reposArr, repoObj))
+                    DxUi::Failure::FailAllocation();
+                ++count;
+            }
+        }
+        PutObjectValue(mutDoc.get(), root, "githubRepos", reposArr);
+    }
+    else
+    {
+        (void)yyjson_mut_obj_remove_key(root, "githubRepos");
+    }
+
+    if (settings.redSalamanderPath && ! settings.redSalamanderPath->empty() && ValidPreferencePath(*settings.redSalamanderPath) &&
+        DxUi::RichText::TryEncodeUtf8(settings.redSalamanderPath->native(), encodedPath) == DxUi::RichText::SourceResult::Success)
+        PutObjectString(mutDoc.get(), root, "redSalamanderPath", encodedPath);
+    else
+        (void)yyjson_mut_obj_remove_key(root, "redSalamanderPath");
+
+    PutObjectString(mutDoc.get(), root, "exitUnsavedBehavior", ExitUnsavedBehaviorName(settings.exitUnsavedBehavior));
 
     if (! settings.lastDocument.empty() && ValidPreferencePath(settings.lastDocument) &&
         DxUi::RichText::TryEncodeUtf8(settings.lastDocument.native(), encodedPath) == DxUi::RichText::SourceResult::Success)
@@ -589,6 +870,46 @@ std::string SerializeSettings(const Settings& settings, std::string_view existin
         PutObjectBool(mutDoc.get(), syntaxObj, JsonMarkdownSyntaxKeys[index], settings.markdownSyntax[index]);
     if (! existingSyntax)
         PutObjectValue(mutDoc.get(), root, "markdownSyntax", syntaxObj);
+
+    yyjson_mut_val* spellingObj = yyjson_mut_obj_get(root, "spelling");
+    const bool existingSpelling = spellingObj != nullptr && yyjson_mut_is_obj(spellingObj);
+    if (! existingSpelling)
+        spellingObj = CheckedAlloc(yyjson_mut_obj(mutDoc.get()));
+    PutObjectBool(mutDoc.get(), spellingObj, "enabled", settings.spelling.enabled);
+    yyjson_mut_val* langArr = CheckedAlloc(yyjson_mut_arr(mutDoc.get()));
+    for (const auto& tag : settings.spelling.languages)
+    {
+        if (! IsValidLanguageTag(tag))
+            continue;
+        std::string utf8Tag;
+        if (DxUi::RichText::TryEncodeUtf8(tag, utf8Tag) == DxUi::RichText::SourceResult::Success)
+        {
+            if (! yyjson_mut_arr_append(langArr, CheckedAlloc(yyjson_mut_strncpy(mutDoc.get(), utf8Tag.data(), utf8Tag.size()))))
+                DxUi::Failure::FailAllocation();
+        }
+    }
+    if (yyjson_mut_arr_size(langArr) == 0u)
+    {
+        if (! yyjson_mut_arr_append(langArr, CheckedAlloc(yyjson_mut_strcpy(mutDoc.get(), "auto"))))
+            DxUi::Failure::FailAllocation();
+    }
+    PutObjectValue(mutDoc.get(), spellingObj, "languages", langArr);
+    PutObjectBool(mutDoc.get(), spellingObj, "ignoreUppercase", settings.spelling.ignoreUppercase);
+    PutObjectBool(mutDoc.get(), spellingObj, "ignoreWordsWithDigits", settings.spelling.ignoreWordsWithDigits);
+    PutObjectBool(mutDoc.get(), spellingObj, "ignoreInternetAndPaths", settings.spelling.ignoreInternetAndPaths);
+    if (! settings.spelling.customDictionaryPath.empty() && ValidPreferencePath(settings.spelling.customDictionaryPath) &&
+        DxUi::RichText::TryEncodeUtf8(settings.spelling.customDictionaryPath.native(), encodedPath) == DxUi::RichText::SourceResult::Success)
+        PutObjectString(mutDoc.get(), spellingObj, "customDictionaryPath", encodedPath);
+    else
+        PutObjectString(mutDoc.get(), spellingObj, "customDictionaryPath", "");
+    if (! settings.spelling.dictionariesFolder.empty() && ValidPreferencePath(settings.spelling.dictionariesFolder) &&
+        DxUi::RichText::TryEncodeUtf8(settings.spelling.dictionariesFolder.native(), encodedPath) == DxUi::RichText::SourceResult::Success)
+        PutObjectString(mutDoc.get(), spellingObj, "dictionariesFolder", encodedPath);
+    else
+        PutObjectString(mutDoc.get(), spellingObj, "dictionariesFolder", "");
+    PutObjectString(mutDoc.get(), spellingObj, "engine", SpellEngineName(settings.spelling.engine));
+    if (! existingSpelling)
+        PutObjectValue(mutDoc.get(), root, "spelling", spellingObj);
 
     std::size_t length{};
     yyjson_write_err writeErr{};

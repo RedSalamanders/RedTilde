@@ -212,12 +212,12 @@ Cancel, including cancelling the file/folder picker, retains all sources and his
 starts a new workspace; successful Open Folder starts an empty workspace at the new root. Restart restores the
 root and pane visibility. Without a root, the pane explains Open Folder and Open File.
 
-When multiple documents are retained, the Files tree also exposes an **Open documents** group. Its stable
+When one or more documents have unsaved modifications, the Files tree also exposes a **Modified documents** group. Its stable
 workspace identities distinguish untitled/missing files and separate recovered copies with the same original
-path, and keep retained documents in workspace opening order across switches. Activating an **Open documents** row
+path, and keep modified documents in workspace opening order across switches. Activating a **Modified documents** row
 keeps selection on that workspace row even when the document also appears in the folder listing; activating a
-folder row selects that folder row, and collapsing **Open documents** falls back to the visible folder row when
-present. Folder listing, expansion, filtering and the persistent root remain independent. Dirty dots cover retained
+folder row selects that folder row, and collapsing **Modified documents** falls back to the visible folder row when
+present. Clean retained workspace documents still preserve their undo history, selection, and recovery slots in memory without cluttering **Modified documents**. Folder listing, expansion, filtering and the persistent root remain independent. Dirty dots cover retained
 documents as well as the active file. Capacity refusal explains the limit and preserves every source, selection
 and history; it must never evict an edited document to admit a completed read. Switching declines atomically
 while a file operation, local draft, native composition or an unsaved question owns the current binding.
@@ -461,3 +461,52 @@ Source view and the read-only Split mirror use the host's monospace family at 13
 Canonical DxUi source ink prepares syntax ranges cooperatively; delimiters are subdued, heading/list markers
 and URL destinations use the theme accent. It never removes syntax, changes ACP mapping or edits source/history;
 high contrast retains ordinary system text. Rich document headings retain their 34/23 scale independently.
+
+## Spell checking and custom dictionaries
+
+Spell checking follows **Option E (Pluggable `ISpellProvider` Hybrid)** behind `Common/SpellProvider.h`, separating
+Windows spell-checking COM access from prose masking, custom dictionary storage, and UI state
+([WIP plan](../Plans/WIP/DictionaryAndSpellChecking_2026-11-21.md)):
+
+- **Read-only OS provider & deterministic test double**: `Common/WinSpellProvider` implements `ISpellProvider` over
+  `<spellcheck.h>` (`ISpellCheckerFactory` / `ISpellChecker`) strictly read-only on `SpellService`'s lazy STA worker
+  with an 8-entry LRU checker cache (`ResetComObjects()` before `CoUninitialize()`), never calling `ISpellChecker::Add`,
+  `Ignore`, `Remove`, or `IUserDictionariesRegistrar` and never mutating `%APPDATA%\Microsoft\Spelling`. Headless
+  tests and captures may inject `FakeSpellProvider`.
+- **Zero silent English fallback**: Languages resolve from session override -> optional front-matter `lang:` /
+  `language:` hint -> `spelling.languages` (default `["auto"]`, `1..3` normalized BCP-47 tags). Checking validates
+  `languages[0]` first and filters errors through `languages[1..N-1]`. When configured languages report
+  `NoDictionary` or `DictionaryUnreadable`, RedTilde emits zero squiggles and reports truthful status
+  (`(<lang> — no dictionary)` / `(<lang> — dictionary unreadable)`) without falling back to `en-US`.
+- **Offset-preserving prose masking & script-aware filters**: `Common/ProseExtractor` masks excluded spans (inline/fenced
+  code, inline/display LaTeX math, Mermaid diagrams, HTML blocks, metadata envelopes, generated/object display spans,
+  link destinations while retaining prose link labels, autolinks, bare URLs, e-mail addresses, and Windows/UNC paths)
+  using identical-length `\uFFFC` sentinels so offsets align cleanly while preserving contractions (`don't`) and elisions
+  (`l'arbre`, `aujourd'hui`, `peut-être`) across `<= 4,096`-unit chunks. `IsScriptAwareAllUppercase` skips acronyms only
+  when cased uppercase letters exist (`C1_UPPER` present, `C1_LOWER` absent) and never skips caseless scripts
+  (e.g., Hebrew, Arabic, CJK); digit-containing tokens follow `spelling.ignoreWordsWithDigits`.
+- **Portable custom dictionaries (`CUSTOM.DIC` interop)**: `Common/CustomDictionary` manages `%LOCALAPPDATA%\RedTilde\custom-dictionary.txt`
+  (or `--data-dir` / user-chosen `customDictionaryPath`). It reads and writes UTF-8, UTF-8 BOM, UTF-16LE BOM (`CUSTOM.DIC`),
+  and UTF-16BE BOM (plus BOM-less UTF-16LE detection), preserves original encoding, EOLs, comments/directives (`#`, `;`,
+  `//`), and entry casing verbatim, refuses legacy ANSI/Windows-1252 (`ERROR_NO_UNICODE_TRANSLATION`) and symlinks/reparse
+  points fail-closed without overwriting, enforces `4 MiB` / `100,000` words / `64` scalar chars caps, and persists via
+  atomic same-directory replacement (retaining session-added words in memory if disk persistence fails). Keys normalize
+  via `NormalizeString(NormalizationC, ...)` + `LCMapStringEx(LOCALE_NAME_INVARIANT, LCMAP_LOWERCASE, ...)`. `Ignore Once`
+  tracks `(workspaceKey, occurrenceKey, key)`, `Ignore All` stays in session memory only, and only `Add to Dictionary`
+  writes to disk.
+- **Viewport projection, suppression & guarded edits**: Completed async checks validated by `SpellRequestKey` populate
+  `SpellIssueTable` (`<= 4,096` raw issues). Only issues overlapping the visible source window (`+/- 2,048` units) are
+  projected onto the primary `_editor` via `TrySetDecorations` (`<= 256` `Squiggle` / `Error` / `SpellingError` items,
+  with backoff on `E_BOUNDS`); the read-only Split `_mirror` and Printing/Print Preview receive zero squiggles. Active
+  typing suppresses squiggles on the word touching the caret until caret exit or the `300 ms` debounce expires; IME
+  composition and open `F2` block drafts suspend updates and refuse mutations. Clicking once inside a flagged word
+  (collapsed caret, no drag or modifier keys) or opening the editor context menu (`Right-click` / `Shift+F10`) surfaces
+  up to 5 suggestions, **Ignore Once**, **Ignore All**, and **Add to Dictionary**, while Settings Proofing and the status
+  bar both expose synchronized language `DxUi::ComboBox` selectors. Mid-word formatting (`**re**commnd`)
+  splits into boundary-validated disjoint fragments committed as one undoable `ApplySourceEdits` step after revalidating
+  `(workspaceKey, sourceSnapshot, revision, selection, lifetime)`. External locale tags, paths, and provider error strings
+  pass through `SanitizeSpellUiText` (stripping controls, bidi overrides/isolates, zero-width chars, and `U+E0000..U+E007F`).
+- **Read-through GitHub documents (`DocumentOriginInfo::Kind::GitHub`)**: Opening a `.md` or `.markdown` file from a
+  connected GitHub repository loads its decoded UTF-8 Markdown into an ordinary editable workspace document carrying its
+  `owner`/`repo`/`branch`/`relativePath` metadata while clearing any local path so **Save** (`Ctrl+S`) opens **Save As…**
+  for a local destination and never writes back to GitHub.

@@ -11,7 +11,7 @@
 - [Contextual Formatting & In-Place Semantic Editing](#contextual-formatting--in-place-semantic-editing)
 - [Mathematics & Supported Mermaid Diagrams](#mathematics--supported-mermaid-diagrams)
 - [Images, Clipboard Paste & Network Privacy](#images-clipboard-paste--network-privacy)
-- [Files Pane, Workspace & Open Documents](#files-pane-workspace--open-documents)
+- [Files Pane, Workspace & Modified Documents](#files-pane-workspace--modified-documents)
 - [Find & Replace](#find--replace)
 - [Printing & Print Preview](#printing--print-preview)
 - [Themes, Typography, Zoom & Accessibility](#themes-typography-zoom--accessibility)
@@ -112,11 +112,17 @@ See [examples/mermaid-supported-families.md](examples/mermaid-supported-families
 
 ---
 
-## Files Pane, Workspace & Open Documents
+## Files Pane, Workspace & Modified Documents
 
-- **Files Pane (`Ctrl+Shift+E`):** Choose **File → Open Folder…** (`Ctrl+Shift+O`) to pin a notebook folder root, or **File → Open File…** (`Ctrl+O`) (opening a file when no root is set uses its parent folder). The pane lists `.md` and `.markdown` files (up to `5,000` visited entries and depth `8`), excludes hidden/system items, never traverses reparse points, and supports live filename filtering. Use the header **Pin** button to keep the pane docked beside the document or **Unpin** it into a compact `28`-DIP left rail displaying dots (with disambiguated tooltips) for open modified files—clicking a dot switches directly to that file without prompting, hovering the outer edge or clicking `<`/`>` slides the flush edge drawer smoothly over the canvas (staying open while you type in the filter box), and invoking a file closes an unpinned overlay ([collapsed side rails specification](../Specs/Plans/Done/SidePanesAndSplitEditing_2026-11-22.md)).
+- **Files Pane, Multi-Folder Sections & Context Menu (`Ctrl+Shift+E`):** Choose **File → Open Folder…** (`Ctrl+Shift+O`, or click **+ Folder** in the Files pane header) to open up to `16` local workspace folders side-by-side in collapsible sections (colliding folder names like `docs` automatically show parent context such as `docs (ProjectA)`), or **File → Open File…** (`Ctrl+O`). The pane lists `.md` and `.markdown` files (up to `5,000` visited entries and depth `8` per root), excludes hidden/system items, never traverses reparse points, and supports live filename filtering. Right-clicking any local row opens a context menu with **Open**, **Reveal in File Explorer**, **Reveal in RedSalamander**, **Copy Full Path**, **Copy Relative Path**, **Rename…**, **Cut**, **Copy**, **Paste**, and **Remove Folder**. When minimized, the pane remains visible as a compact `28`-DIP left rail displaying dots (with disambiguated tooltips) for open modified files—clicking a dot switches directly to that file without prompting. Click the rail's top Pin button (or the pane header **Pin/Unpin** button) to keep the pane docked beside the document or minimize it back to the rail, or hover or click any free zone on the compact rail to pop the flush edge drawer open over the canvas (closing automatically on mouse leave or after invoking a file; [collapsed side rails specification](../Specs/Plans/Done/SidePanesAndSplitEditing_2026-11-22.md)).
+- **Open from GitHub (`Ctrl+Shift+G`):** Choose **File → Open GitHub…** (or click **+ GitHub** in the Files pane header) to connect up to `8` public or private GitHub repositories (`https://github.com/owner/repo`, `/blob/...`, or `owner/repo`) into a collapsible **GitHub** section in the Files pane. Under **Settings → Accounts** or inside the dialog, sign in optionally via OAuth Device Flow, a Personal Access Token stored securely in Windows Credential Manager, or explicit **Import from gh CLI** opt-in to enable live repository autosuggest as you type. GitHub Markdown files open ready for local reading and editing; pressing **Save** (`Ctrl+S`) prompts for a local path via **Save As…** without modifying remote repositories.
+- **Closing Documents & Hot Exit (`Keep & Exit`):** **File → Close document** (`Ctrl+W`) and manual window close (`Alt+F4` / top-right **Close** button) open RedTilde's in-window **Save confirmation** dialog showing each modified file's name and folder-relative path with **Save** / **Save Selected**, **Keep & Exit** (on window close — saves unsaved drafts seamlessly and restores them ready to edit and save on relaunch), **Don't Save** / **Discard All**, and **Cancel**. Enable **Keep unsaved edits on exit without asking** under **Settings → Writing** to always skip the dialog on manual close too. Windows shutdown and logoff always preserve and resume unsaved drafts automatically without blocking.
+
+![Multi-folder workspace and GitHub sections in the Files pane](screenshots/files-multi-folder-and-github-light.png)
+
+![DxUi save confirmation modal with folder-relative paths and Keep & Exit](screenshots/save-confirm-dialog-light.png)
 - **Drag-and-Drop:** Drag and drop a `.md`, `.markdown`, or `.txt` file onto the RedTilde window to open it (dropping multiple files or unsupported types reports a clear status without altering your document).
-- **Multi-Document Workspace & Open Documents:** RedTilde keeps up to `64` open documents in memory—preserving each document's edits, selection, undo/redo history, and remote-image grant—so clicking between rows in the Files pane switches instantly without prompting. When multiple documents are open, an **Open documents** group appears at the top of the Files tree in opening order (keeping untitled and recovered copies distinct and keeping tree selection on the clicked row).
+- **Multi-Document Workspace & Modified Documents:** RedTilde keeps up to `64` open documents in memory—preserving each document's edits, selection, undo/redo history, and remote-image grant—so clicking between rows in the Files pane switches instantly without prompting. When documents have unsaved edits, a **Modified documents** group appears at the top of the Files tree in opening order (keeping untitled and recovered copies distinct and keeping tree selection on the clicked row); dirty documents also display a compact accent dot beside the filename in the document bar and OS window title.
 - **Closing Documents (`Ctrl+W`):** **File → Close document** (or `Ctrl+W`) prompts only if the active document has unsaved changes, then switches to the adjacent open document (or resets to an empty `Untitled.md` if it was the last document). Explicit **Open File**, **Open Folder**, **New**, and window **Close** protect every modified workspace document.
 
 ![Auto-collapsed left and right edge rails showing modified-file dots and heading dots](screenshots/panes-collapsed-rails-light.png)
@@ -159,7 +165,7 @@ Open **Settings** from the gear button or `Ctrl+,`:
 - **Writing & Markdown Syntax:** Toggle **Show outline**, **Focus mode**, **Dim other blocks in focus mode**, **Strike through completed tasks** (visual presentation only; Markdown stays unchanged), and seven optional RichMarkdown syntax switches (`==highlight==`, `^superscript^`, `~subscript~`, `++inserted++`, `[[wiki links]]`, definition lists, and `*[abbr]:` abbreviations).
 - **About & Shortcuts:** The bottom of Settings displays the installed version (`RedTilde 1.0.<build>`) and a built-in keyboard shortcuts reference.
 - **Preferences File & Live Reload:** Settings are stored as UTF-8 JSON5 in `%LOCALAPPDATA%\RedTilde\RedTilde.settings.json` (`RedTilde-debug.settings.json` in debug builds, described by `SettingsStore.schema.json`), with lossless one-time migration from legacy text settings and live reload when edited externally.
-- **Outline & Current Block Inspector (`Ctrl+Shift+L`):** The right sidebar lists ATX headings hierarchically (with collapsible sections), tracks the active section, identifies the **Current block** (e.g., `Heading`, `Bulleted list · 3 items`, `Equation`), hosts the live read-only **Equation** preview, and includes header **Pin/Unpin** and **Close** actions matching the Files pane. When unpinned or when horizontal space is tight (or in **Split** view when `Auto`), the sidebar smoothly animates into a `28`-DIP right dot rail summarizing headings with interactive tooltips that jump directly to each section; hovering the outer edge or clicking `<` slides the flush edge drawer open over the canvas and dismisses cleanly when you click a heading.
+- **Outline & Current Block Inspector (`Ctrl+Shift+L`):** The right sidebar lists ATX headings hierarchically (with collapsible sections), tracks the active section, identifies the **Current block** (e.g., `Heading`, `Bulleted list · 3 items`, `Equation`), hosts the live read-only **Equation** preview, and includes a single header **Pin/Unpin** action matching the Files pane. When unpinned or when horizontal space is tight (or in **Split** view when `Auto`), the sidebar smoothly minimizes into a compact `28`-DIP right dot rail summarizing headings vertically centered inside the rail with interactive tooltips that jump directly to each section; click the rail's top Pin button to pin it open, or hover or click any free zone on the rail to slide the flush edge drawer open over the canvas (closing automatically on mouse leave or when you click a heading).
 
 ![Hovering the right edge rail reveals the Outline floating overlay without reflowing text in Dark theme](screenshots/pane-hover-reveal-dark.png)
 
@@ -167,9 +173,26 @@ Open **Settings** from the gear button or `Ctrl+,`:
 
 ---
 
+## Spell Checking & Dictionaries
+
+RedTilde checks Markdown prose continuously on an off-UI STA worker using Windows Spell Checking dictionaries (`ISpellChecker`) strictly read-only alongside an app-owned custom dictionary:
+
+- **Markdown-aware prose extraction:** Inline code, fenced code blocks, inline/display LaTeX equations, Mermaid diagrams, HTML blocks, metadata envelopes, link destinations, autolinks, bare URLs, e-mail addresses, and Windows/UNC file paths are excluded automatically without drifting source offsets. Contractions (`don't`, `won't`) and French elisions (`l'arbre`, `aujourd'hui`, `peut-être`) stay intact.
+- **Right-click, left-click & `Shift+F10` corrections:** Flagged words receive crisp wavy squiggles and `SpellingError` UI Automation annotations. Left-click an underlined word (or open the context menu via right-click / `Shift+F10`) for up to 5 suggestions, **Ignore once**, **Ignore all** (session-only), or **Add to dictionary** (atomic disk save). Replacing a word formatted mid-word (such as `**re**commnd`) preserves outer formatting and undoes in a single `Ctrl+Z` step.
+- **Custom dictionary & Word `CUSTOM.DIC` interoperability:** Words are saved atomically to `%LOCALAPPDATA%\RedTilde\custom-dictionary.txt` or a chosen freestanding `CUSTOM.DIC` (UTF-8, UTF-8 BOM, UTF-16LE BOM, UTF-16BE BOM), preserving original encoding, line endings, comments, and letter casing while matching NFC and decomposed NFD text consistently.
+- **Truthful language status & Proofing settings:** The status bar shows the active proofing language unobtrusively at rest, reveals hover pill chrome with a dropdown arrow on hover, and opens an upward switcher (`Auto (Windows)`, installed languages, or `Spelling off`), matching the **Language** dropdown in **Settings → Proofing** (`Ctrl+,`), or truthfully reporting `(no dictionary)` / `(dictionary unreadable)` without silently falling back to English.
+
+![Spell checking squiggles and proofing status bar in Light theme](screenshots/spelling-light.png)
+
+![Spell checking squiggles in Dark and Windows High Contrast themes](screenshots/spelling-dark.png)
+
+![Spell checking squiggles in High Contrast theme](screenshots/spelling-high-contrast.png)
+
+---
+
 ## Automatic Crash Recovery & Safe File Saving
 
-- **Session Recovery:** Unsaved edits (including unapplied local drafts and multiple workspace documents) are checkpointed to `%LOCALAPPDATA%\RedTilde\Recovery` after `750 ms` of idle time (or at most every `5` seconds during continuous typing). On the next launch after an unexpected exit, RedTilde shows a source preview with **Restore a copy**, **Discard snapshot**, **Keep for later**, and **Restore all copies** (when multiple snapshots exist). Restored documents open dirty and require **Save as…**, leaving original files untouched. Corrupt or oversized recovery snapshots are quarantined as `.quarantine` instead of failing startup.
+- **Session Recovery & Seamless Exit Resume:** Unsaved edits (including unapplied local drafts and multiple workspace documents) are checkpointed to `%LOCALAPPDATA%\RedTilde\Recovery` after `750 ms` of idle time (or at most every `5` seconds during continuous typing). When clicking **Keep & Exit**, exiting with **Keep unsaved edits on exit without asking** enabled, or during Windows shutdown/logoff, RedTilde saves `SessionResume` checkpoints and silently restores your dirty documents ready to keep editing and save on relaunch. After an unexpected crash, RedTilde shows the source preview sheet with **Restore a copy**, **Discard snapshot**, **Keep for later**, and **Restore all copies**. Corrupt or oversized recovery snapshots are quarantined as `.quarantine` instead of failing startup.
 - **Atomic & Conflict-Safe Saving:** Saves write to a temporary file in the target folder, flush, and replace atomically while preserving UTF-8 BOM and line endings. If the file changed externally on disk, RedTilde presents one task dialog with **Reload from disk**, **Save as…**, **Overwrite**, and **Cancel**. Files with multiple hardlinks or storage providers that disallow replacement use a recovery-protected in-place write.
 - **Close-During-Save Protection:** Closing the window while a save is running hides the window until the write settles; if the write fails, the window restores with the error message and your edits intact.
 
@@ -200,7 +223,8 @@ redtilde --help | -h | /?
 | --- | --- |
 | `Ctrl+N` | New workspace document |
 | `Ctrl+O` | Open file |
-| `Ctrl+Shift+O` | Open folder in Files pane |
+| `Ctrl+Shift+O` | Add folder to Files pane |
+| `Ctrl+Shift+G` | Open GitHub repository or Markdown URL |
 | `Ctrl+S` | Save |
 | `Ctrl+Shift+S` | Save As |
 | `Ctrl+W` | Close active document |

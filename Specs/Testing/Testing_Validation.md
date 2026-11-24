@@ -512,3 +512,14 @@ Validation requirements covered by [Side panes and bidirectional split editing](
   scopes without ping-pong loops (`_splitScrollSyncInProgress`), unlinked scrolling (`splitScrollSync == false` via seam
   toggle, `Ctrl+Shift+Y`, or live JSON5 reload) leaves the passive pane offset untouched across scrolls and edits, and
   Find/Replace switches active highlights and `_findBar` placement without rebuilding `MatchTable`.
+- Workspace dialogs, multi-folder sections, safe FileOps, and read-through GitHub (`Settings.MultiFolderGitHubAndExitBehaviorRoundTrip`,
+  `Editor.WorkspaceSaveConfirmSingleMultiAndChecklist`, `Editor.WorkspaceKeepAndExitResumeAndShutdown`,
+  `Recovery.SessionResumeSnapshotRoundTripAndCleanup`, `Files.MultiFolderDisambiguationAndLocationResolver`,
+  `Files.SafeRenamePasteCollisionAndReparseGuard`, `Editor.FilesMultiFolderSectionsAndContextMenuOps`, and
+  `Editor.WorkspaceGitHubUrlAutosuggestAuthAndOpen`, plus the five hidden 96-DPI Release scenarios `save-confirm-dialog-light`,
+  `files-multi-folder-and-github-light`, `files-context-menu-dark`, `open-github-autosuggest-light`, and
+  `open-github-autosuggest-dark`): prove DxUi single/multi-document save prompts with relative paths, default
+  `KeepAndResume` and non-blocking `WM_QUERYENDSESSION`/`WM_ENDSESSION` relaunch restoration, colliding-basename
+  folder disambiguation (`"<leaf> (<parentLeaf>)"`), non-reparse/collision-safe rename/copy/move and workspace
+  path rebasing, mock-transport GitHub URL parsing/autosuggest/credential scrubbing/`gh` opt-in/read-through opening
+  requiring `Save As…` with zero unsolicited startup network calls.

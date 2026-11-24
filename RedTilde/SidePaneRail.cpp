@@ -272,6 +272,14 @@ void CollapsedPaneRail::SyncVisibleDots()
         _dotPool.push_back(dot);
     }
 
+    const float bandTop         = bounds.top + DotsStartOffsetDip;
+    const float bandBottom      = std::max(bandTop, bounds.bottom - (hasOverflow ? OverflowFooterHeightDip : 8.f));
+    const float groupHeight     = visible > 0u ? static_cast<float>(visible - 1u) * DotPitchDip + DotHitHeightDip : 0.f;
+    const bool centerVertically = _side == PaneSide::Right && visible > 0u && ! hasOverflow && (bandBottom - bandTop) > groupHeight;
+    const float startY          = centerVertically ? bandTop + std::floor(((bandBottom - bandTop) - groupHeight) * 0.5f) : bandTop;
+    _dotsTopDip                 = visible > 0u ? startY : bandTop;
+    _dotsBottomDip              = visible > 0u ? startY + groupHeight : bandTop;
+
     const float dotLeft  = _side == PaneSide::Left ? bounds.left + EdgeTriggerWidthDip : bounds.left + 2.f;
     const float dotRight = _side == PaneSide::Left ? bounds.right - 2.f : bounds.right - EdgeTriggerWidthDip;
     for (std::size_t i = 0; i < _dotPool.size(); ++i)
@@ -279,7 +287,7 @@ void CollapsedPaneRail::SyncVisibleDots()
         auto* dot = _dotPool[i];
         if (i < visible)
         {
-            const float dotTop = bounds.top + DotsStartOffsetDip + static_cast<float>(i) * DotPitchDip;
+            const float dotTop = startY + static_cast<float>(i) * DotPitchDip;
             dot->SetBounds(D2D1::RectF(dotLeft, dotTop, std::max(dotLeft + 8.f, dotRight), dotTop + DotHitHeightDip));
             dot->SetDotItem(_items[_scrollOffset + i], i);
         }
@@ -523,10 +531,9 @@ bool CollapsedPaneRail::IsHoverRevealZone(D2D1_POINT_2F point) const noexcept
     if (ContainsTriggerEdge(point))
         return true;
 
-    const float dotsBottom = bounds.top + DotsStartOffsetDip + static_cast<float>(_visibleDotCount) * DotPitchDip;
-    const bool belowDots   = point.y >= dotsBottom + 4.f;
-    const bool inOuterBand = _side == PaneSide::Left ? point.x < bounds.right - 10.f : point.x >= bounds.left + 10.f;
-    return belowDots && inOuterBand;
+    const bool outsideDots       = _visibleDotCount == 0u || point.y < _dotsTopDip - 2.f || point.y >= _dotsBottomDip + 2.f;
+    const bool awayFromInnerEdge = _side == PaneSide::Left ? point.x < bounds.right - 4.f : point.x >= bounds.left + 4.f;
+    return outsideDots && awayFromInnerEdge;
 }
 
 RailDotButton* CollapsedPaneRail::DotButton(std::size_t visibleIndex) const noexcept
@@ -670,6 +677,22 @@ bool CollapsedPaneRail::OnMouseMove(DxUi::ControlHost& /*host*/, D2D1_POINT_2F /
 {
     // Application::UpdateHoverOverlayPointer coordinates rail and overlay hover state cleanly.
     return true;
+}
+
+bool CollapsedPaneRail::OnMouseDown(DxUi::ControlHost& host, D2D1_POINT_2F point, bool rightButton, UINT modifiers)
+{
+    if (DxUi::Panel::OnMouseDown(host, point, rightButton, modifiers))
+        return true;
+    if (! rightButton && IsVisible() && _state.mode == PaneDisplayMode::CollapsedRail && ! ContainsExpandButton(point) && ! ContainsDot(point))
+    {
+        CancelHoverDwell();
+        if (onHoverReveal)
+            onHoverReveal();
+        else
+            StartExpand(host, true);
+        return true;
+    }
+    return false;
 }
 
 bool CollapsedPaneRail::OnMouseLeave(DxUi::ControlHost& /*host*/)

@@ -46,7 +46,42 @@
       "type": "string",
       "default": "",
       "maxLength": 32767,
-      "description": "Absolute Windows path to the pinned notebook folder root."
+      "description": "Absolute Windows path to the primary pinned notebook folder root (synchronized with the first entry of filesRoots)."
+    },
+    "filesRoots": {
+      "type": "array",
+      "maxItems": 16,
+      "items": { "type": "string", "minLength": 1, "maxLength": 32767 },
+      "default": [],
+      "description": "Ordered list of open local Markdown folder roots displayed as distinct sections in the Files pane."
+    },
+    "githubRepos": {
+      "type": "array",
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "required": ["owner", "repo"],
+        "properties": {
+          "owner": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "repo": { "type": "string", "minLength": 1, "maxLength": 128 },
+          "branch": { "type": "string", "maxLength": 256, "default": "" }
+        },
+        "additionalProperties": false
+      },
+      "default": [],
+      "description": "Non-secret connected GitHub repository references (tokens live exclusively in Windows Credential Manager)."
+    },
+    "redSalamanderPath": {
+      "type": "string",
+      "default": "",
+      "maxLength": 32767,
+      "description": "Optional explicit absolute Windows executable path for Reveal in RedSalamander."
+    },
+    "exitUnsavedBehavior": {
+      "type": "string",
+      "enum": ["prompt", "keepAndResume"],
+      "default": "prompt",
+      "description": "Behavior when manually closing RedTilde with unsaved documents (OS shutdown/logoff always keeps and resumes without blocking)."
     },
     "lastDocument": {
       "type": "string",
@@ -142,6 +177,27 @@
         "wikiLinks": { "type": "boolean", "default": true },
         "definitionLists": { "type": "boolean", "default": true },
         "abbreviations": { "type": "boolean", "default": true }
+      },
+      "additionalProperties": true
+    },
+    "spelling": {
+      "type": "object",
+      "description": "Spell-checking and portable custom dictionary configuration.",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "languages": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1, "maxLength": 32 },
+          "minItems": 1,
+          "maxItems": 3,
+          "default": ["auto"]
+        },
+        "ignoreUppercase": { "type": "boolean", "default": true },
+        "ignoreWordsWithDigits": { "type": "boolean", "default": true },
+        "ignoreInternetAndPaths": { "type": "boolean", "default": true },
+        "customDictionaryPath": { "type": "string", "default": "", "maxLength": 32767 },
+        "dictionariesFolder": { "type": "string", "default": "", "maxLength": 32767 },
+        "engine": { "type": "string", "enum": ["auto", "windows"], "default": "auto" }
       },
       "additionalProperties": true
     }

@@ -1,4 +1,5 @@
 #pragma once
+#include "Recovery.h"
 #include <cstdint>
 #include <filesystem>
 #include <limits>
@@ -119,6 +120,51 @@ private:
 #if defined(REDTILDE_ENABLE_TESTS)
     std::optional<HRESULT> _nextInitializeFailureForTest;
 #endif
+};
+
+struct WorkspaceDisplayLocation
+{
+    std::wstring fileName;
+    std::wstring sectionLabel;
+    std::wstring relativePath;
+    std::wstring fullPath;
+    bool rooted{};
+    bool isGitHub{};
+};
+
+// Strips ASCII/C1 control chars, Unicode bidi overrides/isolates, zero-width chars, and tag chars (U+E0000..U+E007F).
+[[nodiscard]] std::wstring SanitizeUiText(std::wstring_view text, std::size_t maximumLength = 256u);
+[[nodiscard]] std::vector<std::wstring> DisambiguateFolderLabels(std::span<const std::filesystem::path> roots);
+[[nodiscard]] WorkspaceDisplayLocation ResolveWorkspaceDisplayLocation(const std::filesystem::path& filePath,
+                                                                       const DocumentOriginInfo& origin,
+                                                                       std::span<const std::filesystem::path> roots,
+                                                                       std::wstring_view untitledName);
+
+// Coordinates bounded independent FilesService workers for up to MaximumFilesRoots local folders.
+class MultiFolderFilesService final
+{
+public:
+    MultiFolderFilesService();
+    ~MultiFolderFilesService();
+    MultiFolderFilesService(const MultiFolderFilesService&)            = delete;
+    MultiFolderFilesService& operator=(const MultiFolderFilesService&) = delete;
+
+    [[nodiscard]] HRESULT Initialize(HWND window = nullptr, UINT message = 0, FilesLimits limits = {}) noexcept;
+    [[nodiscard]] HRESULT SetRoots(std::span<const std::filesystem::path> roots) noexcept;
+    [[nodiscard]] HRESULT Refresh(const std::filesystem::path& root) noexcept;
+    [[nodiscard]] HRESULT RefreshAll() noexcept;
+    [[nodiscard]] std::vector<FilesSnapshot> TakeResults();
+    [[nodiscard]] bool Busy() const noexcept;
+    [[nodiscard]] std::size_t RootCount() const noexcept;
+    void Close() noexcept;
+
+private:
+    struct WorkerEntry;
+    std::vector<std::unique_ptr<WorkerEntry>> _entries;
+    HWND _window{};
+    UINT _message{};
+    FilesLimits _limits{};
+    bool _initialized{};
 };
 
 struct FileChangeNotice

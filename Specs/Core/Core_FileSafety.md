@@ -202,7 +202,7 @@ source. It must never replace the user's Markdown file automatically. A clean sa
 Restart offers a read-only source preview with Restore a copy, Discard snapshot and Keep for later. When several
 copies are available, **Restore all copies** retains them as independent documents without overwriting the current
 workspace. Capacity is checked before starting. Restored documents with identical original paths and untitled
-copies remain separately reachable through Open documents. The settings
+copies remain dirty and separately reachable through **Modified documents**. The settings
 drawer can reopen pending snapshots. Restored source retains BOM, line endings, original location for relative
 images and source selection; it is dirty and Save requires Save As. It never silently overwrites the original.
 
@@ -247,3 +247,30 @@ entry limit stopped a nonempty remainder under the service mutex before reportin
 actual startup work; they do not assert a filesystem completion-time bound or change snapshot ownership.
 Another live session's leased snapshot is never offered or deleted. Candidate retirement after Restore happens
 only after the new session's replacement is durable. The checksum detects corruption, not hostile tampering.
+
+## Session resume, save confirmation, and workspace file operations
+
+- **`RedTilde.Recovery/2` (`SessionResume` vs `CrashRecovery`):** JSON-encoded checksummed recovery envelopes add
+  `snapshotKind` (`CrashRecovery` or `SessionResume`), `workspaceOrder`, `wasActive`, `savedBaselineStamp`, and
+  `DocumentOriginInfo` (`Local`, `Untitled`, or `GitHub` with `owner`/`repo`/`branch`/`relativePath`/`blobSha`/`htmlUrl`),
+  while continuing to migrate legacy `RedTilde.Recovery/1` envelopes.
+- **Hot exit (`Keep & Exit`) & non-blocking session end:** Clicking **Keep & Exit** inside `SaveConfirmModal`, enabling
+  `ExitUnsavedBehavior::KeepAndResume`, or receiving `WM_QUERYENDSESSION`/`WM_ENDSESSION(TRUE)` (always non-blocking
+  even when `"prompt"` is active) checkpoints dirty workspace documents as `SessionResume` without blocking exit. On
+  next launch (without `CrashRecovery` precedence and when no explicit CLI `--document` targets a conflicting intent),
+  valid `SessionResume` entries reopen silently into the editable workspace with their dirty state, original
+  `DocumentOriginInfo`, and `savedBaselineStamp`, letting **Ctrl+S** save directly to disk while detecting external edits
+  made while closed.
+- **DxUi save confirmation (`SaveConfirmModal`)**: Under default `ExitUnsavedBehavior::Prompt` on manual close or
+  non-exit document-replacing commands, dirty documents show an in-app centered modal listing each file name (`filename`)
+  alongside its disambiguated folder section (`sectionLabel`) and folder-relative or repo-relative path (`relativePath`),
+  offering **Save** / **Save All**, **Keep & Exit** (on window close), **Don't Save**, and **Cancel**.
+- **Safe workspace file operations (`FileOpsService`):** Renames and clipboard `CF_HDROP` Cut/Copy/Paste validate single
+  file/folder names (rejecting empty names, `.`/`..`, separators, invalid Win32 characters, trailing dots/spaces, and
+  reserved device names), refuse surrogate reparse points and self/descendant folder pastes, stage explicit collision
+  prompts (**Replace**, **Keep Both (- Copy)**, **Cancel**), rebase open workspace and recovery paths atomically after a
+  rename/move, and execute **Reveal in File Explorer** / **Reveal in RedSalamander** off the UI thread with safe
+  quoted `--select=` arguments (`Command::FilesCtxRevealExplorer`, `Command::FilesCtxRevealRedSalamander`).
+- **GitHub read-through origin (`DocumentOriginInfo::Kind::GitHub`):** Opening a Markdown blob via GitHub fetches
+  UTF-8 content read-only (capped at `DxUi::RichText::Document::MaximumUnits`), binds `DocumentOriginInfo`, marks
+  `RequiresSaveAs() == true`, and routes **Save** through **Save As…** to a local path with zero write-back to GitHub.

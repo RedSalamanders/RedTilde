@@ -8,6 +8,27 @@
 
 namespace RedTilde
 {
+enum class RecoverySnapshotKind : std::uint8_t
+{
+    CrashRecovery = 0,
+    SessionResume = 1
+};
+struct DocumentOriginInfo
+{
+    enum class Kind : std::uint8_t
+    {
+        Local  = 0,
+        GitHub = 1
+    };
+    Kind kind{Kind::Local};
+    std::wstring owner;
+    std::wstring repo;
+    std::wstring branch;
+    std::wstring relativePath;
+    std::wstring blobSha;
+    std::wstring htmlUrl;
+    bool operator==(const DocumentOriginInfo&) const = default;
+};
 struct RecoverySnapshot
 {
     std::wstring text;
@@ -15,6 +36,11 @@ struct RecoverySnapshot
     bool bom{};
     DxUi::RichText::Selection selection;
     std::uint64_t generation{};
+    RecoverySnapshotKind kind{RecoverySnapshotKind::CrashRecovery};
+    std::uint32_t workspaceOrder{};
+    bool wasActive{};
+    std::optional<FileStamp> savedBaselineStamp;
+    DocumentOriginInfo origin;
 };
 struct RecoveryCandidate
 {

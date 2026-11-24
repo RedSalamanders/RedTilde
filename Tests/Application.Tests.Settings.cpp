@@ -426,5 +426,76 @@ void RegisterSettingsTests(const std::filesystem::path& root, const std::functio
         Success(ReadBytes(SettingsPath(noopDir, false), diskAfter), "read commented settings after no-op SaveSettings");
         Require(diskAfter == commented, "no-op SaveSettings skips rewrite and preserves existing user JSON5 comments");
     });
+
+    test("Settings.SpellingRoundTripAndFieldFallback",
+         [&]
+    {
+        constexpr std::string_view json5Spelling = "{\n"
+                                                   "  \"schema\": 4,\n"
+                                                   "  \"spelling\": {\n"
+                                                   "    \"enabled\": false,\n"
+                                                   "    \"languages\": [\"en-US\", \"invalid tag!\", \"fr-FR\", \"en-us\", \"de-DE\", \"es-ES\"],\n"
+                                                   "    \"ignoreUppercase\": false,\n"
+                                                   "    \"ignoreWordsWithDigits\": false,\n"
+                                                   "    \"ignoreInternetAndPaths\": true,\n"
+                                                   "    \"customDictionaryPath\": \"C:\\\\Dictionaries\\\\CUSTOM.DIC\",\n"
+                                                   "    \"engine\": \"windows\",\n"
+                                                   "    \"futureSpellOption\": 42\n"
+                                                   "  }\n"
+                                                   "}\n";
+        Settings parsed;
+        Success(TryParseSettings(json5Spelling, parsed), "parse JSON5 settings with spelling section");
+        Require(! parsed.spelling.enabled && ! parsed.spelling.ignoreUppercase && ! parsed.spelling.ignoreWordsWithDigits &&
+                    parsed.spelling.ignoreInternetAndPaths && parsed.spelling.engine == SpellEngine::Windows &&
+                    parsed.spelling.customDictionaryPath == L"C:\\Dictionaries\\CUSTOM.DIC",
+                "all parsed spelling fields match JSON5 input");
+        Require(parsed.spelling.languages.size() == 3u && parsed.spelling.languages[0] == L"en-US" && parsed.spelling.languages[1] == L"fr-FR" &&
+                    parsed.spelling.languages[2] == L"de-DE",
+                "invalid/duplicate language tags are dropped and list is capped at 3");
+
+        const auto roundTripBytes = SerializeSettings(parsed, json5Spelling);
+        Require(roundTripBytes.find("\"futureSpellOption\": 42") != std::string::npos, "SerializeSettings merges and preserves unknown spelling sub-keys");
+
+        Settings badFields = ParseSettings(R"({"schema": 1, "spelling": {"languages": ["not valid!"], "engine": "bogus"}})");
+        Require(badFields.spelling.languages == std::vector<std::wstring>{L"auto"} && badFields.spelling.engine == SpellEngine::Auto,
+                "invalid spelling language array and engine fall back to safe defaults");
+    });
+
+    test("Settings.SpellingLiveReloadAndCustomDictionary",
+         [&]
+    {
+        Testing::ForegroundOwnershipObserver foreground;
+        const auto directory = root / L"live-reload-spelling";
+        Settings initial;
+        Success(SaveSettings(directory, initial), "seed initial settings for spelling live reload");
+
+        LaunchOptions options;
+        options.headless             = true;
+        options.watchSettingsForTest = true;
+        options.dataDirectory        = directory;
+
+        Application app(options);
+        Success(app.Initialize(), "initialize app for spelling live reload");
+
+        constexpr std::string_view updated = "{\n"
+                                             "  \"schema\": 1,\n"
+                                             "  \"spelling\": {\n"
+                                             "    \"enabled\": false,\n"
+                                             "    \"languages\": [\"fr-FR\"],\n"
+                                             "    \"ignoreUppercase\": false\n"
+                                             "  }\n"
+                                             "}\n";
+        Success(WriteBytesAtomic(SettingsPath(directory), updated), "write live spelling settings change");
+        Require(PumpMessagesUntil(4000u,
+                                  [&]
+        {
+            const auto& sp = SettingsProbe::CurrentSettings(app).spelling;
+            return ! sp.enabled && ! sp.ignoreUppercase && sp.languages == std::vector<std::wstring>{L"fr-FR"};
+        }),
+                "live reload updates spelling configuration cleanly");
+        std::string diskAfter;
+        Success(ReadBytes(SettingsPath(directory), diskAfter), "read back disk after live reload");
+        Require(diskAfter == updated && foreground.NeverAcquiredForeground(), "live reload never rewrites file or takes foreground");
+    });
 }
 } // namespace RedTilde

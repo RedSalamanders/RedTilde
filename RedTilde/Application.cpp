@@ -297,6 +297,7 @@ void Application::TransitionLifecycle(LifecyclePhase next) noexcept
 Application::~Application()
 {
     TransitionLifecycle(LifecyclePhase::Destroyed);
+    _spellService.Stop();
     Printing::Stop(_printOperation);
     ClosePrintPreview();
     _bitmapWriter.Stop();
@@ -416,12 +417,35 @@ HRESULT Application::Initialize()
     RETURN_IF_FAILED(_imageFiles.Initialize(_window.get(), ImageFileChanged, 0x5254));
     _images.SetAllowLocalNetwork(_settings.allowLocalNetworkImages);
     RETURN_IF_FAILED(_bitmapWriter.Initialize(_options.dataDirectory, _window.get(), BitmapReady));
+#if defined(REDTILDE_ENABLE_TESTS)
+    _shellReveal = _options.shellRevealForTest ? _options.shellRevealForTest : std::make_shared<WindowsShellReveal>();
+    _credentials = _options.credentialStoreForTest ? _options.credentialStoreForTest : std::make_shared<WindowsCredentialStore>();
+    RETURN_IF_FAILED(_fileOps.Initialize(
+        _window.get(), FileOpReady, _shellReveal, _options.fileOpsForTest ? _options.fileOpsForTest : std::make_shared<WindowsWorkspaceFileOps>()));
+    RETURN_IF_FAILED(_github.Initialize(_window.get(),
+                                        GitHubReady,
+                                        _options.githubTransportForTest ? _options.githubTransportForTest : std::make_shared<WinHttpGitHubTransport>(),
+                                        _credentials));
+#else
+    _shellReveal = std::make_shared<WindowsShellReveal>();
+    _credentials = std::make_shared<WindowsCredentialStore>();
+    RETURN_IF_FAILED(_fileOps.Initialize(_window.get(), FileOpReady, _shellReveal, std::make_shared<WindowsWorkspaceFileOps>()));
+    RETURN_IF_FAILED(_github.Initialize(_window.get(), GitHubReady, std::make_shared<WinHttpGitHubTransport>(), _credentials));
+#endif
+    _redSalamanderInstalledPath = _shellReveal->FindRedSalamander(_settings.redSalamanderPath);
+    for (const auto& repoRef : _settings.githubRepos)
+    {
+        GitHubConnectedRepoState state;
+        state.ref = repoRef;
+        _connectedGitHubRepos.push_back(std::move(state));
+    }
     _host.SetClipboardPreference(_settings.imageFirstPaste ? DxUi::TextClipboardPreference::ImageFirst : DxUi::TextClipboardPreference::TextFirst);
     TransitionLifecycle(LifecyclePhase::Initializing);
     // BuildUi is the sole creation site for the label whose localized facts we cache.
     _currentBlockLatestFacts.reset();
     _currentBlockPublishedFacts.Invalidate();
     RETURN_IF_FAILED(BuildUi());
+    InitializeSpelling();
     ApplyTheme();
     SetDocument(_startupRestore.enabled ? std::wstring{} : SampleDocument());
     if (_startupRestore.enabled && _options.document.empty())
@@ -820,6 +844,19 @@ DxUi::Button* Application::Action(DxUi::Panel& parent, unsigned label, Command c
     button->SetOnClick([this, command] { Execute(command); });
     return button;
 }
+DxUi::Toggle* Application::MakeSettingToggle(DxUi::Panel& parent, unsigned label, Command command, std::wstring_view tooltip)
+{
+    auto* toggle = parent.AddChild<DxUi::Toggle>(Resource(label));
+    toggle->SetAccessibleName(Resource(label));
+    if (! tooltip.empty())
+    {
+        const std::wstring tipText(tooltip);
+        toggle->SetTooltipText(tipText);
+        toggle->SetAccessibleHelpText(tipText);
+    }
+    toggle->SetOnToggled([this, command](bool) { Execute(command); });
+    return toggle;
+}
 
 void Application::ApplyMarkdownSyntax()
 {
@@ -849,7 +886,8 @@ void Application::ApplyTheme()
     auto theme            = DxUi::MakeDefaultThemePalette(dark);
     HIGHCONTRASTW contrast{sizeof(contrast)};
     (void)SystemParametersInfoW(SPI_GETHIGHCONTRAST, sizeof(contrast), &contrast, 0);
-    const bool highContrast = (contrast.dwFlags & HCF_HIGHCONTRASTON) != 0 || (_options.headless && _options.scenario == L"high-contrast");
+    const bool highContrast = (contrast.dwFlags & HCF_HIGHCONTRASTON) != 0 ||
+                              (_options.headless && (_options.scenario == L"high-contrast" || _options.scenario == L"spelling-high-contrast"));
     if (highContrast)
     {
         const auto systemColor = [](int index)
@@ -884,6 +922,21 @@ void Application::ApplyTheme()
     theme.primaryButtonFill = D2D1::ColorF(0xC83C46);
     theme.primaryButtonText = D2D1::ColorF(D2D1::ColorF::White);
     _host.SetTheme(theme);
+    const std::optional<D2D1_COLOR_F> mutedHelpColor = highContrast ? std::nullopt : std::optional(theme.subduedText);
+    for (auto* helpLabel : {_strikeTasksHelp,
+                            _drawerHelp,
+                            _localNetworkImagesHelp,
+                            _imageFirstPasteHelp,
+                            _spellingHelp,
+                            _syntaxIntro,
+                            _drawerImmediate,
+                            _spellingLanguageLabel,
+                            _spellingDictPathLabel})
+        if (helpLabel)
+            helpLabel->SetTextColor(mutedHelpColor);
+    for (auto* syntaxHelp : _syntaxHelp)
+        if (syntaxHelp)
+            syntaxHelp->SetTextColor(mutedHelpColor);
     if (_printPreview)
         _printPreview->SetTheme(theme);
     const auto underline = highContrast ? DxUi::RichTextLinkUnderlinePolicy::Always : DxUi::RichTextLinkUnderlinePolicy::HoverOrCaret;
@@ -911,15 +964,16 @@ bool Application::Dirty() const
     if (! activeEditor)
         return false;
     const auto source = activeEditor->Snapshot();
-    if (_derivedCaches.dirtyFact && _derivedCaches.dirtyFact->recovered == _session.recovered && _derivedCaches.dirtyFact->source.IsSameRevision(source))
+    if (_derivedCaches.dirtyFact && _derivedCaches.dirtyFact->recovered == _session.recovered &&
+        _derivedCaches.dirtyFact->resumedUnsaved == _session.resumedUnsaved && _derivedCaches.dirtyFact->source.IsSameRevision(source))
         return _derivedCaches.dirtyFact->dirty;
-    bool dirty = _session.recovered || source.Length() != _session.savedText.size();
+    bool dirty = _session.recovered || _session.resumedUnsaved || source.Length() != _session.savedText.size();
     if (! dirty)
     {
         ++_activity.dirtyTextComparisons;
         dirty = CurrentText() != _session.savedText;
     }
-    _derivedCaches.dirtyFact = DerivedDocumentCaches::DirtyFact{source, _session.recovered, dirty};
+    _derivedCaches.dirtyFact = DerivedDocumentCaches::DirtyFact{source, _session.recovered, _session.resumedUnsaved, dirty};
     return dirty;
 }
 void Application::RefreshDocumentAnalysis(const DxUi::RichText::SourceSnapshot& source, bool committed)
@@ -1088,6 +1142,11 @@ bool Application::SynchronizeMirror()
     }
     return true;
 }
+void Application::ClearStatus()
+{
+    if (_feedback && ! _feedback->GetText().empty())
+        _feedback->SetText(L"");
+}
 void Application::Status(unsigned id)
 {
     if (_feedback)
@@ -1142,8 +1201,15 @@ bool Application::SetDocument(std::wstring text, std::filesystem::path path, boo
     _pendingBitmapPaste.reset();
     if (! IsInitializing())
         AbandonStartupRestore();
-    _session.recovered = false;
-    _session.path      = std::move(path);
+    _session.recovered      = false;
+    _session.resumedUnsaved = false;
+    _session.origin         = {};
+    _session.spellLanguageOverride.reset();
+    _session.path = std::move(path);
+    _spell.appliedKey.reset();
+    _spell.issues.clear();
+    _spell.suppressedTypingWord.reset();
+    _spell.typingSuppressionActive = false;
     EnsureFilesRoot();
     _session.bom       = hasBom;
     _session.stamp     = identity;
@@ -1151,6 +1217,7 @@ bool Application::SetDocument(std::wstring text, std::filesystem::path path, boo
     _derivedCaches.dirtyFact.reset();
     SetView(_settings.view);
     Changed();
+    ScheduleSpellCheck(true);
     RefreshFiles(true);
     if (rememberForStartup)
         RememberActiveDocument();
@@ -1161,6 +1228,8 @@ void Application::Changed()
     _pendingBitmapPaste.reset();
     if (_switchingDocument)
         return;
+    if (! IsInitializing())
+        ClearStatus();
     if (_editDiagnostics)
         _editDiagnostics->Mark(EditPhase::Enter);
     ++_activity.changes;
@@ -1175,10 +1244,15 @@ void Application::Changed()
         _editDiagnostics->Mark(EditPhase::Mirror);
     const auto name                  = _session.path.empty() ? Resource(IDS_UNTITLED) : _session.path.filename().native();
     const bool dirty                 = Dirty();
-    const auto displayedName         = _settings.focusMode && dirty ? name + L" · " + Resource(IDS_CHANGED) : name;
-    const bool identityLayoutChanged = _title->GetText() != displayedName;
-    _title->SetText(displayedName);
-    _saveState->SetText(Resource(dirty ? IDS_CHANGED : IDS_SAVED));
+    const bool identityLayoutChanged = _title->GetText() != name;
+    _title->SetText(name);
+    if (_dirtyDot)
+    {
+        const bool dotChanged = _dirtyDot->IsVisible() != dirty;
+        _dirtyDot->SetVisible(dirty);
+        if (dotChanged && ! identityLayoutChanged)
+            _host.Invalidate();
+    }
     if (identityLayoutChanged)
         Layout();
     if (_editDiagnostics)
@@ -1223,6 +1297,7 @@ void Application::Changed()
         _editDiagnostics->Mark(EditPhase::Selection);
     if (! IsInitializing())
         CheckpointRecovery();
+    OnSpellEditorChanged();
     if (_editDiagnostics)
         _editDiagnostics->Mark(EditPhase::Recovery);
 }
@@ -1288,7 +1363,7 @@ void Application::UpdateCaption(std::wstring caption)
         _appliedCaption.CommitPublish(token, std::move(caption));
 }
 
-void Application::CheckpointRecovery(bool immediate)
+void Application::CheckpointRecovery(bool immediate, RecoverySnapshotKind kind)
 {
     std::optional<RecoverySnapshot> snapshot;
     auto* const activeEditor = ActiveEditor();
@@ -1328,7 +1403,18 @@ void Application::CheckpointRecovery(bool immediate)
             text.replace(range.first, range.last - range.first, draft);
             selection = {range.first, range.first + draft.size()};
         }
-        snapshot = RecoverySnapshot{std::move(text), _session.path, _session.bom, selection, ++_recoveryGeneration};
+        RecoverySnapshot snap;
+        snap.text               = std::move(text);
+        snap.originalPath       = _session.path;
+        snap.bom                = _session.bom;
+        snap.selection          = selection;
+        snap.generation         = ++_recoveryGeneration;
+        snap.kind               = kind;
+        snap.origin             = _session.origin;
+        snap.workspaceOrder     = 0u;
+        snap.wasActive          = true;
+        snap.savedBaselineStamp = _session.stamp;
+        snapshot                = std::move(snap);
     }
     const bool flush = immediate || ! snapshot.has_value();
     ++_activity.recoverySubmissions;
@@ -1362,6 +1448,92 @@ void Application::RecoveryCompleted()
         ShowRecovery();
     if (FAILED(_recovery.Status()))
         Status(IDS_RECOVERYFAILED);
+    if (! _sessionResumeApplied && _recovery.Ready() && ! HasActiveModalPrompt())
+    {
+        _sessionResumeApplied = true;
+        std::vector<OfferedRecoveryCandidate> sessionResumeCandidates;
+        std::erase_if(_recoveryCandidates,
+                      [&](OfferedRecoveryCandidate& candidate)
+        {
+            if (candidate.snapshot.kind == RecoverySnapshotKind::SessionResume)
+            {
+                sessionResumeCandidates.push_back(std::move(candidate));
+                return true;
+            }
+            return false;
+        });
+        if (! sessionResumeCandidates.empty())
+        {
+            std::ranges::sort(sessionResumeCandidates,
+                              [](const auto& a, const auto& b)
+            {
+                if (a.snapshot.workspaceOrder != b.snapshot.workspaceOrder)
+                    return a.snapshot.workspaceOrder < b.snapshot.workspaceOrder;
+                return a.snapshot.wasActive && ! b.snapshot.wasActive;
+            });
+            const bool keepCliDoc = ! _options.document.empty();
+            if (! keepCliDoc && _startupRestore.IsWaitingForRecovery())
+            {
+                _startupRestore.phase = StartupRestoreState::Phase::Completed;
+                _startupRestore.source.reset();
+            }
+            std::optional<unsigned> activeResumedKey;
+            const unsigned savedCurrentKey = _session.key;
+            for (const auto& candidate : sessionResumeCandidates)
+            {
+                if (keepCliDoc || _session.path.empty() == false || Dirty() || _editor->CanUndo() || _editor->CanRedo())
+                {
+                    if (! StartWorkspaceDocument() || ! IsUiAttached())
+                        break;
+                }
+                if (! SetDocument(candidate.snapshot.text,
+                                  candidate.snapshot.originalPath,
+                                  candidate.snapshot.bom,
+                                  candidate.snapshot.savedBaselineStamp.value_or(FileStamp{}),
+                                  false))
+                    break;
+                if (! IsUiAttached())
+                    break;
+                _session.recovered      = false;
+                _session.resumedUnsaved = true;
+                _session.origin         = candidate.snapshot.origin;
+                (void)AcceptSourceResult(_editor->TrySetSelection(candidate.snapshot.selection));
+                _derivedCaches.dirtyFact.reset();
+                Changed();
+                if (! IsUiAttached())
+                    break;
+                RecoverySnapshot retained = candidate.snapshot;
+                retained.kind             = RecoverySnapshotKind::SessionResume;
+                retained.generation       = ++_recoveryGeneration;
+                if (FAILED(_recovery.SubmitDocument(_session.key, std::move(retained), true, candidate.id)))
+                    Status(IDS_RECOVERYFAILED);
+                if (candidate.snapshot.wasActive && ! keepCliDoc)
+                    activeResumedKey = _session.key;
+            }
+            if (keepCliDoc)
+            {
+                for (std::size_t i = 0; i < _inactiveDocuments.size(); ++i)
+                    if (_inactiveDocuments[i].metadata.key == savedCurrentKey)
+                    {
+                        (void)SwitchWorkspaceDocument(i, false, false);
+                        break;
+                    }
+            }
+            else if (activeResumedKey && _session.key != *activeResumedKey)
+            {
+                for (std::size_t i = 0; i < _inactiveDocuments.size(); ++i)
+                    if (_inactiveDocuments[i].metadata.key == *activeResumedKey)
+                    {
+                        (void)SwitchWorkspaceDocument(i, false, false);
+                        break;
+                    }
+            }
+            if (! _inactiveDocuments.empty())
+                _workspaceSelectionPreferred = true;
+            RefreshFiles();
+            Layout();
+        }
+    }
     if (! _recoveryOffered && _recovery.Ready() && ! HasActiveModalPrompt())
     {
         _recoveryOffered = true;
@@ -1465,6 +1637,7 @@ void Application::SetView(EditorView view)
     SelectionChanged();
     if (! current())
         return;
+    ScheduleSpellCheck(true);
     _host.SetFocusControl(primary, false);
     if (! current())
         return;
@@ -1506,6 +1679,7 @@ void Application::SelectionChanged(bool refreshTools)
         return activeEditor->Snapshot();
     }();
     const auto sourceRevision = activeEditor->Revision();
+    OnSpellSelectionChanged();
     {
         EditDiagnostics::SelectionMeasure measure(_editDiagnostics, SelectionComponent::DocumentAnalysisRefresh);
         RefreshDocumentAnalysis(source, false);
@@ -1847,6 +2021,8 @@ void Application::ReloadSettingsFromDisk()
     const bool syntaxChanged     = _settings.markdownSyntax != reloaded.markdownSyntax;
     const bool splitSyncChanged  = _settings.splitScrollSync != reloaded.splitScrollSync;
     const bool pinModesChanged   = _settings.filesPinMode != reloaded.filesPinMode || _settings.outlinePinMode != reloaded.outlinePinMode;
+    const bool spellingChanged   = _settings.spelling != reloaded.spelling;
+    const bool dictPathChanged   = _settings.spelling.customDictionaryPath != reloaded.spelling.customDictionaryPath;
     const bool layoutNeeded      = appearanceChanged || _settings.readingWidth != reloaded.readingWidth || _settings.textScale != reloaded.textScale ||
                                    _settings.showOutline != reloaded.showOutline || _settings.dimInactiveBlocks != reloaded.dimInactiveBlocks ||
                                    _settings.strikeCompletedTasks != reloaded.strikeCompletedTasks || syntaxChanged || remoteChanged || localNetChanged ||
@@ -1865,12 +2041,13 @@ void Application::ReloadSettingsFromDisk()
     _settings.splitScrollSync         = reloaded.splitScrollSync;
     _settings.filesPinMode            = reloaded.filesPinMode;
     _settings.outlinePinMode          = reloaded.outlinePinMode;
+    _settings.spelling                = reloaded.spelling;
 
     if (clipboardChanged)
     {
         _host.SetClipboardPreference(_settings.imageFirstPaste ? DxUi::TextClipboardPreference::ImageFirst : DxUi::TextClipboardPreference::TextFirst);
         if (_imageFirstPasteToggle)
-            _imageFirstPasteToggle->SetToggleState(_settings.imageFirstPaste);
+            _imageFirstPasteToggle->SetChecked(_settings.imageFirstPaste);
     }
     if (localNetChanged || remoteChanged)
     {
@@ -1882,13 +2059,23 @@ void Application::ReloadSettingsFromDisk()
             _editor->SetRemoteImagesEnabled(_settings.allowRemoteImages || _session.remoteImagesAllowed);
         _images.DiscardCancelled();
         if (_remoteImagesToggle)
-            _remoteImagesToggle->SetToggleState(_settings.allowRemoteImages);
+            _remoteImagesToggle->SetChecked(_settings.allowRemoteImages);
         if (_localNetworkImagesToggle)
-            _localNetworkImagesToggle->SetToggleState(_settings.allowLocalNetworkImages);
+            _localNetworkImagesToggle->SetChecked(_settings.allowLocalNetworkImages);
         ServiceImages();
     }
     if (syntaxChanged && _editor && _mirror && _equation)
         ApplyMarkdownSyntax();
+    if (spellingChanged)
+    {
+        ++_spell.languageConfigVersion;
+        if (dictPathChanged)
+            (void)_customDictionary.Load(ActiveCustomDictionaryPath());
+        _spell.activeLanguages = ResolveEffectiveSpellLanguages(std::nullopt);
+        RefreshProofingDrawerControls();
+        RefreshSpellStatusChip();
+        ScheduleSpellCheck(true);
+    }
     if (appearanceChanged)
         ApplyTheme();
     else if (layoutNeeded)
@@ -1898,7 +2085,9 @@ void Application::SetActiveOverlay(OverlayKind next)
 {
     const bool wasFindBar    = _activeOverlay == OverlayKind::FindBar;
     const bool wasBlockDraft = _activeOverlay == OverlayKind::BlockDraftModal;
-    if (next == OverlayKind::FindBar || next == OverlayKind::SettingsDrawer || next == OverlayKind::BlockDraftModal || next == OverlayKind::RecoveryModal)
+    const bool isModal       = next == OverlayKind::RecoveryModal || next == OverlayKind::SaveConfirmModal || next == OverlayKind::RenameFileModal ||
+                               next == OverlayKind::FileConflictModal || next == OverlayKind::OpenGitHubModal;
+    if (next == OverlayKind::FindBar || next == OverlayKind::SettingsDrawer || next == OverlayKind::BlockDraftModal || isModal)
         DismissHoverOverlays(false);
     if (next != OverlayKind::FloatingSelectionTools)
     {
@@ -1912,11 +2101,21 @@ void Application::SetActiveOverlay(OverlayKind next)
         activeEditor->SetReadOnly(false);
         (void)AcceptSourceResult(activeEditor->TrySetSourceHighlights({}));
     }
+    if (_modalBackdrop)
+        _modalBackdrop->SetVisible(isModal);
     _floating->SetVisible(next == OverlayKind::FloatingSelectionTools);
     _findBar->SetVisible(next == OverlayKind::FindBar);
     _drawer->SetVisible(next == OverlayKind::SettingsDrawer);
     _blockDraft->SetVisible(next == OverlayKind::BlockDraftModal);
     _recoveryPanel->SetVisible(next == OverlayKind::RecoveryModal);
+    if (_saveConfirmPanel)
+        _saveConfirmPanel->SetVisible(next == OverlayKind::SaveConfirmModal);
+    if (_renamePanel)
+        _renamePanel->SetVisible(next == OverlayKind::RenameFileModal);
+    if (_fileConflictPanel)
+        _fileConflictPanel->SetVisible(next == OverlayKind::FileConflictModal);
+    if (_openGitHubPanel)
+        _openGitHubPanel->SetVisible(next == OverlayKind::OpenGitHubModal);
     _activeOverlay = next;
     if (wasFindBar && next != OverlayKind::FindBar)
         RefreshFind();
@@ -1925,6 +2124,12 @@ void Application::SetActiveOverlay(OverlayKind next)
 void Application::CloseDrawers()
 {
     const bool hadBlockDraft = HasBlockDraft();
+    _saveConfirmSession.reset();
+    _renameSession.reset();
+    _fileConflictSession.reset();
+    _pendingDeviceFlow.reset();
+    if (_window)
+        (void)KillTimer(_window.get(), GitHubDevicePollTimerId);
     SetActiveOverlay(OverlayKind::None);
     Layout();
     _host.SetFocusControl(ActiveEditor(), MayRequestNativeFocus());
@@ -2001,8 +2206,12 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
     {
         case Command::FileMenu: FileMenu(); return;
         case Command::OpenFolder: OpenFolder(); return;
+        case Command::AddFolder: AddFolder(); return;
+        case Command::OpenGitHub: ShowOpenGitHubModal(); return;
         case Command::Overflow: FileMenu(true); return;
         case Command::Files:
+        case Command::PinFiles:
+        {
             if (_activeOverlay == OverlayKind::FloatingSelectionTools)
                 SetActiveOverlay(OverlayKind::None);
             else
@@ -2010,57 +2219,41 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
                 _pendingSelectionTools = false;
                 _selectionToolsFocus.reset();
             }
-            DismissHoverOverlays(false);
-            _settings.showFiles = ! _settings.showFiles;
-            if (_settings.showFiles && _settings.filesPinMode == PanePinMode::Unpinned)
-                _settings.filesPinMode = PanePinMode::Auto;
-            RefreshFiles(true);
-            Layout();
-            SavePreferences();
-            _host.SetFocusControl(_settings.showFiles && _filesPane->IsVisible() ? static_cast<DxUi::Control*>(_filesTree) : ActiveEditor(),
-                                  MayRequestNativeFocus());
-            return;
-        case Command::PinFiles:
-        {
-            if (! _settings.showFiles)
-            {
-                _settings.showFiles = true;
-                RefreshFiles(true);
-            }
             const bool docked = _leftRail && _leftRail->State().mode == PaneDisplayMode::Docked && _leftRail->State().phase != PaneAnimationPhase::Collapsing;
+            DismissHoverOverlays(false);
             if (docked)
             {
+                _settings.showFiles    = false;
                 _settings.filesPinMode = PanePinMode::Unpinned;
             }
             else
             {
+                _settings.showFiles    = true;
                 _settings.filesPinMode = PanePinMode::Pinned;
                 _lastPinnedSide        = PaneSide::Left;
-                if (_explicitPaneRevealSide == PaneSide::Left)
-                    _explicitPaneRevealSide.reset();
             }
+            RefreshFiles(true);
             Layout();
             SavePreferences();
-            if (docked)
-                _host.SetFocusControl(ActiveEditor(), MayRequestNativeFocus());
+            _host.SetFocusControl(! docked && _filesPane->IsVisible() ? static_cast<DxUi::Control*>(_filesTree) : ActiveEditor(), MayRequestNativeFocus());
             return;
         }
+        case Command::Outline:
         case Command::PinOutline:
         {
-            if (! _settings.showOutline)
-                _settings.showOutline = true;
             const bool docked =
                 _rightRail && _rightRail->State().mode == PaneDisplayMode::Docked && _rightRail->State().phase != PaneAnimationPhase::Collapsing;
+            DismissHoverOverlays(false);
             if (docked)
             {
+                _settings.showOutline    = false;
                 _settings.outlinePinMode = PanePinMode::Unpinned;
             }
             else
             {
+                _settings.showOutline    = true;
                 _settings.outlinePinMode = PanePinMode::Pinned;
                 _lastPinnedSide          = PaneSide::Right;
-                if (_explicitPaneRevealSide == PaneSide::Right)
-                    _explicitPaneRevealSide.reset();
             }
             Layout();
             SavePreferences();
@@ -2105,7 +2298,7 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
             _settings.allowRemoteImages = ! _settings.allowRemoteImages;
             _editor->SetRemoteImagesEnabled(_settings.allowRemoteImages || _session.remoteImagesAllowed);
             _images.DiscardCancelled();
-            _remoteImagesToggle->SetToggleState(_settings.allowRemoteImages);
+            _remoteImagesToggle->SetChecked(_settings.allowRemoteImages);
             ServiceImages();
             SavePreferences();
             return;
@@ -2117,7 +2310,7 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
             _editor->SetRemoteImagesEnabled(false);
             _editor->SetRemoteImagesEnabled(_settings.allowRemoteImages || _session.remoteImagesAllowed);
             _images.DiscardCancelled();
-            _localNetworkImagesToggle->SetToggleState(_settings.allowLocalNetworkImages);
+            _localNetworkImagesToggle->SetChecked(_settings.allowLocalNetworkImages);
             ServiceImages();
             SavePreferences();
             return;
@@ -2141,7 +2334,7 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         case Command::ImageFirstPaste:
             _settings.imageFirstPaste = ! _settings.imageFirstPaste;
             _host.SetClipboardPreference(_settings.imageFirstPaste ? DxUi::TextClipboardPreference::ImageFirst : DxUi::TextClipboardPreference::TextFirst);
-            _imageFirstPasteToggle->SetToggleState(_settings.imageFirstPaste);
+            _imageFirstPasteToggle->SetChecked(_settings.imageFirstPaste);
             SavePreferences();
             return;
         case Command::DimBlocks:
@@ -2291,7 +2484,7 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
         case Command::New:
             AskWorkspaceThen([this]
             {
-                ResetWorkspace();
+                ResetWorkspace(true);
                 SetDocument({});
                 _host.SetFocusControl(_editor, MayRequestNativeFocus());
             });
@@ -2523,16 +2716,6 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
             CloseDrawers();
             Layout();
             return;
-        case Command::Outline:
-            DismissHoverOverlays(false);
-            _settings.showOutline = ! _settings.showOutline;
-            if (_settings.showOutline && _settings.outlinePinMode == PanePinMode::Unpinned)
-                _settings.outlinePinMode = PanePinMode::Auto;
-            Layout();
-            SavePreferences();
-            if (! _settings.showOutline)
-                _host.SetFocusControl(ActiveEditor(), MayRequestNativeFocus());
-            return;
         case Command::ThemeSystem:
         case Command::ThemeLight:
         case Command::ThemeDark:
@@ -2543,6 +2726,168 @@ void Application::ExecuteCommand(Command command, unsigned zoomSteps)
             return;
         case Command::CloseDrawer: CloseDrawers(); return;
         case Command::ApplyBlock: ApplyBlockSource(); return;
+        case Command::ToggleSpelling:
+        case Command::SpellIgnoreUppercase:
+        case Command::SpellIgnoreDigits:
+        case Command::SpellIgnoreInternetPaths:
+        case Command::SpellCycleLanguage:
+        case Command::SpellChooseCustomDictionary:
+        case Command::SpellResetCustomDictionary:
+        case Command::OpenProofingSettings: ExecuteSpellingCommand(command); return;
+        case Command::ExitUnsavedBehavior:
+            _settings.exitUnsavedBehavior =
+                _settings.exitUnsavedBehavior == ExitUnsavedBehavior::KeepAndResume ? ExitUnsavedBehavior::Prompt : ExitUnsavedBehavior::KeepAndResume;
+            if (_keepUnsavedToggle)
+                _keepUnsavedToggle->SetChecked(_settings.exitUnsavedBehavior == ExitUnsavedBehavior::KeepAndResume);
+            SavePreferences();
+            return;
+        case Command::SaveConfirmSelectAll:
+        {
+            if (! _saveConfirmSession || _syncingSaveConfirmChecks)
+                return;
+            const bool checked        = _saveConfirmSelectAll && _saveConfirmSelectAll->IsChecked();
+            _syncingSaveConfirmChecks = true;
+            for (std::size_t i = 0; i < _saveConfirmSession->items.size() && i < _saveConfirmRowControls.size(); ++i)
+            {
+                _saveConfirmSession->items[i].selected = checked;
+                _saveConfirmRowControls[i].checkbox->SetChecked(checked);
+            }
+            _syncingSaveConfirmChecks = false;
+            const bool anyChecked     = std::ranges::any_of(_saveConfirmSession->items, &SaveConfirmItem::selected);
+            if (_saveConfirmPrimary)
+                _saveConfirmPrimary->SetEnabled(anyChecked || _saveConfirmSession->items.size() <= 1u);
+            return;
+        }
+        case Command::SaveConfirmAccept:
+        {
+            if (! _saveConfirmSession)
+                return;
+            if (_saveConfirmSession->items.size() <= 1u)
+            {
+                _saveConfirmSession->items[0].selected = true;
+                for (std::size_t i = 0; i < _saveConfirmRowControls.size(); ++i)
+                    _saveConfirmRowControls[i].checkbox->SetChecked(true);
+            }
+            const bool anyChecked = std::ranges::any_of(_saveConfirmSession->items, &SaveConfirmItem::selected);
+            if (! anyChecked)
+            {
+                auto cont = std::move(_saveConfirmSession->continuation);
+                _saveConfirmSession.reset();
+                SetActiveOverlay(OverlayKind::None);
+                Layout();
+                if (cont)
+                    cont();
+                return;
+            }
+            SetActiveOverlay(OverlayKind::None);
+            Layout();
+            AdvanceSaveConfirmSequentialSave();
+            return;
+        }
+        case Command::SaveConfirmKeepExit:
+        {
+            _saveConfirmSession.reset();
+            SetActiveOverlay(OverlayKind::None);
+            Layout();
+            BeginClose(true);
+            return;
+        }
+        case Command::SaveConfirmDiscard:
+        {
+            if (! _saveConfirmSession)
+                return;
+            auto cont = std::move(_saveConfirmSession->continuation);
+            _saveConfirmSession.reset();
+            SetActiveOverlay(OverlayKind::None);
+            Layout();
+            if (cont)
+                cont();
+            return;
+        }
+        case Command::RenameConfirm: CommitRenameFileModal(); return;
+        case Command::FileConflictReplace: CommitFileConflictResolution(true); return;
+        case Command::FileConflictKeepBoth: CommitFileConflictResolution(false); return;
+        case Command::GitHubOpenConfirm: CommitOpenGitHubModal(); return;
+        case Command::GitHubSignInDevice:
+        {
+            GitHubRequest req;
+            req.kind      = GitHubRequest::Kind::StartDeviceFlow;
+            req.requestId = ++_nextGitHubRequestId;
+            if (FAILED(_github.Submit(std::move(req))))
+                Status(IDS_BUSY);
+            return;
+        }
+        case Command::GitHubImportGhCli:
+        {
+            std::wstring imported;
+#if defined(REDTILDE_ENABLE_TESTS)
+            if (_options.ghCliImporterForTest)
+            {
+                if (auto token = _options.ghCliImporterForTest())
+                    imported = std::move(*token);
+            }
+            else
+#endif
+            {
+                (void)TryImportGhCliToken(imported);
+            }
+            if (! imported.empty())
+            {
+                GitHubRequest req;
+                req.kind              = GitHubRequest::Kind::SignInWithPat;
+                req.requestId         = ++_nextGitHubRequestId;
+                req.tokenOrDeviceCode = std::move(imported);
+                if (FAILED(_github.Submit(std::move(req))))
+                    Status(IDS_BUSY);
+            }
+            else
+            {
+                Status(IDS_GITHUB_NOT_SIGNED_IN);
+            }
+            return;
+        }
+        case Command::GitHubUseToken:
+        {
+            std::wstring token;
+            if (_activeOverlay == OverlayKind::OpenGitHubModal && _openGitHubTokenInput && ! _openGitHubTokenInput->GetText().empty())
+                token = std::wstring(_openGitHubTokenInput->GetText());
+            else if (_accountsTokenInput && ! _accountsTokenInput->GetText().empty())
+                token = std::wstring(_accountsTokenInput->GetText());
+            if (token.empty())
+                return;
+            if (_openGitHubTokenInput)
+                _openGitHubTokenInput->SetText(L"");
+            if (_accountsTokenInput)
+                _accountsTokenInput->SetText(L"");
+            GitHubRequest req;
+            req.kind              = GitHubRequest::Kind::SignInWithPat;
+            req.requestId         = ++_nextGitHubRequestId;
+            req.tokenOrDeviceCode = std::move(token);
+            ScrubWideString(token);
+            if (FAILED(_github.Submit(std::move(req))))
+                Status(IDS_BUSY);
+            return;
+        }
+        case Command::GitHubSignOut:
+        {
+            GitHubRequest req;
+            req.kind      = GitHubRequest::Kind::SignOut;
+            req.requestId = ++_nextGitHubRequestId;
+            if (FAILED(_github.Submit(std::move(req))))
+                Status(IDS_BUSY);
+            return;
+        }
+        case Command::FilesCtxOpen:
+        case Command::FilesCtxRevealExplorer:
+        case Command::FilesCtxRevealRedSalamander:
+        case Command::FilesCtxCopyFullPath:
+        case Command::FilesCtxCopyRelPath:
+        case Command::FilesCtxRename:
+        case Command::FilesCtxCut:
+        case Command::FilesCtxCopy:
+        case Command::FilesCtxPaste:
+        case Command::FilesCtxRemoveRoot:
+        case Command::FilesCtxRemoveRepo: ExecuteFilesContextAction(command); return;
     }
     auto* const activeEditor = ActiveEditor();
     if (semantic)
@@ -2721,13 +3066,16 @@ std::vector<DxUi::MenuFlyoutItem> Application::ContextMenuItems(bool insertOnly,
     return items;
 }
 
-void Application::Menu(POINT point, bool insertOnly, bool headingOnly)
+void Application::Menu(POINT point, bool insertOnly, bool headingOnly, bool keyboardInvocation)
 {
     if (_options.headless)
         return; // Focus-taking menus are an explicitly interactive gate.
-    auto items           = ContextMenuItems(insertOnly, headingOnly);
+    auto items = ContextMenuItems(insertOnly, headingOnly);
+    if (! insertOnly && ! headingOnly)
+        PopulateSpellContextMenu(point, keyboardInvocation, items);
     auto* const primary  = ActiveEditor();
     const auto source    = primary->Snapshot();
+    const auto revision  = primary->Revision();
     const auto selection = primary->GetSelection();
     const auto key       = _session.key;
     const auto lifetime  = GetControlLifetimeToken(*primary);
@@ -2739,10 +3087,18 @@ void Application::Menu(POINT point, bool insertOnly, bool headingOnly)
                                        point,
                                        items,
                                        _host.GetTheme(),
-                                       [this, primary, source, selection, key, lifetime](std::optional<int> selected) noexcept
+                                       [this, primary, source, revision, selection, key, lifetime](std::optional<int> selected) noexcept
     {
         RunUiAction([&]
         {
+            if (selected)
+            {
+                if (HandleSpellMenuSelection(*selected, key, source, revision, selection))
+                {
+                    OnMenuClosed(std::nullopt);
+                    return;
+                }
+            }
             if (selected == static_cast<int>(Command::OpenLink) + 1)
             {
                 if (! IsUiAttached() || lifetime.expired() || ActiveEditor() != primary)
@@ -2838,68 +3194,684 @@ void Application::AskThen(std::function<void()> continuation)
         continuation();
         return;
     }
+#if defined(REDTILDE_ENABLE_TESTS)
+    if (_options.headless && _options.unsavedPromptForTest && ! _options.forceDxUiSaveDialogForTest)
+    {
+        int choice = IDCANCEL;
+        {
+            _modalPrompt       = ModalPromptKind::UnsavedChanges;
+            const auto restore = wil::scope_exit([&] { _modalPrompt = ModalPromptKind::None; });
+            choice             = _options.unsavedPromptForTest();
+        }
+        if (! CanAcceptCommand())
+            return;
+        if (choice == IDNO)
+            continuation();
+        else if (choice == IDYES)
+        {
+            _activeFileTx = SaveTx{std::move(continuation)};
+            Save();
+        }
+        return;
+    }
+#endif
     if (_options.headless
 #if defined(REDTILDE_ENABLE_TESTS)
-        && ! _options.unsavedPromptForTest
+        && ! _options.forceDxUiSaveDialogForTest
 #endif
     )
         return;
-    int choice = IDCANCEL;
-    {
-        // A modal loop can dispatch another Close. The original question alone
-        // owns this continuation until its answer has been collected.
-        _modalPrompt       = ModalPromptKind::UnsavedChanges;
-        const auto restore = wil::scope_exit([&] { _modalPrompt = ModalPromptKind::None; });
-#if defined(REDTILDE_ENABLE_TESTS)
-        if (_options.headless)
-            choice = _options.unsavedPromptForTest();
-        else
-#endif
-            choice = DxUi::Failure::InvokeNative(&MessageBoxW,
-                                                 _window.get(),
-                                                 Resource(IDS_SAVEQUESTION).c_str(),
-                                                 Resource(IDS_APP).c_str(),
-                                                 static_cast<UINT>(MB_ICONQUESTION | MB_YESNOCANCEL | MB_DEFBUTTON3));
-    }
-    if (! CanAcceptCommand())
-        return;
-    if (choice == IDNO)
-        continuation();
-    else if (choice == IDYES)
-    {
-        _activeFileTx = SaveTx{std::move(continuation)};
-        Save();
-    }
+    ShowSaveConfirmModal(std::move(continuation), false);
 }
-void Application::AskWorkspaceThen(std::function<void()> continuation, std::vector<WorkspaceApproval> approved)
+
+void Application::AskWorkspaceThen(std::function<void()> continuation, std::vector<WorkspaceApproval> approved, bool closingApplication)
 {
     if (! CanAcceptCommand() || HasActiveModalPrompt())
         return;
-    const auto accepted = [&](unsigned key, const DxUi::RichText::SourceSnapshot& source)
-    { return std::ranges::any_of(approved, [&](const auto& value) { return value.key == key && value.source.IsSameRevision(source); }); };
-    if (! Dirty() || accepted(_session.key, ActiveEditor()->Snapshot()))
+    if (HasBlockDraft())
     {
-        const auto pending = std::find_if(_inactiveDocuments.begin(), _inactiveDocuments.end(), [&](const auto& document) {
-            return document.dirty && ! accepted(document.metadata.key, document.state.Snapshot());
-        });
-        if (pending == _inactiveDocuments.end())
+        Status(IDS_BLOCKPENDING);
+        return;
+    }
+    if (_files.Busy())
+    {
+        Status(IDS_BUSY);
+        return;
+    }
+    const bool anyInactiveDirty = std::ranges::any_of(_inactiveDocuments, [](const auto& doc) { return doc.dirty; });
+    const bool anyDirty         = Dirty() || anyInactiveDirty;
+    if (! anyDirty)
+    {
+        _workspaceApprovals = std::move(approved);
+        continuation();
+        return;
+    }
+    const bool keepLegacyTestHook =
+#if defined(REDTILDE_ENABLE_TESTS)
+        (_options.headless && _options.unsavedPromptForTest && ! _options.forceDxUiSaveDialogForTest);
+#else
+        false;
+#endif
+    if (closingApplication && ! keepLegacyTestHook && _settings.exitUnsavedBehavior == ExitUnsavedBehavior::KeepAndResume)
+    {
+        BeginClose(true);
+        return;
+    }
+    if (keepLegacyTestHook)
+    {
+        const auto accepted = [&](unsigned key, const DxUi::RichText::SourceSnapshot& source)
+        { return std::ranges::any_of(approved, [&](const auto& value) { return value.key == key && value.source.IsSameRevision(source); }); };
+        if (! Dirty() || accepted(_session.key, ActiveEditor()->Snapshot()))
         {
-            _workspaceApprovals = std::move(approved);
-            continuation();
+            const auto pending = std::find_if(_inactiveDocuments.begin(), _inactiveDocuments.end(), [&](const auto& document) {
+                return document.dirty && ! accepted(document.metadata.key, document.state.Snapshot());
+            });
+            if (pending == _inactiveDocuments.end())
+            {
+                _workspaceApprovals = std::move(approved);
+                continuation();
+                return;
+            }
+            if (! SwitchWorkspaceDocument(static_cast<std::size_t>(pending - _inactiveDocuments.begin())))
+                return;
+            if (! IsUiAttached())
+                return;
+        }
+        const auto promptingSource = ActiveEditor()->Snapshot();
+        const auto promptingKey    = _session.key;
+        AskThen([this, promptingSource, promptingKey, continuation = std::move(continuation), approved = std::move(approved)]() mutable
+        {
+            approved.push_back({promptingKey, promptingSource});
+            AskWorkspaceThen(std::move(continuation), std::move(approved), false);
+        });
+        return;
+    }
+    if (_options.headless
+#if defined(REDTILDE_ENABLE_TESTS)
+        && ! _options.forceDxUiSaveDialogForTest
+#endif
+    )
+        return;
+    ShowSaveConfirmModal(std::move(continuation), closingApplication);
+}
+
+void Application::ShowSaveConfirmModal(std::function<void()> continuation, bool closingApplication)
+{
+    SaveConfirmSession session;
+    session.continuation       = std::move(continuation);
+    session.closingApplication = closingApplication;
+    const auto untitled        = Resource(IDS_UNTITLED);
+    if (Dirty())
+    {
+        SaveConfirmItem item;
+        item.workspaceKey = _session.key;
+        item.isActive     = true;
+        item.selected     = true;
+        item.location     = ResolveWorkspaceDisplayLocation(_session.path, _session.origin, _settings.filesRoots, untitled);
+        session.items.push_back(std::move(item));
+    }
+    for (const auto& doc : _inactiveDocuments)
+    {
+        if (! doc.dirty)
+            continue;
+        SaveConfirmItem item;
+        item.workspaceKey = doc.metadata.key;
+        item.isActive     = false;
+        item.selected     = true;
+        item.location     = ResolveWorkspaceDisplayLocation(doc.metadata.path, doc.metadata.origin, _settings.filesRoots, untitled);
+        session.items.push_back(std::move(item));
+    }
+    if (session.items.empty())
+    {
+        if (session.continuation)
+            session.continuation();
+        return;
+    }
+    while (_saveConfirmRowControls.size() < session.items.size())
+    {
+        SaveConfirmRowControls row;
+        row.checkbox = _saveConfirmScroll->AddChild<DxUi::Checkbox>();
+        row.checkbox->SetChecked(true);
+        const std::size_t rowIndex = _saveConfirmRowControls.size();
+        row.checkbox->SetOnToggled([this, rowIndex](bool checked)
+        {
+            if (_syncingSaveConfirmChecks || ! _saveConfirmSession || rowIndex >= _saveConfirmSession->items.size())
+                return;
+            _saveConfirmSession->items[rowIndex].selected = checked;
+            _syncingSaveConfirmChecks                     = true;
+            if (_saveConfirmSelectAll)
+                _saveConfirmSelectAll->SetChecked(std::ranges::all_of(_saveConfirmSession->items, &SaveConfirmItem::selected));
+            _syncingSaveConfirmChecks = false;
+            if (_saveConfirmPrimary)
+                _saveConfirmPrimary->SetEnabled(std::ranges::any_of(_saveConfirmSession->items, &SaveConfirmItem::selected));
+        });
+        row.locationLabel = _saveConfirmScroll->AddChild<DxUi::Label>();
+        row.locationLabel->SetFontRole(DxUi::FontRole::Small);
+        _saveConfirmRowControls.push_back(row);
+    }
+    const bool multiDoc = session.items.size() > 1u;
+    _saveConfirmTitle->SetText(Resource(multiDoc ? IDS_SAVE_CONFIRM_MULTI_TITLE : IDS_SAVE_CONFIRM_SINGLE_TITLE));
+    _saveConfirmPrimary->SetText(Resource(multiDoc ? IDS_SAVE_SELECTED : IDS_SAVE));
+    _saveConfirmPrimary->SetEnabled(true);
+    _saveConfirmDiscard->SetText(Resource(multiDoc ? IDS_DISCARD_ALL : IDS_DONT_SAVE));
+    _saveConfirmKeepExit->SetVisible(closingApplication);
+    _syncingSaveConfirmChecks = true;
+    if (_saveConfirmSelectAll)
+        _saveConfirmSelectAll->SetChecked(true);
+    for (std::size_t i = 0; i < session.items.size(); ++i)
+        _saveConfirmRowControls[i].checkbox->SetChecked(true);
+    _syncingSaveConfirmChecks = false;
+    _saveConfirmSession       = std::move(session);
+    SetActiveOverlay(OverlayKind::SaveConfirmModal);
+    Layout();
+    _host.SetFocusControl(_saveConfirmPrimary, MayRequestNativeFocus());
+}
+
+void Application::AdvanceSaveConfirmSequentialSave()
+{
+    if (! _saveConfirmSession)
+        return;
+    _saveConfirmSession->sequentialSaveActive = true;
+    while (_saveConfirmSession->pendingSaveIndex < _saveConfirmSession->items.size())
+    {
+        const auto& item = _saveConfirmSession->items[_saveConfirmSession->pendingSaveIndex++];
+        if (! item.selected)
+            continue;
+        if (item.workspaceKey != _session.key)
+        {
+            bool switched{};
+            for (std::size_t idx = 0; idx < _inactiveDocuments.size(); ++idx)
+                if (_inactiveDocuments[idx].metadata.key == item.workspaceKey)
+                {
+                    switched = SwitchWorkspaceDocument(idx);
+                    break;
+                }
+            if (! switched)
+            {
+                _saveConfirmSession.reset();
+                return;
+            }
+        }
+        Save();
+        if (! _files.Busy() && ! IsClosing())
+        {
+            // User cancelled file picker or validation failed synchronously.
+            _saveConfirmSession.reset();
+        }
+        return;
+    }
+    auto cont = std::move(_saveConfirmSession->continuation);
+    _saveConfirmSession.reset();
+    if (cont)
+        cont();
+}
+
+void Application::ShowRenameFileModal(const std::filesystem::path& path, bool isDirectory)
+{
+    if (! _renamePanel || path.empty())
+        return;
+    _renameSession = RenameFileSession{path, isDirectory};
+    const auto loc = ResolveWorkspaceDisplayLocation(path, {}, _settings.filesRoots, path.filename().native());
+    std::wstring locationLabel;
+    if (loc.rooted && ! loc.sectionLabel.empty())
+        locationLabel = FormatStringResource(nullptr, IDS_SAVE_LOCATION_FORMAT, loc.sectionLabel, loc.relativePath);
+    else
+        locationLabel = SanitizeUiText(path.parent_path().filename().native(), 240u);
+    _renameLocation->SetText(locationLabel);
+    _renameInput->SetText(path.filename().native());
+    _renameError->SetText(L"");
+    if (_renameConfirmBtn)
+        _renameConfirmBtn->SetEnabled(true);
+    SetActiveOverlay(OverlayKind::RenameFileModal);
+    Layout();
+    _host.SetFocusControl(_renameInput, MayRequestNativeFocus());
+}
+
+void Application::CommitRenameFileModal()
+{
+    if (! _renameSession || ! _renameInput)
+        return;
+    const std::wstring newName(_renameInput->GetText());
+    auto* ops = _options.fileOpsForTest ? _options.fileOpsForTest.get() : nullptr;
+    WindowsWorkspaceFileOps fallbackOps;
+    if ((ops ? ops : &fallbackOps)->ValidateFileName(newName) != FileNameValidationError::None)
+    {
+        if (_renameError)
+            _renameError->SetText(Resource(IDS_RENAME_INVALID));
+        return;
+    }
+    if (newName == _renameSession->targetPath.filename().native())
+    {
+        CloseDrawers();
+        return;
+    }
+    WorkspaceFileOpRequest req;
+    req.kind        = WorkspaceFileOpRequest::Kind::Rename;
+    req.requestId   = ++_nextFileOpRequestId;
+    req.sourcePath  = _renameSession->targetPath;
+    req.newLeafName = newName;
+    if (FAILED(_fileOps.Submit(std::move(req))))
+    {
+        Status(IDS_BUSY);
+        return;
+    }
+    _renameSession.reset();
+    SetActiveOverlay(OverlayKind::None);
+    Layout();
+    _host.SetFocusControl(ActiveEditor(), MayRequestNativeFocus());
+}
+
+void Application::ShowFileConflictModal(std::vector<std::filesystem::path> sources,
+                                        std::filesystem::path targetDirectory,
+                                        bool move,
+                                        std::filesystem::path conflictName)
+{
+    if (! _fileConflictPanel)
+        return;
+    _fileConflictDesc->SetText(FormatStringResource(nullptr, IDS_FILE_CONFLICT_DESC, conflictName.filename().native()));
+    _fileConflictSession = FileConflictSession{std::move(sources), std::move(targetDirectory), std::move(conflictName), move};
+    SetActiveOverlay(OverlayKind::FileConflictModal);
+    Layout();
+    _host.SetFocusControl(_conflictKeepBothBtn, MayRequestNativeFocus());
+}
+
+void Application::CommitFileConflictResolution(bool replaceExisting)
+{
+    if (! _fileConflictSession)
+        return;
+    auto session = std::move(*_fileConflictSession);
+    _fileConflictSession.reset();
+    SetActiveOverlay(OverlayKind::None);
+    Layout();
+    _host.SetFocusControl(ActiveEditor(), MayRequestNativeFocus());
+    BeginCopyOrMoveToDirectory(std::move(session.sources), session.targetDirectory, session.move, replaceExisting, ! replaceExisting);
+}
+
+void Application::BeginCopyOrMoveToDirectory(
+    std::vector<std::filesystem::path> sources, const std::filesystem::path& targetDirectory, bool move, bool forceOverwrite, bool forceNumbered)
+{
+    if (sources.empty() || targetDirectory.empty())
+        return;
+    WorkspaceFileOpRequest req;
+    req.kind            = WorkspaceFileOpRequest::Kind::Paste;
+    req.requestId       = ++_nextFileOpRequestId;
+    req.sourcePath      = sources.front();
+    req.destinationPath = targetDirectory;
+    req.dropEffect      = move ? DropEffectKind::Move : DropEffectKind::Copy;
+    req.replaceExisting = forceOverwrite;
+    req.keepBothCopy    = forceNumbered;
+    if (FAILED(_fileOps.Submit(std::move(req))))
+        Status(IDS_BUSY);
+}
+
+void Application::FileOpCompleted()
+{
+    if (IsClosing())
+    {
+        FinishClose();
+        return;
+    }
+    while (auto result = _fileOps.TakeResult())
+    {
+        if (result->requiresCollisionPrompt)
+        {
+            ShowFileConflictModal({result->outcome.sourcePath},
+                                  result->outcome.destinationPath.parent_path(),
+                                  result->kind == WorkspaceFileOpRequest::Kind::Paste && ! _cutFilePaths.empty(),
+                                  result->outcome.destinationPath);
             return;
         }
-        if (! SwitchWorkspaceDocument(static_cast<std::size_t>(pending - _inactiveDocuments.begin())))
-            return;
-        if (! IsUiAttached())
-            return;
+        if (FAILED(result->outcome.status))
+        {
+            if (_feedback)
+                _feedback->SetText(FormatStringResource(nullptr, IDS_FILE_OP_FAILED, ErrorText(result->outcome.status)));
+            continue;
+        }
+        if (result->kind == WorkspaceFileOpRequest::Kind::Rename)
+        {
+            const bool isDir = std::filesystem::is_directory(result->outcome.destinationPath);
+            RebaseWorkspacePathsAfterFileOp(result->outcome.sourcePath, result->outcome.destinationPath, isDir, true);
+            (void)_multiFolderFiles.RefreshAll();
+            RefreshFiles(true);
+        }
+        else if (result->kind == WorkspaceFileOpRequest::Kind::Paste)
+        {
+            if (! _cutFilePaths.empty())
+            {
+                const bool isDir = std::filesystem::is_directory(result->outcome.destinationPath);
+                RebaseWorkspacePathsAfterFileOp(result->outcome.sourcePath, result->outcome.destinationPath, isDir, true);
+                _cutFilePaths.clear();
+            }
+            (void)_multiFolderFiles.RefreshAll();
+            RefreshFiles(true);
+        }
     }
-    const auto promptingSource = ActiveEditor()->Snapshot();
-    const auto promptingKey    = _session.key;
-    AskThen([this, promptingSource, promptingKey, continuation = std::move(continuation), approved = std::move(approved)]() mutable
+}
+
+void Application::RefreshGitHubAuthControls()
+{
+    const bool signedIn = ! _githubSignedInLogin.empty();
+    std::wstring statusText;
+    if (! _githubDeviceCodePromptText.empty())
+        statusText = _githubDeviceCodePromptText;
+    else if (signedIn)
+        statusText = FormatStringResource(nullptr, IDS_GITHUB_CONNECTED_AS, _githubSignedInLogin);
+    else
+        statusText = Resource(IDS_GITHUB_NOT_SIGNED_IN);
+    if (_openGitHubAuthLabel)
+        _openGitHubAuthLabel->SetText(statusText);
+    RefreshAccountsDrawerControls();
+}
+
+void Application::RefreshAccountsDrawerControls()
+{
+    const bool signedIn = ! _githubSignedInLogin.empty();
+    if (_accountsStatusLabel)
     {
-        approved.push_back({promptingKey, promptingSource});
-        AskWorkspaceThen(std::move(continuation), std::move(approved));
-    });
+        _accountsStatusLabel->SetText(! _githubDeviceCodePromptText.empty() ? _githubDeviceCodePromptText
+                                      : signedIn                            ? FormatStringResource(nullptr, IDS_GITHUB_CONNECTED_AS, _githubSignedInLogin)
+                                                                            : Resource(IDS_GITHUB_NOT_SIGNED_IN));
+    }
+    if (_accountsSignOutBtn)
+        _accountsSignOutBtn->SetEnabled(signedIn);
+}
+
+void Application::RefreshOpenGitHubSuggestTree()
+{
+    if (! _githubSuggestTree || ! _openGitHubUrlInput)
+        return;
+    const std::wstring query(_openGitHubUrlInput->GetText());
+    _githubSuggestMatches = FilterAndRankGitHubRepos(_githubUserRepoCache, query, 200u);
+    _githubSuggestModel.rows.clear();
+    for (std::size_t i = 0; i < _githubSuggestMatches.size(); ++i)
+    {
+        const auto& repo = _githubSuggestMatches[i];
+        DxUi::TreeItemData item;
+        item.id          = static_cast<std::uint64_t>(i + 1u);
+        item.text        = repo.fullName;
+        item.iconText    = repo.isPrivate ? L"\xE72E" : L"\xE774";
+        item.badgeText   = repo.defaultBranch;
+        item.tooltipText = repo.htmlUrl;
+        _githubSuggestModel.rows.push_back(std::move(item));
+    }
+    _githubSuggestTree->SetEmptyStateText(Resource(IDS_GITHUB_NOT_SIGNED_IN));
+    _githubSuggestTree->NotifyDataChanged();
+}
+
+void Application::ShowOpenGitHubModal()
+{
+    if (! _openGitHubPanel)
+        return;
+    if (_openGitHubErrorLabel)
+        _openGitHubErrorLabel->SetText(L"");
+    RefreshGitHubAuthControls();
+    RefreshOpenGitHubSuggestTree();
+    SetActiveOverlay(OverlayKind::OpenGitHubModal);
+    Layout();
+    _host.SetFocusControl(_openGitHubUrlInput, MayRequestNativeFocus());
+    GitHubRequest req;
+    req.kind      = GitHubRequest::Kind::LoadSavedAccount;
+    req.requestId = ++_nextGitHubRequestId;
+    (void)_github.Submit(std::move(req));
+}
+
+void Application::CommitOpenGitHubModal()
+{
+    if (! _openGitHubUrlInput)
+        return;
+    const auto parsed = ParseGitHubUrl(_openGitHubUrlInput->GetText());
+    if (! parsed.valid)
+    {
+        if (_openGitHubErrorLabel)
+            _openGitHubErrorLabel->SetText(parsed.errorReason);
+        return;
+    }
+    std::wstring branch = _openGitHubBranchInput ? std::wstring(_openGitHubBranchInput->GetText()) : std::wstring{};
+    if (branch.empty())
+        branch = parsed.branch;
+
+    GitHubRepoRef ref{parsed.owner, parsed.repo, branch};
+    const auto existing = std::ranges::find_if(_connectedGitHubRepos, [&](const auto& r) { return r.ref.owner == ref.owner && r.ref.repo == ref.repo; });
+    if (existing == _connectedGitHubRepos.end())
+    {
+        if (_connectedGitHubRepos.size() >= MaximumGitHubRepos)
+        {
+            Status(IDS_WORKSPACEFULL);
+            return;
+        }
+        GitHubConnectedRepoState state;
+        state.ref     = ref;
+        state.loading = true;
+        _connectedGitHubRepos.push_back(std::move(state));
+    }
+    else
+    {
+        existing->ref.branch = branch;
+        existing->loading    = true;
+    }
+    _settings.githubRepos.clear();
+    for (const auto& r : _connectedGitHubRepos)
+        _settings.githubRepos.push_back(r.ref);
+    _settings.showFiles     = true;
+    _settings.filesPinMode  = PanePinMode::Pinned;
+    _lastPinnedSide         = PaneSide::Left;
+    _githubSectionCollapsed = false;
+    _collapsedGitHubRepos.erase(ref.owner + L"/" + ref.repo);
+    SavePreferences();
+
+    GitHubRequest treeReq;
+    treeReq.kind      = GitHubRequest::Kind::FetchRepoTree;
+    treeReq.requestId = ++_nextGitHubRequestId;
+    treeReq.owner     = ref.owner;
+    treeReq.repo      = ref.repo;
+    treeReq.branch    = branch;
+    (void)_github.Submit(std::move(treeReq));
+
+    if (! parsed.filePath.empty())
+        OpenGitHubDocument(ref.owner, ref.repo, branch, parsed.filePath);
+
+    SetActiveOverlay(OverlayKind::None);
+    RefreshFiles();
+    Layout();
+    _host.SetFocusControl(_filesTree, MayRequestNativeFocus());
+}
+
+void Application::RemoveConnectedGitHubRepo(std::wstring_view owner, std::wstring_view repo)
+{
+    if (std::erase_if(_connectedGitHubRepos, [&](const auto& r) { return r.ref.owner == owner && r.ref.repo == repo; }) == 0u)
+        return;
+    _settings.githubRepos.clear();
+    for (const auto& r : _connectedGitHubRepos)
+        _settings.githubRepos.push_back(r.ref);
+    _collapsedGitHubRepos.erase(std::wstring(owner) + L"/" + std::wstring(repo));
+    RefreshFiles();
+    Layout();
+    SavePreferences();
+}
+
+void Application::OpenGitHubDocument(std::wstring_view owner, std::wstring_view repo, std::wstring_view branch, std::wstring_view path)
+{
+    if (HasActiveModalPrompt() || HasBlockDraft() || ! CanAcceptCommand())
+        return;
+    GitHubRequest req;
+    req.kind      = GitHubRequest::Kind::FetchRawFile;
+    req.requestId = ++_nextGitHubRequestId;
+    req.owner     = std::wstring(owner);
+    req.repo      = std::wstring(repo);
+    req.branch    = std::wstring(branch);
+    req.filePath  = std::wstring(path);
+    PendingGitHubDocumentOpen pending;
+    pending.requestId = req.requestId;
+    pending.owner     = req.owner;
+    pending.repo      = req.repo;
+    pending.branch    = req.branch;
+    pending.repoPath  = req.filePath;
+    if (SUCCEEDED(_github.Submit(std::move(req))))
+    {
+        _pendingGitHubOpens.push_back(std::move(pending));
+        Status(IDS_LOADING);
+    }
+    else
+    {
+        Status(IDS_BUSY);
+    }
+}
+
+void Application::GitHubCompleted()
+{
+    if (IsClosing())
+    {
+        FinishClose();
+        return;
+    }
+    while (auto result = _github.TakeResult())
+    {
+        switch (result->kind)
+        {
+            case GitHubRequest::Kind::LoadSavedAccount:
+            case GitHubRequest::Kind::SignInWithPat:
+            case GitHubRequest::Kind::ImportGhCli:
+            {
+                if (SUCCEEDED(result->status) && result->signedIn)
+                {
+                    _githubSignedInLogin = result->accountLogin;
+                    _githubDeviceCodePromptText.clear();
+                    if (! result->userRepos.empty())
+                        _githubUserRepoCache = std::move(result->userRepos);
+                    else
+                    {
+                        GitHubRequest refresh;
+                        refresh.kind      = GitHubRequest::Kind::RefreshUserRepos;
+                        refresh.requestId = ++_nextGitHubRequestId;
+                        (void)_github.Submit(std::move(refresh));
+                    }
+                }
+                else if (FAILED(result->status) && ! result->errorMessage.empty())
+                {
+                    _githubDeviceCodePromptText = FormatStringResource(nullptr, IDS_GITHUB_FETCH_FAILED, result->errorMessage);
+                    if (_openGitHubErrorLabel)
+                        _openGitHubErrorLabel->SetText(_githubDeviceCodePromptText);
+                }
+                RefreshGitHubAuthControls();
+                RefreshOpenGitHubSuggestTree();
+                break;
+            }
+            case GitHubRequest::Kind::RefreshUserRepos:
+                if (SUCCEEDED(result->status))
+                    _githubUserRepoCache = std::move(result->userRepos);
+                RefreshOpenGitHubSuggestTree();
+                break;
+            case GitHubRequest::Kind::StartDeviceFlow:
+                if (SUCCEEDED(result->status) && result->deviceCode)
+                {
+                    _pendingDeviceFlow = result->deviceCode;
+                    _githubDeviceCodePromptText =
+                        FormatStringResource(nullptr, IDS_GITHUB_DEVICE_CODE_PROMPT, result->deviceCode->userCode, result->deviceCode->verificationUri);
+                    RefreshGitHubAuthControls();
+                    if (_window)
+                        (void)SetTimer(_window.get(), GitHubDevicePollTimerId, std::max(2u, result->deviceCode->intervalSeconds) * 1000u, nullptr);
+                }
+                else if (_openGitHubErrorLabel && ! result->errorMessage.empty())
+                {
+                    _openGitHubErrorLabel->SetText(FormatStringResource(nullptr, IDS_GITHUB_FETCH_FAILED, result->errorMessage));
+                }
+                break;
+            case GitHubRequest::Kind::PollDeviceFlow:
+                if (result->devicePoll)
+                {
+                    if (result->devicePoll->state == GitHubDevicePollResult::State::Authorized)
+                    {
+                        _pendingDeviceFlow.reset();
+                        _githubDeviceCodePromptText.clear();
+                        if (_window)
+                            (void)KillTimer(_window.get(), GitHubDevicePollTimerId);
+                        _githubSignedInLogin = result->accountLogin;
+                        _githubUserRepoCache = std::move(result->userRepos);
+                        RefreshGitHubAuthControls();
+                        RefreshOpenGitHubSuggestTree();
+                    }
+                    else if (result->devicePoll->state == GitHubDevicePollResult::State::Pending ||
+                             result->devicePoll->state == GitHubDevicePollResult::State::SlowDown)
+                    {
+                        if (_window)
+                            (void)SetTimer(_window.get(), GitHubDevicePollTimerId, std::max(2u, result->devicePoll->intervalSeconds) * 1000u, nullptr);
+                    }
+                    else
+                    {
+                        _pendingDeviceFlow.reset();
+                        _githubDeviceCodePromptText.clear();
+                        if (_window)
+                            (void)KillTimer(_window.get(), GitHubDevicePollTimerId);
+                        RefreshGitHubAuthControls();
+                    }
+                }
+                break;
+            case GitHubRequest::Kind::SignOut:
+                _pendingDeviceFlow.reset();
+                if (_window)
+                    (void)KillTimer(_window.get(), GitHubDevicePollTimerId);
+                _githubSignedInLogin.clear();
+                _githubDeviceCodePromptText.clear();
+                _githubUserRepoCache.clear();
+                RefreshGitHubAuthControls();
+                RefreshOpenGitHubSuggestTree();
+                break;
+            case GitHubRequest::Kind::FetchRepoTree:
+                if (result->tree)
+                {
+                    for (auto& connected : _connectedGitHubRepos)
+                    {
+                        if (connected.ref.owner == result->tree->owner && connected.ref.repo == result->tree->repo)
+                        {
+                            connected.loading        = false;
+                            connected.loaded         = SUCCEEDED(result->status);
+                            connected.lastError      = result->status;
+                            connected.errorMessage   = result->errorMessage;
+                            connected.resolvedBranch = result->tree->branch;
+                            connected.entries        = std::move(result->tree->entries);
+                            break;
+                        }
+                    }
+                    if (FAILED(result->status) && ! result->errorMessage.empty() && _feedback)
+                        _feedback->SetText(FormatStringResource(nullptr, IDS_GITHUB_FETCH_FAILED, result->errorMessage));
+                    RefreshFiles();
+                }
+                break;
+            case GitHubRequest::Kind::FetchRawFile:
+            {
+                std::erase_if(_pendingGitHubOpens, [&](const auto& p) { return p.requestId == result->requestId; });
+                if (FAILED(result->status))
+                {
+                    if (_feedback)
+                        _feedback->SetText(FormatStringResource(nullptr, IDS_GITHUB_FETCH_FAILED, result->errorMessage));
+                    break;
+                }
+                const auto prevCount = _inactiveDocuments.size();
+                if (StartWorkspaceDocument() && IsUiAttached())
+                {
+                    if (SetDocument(std::move(result->fileText), {}, result->fileBom, {}, false))
+                    {
+                        _session.origin.kind         = DocumentOriginInfo::Kind::GitHub;
+                        _session.origin.owner        = result->fileOwner;
+                        _session.origin.repo         = result->fileRepo;
+                        _session.origin.branch       = result->fileBranch;
+                        _session.origin.relativePath = result->fileRelativePath;
+                        _session.origin.blobSha      = result->fileSha;
+                        _session.origin.htmlUrl      = result->fileHtmlUrl;
+                        UpdateCaption(SanitizeUiText(std::filesystem::path(result->fileRelativePath).filename().native()));
+                        Status(IDS_GITHUB_READONLY_NOTICE);
+                        RefreshFiles();
+                        Layout();
+                    }
+                    else if (_inactiveDocuments.size() > prevCount && SwitchWorkspaceDocument(prevCount))
+                    {
+                        _inactiveDocuments.pop_back();
+                    }
+                }
+                break;
+            }
+        }
+    }
 }
 void Application::Open()
 {
@@ -2931,7 +3903,7 @@ void Application::Save(bool saveAs, bool force, std::optional<std::filesystem::p
             _activeFileTx = std::monostate{};
         return;
     }
-    saveAs = saveAs || _session.recovered;
+    saveAs = saveAs || _session.recovered || _session.origin.kind == DocumentOriginInfo::Kind::GitHub;
     if (_files.Busy())
     {
         if (std::holds_alternative<SaveTx>(_activeFileTx))
@@ -3236,7 +4208,7 @@ void Application::CompleteFileOperation()
             return;
         }
         if (SetDocument(std::move(result.document.text), std::move(result.path), result.document.bom, result.document.stamp))
-            Status(IDS_SAVED);
+            ClearStatus();
         return;
     }
     if (result.saving)
@@ -3244,9 +4216,11 @@ void Application::CompleteFileOperation()
         std::function<void()> continuation;
         if (auto* saveTx = std::get_if<SaveTx>(&_activeFileTx))
             continuation = std::move(saveTx->afterSave);
-        _activeFileTx      = std::monostate{};
-        _session.recovered = false;
-        _session.savedText = std::move(result.document.text);
+        _activeFileTx           = std::monostate{};
+        _session.recovered      = false;
+        _session.resumedUnsaved = false;
+        _session.origin         = {};
+        _session.savedText      = std::move(result.document.text);
         _derivedCaches.dirtyFact.reset();
         if (_session.path != result.path)
             _printNetworkImages.clear();
@@ -3264,7 +4238,12 @@ void Application::CompleteFileOperation()
             (void)AcceptSourceResult(_editor->TrySetDocumentFilePath(_session.path.native()));
         RememberActiveDocument();
         Changed();
-        Status(IDS_SAVED);
+        ClearStatus();
+        if (_saveConfirmSession && _saveConfirmSession->sequentialSaveActive)
+        {
+            AdvanceSaveConfirmSequentialSave();
+            return;
+        }
         if (IsClosingAfterSave())
         {
             if (Dirty())
@@ -3272,20 +4251,20 @@ void Application::CompleteFileOperation()
                 // Save owns only its admitted immutable source. Closing cannot
                 // discard edits typed after that snapshot was submitted.
                 ResumeAfterSaveClose();
-                AskWorkspaceThen([this] { BeginClose(); });
+                AskWorkspaceThen([this] { BeginClose(false); }, {}, true);
             }
             else
             {
                 if (std::ranges::any_of(_inactiveDocuments, [](const auto& document) { return document.dirty; }))
                 {
                     ResumeAfterSaveClose();
-                    AskWorkspaceThen([this] { BeginClose(); });
+                    AskWorkspaceThen([this] { BeginClose(false); }, {}, true);
                 }
                 else
                 {
                     TransitionLifecycle(LifecyclePhase::Active);
                     _visibleBeforeSaveClose = false;
-                    BeginClose();
+                    BeginClose(false);
                 }
             }
             return;
@@ -3304,7 +4283,7 @@ void Application::CompleteFileOperation()
             {
                 ResetWorkspace();
                 RefreshFiles();
-                Status(IDS_SAVED);
+                ClearStatus();
             }
         };
         if (fromFiles)
@@ -3314,7 +4293,7 @@ void Application::CompleteFileOperation()
             {
                 _workspaceSelectionPreferred = false;
                 if (SetDocument(std::move(staged->document.text), std::move(staged->path), staged->document.bom, staged->document.stamp))
-                    Status(IDS_SAVED);
+                    ClearStatus();
                 else
                 {
                     _workspaceSelectionPreferred = previousWorkspaceSelectionPreferred;
@@ -3605,19 +4584,34 @@ LRESULT CALLBACK Application::WindowProc(HWND hwnd, UINT message, WPARAM wParam,
     }
     return DefWindowProcW(hwnd, message, wParam, lParam);
 }
-void Application::BeginClose()
+void Application::BeginClose(bool preserveSessionResume)
 {
     Printing::Stop(_printOperation);
     ClosePrintPreview();
     if (_window)
+    {
         (void)KillTimer(_window.get(), SettingsRetryTimerId);
-    // Reaching this point means the user saved or explicitly discarded source.
-    // Retire all workspace recovery keys via ResetWorkspace and wait asynchronously.
+        (void)KillTimer(_window.get(), SpellDebounceTimerId);
+        (void)KillTimer(_window.get(), GitHubDevicePollTimerId);
+    }
+    _spellService.Stop();
+    _fileOps.Stop();
+    _github.Stop();
+    _deferredFilesContextMenu.reset();
+    _filesContextMenuOpen = false;
     AbandonStartupRestore();
     RememberActiveDocument();
     RecordWindowPlacement(true);
     CloseExternalLinks();
-    ResetWorkspace();
+    if (preserveSessionResume)
+    {
+        CheckpointWorkspaceRecovery(RecoverySnapshotKind::SessionResume);
+        ResetWorkspace(false);
+    }
+    else
+    {
+        ResetWorkspace(true);
+    }
     _recovery.Stop();
     TransitionLifecycle(LifecyclePhase::DrainingForClose);
     _pendingBitmapPaste.reset();
@@ -3625,13 +4619,14 @@ void Application::BeginClose()
     _settingsWatcher.Close();
     _files.Close();
     _folderFiles.Close();
+    _multiFolderFiles.Close();
     _images.Shutdown();
     _imageFiles.Close();
     _host.Detach();
     if (! AreShutdownWorkersSettled())
     {
-        // Keep only a hidden notification window until admitted preferences are
-        // durable. The UI never joins storage, and process exit cannot kill the
+        // Keep only a hidden notification window until admitted preferences/recovery
+        // are durable. The UI never joins storage, and process exit cannot kill the
         // worker between its final write and atomic replacement.
         ShowWindow(_window.get(), SW_HIDE);
     }
@@ -3639,6 +4634,8 @@ void Application::BeginClose()
     {
         _recovery.Close();
         _preferenceWriter.Close();
+        _fileOps.Close();
+        _github.Close();
         _bitmapWriter.Detach();
         TransitionLifecycle(LifecyclePhase::Destroyed);
         _window.reset();
@@ -3659,6 +4656,8 @@ void Application::FinishClose()
     {
         _recovery.Close();
         _preferenceWriter.Close();
+        _fileOps.Close();
+        _github.Close();
         _bitmapWriter.Detach();
         TransitionLifecycle(LifecyclePhase::Destroyed);
         _window.reset();
@@ -3686,7 +4685,7 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         {
             AbandonStartupRestore();
             RecordWindowPlacement(true);
-            CheckpointWorkspaceRecovery();
+            CheckpointWorkspaceRecovery(RecoverySnapshotKind::SessionResume);
         }
         return TRUE; // Honor shutdown immediately; never create a shutdown blocker.
     }
@@ -3695,6 +4694,16 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         if (wParam != FALSE)
         {
             _sessionEndCommitted = true;
+            if (_window)
+            {
+                (void)KillTimer(_window.get(), SpellDebounceTimerId);
+                (void)KillTimer(_window.get(), GitHubDevicePollTimerId);
+            }
+            _spellService.Stop();
+            _fileOps.Stop();
+            _github.Stop();
+            _deferredFilesContextMenu.reset();
+            _filesContextMenuOpen = false;
             if (_lifecyclePhase == LifecyclePhase::Active || _lifecyclePhase == LifecyclePhase::Initializing ||
                 _lifecyclePhase == LifecyclePhase::ClosingAfterSave)
                 TransitionLifecycle(LifecyclePhase::SessionEnding);
@@ -3704,7 +4713,7 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
             _bitmapWriter.Stop();
             _settingsWatcher.Close();
             if (! IsClosing())
-                CheckpointWorkspaceRecovery();
+                CheckpointWorkspaceRecovery(RecoverySnapshotKind::SessionResume);
             // Windows may terminate us when this message returns. Only this
             // final system boundary waits; recovery never needs a UI callback.
             _sessionEndRecoveryStatus = _recovery.WaitForSettlement(2000);
@@ -3760,7 +4769,7 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
             _files.CancelInFlightLoad();
         }
         _activeFileTx = std::monostate{};
-        AskWorkspaceThen([this] { BeginClose(); });
+        AskWorkspaceThen([this] { BeginClose(false); }, {}, true);
         return 0;
     }
     if ((message == WM_NCLBUTTONDOWN || message == WM_NCLBUTTONDBLCLK) && (wParam == HTCLOSE || wParam == HTMAXBUTTON || wParam == HTMINBUTTON) &&
@@ -3807,13 +4816,21 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
     if (message == WM_NCDESTROY)
     {
         if (_window)
+        {
             (void)KillTimer(_window.get(), SettingsRetryTimerId);
+            (void)KillTimer(_window.get(), SpellDebounceTimerId);
+            (void)KillTimer(_window.get(), GitHubDevicePollTimerId);
+        }
+        _spellService.Stop();
+        _fileOps.Close();
+        _github.Close();
         Printing::Stop(_printOperation);
         ClosePrintPreview();
         _bitmapWriter.Stop();
         _bitmapWriter.Detach();
         _settingsWatcher.Close();
         _folderFiles.Close();
+        _multiFolderFiles.Close();
         _imageFiles.Close();
         _host.Detach();
         SetWindowLongPtrW(hwnd, GWLP_USERDATA, 0);
@@ -3859,8 +4876,36 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         RecoveryCompleted();
         return 0;
     }
+    if (message == SpellReady)
+    {
+        SpellCompleted();
+        return 0;
+    }
+    if (message == FileOpReady)
+    {
+        FileOpCompleted();
+        return 0;
+    }
+    if (message == GitHubReady)
+    {
+        GitHubCompleted();
+        return 0;
+    }
     if (IsClosing())
         return DefWindowProcW(hwnd, message, wParam, lParam);
+    if (message == SpellMenuRequested)
+    {
+        HandlePostedSpellLeftClickMenu();
+        return 0;
+    }
+    if (message == FilesContextMenuRequested)
+    {
+        const auto pending = std::move(_deferredFilesContextMenu);
+        _deferredFilesContextMenu.reset();
+        if (pending)
+            ShowFilesContextMenuNow(pending->id, pending->screenPoint, pending->keyboardInvocation);
+        return 0;
+    }
     if (message == PrintReady)
     {
         PrintCompleted();
@@ -3881,6 +4926,25 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         (void)KillTimer(hwnd, SettingsRetryTimerId);
         if (! IsClosing() && ! IsClosingAfterSave() && ! IsSessionEnding())
             ReloadSettingsFromDisk();
+        return 0;
+    }
+    if (message == WM_TIMER && wParam == SpellDebounceTimerId)
+    {
+        if (! IsClosing() && ! IsClosingAfterSave() && ! IsSessionEnding())
+            OnSpellDebounceTimer();
+        return 0;
+    }
+    if (message == WM_TIMER && wParam == GitHubDevicePollTimerId)
+    {
+        (void)KillTimer(hwnd, GitHubDevicePollTimerId);
+        if (! IsClosing() && ! IsClosingAfterSave() && ! IsSessionEnding() && _pendingDeviceFlow)
+        {
+            GitHubRequest poll;
+            poll.kind              = GitHubRequest::Kind::PollDeviceFlow;
+            poll.requestId         = ++_nextGitHubRequestId;
+            poll.tokenOrDeviceCode = _pendingDeviceFlow->deviceCode;
+            (void)_github.Submit(std::move(poll));
+        }
         return 0;
     }
     if (message == SettingsChanged)
@@ -3981,9 +5045,17 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         if ((IsPaneOverlayActive(PaneSide::Left) && ! inRect(_filesPane, clientDip) && ! inRect(_leftRail, clientDip)) ||
             (IsPaneOverlayActive(PaneSide::Right) && ! inRect(_sidebar, clientDip) && ! inRect(_rightRail, clientDip)))
             DismissHoverOverlays(true);
+        if (message == WM_LBUTTONDOWN)
+            OnEditorLeftButtonDown(POINT{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)}, wParam);
+    }
+    else if (message == WM_LBUTTONDBLCLK)
+    {
+        OnEditorLeftButtonDoubleClick();
     }
     bool handled{};
     const auto result = _host.HandleMessage(hwnd, message, wParam, lParam, handled);
+    if (message == WM_LBUTTONUP)
+        OnEditorLeftButtonUp(POINT{GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam)});
     if (message == WM_MOVE || message == WM_SIZE || message == WM_EXITSIZEMOVE || message == WM_DPICHANGED)
     {
         const bool wasMaximized    = _settings.windowPlacement && _settings.windowPlacement.value().maximized;
@@ -4000,7 +5072,7 @@ LRESULT Application::HandleMessage(HWND hwnd, UINT message, WPARAM wParam, LPARA
         const bool placementPending =
             ! IsClosing() && (_pendingSelectionTools || (_blockDraftSession && _blockDraftSession->pendingPlacement) ||
                               ActiveEditor()->GetMarkdownSyntax() != _derivedCaches.selectionFactsSyntax || _pendingComposeScrollRestore.has_value() ||
-                              _pendingSourceScrollRestore.has_value() || _pendingSplitScroll.has_value());
+                              _pendingSourceScrollRestore.has_value() || _pendingSplitScroll.has_value() || _spell.immediatePending);
         if (placementPending && ! _postPreparePosted)
             _postPreparePosted = PostMessageW(hwnd, PostPreparePlacement, 0, 0) != FALSE;
     }
@@ -4043,7 +5115,13 @@ bool Application::ReconcilePostPreparePlacement()
         SelectionChanged(_pendingSelectionTools || _activeOverlay == OverlayKind::FloatingSelectionTools);
     if (pendingPlacement)
         Layout();
-    return refreshFacts || pendingPlacement || scrolled;
+    bool spellDispatched{};
+    if (_spell.immediatePending)
+    {
+        DispatchSpellCheckNow();
+        spellDispatched = ! _spell.immediatePending;
+    }
+    return refreshFacts || pendingPlacement || scrolled || spellDispatched;
 }
 
 void Application::Prepare(unsigned turns)
@@ -4084,6 +5162,7 @@ void Application::Prepare(unsigned turns)
             FileCompleted(); // also drains a result if its post met a full queue
         RecoveryCompleted();
         FolderCompleted();
+        SpellCompleted();
         if (IsClosing() || ! _host.GetRoot())
             return;
         // A render may publish new immutable syntax. Reconcile dependent chrome
@@ -4094,8 +5173,8 @@ void Application::Prepare(unsigned turns)
         // Production input/frame readiness remains the host's earlier content
         // boundary; its event loop never calls this synchronous convenience loop.
         if (! refreshed && ! _host.HasPendingContentPreparation() && ! cosmeticsPending(_editor) && ! cosmeticsPending(_mirror) &&
-            _editor->GetImageResourceStatistics().pendingSources == 0 && ! _files.Busy() && _recovery.Ready() &&
-            (! _folderFiles.IsActive() || _folderSnapshot || FAILED(_folderFiles.Status()) || FAILED(_folderAdmissionStatus)))
+            _editor->GetImageResourceStatistics().pendingSources == 0 && ! _files.Busy() && _recovery.Ready() && ! _spell.immediatePending &&
+            ! _spellService.Busy() && (! _folderFiles.IsActive() || _folderSnapshot || FAILED(_folderFiles.Status()) || FAILED(_folderAdmissionStatus)))
             break;
         // Harness-only bounded event wait; production blocks in GetMessage.
         (void)MsgWaitForMultipleObjectsEx(0, nullptr, 5, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
@@ -4190,6 +5269,10 @@ bool Application::RouteShortcut(const MSG& message)
             {
                 case 'N': command = Command::New; break;
                 case 'O': command = shift ? Command::OpenFolder : Command::Open; break;
+                case 'G':
+                    if (shift)
+                        command = Command::OpenGitHub;
+                    break;
                 case 'S': command = shift ? Command::SaveAs : Command::Save; break;
                 case 'W':
                     if (! shift)
@@ -4227,10 +5310,54 @@ bool Application::RouteShortcut(const MSG& message)
                 case VK_NUMPAD0: command = Command::ZoomReset; break;
             }
         }
+        if (ctrl && ! alt && ! shift && _filesTree && _host.GetFocusControl() == _filesTree &&
+            (message.wParam == 'X' || message.wParam == 'C' || message.wParam == 'V'))
+        {
+            const auto selectedId = _filesTree->GetSelectedItemId();
+            if (selectedId)
+            {
+                const auto it = std::ranges::find_if(_filesRowBindings, [&](const auto& pair) { return pair.first == selectedId.value(); });
+                if (it != _filesRowBindings.end())
+                {
+                    _pendingContextTarget = it->second;
+                    if (message.wParam == 'X')
+                        command = Command::FilesCtxCut;
+                    else if (message.wParam == 'C')
+                        command = Command::FilesCtxCopy;
+                    else
+                        command = Command::FilesCtxPaste;
+                }
+            }
+        }
+        if (((message.wParam == VK_F10 && shift && ! ctrl && ! alt) || (message.wParam == VK_APPS && ! ctrl && ! shift && ! alt)) && _filesTree &&
+            _host.GetFocusControl() == _filesTree)
+        {
+            if (const auto selectedId = _filesTree->GetSelectedItemId())
+            {
+                const auto bounds = _filesTree->GetBounds();
+                ShowFilesContextMenuNow(selectedId.value(), _host.DipPointToScreenPoint({(bounds.left + bounds.right) * 0.5f, bounds.top + 32.f}), true);
+                return true;
+            }
+        }
         if (message.wParam == VK_F3 && ! ctrl && ! alt)
             command = shift ? Command::FindPrevious : Command::FindNext;
         if (message.wParam == VK_F2 && ! ctrl && ! shift && ! alt)
-            command = Command::LocalSource;
+        {
+            if (_filesTree && _host.GetFocusControl() == _filesTree)
+            {
+                if (const auto selectedId = _filesTree->GetSelectedItemId())
+                {
+                    const auto it = std::ranges::find_if(_filesRowBindings, [&](const auto& pair) { return pair.first == selectedId.value(); });
+                    if (it != _filesRowBindings.end() && it->second.kind == FilesRowContextBinding::Kind::LocalEntry)
+                    {
+                        _pendingContextTarget = it->second;
+                        command               = Command::FilesCtxRename;
+                    }
+                }
+            }
+            if (! command)
+                command = Command::LocalSource;
+        }
         if (message.wParam == VK_F6 && ! ctrl && ! shift && ! alt)
             command = Command::SwitchSplitPane;
         if (message.wParam == VK_F11 && ! ctrl && ! shift && ! alt)
@@ -4340,15 +5467,31 @@ int Application::Run()
     }
     if (_options.headless)
     {
-        _settings.appearance = _options.scenario == L"sample-document-dark" || _options.scenario == L"task-presentation-dark" ||
-                                       _options.scenario == L"compose-dark" || _options.scenario == L"split-dark" || _options.scenario == L"math-dark" ||
-                                       _options.scenario == L"quote-scroll-dark" || _options.scenario == L"diagram-label-dark" ||
-                                       _options.scenario == L"reference-dark" || _options.scenario == L"markdown-style" ||
-                                       _options.scenario == L"caption-close-hover" || _options.scenario == L"caption-maximize-hover" ||
-                                       _options.scenario == L"pane-hover-reveal-dark" || _options.scenario == L"split-unlinked-dark"
-                                   ? Appearance::Dark
-                               : _options.scenario == L"compose-paper" ? Appearance::Paper
-                                                                       : Appearance::Light;
+        _settings.appearance =
+            _options.scenario == L"sample-document-dark" || _options.scenario == L"task-presentation-dark" || _options.scenario == L"compose-dark" ||
+                    _options.scenario == L"split-dark" || _options.scenario == L"math-dark" || _options.scenario == L"quote-scroll-dark" ||
+                    _options.scenario == L"diagram-label-dark" || _options.scenario == L"reference-dark" || _options.scenario == L"markdown-style" ||
+                    _options.scenario == L"caption-close-hover" || _options.scenario == L"caption-maximize-hover" ||
+                    _options.scenario == L"pane-hover-reveal-dark" || _options.scenario == L"split-unlinked-dark" || _options.scenario == L"spelling-dark"
+                ? Appearance::Dark
+            : _options.scenario == L"compose-paper" ? Appearance::Paper
+                                                    : Appearance::Light;
+        if (! _options.capture.empty() && ! _options.scenario.starts_with(L"spelling-"))
+        {
+#if defined(REDTILDE_ENABLE_TESTS)
+            if (_options.scenario == L"settings" || _options.scenario == L"settings-about")
+            {
+                auto deterministicProvider = std::make_shared<FakeSpellProvider>();
+                deterministicProvider->SetInstalledLanguages({L"en-US"});
+                deterministicProvider->SetLanguageAvailability(L"en-US", ProviderAvailability::Ready);
+                _spellService.SetProviderForTest(deterministicProvider);
+            }
+            else
+#endif
+            {
+                _settings.spelling.enabled = false;
+            }
+        }
         ApplyTheme();
         if (_options.scenario == L"math" || _options.scenario == L"math-dark")
             SetDocument(L"# Mathematics, in the flow\n\nInline $E=mc^2$ shares the text baseline. Exact TeX stays one F2 away.\n\n"
@@ -4539,7 +5682,7 @@ void Application::BindEditorCallbacks()
         active->SetOnTextChanged([this] { Changed(); });
         active->SetOnSelectionChanged([this] { SelectionChanged(); });
         active->SetBitmapPasteHandler([this](std::span<const std::byte> dib, bool v5) { return BeginBitmapPaste(dib, v5); });
-        active->SetOnContextMenu([this](POINT point, bool) { Menu(point); });
+        active->SetOnContextMenu([this](POINT point, bool keyboard) { Menu(point, false, false, keyboard); });
         active->SetOnLinkActivated([this](const DxUi::RichTextLinkActivation& activation) { RunUiAction([&] { RequestOpenLink(activation); }); });
     }
 }

@@ -13,6 +13,7 @@ public:
     std::vector<DxUi::TreeItemData> rows;
     std::function<void(std::uint64_t)> invoked;
     std::function<void(std::uint64_t, bool)> expanded;
+    std::function<void(std::uint64_t, POINT)> contextMenu;
     [[nodiscard]] std::size_t GetVisibleItemCount() const noexcept override
     {
         return rows.size();
@@ -30,6 +31,11 @@ public:
     {
         if (expanded)
             expanded(id, value);
+    }
+    void OnTreeContextMenu(std::uint64_t id, POINT screenPoint) override
+    {
+        if (contextMenu)
+            contextMenu(id, screenPoint);
     }
 };
 } // namespace RedTilde

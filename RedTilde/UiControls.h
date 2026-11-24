@@ -33,7 +33,8 @@ public:
         Sidebar,
         Floating,
         DrawerLeft,
-        DrawerRight
+        DrawerRight,
+        ModalBackdrop
     };
     struct SplitChromeState
     {
@@ -51,6 +52,8 @@ public:
     bool borderLeft{}, borderRight{}, borderBottom{};
     SplitChromeState splitChrome;
     void Paint(DxUi::ControlHost& host) const override;
+    bool OnMouseDown(DxUi::ControlHost& host, D2D1_POINT_2F point, bool rightButton, UINT modifiers) override;
+    bool OnMouseUp(DxUi::ControlHost& host, D2D1_POINT_2F point, bool rightButton, UINT modifiers) override;
     Kind kind;
 
 private:
@@ -62,6 +65,27 @@ class SubtleToggleButton final : public DxUi::Button
 public:
     using DxUi::Button::Button;
     void Paint(DxUi::ControlHost& host) const override;
+};
+
+class DirtyDot final : public DxUi::Control
+{
+public:
+    void Paint(DxUi::ControlHost& host) const override;
+};
+
+class StatusLanguageComboBox final : public DxUi::ComboBox
+{
+public:
+    using DxUi::ComboBox::ComboBox;
+    void Paint(DxUi::ControlHost& host) const override;
+
+private:
+    mutable wil::com_ptr<IDWriteTextLayout> _textLayout;
+    mutable wil::com_ptr<IDWriteInlineObject> _ellipsisSign;
+    mutable std::wstring _cachedText;
+    mutable float _cachedWidth{};
+    mutable float _cachedHeight{};
+    mutable std::uint64_t _cachedTypographyRevision{};
 };
 
 class Editor final : public DxUi::RichTextEditor

@@ -932,13 +932,19 @@ public:
             Await(app, [&] { return app._session.path == third && ! app._files.Busy(); });
             app.Prepare(256);
 
-            const auto checkWorkspaceOrder = [&]
+            const auto checkWorkspaceOrder = [&](std::initializer_list<std::pair<unsigned, std::wstring_view>> expectedRows)
             {
-                Require(app._filesModel.rows.size() >= 7 && app._filesModel.rows[0].id == Application::WorkspaceGroupId &&
-                            app._filesModel.rows[1].id == Application::WorkspaceGroupId + 1 && app._filesModel.rows[1].text == L"Alpha.md" &&
-                            app._filesModel.rows[2].id == Application::WorkspaceGroupId + 2 && app._filesModel.rows[2].text == L"Beta.md" &&
-                            app._filesModel.rows[3].id == Application::WorkspaceGroupId + 3 && app._filesModel.rows[3].text == L"Gamma.md",
-                        "Open documents keeps retained entries in stable workspace opening order");
+                Require(! app._filesModel.rows.empty() && app._filesModel.rows[0].id == Application::WorkspaceGroupId &&
+                            app._filesModel.rows[0].text == Resource(IDS_OPENDOCUMENTS) && app._filesModel.rows.size() >= 1u + expectedRows.size(),
+                        "Modified documents group appears in the Files tree");
+                std::size_t idx = 1u;
+                for (const auto& [docKey, docName] : expectedRows)
+                {
+                    Require(app._filesModel.rows[idx].id == Application::WorkspaceGroupId + docKey + 1u && app._filesModel.rows[idx].text == docName &&
+                                app._filesModel.rows[idx].badgeIsDot,
+                            "Modified documents keeps modified entries in stable workspace opening order");
+                    ++idx;
+                }
             };
             const auto folderRowId = [&](std::wstring_view name)
             {
@@ -957,59 +963,80 @@ public:
                 (void)app._filesTree->OnMouseUp(app.Host(), point, false, 0);
             };
 
-            checkWorkspaceOrder();
+            Require(std::ranges::none_of(app._filesModel.rows, [](const auto& item) { return item.id >= Application::WorkspaceGroupId; }),
+                    "clean retained documents do not show the Modified documents section");
             Require(app._filesTree->GetSelectedItemId() == std::optional<std::uint64_t>(folderRowId(L"Gamma.md")),
                     "opening from the folder listing selects that folder row");
 
+            // Modify Alpha and Gamma while keeping Beta clean: Modified documents must show only Alpha and Gamma.
+            clickVisibleRow(static_cast<std::size_t>(std::find_if(app._filesModel.rows.begin(), app._filesModel.rows.end(), [](const auto& item) {
+                return item.id < Application::WorkspaceGroupId && item.text == L"Alpha.md";
+            }) - app._filesModel.rows.begin()));
+            Require(app._session.path == first && app.Document().ReplaceSelection(L" "), "dirty Alpha");
+            clickVisibleRow(static_cast<std::size_t>(std::find_if(app._filesModel.rows.begin(), app._filesModel.rows.end(), [](const auto& item) {
+                return item.id < Application::WorkspaceGroupId && item.text == L"Gamma.md";
+            }) - app._filesModel.rows.begin()));
+            Require(app._session.path == third && app.Document().ReplaceSelection(L" "), "dirty Gamma while Beta stays clean");
+            checkWorkspaceOrder({{0u, L"Alpha.md"}, {2u, L"Gamma.md"}});
+            Require(std::ranges::none_of(app._filesModel.rows, [](const auto& item) { return item.id == Application::WorkspaceGroupId + 2u; }),
+                    "unmodified Beta stays absent from Modified documents");
+
+            // Now dirty Beta too so all three modified documents appear in stable workspace opening order.
+            clickVisibleRow(static_cast<std::size_t>(std::find_if(app._filesModel.rows.begin(), app._filesModel.rows.end(), [](const auto& item) {
+                return item.id < Application::WorkspaceGroupId && item.text == L"Beta.md";
+            }) - app._filesModel.rows.begin()));
+            Require(app._session.path == second && app.Document().ReplaceSelection(L" "), "dirty Beta");
+            checkWorkspaceOrder({{0u, L"Alpha.md"}, {1u, L"Beta.md"}, {2u, L"Gamma.md"}});
+
             clickVisibleRow(1u);
-            checkWorkspaceOrder();
+            checkWorkspaceOrder({{0u, L"Alpha.md"}, {1u, L"Beta.md"}, {2u, L"Gamma.md"}});
             Require(app._session.path == first && app._session.key == 0u &&
                         app._filesTree->GetSelectedItemId() == std::optional<std::uint64_t>(Application::WorkspaceGroupId + 1),
-                    "clicking Alpha in Open documents activates Alpha without reordering or jumping selection to the folder row");
+                    "clicking Alpha in Modified documents activates Alpha without reordering or jumping selection to the folder row");
 
             clickVisibleRow(2u);
-            checkWorkspaceOrder();
+            checkWorkspaceOrder({{0u, L"Alpha.md"}, {1u, L"Beta.md"}, {2u, L"Gamma.md"}});
             Require(app._session.path == second && app._session.key == 1u &&
                         app._filesTree->GetSelectedItemId() == std::optional<std::uint64_t>(Application::WorkspaceGroupId + 2),
-                    "clicking Beta in Open documents keeps stable row order and selects Beta's workspace row");
+                    "clicking Beta in Modified documents keeps stable row order and selects Beta's workspace row");
 
             const auto revision = app._folderSnapshot->revision;
             WriteFixture(directory / L"Delta.md", "# Delta\nFourth note.\n");
             Await(app, [&] { return app._folderSnapshot && app._folderSnapshot->revision > revision && app._folderSnapshot->markdownCount == 4; });
-            checkWorkspaceOrder();
+            checkWorkspaceOrder({{0u, L"Alpha.md"}, {1u, L"Beta.md"}, {2u, L"Gamma.md"}});
             Require(app._filesTree->GetSelectedItemId() == std::optional<std::uint64_t>(Application::WorkspaceGroupId + 2),
-                    "directory-watch refreshes preserve the Open documents selection");
+                    "directory-watch refreshes preserve the Modified documents selection");
 
             app._filesModel.OnTreeToggleExpanded(Application::WorkspaceGroupId, false);
             Require(app._filesTree->GetSelectedItemId() == std::optional<std::uint64_t>(folderRowId(L"Beta.md")),
-                    "collapsing Open documents falls back to the active file's visible folder row");
+                    "collapsing Modified documents falls back to the active file's visible folder row");
             app._filesModel.OnTreeToggleExpanded(Application::WorkspaceGroupId, true);
             app.Prepare(128);
-            checkWorkspaceOrder();
+            checkWorkspaceOrder({{0u, L"Alpha.md"}, {1u, L"Beta.md"}, {2u, L"Gamma.md"}});
             Require(app._filesTree->GetSelectedItemId() == std::optional<std::uint64_t>(folderRowId(L"Beta.md")),
-                    "re-expanding Open documents does not jump selection away from the folder row");
+                    "re-expanding Modified documents does not jump selection away from the folder row");
 
             clickVisibleRow(2u);
             Require(app._session.path == second && app._filesTree->GetSelectedItemId() == std::optional<std::uint64_t>(Application::WorkspaceGroupId + 2),
-                    "clicking the already-active Open documents row selects it");
+                    "clicking the already-active Modified documents row selects it");
             app.RefreshFiles();
             Require(app._filesTree->GetSelectedItemId() == std::optional<std::uint64_t>(Application::WorkspaceGroupId + 2),
-                    "subsequent refreshes retain the explicitly selected Open documents row");
+                    "subsequent refreshes retain the explicitly selected Modified documents row");
 
             const auto gammaFolderIndex = static_cast<std::size_t>(std::find_if(app._filesModel.rows.begin(), app._filesModel.rows.end(), [](const auto& item) {
                 return item.id < Application::WorkspaceGroupId && item.text == L"Gamma.md";
             }) - app._filesModel.rows.begin());
             clickVisibleRow(gammaFolderIndex);
-            checkWorkspaceOrder();
+            checkWorkspaceOrder({{0u, L"Alpha.md"}, {1u, L"Beta.md"}, {2u, L"Gamma.md"}});
             Require(app._session.path == third && app._session.key == 2u &&
                         app._filesTree->GetSelectedItemId() == std::optional<std::uint64_t>(folderRowId(L"Gamma.md")),
-                    "clicking Gamma in the folder listing selects the folder row while keeping Open documents ordered");
+                    "clicking Gamma in the folder listing selects the folder row while keeping Modified documents ordered");
 
             app.Document().SetSelection({0, 0});
             app.Execute(Command::LocalSource);
             Require(app.HasBlockDraft(), "open a guarded local draft to test refused workspace switching");
             clickVisibleRow(1u);
-            checkWorkspaceOrder();
+            checkWorkspaceOrder({{0u, L"Alpha.md"}, {1u, L"Beta.md"}, {2u, L"Gamma.md"}});
             Require(app._session.path == third && app._session.key == 2u &&
                         app._filesTree->GetSelectedItemId() == std::optional<std::uint64_t>(folderRowId(L"Gamma.md")),
                     "a refused workspace switch keeps the active document and restores its tree selection");
@@ -1490,10 +1517,10 @@ public:
                             ! app._outlineTree->GetAppearance().drawBackground && ! app._outlineTree->GetAppearance().drawBorder &&
                             ! app._outlineTree->GetAppearance().showExpanders && ! app._filesTree->GetAppearance().drawBorder,
                         "document and navigation panes have no nested input frames");
-                const auto identity = app._title->GetBounds(), state = app._saveStateChip->GetBounds();
-                Require(Near((identity.top + identity.bottom) / 2, (state.top + state.bottom) / 2) && state.left > identity.right,
-                        "filename and save-state chip share the same header baseline");
-                Require(app._blockSourceAction->GetBounds().bottom < 500 && ! app._overflowButton->IsVisible() && app._closeFiles->IsVisible(),
+                const auto identity = app._title->GetBounds(), dot = app._dirtyDot->GetBounds();
+                Require(! app._dirtyDot->IsVisible() && Near((identity.top + identity.bottom) / 2, (dot.top + dot.bottom) / 2) && dot.left > identity.right,
+                        "clean title hides the dirty dot while keeping its header baseline aligned right of the filename");
+                Require(app._blockSourceAction->GetBounds().bottom < 500 && ! app._overflowButton->IsVisible() && app._pinFiles->IsVisible(),
                         "short outlines keep block tools nearby and a full-width toolbar needs no overflow button");
                 Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selection,
                         "visual layout and DPI changes preserve the authoritative document and selection");
@@ -1646,18 +1673,21 @@ public:
             exerciseHiddenReveal(
                 [&]
             {
-                app._settings.showFiles = true;
+                app._settings.showFiles      = true;
+                app._settings.filesPinMode   = PanePinMode::Auto;
+                app._settings.outlinePinMode = PanePinMode::Auto;
                 Resize(app, 1024, 900, 96, false);
                 Require(app._leftRail->IsVisible() && app._rightRail->IsVisible() && ! app._filesPane->IsVisible() && ! app._sidebar->IsVisible() &&
                             ! app._filesSplitter->IsVisible(),
                         "the narrow viewport collapses both panes to edge rails without showing the splitter");
-                app.OnRailExpandClicked(PaneSide::Left);
+                app.RevealPaneOverlay(PaneSide::Left);
                 Require(app._filesPane->IsVisible() && app._filesPane->borderRight && ! app._filesSplitter->IsVisible() && ! app._sidebar->IsVisible(),
                         "the file-overlay fixture is active rather than a normal left Files pane");
             },
                 [&]
             {
-                app._settings.showFiles = false;
+                app._settings.showFiles    = false;
+                app._settings.filesPinMode = PanePinMode::Unpinned;
                 Resize(app, 1440, 900, 96, false);
             },
                 "the narrow Files overlay hides the sidebar");
@@ -1828,8 +1858,10 @@ public:
                 Application app(Options(root, L"design-layout"));
                 Success(app.Initialize(), "create hidden responsive-layout app");
                 app.Execute(Command::Files);
-                const auto source   = app.Document().Snapshot();
-                const auto selected = app.Document().GetSelection();
+                app._settings.filesPinMode   = PanePinMode::Auto;
+                app._settings.outlinePinMode = PanePinMode::Auto;
+                const auto source            = app.Document().Snapshot();
+                const auto selected          = app.Document().GetSelection();
                 const bool undo = app.Document().CanUndo(), redo = app.Document().CanRedo();
                 for (const UINT dpi : {96u, 144u, 192u})
                     for (const unsigned width : {800u, 1120u, 1136u, 1142u, 1200u, 1300u, 1440u})
@@ -3530,8 +3562,9 @@ public:
                         app._inactiveDocuments.front().state.CanUndo(),
                     "a tree open retains the previous dirty source and history without a save question");
             Require(app.Document().GetText() == L"# Published\n" && app._folderRoot == first.parent_path() &&
-                        app._filesTree->GetSelectedItemId() == Application::WorkspaceGroupId + app._session.key + 1,
-                    "opening a file outside the browser root retains the tree and selects its retained workspace entry");
+                        std::ranges::any_of(app._filesModel.rows, [](const auto& row) { return row.id == Application::WorkspaceGroupId + 1u; }) &&
+                        app._filesTree->GetSelectedItemId() == std::nullopt,
+                    "opening a clean file outside the browser root retains only modified documents in the workspace group without selecting clean rows");
             const auto savedAs = directory / L"Archive/renamed.md";
             std::filesystem::create_directories(savedAs.parent_path());
             Success(app._files.Submit(true, savedAs, app.Document().GetText(), false), "admit the save-as writer stage without a native file picker");
@@ -3654,21 +3687,11 @@ public:
             const auto folderStatus     = app._folderSnapshot->status;
             const auto watchStatus      = app._folderSnapshot->watchStatus;
             const auto footer           = std::wstring(app._filesCount->GetText());
-            const auto rebuilds         = app.Activity().filesModelRebuilds;
             Require(app.Document().ReplaceSelection(L"x"), "make the current document dirty");
-            Require(app.Activity().filesModelRebuilds == rebuilds && app._filesModel.rows.size() == rowSnapshot.size(),
-                    "dirty state changes update the existing row model without rebuilding it");
-            for (std::size_t index = 0; index < rowSnapshot.size(); ++index)
-            {
-                const auto& before   = rowSnapshot[index];
-                const auto& after    = app._filesModel.rows[index];
-                const bool isCurrent = before.id == currentId;
-                Require(before.id == after.id && before.parentId == after.parentId && before.text == after.text && before.iconText == after.iconText &&
-                            before.tooltipText == after.tooltipText && before.depth == after.depth && before.hasChildren == after.hasChildren &&
-                            before.expanded == after.expanded && before.badgeTone == after.badgeTone &&
-                            (isCurrent || (before.badgeText == after.badgeText && before.badgeIsDot == after.badgeIsDot)),
-                        "only the current file row presentation changes on the dirty transition");
-            }
+            Require(app._filesModel.rows.size() == rowSnapshot.size() + 2u && app._filesModel.rows[0].id == Application::WorkspaceGroupId &&
+                        app._filesModel.rows[1].id == Application::WorkspaceGroupId + app._session.key + 1u && app._filesModel.rows[1].text == L"current.md" &&
+                        app._filesModel.rows[1].badgeIsDot,
+                    "making the active document dirty inserts the Modified documents group cleanly");
             const auto edited = std::find_if(app._filesModel.rows.begin(), app._filesModel.rows.end(), [&](const auto& row) { return row.id == currentId; });
             Require(edited != app._filesModel.rows.end() && edited->badgeText == Resource(IDS_FILESEDITED) && edited->badgeIsDot,
                     "the current file receives the localized accessible dot status");
@@ -3677,17 +3700,16 @@ public:
             const auto dirtyArchiveProvider = findTreeItem(L"archive");
             Require(editedProvider.name == L"current.md" && editedProvider.itemStatus == Resource(IDS_FILESEDITED) && dirtyArchiveProvider.name == L"archive" &&
                         dirtyArchiveProvider.itemStatus == initialArchiveProvider.itemStatus,
-                    "the live UI Automation providers expose the localized Edited status only on the current file");
-            Require(app._filesTree->GetSelectedItemId() == std::optional(selectedId) && app._filesTree->GetFocusedItemId() == std::optional(selectedId) &&
-                        app._filesTree->GetFirstVisibleItemIndex() == firstVisible && app._filesCount->GetText() == footer &&
-                        app._folderSnapshot->generation == folderGeneration && app._folderSnapshot->revision == folderRevision &&
-                        app._folderSnapshot->status == folderStatus && app._folderSnapshot->watchStatus == watchStatus,
-                    "a dirty badge update preserves tree selection, focus, scroll, footer and watcher snapshot");
+                    "the live UI Automation providers expose the localized Edited status on current.md while preserving archive count");
+            Require(app._filesCount->GetText() == footer && app._folderSnapshot->generation == folderGeneration &&
+                        app._folderSnapshot->revision == folderRevision && app._folderSnapshot->status == folderStatus &&
+                        app._folderSnapshot->watchStatus == watchStatus,
+                    "a dirty transition preserves footer and watcher snapshot");
 
             Require(app.Document().Undo() && ! app.Dirty(), "undo restores the exact clean document state");
-            Require(app.Activity().filesModelRebuilds == rebuilds && app._filesTree->GetSelectedItemId() == std::optional(selectedId) &&
-                        app._filesTree->GetFocusedItemId() == std::optional(selectedId) && app._filesTree->GetFirstVisibleItemIndex() == firstVisible,
-                    "undo removes the dot without rebuilding or moving the user's tree state");
+            Require(app._filesModel.rows.size() == rowSnapshot.size() &&
+                        std::ranges::none_of(app._filesModel.rows, [](const auto& row) { return row.id >= Application::WorkspaceGroupId; }),
+                    "undo removes the Modified documents group when no files remain dirty");
             app.Prepare(256);
             const auto restoredProvider        = findTreeItem(L"current.md");
             const auto restoredArchiveProvider = findTreeItem(L"archive");
@@ -3701,11 +3723,9 @@ public:
             app._filesFilter->SetTextAndNotify(L"note-");
             Require(std::ranges::none_of(app._filesModel.rows, [](const auto& row) { return row.text == L"current.md"; }),
                     "the filter hides the current file row without changing the snapshot");
-            const auto filteredRebuilds = app.Activity().filesModelRebuilds;
             Require(app.Document().ReplaceSelection(L"y"), "dirty the current document while its row is filtered out");
-            Require(app.Activity().filesModelRebuilds == filteredRebuilds &&
-                        std::ranges::none_of(app._filesModel.rows, [](const auto& row) { return row.text == L"current.md"; }),
-                    "a filtered-out current file updates bookkeeping without rebuilding visible rows");
+            Require(std::ranges::none_of(app._filesModel.rows, [](const auto& row) { return row.text == L"current.md"; }),
+                    "a filtered-out current file stays hidden under the active filter even when dirty");
             Require(app.Document().Undo() && ! app.Dirty(), "filtered current document returns to its clean state");
             app._filesFilter->SetTextAndNotify(L"");
             Require(app.Document().ReplaceSelection(L"z"), "dirty the document before replacing it with a different root");
@@ -3729,15 +3749,17 @@ public:
             untitled.Execute(Command::Files);
             Require(! untitled._folderSnapshot && untitled._filesModel.rows.empty() && untitled._folderFiles.CurrentPhase() == FilesPhase::Closed,
                     "the untitled Files pane has no folder snapshot or worker");
-            const auto emptyFooter   = std::wstring(untitled._filesCount->GetText());
-            const auto emptyRebuilds = untitled.Activity().filesModelRebuilds;
+            const auto emptyFooter = std::wstring(untitled._filesCount->GetText());
             Require(untitled.Document().ReplaceSelection(L"x") && untitled.Dirty() && untitled._lastFilesDirty,
                     "dirty bookkeeping updates while the Files pane has no snapshot");
-            Require(untitled.Activity().filesModelRebuilds == emptyRebuilds && untitled._filesModel.rows.empty() &&
-                        untitled._filesCount->GetText() == emptyFooter,
-                    "an empty-root dirty transition leaves the empty model and localized footer intact");
-            Require(untitled.Document().Undo() && ! untitled.Dirty() && ! untitled._lastFilesDirty && untitled.Activity().filesModelRebuilds == emptyRebuilds,
-                    "undo synchronizes clean bookkeeping without a synthetic folder refresh");
+            Require(untitled._filesModel.rows.size() == 2u && untitled._filesModel.rows[0].id == Application::WorkspaceGroupId &&
+                        untitled._filesModel.rows[1].id == Application::WorkspaceGroupId + untitled._session.key + 1u &&
+                        untitled._filesModel.rows[1].badgeIsDot && untitled._filesCount->GetText() == emptyFooter &&
+                        untitled._folderFiles.CurrentPhase() == FilesPhase::Closed,
+                    "an empty-root dirty transition shows only the dirty untitled document under Modified documents and keeps the localized footer intact");
+            Require(untitled.Document().Undo() && ! untitled.Dirty() && ! untitled._lastFilesDirty && untitled._filesModel.rows.empty() &&
+                        untitled._folderFiles.CurrentPhase() == FilesPhase::Closed,
+                    "undo clears Modified documents and restores the empty untitled row model");
         });
         test("Editor.DesignRefreshFilesAdmissionErrorsAndRootActions",
              [&]
@@ -3823,11 +3845,12 @@ public:
                                                   L"examined-entry traversal limit · depth 2 traversal limit",
                     "access and watch failures never hide either simultaneous traversal limit");
             const std::wstring completeFooter(app._filesCount->GetText());
-            app._settings.filesWidth = 200;
+            app._settings.filesWidth   = 200;
+            app._settings.filesPinMode = PanePinMode::Auto;
             Resize(app, 800, 560, 96);
             Require(app._leftRail->IsVisible() && ! app._filesPane->IsVisible(),
                     "narrow viewport collapses Files to rail while deferring hidden footer measurement");
-            app.OnRailExpandClicked(PaneSide::Left);
+            app.RevealPaneOverlay(PaneSide::Left);
             DxUi::DesiredSize desired;
             Success(DxUi::MeasureControl(*app._filesCount, {app.Host()}, DxUi::LayoutConstraints::AtMost(176.f), desired),
                     "independently measure the complete wrapped footer through canonical DxUi");
@@ -3854,7 +3877,9 @@ public:
             const auto retainedRevision  = app.Document().Revision();
             const auto retainedSelection = app.Document().GetSelection();
             const bool retainedUndo = app.Document().CanUndo(), retainedRedo = app.Document().CanRedo(), retainedDirty = app.Dirty();
-            app._settings.showFiles = false;
+            app._settings.showFiles    = false;
+            app._settings.filesPinMode = PanePinMode::Unpinned;
+            app.DismissHoverOverlays(true);
             app.Layout();
             const auto hiddenMeasures      = app._filesFooterMeasure.measurements;
             const auto retainedFooterWidth = app._filesFooterMeasure.widthDip, retainedFooterDpi = app._filesFooterMeasure.dpi;
@@ -3871,11 +3896,12 @@ public:
                             app._filesFooterMeasure.textRevision == retainedFooterRevision,
                         "closed Files preserves its stale measurement across real owner resize, DPI, text and theme changes");
             }
-            app._settings.showFiles = true;
+            app._settings.showFiles    = true;
+            app._settings.filesPinMode = PanePinMode::Auto;
             app.Layout();
             Require(app._leftRail->IsVisible() && ! app._filesPane->IsVisible(),
                     "re-enabling Files at narrow 800x560 enters CollapsedRail before explicit hover expansion");
-            app.OnRailExpandClicked(PaneSide::Left);
+            app.RevealPaneOverlay(PaneSide::Left);
             Require(app._filesPane->IsVisible() && app._filesFooterMeasure.measurements == hiddenMeasures + 1 &&
                         app._filesFooterMeasure.textRevision == app._filesCount->GetMeasureRevision() &&
                         app._filesFooterMeasure.typographyRevision == app.Host().GetTypographyRevision() && Near(app._filesFooterMeasure.widthDip, 176) &&
@@ -3903,7 +3929,7 @@ public:
             app.Layout();
             Require(app._leftRail->IsVisible() && ! app._filesPane->IsVisible() && app._filesFooterMeasure.measurements == hiddenMeasures + 1,
                     "leaving Focus at narrow 800x560 keeps Files collapsed in rail until hover-expanded");
-            app.OnRailExpandClicked(PaneSide::Left);
+            app.RevealPaneOverlay(PaneSide::Left);
             Require(app._filesPane->IsVisible() && app._filesFooterMeasure.measurements == hiddenMeasures + 2 &&
                         Near(app._filesCount->GetBounds().bottom - app._filesCount->GetBounds().top, 24),
                     "leaving Focus measures a stale short footer once and restores its minimum height");
@@ -4006,7 +4032,7 @@ public:
             Require(app.Preferences().appearance == Appearance::Paper && app._themeButtons[3]->GetToggleState() == std::optional<bool>(true),
                     "theme tiles expose the current live appearance through pressed state");
             app.Execute(Command::DimBlocks);
-            Require(! app.Preferences().dimInactiveBlocks && app._dimToggle->GetToggleState() == std::optional<bool>(false),
+            Require(! app.Preferences().dimInactiveBlocks && ! app._dimToggle->IsChecked(),
                     "focus dimming is a live persisted preference with a real toggle state");
             const auto selection = app.Document().GetSelection();
             Require(! app.Preferences().strikeCompletedTasks && ! app.Document().GetAppearance().strikeCompletedTasks,
@@ -4015,7 +4041,7 @@ public:
             app.SetView(EditorView::Split);
             app.Prepare(256);
             Require(app.Preferences().strikeCompletedTasks && app.Document().GetAppearance().strikeCompletedTasks &&
-                        app._mirror->GetAppearance().strikeCompletedTasks && app._strikeTasksToggle->GetToggleState() == std::optional<bool>(true),
+                        app._mirror->GetAppearance().strikeCompletedTasks && app._strikeTasksToggle->IsChecked(),
                     "the real preference applies to Compose and the Split mirror");
             app.SetView(EditorView::Source);
             app.SetView(EditorView::Compose);
@@ -4027,14 +4053,20 @@ public:
                         selection.caret == retainedSelection.caret && ! app.Dirty(),
                     "completion presentation round-trips views without changing source, selection, revision or dirty state");
             Require(! app.Document().CanUndo(), "presentation commands leave the empty undo history unchanged");
-            Require(! app.Preferences().allowRemoteImages && ! app.Document().RemoteImagesEnabled() &&
-                        app._remoteImagesToggle->GetToggleState() == std::optional<bool>(false),
+            Require(! app.Preferences().allowRemoteImages && ! app.Document().RemoteImagesEnabled() && ! app._remoteImagesToggle->IsChecked(),
                     "the privacy control starts off and reports the actual editor image policy");
             app.Execute(Command::RemoteImages);
-            Require(app.Preferences().allowRemoteImages && app.Document().RemoteImagesEnabled() &&
-                        app._remoteImagesToggle->GetToggleState() == std::optional<bool>(true),
+            Require(app.Preferences().allowRemoteImages && app.Document().RemoteImagesEnabled() && app._remoteImagesToggle->IsChecked(),
                     "the live privacy control applies a usable opt-in rather than a decorative preference");
             app.Execute(Command::RemoteImages);
+            for (const auto* help : {app._strikeTasksHelp, app._localNetworkImagesHelp, app._imageFirstPasteHelp, app._spellingHelp})
+            {
+                const auto bounds = help->GetBounds();
+                DxUi::DesiredSize desired;
+                Success(DxUi::MeasureControl(*help, {app.Host()}, DxUi::LayoutConstraints::AtMost(bounds.right - bounds.left), desired),
+                        "measure a settings explanation beneath its toggle");
+                Require(desired.sizeDip.height <= bounds.bottom - bounds.top + 0.5f, "settings explanation fits its measured bounds beneath its toggle");
+            }
             app._settingsScroll->SetScrollOffset(400);
             Require(app._settingsScroll->GetScrollOffset() > 0 &&
                         app._settingsScroll->GetContentHeight() > app._settingsScroll->GetViewportRect().bottom - app._settingsScroll->GetViewportRect().top,
@@ -4075,7 +4107,7 @@ public:
             };
             // GFM (31) plus every optional RichMarkdown bit through abbreviations.
             Require(views(MarkdownExtensions::RichOptionalMask) && inlineKind(MarkdownInlineKind::Highlight) && wikiLink() &&
-                        std::ranges::all_of(app._syntaxToggles, [](auto* toggle) { return toggle->GetToggleState() == std::optional<bool>(true); }),
+                        std::ranges::all_of(app._syntaxToggles, [](auto* toggle) { return toggle->IsChecked(); }),
                     "every optional syntax starts enabled on the editor, mirror and inspector and is analysed");
             for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
             {
@@ -4088,7 +4120,7 @@ public:
             }
             app.Execute(Command::SyntaxHighlight);
             app.Prepare(256);
-            Require(! app.Preferences().SyntaxEnabled(MarkdownSyntax::Highlight) && app._syntaxToggles[0]->GetToggleState() == std::optional<bool>(false) &&
+            Require(! app.Preferences().SyntaxEnabled(MarkdownSyntax::Highlight) && ! app._syntaxToggles[0]->IsChecked() &&
                         views(static_cast<MarkdownExtensions>(4095u & ~32u)) && ! inlineKind(MarkdownInlineKind::Highlight) && wikiLink(),
                     "turning Highlight off reanalyses all three views and leaves other syntax enabled");
             app.Execute(Command::SyntaxWikiLinks);

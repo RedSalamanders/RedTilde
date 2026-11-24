@@ -203,6 +203,24 @@
     { "name": "Editor.SplitScrollbarClickDoesNotStealEditFocusAndExitRestoresAuthority", "scope": "Editor" },
     { "name": "Editor.SplitActivePaneFindReplaceWithoutRebuild", "scope": "Editor" },
     { "name": "Editor.SplitLinkedAndUnlinkedScrollSync", "scope": "Editor" },
-    { "name": "Settings.SplitScrollSyncPersistenceAndLiveReload", "scope": "Settings" }
+    { "name": "Settings.SplitScrollSyncPersistenceAndLiveReload", "scope": "Settings" },
+    { "name": "Settings.SpellingRoundTripAndFieldFallback", "scope": "Settings" },
+    { "name": "Settings.SpellingLiveReloadAndCustomDictionary", "scope": "Settings" },
+    { "name": "Editor.SpellingProseExtractionAndExclusions", "scope": "Editor" },
+    { "name": "Editor.SpellingCustomDictionaryCodecsAndSafety", "scope": "Editor" },
+    { "name": "Editor.SpellingMidWordFormattingAtomicReplaceAndUndo", "scope": "Editor" },
+    { "name": "Editor.SpellingViewportCapAndScrollProjection", "scope": "Editor" },
+    { "name": "Editor.SpellingActiveWordSuppressionAndCancellation", "scope": "Editor" },
+    { "name": "Editor.SpellingNoDictionaryTruthfulState", "scope": "Editor" },
+    { "name": "Editor.SpellingWinSpellProviderReadOnlyProbe", "scope": "Editor" },
+    { "name": "Editor.SpellingLeftClickMenuAndLanguageCombos", "scope": "Editor" },
+    { "name": "Recovery.SessionResumeFormatAndRoundTrip", "scope": "Recovery" },
+    { "name": "Settings.MultiFolderGitHubAndExitBehaviorRoundTrip", "scope": "Settings" },
+    { "name": "Editor.WorkspaceSaveConfirmSingleMultiAndChecklist", "scope": "Editor" },
+    { "name": "Editor.WorkspaceKeepAndExitResumeAndShutdown", "scope": "Editor" },
+    { "name": "Files.MultiFolderDisambiguationAndLocationResolver", "scope": "Storage" },
+    { "name": "Files.SafeRenamePasteCollisionAndReparseGuard", "scope": "Storage" },
+    { "name": "Editor.FilesMultiFolderSectionsAndContextMenuOps", "scope": "Editor" },
+    { "name": "Editor.WorkspaceGitHubUrlAutosuggestAuthAndOpen", "scope": "Editor" }
   ]
 }

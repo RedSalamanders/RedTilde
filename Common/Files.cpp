@@ -1,5 +1,6 @@
 #include "Files.h"
 #include "ProcessWork.h"
+#include "Settings.h"
 #include "Storage.h"
 #include <DxUi/Failure.h>
 #include <algorithm>
@@ -7,6 +8,7 @@
 #include <cstddef>
 #include <mutex>
 #include <new>
+#include <unordered_map>
 #include <utility>
 #include <wil/resource.h>
 
@@ -1043,5 +1045,329 @@ void FileChangeService::Close() noexcept
         SetEvent(_state->wake.get());
     }
     _state.reset();
+}
+
+namespace
+{
+bool IsUnsafeDisplayCodePoint(std::uint32_t cp) noexcept
+{
+    if (cp < 0x20u || cp == 0x7Fu || (cp >= 0x80u && cp <= 0x9Fu))
+        return true;
+    if ((cp >= 0x200Bu && cp <= 0x200Fu) || (cp >= 0x202Au && cp <= 0x202Eu) || (cp >= 0x2066u && cp <= 0x2069u) || cp == 0xFEFFu)
+        return true;
+    if (cp >= 0xE0000u && cp <= 0xE007Fu)
+        return true;
+    return false;
+}
+
+std::wstring NormalizeSlashesForDisplay(std::wstring_view text)
+{
+    std::wstring result(text);
+    for (wchar_t& ch : result)
+        if (ch == L'\\')
+            ch = L'/';
+    return result;
+}
+
+std::optional<std::wstring> RelativePathWithinRoot(const std::filesystem::path& filePath, const std::filesystem::path& root)
+{
+    const auto normFile = filePath.lexically_normal();
+    const auto normRoot = root.lexically_normal();
+    const auto &fileStr = normFile.native(), &rootStr = normRoot.native();
+    if (fileStr.empty() || rootStr.empty() || fileStr.size() <= rootStr.size())
+        return std::nullopt;
+    const auto prefix = std::wstring_view(fileStr).substr(0, rootStr.size());
+    if (CompareStringOrdinal(prefix.data(), static_cast<int>(prefix.size()), rootStr.data(), static_cast<int>(rootStr.size()), TRUE) != CSTR_EQUAL)
+        return std::nullopt;
+    std::size_t start = rootStr.size();
+    if (rootStr.back() != L'\\' && rootStr.back() != L'/')
+    {
+        if (fileStr[start] != L'\\' && fileStr[start] != L'/')
+            return std::nullopt;
+        ++start;
+    }
+    while (start < fileStr.size() && (fileStr[start] == L'\\' || fileStr[start] == L'/'))
+        ++start;
+    if (start >= fileStr.size())
+        return std::nullopt;
+    return NormalizeSlashesForDisplay(std::wstring_view(fileStr).substr(start));
+}
+} // namespace
+
+std::wstring SanitizeUiText(std::wstring_view text, std::size_t maximumLength)
+{
+    std::wstring out;
+    out.reserve(std::min<std::size_t>(text.size(), maximumLength));
+    for (std::size_t i = 0; i < text.size() && out.size() < maximumLength;)
+    {
+        const wchar_t unit = text[i];
+        if (unit >= 0xD800u && unit <= 0xDBFFu)
+        {
+            if (i + 1u < text.size() && text[i + 1u] >= 0xDC00u && text[i + 1u] <= 0xDFFFu)
+            {
+                const std::uint32_t cp =
+                    0x10000u + (((static_cast<std::uint32_t>(unit) - 0xD800u) << 10) | (static_cast<std::uint32_t>(text[i + 1u]) - 0xDC00u));
+                if (! IsUnsafeDisplayCodePoint(cp) && out.size() + 2u <= maximumLength)
+                {
+                    out.push_back(unit);
+                    out.push_back(text[i + 1u]);
+                }
+                i += 2u;
+                continue;
+            }
+            ++i;
+            continue;
+        }
+        if (unit >= 0xDC00u && unit <= 0xDFFFu)
+        {
+            ++i;
+            continue;
+        }
+        if (! IsUnsafeDisplayCodePoint(static_cast<std::uint32_t>(unit)))
+            out.push_back(unit);
+        ++i;
+    }
+    return out;
+}
+
+std::vector<std::wstring> DisambiguateFolderLabels(std::span<const std::filesystem::path> roots)
+{
+    std::vector<std::wstring> baseNames;
+    baseNames.reserve(roots.size());
+    std::unordered_map<std::wstring, std::size_t> leafCounts;
+    for (const auto& root : roots)
+    {
+        auto leaf = root.filename().native();
+        if (leaf.empty())
+            leaf = root.native();
+        std::wstring key = leaf;
+        CharLowerBuffW(key.data(), static_cast<DWORD>(key.size()));
+        ++leafCounts[key];
+        baseNames.push_back(SanitizeUiText(leaf, 128u));
+    }
+
+    std::vector<std::wstring> labels;
+    labels.reserve(roots.size());
+    for (std::size_t i = 0; i < roots.size(); ++i)
+    {
+        auto leaf = roots[i].filename().native();
+        if (leaf.empty())
+            leaf = roots[i].native();
+        std::wstring key = leaf;
+        CharLowerBuffW(key.data(), static_cast<DWORD>(key.size()));
+        if (leafCounts[key] > 1u)
+        {
+            const auto parentLeaf = SanitizeUiText(roots[i].parent_path().filename().native(), 96u);
+            if (! parentLeaf.empty())
+            {
+                labels.push_back(baseNames[i] + L" (" + parentLeaf + L")");
+                continue;
+            }
+        }
+        labels.push_back(baseNames[i]);
+    }
+    return labels;
+}
+
+WorkspaceDisplayLocation ResolveWorkspaceDisplayLocation(const std::filesystem::path& filePath,
+                                                         const DocumentOriginInfo& origin,
+                                                         std::span<const std::filesystem::path> roots,
+                                                         std::wstring_view untitledName)
+{
+    WorkspaceDisplayLocation result;
+    if (origin.kind == DocumentOriginInfo::Kind::GitHub && ! origin.owner.empty() && ! origin.repo.empty())
+    {
+        result.isGitHub     = true;
+        result.rooted       = true;
+        result.sectionLabel = SanitizeUiText(origin.owner, 128u) + L"/" + SanitizeUiText(origin.repo, 128u);
+        result.relativePath = NormalizeSlashesForDisplay(SanitizeUiText(origin.relativePath, 512u));
+        const auto pos      = result.relativePath.find_last_of(L'/');
+        result.fileName     = pos == std::wstring::npos ? result.relativePath : result.relativePath.substr(pos + 1u);
+        if (result.fileName.empty())
+            result.fileName = std::wstring(untitledName);
+        result.fullPath = SanitizeUiText(origin.htmlUrl, 512u);
+        if (result.fullPath.empty())
+            result.fullPath = L"https://github.com/" + result.sectionLabel + L"/blob/" + SanitizeUiText(origin.branch.empty() ? L"main" : origin.branch, 128u) +
+                              L"/" + result.relativePath;
+        return result;
+    }
+
+    if (filePath.empty())
+    {
+        result.fileName = std::wstring(untitledName);
+        return result;
+    }
+
+    result.fullPath = filePath.lexically_normal().native();
+    result.fileName = SanitizeUiText(filePath.filename().native(), 255u);
+    if (result.fileName.empty())
+        result.fileName = std::wstring(untitledName);
+
+    const auto labels          = DisambiguateFolderLabels(roots);
+    std::size_t bestRootLength = 0u;
+    std::optional<std::size_t> bestIndex;
+    std::wstring bestRelative;
+    for (std::size_t i = 0; i < roots.size(); ++i)
+    {
+        if (auto rel = RelativePathWithinRoot(filePath, roots[i]))
+        {
+            const std::size_t rootLen = roots[i].lexically_normal().native().size();
+            if (rootLen > bestRootLength)
+            {
+                bestRootLength = rootLen;
+                bestIndex      = i;
+                bestRelative   = std::move(*rel);
+            }
+        }
+    }
+    if (bestIndex)
+    {
+        result.rooted       = true;
+        result.sectionLabel = labels[*bestIndex];
+        result.relativePath = std::move(bestRelative);
+    }
+    else
+    {
+        result.relativePath = SanitizeUiText(filePath.parent_path().lexically_normal().native(), 512u);
+    }
+    return result;
+}
+
+struct MultiFolderFilesService::WorkerEntry
+{
+    WorkerEntry()                              = default;
+    WorkerEntry(const WorkerEntry&)            = delete;
+    WorkerEntry& operator=(const WorkerEntry&) = delete;
+    std::filesystem::path root;
+    std::unique_ptr<FilesService> service;
+};
+
+MultiFolderFilesService::MultiFolderFilesService() = default;
+
+MultiFolderFilesService::~MultiFolderFilesService()
+{
+    Close();
+}
+
+HRESULT MultiFolderFilesService::Initialize(HWND window, UINT message, FilesLimits limits) noexcept
+{
+    if ((window && message < WM_APP) || limits.maximumDepth > 8 || limits.maximumEntries == 0 || limits.maximumEntries > 5000)
+        return E_INVALIDARG;
+    Close();
+    _window      = window;
+    _message     = message;
+    _limits      = limits;
+    _initialized = true;
+    return S_OK;
+}
+
+HRESULT MultiFolderFilesService::SetRoots(std::span<const std::filesystem::path> roots) noexcept
+try
+{
+    if (! _initialized)
+        return E_UNEXPECTED;
+    if (roots.size() > MaximumFilesRoots)
+        return HRESULT_FROM_WIN32(ERROR_TOO_MANY_NAMES);
+
+    std::vector<std::unique_ptr<WorkerEntry>> next;
+    next.reserve(roots.size());
+    for (const auto& rawRoot : roots)
+    {
+        if (rawRoot.empty() || ! rawRoot.is_absolute())
+            continue;
+        const auto norm = rawRoot.lexically_normal();
+        const bool dup  = std::ranges::any_of(
+            next, [&](const std::unique_ptr<WorkerEntry>& existing) { return existing && EqualOrdinal(existing->root.native(), norm.native()); });
+        if (dup)
+            continue;
+        auto existingIt = std::ranges::find_if(
+            _entries, [&](const std::unique_ptr<WorkerEntry>& entry) { return entry && EqualOrdinal(entry->root.native(), norm.native()); });
+        if (existingIt != _entries.end() && (*existingIt)->service && (*existingIt)->service->IsActive())
+        {
+            next.push_back(std::move(*existingIt));
+            continue;
+        }
+        auto svc             = std::make_unique<FilesService>();
+        const HRESULT initHr = svc->Initialize(_window, _message, _limits);
+        if (FAILED(initHr))
+            return initHr;
+        const HRESULT setHr = svc->SetRoot(norm);
+        if (FAILED(setHr))
+            return setHr;
+        auto entry     = std::make_unique<WorkerEntry>();
+        entry->root    = norm;
+        entry->service = std::move(svc);
+        next.push_back(std::move(entry));
+    }
+    for (auto& oldEntry : _entries)
+        if (oldEntry && oldEntry->service)
+            oldEntry->service->Close();
+    _entries = std::move(next);
+    return S_OK;
+}
+catch (const std::bad_alloc&)
+{
+    DxUi::Failure::FailAllocation();
+}
+
+HRESULT MultiFolderFilesService::Refresh(const std::filesystem::path& root) noexcept
+{
+    const auto norm = root.lexically_normal();
+    for (auto& entry : _entries)
+    {
+        if (entry && EqualOrdinal(entry->root.native(), norm.native()) && entry->service)
+            return entry->service->Refresh();
+    }
+    return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
+}
+
+HRESULT MultiFolderFilesService::RefreshAll() noexcept
+{
+    HRESULT firstError = S_OK;
+    for (auto& entry : _entries)
+    {
+        if (entry && entry->service)
+        {
+            const HRESULT hr = entry->service->Refresh();
+            if (FAILED(hr) && SUCCEEDED(firstError))
+                firstError = hr;
+        }
+    }
+    return firstError;
+}
+
+std::vector<FilesSnapshot> MultiFolderFilesService::TakeResults()
+{
+    std::vector<FilesSnapshot> results;
+    for (auto& entry : _entries)
+    {
+        if (entry && entry->service)
+        {
+            if (auto snap = entry->service->TakeResult())
+                results.push_back(std::move(*snap));
+        }
+    }
+    return results;
+}
+
+bool MultiFolderFilesService::Busy() const noexcept
+{
+    return std::ranges::any_of(_entries, [](const std::unique_ptr<WorkerEntry>& entry) { return entry && entry->service && entry->service->Busy(); });
+}
+
+std::size_t MultiFolderFilesService::RootCount() const noexcept
+{
+    return _entries.size();
+}
+
+void MultiFolderFilesService::Close() noexcept
+{
+    for (auto& entry : _entries)
+        if (entry && entry->service)
+            entry->service->Close();
+    _entries.clear();
+    _window      = nullptr;
+    _message     = 0;
+    _initialized = false;
 }
 } // namespace RedTilde

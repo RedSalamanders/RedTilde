@@ -21,8 +21,8 @@ All screenshots in this directory are deterministic renders produced by RedTilde
 | [`compose-light.png`](compose-light.png) | `compose-light` | `1440×900` | Compose view in Light theme with Files pane, Outline, and Current Block |
 | [`compose-dark.png`](compose-dark.png) | `compose-dark` | `1440×900` | Compose view in Dark theme with Files pane and Outline |
 | [`compose-paper.png`](compose-paper.png) | `compose-paper` | `1440×900` | Compose view in warm Paper theme |
-| [`panes-collapsed-rails-light.png`](panes-collapsed-rails-light.png) | `panes-collapsed-rails-light` | `1080×820` | Both side panes auto-collapsed into `28`-DIP edge rails with left modified-file dots, right heading dots, and hover-parity toggle chrome |
-| [`pane-hover-reveal-dark.png`](pane-hover-reveal-dark.png) | `pane-hover-reveal-dark` | `1080×820` | Hovering the right rail trigger zone slides open the floating Outline overlay (`Surface::Kind::Floating`) over the Dark canvas with zero reflow |
+| [`panes-collapsed-rails-light.png`](panes-collapsed-rails-light.png) | `panes-collapsed-rails-light` | `1080×820` | Both side panes minimized/auto-collapsed into `28`-DIP compact edge rails with left modified-file dots, vertically centered right heading dots, and hover-parity toggle chrome |
+| [`pane-hover-reveal-dark.png`](pane-hover-reveal-dark.png) | `pane-hover-reveal-dark` | `1080×820` | Hovering or clicking a free zone on the right compact rail slides open the flush Outline overlay (`Surface::Kind::DrawerRight`) over the Dark canvas with zero reflow |
 | [`split.png`](split.png) | `split` | `1440×900` | Split view in Light theme with Compose `Editing`, `Read-only` Source mirror, center linked-scroll toggle (`Ctrl+Shift+Y`), and collapsed right Outline dot rail |
 | [`split-dark.png`](split-dark.png) | `split-dark` | `1440×900` | Split view in Dark theme with active-pane indicator, center linked-scroll toggle, and collapsed right Outline dot rail |
 | [`split-source-active-light.png`](split-source-active-light.png) | `split-source-active-light` | `1440×900` | Bidirectional Split view with right Source pane active (`Editing`), passive Compose preview (`Read-only`), and Find & Replace targeting Source |
@@ -35,6 +35,14 @@ All screenshots in this directory are deterministic renders produced by RedTilde
 | [`mermaid.png`](mermaid.png) | `mermaid` | `1440×900` | Native Mermaid flowchart, sequence diagram, and state diagram rendered on the document canvas |
 | [`find.png`](find.png) | `find` | `1440×900` | Find & Replace overlay (`Ctrl+F`) with `Match case`, highlighted matches, and Outline section counts |
 | [`print-preview.png`](print-preview.png) | `print-preview` | `1018×784` | Print Preview (`Ctrl+P`) with synthetic printer destinations, page setup controls, and Letter Portrait sheet |
-| [`settings.png`](settings.png) | `settings` | `1440×900` | Settings drawer (`Ctrl+,`) showing theme preview tiles, reading width, text size, Writing, and Markdown syntax |
+| [`settings.png`](settings.png) | `settings` | `1440×900` | Settings drawer (`Ctrl+,`) with pinned header Close button, Appearance tiles, reading width, text size, Writing, and Proofing toggles/combo |
+| [`spelling-light.png`](spelling-light.png) | `spelling-light` | `1440×900` | Spell-checking squiggles in Light theme with code, math, links, acronyms, and digit tags left untouched plus quiet status-bar language selector |
+| [`spelling-dark.png`](spelling-dark.png) | `spelling-dark` | `1440×900` | Spell-checking squiggles and status bar proofing selector in Dark theme |
+| [`spelling-high-contrast.png`](spelling-high-contrast.png) | `spelling-high-contrast` | `1440×900` | Spell-checking squiggles and high-contrast system palette overrides |
 | [`image-consent-light.png`](image-consent-light.png) | `image-consent-light` | `1440×900` | Non-modal remote-image consent bar with blocked remote image alt text |
 | [`recovery.png`](recovery.png) | `recovery` | `1440×900` | Startup crash-recovery sheet with Unicode source preview and Restore / Discard / Keep actions |
+| [`save-confirm-dialog-light.png`](save-confirm-dialog-light.png) | `save-confirm-dialog-light` | `1440×900` | DxUi save confirmation dialog in Light theme showing file name, folder-relative path, Save, Keep & Exit, Don't Save, and Cancel |
+| [`files-multi-folder-and-github-light.png`](files-multi-folder-and-github-light.png) | `files-multi-folder-and-github-light` | `1440×900` | Multi-folder collapsible sections with disambiguated labels alongside the connected GitHub repository section |
+| [`files-context-menu-dark.png`](files-context-menu-dark.png) | `files-context-menu-dark` | `1440×900` | Dark-theme multi-folder and GitHub workspace showing cut-state file marking alongside the validated Rename file dialog with folder-relative path |
+| [`open-github-autosuggest-light.png`](open-github-autosuggest-light.png) | `open-github-autosuggest-light` | `1440×900` | Open from GitHub modal (`Ctrl+Shift+G`) in Light theme with connected account status and live repository autosuggest |
+| [`open-github-autosuggest-dark.png`](open-github-autosuggest-dark.png) | `open-github-autosuggest-dark` | `1440×900` | Open from GitHub modal (`Ctrl+Shift+G`) in Dark theme with connected account status and filtered autosuggest results |
