@@ -144,18 +144,18 @@ LTO is scoped to each final EXE/DLL and does not guarantee reduced size or impro
 
 ### CI toolchain preparation and audit evidence
 
-Active Windows compilation/tooling workflows use the local setup-msvc composite action. It reads RequiredMsvcToolsVersion, verifies the discovered default compiler, linker, ASan target libraries, SDK and x64 LLVM scanner tools, and provisions Visual Studio 2026 Insiders only on GitHub-hosted runners when necessary. The Microsoft-signed bootstrapper runs under RUNNER_TEMP; existing installations are retained. A channel that no longer supplies 14.52 fails rather than accepting another compiler. Local -VerifyOnly is read-only; automatic local installation is refused. Hosted provisioning remains a separate unexecuted branch until its actual CI receipt exists.
+Active Windows compilation and tooling workflows run setup-msvc from the pinned CI engine. It reads RequiredMsvcToolsVersion, verifies the discovered default compiler, linker, ASan target libraries, SDK and x64 LLVM scanner tools, and provisions Visual Studio 2026 Insiders only on GitHub-hosted runners when necessary. The Microsoft-signed bootstrapper runs under RUNNER_TEMP; existing installations are retained. A channel that no longer supplies 14.52 fails rather than accepting another compiler. Local -VerifyOnly is read-only; automatic local installation is refused. Hosted provisioning remains a separate unexecuted branch until its actual CI receipt exists.
 
 [Full evaluated settings and differences](../../Measurements/Toolchain/2026-10-23-msvc1452/Settings.md) include both platform/configuration matrices and exact per-file metadata. [Microsoft installation guidance](https://learn.microsoft.com/en-us/cpp/overview/acquire-msvc) documents channel-specific acquisition. The published [runner image inventory](https://github.com/actions/runner-images/blob/main/images/windows/Windows2025-VS2026-Readme.md) does not establish that the required toolset is installed; runtime versions alone are also not compiler proof.
 
 RedMonitor is installed independently. Builds verify the local pinned client header/license and never compile or package the helper; see [RedMonitor integration](../Core/Core_RedMonitorIntegration.md).
 
-Hosted setup (`.github/actions/setup-msvc/Setup.ps1`) checks `vswhere.exe` availability and filters Visual Studio 18 (`-version '[18.0,19.0)'`), enforces a 260-UTF-16-unit guard on the planned bootstrapper
+Hosted setup (`.ci-engine/.github/actions/setup-msvc/Setup.ps1`) discovers Visual Studio with `vswhere.exe` and enforces a 260-UTF-16-unit guard on the planned bootstrapper
 path before downloading (`$installer.Length -ge 260`), bounds bootstrapper download (`180` seconds) and installer
 execution (`1800` seconds, killing the owned installer tree and waiting up to `15` seconds on timeout), waits with
 both `--wait` and `Start-Process`/`WaitForExit`, reads the explicit exit code (`0` or `3010`), and rechecks the
 required compiler family and complete target tools. Ambient `LASTEXITCODE` cannot establish installer success. Paths
-with spaces stay one argument; installer stdout, stderr and fresh `dd_*` logs (using a `2 s` timestamp safety window) remain downloadable on failure.
+with spaces stay one argument; installer stdout, stderr and fresh `dd_*` logs remain downloadable on failure.
 Delayed-GUI, stale-exit, wrong-family, missing-tool, signature and local/read-only refusal controls exercise the
 actual setup script without running an installer. `Tests/Tooling.Tests.ResourceStrings.ps1` checks `res/RedTilde.rc`
 (`#pragma code_page(65001)`), forward and reverse `res/Resource.h` parity under strict UTF-8, production references and formatted-placeholder discipline, positional placeholders without printf specifiers, and C++
