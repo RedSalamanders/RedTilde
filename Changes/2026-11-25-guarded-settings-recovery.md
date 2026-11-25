@@ -1,1 +1,0 @@
-- Settings: Preserve readable incompatible settings at their original path. Guard malformed-file recovery against a competing edit.
