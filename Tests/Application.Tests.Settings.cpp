@@ -183,7 +183,7 @@ void RegisterSettingsTests(const std::filesystem::path& root, const std::functio
 
         const auto racingDirectory = root / L"cold-competing-edit";
         std::filesystem::create_directories(racingDirectory);
-        const auto racingPath      = SettingsPath(racingDirectory, false);
+        const auto racingPath = SettingsPath(racingDirectory, false);
         Success(WriteBytesAtomic(racingPath, corruptBytes), "seed malformed settings for the guarded recovery race");
         struct Editor
         {
