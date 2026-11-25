@@ -379,6 +379,11 @@ public:
         }
         Require(foreground.NeverAcquiredForeground(), "localized save refusal and close conflict checks preserve foreground");
     }
+    static bool IsSaveSettled(Application& app)
+    {
+        return ! app._files.Busy() && std::holds_alternative<std::monostate>(app._activeFileTx) && ! app.HasActiveModalPrompt() &&
+               ! HasLabelPrefix(app.Host().GetRoot(), Resource(IDS_SAVING));
+    }
 };
 void RegisterCloseTests(const std::filesystem::path& root, const std::function<void(std::string_view, const std::function<void()>&)>& test)
 {
@@ -412,7 +417,7 @@ void RegisterCloseTests(const std::filesystem::path& root, const std::function<v
             const auto later = app.Document().Snapshot();
             Checkpoint(app);
             Release(gate);
-            Await(app, [&] { return HasLabelPrefix(app.Host().GetRoot(), Resource(IDS_SAVED)); }, "finish the guarded save, including a picker confirmation");
+            Await(app, [&] { return CloseProbe::IsSaveSettled(app); }, "finish the guarded save, including a picker confirmation");
             StoredDocument actual, shared;
             Success(LoadDocument(target, actual), "read admitted worker save");
             Success(LoadDocument(alias, shared), "read application save alias");
