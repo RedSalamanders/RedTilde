@@ -1274,9 +1274,13 @@ HRESULT Application::BuildUi()
     {
         if (! _renameSession || ! _renameError || ! _renameConfirmBtn)
             return;
-        auto* ops = _options.fileOpsForTest ? _options.fileOpsForTest.get() : nullptr;
         WindowsWorkspaceFileOps fallbackOps;
-        const auto err = (ops ? ops : &fallbackOps)->ValidateFileName(text);
+        IWorkspaceFileOps* ops = &fallbackOps;
+#if defined(ENABLE_TESTS)
+        if (_options.fileOpsForTest)
+            ops = _options.fileOpsForTest.get();
+#endif
+        const auto err = ops->ValidateFileName(text);
         const bool ok  = err == FileNameValidationError::None;
         _renameConfirmBtn->SetEnabled(ok);
         _renameError->SetText(ok ? std::wstring{} : Resource(IDS_RENAME_INVALID));

@@ -3436,9 +3436,13 @@ void Application::CommitRenameFileModal()
     if (! _renameSession || ! _renameInput)
         return;
     const std::wstring newName(_renameInput->GetText());
-    auto* ops = _options.fileOpsForTest ? _options.fileOpsForTest.get() : nullptr;
     WindowsWorkspaceFileOps fallbackOps;
-    if ((ops ? ops : &fallbackOps)->ValidateFileName(newName) != FileNameValidationError::None)
+    IWorkspaceFileOps* ops = &fallbackOps;
+#if defined(ENABLE_TESTS)
+    if (_options.fileOpsForTest)
+        ops = _options.fileOpsForTest.get();
+#endif
+    if (ops->ValidateFileName(newName) != FileNameValidationError::None)
     {
         if (_renameError)
             _renameError->SetText(Resource(IDS_RENAME_INVALID));
