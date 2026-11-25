@@ -4,6 +4,7 @@ Entries are generated from [Changes](Changes/README.md). Existing release notes 
 
 ## Unreleased
 
+- Record RedTilde's post-1.0 DxUi API 6 adoption and qualification in its own plan.
 - Point RedTilde coding guidance to the active member naming rules and the root validation check.
 - Accept matching DxUi API 5 metadata in the independent same-pin performance audit.
 - Add a manual hosted paired performance check with independently audited, encrypted raw evidence.
