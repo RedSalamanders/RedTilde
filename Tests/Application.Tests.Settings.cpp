@@ -169,6 +169,52 @@ void RegisterSettingsTests(const std::filesystem::path& root, const std::functio
         Success(ReadBytes(corruptResult.backupPath, backedUpBytes), "read corrupted backup bytes");
         Require(backedUpBytes == corruptBytes, "corrupted backup preserves exact malformed bytes");
 
+        const auto incompatibleDirectory = root / L"cold-incompatible";
+        std::filesystem::create_directories(incompatibleDirectory);
+        const auto incompatiblePath                  = SettingsPath(incompatibleDirectory, false);
+        constexpr std::string_view incompatibleBytes = "{schema: 0, appearance: 'dark'}\n";
+        Success(WriteBytesAtomic(incompatiblePath, incompatibleBytes), "seed readable settings with an unsupported schema");
+        const auto incompatible = LoadSettingsCold(incompatibleDirectory, false);
+        std::string preservedBytes;
+        Success(ReadBytes(incompatiblePath, preservedBytes), "read the preserved incompatible settings");
+        Require(incompatible.status == SettingsLoadStatus::Incompatible && incompatible.settings.appearance == Appearance::System &&
+                    ! incompatible.templateWritten && incompatible.backupPath.empty() && preservedBytes == incompatibleBytes,
+                "cold fallback preserves readable incompatible settings at their original path");
+
+        const auto racingDirectory = root / L"cold-competing-edit";
+        const auto racingPath      = SettingsPath(racingDirectory, false);
+        Success(WriteBytesAtomic(racingPath, corruptBytes), "seed malformed settings for the guarded recovery race");
+        struct Editor
+        {
+            std::filesystem::path path;
+            std::string_view document;
+            bool replaced{};
+        };
+        Editor editor{racingPath, R"json({"schema":1,"appearance":"paper"})json"};
+        {
+            const auto stopHook = wil::scope_exit([] { SetAtomicWriteHookForTest(nullptr, nullptr); });
+            SetAtomicWriteHookForTest(
+                [](AtomicWriteCheckpoint step, const std::filesystem::path& target, void* context) noexcept
+            {
+                auto& edit = *static_cast<Editor*>(context);
+                if (step != AtomicWriteCheckpoint::Staged || edit.path != target)
+                    return;
+                const wil::unique_hfile file{
+                    CreateFileW(target.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr)};
+                DWORD written{};
+                const auto size = static_cast<DWORD>(edit.document.size());
+                edit.replaced   = file && WriteFile(file.get(), edit.document.data(), size, &written, nullptr) && written == size;
+            },
+                &editor);
+            const auto raced = LoadSettingsCold(racingDirectory, false);
+            Require(editor.replaced && raced.status == SettingsLoadStatus::Invalid && ! raced.templateWritten && ! raced.backupPath.empty(),
+                    "cold recovery detects the edit after staging its defaults");
+            Success(ReadBytes(raced.backupPath, backedUpBytes), "read the exact diagnosed version after the race");
+            Require(backedUpBytes == corruptBytes, "the recovery backup keeps the diagnosed bytes");
+        }
+        Success(ReadBytes(racingPath, preservedBytes), "read the competing settings after recovery");
+        Require(preservedBytes == editor.document, "guarded cold recovery leaves the competing edit in place");
+
         const auto oversizedDir = root / L"cold-oversized";
         std::filesystem::create_directories(oversizedDir);
         const auto oversizedPath = SettingsPath(oversizedDir, false);
