@@ -185,7 +185,7 @@ std::vector<std::wstring> Application::ResolveEffectiveSpellLanguages(const std:
 
 void Application::ScheduleSpellCheck(bool immediate)
 {
-    if (IsClosing() || IsSessionEnding() || ! IsUiAttached())
+    if (IsClosing() || IsSessionEnding() || ! IsUiAttached() || _options.recoveryProbe)
         return;
 
     if (_window)
@@ -248,7 +248,7 @@ void Application::OnSpellDebounceTimer()
 
 void Application::DispatchSpellCheckNow()
 {
-    if (IsClosing() || IsSessionEnding() || ! IsUiAttached() || ! _editor || ! _settings.spelling.enabled || _switchingDocument)
+    if (IsClosing() || IsSessionEnding() || ! IsUiAttached() || _options.recoveryProbe || ! _editor || ! _settings.spelling.enabled || _switchingDocument)
     {
         _spell.immediatePending = false;
         return;
