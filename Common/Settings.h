@@ -211,6 +211,7 @@ private:
     HWND _window{};
     UINT _message{};
     wil::unique_event_nothrow _stopEvent;
+    wil::unique_event_nothrow _readyEvent;
     std::jthread _thread;
     std::atomic_bool _notificationPending{false};
 };

@@ -1237,6 +1237,14 @@ try
         return error != ERROR_SUCCESS ? HRESULT_FROM_WIN32(error) : E_FAIL;
     }
 
+    _readyEvent.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+    if (! _readyEvent)
+    {
+        const DWORD error = GetLastError();
+        Close();
+        return error != ERROR_SUCCESS ? HRESULT_FROM_WIN32(error) : E_FAIL;
+    }
+
     ProcessWorkLease lease;
     const HRESULT admission = ProcessWork::Acquire(lease);
     if (FAILED(admission))
@@ -1252,6 +1260,7 @@ try
     _notificationPending.store(false, std::memory_order_release);
 
     _thread = std::jthread([this, ownedLease = std::move(lease)](std::stop_token) mutable noexcept { WatchThread(std::move(ownedLease)); });
+    (void)WaitForSingleObject(_readyEvent.get(), 1000u);
     return S_OK;
 }
 catch (const std::bad_alloc&)
@@ -1276,6 +1285,7 @@ void SettingsWatcher::Close() noexcept
     if (_thread.joinable())
         _thread.join();
     _thread = std::jthread{};
+    _readyEvent.reset();
     _stopEvent.reset();
     _notificationPending.store(false, std::memory_order_release);
     _directory.clear();
@@ -1293,6 +1303,17 @@ void SettingsWatcher::WatchThread(ProcessWorkLease lease) noexcept
 {
     const ProcessWorkLease scopedLease = std::move(lease);
     (void)scopedLease;
+
+    bool readySignaled{};
+    const auto signalReady = [&]() noexcept
+    {
+        if (! readySignaled && _readyEvent)
+        {
+            readySignaled = true;
+            (void)SetEvent(_readyEvent.get());
+        }
+    };
+    const auto ensureReadyOnExit = wil::scope_exit([&]() noexcept { signalReady(); });
 
     wil::unique_handle directoryHandle;
     wil::unique_event_nothrow ioEvent(CreateEventW(nullptr, TRUE, FALSE, nullptr));
@@ -1386,10 +1407,12 @@ void SettingsWatcher::WatchThread(ProcessWorkLease lease) noexcept
             {
                 const DWORD error = GetLastError();
                 directoryHandle.reset();
+                signalReady();
                 if (! waitRetryOrStop(error))
                     return;
                 continue;
             }
+            signalReady();
         }
 
         HANDLE handles[]{_stopEvent.get(), ioEvent.get()};
