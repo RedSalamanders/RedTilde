@@ -34,3 +34,28 @@ inline int WinHttpImportFailure(EXCEPTION_POINTERS* failure, HRESULT& result) no
     return EXCEPTION_EXECUTE_HANDLER;
 }
 } // namespace RedTilde::RemoteImageDetail
+
+namespace RedTilde
+{
+[[nodiscard]] inline HRESULT EnsureDelayLoadedImport(const char* dllName) noexcept
+{
+    HRESULT result = E_UNEXPECTED;
+    // A delayed Windows API import can fail with SEH, outside the transport's
+    // C++ exception boundary. This function has no unwind-requiring locals and
+    // handles only loader/procedure failure; every other exception propagates.
+    // delayimp retains imports for process lifetime, including late callbacks.
+    __try
+    {
+        return __HrLoadAllImportsForDll(dllName);
+    }
+    __except (RemoteImageDetail::WinHttpImportFailure(GetExceptionInformation(), result))
+    {
+        return result;
+    }
+}
+
+[[nodiscard]] inline HRESULT EnsureWinHttpImports() noexcept
+{
+    return EnsureDelayLoadedImport("WINHTTP.dll");
+}
+} // namespace RedTilde

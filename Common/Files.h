@@ -1,4 +1,5 @@
 #pragma once
+#include "Recovery.h"
 #include <cstdint>
 #include <filesystem>
 #include <limits>
@@ -62,6 +63,7 @@ struct FilesSnapshot
     bool depthLimitReached{};
     bool cancelled{};
 };
+[[nodiscard]] bool IsMarkdownFileName(std::wstring_view name) noexcept;
 [[nodiscard]] bool IsMarkdownFile(const std::filesystem::path& path) noexcept;
 [[nodiscard]] bool FilesNaturalLess(std::wstring_view left, std::wstring_view right) noexcept;
 // Exact paths always match. Only confirmed case-insensitive root metadata
@@ -121,6 +123,53 @@ private:
 #endif
 };
 
+struct WorkspaceDisplayLocation
+{
+    std::wstring fileName;
+    std::wstring sectionLabel;
+    std::wstring relativePath;
+    std::wstring fullPath;
+    bool rooted{};
+    bool isGitHub{};
+};
+
+// Returns true for ASCII/C1 control chars, Unicode bidi overrides/isolates, zero-width chars, and tag chars (U+E0000..U+E007F).
+[[nodiscard]] bool IsUnsafeDisplayCodePoint(std::uint32_t cp) noexcept;
+// Strips ASCII/C1 control chars, Unicode bidi overrides/isolates, zero-width chars, and tag chars (U+E0000..U+E007F).
+[[nodiscard]] std::wstring SanitizeUiText(std::wstring_view text, std::size_t maximumLength = 256u);
+[[nodiscard]] std::vector<std::wstring> DisambiguateFolderLabels(std::span<const std::filesystem::path> roots);
+[[nodiscard]] WorkspaceDisplayLocation ResolveWorkspaceDisplayLocation(const std::filesystem::path& filePath,
+                                                                       const DocumentOriginInfo& origin,
+                                                                       std::span<const std::filesystem::path> roots,
+                                                                       std::wstring_view untitledName);
+
+// Coordinates bounded independent FilesService workers for up to MaximumFilesRoots local folders.
+class MultiFolderFilesService final
+{
+public:
+    MultiFolderFilesService();
+    ~MultiFolderFilesService();
+    MultiFolderFilesService(const MultiFolderFilesService&)            = delete;
+    MultiFolderFilesService& operator=(const MultiFolderFilesService&) = delete;
+
+    [[nodiscard]] HRESULT Initialize(HWND window = nullptr, UINT message = 0, FilesLimits limits = {}) noexcept;
+    [[nodiscard]] HRESULT SetRoots(std::span<const std::filesystem::path> roots) noexcept;
+    [[nodiscard]] HRESULT Refresh(const std::filesystem::path& root) noexcept;
+    [[nodiscard]] HRESULT RefreshAll() noexcept;
+    [[nodiscard]] std::vector<FilesSnapshot> TakeResults();
+    [[nodiscard]] bool Busy() const noexcept;
+    [[nodiscard]] std::size_t RootCount() const noexcept;
+    void Close() noexcept;
+
+private:
+    struct WorkerEntry;
+    std::vector<std::unique_ptr<WorkerEntry>> _entries;
+    HWND _window{};
+    UINT _message{};
+    FilesLimits _limits{};
+    bool _initialized{};
+};
+
 struct FileChangeNotice
 {
     std::uint64_t generation{}, revision{};
@@ -137,6 +186,7 @@ public:
     FileChangeService& operator=(const FileChangeService&) = delete;
     [[nodiscard]] HRESULT Initialize(HWND window, UINT message, WPARAM cookie) noexcept;
     [[nodiscard]] HRESULT SetFiles(std::span<const std::filesystem::path> files) noexcept;
+    [[nodiscard]] bool HasResult() const noexcept;
     [[nodiscard]] std::optional<FileChangeNotice> TakeResult();
     void Close() noexcept;
 

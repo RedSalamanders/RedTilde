@@ -1,6 +1,8 @@
 #include "Application.h"
 #include "PrintPreview.h"
+#if defined(ENABLE_TESTS)
 #include "Tests/Support/Support.Tests.FilesFixtures.h"
+#endif
 #include <algorithm>
 #include <chrono>
 #include <combaseapi.h>
@@ -99,7 +101,7 @@ void Application::PrepareDesignScenario()
             Execute(Command::ImageFirstPaste);
         Execute(Command::Settings);
         Prepare(512);
-        _settingsScroll->SetScrollOffset(1240);
+        _settingsScroll->SetScrollOffset(_settingsPrivacyScrollY);
         RequireCapture(_host.GetClipboardPreference() == (imageFirst ? DxUi::TextClipboardPreference::ImageFirst : DxUi::TextClipboardPreference::TextFirst),
                        "The clipboard preference capture must expose the actual live host policy");
         const auto background = _host.GetTheme().windowBackground;
@@ -155,6 +157,183 @@ void Application::PrepareDesignScenario()
     }
     if (scenario == L"task-presentation-light" || scenario == L"task-presentation-dark")
         _settings.strikeCompletedTasks = true;
+    if (scenario == L"spelling-light" || scenario == L"spelling-dark" || scenario == L"spelling-high-contrast")
+    {
+#if defined(ENABLE_TESTS)
+        auto provider = std::make_shared<FakeSpellProvider>();
+        provider->SetInstalledLanguages({L"en-US", L"fr-FR"});
+        provider->SetLanguageAvailability(L"en-US", ProviderAvailability::Ready);
+        provider->AddKnownWords(L"en-US", {L"Drafting", L"with",    L"confidence", L"Good",       L"doesn't",    L"mean",  L"every",    L"first",     L"draft",
+                                           L"is",       L"perfect", L"RedTilde",   L"underlines", L"unfamiliar", L"words", L"like",     L"and",       L"right",
+                                           L"in",       L"your",    L"flow",       L"It's",       L"careful",    L"about", L"Markdown", L"Technical", L"terms",
+                                           L"inside",   L"inline",  L"code",       L"equations",  L"links",      L"notes", L"acronyms", L"product",   L"tags",
+                                           L"such",     L"as",      L"stay",       L"cleanly",    L"untouched",  L"The",   L"status",   L"bar",       L"always",
+                                           L"shows",    L"active",  L"proofing",   L"language"});
+        provider->SetSuggestions(L"en-US", L"writting", {L"writing", L"written"});
+        provider->SetSuggestions(L"en-US", L"documnet", {L"document"});
+        provider->SetSuggestions(L"en-US", L"recieve", {L"receive"});
+        provider->SetSuggestions(L"en-US", L"teh", {L"the"});
+        _options.spellProviderForTest = provider;
+        _spellService.SetProviderForTest(provider);
+        _settings.spelling.enabled   = true;
+        _settings.spelling.languages = {L"en-US"};
+        _settings.view               = EditorView::Compose;
+        _settings.showFiles          = false;
+        _settings.showOutline        = false;
+        _settings.appearance         = scenario == L"spelling-dark" ? Appearance::Dark : Appearance::Light;
+        ApplyTheme();
+        const std::wstring spellingFixture =
+            L"# Drafting with confidence\n\n"
+            L"Good writting doesn't mean every first draft is perfect. **RedTilde** underlines unfamiliar words like documnet and recieve right in your "
+            L"flow.\n\n"
+            L"It's careful about Markdown. Technical terms inside inline code (`writting_fn()`), equations ($x_{documnet}^2$), "
+            L"links ([notes](https://example.invalid/recieve)), acronyms (NASA), and product tags such as C23 stay cleanly untouched.\n\n"
+            L"The status bar always shows teh active proofing language.\n";
+        SetDocument(spellingFixture);
+        _editor->SetSelection({0, 0});
+        SelectionChanged();
+        ScheduleSpellCheck(true);
+        Layout();
+        Prepare(512);
+        RequireCapture(_spell.issues.size() == 4u && _editor->GetDecorationStatus() == DxUi::RichTextDecorationStatus::Ready,
+                       "Spelling capture scenario must settle four spelling squiggles");
+        fixtureName = L"Spelling review";
+#else
+        RequireCapture(false, "The synthetic spelling capture requires a test-enabled build");
+#endif
+    }
+    if (scenario == L"save-confirm-dialog-light" || scenario == L"files-multi-folder-and-github-light" || scenario == L"files-context-menu-dark" ||
+        scenario == L"open-github-autosuggest-light" || scenario == L"open-github-autosuggest-dark")
+    {
+        const bool isDark    = scenario == L"files-context-menu-dark" || scenario == L"open-github-autosuggest-dark";
+        _settings.appearance = isDark ? Appearance::Dark : Appearance::Light;
+        ApplyTheme();
+
+        const auto wsBase  = CaptureNativePath(std::filesystem::absolute(_options.dataDirectory) / L"capture-workspace");
+        const auto folderA = wsBase / L"ProjectAlpha" / L"docs";
+        const auto folderB = wsBase / L"ProjectBeta" / L"docs";
+        std::filesystem::create_directories(folderA / L"guides");
+        std::filesystem::create_directories(folderB / L"specs");
+        const auto fileA1 = folderA / L"guides" / L"getting-started.md";
+        const auto fileA2 = folderA / L"Architecture.md";
+        const auto fileB1 = folderB / L"specs" / L"FileSafety.md";
+        CaptureWrite(fileA1, "# Getting Started\n\nAlpha Workspace guide.\n");
+        CaptureWrite(fileA2, "# Architecture\n\nModular design overview.\n");
+        CaptureWrite(fileB1, "# File Safety\n\nAtomic write contract.\n");
+
+        _settings.filesRoots   = {folderA, folderB};
+        _settings.filesRoot    = folderA;
+        _settings.showFiles    = true;
+        _settings.filesPinMode = PanePinMode::Pinned;
+
+        GitHubConnectedRepoState ghRepo;
+        ghRepo.ref            = {L"RedSalamanders", L"RedTilde", L"main"};
+        ghRepo.resolvedBranch = L"main";
+        ghRepo.loaded         = true;
+        ghRepo.entries        = {
+            {L"README.md", L"README.md", L"111", L"", NoFilesParent, 0u, 0u, false},
+            {L"docs", L"docs", L"222", L"", NoFilesParent, 2u, 0u, true},
+            {L"docs/Overview.md", L"Overview.md", L"333", L"", 1u, 0u, 1u, false},
+            {L"docs/Shortcuts.md", L"Shortcuts.md", L"444", L"", 1u, 0u, 1u, false},
+        };
+        _connectedGitHubRepos = {ghRepo};
+        _settings.githubRepos = {ghRepo.ref};
+
+        StoredDocument docA1;
+        RequireCapture(SUCCEEDED(LoadDocument(fileA1, docA1)), "Load capture fileA1");
+        RequireCapture(SetDocument(docA1.text, fileA1, docA1.bom, docA1.stamp, false), "Set capture docA1");
+        _editor->SetSelection({docA1.text.size(), docA1.text.size()});
+        RequireCapture(_editor->ReplaceSelection(L"\nAdded draft paragraph for workspace preview.\n"), "Edit capture docA1");
+
+        const auto waitMultiFolders = [&]
+        {
+            const auto deadline = GetTickCount64() + 10000u;
+            while ((_multiFolderFiles.Busy() || _folderSnapshots.size() < 2u) && GetTickCount64() < deadline)
+            {
+                Prepare(8);
+                (void)MsgWaitForMultipleObjectsEx(0, nullptr, 5, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+            }
+            _multiFolderFiles.Close();
+        };
+
+        if (scenario == L"save-confirm-dialog-light")
+        {
+            RequireCapture(StartWorkspaceDocument(), "Start slot 2 for save-confirm capture");
+            StoredDocument docB1;
+            RequireCapture(SUCCEEDED(LoadDocument(fileB1, docB1)), "Load capture fileB1");
+            RequireCapture(SetDocument(docB1.text, fileB1, docB1.bom, docB1.stamp, false), "Set capture docB1");
+            _editor->SetSelection({docB1.text.size(), docB1.text.size()});
+            RequireCapture(_editor->ReplaceSelection(L"\nPending review note.\n"), "Edit capture docB1");
+
+            RequireCapture(StartWorkspaceDocument(), "Start slot 3 for save-confirm capture");
+            RequireCapture(SetDocument(L"# Scratchpad\n\nQuick meeting notes.\n", {}, false, {}, false), "Set capture untitled draft");
+            _editor->SetSelection({_editor->Snapshot().Length(), _editor->Snapshot().Length()});
+            RequireCapture(_editor->ReplaceSelection(L"\nFollow-up action items.\n"), "Edit capture untitled draft");
+
+            waitMultiFolders();
+            _settings.exitUnsavedBehavior = ExitUnsavedBehavior::Prompt;
+            ShowSaveConfirmModal([] {}, true);
+            RequireCapture(_saveConfirmPanel && _saveConfirmPanel->IsVisible(), "SaveConfirmModal capture panel visible");
+            fixtureName = L"getting-started.md";
+        }
+        else if (scenario == L"files-multi-folder-and-github-light")
+        {
+            waitMultiFolders();
+            RefreshFiles();
+            RequireCapture(std::ranges::any_of(_filesModel.rows, [](const auto& r) { return r.text == L"docs (ProjectAlpha)"; }) &&
+                               std::ranges::any_of(_filesModel.rows, [](const auto& r) { return r.text == L"docs (ProjectBeta)"; }) &&
+                               std::ranges::any_of(_filesModel.rows, [](const auto& r) { return r.text == L"RedSalamanders/RedTilde (main)"; }),
+                           "Multi-folder + GitHub capture renders all workspace sections");
+            fixtureName = L"getting-started.md";
+        }
+        else if (scenario == L"files-context-menu-dark")
+        {
+            _cutFilePaths.insert(fileA2.lexically_normal().native());
+            waitMultiFolders();
+            RefreshFiles();
+            ShowRenameFileModal(fileA1, false);
+            _renameInput->SetTextAndNotify(L"getting-started-v2.md");
+            RequireCapture(_renamePanel && _renamePanel->IsVisible(), "RenameFileModal dark capture panel visible");
+            fixtureName = L"getting-started.md";
+        }
+        else
+        {
+            waitMultiFolders();
+            RefreshFiles();
+            _github.Close();
+            _githubSignedInLogin = L"octocat";
+            _githubUserRepoCache = {
+                {L"RedSalamanders",
+                 L"RedTilde",
+                 L"RedSalamanders/RedTilde",
+                 L"Native Windows Markdown editor",
+                 L"main",
+                 L"https://github.com/RedSalamanders/RedTilde",
+                 false},
+                {L"RedSalamanders",
+                 L"RedPrism",
+                 L"RedSalamanders/RedPrism",
+                 L"Native D3D11 raster editor",
+                 L"main",
+                 L"https://github.com/RedSalamanders/RedPrism",
+                 false},
+                {L"RedSalamanders",
+                 L"RedSalamander",
+                 L"RedSalamanders/RedSalamander",
+                 L"Dual-pane file manager",
+                 L"main",
+                 L"https://github.com/RedSalamanders/RedSalamander",
+                 false},
+                {L"RedSalamanders", L"DxUi", L"RedSalamanders/DxUi", L"Shared DirectX UI library", L"main", L"https://github.com/RedSalamanders/DxUi", false},
+                {L"octocat", L"red-notes", L"octocat/red-notes", L"Private personal markdown vault", L"main", L"https://github.com/octocat/red-notes", true},
+            };
+            ShowOpenGitHubModal();
+            _openGitHubUrlInput->SetTextAndNotify(L"Red");
+            RequireCapture(_openGitHubPanel && _openGitHubPanel->IsVisible() && ! _githubSuggestModel.rows.empty(),
+                           "OpenGitHubModal capture panel and filtered autosuggest list visible");
+            fixtureName = L"getting-started.md";
+        }
+    }
     const bool reference    = scenario == L"reference-dark";
     const bool fixtureScene = scenario == L"compose-light" || scenario == L"compose-dark" || scenario == L"compose-paper" || scenario == L"source" ||
                               scenario == L"split" || scenario == L"split-dark" || scenario == L"settings" || scenario == L"settings-about" ||
@@ -225,6 +404,7 @@ void Application::PrepareDesignScenario()
                                SetFileAttributesW((writing / L"System notes.md").c_str(), FILE_ATTRIBUTE_SYSTEM) != FALSE,
                            "Cannot mark excluded Files-pane capture entries");
         }
+#if defined(ENABLE_TESTS)
         const auto target = fixture / L"Reference target";
         CaptureWrite(target / L"Not followed.md", "# Reparse target\n\nThe Files tree must never visit this entry.\n");
         const auto link = (reference ? fixture : writing) / L"Linked notes";
@@ -235,7 +415,8 @@ void Application::PrepareDesignScenario()
             if (! RemoveDirectoryW(link.c_str()) && GetLastError() != ERROR_FILE_NOT_FOUND && GetLastError() != ERROR_PATH_NOT_FOUND)
                 OutputDebugStringW(L"RedTilde capture could not remove its owned reparse fixture leaf.\n");
         });
-        auto source          = reference ? CurrentText() : WritingFixture();
+#endif
+        auto source = reference ? CurrentText() : WritingFixture();
         if (scenario == L"split-unlinked-dark")
             for (unsigned section = 1; section <= 14; ++section)
                 source += std::format(L"\n## Section {}\n\nWriting keeps its place across independent viewports when linked scroll is off.\n", section);
@@ -253,7 +434,8 @@ void Application::PrepareDesignScenario()
         _settings.filesRoot = writing;
         SetDocument(std::move(source), path, false, identity);
         fixtureName = reference ? L"weekly-report-2026-10-15.md" : L"Writing";
-        if (scenario != L"focus" && scenario != L"equation" && scenario != L"settings" && scenario != L"settings-about" && ! _settings.showFiles)
+        if (scenario != L"focus" && scenario != L"equation" && scenario != L"settings" && scenario != L"settings-about" &&
+            scenario != L"panes-collapsed-rails-light" && scenario != L"pane-hover-reveal-dark" && ! _settings.showFiles)
             Execute(Command::Files);
         if (_settings.showFiles)
         {
@@ -286,9 +468,11 @@ void Application::PrepareDesignScenario()
             _folderFiles.Close();
             frozenFilesModel = true;
         }
+#if defined(ENABLE_TESTS)
         RequireCapture(RemoveDirectoryW(link.c_str()) != FALSE, "Cannot retire the owned capture reparse leaf before evidence retention");
         reparseRemoved = true;
         removeOwnedLink.release();
+#endif
         const auto end = _editor->Snapshot().Length();
         _editor->SetSelection({end, end});
         RequireCapture(_editor->ReplaceSelection(reference ? L"\r\n" : L"\n"), "Cannot stage the synthetic Edited state");
@@ -350,7 +534,7 @@ void Application::PrepareDesignScenario()
             {
                 Layout();
                 Prepare(512);
-                _settingsScroll->SetScrollOffset(1250.f);
+                _settingsScroll->SetScrollOffset(_settingsAboutScrollY);
             }
         }
         if (scenario == L"files" || scenario == L"compose-light" || scenario == L"compose-dark" || scenario == L"compose-paper" ||
@@ -358,6 +542,10 @@ void Application::PrepareDesignScenario()
             _host.SetFocusControl(_editor, false);
         if (scenario == L"panes-collapsed-rails-light" || scenario == L"pane-hover-reveal-dark")
         {
+            _settings.showFiles      = false;
+            _settings.showOutline    = false;
+            _settings.filesPinMode   = PanePinMode::Unpinned;
+            _settings.outlinePinMode = PanePinMode::Unpinned;
             RequireCapture(StartWorkspaceDocument(), "Cannot add second dirty workspace document for collapsed-rail capture");
             RequireCapture(SetDocument(L"# Second chapter\n\nA second modified workspace file.\n", writing / L"Drafts/Chapter2.md", false, {}),
                            "Cannot seed second dirty workspace file for collapsed-rail capture");
@@ -373,7 +561,7 @@ void Application::PrepareDesignScenario()
             Prepare(512);
             if (scenario == L"pane-hover-reveal-dark")
             {
-                OnRailExpandClicked(PaneSide::Right);
+                RevealPaneOverlay(PaneSide::Right);
                 Prepare(512);
                 RequireCapture(_leftRail && _leftRail->IsVisible() && _rightRail && _rightRail->IsVisible() && IsPaneOverlayActive(PaneSide::Right) &&
                                    _sidebar->IsVisible() && ! _filesPane->IsVisible(),
@@ -471,7 +659,7 @@ void Application::PrepareDesignScenario()
         RequireCapture(_printPreview != nullptr && _printOperation != nullptr, "Print preview capture did not start the preview host");
         const auto deadline = GetTickCount64() + 15000u;
         unsigned turns{};
-        while (_printPreview && ! _printPreview->IsReady() && GetTickCount64() < deadline && turns++ < 3000u)
+        while (_printPreview && (! _printPreview->IsReady() || _printPreview->IsConfigurationPending()) && GetTickCount64() < deadline && turns++ < 3000u)
         {
             MSG message{};
             while (PeekMessageW(&message, _window.get(), 0, 0, PM_REMOVE))
@@ -487,10 +675,11 @@ void Application::PrepareDesignScenario()
                     DispatchMessageW(&message);
                 }
             }
-            if (_printPreview && ! _printPreview->IsReady())
+            if (_printPreview && (! _printPreview->IsReady() || _printPreview->IsConfigurationPending()))
                 (void)MsgWaitForMultipleObjectsEx(0, nullptr, 5, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
         }
-        RequireCapture(_printPreview && _printPreview->IsReady(), "Print preview capture did not settle a ready sheet");
+        RequireCapture(_printPreview && _printPreview->IsReady() && ! _printPreview->IsConfigurationPending(),
+                       "Print preview capture did not settle a ready sheet");
         if (_options.captureDpi)
         {
             RECT previewFrame{};

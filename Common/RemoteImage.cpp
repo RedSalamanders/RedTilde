@@ -40,20 +40,8 @@ HRESULT LastError() noexcept
 
 HRESULT EnsureNetworkImports() noexcept
 {
-    HRESULT result = E_UNEXPECTED;
-    // A delayed Windows API import can fail with SEH, outside the transport's
-    // C++ exception boundary. This function has no unwind-requiring locals and
-    // handles only loader/procedure failure; every other exception propagates.
-    // delayimp retains imports for process lifetime, including late callbacks.
-    __try
-    {
-        const HRESULT transport = __HrLoadAllImportsForDll("WINHTTP.dll");
-        return FAILED(transport) ? transport : __HrLoadAllImportsForDll("WS2_32.dll");
-    }
-    __except (RemoteImageDetail::WinHttpImportFailure(GetExceptionInformation(), result))
-    {
-        return result;
-    }
+    const HRESULT transport = EnsureWinHttpImports();
+    return FAILED(transport) ? transport : EnsureDelayLoadedImport("WS2_32.dll");
 }
 // Existing identity/RAII/reference traits intentionally delete these implicit operations.
 // Preserve aggregate and overload behavior. Owner: repository maintainers; review: 2027-01-31.

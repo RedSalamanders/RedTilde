@@ -14,5 +14,7 @@ void RetainRecentCrashReports(const std::filesystem::path& directory);
 [[nodiscard]] bool CrashReportingPrepared() noexcept;
 // Called only by the prestarted process reporter while the original faulting thread is held.
 [[nodiscard]] HRESULT WriteDxUiFailureReport(DxUi::Failure::Record& record) noexcept;
+#if defined(ENABLE_TESTS)
 [[noreturn]] void CrashProbe() noexcept;
+#endif
 } // namespace RedTilde

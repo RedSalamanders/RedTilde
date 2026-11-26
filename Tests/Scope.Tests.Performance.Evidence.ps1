@@ -676,7 +676,7 @@ function Assert-DependencyEvidence($Study,$Comparison,[string]$StudyRoot) {
         $Study.baseline.publicHeaders.packageSha256 -ceq $Study.candidate.publicHeaders.packageSha256 -and
         ($inventories.baseline.source -join "`n") -ceq ($inventories.candidate.source -join "`n") -and
         ($inventories.baseline.package -join "`n") -ceq ($inventories.candidate.package -join "`n") -and
-        $base.Identity.apiRevision -eq 4 -and $candidate.Identity.apiRevision -eq 4) 'Adoption public-header/API identity differs.'
+        $base.Identity.apiRevision -eq $candidate.Identity.apiRevision -and ($base.Identity.apiRevision -eq 4 -or $base.Identity.apiRevision -eq 5)) 'Adoption public-header/API identity differs.'
     Require ($base.Fingerprint -cmatch '^[0-9a-fA-F]{64}$' -and $candidate.Fingerprint -cmatch '^[0-9a-fA-F]{64}$' -and
         $base.Identity.commit -cmatch '^[0-9a-f]{40}$' -and $candidate.Identity.commit -cmatch '^[0-9a-f]{40}$') 'Invalid adoption dependency metadata.'
     Require ((@($base.Keys|Sort-Object)|ConvertTo-Json -Compress) -ceq (@($candidate.Keys|Sort-Object)|ConvertTo-Json -Compress) -and

@@ -6,9 +6,9 @@ Settings, theming, live reload, preferences persistence, and Close worker settle
 
 ## Local crash handler and minidump retention
 
-Install local crash handlers before creating UI or starting workers (`InstallCrashHandler` in `Common/CrashHandler.cpp`). Record a uniquely named `.dmp` with a bounded crash path and a `pending.txt` marker; do not allocate while formatting crash metadata. DbgHelp must be loaded before a fault occurs.
+Install local crash handlers before creating UI or starting workers (`InstallCrashHandler` in `Common/CrashHandler.cpp`; rejects empty, relative, or embedded-NUL crash paths with `E_INVALIDARG`). Record a uniquely named `.dmp` with a bounded crash path and a `pending.txt` marker; do not allocate while formatting crash metadata. DbgHelp must be loaded before a fault occurs.
 
-Handle unhandled SEH exceptions, `std::terminate`, invalid CRT parameters (`_set_invalid_parameter_handler`), pure virtual calls (`_set_purecall_handler`), and `SIGABRT`. A reentrant crash must not recurse: serialize DbgHelp use and wait on the active dump event instead of writing concurrently.
+Handle unhandled SEH exceptions, `std::terminate`, invalid CRT parameters (`_set_invalid_parameter_handler`), pure virtual calls (`_set_purecall_handler`), and `SIGABRT`. A reentrant crash must not recurse: `WriteReport` keys its `ownerThread` CAS on `GetCurrentThreadId()` (retaining `faultThread` for `MINIDUMP_EXCEPTION_INFORMATION`) and waits on the active dump event instead of writing concurrently.
 
 On a healthy interactive launch, claim the pending report (`pending.txt`) once and show its local path (`IDS_CRASHREPORT`). A headless launch leaves a pending notice available. Keep the newest ten files in the post-adoption `RedTilde-report-*.dmp` collection by dump write time and remove each retired dump's regular `.record` sidecar. Legacy and unrelated files remain intact. Keep pruning in healthy interactive startup. Dumps may contain document text and remain local until the user chooses to share them.
 
@@ -16,11 +16,11 @@ The crash handler is a last-resort diagnostic, not a recovery save. Recovery sna
 
 ## DxUi API-5 protocol-2 reporter
 
-DxUi API 5 uses an explicit process-owned protocol-2 reporter (`DxUiFailureHost`). Prepare the bounded crash path, handles, and loaded DbgHelp before SDK use; start its dedicated writer thread before installing `DxUi::Failure::ProcessHooks`.
+DxUi API 5 uses an explicit process-owned protocol-2 reporter (`DxUiFailureHost`). Prepare the bounded crash path, handles, and loaded DbgHelp before SDK use; start its dedicated writer thread before installing `DxUi::Failure::ProcessHooks`, and roll back `_writer` teardown if hook installation fails.
 
 The app-owned reporter preserves the protocol record's natural `CONTEXT` alignment, places that record first, and explicitly accounts for its scalar tail; a `static_assert` size check forbids implicit member or tail padding on every compile target. Keep compiler warning policy enabled (`/Wall`) rather than suppressing alignment diagnostics.
 
-Copy the fixed `DxUi::Failure::Record` without allocation and keep the faulting thread held while the writer attempts its dump. The dump exception stream and fixed `.record` sidecar retain the original exception, machine context, thread, source site, and frames; the writer's thread and context must never replace them. Record the actual native dump `HRESULT`; report completion has a 15-second bound. Reports use a process-creation identity plus PID/time. A missing or unwritable configured destination remains a checked diagnostic failure; never silently substitute another directory or upload.
+Copy the fixed `DxUi::Failure::Record` without allocation using module-static crash buffers (keeping the faulting thread stack clean) and keep the faulting thread held while the writer attempts its dump. The dump exception stream and fixed `.record` sidecar retain the original exception, machine context, thread, source site, and frames; the writer's thread and context must never replace them. Record the actual native dump `HRESULT`; report completion has a 15-second bound. Reports use a process-creation identity plus PID/time. A missing or unwritable configured destination remains a checked diagnostic failure; never silently substitute another directory or upload.
 
 ## Process-owner lifetime and shutdown drain
 
@@ -28,7 +28,7 @@ Keep the reporter (`DxUiFailureHost`), module registration, and COM owner alive 
 
 Ordinary drain pumps owner/COM messages, preserves `WM_QUIT`, then disconnects process-wide UIA providers (`UiaDisconnectAllProviders`) and retries failure-host `BUSY` for a cooperative five seconds. A component must not perform that process-wide operation. Timeout is a failed shutdown with fatal diagnostics (`DxUi::Failure::FailContract`), never permission to unload live owners.
 
-Final `WM_ENDSESSION(TRUE)` keeps the existing 2,000-ms recovery-only allowance ([Core_Settings.md](Core_Settings.md)); its heap `ApplicationRuntime` process owner stays alive until OS teardown (`KeepForProcessTeardown`) so a held codec callback adds no ordinary drain/join deadline.
+Final `WM_ENDSESSION(TRUE)` keeps the existing 2,000-ms recovery-only allowance ([Core_Settings.md](Core_Settings.md)); its heap `ApplicationRuntime` process owner stays alive until OS teardown (`KeepForProcessTeardown`) so a held codec callback adds no ordinary drain/join deadline. In `wWinMain` (`RedTilde/Main.cpp`), `ApplicationRuntime` lives outside the inner `try`/`catch` around `Application` initialization and execution so `DxUi::Failure::IsConfigured()` stays active when handling `std::bad_alloc` and unexpected `std::exception` unwinds (without `catch (...)`).
 
 ## Checked APIs and allocation failures
 
@@ -42,9 +42,12 @@ Crash and sanitizer probes run only in isolated harness child processes under `E
 
 - `--crash-probe`: triggers an unhandled non-continuable exception through the installed crash handler to prove one local minidump (`MDMP`) and `pending.txt` marker are written.
 - `--recovery-crash-probe`: stages two dirty workspace documents, waits for settled recovery checkpoints, and triggers `CrashProbe()` so `--recovery-restart-probe` can prove restart restoration.
+- `--recovery-restart-probe`: relaunches against the staged `--recovery-crash-probe` directory, verifies both recovered documents, and validates original disk files remain untouched.
 - `--linked-save-crash-probe`: interrupts a multi-hardlink save at its controlled partial-write checkpoint (exit 79) with its writer and recovery lease still live so `--linked-save-restart-probe` can prove recovery preservation.
+- `--linked-save-restart-probe`: relaunches against the interrupted hardlink fixture and verifies released recovery lease and admitted restoration.
+- `--preferences-probe`: cycles appearance themes (`Light`, `Dark`, `Paper`) and exits immediately to prove asynchronous settings flush on close.
 - `--failure-host-probe <kind>`: exercises protocol-2 failure-host recording and shutdown drain boundaries in an isolated child process.
 - `--asan-probe`: exercises an intentional isolated heap-use-after-free read in `ASan Debug` builds so `test.ps1` verifies real AddressSanitizer instrumentation.
 - `--failure-report-self-test`: verifies test-process failure routing (`RedTildeTestFailureReports::RouteAwayFromDialogs()` and `RedTildeTestFailureReports::RunSelfTest()` before `InstallCrashHandler`), ending with stderr diagnostic text and exit code `3` without modal dialogs in Debug / ASan Debug, and exiting `0` in test-enabled Release.
 
-In test-disabled production builds (`!defined(ENABLE_TESTS)`), every test and probe switch (including `--failure-report-self-test`) refuses immediately with exit code `2` before resolving profile paths, installing the crash handler, or creating a private data directory. Standalone informational flags (`--version`, `-v`, `--help`, `-h`, `/?`, `-?`) likewise exit without creating profile or `Crashes/` directories. See [validation and evidence](../Testing/Testing_Validation.md).
+In test-disabled production builds (`!defined(ENABLE_TESTS)`), every test and probe switch (`--self-test`, `--test-scope`, `--list-tests`, `--design-interactive-probe`, `--crash-probe`, `--recovery-crash-probe`, `--recovery-restart-probe`, `--preferences-probe`, `--asan-probe`, `--linked-save-crash-probe`, `--linked-save-restart-probe`, `--failure-host-probe`, and `--failure-report-self-test`) refuses immediately with exit code `2` before resolving profile paths, installing the crash handler, or creating a private data directory, and test-only `LaunchOptions` probe fields and `CoreTestScope` are omitted under `!defined(ENABLE_TESTS)`. Standalone informational flags (`--version`, `-v`, `--help`, `-h`, `/?`, `-?`) likewise exit without creating profile or `Crashes/` directories. See [validation and evidence](../Testing/Testing_Validation.md).

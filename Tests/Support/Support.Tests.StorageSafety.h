@@ -489,8 +489,29 @@ inline void RegisterStorageSafetyTests(const std::filesystem::path& root, const 
         const auto linkError = GetLastError();
         RequireStorage(created, std::format("create owned relative symlink (Win32 {})", linkError).c_str());
         const auto removeLink = wil::scope_exit([&] { (void)DeleteFileW(link.c_str()); });
+        struct SymlinkLeaseCheck
+        {
+            const std::filesystem::path* linkPath{};
+            unsigned calls{};
+            DWORD writeError{};
+            static void Observe(AtomicWriteCheckpoint phase, const std::filesystem::path&, void* context) noexcept
+            {
+                if (phase != AtomicWriteCheckpoint::Staged)
+                    return;
+                auto& self = *static_cast<SymlinkLeaseCheck*>(context);
+                ++self.calls;
+                wil::unique_handle writer(
+                    CreateFileW(self.linkPath->c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_FLAG_OPEN_REPARSE_POINT, nullptr));
+                self.writeError = writer ? ERROR_SUCCESS : GetLastError();
+            }
+        } leaseCheck{&link};
+        SetAtomicWriteHookForTest(SymlinkLeaseCheck::Observe, &leaseCheck);
+        const auto clearHook = wil::scope_exit([] { SetAtomicWriteHookForTest(nullptr, nullptr); });
         FileStamp saved;
         RequireStorage(SUCCEEDED(SaveDocument(link, L"revised target\r\n", true, &original, saved)), "save final symlink target atomically");
+        SetAtomicWriteHookForTest(nullptr, nullptr);
+        RequireStorage(leaseCheck.calls == 1u && leaseCheck.writeError == ERROR_SHARING_VIOLATION,
+                       "symlink target save holds a GENERIC_READ lease denying concurrent link writers");
         const auto attributes = GetFileAttributesW(link.c_str());
         StoredDocument actual, followed;
         RequireStorage(attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_REPARSE_POINT) && SUCCEEDED(LoadDocument(target, actual)) &&
@@ -523,8 +544,16 @@ inline void RegisterStorageSafetyTests(const std::filesystem::path& root, const 
             std::uint64_t low{}, high{};
             std::memcpy(&low, info.FileId.Identifier, sizeof(low));
             std::memcpy(&high, info.FileId.Identifier + sizeof(low), sizeof(high));
-            RequireStorage(saved.volume == info.VolumeSerialNumber && saved.fileIndex == low && saved.fileIndexHigh == high,
-                           "saved stamp retains the full 64-bit volume serial and 128-bit filesystem identifier");
+            if (info.VolumeSerialNumber != 0u)
+            {
+                RequireStorage(saved.volume == info.VolumeSerialNumber && saved.fileIndex == low && saved.fileIndexHigh == high,
+                               "saved stamp retains the full 64-bit volume serial and 128-bit filesystem identifier");
+            }
+            else
+            {
+                RequireStorage(saved.volume != 0u && saved.fileIndex == low && saved.fileIndexHigh == high,
+                               "saved stamp retains a derived non-zero volume fingerprint and 128-bit filesystem identifier when VolumeSerialNumber is zero");
+            }
         }
         else
         {

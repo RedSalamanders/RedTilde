@@ -22,6 +22,7 @@ param(
     [switch]$RegisterFileAssociation,
     [switch]$Uninstall,
     [Parameter(DontShow)][string]$TestRegistryJsonPath = '',
+    [Parameter(DontShow)][Microsoft.Win32.RegistryKey]$TestRegistryRootKey = $null,
     [Parameter(DontShow)][string]$TestProgramsMenuDirectory = '',
     [Parameter(DontShow)][switch]$SkipShellNotify
 )
@@ -265,13 +266,43 @@ function Write-TestRegistryStore {
     [IO.File]::WriteAllText($TestRegistryJsonPath, $json, [Text.UTF8Encoding]::new($false))
 }
 
+function Get-RedTildeRegistryRootKey {
+    if ($null -ne $TestRegistryRootKey) {
+        return $TestRegistryRootKey
+    }
+    return [Microsoft.Win32.Registry]::CurrentUser
+}
+
+function ConvertTo-Win32RegistryValueName {
+    param([Parameter(Mandatory)][AllowEmptyString()][string]$Name)
+    if ($Name -ieq '(Default)') {
+        return ''
+    }
+    return $Name
+}
+
 function Test-RedTildeRegistryKeyExists {
     param([Parameter(Mandatory)][string]$SubKey)
     if ($TestRegistryJsonPath) {
         $store = Read-TestRegistryStore
-        return $store.ContainsKey($SubKey)
+        if ($store.ContainsKey($SubKey)) {
+            return $true
+        }
+        $prefix = $SubKey + '\'
+        foreach ($key in $store.Keys) {
+            if ($key.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) {
+                return $true
+            }
+        }
+        return $false
     }
-    return Test-Path -LiteralPath ("HKCU:\$SubKey")
+    $rootKey = Get-RedTildeRegistryRootKey
+    $sub = $rootKey.OpenSubKey($SubKey, $false)
+    if ($null -ne $sub) {
+        $sub.Dispose()
+        return $true
+    }
+    return $false
 }
 
 function Get-RedTildeRegistryValue {
@@ -286,15 +317,17 @@ function Get-RedTildeRegistryValue {
         }
         return $null
     }
-    $regPath = "HKCU:\$SubKey"
-    if (-not (Test-Path -LiteralPath $regPath)) {
+    $rootKey = Get-RedTildeRegistryRootKey
+    $sub = $rootKey.OpenSubKey($SubKey, $false)
+    if ($null -eq $sub) {
         return $null
     }
-    $item = Get-ItemProperty -LiteralPath $regPath -Name $Name -ErrorAction SilentlyContinue
-    if ($null -ne $item) {
-        return $item.$Name
+    try {
+        $win32Name = ConvertTo-Win32RegistryValueName -Name $Name
+        return $sub.GetValue($win32Name, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+    } finally {
+        $sub.Dispose()
     }
-    return $null
 }
 
 function Set-RedTildeRegistryValue {
@@ -309,13 +342,29 @@ function Set-RedTildeRegistryValue {
         if (-not $store.ContainsKey($SubKey)) {
             $store[$SubKey] = @{}
         }
-        $store[$SubKey][$Name] = $Value
+        if ($Type -eq 'DWord') {
+            $store[$SubKey][$Name] = [int]$Value
+        } else {
+            $store[$SubKey][$Name] = [string]$Value
+        }
         Write-TestRegistryStore $store
         return
     }
-    $regPath = "HKCU:\$SubKey"
-    [void](New-Item -Path $regPath -Force)
-    Set-ItemProperty -LiteralPath $regPath -Name $Name -Value $Value -Type $Type
+    $rootKey = Get-RedTildeRegistryRootKey
+    $sub = $rootKey.CreateSubKey($SubKey, $true)
+    if ($null -eq $sub) {
+        throw "Failed to create or open registry subkey '$SubKey'."
+    }
+    try {
+        $win32Name = ConvertTo-Win32RegistryValueName -Name $Name
+        if ($Type -eq 'DWord') {
+            $sub.SetValue($win32Name, [int]$Value, [Microsoft.Win32.RegistryValueKind]::DWord)
+        } else {
+            $sub.SetValue($win32Name, [string]$Value, [Microsoft.Win32.RegistryValueKind]::String)
+        }
+    } finally {
+        $sub.Dispose()
+    }
 }
 
 function Remove-RedTildeRegistryProperty {
@@ -331,11 +380,14 @@ function Remove-RedTildeRegistryProperty {
         }
         return
     }
-    $regPath = "HKCU:\$SubKey"
-    if (Test-Path -LiteralPath $regPath) {
-        $item = Get-ItemProperty -LiteralPath $regPath -Name $Name -ErrorAction SilentlyContinue
-        if ($null -ne $item) {
-            Remove-ItemProperty -LiteralPath $regPath -Name $Name -Force
+    $rootKey = Get-RedTildeRegistryRootKey
+    $sub = $rootKey.OpenSubKey($SubKey, $true)
+    if ($null -ne $sub) {
+        try {
+            $win32Name = ConvertTo-Win32RegistryValueName -Name $Name
+            $sub.DeleteValue($win32Name, $false)
+        } finally {
+            $sub.Dispose()
         }
     }
 }
@@ -357,10 +409,8 @@ function Remove-RedTildeRegistryTree {
         }
         return
     }
-    $regPath = "HKCU:\$SubKey"
-    if (Test-Path -LiteralPath $regPath) {
-        Remove-Item -LiteralPath $regPath -Recurse -Force
-    }
+    $rootKey = Get-RedTildeRegistryRootKey
+    $rootKey.DeleteSubKeyTree($SubKey, $false)
 }
 
 function Invoke-RedTildeAssocChangedNotification {
@@ -433,6 +483,30 @@ function Assert-DirectoryTreeFreeOfReparsePoints {
     }
 }
 
+function Assert-RelativeDirectoryComponentsFreeOfReparsePoints {
+    param(
+        [Parameter(Mandatory)][string]$RootDirectory,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$RelativeDirectory
+    )
+    if ([string]::IsNullOrWhiteSpace($RelativeDirectory)) {
+        return
+    }
+    $current = [IO.Path]::GetFullPath($RootDirectory).TrimEnd('\', '/')
+    foreach ($seg in @($RelativeDirectory -split '[\\/]' | Where-Object { $_ })) {
+        $current = Join-Path $current $seg
+        try {
+            $attrs = [IO.File]::GetAttributes($current)
+            if (($attrs -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw "Refusing to traverse or create directory across a reparse point: '$current'."
+            }
+        } catch [IO.FileNotFoundException] {
+            continue
+        } catch [IO.DirectoryNotFoundException] {
+            continue
+        }
+    }
+}
+
 function Copy-DirectoryTreeExact {
     param(
         [Parameter(Mandatory)][string]$SourceRoot,
@@ -441,6 +515,14 @@ function Copy-DirectoryTreeExact {
 
     $copiedRelativeFiles = [Collections.Generic.List[string]]::new()
     $sourceInfo = [IO.DirectoryInfo]::new($SourceRoot)
+    try {
+        $destRootAttrs = [IO.File]::GetAttributes($DestinationRoot)
+        if (($destRootAttrs -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "Destination root cannot be a reparse point: '$DestinationRoot'."
+        }
+    } catch [IO.FileNotFoundException] {
+    } catch [IO.DirectoryNotFoundException] {
+    }
     if (-not [IO.Directory]::Exists($DestinationRoot)) {
         [void][IO.Directory]::CreateDirectory($DestinationRoot)
     }
@@ -454,6 +536,7 @@ function Copy-DirectoryTreeExact {
             $relDir = $currentSourceDir.Substring($sourceInfo.FullName.Length).TrimStart('\', '/')
         }
         $currentDestDir = if ($relDir) { Join-Path $DestinationRoot $relDir } else { $DestinationRoot }
+        Assert-RelativeDirectoryComponentsFreeOfReparsePoints -RootDirectory $DestinationRoot -RelativeDirectory $relDir
         if (-not [IO.Directory]::Exists($currentDestDir)) {
             [void][IO.Directory]::CreateDirectory($currentDestDir)
         }
@@ -468,7 +551,7 @@ function Copy-DirectoryTreeExact {
             } else {
                 $relFile = if ($relDir) { Join-Path $relDir $entry.Name } else { $entry.Name }
                 $destFile = Join-Path $DestinationRoot $relFile
-                if ([IO.File]::Exists($destFile)) {
+                try {
                     $destAttrs = [IO.File]::GetAttributes($destFile)
                     if (($destAttrs -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
                         throw "Refusing to overwrite reparse point in destination: '$destFile'."
@@ -476,6 +559,8 @@ function Copy-DirectoryTreeExact {
                     if (($destAttrs -band [IO.FileAttributes]::ReadOnly) -ne 0) {
                         [IO.File]::SetAttributes($destFile, ($destAttrs -band (-bnot [IO.FileAttributes]::ReadOnly)))
                     }
+                } catch [IO.FileNotFoundException] {
+                } catch [IO.DirectoryNotFoundException] {
                 }
                 [IO.File]::Copy($entry.FullName, $destFile, $true)
                 $copiedRelativeFiles.Add($relFile)
@@ -485,47 +570,166 @@ function Copy-DirectoryTreeExact {
     return @($copiedRelativeFiles.ToArray())
 }
 
-function Remove-DirectoryNoReparse {
-    param([Parameter(Mandatory)][string]$Path)
+function Resolve-ValidatedManifestRelativeFilePath {
+    param(
+        [Parameter(Mandatory)][string]$RootDirectory,
+        [Parameter(Mandatory)][AllowEmptyString()][string]$RelativePath
+    )
 
-    if (-not [IO.Directory]::Exists($Path)) {
+    if ([string]::IsNullOrWhiteSpace($RelativePath) -or (Test-RedTildeContainsControlCharacters $RelativePath)) {
+        throw "Manifest contains an empty or invalid relative path: '$RelativePath'."
+    }
+    if ($RelativePath.IndexOf(':') -ge 0) {
+        throw "Manifest relative path cannot contain ':' (drive or alternate data stream): '$RelativePath'."
+    }
+    if ($RelativePath.StartsWith('\') -or $RelativePath.StartsWith('/') -or
+        $RelativePath.EndsWith('\') -or $RelativePath.EndsWith('/')) {
+        throw "Manifest relative path cannot start or end with a path separator: '$RelativePath'."
+    }
+    if ([IO.Path]::IsPathRooted($RelativePath)) {
+        throw "Manifest relative path cannot be rooted: '$RelativePath'."
+    }
+
+    $segments = @($RelativePath -split '[\\/]')
+    if ($segments.Count -eq 0) {
+        throw "Manifest relative path has no segments: '$RelativePath'."
+    }
+    $invalidFileNameChars = [IO.Path]::GetInvalidFileNameChars()
+    foreach ($seg in $segments) {
+        if ([string]::IsNullOrEmpty($seg)) {
+            throw "Manifest relative path contains an empty segment: '$RelativePath'."
+        }
+        if ($seg -eq '.' -or $seg -eq '..') {
+            throw "Manifest relative path cannot contain '.' or '..' traversal segments: '$RelativePath'."
+        }
+        if ($seg.TrimEnd(' ', '.') -ne $seg) {
+            throw "Manifest relative path segment cannot end with a space or dot: '$RelativePath'."
+        }
+        if ($seg.IndexOfAny($invalidFileNameChars) -ge 0) {
+            throw "Manifest relative path contains invalid filename characters: '$RelativePath'."
+        }
+    }
+
+    $rootFull = [IO.Path]::GetFullPath($RootDirectory).TrimEnd('\', '/')
+    $normalizedRel = ($segments -join '\')
+    $full = [IO.Path]::GetFullPath((Join-Path $rootFull $normalizedRel))
+    if (-not $full.StartsWith(($rootFull + '\'), [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Manifest relative path escapes installation root '$rootFull': '$RelativePath'."
+    }
+
+    $current = $rootFull
+    foreach ($seg in $segments) {
+        $current = Join-Path $current $seg
         try {
-            $attrs = [IO.File]::GetAttributes($Path)
+            $attrs = [IO.File]::GetAttributes($current)
             if (($attrs -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
-                throw "Refusing to traverse or delete a reparse point: '$Path'."
+                throw "Manifest path cannot traverse or reference a reparse point: '$current'."
             }
         } catch [IO.FileNotFoundException] {
-            return
+            continue
         } catch [IO.DirectoryNotFoundException] {
-            return
+            continue
         }
-        return
     }
 
-    Assert-DirectoryTreeFreeOfReparsePoints -Path $Path
-
-    $removeInner = {
-        param([string]$CurrentPath, [scriptblock]$Self)
-        $dirInfo = [IO.DirectoryInfo]::new($CurrentPath)
-        foreach ($entry in $dirInfo.GetFileSystemInfos()) {
-            if (($entry.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
-                throw "Refusing to traverse or delete a reparse point: '$($entry.FullName)'."
-            }
-            if ($entry -is [IO.DirectoryInfo]) {
-                & $Self $entry.FullName $Self
-            } else {
-                if (($entry.Attributes -band [IO.FileAttributes]::ReadOnly) -ne 0) {
-                    $entry.Attributes = $entry.Attributes -band (-bnot [IO.FileAttributes]::ReadOnly)
-                }
-                $entry.Delete()
-            }
-        }
-        if (($dirInfo.Attributes -band [IO.FileAttributes]::ReadOnly) -ne 0) {
-            $dirInfo.Attributes = $dirInfo.Attributes -band (-bnot [IO.FileAttributes]::ReadOnly)
-        }
-        $dirInfo.Delete($false)
+    if ([IO.Directory]::Exists($full)) {
+        throw "Manifest file entry cannot refer to a directory: '$RelativePath'."
     }
-    & $removeInner $Path $removeInner
+
+    return $full
+}
+
+function Read-RedTildeInstallMarker {
+    param(
+        [Parameter(Mandatory)][string]$TargetDirectory,
+        [switch]$RequirePresent
+    )
+
+    $markerPath = Join-Path $TargetDirectory $script:MarkerFileName
+    if ([IO.Directory]::Exists($markerPath)) {
+        throw "Install ownership marker path is a directory, not a file: '$markerPath'."
+    }
+
+    $markerExistsAsReparse = $false
+    try {
+        $attrs = [IO.File]::GetAttributes($markerPath)
+        if (($attrs -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            $markerExistsAsReparse = $true
+        }
+    } catch [IO.FileNotFoundException] {
+    } catch [IO.DirectoryNotFoundException] {
+    }
+    if ($markerExistsAsReparse) {
+        throw "Install ownership marker cannot be a reparse point: '$markerPath'."
+    }
+
+    if (-not [IO.File]::Exists($markerPath)) {
+        if ($RequirePresent) {
+            throw "Refusing operation on '$TargetDirectory' because verified RedTilde installation ownership marker '$markerPath' is missing."
+        }
+        return $null
+    }
+
+    $parsed = $null
+    try {
+        $raw = [IO.File]::ReadAllText($markerPath, [Text.UTF8Encoding]::new($false))
+        if ([string]::IsNullOrWhiteSpace($raw)) {
+            throw 'Install marker file is empty.'
+        }
+        $parsed = $raw | ConvertFrom-Json
+    } catch {
+        throw "Refusing operation on '$TargetDirectory' because install ownership marker '$markerPath' is invalid: $($_.Exception.Message)"
+    }
+
+    if ($null -eq $parsed) {
+        throw "Refusing operation on '$TargetDirectory' because install ownership marker '$markerPath' is empty."
+    }
+
+    $schemaProp = $parsed.PSObject.Properties['schemaVersion']
+    if ($null -eq $schemaProp -or $null -eq $schemaProp.Value -or ($schemaProp.Value -is [bool]) -or ($schemaProp.Value -is [string])) {
+        throw "Refusing operation on '$TargetDirectory' because install ownership marker '$markerPath' has an invalid schemaVersion."
+    }
+    $schemaVersion = 0
+    try {
+        $schemaVersion = [int]$schemaProp.Value
+    } catch {
+        throw "Refusing operation on '$TargetDirectory' because install ownership marker '$markerPath' has a non-numeric schemaVersion."
+    }
+    if ($schemaVersion -ne 1) {
+        throw "Refusing operation on '$TargetDirectory' because install ownership marker '$markerPath' has unsupported schemaVersion '$schemaVersion'."
+    }
+
+    $productProp = $parsed.PSObject.Properties['product']
+    if ($null -eq $productProp -or ([string]$productProp.Value -cne 'RedTilde')) {
+        throw "Refusing operation on '$TargetDirectory' because install ownership marker '$markerPath' belongs to another product."
+    }
+
+    $filesProp = $parsed.PSObject.Properties['files']
+    if ($null -eq $filesProp -or $null -eq $filesProp.Value -or ($filesProp.Value -is [string]) -or ($filesProp.Value -isnot [Collections.IEnumerable])) {
+        throw "Refusing operation on '$TargetDirectory' because install ownership marker '$markerPath' lacks a valid 'files' list."
+    }
+
+    $validatedFiles = [Collections.Generic.List[object]]::new()
+    $seen = [Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
+    foreach ($entry in $filesProp.Value) {
+        if ($entry -isnot [string]) {
+            throw "Refusing operation on '$TargetDirectory' because install ownership marker '$markerPath' contains a non-string 'files' entry."
+        }
+        $validatedFull = Resolve-ValidatedManifestRelativeFilePath -RootDirectory $TargetDirectory -RelativePath $entry
+        $normalizedRel = (($entry -split '[\\/]') -join '\')
+        if ($seen.Add($normalizedRel)) {
+            $validatedFiles.Add([pscustomobject]@{
+                RelativePath = $normalizedRel
+                FullPath     = $validatedFull
+            })
+        }
+    }
+
+    return [pscustomobject]@{
+        MarkerPath = $markerPath
+        Raw        = $parsed
+        Files      = @($validatedFiles.ToArray())
+    }
 }
 
 function Remove-EmptyParentDirectoriesWithinRoot {
@@ -540,11 +744,17 @@ function Remove-EmptyParentDirectoriesWithinRoot {
             break
         }
         $info = [IO.DirectoryInfo]::new($current)
-        if ($info.GetFileSystemInfos().Count -gt 0) {
+        if (($info.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "Refusing to traverse or delete a reparse point: '$current'."
+        }
+        if (@($info.GetFileSystemInfos()).Count -gt 0) {
             break
         }
+        if (($info.Attributes -band [IO.FileAttributes]::ReadOnly) -ne 0) {
+            $info.Attributes = $info.Attributes -band (-bnot [IO.FileAttributes]::ReadOnly)
+        }
         $info.Delete($false)
-        $current = Split-Path $current -Parent
+        $current = (Split-Path $current -Parent).TrimEnd('\', '/')
     }
 }
 
@@ -557,13 +767,28 @@ function Resolve-EffectiveInstallDirectoryForUninstall {
     if (-not [string]::IsNullOrWhiteSpace([string]$registered)) {
         return [string]$registered
     }
+    if ($null -ne $TestRegistryRootKey) {
+        throw 'TestRegistryRootKey requires explicit InstallDirectory or registered InstallLocation.'
+    }
     if ($env:LOCALAPPDATA) {
         return (Join-Path $env:LOCALAPPDATA 'Programs\RedTilde')
     }
     return ''
 }
 
+if ($null -ne $TestRegistryRootKey) {
+    if (-not [string]::IsNullOrWhiteSpace($TestRegistryJsonPath)) {
+        throw 'TestRegistryRootKey and TestRegistryJsonPath cannot be used together.'
+    }
+    if ([string]::IsNullOrWhiteSpace($TestProgramsMenuDirectory)) {
+        throw 'TestRegistryRootKey requires TestProgramsMenuDirectory so test runs cannot modify the real Start Menu.'
+    }
+}
+
 $hasExplicitInstallDir = $PSBoundParameters.ContainsKey('InstallDirectory')
+if ($null -ne $TestRegistryRootKey -and (-not $Uninstall) -and (-not $hasExplicitInstallDir)) {
+    throw 'TestRegistryRootKey requires an explicit InstallDirectory so test runs cannot touch the real user install directory.'
+}
 $effectiveInstallDirectory = if ($Uninstall) {
     Resolve-EffectiveInstallDirectoryForUninstall -HasExplicitInstallDirectory $hasExplicitInstallDir
 } elseif ($hasExplicitInstallDir) {
@@ -592,22 +817,7 @@ $shortcutPath = if ($programsMenu) { Join-Path $programsMenu 'RedTilde.lnk' } el
 
 if ($Uninstall) {
     if ([IO.Directory]::Exists($targetDirectory)) {
-        Assert-DirectoryTreeFreeOfReparsePoints -Path $targetDirectory
-        $installedExeCheck = Join-Path $targetDirectory 'RedTilde.exe'
-        $markerCheck = Join-Path $targetDirectory $script:MarkerFileName
-        $installedScriptCheck = Join-Path $targetDirectory 'Install-RedTilde.ps1'
-        $registeredLocation = [string](Get-RedTildeRegistryValue -SubKey $script:UninstallSubKey -Name 'InstallLocation')
-        $matchesRegisteredLocation = (-not [string]::IsNullOrWhiteSpace($registeredLocation)) -and
-            ([IO.Path]::GetFullPath($registeredLocation).TrimEnd('\', '/')).Equals($targetDirectory, [StringComparison]::OrdinalIgnoreCase)
-
-        $hasOwnership = [IO.File]::Exists($installedExeCheck) -and (
-            [IO.File]::Exists($markerCheck) -or
-            [IO.File]::Exists($installedScriptCheck) -or
-            $matchesRegisteredLocation
-        )
-        if (-not $hasOwnership) {
-            throw "Refusing to uninstall '$targetDirectory' because verified RedTilde installation ownership is absent."
-        }
+        $manifest = Read-RedTildeInstallMarker -TargetDirectory $targetDirectory -RequirePresent
 
         $cwd = (Get-Location).ProviderPath.TrimEnd('\', '/')
         if ($cwd.Equals($targetDirectory, [StringComparison]::OrdinalIgnoreCase) -or
@@ -616,14 +826,100 @@ if ($Uninstall) {
             Set-Location -LiteralPath $safeCwd
         }
 
-        Remove-DirectoryNoReparse -Path $targetDirectory
+        foreach ($entry in $manifest.Files) {
+            if ($entry.RelativePath.Equals('Install-RedTilde.ps1', [StringComparison]::OrdinalIgnoreCase) -or
+                $entry.RelativePath.Equals($script:MarkerFileName, [StringComparison]::OrdinalIgnoreCase)) {
+                continue
+            }
+            $fileFull = Resolve-ValidatedManifestRelativeFilePath -RootDirectory $targetDirectory -RelativePath $entry.RelativePath
+            try {
+                $attrs = [IO.File]::GetAttributes($fileFull)
+                if (($attrs -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+                    throw "Refusing to delete a reparse point: '$fileFull'."
+                }
+                if ([IO.File]::Exists($fileFull)) {
+                    if (($attrs -band [IO.FileAttributes]::ReadOnly) -ne 0) {
+                        [IO.File]::SetAttributes($fileFull, ($attrs -band (-bnot [IO.FileAttributes]::ReadOnly)))
+                    }
+                    [IO.File]::Delete($fileFull)
+                    Remove-EmptyParentDirectoriesWithinRoot -RootPath $targetDirectory -StartDirectory (Split-Path $fileFull -Parent)
+                }
+            } catch [IO.FileNotFoundException] {
+            } catch [IO.DirectoryNotFoundException] {
+            }
+        }
+
+        $installedScriptCheck = Join-Path $targetDirectory 'Install-RedTilde.ps1'
+        try {
+            $scriptAttrs = [IO.File]::GetAttributes($installedScriptCheck)
+            if (($scriptAttrs -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw "Refusing to delete a reparse point: '$installedScriptCheck'."
+            }
+            if ([IO.File]::Exists($installedScriptCheck)) {
+                if (($scriptAttrs -band [IO.FileAttributes]::ReadOnly) -ne 0) {
+                    [IO.File]::SetAttributes($installedScriptCheck, ($scriptAttrs -band (-bnot [IO.FileAttributes]::ReadOnly)))
+                }
+                [IO.File]::Delete($installedScriptCheck)
+            }
+        } catch [IO.FileNotFoundException] {
+        } catch [IO.DirectoryNotFoundException] {
+        }
+
+        $markerFile = $manifest.MarkerPath
+        try {
+            $markerAttrs = [IO.File]::GetAttributes($markerFile)
+            if (($markerAttrs -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw "Refusing to delete a reparse point: '$markerFile'."
+            }
+            if ([IO.File]::Exists($markerFile)) {
+                if (($markerAttrs -band [IO.FileAttributes]::ReadOnly) -ne 0) {
+                    [IO.File]::SetAttributes($markerFile, ($markerAttrs -band (-bnot [IO.FileAttributes]::ReadOnly)))
+                }
+                [IO.File]::Delete($markerFile)
+            }
+        } catch [IO.FileNotFoundException] {
+        } catch [IO.DirectoryNotFoundException] {
+        }
+
+        $rootInfo = [IO.DirectoryInfo]::new($targetDirectory)
+        if (($rootInfo.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "Refusing to traverse or delete a reparse point: '$targetDirectory'."
+        }
+        if (@($rootInfo.GetFileSystemInfos()).Count -eq 0) {
+            if (($rootInfo.Attributes -band [IO.FileAttributes]::ReadOnly) -ne 0) {
+                $rootInfo.Attributes = $rootInfo.Attributes -band (-bnot [IO.FileAttributes]::ReadOnly)
+            }
+            $rootInfo.Delete($false)
+        } else {
+            Write-Host "Preserved non-empty directory '$targetDirectory' because unrelated files remain."
+        }
     } else {
         # Refuse dangling reparse points even if Directory.Exists returned false.
-        Remove-DirectoryNoReparse -Path $targetDirectory
+        try {
+            $attrs = [IO.File]::GetAttributes($targetDirectory)
+            if (($attrs -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw "Refusing to traverse or delete a reparse point: '$targetDirectory'."
+            }
+        } catch [IO.FileNotFoundException] {
+        } catch [IO.DirectoryNotFoundException] {
+        }
     }
 
-    if ($shortcutPath -and (Test-Path -LiteralPath $shortcutPath -PathType Leaf)) {
-        Remove-Item -LiteralPath $shortcutPath -Force
+    if ($shortcutPath) {
+        try {
+            $lnkAttrs = [IO.File]::GetAttributes($shortcutPath)
+            if (($lnkAttrs -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw "Refusing to delete a reparse point shortcut: '$shortcutPath'."
+            }
+            if ([IO.File]::Exists($shortcutPath)) {
+                if (($lnkAttrs -band [IO.FileAttributes]::ReadOnly) -ne 0) {
+                    [IO.File]::SetAttributes($shortcutPath, ($lnkAttrs -band (-bnot [IO.FileAttributes]::ReadOnly)))
+                }
+                [IO.File]::Delete($shortcutPath)
+            }
+        } catch [IO.FileNotFoundException] {
+        } catch [IO.DirectoryNotFoundException] {
+        }
     }
     Remove-PerUserFileAssociation
     Remove-RedTildeRegistryTree -SubKey $script:UninstallSubKey
@@ -644,31 +940,25 @@ if (-not $resolvedSource.Equals($targetDirectory, [StringComparison]::OrdinalIgn
     }
 }
 
+if ([IO.File]::Exists($targetDirectory)) {
+    throw "InstallDirectory cannot point to an existing regular file: '$targetDirectory'."
+}
+
+$priorMarker = $null
+if ([IO.Directory]::Exists($targetDirectory)) {
+    $targetInfo = [IO.DirectoryInfo]::new($targetDirectory)
+    if (@($targetInfo.GetFileSystemInfos()).Count -gt 0) {
+        $priorMarker = Read-RedTildeInstallMarker -TargetDirectory $targetDirectory -RequirePresent
+    } else {
+        $priorMarker = Read-RedTildeInstallMarker -TargetDirectory $targetDirectory
+    }
+}
+
 $sourceExe = Join-Path $resolvedSource 'RedTilde.exe'
 $versionInfo = [Diagnostics.FileVersionInfo]::GetVersionInfo($sourceExe)
 $displayVersion = "$($versionInfo.FileMajorPart).$($versionInfo.FileMinorPart).$($versionInfo.FileBuildPart)"
 
-$markerPath = Join-Path $targetDirectory $script:MarkerFileName
-$previousManagedFiles = [Collections.Generic.List[string]]::new()
-if ([IO.File]::Exists($markerPath)) {
-    try {
-        $priorMarker = [IO.File]::ReadAllText($markerPath, [Text.UTF8Encoding]::new($false)) | ConvertFrom-Json
-        if ($null -ne $priorMarker -and $priorMarker.PSObject.Properties['files'] -and $null -ne $priorMarker.files) {
-            foreach ($rel in @($priorMarker.files)) {
-                if (-not [string]::IsNullOrWhiteSpace([string]$rel)) {
-                    $previousManagedFiles.Add([string]$rel)
-                }
-            }
-        }
-    } catch {
-        Write-Warning "Could not parse existing install marker '$markerPath': $($_.Exception.Message)"
-    }
-}
-
 Assert-DirectoryTreeFreeOfReparsePoints -Path $resolvedSource
-if ([IO.Directory]::Exists($targetDirectory)) {
-    Assert-DirectoryTreeFreeOfReparsePoints -Path $targetDirectory
-}
 
 [void][IO.Directory]::CreateDirectory($targetDirectory)
 
@@ -680,20 +970,15 @@ if (-not $resolvedSource.Equals($targetDirectory, [StringComparison]::OrdinalIgn
         }
     }
 } else {
-    $stack = [Collections.Generic.Stack[string]]::new()
-    $stack.Push($targetDirectory)
-    while ($stack.Count -gt 0) {
-        $curr = $stack.Pop()
-        $relDir = ''
-        if ($curr.Length -gt $targetDirectory.Length) {
-            $relDir = $curr.Substring($targetDirectory.Length).TrimStart('\', '/')
+    if ($null -eq $priorMarker) {
+        throw "Refusing in-place operation on '$targetDirectory' because verified RedTilde installation ownership marker is missing."
+    }
+    foreach ($entry in $priorMarker.Files) {
+        if ($entry.RelativePath.Equals($script:MarkerFileName, [StringComparison]::OrdinalIgnoreCase)) {
+            continue
         }
-        foreach ($entry in ([IO.DirectoryInfo]::new($curr)).GetFileSystemInfos()) {
-            if ($entry -is [IO.DirectoryInfo]) {
-                $stack.Push($entry.FullName)
-            } elseif (-not $entry.Name.Equals($script:MarkerFileName, [StringComparison]::OrdinalIgnoreCase)) {
-                $copiedFiles.Add($(if ($relDir) { Join-Path $relDir $entry.Name } else { $entry.Name }))
-            }
+        if ([IO.File]::Exists($entry.FullPath)) {
+            $copiedFiles.Add($entry.RelativePath)
         }
     }
 }
@@ -705,7 +990,7 @@ if (-not [IO.File]::Exists($installedExe)) {
 
 $installedInstaller = Join-Path $targetDirectory 'Install-RedTilde.ps1'
 if (-not ([IO.Path]::GetFullPath($PSCommandPath)).Equals($installedInstaller, [StringComparison]::OrdinalIgnoreCase)) {
-    if ([IO.File]::Exists($installedInstaller)) {
+    try {
         $instAttrs = [IO.File]::GetAttributes($installedInstaller)
         if (($instAttrs -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
             throw "Installed script target cannot be a reparse point: '$installedInstaller'."
@@ -713,6 +998,8 @@ if (-not ([IO.Path]::GetFullPath($PSCommandPath)).Equals($installedInstaller, [S
         if (($instAttrs -band [IO.FileAttributes]::ReadOnly) -ne 0) {
             [IO.File]::SetAttributes($installedInstaller, ($instAttrs -band (-bnot [IO.FileAttributes]::ReadOnly)))
         }
+    } catch [IO.FileNotFoundException] {
+    } catch [IO.DirectoryNotFoundException] {
     }
     [IO.File]::Copy($PSCommandPath, $installedInstaller, $true)
 }
@@ -723,23 +1010,43 @@ foreach ($f in $copiedFiles) {
 [void]$copiedSet.Add('Install-RedTilde.ps1')
 
 # Clean stale managed files left behind by an earlier RedTilde install.
-foreach ($oldRel in $previousManagedFiles) {
-    if ($oldRel -match '(^|[\\/])\.\.([\\/]|$)' -or [IO.Path]::IsPathRooted($oldRel)) {
-        continue
-    }
-    if (-not $copiedSet.Contains($oldRel)) {
-        $oldFull = Join-Path $targetDirectory $oldRel
-        if ([IO.File]::Exists($oldFull)) {
-            $attrs = [IO.File]::GetAttributes($oldFull)
-            if (($attrs -band [IO.FileAttributes]::ReparsePoint) -eq 0) {
-                if (($attrs -band [IO.FileAttributes]::ReadOnly) -ne 0) {
-                    [IO.File]::SetAttributes($oldFull, ($attrs -band (-bnot [IO.FileAttributes]::ReadOnly)))
+if ($null -ne $priorMarker) {
+    foreach ($oldEntry in $priorMarker.Files) {
+        if ($oldEntry.RelativePath.Equals($script:MarkerFileName, [StringComparison]::OrdinalIgnoreCase)) {
+            continue
+        }
+        if (-not $copiedSet.Contains($oldEntry.RelativePath)) {
+            $oldFull = $oldEntry.FullPath
+            try {
+                $attrs = [IO.File]::GetAttributes($oldFull)
+                if (($attrs -band [IO.FileAttributes]::ReparsePoint) -eq 0 -and [IO.File]::Exists($oldFull)) {
+                    if (($attrs -band [IO.FileAttributes]::ReadOnly) -ne 0) {
+                        [IO.File]::SetAttributes($oldFull, ($attrs -band (-bnot [IO.FileAttributes]::ReadOnly)))
+                    }
+                    [IO.File]::Delete($oldFull)
+                    Remove-EmptyParentDirectoriesWithinRoot -RootPath $targetDirectory -StartDirectory (Split-Path $oldFull -Parent)
                 }
-                [IO.File]::Delete($oldFull)
-                Remove-EmptyParentDirectoriesWithinRoot -RootPath $targetDirectory -StartDirectory (Split-Path $oldFull -Parent)
+            } catch [IO.FileNotFoundException] {
+            } catch [IO.DirectoryNotFoundException] {
             }
         }
     }
+}
+
+$markerPath = Join-Path $targetDirectory $script:MarkerFileName
+try {
+    $markerAttrs = [IO.File]::GetAttributes($markerPath)
+    if (($markerAttrs -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+        throw "Install marker target cannot be a reparse point: '$markerPath'."
+    }
+    if ([IO.Directory]::Exists($markerPath)) {
+        throw "Install marker target cannot be a directory: '$markerPath'."
+    }
+    if (($markerAttrs -band [IO.FileAttributes]::ReadOnly) -ne 0) {
+        [IO.File]::SetAttributes($markerPath, ($markerAttrs -band (-bnot [IO.FileAttributes]::ReadOnly)))
+    }
+} catch [IO.FileNotFoundException] {
+} catch [IO.DirectoryNotFoundException] {
 }
 
 $markerPayload = [ordered]@{

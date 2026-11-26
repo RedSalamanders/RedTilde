@@ -1,4 +1,8 @@
 #include "Settings.h"
+#include "DirectoryWatch.h"
+#include "JsonHelpers.h"
+#include "PathSecurity.h"
+#include "TextUtilities.h"
 #include <DxUi/Failure.h>
 #include <DxUi/RichDocument.h>
 #include <algorithm>
@@ -12,6 +16,7 @@
 #include <mutex>
 #include <new>
 #include <optional>
+#include <span>
 #include <stdexcept>
 #include <yyjson.h>
 
@@ -19,10 +24,6 @@ namespace RedTilde
 {
 namespace
 {
-using unique_yyjson_doc     = wil::unique_any<yyjson_doc*, decltype(&yyjson_doc_free), yyjson_doc_free>;
-using unique_yyjson_mut_doc = wil::unique_any<yyjson_mut_doc*, decltype(&yyjson_mut_doc_free), yyjson_mut_doc_free>;
-using unique_yyjson_text    = wil::unique_any<char*, decltype(&::free), ::free>;
-
 constexpr std::wstring_view LegacySettingsFile   = L"RedTilde.settings";
 constexpr std::wstring_view ReleaseSettingsFile  = L"RedTilde.settings.json";
 constexpr std::wstring_view DebugSettingsFile    = L"RedTilde-debug.settings.json";
@@ -52,12 +53,6 @@ bool ValidPreferencePath(const std::filesystem::path& path)
            std::ranges::none_of(text, [](wchar_t unit) { return unit < L' '; });
 }
 
-bool EqualOrdinalIgnoreCase(std::wstring_view left, std::wstring_view right) noexcept
-{
-    return left.size() == right.size() &&
-           (left.empty() || CompareStringOrdinal(left.data(), static_cast<int>(left.size()), right.data(), static_cast<int>(right.size()), TRUE) == CSTR_EQUAL);
-}
-
 std::filesystem::path BackupPathFor(const std::filesystem::path& path)
 {
     SYSTEMTIME time{};
@@ -66,46 +61,6 @@ std::filesystem::path BackupPathFor(const std::filesystem::path& path)
     result += std::format(
         L".invalid-{:04}{:02}{:02}-{:02}{:02}{:02}-{:03}", time.wYear, time.wMonth, time.wDay, time.wHour, time.wMinute, time.wSecond, time.wMilliseconds);
     return std::filesystem::path(std::move(result));
-}
-
-bool TryReadIntegral(yyjson_val* value, std::int64_t minValue, std::int64_t maxValue, std::int64_t& result) noexcept
-{
-    if (! value)
-        return false;
-    if (yyjson_is_sint(value))
-    {
-        const std::int64_t signedVal = yyjson_get_sint(value);
-        if (signedVal < minValue || signedVal > maxValue)
-            return false;
-        result = signedVal;
-        return true;
-    }
-    if (yyjson_is_uint(value))
-    {
-        const std::uint64_t unsignedVal = yyjson_get_uint(value);
-        if (maxValue < 0 || unsignedVal > static_cast<std::uint64_t>(maxValue))
-            return false;
-        const auto signedVal = static_cast<std::int64_t>(unsignedVal);
-        if (signedVal < minValue)
-            return false;
-        result = signedVal;
-        return true;
-    }
-    if (yyjson_is_real(value))
-    {
-        const double realVal = yyjson_get_real(value);
-        if (! std::isfinite(realVal) || realVal != std::floor(realVal))
-            return false;
-        if (realVal < static_cast<double>(minValue) || realVal > static_cast<double>(maxValue))
-            return false;
-        // Guard against double rounding at the top of int64_t if maxValue approaches 2^63.
-        const auto converted = static_cast<std::int64_t>(realVal);
-        if (converted < minValue || converted > maxValue)
-            return false;
-        result = converted;
-        return true;
-    }
-    return false;
 }
 
 bool TryReadSchemaVersion(yyjson_val* root, std::uint64_t& schemaVersion) noexcept
@@ -138,22 +93,6 @@ bool TryReadSchemaVersion(yyjson_val* root, std::uint64_t& schemaVersion) noexce
         return schemaVersion >= 1u;
     }
     return false;
-}
-
-bool TryReadJsonString(yyjson_val* object, const char* key, std::string_view& out) noexcept
-{
-    yyjson_val* field = yyjson_obj_get(object, key);
-    if (! field || ! yyjson_is_str(field))
-        return false;
-    out = std::string_view(yyjson_get_str(field), yyjson_get_len(field));
-    return true;
-}
-
-void ReadJsonBool(yyjson_val* object, const char* key, bool& target) noexcept
-{
-    yyjson_val* field = yyjson_obj_get(object, key);
-    if (field && yyjson_is_bool(field))
-        target = yyjson_get_bool(field);
 }
 
 void ReadJsonPath(yyjson_val* object, const char* key, std::filesystem::path& target)
@@ -233,40 +172,92 @@ const char* PanePinModeName(PanePinMode mode) noexcept
     return "auto";
 }
 
-yyjson_mut_val* CheckedAlloc(yyjson_mut_val* value) noexcept
+SpellEngine ParseSpellEngineName(std::string_view name) noexcept
 {
-    if (! value)
-        DxUi::Failure::FailAllocation();
-    return value;
+    if (name == "windows")
+        return SpellEngine::Windows;
+    return SpellEngine::Auto;
 }
 
-void PutObjectValue(yyjson_mut_doc* doc, yyjson_mut_val* obj, const char* key, yyjson_mut_val* value) noexcept
+const char* SpellEngineName(SpellEngine engine) noexcept
 {
-    yyjson_mut_val* keyVal = CheckedAlloc(yyjson_mut_strcpy(doc, key));
-    if (! yyjson_mut_obj_put(obj, keyVal, CheckedAlloc(value)))
-        DxUi::Failure::FailAllocation();
+    switch (engine)
+    {
+        case SpellEngine::Windows: return "windows";
+        case SpellEngine::Auto: break;
+    }
+    return "auto";
 }
 
-void PutObjectString(yyjson_mut_doc* doc, yyjson_mut_val* obj, const char* key, std::string_view value) noexcept
+ExitUnsavedBehavior ParseExitUnsavedBehavior(std::string_view name) noexcept
 {
-    PutObjectValue(doc, obj, key, yyjson_mut_strncpy(doc, value.data(), value.size()));
+    if (name == "keepAndResume")
+        return ExitUnsavedBehavior::KeepAndResume;
+    return ExitUnsavedBehavior::Prompt;
 }
 
-void PutObjectBool(yyjson_mut_doc* doc, yyjson_mut_val* obj, const char* key, bool value) noexcept
+const char* ExitUnsavedBehaviorName(ExitUnsavedBehavior behavior) noexcept
 {
-    PutObjectValue(doc, obj, key, yyjson_mut_bool(doc, value));
+    switch (behavior)
+    {
+        case ExitUnsavedBehavior::KeepAndResume: return "keepAndResume";
+        case ExitUnsavedBehavior::Prompt: break;
+    }
+    return "prompt";
 }
 
-void PutObjectInt(yyjson_mut_doc* doc, yyjson_mut_val* obj, const char* key, std::int64_t value) noexcept
+void AppendUniqueFilesRoot(std::vector<std::filesystem::path>& roots, std::filesystem::path candidate)
 {
-    PutObjectValue(doc, obj, key, yyjson_mut_sint(doc, value));
-}
-
-void PutObjectUint(yyjson_mut_doc* doc, yyjson_mut_val* obj, const char* key, std::uint64_t value) noexcept
-{
-    PutObjectValue(doc, obj, key, yyjson_mut_uint(doc, value));
+    if (roots.size() >= MaximumFilesRoots || candidate.empty() || ! ValidPreferencePath(candidate))
+        return;
+    candidate      = NormalizeRootPath(candidate);
+    const bool dup = std::ranges::any_of(roots, [&](const std::filesystem::path& existing) { return EqualNormalizedRootPath(existing, candidate); });
+    if (! dup)
+        roots.push_back(std::move(candidate));
 }
 } // namespace
+
+bool IsValidGitHubTokenSegment(std::wstring_view segment, std::size_t maximumLength) noexcept
+{
+    if (segment.empty() || segment.size() > maximumLength || ! DxUi::RichText::IsValidUtf16(segment) || segment == L"." || segment == L"..")
+        return false;
+    for (const wchar_t ch : segment)
+    {
+        const bool ok = (ch >= L'A' && ch <= L'Z') || (ch >= L'a' && ch <= L'z') || (ch >= L'0' && ch <= L'9') || ch == L'-' || ch == L'_' || ch == L'.';
+        if (! ok)
+            return false;
+    }
+    return true;
+}
+
+bool IsValidGitHubBranchName(std::wstring_view branch) noexcept
+{
+    if (branch.empty() || branch.size() > 256u || ! DxUi::RichText::IsValidUtf16(branch))
+        return false;
+    if (branch.front() == L'/' || branch.back() == L'/' || branch.find(L"//") != std::wstring_view::npos || branch.find(L"..") != std::wstring_view::npos ||
+        branch.find(L"@{") != std::wstring_view::npos)
+        return false;
+    for (const wchar_t ch : branch)
+    {
+        const auto code = static_cast<unsigned>(ch);
+        if (code <= 0x20u || code == 0x7Fu || (code >= 0x80u && code <= 0x9Fu) || (code >= 0x200Bu && code <= 0x200Fu) ||
+            (code >= 0x202Au && code <= 0x202Eu) || (code >= 0x2066u && code <= 0x2069u) || code == 0xFEFFu || ch == L'\\' || ch == L'?' || ch == L'#' ||
+            ch == L'~' || ch == L'^' || ch == L':' || ch == L'*' || ch == L'[' || ch == L'%' || ch == L'"' || ch == L'<' || ch == L'>' || ch == L'|')
+            return false;
+    }
+    std::size_t start{};
+    while (start < branch.size())
+    {
+        const auto slash = branch.find(L'/', start);
+        const auto part  = slash == std::wstring_view::npos ? branch.substr(start) : branch.substr(start, slash - start);
+        if (part.empty() || part == L"." || part == L".." || part.front() == L'.' || EndsWithOrdinalIgnoreCase(part, L".lock"))
+            return false;
+        if (slash == std::wstring_view::npos)
+            break;
+        start = slash + 1u;
+    }
+    return true;
+}
 
 std::wstring_view SettingsFileName(bool debugBuild) noexcept
 {
@@ -376,6 +367,11 @@ Settings ParseLegacySettings(std::string_view bytes)
         if (ValidWindowPlacement(placement))
             settings.windowPlacement = placement;
     }
+    if (! settings.filesRoot.empty())
+    {
+        AppendUniqueFilesRoot(settings.filesRoots, settings.filesRoot);
+        settings.filesRoot = settings.filesRoots.empty() ? std::filesystem::path{} : settings.filesRoots.front();
+    }
     // Focus mode is intentionally session-local, so restart never hides commands.
     return settings;
 }
@@ -389,14 +385,9 @@ try
     if (bytes.size() > MaximumSettingsFileBytes)
         return HRESULT_FROM_WIN32(ERROR_FILE_TOO_LARGE);
 
-    yyjson_read_err err{};
-    const unique_yyjson_doc doc(yyjson_read_opts(const_cast<char*>(bytes.data()), bytes.size(), SettingsJsonReadFlags, nullptr, &err));
+    const unique_yyjson_doc doc = ParseJsonDocument(bytes, SettingsJsonReadFlags);
     if (! doc)
-    {
-        if (err.code == YYJSON_READ_ERROR_MEMORY_ALLOCATION)
-            DxUi::Failure::FailAllocation();
         return HRESULT_FROM_WIN32(ERROR_BAD_FORMAT);
-    }
 
     status           = SettingsLoadStatus::Incompatible;
     yyjson_val* root = yyjson_doc_get_root(doc.get());
@@ -419,14 +410,70 @@ try
     ReadJsonBool(root, "showOutline", parsed.showOutline);
     ReadJsonBool(root, "showFiles", parsed.showFiles);
     ReadJsonPath(root, "filesRoot", parsed.filesRoot);
+    if (yyjson_val* rootsArray = yyjson_obj_get(root, "filesRoots"); rootsArray && yyjson_is_arr(rootsArray))
+    {
+        std::size_t idx{}, maxIdx{};
+        yyjson_val* item{};
+        yyjson_arr_foreach(rootsArray, idx, maxIdx, item)
+        {
+            if (! item || ! yyjson_is_str(item))
+                continue;
+            const std::string_view utf8(yyjson_get_str(item), yyjson_get_len(item));
+            if (utf8.empty() || utf8.size() > 3u * 32767u)
+                continue;
+            std::wstring decoded;
+            if (DxUi::RichText::TryDecodeUtf8(utf8, decoded) == DxUi::RichText::SourceResult::Success)
+                AppendUniqueFilesRoot(parsed.filesRoots, std::filesystem::path(std::move(decoded)));
+        }
+        parsed.filesRoot = parsed.filesRoots.empty() ? std::filesystem::path{} : parsed.filesRoots.front();
+    }
+    else if (! parsed.filesRoot.empty())
+    {
+        AppendUniqueFilesRoot(parsed.filesRoots, parsed.filesRoot);
+        parsed.filesRoot = parsed.filesRoots.empty() ? std::filesystem::path{} : parsed.filesRoots.front();
+    }
+    if (yyjson_val* reposArray = yyjson_obj_get(root, "githubRepos"); reposArray && yyjson_is_arr(reposArray))
+    {
+        std::size_t idx{}, maxIdx{};
+        yyjson_val* item{};
+        yyjson_arr_foreach(reposArray, idx, maxIdx, item)
+        {
+            if (! item || ! yyjson_is_obj(item))
+                continue;
+            std::string_view ownerU8, repoU8, branchU8;
+            if (! TryReadJsonString(item, "owner", ownerU8) || ! TryReadJsonString(item, "repo", repoU8))
+                continue;
+            (void)TryReadJsonString(item, "branch", branchU8);
+            std::wstring owner, repo, branch;
+            if (DxUi::RichText::TryDecodeUtf8(ownerU8, owner) != DxUi::RichText::SourceResult::Success ||
+                DxUi::RichText::TryDecodeUtf8(repoU8, repo) != DxUi::RichText::SourceResult::Success ||
+                DxUi::RichText::TryDecodeUtf8(branchU8, branch) != DxUi::RichText::SourceResult::Success)
+                continue;
+            if (! IsValidGitHubTokenSegment(owner, 128u) || ! IsValidGitHubTokenSegment(repo, 128u) || (! branch.empty() && ! IsValidGitHubBranchName(branch)))
+                continue;
+            const bool dup = std::ranges::any_of(parsed.githubRepos, [&](const GitHubRepoRef& existing) {
+                return EqualOrdinalIgnoreCase(existing.owner, owner) && EqualOrdinalIgnoreCase(existing.repo, repo) && existing.branch == branch;
+            });
+            if (! dup)
+            {
+                parsed.githubRepos.push_back({std::move(owner), std::move(repo), std::move(branch)});
+                if (parsed.githubRepos.size() >= MaximumGitHubRepos)
+                    break;
+            }
+        }
+    }
+    if (std::filesystem::path rsPath; ReadJsonPath(root, "redSalamanderPath", rsPath), ! rsPath.empty())
+        parsed.redSalamanderPath = std::move(rsPath);
+    if (std::string_view exitMode; TryReadJsonString(root, "exitUnsavedBehavior", exitMode))
+        parsed.exitUnsavedBehavior = ParseExitUnsavedBehavior(exitMode);
     ReadJsonPath(root, "lastDocument", parsed.lastDocument);
 
     std::int64_t numeric{};
-    if (TryReadIntegral(yyjson_obj_get(root, "filesWidth"), 200, 400, numeric))
+    if (TryReadJsonIntegral(yyjson_obj_get(root, "filesWidth"), 200, 400, numeric))
         parsed.filesWidth = static_cast<unsigned>(numeric);
-    if (TryReadIntegral(yyjson_obj_get(root, "readingWidth"), 480, 1040, numeric))
+    if (TryReadJsonIntegral(yyjson_obj_get(root, "readingWidth"), 480, 1040, numeric))
         parsed.readingWidth = static_cast<unsigned>(numeric);
-    if (TryReadIntegral(yyjson_obj_get(root, "textScale"), 75, 200, numeric))
+    if (TryReadJsonIntegral(yyjson_obj_get(root, "textScale"), 75, 200, numeric))
         parsed.textScale = static_cast<unsigned>(numeric);
 
     ReadJsonBool(root, "dimInactiveBlocks", parsed.dimInactiveBlocks);
@@ -445,15 +492,15 @@ try
         std::int64_t left{}, top{}, right{}, bottom{};
         constexpr std::int64_t minInt = std::numeric_limits<int>::min();
         constexpr std::int64_t maxInt = std::numeric_limits<int>::max();
-        if (TryReadIntegral(yyjson_obj_get(placementObj, "left"), minInt, maxInt, left) &&
-            TryReadIntegral(yyjson_obj_get(placementObj, "top"), minInt, maxInt, top) &&
-            TryReadIntegral(yyjson_obj_get(placementObj, "right"), minInt, maxInt, right) &&
-            TryReadIntegral(yyjson_obj_get(placementObj, "bottom"), minInt, maxInt, bottom))
+        if (TryReadJsonIntegral(yyjson_obj_get(placementObj, "left"), minInt, maxInt, left) &&
+            TryReadJsonIntegral(yyjson_obj_get(placementObj, "top"), minInt, maxInt, top) &&
+            TryReadJsonIntegral(yyjson_obj_get(placementObj, "right"), minInt, maxInt, right) &&
+            TryReadJsonIntegral(yyjson_obj_get(placementObj, "bottom"), minInt, maxInt, bottom))
         {
             bool dpiValid    = true;
             std::int64_t dpi = 96;
             if (yyjson_val* dpiVal = yyjson_obj_get(placementObj, "dpi"))
-                dpiValid = TryReadIntegral(dpiVal, 48, 768, dpi);
+                dpiValid = TryReadJsonIntegral(dpiVal, 48, 768, dpi);
 
             if (dpiValid)
             {
@@ -472,6 +519,43 @@ try
     {
         for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
             ReadJsonBool(syntaxObj, JsonMarkdownSyntaxKeys[index], parsed.markdownSyntax[index]);
+    }
+
+    if (yyjson_val* spellingObj = yyjson_obj_get(root, "spelling"); spellingObj && yyjson_is_obj(spellingObj))
+    {
+        ReadJsonBool(spellingObj, "enabled", parsed.spelling.enabled);
+        ReadJsonBool(spellingObj, "ignoreUppercase", parsed.spelling.ignoreUppercase);
+        ReadJsonBool(spellingObj, "ignoreWordsWithDigits", parsed.spelling.ignoreWordsWithDigits);
+        ReadJsonBool(spellingObj, "ignoreInternetAndPaths", parsed.spelling.ignoreInternetAndPaths);
+        ReadJsonPath(spellingObj, "customDictionaryPath", parsed.spelling.customDictionaryPath);
+        ReadJsonPath(spellingObj, "dictionariesFolder", parsed.spelling.dictionariesFolder);
+        if (std::string_view engineName; TryReadJsonString(spellingObj, "engine", engineName))
+            parsed.spelling.engine = ParseSpellEngineName(engineName);
+
+        if (yyjson_val* langArray = yyjson_obj_get(spellingObj, "languages"); langArray && yyjson_is_arr(langArray))
+        {
+            std::vector<std::wstring> languages;
+            std::size_t idx{}, maxIdx{};
+            yyjson_val* item{};
+            yyjson_arr_foreach(langArray, idx, maxIdx, item)
+            {
+                if (! item || ! yyjson_is_str(item))
+                    continue;
+                const std::string_view rawTag(yyjson_get_str(item), yyjson_get_len(item));
+                std::wstring wideTag;
+                if (! TryParseAsciiBcp47Tag(rawTag, wideTag))
+                    continue;
+                const bool duplicate = std::ranges::any_of(languages, [&](const std::wstring& existing) { return EqualOrdinalIgnoreCase(existing, wideTag); });
+                if (! duplicate)
+                {
+                    languages.push_back(std::move(wideTag));
+                    if (languages.size() >= MaximumSpellingLanguages)
+                        break;
+                }
+            }
+            if (! languages.empty())
+                parsed.spelling.languages = std::move(languages);
+        }
     }
 
     settings = std::move(parsed);
@@ -503,21 +587,13 @@ std::string SerializeSettings(const Settings& settings, std::string_view existin
     unique_yyjson_mut_doc mutDoc;
     if (! existingJson.empty() && existingJson.size() <= MaximumSettingsFileBytes)
     {
-        yyjson_read_err err{};
-        const unique_yyjson_doc existingDoc(
-            yyjson_read_opts(const_cast<char*>(existingJson.data()), existingJson.size(), SettingsJsonReadFlags, nullptr, &err));
-        if (! existingDoc && err.code == YYJSON_READ_ERROR_MEMORY_ALLOCATION)
-            DxUi::Failure::FailAllocation();
+        const unique_yyjson_doc existingDoc = ParseJsonDocument(existingJson, SettingsJsonReadFlags);
         if (existingDoc)
         {
             yyjson_val* existingRoot = yyjson_doc_get_root(existingDoc.get());
             std::uint64_t existingSchema{};
             if (existingRoot && yyjson_is_obj(existingRoot) && TryReadSchemaVersion(existingRoot, existingSchema))
-            {
-                mutDoc.reset(yyjson_doc_mut_copy(existingDoc.get(), nullptr));
-                if (! mutDoc)
-                    DxUi::Failure::FailAllocation();
-            }
+                mutDoc = CopyMutableJsonDoc(existingDoc.get());
         }
     }
 
@@ -530,44 +606,102 @@ std::string SerializeSettings(const Settings& settings, std::string_view existin
     }
     if (! mutDoc)
     {
-        mutDoc.reset(yyjson_mut_doc_new(nullptr));
-        if (! mutDoc)
-            DxUi::Failure::FailAllocation();
-        root = CheckedAlloc(yyjson_mut_obj(mutDoc.get()));
+        mutDoc = CreateMutableJsonDoc();
+        root   = CreateMutableJsonObject(mutDoc.get());
         yyjson_mut_doc_set_root(mutDoc.get(), root);
-        PutObjectUint(mutDoc.get(), root, "schema", CurrentSchemaVersion);
+        PutJsonObjectUint(mutDoc.get(), root, "schema", CurrentSchemaVersion);
     }
 
-    PutObjectString(mutDoc.get(), root, "appearance", AppearanceName(settings.appearance));
-    PutObjectString(mutDoc.get(), root, "view", ViewName(settings.view));
+    PutJsonObjectString(mutDoc.get(), root, "appearance", AppearanceName(settings.appearance));
+    PutJsonObjectString(mutDoc.get(), root, "view", ViewName(settings.view));
     (void)yyjson_mut_obj_remove_key(root, "focusMode");
-    PutObjectBool(mutDoc.get(), root, "showOutline", settings.showOutline);
-    PutObjectBool(mutDoc.get(), root, "showFiles", settings.showFiles);
+    PutJsonObjectBool(mutDoc.get(), root, "showOutline", settings.showOutline);
+    PutJsonObjectBool(mutDoc.get(), root, "showFiles", settings.showFiles);
 
     std::string encodedPath;
-    if (! settings.filesRoot.empty() && ValidPreferencePath(settings.filesRoot) &&
-        DxUi::RichText::TryEncodeUtf8(settings.filesRoot.native(), encodedPath) == DxUi::RichText::SourceResult::Success)
-        PutObjectString(mutDoc.get(), root, "filesRoot", encodedPath);
+    std::vector<std::filesystem::path> normalizedRoots;
+    for (const auto& candidate : settings.filesRoots)
+        AppendUniqueFilesRoot(normalizedRoots, candidate);
+    if (normalizedRoots.empty() && ! settings.filesRoot.empty())
+        AppendUniqueFilesRoot(normalizedRoots, settings.filesRoot);
+
+    const std::filesystem::path primaryRoot = normalizedRoots.empty() ? std::filesystem::path{} : normalizedRoots.front();
+    if (! primaryRoot.empty() && ValidPreferencePath(primaryRoot) &&
+        DxUi::RichText::TryEncodeUtf8(primaryRoot.native(), encodedPath) == DxUi::RichText::SourceResult::Success)
+        PutJsonObjectString(mutDoc.get(), root, "filesRoot", encodedPath);
     else
         (void)yyjson_mut_obj_remove_key(root, "filesRoot");
 
+    if (! normalizedRoots.empty())
+    {
+        yyjson_mut_val* rootsArr = CreateMutableJsonArray(mutDoc.get());
+        for (const auto& r : normalizedRoots)
+        {
+            if (DxUi::RichText::TryEncodeUtf8(r.native(), encodedPath) == DxUi::RichText::SourceResult::Success)
+                AppendJsonArrayString(mutDoc.get(), rootsArr, encodedPath);
+        }
+        PutJsonObjectValue(mutDoc.get(), root, "filesRoots", rootsArr);
+    }
+    else
+    {
+        (void)yyjson_mut_obj_remove_key(root, "filesRoots");
+    }
+
+    if (! settings.githubRepos.empty())
+    {
+        yyjson_mut_val* reposArr = CreateMutableJsonArray(mutDoc.get());
+        std::size_t count{};
+        for (const auto& repoRef : settings.githubRepos)
+        {
+            if (count >= MaximumGitHubRepos || ! IsValidGitHubTokenSegment(repoRef.owner, 128u) || ! IsValidGitHubTokenSegment(repoRef.repo, 128u) ||
+                (! repoRef.branch.empty() && ! IsValidGitHubBranchName(repoRef.branch)))
+                continue;
+            std::string ownerU8, repoU8, branchU8;
+            if (DxUi::RichText::TryEncodeUtf8(repoRef.owner, ownerU8) == DxUi::RichText::SourceResult::Success &&
+                DxUi::RichText::TryEncodeUtf8(repoRef.repo, repoU8) == DxUi::RichText::SourceResult::Success &&
+                DxUi::RichText::TryEncodeUtf8(repoRef.branch, branchU8) == DxUi::RichText::SourceResult::Success)
+            {
+                yyjson_mut_val* repoObj = CreateMutableJsonObject(mutDoc.get());
+                PutJsonObjectString(mutDoc.get(), repoObj, "owner", ownerU8);
+                PutJsonObjectString(mutDoc.get(), repoObj, "repo", repoU8);
+                if (! branchU8.empty())
+                    PutJsonObjectString(mutDoc.get(), repoObj, "branch", branchU8);
+                AppendJsonArrayValue(reposArr, repoObj);
+                ++count;
+            }
+        }
+        PutJsonObjectValue(mutDoc.get(), root, "githubRepos", reposArr);
+    }
+    else
+    {
+        (void)yyjson_mut_obj_remove_key(root, "githubRepos");
+    }
+
+    if (settings.redSalamanderPath && ! settings.redSalamanderPath->empty() && ValidPreferencePath(*settings.redSalamanderPath) &&
+        DxUi::RichText::TryEncodeUtf8(settings.redSalamanderPath->native(), encodedPath) == DxUi::RichText::SourceResult::Success)
+        PutJsonObjectString(mutDoc.get(), root, "redSalamanderPath", encodedPath);
+    else
+        (void)yyjson_mut_obj_remove_key(root, "redSalamanderPath");
+
+    PutJsonObjectString(mutDoc.get(), root, "exitUnsavedBehavior", ExitUnsavedBehaviorName(settings.exitUnsavedBehavior));
+
     if (! settings.lastDocument.empty() && ValidPreferencePath(settings.lastDocument) &&
         DxUi::RichText::TryEncodeUtf8(settings.lastDocument.native(), encodedPath) == DxUi::RichText::SourceResult::Success)
-        PutObjectString(mutDoc.get(), root, "lastDocument", encodedPath);
+        PutJsonObjectString(mutDoc.get(), root, "lastDocument", encodedPath);
     else
         (void)yyjson_mut_obj_remove_key(root, "lastDocument");
 
-    PutObjectUint(mutDoc.get(), root, "filesWidth", settings.filesWidth);
-    PutObjectUint(mutDoc.get(), root, "readingWidth", settings.readingWidth);
-    PutObjectUint(mutDoc.get(), root, "textScale", settings.textScale);
-    PutObjectBool(mutDoc.get(), root, "dimInactiveBlocks", settings.dimInactiveBlocks);
-    PutObjectBool(mutDoc.get(), root, "allowRemoteImages", settings.allowRemoteImages);
-    PutObjectBool(mutDoc.get(), root, "allowLocalNetworkImages", settings.allowLocalNetworkImages);
-    PutObjectBool(mutDoc.get(), root, "imageFirstPaste", settings.imageFirstPaste);
-    PutObjectBool(mutDoc.get(), root, "strikeCompletedTasks", settings.strikeCompletedTasks);
-    PutObjectBool(mutDoc.get(), root, "splitScrollSync", settings.splitScrollSync);
-    PutObjectString(mutDoc.get(), root, "filesPinMode", PanePinModeName(settings.filesPinMode));
-    PutObjectString(mutDoc.get(), root, "outlinePinMode", PanePinModeName(settings.outlinePinMode));
+    PutJsonObjectUint(mutDoc.get(), root, "filesWidth", settings.filesWidth);
+    PutJsonObjectUint(mutDoc.get(), root, "readingWidth", settings.readingWidth);
+    PutJsonObjectUint(mutDoc.get(), root, "textScale", settings.textScale);
+    PutJsonObjectBool(mutDoc.get(), root, "dimInactiveBlocks", settings.dimInactiveBlocks);
+    PutJsonObjectBool(mutDoc.get(), root, "allowRemoteImages", settings.allowRemoteImages);
+    PutJsonObjectBool(mutDoc.get(), root, "allowLocalNetworkImages", settings.allowLocalNetworkImages);
+    PutJsonObjectBool(mutDoc.get(), root, "imageFirstPaste", settings.imageFirstPaste);
+    PutJsonObjectBool(mutDoc.get(), root, "strikeCompletedTasks", settings.strikeCompletedTasks);
+    PutJsonObjectBool(mutDoc.get(), root, "splitScrollSync", settings.splitScrollSync);
+    PutJsonObjectString(mutDoc.get(), root, "filesPinMode", PanePinModeName(settings.filesPinMode));
+    PutJsonObjectString(mutDoc.get(), root, "outlinePinMode", PanePinModeName(settings.outlinePinMode));
 
     if (settings.windowPlacement && ValidWindowPlacement(settings.windowPlacement.value()))
     {
@@ -575,15 +709,15 @@ std::string SerializeSettings(const Settings& settings, std::string_view existin
         yyjson_mut_val* placementObj = yyjson_mut_obj_get(root, "windowPlacement");
         const bool existingPlacement = placementObj != nullptr && yyjson_mut_is_obj(placementObj);
         if (! existingPlacement)
-            placementObj = CheckedAlloc(yyjson_mut_obj(mutDoc.get()));
-        PutObjectInt(mutDoc.get(), placementObj, "left", placement.normalBounds.left);
-        PutObjectInt(mutDoc.get(), placementObj, "top", placement.normalBounds.top);
-        PutObjectInt(mutDoc.get(), placementObj, "right", placement.normalBounds.right);
-        PutObjectInt(mutDoc.get(), placementObj, "bottom", placement.normalBounds.bottom);
-        PutObjectUint(mutDoc.get(), placementObj, "dpi", placement.dpi);
-        PutObjectBool(mutDoc.get(), placementObj, "maximized", placement.maximized);
+            placementObj = CreateMutableJsonObject(mutDoc.get());
+        PutJsonObjectInt(mutDoc.get(), placementObj, "left", placement.normalBounds.left);
+        PutJsonObjectInt(mutDoc.get(), placementObj, "top", placement.normalBounds.top);
+        PutJsonObjectInt(mutDoc.get(), placementObj, "right", placement.normalBounds.right);
+        PutJsonObjectInt(mutDoc.get(), placementObj, "bottom", placement.normalBounds.bottom);
+        PutJsonObjectUint(mutDoc.get(), placementObj, "dpi", placement.dpi);
+        PutJsonObjectBool(mutDoc.get(), placementObj, "maximized", placement.maximized);
         if (! existingPlacement)
-            PutObjectValue(mutDoc.get(), root, "windowPlacement", placementObj);
+            PutJsonObjectValue(mutDoc.get(), root, "windowPlacement", placementObj);
     }
     else
     {
@@ -593,21 +727,59 @@ std::string SerializeSettings(const Settings& settings, std::string_view existin
     yyjson_mut_val* syntaxObj = yyjson_mut_obj_get(root, "markdownSyntax");
     const bool existingSyntax = syntaxObj != nullptr && yyjson_mut_is_obj(syntaxObj);
     if (! existingSyntax)
-        syntaxObj = CheckedAlloc(yyjson_mut_obj(mutDoc.get()));
+        syntaxObj = CreateMutableJsonObject(mutDoc.get());
     for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
-        PutObjectBool(mutDoc.get(), syntaxObj, JsonMarkdownSyntaxKeys[index], settings.markdownSyntax[index]);
+        PutJsonObjectBool(mutDoc.get(), syntaxObj, JsonMarkdownSyntaxKeys[index], settings.markdownSyntax[index]);
     if (! existingSyntax)
-        PutObjectValue(mutDoc.get(), root, "markdownSyntax", syntaxObj);
+        PutJsonObjectValue(mutDoc.get(), root, "markdownSyntax", syntaxObj);
+
+    yyjson_mut_val* spellingObj = yyjson_mut_obj_get(root, "spelling");
+    const bool existingSpelling = spellingObj != nullptr && yyjson_mut_is_obj(spellingObj);
+    if (! existingSpelling)
+        spellingObj = CreateMutableJsonObject(mutDoc.get());
+    PutJsonObjectBool(mutDoc.get(), spellingObj, "enabled", settings.spelling.enabled);
+    yyjson_mut_val* langArr = CreateMutableJsonArray(mutDoc.get());
+    std::vector<std::wstring_view> emittedLanguages;
+    emittedLanguages.reserve(MaximumSpellingLanguages);
+    for (const auto& tag : settings.spelling.languages)
+    {
+        if (! IsValidLanguageTag(tag))
+            continue;
+        if (std::ranges::any_of(emittedLanguages, [&](std::wstring_view existing) noexcept { return EqualOrdinalIgnoreCase(existing, tag); }))
+            continue;
+        std::string utf8Tag;
+        if (DxUi::RichText::TryEncodeUtf8(tag, utf8Tag) == DxUi::RichText::SourceResult::Success)
+        {
+            AppendJsonArrayString(mutDoc.get(), langArr, utf8Tag);
+            emittedLanguages.push_back(tag);
+            if (emittedLanguages.size() >= MaximumSpellingLanguages)
+                break;
+        }
+    }
+    if (yyjson_mut_arr_size(langArr) == 0u)
+        AppendJsonArrayString(mutDoc.get(), langArr, "auto");
+    PutJsonObjectValue(mutDoc.get(), spellingObj, "languages", langArr);
+    PutJsonObjectBool(mutDoc.get(), spellingObj, "ignoreUppercase", settings.spelling.ignoreUppercase);
+    PutJsonObjectBool(mutDoc.get(), spellingObj, "ignoreWordsWithDigits", settings.spelling.ignoreWordsWithDigits);
+    PutJsonObjectBool(mutDoc.get(), spellingObj, "ignoreInternetAndPaths", settings.spelling.ignoreInternetAndPaths);
+    if (! settings.spelling.customDictionaryPath.empty() && ValidPreferencePath(settings.spelling.customDictionaryPath) &&
+        DxUi::RichText::TryEncodeUtf8(settings.spelling.customDictionaryPath.native(), encodedPath) == DxUi::RichText::SourceResult::Success)
+        PutJsonObjectString(mutDoc.get(), spellingObj, "customDictionaryPath", encodedPath);
+    else
+        PutJsonObjectString(mutDoc.get(), spellingObj, "customDictionaryPath", "");
+    if (! settings.spelling.dictionariesFolder.empty() && ValidPreferencePath(settings.spelling.dictionariesFolder) &&
+        DxUi::RichText::TryEncodeUtf8(settings.spelling.dictionariesFolder.native(), encodedPath) == DxUi::RichText::SourceResult::Success)
+        PutJsonObjectString(mutDoc.get(), spellingObj, "dictionariesFolder", encodedPath);
+    else
+        PutJsonObjectString(mutDoc.get(), spellingObj, "dictionariesFolder", "");
+    PutJsonObjectString(mutDoc.get(), spellingObj, "engine", SpellEngineName(settings.spelling.engine));
+    if (! existingSpelling)
+        PutJsonObjectValue(mutDoc.get(), root, "spelling", spellingObj);
 
     std::size_t length{};
-    yyjson_write_err writeErr{};
-    const unique_yyjson_text text(yyjson_mut_write_opts(mutDoc.get(), YYJSON_WRITE_PRETTY, nullptr, &length, &writeErr));
+    const unique_yyjson_text text = WriteJsonDocument(mutDoc.get(), YYJSON_WRITE_PRETTY, length);
     if (! text)
-    {
-        if (writeErr.code == YYJSON_WRITE_ERROR_MEMORY_ALLOCATION)
-            DxUi::Failure::FailAllocation();
         return {};
-    }
     std::string result;
     result.reserve(length + 1u);
     result.append(text.get(), length);
@@ -905,6 +1077,169 @@ void SettingsWriter::Close() noexcept
     _state.reset();
 }
 
+struct SettingsWatcher::State final
+{
+    State()                        = default;
+    ~State()                       = default;
+    State(const State&)            = delete;
+    State& operator=(const State&) = delete;
+    State(State&&)                 = delete;
+    State& operator=(State&&)      = delete;
+
+    std::mutex mutex;
+    std::filesystem::path directory;
+    std::wstring fileName;
+    HWND window{};
+    UINT message{};
+    wil::unique_event_nothrow stopEvent;
+    wil::unique_event_nothrow readyEvent;
+    std::atomic_bool notificationPending{false};
+    std::atomic_bool running{false};
+    bool closing{};
+
+    void PostChanged() noexcept
+    {
+        const std::lock_guard lock(mutex);
+        if (closing || ! window)
+            return;
+        if (notificationPending.exchange(true, std::memory_order_acq_rel))
+            return;
+        if (! PostMessageW(window, message, 0, 0))
+            notificationPending.store(false, std::memory_order_release);
+    }
+
+    static void CALLBACK Worker(PTP_CALLBACK_INSTANCE instance, void* context) noexcept
+    {
+        ProcessWorkLease lease = std::move(static_cast<ProcessWorkItem<State>*>(context)->lease);
+        if (instance)
+            (void)CallbackMayRunLong(instance);
+        const std::unique_ptr<ProcessWorkItem<State>> ownership(static_cast<ProcessWorkItem<State>*>(context));
+        const auto shared       = ownership->state;
+        const auto clearRunning = wil::scope_exit([&]() noexcept { shared->running.store(false, std::memory_order_release); });
+
+        bool readySignaled{};
+        const auto signalReady = [&]() noexcept
+        {
+            if (! readySignaled && shared->readyEvent)
+            {
+                readySignaled = true;
+                (void)SetEvent(shared->readyEvent.get());
+            }
+        };
+        const auto ensureReadyOnExit = wil::scope_exit([&]() noexcept { signalReady(); });
+
+        try
+        {
+            const DxUi::Failure::Scope failureScope;
+            DirectoryWatch watch;
+            const std::filesystem::path targetName(shared->fileName);
+
+            unsigned consecutiveErrors{};
+            constexpr unsigned MaximumWatcherRetries = 8u;
+            const auto permanentFailure              = [](DWORD error) noexcept
+            {
+                return error == ERROR_ACCESS_DENIED || error == ERROR_INVALID_NAME || error == ERROR_BAD_PATHNAME || error == ERROR_BAD_NETPATH ||
+                       error == ERROR_BAD_NET_NAME || error == ERROR_NOT_SUPPORTED;
+            };
+            const auto waitRetryOrStop = [&](DWORD error) noexcept -> bool
+            {
+                signalReady();
+                if (permanentFailure(error) || consecutiveErrors >= MaximumWatcherRetries)
+                    return false;
+                const DWORD backoff = SettingsWatcherRetryMs << std::min<unsigned>(consecutiveErrors, 4u);
+                ++consecutiveErrors;
+                return WaitForSingleObject(shared->stopEvent.get(), backoff) != WAIT_OBJECT_0;
+            };
+
+            for (;;)
+            {
+                {
+                    const std::lock_guard lock(shared->mutex);
+                    if (shared->closing)
+                        return;
+                }
+                if (! watch.IsAttached())
+                {
+                    wil::unique_handle directoryHandle(CreateFileW(shared->directory.c_str(),
+                                                                   FILE_LIST_DIRECTORY,
+                                                                   FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                                                   nullptr,
+                                                                   OPEN_EXISTING,
+                                                                   FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
+                                                                   nullptr));
+                    if (! directoryHandle)
+                    {
+                        const DWORD openError = GetLastError();
+                        if (! waitRetryOrStop(openError))
+                            return;
+                        continue;
+                    }
+                    if (FAILED(watch.AttachAndArm(std::move(directoryHandle), false, SettingsWatcherFilter)))
+                    {
+                        if (! waitRetryOrStop(watch.LastWin32Error()))
+                            return;
+                        continue;
+                    }
+                    signalReady();
+                }
+
+                HANDLE handles[]{shared->stopEvent.get(), watch.EventHandle()};
+                const DWORD waitResult = WaitForMultipleObjects(2u, handles, FALSE, INFINITE);
+                if (waitResult != WAIT_OBJECT_0 + 1u)
+                    return;
+
+                const auto poll = watch.Complete(std::span<const std::filesystem::path>(&targetName, 1u), false);
+                if (poll == DirectoryWatch::PollStatus::Failed)
+                {
+                    if (! waitRetryOrStop(watch.LastWin32Error()))
+                        return;
+                    continue;
+                }
+                consecutiveErrors = 0u;
+                if (poll == DirectoryWatch::PollStatus::Unmatched)
+                {
+                    if (! watch.Arm())
+                    {
+                        if (! waitRetryOrStop(watch.LastWin32Error()))
+                            return;
+                    }
+                    continue;
+                }
+
+                // Coalesce multi-write bursts over SettingsWatcherCoalesceMs while keeping
+                // the directory watch armed and responsive to stop signals.
+                const ULONGLONG deadline = GetTickCount64() + SettingsWatcherCoalesceMs;
+                while (watch.Arm())
+                {
+                    const ULONGLONG now = GetTickCount64();
+                    if (now >= deadline)
+                        break;
+                    const DWORD remaining = static_cast<DWORD>(deadline - now);
+                    const DWORD burstWait = WaitForMultipleObjects(2u, handles, FALSE, remaining);
+                    if (burstWait == WAIT_OBJECT_0)
+                        return;
+                    if (burstWait == WAIT_TIMEOUT)
+                        break;
+                    if (burstWait != WAIT_OBJECT_0 + 1u)
+                        return;
+                    if (watch.Complete({}, false) == DirectoryWatch::PollStatus::Failed)
+                        break;
+                }
+
+                shared->PostChanged();
+            }
+        }
+        catch (const std::bad_alloc&)
+        {
+            DxUi::Failure::FailAllocation();
+        }
+        catch (const std::exception&)
+        {
+            DxUi::Failure::FailUnexpected();
+        }
+    }
+};
+
 SettingsWatcher::~SettingsWatcher()
 {
     Close();
@@ -917,255 +1252,76 @@ try
     if (directory.empty() || fileName.empty() || ! window || ! IsWindow(window) || message < WM_APP)
         return E_INVALIDARG;
 
-    _stopEvent.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
-    if (! _stopEvent)
+    auto staged = std::make_shared<State>();
+    staged->stopEvent.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+    if (! staged->stopEvent)
     {
         const DWORD error = GetLastError();
-        Close();
         return error != ERROR_SUCCESS ? HRESULT_FROM_WIN32(error) : E_FAIL;
     }
 
-    ProcessWorkLease lease;
-    const HRESULT admission = ProcessWork::Acquire(lease);
+    staged->readyEvent.reset(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+    if (! staged->readyEvent)
+    {
+        const DWORD error = GetLastError();
+        return error != ERROR_SUCCESS ? HRESULT_FROM_WIN32(error) : E_FAIL;
+    }
+
+    staged->directory = std::move(directory);
+    staged->fileName  = std::move(fileName);
+    staged->window    = window;
+    staged->message   = message;
+    staged->running.store(true, std::memory_order_release);
+
+    auto ownership          = std::make_unique<ProcessWorkItem<State>>(staged);
+    const HRESULT admission = ProcessWork::Acquire(ownership->lease);
     if (FAILED(admission))
     {
-        Close();
+        staged->running.store(false, std::memory_order_release);
         return admission;
     }
 
-    _directory = std::move(directory);
-    _fileName  = std::move(fileName);
-    _window    = window;
-    _message   = message;
-    _notificationPending.store(false, std::memory_order_release);
-
-    _thread = std::jthread([this, ownedLease = std::move(lease)](std::stop_token) mutable noexcept { WatchThread(std::move(ownedLease)); });
+    if (! TrySubmitThreadpoolCallback(State::Worker, ownership.get(), nullptr))
+    {
+        const DWORD submitError = GetLastError();
+        staged->running.store(false, std::memory_order_release);
+        return submitError != ERROR_SUCCESS ? HRESULT_FROM_WIN32(submitError) : E_FAIL;
+    }
+    (void)ownership.release();
+    _state = std::move(staged);
+    (void)WaitForSingleObject(_state->readyEvent.get(), 1000u);
     return S_OK;
 }
 catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation();
 }
-catch (const std::system_error& error)
-{
-    Close();
-    return HRESULT_FROM_WIN32(static_cast<DWORD>(error.code().value()));
-}
 
 void SettingsWatcher::Acknowledge() noexcept
 {
-    _notificationPending.store(false, std::memory_order_release);
+    if (_state)
+        _state->notificationPending.store(false, std::memory_order_release);
 }
 
 void SettingsWatcher::Close() noexcept
 {
-    if (_stopEvent)
-        (void)SetEvent(_stopEvent.get());
-    if (_thread.joinable())
-        _thread.join();
-    _thread = std::jthread{};
-    _stopEvent.reset();
-    _notificationPending.store(false, std::memory_order_release);
-    _directory.clear();
-    _fileName.clear();
-    _window  = nullptr;
-    _message = 0;
+    if (! _state)
+        return;
+    {
+        const std::lock_guard lock(_state->mutex);
+        _state->closing = true;
+        _state->window  = nullptr;
+        _state->message = 0;
+        _state->notificationPending.store(false, std::memory_order_release);
+        _state->running.store(false, std::memory_order_release);
+        if (_state->stopEvent)
+            (void)SetEvent(_state->stopEvent.get());
+    }
+    _state.reset();
 }
 
 bool SettingsWatcher::Active() const noexcept
 {
-    return _thread.joinable();
-}
-
-void SettingsWatcher::WatchThread(ProcessWorkLease lease) noexcept
-{
-    const ProcessWorkLease scopedLease = std::move(lease);
-    (void)scopedLease;
-
-    wil::unique_handle directoryHandle;
-    wil::unique_event_nothrow ioEvent(CreateEventW(nullptr, TRUE, FALSE, nullptr));
-    if (! ioEvent)
-        return;
-
-    OVERLAPPED overlapped{};
-    bool ioPending = false;
-    alignas(DWORD) std::array<std::byte, 16u * 1024u> buffer{};
-
-    const auto cancelPending = wil::scope_exit([&]
-    {
-        if (ioPending && directoryHandle)
-        {
-            (void)CancelIoEx(directoryHandle.get(), &overlapped);
-            DWORD bytes{};
-            (void)GetOverlappedResult(directoryHandle.get(), &overlapped, &bytes, TRUE);
-            ioPending = false;
-        }
-    });
-
-    const auto armWatch = [&]() noexcept -> bool
-    {
-        if (! directoryHandle || ioPending)
-            return ioPending;
-        ResetEvent(ioEvent.get());
-        overlapped        = {};
-        overlapped.hEvent = ioEvent.get();
-        if (ReadDirectoryChangesW(
-                directoryHandle.get(), buffer.data(), static_cast<DWORD>(buffer.size()), FALSE, SettingsWatcherFilter, nullptr, &overlapped, nullptr))
-        {
-            ioPending = true;
-            return true;
-        }
-        directoryHandle.reset();
-        return false;
-    };
-
-    const auto matchesTarget = [&](DWORD bytes) noexcept -> bool
-    {
-        if (bytes == 0u)
-            return true;
-        for (std::size_t offset{}; offset < bytes;)
-        {
-            constexpr std::size_t headerSize = offsetof(FILE_NOTIFY_INFORMATION, FileName);
-            if (bytes - offset < headerSize)
-                return true;
-            const auto* entry = reinterpret_cast<const FILE_NOTIFY_INFORMATION*>(buffer.data() + offset);
-            if (entry->FileNameLength % sizeof(wchar_t) != 0u || entry->FileNameLength > bytes - offset - headerSize)
-                return true;
-            const std::wstring_view changedName(entry->FileName, entry->FileNameLength / sizeof(wchar_t));
-            if (EqualOrdinalIgnoreCase(changedName, _fileName))
-                return true;
-            if (entry->NextEntryOffset == 0u)
-                break;
-            if (entry->NextEntryOffset % alignof(DWORD) != 0u || entry->NextEntryOffset < headerSize || entry->NextEntryOffset > bytes - offset)
-                return true;
-            offset += entry->NextEntryOffset;
-        }
-        return false;
-    };
-
-    unsigned consecutiveErrors{};
-    constexpr unsigned MaximumWatcherRetries = 8u;
-    const auto permanentFailure              = [](DWORD error) noexcept
-    {
-        return error == ERROR_ACCESS_DENIED || error == ERROR_INVALID_NAME || error == ERROR_BAD_PATHNAME || error == ERROR_BAD_NETPATH ||
-               error == ERROR_BAD_NET_NAME || error == ERROR_NOT_SUPPORTED;
-    };
-    const auto waitRetryOrStop = [&](DWORD error) noexcept -> bool
-    {
-        if (permanentFailure(error) || consecutiveErrors >= MaximumWatcherRetries)
-            return false;
-        const DWORD backoff = SettingsWatcherRetryMs << std::min<unsigned>(consecutiveErrors, 4u);
-        ++consecutiveErrors;
-        return WaitForSingleObject(_stopEvent.get(), backoff) != WAIT_OBJECT_0;
-    };
-
-    for (;;)
-    {
-        if (! directoryHandle)
-        {
-            directoryHandle.reset(CreateFileW(_directory.c_str(),
-                                              FILE_LIST_DIRECTORY,
-                                              FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
-                                              nullptr,
-                                              OPEN_EXISTING,
-                                              FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED,
-                                              nullptr));
-            if (! directoryHandle || ! armWatch())
-            {
-                const DWORD error = GetLastError();
-                directoryHandle.reset();
-                if (! waitRetryOrStop(error))
-                    return;
-                continue;
-            }
-        }
-
-        HANDLE handles[]{_stopEvent.get(), ioEvent.get()};
-        const DWORD waitResult = WaitForMultipleObjects(2u, handles, FALSE, INFINITE);
-        if (waitResult == WAIT_OBJECT_0)
-            return;
-        if (waitResult != WAIT_OBJECT_0 + 1u)
-            return;
-
-        DWORD bytes{};
-        bool matched{};
-        if (! GetOverlappedResult(directoryHandle.get(), &overlapped, &bytes, FALSE))
-        {
-            const DWORD error = GetLastError();
-            ioPending         = false;
-            if (error == ERROR_NOTIFY_ENUM_DIR)
-            {
-                consecutiveErrors = 0u;
-                matched           = true;
-            }
-            else
-            {
-                directoryHandle.reset();
-                if (! waitRetryOrStop(error))
-                    return;
-                continue;
-            }
-        }
-        else
-        {
-            consecutiveErrors = 0u;
-            ioPending         = false;
-            matched           = matchesTarget(bytes);
-        }
-
-        if (! matched)
-        {
-            if (! armWatch())
-            {
-                if (! waitRetryOrStop(GetLastError()))
-                    return;
-            }
-            continue;
-        }
-
-        // Coalesce multi-write bursts over SettingsWatcherCoalesceMs while keeping
-        // the directory watch armed and responsive to stop signals.
-        const ULONGLONG deadline = GetTickCount64() + SettingsWatcherCoalesceMs;
-        while (armWatch())
-        {
-            const ULONGLONG now = GetTickCount64();
-            if (now >= deadline)
-                break;
-            const DWORD remaining = static_cast<DWORD>(deadline - now);
-            const DWORD burstWait = WaitForMultipleObjects(2u, handles, FALSE, remaining);
-            if (burstWait == WAIT_OBJECT_0)
-                return;
-            if (burstWait == WAIT_TIMEOUT)
-                break;
-            if (burstWait != WAIT_OBJECT_0 + 1u)
-                return;
-
-            DWORD burstBytes{};
-            if (! GetOverlappedResult(directoryHandle.get(), &overlapped, &burstBytes, FALSE))
-            {
-                const DWORD error = GetLastError();
-                ioPending         = false;
-                if (error != ERROR_NOTIFY_ENUM_DIR)
-                {
-                    directoryHandle.reset();
-                    break;
-                }
-            }
-            else
-            {
-                ioPending = false;
-            }
-        }
-
-        PostChanged();
-    }
-}
-
-void SettingsWatcher::PostChanged() noexcept
-{
-    if (_notificationPending.exchange(true, std::memory_order_acq_rel))
-        return;
-    if (! PostMessageW(_window, _message, 0, 0))
-        _notificationPending.store(false, std::memory_order_release);
+    return _state && _state->running.load(std::memory_order_acquire);
 }
 } // namespace RedTilde

@@ -1,6 +1,67 @@
 Set-StrictMode -Version Latest
 Import-Module (Join-Path $PSScriptRoot 'DxUiPaths.psm1') -Scope Local -ErrorAction Stop
 
+function Get-RedTildeVersionBase {
+    param([Parameter(Mandatory)][string] $Root)
+    $versionHeaderPath = Join-Path $Root 'Common/Version.h'
+    if (-not (Test-Path -LiteralPath $versionHeaderPath -PathType Leaf)) {
+        throw 'Version header Common/Version.h is missing.'
+    }
+    $versionHeader = [IO.File]::ReadAllText($versionHeaderPath)
+    $majorMatch = [regex]::Match($versionHeader, '(?m)^\s*#define\s+REDTILDE_VERSION_MAJOR\s+(?<value>\d+)\s*$')
+    $minorMatch = [regex]::Match($versionHeader, '(?m)^\s*#define\s+REDTILDE_VERSION_MINOR\s+(?<value>\d+)\s*$')
+    if (-not $majorMatch.Success -or -not $minorMatch.Success) {
+        throw 'Common/Version.h must define non-negative integer REDTILDE_VERSION_MAJOR and REDTILDE_VERSION_MINOR.'
+    }
+    $major = [int]$majorMatch.Groups['value'].Value
+    $minor = [int]$minorMatch.Groups['value'].Value
+    [pscustomobject]@{
+        Major       = $major
+        Minor       = $minor
+        VersionBase = "$major.$minor"
+    }
+}
+
+function Assert-RedTildeNoReparseAncestry {
+    param(
+        [Parameter(Mandatory)][string] $Base,
+        [Parameter(Mandatory)][string] $Target,
+        [switch] $AllowMissing,
+        [switch] $RequireDirectories,
+        [string] $BaseErrorMessage = 'Base directory must be an existing non-reparse directory.',
+        [string] $EscapeErrorMessage = 'Target path escapes its base directory.',
+        [string] $ReparseErrorMessage = 'Path traverses a reparse point.',
+        [string] $NotDirectoryMessage = 'A path component is not a directory.'
+    )
+    $basePath = [IO.Path]::GetFullPath($Base).TrimEnd('\', '/')
+    if (-not (Test-Path -LiteralPath $basePath -PathType Container) -or
+        ((Get-Item -LiteralPath $basePath -Force -ErrorAction Stop).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+        throw $BaseErrorMessage
+    }
+    $targetPath = [IO.Path]::GetFullPath($Target)
+    $relative = [IO.Path]::GetRelativePath($basePath, $targetPath)
+    if ($relative -ceq '..' -or $relative.StartsWith('..' + [IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase) -or
+        [IO.Path]::IsPathRooted($relative)) {
+        throw $EscapeErrorMessage
+    }
+    $current = $basePath
+    foreach ($part in @($relative -split '[\\/]')) {
+        if (-not $part -or $part -ceq '.') { continue }
+        $current = Join-Path $current $part
+        if (-not (Test-Path -LiteralPath $current)) {
+            if ($AllowMissing) { continue }
+            throw "Required path component does not exist: $current"
+        }
+        $item = Get-Item -LiteralPath $current -Force -ErrorAction Stop
+        if ($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {
+            throw $ReparseErrorMessage
+        }
+        if ($RequireDirectories -and -not $item.PSIsContainer) {
+            throw $NotDirectoryMessage
+        }
+    }
+}
+
 function Get-RedTildeSourceIdentity {
     param([Parameter(Mandatory)][string] $Root)
     $start = [Diagnostics.ProcessStartInfo]::new('git')
@@ -204,18 +265,11 @@ function Assert-RedTildeCanonicalBuildDirectories {
         logs=[IO.Path]::GetFullPath((Join-Path $rootPath '.build/logs'))
     }
     foreach($target in $paths.Values){
-        $relative=[IO.Path]::GetRelativePath($rootPath,$target)
-        if($relative -ceq '..' -or $relative.StartsWith('..'+[IO.Path]::DirectorySeparatorChar,[StringComparison]::OrdinalIgnoreCase) -or
-            [IO.Path]::IsPathRooted($relative)){throw 'Build output path escapes the repository root.'}
-        $current=$rootPath
-        foreach($part in @($relative -split '[\\/]')){
-            if(-not $part -or $part -ceq '.') {continue}
-            $current=Join-Path $current $part
-            if(-not(Test-Path -LiteralPath $current)){continue}
-            $item=Get-Item -LiteralPath $current -Force -ErrorAction Stop
-            if($item.Attributes -band [IO.FileAttributes]::ReparsePoint){throw 'Build output or dependency path traverses a reparse point.'}
-            if(-not $item.PSIsContainer){throw 'A build output path component is not a directory.'}
-        }
+        Assert-RedTildeNoReparseAncestry -Base $rootPath -Target $target -AllowMissing -RequireDirectories `
+            -BaseErrorMessage 'Repository root must be an existing non-reparse directory before build outputs are touched.' `
+            -EscapeErrorMessage 'Build output path escapes the repository root.' `
+            -ReparseErrorMessage 'Build output or dependency path traverses a reparse point.' `
+            -NotDirectoryMessage 'A build output path component is not a directory.'
     }
     return $paths
 }
@@ -336,13 +390,14 @@ function Get-RedTildeArtifactIdentity {
 }
 
 function Invoke-RedTildeHarness {
-    param([Parameter(Mandatory)][string] $Executable,[Parameter(Mandatory)][string[]] $Arguments,
-          [Parameter(Mandatory)][string] $LogPrefix,[int] $TimeoutSeconds=90,[switch] $SystemOnlyPath)
+    param([Parameter(Mandatory)][string] $Executable,[Parameter(Mandatory)][AllowEmptyString()][string[]] $Arguments,
+          [Parameter(Mandatory)][string] $LogPrefix,[int] $TimeoutSeconds=90,[switch] $SystemOnlyPath,[string] $WorkingDirectory='')
     $start=[Diagnostics.ProcessStartInfo]::new($Executable)
     $start.UseShellExecute=$false
     $start.CreateNoWindow=$true
     $start.RedirectStandardOutput=$true
     $start.RedirectStandardError=$true
+    if ($WorkingDirectory) { $start.WorkingDirectory=$WorkingDirectory }
     if ($SystemOnlyPath) { $start.Environment['Path']=[Environment]::SystemDirectory+';'+$env:SystemRoot }
     foreach ($argument in $Arguments) { $start.ArgumentList.Add($argument) }
     $process=[Diagnostics.Process]::new()
@@ -447,28 +502,18 @@ function Get-RedTildeDependencyPublicHeaders {
     if(-not (Test-Path -LiteralPath $sourceDirectory -PathType Container)) {throw 'Pinned DxUi implementation source is missing.'}
     if(-not (Test-Path -LiteralPath $capabilitiesPath -PathType Leaf)) {throw 'Pinned DxUi capabilities metadata is missing.'}
     if(-not (Test-Path -LiteralPath $packageInclude -PathType Container)) {throw 'Restored package include directory is missing.'}
-    function Assert-NoReparsePath([string]$Base,[string]$Target) {
-        $basePath=[IO.Path]::GetFullPath($Base).TrimEnd('\','/')
-        $targetPath=[IO.Path]::GetFullPath($Target)
-        $relative=[IO.Path]::GetRelativePath($basePath,$targetPath)
-        if($relative -ceq '..' -or $relative.StartsWith('..'+[IO.Path]::DirectorySeparatorChar,[StringComparison]::Ordinal) -or
-            [IO.Path]::IsPathRooted($relative)) {throw 'Dependency input path escapes its repository root.'}
-        $current=$basePath
-        if((Get-Item -LiteralPath $current -Force -ErrorAction Stop).Attributes -band [IO.FileAttributes]::ReparsePoint) {
-            throw 'Dependency input evidence cannot follow a repository-root reparse point.'
-        }
-        foreach($part in @($relative -split '[\\/]')) {
-            if(-not $part -or $part -ceq '.') {continue}
-            $current=Join-Path $current $part
-            $item=Get-Item -LiteralPath $current -Force -ErrorAction Stop
-            if($item.Attributes -band [IO.FileAttributes]::ReparsePoint) {throw 'Dependency input evidence cannot follow reparse points.'}
-        }
+    $assertDependencyPath={
+        param([string]$Target)
+        Assert-RedTildeNoReparseAncestry -Base $Root -Target $Target `
+            -BaseErrorMessage 'Dependency input evidence cannot follow a repository-root reparse point.' `
+            -EscapeErrorMessage 'Dependency input path escapes its repository root.' `
+            -ReparseErrorMessage 'Dependency input evidence cannot follow reparse points.'
     }
-    Assert-NoReparsePath $Root $sdk
-    Assert-NoReparsePath $Root $sourceDirectory
-    Assert-NoReparsePath $Root $include
-    Assert-NoReparsePath $Root $packageInclude
-    Assert-NoReparsePath $Root $capabilitiesPath
+    & $assertDependencyPath $sdk
+    & $assertDependencyPath $sourceDirectory
+    & $assertDependencyPath $include
+    & $assertDependencyPath $packageInclude
+    & $assertDependencyPath $capabilitiesPath
     $api=(Get-Content -LiteralPath $capabilitiesPath -Raw -ErrorAction Stop|ConvertFrom-Json -ErrorAction Stop).apiRevision
     if($api -ne $pin.apiRevision){throw 'Pinned DxUi API revision differs from the exact consumer lock.'}
     $head=@(& git -C $sdk rev-parse HEAD)
@@ -480,7 +525,7 @@ function Get-RedTildeDependencyPublicHeaders {
     $ignored=@(& git -C $sdk ls-files --others --ignored --exclude-standard -- include)
     if($LASTEXITCODE -ne 0 -or $ignored.Count) {throw 'Public-header checkout has ignored files in the compiled source include tree.'}
     function Get-HeaderInventory([string]$Base,[string]$Prefix) {
-        Assert-NoReparsePath $Root $Base
+        & $assertDependencyPath $Base
         $stack=[Collections.Generic.Stack[string]]::new();$stack.Push($Base)
         $files=[Collections.Generic.List[object]]::new()
         $paths=[Collections.Generic.HashSet[string]]::new([StringComparer]::OrdinalIgnoreCase)
@@ -531,6 +576,6 @@ function Get-RedTildeCoreTestPartitions {
        @($union|Sort-Object -Unique).Count -ne $union.Count){throw 'Incomplete native Editor partition union.'}
     return $partitions
 }
-Export-ModuleMember -Function Get-RedTildeCoreTestPartitions,Get-RedTildeSourceIdentity,Get-RedTildeBuildToolchainSnapshot,Assert-RedTildeOwnedCleanDirectories,
+Export-ModuleMember -Function Get-RedTildeVersionBase,Assert-RedTildeNoReparseAncestry,Get-RedTildeCoreTestPartitions,Get-RedTildeSourceIdentity,Get-RedTildeBuildToolchainSnapshot,Assert-RedTildeOwnedCleanDirectories,
     Assert-RedTildeCanonicalBuildDirectories,Get-RedTildeBuildInputSnapshot,Get-RedTildeArtifactIdentity,
     Invoke-RedTildeHarness,Assert-RedTildeTestArtifact,Get-RedTildeDependencyPublicHeaders

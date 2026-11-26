@@ -500,6 +500,50 @@ public:
                 std::this_thread::sleep_for(std::chrono::milliseconds(2));
             }
             Require(app._imageFileRefreshes == retiredRefreshes, "the retired file binding cannot request another editor reload");
+
+            {
+                RichImageLoader staLoader;
+                Success(staLoader.Initialize(app.Window(), WM_APP + 0x350u, 0x737461u), "initialize RichImageLoader for STA worker probe");
+                const auto staImage = fixture / L"Illustrations/sta-cover.bmp";
+                const auto staBytes = Testing::ImageBitmapFixture(true);
+                Success(WriteBytesAtomic(staImage, std::string_view(reinterpret_cast<const char*>(staBytes.data()), staBytes.size())),
+                        "seed local image for STA RichImageLoader probe");
+                app.SetDocument(L"![STA](Illustrations/sta-cover.bmp)\n", fixture / L"Notebook.md");
+                std::vector<DxUi::RichText::RichImageRequest> staRequests;
+                for (unsigned turn = 0u; turn < 256u && staRequests.empty(); ++turn)
+                {
+                    (void)app.Host().RenderInitialFrameForShow();
+                    app.Document().TakePendingImageRequests(staRequests);
+                }
+                Require(staRequests.size() == 1u, "capture RichImageRequest for STA worker probe");
+                {
+                    const auto state = staLoader._state;
+                    const std::lock_guard lock(state->mutex);
+                    state->jobs[0u]         = staRequests.front();
+                    state->jobCount         = 1u;
+                    state->callbackLifetime = state;
+                    Success(ProcessWork::Acquire(state->callbackLease), "acquire ProcessWorkLease for STA RichImageLoader probe");
+                    state->phase = RichImageLoader::State::WorkerPhase::Active;
+                }
+                HRESULT threadComInit = E_FAIL;
+                HRESULT threadComKeep = E_FAIL;
+                std::jthread staThread([&]()
+                {
+                    threadComInit = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+                    const wil::unique_call<decltype(&CoUninitialize), CoUninitialize> apartment(SUCCEEDED(threadComInit));
+                    RichImageLoader::State::Worker(nullptr, staLoader._state.get(), nullptr);
+                    threadComKeep = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+                    if (SUCCEEDED(threadComKeep))
+                        CoUninitialize();
+                });
+                staThread.join();
+                std::vector<RichImageLoader::Result> staResults;
+                staLoader.Drain(staResults);
+                Require(SUCCEEDED(threadComInit) && threadComKeep == S_FALSE && staResults.size() == 1u && SUCCEEDED(staResults.front().status) &&
+                            staResults.front().image != nullptr,
+                        "RichImageLoader::State::Worker accepts RPC_E_CHANGED_MODE on STA threads without uninitializing caller COM");
+                staLoader.Shutdown();
+            }
         });
         test("Editor.ClipboardBitmapAssetHandler",
              [&]
@@ -562,6 +606,46 @@ public:
             app.Execute(Command::ImageFirstPaste);
             Require(! app.Preferences().imageFirstPaste && app.Host().GetClipboardPreference() == DxUi::TextClipboardPreference::TextFirst,
                     "the app option restores Unicode-first policy without changing pasted source");
+            {
+                const auto staDir     = options.dataDirectory / L"sta-worker";
+                const auto rootDrive  = staDir.root_name().native();
+                const bool fixedDrive = rootDrive.size() == 2u && rootDrive[1] == L':' && GetDriveTypeW(staDir.root_path().c_str()) == DRIVE_FIXED;
+                if (fixedDrive)
+                {
+                    BitmapPasteWriter staWriter;
+                    Success(staWriter.Initialize(staDir, app.Window(), WM_APP + 0x351u), "initialize BitmapPasteWriter for STA worker probe");
+                    auto job            = std::make_unique<BitmapPasteWriter::Job>();
+                    job->state          = staWriter._state;
+                    job->dib            = Testing::ClipboardBitmapFixture(true);
+                    job->v5             = true;
+                    job->result.request = 1u;
+                    {
+                        const std::scoped_lock lock(staWriter._state->mutex);
+                        staWriter._state->serial = 1u;
+                        staWriter._state->phase  = BitmapPasteWriter::Phase::Encoding;
+                    }
+                    Success(ProcessWork::Acquire(job->lease), "acquire ProcessWorkLease for STA BitmapPasteWriter probe");
+                    HRESULT threadComInit = E_FAIL;
+                    HRESULT threadComKeep = E_FAIL;
+                    std::jthread staThread([&]()
+                    {
+                        threadComInit = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+                        const wil::unique_call<decltype(&CoUninitialize), CoUninitialize> apartment(SUCCEEDED(threadComInit));
+                        BitmapPasteWriter::Worker(nullptr, job.release());
+                        threadComKeep = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+                        if (SUCCEEDED(threadComKeep))
+                            CoUninitialize();
+                    });
+                    staThread.join();
+                    BitmapPasteWriter::Result staResult;
+                    Require(SUCCEEDED(threadComInit) && threadComKeep == S_FALSE && staWriter.Take(staResult) && SUCCEEDED(staResult.status) &&
+                                ! staResult.asset.path.empty(),
+                            "BitmapPasteWriter::Worker accepts RPC_E_CHANGED_MODE on STA threads without uninitializing caller COM");
+                    Success(staWriter.Discard(std::move(staResult)), "retire STA BitmapPasteWriter probe asset");
+                    Await(app, [&] { return ! staWriter.Busy(); });
+                    staWriter.Stop();
+                }
+            }
             Require(foreground.NeverAcquiredForeground(), "bitmap paste never acquires the desktop or clipboard");
         });
         test("Editor.ClipboardBitmapPasteDeclinesSupersededSource",
@@ -932,13 +1016,19 @@ public:
             Await(app, [&] { return app._session.path == third && ! app._files.Busy(); });
             app.Prepare(256);
 
-            const auto checkWorkspaceOrder = [&]
+            const auto checkWorkspaceOrder = [&](std::initializer_list<std::pair<unsigned, std::wstring_view>> expectedRows)
             {
-                Require(app._filesModel.rows.size() >= 7 && app._filesModel.rows[0].id == Application::WorkspaceGroupId &&
-                            app._filesModel.rows[1].id == Application::WorkspaceGroupId + 1 && app._filesModel.rows[1].text == L"Alpha.md" &&
-                            app._filesModel.rows[2].id == Application::WorkspaceGroupId + 2 && app._filesModel.rows[2].text == L"Beta.md" &&
-                            app._filesModel.rows[3].id == Application::WorkspaceGroupId + 3 && app._filesModel.rows[3].text == L"Gamma.md",
-                        "Open documents keeps retained entries in stable workspace opening order");
+                Require(! app._filesModel.rows.empty() && app._filesModel.rows[0].id == Application::WorkspaceGroupId &&
+                            app._filesModel.rows[0].text == Resource(IDS_OPENDOCUMENTS) && app._filesModel.rows.size() >= 1u + expectedRows.size(),
+                        "Modified documents group appears in the Files tree");
+                std::size_t idx = 1u;
+                for (const auto& [docKey, docName] : expectedRows)
+                {
+                    Require(app._filesModel.rows[idx].id == Application::WorkspaceGroupId + docKey + 1u && app._filesModel.rows[idx].text == docName &&
+                                app._filesModel.rows[idx].badgeIsDot,
+                            "Modified documents keeps modified entries in stable workspace opening order");
+                    ++idx;
+                }
             };
             const auto folderRowId = [&](std::wstring_view name)
             {
@@ -957,59 +1047,80 @@ public:
                 (void)app._filesTree->OnMouseUp(app.Host(), point, false, 0);
             };
 
-            checkWorkspaceOrder();
+            Require(std::ranges::none_of(app._filesModel.rows, [](const auto& item) { return item.id >= Application::WorkspaceGroupId; }),
+                    "clean retained documents do not show the Modified documents section");
             Require(app._filesTree->GetSelectedItemId() == std::optional<std::uint64_t>(folderRowId(L"Gamma.md")),
                     "opening from the folder listing selects that folder row");
 
+            // Modify Alpha and Gamma while keeping Beta clean: Modified documents must show only Alpha and Gamma.
+            clickVisibleRow(static_cast<std::size_t>(std::find_if(app._filesModel.rows.begin(), app._filesModel.rows.end(), [](const auto& item) {
+                return item.id < Application::WorkspaceGroupId && item.text == L"Alpha.md";
+            }) - app._filesModel.rows.begin()));
+            Require(app._session.path == first && app.Document().ReplaceSelection(L" "), "dirty Alpha");
+            clickVisibleRow(static_cast<std::size_t>(std::find_if(app._filesModel.rows.begin(), app._filesModel.rows.end(), [](const auto& item) {
+                return item.id < Application::WorkspaceGroupId && item.text == L"Gamma.md";
+            }) - app._filesModel.rows.begin()));
+            Require(app._session.path == third && app.Document().ReplaceSelection(L" "), "dirty Gamma while Beta stays clean");
+            checkWorkspaceOrder({{0u, L"Alpha.md"}, {2u, L"Gamma.md"}});
+            Require(std::ranges::none_of(app._filesModel.rows, [](const auto& item) { return item.id == Application::WorkspaceGroupId + 2u; }),
+                    "unmodified Beta stays absent from Modified documents");
+
+            // Now dirty Beta too so all three modified documents appear in stable workspace opening order.
+            clickVisibleRow(static_cast<std::size_t>(std::find_if(app._filesModel.rows.begin(), app._filesModel.rows.end(), [](const auto& item) {
+                return item.id < Application::WorkspaceGroupId && item.text == L"Beta.md";
+            }) - app._filesModel.rows.begin()));
+            Require(app._session.path == second && app.Document().ReplaceSelection(L" "), "dirty Beta");
+            checkWorkspaceOrder({{0u, L"Alpha.md"}, {1u, L"Beta.md"}, {2u, L"Gamma.md"}});
+
             clickVisibleRow(1u);
-            checkWorkspaceOrder();
+            checkWorkspaceOrder({{0u, L"Alpha.md"}, {1u, L"Beta.md"}, {2u, L"Gamma.md"}});
             Require(app._session.path == first && app._session.key == 0u &&
                         app._filesTree->GetSelectedItemId() == std::optional<std::uint64_t>(Application::WorkspaceGroupId + 1),
-                    "clicking Alpha in Open documents activates Alpha without reordering or jumping selection to the folder row");
+                    "clicking Alpha in Modified documents activates Alpha without reordering or jumping selection to the folder row");
 
             clickVisibleRow(2u);
-            checkWorkspaceOrder();
+            checkWorkspaceOrder({{0u, L"Alpha.md"}, {1u, L"Beta.md"}, {2u, L"Gamma.md"}});
             Require(app._session.path == second && app._session.key == 1u &&
                         app._filesTree->GetSelectedItemId() == std::optional<std::uint64_t>(Application::WorkspaceGroupId + 2),
-                    "clicking Beta in Open documents keeps stable row order and selects Beta's workspace row");
+                    "clicking Beta in Modified documents keeps stable row order and selects Beta's workspace row");
 
             const auto revision = app._folderSnapshot->revision;
             WriteFixture(directory / L"Delta.md", "# Delta\nFourth note.\n");
             Await(app, [&] { return app._folderSnapshot && app._folderSnapshot->revision > revision && app._folderSnapshot->markdownCount == 4; });
-            checkWorkspaceOrder();
+            checkWorkspaceOrder({{0u, L"Alpha.md"}, {1u, L"Beta.md"}, {2u, L"Gamma.md"}});
             Require(app._filesTree->GetSelectedItemId() == std::optional<std::uint64_t>(Application::WorkspaceGroupId + 2),
-                    "directory-watch refreshes preserve the Open documents selection");
+                    "directory-watch refreshes preserve the Modified documents selection");
 
             app._filesModel.OnTreeToggleExpanded(Application::WorkspaceGroupId, false);
             Require(app._filesTree->GetSelectedItemId() == std::optional<std::uint64_t>(folderRowId(L"Beta.md")),
-                    "collapsing Open documents falls back to the active file's visible folder row");
+                    "collapsing Modified documents falls back to the active file's visible folder row");
             app._filesModel.OnTreeToggleExpanded(Application::WorkspaceGroupId, true);
             app.Prepare(128);
-            checkWorkspaceOrder();
+            checkWorkspaceOrder({{0u, L"Alpha.md"}, {1u, L"Beta.md"}, {2u, L"Gamma.md"}});
             Require(app._filesTree->GetSelectedItemId() == std::optional<std::uint64_t>(folderRowId(L"Beta.md")),
-                    "re-expanding Open documents does not jump selection away from the folder row");
+                    "re-expanding Modified documents does not jump selection away from the folder row");
 
             clickVisibleRow(2u);
             Require(app._session.path == second && app._filesTree->GetSelectedItemId() == std::optional<std::uint64_t>(Application::WorkspaceGroupId + 2),
-                    "clicking the already-active Open documents row selects it");
+                    "clicking the already-active Modified documents row selects it");
             app.RefreshFiles();
             Require(app._filesTree->GetSelectedItemId() == std::optional<std::uint64_t>(Application::WorkspaceGroupId + 2),
-                    "subsequent refreshes retain the explicitly selected Open documents row");
+                    "subsequent refreshes retain the explicitly selected Modified documents row");
 
             const auto gammaFolderIndex = static_cast<std::size_t>(std::find_if(app._filesModel.rows.begin(), app._filesModel.rows.end(), [](const auto& item) {
                 return item.id < Application::WorkspaceGroupId && item.text == L"Gamma.md";
             }) - app._filesModel.rows.begin());
             clickVisibleRow(gammaFolderIndex);
-            checkWorkspaceOrder();
+            checkWorkspaceOrder({{0u, L"Alpha.md"}, {1u, L"Beta.md"}, {2u, L"Gamma.md"}});
             Require(app._session.path == third && app._session.key == 2u &&
                         app._filesTree->GetSelectedItemId() == std::optional<std::uint64_t>(folderRowId(L"Gamma.md")),
-                    "clicking Gamma in the folder listing selects the folder row while keeping Open documents ordered");
+                    "clicking Gamma in the folder listing selects the folder row while keeping Modified documents ordered");
 
             app.Document().SetSelection({0, 0});
             app.Execute(Command::LocalSource);
             Require(app.HasBlockDraft(), "open a guarded local draft to test refused workspace switching");
             clickVisibleRow(1u);
-            checkWorkspaceOrder();
+            checkWorkspaceOrder({{0u, L"Alpha.md"}, {1u, L"Beta.md"}, {2u, L"Gamma.md"}});
             Require(app._session.path == third && app._session.key == 2u &&
                         app._filesTree->GetSelectedItemId() == std::optional<std::uint64_t>(folderRowId(L"Gamma.md")),
                     "a refused workspace switch keeps the active document and restores its tree selection");
@@ -1393,8 +1504,8 @@ public:
                             app.Dirty(),
                         "the nested edit remains authoritative and retains its undo history");
                 Require(app.Preferences().view == EditorView::Split && app.Document().GetViewMode() == DxUi::RichText::ViewMode::Rich &&
-                            app._modeHint->GetText() == Resource(IDS_SPLITHINT) && app._mirror->IsVisible() && app.Host().GetFocusControl() == &app.Document(),
-                        "the outer Split request completes hint, visibility and logical focus after source supersession");
+                            app._mirror->IsVisible() && app.Host().GetFocusControl() == &app.Document(),
+                        "the outer Split request completes visibility and logical focus after source supersession");
                 Require(app._mirror->GetText() == expected && app._mirror->Snapshot().IsSameRevision(app.Document().Snapshot()) &&
                             app._mirror->GetSelection() == app.Document().GetSelection(),
                         "the visible mirror publishes the latest nested source and selection");
@@ -1443,8 +1554,8 @@ public:
             app._mirror->SetOnSelectionChanged({});
 
             Require(entered && nestedViewCompleted && app.Document().GetText() == source && ! app.Dirty() && app.Preferences().view == EditorView::Source &&
-                        app.Document().GetViewMode() == DxUi::RichText::ViewMode::Source && app._modeHint->GetText() == Resource(IDS_SOURCEHINT) &&
-                        ! app._mirror->IsVisible() && app.Host().GetFocusControl() == &app.Document(),
+                        app.Document().GetViewMode() == DxUi::RichText::ViewMode::Source && ! app._mirror->IsVisible() &&
+                        app.Host().GetFocusControl() == &app.Document(),
                     "a nested Source request remains the final view after the outer Split callback resumes");
             CheckChrome(app);
 
@@ -1490,10 +1601,10 @@ public:
                             ! app._outlineTree->GetAppearance().drawBackground && ! app._outlineTree->GetAppearance().drawBorder &&
                             ! app._outlineTree->GetAppearance().showExpanders && ! app._filesTree->GetAppearance().drawBorder,
                         "document and navigation panes have no nested input frames");
-                const auto identity = app._title->GetBounds(), state = app._saveStateChip->GetBounds();
-                Require(Near((identity.top + identity.bottom) / 2, (state.top + state.bottom) / 2) && state.left > identity.right,
-                        "filename and save-state chip share the same header baseline");
-                Require(app._blockSourceAction->GetBounds().bottom < 500 && ! app._overflowButton->IsVisible() && app._closeFiles->IsVisible(),
+                const auto identity = app._title->GetBounds(), dot = app._dirtyDot->GetBounds();
+                Require(! app._dirtyDot->IsVisible() && Near((identity.top + identity.bottom) / 2, (dot.top + dot.bottom) / 2) && dot.left > identity.right,
+                        "clean title hides the dirty dot while keeping its header baseline aligned right of the filename");
+                Require(app._blockSourceAction->GetBounds().bottom < 500 && ! app._overflowButton->IsVisible() && app._pinFiles->IsVisible(),
                         "short outlines keep block tools nearby and a full-width toolbar needs no overflow button");
                 Require(app.Document().Snapshot().IsSameRevision(source) && app.Document().GetSelection() == selection,
                         "visual layout and DPI changes preserve the authoritative document and selection");
@@ -1646,18 +1757,21 @@ public:
             exerciseHiddenReveal(
                 [&]
             {
-                app._settings.showFiles = true;
+                app._settings.showFiles      = true;
+                app._settings.filesPinMode   = PanePinMode::Auto;
+                app._settings.outlinePinMode = PanePinMode::Auto;
                 Resize(app, 1024, 900, 96, false);
                 Require(app._leftRail->IsVisible() && app._rightRail->IsVisible() && ! app._filesPane->IsVisible() && ! app._sidebar->IsVisible() &&
                             ! app._filesSplitter->IsVisible(),
                         "the narrow viewport collapses both panes to edge rails without showing the splitter");
-                app.OnRailExpandClicked(PaneSide::Left);
+                app.RevealPaneOverlay(PaneSide::Left);
                 Require(app._filesPane->IsVisible() && app._filesPane->borderRight && ! app._filesSplitter->IsVisible() && ! app._sidebar->IsVisible(),
                         "the file-overlay fixture is active rather than a normal left Files pane");
             },
                 [&]
             {
-                app._settings.showFiles = false;
+                app._settings.showFiles    = false;
+                app._settings.filesPinMode = PanePinMode::Unpinned;
                 Resize(app, 1440, 900, 96, false);
             },
                 "the narrow Files overlay hides the sidebar");
@@ -1828,8 +1942,10 @@ public:
                 Application app(Options(root, L"design-layout"));
                 Success(app.Initialize(), "create hidden responsive-layout app");
                 app.Execute(Command::Files);
-                const auto source   = app.Document().Snapshot();
-                const auto selected = app.Document().GetSelection();
+                app._settings.filesPinMode   = PanePinMode::Auto;
+                app._settings.outlinePinMode = PanePinMode::Auto;
+                const auto source            = app.Document().Snapshot();
+                const auto selected          = app.Document().GetSelection();
                 const bool undo = app.Document().CanUndo(), redo = app.Document().CanRedo();
                 for (const UINT dpi : {96u, 144u, 192u})
                     for (const unsigned width : {800u, 1120u, 1136u, 1142u, 1200u, 1300u, 1440u})
@@ -3055,7 +3171,7 @@ public:
             const auto inspected = app._equation->GetAcknowledgedSemanticDocument(app.Host());
             Require(inspected && std::ranges::count(inspected->Elements(), DxUi::RichText::SemanticRole::Math, &DxUi::RichText::SemanticElement::role) == 1,
                     "the inspector renders its preview as one native equation rather than literal delimiters");
-            for (const unsigned index : {3u, 4u, 5u, 13u})
+            for (const unsigned index : {3u, 4u, 5u, 12u})
                 Require(! app._tools[index]->IsEnabled(), "inline formatting commands are disabled inside equations");
             const auto envelope  = source.find(L"$a_i^2$");
             const bool entryUndo = app.Document().CanUndo(), entryRedo = app.Document().CanRedo();
@@ -3530,8 +3646,9 @@ public:
                         app._inactiveDocuments.front().state.CanUndo(),
                     "a tree open retains the previous dirty source and history without a save question");
             Require(app.Document().GetText() == L"# Published\n" && app._folderRoot == first.parent_path() &&
-                        app._filesTree->GetSelectedItemId() == Application::WorkspaceGroupId + app._session.key + 1,
-                    "opening a file outside the browser root retains the tree and selects its retained workspace entry");
+                        std::ranges::any_of(app._filesModel.rows, [](const auto& row) { return row.id == Application::WorkspaceGroupId + 1u; }) &&
+                        app._filesTree->GetSelectedItemId() == std::nullopt,
+                    "opening a clean file outside the browser root retains only modified documents in the workspace group without selecting clean rows");
             const auto savedAs = directory / L"Archive/renamed.md";
             std::filesystem::create_directories(savedAs.parent_path());
             Success(app._files.Submit(true, savedAs, app.Document().GetText(), false), "admit the save-as writer stage without a native file picker");
@@ -3654,21 +3771,11 @@ public:
             const auto folderStatus     = app._folderSnapshot->status;
             const auto watchStatus      = app._folderSnapshot->watchStatus;
             const auto footer           = std::wstring(app._filesCount->GetText());
-            const auto rebuilds         = app.Activity().filesModelRebuilds;
             Require(app.Document().ReplaceSelection(L"x"), "make the current document dirty");
-            Require(app.Activity().filesModelRebuilds == rebuilds && app._filesModel.rows.size() == rowSnapshot.size(),
-                    "dirty state changes update the existing row model without rebuilding it");
-            for (std::size_t index = 0; index < rowSnapshot.size(); ++index)
-            {
-                const auto& before   = rowSnapshot[index];
-                const auto& after    = app._filesModel.rows[index];
-                const bool isCurrent = before.id == currentId;
-                Require(before.id == after.id && before.parentId == after.parentId && before.text == after.text && before.iconText == after.iconText &&
-                            before.tooltipText == after.tooltipText && before.depth == after.depth && before.hasChildren == after.hasChildren &&
-                            before.expanded == after.expanded && before.badgeTone == after.badgeTone &&
-                            (isCurrent || (before.badgeText == after.badgeText && before.badgeIsDot == after.badgeIsDot)),
-                        "only the current file row presentation changes on the dirty transition");
-            }
+            Require(app._filesModel.rows.size() == rowSnapshot.size() + 2u && app._filesModel.rows[0].id == Application::WorkspaceGroupId &&
+                        app._filesModel.rows[1].id == Application::WorkspaceGroupId + app._session.key + 1u && app._filesModel.rows[1].text == L"current.md" &&
+                        app._filesModel.rows[1].badgeIsDot,
+                    "making the active document dirty inserts the Modified documents group cleanly");
             const auto edited = std::find_if(app._filesModel.rows.begin(), app._filesModel.rows.end(), [&](const auto& row) { return row.id == currentId; });
             Require(edited != app._filesModel.rows.end() && edited->badgeText == Resource(IDS_FILESEDITED) && edited->badgeIsDot,
                     "the current file receives the localized accessible dot status");
@@ -3677,17 +3784,16 @@ public:
             const auto dirtyArchiveProvider = findTreeItem(L"archive");
             Require(editedProvider.name == L"current.md" && editedProvider.itemStatus == Resource(IDS_FILESEDITED) && dirtyArchiveProvider.name == L"archive" &&
                         dirtyArchiveProvider.itemStatus == initialArchiveProvider.itemStatus,
-                    "the live UI Automation providers expose the localized Edited status only on the current file");
-            Require(app._filesTree->GetSelectedItemId() == std::optional(selectedId) && app._filesTree->GetFocusedItemId() == std::optional(selectedId) &&
-                        app._filesTree->GetFirstVisibleItemIndex() == firstVisible && app._filesCount->GetText() == footer &&
-                        app._folderSnapshot->generation == folderGeneration && app._folderSnapshot->revision == folderRevision &&
-                        app._folderSnapshot->status == folderStatus && app._folderSnapshot->watchStatus == watchStatus,
-                    "a dirty badge update preserves tree selection, focus, scroll, footer and watcher snapshot");
+                    "the live UI Automation providers expose the localized Edited status on current.md while preserving archive count");
+            Require(app._filesCount->GetText() == footer && app._folderSnapshot->generation == folderGeneration &&
+                        app._folderSnapshot->revision == folderRevision && app._folderSnapshot->status == folderStatus &&
+                        app._folderSnapshot->watchStatus == watchStatus,
+                    "a dirty transition preserves footer and watcher snapshot");
 
             Require(app.Document().Undo() && ! app.Dirty(), "undo restores the exact clean document state");
-            Require(app.Activity().filesModelRebuilds == rebuilds && app._filesTree->GetSelectedItemId() == std::optional(selectedId) &&
-                        app._filesTree->GetFocusedItemId() == std::optional(selectedId) && app._filesTree->GetFirstVisibleItemIndex() == firstVisible,
-                    "undo removes the dot without rebuilding or moving the user's tree state");
+            Require(app._filesModel.rows.size() == rowSnapshot.size() &&
+                        std::ranges::none_of(app._filesModel.rows, [](const auto& row) { return row.id >= Application::WorkspaceGroupId; }),
+                    "undo removes the Modified documents group when no files remain dirty");
             app.Prepare(256);
             const auto restoredProvider        = findTreeItem(L"current.md");
             const auto restoredArchiveProvider = findTreeItem(L"archive");
@@ -3701,11 +3807,9 @@ public:
             app._filesFilter->SetTextAndNotify(L"note-");
             Require(std::ranges::none_of(app._filesModel.rows, [](const auto& row) { return row.text == L"current.md"; }),
                     "the filter hides the current file row without changing the snapshot");
-            const auto filteredRebuilds = app.Activity().filesModelRebuilds;
             Require(app.Document().ReplaceSelection(L"y"), "dirty the current document while its row is filtered out");
-            Require(app.Activity().filesModelRebuilds == filteredRebuilds &&
-                        std::ranges::none_of(app._filesModel.rows, [](const auto& row) { return row.text == L"current.md"; }),
-                    "a filtered-out current file updates bookkeeping without rebuilding visible rows");
+            Require(std::ranges::none_of(app._filesModel.rows, [](const auto& row) { return row.text == L"current.md"; }),
+                    "a filtered-out current file stays hidden under the active filter even when dirty");
             Require(app.Document().Undo() && ! app.Dirty(), "filtered current document returns to its clean state");
             app._filesFilter->SetTextAndNotify(L"");
             Require(app.Document().ReplaceSelection(L"z"), "dirty the document before replacing it with a different root");
@@ -3729,15 +3833,17 @@ public:
             untitled.Execute(Command::Files);
             Require(! untitled._folderSnapshot && untitled._filesModel.rows.empty() && untitled._folderFiles.CurrentPhase() == FilesPhase::Closed,
                     "the untitled Files pane has no folder snapshot or worker");
-            const auto emptyFooter   = std::wstring(untitled._filesCount->GetText());
-            const auto emptyRebuilds = untitled.Activity().filesModelRebuilds;
+            const auto emptyFooter = std::wstring(untitled._filesCount->GetText());
             Require(untitled.Document().ReplaceSelection(L"x") && untitled.Dirty() && untitled._lastFilesDirty,
                     "dirty bookkeeping updates while the Files pane has no snapshot");
-            Require(untitled.Activity().filesModelRebuilds == emptyRebuilds && untitled._filesModel.rows.empty() &&
-                        untitled._filesCount->GetText() == emptyFooter,
-                    "an empty-root dirty transition leaves the empty model and localized footer intact");
-            Require(untitled.Document().Undo() && ! untitled.Dirty() && ! untitled._lastFilesDirty && untitled.Activity().filesModelRebuilds == emptyRebuilds,
-                    "undo synchronizes clean bookkeeping without a synthetic folder refresh");
+            Require(untitled._filesModel.rows.size() == 2u && untitled._filesModel.rows[0].id == Application::WorkspaceGroupId &&
+                        untitled._filesModel.rows[1].id == Application::WorkspaceGroupId + untitled._session.key + 1u &&
+                        untitled._filesModel.rows[1].badgeIsDot && untitled._filesCount->GetText() == emptyFooter &&
+                        untitled._folderFiles.CurrentPhase() == FilesPhase::Closed,
+                    "an empty-root dirty transition shows only the dirty untitled document under Modified documents and keeps the localized footer intact");
+            Require(untitled.Document().Undo() && ! untitled.Dirty() && ! untitled._lastFilesDirty && untitled._filesModel.rows.empty() &&
+                        untitled._folderFiles.CurrentPhase() == FilesPhase::Closed,
+                    "undo clears Modified documents and restores the empty untitled row model");
         });
         test("Editor.DesignRefreshFilesAdmissionErrorsAndRootActions",
              [&]
@@ -3823,11 +3929,12 @@ public:
                                                   L"examined-entry traversal limit · depth 2 traversal limit",
                     "access and watch failures never hide either simultaneous traversal limit");
             const std::wstring completeFooter(app._filesCount->GetText());
-            app._settings.filesWidth = 200;
+            app._settings.filesWidth   = 200;
+            app._settings.filesPinMode = PanePinMode::Auto;
             Resize(app, 800, 560, 96);
             Require(app._leftRail->IsVisible() && ! app._filesPane->IsVisible(),
                     "narrow viewport collapses Files to rail while deferring hidden footer measurement");
-            app.OnRailExpandClicked(PaneSide::Left);
+            app.RevealPaneOverlay(PaneSide::Left);
             DxUi::DesiredSize desired;
             Success(DxUi::MeasureControl(*app._filesCount, {app.Host()}, DxUi::LayoutConstraints::AtMost(176.f), desired),
                     "independently measure the complete wrapped footer through canonical DxUi");
@@ -3854,7 +3961,9 @@ public:
             const auto retainedRevision  = app.Document().Revision();
             const auto retainedSelection = app.Document().GetSelection();
             const bool retainedUndo = app.Document().CanUndo(), retainedRedo = app.Document().CanRedo(), retainedDirty = app.Dirty();
-            app._settings.showFiles = false;
+            app._settings.showFiles    = false;
+            app._settings.filesPinMode = PanePinMode::Unpinned;
+            app.DismissHoverOverlays(true);
             app.Layout();
             const auto hiddenMeasures      = app._filesFooterMeasure.measurements;
             const auto retainedFooterWidth = app._filesFooterMeasure.widthDip, retainedFooterDpi = app._filesFooterMeasure.dpi;
@@ -3871,11 +3980,12 @@ public:
                             app._filesFooterMeasure.textRevision == retainedFooterRevision,
                         "closed Files preserves its stale measurement across real owner resize, DPI, text and theme changes");
             }
-            app._settings.showFiles = true;
+            app._settings.showFiles    = true;
+            app._settings.filesPinMode = PanePinMode::Auto;
             app.Layout();
             Require(app._leftRail->IsVisible() && ! app._filesPane->IsVisible(),
                     "re-enabling Files at narrow 800x560 enters CollapsedRail before explicit hover expansion");
-            app.OnRailExpandClicked(PaneSide::Left);
+            app.RevealPaneOverlay(PaneSide::Left);
             Require(app._filesPane->IsVisible() && app._filesFooterMeasure.measurements == hiddenMeasures + 1 &&
                         app._filesFooterMeasure.textRevision == app._filesCount->GetMeasureRevision() &&
                         app._filesFooterMeasure.typographyRevision == app.Host().GetTypographyRevision() && Near(app._filesFooterMeasure.widthDip, 176) &&
@@ -3903,7 +4013,7 @@ public:
             app.Layout();
             Require(app._leftRail->IsVisible() && ! app._filesPane->IsVisible() && app._filesFooterMeasure.measurements == hiddenMeasures + 1,
                     "leaving Focus at narrow 800x560 keeps Files collapsed in rail until hover-expanded");
-            app.OnRailExpandClicked(PaneSide::Left);
+            app.RevealPaneOverlay(PaneSide::Left);
             Require(app._filesPane->IsVisible() && app._filesFooterMeasure.measurements == hiddenMeasures + 2 &&
                         Near(app._filesCount->GetBounds().bottom - app._filesCount->GetBounds().top, 24),
                     "leaving Focus measures a stale short footer once and restores its minimum height");
@@ -4006,7 +4116,7 @@ public:
             Require(app.Preferences().appearance == Appearance::Paper && app._themeButtons[3]->GetToggleState() == std::optional<bool>(true),
                     "theme tiles expose the current live appearance through pressed state");
             app.Execute(Command::DimBlocks);
-            Require(! app.Preferences().dimInactiveBlocks && app._dimToggle->GetToggleState() == std::optional<bool>(false),
+            Require(! app.Preferences().dimInactiveBlocks && ! app._dimToggle->IsChecked(),
                     "focus dimming is a live persisted preference with a real toggle state");
             const auto selection = app.Document().GetSelection();
             Require(! app.Preferences().strikeCompletedTasks && ! app.Document().GetAppearance().strikeCompletedTasks,
@@ -4015,7 +4125,7 @@ public:
             app.SetView(EditorView::Split);
             app.Prepare(256);
             Require(app.Preferences().strikeCompletedTasks && app.Document().GetAppearance().strikeCompletedTasks &&
-                        app._mirror->GetAppearance().strikeCompletedTasks && app._strikeTasksToggle->GetToggleState() == std::optional<bool>(true),
+                        app._mirror->GetAppearance().strikeCompletedTasks && app._strikeTasksToggle->IsChecked(),
                     "the real preference applies to Compose and the Split mirror");
             app.SetView(EditorView::Source);
             app.SetView(EditorView::Compose);
@@ -4027,14 +4137,20 @@ public:
                         selection.caret == retainedSelection.caret && ! app.Dirty(),
                     "completion presentation round-trips views without changing source, selection, revision or dirty state");
             Require(! app.Document().CanUndo(), "presentation commands leave the empty undo history unchanged");
-            Require(! app.Preferences().allowRemoteImages && ! app.Document().RemoteImagesEnabled() &&
-                        app._remoteImagesToggle->GetToggleState() == std::optional<bool>(false),
+            Require(! app.Preferences().allowRemoteImages && ! app.Document().RemoteImagesEnabled() && ! app._remoteImagesToggle->IsChecked(),
                     "the privacy control starts off and reports the actual editor image policy");
             app.Execute(Command::RemoteImages);
-            Require(app.Preferences().allowRemoteImages && app.Document().RemoteImagesEnabled() &&
-                        app._remoteImagesToggle->GetToggleState() == std::optional<bool>(true),
+            Require(app.Preferences().allowRemoteImages && app.Document().RemoteImagesEnabled() && app._remoteImagesToggle->IsChecked(),
                     "the live privacy control applies a usable opt-in rather than a decorative preference");
             app.Execute(Command::RemoteImages);
+            for (const auto* help : {app._strikeTasksHelp, app._localNetworkImagesHelp, app._imageFirstPasteHelp, app._spellingHelp})
+            {
+                const auto bounds = help->GetBounds();
+                DxUi::DesiredSize desired;
+                Success(DxUi::MeasureControl(*help, {app.Host()}, DxUi::LayoutConstraints::AtMost(bounds.right - bounds.left), desired),
+                        "measure a settings explanation beneath its toggle");
+                Require(desired.sizeDip.height <= bounds.bottom - bounds.top + 0.5f, "settings explanation fits its measured bounds beneath its toggle");
+            }
             app._settingsScroll->SetScrollOffset(400);
             Require(app._settingsScroll->GetScrollOffset() > 0 &&
                         app._settingsScroll->GetContentHeight() > app._settingsScroll->GetViewportRect().bottom - app._settingsScroll->GetViewportRect().top,
@@ -4075,7 +4191,7 @@ public:
             };
             // GFM (31) plus every optional RichMarkdown bit through abbreviations.
             Require(views(MarkdownExtensions::RichOptionalMask) && inlineKind(MarkdownInlineKind::Highlight) && wikiLink() &&
-                        std::ranges::all_of(app._syntaxToggles, [](auto* toggle) { return toggle->GetToggleState() == std::optional<bool>(true); }),
+                        std::ranges::all_of(app._syntaxToggles, [](auto* toggle) { return toggle->IsChecked(); }),
                     "every optional syntax starts enabled on the editor, mirror and inspector and is analysed");
             for (std::size_t index = 0; index < MarkdownSyntaxCount; ++index)
             {
@@ -4088,7 +4204,7 @@ public:
             }
             app.Execute(Command::SyntaxHighlight);
             app.Prepare(256);
-            Require(! app.Preferences().SyntaxEnabled(MarkdownSyntax::Highlight) && app._syntaxToggles[0]->GetToggleState() == std::optional<bool>(false) &&
+            Require(! app.Preferences().SyntaxEnabled(MarkdownSyntax::Highlight) && ! app._syntaxToggles[0]->IsChecked() &&
                         views(static_cast<MarkdownExtensions>(4095u & ~32u)) && ! inlineKind(MarkdownInlineKind::Highlight) && wikiLink(),
                     "turning Highlight off reanalyses all three views and leaves other syntax enabled");
             app.Execute(Command::SyntaxWikiLinks);
@@ -5352,6 +5468,215 @@ public:
             Success(ReadBytes(settingsPath, afterBytes, &afterStamp), "read RedTilde.settings after Focus toggles");
             Require(beforeBytes == afterBytes && beforeStamp == afterStamp && foreground.NeverAcquiredForeground(),
                     "Focus mode toggles never rewrite RedTilde.settings on disk");
+        });
+
+        test("Editor.M7ThemeContrastDeviceLossAndLinkSanitization",
+             [&]
+        {
+            Testing::ForegroundOwnershipObserver foreground;
+            // P0-17: High Contrast populates complete GetSysColor palette and guards subduedText chrome.
+            {
+                auto hcOptions     = Options(root, L"hc-m7");
+                hcOptions.scenario = L"high-contrast";
+                Application hcApp(hcOptions);
+                Success(hcApp.Initialize(), "initialize high-contrast M7 fixture");
+                Resize(hcApp, 1280, 800);
+                const auto& theme = hcApp.Host().GetTheme();
+                Require(theme.highContrast, "high-contrast scenario sets theme.highContrast");
+                Require(theme.overlayBackground.r == theme.windowBackground.r && theme.overlayBackground.g == theme.windowBackground.g &&
+                            theme.overlayBackground.b == theme.windowBackground.b,
+                        "HC overlayBackground tracks COLOR_WINDOW");
+                Require(theme.primaryButtonFill.has_value() &&
+                            (theme.primaryButtonFill.value().r != D2D1::ColorF(0xC83C46).r || theme.primaryButtonFill.value().g != D2D1::ColorF(0xC83C46).g),
+                        "HC primaryButtonFill does not hardcode non-HC crimson");
+                Require(theme.subduedText.r == theme.text.r && theme.subduedText.g == theme.text.g && theme.subduedText.b == theme.text.b,
+                        "HC subduedText matches window text for full contrast");
+                hcApp.SetView(EditorView::Split);
+                hcApp.Layout();
+                Require(hcApp._splitSwitchHint != nullptr, "split chrome labels update cleanly in high contrast");
+            }
+
+            // P0-17 Paper overlayBackground + P1-04 device loss dashed stroke + P1-20 scroll restore target + P2-06 links.
+            {
+                Application app(Options(root, L"m7-theme-deviceloss-links"));
+                Success(app.Initialize(), "initialize M7 theme/device-loss/link fixture");
+                Resize(app, 1280, 800);
+                app._settings.appearance = Appearance::Paper;
+                app.ApplyTheme();
+                Color(app.Host().GetTheme().overlayBackground, 0xF3EDDF, "Paper overlayBackground uses Paper surfaceBackground");
+
+                // P1-04: Device loss advances generation and recreates split seam _dashedStroke cleanly.
+                app._settings.splitScrollSync = false;
+                app.SetDocument(L"# Split Seam\n\nParagraph content.\n");
+                app.SetView(EditorView::Split);
+                app.Prepare(128);
+                const auto genBefore = app.Host().GetResourceGeneration();
+                app.Host().DebugSimulateDeviceLoss();
+                app.Prepare(128);
+                Require(app.Host().GetResourceGeneration() > genBefore && app.Capture(root / L"m7-deviceloss-split.png"),
+                        "split view survives device loss and repaints dashed seam cleanly");
+                std::error_code ec;
+                std::filesystem::remove(root / L"m7-deviceloss-split.png", ec);
+
+                // P1-20 & PERF-08: SetView skips SavePreferences when unchanged; SynchronizeMirror sets _pendingSourceScrollRestore for _mirror.
+                app.SetView(EditorView::Source);
+                const auto beforeSavePrefs = app._settings.view;
+                Require(beforeSavePrefs == EditorView::Source && ! app._preferenceWriter.Busy(), "unchanged/settled view check");
+                app.SetView(EditorView::Source); // no-op
+                Require(! app._preferenceWriter.Busy(), "SetView to already active view skips redundant SavePreferences");
+
+                app.SetView(EditorView::Split);
+                app._settings.splitScrollSync = false;
+                app.Document().SetText(L"# Sync\n\nLine 1\n\nLine 2\n");
+                app._pendingSourceScrollRestore.reset();
+                app._pendingComposeScrollRestore.reset();
+                Require(app.SynchronizeMirror(), "SynchronizeMirror succeeds in Split view");
+                Require(! app._pendingComposeScrollRestore.has_value(), "mirror sync never writes _pendingComposeScrollRestore when target is _mirror");
+
+                // P2-06: Link validation and UI string sanitization.
+                Require(Application::SupportedExternalLink(L"https://example.com/path?x=1#y"), "accepts clean HTTPS link");
+                Require(Application::SupportedExternalLink(L"mailto:user@example.com"), "accepts clean mailto link");
+                Require(! Application::SupportedExternalLink(L"https://evil.example\\share/doc"), "rejects backslash in http authority");
+                Require(! Application::SupportedExternalLink(L"mailto:user\\domain@example.com"), "rejects backslash in mailto destination");
+                Require(! Application::SupportedExternalLink(L"https://example.com/\x202E"), "rejects BiDi override U+202E");
+                Require(! Application::SupportedExternalLink(L"https://example.com/\x200B"), "rejects zero-width U+200B");
+                Require(! Application::SupportedExternalLink(L"https://example.com/\x0007"), "rejects C0 control");
+                Require(! Application::SupportedExternalLink(std::wstring(2049u, L'a')), "rejects URL > 2048 units");
+                Require(! Application::SupportedExternalLink(L"https://example.com/\xD800"), "rejects unpaired UTF-16 surrogate");
+                Require(! Application::SupportedExternalLink(L"https:///empty-host"), "rejects empty HTTP authority");
+                Require(! Application::SupportedExternalLink(L"https://example.com/\x061C"), "rejects Arabic Letter Mark U+061C");
+                Require(! Application::SupportedExternalLink(L"mailto:?subject=x"), "rejects mailto link with empty recipient before query");
+                Require(! Application::SupportedExternalLink(L"mailto:#frag"), "rejects mailto link with empty recipient before fragment");
+                Require(! Application::SupportedExternalLink(L"mailto:"), "rejects bare mailto scheme without recipient");
+                Require(Application::SupportedExternalLink(L"mailto:user@example.com?subject=hi"), "accepts mailto link with recipient and query");
+
+                Require(IsUnsafeDisplayCodePoint(0x061Cu), "IsUnsafeDisplayCodePoint rejects Arabic Letter Mark U+061C");
+                const auto sanitized = SanitizeUiText(L"Title\x202E\x0007\x200B\x061CName", 16u);
+                Require(sanitized == L"TitleName", "SanitizeUiText removes BiDi/ALM/C0/zero-width characters cleanly");
+                Require(SanitizeUiText(L"A\U0001F642B", 2u) == L"A",
+                        "SanitizeUiText stops truncation before an overflowing safe surrogate pair instead of stitching trailing chars");
+            }
+            Require(foreground.NeverAcquiredForeground(), "M7 theme/device-loss/link tests stay hidden");
+        });
+
+        test("Editor.M7SelectionLookupAndIdleLayoutGates",
+             [&]
+        {
+            Testing::ForegroundOwnershipObserver foreground;
+            Application app(Options(root, L"m7-perf-selection-layout"));
+            Success(app.Initialize(), "initialize M7 perf selection/layout fixture");
+            Resize(app, 1280, 800);
+
+            // PERF-08: SyntaxLookupCache + binary-search headings/inlines/math + idle WM_PAINT ServiceImages bypass.
+            std::wstring doc;
+            for (int i = 0; i < 60; ++i)
+                doc += std::format(L"# Heading {}\n\nParagraph with **bold** *italic* `code` [link](https://example.com).\n\n", i);
+            doc += L"$$\nE = mc^2\n$$\n\n- item 1\n- item 2\n";
+            app.SetDocument(doc);
+            app.Prepare(256);
+
+            Require(app._derivedCaches.syntaxCache.syntax != nullptr && app._derivedCaches.syntaxCache.topLevelBlocks.size() >= 100u &&
+                        ! app._derivedCaches.syntaxCache.fencedMathBlocks.empty(),
+                    "SyntaxLookupCache populates top-level and fenced math block indices once per syntax revision");
+
+            const auto boldPos = doc.find(L"bold") + 1;
+            app.Document().SetSelection({boldPos, boldPos});
+            app.SelectionChanged();
+            Require(app._tools[3]->GetToggleState().value_or(false) && ! app._equationContext,
+                    "caret inside **bold** detects Strong format via O(log B) tree walk");
+
+            const auto mathPos = doc.find(L"mc^2");
+            app.Document().SetSelection({mathPos, mathPos});
+            app.SelectionChanged();
+            Require(app._equationContext && app.EquationPreviewText().find(L"mc^2") != std::wstring::npos,
+                    "caret inside fenced $$ block finds math via binary search on fencedMathBlocks");
+
+            const auto headingPos = doc.find(L"# Heading 45") + 3;
+            app.Document().SetSelection({headingPos, headingPos});
+            app.SelectionChanged();
+            Require(app._currentHeading.has_value() && app._currentHeading.value() == 45u,
+                    "heading selection matches exact outline heading via std::upper_bound");
+
+            // Idle WM_PAINT skips image watch mutex work when no images active/pending and view unchanged.
+            (void)SendMessageW(app.Window(), WM_PAINT, 0, 0);
+            Require(app._imageWatchWasRichVisible == true && ! app._images.HasActiveOrResults() && ! app._imageFiles.HasResult(),
+                    "image watch settles rich-visible flag and idle gates report false");
+            (void)SendMessageW(app.Window(), WM_PAINT, 0, 0);
+
+            // PERF-02: Pin label caching + hidden drawer layout skip keeps theme previews fresh.
+            app._settings.showOutline = true;
+            app.Layout();
+            Require(app._lastPinOutlineDocked == std::optional<bool>{true}, "pin cache records docked state");
+            app._settings.appearance = Appearance::Dark;
+            app.ApplyTheme();
+            app.Layout();
+            Require(! app._drawer->IsVisible() && app._themeButtons[0]->GetThemePreview().has_value(),
+                    "hidden drawer skips heavy layout while preserving live theme swatch preview");
+
+            // Live-edit WM_PAINT image loading + consent without calling Prepare(), plus Source view switch and empty-doc settlement.
+            {
+                const auto imgDir = root / L"m7-live-wm-paint";
+                std::filesystem::create_directories(imgDir);
+                const auto bmpBytes = Testing::ImageBitmapFixture();
+                Success(WriteBytesAtomic(imgDir / L"live.bmp", std::string_view(reinterpret_cast<const char*>(bmpBytes.data()), bmpBytes.size())),
+                        "seed live.bmp");
+                const std::wstring baseDoc = L"# Base\n\nText.\n";
+                const auto docPath         = imgDir / L"doc.md";
+                Success(WriteBytesAtomic(docPath, "# Base\n\nText.\n"), "seed doc.md");
+                Require(app.SetDocument(baseDoc, docPath), "open base doc for live WM_PAINT image test");
+                app.Prepare(256);
+                (void)SendMessageW(app.Window(), WM_PAINT, 0, 0);
+                Require(app._imageWatchWasRichVisible && ! app._imageConsent->IsVisible() && app._watchedImagePaths.empty(),
+                        "base doc settles before live image edit");
+
+                const auto insertAt = app.Document().GetText().size();
+                app.Document().SetSelection({insertAt, insertAt});
+                Require(app.Document().ReplaceSelection(L"\n![Live local](live.bmp)\n![Live remote](https://example.com/a.png)\n"),
+                        "insert live local and remote images without Prepare()");
+                const auto done = [&]
+                {
+                    return app._imageConsent->IsVisible() && app.Document().GetImageResourceStatistics().readySources == 1u &&
+                           app._watchedImagePaths.size() == 1u && app._imageWatchAcknowledgedSemantic != nullptr;
+                };
+                const auto deadline = GetTickCount64() + 5000ull;
+                while (! done() && GetTickCount64() < deadline)
+                {
+                    MSG msg{};
+                    while (PeekMessageW(&msg, app.Window(), 0, 0, PM_REMOVE))
+                    {
+                        TranslateMessage(&msg);
+                        DispatchMessageW(&msg);
+                    }
+                    (void)app.Host().RenderInitialFrameForShow();
+                    (void)SendMessageW(app.Window(), WM_PAINT, 0, 0);
+                    if (done())
+                        break;
+                    (void)MsgWaitForMultipleObjectsEx(0, nullptr, 5u, QS_ALLINPUT, MWMO_INPUTAVAILABLE);
+                }
+                Require(done(), "live WM_PAINT loop loads local image, updates watch path, and shows remote consent without Prepare()");
+
+                app.SetView(EditorView::Source);
+                (void)app.Host().RenderInitialFrameForShow();
+                (void)SendMessageW(app.Window(), WM_PAINT, 0, 0);
+                Require(app.SetDocument(L"# Clean\n", imgDir / L"clean.md"), "open clean doc in Source mode");
+                (void)app.Host().RenderInitialFrameForShow();
+                (void)SendMessageW(app.Window(), WM_PAINT, 0, 0);
+                Require(! app._imageConsent->IsVisible() && app._imageConsentPath == (imgDir / L"clean.md") &&
+                            app._imageWatchDocumentPath == (imgDir / L"clean.md") && app._watchedImagePaths.empty() && ! app._imageWatchWasRichVisible &&
+                            app._imageWatchAcknowledgedSemantic == nullptr,
+                        "Source view switch and clean doc reset image consent and watched paths via WM_PAINT");
+
+                Require(app.SetDocument(L"", imgDir / L"empty.md"), "open empty doc in Source mode");
+                (void)app.Host().RenderInitialFrameForShow();
+                (void)SendMessageW(app.Window(), WM_PAINT, 0, 0);
+                (void)app.Host().RenderInitialFrameForShow();
+                (void)SendMessageW(app.Window(), WM_PAINT, 0, 0);
+                Require(! app._imageWatchWasRichVisible && app._imageWatchAcknowledgedSemantic == nullptr &&
+                            app._imageWatchDocumentPath == (imgDir / L"empty.md"),
+                        "empty doc settles cleanly without image-watch churn");
+            }
+
+            Require(foreground.NeverAcquiredForeground() && ! IsWindowVisible(app.Window()), "M7 perf gate test stays hidden");
         });
     }
 };

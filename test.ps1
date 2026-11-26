@@ -141,7 +141,8 @@ try {
             $executed=@()
             foreach($partition in $partitions){
                 $core=Join-Path $run ('core-'+$partition.scope)
-                $exit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--self-test','--test-scope',$partition.scope,'--data-dir',$core) -LogPrefix (Join-Path $run ('core-'+$partition.scope))
+                $partitionTimeout=if($Configuration -eq 'ASan Debug'){180}else{90}
+                $exit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--self-test','--test-scope',$partition.scope,'--data-dir',$core) -LogPrefix (Join-Path $run ('core-'+$partition.scope)) -TimeoutSeconds $partitionTimeout
                 if($exit -ne 0){throw "Behavioral tests failed: $($partition.scope) ($exit). Read '$core/tests.json'."}
                 $summary=Get-Content (Join-Path $core 'tests.json') -Raw|ConvertFrom-Json
                 if($summary.catalogOnly -or $summary.failed -ne 0 -or $summary.passed -ne $partition.cases.Count -or
@@ -221,7 +222,7 @@ try {
         Write-Host ("Native forced render: {0:N1} FPS; private memory {1:N1} MiB; dirty edit/render {2:N2} ms. Initial app baseline only." -f $metrics.cleanRenderFps,($metrics.privateBytes/1MB),$metrics.dirtyEditAndRenderMs)
     }
     if ('Captures' -in $Suites) {
-        $scenarios=@('compose-light','compose-dark','source','split','context-selection','local-source','settings','math','math-dark','mermaid','recovery','narrow','high-contrast','files','find','focus','equation','quote-scroll-light','quote-scroll-dark','diagram-label-light','diagram-label-dark','image-paste-light','image-paste-dark','image-consent-light','image-consent-dark','panel-toggle-hover','panes-collapsed-rails-light','pane-hover-reveal-dark','split-source-active-light','split-unlinked-dark')
+        $scenarios=@('compose-light','compose-dark','source','split','context-selection','local-source','settings','math','math-dark','mermaid','recovery','narrow','high-contrast','files','find','focus','equation','quote-scroll-light','quote-scroll-dark','diagram-label-light','diagram-label-dark','image-paste-light','image-paste-dark','image-consent-light','image-consent-dark','panel-toggle-hover','panes-collapsed-rails-light','pane-hover-reveal-dark','split-source-active-light','split-unlinked-dark','spelling-light','spelling-dark','spelling-high-contrast','save-confirm-dialog-light','files-multi-folder-and-github-light','files-context-menu-dark','open-github-autosuggest-light','open-github-autosuggest-dark')
         $captures=@($scenarios|ForEach-Object{@{name=$_;scenario=$_;arguments=@()}})
         $captures+=@(96,144,192|ForEach-Object{@{name="narrow-dpi-$_";scenario='narrow';arguments=@('--capture-dpi',"$_")}})
         $captures+=@(96,144,192|ForEach-Object{@{name="reference-dark-dpi-$_";scenario='reference-dark';arguments=@('--capture-dpi',"$_",'--document',(Join-Path $PSScriptRoot 'Tests/Fixtures/reference-dark.md'))}})
@@ -243,6 +244,10 @@ try {
             if($scenario -in @('image-paste-light','image-paste-dark','image-consent-light','image-consent-dark') -and
                 ($geometry.imageFirstPaste -ne ($scenario -ceq 'image-paste-light') -or
                  $geometry.renderedAppearance -cne $(if($scenario.EndsWith('-light',[StringComparison]::Ordinal)){'light'}else{'dark'}))) { throw "Capture '$name' has inconsistent clipboard/theme policy." }
+            if($scenario -in @('spelling-light','spelling-dark','spelling-high-contrast')){
+                $expectedTheme=if($scenario -ceq 'spelling-light'){'light'}elseif($scenario -ceq 'spelling-dark'){'dark'}else{'high-contrast'}
+                if($geometry.renderedAppearance -cne $expectedTheme){throw "Spelling capture '$name' rendered '$($geometry.renderedAppearance)' instead of '$expectedTheme'."}
+            }
             $png=[IO.File]::ReadAllBytes($output)
             if($png.Length -lt 24 -or [Convert]::ToHexString($png[0..7]) -cne '89504E470D0A1A0A'){throw "Capture '$name' has no PNG header."}
             $width=[uint32]$png[16]*16777216+[uint32]$png[17]*65536+[uint32]$png[18]*256+[uint32]$png[19]
@@ -260,6 +265,27 @@ try {
         $composeLightHash=(Get-FileHash -LiteralPath (Join-Path $run 'compose-light.png')).Hash
         $panelHoverHash=(Get-FileHash -LiteralPath (Join-Path $run 'panel-toggle-hover.png')).Hash
         if($composeLightHash -eq $panelHoverHash){throw 'panel-toggle-hover capture must differ from resting compose-light pixels.'}
+        $relCaptureDir=Join-Path $run 'rel-capture-check'
+        [void][IO.Directory]::CreateDirectory($relCaptureDir)
+        try{
+            $relExit=Invoke-RedTildeHarness -Executable $exe -Arguments @('--capture','rel-capture.png','--scenario','compose-light','--data-dir','rel-capture-data') -LogPrefix (Join-Path $run 'rel-capture') -WorkingDirectory $relCaptureDir
+            $relPng=Join-Path $relCaptureDir 'rel-capture.png'
+            $relSidecar=$relPng+'.scenario.json'
+            if($relExit -ne 0 -or -not(Test-Path -LiteralPath $relPng) -or -not(Test-Path -LiteralPath $relSidecar)){
+                throw "Relative --capture + --data-dir regression check failed ($relExit)."
+            }
+            $relBytes=[IO.File]::ReadAllBytes($relPng)
+            if($relBytes.Length -lt 24 -or [Convert]::ToHexString($relBytes[0..7]) -cne '89504E470D0A1A0A'){
+                throw 'Relative --capture regression check produced an invalid PNG header.'
+            }
+            foreach($emptyFlag in @('--capture','--benchmark','--performance-probe','--resource-probe')){
+                $emptyData=Join-Path $relCaptureDir ('empty-'+$emptyFlag.TrimStart('-'))
+                $emptyExit=Invoke-RedTildeHarness -Executable $exe -Arguments @($emptyFlag,'','--data-dir',$emptyData) -LogPrefix (Join-Path $run ('empty-'+$emptyFlag.TrimStart('-'))) -WorkingDirectory $relCaptureDir
+                if($emptyExit -ne 1 -or (Test-Path -LiteralPath $emptyData)){throw "Empty path flag '$emptyFlag' did not cleanly refuse with exit 1."}
+            }
+        }finally{
+            if(Test-Path -LiteralPath $relCaptureDir){Remove-Item -LiteralPath $relCaptureDir -Recurse -Force -ErrorAction SilentlyContinue}
+        }
         Write-Host "$($captures.Count) actual hidden application captures generated with viewport/DPI provenance."
     }
     if ('Crash' -in $Suites) {

@@ -34,46 +34,53 @@ if($built.PSObject.Properties['dependencyRecipe'] -and $built.dependencyRecipe.r
     if($null -eq $sdk -or $sdk.Descriptor.Hash -cne $built.sdkInputDescriptorSha256 -or $sdk.Evidence.inputKey -cne $built.dependencyRecipe.inputKey -or $sdk.Evidence.manifestSha256 -cne $built.dependencyRecipe.manifestSha256){throw 'Package SDK inputs differ from the original production build.'}
 }
 $output=Join-Path $PSScriptRoot '.build/packages'
-if ((Test-Path -LiteralPath $output) -and ((Get-Item -LiteralPath $output -Force).Attributes -band [IO.FileAttributes]::ReparsePoint)) {
-    throw 'The package output directory cannot be a reparse point.'
-}
+Assert-RedTildeNoReparseAncestry -Base $PSScriptRoot -Target $output -AllowMissing -RequireDirectories `
+    -ReparseErrorMessage 'The package output directory cannot be a reparse point.'
 $exeVersion=[Diagnostics.FileVersionInfo]::GetVersionInfo($exe)
 $version="$($exeVersion.FileMajorPart).$($exeVersion.FileMinorPart).$($exeVersion.FileBuildPart)"
 if($exeVersion.FileBuildPart -ne $built.buildNumber){throw 'Production executable build number differs from its build receipt.'}
 if($built.PSObject.Properties['version'] -and $built.version -cne $version){throw 'Production executable version differs from its build receipt.'}
-$versionHeaderPath=Join-Path $PSScriptRoot 'Common/Version.h'
-if(Test-Path -LiteralPath $versionHeaderPath -PathType Leaf){
-    $versionHeader=[IO.File]::ReadAllText($versionHeaderPath)
-    $majorMatch=[regex]::Match($versionHeader,'(?m)^\s*#define\s+REDTILDE_VERSION_MAJOR\s+(?<value>\d+)\s*$')
-    $minorMatch=[regex]::Match($versionHeader,'(?m)^\s*#define\s+REDTILDE_VERSION_MINOR\s+(?<value>\d+)\s*$')
-    if(-not $majorMatch.Success -or -not $minorMatch.Success){throw 'Common/Version.h must define REDTILDE_VERSION_MAJOR and REDTILDE_VERSION_MINOR.'}
-    if($exeVersion.FileMajorPart -ne [int]$majorMatch.Groups['value'].Value -or $exeVersion.FileMinorPart -ne [int]$minorMatch.Groups['value'].Value){
-        throw "Production executable version $version differs from Common/Version.h."
-    }
+$versionInfo = Get-RedTildeVersionBase -Root $PSScriptRoot
+if($exeVersion.FileMajorPart -ne $versionInfo.Major -or $exeVersion.FileMinorPart -ne $versionInfo.Minor){
+    throw "Production executable version $version differs from Common/Version.h."
 }
 $stage=Join-Path $output ('RedTilde-'+$version+'-'+$Platform+'-'+(Get-Date -Format 'yyyyMMdd-HHmmss-fff'))
 New-Item -ItemType Directory -Force -Path $stage | Out-Null
 Copy-Item -LiteralPath $exe -Destination $stage
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'SettingsStore.schema.json') -Destination $stage
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'capabilities.json') -Destination $stage
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/Diagnostics.md') -Destination (Join-Path $stage 'Diagnostics.md')
+$utf8NoBom = [Text.UTF8Encoding]::new($false)
+$diagnosticsDoc = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'docs/Diagnostics.md'), $utf8NoBom)
+$diagnosticsDoc = $diagnosticsDoc.Replace('(../Specs/Core/Core_CrashHandling.md)', '(https://github.com/RedSalamanders/RedTilde/blob/main/Specs/Core/Core_CrashHandling.md)')
+$diagnosticsDoc = $diagnosticsDoc.Replace('(README.md)', '(docs/README.md)')
+[IO.File]::WriteAllText((Join-Path $stage 'Diagnostics.md'), $diagnosticsDoc, $utf8NoBom)
 New-Item -ItemType Directory -Force -Path (Join-Path $stage 'docs') | Out-Null
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/README.md') -Destination (Join-Path $stage 'docs/README.md')
+$userGuideDoc = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'docs/README.md'), $utf8NoBom)
+$userGuideDoc = $userGuideDoc.Replace('(Diagnostics.md)', '(../Diagnostics.md)')
+$userGuideDoc = $userGuideDoc.Replace('(Portable.md)', '(../README.md)')
+$userGuideDoc = $userGuideDoc.Replace('](examples/', '](../examples/')
+$userGuideDoc = $userGuideDoc.Replace('(../Specs/', '(https://github.com/RedSalamanders/RedTilde/blob/main/Specs/')
+[IO.File]::WriteAllText((Join-Path $stage 'docs/README.md'), $userGuideDoc, $utf8NoBom)
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/screenshots') -Destination (Join-Path $stage 'docs/screenshots') -Recurse -ErrorAction SilentlyContinue
 New-Item -ItemType Directory -Force -Path (Join-Path $stage 'Installer') | Out-Null
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Installer/Install-RedTilde.ps1') -Destination (Join-Path $stage 'Installer/Install-RedTilde.ps1')
-$portableReadme = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'docs/Portable.md'), [Text.UTF8Encoding]::new($false))
+$portableReadme = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'docs/Portable.md'), $utf8NoBom)
 $portableReadme = $portableReadme.Replace('(../Installer/Install-RedTilde.ps1)', '(Installer/Install-RedTilde.ps1)')
 $portableReadme = $portableReadme.Replace('(../capabilities.json)', '(capabilities.json)')
 $portableReadme = $portableReadme.Replace('[User Guide](README.md)', '[User Guide](docs/README.md)')
 $stagedReadmePath = Join-Path $stage 'README.md'
-[IO.File]::WriteAllText($stagedReadmePath, $portableReadme, [Text.UTF8Encoding]::new($false))
+[IO.File]::WriteAllText($stagedReadmePath, $portableReadme, $utf8NoBom)
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/examples') -Destination (Join-Path $stage 'examples') -Recurse
 New-Item -ItemType Directory -Force -Path (Join-Path $stage 'res') | Out-Null
 foreach ($asset in @('RedTilde.png','RedTilde.ico')) { Copy-Item -LiteralPath (Join-Path $PSScriptRoot "res/$asset") -Destination (Join-Path $stage 'res') }
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'LICENSE.txt') -Destination $stage
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'THIRD-PARTY-NOTICES.md') -Destination $stage
-Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Dependencies') -Destination $stage -Recurse
+$noticesDoc = [IO.File]::ReadAllText((Join-Path $PSScriptRoot 'THIRD-PARTY-NOTICES.md'), $utf8NoBom)
+$noticesDoc = $noticesDoc.Replace('(ThirdParty/RedMonitor/LICENSE.txt)', '(Dependencies/RedMonitor-LICENSE.txt)')
+[IO.File]::WriteAllText((Join-Path $stage 'THIRD-PARTY-NOTICES.md'), $noticesDoc, $utf8NoBom)
+$stageDependencies = Join-Path $stage 'Dependencies'
+New-Item -ItemType Directory -Force -Path $stageDependencies | Out-Null
+Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'Dependencies') -Filter '*.lock.json' -File | Copy-Item -Destination $stageDependencies
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'Dependencies/README.md') -Destination $stageDependencies
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'ThirdParty/RedMonitor/LICENSE.txt') -Destination (Join-Path $stage 'Dependencies/RedMonitor-LICENSE.txt')
 $yyjsonScope = $Platform.ToLowerInvariant()
 $yyjsonTriplet = if ($Platform -eq 'ARM64') { 'arm64-windows-static-md' } else { 'x64-windows-static-md' }
@@ -112,13 +119,22 @@ $runtime=@(Get-ChildItem -LiteralPath $crt[0] -Filter '*.dll' -File)
 if(-not @($runtime | Where-Object Name -like 'vcruntime140*.dll').Count -or
     -not @($runtime | Where-Object Name -like 'msvcp140*.dll').Count){throw 'The selected VC runtime closure is incomplete.'}
 $runtime | Copy-Item -Destination $stage
-foreach ($linkMatch in [regex]::Matches($portableReadme, '\]\(([^)]+)\)')) {
-    $target = $linkMatch.Groups[1].Value.Split('#')[0]
-    if ($target -match '^(https?:|mailto:)' -or -not $target) { continue }
-    $resolvedTarget = [IO.Path]::GetFullPath((Join-Path $stage $target))
-    if (-not $resolvedTarget.StartsWith(([IO.Path]::GetFullPath($stage) + '\'), [StringComparison]::OrdinalIgnoreCase) -or
-        -not (Test-Path -LiteralPath $resolvedTarget)) {
-        throw "Staged package README contains a broken or escaping relative link: '$target'."
+$stageRootFull = [IO.Path]::GetFullPath($stage).TrimEnd('\') + '\'
+$excludedNotice = [IO.Path]::GetFullPath((Join-Path $stage 'Dependencies/DxUi-THIRD-PARTY-NOTICES.md'))
+foreach ($mdFile in Get-ChildItem -LiteralPath $stage -Filter '*.md' -Recurse -File) {
+    if ([IO.Path]::GetFullPath($mdFile.FullName) -ceq $excludedNotice) { continue }
+    $mdContent = [IO.File]::ReadAllText($mdFile.FullName, $utf8NoBom)
+    foreach ($linkMatch in [regex]::Matches($mdContent, '\]\(([^)]+)\)')) {
+        $rawTarget = $linkMatch.Groups[1].Value.Trim()
+        if ($rawTarget -match '^([^\s"]+)\s+"[^"]*"$') { $rawTarget = $Matches[1] }
+        $target = $rawTarget.Split('#')[0]
+        if ($target -match '^(https?:|mailto:)' -or -not $target) { continue }
+        $resolvedTarget = [IO.Path]::GetFullPath((Join-Path $mdFile.DirectoryName $target))
+        if (-not $resolvedTarget.StartsWith($stageRootFull, [StringComparison]::OrdinalIgnoreCase) -or
+            -not (Test-Path -LiteralPath $resolvedTarget)) {
+            $relMd = [IO.Path]::GetRelativePath($stage, $mdFile.FullName)
+            throw "Staged package file '$relMd' contains a broken or escaping relative link: '$target'."
+        }
     }
 }
 $archive=$stage+'.zip'
@@ -141,6 +157,21 @@ $versionText=Get-Content -LiteralPath ($versionLog+'.stdout.log') -Raw
 if($exit -ne 0 -or $versionText -cnotlike "*RedTilde $version*"){throw 'Clean-extraction command version failed.'}
 $exit=Invoke-RedTildeHarness -Executable $smokeExe -Arguments @('--capture',(Join-Path $smoke 'smoke.png'),'--scenario','compose-light','--data-dir',(Join-Path $smoke 'smoke-data')) -LogPrefix (Join-Path $smoke 'smoke') -TimeoutSeconds 120 -SystemOnlyPath
 if($exit -ne 0 -or -not(Test-Path -LiteralPath (Join-Path $smoke 'smoke.png'))){throw 'Clean-extraction hidden application smoke failed.'}
+$relSmoke=Join-Path $smoke 'rel-smoke'
+[void][IO.Directory]::CreateDirectory($relSmoke)
+try{
+    $exit=Invoke-RedTildeHarness -Executable $smokeExe -Arguments @('--capture','rel-smoke.png','--scenario','compose-light','--data-dir','rel-smoke-data') -LogPrefix (Join-Path $smoke 'rel-smoke') -TimeoutSeconds 120 -SystemOnlyPath -WorkingDirectory $relSmoke
+    if($exit -ne 0 -or -not(Test-Path -LiteralPath (Join-Path $relSmoke 'rel-smoke.png')) -or -not(Test-Path -LiteralPath (Join-Path $relSmoke 'rel-smoke.png.scenario.json'))){
+        throw 'Clean-extraction relative-path hidden application smoke failed.'
+    }
+    foreach($emptyFlag in @('--capture','--benchmark','--performance-probe','--resource-probe')){
+        $emptyData=Join-Path $relSmoke ('empty-'+$emptyFlag.TrimStart('-'))
+        $exit=Invoke-RedTildeHarness -Executable $smokeExe -Arguments @($emptyFlag,'','--data-dir',$emptyData) -LogPrefix (Join-Path $smoke ('empty-'+$emptyFlag.TrimStart('-'))) -TimeoutSeconds 30 -SystemOnlyPath -WorkingDirectory $relSmoke
+        if($exit -ne 1 -or (Test-Path -LiteralPath $emptyData)){throw "Empty path flag '$emptyFlag' did not cleanly refuse with exit 1."}
+    }
+}finally{
+    if(Test-Path -LiteralPath $relSmoke){Remove-Item -LiteralPath $relSmoke -Recurse -Force -ErrorAction SilentlyContinue}
+}
 $refusalCases=@(
     @{name='self-test';arguments=@('--self-test')},
     @{name='test-scope';arguments=@('--test-scope','All')},

@@ -1,6 +1,7 @@
 #pragma once
 #include "ProcessWork.h"
 #include "Storage.h"
+#include "TextUtilities.h"
 #include <array>
 #include <atomic>
 #include <cstddef>
@@ -10,7 +11,7 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <thread>
+#include <vector>
 #include <wil/resource.h>
 #include <windows.h>
 
@@ -41,6 +42,44 @@ enum class PanePinMode : std::uint8_t
     Pinned,
     Unpinned
 };
+enum class SpellEngine : std::uint8_t
+{
+    Auto    = 0,
+    Windows = 1
+};
+enum class ExitUnsavedBehavior : std::uint8_t
+{
+    Prompt        = 0,
+    KeepAndResume = 1
+};
+struct GitHubRepoRef
+{
+    std::wstring owner;
+    std::wstring repo;
+    std::wstring branch;
+    bool operator==(const GitHubRepoRef&) const = default;
+};
+inline constexpr std::size_t MaximumFilesRoots  = 16u;
+inline constexpr std::size_t MaximumGitHubRepos = 8u;
+[[nodiscard]] bool IsValidGitHubTokenSegment(std::wstring_view segment, std::size_t maximumLength) noexcept;
+[[nodiscard]] bool IsValidGitHubBranchName(std::wstring_view branch) noexcept;
+struct SpellingSettings
+{
+    bool enabled = true;
+    std::vector<std::wstring> languages{L"auto"};
+    bool ignoreUppercase        = true;
+    bool ignoreWordsWithDigits  = true;
+    bool ignoreInternetAndPaths = true;
+    std::filesystem::path customDictionaryPath;
+    std::filesystem::path dictionariesFolder;
+    SpellEngine engine                             = SpellEngine::Auto;
+    bool operator==(const SpellingSettings&) const = default;
+};
+inline constexpr std::size_t MaximumSpellingLanguages = 3u;
+[[nodiscard]] inline bool IsValidLanguageTag(std::wstring_view tag) noexcept
+{
+    return tag == L"auto" || IsValidBcp47Tag(tag);
+}
 // Optional RichMarkdown syntax beyond the always-on GFM set, in drawer order.
 // Each persists under its own application-owned key, never a library enum value.
 enum class MarkdownSyntax
@@ -69,6 +108,9 @@ struct Settings
     bool showOutline      = true;
     bool showFiles        = false;
     std::filesystem::path filesRoot;
+    std::vector<std::filesystem::path> filesRoots;
+    std::vector<GitHubRepoRef> githubRepos;
+    std::optional<std::filesystem::path> redSalamanderPath;
     std::filesystem::path lastDocument;
     unsigned filesWidth          = 280;
     unsigned readingWidth        = 760;
@@ -81,8 +123,10 @@ struct Settings
     bool splitScrollSync         = true;
     PanePinMode filesPinMode     = PanePinMode::Auto;
     PanePinMode outlinePinMode   = PanePinMode::Auto;
+    ExitUnsavedBehavior exitUnsavedBehavior{ExitUnsavedBehavior::Prompt};
     std::optional<WindowPlacementSettings> windowPlacement;
     std::array<bool, MarkdownSyntaxCount> markdownSyntax{true, true, true, true, true, true, true};
+    SpellingSettings spelling;
     [[nodiscard]] bool SyntaxEnabled(MarkdownSyntax syntax) const noexcept
     {
         return markdownSyntax[static_cast<std::size_t>(syntax)];
@@ -164,15 +208,7 @@ public:
     [[nodiscard]] bool Active() const noexcept;
 
 private:
-    void WatchThread(ProcessWorkLease lease) noexcept;
-    void PostChanged() noexcept;
-
-    std::filesystem::path _directory;
-    std::wstring _fileName;
-    HWND _window{};
-    UINT _message{};
-    wil::unique_event_nothrow _stopEvent;
-    std::jthread _thread;
-    std::atomic_bool _notificationPending{false};
+    struct State;
+    std::shared_ptr<State> _state;
 };
 } // namespace RedTilde

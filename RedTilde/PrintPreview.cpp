@@ -698,6 +698,11 @@ bool PrintPreview::IsReady() const noexcept
     return _window && ! _rendering && Page().count != 0u;
 }
 
+bool PrintPreview::IsConfigurationPending() const noexcept
+{
+    return _window && _configurationPending;
+}
+
 bool PrintPreview::CanPrint() const noexcept
 {
     return _window && _print->IsEnabled();
@@ -732,8 +737,8 @@ void PrintPreview::SetDestinations(Printing::Destinations destinations)
 
 void PrintPreview::SetConfiguration(const Printing::PrinterConfiguration* configuration, bool keepJobValues, bool configurationPending)
 {
-    _configurationPending = configurationPending;
-    const auto setRow     = [](DxUi::Control* label, DxUi::Control* input, bool visible)
+    SetConfigurationPending(configurationPending);
+    const auto setRow = [](DxUi::Control* label, DxUi::Control* input, bool visible)
     {
         label->SetVisible(visible);
         input->SetVisible(visible);
@@ -772,6 +777,13 @@ void PrintPreview::SetConfiguration(const Printing::PrinterConfiguration* config
     _file->SetVisible(showFile);
     if (_scroll)
         Layout();
+}
+
+void PrintPreview::SetConfigurationPending(bool pending) noexcept
+{
+    _configurationPending = pending;
+    if (_window && _print)
+        _print->SetEnabled(! _rendering && _app._printConfiguration.has_value() && ! _configurationPending);
 }
 
 void PrintPreview::UpdatePaperSettings()

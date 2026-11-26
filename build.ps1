@@ -21,15 +21,11 @@ if ($ProductionOnly -and $EnableTests) { throw 'ProductionOnly and EnableTests a
 if ($Analyze -and ($ProductionOnly -or $DxUiSdkInputDescriptor)) { throw '-Analyze requires an ordinary source build.' }
 if ($Clean -and ($Rebuild -or $Analyze -or $DxUiSdkInputDescriptor)) { throw '-Clean requires a standalone source profile.' }
 if($DxUiSdkInputDescriptor -and $Configuration -cne 'Release'){throw 'Pinned SDK inputs require Release; Debug/ASan use source.'}
-$versionHeaderPath=Join-Path $PSScriptRoot 'Common/Version.h'
-if(-not(Test-Path -LiteralPath $versionHeaderPath -PathType Leaf)){throw 'Version header Common/Version.h is missing.'}
-$versionHeader=[IO.File]::ReadAllText($versionHeaderPath)
-$majorMatch=[regex]::Match($versionHeader,'(?m)^\s*#define\s+REDTILDE_VERSION_MAJOR\s+(?<value>\d+)\s*$')
-$minorMatch=[regex]::Match($versionHeader,'(?m)^\s*#define\s+REDTILDE_VERSION_MINOR\s+(?<value>\d+)\s*$')
-if(-not $majorMatch.Success -or -not $minorMatch.Success){throw 'Common/Version.h must define non-negative integer REDTILDE_VERSION_MAJOR and REDTILDE_VERSION_MINOR.'}
-$versionMajor=[int]$majorMatch.Groups['value'].Value
-$versionMinor=[int]$minorMatch.Groups['value'].Value
-$productVersion="$versionMajor.$versionMinor.$BuildNumber"
+Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
+$versionInfo = Get-RedTildeVersionBase -Root $PSScriptRoot
+$versionMajor = $versionInfo.Major
+$versionMinor = $versionInfo.Minor
+$productVersion = "$($versionInfo.VersionBase).$BuildNumber"
 $previousBuildNumber = [Environment]::GetEnvironmentVariable('RedTildeBuildNumber', 'Process')
 $previousEnableTests = [Environment]::GetEnvironmentVariable('RedTildeEnableTests', 'Process')
 Import-Module (Join-Path $PSScriptRoot 'Build/ScopedTesting.psm1') -Scope Local -ErrorAction Stop
@@ -46,7 +42,6 @@ $env:RedTildeEnableTests = if ($enableTestHooks) { 'true' } else { 'false' }
 $nativeEntryElapsed = [Diagnostics.Stopwatch]::StartNew()
 Import-Module (Join-Path $PSScriptRoot 'Build/BuildConsole.psm1') -ErrorAction Stop
 Import-Module (Join-Path $PSScriptRoot 'Build/Toolchain.psm1') -Force
-Import-Module (Join-Path $PSScriptRoot 'Build/Harness.psm1') -Force
 Import-Module (Join-Path $PSScriptRoot '.ci-engine/Tools/Modules/Ci.Policy.psm1') -ErrorAction Stop
 $project=Join-Path $PSScriptRoot 'RedTilde/RedTilde.vcxproj'
 $workers=if($MaxCpuCount){"/m:$MaxCpuCount"}else{'/m'}

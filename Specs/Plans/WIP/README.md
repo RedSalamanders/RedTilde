@@ -9,6 +9,8 @@ owner, and a `git show` recovery command.
 
 - **ACTIVE**: [Dictionary and spell checking](DictionaryAndSpellChecking_2026-11-21.md) — implementation specification for RedTilde dictionary and spell-checking support using the selected pluggable `ISpellProvider` hybrid architecture (Windows native primary, portable `CUSTOM.DIC` custom dictionary, optional deferred Hunspell fallback), phased slices `S1`–`S4`, planned upstream DxUi simplifications (`DX-SPELL-1`–`DX-SPELL-6`), and reference annexes.
 
+- **HOLD**: [RedTilde proofing simplification after DxUi upstream adoption](DxUiProofingSimplification_2026-11-24.md) — consumer cleanup queued behind `DxUi/Specs/Plans/WIP/RichTextProofingSupport_2026-11-24.md` (`DX-SPELL-1`–`DX-SPELL-7`) and an explicit `Dependencies/DxUi.lock.json` pin bump to delete RedTilde's temporary prose-walking, viewport-slicing, hit-test, suppression-reupload, and deferred-dispatch adapters.
+
 - **HOLD**: [DxUi API 6 adoption](DxUiApi6Adoption_2026-11-25.md) — migrate the exact consumer lock, library-owned window behavior and tooling after the producer qualifies the required interfaces.
 
 Completed `v1.0.0` release plans — [Version 1.0 release readiness](../Done/V1ReleaseReadiness_2026-11-21.md) and [Remaining work and qualification](../Done/RemainingWork_2026-11-04.md) — moved to [Specs/Plans/Done/](../Done/README.md).

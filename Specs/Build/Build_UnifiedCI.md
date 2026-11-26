@@ -205,7 +205,7 @@ otherwise valid receipt whose `testsEnabled` is the Boolean `false`; a test-enab
 package staging. Test-enabled Release remains required for regression execution. The production artifact MUST
 include the original package receipt as `portable-smoke.json`, preserving its exact bytes, positive-capture result and
 individual test-only refusal records. Admit its platform, ZIP SHA-256, Boolean production/test mode, the complete
-fifteen-case refusal union and each observed successful outcome before writing a successful outer CI receipt. Missing,
+sixteen-case refusal union and each observed successful outcome before writing a successful outer CI receipt. Missing,
 duplicate or unsuccessful cases fail admission. A missing or mismatched original receipt fails the production role. An
 outer `smokePassed` Boolean alone does not establish independently reviewable clean-extraction evidence. Production
 launch returns 2 when parsing self-test/list/scope, interactive-test, crash, recovery-crash/restart, preferences,

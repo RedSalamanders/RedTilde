@@ -83,10 +83,10 @@ initial/reset completed work and retained memory alongside the fixed warm edit/f
 ## Layout
 
 The owner's image-2 Compose proposal is the visual target for the 2026-10-23 fidelity correction. The document
-identity and small save-state chip share one baseline. View commands use underlined tabs; toolbar and caption
+identity and compact dirty indicator share one baseline, with no header or bottom-left `"Saved"` chip. View commands use underlined tabs; toolbar and caption
 commands use subtle chrome, with persistent selection fill for checked toolbar commands. Only Save is a filled
 primary action. Find has a leading search glyph and a separate keyboard hint. The Files pane has its own section
-label, close action, root label, filter and aligned file/folder icons. Both navigation trees expose the pane ground
+label, pin/minimize action, root label, filter and aligned file/folder icons. Both navigation trees expose the pane ground
 without an outer input frame. Block tools follow a short outline immediately; a long outline scrolls within the
 space left for the inspector. A full-width command row omits overflow when every command fits.
 
@@ -123,15 +123,12 @@ hover, pressed, and active selection fills (including subtle hover/pressed pill 
 generous gutters and a configurable reading measure, defaulting to 760 DIP (480–1040 DIP). Source and Split use the
 available width. A 240-DIP right panel holds the hierarchical outline, active-block actions and the equation inspector.
 Panel section labels use 11-DIP semibold uppercase text with 0.08em tracking. Per
-[Side panes and bidirectional split editing](../Plans/Done/SidePanesAndSplitEditing_2026-11-22.md), when remaining width cannot
-accommodate the reading measure plus a docked panel (Right collapses before Left with a `24`-DIP hysteresis band, and
-Right also collapses when Auto whenever Auto Left is collapsed or Split view is active), each enabled panel animates (`200 ms`, `EasingCurve::FastDecelerate`; `0 ms` snap under
-`reducedMotion`) into a `28`-DIP edge rail (`CollapsedPaneRail`) and renders when expanded as a flush edge-attached drawer (`Surface::Kind::DrawerLeft` / `DrawerRight`, `0`-DIP square corners flush with the window border, command bar, and status bar, crisp inner edge divider, and directional canvas-side shadow bounded vertically to `[top, bottom]`) rather than rounded inset floating cards (`Surface::Kind::Floating`). Hover-reveal arms `180 ms` dwell only in the outer `6`-DIP edge trigger strip or empty outer `18`-DIP rail area strictly below all dots (never over dots, dot gaps, the inner `10`-DIP scrollbar-adjacent strip, or the `<`/`>` expand chevron, and suppressed while Settings, modals, menus, or block drafts are active), slides smoothly without canvas reflow (`200 ms` `PointToPoint`), holds open while keyboard focus or pointer remains inside the drawer or rail, reverses smoothly back open if the pointer re-enters mid-collapse, and dismisses after `300 ms` leave grace, `Esc`, outside clicks, or invoking a file/heading inside an unpinned overlay; explicit `<`/`>` clicks hold open until dismissed. Both **Files** and **Outline** headers expose symmetric `28×28` **Pin/Unpin** (`_pinFiles`, `_pinOutline`; `\xE718` / `\xE840`) and **Close** (`_closeFiles`, `_closeOutline`) actions: **Pin** keeps a side pane docked beside the canvas whenever minimum usable canvas width remains (`320` DIP Compose/Source, `440` DIP Split, yielding to `_lastPinnedSide` only when both pinned panes cannot simultaneously fit), **Unpin** collapses to the edge rail, and summary dots show tooltips (Right: hierarchical H1/H2/H3 heading dots with active halo, Find match rings, and click-to-jump; Left: modified/edited file dots with basename disambiguation tooltips and click-to-switch; hovering a dot shows its tooltip
+[Side panes and bidirectional split editing](../Plans/Done/SidePanesAndSplitEditing_2026-11-22.md), outside Focus mode both **Files** and **Outline** remain accessible at all times as either a docked pane or a `28`-DIP compact edge rail (`CollapsedPaneRail`, collapsing automatically in `Auto` when remaining width cannot accommodate the reading measure plus a docked panel—Right collapsing before Left with a `24`-DIP hysteresis band and Right collapsing whenever `Auto` Left is collapsed or Split view is active—or explicitly when unpinned). On the compact right rail, heading dots are vertically centered inside the rail band when all dots fit without overflow. Each panel animates (`200 ms`, `EasingCurve::FastDecelerate`; `0 ms` snap under
+`reducedMotion`) between `28`-DIP rail and flush edge-attached drawer (`Surface::Kind::DrawerLeft` / `DrawerRight`, `0`-DIP square corners flush with the window border, command bar, and status bar, crisp inner edge divider, and directional canvas-side shadow bounded vertically to `[top, bottom]`) rather than rounded inset floating cards (`Surface::Kind::Floating`). Hover-reveal (`180 ms` dwell) or left-clicking any free zone on the compact rail (outside dots, dot gaps, the inner `4`-DIP scrollbar-adjacent strip, or the top pin button, and suppressed while Settings, modals, menus, or block drafts are active) slides the overlay open without canvas reflow (`200 ms` `PointToPoint`), holds open while keyboard focus or pointer remains inside the drawer or rail, reverses smoothly back open if the pointer re-enters mid-collapse, and dismisses after `300 ms` leave grace on mouse leave, `Esc`, outside clicks, or invoking a file/heading inside an unpinned overlay. Both **Files** and **Outline** headers (and their compact rail top buttons) expose a single `28×28` **Pin/Unpin** action (`_pinFiles`, `_pinOutline`; `\xE718` / `\xE840`, with no separate Close button): clicking it **Pins** the pane open beside the canvas whenever minimum usable canvas width remains (`320` DIP Compose/Source, `440` DIP Split, yielding to `_lastPinnedSide` only when both pinned panes cannot simultaneously fit) or **Unpins** (minimizes) it back to the compact `28`-DIP edge rail, while summary dots show tooltips (Right: hierarchical H1/H2/H3 heading dots with active halo, Find match rings, and click-to-jump; Left: modified/edited file dots with basename disambiguation tooltips and click-to-switch; hovering a dot shows its tooltip
 without triggering the edge drawer). In Split view, a slim `30`-DIP pane header strip marks the active editable
 pane (`Editing` chip + `2`-DIP top `theme.accent` hairline) versus the passive read-only mirror (`Read-only` chip), and
 anchors a centered `28×24`-DIP Subtle Linked-Scroll toggle (`Ctrl+Shift+Y`, UIA `TogglePattern`, default on) over the
-Split divider seam. Status shows words, characters, reading time, selection, line/column, encoding and line endings;
-the document bar carries save state. At 800x560 DIP, commands that do not fit move into overflow instead of wrapping or
+Split divider seam. Status shows words, characters, reading time, selection, line/column, encoding, language, and line endings with no bottom-left `"Saved"` status text on save, open, or reload; the document bar and OS window title carry save state. At 800x560 DIP, commands that do not fit move into overflow instead of wrapping or
 clipping. Focus mode hides optional chrome (including collapsed rails and hover zones). No overlapping or off-screen
 commands at 100/150/200% DPI.
 
@@ -180,11 +177,13 @@ Chrome, panes and page correspond to `windowBackground`, `surfaceBackground` and
 | Primary action fill / text | `#C83C46` / white | same | `#C83C46` / white |
 | Active and inactive selection / selected label | `#F2CFD3` / `#A12A34` | same | `#A63B46` / white |
 
-Control borders and dividers retain the pinned DxUi roles. Current Files/outline rows and pressed toggles use
+Control borders and dividers retain the pinned DxUi roles; Paper assigns `overlayBackground = surfaceBackground` (`#F3EDDF`)
+so floating surfaces match the Paper palette. Current Files/outline rows and pressed toggles use
 the selection tint; inactive rows retain its product color and contrast-resolved label. Primary actions retain
-their explicit darker red fill in Dark mode so their white label stays readable. High contrast uses system
-Highlight/HighlightText for active and inactive selection, Hotlight for links/focus, and Window/WindowText for
-surfaces/text. Other Find matches use a subtle neutral fill distinct from the current selection.
+their explicit darker red fill in Dark mode so their white label stays readable. Windows High Contrast (`IsHighContrastEnabled()`)
+maps full system tokens (`GetSysColor`) across window/surface/card/overlay backgrounds, text/subdued/disabled text,
+Highlight/HighlightText for active and inactive selection, Hotlight for links/focus, and ButtonFace/BtnText/WindowFrame
+for chrome borders, dividers, and subtle pills. Other Find matches use a subtle neutral fill distinct from the current selection.
 
 The merged title bar uses square native-sized caption buttons: neutral hover/press
 for minimize and maximize/restore, red paired with white text for close, and system
@@ -297,24 +296,32 @@ region refuses and F2 falls back to the draft.
 
 ## Files pane
 
-The Files pane is available, closed by default, and lists Markdown files from a persistent selected root and its
-subfolders. When multiple documents are retained in the workspace, the tree also exposes an **Open documents**
-group (`WorkspaceGroupId`) keeping entries in stable opening order across workspace switches; clicking an **Open
-documents** row keeps tree selection on that row, clicking a folder row selects that folder row, and collapsing **Open
-documents** falls back to the visible folder row when present. File offers distinct Open File (Ctrl+O), Open Folder
-(Ctrl+Shift+O), and Close document (Ctrl+W) commands. The folder picker uses
-the native filesystem folder dialog; accepting it shows Files, clears its name filter and focuses the tree without
-replacing the current document, selection or undo history, even when the document is dirty. It is a listing/open
-surface only: it does not create, rename, delete, move, reveal or otherwise
-operate on files. Its first command-row toggle uses Ctrl+Shift+E. The pane width is 280 DIP by default and persists
-within 200–400 DIP. Opening moves focus into the tree; Escape or closing returns focus to the authoritative editor
-with its source selection intact. The folder name is visible; its full path is a tooltip and UIA help text. An
-empty root explains that Open Folder or Open File establishes a root. The first successfully opened/saved file
-establishes its parent only when no root exists. Thereafter Open, Save As and New retain that root; only explicit
-Open Folder replaces it. Opening a nested file expands its ancestors without restarting enumeration. A file
-outside the selected root clears the previous tree selection while the full root listing remains available.
-Closing Files stops its worker but retains the selected root. Restart restores the root and saved visibility;
-an unavailable folder reports the existing access error and never blocks editing or silently changes roots.
+The Files pane is available, closed by default, and displays up to `16` persistent local workspace folder sections
+(automatically disambiguated with parent context when basenames collide) plus up to `8` lazy-collapsed read-through
+GitHub repository sections (`Open GitHub…`, `Ctrl+Shift+G`). When one or more documents in the workspace have unsaved
+modifications, the tree also exposes a **Modified documents** group (`WorkspaceGroupId`) keeping those dirty entries in
+stable opening order across workspace switches (clean documents remain listed only in the folder hierarchy); clicking a
+**Modified documents** row keeps tree selection on that row, clicking a folder row selects that folder row, and collapsing
+**Modified documents** falls back to the visible folder row when present. File offers distinct Open File (`Ctrl+O`), Open
+Folder (`Ctrl+Shift+O`), Open GitHub (`Ctrl+Shift+G`), and Close document (`Ctrl+W`, passing `activeDocumentOnly = true`
+to `ShowSaveConfirmModal`) commands. The folder picker uses the native filesystem folder dialog; accepting it adds the
+folder, shows Files, clears its name filter, and focuses the tree without replacing the current document, selection, or
+undo history, even when the document is dirty. Local Files rows expose a context menu (**Open**, **Reveal in File Explorer**,
+**Reveal in RedSalamander**, **Copy Full Path**, **Copy Relative Path**, **Rename**, **Cut**, **Copy**, **Paste**, and
+**Remove from Workspace** / **Disconnect Repository** for GitHub roots) executed safely through `FileOpsService` (refusing
+surrogate reparse points, reserved DOS names, self/descendant pastes, and GitHub Paste). Its first command-row toggle uses
+`Ctrl+Shift+E`. The pane width is 280 DIP by default and persists within 200–400 DIP. Opening moves focus into the tree;
+Escape or closing returns focus to the authoritative editor with its source selection intact. The folder name is visible;
+its full path is a tooltip and UIA help text (with `SanitizeUiText` filtering untrusted path/name/URL text). An empty root
+explains Open Folder, Open File, and Open GitHub. The first successfully opened/saved file establishes its parent only when
+no root exists. Thereafter Open, Save As and New retain existing roots. Opening a nested file expands its ancestors
+without restarting enumeration. A file outside the selected roots clears the previous tree selection while the full root
+listing remains available. Minimizing Files to its compact rail stops its worker while collapsed and restarts it when
+pinned or overlay-opened while retaining the selected roots; `CollapsedPaneRail` handles `cap == 0` gracefully, renders a
+bottom `+N` overflow badge with UIA overflow count, respects High Contrast colors, routes `PinOutline` focus and `VK_DOWN`,
+fires `onAnimationStep`/`onCollapseSettled` under `reducedMotion`, and labels GitHub rail dots truthfully. Restart
+restores roots and pinned visibility; an unavailable folder reports the existing access error and never blocks editing or
+silently changes roots.
 
 List `.md` and `.markdown` files. Exclude hidden and system entries. Show a directory only when Markdown exists
 below it, directories before files, and natural Explorer-style ordering within each kind. Expand ancestors of the
@@ -344,26 +351,18 @@ all file-safety checks.
 
 ## Preferences and focus
 
-Settings are a non-modal right edge-attached drawer (`Surface::Kind::DrawerRight`, square flush edges with directional canvas-side shadow) with immediate effect. Appearance offers System, Light, Dark and Paper as
-preview tiles. The System tile previews Windows' current light/dark preference independently of the selected
-appearance; cache that preference at theme changes rather than reading the registry during layout.
-The hidden Settings capture instead seeds a synthetic System Light preference before layout and rendering,
-and declares that effective preference and fixture origin in its sidecar. This capture input does not change
-the normal Windows-derived System preview or write the user's appearance preference.
-reading width defaults to 760 DIP and is limited to 480–1040 DIP; text scale defaults to 100% and is limited to
-75–200%; dimming inactive blocks is enabled by default.
+Settings are a non-modal right edge-attached drawer (`Surface::Kind::DrawerRight`, square flush edges with directional canvas-side shadow) with immediate effect and a pinned top header containing the **Settings** title, muted `"Changes apply right away."` note, top-right `×` close button (`_drawerClose`), and horizontal separator above the scrollable settings body (`Appearance -> Writing -> Proofing -> Markdown syntax -> Privacy -> About & Shortcuts`). Appearance offers System, Light, Dark and Paper as preview tiles. The System tile previews Windows' current light/dark preference independently of the selected appearance; cache that preference at theme changes rather than reading the registry during layout. The hidden Settings capture instead seeds a synthetic System Light preference before layout and rendering, and declares that effective preference and fixture origin in its sidecar. This capture input does not change the normal Windows-derived System preview or write the user's appearance preference. Reading width defaults to 760 DIP and is limited to 480–1040 DIP; text scale defaults to 100% and is limited to 75–200%; dimming inactive blocks is enabled by default.
 The Files pane has an open/closed preference (closed by default) and a 200–400-DIP width
-(default 280). Focus mode is session-local and is not persisted. The drawer scrolls when its contents do not fit,
-and Escape/close returns focus to the editor. Focus mode leaves a 40-DIP strip with dimmed document identity,
-dirty state, an Exit focus action and caption buttons; a bottom pill shows word count and save state. The status
+(default 280). Focus mode is session-local and is not persisted. Both normal mode and Focus mode display a compact accent dirty dot (`DirtyDot`) immediately to the right of the document filename whenever the document has unsaved edits (and show no header or bottom-left `"Saved"` text when clean), alongside the OS title-bar `• ` prefix and Files-tree dot. Focus mode leaves a 40-DIP strip with dimmed document identity,
+dirty dot, an Exit focus action and caption buttons; a bottom pill shows word count and save state. The status
 line/column and encoding facts are hidden in Focus mode. Other content
-blocks are dimmed when `dimInactiveBlocks` is enabled. A Markdown syntax section follows Writing: a short intro says
-GFM syntax always works and turned-off syntax stays as typed, then seven full-width toggle buttons (highlight,
+blocks are dimmed when `dimInactiveBlocks` is enabled. Boolean preference rows across Writing, Writing -> Proofing, Markdown syntax, and Privacy use real pill toggle switches (`DxUi::Toggle`) with muted explanations directly beneath items that need clarification (including completed-task strike-through, spell checking, each Markdown syntax extension, always-allow remote images, local-network image access, and image-first paste). Within the scroll area, **Proofing** (`IDS_PROOFINGSECTION`) follows **Writing** and precedes **Markdown syntax** and **Privacy**, providing **Check spelling while typing** (`DxUi::Toggle`) with explanation text, a **Language** `DxUi::ComboBox` dropdown (`Auto (Windows)` or installed languages with truthful missing/unreadable dictionary display), ignore rules (**Ignore words in UPPERCASE**, **Ignore words with numbers**, **Ignore internet addresses and file paths**), custom dictionary filename and count summary (`IDS_SPELL_DICT_PATH_LABEL`), and **Choose file…** / **Use default** actions. Active misspelled prose paints wavy squiggle underlines (`RichTextDecorationKind::Squiggle`, `RichTextDecorationRole::Error`, `RichTextAnnotationKind::SpellingError` on `<= 256` viewport items), surfaces a compact borderless status-bar language `DxUi::ComboBox` (`RedTilde.SpellStatus`, revealing its subtle pill chrome and downward chevron only on pointer hover, keyboard focus, or open popup, and opening upward above the status bar with `Auto (Windows)`, installed languages, and `Spelling off`), and opens a suggestion flyout on either a left click inside the flagged word/underline or via the editor context menu (`Right-click` / `Shift+F10`), offering up to 5 suggestions (or localized **No suggestions**), **Ignore Once**, **Ignore All**, and **Add to Dictionary**. Below **Writing -> Proofing**, **Markdown syntax** has a short intro saying
+GFM syntax always works and turned-off syntax stays as typed, then seven full-width toggle switches (highlight,
 superscript, subscript, inserted, wiki links, definition lists, abbreviations) each name the family with its marker.
-Each toggle exposes pressed state and is followed by a two-line explanation that is also its tooltip and UIA help
-text. All are on by default and apply immediately. Privacy offers “Always allow remote images” and the
-independent “Allow images from local networks”, both off by default. Help explains that local-network permission
-still requires image consent. A document containing network image sources shows a themed nonmodal bar with its
+Each toggle exposes switch state and is followed by a dynamically measured muted explanation that is also its tooltip and UIA help
+text. All are on by default and apply immediately. Next, **Privacy** offers “Always allow remote images” (with its local-images clarification beneath it), the
+independent “Allow images from local networks” (off by default, explaining that local-network permission
+still requires image consent), image-first paste, and pending recovery snapshots. A document containing network image sources shows a themed nonmodal bar with its
 scope, “Allow here”/“Block here” and “Reload images”; global permission hides the document-only action. Below
 600 DIP of page width the caption and actions use separate rows. The bar reserves document/mirror space and
 never takes keyboard focus. Permission and reload preserve source/selection/history. Failure messages identify
@@ -371,10 +370,7 @@ privacy, size, timeout or generic load refusal while the image retains its alt/s
 anonymous HTTP(S) through admitted numeric endpoints; the shared editor never performs network I/O.
 The hidden `image-consent-light` and `image-consent-dark` harness scenes use an invented illustration notebook
 with image access disabled. The document-consent regression also captures an actual local-network refusal.
-Below Privacy, the Settings drawer ends with an **About & Shortcuts** section (`IDS_ABOUTSECTION`) displaying the
-product version from `Common/Version.h` (`IDS_ABOUTVERSION` with `REDTILDE_PRODUCT_VERSION_WIDE`), the local-editing
-summary (`IDS_ABOUT`), and the primary keyboard-shortcut reference (`IDS_SHORTCUTS`), captured at scroll offset in
-`settings-about`.
+The Settings drawer ends with an **About & Shortcuts** section (`IDS_ABOUTSECTION`) displaying the product version from `Common/Version.h` (`IDS_ABOUTVERSION` with `REDTILDE_PRODUCT_VERSION_WIDE`), the local-editing summary (`IDS_ABOUT`), and the primary keyboard-shortcut reference (`IDS_SHORTCUTS`), captured at its computed scroll offset in `settings-about`.
 
 ## Capture scenarios
 
@@ -395,9 +391,22 @@ The app harness owns `compose-light`, `compose-dark`, `compose-paper`, `source`,
 `quote-scroll-dark`, `diagram-label-light`, `diagram-label-dark`, `image-paste-light`, `image-paste-dark`,
 `image-consent-light`, `image-consent-dark`, `task-presentation-light`, `task-presentation-dark`, `reference-dark`,
 `markdown-style`, `caption-close-hover`, `caption-maximize-hover`, `panel-toggle-hover`, `panes-collapsed-rails-light`,
-`pane-hover-reveal-dark`, `split-source-active-light`, and `split-unlinked-dark` (see
-[Side panes and bidirectional split editing](../Plans/Done/SidePanesAndSplitEditing_2026-11-22.md) for paired proposal
-art and Release renders under `docs/screenshots/`). Captures must be actual application renders, tagged with dependency
-SHA, source identity, binary hash, dimensions, theme and scenario.
+`pane-hover-reveal-dark`, `split-source-active-light`, `split-unlinked-dark`, `spelling-light`, `spelling-dark`, `spelling-high-contrast`,
+`save-confirm-dialog-light`, `files-multi-folder-and-github-light`, `files-context-menu-dark`,
+`open-github-autosuggest-light`, and `open-github-autosuggest-dark` (see
+[Side panes and bidirectional split editing](../Plans/Done/SidePanesAndSplitEditing_2026-11-22.md) and
+[Workspace dialogs, multi-folder sections, and GitHub](../Plans/Done/WorkspaceDialogsFoldersAndGitHub_2026-11-24.md)
+for paired proposal art and Release renders under `docs/screenshots/`). Modal cards (`SaveConfirmModal`, `RenameFileModal`,
+`FileConflictModal`, and `OpenGitHubModal`) are added in `BuildUi()` after status bar and floating controls so their
+input-absorbing `Surface::Kind::ModalBackdrop` sits cleanly above every non-modal control with viewport-clamped centered
+layout (`[16, width - 16] x [16, height - 16]`), `HasActiveModalUi()` traps Tab/`Ctrl+Tab`, shortcuts, drops, and backdrop
+scroll wheel events, `Surface::Paint` guards null brushes and resets `_dashedStroke`/`_ellipsisSign` across resource
+generations and typography revisions, **Settings → Writing** exposes the **Keep unsaved edits on exit without asking**
+toggle (`exitUnsavedBehavior`), **Settings → Accounts** manages GitHub Personal Access Tokens (`PasswordRevealMode::Peek`,
+cleared on leave/Sign Out) and explicit `gh` CLI opt-in without startup network calls (hiding OAuth Device Flow buttons
+while `DefaultGitHubDeviceClientId` is empty), and closing/cancelling modals clears `_saveConfirmSession` cleanly. Files
+sidebar displays disambiguated multi-folder collapsible sections, GitHub repo sections, and the full local context
+menu (`Reveal in File Explorer`, `Reveal in RedSalamander`, path copy, `Rename`, `Cut`, `Copy`, `Paste`). Captures must be
+actual application renders, tagged with dependency SHA, source identity, binary hash, dimensions, theme and scenario.
 Proposal art is separately labelled. Physical screen-reader/IME/touch acceptance and real focus restoration require
 separate evidence.

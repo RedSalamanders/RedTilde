@@ -45,9 +45,11 @@ Open and save local `.md`, `.markdown` and text files using strict UTF-8. Preser
 invalid UTF-8/NUL/oversized files fail before replacing the current document. New documents use UTF-8 without BOM.
 The current source limit is 65,536 UTF-16 units (`DxUi::RichText::Document::MaximumUnits`). Shared bounded helpers
 `ReadBytes` and `WriteBytesAtomic` accept an explicit `maximumBytes` cap defaulting to the encoded document ceiling while
-permitting settings callers to enforce `16 MiB` (`MaximumSettingsFileBytes`). Directory traversal and print-to-file
-outputs (`FilesService` and `Printing.cpp`) use the same `IsReparseTagNameSurrogate` admission, `FileIdInfo` fallback,
-explicit `FlushFileBuffers` staging durability, and protected `ReplaceFileW` fallback semantics.
+permitting settings callers to enforce `16 MiB` (`MaximumSettingsFileBytes`) and rejecting relative paths (`E_INVALIDARG`) and
+embedded NULs. `Storage.cpp`, `Files.cpp`, `FileOps.cpp`, and `CustomDictionary.cpp` share `Common/PathSecurity.h`
+(`VerifyPathNoSurrogateReparse`, `VerifyDiskHandle`, `NormalizeRootPath`, `SameRootPath`, `IsValidWin32PathString`) alongside
+explicit `FlushFileBuffers` staging durability and protected `ReplaceFileW` fallback semantics. Printing (`Printing.cpp`) uses
+matching reparse-safe staging for print-to-file destinations.
 File pickers label `.txt` as UTF-8 only. Unsupported encoding/NUL has a localized UTF-8 explanation; oversized
 input and editing/command capacity refusals report a localized limit explanation (`IDS_FILETOOLARGELIMIT`, including
 the actual decoded UTF-16-unit count when bounded valid input can be counted, or `MaximumUnits` for in-editor command
@@ -70,8 +72,8 @@ complete recovery copy. Missing or unavailable recovery declines before target m
 the replacement operation authorizes fallback; an equal HRESULT from staging, flush, readback or metadata does
 not. Access/sharing failures never authorize fallback. Raw settings/recovery atomic writes retain their ordinary
 failure result. Real cloud/share/WSL qualification remains separate from directed local provider refusals.
-Close the exclusive staging handle before failure cleanup, including failed WriteFile and FlushFileBuffers
-paths. Directed atomic-staging faults must leave the target bytes/stamp unchanged and no owned `.tmp` behind.
+Close the exclusive staging handle (`guard.reset()`) before failure cleanup or `MoveFileExW` fallback, including failed
+`WriteFile` and `FlushFileBuffers` paths. Directed atomic-staging faults must leave the target bytes/stamp unchanged and no owned `.tmp` behind.
 After staging an existing-file save, open the selected file for read and delete access with only read and delete sharing.
 Keep this write guard open across the expected-version check and the replacement. Recheck that the final name still
 selects the guarded object, including before a provider fallback. A different file object is a conflict
@@ -82,17 +84,18 @@ picker returns an existing destination, the file worker observes its version bef
 consent. A newly selected missing destination is admitted as a non-replacing creation. Unknown identities remain conservative.
 Keep the complete 64-bit volume serial and 128-bit identifier returned by
 [`FileIdInfo`](https://learn.microsoft.com/en-us/windows/win32/api/winbase/ns-winbase-file_id_info), including
-ReFS identifiers. Only explicit unsupported-information errors permit a provider's legacy handle identity; when that
-legacy `BY_HANDLE_FILE_INFORMATION` reports a non-zero `nFileIndex` with `dwVolumeSerialNumber == 0` (such as WSL 2 `9P`),
-derive a non-zero volume fingerprint from the normalized handle volume/share root (`GetFinalPathNameByHandleW`) so
-object identity checks (`HasIdentity`/`SameObject`) remain sound without masking metadata failures. Other metadata
-failures propagate. A missing identity never establishes automatic overwrite consent. Native
+ReFS identifiers. When `FileIdInfo` or legacy `BY_HANDLE_FILE_INFORMATION` reports a non-zero file index with
+`volumeSerialNumber == 0` (such as WSL 2 `9P`), `CompleteIdentity` derives a non-zero `VolumeRootFingerprint` from the
+normalized handle volume/share root (`GetFinalPathNameByHandleW`) so object identity checks (`HasIdentity`/`SameObject`)
+remain sound without masking metadata failures. Only explicit unsupported-information errors permit the legacy handle
+identity fallback; other metadata failures propagate. A missing identity never establishes automatic overwrite consent. Native
 NTFS/ReFS diagnostics compare the actual complete handle identity independently of stamp equality.
 An uncooperative rename can still occur between the final name check and a pathname operation. If the guard or name check
 refuses the replacement, preserve the accepted document state and leave the newer target intact. Publishing a new file
 refuses a competing creation. Native OneDrive/cloud, SMB/NAS and WSL retain their independent qualification.
 
-Saving through a symbolic link resolves its final followed target using handle-derived identity and path. Keep
+Saving through a symbolic link resolves its final followed target using a cooperative `GENERIC_READ` share lease and
+handle-derived identity and path (`ResolveSymbolicTarget`). Keep
 the symbolic entry intact and protect that chosen entry against cooperative replacement while saving the target.
 Relative targets, Unicode paths and a symbolic link to a hardlinked target use the same target policy. A dangling
 link fails without replacing the link entry. Non-name-surrogate provider reparse tags retain their provider path.
@@ -170,8 +173,8 @@ requests are ignored. They keep the original prompt and continuation; they neith
 Cancel leaves the current source, selection and history intact. A later fresh Close may ask again normally.
 
 Drag-and-drop (`WM_DROPFILES` / `OpenDroppedFile`) admits at most one absolute non-directory file whose extension is
-`.md`, `.markdown`, or `.txt` (ordinal case-insensitive), and only when `CanAcceptCommand()`, `!HasActiveModalPrompt()`,
-`!HasBlockDraft()`, and `!files.Busy()` hold. Multi-file drops (`IDS_DROPMULTIPLE`), directories, missing paths,
+`.md`, `.markdown`, or `.txt` (ordinal case-insensitive), and only when `CanAcceptCommand()`, `!HasActiveModalUi()`,
+`!_printPreview`, and `!files.Busy()` hold. Multi-file drops (`IDS_DROPMULTIPLE`), directories, missing paths,
 embedded NULs, paths `>= 32,767` UTF-16 units, or unsupported extensions (`IDS_DROPUNSUPPORTED`) refuse immediately
 without opening an unsaved-changes prompt or mutating the active document. Valid dropped files route through `OpenPath`
 with normal unsaved-changes protection, UTF-8/capacity validation, and workspace switching.
@@ -206,7 +209,7 @@ source. It must never replace the user's Markdown file automatically. A clean sa
 Restart offers a read-only source preview with Restore a copy, Discard snapshot and Keep for later. When several
 copies are available, **Restore all copies** retains them as independent documents without overwriting the current
 workspace. Capacity is checked before starting. Restored documents with identical original paths and untitled
-copies remain separately reachable through Open documents. The settings
+copies remain dirty and separately reachable through **Modified documents**. The settings
 drawer can reopen pending snapshots. Restored source retains BOM, line endings, original location for relative
 images and source selection; it is dirty and Save requires Save As. It never silently overwrites the original.
 
@@ -251,3 +254,36 @@ entry limit stopped a nonempty remainder under the service mutex before reportin
 actual startup work; they do not assert a filesystem completion-time bound or change snapshot ownership.
 Another live session's leased snapshot is never offered or deleted. Candidate retirement after Restore happens
 only after the new session's replacement is durable. The checksum detects corruption, not hostile tampering.
+
+## Session resume, save confirmation, and workspace file operations
+
+- **`RedTilde.Recovery/2` (`SessionResume` vs `CrashRecovery`):** JSON-encoded checksummed recovery envelopes add
+  `snapshotKind` (`CrashRecovery` or `SessionResume`), `workspaceOrder`, `wasActive`, `recovered` (`bool`), `savedBaselineStamp`, and
+  `DocumentOriginInfo` (`Local`, `Untitled`, or `GitHub` with `owner`/`repo`/`branch`/`relativePath`/`blobSha`/`htmlUrl`),
+  while continuing to migrate legacy `RedTilde.Recovery/1` envelopes.
+- **Hot exit (`Keep & Exit`) & non-blocking session end:** Clicking **Keep & Exit** inside `SaveConfirmModal`, enabling
+  `ExitUnsavedBehavior::KeepAndResume`, or receiving `WM_QUERYENDSESSION`/`WM_ENDSESSION(TRUE)` (always non-blocking
+  even when `"prompt"` is active) checkpoints dirty workspace documents as `SessionResume` without blocking exit. On
+  next launch (without `CrashRecovery` precedence), valid `SessionResume` entries reopen silently once `_files.Busy()`
+  clears into the editable workspace with their dirty state, `recovered` flag, original `DocumentOriginInfo`, and
+  `savedBaselineStamp` (keeping an explicit CLI `--document` active in slot `0` while adding resumed documents as inactive
+  slots), letting **Ctrl+S** save directly to disk while detecting external edits made while closed.
+- **DxUi save confirmation (`SaveConfirmModal`)**: Under default `ExitUnsavedBehavior::Prompt` on manual close or
+  non-exit document-replacing commands, dirty documents show an in-app centered modal listing each file name (`filename`)
+  alongside its disambiguated folder section (`sectionLabel`) and folder-relative or repo-relative path (`relativePath`),
+  offering **Save** / **Save Selected**, **Keep & Exit** (on window close), **Don't Save** / **Discard All**, and **Cancel**.
+  `Ctrl+W` (`Command::CloseDocument`) passes `activeDocumentOnly = true` to protect only the active document without
+  closing unrelated workspace documents.
+- **Safe workspace file operations (`FileOpsService`):** Renames and clipboard `CF_HDROP` Cut/Copy/Paste validate single
+  file/folder names (rejecting empty names, `.`/`..`, separators, invalid Win32 characters, trailing dots/spaces, and
+  space-trimmed reserved DOS device names via `IsReservedDosName`), check fail-closed ancestor-and-self reparse points
+  (`HasAnyReparseAncestorOrSelf`), refuse self or descendant folder pastes and destination symlinks, walk directories with
+  bounded Win32 enumeration, carry `DropEffectKind` and worker-probed `destinationIsDirectory` in `WorkspaceFileOpResult`,
+  handle case-only renames safely via `FileIdInfo` + `FILE_CS_FLAG_CASE_SENSITIVE_DIR` (without `MOVEFILE_REPLACE_EXISTING`),
+  support cross-volume/provider directory moves via copy-then-delete fallback, refuse Paste onto GitHub rows, stage explicit
+  collision prompts (**Replace**, **Keep Both (- Copy)**, **Cancel**), rebase open workspace and recovery paths atomically
+  after a rename/move, and execute **Reveal in File Explorer** / **Reveal in RedSalamander** off the UI thread with safe
+  quoted `--select=` arguments (`Command::FilesCtxRevealExplorer`, `Command::FilesCtxRevealRedSalamander`).
+- **GitHub read-through origin (`DocumentOriginInfo::Kind::GitHub`):** Opening a Markdown blob via GitHub fetches
+  UTF-8 content read-only (capped at `DxUi::RichText::Document::MaximumUnits`), binds `DocumentOriginInfo`, marks
+  `RequiresSaveAs() == true`, and routes **Save** through **Save As…** to a local path with zero write-back to GitHub.

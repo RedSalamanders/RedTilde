@@ -75,6 +75,7 @@ public:
                 result = {};
             _state->resultCount = _state->resultBytes = 0u;
             _state->hasResults.store(false, std::memory_order_release);
+            _state->hasActiveOrResults.store(false, std::memory_order_release);
         }
         // An active callback retains only State and its owned job. It checks
         // cancellation and cannot call the view/editor or post after closure.
@@ -115,6 +116,7 @@ public:
             _state->jobs.swap(staged);
             _state->jobCount = previousCount;
         }
+        _state->SyncHasActiveOrResults();
         return scheduled;
     }
     void SetDocumentContext(std::wstring_view document) noexcept
@@ -133,6 +135,10 @@ public:
     bool HasResults() const noexcept
     {
         return _state && _state->hasResults.load(std::memory_order_acquire);
+    }
+    bool HasActiveOrResults() const noexcept
+    {
+        return _state && _state->hasActiveOrResults.load(std::memory_order_acquire);
     }
     void DiscardCancelled() noexcept
     {
@@ -166,6 +172,7 @@ public:
         // Still-valid queued requests need the same event-driven wake as Drain.
         if (FAILED(_state->Schedule(_state)))
             OutputDebugStringW(L"RedTilde: image continuation was not admitted during process shutdown.\n");
+        _state->SyncHasActiveOrResults();
     }
     void SetAllowLocalNetwork(bool allowed) noexcept
     {
@@ -203,6 +210,7 @@ public:
         _state->hasResults.store(remaining != 0u, std::memory_order_release);
         if (FAILED(_state->Schedule(_state)))
             OutputDebugStringW(L"RedTilde: image continuation was not admitted during process shutdown.\n");
+        _state->SyncHasActiveOrResults();
         return count;
     }
 
@@ -232,6 +240,7 @@ private:
         DxUi::RichText::RichImageRequest current;
         std::size_t jobCount{}, resultCount{}, resultBytes{};
         std::atomic_bool hasResults{false};
+        std::atomic_bool hasActiveOrResults{false};
         WorkerPhase phase{WorkerPhase::Idle};
         std::wstring documentPath;
         std::atomic_bool allowLocalNetwork{};
@@ -240,6 +249,10 @@ private:
         WPARAM cookie{};
         std::shared_ptr<State> callbackLifetime;
         RedTilde::ProcessWorkLease callbackLease;
+        void SyncHasActiveOrResults() noexcept
+        {
+            hasActiveOrResults.store(phase == WorkerPhase::Active || jobCount != 0u || resultCount != 0u, std::memory_order_release);
+        }
         HRESULT Schedule(const std::shared_ptr<State>& lifetime) noexcept
         {
             if (phase != WorkerPhase::Idle || ! jobCount || resultCount == MaximumJobs || resultBytes > MaximumResultBytes - MaximumImageBytes)
@@ -249,12 +262,15 @@ private:
                 return admitted;
             callbackLifetime = lifetime;
             phase            = WorkerPhase::Active;
+            SyncHasActiveOrResults();
             SubmitThreadpoolWork(work.get());
             return S_OK;
         }
-        static void CALLBACK Worker(PTP_CALLBACK_INSTANCE, void* context, PTP_WORK) noexcept
+        static void CALLBACK Worker(PTP_CALLBACK_INSTANCE instance, void* context, PTP_WORK) noexcept
         {
             RedTilde::ProcessWorkLease lease;
+            if (instance)
+                (void)CallbackMayRunLong(instance);
             auto& state            = *static_cast<State*>(context);
             const auto initialized = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
             const auto apartment   = wil::scope_exit([=] noexcept
@@ -269,14 +285,15 @@ private:
                 lease    = std::move(state.callbackLease);
                 lifetime = state.callbackLifetime;
             }
+            const bool comReady = SUCCEEDED(initialized) || initialized == RPC_E_CHANGED_MODE;
             wil::com_ptr_nothrow<IWICImagingFactory> factory;
-            const auto factoryResult = SUCCEEDED(initialized) ? DxUi::Failure::InvokeNative(&CoCreateInstance,
-                                                                                            CLSID_WICImagingFactory,
-                                                                                            nullptr,
-                                                                                            static_cast<DWORD>(CLSCTX_INPROC_SERVER),
-                                                                                            __uuidof(IWICImagingFactory),
-                                                                                            reinterpret_cast<void**>(factory.put()))
-                                                              : initialized;
+            const auto factoryResult = comReady ? DxUi::Failure::InvokeNative(&CoCreateInstance,
+                                                                              CLSID_WICImagingFactory,
+                                                                              nullptr,
+                                                                              static_cast<DWORD>(CLSCTX_INPROC_SERVER),
+                                                                              __uuidof(IWICImagingFactory),
+                                                                              reinterpret_cast<void**>(factory.put()))
+                                                : initialized;
             for (;;)
             {
                 DxUi::RichText::RichImageRequest request;
@@ -289,6 +306,7 @@ private:
                     {
                         state.phase = (state.phase == WorkerPhase::Closing || state.phase == WorkerPhase::Stopped) ? WorkerPhase::Stopped : WorkerPhase::Idle;
                         state.callbackLifetime.reset();
+                        state.SyncHasActiveOrResults();
                         return;
                     }
                     request       = state.jobs[0u];
@@ -369,6 +387,7 @@ private:
                         if (image)
                             state.resultBytes += image->Pixels().size();
                         state.hasResults.store(true, std::memory_order_release);
+                        state.SyncHasActiveOrResults();
                         // PostMessage never invokes the owner synchronously.
                         // Keep the nonblocking post in the same critical section
                         // as closure so a retired HWND cannot receive a late post.
