@@ -19,7 +19,8 @@ On ordinary interactive startup (and probes explicitly opting into cold recovery
 - **Valid JSON5 present**: parses valid properties, falls back per field for invalid individual values, preserves `FileStamp`, and returns `SettingsLoadStatus::Loaded`.
 - **JSON5 absent + legacy `RedTilde.settings` (`RedTilde.Settings/1` with LF or CRLF line endings) present**: performs a lossless one-time migration (`ParseLegacySettings`) and atomically writes `RedTilde.settings.json` (or `RedTilde-debug.settings.json`) while leaving the legacy file intact on disk (`SettingsLoadStatus::Migrated`). Subsequent launches load the JSON5 file directly, and `SaveSettings` skips no-op writes whose normalized serialized document matches the existing file bytes on disk so user comments are preserved.
 - **Both absent**: writes a clean defaults template (`schema: 1`) atomically and returns `SettingsLoadStatus::Missing`.
-- **Malformed JSON5 or invalid `schema`**: moves the corrupt file atomically in the same directory to `<settings-path>.invalid-<yyyyMMdd-HHmmss-fff>` preserving its exact bytes, writes a clean defaults template, and returns `SettingsLoadStatus::Invalid`.
+- **Malformed JSON5**: writes its exact bytes to a new `<settings-path>.invalid-<yyyyMMdd-HHmmss-fff>` sibling and publishes a defaults template only against the version read. A competing edit is preserved. Returns `SettingsLoadStatus::Invalid`.
+- **Readable JSON5 outside the settings contract**: preserves the file at its path and returns defaults in memory with `SettingsLoadStatus::Incompatible`.
 - **Unreadable or oversized (`> 16 MiB`)**: leaves the disk file untouched, creates no `.invalid-*` backup, returns defaults in memory, and returns `SettingsLoadStatus::Unreadable`.
 
 Both `LoadSettingsLive` and `SaveSettings` validate any existing file first without creating `.invalid-*` backups or overwriting malformed or oversized files (`ERROR_BAD_FORMAT` / `ERROR_FILE_TOO_LARGE`).

@@ -14,6 +14,18 @@ param(
 )
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
+function Assert-VcpkgPinParity([string] $Root) {
+    $toolIdentity = Get-Content -LiteralPath (Join-Path $Root 'vcpkg-tool.json') -Raw | ConvertFrom-Json
+    $toolCommit = ([string]$toolIdentity.commit).ToLowerInvariant()
+    if ($toolCommit -cnotmatch '^[0-9a-f]{40}$') {
+        throw 'vcpkg-tool.json must contain a full 40-character commit hash.'
+    }
+    $manifest = Get-Content -LiteralPath (Join-Path $Root 'vcpkg.json') -Raw | ConvertFrom-Json
+    $baseline = if ($manifest.PSObject.Properties['builtin-baseline']) { ([string]$manifest.'builtin-baseline').ToLowerInvariant() } else { '' }
+    if ($baseline -cne $toolCommit) {
+        throw "vcpkg.json builtin-baseline '$baseline' does not match vcpkg-tool.json commit '$toolCommit'."
+    }
+}
 if ($CompilerFree) {
     $EngineRoot = [IO.Path]::GetFullPath($EngineRoot)
     Import-Module (Join-Path $EngineRoot 'Tools/Modules/Ci.Policy.psm1') -Scope Local -ErrorAction Stop
@@ -23,6 +35,7 @@ if ($CompilerFree) {
     try {
         $env:CI_NATIVE_BUILDS_DISABLED = 'true'
         Test-CiProjectConfiguration $context
+        Assert-VcpkgPinParity $PSScriptRoot
         & (Join-Path $EngineRoot 'Tools/Test-Workflows.ps1') -Root $PSScriptRoot
         $baseCommit = Resolve-CiCommit $PSScriptRoot $Base
         Invoke-CiProjectScript -Context $context -Script 'Tools/Test-Changelog.ps1' -Arguments @('-Base', $baseCommit)
@@ -69,6 +82,7 @@ Check 'Exact dependency and capability status' {
     if ($vcpkgVer -cnotmatch '^\d+\.\d+\.\d+$' -or $vcpkgBase -cne $headerBase) {
         throw "vcpkg.json version-string '$vcpkgVer' does not match Common/Version.h '$headerBase'."
     }
+    Assert-VcpkgPinParity $PSScriptRoot
 }
 Check 'Evaluated Release compiler and linker policy' {
     & (Join-Path $PSScriptRoot 'Tests/Tooling.Tests.ReleaseBuildPolicy.ps1')

@@ -139,7 +139,8 @@ enum class SettingsLoadStatus : std::uint8_t
     Missing,
     Migrated,
     Invalid,
-    Unreadable
+    Unreadable,
+    Incompatible,
 };
 
 struct SettingsLoadResult

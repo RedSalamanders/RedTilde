@@ -581,9 +581,11 @@ function Assert-DependencyEvidence($Study,$Comparison,[string]$StudyRoot) {
     }
     $mode=$Study.dependencyComparisonMode
     Require ($mode -cin @('same-pin','sdk-adoption','reviewed-header-delta') -and $Comparison.dependencyComparisonMode -ceq $mode) 'Invalid dependency comparison mode.'
+    $allowedApis=if($mode -ceq 'same-pin') { @(4,5) } else { @(4) }
     foreach($dependency in @($base,$candidate)) {
+        $api=$dependency.Identity.apiRevision
         Require ($dependency.Fingerprint -cmatch '^[0-9a-fA-F]{64}$' -and $dependency.Identity.commit -cmatch '^[0-9a-f]{40}$' -and
-            ($dependency.Identity.apiRevision -is [int] -or $dependency.Identity.apiRevision -is [long]) -and ($dependency.Identity.apiRevision -eq 4 -or $dependency.Identity.apiRevision -eq 5)) 'Invalid dependency build metadata.'
+            ($api -is [int] -or $api -is [long]) -and $api -cin $allowedApis) 'Invalid dependency build metadata.'
     }
     Require ($base.Identity.platform -ceq $Study.baseline.build.platform -and $candidate.Identity.platform -ceq $Study.candidate.build.platform -and
         $Study.baseline.build.platform -ceq 'x64' -and $Study.candidate.build.platform -ceq 'x64') 'Dependency platform must match the measured x64 build.'

@@ -316,8 +316,9 @@ HRESULT Application::Initialize()
         {
             _settingsFileStamp = loaded.stamp;
         }
-        if (loaded.status == SettingsLoadStatus::Invalid || loaded.status == SettingsLoadStatus::Unreadable)
-            MonitorDiagnostics::Write(RedMonitor::Severity::Warning, L"Settings file on startup could not be parsed cleanly; defaults applied");
+        if (loaded.status == SettingsLoadStatus::Invalid || loaded.status == SettingsLoadStatus::Unreadable ||
+            loaded.status == SettingsLoadStatus::Incompatible)
+            MonitorDiagnostics::Write(RedMonitor::Severity::Warning, L"RedTilde could not use the settings file on startup. Defaults applied.");
     }
     WNDCLASSEXW cls{sizeof(cls)};
     cls.lpfnWndProc   = WindowProc;

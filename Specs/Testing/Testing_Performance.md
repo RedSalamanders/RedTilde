@@ -109,7 +109,9 @@ toolchain change. Every project translation unit must have exactly one command a
 mixed, missing, duplicate or forced-include commands refuse comparison. All optimization, diagnostic, macro,
 sanitizer, include and output options remain in the profile. External paths stay exact. The separate dependency
 identity still requires identical compiler/linker/MSBuild binaries, SDK headers/libraries, runtime, architecture
-and exact DxUi pin. Both sides use this common instrumented protocol before a new baseline is frozen.
+and exact DxUi pin. The same-pin auditor reads matching API 4 and API 5 evidence. The historical SDK adoption
+and reviewed-header modes retain their API 4 contracts. Both sides use this common instrumented protocol
+before a new baseline is frozen.
 The evidence auditor recomputes the normalized profile hash, checks the unique homogeneous source inventory
 and verifies each retained raw command file. Historical schema-less receipts remain readable as historical
 evidence; new paired collection requires a freshly frozen schema-2 compiler profile.
@@ -144,6 +146,11 @@ coverage cannot establish quiet. Tolerate disappearing process properties as una
 volatile values once and retain observer errors. Normalize UTC/local/JSON date representations before checking
 coverage. A failed collector permits a documented replacement collection after repair, with every failed attempt
 retained and no pooling or selection based on its statistical findings.
+
+The hosted paired workflow selects WARP and uses this same observer. It audits both complete studies with the
+independent evidence reader. Unstable controls, an incomplete quiet-host observation or a resolved regression
+fail the hosted check. A successful check makes the pair available for review under this contract. The
+encrypted packet retains the native observations, logs, build and source receipts, and independent audit.
 User-directed shared-host execution proceeds with activity recorded; a powerful host is not evidence of quiet.
 Do not change power policy, affinity, priorities, the primary family or investigation bands to force acceptance.
 A later collection explicitly requested after a reported host-condition change is a separate fixed-scope cohort.

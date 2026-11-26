@@ -376,9 +376,10 @@ Settings ParseLegacySettings(std::string_view bytes)
     return settings;
 }
 
-HRESULT TryParseSettings(std::string_view bytes, Settings& settings, std::uint64_t* schemaVersion) noexcept
+static HRESULT TryParseSettingsDocument(std::string_view bytes, Settings& settings, std::uint64_t* schemaVersion, SettingsLoadStatus& status) noexcept
 try
 {
+    status = SettingsLoadStatus::Invalid;
     if (bytes.empty())
         return HRESULT_FROM_WIN32(ERROR_BAD_FORMAT);
     if (bytes.size() > MaximumSettingsFileBytes)
@@ -388,6 +389,7 @@ try
     if (! doc)
         return HRESULT_FROM_WIN32(ERROR_BAD_FORMAT);
 
+    status           = SettingsLoadStatus::Incompatible;
     yyjson_val* root = yyjson_doc_get_root(doc.get());
     if (! root || ! yyjson_is_obj(root))
         return HRESULT_FROM_WIN32(ERROR_BAD_FORMAT);
@@ -559,11 +561,18 @@ try
     settings = std::move(parsed);
     if (schemaVersion)
         *schemaVersion = schema;
+    status = SettingsLoadStatus::Loaded;
     return S_OK;
 }
 catch (const std::bad_alloc&)
 {
     DxUi::Failure::FailAllocation();
+}
+
+HRESULT TryParseSettings(std::string_view bytes, Settings& settings, std::uint64_t* schemaVersion) noexcept
+{
+    SettingsLoadStatus status{};
+    return TryParseSettingsDocument(bytes, settings, schemaVersion, status);
 }
 
 Settings ParseSettings(std::string_view bytes)
@@ -790,25 +799,25 @@ try
     if (SUCCEEDED(readResult))
     {
         Settings parsed;
-        const HRESULT parseResult = TryParseSettings(bytes, parsed);
+        const HRESULT parseResult = TryParseSettingsDocument(bytes, parsed, nullptr, outcome.status);
         if (SUCCEEDED(parseResult))
         {
             outcome.settings = std::move(parsed);
-            outcome.status   = SettingsLoadStatus::Loaded;
             outcome.stamp    = readStamp;
             return outcome;
         }
 
-        outcome.status    = SettingsLoadStatus::Invalid;
+        if (outcome.status != SettingsLoadStatus::Invalid)
+            return outcome;
+
         const auto backup = BackupPathFor(path);
-        if (MoveFileExW(path.c_str(), backup.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+        const FileStamp missingStamp{};
+        if (SUCCEEDED(WriteBytesAtomic(backup, bytes, &missingStamp, nullptr, false, nullptr, false, nullptr, MaximumSettingsFileBytes)))
         {
             outcome.backupPath     = backup;
             const std::string text = SerializeSettings(outcome.settings);
-            const FileStamp missingStamp{};
             outcome.templateWritten =
-                ! text.empty() &&
-                SUCCEEDED(WriteBytesAtomic(path, text, &missingStamp, &outcome.stamp, false, nullptr, false, nullptr, MaximumSettingsFileBytes));
+                ! text.empty() && SUCCEEDED(WriteBytesAtomic(path, text, &readStamp, &outcome.stamp, false, nullptr, false, nullptr, MaximumSettingsFileBytes));
         }
         return outcome;
     }

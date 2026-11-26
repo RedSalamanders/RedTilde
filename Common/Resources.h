@@ -83,4 +83,17 @@ template <class... Args> [[nodiscard]] inline std::wstring FormatStringResource(
 {
     return FormatEmbeddedStringResource(module, id, std::forward<Args>(args)...);
 }
+
+template <class... Args> inline int MessageBoxResource(HWND owner, HMODULE module, UINT textId, UINT captionId, UINT type, Args&&... args) noexcept
+{
+    const auto text = [&]()
+    {
+        if constexpr (sizeof...(Args) == 0)
+            return LoadStringResource(module, textId);
+        else
+            return FormatStringResource(module, textId, std::forward<Args>(args)...);
+    }();
+    const auto caption = LoadStringResource(module, captionId);
+    return MessageBoxW(owner, text.c_str(), caption.c_str(), type);
+}
 } // namespace RedTilde
